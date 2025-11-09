@@ -593,6 +593,52 @@ subroutine writeoffset(ncid, ncname, var, nrec, dim1, dim2, dim3)
 end subroutine writeoffset
 
 
+! 1D ring writer along X-direction (comm1dx)
+subroutine writeoffset_1dx(ncid, ncname, var, nrec, dim1, dim2, dim3)
+  use netcdf
+  use mpi
+  use modmpi, only : MY_REAL, comm1dx, myid1dx, nprocx, nbrbotx, nbrtopx
+  implicit none
+
+  integer,      intent(in) :: ncid, nrec, dim1, dim2, dim3
+  real,         intent(in) :: var(dim1,dim2,dim3)
+  character(*), intent(in) :: ncname
+
+  integer :: iret, VarID, ierr, status(MPI_STATUS_SIZE)
+  integer, dimension(4) :: startpos, countpos
+  integer :: step, src
+  real, dimension(dim1,dim2,dim3) :: bufin, bufout
+
+  call MPI_BARRIER(comm1dx, ierr)
+
+  bufin = var
+
+  iret = nf90_inq_varid(ncid, ncname, VarID)
+
+  countpos = (/ dim1,dim2,dim3, 1 /)
+
+  do step = 1, nprocx
+    if (myid1dx == 0) then
+      src = step - 1
+      startpos = (/ 1 + src*dim1, 1, 1, nrec /)
+      iret = nf90_put_var(ncid, VarID, bufin, start=startpos, count=countpos)
+    end if
+
+    call MPI_SENDRECV( &
+       bufin,  size(bufin),  MY_REAL, nbrbotx, 2000+step, &
+       bufout, size(bufout), MY_REAL, nbrtopx, 2000+step, &
+       comm1dx, status, ierr )
+     
+    bufin = bufout
+  end do
+
+  if (myid1dx == 0) then
+    iret = nf90_sync(ncid)
+  end if
+
+end subroutine writeoffset_1dx
+
+
   subroutine ncinfo(out,in1,in2,in3,in4)
 
     implicit none

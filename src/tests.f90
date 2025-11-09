@@ -2,9 +2,9 @@ module tests
   use MPI
   use decomp_2d
   use modglobal  ! Import all global variables for comprehensive output
-  use modmpi, only : comm3d, my_real, mpierr, myid, myidx, myidy, myid1dy, nprocs, nprocx, nprocy, cmyidx
+  use modmpi, only : comm3d, my_real, mpierr, myid, myidx, myidy, myid1dy, nprocs, nprocx, nprocy, cmyidx, cmyidy
 !  use stats, only : stats_createnc_tavg1d, ncidt1d, nrect
-  use modstat_nc, only : open_nc, define_nc, writestat_dims_nc, ncinfo, writeoffset
+  use modstat_nc, only : open_nc, define_nc, writestat_dims_nc, ncinfo, writeoffset, writeoffset_1dx
   !use json_module
   !use readparameters, only : readnamelists, readjsonconfig, writenamelists
   implicit none
@@ -65,14 +65,21 @@ module tests
       real, allocatable :: kslice_data(:,:,:)
       character(80) :: kslice_filename
       integer :: nkslice_count  ! Actual number of kslices
+      
+      ! jslice variables (use global jslice from modglobal)
+      integer :: local_njslice, ncid_jslice, nrec_jslice, local_idy, jj
+      real, allocatable :: jslice_data(:,:,:)
+      character(80) :: jslice_filename
+      integer :: njslice_count  ! Actual number of jslices
 
       nrect = 0
       xdim = ie-ib+1
       ydim = je-jb+1
       zdim = ke-kb+1
       
-      ! Get number of islices and kslices from modglobal
+      ! Get number of islices, jslices and kslices from modglobal
       nislice_count = nislice
+      njslice_count = njslice
       nkslice_count = nkslice
       
       call MPI_BARRIER(comm3d, mpierr)
@@ -91,7 +98,7 @@ module tests
       !call stats_createnc_tavg1d
         if (myid1dy == 0) then
         
-        filename = 'tests_t_out.xxx.xxx.nc'
+        filename = ' test_t_out.xxx.xxx.nc'
         filename(13:15) = cmyidx  ! Only x-processor ID
         filename(17:19) = cexpnr  ! Experiment number
 
@@ -154,6 +161,42 @@ module tests
       end if
       
 ! ============================================= !
+! Create jslice files
+! ============================================= !
+      if (njslice_count > 0) then
+        if (myid == 0) write(*,*) 'Creating jslice files for ', njslice_count, ' slices at y=', jslice(1:njslice_count)
+        
+        ! Count local jslices (round-robin by myidy)
+        local_njslice = 0
+        do i = 1, njslice_count
+          if (mod(i-1, nprocy) == myidy) then
+            local_njslice = local_njslice + 1
+          end if
+        end do
+        
+        if (local_njslice > 0 .and. myidx == 0) then
+          jslice_filename = 'test_jslice.xxx.xxx.nc'
+          jslice_filename(13:15) = cmyidy
+          jslice_filename(17:19) = cexpnr
+          
+          nrec_jslice = 0
+          call open_nc(jslice_filename, ncid_jslice, nrec_jslice, n1=itot, n2=local_njslice, n3=zdim)
+          
+          if (nrec_jslice == 0) then
+            call ncinfo(timeVar(1,:), 'time', 'Time', 's', 'time')
+            call define_nc(ncid_jslice, 1, timeVar)
+            call writestat_dims_nc(ncid_jslice)
+            call write_jslice_coords(ncid_jslice, local_njslice, njslice_count, jslice)
+          end if
+          
+          call ncinfo(varinfo(1,:), 'test_value', 'Test coordinate value', '1', 'tttt')
+          call define_nc(ncid_jslice, 1, varinfo)
+          
+          write(*,'(A,I3,A,I2,A)') 'Processor myidy=', myidy, ' created jslice file with ', local_njslice, ' slices'
+        end if
+      end if
+      
+! ============================================= !
 ! Create kslice files
 ! ============================================= !
       if (nkslice_count > 0) then
@@ -191,6 +234,7 @@ module tests
       test_var = coord_value
 
       if (nislice_count > 0 .and. local_nislice > 0) allocate(islice_data(local_nislice, jb:je, kb:ke))
+      if (njslice_count > 0 .and. local_njslice > 0) allocate(jslice_data(ib:ie, local_njslice, kb:ke))
       if (nkslice_count > 0) allocate(kslice_data(ib:ie, jb:je, nkslice_count))
 
       call MPI_BARRIER(comm3d, mpierr)
@@ -229,6 +273,24 @@ module tests
            call writeoffset(ncid_islice, 'test_value', islice_data, nrec_islice, local_nislice, ydim, zdim)
          end if
          
+         ! Write jslice
+         if (njslice_count > 0 .and. local_njslice > 0) then
+           jslice_data = 0.0
+           local_idy = 0
+           do i = 1, njslice_count
+             if (mod(i-1, nprocy) == myidy) then
+               local_idy = local_idy + 1
+               jj = jslice(i)
+               if (jj >= ystart(2) .and. jj <= yend(2)) then
+                 jslice_data(:, local_idy, :) = test_var(:, jj - ystart(2) + jb, :)
+               end if
+             end if
+           end do
+           
+           nrec_jslice = time_step
+           call writeoffset_1dx(ncid_jslice, 'test_value', jslice_data, nrec_jslice, xdim, local_njslice, zdim)
+         end if
+         
          ! Write kslice
          if (nkslice_count > 0) then
            kslice_data = 0.0
@@ -246,12 +308,14 @@ module tests
       ! Cleanup
       deallocate(test_var)
       if (allocated(islice_data)) deallocate(islice_data)
+      if (allocated(jslice_data)) deallocate(jslice_data)
       if (allocated(kslice_data)) deallocate(kslice_data)
       
       if (myid == 0) then
         write(*,*) 'Test completed! Files written:'
-        write(*,*) '  - tests_t_out.xxx.xxx.nc (full 3D)'
+        write(*,*) '  -  test_t_out.xxx.xxx.nc (full 3D)'
         if (nislice_count > 0) write(*,*) '  - test_islice.xxx.xxx.nc (', nislice_count, ' islices)'
+        if (njslice_count > 0) write(*,*) '  - test_jslice.xxx.xxx.nc (', njslice_count, ' jslices)'
         if (nkslice_count > 0) write(*,*) '  - test_kslice.xxx.xxx.nc (', nkslice_count, ' kslices)'
       end if
 
@@ -337,6 +401,50 @@ module tests
       
       deallocate(z_f, z_h)
     end subroutine write_kslice_coords
+
+
+    subroutine write_jslice_coords(ncid, local_njslice, njslice_total, jslice_positions)
+      use modglobal, only : yf, yh
+      use netcdf
+      implicit none
+      integer, intent(in) :: ncid, local_njslice, njslice_total
+      integer, dimension(njslice_total), intent(in) :: jslice_positions
+      integer :: varid, ierr, j, local_idy
+      real, allocatable :: y_f(:), y_h(:)
+      integer, allocatable :: indices(:)
+      
+      allocate(y_f(local_njslice))
+      allocate(y_h(local_njslice))
+      allocate(indices(local_njslice))
+      
+      local_idy = 0
+      do j = 1, njslice_total
+        if (mod(j-1, nprocy) == myidy) then
+          local_idy = local_idy + 1
+          y_f(local_idy) = yf(jslice_positions(j))
+          y_h(local_idy) = yh(jslice_positions(j))
+          indices(local_idy) = jslice_positions(j)
+        end if
+      end do
+      
+      ierr = nf90_inq_varid(ncid, 'yt', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'jslice_indices', indices)
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, y_f)
+      end if
+      
+      ierr = nf90_inq_varid(ncid, 'ym', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'jslice_indices', indices)
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, y_h)
+      end if
+      
+      deallocate(y_f, y_h, indices)
+    end subroutine write_jslice_coords
 
 
 end module tests

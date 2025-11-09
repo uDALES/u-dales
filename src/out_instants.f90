@@ -7,7 +7,7 @@ module instant_slice
   use modfields,  only : um, vm, wm, thlm, qtm, svm
   use modmpi,     only : myid, cmyidx, cmyidy
   use decomp_2d,  only : zstart, zend, xstart, xend, ystart, yend
-  use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset
+  use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset, writeoffset_1dx
   implicit none
   private
   public :: instant_init, instant_main
@@ -21,7 +21,7 @@ module instant_slice
   logical, allocatable :: jslicerank(:)   ! array of flags for each jslice on this core
   integer, allocatable :: jsliceloc(:)    ! local jslice positions on this core
   
-  integer :: local_nislice  ! Number of islices on this X-processor (saved from create phase)
+  integer :: local_nislice, local_njslice  ! Number of islices on this X-processor (saved from create phase)
   integer, allocatable :: local_islice_map(:)  ! Mapping from local index to global islice index
   
   integer                    :: nslicevars
@@ -29,6 +29,7 @@ module instant_slice
   character(80)              :: jslicename
   character(80)              :: kslicename
   character(80)              :: kslicename1d    ! Separate filename for 1D output
+  
   character(80)              :: slicetimeVar(1,4)
   character(80), allocatable :: isliceVars(:,:)
   character(80), allocatable :: jsliceVars(:,:)
@@ -88,7 +89,7 @@ module instant_slice
         allocate(jslicerank(njslice))
         allocate(jsliceloc(njslice))
         call instant_ncdescription_jslice
-        call instant_create_ncjslice    !> Generate sliced NetCDF: jslice.xxx.xxx.xxx.nc
+        call instant_create_ncjslice    ! Unified jslice creation (per myidy file, myidx==0)
         deallocate(jsliceVars)
       end if
 
@@ -257,32 +258,43 @@ module instant_slice
     end subroutine instant_create_ncislice
 
     subroutine instant_create_ncjslice
+      use modglobal, only : itot
+      use modmpi, only : myidx, myidy, nprocy
       implicit none
+      integer :: j
+      logical :: has_jslice
       
       if (njslice == 0) then
         if (myid == 0) write(*,*) "WARNING: njslice=0, no j-slices will be output"
         return
       end if
+
+      ! Count how many jslices are assigned to this Y-processor (round-robin by myidy)
+      local_njslice = 0
+      has_jslice = .false.
+      do j = 1, njslice
+        if (mod(j-1, nprocy) == myidy) then
+          local_njslice = local_njslice + 1
+          has_jslice = .true.
+        end if
+      end do
       
-      ! OPTION 1: Single file output by rank 0 only
-      ! Since Y-direction HAS decomposition, we need MPI communication
-      ! to gather data from all processors to rank 0
-      
-      if (myid == 0) then
-        jslicename = 'jslice.xxx.nc'
-        jslicename(8:10) = cexpnr   ! Experiment number
+      ! Only processors with myidx==0 create files for their myidy column
+      if (has_jslice .and. myidx == 0) then
+        jslicename = 'jslice.xxx.xxx.nc'
+        jslicename(8:10) = cmyidy   ! Y-processor ID
+        jslicename(12:14) = cexpnr  ! Experiment number
         
         nrecjslice = 0
-        ! Create file with xdim in x-dimension, njslice in y, zdim in z
-        call open_nc(jslicename, ncidjslice, nrecjslice, n1=xdim, n2=njslice, n3=zdim)
+        ! Use itot as x-dimension (global), local_n as jslice-dimension, zdim as z
+        call open_nc(jslicename, ncidjslice, nrecjslice, n1=itot, n2=local_njslice, n3=zdim)
         if (nrecjslice==0) then
           call define_nc(ncidjslice, 1, slicetimeVar)
           call writestat_dims_nc(ncidjslice)
-          call write_jslice_ycoord
+          call write_jslice_ycoord_local
         end if
         call define_nc(ncidjslice, nslicevars, jsliceVars)
-        
-        write(*,'(A,I2,A)') '  Rank 0 created jslice file with ', njslice, ' slices'
+        write(*,'(A,A,A,I2,A)') '  Processor (myidy=', cmyidy, ') created islice file with ', local_njslice, ' slices'
       end if
     end subroutine instant_create_ncjslice
 
@@ -513,221 +525,173 @@ module instant_slice
     end subroutine instant_write_islice
 
     subroutine instant_write_jslice
-      use netcdf
-      use modmpi, only : comm3d, mpi_real, mpi_sum, mpierr
+      use modmpi, only : myidx, myidy, nprocy
+      use modglobal, only : itot
       implicit none
-      real, allocatable :: tmp_slice(:,:,:), local_slice(:,:,:)
-      integer :: i, j, jj, jj_local, iret, varid
-      logical :: jslice_found
+      real, allocatable :: tmp_slice(:,:,:)
+      integer :: j, jj, jj_local, local_idy
       
       if (njslice == 0) return
-      
-      ! Debug output
-      if (myid == 0) then
-        write(*,*) 'DEBUG jslice: njslice=', njslice
-        write(*,*) 'DEBUG jslice: jslice positions=', jslice(1:njslice)
-        write(*,*) 'DEBUG jslice: xdim,zdim=', xdim, zdim
-        write(*,*) 'DEBUG jslice: ib:ie=', ib, ie
-        write(*,*) 'DEBUG jslice: jb:je=', jb, je
-        write(*,*) 'DEBUG jslice: kb:ke=', kb, ke
-      end if
-      
-      ! OPTION 1: Single file output by rank 0 with MPI_Reduce
-      ! Since Y-direction has decomposition, use MPI_Reduce to gather data
-      
-      ! Allocate local array for this processor's contribution
-      allocate(local_slice(ib:ie, njslice, kb:ke))
-      
-      ! Only rank 0 allocates the full array
-      if (myid == 0) then
-        allocate(tmp_slice(ib:ie, njslice, kb:ke))
+      if (local_njslice == 0) return
+
+      allocate(tmp_slice(ib:ie, local_njslice, kb:ke))
+      tmp_slice = 0.0
+
+      ! Write time variable (only myidx==0 writes)
+      if (myidx == 0) then
         call writestat_nc(ncidjslice, 'time', timee, nrecjslice, .true.)
       end if
-      
+
       ! u velocity
       if (present('u0')) then
-        local_slice = 0.0
+        local_idy = 0
         do j = 1, njslice
-          jj = jslice(j)  ! Global Y-position
-          if (jj >= ystart(2) .and. jj <= yend(2)) then
-            ! This processor has this jslice - calculate local j index
+          if (mod(j-1, nprocy) == myidy) then
+            local_idy = local_idy + 1
+            jj = jslice(j)
             jj_local = jj - ystart(2) + jb
-            ! Check bounds
             if (jj_local >= jb .and. jj_local <= je) then
-              local_slice(:,j,:) = um(ib:ie, jj_local, kb:ke)
+              tmp_slice(:, local_idy, :) = um(ib:ie, jj_local, kb:ke)
             end if
           end if
         end do
-        if (myid == 0) tmp_slice = 0.0
-        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
-        if (myid == 0) then
-          iret = nf90_inq_varid(ncidjslice, 'u', varid)
-          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
-        end if
+        call writeoffset_1dx(ncidjslice, 'u', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
       end if
-      
+
       ! v velocity (interpolated to cell centers in y-direction)
       if (present('v0')) then
-        local_slice = 0.0
+        tmp_slice = 0.0
+        local_idy = 0
         do j = 1, njslice
-          jj = jslice(j)
-          if (jj >= ystart(2) .and. jj <= yend(2)) then
+          if (mod(j-1, nprocy) == myidy) then
+            local_idy = local_idy + 1
+            jj = jslice(j)
             jj_local = jj - ystart(2) + jb
-            if (jj_local >= jb .and. jj_local < je) then  ! Need jj_local+1
-              local_slice(:,j,:) = 0.5*(vm(ib:ie, jj_local, kb:ke) + vm(ib:ie, jj_local+1, kb:ke))
+            if (jj_local >= jb .and. jj_local < je) then
+              tmp_slice(:, local_idy, :) = 0.5*(vm(ib:ie, jj_local, kb:ke) + vm(ib:ie, jj_local+1, kb:ke))
             end if
           end if
         end do
-        if (myid == 0) tmp_slice = 0.0
-        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
-        if (myid == 0) then
-          iret = nf90_inq_varid(ncidjslice, 'v', varid)
-          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
-        end if
+        call writeoffset_1dx(ncidjslice, 'v', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
       end if
-      
+
       ! w velocity
       if (present('w0')) then
-        local_slice = 0.0
+        tmp_slice = 0.0
+        local_idy = 0
         do j = 1, njslice
-          jj = jslice(j)
-          if (jj >= ystart(2) .and. jj <= yend(2)) then
+          if (mod(j-1, nprocy) == myidy) then
+            local_idy = local_idy + 1
+            jj = jslice(j)
             jj_local = jj - ystart(2) + jb
             if (jj_local >= jb .and. jj_local <= je) then
-              local_slice(:,j,:) = wm(ib:ie, jj_local, kb:ke)
+              tmp_slice(:, local_idy, :) = wm(ib:ie, jj_local, kb:ke)
             end if
           end if
         end do
-        if (myid == 0) tmp_slice = 0.0
-        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
-        if (myid == 0) then
-          iret = nf90_inq_varid(ncidjslice, 'w', varid)
-          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
-        end if
+        call writeoffset_1dx(ncidjslice, 'w', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
       end if
-      
+
       ! temperature
       if (present('th') .and. ltempeq) then
-        local_slice = 0.0
+        tmp_slice = 0.0
+        local_idy = 0
         do j = 1, njslice
-          jj = jslice(j)
-          if (jj >= ystart(2) .and. jj <= yend(2)) then
+          if (mod(j-1, nprocy) == myidy) then
+            local_idy = local_idy + 1
+            jj = jslice(j)
             jj_local = jj - ystart(2) + jb
             if (jj_local >= jb .and. jj_local <= je) then
-              local_slice(:,j,:) = thlm(ib:ie, jj_local, kb:ke)
+              tmp_slice(:, local_idy, :) = thlm(ib:ie, jj_local, kb:ke)
             end if
           end if
         end do
-        if (myid == 0) tmp_slice = 0.0
-        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
-        if (myid == 0) then
-          iret = nf90_inq_varid(ncidjslice, 'thl', varid)
-          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
-        end if
+        call writeoffset_1dx(ncidjslice, 'thl', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
       end if
-      
+
       ! moisture
       if (present('qt') .and. lmoist) then
-        local_slice = 0.0
+        tmp_slice = 0.0
+        local_idy = 0
         do j = 1, njslice
-          jj = jslice(j)
-          if (jj >= ystart(2) .and. jj <= yend(2)) then
+          if (mod(j-1, nprocy) == myidy) then
+            local_idy = local_idy + 1
+            jj = jslice(j)
             jj_local = jj - ystart(2) + jb
             if (jj_local >= jb .and. jj_local <= je) then
-              local_slice(:,j,:) = qtm(ib:ie, jj_local, kb:ke)
+              tmp_slice(:, local_idy, :) = qtm(ib:ie, jj_local, kb:ke)
             end if
           end if
         end do
-        if (myid == 0) tmp_slice = 0.0
-        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
-        if (myid == 0) then
-          iret = nf90_inq_varid(ncidjslice, 'qt', varid)
-          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
-        end if
+        call writeoffset_1dx(ncidjslice, 'qt', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
       end if
-      
+
       ! scalars s1-s4
       if (present('s1') .and. nsv>0) then
-        local_slice = 0.0
+        tmp_slice = 0.0
+        local_idy = 0
         do j = 1, njslice
-          jj = jslice(j)
-          if (jj >= ystart(2) .and. jj <= yend(2)) then
+          if (mod(j-1, nprocy) == myidy) then
+            local_idy = local_idy + 1
+            jj = jslice(j)
             jj_local = jj - ystart(2) + jb
             if (jj_local >= jb .and. jj_local <= je) then
-              local_slice(:,j,:) = svm(ib:ie, jj_local, kb:ke, 1)
+              tmp_slice(:, local_idy, :) = svm(ib:ie, jj_local, kb:ke, 1)
             end if
           end if
         end do
-        if (myid == 0) tmp_slice = 0.0
-        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
-        if (myid == 0) then
-          iret = nf90_inq_varid(ncidjslice, 's1', varid)
-          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
-        end if
+        call writeoffset_1dx(ncidjslice, 's1', tmp_slice, nrecjslice, xdim,  local_njslice, zdim)
       end if
-      
+
       if (present('s2') .and. nsv>1) then
-        local_slice = 0.0
+        tmp_slice = 0.0
+        local_idy = 0
         do j = 1, njslice
-          jj = jslice(j)
-          if (jj >= ystart(2) .and. jj <= yend(2)) then
+          if (mod(j-1, nprocy) == myidy) then
+            local_idy = local_idy + 1
+            jj = jslice(j)
             jj_local = jj - ystart(2) + jb
             if (jj_local >= jb .and. jj_local <= je) then
-              local_slice(:,j,:) = svm(ib:ie, jj_local, kb:ke, 2)
+              tmp_slice(:, local_idy, :) = svm(ib:ie, jj_local, kb:ke, 2)
             end if
           end if
         end do
-        if (myid == 0) tmp_slice = 0.0
-        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
-        if (myid == 0) then
-          iret = nf90_inq_varid(ncidjslice, 's2', varid)
-          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
-        end if
+        call writeoffset_1dx(ncidjslice, 's2', tmp_slice, nrecjslice, xdim,  local_njslice, zdim)
       end if
-      
+
       if (present('s3') .and. nsv>2) then
-        local_slice = 0.0
+        tmp_slice = 0.0
+        local_idy = 0
         do j = 1, njslice
-          jj = jslice(j)
-          if (jj >= ystart(2) .and. jj <= yend(2)) then
+          if (mod(j-1, nprocy) == myidy) then
+            local_idy = local_idy + 1
+            jj = jslice(j)
             jj_local = jj - ystart(2) + jb
             if (jj_local >= jb .and. jj_local <= je) then
-              local_slice(:,j,:) = svm(ib:ie, jj_local, kb:ke, 3)
+              tmp_slice(:, local_idy, :) = svm(ib:ie, jj_local, kb:ke, 3)
             end if
           end if
         end do
-        if (myid == 0) tmp_slice = 0.0
-        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
-        if (myid == 0) then
-          iret = nf90_inq_varid(ncidjslice, 's3', varid)
-          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
-        end if
+        call writeoffset_1dx(ncidjslice, 's3', tmp_slice, nrecjslice, xdim,  local_njslice, zdim)
       end if
-      
+
       if (present('s4') .and. nsv>3) then
-        local_slice = 0.0
+        tmp_slice = 0.0
+        local_idy = 0
         do j = 1, njslice
-          jj = jslice(j)
-          if (jj >= ystart(2) .and. jj <= yend(2)) then
+          if (mod(j-1, nprocy) == myidy) then
+            local_idy = local_idy + 1
+            jj = jslice(j)
             jj_local = jj - ystart(2) + jb
             if (jj_local >= jb .and. jj_local <= je) then
-              local_slice(:,j,:) = svm(ib:ie, jj_local, kb:ke, 4)
+              tmp_slice(:, local_idy, :) = svm(ib:ie, jj_local, kb:ke, 4)
             end if
           end if
         end do
-        if (myid == 0) tmp_slice = 0.0
-        call MPI_Reduce(local_slice, tmp_slice, xdim*njslice*zdim, mpi_real, mpi_sum, 0, comm3d, mpierr)
-        if (myid == 0) then
-          iret = nf90_inq_varid(ncidjslice, 's4', varid)
-          iret = nf90_put_var(ncidjslice, varid, tmp_slice, (/1,1,1,nrecjslice/), (/xdim,njslice,zdim,1/))
-        end if
+        call writeoffset_1dx(ncidjslice, 's4', tmp_slice, nrecjslice, xdim,  local_njslice, zdim)
       end if
-      
-      if (myid == 0) then
-        iret = nf90_sync(ncidjslice)
-        deallocate(tmp_slice)
-      end if
-      deallocate(local_slice)
+
+      deallocate(tmp_slice)
     end subroutine instant_write_jslice
 
     subroutine write_islice_xcoord_local
@@ -780,26 +744,30 @@ module instant_slice
       deallocate(islice_indices)
     end subroutine write_islice_xcoord_local
 
-    subroutine write_jslice_ycoord
-      ! Write y-coordinates for all jslice positions
+    subroutine write_jslice_ycoord_local
+      ! Write y-coordinates for LOCAL jslice positions (round-robin assignment over myidy)
       use modglobal, only : yf, yh
+      use modmpi, only : myidy, nprocy
       use netcdf
       implicit none
-      integer :: varid, ierr, j
+      integer :: varid, ierr, j, local_idy
       real, allocatable :: y_jslice_f(:), y_jslice_h(:)
       integer, allocatable :: jslice_indices(:)
+
+      allocate(y_jslice_f(local_njslice))
+      allocate(y_jslice_h(local_njslice))
+      allocate(jslice_indices(local_njslice))
       
-      ! Allocate and fill y coordinates for ALL jslices
-      allocate(y_jslice_f(njslice))
-      allocate(y_jslice_h(njslice))
-      allocate(jslice_indices(njslice))
+      local_idy = 0
       do j = 1, njslice
-        y_jslice_f(j) = yf(jslice(j))  ! full level (cell center)
-        y_jslice_h(j) = yh(jslice(j))  ! half level (cell edge)
-        jslice_indices(j) = jslice(j)
+        if (mod(j-1, nprocy) == myidy) then
+          local_idy = local_idy + 1
+          y_jslice_f(local_idy) = yf(jslice(j))
+          y_jslice_h(local_idy) = yh(jslice(j))
+          jslice_indices(local_idy) = jslice(j)
+        end if
       end do
-      
-      ! Write yt (full level)
+
       ierr = nf90_inq_varid(ncidjslice, 'yt', varid)
       if (ierr == nf90_noerr) then
         ierr = nf90_redef(ncidjslice)
@@ -808,8 +776,7 @@ module instant_slice
         ierr = nf90_enddef(ncidjslice)
         ierr = nf90_put_var(ncidjslice, varid, y_jslice_f)
       end if
-      
-      ! Write ym (half level)
+
       ierr = nf90_inq_varid(ncidjslice, 'ym', varid)
       if (ierr == nf90_noerr) then
         ierr = nf90_redef(ncidjslice)
@@ -818,11 +785,11 @@ module instant_slice
         ierr = nf90_enddef(ncidjslice)
         ierr = nf90_put_var(ncidjslice, varid, y_jslice_h)
       end if
-      
+
       deallocate(y_jslice_f)
       deallocate(y_jslice_h)
       deallocate(jslice_indices)
-    end subroutine write_jslice_ycoord
+    end subroutine write_jslice_ycoord_local
 
     subroutine write_kslice_zcoord(ncid)
       ! Update z-coordinate to reflect kslice levels instead of full z levels
