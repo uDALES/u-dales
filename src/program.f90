@@ -205,11 +205,11 @@ program DALESURBAN      !Version 48
 !------------------------------------------------------
     call fixuinf2
 
-    call fixuinf1
-
 #if defined(_GPU)
     call updateDevicePriorPoiss
 #endif
+
+    call fixuinf1
 
 !-----------------------------------------------------------------------
 !   3.5  PRESSURE FLUCTUATIONS, TIME INTEGRATION AND BOUNDARY CONDITIONS

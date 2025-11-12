@@ -269,18 +269,22 @@ module modforces
   end subroutine fixuinf2
 
   subroutine fixuinf1
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf,Vinf,ifixuinf,tscale,timee,rk3step,inletav,&
-                          freestreamav,lvinf
-    use modfields, only : u0,dpdxl,dgdt,dpdx,up,vp,u0av,v0av
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
+    use modglobal, only : ib, ie, jb, je, kb, ke, dt, &
+                          Uinf, Vinf, ifixuinf, rk3step, lvinf
+#if defined(_GPU)
+    use modcuda,   only : up_d, vp_d, u0av_d, v0av_d
+#else
+    use modfields, only : up, vp, u0av, v0av
+#endif
+    ! use modglobal, only : dxf,xh,timee
+    ! use modfields, only : u0, dpdxl, dpdx
+    ! use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
 
-    real  utop,freestream,rk3coef
-    integer i,j,k
+    ! real    :: utop, freestream, rk3coef
+    integer :: i, j, k
 
-    utop = 0.
-
+    ! utop = 0.
 
     if ((ifixuinf==1) .and. (rk3step==3)) then
 
@@ -298,29 +302,42 @@ module modforces
       ! Write some statistics to monitoring file
       ! if (myid==0 .and. rk3step==3) then
 
-
       ! ! dpdxl(:) = dpdx + (1./rk3coef) * (freestream - Uinf)
       ! dpdxl(:) = dpdx + (1./dt) * (freestream - Uinf)
       !call detfreestream(freestream)
       ! write(*,*) "freestream",freestream
+
       if (lvinf) then
+        !$acc kernels default(present)
         do k=kb,ke
           do i=ib,ie
             do j=jb,je
+#if defined(_GPU)
+              vp_d(i,j,k) = vp_d(i,j,k) - (1./dt) * (v0av_d(ke) - Vinf)
+#else
               vp(i,j,k) = vp(i,j,k) - (1./dt) * (v0av(ke) - Vinf)
+#endif
             enddo
           enddo
         enddo
+        !$acc end kernels
       end if
       !else
+        !$acc kernels default(present)
         do k=kb,ke
           do j=jb,je
             do i=ib,ie
+#if defined(_GPU)
+              up_d(i,j,k) = up_d(i,j,k) - (1./dt) * (u0av_d(ke) - Uinf)
+#else
               up(i,j,k) = up(i,j,k) - (1./dt) * (u0av(ke) - Uinf)
+#endif
             enddo
           enddo
         enddo
+        !$acc end kernels
       !endif
+
       ! if (myid==0) then
       !   write(*,*), "freestream", freestream
       !   write(*,*), "Uinf", Uinf
