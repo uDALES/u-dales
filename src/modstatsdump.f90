@@ -810,9 +810,13 @@ contains
             wjk(i,j,k) = 0.5*        (wm(i,j,k)          + wm(i,j-1,k))
             uij(i,j,k) = 0.5*        (um(i,j,k)          + um(i,j-1,k))
             vij(i,j,k) = 0.5*dxhi(i)*(vm(i,j,k)*dxf(i-1) + vm(i-1,j,k)*dxf(i))
-            uc (i,j,k) = 0.5*dxhi(i)*(um(i,j,k)*dxf(i-1) + um(i-1,j,k)*dxf(i))
-            vc (i,j,k) = 0.5*        (vm(i,j,k)          + vm(i,j-1,k))
-            wc (i,j,k) = 0.5*( wm(i,j,k+1) + wm(i,j,k) ) 
+            uc (i,j,k) = 0.5*        (um(i+1,j,k)        + um(i,j,k))
+            vc (i,j,k) = 0.5*        (vm(i,j+1,k)        + vm(i,j,k))
+            if (k==ke+kh) then
+              wc(i,j,k) = wc(i,j,k-1)
+            else
+              wc(i,j,k) = 0.5*        (wm(i,j,k+1)        + wm(i,j,k))
+            end if
 
             ! SGS fluxes
             ! interps ekm to cell corner (uw)
