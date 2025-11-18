@@ -1,7 +1,7 @@
 module instant_slice
   use modglobal,  only : cexpnr, rk3step, ltempeq, lmoist, nsv, tsample, dt, timee, runtime, &
                          slicevars, lislicedump, islice, ljslicedump, jslice, lkslicedump, kslice, &
-                         nkslice, nislice, njslice, &
+                         nkslice, nislice, njslice, itot,jtot, &
                          ib, ie, jb, je, kb, ke, dzfi, dzh, &
                          timee, tstatstart, jtot, itot, kmax
   use modfields,  only : um, vm, wm, thlm, qtm, svm
@@ -230,7 +230,7 @@ module instant_slice
       local_nislice = 0
       has_islice = .false.
       do i = 1, nislice
-        if ( (islice(i)-1)/nprocx == myidx) then
+        if ( (islice(i)-1)/(itot/nprocx) == myidx) then
           local_nislice = local_nislice + 1
           has_islice = .true.
         end if
@@ -273,7 +273,7 @@ module instant_slice
       local_njslice = 0
       has_jslice = .false.
       do j = 1, njslice
-        if ( (jslice(j)-1)/nprocy == myidy) then
+        if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
           local_njslice = local_njslice + 1
           has_jslice = .true.
         end if
@@ -374,32 +374,30 @@ module instant_slice
       
       ! u velocity (interpolated to cell centers in x-direction)
       if (present('u0')) then
+        tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if ( (islice(i)-1)/nprocx == myidx) then
+          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)  ! Global X-position
-            ii_local = ii - xstart(1) + ib
-            if (ii_local >= ib .and. ii_local < ie) then
-              tmp_slice(local_idx,:,:) = 0.5*(um(ii_local,:,:) + um(ii_local+1,:,:))
-            end if
+            ii_local = ii - (myidx * (itot/nprocx))
+!            ii_local = ii - zstart(1) + 1
+              tmp_slice(local_idx,:,:) = 0.5*(um(ii_local,jb:je,kb:ke) + um(ii_local+1,jb:je,kb:ke))
           end if
         end do
         call writeoffset(ncidislice, 'u', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
-      
+
       ! v velocity
       if (present('v0')) then
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if ( (islice(i)-1)/nprocx == myidx) then
+          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
-            ii_local = ii - xstart(1) + ib
-            if (ii_local >= ib .and. ii_local <= ie) then
-              tmp_slice(local_idx,:,:) = vm(ii_local,:,:)
-            end if
+            ii_local = ii - (myidx * (itot/nprocx))
+              tmp_slice(local_idx,:,:) = vm(ii_local,jb:je,kb:ke)
           end if
         end do
         call writeoffset(ncidislice, 'v', tmp_slice, nrecislice, local_nislice, ydim, zdim)
@@ -410,13 +408,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if ( (islice(i)-1)/nprocx == myidx) then
+          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
-            ii_local = ii - xstart(1) + ib
-            if (ii_local >= ib .and. ii_local <= ie) then
-              tmp_slice(local_idx,:,:) = wm(ii_local,:,:)
-            end if
+            ii_local = ii - (myidx * (itot/nprocx))           
+              tmp_slice(local_idx,:,:) = wm(ii_local,jb:je,kb:ke)
           end if
         end do
         call writeoffset(ncidislice, 'w', tmp_slice, nrecislice, local_nislice, ydim, zdim)
@@ -427,13 +423,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if ( (islice(i)-1)/nprocx == myidx) then
+          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
-            ii_local = ii - xstart(1) + ib
-            if (ii_local >= ib .and. ii_local <= ie) then
-              tmp_slice(local_idx,:,:) = thlm(ii_local,:,:)
-            end if
+            ii_local = ii - (myidx * (itot/nprocx))
+              tmp_slice(local_idx,:,:) = thlm(ii_local,jb:je,kb:ke)
           end if
         end do
         call writeoffset(ncidislice, 'thl', tmp_slice, nrecislice, local_nislice, ydim, zdim)
@@ -444,13 +438,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if ( (islice(i)-1)/nprocx == myidx) then
+          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
-            ii_local = ii - xstart(1) + ib
-            if (ii_local >= ib .and. ii_local <= ie) then
-              tmp_slice(local_idx,:,:) = qtm(ii_local,:,:)
-            end if
+            ii_local = ii - (myidx * (itot/nprocx))
+              tmp_slice(local_idx,:,:) = qtm(ii_local,jb:je,kb:ke)
           end if
         end do
         call writeoffset(ncidislice, 'qt', tmp_slice, nrecislice, local_nislice, ydim, zdim)
@@ -461,13 +453,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if ( (islice(i)-1)/nprocx == myidx) then
+          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
-            ii_local = ii - xstart(1) + ib
-            if (ii_local >= ib .and. ii_local <= ie) then
-              tmp_slice(local_idx,:,:) = svm(ii_local,:,:,1)
-            end if
+            ii_local = ii - (myidx * (itot/nprocx))
+              tmp_slice(local_idx,:,:) = svm(ii_local,jb:je,kb:ke,1)
           end if
         end do
         call writeoffset(ncidislice, 's1', tmp_slice, nrecislice, local_nislice, ydim, zdim)
@@ -477,13 +467,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if ( (islice(i)-1)/nprocx == myidx) then
+          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
-            ii_local = ii - xstart(1) + ib
-            if (ii_local >= ib .and. ii_local <= ie) then
-              tmp_slice(local_idx,:,:) = svm(ii_local,:,:,2)
-            end if
+            ii_local = ii - (myidx * (itot/nprocx))
+              tmp_slice(local_idx,:,:) = svm(ii_local,jb:je,kb:ke,2)
           end if
         end do
         call writeoffset(ncidislice, 's2', tmp_slice, nrecislice, local_nislice, ydim, zdim)
@@ -493,13 +481,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if ( (islice(i)-1)/nprocx == myidx) then
+          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
-            ii_local = ii - xstart(1) + ib
-            if (ii_local >= ib .and. ii_local <= ie) then
-              tmp_slice(local_idx,:,:) = svm(ii_local,:,:,3)
-            end if
+            ii_local = ii - (myidx * (itot/nprocx))
+              tmp_slice(local_idx,:,:) = svm(ii_local,jb:je,kb:ke,3)
           end if
         end do
         call writeoffset(ncidislice, 's3', tmp_slice, nrecislice, local_nislice, ydim, zdim)
@@ -509,13 +495,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-          if ( (islice(i)-1)/nprocx == myidx) then
+          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
             local_idx = local_idx + 1
             ii = islice(i)
-            ii_local = ii - xstart(1) + ib
-            if (ii_local >= ib .and. ii_local <= ie) then
-              tmp_slice(local_idx,:,:) = svm(ii_local,:,:,4)
-            end if
+            ii_local = ii - (myidx * (itot/nprocx))
+              tmp_slice(local_idx,:,:) = svm(ii_local,jb:je,kb:ke,4)
           end if
         end do
         call writeoffset(ncidislice, 's4', tmp_slice, nrecislice, local_nislice, ydim, zdim)
@@ -544,15 +528,15 @@ module instant_slice
 
       ! u velocity
       if (present('u0')) then
+        tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if ( (jslice(j)-1)/nprocy == myidy) then
+          if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
-            jj_local = jj - ystart(2) + jb
-            if (jj_local >= jb .and. jj_local <= je) then
+            jj_local = jj - (myidy * (jtot/nprocy))
+   !        jj_local = jslice - zstart(2) + 1
               tmp_slice(:, local_idy, :) = um(ib:ie, jj_local, kb:ke)
-            end if
           end if
         end do
         call writeoffset_1dx(ncidjslice, 'u', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
@@ -563,13 +547,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if ( (jslice(j)-1)/nprocy == myidy) then
+          if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
-            jj_local = jj - ystart(2) + jb
-            if (jj_local >= jb .and. jj_local < je) then
+            jj_local = jj - (myidy * (jtot/nprocy))
               tmp_slice(:, local_idy, :) = 0.5*(vm(ib:ie, jj_local, kb:ke) + vm(ib:ie, jj_local+1, kb:ke))
-            end if
           end if
         end do
         call writeoffset_1dx(ncidjslice, 'v', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
@@ -580,13 +562,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if ( (jslice(j)-1)/nprocy == myidy) then
+          if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
-            jj_local = jj - ystart(2) + jb
-            if (jj_local >= jb .and. jj_local <= je) then
+            jj_local = jj - (myidy * (jtot/nprocy))
               tmp_slice(:, local_idy, :) = wm(ib:ie, jj_local, kb:ke)
-            end if
           end if
         end do
         call writeoffset_1dx(ncidjslice, 'w', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
@@ -597,13 +577,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if ( (jslice(j)-1)/nprocy == myidy) then
+          if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
-            jj_local = jj - ystart(2) + jb
-            if (jj_local >= jb .and. jj_local <= je) then
+            jj_local = jj - (myidy * (jtot/nprocy))
               tmp_slice(:, local_idy, :) = thlm(ib:ie, jj_local, kb:ke)
-            end if
           end if
         end do
         call writeoffset_1dx(ncidjslice, 'thl', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
@@ -614,13 +592,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if ( (jslice(j)-1)/nprocy == myidy) then
+          if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
-            jj_local = jj - ystart(2) + jb
-            if (jj_local >= jb .and. jj_local <= je) then
+            jj_local = jj - (myidy * (jtot/nprocy))
               tmp_slice(:, local_idy, :) = qtm(ib:ie, jj_local, kb:ke)
-            end if
           end if
         end do
         call writeoffset_1dx(ncidjslice, 'qt', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
@@ -631,13 +607,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if ( (jslice(j)-1)/nprocy == myidy) then
+          if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
-            jj_local = jj - ystart(2) + jb
-            if (jj_local >= jb .and. jj_local <= je) then
+            jj_local = jj - (myidy * (jtot/nprocy))
               tmp_slice(:, local_idy, :) = svm(ib:ie, jj_local, kb:ke, 1)
-            end if
           end if
         end do
         call writeoffset_1dx(ncidjslice, 's1', tmp_slice, nrecjslice, xdim,  local_njslice, zdim)
@@ -647,13 +621,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if ( (jslice(j)-1)/nprocy == myidy) then
+          if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
-            jj_local = jj - ystart(2) + jb
-            if (jj_local >= jb .and. jj_local <= je) then
+            jj_local = jj - (myidy * (jtot/nprocy))
               tmp_slice(:, local_idy, :) = svm(ib:ie, jj_local, kb:ke, 2)
-            end if
           end if
         end do
         call writeoffset_1dx(ncidjslice, 's2', tmp_slice, nrecjslice, xdim,  local_njslice, zdim)
@@ -663,13 +635,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if ( (jslice(j)-1)/nprocy == myidy) then
+          if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
-            jj_local = jj - ystart(2) + jb
-            if (jj_local >= jb .and. jj_local <= je) then
+            jj_local = jj - (myidy * (jtot/nprocy))
               tmp_slice(:, local_idy, :) = svm(ib:ie, jj_local, kb:ke, 3)
-            end if
           end if
         end do
         call writeoffset_1dx(ncidjslice, 's3', tmp_slice, nrecjslice, xdim,  local_njslice, zdim)
@@ -679,13 +649,11 @@ module instant_slice
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
-          if ( (jslice(j)-1)/nprocy == myidy) then
+          if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
             local_idy = local_idy + 1
             jj = jslice(j)
-            jj_local = jj - ystart(2) + jb
-            if (jj_local >= jb .and. jj_local <= je) then
+            jj_local = jj - (myidy * (jtot/nprocy))
               tmp_slice(:, local_idy, :) = svm(ib:ie, jj_local, kb:ke, 4)
-            end if
           end if
         end do
         call writeoffset_1dx(ncidjslice, 's4', tmp_slice, nrecjslice, xdim,  local_njslice, zdim)
@@ -711,7 +679,7 @@ module instant_slice
       
       local_idx = 0
       do i = 1, nislice
-        if ( (islice(i)-1)/nprocx == myidx) then
+        if ( (islice(i)-1)/(itot/nprocx) == myidx) then
           local_idx = local_idx + 1
           x_islice_f(local_idx) = xf(islice(i))  ! full level (cell center)
           x_islice_h(local_idx) = xh(islice(i))  ! half level (cell edge)
@@ -760,7 +728,7 @@ module instant_slice
       
       local_idy = 0
       do j = 1, njslice
-        if ( (jslice(j)-1)/nprocy == myidy) then
+        if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
           local_idy = local_idy + 1
           y_jslice_f(local_idy) = yf(jslice(j))
           y_jslice_h(local_idy) = yh(jslice(j))

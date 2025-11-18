@@ -72,6 +72,8 @@ module tests
       character(80) :: jslice_filename
       integer :: njslice_count  ! Actual number of jslices
 
+      integer :: ii_local, jj_local
+
       nrect = 0
       xdim = ie-ib+1
       ydim = je-jb+1
@@ -133,7 +135,7 @@ module tests
         ! Count local islices
         local_nislice = 0
         do i = 1, nislice_count
-          if ( (islice(i)-1)/nprocx == myidx) then
+          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
             local_nislice = local_nislice + 1
           end if
         end do
@@ -260,12 +262,11 @@ module tests
            islice_data = 0.0
            local_idx = 0
            do i = 1, nislice_count
-             if ( (islice(i)-1)/nprocx == myidx) then
+             if ( (islice(i)-1)/(itot/nprocx) == myidx) then
                local_idx = local_idx + 1
                ii = islice(i)
-               if (ii >= xstart(1) .and. ii <= xend(1)) then
-                 islice_data(local_idx, :, :) = test_var(ii - xstart(1) + ib, :, :)
-               end if
+               ii_local = ii - (myidx * nprocx)
+                 islice_data(local_idx,:, :) = test_var(ii_local,jb:je, kb:ke)
              end if
            end do
            
@@ -278,12 +279,11 @@ module tests
            jslice_data = 0.0
            local_idy = 0
            do i = 1, njslice_count
-             if ( (jslice(i)-1)/nprocy == myidy) then
+             if ( (jslice(i)-1)/(jtot/nprocy) == myidy) then
                local_idy = local_idy + 1
                jj = jslice(i)
-               if (jj >= ystart(2) .and. jj <= yend(2)) then
-                 jslice_data(:, local_idy, :) = test_var(:, jj - ystart(2) + jb, :)
-               end if
+               jj_local = jj - (myidy * (jtot/nprocy))
+                 jslice_data(:,local_idy,:) = test_var(ib:ie, jj_local,kb:ke)
              end if
            end do
            
@@ -338,7 +338,7 @@ module tests
       
       local_idx = 0
       do i = 1, nislice_total
-        if ( (islice(i)-1)/nprocx == myidx) then
+        if ( (islice(i)-1)/(itot/nprocx) == myidx) then
           local_idx = local_idx + 1
           x_f(local_idx) = xf(islice_positions(i))
           x_h(local_idx) = xh(islice_positions(i))
