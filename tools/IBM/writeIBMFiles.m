@@ -85,6 +85,7 @@ if lmypolyfortran
     fclose(fileID);
 
     % Run
+    tic
     cd(fpath)
     if lwindows
         system('pre.exe');
@@ -93,6 +94,7 @@ if lmypolyfortran
     end
     delete pre.exe inmypoly_inp_info.txt faces.txt vertices.txt zfgrid.txt zhgrid.txt;
     cd(currentPath)
+    fprintf('Elapsed time by solid-fluid determination: %.6f seconds\n', toc);
 
     %% u-grid
     solid_ijk_u = readmatrix([fpath 'solid_u.txt'],'Range', 2);
@@ -885,6 +887,7 @@ if lmatchFacetsToCellsFortran
     fprintf(fileID,'%8d %8d %8d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n',[TR.ConnectivityList TR.incenter TR.faceNormal]');
     fclose(fileID);
 
+    tic
     cd(fpath)
     if lwindows
         system('MFTC.exe');
@@ -893,6 +896,7 @@ if lmatchFacetsToCellsFortran
     end
     delete MFTC.exe info_matchFacetsToCells.txt faces.txt vertices.txt zfgrid.txt zhgrid.txt;
     cd(currentPath)
+    fprintf('Elapsed time by MFTC: %.6f seconds\n', toc);
 
     facet_sections_u_fromfile = readmatrix([fpath 'facet_sections_u.txt'],'Range', 2);
     facet_sections_u = NaN(size(facet_sections_u_fromfile,1), 9);
@@ -1094,46 +1098,60 @@ if lmypolyfortran
 end
 
 %% Plot
-% figure
-% 
-% patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
-% hold on
-% incenters = TR.incenter;
-% faceNormals = TR.faceNormal;
-% %quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
-% view(3)
-% 
-% axis equal tight
+fig = figure('Visible', 'off');
 
-% % xlim([0 xsize])
-% % ylim([0 ysize])
-% % zlim([0 zsize])
+patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
+hold on
+incenters = TR.incenter;
+faceNormals = TR.faceNormal;
+quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
+view(3)
+axis equal tight
+% xlim([0 xsize])
+% ylim([0 ysize])
+% zlim([0 zsize])
 
-% %%Uncomment to view solid points
-%if isempty(solid_IB_ijk_u)
-%    scatter3(xgrid_u([]),ygrid_u([]),zgrid_u([]),10,[0,0,1],'filled')
-%else
-%    scatter3(xgrid_u(solid_ijk_u(:,1)),ygrid_u(solid_ijk_u(:,2)),zgrid_u(solid_ijk_u(:,3)),10,[0,0,1],'filled')
-%end
-%if isempty(solid_IB_ijk_v)
-%    scatter3(xgrid_v([]),ygrid_v([]),zgrid_v([]),10,[0,0,1],'filled')
-%else
-%    scatter3(xgrid_v(solid_ijk_v(:,1)),ygrid_v(solid_ijk_v(:,2)),zgrid_v(solid_ijk_v(:,3)),10,[0,0,1],'filled')
-%end
-%if isempty(solid_IB_ijk_w)
-%    scatter3(xgrid_w([]),ygrid_w([]),zgrid_w([]),10,[0,0,1],'filled')
-%else
-%    scatter3(xgrid_w(solid_ijk_w(:,1)),ygrid_w(solid_ijk_w(:,2)),zgrid_w(solid_ijk_w(:,3)),10,[0,0,1],'filled')
-%end
-%if isempty(solid_IB_ijk_c)
-%    scatter3(xgrid_c([]),ygrid_c([]),zgrid_c([]),10,[0,0,1],'filled')
-%else
-%    scatter3(xgrid_c(solid_ijk_c(:,1)),ygrid_c(solid_ijk_c(:,2)),zgrid_c(solid_ijk_c(:,3)),10,[0,0,1],'filled')
-%end
+%%solid points
+if isempty(solid_IB_ijk_u)
+   scatter3(xgrid_u([]),ygrid_u([]),zgrid_u([]),10,[0,0,1],'filled')
+else
+   scatter3(xgrid_u(solid_ijk_u(:,1)),ygrid_u(solid_ijk_u(:,2)),zgrid_u(solid_ijk_u(:,3)),10,[0,0,1],'filled')
+end
+if isempty(solid_IB_ijk_v)
+   scatter3(xgrid_v([]),ygrid_v([]),zgrid_v([]),10,[0,0,1],'filled')
+else
+   scatter3(xgrid_v(solid_ijk_v(:,1)),ygrid_v(solid_ijk_v(:,2)),zgrid_v(solid_ijk_v(:,3)),10,[0,0,1],'filled')
+end
+if isempty(solid_IB_ijk_w)
+   scatter3(xgrid_w([]),ygrid_w([]),zgrid_w([]),10,[0,0,1],'filled')
+else
+   scatter3(xgrid_w(solid_ijk_w(:,1)),ygrid_w(solid_ijk_w(:,2)),zgrid_w(solid_ijk_w(:,3)),10,[0,0,1],'filled')
+end
+if isempty(solid_IB_ijk_c)
+   scatter3(xgrid_c([]),ygrid_c([]),zgrid_c([]),10,[0,0,1],'filled')
+else
+   scatter3(xgrid_c(solid_ijk_c(:,1)),ygrid_c(solid_ijk_c(:,2)),zgrid_c(solid_ijk_c(:,3)),10,[0,0,1],'filled')
+end
 
-% %%Uncomment to view fluid boundary points
-%scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
-%scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
-%scatter3(fluid_IB_xyz_w(:,1),fluid_IB_xyz_w(:,2),fluid_IB_xyz_w(:,3),10,[0,0,1],'filled')
-%scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
+set(fig, 'Visible', 'on');
+savefig(fig, 'solid_points.fig');  % Save figure
+close(fig);  % Close the invisible figure
 
+
+
+fig = figure('Visible', 'off');
+
+patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
+hold on
+view(3)
+axis equal tight
+
+%%fluid boundary points
+scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
+scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
+scatter3(fluid_IB_xyz_w(:,1),fluid_IB_xyz_w(:,2),fluid_IB_xyz_w(:,3),10,[0,0,1],'filled')
+scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
+
+set(fig, 'Visible', 'on');
+savefig(fig, 'fluid_boundary_points.fig');  % Save figure
+close(fig);  % Close the invisible figure

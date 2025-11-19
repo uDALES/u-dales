@@ -217,7 +217,7 @@ contains
       call ncinfo(ncstatxy( 3,:),'wxy'     ,'Vertical velocity'           ,'m/s'    ,'mt'  )
       call ncinfo(ncstatxy( 4,:),'thlxy'   ,'Temperature'                 ,'K'      ,'tt'  )
       call ncinfo(ncstatxy( 5,:),'qtxy'    ,'Moisture'                    ,'kg/kg'  ,'tt'  )
-      call ncinfo(ncstatxy( 6,:),'pxy'     ,'Pressure'                    ,'kgm/s^2','tt'  )
+      call ncinfo(ncstatxy( 6,:),'pxy'     ,'Pressure'                    ,'m^2/s^2','tt'  )
       call ncinfo(ncstatxy( 7,:),'upwpxy'  ,'Mom. flux'                   ,'m^2/s^2','mt'  )
       call ncinfo(ncstatxy( 8,:),'wpthlpxy','Heat flux'                   ,'Km/s'   ,'mt'  )
       call ncinfo(ncstatxy( 9,:),'vpwpxy'  ,'Mom. flux'                   ,'Km/s'   ,'mt'  )
@@ -247,7 +247,7 @@ contains
       call ncinfo(ncstatxyt( 3,:),'wxyt'       ,'Vertical velocity'           ,'m/s'    ,'mt'  )
       call ncinfo(ncstatxyt( 4,:),'thlxyt'     ,'Temperature'                 ,'K'      ,'tt'  )
       call ncinfo(ncstatxyt( 5,:),'qtxyt'      ,'Moisture'                    ,'kg/kg'  ,'tt'  )
-      call ncinfo(ncstatxyt( 6,:),'pxyt'       ,'Pressure'                    ,'kgm/s^2','tt'  )
+      call ncinfo(ncstatxyt( 6,:),'pxyt'       ,'Pressure'                    ,'m^2/s^2','tt'  )
       call ncinfo(ncstatxyt( 7,:),'upwpxyt'    ,'Turbulent mom. flux'         ,'m^2/s^2','mt'  )
       call ncinfo(ncstatxyt( 8,:),'wpthlpxyt'  ,'Turbulent heat flux'         ,'K m/s'  ,'mt'  )
       call ncinfo(ncstatxyt( 9,:),'vpwpxyt'    ,'Turbulent mom. flux'         ,'m^2/s^2','mt'  )
@@ -288,7 +288,7 @@ contains
       call ncinfo(ncstatt( 3,:),'wt'        ,'Vertical velocity'           ,'m/s'    ,'ttmt'  )
       call ncinfo(ncstatt( 4,:),'thlt'      ,'Temperature'                 ,'K'      ,'tttt'  )
       call ncinfo(ncstatt( 5,:),'qtt'       ,'Moisture'                    ,'kg/kg'  ,'tttt'  )
-      call ncinfo(ncstatt( 6,:),'pt'        ,'Pressure'                    ,'kgm/s^2','tttt'  )
+      call ncinfo(ncstatt( 6,:),'pt'        ,'Pressure'                    ,'m^2/s^2','tttt'  )
       call ncinfo(ncstatt( 7,:),'sca1t'     ,'Concentration field 1'       ,'g/m^3'  ,'tttt'  )
       call ncinfo(ncstatt( 8,:),'sca2t'     ,'Concentration field 2'       ,'g/m^3'  ,'tttt'  )
       call ncinfo(ncstatt( 9,:),'sca3t'     ,'Concentration field 3'       ,'g/m^3'  ,'tttt'  )
@@ -345,7 +345,7 @@ contains
       call ncinfo(ncstatmint( 3,:),'wt'        ,'Vertical velocity'           ,'m/s'    ,'ttmt'  )
       call ncinfo(ncstatmint( 4,:),'thlt'      ,'Temperature'                 ,'K'      ,'tttt'  )
       call ncinfo(ncstatmint( 5,:),'qtt'       ,'Moisture'                    ,'kg/kg'  ,'tttt'  )
-      call ncinfo(ncstatmint( 6,:),'pt'        ,'Pressure'                    ,'kgm/s^2','tttt'  )
+      call ncinfo(ncstatmint( 6,:),'pt'        ,'Pressure'                    ,'m^2/s^2','tttt'  )
 
     !      if (myid==0) then
         call open_nc(mintname, ncidmint, nrecmint, n1=imax, n2=jmax, n3=khigh-klow+1)
@@ -810,9 +810,13 @@ contains
             wjk(i,j,k) = 0.5*        (wm(i,j,k)          + wm(i,j-1,k))
             uij(i,j,k) = 0.5*        (um(i,j,k)          + um(i,j-1,k))
             vij(i,j,k) = 0.5*dxhi(i)*(vm(i,j,k)*dxf(i-1) + vm(i-1,j,k)*dxf(i))
-            uc (i,j,k) = 0.5*dxhi(i)*(um(i,j,k)*dxf(i-1) + um(i-1,j,k)*dxf(i))
-            vc (i,j,k) = 0.5*        (vm(i,j,k)          + vm(i,j-1,k))
-            wc (i,j,k) = 0.5*( wm(i,j,k+1) + wm(i,j,k) ) 
+            uc (i,j,k) = 0.5*        (um(i+1,j,k)        + um(i,j,k))
+            vc (i,j,k) = 0.5*        (vm(i,j+1,k)        + vm(i,j,k))
+            if (k==ke+kh) then
+              wc(i,j,k) = wc(i,j,k-1)
+            else
+              wc(i,j,k) = 0.5*        (wm(i,j,k+1)        + wm(i,j,k))
+            end if
 
             ! SGS fluxes
             ! interps ekm to cell corner (uw)
