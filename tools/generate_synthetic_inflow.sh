@@ -82,7 +82,7 @@ if [ case==1 ]; then
 	cp $DA_EXPDIR/$exp/*'.'$exp .
 
 	## setting up OpenMP environmental variables
-	export OMP_NUM_THREADS=8    ## please increase this for large job based on availability of cores
+	## export OMP_NUM_THREADS=8    ## please increase this for large job based on availability of cores
 	export OMP_PLACES=cores
 
 	## run
