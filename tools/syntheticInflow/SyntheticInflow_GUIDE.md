@@ -33,7 +33,7 @@ The synthetic inflow generation process consists of two main steps:
 You can generate the required vertical profiles using the MATLAB script `write_Reynolds_stress.m`. There are two options:
 
 1. **Extract from existing simulation**: Use statistics from a previous u-DALES run (mode 1)
-2. **Customise profiles**: Define your own target profiles (mode 2)
+2. **Customize profiles**: Define your own target profiles (mode 2)
 
 ### Output Files
 
@@ -47,6 +47,8 @@ The MATLAB script generates the following input files:
 - (Optional) `Reynolds_stress_profiles_moist.txt` - Moisture statistics
 
 These files define the vertical (z-direction) profiles that characterise the turbulent flow at the inlet.
+
+COPY THE ABOVE FILES TO YOUR /experiments/{expnr}, then go step 2.
 
 ---
 
@@ -166,4 +168,3 @@ For questions or issues related to this optimization:
 ---
 
 **Last Updated**: November 21, 2025
-
