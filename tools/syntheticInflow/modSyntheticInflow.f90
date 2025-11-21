@@ -960,6 +960,52 @@ PROGRAM synInflowGen
 
 
 
+    !! ========== ORIGINAL VERSION (Kept for reference) ==========
+    !! This version uses 4-nested loops with complexity O(ny × nz × NLY2 × NLZ2)
+    !! Commented out in favor of optimized separated filtering version
+    ! SUBROUTINE calc_psi_original(NLY2,NLZ2,by,bz,psi)
+    !     IMPLICIT NONE
+    !
+    !     INTEGER, DIMENSION(0:nz), INTENT(IN) :: NLY2, NLZ2
+    !     REAL(KIND=dp), DIMENSION(0:MAXVAL(NLY2),0:nz), INTENT(IN) :: by
+    !     REAL(KIND=dp), DIMENSION(0:MAXVAL(NLZ2),0:nz), INTENT(IN) :: bz
+    !     REAL(KIND=dp), DIMENSION(0:ny,0:nz), INTENT(OUT) :: psi
+    !
+    !     REAL(KIND=dp), DIMENSION(:,:), ALLOCATABLE :: randn
+    !     
+    !     INTEGER :: nry, nrz
+    !     INTEGER :: iy, iz, j, k
+    !     
+    !     nry  = ny + MAX( MAXVAL(NLY2), MAXVAL(NLZ2) )*2
+    !     nrz  = nz + MAX( MAXVAL(NLY2), MAXVAL(NLZ2) )*2
+    !
+    !     ALLOCATE( randn(0:nry,0:nrz) )
+    !     
+    !     CALL generate_normal_rand(nry,nrz,randn)
+    !     
+    !     psi = 0.0d0
+    !
+    !     !$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(iy,iz,j,k) SCHEDULE(DYNAMIC, 8)
+    !     DO iz = 0,nz
+    !         DO iy = 0,ny 
+    !             DO k = 0,NLZ2(iz)
+    !                 DO j = 0,NLY2(iz)
+    !                     psi(iy,iz) = psi(iy,iz) + by(j,iz)*bz(k,iz)*randn(iy+j,iz+k)
+    !                 END DO
+    !             END DO
+    !         END DO
+    !     END DO
+    !     !$OMP END PARALLEL DO
+    !
+    !     DEALLOCATE(randn)
+    !
+    ! END SUBROUTINE calc_psi_original
+
+
+    !! ========== OPTIMIZED VERSION: Separated Filtering ==========
+    !! This version separates y and z direction filtering
+    !! Complexity reduced from O(ny × nz × NLY2 × NLZ2) to O(ny × nz × (NLY2 + NLZ2))
+    !! Expected speedup: 100-200x for large NLY2, NLZ2 (e.g., 400)
     SUBROUTINE calc_psi(NLY2,NLZ2,by,bz,psi)
         IMPLICIT NONE
 
@@ -968,33 +1014,43 @@ PROGRAM synInflowGen
         REAL(KIND=dp), DIMENSION(0:MAXVAL(NLZ2),0:nz), INTENT(IN) :: bz
         REAL(KIND=dp), DIMENSION(0:ny,0:nz), INTENT(OUT) :: psi
 
-        REAL(KIND=dp), DIMENSION(:,:), ALLOCATABLE :: randn
+        REAL(KIND=dp), DIMENSION(:,:), ALLOCATABLE :: randn, psi_temp
+        INTEGER :: nry, nrz, iy, iz, j, k
         
-        INTEGER :: nry, nrz
-        INTEGER :: iy, iz, j, k
-        
-        nry  = ny + MAX( MAXVAL(NLY2), MAXVAL(NLZ2) )*2
-        nrz  = nz + MAX( MAXVAL(NLY2), MAXVAL(NLZ2) )*2
+        nry = ny + MAX(MAXVAL(NLY2), MAXVAL(NLZ2))*2
+        nrz = nz + MAX(MAXVAL(NLY2), MAXVAL(NLZ2))*2
 
-        ALLOCATE( randn(0:nry,0:nrz) )
+        ALLOCATE(randn(0:nry, 0:nrz))
+        ALLOCATE(psi_temp(0:ny, 0:nrz))  ! Temporary array for intermediate result
         
-        CALL generate_normal_rand(nry,nrz,randn)
+        ! Generate random field
+        CALL generate_normal_rand(nry, nrz, randn)
         
-        psi = 0.0d0
-
-        !$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(iy,iz,j,k) SCHEDULE(DYNAMIC, 8)
-        DO iz = 0,nz
-            DO iy = 0,ny 
-                DO k = 0,NLZ2(iz)
-                    DO j = 0,NLY2(iz)
-                        psi(iy,iz) = psi(iy,iz) + by(j,iz)*bz(k,iz)*randn(iy+j,iz+k)
-                    END DO
+        ! ========== Step 1: Apply y-direction filter ==========
+        psi_temp = 0.0d0
+        !$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(iy,iz,j) SCHEDULE(DYNAMIC, 32)
+        DO iz = 0, nrz
+            DO iy = 0, ny
+                DO j = 0, NLY2(MIN(iz, nz))
+                    psi_temp(iy, iz) = psi_temp(iy, iz) + by(j, MIN(iz, nz)) * randn(iy+j, iz)
                 END DO
             END DO
         END DO
         !$OMP END PARALLEL DO
-
-        DEALLOCATE(randn)
+        
+        ! ========== Step 2: Apply z-direction filter ==========
+        psi = 0.0d0
+        !$OMP PARALLEL DO COLLAPSE(2) DEFAULT(SHARED) PRIVATE(iy,iz,k) SCHEDULE(DYNAMIC, 32)
+        DO iz = 0, nz
+            DO iy = 0, ny
+                DO k = 0, NLZ2(iz)
+                    psi(iy, iz) = psi(iy, iz) + bz(k, iz) * psi_temp(iy, iz+k)
+                END DO
+            END DO
+        END DO
+        !$OMP END PARALLEL DO
+        
+        DEALLOCATE(randn, psi_temp)
 
     END SUBROUTINE calc_psi
 
