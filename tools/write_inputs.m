@@ -208,8 +208,13 @@ if r.libm
         dlmwrite(['facets_unused.' r.expnr], facets_unused', 'precision', '%d')
     end
 
+    if isfile(['facets.inp.', expnr])
+        facet_types = readmatrix(['/facets.inp.',expnr],'FileType', 'text', 'NumHeaderLines', 1);
+        facet_types = facet_types(:,1); 
+    else
     preprocessing.write_facets(r, facet_types, TR.faceNormal);
     disp(['Written facets.inp.', r.expnr])
+    end
 
     area_facets = facetAreas(TR.ConnectivityList, TR.Points);
     preprocessing.write_facetarea(r, area_facets);
