@@ -336,7 +336,7 @@ module ibm_necessary_functions
 
         end if
         
-        !$ call OMP_SET_NUM_THREADS(4)
+        !$ call OMP_SET_NUM_THREADS(2)
         !$OMP parallel
             !$OMP sections private(ix,iy,iz,filename,filename2)
 
@@ -371,37 +371,37 @@ module ibm_necessary_functions
                 end do
             close(unit=2)
             
-            !$OMP section
-            filename2 = 'fluid_IB_' // uvwc // '.txt'
-            open(unit=3,file=filename2)
-            do iy = 1,jtot
-                do iz = 1,ktot
-                    do ix = 1,itot
-                        if (fluid_IB(ix,iy,iz)) then
-                                write(unit=3,fmt='(i1,A)',advance='no') 1, NEW_LINE('a')
-                        else
-                                write(unit=3,fmt='(i1,A)',advance='no') 0, NEW_LINE('a')
-                        end if
-                    end do
-                end do
-            end do
-            close(unit=3)
+            ! !$OMP section
+            ! filename2 = 'fluid_IB_' // uvwc // '.txt'
+            ! open(unit=3,file=filename2)
+            ! do iy = 1,jtot
+            !     do iz = 1,ktot
+            !         do ix = 1,itot
+            !             if (fluid_IB(ix,iy,iz)) then
+            !                     write(unit=3,fmt='(i1,A)',advance='no') 1, NEW_LINE('a')
+            !             else
+            !                     write(unit=3,fmt='(i1,A)',advance='no') 0, NEW_LINE('a')
+            !             end if
+            !         end do
+            !     end do
+            ! end do
+            ! close(unit=3)
 
-            !$OMP section
-            filename2 = 'solid_IB_' // uvwc // '.txt'
-            open(unit=4,file=filename2)
-            do iy = 1,jtot
-                do iz = 1,ktot
-                    do ix = 1,itot
-                        if (solid_IB(ix,iy,iz)) then
-                                write(unit=4,fmt='(i1,A)',advance='no') 1, NEW_LINE('a')
-                        else
-                                write(unit=4,fmt='(i1,A)',advance='no') 0, NEW_LINE('a')
-                        end if
-                    end do
-                end do
-            end do
-            close(unit=4)
+            ! !$OMP section
+            ! filename2 = 'solid_IB_' // uvwc // '.txt'
+            ! open(unit=4,file=filename2)
+            ! do iy = 1,jtot
+            !     do iz = 1,ktot
+            !         do ix = 1,itot
+            !             if (solid_IB(ix,iy,iz)) then
+            !                     write(unit=4,fmt='(i1,A)',advance='no') 1, NEW_LINE('a')
+            !             else
+            !                     write(unit=4,fmt='(i1,A)',advance='no') 0, NEW_LINE('a')
+            !             end if
+            !         end do
+            !     end do
+            ! end do
+            ! close(unit=4)
 
             !$OMP end sections
         !$OMP end parallel
