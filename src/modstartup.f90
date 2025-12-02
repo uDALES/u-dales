@@ -513,10 +513,10 @@ module modstartup
       call MPI_BCAST(wqsurf, 1, MY_REAL, 0, comm3d, mpierr)
       allocate (wsvsurf(1:nsv))
       wsvsurf = wsvsurfdum(1:nsv)
-      call MPI_BCAST(wsvsurf(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
+      if(nsv>0) call MPI_BCAST(wsvsurf(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       allocate (wsvtop(1:nsv))
       wsvtop = wsvtopdum(1:nsv)
-      call MPI_BCAST(wsvtop(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
+      if(nsv>0) call MPI_BCAST(wsvtop(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ps, 1, MY_REAL, 0, comm3d, mpierr)
       thvs = thls*(1.+(rv/rd - 1.)*qts)
       call MPI_BCAST(thvs, 1, MY_REAL, 0, comm3d, mpierr)
@@ -1523,44 +1523,41 @@ module modstartup
             !        end do
             !       end if
 
-            svprof = 0.
-            if (myid == 0) then
-               if (nsv > 0) then
-                  open (ifinput, file='scalar.inp.'//cexpnr)
-                  read (ifinput, '(a80)') chmess
-                  read (ifinput, '(a80)') chmess
-                  do k = kb, ke
-                     read (ifinput, *) &
-                        height(k), &
-                        (svprof(k, n), n=1, nsv)
-                  end do
-                  ! open (ifinput, file='scalar.inp.'//cexpnr)
-                  ! write (6, *) 'height   sv(1) --------- sv(nsv) '
-                  ! do k = ke, kb, -1
-                  !    write (6, *) &
-                  !       height(k), &
-                  !       (svprof(k, n), n=1, nsv)
-                  ! end do
-
-               end if
-            end if ! end if myid==0
-
-            call MPI_BCAST(svprof, (ke + kh - (kb - kh))*nsv, MY_REAL, 0, comm3d, mpierr)
-
-            if (BCxs /= BCxs_custom) then
-               do k = kb, ke
-                  do j = jb - 1, je + 1
-                     do i = ib - 1, ie + 1
-                        do n = 1, nsv
-                           sv0(i, j, k, n) = svprof(k, n)
-                           svm(i, j, k, n) = svprof(k, n)
-                        end do
-                     end do
-                  end do
-               end do
-            end if
-
             if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
+
+              svprof = 0.
+              if (myid == 0) then
+                open (ifinput, file='scalar.inp.'//cexpnr)
+                read (ifinput, '(a80)') chmess
+                read (ifinput, '(a80)') chmess
+                do k = kb, ke
+                   read (ifinput, *) &
+                      height(k), &
+                      (svprof(k, n), n=1, nsv)
+                end do
+                ! open (ifinput, file='scalar.inp.'//cexpnr)
+                ! write (6, *) 'height   sv(1) --------- sv(nsv) '
+                ! do k = ke, kb, -1
+                !    write (6, *) &
+                !       height(k), &
+                !       (svprof(k, n), n=1, nsv)
+                ! end do
+              end if ! end if myid==0
+
+              call MPI_BCAST(svprof, (ke + kh - (kb - kh))*nsv, MY_REAL, 0, comm3d, mpierr)
+
+              if (BCxs /= BCxs_custom) then
+                 do k = kb, ke
+                    do j = jb - 1, je + 1
+                       do i = ib - 1, ie + 1
+                          do n = 1, nsv
+                             sv0(i, j, k, n) = svprof(k, n)
+                             svm(i, j, k, n) = svprof(k, n)
+                          end do
+                       end do
+                    end do
+                 end do
+              end if
 
               allocate(sv_top(1:nsv))
               sv_top(:) = svprof(ke,1:nsv)
@@ -1570,16 +1567,16 @@ module modstartup
               !write(*,*) 'svprof', svprof
               !write(*,*) 'sv_top', sv_top
 
-            end if
+              !do n = 1,nsv
+              !  do j = jb - jhc, je + jhc
+              !    do i = ib - ihc, ie + ihc
+              !      svm(i, j, ke + 1, n) = svm(i, j, ke)
+              !      sv0(i, j, kb - 1, n) = sv0(i, j, kb)
+              !    end do
+              !  end do
+              !end do
 
-            !do n = 1,nsv
-            !  do j = jb - jhc, je + jhc
-            !    do i = ib - ihc, ie + ihc
-            !      svm(i, j, ke + 1, n) = svm(i, j, ke)
-            !      sv0(i, j, kb - 1, n) = sv0(i, j, kb)
-            !    end do
-            !  end do
-            !end do
+            end if
 
             !-----------------------------------------------------------------
             !    2.2 Initialize surface layer
@@ -1977,32 +1974,29 @@ module modstartup
                write (6, *) 'Modstartup: ubulk=', ubulk
             else ! else per2per... read svprof regardless...
 
-            ! tg3315 read svprof (but do not use regardless of above...)
-              svprof = 0.
-              if (myid == 0) then
-                 if (nsv > 0) then
-                    open (ifinput, file='scalar.inp.'//cexpnr)
-                    read (ifinput, '(a80)') chmess
-                    read (ifinput, '(a80)') chmess
-                    do k = kb, ke
-                       read (ifinput, *) &
-                          height(k), &
-                          (svprof(k, n), n=1, nsv)
-                    end do
-                    open (ifinput, file='scalar.inp.'//cexpnr)
-                    write (6, *) 'height   sv(1) --------- sv(nsv) '
-                    do k = ke, kb, -1
-                       write (6, *) &
-                          height(k), &
-                          (svprof(k, n), n=1, nsv)
-                    end do
-
-                 end if
-              end if ! end if myid==0
-
-              call MPI_BCAST(svprof, (ke + kh - (kb - kh))*nsv, MY_REAL, 0, comm3d, mpierr)
-
               if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
+              
+                ! tg3315 read svprof (but do not use regardless of above...)
+                svprof = 0.
+                if (myid == 0) then
+                  open (ifinput, file='scalar.inp.'//cexpnr)
+                  read (ifinput, '(a80)') chmess
+                  read (ifinput, '(a80)') chmess
+                  do k = kb, ke
+                     read (ifinput, *) &
+                        height(k), &
+                        (svprof(k, n), n=1, nsv)
+                  end do
+                  open (ifinput, file='scalar.inp.'//cexpnr)
+                  write (6, *) 'height   sv(1) --------- sv(nsv) '
+                  do k = ke, kb, -1
+                     write (6, *) &
+                        height(k), &
+                        (svprof(k, n), n=1, nsv)
+                  end do
+                end if ! end if myid==0
+
+                call MPI_BCAST(svprof, (ke + kh - (kb - kh))*nsv, MY_REAL, 0, comm3d, mpierr)
 
                 allocate(sv_top(1:nsv))
                 sv_top(:) = svprof(ke,1:nsv)
