@@ -329,10 +329,15 @@ contains
                  const2=(bb/aa)
                else
                  const2=(bb/aa)-(delta(i,k)**4)*dthvdz(i,j,k)*const
-                 if (const2 <0.0) const2 = 0.0
                end if
-               ekm(i,j,k)=c_vreman*sqrt(const2)
-               ekh(i,j,k)=ekm(i,j,k)*prandtli
+
+               if (const2 < 0.00000001) then
+                 ekm(i,j,k) = 0.
+                 ekh(i,j,k) = 0.
+               else
+                 ekm(i,j,k)=c_vreman*sqrt(const2)
+                 ekh(i,j,k)=ekm(i,j,k)*prandtli
+               end if
              end do
            end do
          end do
