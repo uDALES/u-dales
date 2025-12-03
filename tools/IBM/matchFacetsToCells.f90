@@ -1,4 +1,5 @@
 program run
+   use omp_lib
    implicit none
 
    integer :: itot, jtot, ktot, nFaces, nVertices, periodic_x_i, periodic_y_i, diag_neighbs_i
@@ -16,7 +17,9 @@ program run
    integer, allocatable, dimension(:)     :: secfacids_u, secbndptids_u, secfacids_v, secbndptids_v, &
                                              secfacids_w, secbndptids_w, secfacids_c, secbndptids_c
    real   , allocatable, dimension(:)     :: secareas_u, bnddst_u, secareas_v, bnddst_v, secareas_w, bnddst_w, secareas_c, bnddst_c
-   real :: start, finish
+   real(8) :: start, finish
+
+   start = OMP_GET_WTIME()
 
    open(unit=50,file='info_matchFacetsToCells.txt')
    read(unit=50,fmt='(f15.10,x,f15.10)') dx, dy  !, dz
@@ -97,30 +100,28 @@ program run
       print *, "Incorrect input for 'diag_neighbs'."
    end if
 
-    if (diag_neighbs_i==1) then
-        diag_neighbs = .true.
-    elseif (diag_neighbs_i==0) then
-        diag_neighbs = .false.
-    else
-        print *, "Incorrect input for 'diag_neighbs'."
-    end if
+   if (diag_neighbs_i==1) then
+      diag_neighbs = .true.
+   elseif (diag_neighbs_i==0) then
+      diag_neighbs = .false.
+   else
+      print *, "Incorrect input for 'diag_neighbs'."
+   end if
 
    call readGeometry('faces.txt', nFaces, 'vertices.txt', nVertices, &
      connectivityList, faceNormal, vertices)
 
-    call cpu_time(start)
-     ! u-grid
 
+   !!!!!!! Computation of facet sections for each grid !!!!!!
+
+   ! u-grid
    call readBoundaryPoints(xh, yf, zf, itot, jtot, ktot, 'fluid_boundary_u.txt' , nfluid_IB_u, &
          'solid_boundary_u.txt' , nsolid_IB_u, fluid_IB_u, solid_IB_u, fluid_IB_xyz_u)
 
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
      fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, xh, yf, zf, itot, jtot, ktot, &
      diag_neighbs, periodic_x, periodic_y, secfacids_u, secbndptids_u, secareas_u, bnddst_u)
-
-   nfacsecs_u = size(secfacids_u,1)
-   call writeFacetSections(secfacids_u, secareas_u, secbndptids_u, bnddst_u, nfacsecs_u, 'facet_sections_u.txt')
-   write(*,*) 'Written facet_sections_u.txt'
+   write(*,*) 'Computation of facet_sections_u.txt done.'
 
    ! v-grid
    call readBoundaryPoints(xf, yh, zf, itot, jtot, ktot, 'fluid_boundary_v.txt' , nfluid_IB_v, &
@@ -129,10 +130,7 @@ program run
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
      fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, xf, yh, zf, itot, jtot, ktot, &
      diag_neighbs, periodic_x, periodic_y, secfacids_v, secbndptids_v, secareas_v, bnddst_v)
-
-   nfacsecs_v = size(secfacids_v,1)
-   call writeFacetSections(secfacids_v, secareas_v, secbndptids_v, bnddst_v, nfacsecs_v, 'facet_sections_v.txt')
-   write(*,*) 'Written facet_sections_v.txt'
+   write(*,*) 'Computation of facet_sections_v.txt done.'
 
    ! w-grid
    call readBoundaryPoints(xf, yf, zh, itot, jtot, ktot, 'fluid_boundary_w.txt' , nfluid_IB_w, &
@@ -141,10 +139,7 @@ program run
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
      fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, xf, yf, zh, itot, jtot, ktot, &
      diag_neighbs, periodic_x, periodic_y, secfacids_w, secbndptids_w, secareas_w, bnddst_w)
-
-   nfacsecs_w = size(secfacids_w,1)
-   call writeFacetSections(secfacids_w, secareas_w, secbndptids_w, bnddst_w, nfacsecs_w, 'facet_sections_w.txt')
-   write(*,*) 'Written facet_sections_w.txt'
+   write(*,*) 'Computation of facet_sections_w.txt done.'
 
    ! c-grid
    call readBoundaryPoints(xf, yf, zf, itot, jtot, ktot, 'fluid_boundary_c.txt' , nfluid_IB_c, &
@@ -153,13 +148,43 @@ program run
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
       fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, xf, yf, zf, itot, jtot, ktot, &
       diag_neighbs, periodic_x, periodic_y, secfacids_c, secbndptids_c, secareas_c, bnddst_c)
+   write(*,*) 'Computation of facet_sections_c.txt done.'
 
+
+   !!!!!!! Writing facet section files !!!!!!
+
+   !$ call OMP_SET_NUM_THREADS(4)
+   !$OMP parallel default(shared)
+   !$OMP sections
+
+   ! u-grid
+   !$OMP section
+   nfacsecs_u = size(secfacids_u,1)
+   call writeFacetSections(secfacids_u, secareas_u, secbndptids_u, bnddst_u, nfacsecs_u, 'facet_sections_u.txt', 10)
+
+   ! v-grid
+   !$OMP section
+   nfacsecs_v = size(secfacids_v,1)
+   call writeFacetSections(secfacids_v, secareas_v, secbndptids_v, bnddst_v, nfacsecs_v, 'facet_sections_v.txt', 20)
+
+   ! w-grid
+   !$OMP section
+   nfacsecs_w = size(secfacids_w,1)
+   call writeFacetSections(secfacids_w, secareas_w, secbndptids_w, bnddst_w, nfacsecs_w, 'facet_sections_w.txt' , 30)
+
+   ! c-grid
+   !$OMP section
    nfacsecs_c = size(secfacids_c,1)
-   call writeFacetSections(secfacids_c, secareas_c, secbndptids_c, bnddst_c, nfacsecs_c, 'facet_sections_c.txt')
-   write(*,*) 'Written facet_sections_c.txt'
+   call writeFacetSections(secfacids_c, secareas_c, secbndptids_c, bnddst_c, nfacsecs_c, 'facet_sections_c.txt', 40)
 
-   call cpu_time(finish)
-   print '("Time = ",f10.3," seconds.")',finish-start
+   !$OMP end sections
+   !$OMP end parallel
+
+   write(*,*) 'Written facet_sections_*.txt files'
+
+
+   finish = OMP_GET_WTIME()
+   write(*,'(A,F10.6,A)') 'Elapsed time by matchFacetsToCells: ', finish-start, ' seconds.'
 
    contains
 
@@ -877,30 +902,28 @@ program run
 end subroutine matchFacetsToCells
 
 
-subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs, fname_facet_sections)
+subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs, fname_facet_sections, fid)
    integer, intent(in) :: nfacsecs
    integer, intent(in), dimension(nfacsecs) :: secfacids, secbndptids
    real   , intent(in), dimension(nfacsecs) :: secareas, bnddst
    character(20), intent(in) :: fname_facet_sections
+   integer, intent(in) :: fid
    integer :: n
 
-
-   open (unit=10,file=fname_facet_sections,action="write")
-   write(10,*) "# facet      area flux point distance"
+   open (unit=fid,file=fname_facet_sections,action="write")
+   write(fid,*) "# facet      area flux point distance"
    do n=1,nfacsecs
-      !write (10,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+      !write (fid,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
       ! Formatting assumes: #facets < 10 million, #fluid boundary points < 1 billion,
       ! section area < 1000 m^2 (rounded to cm^2), and distance < 1000m
       ! if (bnddst(n) < 0.05*exp(1.)) then
       !    write(*,*) bnddst(n)
       !  end if
-      write(unit=10,fmt='(i8,f10.4,i11,f9.4)') secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+      write(unit=fid,fmt='(i8,f10.4,i11,f9.4)') secfacids(n), secareas(n), secbndptids(n), bnddst(n)
    end do
-   close (10)
-
-
-
+   close (fid)
 end subroutine writeFacetSections
+
 
 subroutine fastPoint2TriMesh(connectivityList, faceNormal, nFaces, vertices, nVertices, &
     queryPoint, minDistance, interceptPoint)
