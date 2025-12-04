@@ -872,7 +872,7 @@ classdef preprocessing < dynamicprops
             lscale = fopen(['lscale.inp.' obj.expnr], 'w');
             fprintf(lscale, '%-12s\n', '# SDBL flow');
             fprintf(lscale, '%-60s\n', '# z uq vq pqx pqy wfls dqtdxls dqtdyls dqtdtls dthlrad');
-            fprintf(lscale, '%-20.15f %-12.6f %-12.6f %-12.9f %-12.6f %-15.9f %-12.6f %-12.6f %-12.6f %-17.12f\n', obj.ls');
+            fprintf(lscale, '%-20.15f %-12.6f %-12.6f %-12.9f %-12.9f %-15.9f %-12.6f %-12.6f %-12.6f %-17.12f\n', obj.ls');
             fclose(lscale);
         end
 
