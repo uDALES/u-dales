@@ -106,6 +106,6 @@ program IBM_flagging
     deallocate(xf,xh,yf,yh,zf,zh,vertices,facets,incenters,faceNormals,solid_u,solid_v,solid_w,solid_c)
 
     end_time = OMP_GET_WTIME()
-    write(*,'(A,F10.6,A)') 'Elapsed time by IBM solid-fluid tagging: ', end_time - start_time, ' seconds.'
+    write(*,'(A,F10.3,A)') 'Elapsed time by IBM solid-fluid tagging: ', end_time - start_time, ' seconds.'
 
 end program IBM_flagging

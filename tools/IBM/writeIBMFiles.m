@@ -867,6 +867,7 @@ if lmatchFacetsToCellsFortran
     fprintf(fileID,'%8d %8d %8d %8d\n',[size(fluid_IB_ijk_u,1) size(fluid_IB_ijk_v,1) size(fluid_IB_ijk_w,1) size(fluid_IB_ijk_c,1)]);
     fprintf(fileID,'%8d %8d %8d %8d\n',[size(solid_IB_ijk_u,1) size(solid_IB_ijk_v,1) size(solid_IB_ijk_w,1) size(solid_IB_ijk_c,1)]);
     fprintf(fileID,'%d %d %d\n',[periodic_x, periodic_y, diag_neighbs]);
+    fprintf(fileID,'%4d\n',n_threads);
     fclose(fileID);
 
     fileID = fopen([fpath 'zhgrid.txt'],'w');
