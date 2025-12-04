@@ -303,6 +303,7 @@ program run
     allocate(bnddst(0))
     
     ! Get actual number of threads that will be used
+    !$ call OMP_SET_NUM_THREADS(n_threads)
     !$OMP parallel
     !$ actual_threads = omp_get_num_threads()
     !$OMP end parallel
@@ -323,7 +324,6 @@ program run
     tol = 1e-8 ! machine precision errors
     area_miss = 0.0 ! Initialize for OpenMP reduction
 
-    !$ call OMP_SET_NUM_THREADS(n_threads)
     !$OMP parallel do default(none) &
     !$OMP shared(nFaces, connectivityList, faceNormal, vertices, xgrid, ygrid, zgrid, tol, &
     !$OMP        fluid_IB, solid_IB, fluid_IB_xyz, nfluid_IB, itot, jtot, ktot, &
