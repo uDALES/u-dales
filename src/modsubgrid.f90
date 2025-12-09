@@ -324,6 +324,12 @@ contains
                b23 = dx2*a12*a13 + dy2*a22*a23 + dzf2(k)*a32*a33
                bb = b11*b22 - b12*b12 + b11*b33 - b13*b13 + b22*b33 - b23*b23
 
+               if (bb < 0.00000001) then
+                ekm(i,j,k) = 0.
+                ekh(i,j,k) = 0.
+               else
+               
+               
                dthvdz(i,j,k) = (thl0(i,j,k+1)-thl0(i,j,k-1))/(dzh(k+1)+dzh(k))
                if (dthvdz(i,j,k) <= 0) then
                  const2=(bb/aa)
@@ -333,6 +339,7 @@ contains
                end if
                ekm(i,j,k)=c_vreman*sqrt(const2)
                ekh(i,j,k)=ekm(i,j,k)*prandtli
+               endif
              end do
            end do
          end do
