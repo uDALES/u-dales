@@ -329,7 +329,6 @@ contains
                 ekh(i,j,k) = 0.
                else
                
-               
                dthvdz(i,j,k) = (thl0(i,j,k+1)-thl0(i,j,k-1))/(dzh(k+1)+dzh(k))
                if (dthvdz(i,j,k) <= 0) then
                  const2=(bb/aa)
