@@ -65,7 +65,8 @@ module modstartup
                                     uflowrate, vflowrate, lstoreplane, iplane, &
                                     lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
                                     lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,lzerogradtop,&
-                                    lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice,&
+                                    lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice, sparse_factor, &
+                                    nkslice, nislice, njslice, max_kslices, max_islices, max_jslices, runmode, &
                                     lzerogradtopscal, lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
@@ -77,9 +78,7 @@ module modstartup
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump, &
                                     lpurif,npurif,Qpu,epu, &
-                                    lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp, runmode, &
-                                    nkslice, nislice, njslice, max_kslices, max_islices, max_jslices
-
+                                    lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx, ncname
       use modpois,           only : initpois
@@ -166,7 +165,7 @@ module modstartup
          lfielddump, tfielddump, fieldvars, &
          ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, ltkedump, &
          slicevars, lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, &
-         tstatsdump, tsample, tstatstart
+         tstatsdump, tsample, tstatstart, sparse_factor
       namelist/TREES/ &
          ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
       namelist/PURIFS/ &
@@ -321,7 +320,7 @@ module modstartup
          endif
          !write (6, OUTPUT)
          close (ifnamopt)
-
+         
          ! Process kslice array - count valid entries
          nkslice = 0
          do ierr = 1, max_kslices
@@ -333,12 +332,11 @@ module modstartup
                write(0, *) 'WARNING: Invalid kslice value ignored: kslice(', ierr, ') = ', kslice(ierr)
             end if
          end do
-
+         
          if (nkslice > 0) then
             write(*, *) 'kslice output enabled for', nkslice, 'levels:'
             write(*, '(10I6)') kslice(1:nkslice)
          end if
-
          
          ! Process islice array - count valid entries
          nislice = 0
@@ -373,7 +371,6 @@ module modstartup
             write(*, *) 'jslice output enabled for', njslice, 'levels:'
             write(*, '(10I6)') jslice(1:njslice)
          end if
-
       end if
 
       call MPI_BCAST(itot,1,MPI_INTEGER,0,comm3d,mpierr)
@@ -515,17 +512,13 @@ module modstartup
       call MPI_BCAST(lkslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lislicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ljslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-      ! call MPI_BCAST(kslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nkslice, 1, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast number of kslices
       call MPI_BCAST(kslice, max_kslices, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast kslice array
-      !
-      !call MPI_BCAST(islice, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      !call MPI_BCAST(jslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(sparse_factor, 3, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast sparse_factor array
       call MPI_BCAST(nislice, 1, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast number of islices
       call MPI_BCAST(islice, max_islices, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast islice array
       call MPI_BCAST(njslice, 1, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast number of jslices
       call MPI_BCAST(jslice, max_jslices, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast jslice array
-
       call MPI_BCAST(ltdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(lmintdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(ltkedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing tke budget files

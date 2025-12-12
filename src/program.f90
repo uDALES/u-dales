@@ -50,7 +50,7 @@ program DALESURBAN      !Version 48
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use stats,           only : stats_init,stats_main,stats_exit !DMajumdar
-  use instant_slice,   only : instant_init,instant_main !DMajumdar
+  use instant_slice_sparse,   only : instant_init,instant_main !DMajumdar
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_io
   implicit none

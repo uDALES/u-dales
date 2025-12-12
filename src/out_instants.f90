@@ -4,7 +4,7 @@ module instant_slice
                          nkslice, nislice, njslice, itot,jtot, &
                          ib, ie, jb, je, kb, ke, dzfi, dzh, &
                          timee, tstatstart, jtot, itot, kmax
-  use modfields,  only : um, vm, wm, thlm, qtm, svm
+  use modfields,  only : um, vm, wm, thlm, qtm, svm, pres0
   use modmpi,     only : myid, cmyidx, cmyidy
   use decomp_2d,  only : zstart, zend, xstart, xend, ystart, yend
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset, writeoffset_1dx
@@ -130,6 +130,8 @@ module instant_slice
             call ncinfo( isliceVars(n,:), 'v' , 'Spanwise velocity'   , 'm/s' , 'tttt' )
           case('w0')
             call ncinfo( isliceVars(n,:), 'w' , 'Vertical velocity'   , 'm/s' , 'ttmt' )
+          case('p0')
+            call ncinfo( isliceVars(n,:), 'pres' , 'pressure'   , 'M' , 'tttt' )
           case('th')
             if (ltempeq) call ncinfo( isliceVars(n,:), 'thl' , 'Potential temperature' , 'K'     , 'tttt' )
           case('qt')
@@ -161,6 +163,8 @@ module instant_slice
             call ncinfo( jsliceVars(n,:), 'v' , 'Spanwise velocity '  , 'm/s' , 'tmtt' )
           case('w0')
             call ncinfo( jsliceVars(n,:), 'w' , 'Vertical velocity'   , 'm/s' , 'ttmt' )
+          case('p0')
+            call ncinfo( jsliceVars(n,:), 'pres' , 'pressure'   , 'M' , 'tttt' )
           case('th')
             if (ltempeq) call ncinfo( jsliceVars(n,:), 'thl' , 'Potential temperature' , 'K'     , 'tttt' )
           case('qt')
@@ -192,6 +196,8 @@ module instant_slice
             call ncinfo( ksliceVars(n,:), 'v' , 'Spanwise velocity'   , 'm/s' , 'tmtt' )
           case('w0')
             call ncinfo( ksliceVars(n,:), 'w' , 'Vertical velocity'   , 'm/s' , 'ttmt' )
+          case('p0')
+            call ncinfo( ksliceVars(n,:), 'pres' , 'pressure'   , 'M' , 'tttt' )
           case('th')
             if (ltempeq) call ncinfo( ksliceVars( n,:), 'thl' , 'Potential temperature' , 'K'     , 'tttt' )
           case('qt')
@@ -418,6 +424,21 @@ module instant_slice
         call writeoffset(ncidislice, 'w', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
+      ! p pressure
+      if (present('p0')) then
+        tmp_slice = 0.0
+        local_idx = 0
+        do i = 1, nislice
+          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
+            local_idx = local_idx + 1
+            ii = islice(i)
+            ii_local = ii - (myidx * (itot/nprocx))           
+              tmp_slice(local_idx,:,:) = pres0(ii_local,jb:je,kb:ke)
+          end if
+        end do
+        call writeoffset(ncidislice, 'pres', tmp_slice, nrecislice, local_nislice, ydim, zdim)
+      end if
+
       ! temperature
       if (present('th') .and. ltempeq) then
         tmp_slice = 0.0
@@ -570,6 +591,21 @@ module instant_slice
           end if
         end do
         call writeoffset_1dx(ncidjslice, 'w', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
+      end if
+
+      ! p pressure
+      if (present('p0')) then
+        tmp_slice = 0.0
+        local_idy = 0
+        do j = 1, njslice
+          if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
+            local_idy = local_idy + 1
+            jj = jslice(j)
+            jj_local = jj - (myidy * (jtot/nprocy))
+              tmp_slice(:, local_idy, :) = pres0(ib:ie, jj_local, kb:ke)
+          end if
+        end do
+        call writeoffset_1dx(ncidjslice, 'pres', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
       end if
 
       ! temperature
@@ -851,7 +887,17 @@ module instant_slice
         end do
         call writeoffset(ncidkslice1d, 'w', tmp_slice, nreckslice1d, xdim, ydim, kdim)
       end if
-      
+
+      ! pressure
+      if (present('p0')) then
+        do k = 1, nkslice
+          kk = kslice(k)
+          tmp_slice(:,:,k) = pres0(ib:ie, jb:je, kk)
+        end do
+        call writeoffset(ncidkslice1d, 'pres', tmp_slice, nreckslice1d, xdim, ydim, kdim)
+      end if
+
+
       ! temperature
       if (present('th') .and. ltempeq) then
         do k = 1, nkslice

@@ -517,7 +517,7 @@ module stats
 
           if (ltempeq) call stats_write_tavg_temp
           if (lmoist)  call stats_write_tavg_moist
-          if (nsv>0)   call stats_write_tavg_scalar
+          if (nsv>0)   call stats_write_tavg_scalar1d
           if ((lchem) .and. (nsv>2)) call stats_write_tavg_PSS
         end if
 
@@ -1728,6 +1728,17 @@ module stats
         call writestat_nc(ncidt, trim(svsgsname(n))  , svsgst(:,:,kb:ke,n)                                   , nrect, xdim, ydim, zdim)
       end do
     end subroutine stats_write_tavg_scalar
+
+    subroutine stats_write_tavg_scalar1d
+      implicit none
+      integer :: n
+      do n = 1, nsv
+        call writeoffset(ncidt1d, trim(svtname(n))    , svt(:,:,kb:ke,n)                                      , nrect, xdim, ydim, zdim)
+        call writeoffset(ncidt1d, trim(wpsvptname(n)) , wsvtk(:,:,kb:ke,n) - wt(:,:,kb:ke)*svtk(:,:,kb:ke,n)  , nrect, xdim, ydim, zdim)
+        call writeoffset(ncidt1d, trim(svpsvptname(n)), svsvt(:,:,kb:ke,n) - svt(:,:,kb:ke,n)*svt(:,:,kb:ke,n), nrect, xdim, ydim, zdim)
+        call writeoffset(ncidt1d, trim(svsgsname(n))  , svsgst(:,:,kb:ke,n)                                   , nrect, xdim, ydim, zdim)
+      end do
+    end subroutine stats_write_tavg_scalar1d
 
     subroutine stats_write_tavg_PSS
       implicit none

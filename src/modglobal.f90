@@ -215,6 +215,7 @@ module modglobal
    integer, parameter :: max_jslices = 50  !<  maximum number of j-slices
    integer :: jslice(max_jslices) = -1     !<  j levels at which to output slices in xz-plane
    integer :: njslice   = 0                !<  number of valid j-slices
+   integer :: sparse_factor(3) = (/1, 1, 1/)
    
    logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
    logical :: lmintdump    = .false.      !<  switch to output prognostic statistics every tstatsdump

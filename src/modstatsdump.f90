@@ -283,6 +283,7 @@ contains
 
     !> Generate time averaged NetCDF: tdump.xxx.nc
     if (ltdump) then
+      return
 
       tname(7:9) = cmyidx
       tname(11:13) = cmyidy
@@ -417,7 +418,8 @@ contains
 
     !> Generate sliced NetCDF: slicedump.xxx.xxx.nc
     if (lkslicedump) then
-
+      return
+      
       kslicename(12:14) = cmyidx
       kslicename(16:18) = cmyidy
       kslicename(20:22) = cexpnr
