@@ -446,8 +446,8 @@ contains
     implicit none
     integer, intent(in)                      :: ncid,nvar,dim1,dim2,dim3
     integer, intent(in)                      :: nrec
-    !real,dimension(dim1,dim2,dim3,nvar),intent(in)       :: vars
-    real,intent(in)       :: vars(0:dim1-1,0:dim2-1,0:dim3-1,nvar)
+    real,dimension(dim1,dim2,dim3,nvar),intent(in)       :: vars
+    !real,intent(in)       :: vars(0:dim1-1,0:dim2-1,0:dim3-1,nvar)
     character(*), dimension(:,:),intent(in)  :: ncname
 
     integer :: iret,n,varid
