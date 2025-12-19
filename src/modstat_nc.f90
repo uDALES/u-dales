@@ -1,16 +1,9 @@
 !> \file modstat_nc.f90
 !!  Background routines to write NetCDF output
-
-!>
-!!  Background routines to write NetCDF output.
-!>
 !! All calls to the netcdf library should be directed through here.
-!! Inspired on the UCLA-LES routine by Bjorn Stevens.
-!!  \author Thijs Heus,MPI-M
-!!  \par Revision list
-!!  \todo documentation
-!!   \todo restartfiles in NetCDF?
-!  This file is part of DALES.
+!>
+!
+!  This file is part of DALES (https://github.com/uDALES/u-dales).
 !
 ! DALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -25,7 +18,14 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
+! Inspired on the UCLA-LES routine by Bjorn Stevens.
+! \author Thijs Heus,MPI-M
+!  \par Revision list
+!  \todo documentation
+!  \todo restartfiles in NetCDF?
+! \author Dipanjan Majumdar, ICL, 2025
+!
+!  Copyright (C) 2016- the uDALES Team.
 !
 module modstat_nc
     use netcdf

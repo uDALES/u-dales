@@ -1,9 +1,8 @@
 !> \file modstatsdump.f90
 !!  Dumps statistics of various fields
 !>
-!!  \author Tom Grylls, ICL May 25 2016
 !
-!  This file is part of uDALES.
+! This file is part of uDALES (https://github.com/uDALES/u-dales).
 !
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
@@ -18,7 +17,10 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-!  Copyright 2006-2021 the uDALES Team.
+! \author Tom Grylls, ICL, May 2016
+! \author Dipanjan Majumdar, ICL, 2024-2025
+!
+!  Copyright (C) 2016- the uDALES Team.
 !
 module modstatsdump
 
