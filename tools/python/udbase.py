@@ -779,6 +779,476 @@ class UDBase:
         
         return np.mean(var[..., indstart:indstop], axis=-1)
     
+    def plot_fac(self, var: np.ndarray, cmap: str = 'viridis', 
+                 show_edges: bool = False, colorbar: bool = True,
+                 title: Optional[str] = None, figsize: tuple = (10, 8),
+                 vmin: Optional[float] = None, vmax: Optional[float] = None):
+        """
+        Plot a facet variable as a 3D colored surface.
+        
+        This method visualizes scalar data defined on each facet of the geometry
+        by coloring the triangular faces according to the variable values.
+        
+        Parameters
+        ----------
+        var : ndarray, shape (n_faces,)
+            Facet variable to plot (one value per facet)
+        cmap : str, default='viridis'
+            Matplotlib colormap name
+        show_edges : bool, default=False
+            If True, show triangle edges. Use False for cleaner visualization.
+        colorbar : bool, default=True
+            If True, display a colorbar
+        title : str, optional
+            Plot title. If None, no title is displayed.
+        figsize : tuple, default=(10, 8)
+            Figure size in inches (width, height)
+        vmin, vmax : float, optional
+            Min and max values for colormap. If None, uses data min/max.
+            
+        Raises
+        ------
+        ValueError
+            If geometry is not loaded or if var has wrong dimensions
+        ImportError
+            If matplotlib is not installed
+            
+        Examples
+        --------
+        Plot net shortwave radiation on facets:
+        >>> K = sim.load_fac_eb('K')
+        >>> sim.plot_fac(K, title='Net Shortwave Radiation (W/m²)', cmap='hot')
+        
+        Plot momentum flux with custom range:
+        >>> taux = sim.load_fac_momentum('taux')
+        >>> sim.plot_fac(taux[:, 0], vmin=-1, vmax=1, title='Tau_x')
+        """
+        if self.geom is None:
+            raise ValueError("This method requires a geometry (STL) file. "
+                           "Ensure stl_file is specified in namoptions.")
+        
+        try:
+            import matplotlib.pyplot as plt
+            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+        except ImportError:
+            raise ImportError("matplotlib is required for visualization. "
+                            "Install with: pip install matplotlib")
+        
+        # Validate input
+        if len(var) != self.geom.n_faces:
+            raise ValueError(f"Variable length ({len(var)}) must match number of facets ({self.geom.n_faces})")
+        
+        # Create figure
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Get geometry data
+        vertices = self.geom.stl.vertices
+        faces = self.geom.stl.faces
+        triangles = vertices[faces]
+        
+        # Create color-mapped collection
+        edge_color = 'k' if show_edges else 'none'
+        collection = Poly3DCollection(
+            triangles,
+            facecolors=plt.cm.get_cmap(cmap)(plt.Normalize(vmin=vmin, vmax=vmax)(var)),
+            edgecolors=edge_color,
+            linewidths=0.1 if show_edges else 0
+        )
+        ax.add_collection3d(collection)
+        
+        # Set axis limits
+        bounds = self.geom.bounds
+        ax.set_xlim(bounds[0, 0], bounds[1, 0])
+        ax.set_ylim(bounds[0, 1], bounds[1, 1])
+        ax.set_zlim(bounds[0, 2], bounds[1, 2])
+        
+        # Labels
+        ax.set_xlabel('X (m)')
+        ax.set_ylabel('Y (m)')
+        ax.set_zlabel('Z (m)')
+        
+        if title:
+            ax.set_title(title)
+        
+        # Equal aspect ratio
+        max_range = np.array([
+            bounds[1, 0] - bounds[0, 0],
+            bounds[1, 1] - bounds[0, 1],
+            bounds[1, 2] - bounds[0, 2]
+        ]).max() / 2.0
+        
+        mid_x = (bounds[1, 0] + bounds[0, 0]) * 0.5
+        mid_y = (bounds[1, 1] + bounds[0, 1]) * 0.5
+        mid_z = (bounds[1, 2] + bounds[0, 2]) * 0.5
+        
+        ax.set_xlim(mid_x - max_range, mid_x + max_range)
+        ax.set_ylim(mid_y - max_range, mid_y + max_range)
+        ax.set_zlim(mid_z - max_range, mid_z + max_range)
+        
+        # Viewing angle
+        ax.view_init(elev=30, azim=45)
+        
+        # Colorbar
+        if colorbar:
+            mappable = plt.cm.ScalarMappable(
+                cmap=cmap,
+                norm=plt.Normalize(vmin=vmin if vmin is not None else var.min(),
+                                 vmax=vmax if vmax is not None else var.max())
+            )
+            mappable.set_array(var)
+            plt.colorbar(mappable, ax=ax, shrink=0.5, aspect=5)
+        
+        plt.tight_layout()
+        plt.show()
+    
+    def plot_fac_type(self, figsize: tuple = (12, 10), show_legend: bool = True):
+        """
+        Plot the different surface types in the geometry.
+        
+        This method visualizes the facet types defined in the simulation,
+        coloring each surface type differently. Useful for verifying that
+        wall properties are correctly assigned.
+        
+        Parameters
+        ----------
+        figsize : tuple, default=(12, 10)
+            Figure size in inches (width, height)
+        show_legend : bool, default=True
+            If True, display a legend with surface type names
+            
+        Raises
+        ------
+        ValueError
+            If required data (geometry, facets, factypes) is not loaded
+        ImportError
+            If matplotlib is not installed
+            
+        Examples
+        --------
+        >>> sim = UDBase(101, 'experiments/101')
+        >>> sim.plot_fac_type()
+        """
+        # Check required data
+        if self.geom is None:
+            raise ValueError("This method requires a geometry (STL) file. "
+                           "Ensure stl_file is specified in namoptions.")
+        
+        if not hasattr(self, 'facs') or self.facs is None:
+            raise ValueError("This method requires facet data. "
+                           f"Ensure {self.ffacets}.{self.expnr} exists.")
+        
+        if not hasattr(self, 'factypes') or self.factypes is None:
+            raise ValueError("This method requires facet type data. "
+                           f"Ensure {self.ffactypes}.{self.expnr} exists.")
+        
+        try:
+            import matplotlib.pyplot as plt
+            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+        except ImportError:
+            raise ImportError("matplotlib is required for visualization. "
+                            "Install with: pip install matplotlib")
+        
+        # Get data
+        facids = self.facs['typeid']
+        typeids = self.factypes['id']
+        names = self.factypes['name']
+        unique_ids = np.unique(facids)
+        
+        # Get default matplotlib color cycle
+        prop_cycle = plt.rcParams['axes.prop_cycle']
+        default_colors = prop_cycle.by_key()['color']
+        
+        # Check if we have enough colors
+        if len(unique_ids) > len(default_colors):
+            warnings.warn(f"Too many surface types ({len(unique_ids)}) for unique colors. "
+                        f"Only {len(default_colors)} available. Some colors will repeat.")
+        
+        # Create figure
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Get geometry data
+        vertices = self.geom.stl.vertices
+        faces = self.geom.stl.faces
+        
+        # Plot each surface type
+        labels = []
+        for idx, type_id in enumerate(unique_ids):
+            # Select facets of this type
+            type_mask = (facids == type_id)
+            type_faces = faces[type_mask]
+            type_triangles = vertices[type_faces]
+            
+            # Get color (cycle through if needed)
+            color = default_colors[idx % len(default_colors)]
+            
+            # Get name
+            name_idx = np.where(typeids == type_id)[0]
+            if len(name_idx) > 0:
+                label = names[name_idx[0]]
+            else:
+                label = f"Type {type_id}"
+            
+            labels.append(label)
+            
+            # Create collection
+            collection = Poly3DCollection(
+                type_triangles,
+                facecolors=color,
+                edgecolors='none',
+                alpha=0.9,
+                label=label
+            )
+            ax.add_collection3d(collection)
+        
+        # Set axis limits
+        bounds = self.geom.bounds
+        ax.set_xlim(bounds[0, 0], bounds[1, 0])
+        ax.set_ylim(bounds[0, 1], bounds[1, 1])
+        ax.set_zlim(bounds[0, 2], bounds[1, 2])
+        
+        # Labels
+        ax.set_xlabel('X (m)')
+        ax.set_ylabel('Y (m)')
+        ax.set_zlabel('Z (m)')
+        ax.set_title('Surface Types')
+        
+        # Equal aspect ratio
+        max_range = np.array([
+            bounds[1, 0] - bounds[0, 0],
+            bounds[1, 1] - bounds[0, 1],
+            bounds[1, 2] - bounds[0, 2]
+        ]).max() / 2.0
+        
+        mid_x = (bounds[1, 0] + bounds[0, 0]) * 0.5
+        mid_y = (bounds[1, 1] + bounds[0, 1]) * 0.5
+        mid_z = (bounds[1, 2] + bounds[0, 2]) * 0.5
+        
+        ax.set_xlim(mid_x - max_range, mid_x + max_range)
+        ax.set_ylim(mid_y - max_range, mid_y + max_range)
+        ax.set_zlim(mid_z - max_range, mid_z + max_range)
+        
+        # Viewing angle
+        ax.view_init(elev=30, azim=45)
+        
+        # Legend
+        if show_legend and len(labels) > 0:
+            # Create custom legend handles
+            from matplotlib.patches import Patch
+            legend_elements = [
+                Patch(facecolor=default_colors[i % len(default_colors)], 
+                      edgecolor='none', label=labels[i])
+                for i in range(len(labels))
+            ]
+            ax.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1.05, 1))
+        
+        plt.tight_layout()
+        plt.show()
+    
+    def convert_fac_to_field(self, var: np.ndarray, facsec: Optional[Dict] = None,
+                            dz: Optional[np.ndarray] = None) -> np.ndarray:
+        """
+        Convert a facet variable to a 3D field density.
+        
+        This method converts facet-based data to a 3D volumetric field by
+        distributing facet areas into grid cells. Useful for computing volume
+        integrals of surface quantities.
+        
+        Parameters
+        ----------
+        var : ndarray, shape (n_facets,)
+            Facet variable to convert to field
+        facsec : dict, optional
+            Facet sections dictionary. If None, uses self.facsec['c']
+        dz : ndarray, optional
+            Vertical grid spacing. If None, uses self.dzt
+            
+        Returns
+        -------
+        fld : ndarray, shape (itot, jtot, ktot)
+            3D field density [var_units / m]
+            
+        Raises
+        ------
+        ValueError
+            If facet section data is not available
+            
+        Notes
+        -----
+        The conversion computes a density field where each cell contains:
+        fld[i,j,k] = sum(var[facid] * area / (dx * dy * dz))
+        
+        This is used internally by calculate_frontal_properties() to compute
+        frontal area densities from projected facet areas.
+        
+        Examples
+        --------
+        Convert surface temperature to a field:
+        >>> Ts = sim.load_fac_temperature('Ts')
+        >>> T_field = sim.convert_fac_to_field(Ts[:, 0])
+        
+        Use custom facet sections (e.g., for u-grid):
+        >>> var = np.random.randn(sim.geom.n_faces)
+        >>> fld = sim.convert_fac_to_field(var, facsec=sim.facsec['u'])
+        """
+        # Check that facet sections are available
+        if not hasattr(self, 'facsec') or self.facsec is None:
+            raise ValueError(
+                "This method requires facet section data. "
+                f"Ensure {self.ffacet_sections}_(u,v,w,c).{self.expnr} and "
+                f"{self.ffluid_boundary}_(u,v,w,c).{self.expnr} files exist."
+            )
+        
+        # Use defaults if not provided
+        if facsec is None:
+            facsec = self.facsec['c']
+        
+        if dz is None:
+            dz = self.dzt
+        
+        # Initialize field
+        fld = np.zeros((self.itot, self.jtot, self.ktot), dtype=np.float32)
+        
+        # Get facet section data
+        facids = facsec['facid']
+        areas = facsec['area']
+        locs = facsec['locs']  # (i, j, k) locations (1-based from Fortran)
+        
+        # Convert locations to 0-based indexing
+        i_idx = locs[:, 0] - 1
+        j_idx = locs[:, 1] - 1
+        k_idx = locs[:, 2] - 1
+        
+        # Loop over all facet sections and create density field
+        for m in range(len(areas)):
+            facid = facids[m] - 1  # Convert to 0-based
+            i, j, k = i_idx[m], j_idx[m], k_idx[m]
+            
+            # Add contribution to cell
+            cell_volume = self.dx * self.dy * dz[k]
+            fld[i, j, k] += var[facid] * areas[m] / cell_volume
+        
+        return fld
+    
+    def calculate_frontal_properties(self) -> Dict[str, Any]:
+        """
+        Calculate skyline, frontal areas, and blockage ratios.
+        
+        Computes geometric properties of the urban canopy including:
+        - Skyline profiles in x and y directions
+        - Total frontal areas perpendicular to x and y
+        - Blockage ratios (fraction of frontal area blocked)
+        
+        Returns
+        -------
+        res : dict
+            Dictionary containing:
+            - 'skylinex' : ndarray, shape (jtot, ktot)
+                Binary indicator of blocked cells in x-direction (y-z plane)
+            - 'skyliney' : ndarray, shape (itot, ktot)
+                Binary indicator of blocked cells in y-direction (x-z plane)
+            - 'Afx' : float
+                Total frontal area perpendicular to x-direction [m²]
+            - 'Afy' : float
+                Total frontal area perpendicular to y-direction [m²]
+            - 'brx' : float
+                Blockage ratio in x-direction (dimensionless, 0-1)
+            - 'bry' : float
+                Blockage ratio in y-direction (dimensionless, 0-1)
+                
+        Raises
+        ------
+        ValueError
+            If geometry or facet section data is not available
+            
+        Notes
+        -----
+        The frontal area is the projected area of all surfaces onto a plane
+        perpendicular to the flow direction. The blockage ratio is the fraction
+        of the domain cross-section that is blocked by buildings.
+        
+        These quantities are important for understanding drag and flow resistance
+        in urban canopies.
+        
+        Examples
+        --------
+        >>> props = sim.calculate_frontal_properties()
+        >>> print(f"Frontal area (x): {props['Afx']:.1f} m²")
+        >>> print(f"Blockage ratio (x): {props['brx']:.3f}")
+        >>> 
+        >>> # Visualize skyline
+        >>> import matplotlib.pyplot as plt
+        >>> plt.imshow(props['skylinex'].T, origin='lower', aspect='auto')
+        >>> plt.xlabel('j (grid points)')
+        >>> plt.ylabel('k (grid points)')
+        >>> plt.title('Skyline in x-direction')
+        >>> plt.colorbar(label='Blocked (1) / Open (0)')
+        >>> plt.show()
+        """
+        # Check required data
+        if self.geom is None:
+            raise ValueError("This method requires a geometry (STL) file. "
+                           "Ensure stl_file is specified in namoptions.")
+        
+        if not hasattr(self, 'facsec') or self.facsec is None:
+            raise ValueError(
+                "This method requires facet section data. "
+                f"Ensure {self.ffacet_sections}_(u,v,w,c).{self.expnr} and "
+                f"{self.ffluid_boundary}_(u,v,w,c).{self.expnr} files exist."
+            )
+        
+        # Get face normals
+        norms = self.geom.face_normals
+        
+        # Create surface quantity for projected area in x and y directions
+        # Project onto planes perpendicular to x and y axes
+        # Only count outward-facing (negative dot product with axis)
+        phix = -np.minimum(np.dot(norms, np.array([1, 0, 0])), 0)
+        phiy = -np.minimum(np.dot(norms, np.array([0, 1, 0])), 0)
+        
+        # Convert to density fields
+        rhoLx = self.convert_fac_to_field(phix, self.facsec['c'], self.dzt)
+        rhoLy = self.convert_fac_to_field(phiy, self.facsec['c'], self.dzt)
+        
+        # Calculate indicator functions for blockage
+        # Ibx[j,k] = 1 if any cell along x-direction at (j,k) is blocked
+        Ibx = (np.sum(rhoLx, axis=0) > 0).astype(float)
+        # Iby[i,k] = 1 if any cell along y-direction at (i,k) is blocked
+        Iby = (np.sum(rhoLy, axis=1) > 0).astype(float)
+        
+        # Integrate to get frontal areas and blockage ratios
+        Afx = 0.0
+        Afy = 0.0
+        brx = 0.0
+        bry = 0.0
+        
+        for k in range(self.ktot):
+            # Frontal areas (integrate density over volume)
+            Afx += np.sum(rhoLx[:, :, k]) * self.dx * self.dy * self.dzt[k]
+            Afy += np.sum(rhoLy[:, :, k]) * self.dx * self.dy * self.dzt[k]
+            
+            # Blockage ratios (integrate indicator over cross-section)
+            brx += np.sum(Ibx[:, k]) * self.dy * self.dzt[k]
+            bry += np.sum(Iby[:, k]) * self.dx * self.dzt[k]
+        
+        # Normalize blockage ratios by total cross-sectional area
+        brx /= (self.ylen * self.zsize)
+        bry /= (self.xlen * self.zsize)
+        
+        # Print results
+        print(f"x-direction: frontal area = {Afx:8.1f} m², blockage ratio = {brx:8.3f}")
+        print(f"y-direction: frontal area = {Afy:8.1f} m², blockage ratio = {bry:8.3f}")
+        
+        return {
+            'skylinex': Ibx,
+            'skyliney': Iby,
+            'Afx': Afx,
+            'Afy': Afy,
+            'brx': brx,
+            'bry': bry
+        }
+    
     def __str__(self):
         """User-friendly string representation."""
         return self.__repr__()

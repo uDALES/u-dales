@@ -149,6 +149,79 @@ u_max = u.max(dim=['yt', 'xm'])  # Max over horizontal
 u_np = u.values  # numpy array
 
 # =============================================================================
+# GEOMETRY
+# =============================================================================
+
+# Geometry is loaded automatically if stl_file in namoptions
+if sim.geom is not None:
+    print(f"Facets: {sim.geom.n_faces}")
+    print(f"Area: {sim.geom.total_area:.2f} m²")
+    
+    # Visualize geometry
+    sim.geom.show()
+    sim.geom.show(color_buildings=False)  # Faster for large meshes
+
+# =============================================================================
+# VISUALIZATION
+# =============================================================================
+
+# Plot facet variable
+seb = sim.load_seb()
+K = seb['K']
+sim.plot_fac(K[:, 0], cmap='hot', title='Net SW Radiation (W/m²)')
+
+# Plot with custom range
+sim.plot_fac(K[:, 0], vmin=0, vmax=800, cmap='hot', colorbar=True)
+
+# Plot temperature
+Ts = sim.load_fac_temperature('Ts')
+sim.plot_fac(Ts[:, 0] - 273.15, cmap='coolwarm', title='Temp (°C)')
+
+# Plot time-averaged
+K_avg = sim.time_average(K, seb['time'], tstart=3600)
+sim.plot_fac(K_avg, cmap='hot', title='Net SW - Time Averaged')
+
+# Plot surface types
+sim.plot_fac_type()
+
+# Colormaps for different data:
+# - Radiation: 'hot', 'inferno', 'plasma'
+# - Temperature: 'coolwarm', 'RdYlBu_r'
+# - Diverging: 'RdBu_r', 'seismic'
+
+# =============================================================================
+# ADVANCED ANALYSIS
+# =============================================================================
+
+# Calculate frontal properties
+props = sim.calculate_frontal_properties()
+print(f"Frontal area (x): {props['Afx']:.1f} m²")
+print(f"Blockage ratio (x): {props['brx']:.3f}")
+
+# Access skylines
+skylinex = props['skylinex']  # (jtot, ktot) - binary blocked/open
+skyliney = props['skyliney']  # (itot, ktot)
+
+# Visualize skyline
+import matplotlib.pyplot as plt
+plt.imshow(skylinex.T, origin='lower', cmap='binary')
+plt.title('Skyline in x-direction')
+plt.show()
+
+# Convert facet variable to 3D field
+Ts = sim.load_fac_temperature('Ts')
+T_field = sim.convert_fac_to_field(Ts[:, 0])
+
+# Use different grid (u, v, w, c)
+field_u = sim.convert_fac_to_field(var, facsec=sim.facsec['u'])
+
+# Visualize field (horizontal slice)
+k_mid = sim.ktot // 2
+plt.imshow(T_field[:, :, k_mid].T, origin='lower', cmap='hot')
+plt.colorbar(label='Density')
+plt.show()
+
+# =============================================================================
 # COMMON PATTERNS
 # =============================================================================
 
