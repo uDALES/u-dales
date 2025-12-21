@@ -16,7 +16,7 @@ cd build
 system=$1
 if [ $system == "icl" ]
 then
-    module load cmake/3.18.2
+    module load CMake/3.31.8-GCCcore-14.3.0
 elif [ $system == "common" ]
 then
     echo "Building View3D on local system."
