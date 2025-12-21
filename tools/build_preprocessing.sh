@@ -3,6 +3,12 @@
 set -e
 
 # Usage: ./tools/build_preprocessing.sh [common / icl]
+if (( $# < 1 ))
+then
+ echo "The build type <common / icl> must be set."
+ echo "usage: from being in u-dales directory run: tools/build_preprocessing.sh <build type>"
+ exit 1
+fi
 
 if [ ! -d tools ]; then
     echo "Please run this script from being inside the u-dales folder"
