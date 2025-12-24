@@ -418,6 +418,7 @@ class UDBase:
         >>> u_tavg = sim.load_stat_t('u')
         """
         filename = self.path / f"tdump.{self.expnr}.nc"
+        print(filename.exists())
         return self._load_ncdata(filename, var)
     
     def load_slice(self, plane: str, var: Optional[str] = None) -> Union[xr.Dataset, xr.DataArray]:
@@ -451,6 +452,19 @@ class UDBase:
         """
         Helper method to load NetCDF data using xarray.
         
+        Automatically reverses dimension order to match MATLAB conventions.
+        
+        NetCDF files use C-style (row-major) dimension ordering, while MATLAB
+        uses Fortran-style (column-major) ordering. Due to this fundamental
+        difference, MATLAB automatically reverses dimension order when reading
+        NetCDF files. This method reverses dimensions to match MATLAB's behavior.
+        
+        Examples of transformations:
+        - (time, zt) -> (zt, time)
+        - (time, zt, yt, xm) -> (xm, yt, zt, time)
+        - (time, fct) -> (fct, time)
+        - (time, lyr, fct) -> (fct, lyr, time)
+        
         Parameters
         ----------
         filename : Path
@@ -461,20 +475,35 @@ class UDBase:
         Returns
         -------
         xarray.Dataset or xarray.DataArray
+            Data with dimensions reversed to match MATLAB conventions
         """
         if not filename.exists():
             raise FileNotFoundError(f"File not found: {filename}")
         
         ds = xr.open_dataset(filename)
         
+        # Transpose all data variables to match MATLAB's column-major convention
+        # Reverse dimension order for all variables with 2+ dimensions
+        transposed_vars = {}
+        for var_name in ds.data_vars:
+            data_var = ds[var_name]
+            if len(data_var.dims) >= 2:
+                transposed_vars[var_name] = data_var.transpose(*reversed(data_var.dims))
+            else:
+                transposed_vars[var_name] = data_var
+        
+        # Create new dataset with transposed variables
+        ds_transposed = xr.Dataset(transposed_vars, coords=ds.coords, attrs=ds.attrs)
+        
         if var is None:
             # Display file contents
-            self._display_ncinfo(ds, filename.name)
-            return ds
+            self._display_ncinfo(ds_transposed, filename.name)
+            return ds_transposed
         else:
-            if var not in ds:
+            if var not in ds_transposed:
                 raise KeyError(f"Variable '{var}' not found in {filename.name}")
-            return ds[var]
+            
+            return ds_transposed[var]
     
     def _display_ncinfo(self, ds: xr.Dataset, filename: str):
         """Display information about NetCDF dataset."""
@@ -582,11 +611,13 @@ class UDBase:
         >>> print(seb['Kstar'].shape)
         >>> seb_avg = sim.area_average_seb(seb)
         """
-        if not hasattr(self, '_lffacEB') or not self._lffacEB:
-            raise FileNotFoundError("Surface energy balance files not available")
-        
         # Load energy balance terms
-        t = self.load_fac_eb('t')
+        try:
+            t = self.load_fac_eb('t')
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                f"Surface energy balance file facEB.{self.expnr}.nc not found in {self.path}"
+            )
         K = self.load_fac_eb('netsw')
         Lin = self.load_fac_eb('LWin')
         Lout = self.load_fac_eb('LWout')
@@ -600,9 +631,13 @@ class UDBase:
         
         # Calculate derived quantities
         L = Lin - Lout
-        G = -lam[:, 0] * dTdz[:, 0, :].values  # Ground heat flux
-        Tsurf = T[:, 0, :].values  # Surface temperature
+        # Data now comes as (fct, lyr, time) from _load_ncdata, transposed to match MATLAB
+        # lam is (n_facets, n_layers), dTdz is (n_facets, n_layers, n_time)
+        G = -lam[:, 0, np.newaxis] * dTdz[:, 0, :].values  # Ground heat flux: (n_facets, n_time)
+        Tsurf = T[:, 0, :].values  # Surface temperature: (n_facets, n_time)
         
+        # All data is already in MATLAB convention: (n_facets, n_time)
+        # _load_ncdata transposes from NetCDF (time, fct) to (fct, time)
         return {
             'Kstar': K.values,
             'Lstar': L.values,
@@ -671,14 +706,17 @@ class UDBase:
         Parameters
         ----------
         var : ndarray
-            Facet variable to average. First dimension must be facets.
+            Facet variable to average. Can be:
+            - 1D array with shape (n_facets,)
+            - 2D array with shape (n_facets, n_times) or (n_times, n_facets)
+            Method auto-detects which dimension is facets based on size.
         sel : ndarray, optional
             Boolean mask or indices to select subset of facets
         
         Returns
         -------
         ndarray
-            Area-averaged values
+            Area-averaged values. Same shape as input except facet dimension is removed.
         
         Examples
         --------
@@ -691,20 +729,42 @@ class UDBase:
             raise ValueError(f"facetarea.inp.{self.expnr} required for this method")
         
         areas = self.facs['area']
+        n_facets = len(areas)
         
         if sel is None:
             sel = slice(None)
+            sel_areas = areas
+        else:
+            sel_areas = areas[sel]
         
         # Handle different array dimensions
         if var.ndim == 1:
-            total_var = np.sum(var[sel] * areas[sel])
-            total_area = np.sum(areas[sel])
+            # Simple 1D case
+            total_var = np.sum(var[sel] * sel_areas)
+            total_area = np.sum(sel_areas)
             return total_var / total_area
+        elif var.ndim == 2:
+            # Determine which axis is facets
+            if var.shape[0] == n_facets:
+                # Shape (n_facets, n_other) - facets in first dimension
+                if isinstance(sel, slice):
+                    total_var = np.sum(var * areas[:, np.newaxis], axis=0)
+                else:
+                    total_var = np.sum(var[sel, :] * sel_areas[:, np.newaxis], axis=0)
+                total_area = np.sum(sel_areas)
+                return total_var / total_area
+            elif var.shape[1] == n_facets:
+                # Shape (n_other, n_facets) - facets in second dimension  
+                if isinstance(sel, slice):
+                    total_var = np.sum(var * areas[np.newaxis, :], axis=1)
+                else:
+                    total_var = np.sum(var[:, sel] * sel_areas[np.newaxis, :], axis=1)
+                total_area = np.sum(sel_areas)
+                return total_var / total_area
+            else:
+                raise ValueError(f"Neither dimension of var {var.shape} matches number of facets {n_facets}")
         else:
-            # Multiple dimensions - average over first (facet) dimension
-            total_var = np.sum(var[sel, ...] * areas[sel, np.newaxis], axis=0)
-            total_area = np.sum(areas[sel])
-            return total_var / total_area
+            raise ValueError(f"area_average_fac only supports 1D and 2D arrays, got shape {var.shape}")
     
     def area_average_seb(self, seb: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         """
@@ -778,6 +838,142 @@ class UDBase:
                 indstop = len(time)
         
         return np.mean(var[..., indstart:indstop], axis=-1)
+
+    @staticmethod
+    def merge_stat(X: np.ndarray, n: int, Y: Optional[np.ndarray] = None,
+                   XpXp: Optional[np.ndarray] = None,
+                   XpYp: Optional[np.ndarray] = None):
+        """
+        Merge short-term statistics into longer windows.
+
+        Parameters
+        ----------
+        X : ndarray
+            First variable. Final dimension is time or short-term windows.
+        n : int
+            Number of consecutive samples/windows to merge.
+        Y : ndarray, optional
+            Second variable (same trailing dimension as ``X``).
+        XpXp : ndarray, optional
+            Variance contribution for ``X`` aligned with ``X``.
+        XpYp : ndarray, optional
+            Covariance contribution for ``X`` and ``Y`` aligned with ``X``.
+
+        Returns
+        -------
+        tuple | ndarray
+            ``Xmean`` if only ``X`` provided;
+            ``Xmean, var`` if ``XpXp`` given;
+            ``Xmean, Ymean, cov`` if ``Y`` provided (and optionally ``XpYp``).
+
+        Notes
+        -----
+        Discards the oldest samples that do not fill a complete window so the
+        most recent data is retained. Variance/covariance combine the mean of
+        short-window contributions with the variance/covariance of the short
+        means inside each merged window.
+        """
+        X = np.asarray(X)
+        if X.shape[-1] < n:
+            raise ValueError("Not enough samples to form a single merged window")
+
+        nwin = X.shape[-1] // n
+        start = X.shape[-1] - nwin * n
+        X_use = X[..., start:]
+        X_group = X_use.reshape(*X.shape[:-1], nwin, n)
+        Xmean = X_group.mean(axis=-1)
+
+        if Y is None:
+            if XpXp is None:
+                return Xmean
+
+            XpXp = np.asarray(XpXp)
+            if XpXp.shape[-1] != X.shape[-1]:
+                raise ValueError("XpXp must match X shape in the last dimension")
+            XpXp_use = XpXp[..., start:]
+            XpXp_group = XpXp_use.reshape(*XpXp.shape[:-1], nwin, n)
+            within = XpXp_group.mean(axis=-1)
+            between = ((X_group - Xmean[..., None]) ** 2).mean(axis=-1)
+            return Xmean, within + between
+
+        Y = np.asarray(Y)
+        if Y.shape[-1] < n:
+            raise ValueError("Y does not have enough samples to form a merged window")
+        if Y.shape[-1] != X.shape[-1]:
+            raise ValueError("X and Y must share the same length in the last dimension")
+
+        Y_use = Y[..., start:]
+        Y_group = Y_use.reshape(*Y.shape[:-1], nwin, n)
+        Ymean = Y_group.mean(axis=-1)
+
+        if XpYp is None:
+            cov_within = ((X_group - Xmean[..., None]) * (Y_group - Ymean[..., None])).mean(axis=-1)
+            between = 0.0
+        else:
+            XpYp = np.asarray(XpYp)
+            if XpYp.shape[-1] != X.shape[-1]:
+                raise ValueError("XpYp must match X and Y in the last dimension")
+            XpYp_use = XpYp[..., start:]
+            XpYp_group = XpYp_use.reshape(*XpYp.shape[:-1], nwin, n)
+            cov_within = XpYp_group.mean(axis=-1)
+            between = ((X_group - Xmean[..., None]) * (Y_group - Ymean[..., None])).mean(axis=-1)
+
+        cov = cov_within + between
+        return Xmean, Ymean, cov
+
+    @staticmethod
+    def coarsegrain_field(var: np.ndarray, Lflt: np.ndarray,
+                          xm: np.ndarray, ym: np.ndarray) -> np.ndarray:
+        """
+        Apply 2D periodic box filters to a 3D field.
+
+        Parameters
+        ----------
+        var : ndarray, shape (nx, ny, nz)
+            Field data (time or height on the last axis).
+        Lflt : array-like
+            Filter lengths (meters). Multiple lengths are allowed.
+        xm, ym : array-like
+            Grid coordinates in meters; must be 1D and roughly uniform.
+
+        Returns
+        -------
+        ndarray
+            Filtered field with shape (nx, ny, nz, n_filters).
+        """
+        var = np.asarray(var)
+        if var.ndim != 3:
+            raise ValueError("var must be 3D with shape (nx, ny, nz)")
+
+        xm = np.asarray(xm).ravel()
+        ym = np.asarray(ym).ravel()
+        if xm.size < 2 or ym.size < 2:
+            raise ValueError("xm and ym must contain at least two points")
+
+        dx = float(np.mean(np.diff(xm)))
+        dy = float(np.mean(np.diff(ym)))
+        if dx <= 0 or dy <= 0:
+            raise ValueError("Grid spacings must be positive")
+
+        Lflt_arr = np.atleast_1d(Lflt)
+        nx, ny, nz = var.shape
+        out = np.empty((nx, ny, nz, len(Lflt_arr)))
+
+        for i, L in enumerate(Lflt_arr):
+            wx = max(1, int(round(L / dx)))
+            wy = max(1, int(round(L / dy)))
+
+            kernel = np.zeros((nx, ny))
+            kernel[:wx, :wy] = 1.0 / (wx * wy)
+            kernel = np.roll(kernel, -wx // 2, axis=0)
+            kernel = np.roll(kernel, -wy // 2, axis=1)
+            k_hat = np.fft.fftn(kernel)
+
+            for k in range(nz):
+                v_hat = np.fft.fftn(var[:, :, k])
+                out[:, :, k, i] = np.real(np.fft.ifftn(v_hat * k_hat))
+
+        return out
     
     def plot_fac(self, var: np.ndarray, cmap: str = 'viridis', 
                  show_edges: bool = False, colorbar: bool = True,
@@ -1248,6 +1444,216 @@ class UDBase:
             'brx': brx,
             'bry': bry
         }
+    
+    def plot_building_ids(self, figsize: tuple = (10, 8), cmap: str = 'hsv'):
+        """
+        Plot building IDs from above (x,y view) with distinct colors.
+        
+        Creates a top-view plot showing buildings in different colors with
+        building IDs displayed at the center of gravity of each building.
+        Buildings are numbered from left-bottom to right-top based on their
+        centroid positions.
+        
+        Parameters
+        ----------
+        figsize : tuple, default=(10, 8)
+            Figure size in inches (width, height)
+        cmap : str, default='hsv'
+            Matplotlib colormap name for distinct colors
+            
+        Raises
+        ------
+        ValueError
+            If geometry is not loaded or has no buildings
+        ImportError
+            If matplotlib is not installed
+            
+        Examples
+        --------
+        Plot building IDs with default settings:
+        >>> sim.plot_building_ids()
+        
+        Use custom figure size and colormap:
+        >>> sim.plot_building_ids(figsize=(12, 10), cmap='tab20')
+        
+        See Also
+        --------
+        plot_2dmap : Plot 2D map with custom values and labels
+        """
+        if self.geom is None:
+            raise ValueError("This method requires a geometry (STL) file. "
+                           "Ensure stl_file is specified in namoptions.")
+        
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError("matplotlib is required for visualization. "
+                            "Install with: pip install matplotlib")
+        
+        # Get building outlines
+        outlines = self.geom.calculate_outline2d()
+        if not outlines:
+            raise ValueError("No buildings found in geometry")
+        
+        num_buildings = len(outlines)
+        
+        # Create values (building indices) and labels
+        values = np.arange(1, num_buildings + 1)
+        labels = [str(i) for i in range(1, num_buildings + 1)]
+        
+        # Randomize colors to avoid adjacent buildings having similar colors
+        color_order = np.random.permutation(num_buildings)
+        color_values = color_order.copy()
+        
+        # Use plot_2dmap to create the visualization
+        self.plot_2dmap(color_values, labels, figsize=figsize, cmap=cmap)
+        
+        plt.title(f'Building Layout with IDs (Total: {num_buildings})')
+        plt.xlabel('x [m]')
+        plt.ylabel('y [m]')
+    
+    def plot_2dmap(self, val: Union[float, np.ndarray], 
+                   labels: Optional[Union[str, list]] = None,
+                   figsize: tuple = (10, 8), cmap: str = 'viridis',
+                   show_colorbar: bool = True):
+        """
+        Plot a 2D map of buildings colored by a value per building.
+        
+        Creates a top-down view showing building outlines colored according
+        to specified values, with optional text labels at building centroids.
+        
+        Parameters
+        ----------
+        val : float or ndarray
+            Scalar value (applied to all buildings) or vector with one value
+            per building. If vector, length must match number of buildings.
+        labels : str, list of str, or None, optional
+            Text labels to display at the centroid of each building.
+            - If str: same label for all buildings
+            - If list: must have length equal to number of buildings
+            - If None: no labels displayed
+        figsize : tuple, default=(10, 8)
+            Figure size in inches (width, height)
+        cmap : str, default='viridis'
+            Matplotlib colormap name
+        show_colorbar : bool, default=True
+            Whether to display a colorbar
+            
+        Raises
+        ------
+        ValueError
+            If val length doesn't match number of buildings
+            If labels length doesn't match number of buildings
+            If geometry is not loaded
+        ImportError
+            If matplotlib is not installed
+            
+        Examples
+        --------
+        Plot all buildings with same color:
+        >>> sim.plot_2dmap(1.0)
+        
+        Plot building heights with labels:
+        >>> buildings = sim.geom.get_buildings()
+        >>> heights = [max(b['triangulation'].Points[:, 2]) for b in buildings]
+        >>> labels = [f"{i+1}" for i in range(len(buildings))]
+        >>> sim.plot_2dmap(heights, labels)
+        >>> plt.title('Maximum Building Height')
+        
+        See Also
+        --------
+        plot_building_ids : Plot buildings with ID labels
+        """
+        if self.geom is None or not hasattr(self.geom, 'stl') or self.geom.stl is None:
+            raise ValueError("Geometry data not available. Cannot compute outlines.")
+        
+        try:
+            import matplotlib.pyplot as plt
+            from matplotlib.patches import Polygon as mplPolygon
+            from matplotlib.collections import PatchCollection
+        except ImportError:
+            raise ImportError("matplotlib is required for visualization. "
+                            "Install with: pip install matplotlib")
+        
+        # Get building outlines
+        outlines = self.geom.calculate_outline2d()
+        if not outlines:
+            raise ValueError("No building outlines found in geometry")
+        
+        num_buildings = len(outlines)
+        
+        # Normalize values to per-building vector
+        if np.isscalar(val):
+            values = np.full(num_buildings, float(val))
+        else:
+            val_array = np.asarray(val)
+            if len(val_array) != num_buildings:
+                raise ValueError(f"Length of val ({len(val_array)}) must match "
+                               f"number of buildings ({num_buildings})")
+            values = val_array.astype(float)
+        
+        # Handle labels
+        if labels is not None:
+            if isinstance(labels, str):
+                label_array = [labels] * num_buildings
+            else:
+                label_array = list(labels)
+                if len(label_array) != num_buildings:
+                    raise ValueError(f"Number of labels ({len(label_array)}) must match "
+                                   f"number of buildings ({num_buildings})")
+        else:
+            label_array = None
+        
+        # Create figure and plot
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        patches = []
+        colors = []
+        
+        for i, outline in enumerate(outlines):
+            if np.isnan(values[i]):
+                continue
+            
+            polygon = outline.get('polygon', None)
+            centroid = outline.get('centroid', None)
+            
+            if polygon is None or len(polygon) == 0:
+                continue
+            
+            # Create polygon patch (project to x-y plane)
+            xy = polygon[:, :2]  # Take only x, y coordinates
+            patch = mplPolygon(xy, closed=True)
+            patches.append(patch)
+            colors.append(values[i])
+            
+            # Add text label if provided
+            if label_array is not None and centroid is not None:
+                if not np.any(np.isnan(centroid[:2])):
+                    ax.text(centroid[0], centroid[1], label_array[i],
+                           ha='center', va='center',
+                           fontsize=10, fontweight='bold',
+                           color='black',
+                           bbox=dict(boxstyle='round,pad=0.3',
+                                   facecolor='white',
+                                   edgecolor='none',
+                                   alpha=0.7))
+        
+        # Create patch collection
+        if patches:
+            pc = PatchCollection(patches, cmap=cmap, edgecolor='black', linewidth=0.5)
+            pc.set_array(np.array(colors))
+            ax.add_collection(pc)
+            
+            if show_colorbar:
+                plt.colorbar(pc, ax=ax)
+        
+        # Set axis properties
+        ax.set_aspect('equal')
+        ax.set_xlabel('x [m]')
+        ax.set_ylabel('y [m]')
+        ax.set_xlim(0, self.xlen)
+        ax.set_ylim(0, self.ylen)
+        ax.grid(True, alpha=0.3)
     
     def __str__(self):
         """User-friendly string representation."""

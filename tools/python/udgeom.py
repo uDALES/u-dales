@@ -12,7 +12,7 @@ Licensed under GNU General Public License v3.0
 """
 
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
 import numpy as np
 import warnings
 
@@ -30,6 +30,12 @@ try:
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
     warnings.warn("matplotlib not installed. Visualization functionality will be limited.")
+
+try:
+    from scipy.spatial import ConvexHull
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
 
 
 class UDGeom:
@@ -335,6 +341,93 @@ class UDGeom:
         if self.stl is None:
             return np.array([])
         return self.stl.triangles_center
+
+    def calculate_outline2d(self) -> List[dict]:
+        """
+        Compute 2D building outlines from the triangulated geometry.
+
+        Returns
+        -------
+        outlines : list of dict
+            Each item contains:
+            - 'polygon': ndarray, shape (n_vertices, 3) ordered convex hull in x-y
+            - 'centroid': ndarray, shape (3,) centroid of the polygon (z=0)
+        """
+        if self.stl is None:
+            return []
+        if not SCIPY_AVAILABLE:
+            warnings.warn("scipy is required for calculate_outline2d; install scipy to enable building outlines.")
+            return []
+
+        centers = self.stl.triangles_center
+        building_faces = np.where(centers[:, 2] > 0)[0]
+        if building_faces.size == 0:
+            return []
+
+        # Build adjacency graph restricted to building faces
+        face_adj = self.stl.face_adjacency
+        # Keep only adjacency where both faces are buildings
+        mask = np.isin(face_adj, building_faces).all(axis=1)
+        face_adj = face_adj[mask]
+
+        # Connected components over building faces
+        component_labels = -np.ones(len(self.stl.faces), dtype=int)
+        current_label = 0
+        for f in building_faces:
+            if component_labels[f] != -1:
+                continue
+            stack = [f]
+            component_labels[f] = current_label
+            while stack:
+                face_idx = stack.pop()
+                # neighbors where face_idx participates
+                neighbors = face_adj[(face_adj[:, 0] == face_idx) | (face_adj[:, 1] == face_idx)].ravel()
+                for nb in neighbors:
+                    if component_labels[nb] == -1 and nb in building_faces:
+                        component_labels[nb] = current_label
+                        stack.append(nb)
+            current_label += 1
+
+        outlines: List[dict] = []
+        for comp in range(current_label):
+            face_idxs = np.where(component_labels == comp)[0]
+            if face_idxs.size == 0:
+                continue
+
+            verts = self.stl.vertices[self.stl.faces[face_idxs].ravel()]
+            verts_xy = np.unique(verts[:, :2], axis=0)
+            if len(verts_xy) < 3:
+                continue
+
+            try:
+                hull = ConvexHull(verts_xy)
+                polygon_xy = verts_xy[hull.vertices]
+            except Exception:
+                # Degenerate (nearly colinear); fallback to all points
+                polygon_xy = verts_xy
+
+            # Ensure closed polygon ordering
+            polygon_xy = np.vstack([polygon_xy, polygon_xy[0]])
+            polygon = np.column_stack([polygon_xy[:, 0], polygon_xy[:, 1], np.zeros(len(polygon_xy))])
+
+            # Polygon centroid in 2D using shoelace; fallback to mean if degenerate
+            x = polygon_xy[:, 0]
+            y = polygon_xy[:, 1]
+            cross = x[:-1] * y[1:] - x[1:] * y[:-1]
+            area = 0.5 * np.sum(cross)
+            if np.isclose(area, 0):
+                centroid_xy = polygon_xy.mean(axis=0)
+            else:
+                cx = np.sum((x[:-1] + x[1:]) * cross) / (6 * area)
+                cy = np.sum((y[:-1] + y[1:]) * cross) / (6 * area)
+                centroid_xy = np.array([cx, cy])
+
+            centroid = np.array([centroid_xy[0], centroid_xy[1], 0.0])
+            outlines.append({'polygon': polygon, 'centroid': centroid})
+
+        # Sort outlines by y then x (bottom-left to top-right) for consistent IDs
+        outlines.sort(key=lambda o: (o['centroid'][1], o['centroid'][0]))
+        return outlines
     
     @property
     def face_normals(self) -> np.ndarray:
