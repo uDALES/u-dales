@@ -1,0 +1,1293 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the building-resolving urban multi-physics code uDALES">
+      
+      
+        <meta name="author" content="The uDALES Team">
+      
+      
+        <link rel="canonical" href="https://uDALES.github.io/u-dales/udales-utility-tutorial/">
+      
+      
+        <link rel="prev" href="../udales-facets-tutorial/">
+      
+      
+        <link rel="next" href="../udales-example-simulations/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.17">
+    
+    
+      
+        <title>Utility routines - uDALES</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="pink">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#using-udales-utilities-in-matlab" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="uDALES" class="md-header__button md-logo" aria-label="uDALES" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            uDALES
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Utility routines
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="uDALES" class="md-nav__button md-logo" aria-label="uDALES" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    uDALES
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Simulation inputs
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Simulation inputs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-namoptions-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List of input parameters
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-boundary-conditions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Boundary conditions
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-geometry-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry generation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-copy-inputs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Copying from other simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-driver-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Precursor simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Running the simulation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Running the simulation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-pre-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Pre-processing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-simulation-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Running uDALES
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-post-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Post-processing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Data post-processing
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Data post-processing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-udbase-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    udbase
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-fields-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Flow fields and statistics
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-facets-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Facets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Utility routines
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Utility routines
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#time_average-time-averaged-mean-and-variance-of-instantaneous-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      time_average: time-averaged mean and variance of instantaneous data
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#merge_stat-combine-short-term-time-average-into-a-long-term-time-average" class="md-nav__link">
+    <span class="md-ellipsis">
+      merge_stat: combine short-term time average into a long-term time average
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coarsegrain_field-coarse-graining-3d-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      coarsegrain_field: coarse-graining 3D fields
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      References
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-example-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Example simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-how-to-cite/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to cite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-pub-list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Publication list
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DEVELOP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Development notes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to contribute
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-docs-software/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Software docs
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#time_average-time-averaged-mean-and-variance-of-instantaneous-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      time_average: time-averaged mean and variance of instantaneous data
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#merge_stat-combine-short-term-time-average-into-a-long-term-time-average" class="md-nav__link">
+    <span class="md-ellipsis">
+      merge_stat: combine short-term time average into a long-term time average
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coarsegrain_field-coarse-graining-3d-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      coarsegrain_field: coarse-graining 3D fields
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      References
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="using-udales-utilities-in-matlab">Using uDALES utilities in MATLAB<a class="headerlink" href="#using-udales-utilities-in-matlab" title="Permanent link">&para;</a></h1>
+<p>This tutorial demonstrates how to use the uDALES MATLAB utilities for post-processing simulation data. It covers 1) time-averaging; 2) merging short-term time-averaged data to long-term averages, and 3) coarse-graining fields for Spatial filtering (coarse-graining method). The utility functions include:</p>
+<ul>
+<li><a href="#time_average-time-averaged-mean-and-variance-of-instantaneous-data"><strong>time_average</strong></a>. This routine calculates the time-average of a quantity (assumes time is in the last index of the variable).</li>
+<li><a href="#merge_stat-combine-short-term-time-average-into-a-long-term-time-average"><strong>merge_stat</strong></a><strong>.</strong> This routine merges the short-term time average and (co)variance into long-term averages and associated (co)variance.</li>
+<li><a href="#coarsegrain_field-coarse-graining-3d-fields"><strong>coarsegrain_field</strong></a><strong>.</strong> This routine allows you to coarse-grain a field using a planar filter in the x-y plane using a fixed lengthscale [1].</li>
+</ul>
+<h2 id="time_average-time-averaged-mean-and-variance-of-instantaneous-data">time_average: time-averaged mean and variance of instantaneous data<a class="headerlink" href="#time_average-time-averaged-mean-and-variance-of-instantaneous-data" title="Permanent link">&para;</a></h2>
+<p><code>time_average</code> function returns the mean and variance of time-series data (fields, facets, timeseries, ...). The method assumes that time is the last array index.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">time_average</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>  time_average  Time-average variables over all available time intervals
+
+    [Xmean, var] = time_average(X)
+        Compute the time-averaged mean and variance of X over the full
+        time record (time is assumed to be the last dimension).
+
+    [Xmean, Ymean, cov] = time_average(X, Y)
+        Compute the time-averaged means of X and Y and their covariance
+        over the full time record.
+
+  Inputs:
+    X   - First variable time series. The final array dimension is assumed
+          to be time (e.g. size(X) = [..., Nt]).
+    Y   - Second variable time series (same shape as X) [optional]
+
+  Outputs:
+    For single variable (1 input):
+      Xmean - Time-averaged X over the full record
+      var   - Time-averaged variance over the full record
+
+    For two variables (2 inputs):
+      Xmean - Time-averaged X over the full record
+      Ymean - Time-averaged Y over the full record
+      cov   - Time-averaged covariance over the full record
+
+  Examples:
+    [X_avg, X_var] = time_average(X);
+    [X_avg, Y_avg, XY_cov] = time_average(X, Y);
+</code></pre></div>
+<p>For example, let's load instantaneous pressure data for facets:</p>
+<div class="highlight"><pre><span></span><code><span class="c">% preamble</span>
+<span class="nb">clear</span><span class="w"> </span><span class="n">variables</span>
+<span class="nb">close</span><span class="w"> </span><span class="nb">all</span>
+
+<span class="c">% add the uDALES matlab path</span>
+<span class="nb">addpath</span><span class="p">(</span><span class="s">&#39;path_to_udales\tools\matlab&#39;</span><span class="p">)</span>
+
+<span class="c">% create an instance of the udbase class</span>
+<span class="n">expnr</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">065</span><span class="p">;</span><span class="w">  </span><span class="c">% Experiment number</span>
+<span class="n">expdir</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;path_to_experiments\065&#39;</span><span class="p">;</span>
+<span class="n">sim</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">udbase</span><span class="p">(</span><span class="n">expnr</span><span class="p">,</span><span class="w"> </span><span class="n">expdir</span><span class="p">);</span>
+
+<span class="n">p</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_momentum</span><span class="p">(</span><span class="s">&#39;pres&#39;</span><span class="p">);</span>
+<span class="n">t</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_momentum</span><span class="p">(</span><span class="s">&#39;t&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>Now, let's calculate pressure mean and variance</p>
+<div class="highlight"><pre><span></span><code><span class="p">[</span><span class="n">pav</span><span class="p">,</span><span class="w"> </span><span class="n">pvar</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">time_average</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>
+</code></pre></div>
+<p>Plot the time-series of <span class="arithmatex"><span class="MathJax_Preview">p</span><script type="math/tex">p</script></span> together with the mean and the 95% confidence interval</p>
+<div class="highlight"><pre><span></span><code><span class="nb">figure</span>
+<span class="nb">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="w"> </span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="nb">ones</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">t</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="n">pav</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="s">&#39;k-&#39;</span><span class="p">);</span><span class="w"> </span><span class="n">hold</span><span class="w"> </span><span class="s">on</span>
+<span class="nb">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="nb">ones</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">t</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="p">(</span><span class="n">pav</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="w"> </span><span class="nb">sqrt</span><span class="p">(</span><span class="n">pvar</span><span class="p">(</span><span class="mi">1</span><span class="p">))),</span><span class="w"> </span><span class="s">&#39;k--&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="nb">ones</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">t</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="p">(</span><span class="n">pav</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="w"> </span><span class="nb">sqrt</span><span class="p">(</span><span class="n">pvar</span><span class="p">(</span><span class="mi">1</span><span class="p">))),</span><span class="w"> </span><span class="s">&#39;k--&#39;</span><span class="p">)</span>
+<span class="nb">legend</span><span class="p">(</span><span class="s">&#39;p(t)&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;time-averaged p&#39;</span><span class="p">,</span><span class="s">&#39;two-sigma level of p&#39;</span><span class="p">)</span>
+<span class="nb">xlabel</span><span class="w"> </span><span class="s">&#39;time&#39;</span><span class="p">;</span><span class="w"> </span><span class="n">ylabel</span><span class="w"> </span><span class="s">&#39;pressure&#39;</span><span class="p">;</span>
+</code></pre></div>
+<p><img alt="figure_0.png" src="../udales-utility-tutorial_media/figure_0.png" /></p>
+<p>The function can also be used to calculated the time average and covariance of <strong>two variables.</strong> For example, let's calculate the covariance of the facet pressure and x-component shear stress <span class="arithmatex"><span class="MathJax_Preview">\overline{p^{\prime } \tau_x^{\prime } }</span><script type="math/tex">\overline{p^{\prime } \tau_x^{\prime } }</script></span>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">taux</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_momentum</span><span class="p">(</span><span class="s">&#39;tau_x&#39;</span><span class="p">);</span>
+<span class="p">[</span><span class="n">pbar</span><span class="p">,</span><span class="w"> </span><span class="n">tauxbar</span><span class="p">,</span><span class="w"> </span><span class="n">ptauxbar</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">time_average</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">taux</span><span class="p">);</span>
+
+<span class="c">% check output for the first facet</span>
+<span class="nb">fprintf</span><span class="p">(</span><span class="s">&#39;The time-averaged pressure pbar=%.3f m2/s2, tauxbar=%.3f m2/s2 and their covariance p&#39;&#39;taux&#39;&#39;bar=%.3f m4/s4.\n&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">...</span>
+<span class="w">    </span><span class="n">pbar</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="n">tauxbar</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="n">ptauxbar</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>The time-averaged pressure pbar=2.314 m2/s2, tauxbar=-0.032 m2/s2 and their covariance p&#39;taux&#39;bar=0.049 m4/s4.
+</code></pre></div>
+<p>The value of <code>pbar</code> returned by both methods is identical. Note that this example is quite exotic as we only had loaded facet data; more conventional covariances are <span class="arithmatex"><span class="MathJax_Preview">\overline{w^{\prime } u^{\prime } }</span><script type="math/tex">\overline{w^{\prime } u^{\prime } }</script></span>, <span class="arithmatex"><span class="MathJax_Preview">\overline{w^{\prime } p^{\prime } }</span><script type="math/tex">\overline{w^{\prime } p^{\prime } }</script></span> etc.</p>
+<h2 id="merge_stat-combine-short-term-time-average-into-a-long-term-time-average">merge_stat: combine short-term time average into a long-term time average<a class="headerlink" href="#merge_stat-combine-short-term-time-average-into-a-long-term-time-average" title="Permanent link">&para;</a></h2>
+<p>uDALES statistics are collected over fixed time-windows. Sometimes these time windows may be a bit too short. The function <code>merge_stat</code> is able to combine several of time-windows into larger ones.</p>
+<p>Let's start with loading short-term time-averaged data, for example the 1-D plane average</p>
+<div class="highlight"><pre><span></span><code><span class="c">% Use a different simulation</span>
+<span class="n">expnr</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">110</span><span class="p">;</span><span class="w">  </span><span class="c">% Experiment number</span>
+<span class="n">expdir</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;path_to_experiments\110&#39;</span><span class="p">;</span>
+<span class="n">sim</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">udbase</span><span class="p">(</span><span class="n">expnr</span><span class="p">,</span><span class="w"> </span><span class="n">expdir</span><span class="p">);</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Warning: prof.inp.110 not found. Assuming equidistant grid.
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c">% load xy- and time-averaged data</span>
+<span class="n">uxyt</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_stat_xyt</span><span class="p">(</span><span class="s">&#39;uxyt&#39;</span><span class="p">);</span><span class="w">        </span><span class="c">% u-velocity profile (z) [m/s]</span>
+<span class="n">wxyt</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_stat_xyt</span><span class="p">(</span><span class="s">&#39;wxyt&#39;</span><span class="p">);</span><span class="w">        </span><span class="c">% w-velocity profile [m/s]</span>
+<span class="n">upupxyt</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_stat_xyt</span><span class="p">(</span><span class="s">&#39;upuptxyc&#39;</span><span class="p">);</span><span class="w"> </span><span class="c">% u-velocity variance [m²/s²]</span>
+<span class="n">upwpxyt</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_stat_xyt</span><span class="p">(</span><span class="s">&#39;upwpxyt&#39;</span><span class="p">);</span><span class="w">  </span><span class="c">% u-w velocity covariance [m²/s²]</span>
+<span class="nb">time</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_stat_xyt</span><span class="p">(</span><span class="s">&#39;time&#39;</span><span class="p">);</span><span class="w">        </span><span class="c">% Time coordinate for xyt data [s]</span>
+</code></pre></div>
+<p>Check the averaging time interval</p>
+<div class="highlight"><pre><span></span><code><span class="nb">time</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>time = 3x1 single column vector
+1.0e+03
+2.0001
+4.0001
+6.0001
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nb">length</span><span class="p">(</span><span class="nb">time</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>ans = 3
+</code></pre></div>
+<p>So there are three time-averaging intervals. Long-term time averaging can be used by using</p>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">merge_stat</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>  merge_stat  Merge short-time statistics into longer-time averages
+
+    Xmean = merge_stat(X, n)
+        Computes time-averaged mean for a single variable X.
+        Groups the time series into non-overlapping windows of length n
+        and computes statistics inside each window.
+
+    [Xmean, var] = merge_stat(X, XpXp, n)
+        Computes time-averaged mean and variance for a single variable X.
+        Groups the time series into non-overlapping windows of length n
+        and computes statistics inside each window.
+
+    [Xmean, Ymean, cov] = merge_stat(X, Y, XpYp, n)  
+        Computes time-averaged means and covariance for two variables X and Y.
+        Groups the time series into non-overlapping windows and computes
+        statistics inside each window.
+
+  Inputs:
+    X    - First variable time series (time in final dimension)
+    Y    - Second variable time series (same shape as X) [two-variable case only]
+    XpXp - Instantaneous variance contribution (same shape as X) [single-variable]
+    XpYp - Instantaneous covariance contribution (same shape as X and Y) [two-variable]  
+    n    - Window length (number of time samples per averaged window)
+
+  Outputs:
+    Xmean - Time-averaged X in each window
+    Ymean - Time-averaged Y in each window [two-variable case only]
+    var   - Time-averaged variance in each window [single-variable case]
+    cov   - Time-averaged covariance in each window [two-variable case]
+
+  Examples:
+     X_avg = merge_stat(X, 20);
+    [X_avg, X_var] = merge_stat(X, XpXp, 20);
+    [X_avg, Y_avg, XY_cov] = merge_stat(X, Y, XpYp, 50);
+</code></pre></div>
+<p>This function needs all the short-term variables related as the input, plus an average time window. The long-term average is simply the average of the short-term averages, but the long-terms variance contains both contribution from variance in the short-term mean and the short term variance. Please ensure that the last dimension of the input must be the time, as the function merges on that dimension.</p>
+<p>Let's start with <strong>two variables and their covariance</strong>, obtaining long-term quantities for <span class="arithmatex"><span class="MathJax_Preview">\overline{u}</span><script type="math/tex">\overline{u}</script></span>, <span class="arithmatex"><span class="MathJax_Preview">\bar{w}</span><script type="math/tex">\bar{w}</script></span> and their covariance <span class="arithmatex"><span class="MathJax_Preview">\overline{u^{\prime } w^{\prime } }</span><script type="math/tex">\overline{u^{\prime } w^{\prime } }</script></span> over all three time segments:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Nwindow</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">length</span><span class="p">(</span><span class="nb">time</span><span class="p">);</span>
+
+<span class="c">% input all the short-term variables related</span>
+<span class="p">[</span><span class="n">uxyt_longterm</span><span class="p">,</span><span class="w"> </span><span class="n">wxyt_longterm</span><span class="p">,</span><span class="w"> </span><span class="n">upwpxyt_longterm</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">merge_stat</span><span class="p">(</span><span class="n">uxyt</span><span class="p">,</span><span class="w"> </span><span class="n">wxyt</span><span class="p">,</span><span class="w"> </span><span class="n">upwpxyt</span><span class="p">,</span><span class="w"> </span><span class="n">Nwindow</span><span class="p">);</span>
+</code></pre></div>
+<p>if you only need <strong>one variable</strong>, e.g., the long-term quantities for <span class="arithmatex"><span class="MathJax_Preview">\overline{u}</span><script type="math/tex">\overline{u}</script></span> and <span class="arithmatex"><span class="MathJax_Preview">\overline{u^{\prime } u^{\prime } }</span><script type="math/tex">\overline{u^{\prime } u^{\prime } }</script></span> over all time, you can reduce it to:</p>
+<div class="highlight"><pre><span></span><code><span class="p">[</span><span class="n">uxyt_longterm</span><span class="p">,</span><span class="w"> </span><span class="n">upupxyt_longterm</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">merge_stat</span><span class="p">(</span><span class="n">uxyt</span><span class="p">,</span><span class="w"> </span><span class="n">upupxyt</span><span class="p">,</span><span class="w"> </span><span class="n">Nwindow</span><span class="p">);</span>
+</code></pre></div>
+<p>Naturally both versions return the same value for <code>uxyt_longterm.</code> Let's check the dimension of the short-term and long-term statistics</p>
+<div class="highlight"><pre><span></span><code><span class="nb">size</span><span class="p">(</span><span class="n">uxyt</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>ans = 1x2
+
+256    3
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nb">size</span><span class="p">(</span><span class="n">uxyt_longterm</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>ans = 1x2
+
+256    1
+</code></pre></div>
+<p>If you want an average over shorter window, you can an optional parameter to <code>merge_stat</code>::</p>
+<div class="highlight"><pre><span></span><code><span class="n">Nwindow</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="p">[</span><span class="n">uxyt_longterm</span><span class="p">,</span><span class="w"> </span><span class="n">upupxyt_longterm</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">merge_stat</span><span class="p">(</span><span class="n">uxyt</span><span class="p">,</span><span class="w"> </span><span class="n">upupxyt</span><span class="p">,</span><span class="w"> </span><span class="n">Nwindow</span><span class="p">);</span>
+
+<span class="nb">size</span><span class="p">(</span><span class="n">uxyt_longterm</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>ans = 1x2
+
+256    1
+</code></pre></div>
+<p>There were three intervals in uxut, and the last two were used to average over. The first time-interval has been discarded.</p>
+<h2 id="coarsegrain_field-coarse-graining-3d-fields">coarsegrain_field: coarse-graining 3D fields<a class="headerlink" href="#coarsegrain_field-coarse-graining-3d-fields" title="Permanent link">&para;</a></h2>
+<p>We recently developed a coarse-graining method that is computationally efficient and can be used to coarse-grain data [1]. In order to demonstrate its use, let's load the mean horizontal velocity <span class="arithmatex"><span class="MathJax_Preview">\overline{u}</span><script type="math/tex">\overline{u}</script></span> from the uDALES data.</p>
+<div class="highlight"><pre><span></span><code><span class="n">ut</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_stat_t</span><span class="p">(</span><span class="s">&#39;ut&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>The coarse-graining routine has the following syntax:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">coarsegrain_field</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>  coarsegrain_field  Apply 2D spatial filter to 3D field data.
+
+    var_filtered = coarsegrain_field(var, Lflt, xm, ym)
+
+  This function applies 2D spatial (x-y) coarse-graining filters to 3D field data.
+  Multiple filter sizes are applied simultaneously, creating a 4D output
+  where the 4th dimension corresponds to different filter sizes.
+
+  Inputs
+    var     - 3D field data with dimensions [itot, jtot, ktot] where
+              the first two dimensions are horizontal (x, y) and the
+              third is vertical (z) or time. Field is assumed periodic.
+    Lflt    - Array of filter lengths in physical units (meters)
+    xm      - x-coordinates of grid points (meters)
+    ym      - y-coordinates of grid points (meters)
+
+  Outputs
+    var_filtered - 4D filtered data with dimensions [itot, jtot, ktot, length(Lflt)]
+                   where the 4th dimension corresponds to different filter sizes
+
+  Algorithm
+    - Converts physical filter lengths to grid cell numbers (Ng = round(Lflt/dx))
+    - Works at discrete level with normalized periodic filters  
+    - Uses FFT-based convolution for computational efficiency
+
+  Example:
+    % Apply multiple filter sizes to velocity field
+    filter_lengths = [10, 20, 40, 80, 160]; % Physical lengths in meters
+    u_filtered = coarsegrain_field(u_data, filter_lengths, xm, ym);
+</code></pre></div>
+<p>The routine takes in multiple filter lengths simultaneously.</p>
+<div class="highlight"><pre><span></span><code><span class="n">filter_lengths</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">8</span><span class="w"> </span><span class="mi">32</span><span class="w"> </span><span class="mi">128</span><span class="p">];</span><span class="w">  </span><span class="c">% Filter widths in meters</span>
+
+<span class="c">% filter the last field</span>
+<span class="n">u_filtered</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">coarsegrain_field</span><span class="p">(</span><span class="n">ut</span><span class="p">(:,:,:,</span><span class="k">end</span><span class="p">),</span><span class="w"> </span><span class="n">filter_lengths</span><span class="p">,</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">xm</span><span class="p">,</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">ym</span><span class="p">);</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code> Filter 1/1 (Lflt_x=7.5m, Lflt_y=7.5m) completed
+ Filter 2/1 (Lflt_x=32.5m, Lflt_y=32.5m) completed
+ Filter 3/1 (Lflt_x=127.5m, Lflt_y=127.5m) completed
+Coarse-graining completed in 0.25 seconds
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c">% Create figure with subplots comparing original and filtered fields</span>
+
+<span class="nb">figure</span>
+<span class="n">k_level</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="c">% Original field (unfiltered)</span>
+<span class="nb">subplot</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="nb">pcolor</span><span class="p">(</span><span class="n">sim</span><span class="p">.</span><span class="n">xt</span><span class="p">,</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">yt</span><span class="p">,</span><span class="w"> </span><span class="n">ut</span><span class="p">(:,:,</span><span class="n">k_level</span><span class="p">)</span><span class="o">&#39;</span><span class="p">);</span>
+<span class="n">shading</span><span class="w"> </span><span class="s">flat</span><span class="p">;</span><span class="w"> </span><span class="n">axis</span><span class="w"> </span><span class="s">equal</span><span class="w"> </span><span class="s">tight</span><span class="p">;</span><span class="w"> </span><span class="nb">colorbar</span><span class="p">;</span>
+<span class="n">clim</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="w"> </span><span class="mi">2</span><span class="p">])</span>
+<span class="nb">title</span><span class="p">(</span><span class="s">&#39;Original Field (Unfiltered)&#39;</span><span class="p">)</span>
+<span class="nb">xlabel</span><span class="p">(</span><span class="s">&#39;x [m]&#39;</span><span class="p">);</span><span class="w"> </span><span class="nb">ylabel</span><span class="p">(</span><span class="s">&#39;y [m]&#39;</span><span class="p">);</span>
+
+<span class="c">% Filtered fields with increasing filter lengths</span>
+<span class="n">filter_titles</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nb">sprintf</span><span class="p">(</span><span class="s">&#39;Filter Length = %.0f m&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">filter_lengths</span><span class="p">(</span><span class="mi">1</span><span class="p">)),</span>
+<span class="w">    </span><span class="nb">sprintf</span><span class="p">(</span><span class="s">&#39;Filter Length = %.0f m&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">filter_lengths</span><span class="p">(</span><span class="mi">2</span><span class="p">)),</span>
+<span class="w">    </span><span class="nb">sprintf</span><span class="p">(</span><span class="s">&#39;Filter Length = %.0f m&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">filter_lengths</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<span class="p">};</span>
+
+<span class="k">for</span><span class="w"> </span><span class="nb">i</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span>
+<span class="w">    </span><span class="nb">subplot</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="nb">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">pcolor</span><span class="p">(</span><span class="n">sim</span><span class="p">.</span><span class="n">xt</span><span class="p">,</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">yt</span><span class="p">,</span><span class="w"> </span><span class="n">u_filtered</span><span class="p">(:,:,</span><span class="n">k_level</span><span class="p">,</span><span class="nb">i</span><span class="p">)</span><span class="o">&#39;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">shading</span><span class="w"> </span><span class="s">flat</span><span class="p">;</span><span class="w"> </span><span class="n">axis</span><span class="w"> </span><span class="s">equal</span><span class="w"> </span><span class="s">tight</span><span class="p">;</span><span class="w"> </span><span class="nb">colorbar</span><span class="p">;</span>
+<span class="w">    </span><span class="n">clim</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="w"> </span><span class="mi">2</span><span class="p">])</span>
+<span class="w">    </span><span class="nb">title</span><span class="p">(</span><span class="n">filter_titles</span><span class="p">{</span><span class="nb">i</span><span class="p">})</span>
+<span class="w">    </span><span class="nb">xlabel</span><span class="p">(</span><span class="s">&#39;x [m]&#39;</span><span class="p">);</span><span class="w"> </span><span class="nb">ylabel</span><span class="p">(</span><span class="s">&#39;y [m]&#39;</span><span class="p">);</span>
+<span class="k">end</span>
+</code></pre></div>
+<p><img alt="figure_1.png" src="../udales-utility-tutorial_media/figure_1.png" /></p>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<p>[1] Maarten van Reeuwijk, Jingzi Huang (2025) Multi-scale Analysis of Flow over Heterogeneous Urban Environments, <em>Bound-Lay. Met.</em> <strong>191</strong>, 47.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      The uDALES Team
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+      
+    
+  </body>
+</html>
