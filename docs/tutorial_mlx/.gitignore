@@ -4,6 +4,7 @@
 # But track .m files (MATLAB scripts)
 !*.m
 !*.ipynb
+!*.py
 # Also track uDALES.stl
 !uDALES.stl
 

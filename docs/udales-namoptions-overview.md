@@ -1,6 +1,6 @@
 # Input parameters
 
-Below we specify the input parameters in the `namoptions` file of your experiment. 
+Below we specify the input parameters in the `namoptions` file of your experiment.
 
 <!--
 This list 
@@ -18,7 +18,7 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | dtmax | 20 | > 0 | Maximum allowed numerical integration timestep. | [s] |
 | ladaptive | .false. | .true. or .false. | Switch for adaptive time-stepping, .true. recommended. | - |
 | courant | 1.1 | 1 <= courant <=2 | Courant number, default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). | - |
-| lrandomize | .true. | .true. or .false. | Switch that determines whether initial field is randomised.| - | 
+| lrandomize | .true. | .true. or .false. | Switch that determines whether initial field is randomised.| - |
 | irandom | 43 | `INTEGER` > 0 | Seed for random number generation. | - |
 | randu | 0.01 |`REAL` > 0 | Amplitude of velocity field randomisation. | [m/s] |
 | libm | .true. | .true. or .false. | Switch that determines whether the Immersed Boundary Method is turned on. | - |
@@ -40,7 +40,6 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | ktot | 96 | `INTEGER` > 0  | Number of points in z-direction. | - |
 | xlen | -1 | `REAL` > 0 | Domain size in x-direction.| - |
 | ylen | -1 | `REAL` > 0 | Domain size in x-direction.| - |
-
 
 ## Namelist PHYSICS
 
@@ -79,7 +78,6 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | tscale | | | Timescale: domain height*Uinf/utau\*\*2 | |
 | dpdx | 0. | | Constant pressure gradient forcing in x. | |
 --->
-
 
 ## Namelist DYNAMICS
 
@@ -214,7 +212,6 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | nfctsecs_c | 0 | `INTEGER` | Number of facet sections on c-grid. | - |
 | lnorec | .false. | .true. or .false. | Switch for not using reconstruction. | - |
 
-
 ## Namelist ENERGYBALANCE
 
 | Name | Default | Possible values | Description | Unit |
@@ -248,7 +245,6 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | lscasrcr | .false. | .true., .false. |  Switch for 2-D network of point sources at lowest level as defined in scals.inp.xxx.  | - |
 | lscasrcl | .false. | .true., .false. |  Switch for passive scalar line source when using canyon geometry.  | - |
 | lscasrc | .false. | .true., .false. |  Switch for passive scalar point source defined by xS,yS,zS,SS,sigS. | - |
-
 
 ## Namelist DRIVER
 
@@ -343,7 +339,6 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | elevation | 0       |  `REAL`         | Elevation, if isloar = 2.                                          | -     |
 | weatherfname | - | `STRING` | File containing weather data, if isolar = 3. | - |
 
-
 ## Namelist CHEMISTRY
 <!--
 *This section will be updated with the next version.*
@@ -355,7 +350,6 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | k1 | 0. | | Rate constant (O3 + NO -> NO2 + 02 ). Chemistry model parameter. | |
 | JNO2 | 0. | | NO2 photolysis rate. Chemistry model parameter. | |
 
-
 ## Namelist HEATPUMP
 
 | Name | Default | Possible values | Description | Unit |
@@ -365,7 +359,6 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | nhppoints | 0 | `INTEGER` | Number of heat pump grid points. |  |
 | Q_dot_hp | 0. | `REAL` | Total volume flux emission from the heat pump in vertical direction. | [m^3/s] |
 | QH_dot_hp | 0. | `REAL` | Rate of total heat extracted from the ambient air by the heat pump. | [W] |
-
 
 <!---
 ## Namelist INLET

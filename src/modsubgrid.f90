@@ -1,27 +1,29 @@
-!!> \file modsubgrid.f90
-!!!  Calculates and applies the Sub Filter Scale diffusion
-!
+!> \file modsubgrid.f90
+!! Calculates and applies the Sub Filter Scale diffusion
 !>
-!!  \author Jasper Tomas, TU Delft
-!!  \author Pier Siebesma, K.N.M.I.
-!!  \author Stephan de Roode,TU Delft
-!!  \author Chiel van Heerwaarden, Wageningen U.R.
-!!  \author Thijs Heus,MPI-M
-!!  \par Revision list
-!! Jasper Tomas:
-!!   -Implemented Vreman model (2004)
-!!   -wall-damping applied for 1-equation and Smagorinsky models
-!!   -factor 2 smaller constant in 1-equation and Smagorinsky models
-!!  \todo Documentation
-!!
-!  This file is part of DALES.
 !
-! DALES is free software; you can redistribute it and/or modify
+!! \author Jasper Tomas, TU Delft
+!! \author Pier Siebesma, K.N.M.I.
+!! \author Stephan de Roode,TU Delft
+!! \author Chiel van Heerwaarden, Wageningen U.R.
+!! \author Thijs Heus,MPI-M
+!! \par Revision list
+!!   Jasper Tomas:
+!!    -Implemented Vreman model (2004)
+!!    -wall-damping applied for 1-equation and Smagorinsky models
+!!    -factor 2 smaller constant in 1-equation and Smagorinsky models
+!!   Dipanjan Majumdar, Xiangyu Long, and Maarten van Reeuwijk, ICL (2025):
+!!    -Updated buoyancy correction on Vreman model for stable stratification
+!! \todo Documentation
+!
+! This file is part of uDALES (https://github.com/uDALES/u-dales).
+!
+! uDALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
-! DALES is distributed in the hope that it will be useful,
+! uDALES is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
@@ -29,9 +31,8 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
+! Copyright (C) 2016- the uDALES Team, Imperial College London.
 !
-
 module modsubgrid
   use mpi
   use modsubgriddata
@@ -123,7 +124,7 @@ contains
        lles =.true.
     endif
 
-    if (lbuoyancy) lbuoycorr = .true.
+    ! if (lbuoyancy) lbuoycorr = .true.
 
 
   end subroutine subgridnamelist
@@ -208,7 +209,7 @@ contains
     real, dimension(ib:ie) :: shearbot
     real    :: strain2,mlen,uhor,distplus,utaubot,a11,a12,a13, &
          a21,a22,a23,a31,a32,a33,aa,b11,b12,b13,b21,b22, &
-         b23,b33,bb,const,const2
+         b23,b33,bb,const,const2,du0dz,dv0dz,Rig
     integer :: i,j,k,kp,km,jp,jm,im,ip,iw,jw,kw,c1,c2
 
     !  if (lles  .and. rk3step == 1) then        ! compute ekm and ekh only once in complete RK-cycle
@@ -272,139 +273,96 @@ contains
 
        ! ekm(:,:,:) = max(ekm(:,:,:),ekmin)
        ! ekh(:,:,:) = max(ekh(:,:,:),ekmin)
-     elseif(lvreman) then
 
+    elseif(lvreman) then
+       ! Vreman (2004) model for eddy viscosity; neutral case
+       do k = kb,ke
+         kp = k+1
+         km = k-1
+         do j = jb,je
+           jp = j+1
+           jm = j-1
+           do i = ib,ie        ! aij = du_j / dx_i
+             ip = i+1
+             im = i-1
+               
+             a11 = (u0(ip,j,k) - u0(i,j,k)) * dxi
+
+             a12 = (v0(ip,jp,k) + v0(ip,j,k) - v0(im,jp,k) - v0(im,j,k) )*dxiq
+
+             a13 = (w0(ip,j,kp) + w0(ip,j,k) - w0(im,j,kp) - w0(im,j,k) )*dxiq
+
+             a21 = (u0(ip,jp,k) + u0(i,jp,k) - u0(ip,jm,k) - u0(i,jm,k) )*dyiq
+
+             a22 = (v0(i,jp,k) - v0(i,j,k)) * dyi
+
+             a23 = (w0(i,jp,kp) + w0(i,jp,k) - w0(i,jm,kp) - w0(i,jm,k) )*dyiq
+
+             a31 = ( &
+                   ((u0(ip,j,kp) + u0(i,j,kp))*dzf(k) + (u0(ip,j,k)  + u0(i,j,k)) *dzf(kp)) * dzhi(kp) &
+                 - ((u0(ip,j,k)  + u0(i,j,k)) *dzf(km) +(u0(ip,j,km) + u0(i,j,km))*dzf(k))  * dzhi(k)  &
+                   ) &
+                 * dzfiq(k)
+
+             a32 = ( &
+                   ((v0(i,jp,kp) + v0(i,j,kp))*dzf(k) + (v0(i,jp,k)  + v0(i,j,k)) *dzf(kp)) * dzhi(kp) &
+                 - ((v0(i,jp,k)  + v0(i,j,k)) *dzf(km) +(v0(i,jp,km) + v0(i,j,km))*dzf(k))  * dzhi(k)  &
+                   ) &
+                   *dzfiq(k)
+
+             a33 = (w0(i,j,kp) - w0(i,j,k)) * dzfi(k)
+
+             aa  = a11*a11 + a21*a21 + a31*a31 + &
+                   a12*a12 + a22*a22 + a32*a32 + &
+                   a13*a13 + a23*a23 + a33*a33
+
+             b11 = dx2*a11*a11 + dy2*a21*a21 + dzf2(k)*a31*a31
+             b22 = dx2*a12*a12 + dy2*a22*a22 + dzf2(k)*a32*a32
+             b12 = dx2*a11*a12 + dy2*a21*a22 + dzf2(k)*a31*a32
+             b33 = dx2*a13*a13 + dy2*a23*a23 + dzf2(k)*a33*a33
+             b13 = dx2*a11*a13 + dy2*a21*a23 + dzf2(k)*a31*a33
+             b23 = dx2*a12*a13 + dy2*a22*a23 + dzf2(k)*a32*a33
+             bb = b11*b22 - b12*b12 + b11*b33 - b13*b13 + b22*b33 - b23*b23
+
+             ekm(i,j,k) = c_vreman*sqrt( max( (bb/aa), 0.0 ) )   ! Eddy viscosity
+           end do
+         end do
+       end do
+       ! ekm(:,:,:) = max(ekm(:,:,:),ekmin)
+
+       ! Optional buoyancy correction on Vreman model for (non neutral) stable stratification
+       ! Huusko et al., 2025. Large eddy simulation of canonical atmospheric boundary layer flows with the spectral element method in Nek5000. JAMES, 17(10), p.e2025MS005233
        if ((lbuoyancy) .and. (lbuoycorr)) then
-         const = prandtli*grav/(thvs*sqrt(2.*3.))
          do k = kb,ke
            kp = k+1
            km = k-1
            do j = jb,je
              jp = j+1
-             jm = j-1
-             do i = ib,ie        ! aij = du_j / dx_i
+             do i = ib,ie
                ip = i+1
-               im = i-1
 
-               a11 = (u0(ip,j,k) - u0(i,j,k)) * dxi
+               !! No need to calculate dthvdz here as it anyway gets calculated in thermodynamics module in calthv subroutine. Avoid redundant computation here.
+               !dthvdz(i,j,k) = ( thl0(i,j,kp) - thl0(i,j,km) )/(dzh(kp)+dzh(k))
+               
+               du0dz = 0.5*( (u0(i,j,kp)+u0(ip,j,kp)) - (u0(i,j,km)+u0(ip,j,km)) )/(dzh(kp)+dzh(k))
+               dv0dz = 0.5*( (v0(i,j,kp)+v0(i,jp,kp)) - (v0(i,j,km)+v0(i,jp,km)) )/(dzh(kp)+dzh(k))
+               Rig = ( (grav/thl0(i,j,k)) * dthvdz(i,j,k) ) / (du0dz**2 + dv0dz**2 + 1.e-10)     ! Eq. B4
 
-               a12 = (v0(ip,jp,k) + v0(ip,j,k) - v0(im,jp,k) - v0(im,j,k) )*dxiq
-
-               a13 = (w0(ip,j,kp) + w0(ip,j,k) - w0(im,j,kp) - w0(im,j,k) )*dxiq
-
-               a21 = (u0(ip,jp,k) + u0(i,jp,k) - u0(ip,jm,k) - u0(i,jm,k) )*dyiq
-
-               a22 = (v0(i,jp,k) - v0(i,j,k)) * dyi
-
-               a23 = (w0(i,jp,kp) + w0(i,jp,k) - w0(i,jm,kp) - w0(i,jm,k) )*dyiq
-
-               a31 = ( &
-                     ((u0(ip,j,kp) + u0(i,j,kp))*dzf(k) + (u0(ip,j,k)  + u0(i,j,k)) *dzf(kp)) * dzhi(kp) &
-                   - ((u0(ip,j,k)  + u0(i,j,k)) *dzf(km) +(u0(ip,j,km) + u0(i,j,km))*dzf(k))  * dzhi(k)  &
-                     ) &
-                   * dzfiq(k)
-
-               a32 = ( &
-                     ((v0(i,jp,kp) + v0(i,j,kp))*dzf(k) + (v0(i,jp,k)  + v0(i,j,k)) *dzf(kp)) * dzhi(kp) &
-                   - ((v0(i,jp,k)  + v0(i,j,k)) *dzf(km) +(v0(i,jp,km) + v0(i,j,km))*dzf(k))  * dzhi(k)  &
-                     ) &
-                     *dzfiq(k)
-
-               a33 = (w0(i,j,kp) - w0(i,j,k)) * dzfi(k)
-
-               aa  = a11*a11 + a21*a21 + a31*a31 + &
-               a12*a12 + a22*a22 + a32*a32 + &
-               a13*a13 + a23*a23 + a33*a33
-
-               b11 = dx2*a11*a11 + dy2*a21*a21 + dzf2(k)*a31*a31
-               b22 = dx2*a12*a12 + dy2*a22*a22 + dzf2(k)*a32*a32
-               b12 = dx2*a11*a12 + dy2*a21*a22 + dzf2(k)*a31*a32
-               b33 = dx2*a13*a13 + dy2*a23*a23 + dzf2(k)*a33*a33
-               b13 = dx2*a11*a13 + dy2*a21*a23 + dzf2(k)*a31*a33
-               b23 = dx2*a12*a13 + dy2*a22*a23 + dzf2(k)*a32*a33
-               bb = b11*b22 - b12*b12 + b11*b33 - b13*b13 + b22*b33 - b23*b23
-
-               dthvdz(i,j,k) = (thl0(i,j,k+1)-thl0(i,j,k-1))/(dzh(k+1)+dzh(k))
-               if (dthvdz(i,j,k) <= 0) then
-                 const2=(bb/aa)
-               else
-                 const2=(bb/aa)-(delta(i,k)**4)*dthvdz(i,j,k)*const
-                 if (const2 <0.0) const2 = 0.0
-               end if
-               ekm(i,j,k)=c_vreman*sqrt(const2)
-               ekh(i,j,k)=ekm(i,j,k)*prandtli
+               ekm(i,j,k) = ekm(i,j,k) * sqrt( 1.0 - min(max(Rig,0.0),Rigc) / Rigc )             ! Eq. B3
+               ! Bouyancy correction applied only for stable stratification Rig > 0
+               ! For Rig >= Rigc, ekm = 0  
              end do
            end do
          end do
-        !  ekm(:,:,:) = ekm(:,:,:) + numol                             ! add molecular viscosity
-        !  ekh(:,:,:) = ekh(:,:,:) + numol*prandtlmoli                 ! add molecular diffusivity
+       end if
 
-       else  ! neutral case
+       ekh(:,:,:) = ekm(:,:,:)*prandtli              ! Eddy diffusivity from eddy viscosity, Kh = Km/Pr
+       ! ekh(:,:,:) = max(ekh(:,:,:),ekmin)
 
-         do k = kb,ke
-           kp = k+1
-           km = k-1
-           do j = jb,je
-             jp = j+1
-             jm = j-1
-             do i = ib,ie        ! aij = du_j / dx_i
-               ip = i+1
-               im = i-1
-               a11 = (u0(ip,j,k) - u0(i,j,k)) * dxi
+       ekm(:,:,:) = ekm(:,:,:) + numol               ! add molecular viscosity
+       ekh(:,:,:) = ekh(:,:,:) + numol*prandtlmoli   ! add molecular diffusivity
 
-               a12 = (v0(ip,jp,k) + v0(ip,j,k) - v0(im,jp,k) - v0(im,j,k) )*dxiq
-
-               a13 = (w0(ip,j,kp) + w0(ip,j,k) - w0(im,j,kp) - w0(im,j,k) )*dxiq
-
-               a21 = (u0(ip,jp,k) + u0(i,jp,k) - u0(ip,jm,k) - u0(i,jm,k) )*dyiq
-
-               a22 = (v0(i,jp,k) - v0(i,j,k)) * dyi
-
-               a23 = (w0(i,jp,kp) + w0(i,jp,k) - w0(i,jm,kp) - w0(i,jm,k) )*dyiq
-
-          a31 = ( &
-                ((u0(ip,j,kp) + u0(i,j,kp))*dzf(k) + (u0(ip,j,k)  + u0(i,j,k)) *dzf(kp)) * dzhi(kp) &
-              - ((u0(ip,j,k)  + u0(i,j,k)) *dzf(km) +(u0(ip,j,km) + u0(i,j,km))*dzf(k))  * dzhi(k)  &
-                ) &
-              * dzfiq(k)
-
-          a32 = ( &
-                ((v0(i,jp,kp) + v0(i,j,kp))*dzf(k) + (v0(i,jp,k)  + v0(i,j,k)) *dzf(kp)) * dzhi(kp) &
-              - ((v0(i,jp,k)  + v0(i,j,k)) *dzf(km) +(v0(i,jp,km) + v0(i,j,km))*dzf(k))  * dzhi(k)  &
-                ) &
-                *dzfiq(k)
-
-          a33 = (w0(i,j,kp) - w0(i,j,k)) * dzfi(k)
-
-          aa  = a11*a11 + a21*a21 + a31*a31 + &
-                a12*a12 + a22*a22 + a32*a32 + &
-                a13*a13 + a23*a23 + a33*a33
-
-          b11 = dx2*a11*a11 + dy2*a21*a21 + dzf2(k)*a31*a31
-          b22 = dx2*a12*a12 + dy2*a22*a22 + dzf2(k)*a32*a32
-          b12 = dx2*a11*a12 + dy2*a21*a22 + dzf2(k)*a31*a32
-          b33 = dx2*a13*a13 + dy2*a23*a23 + dzf2(k)*a33*a33
-          b13 = dx2*a11*a13 + dy2*a21*a23 + dzf2(k)*a31*a33
-          b23 = dx2*a12*a13 + dy2*a22*a23 + dzf2(k)*a32*a33
-          bb = b11*b22 - b12*b12 + b11*b33 - b13*b13 + b22*b33 - b23*b23
-          if (bb < 0.00000001) then
-            ekm(i,j,k) = 0.
-            ekh(i,j,k) = 0.
-          else
-            ekm(i,j,k) = c_vreman*sqrt(bb / aa)
-            ekh(i,j,k) = ekm(i,j,k)*prandtli
-          end if
-        end do
-      end do
-    end do
-    ! ekm(:,:,:) = max(ekm(:,:,:),ekmin)
-    ! ekh(:,:,:) = max(ekh(:,:,:),ekmin)
-    end if ! lbuoyancy
-
-    ekm(:,:,:) = ekm(:,:,:) + numol                             ! add molecular viscosity
-    ekh(:,:,:) = ekh(:,:,:) + numol*prandtlmoli                 ! add molecular diffusivity
-
-   ! TKE scheme
+    ! TKE scheme
     elseif (loneeqn ) then
        do k=kb,ke
           do j=jb,je

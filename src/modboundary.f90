@@ -1482,7 +1482,7 @@ contains
       use modfields, only:sv0, svm
       use modsubgriddata, only:ekh
 
-      real, intent(in)    :: flux(1:nsv)
+      real, intent(in)    :: flux(:)
       integer :: m, n
       !
       !all the ghost cells have the same value?

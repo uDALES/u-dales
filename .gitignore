@@ -1,6 +1,7 @@
 # build directory and compiled objects
 build/
 temp/
+tmp/
 tests/outputs/
 .vscode/
 *.o
@@ -12,6 +13,7 @@ monitor*.txt
 outputs/
 examples/*/blocks.*.png
 tmp/*
+bin/
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*

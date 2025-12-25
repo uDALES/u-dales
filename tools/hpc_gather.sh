@@ -78,7 +78,7 @@ echo "writing post-job.$exp."
 cat <<EOF > post-job.$exp
 #!/bin/bash
 #PBS -l walltime=${WALLTIME}
-#PBS -l select=${NNODE}:ncpus=${NCPU}:mem=${MEM}
+#PBS -l select=1:ncpus=1:mem=${MEM}
 module load NCO/5.2.9-foss-2024a
 $DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
