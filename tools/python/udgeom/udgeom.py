@@ -37,6 +37,10 @@ try:
 except ImportError:
     SCIPY_AVAILABLE = False
 
+# Import package functions
+from .calculate_outline import calculate_outline
+from .split_buildings import split_buildings
+
 
 class UDGeom:
     """
@@ -102,6 +106,12 @@ class UDGeom:
             self.stl = stl
         else:
             self.stl = None
+        
+        # Cached properties for lazy loading
+        self._outline2d = None
+        self._outline3d = None
+        self._buildings = None
+        self._face_to_building_map = None
     
     def load(self, filename: str):
         """
@@ -142,6 +152,12 @@ class UDGeom:
             
             print(f"Loaded geometry: {len(self.stl.faces)} faces, {len(self.stl.vertices)} vertices")
             
+            # Invalidate cached properties
+            self._outline2d = None
+            self._outline3d = None
+            self._buildings = None
+            self._face_to_building_map = None
+            
         except Exception as e:
             raise ValueError(f"Error loading STL file {filepath}: {e}")
     
@@ -174,7 +190,7 @@ class UDGeom:
         except Exception as e:
             raise ValueError(f"Error saving STL file {filepath}: {e}")
     
-    def show(self, color_buildings: bool = True, show_normals: bool = True, 
+    def show(self, color_buildings: bool = True, plot_quiver: bool = True, 
              normal_scale: float = 0.2, figsize: tuple = (10, 8)):
         """
         Visualize the geometry.
@@ -188,8 +204,9 @@ class UDGeom:
         color_buildings : bool, default=True
             If True, color building facets (z > 0) blue. Ground remains gray.
             Set to False for very large geometries to improve performance.
-        show_normals : bool, default=True
+        plot_quiver : bool, default=True
             If True, display normal vectors as arrows from face centers.
+            (Renamed from show_normals to match MATLAB interface)
         normal_scale : float, default=0.2
             Scaling factor for normal vector arrow lengths.
         figsize : tuple, default=(10, 8)
@@ -206,7 +223,7 @@ class UDGeom:
         --------
         >>> geom.show()  # Default: color buildings, show normals
         >>> geom.show(color_buildings=False)  # Faster for large meshes
-        >>> geom.show(show_normals=False, figsize=(12, 10))
+        >>> geom.show(True, False)  # Color buildings but don't show normals
         """
         if self.stl is None:
             raise ValueError("No geometry loaded. Cannot visualize.")
@@ -265,7 +282,7 @@ class UDGeom:
             ax.add_collection3d(collection)
         
         # Plot normal vectors
-        if show_normals:
+        if plot_quiver:
             ax.quiver(
                 face_centers[:, 0], face_centers[:, 1], face_centers[:, 2],
                 face_normals[:, 0], face_normals[:, 1], face_normals[:, 2],
@@ -342,37 +359,84 @@ class UDGeom:
             return np.array([])
         return self.stl.triangles_center
 
-    def calculate_outline2d(self) -> List[dict]:
+    def get_buildings(self) -> List[trimesh.Trimesh]:
         """
-        Compute 2D building outlines from the triangulated geometry.
-
+        Get individual building components with lazy loading.
+        
+        Separates the geometry into individual disconnected building components.
+        Buildings are identified as faces with z > 0 and separated using
+        connected component analysis.
+        
         Returns
         -------
-        outlines : list of dict
-            Each item contains:
-            - 'polygon': ndarray, shape (n_vertices, 3) ordered convex hull in x-y
-            - 'centroid': ndarray, shape (3,) centroid of the polygon (z=0)
+        buildings : list of trimesh.Trimesh
+            List of individual building meshes
+            
+        Examples
+        --------
+        >>> buildings = geom.get_buildings()
+        >>> num_buildings = len(buildings)
+        >>> print(f"Found {num_buildings} buildings")
         """
         if self.stl is None:
+            warnings.warn('No STL geometry loaded. Load geometry first.')
             return []
-        if not SCIPY_AVAILABLE:
-            warnings.warn("scipy is required for calculate_outline2d; install scipy to enable building outlines.")
-            return []
-
+        
+        # Lazy load buildings if not already computed
+        if self._buildings is None:
+            self._split_buildings()
+        
+        return self._buildings
+    
+    def get_face_to_building_map(self) -> np.ndarray:
+        """
+        Get mapping from face indices to building IDs.
+        
+        Returns
+        -------
+        face_map : ndarray
+            Array where face_map[i] is the building ID for face i.
+            Ground faces (z <= 0) are assigned building ID 0.
+            Building IDs start from 1.
+            
+        Examples
+        --------
+        >>> face_map = geom.get_face_to_building_map()
+        >>> building_1_faces = np.where(face_map == 1)[0]
+        """
+        if self.stl is None:
+            warnings.warn('No STL geometry loaded. Load geometry first.')
+            return np.array([])
+        
+        # Ensure buildings and mapping are computed
+        if self._face_to_building_map is None:
+            self.get_buildings()  # This will compute both buildings and mapping
+        
+        return self._face_to_building_map
+    
+    def _split_buildings(self):
+        """
+        Internal method to split geometry into individual buildings.
+        Updates _buildings and _face_to_building_map.
+        """
         centers = self.stl.triangles_center
         building_faces = np.where(centers[:, 2] > 0)[0]
+        
         if building_faces.size == 0:
-            return []
-
+            self._buildings = []
+            self._face_to_building_map = np.zeros(len(self.stl.faces), dtype=int)
+            return
+        
         # Build adjacency graph restricted to building faces
         face_adj = self.stl.face_adjacency
         # Keep only adjacency where both faces are buildings
         mask = np.isin(face_adj, building_faces).all(axis=1)
         face_adj = face_adj[mask]
-
+        
         # Connected components over building faces
         component_labels = -np.ones(len(self.stl.faces), dtype=int)
         current_label = 0
+        
         for f in building_faces:
             if component_labels[f] != -1:
                 continue
@@ -387,16 +451,78 @@ class UDGeom:
                         component_labels[nb] = current_label
                         stack.append(nb)
             current_label += 1
-
-        outlines: List[dict] = []
+        
+        # Extract individual building meshes
+        buildings = []
+        # Building IDs start from 1 (0 is reserved for ground)
+        face_to_building_map = np.zeros(len(self.stl.faces), dtype=int)
+        
         for comp in range(current_label):
             face_idxs = np.where(component_labels == comp)[0]
             if face_idxs.size == 0:
                 continue
+            
+            # Extract submesh for this building
+            try:
+                building_mesh = self.stl.submesh([face_idxs], append=True)
+                buildings.append(building_mesh)
+                # Assign building ID (1-indexed)
+                face_to_building_map[face_idxs] = len(buildings)
+            except Exception as e:
+                warnings.warn(f"Could not extract building {comp}: {e}")
+        
+        self._buildings = buildings
+        self._face_to_building_map = face_to_building_map
+        
+        # Invalidate cached outlines when buildings are recomputed
+        self._outline2d = None
+        self._outline3d = None
+    
+    def calculate_outline2d(self) -> List[dict]:
+        """
+        Calculate 2D building outlines and centroids for all buildings.
+        
+        Uses lazy loading - returns cached results if available.
 
-            verts = self.stl.vertices[self.stl.faces[face_idxs].ravel()]
+        Returns
+        -------
+        outlines : list of dict
+            Each item contains:
+            - 'polygon': ndarray, shape (n_vertices, 3) ordered convex hull in x-y
+            - 'centroid': ndarray, shape (3,) centroid of the polygon (z=0)
+            
+        Examples
+        --------
+        >>> outlines = geom.calculate_outline2d()
+        >>> for i, outline in enumerate(outlines):
+        ...     print(f"Building {i+1}: centroid at {outline['centroid'][:2]}")
+        """
+        # Return cached results if available
+        if self._outline2d is not None:
+            return self._outline2d
+        
+        if self.stl is None:
+            return []
+        if not SCIPY_AVAILABLE:
+            warnings.warn("scipy is required for calculate_outline2d; install scipy to enable building outlines.")
+            return []
+        
+        # Get individual buildings
+        buildings = self.get_buildings()
+        if not buildings:
+            return []
+        
+        outlines: List[dict] = []
+        for building in buildings:
+            verts = building.vertices
+            if len(verts) < 3:
+                outlines.append({'polygon': np.array([]), 'centroid': np.array([np.nan, np.nan, 0.0])})
+                continue
+            
             verts_xy = np.unique(verts[:, :2], axis=0)
             if len(verts_xy) < 3:
+                centroid = np.array([verts[:, 0].mean(), verts[:, 1].mean(), 0.0])
+                outlines.append({'polygon': np.array([]), 'centroid': centroid})
                 continue
 
             try:
@@ -427,6 +553,10 @@ class UDGeom:
 
         # Sort outlines by y then x (bottom-left to top-right) for consistent IDs
         outlines.sort(key=lambda o: (o['centroid'][1], o['centroid'][0]))
+        
+        # Cache the result
+        self._outline2d = outlines
+        
         return outlines
     
     @property
@@ -483,6 +613,138 @@ class UDGeom:
         if self.stl is None:
             return False
         return self.stl.is_watertight
+    
+    def show_outline(self, angle_threshold: float = 45.0, figsize: tuple = (10, 8)):
+        """
+        Plot the geometry with outline edges highlighted.
+        
+        Displays the mesh in gray with black outline edges overlaid.
+        Outline edges are detected based on the angle between adjacent faces.
+        
+        Parameters
+        ----------
+        angle_threshold : float, default=45.0
+            Angle threshold in degrees for edge detection.
+            Edges where adjacent faces meet at angles greater than this
+            threshold are considered outline edges.
+        figsize : tuple, default=(10, 8)
+            Figure size in inches (width, height).
+            
+        Raises
+        ------
+        ValueError
+            If no geometry is loaded
+        ImportError
+            If matplotlib is not installed
+            
+        Examples
+        --------
+        >>> geom.show_outline()  # Default 45° threshold
+        >>> geom.show_outline(angle_threshold=30)  # More sensitive
+        """
+        if self.stl is None:
+            raise ValueError("No geometry loaded. Cannot visualize.")
+        
+        if not MATPLOTLIB_AVAILABLE:
+            raise ImportError("matplotlib is required for visualization. Install with: pip install matplotlib")
+        
+        # Get outline edges
+        outline_edges = self._calculate_outline_edges(angle_threshold)
+        
+        if len(outline_edges) == 0:
+            warnings.warn('No outline edges found.')
+            return
+        
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Plot mesh without edges
+        all_triangles = self.stl.vertices[self.stl.faces]
+        collection = Poly3DCollection(
+            all_triangles,
+            facecolors=[0.85, 0.85, 0.85],
+            edgecolors='none',
+            alpha=0.8
+        )
+        ax.add_collection3d(collection)
+        
+        # Plot outline edges
+        for edge in outline_edges:
+            v1 = self.stl.vertices[edge[0]]
+            v2 = self.stl.vertices[edge[1]]
+            ax.plot([v1[0], v2[0]], [v1[1], v2[1]], [v1[2], v2[2]], 'k-', linewidth=1)
+        
+        # Set axis properties
+        ax.set_xlabel('X (m)')
+        ax.set_ylabel('Y (m)')
+        ax.set_zlabel('Z (m)')
+        ax.set_title(f'Geometry Outline ({len(outline_edges)} edges)')
+        
+        # Equal aspect ratio
+        vertices = self.stl.vertices
+        max_range = np.array([
+            vertices[:, 0].max() - vertices[:, 0].min(),
+            vertices[:, 1].max() - vertices[:, 1].min(),
+            vertices[:, 2].max() - vertices[:, 2].min()
+        ]).max() / 2.0
+        
+        mid_x = (vertices[:, 0].max() + vertices[:, 0].min()) * 0.5
+        mid_y = (vertices[:, 1].max() + vertices[:, 1].min()) * 0.5
+        mid_z = (vertices[:, 2].max() + vertices[:, 2].min()) * 0.5
+        
+        ax.set_xlim(mid_x - max_range, mid_x + max_range)
+        ax.set_ylim(mid_y - max_range, mid_y + max_range)
+        ax.set_zlim(mid_z - max_range, mid_z + max_range)
+        
+        ax.set_box_aspect([1, 1, 1])
+        ax.grid(True)
+        ax.view_init(elev=30, azim=45)
+        
+        plt.tight_layout()
+        plt.show()
+    
+    def _calculate_outline_edges(self, angle_threshold: float = 45.0) -> List[tuple]:
+        """
+        Internal method to calculate outline edges based on face angle threshold.
+        
+        Parameters
+        ----------
+        angle_threshold : float
+            Angle threshold in degrees
+            
+        Returns
+        -------
+        edges : list of tuple
+            List of (vertex_idx1, vertex_idx2) tuples defining outline edges
+        """
+        if self.stl is None:
+            return []
+        
+        outline_edges = []
+        face_adjacency = self.stl.face_adjacency
+        face_adjacency_angles = self.stl.face_adjacency_angles
+        
+        # Convert angle threshold to radians
+        threshold_rad = np.deg2rad(angle_threshold)
+        
+        # Find edges where angle exceeds threshold
+        sharp_edges_mask = face_adjacency_angles > threshold_rad
+        sharp_edge_pairs = face_adjacency[sharp_edges_mask]
+        
+        # For each sharp edge pair, find the shared edge vertices
+        for face_pair in sharp_edge_pairs:
+            face1, face2 = face_pair
+            # Find shared vertices between the two faces
+            verts1 = set(self.stl.faces[face1])
+            verts2 = set(self.stl.faces[face2])
+            shared = verts1.intersection(verts2)
+            
+            if len(shared) == 2:
+                # Found the shared edge
+                v1, v2 = sorted(shared)
+                outline_edges.append((v1, v2))
+        
+        return outline_edges
     
     def __repr__(self) -> str:
         """String representation of the UDGeom object."""

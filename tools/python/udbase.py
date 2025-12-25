@@ -4,14 +4,29 @@ uDALES Post-Processing Module
 Python implementation of the MATLAB udbase class for analyzing
 uDALES simulation outputs.
 
-Copyright (C) 2024 the uDALES Team.
+Aug 2024, Maarten van Reeuwijk, Jingzi Huang. first version
+Dec 2024, Maarten van Reeuwijk, Chris Wilson. added facet functionality.
+Oct 2025, Maarten van Reeuwijk, Jingzi Huang, Dipanjan Majumdar. Major upgrade of facet functionality and tree handling.
+
+Copyright (C) 2016- the uDALES Team.
 """
 
 import numpy as np
 import xarray as xr
 from pathlib import Path
-from typing import Optional, Union, Dict, Any
+from typing import Optional, Union, Dict, Any, List
 import warnings
+
+# Import UDGeom from the udgeom package
+try:
+    from udgeom import UDGeom
+except ImportError:
+    # Fallback for old structure
+    try:
+        from .udgeom import UDGeom
+    except ImportError:
+        UDGeom = None
+        warnings.warn("Could not import UDGeom. Geometry functionality will be limited.")
 
 
 class UDBase:
@@ -53,6 +68,7 @@ class UDBase:
         self._lffacetarea = True
         self._lffacet_sections = True
         self._lfgeom = True
+        self._lftrees = True
         
         # Read namoptions file
         self._read_namoptions()
@@ -68,6 +84,9 @@ class UDBase:
         
         # Load facet data if present
         self._load_facet_data()
+        
+        # Load tree data if present
+        self._load_tree_data()
     
     def _read_namoptions(self):
         """
@@ -330,6 +349,24 @@ class UDBase:
             else:
                 self._lffacet_sections = False
     
+    def _load_tree_data(self):
+        """Load tree bounding box information if present."""
+        trees_file = self.path / f"trees.inp.{self.expnr}"
+        
+        if trees_file.exists():
+            try:
+                # Load tree data (skip first 2 header lines)
+                self.trees = np.loadtxt(trees_file, skiprows=2, dtype=int)
+                if self.trees.ndim == 1:
+                    self.trees = self.trees.reshape(1, -1)
+            except Exception as e:
+                warnings.warn(f"Error loading trees.inp.{self.expnr}: {e}")
+                self._lftrees = False
+                self.trees = None
+        else:
+            self._lftrees = False
+            self.trees = None
+    
     def __repr__(self):
         """String representation of UDBase object."""
         info = [
@@ -419,6 +456,30 @@ class UDBase:
         """
         filename = self.path / f"tdump.{self.expnr}.nc"
         print(filename.exists())
+        return self._load_ncdata(filename, var)
+    
+    def load_stat_tree(self, var: Optional[str] = None) -> Union[xr.Dataset, xr.DataArray]:
+        """
+        Load time-averaged statistics of tree source terms.
+        
+        Retrieves tree drag, heat, and moisture source terms from the treedump file.
+        
+        Parameters
+        ----------
+        var : str, optional
+            Variable name to load. If None, displays available variables.
+        
+        Returns
+        -------
+        xarray.Dataset or xarray.DataArray
+            Complete dataset if var is None, otherwise the requested variable.
+        
+        Examples
+        --------
+        >>> sim.load_stat_tree()  # Display available variables
+        >>> tree_drag = sim.load_stat_tree('tree_drag_u')
+        """
+        filename = self.path / f"treedump.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
     def load_slice(self, plane: str, var: Optional[str] = None) -> Union[xr.Dataset, xr.DataArray]:
@@ -975,32 +1036,146 @@ class UDBase:
 
         return out
     
-    def plot_fac(self, var: np.ndarray, cmap: str = 'viridis', 
-                 show_edges: bool = False, colorbar: bool = True,
-                 title: Optional[str] = None, figsize: tuple = (10, 8),
-                 vmin: Optional[float] = None, vmax: Optional[float] = None):
+    def plot_trees(self):
+        """
+        Plot tree volumetric regions on top of the geometry.
+        
+        Matches MATLAB implementation: plot_trees(obj)
+        
+        Displays the 3D geometry with semi-transparent tree bounding boxes
+        overlaid to show where tree canopy regions are located.
+            
+        Raises
+        ------
+        ValueError
+            If geometry or tree data is not loaded
+        ImportError
+            If matplotlib is not installed
+            
+        Examples
+        --------
+        >>> sim.plot_trees()
+        """
+        if not self._lfgeom or self.geom is None:
+            raise ValueError("Geometry (STL) file required for plot_trees()")
+        
+        if not self._lftrees or self.trees is None:
+            raise ValueError("trees.inp file required for plot_trees()")
+        
+        try:
+            import matplotlib.pyplot as plt
+            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+        except ImportError:
+            raise ImportError("matplotlib is required for visualization. "
+                            "Install with: pip install matplotlib")
+        
+        # Show geometry without coloring or quiver
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Plot the mesh
+        if self.geom.stl is not None:
+            all_triangles = self.geom.stl.vertices[self.geom.stl.faces]
+            collection = Poly3DCollection(
+                all_triangles,
+                facecolors=[0.85, 0.85, 0.85],
+                edgecolors='none',
+                alpha=0.6,
+                antialiased=False
+            )
+            ax.add_collection3d(collection)
+        
+        # Plot tree bounding boxes
+        tree_color = (0.20, 0.65, 0.15)
+        for i in range(self.trees.shape[0]):
+            il, iu, jl, ju, kl, ku = self.trees[i, :]
+            
+            # Convert from 1-based Fortran to 0-based Python indexing
+            il, iu, jl, ju, kl, ku = il-1, iu-1, jl-1, ju-1, kl-1, ku-1
+            
+            # Get corner coordinates
+            xmin, xmax = self.xm[il], self.xm[iu] + self.dx
+            ymin, ymax = self.ym[jl], self.ym[ju] + self.dy
+            zmin, zmax = self.zm[kl], self.zm[ku] + self.dzm[ku]
+            
+            # Define the 6 faces of the box
+            # Top face
+            verts_top = [[xmin, ymin, zmax], [xmax, ymin, zmax], 
+                        [xmax, ymax, zmax], [xmin, ymax, zmax]]
+            # Bottom face
+            verts_bottom = [[xmin, ymin, zmin], [xmax, ymin, zmin],
+                           [xmax, ymax, zmin], [xmin, ymax, zmin]]
+            # Front face (y=ymin)
+            verts_front = [[xmin, ymin, zmin], [xmax, ymin, zmin],
+                          [xmax, ymin, zmax], [xmin, ymin, zmax]]
+            # Back face (y=ymax)
+            verts_back = [[xmin, ymax, zmin], [xmax, ymax, zmin],
+                         [xmax, ymax, zmax], [xmin, ymax, zmax]]
+            # Left face (x=xmin)
+            verts_left = [[xmin, ymin, zmin], [xmin, ymax, zmin],
+                         [xmin, ymax, zmax], [xmin, ymin, zmax]]
+            # Right face (x=xmax)
+            verts_right = [[xmax, ymin, zmin], [xmax, ymax, zmin],
+                          [xmax, ymax, zmax], [xmax, ymin, zmax]]
+            
+            # Add all faces
+            faces = [verts_top, verts_bottom, verts_front, verts_back, verts_left, verts_right]
+            tree_collection = Poly3DCollection(
+                faces,
+                facecolors=tree_color,
+                edgecolors='darkgreen',
+                alpha=0.4,
+                linewidths=0.5,
+                antialiased=False
+            )
+            ax.add_collection3d(tree_collection)
+        
+        # Set axis properties
+        ax.set_xlabel('X (m)')
+        ax.set_ylabel('Y (m)')
+        ax.set_zlabel('Z (m)')
+        ax.set_title(f'Geometry with Trees ({self.trees.shape[0]} tree regions)')
+        
+        # Set equal aspect ratio
+        if self.geom.stl is not None:
+            vertices = self.geom.stl.vertices
+            max_range = np.array([
+                vertices[:, 0].max() - vertices[:, 0].min(),
+                vertices[:, 1].max() - vertices[:, 1].min(),
+                vertices[:, 2].max() - vertices[:, 2].min()
+            ]).max() / 2.0
+            
+            mid_x = (vertices[:, 0].max() + vertices[:, 0].min()) * 0.5
+            mid_y = (vertices[:, 1].max() + vertices[:, 1].min()) * 0.5
+            mid_z = (vertices[:, 2].max() + vertices[:, 2].min()) * 0.5
+            
+            ax.set_xlim(mid_x - max_range, mid_x + max_range)
+            ax.set_ylim(mid_y - max_range, mid_y + max_range)
+            ax.set_zlim(mid_z - max_range, mid_z + max_range)
+        else:
+            ax.set_xlim(0, self.xlen)
+            ax.set_ylim(0, self.ylen)
+            ax.set_zlim(0, self.zsize)
+        
+        ax.set_box_aspect([1, 1, 1])
+        ax.view_init(elev=30, azim=-37.5-90)
+        
+        plt.show()
+        plt.tight_layout()
+        plt.show()
+    
+    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
         """
         Plot a facet variable as a 3D colored surface.
         
-        This method visualizes scalar data defined on each facet of the geometry
-        by coloring the triangular faces according to the variable values.
+        Matches MATLAB implementation: plot_fac(obj, var, building_ids)
         
         Parameters
         ----------
         var : ndarray, shape (n_faces,)
             Facet variable to plot (one value per facet)
-        cmap : str, default='viridis'
-            Matplotlib colormap name
-        show_edges : bool, default=False
-            If True, show triangle edges. Use False for cleaner visualization.
-        colorbar : bool, default=True
-            If True, display a colorbar
-        title : str, optional
-            Plot title. If None, no title is displayed.
-        figsize : tuple, default=(10, 8)
-            Figure size in inches (width, height)
-        vmin, vmax : float, optional
-            Min and max values for colormap. If None, uses data min/max.
+        building_ids : array-like, optional
+            Building IDs to plot. If None, plots all buildings.
             
         Raises
         ------
@@ -1035,7 +1210,7 @@ class UDBase:
             raise ValueError(f"Variable length ({len(var)}) must match number of facets ({self.geom.n_faces})")
         
         # Create figure
-        fig = plt.figure(figsize=figsize)
+        fig = plt.figure(figsize=(12, 10))
         ax = fig.add_subplot(111, projection='3d')
         
         # Get geometry data
@@ -1043,14 +1218,33 @@ class UDBase:
         faces = self.geom.stl.faces
         triangles = vertices[faces]
         
-        # Create color-mapped collection
-        edge_color = 'k' if show_edges else 'none'
+        # Filter out NaN triangles completely
+        valid_mask = ~np.isnan(var)
+        valid_triangles = triangles[valid_mask]
+        valid_var = var[valid_mask]
+        
+        # Normalize only valid data
+        if len(valid_var) > 0:
+            vmin = np.nanmin(valid_var)
+            vmax = np.nanmax(valid_var)
+        else:
+            vmin, vmax = 0, 1
+        
+        # Create colors for valid faces only
+        norm = plt.Normalize(vmin=vmin, vmax=vmax)
+        colors = plt.cm.viridis(norm(valid_var))
+        
+        # Create color-mapped collection with valid triangles only
+        # Set edgecolors=None and antialiased=False to prevent white lines between triangles
         collection = Poly3DCollection(
-            triangles,
-            facecolors=plt.cm.get_cmap(cmap)(plt.Normalize(vmin=vmin, vmax=vmax)(var)),
-            edgecolors=edge_color,
-            linewidths=0.1 if show_edges else 0
+            valid_triangles,
+            facecolors=colors,
+            edgecolors=None,
+            linewidths=0,
+            antialiased=False
         )
+        # Set lower z-sort to allow outlines to render on top
+        collection.set_sort_zpos(-1000)
         ax.add_collection3d(collection)
         
         # Set axis limits
@@ -1063,9 +1257,6 @@ class UDBase:
         ax.set_xlabel('X (m)')
         ax.set_ylabel('Y (m)')
         ax.set_zlabel('Z (m)')
-        
-        if title:
-            ax.set_title(title)
         
         # Equal aspect ratio
         max_range = np.array([
@@ -1082,36 +1273,81 @@ class UDBase:
         ax.set_ylim(mid_y - max_range, mid_y + max_range)
         ax.set_zlim(mid_z - max_range, mid_z + max_range)
         
-        # Viewing angle
-        ax.view_init(elev=30, azim=45)
+        # Viewing angle (matches MATLAB view(3))
+        ax.view_init(elev=30, azim=-37.5-90)
         
-        # Colorbar
-        if colorbar:
-            mappable = plt.cm.ScalarMappable(
-                cmap=cmap,
-                norm=plt.Normalize(vmin=vmin if vmin is not None else var.min(),
-                                 vmax=vmax if vmax is not None else var.max())
-            )
-            mappable.set_array(var)
-            plt.colorbar(mappable, ax=ax, shrink=0.5, aspect=5)
+        # Add building outlines
+        self._add_building_outlines(ax, building_ids)
         
-        plt.tight_layout()
         plt.show()
     
-    def plot_fac_type(self, figsize: tuple = (12, 10), show_legend: bool = True):
+    def _add_building_outlines(self, ax, building_ids=None, angle_threshold: float = 45.0):
         """
-        Plot the different surface types in the geometry.
+        Helper method to add building outline edges to current 3D plot.
         
-        This method visualizes the facet types defined in the simulation,
-        coloring each surface type differently. Useful for verifying that
-        wall properties are correctly assigned.
+        Matches MATLAB implementation in tools/matlab/udbase.m
         
         Parameters
         ----------
-        figsize : tuple, default=(12, 10)
-            Figure size in inches (width, height)
-        show_legend : bool, default=True
-            If True, display a legend with surface type names
+        ax : matplotlib Axes3D
+            The 3D axes to add outlines to
+        building_ids : list of int, optional
+            Building IDs to outline. If None or empty, outline all buildings.
+        angle_threshold : float, default=45.0
+            Angle threshold in degrees for edge detection
+        """
+        if self.geom is None or not hasattr(self.geom, 'stl') or self.geom.stl is None:
+            # If geometry not loaded, skip
+            return
+        
+        try:
+            # Import required functions
+            from mpl_toolkits.mplot3d.art3d import Line3DCollection
+            
+            # Use the geometry's built-in outline edge calculation method
+            outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
+            
+            if len(outline_edges) == 0:
+                return
+            
+            # Get vertices
+            vertices = self.geom.stl.vertices
+            
+            # Create line segments for Line3DCollection
+            line_segments = []
+            for edge in outline_edges:
+                p0 = vertices[edge[0]]
+                p1 = vertices[edge[1]]
+                line_segments.append([p0, p1])
+            
+            # Create Line3DCollection with visible styling
+            # Use larger z-offset to ensure visibility
+            line_collection = Line3DCollection(
+                line_segments,
+                colors='black',
+                linewidths=1.0,
+                linestyles='-',
+                alpha=1.0
+            )
+            # Force lines to render on top
+            line_collection.set_sort_zpos(1000)
+            ax.add_collection3d(line_collection)
+            
+        except Exception as e:
+            warnings.warn(f"Could not add building outlines: {e}")
+    
+
+    
+    def plot_fac_type(self, building_ids: Optional[np.ndarray] = None):
+        """
+        Plot the different surface types in the geometry.
+        
+        Matches MATLAB implementation: plot_fac_type(obj, building_ids)
+        
+        Parameters
+        ----------
+        building_ids : array-like, optional
+            Building IDs to plot. If None, plots all buildings.
             
         Raises
         ------
@@ -1161,7 +1397,7 @@ class UDBase:
                         f"Only {len(default_colors)} available. Some colors will repeat.")
         
         # Create figure
-        fig = plt.figure(figsize=figsize)
+        fig = plt.figure(figsize=(12, 10))
         ax = fig.add_subplot(111, projection='3d')
         
         # Get geometry data
@@ -1194,7 +1430,8 @@ class UDBase:
                 facecolors=color,
                 edgecolors='none',
                 alpha=0.9,
-                label=label
+                label=label,
+                antialiased=False
             )
             ax.add_collection3d(collection)
         
@@ -1225,19 +1462,99 @@ class UDBase:
         ax.set_ylim(mid_y - max_range, mid_y + max_range)
         ax.set_zlim(mid_z - max_range, mid_z + max_range)
         
-        # Viewing angle
-        ax.view_init(elev=30, azim=45)
+        # Viewing angle (matches MATLAB view(3))
+        ax.view_init(elev=30, azim=-37.5-90)
         
-        # Legend
-        if show_legend and len(labels) > 0:
-            # Create custom legend handles
-            from matplotlib.patches import Patch
-            legend_elements = [
-                Patch(facecolor=default_colors[i % len(default_colors)], 
-                      edgecolor='none', label=labels[i])
-                for i in range(len(labels))
-            ]
-            ax.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1.05, 1))
+        # Add building outlines
+        self._add_building_outlines(ax, building_ids)
+        
+        plt.show()
+    
+    def plot_outline_only(self, figsize: tuple = (10, 8), angle_threshold: float = 45.0):
+        """
+        Plot only the 3D building outlines without facet coloring.
+        
+        Temporary method for visualizing building outlines. Shows the geometry
+        as a semi-transparent gray surface with black outline edges highlighting
+        building boundaries and sharp features.
+        
+        Parameters
+        ----------
+        figsize : tuple, default=(10, 8)
+            Figure size in inches (width, height)
+        angle_threshold : float, default=45.0
+            Angle threshold in degrees for outline edge detection
+            
+        Examples
+        --------
+        >>> sim = UDBase(65, 'experiments/065')
+        >>> sim.plot_outline_only()
+        """
+        if self.geom is None:
+            raise ValueError("This method requires a geometry (STL) file.")
+        
+        try:
+            import matplotlib.pyplot as plt
+            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+        except ImportError:
+            raise ImportError("matplotlib is required for visualization.")
+        
+        # Create figure
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Get geometry data (excluding ground)
+        vertices = self.geom.stl.vertices
+        faces = self.geom.stl.faces
+        
+        # Remove ground faces
+        face_z_values = vertices[faces, 2]
+        ground_mask = np.all(face_z_values == 0, axis=1)
+        building_faces = faces[~ground_mask]
+        
+        # Plot building mesh with transparency
+        triangles = vertices[building_faces]
+        collection = Poly3DCollection(
+            triangles,
+            facecolors=[0.8, 0.8, 0.8],
+            edgecolors='none',
+            alpha=0.3,
+            antialiased=False
+        )
+        ax.add_collection3d(collection)
+        
+        # Add building outlines (thick black lines)
+        self._add_building_outlines(ax, building_ids=None, angle_threshold=angle_threshold)
+        
+        # Set axis limits
+        bounds = self.geom.bounds
+        ax.set_xlim(bounds[0, 0], bounds[1, 0])
+        ax.set_ylim(bounds[0, 1], bounds[1, 1])
+        ax.set_zlim(bounds[0, 2], bounds[1, 2])
+        
+        # Labels
+        ax.set_xlabel('X (m)')
+        ax.set_ylabel('Y (m)')
+        ax.set_zlabel('Z (m)')
+        ax.set_title('Building Outlines')
+        
+        # Equal aspect ratio
+        max_range = np.array([
+            bounds[1, 0] - bounds[0, 0],
+            bounds[1, 1] - bounds[0, 1],
+            bounds[1, 2] - bounds[0, 2]
+        ]).max() / 2.0
+        
+        mid_x = (bounds[1, 0] + bounds[0, 0]) * 0.5
+        mid_y = (bounds[1, 1] + bounds[0, 1]) * 0.5
+        mid_z = (bounds[1, 2] + bounds[0, 2]) * 0.5
+        
+        ax.set_xlim(mid_x - max_range, mid_x + max_range)
+        ax.set_ylim(mid_y - max_range, mid_y + max_range)
+        ax.set_zlim(mid_z - max_range, mid_z + max_range)
+        
+        # Viewing angle (matches MATLAB view(3))
+        ax.view_init(elev=30, azim=-37.5-90)
         
         plt.tight_layout()
         plt.show()
@@ -1327,6 +1644,208 @@ class UDBase:
         
         return fld
     
+    def convert_facvar_to_field(self, var: np.ndarray, facsec: Dict,
+                                building_ids: Optional[np.ndarray] = None) -> np.ndarray:
+        """
+        Transfer a facet variable onto the grid.
+        
+        Matches MATLAB implementation: convert_facvar_to_field(obj, var, facsec, building_ids)
+        
+        Parameters
+        ----------
+        var : ndarray
+            Facet variable (e.g., from load_fac_eb, load_fac_temperature)
+        facsec : dict
+            Facet section structure (e.g., obj.facsec['u'])
+        building_ids : array-like, optional
+            Array of building IDs to include. If None, all buildings included.
+            
+        Returns
+        -------
+        ndarray
+            Variable on the grid (itot x jtot x ktot)
+            
+        Examples
+        --------
+        >>> # Convert all facets
+        >>> fld = sim.convert_facvar_to_field(var, sim.facsec['c'])
+        
+        >>> # Convert only specific buildings
+        >>> fld = sim.convert_facvar_to_field(var, sim.facsec['c'], [1, 5, 10])
+        """
+        # Normalize by converting ones, then divide actual values by normalization
+        norm = self.convert_facflx_to_field(np.ones_like(var), facsec, self.dzt, building_ids)
+        norm[norm == 0] = 1  # Avoid NaNs
+        fld = self.convert_facflx_to_field(var, facsec, self.dzt, building_ids) / norm
+        return fld
+    
+    def convert_facflx_to_field(self, var: np.ndarray, facsec: Dict, dz: np.ndarray,
+                                building_ids: Optional[np.ndarray] = None) -> np.ndarray:
+        """
+        Convert a facet flux variable to a density in a 3D field.
+        
+        Matches MATLAB implementation: convert_facflx_to_field(obj, var, facsec, dz, building_ids)
+        
+        Parameters
+        ----------
+        var : ndarray
+            Facet flux variable (e.g., from load_fac_eb)
+        facsec : dict
+            Facet section structure (e.g., obj.facsec['u'])
+        dz : ndarray
+            Vertical grid spacing at cell centers (obj.dzt)
+        building_ids : array-like, optional
+            Array of building IDs to include. If None, all buildings included.
+            
+        Returns
+        -------
+        ndarray
+            3D field density (itot x jtot x ktot)
+            
+        Raises
+        ------
+        ValueError
+            If facet section data is not loaded
+            
+        Examples
+        --------
+        >>> # Convert all facets
+        >>> fld = sim.convert_facflx_to_field(var, sim.facsec['c'], sim.dzt)
+        
+        >>> # Convert only specific buildings
+        >>> fld = sim.convert_facflx_to_field(var, sim.facsec['c'], sim.dzt, [1, 5, 10])
+        """
+        if not hasattr(self, 'facsec') or self.facsec is None:
+            raise ValueError("This method requires facet section data. "
+                           "Ensure facet_sections_*.txt and fluid_boundary_*.txt files exist.")
+        
+        # Initialize output field
+        fld = np.zeros((self.itot, self.jtot, self.ktot), dtype=np.float32)
+        
+        # Get facet section data
+        facids = facsec['facid']
+        areas = facsec['area']
+        locs = facsec['locs']  # (i, j, k) locations
+        
+        # If building IDs specified, get face mask for filtering
+        face_mask = None
+        if building_ids is not None:
+            buildings = self.geom.get_buildings()
+            num_buildings = len(buildings)
+            building_ids = np.asarray(building_ids)
+            building_ids = building_ids[building_ids <= num_buildings]
+            
+            # Create face mask
+            n_faces = self.geom.n_faces
+            face_mask = np.zeros(n_faces, dtype=bool)
+            
+            for building_id in building_ids:
+                if building_id > 0 and building_id <= num_buildings:
+                    building_data = buildings[building_id - 1]  # 0-indexed in Python
+                    if isinstance(building_data, dict) and 'original_face_indices' in building_data:
+                        face_mask[building_data['original_face_indices']] = True
+        
+        # Loop over all facet sections and create density field
+        for m in range(len(facids)):
+            facid = int(facids[m]) - 1  # Convert to 0-indexed
+            
+            # If building filtering is active, check if this face should be included
+            if face_mask is not None and not face_mask[facid]:
+                continue
+            
+            # Get grid location (convert from 1-indexed to 0-indexed)
+            i, j, k = int(locs[m, 0]) - 1, int(locs[m, 1]) - 1, int(locs[m, 2]) - 1
+            
+            # Add contribution to cell
+            cell_volume = self.dx * self.dy * dz[k]
+            fld[i, j, k] += var[facid] * areas[m] / cell_volume
+        
+        return fld
+    
+    def load_prof(self) -> np.ndarray:
+        """
+        Load information from prof.inp file.
+        
+        Matches MATLAB implementation: load_prof(obj)
+        
+        Returns
+        -------
+        ndarray
+            Profile data from prof.inp file
+            
+        Raises
+        ------
+        FileNotFoundError
+            If prof.inp file does not exist
+            
+        Examples
+        --------
+        >>> prof_data = sim.load_prof()
+        """
+        fname = f"{self.fprof}.{self.expnr}"
+        fpath = self.path / fname
+        
+        if not fpath.exists():
+            raise FileNotFoundError(f"Profile file not found: {fpath}")
+        
+        # Read data starting from line 3 (skip 2 header lines)
+        data = np.loadtxt(fpath, skiprows=2)
+        return data
+    
+    def load_facsec(self, var: str) -> Dict[str, np.ndarray]:
+        """
+        Load facet section information for a specific variable.
+        
+        Matches MATLAB implementation: load_facsec(obj, strvar)
+        
+        Parameters
+        ----------
+        var : str
+            Variable name ('u', 'v', 'w', or 'c')
+            
+        Returns
+        -------
+        dict
+            Dictionary with keys:
+            - 'facid': Facet IDs
+            - 'area': Facet section areas
+            - 'locs': Fluid boundary point locations (i, j, k)
+            - 'distance': Distances from facet to fluid point
+            
+        Raises
+        ------
+        FileNotFoundError
+            If facet section or fluid boundary files don't exist
+            
+        Examples
+        --------
+        >>> facsec_u = sim.load_facsec('u')
+        >>> print(facsec_u.keys())
+        """
+        # Load facet section data
+        fname_sec = self.path / f"{self.ffacet_sections}_{var}.txt"
+        if not fname_sec.exists():
+            raise FileNotFoundError(f"Facet section file not found: {fname_sec}")
+        
+        facsecs = np.loadtxt(fname_sec, skiprows=1)
+        
+        # Load fluid boundary points
+        fname_fluid = self.path / f"{self.ffluid_boundary}_{var}.txt"
+        if not fname_fluid.exists():
+            raise FileNotFoundError(f"Fluid boundary file not found: {fname_fluid}")
+        
+        fluid_boundary = np.loadtxt(fname_fluid, skiprows=1)
+        
+        # Create structure matching MATLAB
+        data = {
+            'facid': facsecs[:, 0].astype(int),
+            'area': facsecs[:, 1],
+            'locs': fluid_boundary[facsecs[:, 2].astype(int) - 1, :].astype(int),  # 1-indexed
+            'distance': facsecs[:, 3]
+        }
+        
+        return data
+    
     def calculate_frontal_properties(self) -> Dict[str, Any]:
         """
         Calculate skyline, frontal areas, and blockage ratios.
@@ -1403,9 +1922,9 @@ class UDBase:
         phix = -np.minimum(np.dot(norms, np.array([1, 0, 0])), 0)
         phiy = -np.minimum(np.dot(norms, np.array([0, 1, 0])), 0)
         
-        # Convert to density fields
-        rhoLx = self.convert_fac_to_field(phix, self.facsec['c'], self.dzt)
-        rhoLy = self.convert_fac_to_field(phiy, self.facsec['c'], self.dzt)
+        # Convert to density fields using convert_facflx_to_field (matches MATLAB)
+        rhoLx = self.convert_facflx_to_field(phix, self.facsec['c'], self.dzt)
+        rhoLy = self.convert_facflx_to_field(phiy, self.facsec['c'], self.dzt)
         
         # Calculate indicator functions for blockage
         # Ibx[j,k] = 1 if any cell along x-direction at (j,k) is blocked
@@ -1445,21 +1964,16 @@ class UDBase:
             'bry': bry
         }
     
-    def plot_building_ids(self, figsize: tuple = (10, 8), cmap: str = 'hsv'):
+    def plot_building_ids(self):
         """
         Plot building IDs from above (x,y view) with distinct colors.
+        
+        Matches MATLAB implementation: plot_building_ids(obj)
         
         Creates a top-view plot showing buildings in different colors with
         building IDs displayed at the center of gravity of each building.
         Buildings are numbered from left-bottom to right-top based on their
         centroid positions.
-        
-        Parameters
-        ----------
-        figsize : tuple, default=(10, 8)
-            Figure size in inches (width, height)
-        cmap : str, default='hsv'
-            Matplotlib colormap name for distinct colors
             
         Raises
         ------
@@ -1472,9 +1986,6 @@ class UDBase:
         --------
         Plot building IDs with default settings:
         >>> sim.plot_building_ids()
-        
-        Use custom figure size and colormap:
-        >>> sim.plot_building_ids(figsize=(12, 10), cmap='tab20')
         
         See Also
         --------
@@ -1506,18 +2017,21 @@ class UDBase:
         color_values = color_order.copy()
         
         # Use plot_2dmap to create the visualization
-        self.plot_2dmap(color_values, labels, figsize=figsize, cmap=cmap)
+        self.plot_2dmap(color_values, labels)
         
+        plt.colormap('hsv')
         plt.title(f'Building Layout with IDs (Total: {num_buildings})')
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
+        plt.gca().set_aspect('equal')
+        plt.show()
     
     def plot_2dmap(self, val: Union[float, np.ndarray], 
-                   labels: Optional[Union[str, list]] = None,
-                   figsize: tuple = (10, 8), cmap: str = 'viridis',
-                   show_colorbar: bool = True):
+                   labels: Optional[Union[str, list]] = None):
         """
         Plot a 2D map of buildings colored by a value per building.
+        
+        Matches MATLAB implementation: plot_2dmap(obj, val, labels)
         
         Creates a top-down view showing building outlines colored according
         to specified values, with optional text labels at building centroids.
@@ -1532,12 +2046,6 @@ class UDBase:
             - If str: same label for all buildings
             - If list: must have length equal to number of buildings
             - If None: no labels displayed
-        figsize : tuple, default=(10, 8)
-            Figure size in inches (width, height)
-        cmap : str, default='viridis'
-            Matplotlib colormap name
-        show_colorbar : bool, default=True
-            Whether to display a colorbar
             
         Raises
         ------
@@ -1605,7 +2113,7 @@ class UDBase:
             label_array = None
         
         # Create figure and plot
-        fig, ax = plt.subplots(figsize=figsize)
+        fig, ax = plt.subplots(figsize=(10, 8))
         
         patches = []
         colors = []
@@ -1640,12 +2148,10 @@ class UDBase:
         
         # Create patch collection
         if patches:
-            pc = PatchCollection(patches, cmap=cmap, edgecolor='black', linewidth=0.5)
+            pc = PatchCollection(patches, cmap='viridis', edgecolor='black', linewidth=0.5)
             pc.set_array(np.array(colors))
             ax.add_collection(pc)
-            
-            if show_colorbar:
-                plt.colorbar(pc, ax=ax)
+            plt.colorbar(pc, ax=ax)
         
         # Set axis properties
         ax.set_aspect('equal')
@@ -1654,6 +2160,8 @@ class UDBase:
         ax.set_xlim(0, self.xlen)
         ax.set_ylim(0, self.ylen)
         ax.grid(True, alpha=0.3)
+        
+        plt.show()
     
     def __str__(self):
         """User-friendly string representation."""
