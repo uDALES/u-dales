@@ -859,6 +859,147 @@ class UDBase:
             't': seb['t']
         }
     
+    def convert_facvar_to_field(self, var: np.ndarray, facsec, 
+                                building_ids: Optional[List[int]] = None) -> np.ndarray:
+        """
+        Convert a facet variable to a 3D field by averaging over facets in each cell.
+        
+        This method transfers a variable from the facet representation to the 3D grid
+        by taking the area-weighted average of all facets within each grid cell.
+        
+        Parameters
+        ----------
+        var : ndarray
+            Facet variable values (length n_facets)
+        facsec : object
+            Facet section structure (e.g., self.facsec.c)
+        building_ids : list of int, optional
+            List of building IDs to include. If None, all buildings are included.
+        
+        Returns
+        -------
+        ndarray
+            3D field (itot x jtot x ktot)
+        
+        Examples
+        --------
+        >>> # Convert temperature to 3D field
+        >>> facT = sim.load_fac_temperature()
+        >>> T_field = sim.convert_facvar_to_field(facT['T'].data[-1, 0, :], sim.facsec.c)
+        >>> 
+        >>> # Convert only buildings 1 and 2
+        >>> T_field = sim.convert_facvar_to_field(facT['T'].data[-1, 0, :], sim.facsec.c, [1, 2])
+        """
+        # Use convert_facflx_to_field to compute normalization
+        norm = self.convert_facflx_to_field(
+            np.ones_like(var), facsec, self.dzt, building_ids
+        )
+        norm[norm == 0] = 1  # Avoid division by zero
+        
+        # Compute field
+        fld = self.convert_facflx_to_field(var, facsec, self.dzt, building_ids)
+        return fld / norm
+    
+    def convert_facflx_to_field(self, var: np.ndarray, facsec, dz: np.ndarray,
+                                building_ids: Optional[List[int]] = None) -> np.ndarray:
+        """
+        Convert a facet flux variable to a 3D density field.
+        
+        This method is useful for assessing plane-average distributed stresses and
+        multi-scale analysis. The flux is distributed as a density (per unit volume)
+        in the 3D grid.
+        
+        Parameters
+        ----------
+        var : ndarray
+            Facet flux values (length n_facets)
+        facsec : object
+            Facet section structure (e.g., self.facsec.c)
+        dz : ndarray
+            Vertical grid spacing at cell centers (self.dzt)
+        building_ids : list of int, optional
+            List of building IDs to include. If None, all buildings are included.
+        
+        Returns
+        -------
+        ndarray
+            3D density field (itot x jtot x ktot)
+        
+        Notes
+        -----
+        The density is computed as:
+        rho = sum(var[facid] * area[facid]) / (dx * dy * dz[k])
+        
+        References
+        ----------
+        - Suetzl BS, Rooney GG, van Reeuwijk M (2020). Drag Distribution in 
+          Idealized Heterogeneous Urban Environments. Bound-Lay. Met. 178, 225-248.
+        - van Reeuwijk M, Huang J (2025) Multi-scale Analysis of Flow over 
+          Heterogeneous Urban Environments, Bound-Lay. Met. 191, 47.
+        
+        Examples
+        --------
+        >>> # Convert heat flux to 3D density field
+        >>> seb = sim.load_seb()
+        >>> H_avg = sim.time_average(seb['H'], seb['t'], tstart=3600)
+        >>> rho_H = sim.convert_facflx_to_field(H_avg, sim.facsec.c, sim.dzt)
+        >>> 
+        >>> # Compute horizontally-averaged heat flux density
+        >>> fH = np.mean(rho_H, axis=(0, 1))
+        >>> 
+        >>> # Convert only specific buildings
+        >>> rho_H = sim.convert_facflx_to_field(H_avg, sim.facsec.c, sim.dzt, [1, 2])
+        """
+        # Check if facet sections are loaded
+        if not hasattr(self, 'facsec') or self.facsec is None:
+            raise RuntimeError(
+                "Facet sections not loaded. Call load_facet_sections() first."
+            )
+        
+        # Initialize output field
+        fld = np.zeros((self.itot, self.jtot, self.ktot), dtype=np.float32)
+        
+        # Get face mask if building IDs specified
+        face_mask = None
+        if building_ids is not None:
+            if not hasattr(self.geom, 'buildings') or self.geom.buildings is None:
+                raise RuntimeError(
+                    "Buildings not extracted. Ensure geometry has been processed with building extraction."
+                )
+            
+            # Validate building IDs
+            building_ids = np.array(building_ids, dtype=int)
+            if np.any(building_ids <= 0):
+                raise ValueError("Building IDs must be positive integers")
+            
+            # Create face mask for specified buildings
+            num_buildings = len(self.geom.buildings)
+            valid_ids = building_ids[building_ids <= num_buildings]
+            
+            face_mask = np.zeros(len(self.geom.stl.vectors), dtype=bool)
+            for building_id in valid_ids:
+                if building_id <= num_buildings:
+                    building = self.geom.buildings[building_id - 1]  # 0-indexed
+                    if building is not None and 'original_face_indices' in building:
+                        face_mask[building['original_face_indices']] = True
+        
+        # Loop over all facet sections and create density field
+        for m in range(len(facsec.area)):
+            facid = facsec.facid[m]
+            
+            # Skip if building filtering is active and face not in mask
+            if face_mask is not None and not face_mask[facid]:
+                continue
+            
+            # Get grid location (convert from 1-based to 0-based indexing)
+            i, j, k = facsec.locs[m] - 1
+            
+            # Add contribution to density field
+            fld[i, j, k] += (var[facid] * facsec.area[m] / 
+                            (self.dx * self.dy * dz[k]))
+        
+        return fld
+    
     @staticmethod
     def time_average(var: np.ndarray, time: np.ndarray, 
                      tstart: Optional[float] = None, 
@@ -1164,11 +1305,13 @@ class UDBase:
         plt.tight_layout()
         plt.show()
     
-    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
+    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, 
+                 show_outlines: bool = True, angle_threshold: float = 45.0):
         """
-        Plot a facet variable as a 3D colored surface.
+        Plot facet data using trimesh for better 3D rendering with proper depth sorting.
         
-        Matches MATLAB implementation: plot_fac(obj, var, building_ids)
+        This method uses trimesh's visualization instead of matplotlib, which provides
+        better handling of 3D depth and occlusion for outline rendering.
         
         Parameters
         ----------
@@ -1176,185 +1319,197 @@ class UDBase:
             Facet variable to plot (one value per facet)
         building_ids : array-like, optional
             Building IDs to plot. If None, plots all buildings.
+        show_outlines : bool, default=True
+            Whether to show building outline edges
+        angle_threshold : float, default=45.0
+            Angle threshold in degrees for outline edge detection
             
         Raises
         ------
         ValueError
             If geometry is not loaded or if var has wrong dimensions
         ImportError
-            If matplotlib is not installed
+            If trimesh is not installed
             
         Examples
         --------
-        Plot net shortwave radiation on facets:
-        >>> K = sim.load_fac_eb('K')
-        >>> sim.plot_fac(K, title='Net Shortwave Radiation (W/m²)', cmap='hot')
-        
-        Plot momentum flux with custom range:
-        >>> taux = sim.load_fac_momentum('taux')
-        >>> sim.plot_fac(taux[:, 0], vmin=-1, vmax=1, title='Tau_x')
+        >>> pres_slice = fac_mom['pres'].isel(time=-1).data
+        >>> sim.plot_fac(pres_slice)
         """
         if self.geom is None:
-            raise ValueError("This method requires a geometry (STL) file. "
-                           "Ensure stl_file is specified in namoptions.")
+            raise ValueError("This method requires a geometry (STL) file.")
         
         try:
-            import matplotlib.pyplot as plt
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+            import trimesh
         except ImportError:
-            raise ImportError("matplotlib is required for visualization. "
-                            "Install with: pip install matplotlib")
+            raise ImportError("trimesh is required for this visualization. "
+                            "Install with: pip install trimesh")
         
         # Validate input
         if len(var) != self.geom.n_faces:
             raise ValueError(f"Variable length ({len(var)}) must match number of facets ({self.geom.n_faces})")
         
-        # Create figure
-        fig = plt.figure(figsize=(12, 10))
-        ax = fig.add_subplot(111, projection='3d')
-        
         # Get geometry data
         vertices = self.geom.stl.vertices
         faces = self.geom.stl.faces
-        triangles = vertices[faces]
         
-        # Filter out NaN triangles completely
+        # Create trimesh object
+        mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+        
+        # Map variable values to face colors using colormap
+        import matplotlib.pyplot as plt
+        import matplotlib.cm as cm
+        
         valid_mask = ~np.isnan(var)
-        valid_triangles = triangles[valid_mask]
-        valid_var = var[valid_mask]
-        
-        # Normalize only valid data
-        if len(valid_var) > 0:
-            vmin = np.nanmin(valid_var)
-            vmax = np.nanmax(valid_var)
-        else:
-            vmin, vmax = 0, 1
-        
-        # Create colors for valid faces only
-        norm = plt.Normalize(vmin=vmin, vmax=vmax)
-        colors = plt.cm.viridis(norm(valid_var))
-        
-        # Create color-mapped collection with valid triangles only
-        # Set edgecolors=None and antialiased=False to prevent white lines between triangles
-        collection = Poly3DCollection(
-            valid_triangles,
-            facecolors=colors,
-            edgecolors=None,
-            linewidths=0,
-            antialiased=False
-        )
-        # Set lower z-sort to allow outlines to render on top
-        collection.set_sort_zpos(-1000)
-        ax.add_collection3d(collection)
-        
-        # Set axis limits
-        bounds = self.geom.bounds
-        ax.set_xlim(bounds[0, 0], bounds[1, 0])
-        ax.set_ylim(bounds[0, 1], bounds[1, 1])
-        ax.set_zlim(bounds[0, 2], bounds[1, 2])
-        
-        # Labels
-        ax.set_xlabel('X (m)')
-        ax.set_ylabel('Y (m)')
-        ax.set_zlabel('Z (m)')
-        
-        # Equal aspect ratio
-        max_range = np.array([
-            bounds[1, 0] - bounds[0, 0],
-            bounds[1, 1] - bounds[0, 1],
-            bounds[1, 2] - bounds[0, 2]
-        ]).max() / 2.0
-        
-        mid_x = (bounds[1, 0] + bounds[0, 0]) * 0.5
-        mid_y = (bounds[1, 1] + bounds[0, 1]) * 0.5
-        mid_z = (bounds[1, 2] + bounds[0, 2]) * 0.5
-        
-        ax.set_xlim(mid_x - max_range, mid_x + max_range)
-        ax.set_ylim(mid_y - max_range, mid_y + max_range)
-        ax.set_zlim(mid_z - max_range, mid_z + max_range)
-        
-        # Viewing angle (matches MATLAB view(3))
-        ax.view_init(elev=30, azim=-37.5-90)
-        
-        # Add building outlines
-        self._add_building_outlines(ax, building_ids)
-        
-        plt.show()
-    
-    def _add_building_outlines(self, ax, building_ids=None, angle_threshold: float = 45.0):
-        """
-        Helper method to add building outline edges to current 3D plot.
-        
-        Matches MATLAB implementation in tools/matlab/udbase.m
-        
-        Parameters
-        ----------
-        ax : matplotlib Axes3D
-            The 3D axes to add outlines to
-        building_ids : list of int, optional
-            Building IDs to outline. If None or empty, outline all buildings.
-        angle_threshold : float, default=45.0
-            Angle threshold in degrees for edge detection
-        """
-        if self.geom is None or not hasattr(self.geom, 'stl') or self.geom.stl is None:
-            # If geometry not loaded, skip
-            return
-        
-        try:
-            # Import required functions
-            from mpl_toolkits.mplot3d.art3d import Line3DCollection
+        if np.any(valid_mask):
+            vmin = np.nanmin(var[valid_mask])
+            vmax = np.nanmax(var[valid_mask])
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            cmap = cm.get_cmap('viridis')
             
-            # Use the geometry's built-in outline edge calculation method
+            # Create face colors (RGBA)
+            face_colors = np.ones((len(faces), 4))  # Default white
+            face_colors[valid_mask] = cmap(norm(var[valid_mask]))
+            mesh.visual.face_colors = face_colors
+        
+        # Create scene
+        scene = trimesh.Scene(mesh)
+        
+        # Add outline edges if requested
+        if show_outlines:
             outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
-            
-            if len(outline_edges) == 0:
-                return
-            
-            # Get vertices
-            vertices = self.geom.stl.vertices
-            
-            # Create line segments for Line3DCollection
-            line_segments = []
-            for edge in outline_edges:
-                p0 = vertices[edge[0]]
-                p1 = vertices[edge[1]]
-                line_segments.append([p0, p1])
-            
-            # Create Line3DCollection with visible styling
-            # Use larger z-offset to ensure visibility
-            line_collection = Line3DCollection(
-                line_segments,
-                colors='black',
-                linewidths=1.0,
-                linestyles='-',
-                alpha=1.0
-            )
-            # Force lines to render on top
-            line_collection.set_sort_zpos(1000)
-            ax.add_collection3d(line_collection)
-            
-        except Exception as e:
-            warnings.warn(f"Could not add building outlines: {e}")
-    
-
-    
-    def plot_fac_type(self, building_ids: Optional[np.ndarray] = None):
-        """
-        Plot the different surface types in the geometry.
+            if len(outline_edges) > 0:
+                # Create Path3D for outlines (including ground facet edges)
+                entities = [trimesh.path.entities.Line([edge[0], edge[1]]) for edge in outline_edges]
+                # Colors should be per-entity (RGBA format)
+                entity_colors = np.tile([0, 0, 0, 255], (len(entities), 1))  # Black for all edges
+                path = trimesh.path.Path3D(
+                    entities=entities,
+                    vertices=vertices,
+                    colors=entity_colors
+                )
+                scene.add_geometry(path)
         
-        Matches MATLAB implementation: plot_fac_type(obj, building_ids)
+        # Check if running in Jupyter notebook
+        try:
+            from IPython.display import display
+            in_notebook = True
+        except ImportError:
+            in_notebook = False
+        
+        if in_notebook:
+            # Use plotly for interactive notebook display
+            print(f"Rendering {len(mesh.faces)} faces for notebook display...")
+            if show_outlines and len(outline_edges) > 0:
+                print(f"Added {len(outline_edges)} outline edges")
+            
+            try:
+                import plotly.graph_objects as go
+                import plotly.io as pio
+                
+                # Configure plotly for notebook display
+                pio.renderers.default = 'notebook'
+                
+                # Convert mesh to plotly
+                vertices = mesh.vertices
+                faces = mesh.faces
+                colors = mesh.visual.face_colors
+                
+                # Create mesh3d trace
+                fig = go.Figure(data=[
+                    go.Mesh3d(
+                        x=vertices[:, 0],
+                        y=vertices[:, 1],
+                        z=vertices[:, 2],
+                        i=faces[:, 0],
+                        j=faces[:, 1],
+                        k=faces[:, 2],
+                        facecolor=[f'rgb({c[0]},{c[1]},{c[2]})' for c in colors[:, :3]],
+                        opacity=1.0,
+                        flatshading=True
+                    )
+                ])
+                
+                # Add outline edges if requested (including ground facet edges)
+                if show_outlines and len(outline_edges) > 0:
+                    edge_x = []
+                    edge_y = []
+                    edge_z = []
+                    z_offset = 0.1  # Offset to prevent z-fighting with ground plane
+                    for edge in outline_edges:
+                        p0 = vertices[edge[0]]
+                        p1 = vertices[edge[1]]
+                        # Add z-offset for edges at ground level to make them visible
+                        z0 = p0[2] + z_offset if abs(p0[2]) < 0.01 else p0[2]
+                        z1 = p1[2] + z_offset if abs(p1[2]) < 0.01 else p1[2]
+                        edge_x.extend([p0[0], p1[0], None])
+                        edge_y.extend([p0[1], p1[1], None])
+                        edge_z.extend([z0, z1, None])
+                    
+                    fig.add_trace(go.Scatter3d(
+                        x=edge_x, y=edge_y, z=edge_z,
+                        mode='lines',
+                        line=dict(color='black', width=2),
+                        name='Outlines',
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ))
+                
+                fig.update_layout(
+                    scene=dict(
+                        aspectmode='data',
+                        xaxis_title='X (m)',
+                        yaxis_title='Y (m)',
+                        zaxis_title='Z (m)',
+                        camera=dict(
+                            eye=dict(x=1.25, y=1.25, z=0.75),
+                            projection=dict(type='orthographic')
+                        )
+                    ),
+                    showlegend=False
+                )
+                
+                fig.show()
+                
+            except ImportError:
+                print("Plotly not available. Falling back to static rendering.")
+                print("Install plotly for interactive 3D: pip install plotly")
+                # Fall back to showing in external window
+                try:
+                    scene.show()
+                except:
+                    print("Could not display. Try installing: pip install plotly or pyglet")
+        else:
+            # Show in external window
+            print(f"Opening trimesh viewer with {len(mesh.faces)} faces...")
+            if show_outlines and len(outline_edges) > 0:
+                print(f"Added {len(outline_edges)} outline edges")
+            try:
+                scene.show()
+            except Exception as e:
+                print(f"Could not open trimesh viewer: {e}")
+                print("You may need to install pyglet or pyrender: pip install pyglet")
+    
+    def plot_fac_type(self, building_ids: Optional[np.ndarray] = None, 
+                      show_outlines: bool = True, angle_threshold: float = 45.0):
+        """
+        Plot the different surface types in the geometry using trimesh/Plotly.
         
         Parameters
         ----------
         building_ids : array-like, optional
             Building IDs to plot. If None, plots all buildings.
+        show_outlines : bool, default=True
+            Whether to show building outline edges
+        angle_threshold : float, default=45.0
+            Angle threshold in degrees for outline edge detection
             
         Raises
         ------
         ValueError
             If required data (geometry, facets, factypes) is not loaded
         ImportError
-            If matplotlib is not installed
+            If trimesh is not installed
             
         Examples
         --------
@@ -1375,11 +1530,10 @@ class UDBase:
                            f"Ensure {self.ffactypes}.{self.expnr} exists.")
         
         try:
-            import matplotlib.pyplot as plt
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+            import trimesh
         except ImportError:
-            raise ImportError("matplotlib is required for visualization. "
-                            "Install with: pip install matplotlib")
+            raise ImportError("trimesh is required for this visualization. "
+                            "Install with: pip install trimesh")
         
         # Get data
         facids = self.facs['typeid']
@@ -1387,177 +1541,175 @@ class UDBase:
         names = self.factypes['name']
         unique_ids = np.unique(facids)
         
-        # Get default matplotlib color cycle
+        # Get default matplotlib color cycle for consistency
+        import matplotlib.pyplot as plt
         prop_cycle = plt.rcParams['axes.prop_cycle']
         default_colors = prop_cycle.by_key()['color']
-        
-        # Check if we have enough colors
-        if len(unique_ids) > len(default_colors):
-            warnings.warn(f"Too many surface types ({len(unique_ids)}) for unique colors. "
-                        f"Only {len(default_colors)} available. Some colors will repeat.")
-        
-        # Create figure
-        fig = plt.figure(figsize=(12, 10))
-        ax = fig.add_subplot(111, projection='3d')
         
         # Get geometry data
         vertices = self.geom.stl.vertices
         faces = self.geom.stl.faces
         
-        # Plot each surface type
-        labels = []
+        # Create face colors array (RGBA)
+        face_colors = np.ones((len(faces), 4)) * 255  # Default white
+        
+        # Map each type to a color
+        type_labels = []
+        type_colors = []
         for idx, type_id in enumerate(unique_ids):
-            # Select facets of this type
             type_mask = (facids == type_id)
-            type_faces = faces[type_mask]
-            type_triangles = vertices[type_faces]
             
-            # Get color (cycle through if needed)
-            color = default_colors[idx % len(default_colors)]
+            # Get matplotlib color (hex) and convert to RGB
+            hex_color = default_colors[idx % len(default_colors)]
+            # Convert hex to RGB (0-255)
+            hex_color = hex_color.lstrip('#')
+            rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
             
-            # Get name
+            # Set face colors for this type
+            face_colors[type_mask, :3] = rgb
+            face_colors[type_mask, 3] = 230  # Alpha
+            
+            # Get label
             name_idx = np.where(typeids == type_id)[0]
             if len(name_idx) > 0:
                 label = names[name_idx[0]]
             else:
                 label = f"Type {type_id}"
             
-            labels.append(label)
-            
-            # Create collection
-            collection = Poly3DCollection(
-                type_triangles,
-                facecolors=color,
-                edgecolors='none',
-                alpha=0.9,
-                label=label,
-                antialiased=False
-            )
-            ax.add_collection3d(collection)
+            type_labels.append(label)
+            type_colors.append(rgb)
         
-        # Set axis limits
-        bounds = self.geom.bounds
-        ax.set_xlim(bounds[0, 0], bounds[1, 0])
-        ax.set_ylim(bounds[0, 1], bounds[1, 1])
-        ax.set_zlim(bounds[0, 2], bounds[1, 2])
+        # Create trimesh object
+        mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+        mesh.visual.face_colors = face_colors
         
-        # Labels
-        ax.set_xlabel('X (m)')
-        ax.set_ylabel('Y (m)')
-        ax.set_zlabel('Z (m)')
-        ax.set_title('Surface Types')
-        
-        # Equal aspect ratio
-        max_range = np.array([
-            bounds[1, 0] - bounds[0, 0],
-            bounds[1, 1] - bounds[0, 1],
-            bounds[1, 2] - bounds[0, 2]
-        ]).max() / 2.0
-        
-        mid_x = (bounds[1, 0] + bounds[0, 0]) * 0.5
-        mid_y = (bounds[1, 1] + bounds[0, 1]) * 0.5
-        mid_z = (bounds[1, 2] + bounds[0, 2]) * 0.5
-        
-        ax.set_xlim(mid_x - max_range, mid_x + max_range)
-        ax.set_ylim(mid_y - max_range, mid_y + max_range)
-        ax.set_zlim(mid_z - max_range, mid_z + max_range)
-        
-        # Viewing angle (matches MATLAB view(3))
-        ax.view_init(elev=30, azim=-37.5-90)
-        
-        # Add building outlines
-        self._add_building_outlines(ax, building_ids)
-        
-        plt.show()
-    
-    def plot_outline_only(self, figsize: tuple = (10, 8), angle_threshold: float = 45.0):
-        """
-        Plot only the 3D building outlines without facet coloring.
-        
-        Temporary method for visualizing building outlines. Shows the geometry
-        as a semi-transparent gray surface with black outline edges highlighting
-        building boundaries and sharp features.
-        
-        Parameters
-        ----------
-        figsize : tuple, default=(10, 8)
-            Figure size in inches (width, height)
-        angle_threshold : float, default=45.0
-            Angle threshold in degrees for outline edge detection
-            
-        Examples
-        --------
-        >>> sim = UDBase(65, 'experiments/065')
-        >>> sim.plot_outline_only()
-        """
-        if self.geom is None:
-            raise ValueError("This method requires a geometry (STL) file.")
-        
+        # Check if running in Jupyter notebook
         try:
-            import matplotlib.pyplot as plt
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+            from IPython.display import display
+            in_notebook = True
         except ImportError:
-            raise ImportError("matplotlib is required for visualization.")
+            in_notebook = False
         
-        # Create figure
-        fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(111, projection='3d')
-        
-        # Get geometry data (excluding ground)
-        vertices = self.geom.stl.vertices
-        faces = self.geom.stl.faces
-        
-        # Remove ground faces
-        face_z_values = vertices[faces, 2]
-        ground_mask = np.all(face_z_values == 0, axis=1)
-        building_faces = faces[~ground_mask]
-        
-        # Plot building mesh with transparency
-        triangles = vertices[building_faces]
-        collection = Poly3DCollection(
-            triangles,
-            facecolors=[0.8, 0.8, 0.8],
-            edgecolors='none',
-            alpha=0.3,
-            antialiased=False
-        )
-        ax.add_collection3d(collection)
-        
-        # Add building outlines (thick black lines)
-        self._add_building_outlines(ax, building_ids=None, angle_threshold=angle_threshold)
-        
-        # Set axis limits
-        bounds = self.geom.bounds
-        ax.set_xlim(bounds[0, 0], bounds[1, 0])
-        ax.set_ylim(bounds[0, 1], bounds[1, 1])
-        ax.set_zlim(bounds[0, 2], bounds[1, 2])
-        
-        # Labels
-        ax.set_xlabel('X (m)')
-        ax.set_ylabel('Y (m)')
-        ax.set_zlabel('Z (m)')
-        ax.set_title('Building Outlines')
-        
-        # Equal aspect ratio
-        max_range = np.array([
-            bounds[1, 0] - bounds[0, 0],
-            bounds[1, 1] - bounds[0, 1],
-            bounds[1, 2] - bounds[0, 2]
-        ]).max() / 2.0
-        
-        mid_x = (bounds[1, 0] + bounds[0, 0]) * 0.5
-        mid_y = (bounds[1, 1] + bounds[0, 1]) * 0.5
-        mid_z = (bounds[1, 2] + bounds[0, 2]) * 0.5
-        
-        ax.set_xlim(mid_x - max_range, mid_x + max_range)
-        ax.set_ylim(mid_y - max_range, mid_y + max_range)
-        ax.set_zlim(mid_z - max_range, mid_z + max_range)
-        
-        # Viewing angle (matches MATLAB view(3))
-        ax.view_init(elev=30, azim=-37.5-90)
-        
-        plt.tight_layout()
-        plt.show()
+        if in_notebook:
+            print(f"Rendering {len(mesh.faces)} faces for notebook display...")
+            
+            try:
+                import plotly.graph_objects as go
+                import plotly.io as pio
+                
+                # Configure plotly for notebook display
+                pio.renderers.default = 'notebook'
+                
+                # Create figure with separate mesh traces for each type (for legend)
+                fig = go.Figure()
+                
+                for idx, type_id in enumerate(unique_ids):
+                    type_mask = (facids == type_id)
+                    type_face_indices = np.where(type_mask)[0]
+                    
+                    if len(type_face_indices) == 0:
+                        continue
+                    
+                    # Get color
+                    rgb = type_colors[idx]
+                    color_str = f'rgb({rgb[0]},{rgb[1]},{rgb[2]})'
+                    
+                    # Get faces for this type
+                    type_faces = faces[type_face_indices]
+                    
+                    # Add mesh trace for this type
+                    fig.add_trace(go.Mesh3d(
+                        x=vertices[:, 0],
+                        y=vertices[:, 1],
+                        z=vertices[:, 2],
+                        i=type_faces[:, 0],
+                        j=type_faces[:, 1],
+                        k=type_faces[:, 2],
+                        color=color_str,
+                        opacity=1.0,
+                        flatshading=True,
+                        name=type_labels[idx],
+                        showlegend=True
+                    ))
+                
+                # Add outline edges if requested
+                if show_outlines:
+                    outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
+                    if len(outline_edges) > 0:
+                        print(f"Added {len(outline_edges)} outline edges")
+                        edge_x = []
+                        edge_y = []
+                        edge_z = []
+                        z_offset = 0.1  # Offset to prevent z-fighting with ground plane
+                        for edge in outline_edges:
+                            p0 = vertices[edge[0]]
+                            p1 = vertices[edge[1]]
+                            # Add z-offset for edges at ground level
+                            z0 = p0[2] + z_offset if abs(p0[2]) < 0.01 else p0[2]
+                            z1 = p1[2] + z_offset if abs(p1[2]) < 0.01 else p1[2]
+                            edge_x.extend([p0[0], p1[0], None])
+                            edge_y.extend([p0[1], p1[1], None])
+                            edge_z.extend([z0, z1, None])
+                        
+                        fig.add_trace(go.Scatter3d(
+                            x=edge_x, y=edge_y, z=edge_z,
+                            mode='lines',
+                            line=dict(color='black', width=2),
+                            name='Outlines',
+                            showlegend=False,
+                            hoverinfo='skip'
+                        ))
+                
+                fig.update_layout(
+                    scene=dict(
+                        aspectmode='data',
+                        xaxis_title='X (m)',
+                        yaxis_title='Y (m)',
+                        zaxis_title='Z (m)',
+                        camera=dict(
+                            eye=dict(x=1.25, y=1.25, z=0.75),
+                            projection=dict(type='orthographic')
+                        )
+                    ),
+                    title='Surface Types',
+                    showlegend=True
+                )
+                
+                fig.show()
+                
+            except ImportError:
+                print("Plotly not available. Falling back to static rendering.")
+                print("Install plotly for interactive 3D: pip install plotly")
+                # Fall back to showing in external window
+                scene = trimesh.Scene(mesh)
+                if show_outlines:
+                    outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
+                    if len(outline_edges) > 0:
+                        entities = [trimesh.path.entities.Line([edge[0], edge[1]]) for edge in outline_edges]
+                        entity_colors = np.tile([0, 0, 0, 255], (len(entities), 1))
+                        path = trimesh.path.Path3D(entities=entities, vertices=vertices, colors=entity_colors)
+                        scene.add_geometry(path)
+                try:
+                    scene.show()
+                except:
+                    print("Could not display. Try installing: pip install plotly or pyglet")
+        else:
+            # Show in external window
+            print(f"Opening trimesh viewer with {len(mesh.faces)} faces...")
+            scene = trimesh.Scene(mesh)
+            if show_outlines:
+                outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
+                if len(outline_edges) > 0:
+                    print(f"Added {len(outline_edges)} outline edges")
+                    entities = [trimesh.path.entities.Line([edge[0], edge[1]]) for edge in outline_edges]
+                    entity_colors = np.tile([0, 0, 0, 255], (len(entities), 1))
+                    path = trimesh.path.Path3D(entities=entities, vertices=vertices, colors=entity_colors)
+                    scene.add_geometry(path)
+            try:
+                scene.show()
+            except Exception as e:
+                print(f"Could not open trimesh viewer: {e}")
+                print("You may need to install pyglet or pyrender: pip install pyglet")
     
     def convert_fac_to_field(self, var: np.ndarray, facsec: Optional[Dict] = None,
                             dz: Optional[np.ndarray] = None) -> np.ndarray:

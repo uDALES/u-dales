@@ -668,7 +668,7 @@ class UDGeom:
         )
         ax.add_collection3d(collection)
         
-        # Plot outline edges
+        # Plot outline edges (including ground facet edges)
         for edge in outline_edges:
             v1 = self.stl.vertices[edge[0]]
             v2 = self.stl.vertices[edge[1]]
@@ -707,6 +707,10 @@ class UDGeom:
         """
         Internal method to calculate outline edges based on face angle threshold.
         
+        Matches MATLAB get_outline() behavior: processes the entire geometry including
+        ground faces. This ensures boundary edges where buildings meet the ground are
+        properly detected as outline edges.
+        
         Parameters
         ----------
         angle_threshold : float
@@ -720,20 +724,29 @@ class UDGeom:
         if self.stl is None:
             return []
         
-        outline_edges = []
+        # Process the entire geometry (including ground faces) to match MATLAB get_outline()
+        # MATLAB only filters ground when splitting buildings, not when computing overall outline
+        vertices = self.stl.vertices
+        faces = self.stl.faces
+        
+        # Get face adjacency info
         face_adjacency = self.stl.face_adjacency
         face_adjacency_angles = self.stl.face_adjacency_angles
         
         # Convert angle threshold to radians
         threshold_rad = np.deg2rad(angle_threshold)
         
-        # Find edges where angle exceeds threshold
+        # Find edges where angle exceeds threshold (sharp edges)
         sharp_edges_mask = face_adjacency_angles > threshold_rad
         sharp_edge_pairs = face_adjacency[sharp_edges_mask]
         
-        # For each sharp edge pair, find the shared edge vertices
+        outline_edges = []
+        outline_edge_set = set()  # Track unique edges
+        
+        # Add sharp-angle edges (edges between faces with large angle difference)
         for face_pair in sharp_edge_pairs:
             face1, face2 = face_pair
+            
             # Find shared vertices between the two faces
             verts1 = set(self.stl.faces[face1])
             verts2 = set(self.stl.faces[face2])
@@ -741,8 +754,45 @@ class UDGeom:
             
             if len(shared) == 2:
                 # Found the shared edge
-                v1, v2 = sorted(shared)
-                outline_edges.append((v1, v2))
+                edge = tuple(sorted(shared))
+                if edge not in outline_edge_set:
+                    outline_edge_set.add(edge)
+                    outline_edges.append(edge)
+        
+        # Add boundary edges (edges that belong to only one face)
+        # Build edge-to-face mapping
+        edge_counts = {}
+        for face_idx in range(len(faces)):
+            face_verts = faces[face_idx]
+            face_edges = [
+                tuple(sorted([face_verts[0], face_verts[1]])),
+                tuple(sorted([face_verts[1], face_verts[2]])),
+                tuple(sorted([face_verts[2], face_verts[0]]))
+            ]
+            for edge in face_edges:
+                edge_counts[edge] = edge_counts.get(edge, 0) + 1
+        
+        # Boundary edges appear only once (not shared between faces)
+        boundary_edges_added = 0
+        ground_boundary_edges = 0
+        for edge, count in edge_counts.items():
+            if count == 1:  # Boundary edge
+                if edge not in outline_edge_set:
+                    outline_edge_set.add(edge)
+                    outline_edges.append(edge)
+                    boundary_edges_added += 1
+                    # Check if this is a ground-level edge
+                    if vertices[edge[0]][2] == 0 and vertices[edge[1]][2] == 0:
+                        ground_boundary_edges += 1
+        
+        print(f"Outline calculation: {len(outline_edges)} total edges ({len(sharp_edge_pairs)} sharp, {boundary_edges_added} boundary, {ground_boundary_edges} at ground level)")
+        
+        # Debug: Show sample of ground-level edges
+        if ground_boundary_edges > 0:
+            ground_edges_sample = [(edge, vertices[edge[0]], vertices[edge[1]]) 
+                                   for edge in outline_edges 
+                                   if vertices[edge[0]][2] == 0 and vertices[edge[1]][2] == 0][:3]
+            print(f"Sample ground edges: {[(e[0], f'({e[1][0]:.1f},{e[1][1]:.1f},{e[1][2]:.1f})', f'({e[2][0]:.1f},{e[2][1]:.1f},{e[2][2]:.1f})') for e in ground_edges_sample]}")
         
         return outline_edges
     
