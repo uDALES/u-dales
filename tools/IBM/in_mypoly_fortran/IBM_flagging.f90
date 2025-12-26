@@ -91,7 +91,7 @@ program Xie
     solid_c = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
                                     itot,xf,jtot,yf,ktot,zf,Ray_dir_c,L_char,max_height,tol,n_threads)
 
-    call print_solid_flags(itot,jtot,ktot,solid_u,solid_v,solid_w,solid_c)
+    ! call print_solid_flags(itot,jtot,ktot,solid_u,solid_v,solid_w,solid_c)
 
     call print_solid_points_index(itot,jtot,ktot,solid_u,solid_v,solid_w,solid_c)
 

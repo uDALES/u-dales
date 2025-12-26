@@ -88,7 +88,7 @@ export DA_TOOLSDIR=$DA_TOOLSDIR
 export DA_EXPDIR=$DA_EXPDIR
 export MATLAB_USE_USERWORK=0
 
-matlab -nodesktop -noFigureWindows -nosplash -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1
+nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 < /dev/null
 
 EOF
 
@@ -98,7 +98,7 @@ EOF
 else
 	###### RUN MATLAB SCRIPT
 	cd $DA_TOOLSDIR
-	nohup matlab -nodesktop -noFigureWindows -nosplash -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 &
+	nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 < /dev/null &
 	cd $DA_EXPDIR
 	cd ..
 fi

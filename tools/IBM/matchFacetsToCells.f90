@@ -856,6 +856,9 @@ program run
 
                end if !(solid_IB(i,j,k) .or. search_adj)
 
+               if (isnan(dist) .or. abs(dist)<0.00000001) dist = 0.1 ! 0.1 m minimum distance to avoid singularities
+               if (isnan(area)) area = 0.0
+
                loc = findloc(ismember_rows(fluid_IB_xyz, xyz), .true., 1)
                call appendToArray1D_real(secareas, area)
                call appendToArray1D_integer(secfacids, n)

@@ -1090,9 +1090,9 @@ fclose(fileID_info);
 %% Clean up exp directory
 if lmypolyfortran
     cd(fpath)
-    delete flag_u.txt flag_v.txt flag_w.txt flag_c.txt;
-    delete fluid_IB_u.txt fluid_IB_v.txt fluid_IB_w.txt fluid_IB_c.txt;
-    delete solid_IB_u.txt solid_IB_v.txt solid_IB_w.txt solid_IB_c.txt;
+    % delete flag_u.txt flag_v.txt flag_w.txt flag_c.txt;
+    % delete fluid_IB_u.txt fluid_IB_v.txt fluid_IB_w.txt fluid_IB_c.txt;
+    % delete solid_IB_u.txt solid_IB_v.txt solid_IB_w.txt solid_IB_c.txt;
     delete solid_boundary_u.txt solid_boundary_v.txt solid_boundary_w.txt solid_boundary_c.txt;
     cd(currentPath)
 end

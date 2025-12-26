@@ -1,16 +1,20 @@
 !> \file modstatsdump.f90
-!!  Dumps statistics of various fields
+!! Dumps statistics of various fields
 !>
-!!  \author Tom Grylls, ICL May 25 2016
 !
-!  This file is part of uDALES.
+!! \author Tom Grylls, ICL, May 2016
+!! \par Revision list
+!!   Dipanjan Majumdar, ICL (2024-2025)
+!! \todo Documentation
 !
-! This program is free software: you can redistribute it and/or modify
+! This file is part of uDALES (https://github.com/uDALES/u-dales).
+!
+! uDALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
-! This program is distributed in the hope that it will be useful,
+! uDALES is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
@@ -18,7 +22,7 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-!  Copyright 2006-2021 the uDALES Team.
+! Copyright (C) 2016- the uDALES Team, Imperial College London.
 !
 module modstatsdump
 
@@ -531,10 +535,11 @@ contains
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
   use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,&
-                               comm3d,avexy_ibm,nprocs
+                               comm3d,avexy_ibm,nprocs,myidx,myidy
   use modsurfdata,      only : thls
   use modsubgrid,       only : ekh,ekm
   use modstatistics,    only : genstats,tkestats
+  ! use, intrinsic :: ieee_arithmetic
   implicit none
 
   !> Create fields to be used in statistics
@@ -728,7 +733,7 @@ contains
   real, allocatable :: field(:,:), varsy(:,:,:),varsyt(:,:,:),varstke(:,:),varsxy(:,:),&
                        varkslice(:,:,:),varislice(:,:,:),varjslice(:,:,:),varsxyt(:,:),varst(:,:,:,:),varstr(:,:,:,:),varsmint(:,:,:,:)
   real    :: tstatsdumppi,emom
-  integer :: i,j,k,ip,im,jp,jm,kp,km
+  integer :: i,j,k,ip,im,jp,jm,kp,km,n
   integer :: writecounter = 1
   integer :: reclength
 
@@ -788,6 +793,9 @@ contains
   ! upwptyik=0.;wpthlptyk=0.;wpqtptyk=0.;wpsv1ptyk=0.;wpsv2ptyk=0.;wpsv3ptyk=0.;uwtyik=0.;wthltyk=0.;wqttyk=0.;wsv1tyk=0.;wsv2tyk=0.;wsv3tyk=0.;upuptyc=0.;wpwptyc=0.;thlpthlpty=0.
   ! qtpqtpty=0.;sv1psv1pty=0.;sv2psv2pty=0.;sv3psv3pty=0.
 
+  wpsv1p=0.;wpsv2p=0.;wpsv3p=0.;wpsv4p=0.
+  sv1psv1pt=0.;sv2psv2pt=0.;sv3psv3pt=0.;sv4psv4pt=0.
+
   if (.not. rk3step==3)  return
 
   if (tsamplep > tsample) then
@@ -810,9 +818,13 @@ contains
             wjk(i,j,k) = 0.5*        (wm(i,j,k)          + wm(i,j-1,k))
             uij(i,j,k) = 0.5*        (um(i,j,k)          + um(i,j-1,k))
             vij(i,j,k) = 0.5*dxhi(i)*(vm(i,j,k)*dxf(i-1) + vm(i-1,j,k)*dxf(i))
-            uc (i,j,k) = 0.5*dxhi(i)*(um(i,j,k)*dxf(i-1) + um(i-1,j,k)*dxf(i))
-            vc (i,j,k) = 0.5*        (vm(i,j,k)          + vm(i,j-1,k))
-            wc (i,j,k) = 0.5*( wm(i,j,k+1) + wm(i,j,k) ) 
+            uc (i,j,k) = 0.5*        (um(i+1,j,k)        + um(i,j,k))
+            vc (i,j,k) = 0.5*        (vm(i,j+1,k)        + vm(i,j,k))
+            if (k==ke+kh) then
+              wc(i,j,k) = wc(i,j,k-1)
+            else
+              wc(i,j,k) = 0.5*        (wm(i,j,k+1)        + wm(i,j,k))
+            end if
 
             ! SGS fluxes
             ! interps ekm to cell corner (uw)
@@ -1601,6 +1613,20 @@ contains
           ! varst(:,:,:,34) = sv2max(ib:ie,jb:je,kb:ke)
           ! varst(:,:,:,35) = sv3max(ib:ie,jb:je,kb:ke)
           ! varst(:,:,:,36) = sv4max(ib:ie,jb:je,kb:ke)
+
+          ! do n=1,nstatt
+          !   do k=kb,ke
+          !     do j=jb,je
+          !       do i=ib,ie
+          !         if (.not.( varst(i,j,k,n) >= -huge(1.0) .and. varst(i,j,k,n) <= huge(1.0) )) then
+          !           write(*,*) '1. Invalid value at myid=', myid, ', myidx=', myidx, ', myidy=', myidy, ', i=', i, ', j=', j, ', k=', k, ', n=', n, ', val=', varst(i,j,k,n)
+          !         elseif (.not. ieee_is_finite( varst(i,j,k,n) )) then
+          !           write(*,*) '2. Invalid value at myid=', myid, ', myidx=', myidx, ', myidy=', myidy, ', i=', i, ', j=', j, ', k=', k, ', n=', n, ', val=', varst(i,j,k,n)
+          !         end if
+          !       end do
+          !     end do
+          !   end do
+          ! end do
 
           call writestat_nc(ncidt,nstatt,ncstatt,varst,nrect,imax,jmax,khigh-klow+1)
 !        end if !myid

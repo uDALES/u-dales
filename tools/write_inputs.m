@@ -173,7 +173,7 @@ if r.libm
         if isempty(r.geom_path)
             error('Need to specify the path to geometry files')
         end
-        copy_command = ['cp ' r.geom_path 'solid_* ' r.geom_path 'fluid_boundary_* ' fpath];
+        copy_command = ['cp ' r.geom_path 'solid_* ' fpath];
         system(copy_command);
         copy_command = ['cp ' r.geom_path 'fluid_boundary_* ' fpath];
         system(copy_command);
