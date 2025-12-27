@@ -365,18 +365,22 @@ class UDGeom:
         
         Separates the geometry into individual disconnected building components.
         Buildings are identified as faces with z > 0 and separated using
-        connected component analysis.
+        connected component analysis. Buildings are ordered by their centroid
+        from southwest to northeast (ascending x+y projection).
         
         Returns
         -------
         buildings : list of trimesh.Trimesh
-            List of individual building meshes
+            List of individual building meshes. Each mesh has a `.points` 
+            property (alias for `.vertices`) for MATLAB compatibility.
             
         Examples
         --------
         >>> buildings = geom.get_buildings()
         >>> num_buildings = len(buildings)
-        >>> print(f"Found {num_buildings} buildings")
+        >>> for i, bld in enumerate(buildings):
+        ...     max_height = np.max(bld.points[:, 2])
+        ...     print(f"Building {i+1}: max height = {max_height:.1f} m")
         """
         if self.stl is None:
             warnings.warn('No STL geometry loaded. Load geometry first.')
@@ -418,6 +422,7 @@ class UDGeom:
         """
         Internal method to split geometry into individual buildings.
         Updates _buildings and _face_to_building_map.
+        Buildings are sorted by centroid from southwest to northeast.
         """
         centers = self.stl.triangles_center
         building_faces = np.where(centers[:, 2] > 0)[0]
@@ -452,10 +457,8 @@ class UDGeom:
                         stack.append(nb)
             current_label += 1
         
-        # Extract individual building meshes
-        buildings = []
-        # Building IDs start from 1 (0 is reserved for ground)
-        face_to_building_map = np.zeros(len(self.stl.faces), dtype=int)
+        # Extract individual building meshes with component labels
+        buildings_with_labels = []
         
         for comp in range(current_label):
             face_idxs = np.where(component_labels == comp)[0]
@@ -465,14 +468,34 @@ class UDGeom:
             # Extract submesh for this building
             try:
                 building_mesh = self.stl.submesh([face_idxs], append=True)
-                buildings.append(building_mesh)
-                # Assign building ID (1-indexed)
-                face_to_building_map[face_idxs] = len(buildings)
+                # Add .points property as alias for .vertices (MATLAB compatibility)
+                building_mesh.points = building_mesh.vertices
+                buildings_with_labels.append((building_mesh, face_idxs, comp))
             except Exception as e:
                 warnings.warn(f"Could not extract building {comp}: {e}")
         
-        self._buildings = buildings
-        self._face_to_building_map = face_to_building_map
+        # Sort buildings by centroid (southwest to northeast: ascending x+y)
+        if buildings_with_labels:
+            centroids = np.array([bld[0].vertices[:, :2].mean(axis=0) for bld in buildings_with_labels])
+            proj = centroids[:, 0] + centroids[:, 1]  # x + y projection
+            order = np.argsort(proj)
+            
+            # Reorder buildings
+            buildings_with_labels = [buildings_with_labels[i] for i in order]
+            
+            # Create new component ID mapping (buildings now 1-indexed)
+            buildings = []
+            face_to_building_map = np.zeros(len(self.stl.faces), dtype=int)
+            
+            for new_id, (building_mesh, face_idxs, old_comp) in enumerate(buildings_with_labels, start=1):
+                buildings.append(building_mesh)
+                face_to_building_map[face_idxs] = new_id
+            
+            self._buildings = buildings
+            self._face_to_building_map = face_to_building_map
+        else:
+            self._buildings = []
+            self._face_to_building_map = np.zeros(len(self.stl.faces), dtype=int)
         
         # Invalidate cached outlines when buildings are recomputed
         self._outline2d = None
@@ -784,15 +807,6 @@ class UDGeom:
                     # Check if this is a ground-level edge
                     if vertices[edge[0]][2] == 0 and vertices[edge[1]][2] == 0:
                         ground_boundary_edges += 1
-        
-        print(f"Outline calculation: {len(outline_edges)} total edges ({len(sharp_edge_pairs)} sharp, {boundary_edges_added} boundary, {ground_boundary_edges} at ground level)")
-        
-        # Debug: Show sample of ground-level edges
-        if ground_boundary_edges > 0:
-            ground_edges_sample = [(edge, vertices[edge[0]], vertices[edge[1]]) 
-                                   for edge in outline_edges 
-                                   if vertices[edge[0]][2] == 0 and vertices[edge[1]][2] == 0][:3]
-            print(f"Sample ground edges: {[(e[0], f'({e[1][0]:.1f},{e[1][1]:.1f},{e[1][2]:.1f})', f'({e[2][0]:.1f},{e[2][1]:.1f},{e[2][2]:.1f})') for e in ground_edges_sample]}")
         
         return outline_edges
     

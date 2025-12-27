@@ -390,75 +390,75 @@ class UDBase:
     
     # ===== Data Loading Methods =====
     
-    def load_field(self, var: Optional[str] = None) -> Union[xr.Dataset, xr.DataArray]:
+    def load_field(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
         Load 3D instantaneous field data.
         
         Parameters
         ----------
         var : str, optional
-            Variable name to load. If None, displays available variables.
+            Variable name to load. If None, displays available variables and returns full dataset.
         
         Returns
         -------
-        xarray.Dataset or xarray.DataArray
-            Complete dataset if var is None, otherwise the requested variable.
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
         
         Examples
         --------
         >>> sim.load_field()  # Display available variables
-        >>> u = sim.load_field('u')
+        >>> u = sim.load_field('u')  # Returns numpy array
         >>> print(u.shape)
         """
         filename = self.path / f"fielddump.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
-    def load_stat_xyt(self, var: Optional[str] = None) -> Union[xr.Dataset, xr.DataArray]:
+    def load_stat_xyt(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
         Load slab-averaged (xy-plane) statistics.
         
         Parameters
         ----------
         var : str, optional
-            Variable name to load. If None, displays available variables.
+            Variable name to load. If None, displays available variables and returns full dataset.
         
         Returns
         -------
-        xarray.Dataset or xarray.DataArray
-            Complete dataset if var is None, otherwise the requested variable.
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
         
         Examples
         --------
         >>> sim.load_stat_xyt()  # Display available variables
-        >>> u_avg = sim.load_stat_xyt('u')
+        >>> u_avg = sim.load_stat_xyt('u')  # Returns numpy array
         """
         filename = self.path / f"xytdump.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
-    def load_stat_t(self, var: Optional[str] = None) -> Union[xr.Dataset, xr.DataArray]:
+    def load_stat_t(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
         Load time-averaged 3D statistics.
         
         Parameters
         ----------
         var : str, optional
-            Variable name to load. If None, displays available variables.
+            Variable name to load. If None, displays available variables and returns full dataset.
         
         Returns
         -------
-        xarray.Dataset or xarray.DataArray
-            Complete dataset if var is None, otherwise the requested variable.
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
         
         Examples
         --------
         >>> sim.load_stat_t()  # Display available variables
-        >>> u_tavg = sim.load_stat_t('u')
+        >>> u_tavg = sim.load_stat_t('u')  # Returns numpy array
         """
         filename = self.path / f"tdump.{self.expnr}.nc"
         print(filename.exists())
         return self._load_ncdata(filename, var)
     
-    def load_stat_tree(self, var: Optional[str] = None) -> Union[xr.Dataset, xr.DataArray]:
+    def load_stat_tree(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
         Load time-averaged statistics of tree source terms.
         
@@ -467,22 +467,22 @@ class UDBase:
         Parameters
         ----------
         var : str, optional
-            Variable name to load. If None, displays available variables.
+            Variable name to load. If None, displays available variables and returns full dataset.
         
         Returns
         -------
-        xarray.Dataset or xarray.DataArray
-            Complete dataset if var is None, otherwise the requested variable.
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
         
         Examples
         --------
         >>> sim.load_stat_tree()  # Display available variables
-        >>> tree_drag = sim.load_stat_tree('tree_drag_u')
+        >>> tree_drag = sim.load_stat_tree('tree_drag_u')  # Returns numpy array
         """
         filename = self.path / f"treedump.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
-    def load_slice(self, plane: str, var: Optional[str] = None) -> Union[xr.Dataset, xr.DataArray]:
+    def load_slice(self, plane: str, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
         Load 2D slice data.
         
@@ -491,17 +491,17 @@ class UDBase:
         plane : str
             Slice plane: 'i', 'j', or 'k' for x, y, or z slices
         var : str, optional
-            Variable name to load. If None, displays available variables.
+            Variable name to load. If None, displays available variables and returns full dataset.
         
         Returns
         -------
-        xarray.Dataset or xarray.DataArray
-            Complete dataset if var is None, otherwise the requested variable.
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
         
         Examples
         --------
         >>> sim.load_slice('k')  # Display available variables in horizontal slice
-        >>> u_slice = sim.load_slice('k', 'u')
+        >>> u_slice = sim.load_slice('k', 'u')  # Returns numpy array
         """
         if plane not in ['i', 'j', 'k']:
             raise ValueError("plane must be 'i', 'j', or 'k'")
@@ -509,11 +509,13 @@ class UDBase:
         filename = self.path / f"{plane}slicedump.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
-    def _load_ncdata(self, filename: Path, var: Optional[str]) -> Union[xr.Dataset, xr.DataArray]:
+    def _load_ncdata(self, filename: Path, var: Optional[str]) -> Union[xr.Dataset, np.ndarray]:
         """
         Helper method to load NetCDF data using xarray.
         
         Automatically reverses dimension order to match MATLAB conventions.
+        When a specific variable is requested, returns it as a numpy array for
+        memory efficiency with large datasets.
         
         NetCDF files use C-style (row-major) dimension ordering, while MATLAB
         uses Fortran-style (column-major) ordering. Due to this fundamental
@@ -531,12 +533,12 @@ class UDBase:
         filename : Path
             Path to NetCDF file
         var : str, optional
-            Variable to extract
+            Variable to extract. If None, displays available variables.
         
         Returns
         -------
-        xarray.Dataset or xarray.DataArray
-            Data with dimensions reversed to match MATLAB conventions
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), numpy array if var is specified.
         """
         if not filename.exists():
             raise FileNotFoundError(f"File not found: {filename}")
@@ -564,7 +566,8 @@ class UDBase:
             if var not in ds_transposed:
                 raise KeyError(f"Variable '{var}' not found in {filename.name}")
             
-            return ds_transposed[var]
+            # Return as numpy array for consistency with MATLAB and memory efficiency
+            return ds_transposed[var].values
     
     def _display_ncinfo(self, ds: xr.Dataset, filename: str):
         """Display information about NetCDF dataset."""
@@ -580,70 +583,70 @@ class UDBase:
     
     # ===== Facet Data Loading Methods =====
     
-    def load_fac_momentum(self, var: Optional[str] = None) -> Union[xr.Dataset, xr.DataArray]:
+    def load_fac_momentum(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
         Load facet momentum data (pressure and shear stress).
         
         Parameters
         ----------
         var : str, optional
-            Variable name to load. If None, displays available variables.
+            Variable name to load. If None, displays available variables and returns full dataset.
         
         Returns
         -------
-        xarray.Dataset or xarray.DataArray
-            Complete dataset if var is None, otherwise the requested variable.
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
         
         Examples
         --------
         >>> sim.load_fac_momentum()  # Display available variables
-        >>> pressure = sim.load_fac_momentum('pf')
+        >>> pressure = sim.load_fac_momentum('pres')  # Returns numpy array
         """
         filename = self.path / f"fac.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
-    def load_fac_eb(self, var: Optional[str] = None) -> Union[xr.Dataset, xr.DataArray]:
+    def load_fac_eb(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
         Load facet surface energy balance data.
         
         Parameters
         ----------
         var : str, optional
-            Variable name to load. If None, displays available variables.
+            Variable name to load. If None, displays available variables and returns full dataset.
         
         Returns
         -------
-        xarray.Dataset or xarray.DataArray
-            Complete dataset if var is None, otherwise the requested variable.
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
         
         Examples
         --------
         >>> sim.load_fac_eb()  # Display available variables
-        >>> H = sim.load_fac_eb('hf')  # Sensible heat flux
-        >>> K = sim.load_fac_eb('netsw')  # Net shortwave
+        >>> H = sim.load_fac_eb('hf')  # Sensible heat flux - Returns numpy array
+        >>> K = sim.load_fac_eb('netsw')  # Net shortwave - Returns numpy array
         """
         filename = self.path / f"facEB.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
-    def load_fac_temperature(self, var: Optional[str] = None) -> Union[xr.Dataset, xr.DataArray]:
+    def load_fac_temperature(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
         Load facet temperature data.
         
         Parameters
         ----------
         var : str, optional
-            Variable name to load. If None, displays available variables.
+            Variable name to load. If None, displays available variables and returns full dataset.
         
         Returns
         -------
-        xarray.Dataset or xarray.DataArray
-            Complete dataset if var is None, otherwise the requested variable.
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
         
         Examples
         --------
         >>> sim.load_fac_temperature()  # Display available variables
-        >>> T = sim.load_fac_temperature('T')  # Temperature in layers
-        >>> dTdz = sim.load_fac_temperature('dTdz')  # Temperature gradient
+        >>> T = sim.load_fac_temperature('T')  # Temperature in layers - Returns numpy array
+        >>> dTdz = sim.load_fac_temperature('dTdz')  # Temperature gradient - Returns numpy array
         """
         filename = self.path / f"facT.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
@@ -858,147 +861,6 @@ class UDBase:
             'G': self.area_average_fac(seb['G']),
             't': seb['t']
         }
-    
-    def convert_facvar_to_field(self, var: np.ndarray, facsec, 
-                                building_ids: Optional[List[int]] = None) -> np.ndarray:
-        """
-        Convert a facet variable to a 3D field by averaging over facets in each cell.
-        
-        This method transfers a variable from the facet representation to the 3D grid
-        by taking the area-weighted average of all facets within each grid cell.
-        
-        Parameters
-        ----------
-        var : ndarray
-            Facet variable values (length n_facets)
-        facsec : object
-            Facet section structure (e.g., self.facsec.c)
-        building_ids : list of int, optional
-            List of building IDs to include. If None, all buildings are included.
-        
-        Returns
-        -------
-        ndarray
-            3D field (itot x jtot x ktot)
-        
-        Examples
-        --------
-        >>> # Convert temperature to 3D field
-        >>> facT = sim.load_fac_temperature()
-        >>> T_field = sim.convert_facvar_to_field(facT['T'].data[-1, 0, :], sim.facsec.c)
-        >>> 
-        >>> # Convert only buildings 1 and 2
-        >>> T_field = sim.convert_facvar_to_field(facT['T'].data[-1, 0, :], sim.facsec.c, [1, 2])
-        """
-        # Use convert_facflx_to_field to compute normalization
-        norm = self.convert_facflx_to_field(
-            np.ones_like(var), facsec, self.dzt, building_ids
-        )
-        norm[norm == 0] = 1  # Avoid division by zero
-        
-        # Compute field
-        fld = self.convert_facflx_to_field(var, facsec, self.dzt, building_ids)
-        return fld / norm
-    
-    def convert_facflx_to_field(self, var: np.ndarray, facsec, dz: np.ndarray,
-                                building_ids: Optional[List[int]] = None) -> np.ndarray:
-        """
-        Convert a facet flux variable to a 3D density field.
-        
-        This method is useful for assessing plane-average distributed stresses and
-        multi-scale analysis. The flux is distributed as a density (per unit volume)
-        in the 3D grid.
-        
-        Parameters
-        ----------
-        var : ndarray
-            Facet flux values (length n_facets)
-        facsec : object
-            Facet section structure (e.g., self.facsec.c)
-        dz : ndarray
-            Vertical grid spacing at cell centers (self.dzt)
-        building_ids : list of int, optional
-            List of building IDs to include. If None, all buildings are included.
-        
-        Returns
-        -------
-        ndarray
-            3D density field (itot x jtot x ktot)
-        
-        Notes
-        -----
-        The density is computed as:
-        rho = sum(var[facid] * area[facid]) / (dx * dy * dz[k])
-        
-        References
-        ----------
-        - Suetzl BS, Rooney GG, van Reeuwijk M (2020). Drag Distribution in 
-          Idealized Heterogeneous Urban Environments. Bound-Lay. Met. 178, 225-248.
-        - van Reeuwijk M, Huang J (2025) Multi-scale Analysis of Flow over 
-          Heterogeneous Urban Environments, Bound-Lay. Met. 191, 47.
-        
-        Examples
-        --------
-        >>> # Convert heat flux to 3D density field
-        >>> seb = sim.load_seb()
-        >>> H_avg = sim.time_average(seb['H'], seb['t'], tstart=3600)
-        >>> rho_H = sim.convert_facflx_to_field(H_avg, sim.facsec.c, sim.dzt)
-        >>> 
-        >>> # Compute horizontally-averaged heat flux density
-        >>> fH = np.mean(rho_H, axis=(0, 1))
-        >>> 
-        >>> # Convert only specific buildings
-        >>> rho_H = sim.convert_facflx_to_field(H_avg, sim.facsec.c, sim.dzt, [1, 2])
-        """
-        # Check if facet sections are loaded
-        if not hasattr(self, 'facsec') or self.facsec is None:
-            raise RuntimeError(
-                "Facet sections not loaded. Call load_facet_sections() first."
-            )
-        
-        # Initialize output field
-        fld = np.zeros((self.itot, self.jtot, self.ktot), dtype=np.float32)
-        
-        # Get face mask if building IDs specified
-        face_mask = None
-        if building_ids is not None:
-            if not hasattr(self.geom, 'buildings') or self.geom.buildings is None:
-                raise RuntimeError(
-                    "Buildings not extracted. Ensure geometry has been processed with building extraction."
-                )
-            
-            # Validate building IDs
-            building_ids = np.array(building_ids, dtype=int)
-            if np.any(building_ids <= 0):
-                raise ValueError("Building IDs must be positive integers")
-            
-            # Create face mask for specified buildings
-            num_buildings = len(self.geom.buildings)
-            valid_ids = building_ids[building_ids <= num_buildings]
-            
-            face_mask = np.zeros(len(self.geom.stl.vectors), dtype=bool)
-            for building_id in valid_ids:
-                if building_id <= num_buildings:
-                    building = self.geom.buildings[building_id - 1]  # 0-indexed
-                    if building is not None and 'original_face_indices' in building:
-                        face_mask[building['original_face_indices']] = True
-        
-        # Loop over all facet sections and create density field
-        for m in range(len(facsec.area)):
-            facid = facsec.facid[m]
-            
-            # Skip if building filtering is active and face not in mask
-            if face_mask is not None and not face_mask[facid]:
-                continue
-            
-            # Get grid location (convert from 1-based to 0-based indexing)
-            i, j, k = facsec.locs[m] - 1
-            
-            # Add contribution to density field
-            fld[i, j, k] += (var[facid] * facsec.area[m] / 
-                            (self.dx * self.dy * dz[k]))
-        
-        return fld
     
     @staticmethod
     def time_average(var: np.ndarray, time: np.ndarray, 
@@ -1305,13 +1167,9 @@ class UDBase:
         plt.tight_layout()
         plt.show()
     
-    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, 
-                 show_outlines: bool = True, angle_threshold: float = 45.0):
+    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
         """
-        Plot facet data using trimesh for better 3D rendering with proper depth sorting.
-        
-        This method uses trimesh's visualization instead of matplotlib, which provides
-        better handling of 3D depth and occlusion for outline rendering.
+        Plot facet data as a 3D surface.
         
         Parameters
         ----------
@@ -1319,75 +1177,146 @@ class UDBase:
             Facet variable to plot (one value per facet)
         building_ids : array-like, optional
             Building IDs to plot. If None, plots all buildings.
-        show_outlines : bool, default=True
-            Whether to show building outline edges
-        angle_threshold : float, default=45.0
-            Angle threshold in degrees for outline edge detection
             
-        Raises
-        ------
-        ValueError
-            If geometry is not loaded or if var has wrong dimensions
-        ImportError
-            If trimesh is not installed
+        Returns
+        -------
+        fig : plotly.graph_objects.Figure or None
+            Plotly figure object (if in notebook), None otherwise.
+            Can be used to further customize the plot.
             
         Examples
         --------
-        >>> pres_slice = fac_mom['pres'].isel(time=-1).data
-        >>> sim.plot_fac(pres_slice)
+        >>> # Plot net shortwave radiation for all buildings
+        >>> fig = sim.plot_fac(K)
+        >>> 
+        >>> # Customize the returned figure
+        >>> fig = sim.plot_fac(K)
+        >>> fig.update_layout(title='Custom Title')
+        >>> fig.show()
+        >>> 
+        >>> # Plot only for specific buildings
+        >>> sim.plot_fac(K, building_ids=[1, 5, 10])
         """
+        # Function only works when required data has been loaded
         if self.geom is None:
             raise ValueError("This method requires a geometry (STL) file.")
-        
-        try:
-            import trimesh
-        except ImportError:
-            raise ImportError("trimesh is required for this visualization. "
-                            "Install with: pip install trimesh")
         
         # Validate input
         if len(var) != self.geom.n_faces:
             raise ValueError(f"Variable length ({len(var)}) must match number of facets ({self.geom.n_faces})")
         
+        # Create colored mesh and render
+        mesh = self._create_colored_mesh(var, building_ids)
+        fig = self._render_scene(mesh, building_ids=building_ids)
+        
+        # Add building outlines
+        self._add_building_outlines_to_scene(building_ids)
+        
+        return fig
+    
+    def _create_colored_mesh(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
+        """Create a colored trimesh object from facet data, optionally filtered by building IDs."""
+        try:
+            import trimesh
+        except ImportError:
+            raise ImportError("trimesh is required. Install with: pip install trimesh")
+        
+        import matplotlib.pyplot as plt
+        import matplotlib.cm as cm
+        
         # Get geometry data
         vertices = self.geom.stl.vertices
         faces = self.geom.stl.faces
         
-        # Create trimesh object
-        mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+        # Filter faces by building IDs if specified
+        face_mask = None
+        if building_ids is not None:
+            # Get face to building mapping
+            face_to_building = self.geom.get_face_to_building_map()
+            building_ids = np.asarray(building_ids)
+            
+            # Create face mask for requested building IDs
+            face_mask = np.isin(face_to_building, building_ids)
+            
+            # Apply face mask to select only specified buildings
+            if np.any(face_mask):
+                selected_faces = faces[face_mask]
+                selected_var = var[face_mask]
+            else:
+                # No valid faces found - show warning and use all
+                print('Warning: No valid faces found for the specified building IDs')
+                selected_faces = faces
+                selected_var = var
+                face_mask = None
+        else:
+            selected_faces = faces
+            selected_var = var
+        
+        # Create trimesh object with selected faces
+        # Keep all original vertices but only include selected faces
+        mesh = trimesh.Trimesh(vertices=vertices, faces=selected_faces, process=False)
         
         # Map variable values to face colors using colormap
-        import matplotlib.pyplot as plt
-        import matplotlib.cm as cm
-        
-        valid_mask = ~np.isnan(var)
+        valid_mask = ~np.isnan(selected_var)
         if np.any(valid_mask):
-            vmin = np.nanmin(var[valid_mask])
-            vmax = np.nanmax(var[valid_mask])
+            vmin = np.nanmin(selected_var[valid_mask])
+            vmax = np.nanmax(selected_var[valid_mask])
             norm = plt.Normalize(vmin=vmin, vmax=vmax)
             cmap = cm.get_cmap('viridis')
             
             # Create face colors (RGBA)
-            face_colors = np.ones((len(faces), 4))  # Default white
-            face_colors[valid_mask] = cmap(norm(var[valid_mask]))
+            face_colors = np.ones((len(selected_faces), 4))  # Default white
+            face_colors[valid_mask] = cmap(norm(selected_var[valid_mask]))
             mesh.visual.face_colors = face_colors
+        
+        return mesh
+    
+    def _render_scene(self, mesh, show_outlines: bool = True, angle_threshold: float = 45.0, building_ids: Optional[np.ndarray] = None):
+        """Render the mesh scene using trimesh/plotly. Returns figure handle if available."""
+        try:
+            import trimesh
+        except ImportError:
+            raise ImportError("trimesh is required. Install with: pip install trimesh")
         
         # Create scene
         scene = trimesh.Scene(mesh)
         
-        # Add outline edges if requested
+        # Add outline edges using udgeom's outline calculation
+        outline_edges = []
         if show_outlines:
             outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
+            
+            # Filter outline edges by building IDs if specified
+            if building_ids is not None and len(outline_edges) > 0:
+                face_to_building = self.geom.get_face_to_building_map()
+                building_ids = np.asarray(building_ids)
+                
+                # Filter edges: keep only edges where both vertices belong to faces in selected buildings
+                filtered_edges = []
+                vertices = self.geom.stl.vertices
+                faces = self.geom.stl.faces
+                
+                for edge in outline_edges:
+                    # Find faces that use these vertices
+                    v0, v1 = edge
+                    # Check if any selected building's faces use this edge
+                    faces_with_edge = np.where(
+                        ((faces[:, 0] == v0) | (faces[:, 1] == v0) | (faces[:, 2] == v0)) &
+                        ((faces[:, 0] == v1) | (faces[:, 1] == v1) | (faces[:, 2] == v1))
+                    )[0]
+                    
+                    # Keep edge if any of these faces belong to selected buildings
+                    if len(faces_with_edge) > 0:
+                        if np.any(np.isin(face_to_building[faces_with_edge], building_ids)):
+                            filtered_edges.append(edge)
+                
+                outline_edges = filtered_edges
+            
             if len(outline_edges) > 0:
-                # Create Path3D for outlines (including ground facet edges)
+                vertices = self.geom.stl.vertices
                 entities = [trimesh.path.entities.Line([edge[0], edge[1]]) for edge in outline_edges]
-                # Colors should be per-entity (RGBA format)
-                entity_colors = np.tile([0, 0, 0, 255], (len(entities), 1))  # Black for all edges
-                path = trimesh.path.Path3D(
-                    entities=entities,
-                    vertices=vertices,
-                    colors=entity_colors
-                )
+                entity_colors = np.tile([0, 0, 0, 255], (len(entities), 1))
+                path = trimesh.path.Path3D(entities=entities, vertices=vertices, colors=entity_colors)
                 scene.add_geometry(path)
         
         # Check if running in Jupyter notebook
@@ -1398,97 +1327,129 @@ class UDBase:
             in_notebook = False
         
         if in_notebook:
-            # Use plotly for interactive notebook display
-            print(f"Rendering {len(mesh.faces)} faces for notebook display...")
-            if show_outlines and len(outline_edges) > 0:
-                print(f"Added {len(outline_edges)} outline edges")
-            
-            try:
-                import plotly.graph_objects as go
-                import plotly.io as pio
-                
-                # Configure plotly for notebook display
-                pio.renderers.default = 'notebook'
-                
-                # Convert mesh to plotly
-                vertices = mesh.vertices
-                faces = mesh.faces
-                colors = mesh.visual.face_colors
-                
-                # Create mesh3d trace
-                fig = go.Figure(data=[
-                    go.Mesh3d(
-                        x=vertices[:, 0],
-                        y=vertices[:, 1],
-                        z=vertices[:, 2],
-                        i=faces[:, 0],
-                        j=faces[:, 1],
-                        k=faces[:, 2],
-                        facecolor=[f'rgb({c[0]},{c[1]},{c[2]})' for c in colors[:, :3]],
-                        opacity=1.0,
-                        flatshading=True
-                    )
-                ])
-                
-                # Add outline edges if requested (including ground facet edges)
-                if show_outlines and len(outline_edges) > 0:
-                    edge_x = []
-                    edge_y = []
-                    edge_z = []
-                    z_offset = 0.1  # Offset to prevent z-fighting with ground plane
-                    for edge in outline_edges:
-                        p0 = vertices[edge[0]]
-                        p1 = vertices[edge[1]]
-                        # Add z-offset for edges at ground level to make them visible
-                        z0 = p0[2] + z_offset if abs(p0[2]) < 0.01 else p0[2]
-                        z1 = p1[2] + z_offset if abs(p1[2]) < 0.01 else p1[2]
-                        edge_x.extend([p0[0], p1[0], None])
-                        edge_y.extend([p0[1], p1[1], None])
-                        edge_z.extend([z0, z1, None])
-                    
-                    fig.add_trace(go.Scatter3d(
-                        x=edge_x, y=edge_y, z=edge_z,
-                        mode='lines',
-                        line=dict(color='black', width=2),
-                        name='Outlines',
-                        showlegend=False,
-                        hoverinfo='skip'
-                    ))
-                
-                fig.update_layout(
-                    scene=dict(
-                        aspectmode='data',
-                        xaxis_title='X (m)',
-                        yaxis_title='Y (m)',
-                        zaxis_title='Z (m)',
-                        camera=dict(
-                            eye=dict(x=1.25, y=1.25, z=0.75),
-                            projection=dict(type='orthographic')
-                        )
-                    ),
-                    showlegend=False
-                )
-                
-                fig.show()
-                
-            except ImportError:
-                print("Plotly not available. Falling back to static rendering.")
-                print("Install plotly for interactive 3D: pip install plotly")
-                # Fall back to showing in external window
-                try:
-                    scene.show()
-                except:
-                    print("Could not display. Try installing: pip install plotly or pyglet")
+            return self._render_plotly(mesh, outline_edges)
         else:
-            # Show in external window
-            print(f"Opening trimesh viewer with {len(mesh.faces)} faces...")
-            if show_outlines and len(outline_edges) > 0:
-                print(f"Added {len(outline_edges)} outline edges")
-            try:
-                scene.show()
-            except Exception as e:
-                print(f"Could not open trimesh viewer: {e}")
-                print("You may need to install pyglet or pyrender: pip install pyglet")
+            self._render_trimesh(scene, len(outline_edges))
+            return None
+    
+    def _render_plotly(self, mesh, outline_edges):
+        """Render using plotly for notebook display. Returns the figure object."""
+        try:
+            import plotly.graph_objects as go
+            import plotly.io as pio
+            
+            pio.renderers.default = 'notebook'
+            
+            vertices = mesh.vertices
+            faces = mesh.faces
+            colors = mesh.visual.face_colors
+            
+            # Create mesh3d trace
+            fig = go.Figure(data=[
+                go.Mesh3d(
+                    x=vertices[:, 0], y=vertices[:, 1], z=vertices[:, 2],
+                    i=faces[:, 0], j=faces[:, 1], k=faces[:, 2],
+                    facecolor=[f'rgb({c[0]},{c[1]},{c[2]})' for c in colors[:, :3]],
+                    opacity=1.0, flatshading=True
+                )
+            ])
+            
+            # Add outline edges
+            if len(outline_edges) > 0:
+                edge_x, edge_y, edge_z = [], [], []
+                z_offset = 0.1
+                for edge in outline_edges:
+                    p0 = vertices[edge[0]]
+                    p1 = vertices[edge[1]]
+                    z0 = p0[2] + z_offset if abs(p0[2]) < 0.01 else p0[2]
+                    z1 = p1[2] + z_offset if abs(p1[2]) < 0.01 else p1[2]
+                    edge_x.extend([p0[0], p1[0], None])
+                    edge_y.extend([p0[1], p1[1], None])
+                    edge_z.extend([z0, z1, None])
+                
+                fig.add_trace(go.Scatter3d(
+                    x=edge_x, y=edge_y, z=edge_z,
+                    mode='lines', line=dict(color='black', width=2),
+                    showlegend=False, hoverinfo='skip'
+                ))
+            
+            fig.update_layout(
+                scene=dict(
+                    aspectmode='data',
+                    xaxis_title='x (m)', yaxis_title='y (m)', zaxis_title='z (m)',
+                    xaxis=dict(showgrid=False, showbackground=False),
+                    yaxis=dict(showgrid=False, showbackground=False),
+                    zaxis=dict(showgrid=False, showbackground=False),
+                    camera=dict(
+                        projection=dict(type='orthographic'),
+                        eye=dict(x=-1.25, y=-1.25, z=1.25)
+                    )
+                ),
+                showlegend=False
+            )
+            
+            fig.show()
+            return fig
+            
+        except ImportError:
+            print("Plotly not available. Install with: pip install plotly")
+            return None
+    
+    def _render_trimesh(self, scene, num_outline_edges):
+        """Render using trimesh viewer."""
+        try:
+            scene.show()
+        except Exception as e:
+            print(f"Could not open trimesh viewer: {e}")
+            print("Install pyglet or pyrender: pip install pyglet")
+    
+    def _add_building_outlines_to_scene(self, building_ids=None):
+        """Add building outlines to the current scene (placeholder for future implementation)."""
+        # This method matches MATLAB's add_building_outlines() call structure
+        # Currently handled within _render_scene via udgeom's _calculate_outline_edges
+        pass
+    
+    def _add_building_outlines(self, ax, building_ids=None, angle_threshold: float = 45.0):
+        """
+        Helper method to add building outline edges to current 3D matplotlib plot.
+        
+        Used by matplotlib-based plotting methods like plot_fac_type.
+        
+        Parameters
+        ----------
+        ax : matplotlib Axes3D
+            The 3D axes to add outlines to
+        building_ids : list of int, optional
+            Building IDs to outline. If None or empty, outline all buildings.
+        angle_threshold : float, default=45.0
+            Angle threshold in degrees for edge detection
+        """
+        if self.geom is None or not hasattr(self.geom, 'stl') or self.geom.stl is None:
+            return
+        
+        # Use the geometry's built-in outline edge calculation method
+        outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
+        
+        if len(outline_edges) == 0:
+            return
+        
+        # Get vertices
+        vertices = self.geom.stl.vertices
+        
+        # Plot outline edges (including ground facet edges)
+        z_offset = 0.1  # Offset to prevent z-fighting with ground plane
+        for edge in outline_edges:
+            p0 = vertices[edge[0]]
+            p1 = vertices[edge[1]]
+            
+            # Add z-offset for edges at ground level to make them visible
+            z0 = p0[2] + z_offset if abs(p0[2]) < 0.01 else p0[2]
+            z1 = p1[2] + z_offset if abs(p1[2]) < 0.01 else p1[2]
+            
+            ax.plot([p0[0], p1[0]], 
+                   [p0[1], p1[1]], 
+                   [z0, z1], 
+                   'k-', linewidth=2, alpha=1.0, zorder=10)
     
     def plot_fac_type(self, building_ids: Optional[np.ndarray] = None, 
                       show_outlines: bool = True, angle_threshold: float = 45.0):
@@ -1504,6 +1465,12 @@ class UDBase:
         angle_threshold : float, default=45.0
             Angle threshold in degrees for outline edge detection
             
+        Returns
+        -------
+        fig : plotly.graph_objects.Figure or None
+            Plotly figure object (if in notebook), None otherwise.
+            Can be used to further customize the plot.
+            
         Raises
         ------
         ValueError
@@ -1514,7 +1481,12 @@ class UDBase:
         Examples
         --------
         >>> sim = UDBase(101, 'experiments/101')
-        >>> sim.plot_fac_type()
+        >>> fig = sim.plot_fac_type()
+        >>> 
+        >>> # Customize the returned figure
+        >>> fig = sim.plot_fac_type()
+        >>> fig.update_layout(title='My Custom Title')
+        >>> fig.show()
         """
         # Check required data
         if self.geom is None:
@@ -1666,9 +1638,12 @@ class UDBase:
                         xaxis_title='X (m)',
                         yaxis_title='Y (m)',
                         zaxis_title='Z (m)',
+                        xaxis=dict(showgrid=False, showbackground=False),
+                        yaxis=dict(showgrid=False, showbackground=False),
+                        zaxis=dict(showgrid=False, showbackground=False),
                         camera=dict(
-                            eye=dict(x=1.25, y=1.25, z=0.75),
-                            projection=dict(type='orthographic')
+                            projection=dict(type='orthographic'),
+                            eye=dict(x=-1.25, y=-1.25, z=1.25)
                         )
                     ),
                     title='Surface Types',
@@ -1676,6 +1651,7 @@ class UDBase:
                 )
                 
                 fig.show()
+                return fig
                 
             except ImportError:
                 print("Plotly not available. Falling back to static rendering.")
@@ -1882,20 +1858,12 @@ class UDBase:
         # If building IDs specified, get face mask for filtering
         face_mask = None
         if building_ids is not None:
-            buildings = self.geom.get_buildings()
-            num_buildings = len(buildings)
+            # Get face to building mapping
+            face_to_building = self.geom.get_face_to_building_map()
             building_ids = np.asarray(building_ids)
-            building_ids = building_ids[building_ids <= num_buildings]
             
-            # Create face mask
-            n_faces = self.geom.n_faces
-            face_mask = np.zeros(n_faces, dtype=bool)
-            
-            for building_id in building_ids:
-                if building_id > 0 and building_id <= num_buildings:
-                    building_data = buildings[building_id - 1]  # 0-indexed in Python
-                    if isinstance(building_data, dict) and 'original_face_indices' in building_data:
-                        face_mask[building_data['original_face_indices']] = True
+            # Create face mask for requested building IDs
+            face_mask = np.isin(face_to_building, building_ids)
         
         # Loop over all facet sections and create density field
         for m in range(len(facids)):
