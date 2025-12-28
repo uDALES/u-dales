@@ -149,7 +149,7 @@ contains
     integer n
 
 #if defined(_GPU)
-    call closure_cuda<<<griddim,blockdim>>>
+    call closure_cuda<<<griddim,blockdim>>>(Rigc)
     call checkCUDA( cudaGetLastError(), 'closure_cuda in modsubgrid' )
 #else
     call closure
@@ -228,7 +228,7 @@ contains
 
 
 #if defined(_GPU)
-  attributes(global) subroutine closure_cuda
+  attributes(global) subroutine closure_cuda(Rigc)
      use modcuda, only: ie_d, je_d, ke_d, ih_d, jh_d, kh_d, dx2_d, dxi_d, dxiq_d, dy2_d, dyi_d, dyiq_d, &
                         dzh_d, dzf_d, dzf2_d, dzfi_d, dzfiq_d, dzhi_d, delta_d, &
                         lsmagorinsky_d, lvreman_d, loneeqn_d, ldelta_d, lbuoyancy_d, lbuoycorr_d, ltempeq_d, &
@@ -237,9 +237,10 @@ contains
                         csz_d, damp_d, dampmin_d, zlt_d, dthvdz_d, cm_d, cn_d, ch1_d, ch2_d, c_vreman_d, &
                         tidandstride
      implicit none
+     real, value, intent(in) :: Rigc
      integer :: i, j, k, im, ip, jm, jp, km, kp
      integer :: tidx, tidy, tidz, stridex, stridey, stridez
-     real    :: strain2, mlen, const, const2, a11, a12, a13, a21, a22, a23, a31, a32, a33, aa, b11, b12, b13, b22, b23, b33, bb
+     real    :: strain2, mlen, a11, a12, a13, a21, a22, a23, a31, a32, a33, aa, b11, b12, b13, b22, b23, b33, bb, du0dz, dv0dz, Rig
 
      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
@@ -293,131 +294,73 @@ contains
 
      elseif(lvreman_d) then
 
-        if ((lbuoyancy_d) .and. (lbuoycorr_d) .and. ltempeq_d) then
-           const = prandtli_d*grav_d/(thvs_d*sqrt(2.*3.))
-           do k = tidz, ke_d, stridez
-              kp = k + 1
-              km = k - 1
-              do j = tidy, je_d, stridey
-                 jp = j + 1
-                 jm = j - 1
-                 do i = tidx, ie_d, stridex
-                    ip = i + 1
-                    im = i - 1
+        do k = tidz, ke_d, stridez
+           kp = k + 1
+           km = k - 1
+           do j = tidy, je_d, stridey
+              jp = j + 1
+              jm = j - 1
+              do i = tidx, ie_d, stridex
+                 ip = i + 1
+                 im = i - 1
 
-                    a11 = (u0_d(ip,j,k) - u0_d(i,j,k)) * dxi_d
+                 a11 = (u0_d(ip,j,k) - u0_d(i,j,k)) * dxi_d
 
-                    a12 = (v0_d(ip,jp,k) + v0_d(ip,j,k) - v0_d(im,jp,k) - v0_d(im,j,k) )*dxiq_d
+                 a12 = (v0_d(ip,jp,k) + v0_d(ip,j,k) - v0_d(im,jp,k) - v0_d(im,j,k) )*dxiq_d
 
-                    a13 = (w0_d(ip,j,kp) + w0_d(ip,j,k) - w0_d(im,j,kp) - w0_d(im,j,k) )*dxiq_d
+                 a13 = (w0_d(ip,j,kp) + w0_d(ip,j,k) - w0_d(im,j,kp) - w0_d(im,j,k) )*dxiq_d
 
-                    a21 = (u0_d(ip,jp,k) + u0_d(i,jp,k) - u0_d(ip,jm,k) - u0_d(i,jm,k) )*dyiq_d
+                 a21 = (u0_d(ip,jp,k) + u0_d(i,jp,k) - u0_d(ip,jm,k) - u0_d(i,jm,k) )*dyiq_d
 
-                    a22 = (v0_d(i,jp,k) - v0_d(i,j,k)) * dyi_d
+                 a22 = (v0_d(i,jp,k) - v0_d(i,j,k)) * dyi_d
 
-                    a23 = (w0_d(i,jp,kp) + w0_d(i,jp,k) - w0_d(i,jm,kp) - w0_d(i,jm,k) )*dyiq_d
+                 a23 = (w0_d(i,jp,kp) + w0_d(i,jp,k) - w0_d(i,jm,kp) - w0_d(i,jm,k) )*dyiq_d
 
-                    a31 = ( &
-                          ((u0_d(ip,j,kp) + u0_d(i,j,kp))*dzf_d(k) + (u0_d(ip,j,k)  + u0_d(i,j,k)) *dzf_d(kp)) * dzhi_d(kp) &
-                        - ((u0_d(ip,j,k)  + u0_d(i,j,k)) *dzf_d(km) + (u0_d(ip,j,km) + u0_d(i,j,km))*dzf_d(k)) * dzhi_d(k)  &
-                          ) &
-                        * dzfiq_d(k)
+                 a31 = ( &
+                       ((u0_d(ip,j,kp) + u0_d(i,j,kp))*dzf_d(k) + (u0_d(ip,j,k)  + u0_d(i,j,k)) *dzf_d(kp)) * dzhi_d(kp) &
+                     - ((u0_d(ip,j,k)  + u0_d(i,j,k)) *dzf_d(km) + (u0_d(ip,j,km) + u0_d(i,j,km))*dzf_d(k)) * dzhi_d(k)  &
+                       ) &
+                     * dzfiq_d(k)
 
-                    a32 = ( &
-                          ((v0_d(i,jp,kp) + v0_d(i,j,kp))*dzf_d(k) + (v0_d(i,jp,k)  + v0_d(i,j,k)) *dzf_d(kp)) * dzhi_d(kp) &
-                        - ((v0_d(i,jp,k)  + v0_d(i,j,k)) *dzf_d(km) + (v0_d(i,jp,km) + v0_d(i,j,km))*dzf_d(k)) * dzhi_d(k)  &
-                          ) &
-                        * dzfiq_d(k)
+                 a32 = ( &
+                       ((v0_d(i,jp,kp) + v0_d(i,j,kp))*dzf_d(k) + (v0_d(i,jp,k)  + v0_d(i,j,k)) *dzf_d(kp)) * dzhi_d(kp) &
+                     - ((v0_d(i,jp,k)  + v0_d(i,j,k)) *dzf_d(km) + (v0_d(i,jp,km) + v0_d(i,j,km))*dzf_d(k)) * dzhi_d(k)  &
+                       ) &
+                     * dzfiq_d(k)
 
-                    a33 = (w0_d(i,j,kp) - w0_d(i,j,k)) * dzfi_d(k)
+                 a33 = (w0_d(i,j,kp) - w0_d(i,j,k)) * dzfi_d(k)
 
-                    aa  = a11*a11 + a21*a21 + a31*a31 + &
-                          a12*a12 + a22*a22 + a32*a32 + &
-                          a13*a13 + a23*a23 + a33*a33
+                 aa  = a11*a11 + a21*a21 + a31*a31 + &
+                       a12*a12 + a22*a22 + a32*a32 + &
+                       a13*a13 + a23*a23 + a33*a33
 
-                    b11 = dx2_d*a11*a11 + dy2_d*a21*a21 + dzf2_d(k)*a31*a31
-                    b22 = dx2_d*a12*a12 + dy2_d*a22*a22 + dzf2_d(k)*a32*a32
-                    b12 = dx2_d*a11*a12 + dy2_d*a21*a22 + dzf2_d(k)*a31*a32
-                    b33 = dx2_d*a13*a13 + dy2_d*a23*a23 + dzf2_d(k)*a33*a33
-                    b13 = dx2_d*a11*a13 + dy2_d*a21*a23 + dzf2_d(k)*a31*a33
-                    b23 = dx2_d*a12*a13 + dy2_d*a22*a23 + dzf2_d(k)*a32*a33
-                    bb  = b11*b22 - b12*b12 + b11*b33 - b13*b13 + b22*b33 - b23*b23
+                 b11 = dx2_d*a11*a11 + dy2_d*a21*a21 + dzf2_d(k)*a31*a31
+                 b22 = dx2_d*a12*a12 + dy2_d*a22*a22 + dzf2_d(k)*a32*a32
+                 b12 = dx2_d*a11*a12 + dy2_d*a21*a22 + dzf2_d(k)*a31*a32
+                 b33 = dx2_d*a13*a13 + dy2_d*a23*a23 + dzf2_d(k)*a33*a33
+                 b13 = dx2_d*a11*a13 + dy2_d*a21*a23 + dzf2_d(k)*a31*a33
+                 b23 = dx2_d*a12*a13 + dy2_d*a22*a23 + dzf2_d(k)*a32*a33
+                 bb  = b11*b22 - b12*b12 + b11*b33 - b13*b13 + b22*b33 - b23*b23
 
-                    dthvdz_d(i,j,k) = (thl0_d(i,j,kp)-thl0_d(i,j,km))/(dzh_d(kp)+dzh_d(k))
-
-                    if (dthvdz_d(i,j,k) <= 0) then
-                       const2=(bb/aa)
-                    else
-                       const2=(bb/aa)-(delta_d(i,k)**4)*dthvdz_d(i,j,k)*const
-                       if (const2 <0.0) const2 = 0.0
-                    end if
-
-                    ekm_d(i,j,k)=c_vreman_d*sqrt(const2)
-                    ekh_d(i,j,k)=ekm_d(i,j,k)*prandtli_d
-
-                    ! ekm_d(i,j,k) = ekm_d(i,j,k) + numol_d
-                    ! ekh_d(i,j,k) = ekh_d(i,j,k) + numol_d*prandtlmoli_d
-
-                 end do
+                 ekm_d(i,j,k) = c_vreman_d*sqrt( max( (bb/aa), 0.0 ) )
               end do
            end do
-        else
+        end do
+
+        if ((lbuoyancy_d) .and. (lbuoycorr_d) .and. ltempeq_d) then
            do k = tidz, ke_d, stridez
               kp = k + 1
               km = k - 1
               do j = tidy, je_d, stridey
                  jp = j + 1
-                 jm = j - 1
                  do i = tidx, ie_d, stridex
                     ip = i + 1
-                    im = i - 1
 
-                    a11 = (u0_d(ip,j,k) - u0_d(i,j,k)) * dxi_d
+                    du0dz = 0.5*( (u0_d(i,j,kp)+u0_d(ip,j,kp)) - (u0_d(i,j,km)+u0_d(ip,j,km)) )/(dzh_d(kp)+dzh_d(k))
+                    dv0dz = 0.5*( (v0_d(i,j,kp)+v0_d(i,jp,kp)) - (v0_d(i,j,km)+v0_d(i,jp,km)) )/(dzh_d(kp)+dzh_d(k))
+                    Rig = ( (grav_d/thl0_d(i,j,k)) * dthvdz_d(i,j,k) ) / (du0dz**2 + dv0dz**2 + 1.e-10)
 
-                    a12 = (v0_d(ip,jp,k) + v0_d(ip,j,k) - v0_d(im,jp,k) - v0_d(im,j,k) )*dxiq_d
-
-                    a13 = (w0_d(ip,j,kp) + w0_d(ip,j,k) - w0_d(im,j,kp) - w0_d(im,j,k) )*dxiq_d
-
-                    a21 = (u0_d(ip,jp,k) + u0_d(i,jp,k) - u0_d(ip,jm,k) - u0_d(i,jm,k) )*dyiq_d
-
-                    a22 = (v0_d(i,jp,k) - v0_d(i,j,k)) * dyi_d
-
-                    a23 = (w0_d(i,jp,kp) + w0_d(i,jp,k) - w0_d(i,jm,kp) - w0_d(i,jm,k) )*dyiq_d
-
-                    a31 = ( &
-                          ((u0_d(ip,j,kp) + u0_d(i,j,kp))*dzf_d(k) + (u0_d(ip,j,k)  + u0_d(i,j,k)) *dzf_d(kp)) * dzhi_d(kp) &
-                        - ((u0_d(ip,j,k)  + u0_d(i,j,k)) *dzf_d(km) + (u0_d(ip,j,km) + u0_d(i,j,km))*dzf_d(k)) * dzhi_d(k)  &
-                          ) &
-                        * dzfiq_d(k)
-
-                    a32 = ( &
-                          ((v0_d(i,jp,kp) + v0_d(i,j,kp))*dzf_d(k) + (v0_d(i,jp,k)  + v0_d(i,j,k)) *dzf_d(kp)) * dzhi_d(kp) &
-                        - ((v0_d(i,jp,k)  + v0_d(i,j,k)) *dzf_d(km) + (v0_d(i,jp,km) + v0_d(i,j,km))*dzf_d(k)) * dzhi_d(k)  &
-                          ) &
-                        * dzfiq_d(k)
-
-                    a33 = (w0_d(i,j,kp) - w0_d(i,j,k)) * dzfi_d(k)
-
-                    aa  = a11*a11 + a21*a21 + a31*a31 + &
-                          a12*a12 + a22*a22 + a32*a32 + &
-                          a13*a13 + a23*a23 + a33*a33
-
-                    b11 = dx2_d*a11*a11 + dy2_d*a21*a21 + dzf2_d(k)*a31*a31
-                    b22 = dx2_d*a12*a12 + dy2_d*a22*a22 + dzf2_d(k)*a32*a32
-                    b12 = dx2_d*a11*a12 + dy2_d*a21*a22 + dzf2_d(k)*a31*a32
-                    b33 = dx2_d*a13*a13 + dy2_d*a23*a23 + dzf2_d(k)*a33*a33
-                    b13 = dx2_d*a11*a13 + dy2_d*a21*a23 + dzf2_d(k)*a31*a33
-                    b23 = dx2_d*a12*a13 + dy2_d*a22*a23 + dzf2_d(k)*a32*a33
-                    bb  = b11*b22 - b12*b12 + b11*b33 - b13*b13 + b22*b33 - b23*b23
-                    
-                    if (bb < 0.00000001) then
-                       ekm_d(i,j,k) = 0.
-                       ekh_d(i,j,k) = 0.
-                    else
-                       ekm_d(i,j,k) = c_vreman_d*sqrt(bb / aa)
-                       ekh_d(i,j,k) = ekm_d(i,j,k)*prandtli_d
-                    end if
-                    
+                    ekm_d(i,j,k) = ekm_d(i,j,k) * sqrt( 1.0 - min(max(Rig,0.0),Rigc) / Rigc )
                  end do
               end do
            end do
@@ -426,6 +369,8 @@ contains
         do k = tidz, ke_d, stridez
            do j = tidy, je_d, stridey
               do i = tidx, ie_d, stridex
+                 ekh_d(i,j,k) = ekm_d(i,j,k)*prandtli_d
+
                  ekm_d(i,j,k) = ekm_d(i,j,k) + numol_d
                  ekh_d(i,j,k) = ekh_d(i,j,k) + numol_d*prandtlmoli_d
               end do
