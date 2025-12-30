@@ -200,14 +200,14 @@ program DALESURBAN      !Version 48
 
     call scalsource     ! adds continuous forces in specified region of domain
 
+#if defined(_GPU)
+    call updateDevicePriorPoiss
+#endif
+
 !------------------------------------------------------
 !   3.4   EXECUTE ADD ONS
 !------------------------------------------------------
     call fixuinf2
-
-#if defined(_GPU)
-    call updateDevicePriorPoiss
-#endif
 
     call fixuinf1
 

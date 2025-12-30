@@ -6,8 +6,7 @@ module modcuda
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
                              ltempeq, lmoist, nsv, lles, lbuoyancy, ltrees, &
-                             BCxm, BCxm_periodic, BCxm_profile, BCxm_driver, BCym, BCym_periodic, BCym_profile, &
-                             BCtopm, BCtopm_freeslip, BCtopm_pressure, BCtopm_noslip, &
+                             BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xh, &
                              eps1, numol, prandtlmoli, prandtlturb, grav, fkar2, &
@@ -32,9 +31,7 @@ module modcuda
 
    type(dim3) :: griddim, blockdim
 
-   integer, device :: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d, &
-                      BCxm_d, BCxm_periodic_d, BCym_d, BCym_periodic_d, &
-                      BCtopm_d, BCtopm_freeslip_d, BCtopm_pressure_d, BCtopm_noslip_d
+   integer, device :: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d
    
    logical, device :: ltempeq_d, lles_d, lsmagorinsky_d, lvreman_d, loneeqn_d, ldelta_d, lbuoyancy_d, lbuoycorr_d
 
@@ -146,15 +143,6 @@ module modcuda
 
          allocate(delta_d(ib-ih:itot+ih, kb:ke + kh))
          delta_d = delta
-
-         BCxm_d            = BCxm
-         BCxm_periodic_d   = BCxm_periodic
-         BCym_d            = BCym
-         BCym_periodic_d   = BCym_periodic
-         BCtopm_d          = BCtopm
-         BCtopm_freeslip_d = BCtopm_freeslip
-         BCtopm_pressure_d = BCtopm_pressure
-         BCtopm_noslip_d   = BCtopm_noslip
 
          allocate(u0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
          allocate(v0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))

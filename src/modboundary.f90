@@ -393,163 +393,21 @@ contains
 
    end subroutine boundary
 
-#if defined(_GPU)
-   attributes(global) subroutine closurebc_z_cuda
-      use modcuda,       only : ekm_d, ekh_d, ie_d, je_d, kb_d, ke_d, numol_d, prandtlmoli_d, &
-                                BCtopm_d, BCtopm_freeslip_d, BCtopm_pressure_d, BCtopm_noslip_d, &
-                                tidandstride
-      implicit none
-      integer :: i, j, tidx, tidy, tidz, stridex, stridey, stridez
-
-      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
-
-      ! Top and bottom
-      if ((BCtopm_d .eq. BCtopm_freeslip_d) .or. (BCtopm_d .eq. BCtopm_pressure_d)) then
-         if (tidz == stridez) then
-            do j = tidy - 1, je_d + 1, stridey
-               do i = tidx - 1, ie_d + 1, stridex
-                  ekm_d(i, j, ke_d + 1) = ekm_d(i, j, ke_d) ! zero-gradient top wall
-                  ekh_d(i, j, ke_d + 1) = ekh_d(i, j, ke_d) ! zero-gradient top wall
-               end do
-            end do
-         end if
-         if (tidz == kb_d) then
-            do j = tidy - 1, je_d + 1, stridey
-               do i = tidx - 1, ie_d + 1, stridex
-                  ekm_d(i, j, kb_d - 1) = 2.*numol_d - ekm_d(i, j, kb_d) ! no-slip lower wall
-                  ekh_d(i, j, kb_d - 1) = (2.*numol_d*prandtlmoli_d) - ekh_d(i, j, kb_d) ! no-slip lower wall
-               end do
-            end do
-         end if
-      else if (BCtopm_d .eq. BCtopm_noslip_d) then
-         if (tidz == stridez) then
-            do j = tidy - 1, je_d + 1, stridey
-               do i = tidx - 1, ie_d + 1, stridex
-                  ekm_d(i, j, ke_d + 1) = 2.*numol_d - ekm_d(i, j, ke_d) ! no-slip top wall
-                  ekh_d(i, j, ke_d + 1) = (2.*numol_d*prandtlmoli_d) - ekh_d(i, j, ke_d) ! no-slip top wall
-               end do
-            end do
-         end if
-         if (tidz == kb_d) then
-            do j = tidy - 1, je_d + 1, stridey
-               do i = tidx - 1, ie_d + 1, stridex
-                  ekm_d(i, j, kb_d - 1) = 2.*numol_d - ekm_d(i, j, kb_d) ! no-slip lower wall
-                  ekh_d(i, j, kb_d - 1) = (2.*numol_d*prandtlmoli_d) - ekh_d(i, j, kb_d) ! no-slip lower wall
-               end do
-            end do
-         end if
-      end if
-   end subroutine closurebc_z_cuda
-
-   attributes(global) subroutine closurebc_x_cuda
-      use modcuda,       only : ekm_d, ekh_d, ib_d, ie_d, je_d, ke_d, &
-                                BCxm_d, BCxm_periodic_d, &
-                                tidandstride
-      implicit none
-      integer :: j, k, tidx, tidy, tidz, stridex, stridey, stridez
-
-      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
-
-      if (BCxm_d .ne. BCxm_periodic_d) then ! inflow/outflow
-         if (tidx == ib_d) then
-            do k = tidz - 1, ke_d + 1, stridez
-               do j = tidy - 1, je_d + 1, stridey
-                  ekm_d(ib_d - 1, j, k) = ekm_d(ib_d, j, k)
-                  ekh_d(ib_d - 1, j, k) = ekh_d(ib_d, j, k)
-               end do
-            end do
-         end if
-         if (tidx == stridex) then
-            do k = tidz - 1, ke_d + 1, stridez
-               do j = tidy - 1, je_d + 1, stridey
-                  ekm_d(ie_d + 1, j, k) = ekm_d(ie_d, j, k)
-                  ekh_d(ie_d + 1, j, k) = ekh_d(ie_d, j, k)
-               end do
-            end do
-         end if
-      else ! periodic
-         if (tidx == ib_d) then
-            do k = tidz - 1, ke_d + 1, stridez
-               do j = tidy - 1, je_d + 1, stridey
-                  ekm_d(ie_d + 1, j, k) = ekm_d(ib_d, j, k)
-                  ekh_d(ie_d + 1, j, k) = ekh_d(ib_d, j, k)
-               end do
-            end do
-         end if
-         if (tidx == stridex) then
-            do k = tidz - 1, ke_d + 1, stridez
-               do j = tidy - 1, je_d + 1, stridey
-                  ekm_d(ib_d - 1, j, k) = ekm_d(ie_d, j, k)
-                  ekh_d(ib_d - 1, j, k) = ekh_d(ie_d, j, k)
-               end do
-            end do
-         end if
-      end if
-   end subroutine closurebc_x_cuda
-
-   attributes(global) subroutine closurebc_y_cuda
-      use modcuda,       only : ekm_d, ekh_d, ie_d, jb_d, je_d, ke_d, &
-                                BCym_d, BCym_periodic_d, &
-                                tidandstride
-      implicit none
-      integer :: i, k, tidx, tidy, tidz, stridex, stridey, stridez
-
-      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
-
-      if (BCym_d .ne. BCym_periodic_d) then ! inflow/outflow
-         if (tidy == jb_d) then
-            do k = tidz - 1, ke_d + 1, stridez
-               do i = tidx - 1, ie_d + 1, stridex
-                  ekm_d(i,jb_d-1,k) = ekm_d(i,jb_d,k)
-                  ekh_d(i,jb_d-1,k) = ekh_d(i,jb_d,k)
-               end do
-            end do
-         end if
-         if (tidy == stridey) then
-            do k = tidz - 1, ke_d + 1, stridez
-               do i = tidx - 1, ie_d + 1, stridex
-                  ekm_d(i,je_d+1,k) = ekm_d(i,je_d,k)
-                  ekh_d(i,je_d+1,k) = ekh_d(i,je_d,k)
-               end do
-            end do
-         end if
-      else ! periodic
-         if (tidy == jb_d) then
-            do k = tidz - 1, ke_d + 1, stridez
-               do i = tidx - 1, ie_d + 1, stridex
-                  ekm_d(i, je_d + 1, k) = ekm_d(i, jb_d, k)
-                  ekh_d(i, je_d + 1, k) = ekh_d(i, jb_d, k)
-               end do
-            end do
-         end if
-         if (tidy == stridey) then
-            do k = tidz - 1, ke_d + 1, stridez
-               do i = tidx - 1, ie_d + 1, stridex
-                  ekm_d(i, jb_d - 1, k) = ekm_d(i, je_d, k)
-                  ekh_d(i, jb_d - 1, k) = ekh_d(i, je_d, k)
-               end do
-            end do
-         end if
-      end if
-   end subroutine closurebc_y_cuda
-#endif
 
    subroutine closurebc
-     use modsubgriddata, only : ekm, ekh
-     use modglobal,      only : ib, ie, jb, je, kb, ke, ih, jh, kh, numol, prandtlmoli, &
+     use modglobal,      only : ib, ie, jb, je, kb, ke, numol, prandtlmoli, &
                                 ibrank, ierank, jbrank, jerank, BCtopm, BCxm, BCym, &
                                 BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
                                 BCxm_periodic, BCym_periodic
-     use decomp_2d,      only : zstart, zend
      use m_halo,         only : halo_exchange
 #if defined(_GPU)
-     use cudafor
-     use modcuda,        only : ekm_d, ekh_d, griddim, blockdim, checkCUDA
+     use modcuda,        only : ekm_d, ekh_d
+#else
+     use modsubgriddata, only : ekm, ekh
 #endif
-     integer i, j
+     integer :: i, j
 
 #if defined(_GPU)
-     call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in closurebc' )
      call halo_exchange(ekm_d, 3)
      call halo_exchange(ekh_d, 3)
 #else
@@ -557,79 +415,129 @@ contains
      call halo_exchange(ekh, 3)
 #endif
 
-#if defined(_GPU)
-     call closurebc_z_cuda<<<griddim,blockdim>>>
-     call checkCUDA( cudaGetLastError(), 'closurebc_z_cuda' )
-#else
      ! Top and bottom
      if ((BCtopm .eq. BCtopm_freeslip) .or. (BCtopm .eq. BCtopm_pressure)) then
+       !$acc kernels default(present)
        do j = jb - 1, je + 1
          do i = ib - 1, ie + 1
+#if defined(_GPU)
+           ekm_d(i, j, ke + 1) = ekm_d(i, j, ke)
+           ekh_d(i, j, ke + 1) = ekh_d(i, j, ke)
+           ekm_d(i, j, kb - 1) = 2.*numol - ekm_d(i, j, kb)
+           ekh_d(i, j, kb - 1) = (2.*numol*prandtlmoli) - ekh_d(i, j, kb)
+#else
            ekm(i, j, ke + 1) = ekm(i, j, ke) ! zero-gradient top wall
            ekh(i, j, ke + 1) = ekh(i, j, ke) ! zero-gradient top wall
            ekm(i, j, kb - 1) = 2.*numol - ekm(i, j, kb) ! no-slip lower wall
            ekh(i, j, kb - 1) = (2.*numol*prandtlmoli) - ekh(i, j, kb) ! no-slip lower wall
+#endif
          end do
        end do
+       !$acc end kernels
      else if (BCtopm .eq. BCtopm_noslip) then
+       !$acc kernels default(present)
        do j = jb - 1, je + 1
          do i = ib - 1, ie + 1
+#if defined(_GPU)
+           ekm_d(i, j, ke + 1) = 2.*numol - ekm_d(i, j, ke)
+           ekh_d(i, j, ke + 1) = (2.*numol*prandtlmoli) - ekh_d(i, j, ke)
+           ekm_d(i, j, kb - 1) = 2.*numol - ekm_d(i, j, kb)
+           ekh_d(i, j, kb - 1) = (2.*numol*prandtlmoli) - ekh_d(i, j, kb)
+#else
            ekm(i, j, ke + 1) = 2.*numol - ekm(i, j, ke) ! no-slip top wall
            ekh(i, j, ke + 1) = (2.*numol*prandtlmoli) - ekh(i, j, ke) ! no-slip top wall
            ekm(i, j, kb - 1) = 2.*numol - ekm(i, j, kb) ! no-slip lower wall
            ekh(i, j, kb - 1) = (2.*numol*prandtlmoli) - ekh(i, j, kb) ! no-slip lower wall
+#endif
          end do
        end do
+       !$acc end kernels
      end if
-#endif
 
-#if defined(_GPU)
-     call closurebc_x_cuda<<<griddim,blockdim>>>
-     call checkCUDA( cudaGetLastError(), 'closurebc_x_cuda' )
-#else
      if (BCxm .ne. BCxm_periodic) then ! inflow/outflow
        if (ibrank) then
+#if defined (_GPU)
+         !$acc kernels default(present)
+         ekm_d(ib - 1, :, :) = ekm_d(ib, :, :)
+         ekh_d(ib - 1, :, :) = ekh_d(ib, :, :)
+         !$acc end kernels
+#else
          ekm(ib - 1, :, :) = ekm(ib, :, :)
          ekh(ib - 1, :, :) = ekh(ib, :, :)
+#endif
        end if
        if (ierank) then
+#if defined (_GPU)
+         !$acc kernels default(present)
+         ekm_d(ie + 1, :, :) = ekm_d(ie, :, :)
+         ekh_d(ie + 1, :, :) = ekh_d(ie, :, :)
+         !$acc end kernels
+#else
          ekm(ie + 1, :, :) = ekm(ie, :, :)
          ekh(ie + 1, :, :) = ekh(ie, :, :)
+#endif
        end if
      else ! periodic
        if (ibrank .and. ierank) then
+#if defined (_GPU)
+         !$acc kernels default(present)
+         ekm_d(ib - 1, :, :) = ekm_d(ie, :, :)
+         ekm_d(ie + 1, :, :) = ekm_d(ib, :, :)
+         ekh_d(ib - 1, :, :) = ekh_d(ie, :, :)
+         ekh_d(ie + 1, :, :) = ekh_d(ib, :, :)
+         !$acc end kernels
+#else
          ekm(ib - 1, :, :) = ekm(ie, :, :)
          ekm(ie + 1, :, :) = ekm(ib, :, :)
          ekh(ib - 1, :, :) = ekh(ie, :, :)
          ekh(ie + 1, :, :) = ekh(ib, :, :)
+#endif
        end if
      end if
-#endif
-     
-#if defined(_GPU)
-     call closurebc_y_cuda<<<griddim,blockdim>>>
-     call checkCUDA( cudaGetLastError(), 'closurebc_y_cuda' )
-#else
+
      if (BCym .ne. BCym_periodic) then ! inflow/outflow
        if (jbrank) then
+#if defined (_GPU)
+         !$acc kernels default(present)
+         ekm_d(:,jb-1,:) = ekm_d(:,jb,:)
+         ekh_d(:,jb-1,:) = ekh_d(:,jb,:)
+         !$acc end kernels
+#else
          ekm(:,jb-1,:) = ekm(:,jb,:)
          ekh(:,jb-1,:) = ekh(:,jb,:)
+#endif
        end if
        if (jerank) then
+#if defined (_GPU)
+         !$acc kernels default(present)
+         ekm_d(:,je+1,:) = ekm_d(:,je,:)
+         ekh_d(:,je+1,:) = ekh_d(:,je,:)
+         !$acc end kernels
+#else
          ekm(:,je+1,:) = ekm(:,je,:)
          ekh(:,je+1,:) = ekh(:,je,:)
+#endif
        end if
      else ! periodic
        if (jbrank .and. jerank) then
+#if defined (_GPU)
+         !$acc kernels default(present)
+         ekm_d(:, jb - 1, :) = ekm_d(:, je, :)
+         ekm_d(:, je + 1, :) = ekm_d(:, jb, :)
+         ekh_d(:, jb - 1, :) = ekh_d(:, je, :)
+         ekh_d(:, je + 1, :) = ekh_d(:, jb, :)
+         !$acc end kernels
+#else
          ekm(:, jb - 1, :) = ekm(:, je, :)
          ekm(:, je + 1, :) = ekm(:, jb, :)
          ekh(:, jb - 1, :) = ekh(:, je, :)
          ekh(:, je + 1, :) = ekh(:, jb, :)
+#endif
        end if
      end if
-#endif
 
    end subroutine closurebc
+
 
    !>set lateral periodic boundary conditions for momentum in x/i direction
    subroutine xm_periodic
