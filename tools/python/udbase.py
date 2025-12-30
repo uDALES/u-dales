@@ -455,7 +455,6 @@ class UDBase:
         >>> u_tavg = sim.load_stat_t('u')  # Returns numpy array
         """
         filename = self.path / f"tdump.{self.expnr}.nc"
-        print(filename.exists())
         return self._load_ncdata(filename, var)
     
     def load_stat_tree(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
@@ -697,21 +696,21 @@ class UDBase:
         L = Lin - Lout
         # Data now comes as (fct, lyr, time) from _load_ncdata, transposed to match MATLAB
         # lam is (n_facets, n_layers), dTdz is (n_facets, n_layers, n_time)
-        G = -lam[:, 0, np.newaxis] * dTdz[:, 0, :].values  # Ground heat flux: (n_facets, n_time)
-        Tsurf = T[:, 0, :].values  # Surface temperature: (n_facets, n_time)
+        G = -lam[:, 0, np.newaxis] * dTdz[:, 0, :]  # Ground heat flux: (n_facets, n_time)
+        Tsurf = T[:, 0, :]  # Surface temperature: (n_facets, n_time)
         
         # All data is already in MATLAB convention: (n_facets, n_time)
         # _load_ncdata transposes from NetCDF (time, fct) to (fct, time)
         return {
-            'Kstar': K.values,
-            'Lstar': L.values,
-            'Lin': Lin.values,
-            'Lout': Lout.values,
-            'H': -H.values,  # Sign convention
-            'E': -E.values,  # Sign convention
+            'Kstar': K,
+            'Lstar': L,
+            'Lin': Lin,
+            'Lout': Lout,
+            'H': -H,  # Sign convention
+            'E': -E,  # Sign convention
             'G': G,
             'Tsurf': Tsurf,
-            't': t.values
+            't': t
         }
     
     # ===== Facet Analysis Methods =====
@@ -1041,131 +1040,59 @@ class UDBase:
     
     def plot_trees(self):
         """
-        Plot tree volumetric regions on top of the geometry.
-        
-        Matches MATLAB implementation: plot_trees(obj)
-        
-        Displays the 3D geometry with semi-transparent tree bounding boxes
-        overlaid to show where tree canopy regions are located.
-            
-        Raises
-        ------
-        ValueError
-            If geometry or tree data is not loaded
-        ImportError
-            If matplotlib is not installed
-            
-        Examples
-        --------
-        >>> sim.plot_trees()
+        Plot tree volumetric regions on top of the geometry using trimesh/plotly,
+        matching the rendering pipeline used by plot_fac.
         """
         if not self._lfgeom or self.geom is None:
             raise ValueError("Geometry (STL) file required for plot_trees()")
-        
         if not self._lftrees or self.trees is None:
             raise ValueError("trees.inp file required for plot_trees()")
         
         try:
-            import matplotlib.pyplot as plt
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+            import trimesh
         except ImportError:
-            raise ImportError("matplotlib is required for visualization. "
-                            "Install with: pip install matplotlib")
+            raise ImportError("trimesh is required for visualization. Install with: pip install trimesh")
         
-        # Show geometry without coloring or quiver
-        fig = plt.figure(figsize=(10, 8))
-        ax = fig.add_subplot(111, projection='3d')
+        # Base geometry mesh (light gray)
+        base_mesh = self.geom.stl.copy()
+        base_color = np.array([220, 220, 220, 255], dtype=np.uint8)
+        base_mesh.visual.face_colors = np.tile(base_color, (len(base_mesh.faces), 1))
         
-        # Plot the mesh
-        if self.geom.stl is not None:
-            all_triangles = self.geom.stl.vertices[self.geom.stl.faces]
-            collection = Poly3DCollection(
-                all_triangles,
-                facecolors=[0.85, 0.85, 0.85],
-                edgecolors='none',
-                alpha=0.6,
-                antialiased=False
-            )
-            ax.add_collection3d(collection)
+        tree_meshes = []
+        tree_color = np.array([34, 139, 34, 140], dtype=np.uint8)  # forest green, semi-transparent
         
-        # Plot tree bounding boxes
-        tree_color = (0.20, 0.65, 0.15)
         for i in range(self.trees.shape[0]):
             il, iu, jl, ju, kl, ku = self.trees[i, :]
+            # Convert 1-based to 0-based
+            il, iu, jl, ju, kl, ku = il - 1, iu - 1, jl - 1, ju - 1, kl - 1, ku - 1
             
-            # Convert from 1-based Fortran to 0-based Python indexing
-            il, iu, jl, ju, kl, ku = il-1, iu-1, jl-1, ju-1, kl-1, ku-1
-            
-            # Get corner coordinates
             xmin, xmax = self.xm[il], self.xm[iu] + self.dx
             ymin, ymax = self.ym[jl], self.ym[ju] + self.dy
             zmin, zmax = self.zm[kl], self.zm[ku] + self.dzm[ku]
             
-            # Define the 6 faces of the box
-            # Top face
-            verts_top = [[xmin, ymin, zmax], [xmax, ymin, zmax], 
-                        [xmax, ymax, zmax], [xmin, ymax, zmax]]
-            # Bottom face
-            verts_bottom = [[xmin, ymin, zmin], [xmax, ymin, zmin],
-                           [xmax, ymax, zmin], [xmin, ymax, zmin]]
-            # Front face (y=ymin)
-            verts_front = [[xmin, ymin, zmin], [xmax, ymin, zmin],
-                          [xmax, ymin, zmax], [xmin, ymin, zmax]]
-            # Back face (y=ymax)
-            verts_back = [[xmin, ymax, zmin], [xmax, ymax, zmin],
-                         [xmax, ymax, zmax], [xmin, ymax, zmax]]
-            # Left face (x=xmin)
-            verts_left = [[xmin, ymin, zmin], [xmin, ymax, zmin],
-                         [xmin, ymax, zmax], [xmin, ymin, zmax]]
-            # Right face (x=xmax)
-            verts_right = [[xmax, ymin, zmin], [xmax, ymax, zmin],
-                          [xmax, ymax, zmax], [xmax, ymin, zmax]]
+            extents = np.array([xmax - xmin, ymax - ymin, zmax - zmin])
+            center = np.array([xmin + extents[0] / 2, ymin + extents[1] / 2, zmin + extents[2] / 2])
             
-            # Add all faces
-            faces = [verts_top, verts_bottom, verts_front, verts_back, verts_left, verts_right]
-            tree_collection = Poly3DCollection(
-                faces,
-                facecolors=tree_color,
-                edgecolors='darkgreen',
-                alpha=0.4,
-                linewidths=0.5,
-                antialiased=False
-            )
-            ax.add_collection3d(tree_collection)
+            box = trimesh.creation.box(extents=extents, transform=trimesh.transformations.translation_matrix(center))
+            box.visual.face_colors = np.tile(tree_color, (len(box.faces), 1))
+            tree_meshes.append(box)
         
-        # Set axis properties
-        ax.set_xlabel('X (m)')
-        ax.set_ylabel('Y (m)')
-        ax.set_zlabel('Z (m)')
-        ax.set_title(f'Geometry with Trees ({self.trees.shape[0]} tree regions)')
+        meshes = [base_mesh] + tree_meshes if tree_meshes else [base_mesh]
         
-        # Set equal aspect ratio
-        if self.geom.stl is not None:
-            vertices = self.geom.stl.vertices
-            max_range = np.array([
-                vertices[:, 0].max() - vertices[:, 0].min(),
-                vertices[:, 1].max() - vertices[:, 1].min(),
-                vertices[:, 2].max() - vertices[:, 2].min()
-            ]).max() / 2.0
-            
-            mid_x = (vertices[:, 0].max() + vertices[:, 0].min()) * 0.5
-            mid_y = (vertices[:, 1].max() + vertices[:, 1].min()) * 0.5
-            mid_z = (vertices[:, 2].max() + vertices[:, 2].min()) * 0.5
-            
-            ax.set_xlim(mid_x - max_range, mid_x + max_range)
-            ax.set_ylim(mid_y - max_range, mid_y + max_range)
-            ax.set_zlim(mid_z - max_range, mid_z + max_range)
-        else:
-            ax.set_xlim(0, self.xlen)
-            ax.set_ylim(0, self.ylen)
-            ax.set_zlim(0, self.zsize)
+        # Build full edge list so all facet edges (front and back) are shown
+        faces = self.geom.stl.faces
+        edges = set()
+        for tri in faces:
+            e0 = tuple(sorted((tri[0], tri[1])))
+            e1 = tuple(sorted((tri[1], tri[2])))
+            e2 = tuple(sorted((tri[2], tri[0])))
+            edges.update([e0, e1, e2])
+        outline_edges = list(edges)
         
-        ax.set_box_aspect([1, 1, 1])
-        ax.view_init(elev=30, azim=-37.5-90)
-        
-        plt.show()
-        plt.tight_layout()
-        plt.show()
+        fig = self._render_scene(meshes, show_outlines=True, custom_edges=outline_edges)
+        if fig is not None:
+            fig.update_layout(title=f'Geometry with Trees ({len(tree_meshes)} regions)')
+        return fig
     
     def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
         """
@@ -1212,6 +1139,44 @@ class UDBase:
         # Add building outlines
         self._add_building_outlines_to_scene(building_ids)
         
+        return fig
+    
+    def plot_fac_type2(self, building_ids: Optional[np.ndarray] = None):
+        """
+        Plot surface types using the existing plot_fac rendering pipeline.
+
+        This reuses plot_fac for mesh creation/outlines and then adds a legend
+        that maps facet type IDs to names using the same colormap.
+
+        Parameters
+        ----------
+        building_ids : array-like, optional
+            Building IDs to plot. If None, plots all buildings.
+
+        Returns
+        -------
+        fig : plotly.graph_objects.Figure or None
+            Plotly figure object (if in notebook), None otherwise.
+        """
+        facids = self.facs['typeid']
+        fig = self.plot_fac(facids, building_ids=building_ids)
+        if fig is None:
+            return fig
+        import matplotlib.pyplot as plt; import matplotlib.cm as cm; import plotly.graph_objects as go
+        mask = np.ones_like(facids, dtype=bool)
+        if building_ids is not None:
+            fb = np.isin(self.geom.get_face_to_building_map(), np.asarray(building_ids))
+            if np.any(fb): mask = fb
+        vals = facids[mask]
+        norm = plt.Normalize(vmin=np.nanmin(vals), vmax=np.nanmax(vals))
+        cmap = cm.get_cmap('viridis')
+        for tid in np.unique(vals[~np.isnan(vals)]):
+            rgb = tuple(int(c * 255) for c in cmap(norm(tid))[:3])
+            name = next((n for i, n in zip(self.factypes['id'], self.factypes['name']) if i == tid), f"Type {tid}")
+            fig.add_trace(go.Scatter3d(x=[np.nan], y=[np.nan], z=[np.nan], mode='markers',
+                                       marker=dict(size=6, color=f'rgb({rgb[0]},{rgb[1]},{rgb[2]})'),
+                                       name=name, hoverinfo='skip', legendgroup='facet_types'))
+        fig.update_layout(title='Surface Types', legend_title_text='Facet Types')
         return fig
     
     def _create_colored_mesh(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
@@ -1271,31 +1236,39 @@ class UDBase:
         
         return mesh
     
-    def _render_scene(self, mesh, show_outlines: bool = True, angle_threshold: float = 45.0, building_ids: Optional[np.ndarray] = None):
+    def _render_scene(self, mesh, show_outlines: bool = True, angle_threshold: float = 45.0, building_ids: Optional[np.ndarray] = None, custom_edges: Optional[List[tuple]] = None):
         """Render the mesh scene using trimesh/plotly. Returns figure handle if available."""
         try:
             import trimesh
         except ImportError:
             raise ImportError("trimesh is required. Install with: pip install trimesh")
         
+        # Normalize mesh input to a list
+        meshes = mesh if isinstance(mesh, (list, tuple)) else [mesh]
+        
         # Create scene
-        scene = trimesh.Scene(mesh)
+        scene = trimesh.Scene()
+        for m in meshes:
+            scene.add_geometry(m)
         
         # Add outline edges using udgeom's outline calculation
         outline_edges = []
         if show_outlines:
-            outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
-            
+            if custom_edges is not None:
+                outline_edges = custom_edges
+            else:
+                outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
+
             # Filter outline edges by building IDs if specified
             if building_ids is not None and len(outline_edges) > 0:
                 face_to_building = self.geom.get_face_to_building_map()
                 building_ids = np.asarray(building_ids)
-                
+
                 # Filter edges: keep only edges where both vertices belong to faces in selected buildings
                 filtered_edges = []
                 vertices = self.geom.stl.vertices
                 faces = self.geom.stl.faces
-                
+
                 for edge in outline_edges:
                     # Find faces that use these vertices
                     v0, v1 = edge
@@ -1304,14 +1277,14 @@ class UDBase:
                         ((faces[:, 0] == v0) | (faces[:, 1] == v0) | (faces[:, 2] == v0)) &
                         ((faces[:, 0] == v1) | (faces[:, 1] == v1) | (faces[:, 2] == v1))
                     )[0]
-                    
+
                     # Keep edge if any of these faces belong to selected buildings
                     if len(faces_with_edge) > 0:
                         if np.any(np.isin(face_to_building[faces_with_edge], building_ids)):
                             filtered_edges.append(edge)
-                
+
                 outline_edges = filtered_edges
-            
+
             if len(outline_edges) > 0:
                 vertices = self.geom.stl.vertices
                 entities = [trimesh.path.entities.Line([edge[0], edge[1]]) for edge in outline_edges]
@@ -1327,40 +1300,51 @@ class UDBase:
             in_notebook = False
         
         if in_notebook:
-            return self._render_plotly(mesh, outline_edges)
+            return self._render_plotly(meshes, outline_edges)
         else:
             self._render_trimesh(scene, len(outline_edges))
             return None
     
-    def _render_plotly(self, mesh, outline_edges):
+    def _render_plotly(self, meshes, outline_edges):
         """Render using plotly for notebook display. Returns the figure object."""
         try:
             import plotly.graph_objects as go
             import plotly.io as pio
             
             pio.renderers.default = 'notebook'
-            
-            vertices = mesh.vertices
-            faces = mesh.faces
-            colors = mesh.visual.face_colors
-            
-            # Create mesh3d trace
-            fig = go.Figure(data=[
-                go.Mesh3d(
-                    x=vertices[:, 0], y=vertices[:, 1], z=vertices[:, 2],
-                    i=faces[:, 0], j=faces[:, 1], k=faces[:, 2],
-                    facecolor=[f'rgb({c[0]},{c[1]},{c[2]})' for c in colors[:, :3]],
-                    opacity=1.0, flatshading=True
+            traces = []
+            for m in meshes:
+                vertices = m.vertices
+                faces = m.faces
+                colors = m.visual.face_colors
+                
+                # Derive opacity from alpha channel if present; default to 1.0
+                opacity = 1.0
+                if colors.shape[1] == 4:
+                    # Use mean alpha normalized to [0,1]
+                    opacity = np.clip(np.mean(colors[:, 3]) / 255.0, 0.0, 1.0)
+                
+                traces.append(
+                    go.Mesh3d(
+                        x=vertices[:, 0], y=vertices[:, 1], z=vertices[:, 2],
+                        i=faces[:, 0], j=faces[:, 1], k=faces[:, 2],
+                        facecolor=[f'rgb({c[0]},{c[1]},{c[2]})' for c in colors[:, :3]],
+                        opacity=opacity,
+                        flatshading=True
+                    )
                 )
-            ])
+            
+            fig = go.Figure(data=traces)
             
             # Add outline edges
             if len(outline_edges) > 0:
                 edge_x, edge_y, edge_z = [], [], []
                 z_offset = 0.1
+                # Use vertices from the first mesh for outlines
+                base_vertices = meshes[0].vertices
                 for edge in outline_edges:
-                    p0 = vertices[edge[0]]
-                    p1 = vertices[edge[1]]
+                    p0 = base_vertices[edge[0]]
+                    p1 = base_vertices[edge[1]]
                     z0 = p0[2] + z_offset if abs(p0[2]) < 0.01 else p0[2]
                     z1 = p1[2] + z_offset if abs(p1[2]) < 0.01 else p1[2]
                     edge_x.extend([p0[0], p1[0], None])
@@ -1635,9 +1619,9 @@ class UDBase:
                 fig.update_layout(
                     scene=dict(
                         aspectmode='data',
-                        xaxis_title='X (m)',
-                        yaxis_title='Y (m)',
-                        zaxis_title='Z (m)',
+                        xaxis_title='x (m)',
+                        yaxis_title='y (m)',
+                        zaxis_title='z (m)',
                         xaxis=dict(showgrid=False, showbackground=False),
                         yaxis=dict(showgrid=False, showbackground=False),
                         zaxis=dict(showgrid=False, showbackground=False),
@@ -2137,13 +2121,13 @@ class UDBase:
         color_values = color_order.copy()
         
         # Use plot_2dmap to create the visualization
-        self.plot_2dmap(color_values, labels)
-        
-        plt.colormap('hsv')
-        plt.title(f'Building Layout with IDs (Total: {num_buildings})')
-        plt.xlabel('x [m]')
-        plt.ylabel('y [m]')
-        plt.gca().set_aspect('equal')
+        fig, ax = self.plot_2dmap(color_values, labels)
+        pc = ax.collections[0]  # the PatchCollection from plot_2dmap
+        fig.colorbar(pc, ax=ax, cmap='hsv')
+        ax.set_title(f'Building Layout with IDs (Total: {num_buildings})')
+        ax.set_xlabel('x [m]')
+        ax.set_ylabel('y [m]')
+        ax.set_aspect('equal')
         plt.show()
     
     def plot_2dmap(self, val: Union[float, np.ndarray], 
@@ -2282,6 +2266,7 @@ class UDBase:
         ax.grid(True, alpha=0.3)
         
         plt.show()
+        return fig, ax
     
     def __str__(self):
         """User-friendly string representation."""
