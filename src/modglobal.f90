@@ -446,6 +446,7 @@ module modglobal
    real    :: dt_lim
 
    integer :: rk3step = 0
+   real    :: rk3coef, rk3coefi
 
    integer :: iexpnr = 0 !<     * number of the experiment
 

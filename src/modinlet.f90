@@ -202,7 +202,7 @@ contains
   end subroutine initinlet
 
   subroutine inletgen
-    use modglobal,   only : ib,ie,jb,je,jtot,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,luvolflowr,lfixutauin
+    use modglobal,   only : ib,ie,jb,je,jtot,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,rk3coef,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,luvolflowr,lfixutauin
     use modfields,   only : u0,v0,w0,thl0,wm,uprof
     use modsurfdata, only : thls,thl_top
     use modsave,     only : writerestartfiles
@@ -245,7 +245,6 @@ contains
     real                    :: alpha,beta              ! factors used in the Weight function
 !    real                    :: totalu                  ! total u-velocity at outlet
     real                    :: Urectot                  ! total u-velocity at recycle plane
-    real                    :: rk3coef
 !    real                    :: di_test                 ! BL thickness as measured from Uinl
     real                    :: utop                    ! j-averaged top velocity
     real                    :: interval
@@ -269,7 +268,6 @@ contains
    ddispdxold   = ddispdx
 
    ! compute time-average velocities
-    rk3coef = dt / (4. - dble(rk3step))
     if (rk3step==1) then
       deltat = rk3coef
     elseif (rk3step==2) then
@@ -868,7 +866,6 @@ contains
       t0inletbcold = t0inletbc
 
   ! determine time step interval in simulation
-      rk3coef   = dt / (4. - dble(rk3step))
       if (rk3step==1) then
         deltat = rk3coef
       elseif (rk3step==2) then
@@ -950,7 +947,7 @@ contains
   end subroutine inletgen
 
   subroutine inletgennotemp
-    use modglobal,   only : ib,ie,jb,je,jb,jtot,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,lfixinlet,lfixutauin,luvolflowr
+    use modglobal,   only : ib,ie,jb,je,jb,jtot,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,rk3coef,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,lfixinlet,lfixutauin,luvolflowr
     use modfields,   only : u0,v0,w0,wm,uprof
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
@@ -983,7 +980,6 @@ contains
     real                    :: alpha,beta              ! factors used in the Weight function
 !    real                    :: totalu                  ! total u-velocity at outlet
     real                    :: Urectot                  ! total u-velocity at recycle plane
-    real                    :: rk3coef
 !    real                    :: di_test                 ! BL thickness as measured from Uinl
     real                    :: utop                    ! j-averaged top velocity
     real                    :: interval
@@ -1004,7 +1000,6 @@ contains
    ddispdxold   = ddispdx
 
    ! compute time-average velocities
-    rk3coef = dt / (4. - dble(rk3step))
     if (rk3step==1) then
       deltat = rk3coef
     elseif (rk3step==2) then
@@ -1393,7 +1388,6 @@ contains
       w0inletbcold = w0inletbc
 
   ! determine time step interval in simulation
-      rk3coef   = dt / (4. - dble(rk3step))
       if (rk3step==1) then
         deltat = rk3coef
       elseif (rk3step==2) then

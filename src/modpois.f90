@@ -826,7 +826,7 @@ contains
   ! Chiel van Heerwaarden,  19 June 2007
   ! Adapted fillps for RK3 time loop
     use modfields,   only : up, vp, wp, um, vm, wm
-    use modglobal,   only : rk3step, ib, ie, jb, je, kb, ke, dxi, dyi, dzfi, dt, &
+    use modglobal,   only : rk3coefi, ib, ie, jb, je, kb, ke, dxi, dyi, dzfi, &
                             pi, dy, imax, jmax, ylen, xf, zf
     use modmpi,      only : myidx, myidy
     use modboundary, only : bcpup
@@ -837,14 +837,6 @@ contains
     implicit none
 
     integer :: i, j, k
-    real    :: rk3coef, rk3coefi
-
-    if (rk3step == 0) then ! dt not defined yet
-      rk3coef = 1.
-    else
-      rk3coef = dt / (4. - dble(rk3step))
-    end if
-    rk3coefi = 1. / rk3coef
 
 #if defined(_GPU)
     call compute_pup_cuda<<<griddim,blockdim>>>(rk3coefi)
@@ -875,7 +867,7 @@ contains
   !     The right-hand p is therefore filled in this partical way.
 
   !**************************************************************
-    call bcpup(rk3coefi)   ! boundary conditions for pup,pvp,pwp
+    call bcpup   ! boundary conditions for pup,pvp,pwp
 
 #if defined(_GPU)
     call compute_p_cuda<<<griddim,blockdim>>>(dxi, dyi)

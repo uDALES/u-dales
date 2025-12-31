@@ -941,12 +941,9 @@ contains
 
 
    subroutine xmo_convective
-     use modglobal,      only : ie, dxi, rk3step, dt
+     use modglobal,      only : ie, dxi, rk3coef
      use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m, uouttot
      use modsubgriddata, only : loneeqn
-     real rk3coef
-
-     rk3coef = dt/(4.-dble(rk3step))
 
      v0(ie + 1, :, :) = v0(ie+1, :, :) - (v0(ie+1, :, :) - v0(ie, :, :))*dxi*rk3coef*uouttot
      w0(ie + 1, :, :) = w0(ie+1, :, :) - (w0(ie+1, :, :) - w0(ie, :, :))*dxi*rk3coef*uouttot
@@ -980,11 +977,8 @@ contains
 
 
    subroutine xTo_convective
-     use modglobal, only : ie, dxi, rk3step, dt
+     use modglobal, only : ie, dxi, rk3coef
      use modfields, only : thl0, thlm, uouttot
-     real rk3coef
-
-     rk3coef = dt/(4.-dble(rk3step))
 
      thl0(ie + 1, :, :) = thl0(ie+1, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxi*rk3coef*uouttot
      thlm(ie + 1, :, :) = thlm(ie+1, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxi*rk3coef*uouttot
@@ -1003,11 +997,8 @@ contains
 
 
    subroutine xqo_convective
-     use modglobal, only : ie, dxi, rk3step, dt
+     use modglobal, only : ie, dxi, rk3coef
      use modfields, only : qt0, qtm, uouttot
-     real rk3coef
-
-     rk3coef = dt/(4.-dble(rk3step))
 
      qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxi*rk3coef*uouttot
      qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxi*rk3coef*uouttot
@@ -1016,12 +1007,9 @@ contains
 
 
    subroutine xso_convective
-     use modglobal, only : ie, rk3step, dt, dxi, nsv
+     use modglobal, only : ie, rk3coef, dxi, nsv
      use modfields, only :sv0, svm, uouttot
-     real rk3coef
      integer n
-
-     rk3coef = dt/(4.-dble(rk3step))
 
      do n = 1, nsv
        sv0(ie + 1, :, :, n) = sv0(ie + 1, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxi*rk3coef*uouttot
@@ -1032,12 +1020,9 @@ contains
 
 
    subroutine xso_Neumann
-     use modglobal, only : ie, ihc, rk3step, dt, dxi, nsv
+     use modglobal, only : ie, ihc, dxi, nsv
      use modfields, only :sv0, svm
-     real rk3coef
      integer n, m
-
-     rk3coef = dt/(4.-dble(rk3step))
 
      do n = 1, nsv
        do m = 1, ihc
@@ -1133,13 +1118,9 @@ contains
 
 
    subroutine ymo_convective
-     use modglobal,      only : je, dyi, rk3step, dt
+     use modglobal,      only : je, dyi, rk3coef
      use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m, vouttot
      use modsubgriddata, only : loneeqn
-
-     real rk3coef
-
-     rk3coef = dt/(4.-dble(rk3step))
 
      ! change to vouttot
      u0(:, je + 1, :) = u0(:, je + 1, :) - (u0(:, je + 1, :) - u0(:, je, :))*dyi*rk3coef*vouttot
@@ -1157,12 +1138,8 @@ contains
 
    subroutine yTo_convective
 
-     use modglobal, only : je, dyi, rk3step, dt
+     use modglobal, only : je, dyi, rk3coef
      use modfields, only : thl0, thlm, v0, vouttot
-
-     real rk3coef
-
-     rk3coef = dt/(4.-dble(rk3step))
 
      thl0(:, je + 1, :) = thl0(:, je + 1, :) - (thl0(:, je + 1, :) - thl0(:, je, :))*dyi*rk3coef*vouttot
      thlm(:, je + 1, :) = thlm(:, je + 1, :) - (thlm(:, je + 1, :) - thlm(:, je, :))*dyi*rk3coef*vouttot
@@ -1172,11 +1149,8 @@ contains
 
    subroutine yqo_convective
 
-     use modglobal, only : je, dyi, rk3step, dt
+     use modglobal, only : je, dyi, rk3coef
      use modfields, only : qt0, qtm, v0, vouttot
-
-     real rk3coef
-     rk3coef = dt/(4.-dble(rk3step))
 
      qt0(:, je + 1, :) = qt0(:, je + 1, :) - (qt0(:, je + 1, :) - qt0(:, je, :))*dyi*rk3coef*vouttot
      qtm(:, je + 1, :) = qtm(:, je + 1, :) - (qtm(:, je + 1, :) - qtm(:, je, :))*dyi*rk3coef*vouttot
@@ -1186,13 +1160,9 @@ contains
 
    subroutine yso_convective
 
-     use modglobal, only : je, rk3step, dt, dyi, nsv
+     use modglobal, only : je, rk3coef, dyi, nsv
      use modfields, only :sv0, svm, v0, vouttot
-
-     real rk3coef
      integer n
-
-     rk3coef = dt/(4.-dble(rk3step))
 
      do n = 1, nsv
        sv0(:, je + 1, :, n) = sv0(:, je + 1, :, n) - (sv0(:, je + 1, :, n) - sv0(:, je, :, n))*dyi*rk3coef*vouttot
@@ -1204,13 +1174,9 @@ contains
 
    subroutine yso_Neumann
 
-     use modglobal, only : je, jhc, rk3step, dt, dyi, nsv
+     use modglobal, only : je, jhc, dyi, nsv
      use modfields, only : sv0, svm
-
-     real rk3coef
      integer n, m
-
-     rk3coef = dt/(4.-dble(rk3step))
 
      do n = 1, nsv
        do m = 1, jhc
@@ -1392,8 +1358,8 @@ contains
 #endif
 
    !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
-   subroutine bcpup(rk3coefi)
-     use modglobal,    only : ib, ie, ih, jb, je, jh, kb, ke, kh, dxi, dyi, dzhi, &
+   subroutine bcpup
+     use modglobal,    only : ib, ie, ih, jb, je, jh, kb, ke, kh, dxi, dyi, dzhi, rk3coefi, &
                               ibrank, ierank, jbrank, jerank, BCxm, BCym, BCtopm, &
                               BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
                               BCxm_periodic, BCxm_profile, BCxm_driver, &
@@ -1409,7 +1375,6 @@ contains
      use modinletdata, only : u0driver
 #endif
      implicit none
-     real, intent(in) :: rk3coefi
      real, dimension(kb:ke+kh) :: pres0ij
      integer :: i, j, k
 

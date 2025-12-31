@@ -228,7 +228,7 @@ module modforces
     use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
 
-    real  utop,freestream,freestrtmp,rk3coef
+    real  utop,freestream,freestrtmp
     integer i,j
 
     utop = 0.
@@ -276,19 +276,17 @@ module modforces
 #else
     use modfields, only : up, vp, u0av, v0av
 #endif
-    ! use modglobal, only : dxf,xh,timee
+    ! use modglobal, only : dxf,xh,timee,rk3coef
     ! use modfields, only : u0, dpdxl, dpdx
     ! use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
 
-    ! real    :: utop, freestream, rk3coef
+    ! real    :: utop, freestream
     integer :: i, j, k
 
     ! utop = 0.
 
     if ((ifixuinf==1) .and. (rk3step==3)) then
-
-      ! rk3coef = dt / (4. - dble(rk3step))
 
       ! do j =jb,je
       !   do i =ib,ie
@@ -365,14 +363,12 @@ module modforces
     use modsurfdata, only: thl_top
     implicit none
 
-    real  ttop,freestreamtheta,rk3coef
+    real  ttop,freestreamtheta
     integer i,j
 
     ttop = 0.
 
     ! if (ifixuinf==1 .and. rk3step==3 .and. ltempeq) then !tg3315 commented
-
-    !   rk3coef = dt / (4. - dble(rk3step))
 
     !   do j =jb,je
     !     do i =ib,ie
@@ -406,7 +402,8 @@ module modforces
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,dzf,dxf,dy,zh,dt,rk3step,&
                           uflowrate,vflowrate,linoutflow,&
-                          luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
+                          luoutflowr,lvoutflowr,luvolflowr,lvvolflowr,&
+                          rk3coef,rk3coefi
     use modfields, only : um,up,vm,vp,uouttot,udef,vouttot,vdef,&
                           uoutarea,voutarea,fluidvol,IIu,IIv,IIus,IIvs
     use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm,sumx_ibm,avexy_ibm
@@ -420,14 +417,11 @@ module modforces
     real, dimension(kb:ke)        :: uoutold
     real, dimension(kb:ke)        :: voutold
 
-    real                          rk3coef,rk3coefi,&
-                                  uoutflow,voutflow,&
+    real                          uoutflow,voutflow,&
                                   uflowrateold,vflowrateold
     integer                       i,j,k
 
     if ((.not.linoutflow) .and. (luoutflowr)) then
-      rk3coef = dt / (4. - dble(rk3step))
-      rk3coefi = 1 / rk3coef
 
       ! Assumes ie=itot
       udef = 0.
@@ -468,8 +462,6 @@ module modforces
       uouttot = sum(uout(kb:ke))  ! mass flow rate at outlet
 
     elseif ((.not.linoutflow) .and. (luvolflowr)) then
-      rk3coef = dt / (4. - dble(rk3step))
-      rk3coefi = 1 / rk3coef
 
       udef = 0.
       uoutflow = 0.
@@ -498,8 +490,6 @@ module modforces
     end if
 
     if ((.not.linoutflow) .and. (lvoutflowr)) then
-      rk3coef = dt / (4. - dble(rk3step))
-      rk3coefi = 1 / rk3coef
 
       ! Assumes je=jtot
       vdef = 0.
@@ -542,8 +532,6 @@ module modforces
       end do
 
     elseif ((.not.linoutflow) .and. (lvvolflowr)) then
-      rk3coef = dt / (4. - dble(rk3step))
-      rk3coefi = 1 / rk3coef
 
       vdef = 0.
       voutflow = 0.

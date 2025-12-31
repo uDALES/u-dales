@@ -44,8 +44,8 @@ subroutine tstep_update
 
 
   use modglobal, only : ib,ie,jb,je,rk3step,timee,runtime,dtmax,dt,ntimee,ntrun,courant,diffnr,&
-                        kb,ke,dx,dxi,dx2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,dt,lwarmstart,&
-                        dzh2i
+                        kb,ke,dx,dxi,dx2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,lwarmstart,&
+                        dzh2i,rk3coef,rk3coefi
   use modfields, only : um,vm,wm
   use modsubgriddata, only : ekm,ekh
   use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
@@ -145,6 +145,14 @@ subroutine tstep_update
       end if
     end if
   end if
+
+  if (rk3step == 0) then ! dt not defined yet
+    rk3coef = 1.
+  else
+    rk3coef = dt / (4. - dble(rk3step))
+  end if
+  rk3coefi = 1. / rk3coef
+
 end subroutine tstep_update
 
 
@@ -165,7 +173,7 @@ end subroutine tstep_update
 subroutine tstep_integrate
 
 
-  use modglobal, only : ib,ie,jb,jgb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,ntrun,&
+  use modglobal, only : ib,ie,jb,jgb,je,kb,ke,nsv,dt,rk3step,rk3coef,rk3coefi,e12min,lmoist,timee,ntrun,&
                         linoutflow, iinletgen,ltempeq,idriver,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic, &
                         dzf,dzhi,dzf,dxf,ifixuinf,thlsrc,lchem,ibrank,ierank,jerank,jbrank,BCxm,BCym,ihc,jhc,khc,dyi,dxfi,BCxT,BCxq,BCxs,BCyT,BCyq,BCys
   use modmpi, only    : cmyid,myid,nprocs
@@ -182,10 +190,6 @@ subroutine tstep_integrate
   implicit none
 
   integer i,j,k,n,m
-  real rk3coef,rk3coefi
-
-  rk3coef = dt / (4. - dble(rk3step))
-  rk3coefi = 1./rk3coef
 
   if(ifixuinf==2) then
     dpdxl(:) = dpdxl(:) + dgdt*rk3coef
