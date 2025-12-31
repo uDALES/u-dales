@@ -862,59 +862,59 @@ class UDBase:
         }
     
     @staticmethod
-    def time_average(var: np.ndarray, time: np.ndarray, 
-                     tstart: Optional[float] = None, 
-                     tstop: Optional[float] = None) -> np.ndarray:
+    def time_average(var: np.ndarray, other: Optional[np.ndarray] = None):
         """
-        Time-average a variable.
+        Time-average variables.
         
         Parameters
         ----------
         var : ndarray
             Variable to average. Time must be the last dimension.
-        time : ndarray
-            Time array
-        tstart : float, optional
-            Start time for averaging
-        tstop : float, optional
-            Stop time for averaging
+        other : ndarray, optional
+            Second variable (same shape as ``var``) to compute covariance with.
         
         Returns
         -------
-        ndarray
-            Time-averaged values
+        tuple
+            - (mean, variance) when only ``var`` is provided
+            - (x_mean, y_mean, covariance) when ``other`` is provided
         
-        Examples
-        --------
-        >>> H_avg = UDBase.time_average(H, t, tstart=3600, tstop=7200)
+        Notes
+        -----
+        Variance/covariance are computed by delegating to ``merge_stat`` with
+        zero instantaneous contributions.
         """
-        if tstart is None:
-            indstart = 0
-        else:
-            indstart = np.argmax(time >= tstart)
+        X = np.asarray(var)
+        n = X.shape[-1]
         
-        if tstop is None:
-            indstop = len(time)
-        else:
-            indstop = np.argmax(time >= tstop)
-            if indstop == 0:
-                indstop = len(time)
+        if other is None:
+            zeros = np.zeros_like(X)
+            return UDBase.merge_stat(X, zeros, n)
         
-        return np.mean(var[..., indstart:indstop], axis=-1)
+        Y = np.asarray(other)
+        zeros = np.zeros_like(X)
+        return UDBase.merge_stat(X, Y, zeros, n)
 
     @staticmethod
-    def merge_stat(X: np.ndarray, n: int, Y: Optional[np.ndarray] = None,
+    def merge_stat(X: np.ndarray, *args, Y: Optional[np.ndarray] = None,
                    XpXp: Optional[np.ndarray] = None,
                    XpYp: Optional[np.ndarray] = None):
         """
         Merge short-term statistics into longer windows.
 
+        Supported call patterns:
+          - merge_stat(X, n)
+          - merge_stat(X, XpXp, n)                  
+          - merge_stat(X, Y, XpYp, n)               
+          - merge_stat(X, n, XpXp=array)            # single variable mean/variance
+          - merge_stat(X, n, Y=array, XpYp=array)   # two variables mean/cov
+
         Parameters
         ----------
         X : ndarray
             First variable. Final dimension is time or short-term windows.
-        n : int
-            Number of consecutive samples/windows to merge.
+        args : tuple
+            Positional parameters parsed according to the patterns above.
         Y : ndarray, optional
             Second variable (same trailing dimension as ``X``).
         XpXp : ndarray, optional
@@ -936,12 +936,30 @@ class UDBase:
         short-window contributions with the variance/covariance of the short
         means inside each merged window.
         """
+        # Parse positional arguments to support both MATLAB and Python styles
+        n = None
         X = np.asarray(X)
+        if len(args) == 1:
+            n = int(args[0])
+        elif len(args) == 2 and Y is None:
+            # MATLAB style: merge_stat(X, XpXp, n)
+            XpXp = np.asarray(args[0])
+            n = int(args[1])
+        elif len(args) == 3:
+            # MATLAB style: merge_stat(X, Y, XpYp, n)
+            Y = np.asarray(args[0])
+            XpYp = np.asarray(args[1])
+            n = int(args[2])
+        else:
+            raise ValueError("merge_stat expects 1, 2, or 3 positional arguments after X")
+
+        if n <= 0:
+            raise ValueError("n must be positive")
         if X.shape[-1] < n:
             raise ValueError("Not enough samples to form a single merged window")
 
         nwin = X.shape[-1] // n
-        start = X.shape[-1] - nwin * n
+        start = X.shape[-1] - nwin * n  # discard oldest incomplete window
         X_use = X[..., start:]
         X_group = X_use.reshape(*X.shape[:-1], nwin, n)
         Xmean = X_group.mean(axis=-1)
@@ -1022,14 +1040,17 @@ class UDBase:
         nx, ny, nz = var.shape
         out = np.empty((nx, ny, nz, len(Lflt_arr)))
 
-        for i, L in enumerate(Lflt_arr):
-            wx = max(1, int(round(L / dx)))
-            wy = max(1, int(round(L / dy)))
+        # Build filters using half-width convention (matches MATLAB implementation)
+        ii, jj = np.meshgrid(np.arange(nx), np.arange(ny), indexing="ij")
+        di = np.minimum(ii, nx - ii)  # periodic distance in i
+        dj = np.minimum(jj, ny - jj)  # periodic distance in j
 
-            kernel = np.zeros((nx, ny))
-            kernel[:wx, :wy] = 1.0 / (wx * wy)
-            kernel = np.roll(kernel, -wx // 2, axis=0)
-            kernel = np.roll(kernel, -wy // 2, axis=1)
+        for i, L in enumerate(Lflt_arr):
+            ngx = max(int(round((L / dx) / 2.0)), 1)
+            ngy = max(int(round((L / dy) / 2.0)), 1)
+            mask = (di <= ngx) & (dj <= ngy)
+            kernel = mask.astype(float)
+            kernel /= kernel.sum()
             k_hat = np.fft.fftn(kernel)
 
             for k in range(nz):
@@ -1038,10 +1059,15 @@ class UDBase:
 
         return out
     
-    def plot_trees(self):
+    def plot_trees(self, show: bool = True):
         """
         Plot tree volumetric regions on top of the geometry using trimesh/plotly,
         matching the rendering pipeline used by plot_fac.
+        
+        Parameters
+        ----------
+        show : bool, default=True
+            Display the plot immediately. If False, return the figure without showing.
         """
         if not self._lfgeom or self.geom is None:
             raise ValueError("Geometry (STL) file required for plot_trees()")
@@ -1089,12 +1115,12 @@ class UDBase:
             edges.update([e0, e1, e2])
         outline_edges = list(edges)
         
-        fig = self._render_scene(meshes, show_outlines=True, custom_edges=outline_edges)
+        fig = self._render_scene(meshes, show_outlines=True, custom_edges=outline_edges, show=show)
         if fig is not None:
             fig.update_layout(title=f'Geometry with Trees ({len(tree_meshes)} regions)')
         return fig
     
-    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
+    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, show: bool = True):
         """
         Plot facet data as a 3D surface.
         
@@ -1104,7 +1130,9 @@ class UDBase:
             Facet variable to plot (one value per facet)
         building_ids : array-like, optional
             Building IDs to plot. If None, plots all buildings.
-            
+        show : bool, default=True
+            Display the plot immediately. If False, return the figure without showing.
+        
         Returns
         -------
         fig : plotly.graph_objects.Figure or None
@@ -1134,49 +1162,11 @@ class UDBase:
         
         # Create colored mesh and render
         mesh = self._create_colored_mesh(var, building_ids)
-        fig = self._render_scene(mesh, building_ids=building_ids)
+        fig = self._render_scene(mesh, building_ids=building_ids, show=show)
         
         # Add building outlines
         self._add_building_outlines_to_scene(building_ids)
         
-        return fig
-    
-    def plot_fac_type2(self, building_ids: Optional[np.ndarray] = None):
-        """
-        Plot surface types using the existing plot_fac rendering pipeline.
-
-        This reuses plot_fac for mesh creation/outlines and then adds a legend
-        that maps facet type IDs to names using the same colormap.
-
-        Parameters
-        ----------
-        building_ids : array-like, optional
-            Building IDs to plot. If None, plots all buildings.
-
-        Returns
-        -------
-        fig : plotly.graph_objects.Figure or None
-            Plotly figure object (if in notebook), None otherwise.
-        """
-        facids = self.facs['typeid']
-        fig = self.plot_fac(facids, building_ids=building_ids)
-        if fig is None:
-            return fig
-        import matplotlib.pyplot as plt; import matplotlib.cm as cm; import plotly.graph_objects as go
-        mask = np.ones_like(facids, dtype=bool)
-        if building_ids is not None:
-            fb = np.isin(self.geom.get_face_to_building_map(), np.asarray(building_ids))
-            if np.any(fb): mask = fb
-        vals = facids[mask]
-        norm = plt.Normalize(vmin=np.nanmin(vals), vmax=np.nanmax(vals))
-        cmap = cm.get_cmap('viridis')
-        for tid in np.unique(vals[~np.isnan(vals)]):
-            rgb = tuple(int(c * 255) for c in cmap(norm(tid))[:3])
-            name = next((n for i, n in zip(self.factypes['id'], self.factypes['name']) if i == tid), f"Type {tid}")
-            fig.add_trace(go.Scatter3d(x=[np.nan], y=[np.nan], z=[np.nan], mode='markers',
-                                       marker=dict(size=6, color=f'rgb({rgb[0]},{rgb[1]},{rgb[2]})'),
-                                       name=name, hoverinfo='skip', legendgroup='facet_types'))
-        fig.update_layout(title='Surface Types', legend_title_text='Facet Types')
         return fig
     
     def _create_colored_mesh(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
@@ -1236,7 +1226,7 @@ class UDBase:
         
         return mesh
     
-    def _render_scene(self, mesh, show_outlines: bool = True, angle_threshold: float = 45.0, building_ids: Optional[np.ndarray] = None, custom_edges: Optional[List[tuple]] = None):
+    def _render_scene(self, mesh, show_outlines: bool = True, angle_threshold: float = 45.0, building_ids: Optional[np.ndarray] = None, custom_edges: Optional[List[tuple]] = None, show: bool = True):
         """Render the mesh scene using trimesh/plotly. Returns figure handle if available."""
         try:
             import trimesh
@@ -1300,12 +1290,13 @@ class UDBase:
             in_notebook = False
         
         if in_notebook:
-            return self._render_plotly(meshes, outline_edges)
+            return self._render_plotly(meshes, outline_edges, show=show)
         else:
-            self._render_trimesh(scene, len(outline_edges))
+            if show:
+                self._render_trimesh(scene, len(outline_edges))
             return None
     
-    def _render_plotly(self, meshes, outline_edges):
+    def _render_plotly(self, meshes, outline_edges, show: bool = True):
         """Render using plotly for notebook display. Returns the figure object."""
         try:
             import plotly.graph_objects as go
@@ -1372,15 +1363,18 @@ class UDBase:
                 showlegend=False
             )
             
-            fig.show()
+            if show:
+                fig.show()
             return fig
             
         except ImportError:
             print("Plotly not available. Install with: pip install plotly")
             return None
     
-    def _render_trimesh(self, scene, num_outline_edges):
+    def _render_trimesh(self, scene, num_outline_edges, show: bool = True):
         """Render using trimesh viewer."""
+        if not show:
+            return
         try:
             scene.show()
         except Exception as e:
@@ -1436,7 +1430,7 @@ class UDBase:
                    'k-', linewidth=2, alpha=1.0, zorder=10)
     
     def plot_fac_type(self, building_ids: Optional[np.ndarray] = None, 
-                      show_outlines: bool = True, angle_threshold: float = 45.0):
+                      show_outlines: bool = True, angle_threshold: float = 45.0, show: bool = True):
         """
         Plot the different surface types in the geometry using trimesh/Plotly.
         
@@ -1448,6 +1442,8 @@ class UDBase:
             Whether to show building outline edges
         angle_threshold : float, default=45.0
             Angle threshold in degrees for outline edge detection
+        show : bool, default=True
+            Display the plot immediately. If False, return the figure without showing.
             
         Returns
         -------
@@ -1634,7 +1630,8 @@ class UDBase:
                     showlegend=True
                 )
                 
-                fig.show()
+                if show:
+                    fig.show()
                 return fig
                 
             except ImportError:
@@ -1649,10 +1646,11 @@ class UDBase:
                         entity_colors = np.tile([0, 0, 0, 255], (len(entities), 1))
                         path = trimesh.path.Path3D(entities=entities, vertices=vertices, colors=entity_colors)
                         scene.add_geometry(path)
-                try:
-                    scene.show()
-                except:
-                    print("Could not display. Try installing: pip install plotly or pyglet")
+                if show:
+                    try:
+                        scene.show()
+                    except:
+                        print("Could not display. Try installing: pip install plotly or pyglet")
         else:
             # Show in external window
             print(f"Opening trimesh viewer with {len(mesh.faces)} faces...")
@@ -1665,11 +1663,12 @@ class UDBase:
                     entity_colors = np.tile([0, 0, 0, 255], (len(entities), 1))
                     path = trimesh.path.Path3D(entities=entities, vertices=vertices, colors=entity_colors)
                     scene.add_geometry(path)
-            try:
-                scene.show()
-            except Exception as e:
-                print(f"Could not open trimesh viewer: {e}")
-                print("You may need to install pyglet or pyrender: pip install pyglet")
+            if show:
+                try:
+                    scene.show()
+                except Exception as e:
+                    print(f"Could not open trimesh viewer: {e}")
+                    print("You may need to install pyglet or pyrender: pip install pyglet")
     
     def convert_fac_to_field(self, var: np.ndarray, facsec: Optional[Dict] = None,
                             dz: Optional[np.ndarray] = None) -> np.ndarray:
@@ -2068,7 +2067,7 @@ class UDBase:
             'bry': bry
         }
     
-    def plot_building_ids(self):
+    def plot_building_ids(self, show: bool = True):
         """
         Plot building IDs from above (x,y view) with distinct colors.
         
@@ -2078,6 +2077,11 @@ class UDBase:
         building IDs displayed at the center of gravity of each building.
         Buildings are numbered from left-bottom to right-top based on their
         centroid positions.
+
+        Parameters
+        ----------
+        show : bool, default=True
+            Display the plot immediately. If False, return the figure without showing.
             
         Raises
         ------
@@ -2085,6 +2089,8 @@ class UDBase:
             If geometry is not loaded or has no buildings
         ImportError
             If matplotlib is not installed
+        show : bool, default=True
+            Display the plot immediately. If False, return the figure without showing.
             
         Examples
         --------
@@ -2121,17 +2127,20 @@ class UDBase:
         color_values = color_order.copy()
         
         # Use plot_2dmap to create the visualization
-        fig, ax = self.plot_2dmap(color_values, labels)
+        fig, ax = self.plot_2dmap(color_values, labels, show=show)
         pc = ax.collections[0]  # the PatchCollection from plot_2dmap
         fig.colorbar(pc, ax=ax, cmap='hsv')
         ax.set_title(f'Building Layout with IDs (Total: {num_buildings})')
         ax.set_xlabel('x [m]')
         ax.set_ylabel('y [m]')
         ax.set_aspect('equal')
-        plt.show()
+        if show:
+            plt.show()
+        return fig, ax
     
     def plot_2dmap(self, val: Union[float, np.ndarray], 
-                   labels: Optional[Union[str, list]] = None):
+                   labels: Optional[Union[str, list]] = None,
+                   show: bool = True):
         """
         Plot a 2D map of buildings colored by a value per building.
         
@@ -2150,6 +2159,8 @@ class UDBase:
             - If str: same label for all buildings
             - If list: must have length equal to number of buildings
             - If None: no labels displayed
+        show : bool, default=True
+            Display the plot immediately. If False, return the figure without showing.
             
         Raises
         ------
@@ -2265,7 +2276,8 @@ class UDBase:
         ax.set_ylim(0, self.ylen)
         ax.grid(True, alpha=0.3)
         
-        plt.show()
+        if show:
+            plt.show()
         return fig, ax
     
     def __str__(self):
