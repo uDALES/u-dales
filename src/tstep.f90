@@ -175,11 +175,11 @@ subroutine tstep_integrate
 
   use modglobal, only : ib,ie,jb,jgb,je,kb,ke,nsv,dt,rk3step,rk3coef,rk3coefi,e12min,lmoist,timee,ntrun,&
                         linoutflow, iinletgen,ltempeq,idriver,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic, &
-                        dzf,dzhi,dzf,dxf,ifixuinf,thlsrc,lchem,ibrank,ierank,jerank,jbrank,BCxm,BCym,ihc,jhc,khc,dyi,dxfi,BCxT,BCxq,BCxs,BCyT,BCyq,BCys
+                        dzf,dzhi,dzf,dxf,lchem,ibrank,ierank,jerank,jbrank,BCxm,BCym,ihc,jhc,khc,dyi,dxfi,BCxT,BCxq,BCxs,BCyT,BCyq,BCys
   use modmpi, only    : cmyid,myid,nprocs
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,uouttot,&
-                        wouttot,dpdxl,dgdt,momfluxb,tfluxb,qfluxb,thl0c
+                        wouttot,momfluxb,tfluxb,qfluxb,thl0c
   use modinletdata, only: totalu,di_test,dr,thetar,thetai,displ,irecy, &
                           dti_test,dtr,thetati,thetatr,q0,lmoi,lmor,utaui,utaur,&
                           storetdriver, nstepread, nstepreaddriver, irecydriver
@@ -190,14 +190,6 @@ subroutine tstep_integrate
   implicit none
 
   integer i,j,k,n,m
-
-  if(ifixuinf==2) then
-    dpdxl(:) = dpdxl(:) + dgdt*rk3coef
-!    if(ltempeq) then
-!      thlsrc = thlsrc + thlsrcdt*rk3coef
-!    end if
-!    write(6,*) 'dpdx = ', dpdxl(kb)
-  end if
 
   if (loneeqn) then
     do k=kb,ke
@@ -283,39 +275,23 @@ subroutine tstep_integrate
   end if
 
 
-!  Write some statistics to monitoring file
-      if ((myid==0) .and. (rk3step==3)) then
-        open(unit=11,file='monitor'//cmyid//'.txt',position='append')
-        if (iinletgen == 1) then
-          write(11,3001) timee
-        elseif (idriver == 1) then
-          write(11, '(I4)') nstepreaddriver
-          write(11, 3001) timee, u0(irecydriver,1,32)
-        ! elseif (idriver == 2) then
-          ! write(11, '(I4)') nstepreaddriver
-          ! write(11, 3001) timee, storetdriver(nstepreaddriver), u0(irecydriver, 1, 32)
-        else
-          write(11,3001) timee
-        end if
-3001    format (13(6e14.6))
-        close(11)
-
-        if (ifixuinf == 2) then
-          open(unit=11,file='dpdx___.txt',position='append')
-          write(11,3002) timee,dpdxl(kb)
-3002      format (13(6e20.12))
-          close(11)
-
-          if (ltempeq) then
-            open(unit=11,file='thlsrc.txt',position='append')
-            write(11,3002) timee,thlsrc
-3003        format (13(6e20.12))
-            close(11)
-          end if
-
-
-        end if
-      endif
+! !  Write some statistics to monitoring file
+!       if ((myid==0) .and. (rk3step==3)) then
+!         open(unit=11,file='monitor'//cmyid//'.txt',position='append')
+!         if (iinletgen == 1) then
+!           write(11,3001) timee
+!         elseif (idriver == 1) then
+!           write(11, '(I4)') nstepreaddriver
+!           write(11, 3001) timee, u0(irecydriver,1,32)
+!         ! elseif (idriver == 2) then
+!           ! write(11, '(I4)') nstepreaddriver
+!           ! write(11, 3001) timee, storetdriver(nstepreaddriver), u0(irecydriver, 1, 32)
+!         else
+!           write(11,3001) timee
+!         end if
+! 3001    format (13(6e14.6))
+!         close(11)
+!       endif
 
   up=0.
   vp=0.

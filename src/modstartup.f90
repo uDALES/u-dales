@@ -68,7 +68,7 @@ module modstartup
                                     lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice,&
                                     lzerogradtopscal, lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
-                                    thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
+                                    ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
                                     lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,flrT, lperiodicEBcorr, fraction,sinkbase,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lvfsparse,nnz,lfacTlyrs, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
@@ -534,7 +534,6 @@ module modstartup
       call MPI_BCAST(geodamptime, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wttop, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(wqtop, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(thlsrc, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(uflowrate, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(vflowrate, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Uinf, 1, MY_REAL, 0, comm3d, mpierr)

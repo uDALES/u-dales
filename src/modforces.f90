@@ -38,8 +38,8 @@ module modforces
   implicit none
   save
   private
-  public :: forces, coriolis, lstend,fixuinf1,fixuinf2,fixthetainf,&
-            detfreestream,detfreestrtmp,nudge,&
+  public :: forces, coriolis, lstend,fixuinf1,&
+            detfreestream,nudge,&
             masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes,shiftedPBCs, periodicEBcorr
   contains
 
@@ -178,7 +178,7 @@ module modforces
   subroutine detfreestream(freestream)
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
                           Uinf,Vinf,lvinf,dy
-    use modfields, only : u0,dpdxl,dgdt,dpdx,v0,u0av,v0av
+    use modfields, only : u0,dpdxl,dpdx,v0,u0av,v0av
     use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
     real, intent(out) :: freestream
@@ -193,80 +193,6 @@ module modforces
     end if
 
   end subroutine detfreestream
-
-  subroutine detfreestrtmp(freestrtmp)
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf
-    use modfields, only : thl0,dpdxl,dgdt,dpdx
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
-    implicit none
-
-    real, intent(out) :: freestrtmp
-
-    real  ttop
-    integer i,j
-
-    ttop = 0.
-
-    do j =jb,je
-      do i =ib,ie
-        ttop = ttop + thl0(i,j,ke)*dxf(i)
-      end do
-    end do
-    ttop = ttop / ( (je-jb+1)*(xh(ie+1)-xh(ib) ) )
-    call MPI_ALLREDUCE(ttop,    freestrtmp,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-    freestrtmp = freestrtmp / nprocs
-
-  end subroutine detfreestrtmp
-
-  subroutine fixuinf2
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf,ifixuinf,tscale,timee,rk3step,inletav,&
-                          freestreamav,freestrtmpav,ltempeq
-    use modsurfdata,only: thl_top
-    use modfields, only : u0,thl0,dpdxl,dgdt,dpdx,thlsrcdt
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
-    implicit none
-
-    real  utop,freestream,freestrtmp
-    integer i,j
-
-    utop = 0.
-
-    if ((ifixuinf==2) .and. (rk3step==3)) then
-      call detfreestream(freestream)
-
-      freestreamav=  freestream*dt/inletav + (1.-dt/inletav)*freestreamav
-
-      ! Write some statistics to monitoring file
-      ! if (myid==0) then
-      !   open(unit=11,file='freestr.txt',position='append')
-      !   write(11,3002) timee,freestream,freestreamav
-      !   3002      format (13(6e14.6))
-      !   close(11)
-      ! endif
-
-
-      !    dgdt =  (1./tscale) * (freestream - Uinf)
-      !    dgdt =  (1./dt) * (freestreamav - Uinf)
-          dgdt =  (1./tscale) * (freestreamav - Uinf)            ! plus sign because dpdx is SUBTRACTED from Navier-Stokes eqs
-      !    dgdt =  (1./inletav) * (freestreamav - Uinf)
-
-      !    if (ltempeq) then  !tg3315 commented
-      !      call detfreestrtmp(freestrtmp)
-      !      freestrtmpav=  freestrtmp*dt/inletav + (1.-dt/inletav)*freestrtmpav
-      !      thlsrcdt = -(1./tscale) * (freestrtmpav - thl_top)   ! minus sign because thlsr is ADDED to Navier-Stokes eqs.
-
-      !      if (myid==0) then
-      !        open(unit=11,file='theta_top.txt',position='append')
-      !        write(11,3009) timee,freestrtmp,freestrtmpav
-      !3009    format (13(6e20.12))
-      !        close(11)
-      !      endif
-      !    end if
-
-    end if
-  end subroutine fixuinf2
 
   subroutine fixuinf1
     use modglobal, only : ib, ie, jb, je, kb, ke, dt, &
@@ -353,49 +279,6 @@ module modforces
     end if
 
   end subroutine fixuinf1
-
-  subroutine fixthetainf
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf,ifixuinf,tscale,timee,rk3step,inletav,&
-                          freestreamav,thlsrc,ltempeq
-    use modfields, only : thl0
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
-    use modsurfdata, only: thl_top
-    implicit none
-
-    real  ttop,freestreamtheta
-    integer i,j
-
-    ttop = 0.
-
-    ! if (ifixuinf==1 .and. rk3step==3 .and. ltempeq) then !tg3315 commented
-
-    !   do j =jb,je
-    !     do i =ib,ie
-    !       ttop = ttop + thl0(i,j,ke)*dxf(i)
-    !     end do
-    !   end do
-    !   ttop = ttop / ( (je-jb+1)*(xh(ie+1)-xh(ib) ) )
-    !   call MPI_ALLREDUCE(ttop,    freestreamtheta,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-    !   freestreamtheta = freestreamtheta / nprocs
-
-
-    !   thlsrc = -(1./dt) * (freestreamtheta - thl_top)
-    !     if (myid==0) then
-    !       open(unit=11,file='theta_top.txt',position='append')
-    !       write(11,3003) timee,freestreamtheta
-    !       3003    format (13(6e20.12))
-    !       close(11)
-
-    !       open(unit=11,file='thlsrc.txt',position='append')
-    !       write(11,3002) timee,thlsrc
-    !       3002    format (13(6e20.12))
-    !       close(11)
-    !     endif
-
-    ! end if
-
-  end subroutine fixthetainf
 
   subroutine masscorr
     !> correct the velocities to get prescribed flow rate

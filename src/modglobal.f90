@@ -452,10 +452,6 @@ module modglobal
 
    character(3) cexpnr
 
-   real :: thlsrc = 0.
-
-   ! modphsgrd.f90
-
    real :: dx !<  grid spacing in x-direction
    real :: dx2 !<  grid spacing in x-direction squared
    real :: dxi !<  1/dx

@@ -9,8 +9,7 @@ module modcuda
                              BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xh, &
-                             eps1, numol, prandtlmoli, prandtlturb, grav, fkar2, &
-                             ifixuinf
+                             eps1, numol, prandtlmoli, prandtlturb, grav, fkar2
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
                              um, vm, wm, e12m, &
@@ -407,10 +406,6 @@ module modcuda
          end if
 
          dthvdz_d = dthvdz
-         
-         if(ifixuinf==2) then
-            dpdxl_d = dpdxl
-         end if
       end subroutine updateDevice
 
       subroutine updateDevicePriorPoiss

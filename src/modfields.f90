@@ -504,8 +504,6 @@ module modfields
   real              :: udef
   real              :: vdef
 
-  real              :: thlsrcdt                     ! thlsrc -> thlsrcdt is used to solve 1-order ODE for thlsrc
-  real              :: dgdt                         ! g = dp/dx -> dgdt is used to solve 1-order ODE for dpdx
   real              :: dpdx = 0.                   ! dpdx given in namoptions
 
   real              :: uoutarea                     !< area of domain u-outlet

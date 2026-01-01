@@ -37,7 +37,7 @@ program DALESURBAN      !Version 48
   use modboundary,       only : initboundary,boundary,grwdamp,halos
   use modthermodynamics, only : initthermodynamics,thermodynamics
   use modsubgrid,        only : initsubgrid,subgrid
-  use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
+  use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
   use modtrees,          only : createtrees,trees
@@ -207,8 +207,6 @@ program DALESURBAN      !Version 48
 !------------------------------------------------------
 !   3.4   EXECUTE ADD ONS
 !------------------------------------------------------
-    call fixuinf2
-
     call fixuinf1
 
 !-----------------------------------------------------------------------
@@ -240,8 +238,6 @@ program DALESURBAN      !Version 48
     call statsdump
 
     call boundary
-
-    !call fixthetainf ! deprecated
 
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
