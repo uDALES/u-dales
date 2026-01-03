@@ -5,19 +5,20 @@ module modcuda
                              dx2, dxi, dx2i, dxi5, dxiq, dy2, dyi, dy2i, dyi5, dyiq, dxf, dxhi, &
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
-                             ltempeq, lmoist, nsv, lles, lbuoyancy, ltrees, &
+                             ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, ltrees, &
                              BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xh, &
                              eps1, numol, prandtlmoli, prandtlturb, grav, fkar2
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
-                             um, vm, wm, e12m, &
+                             um, vm, wm, e12m, thlm, qtm, svm, &
                              tau_x, tau_y, tau_z, thl_flux, &
                              u0av, v0av, thl0av, qt0av, sv0av, dthvdz, ug, vg, whls, tsc, &
                              dpdxl, dpdyl, thv0h, thvh, thlpcar, &
                              dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls, &
-                             uprof, vprof
+                             uprof, vprof, &
+                             IIc
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
@@ -53,14 +54,16 @@ module modcuda
 
    real, device, allocatable :: u0_d(:,:,:), v0_d(:,:,:), w0_d(:,:,:), pres0_d(:,:,:), e120_d(:,:,:), thl0_d(:,:,:), thl0c_d(:,:,:), qt0_d(:,:,:), sv0_d(:,:,:,:)
    real, device, allocatable :: up_d(:,:,:), vp_d(:,:,:), wp_d(:,:,:), e12p_d(:,:,:), thlp_d(:,:,:), thlpc_d(:,:,:), qtp_d(:,:,:), svp_d(:,:,:,:)
-   real, device, allocatable :: um_d(:,:,:), vm_d(:,:,:), wm_d(:,:,:), e12m_d(:,:,:)
+   real, device, allocatable :: um_d(:,:,:), vm_d(:,:,:), wm_d(:,:,:), e12m_d(:,:,:), thlm_d(:,:,:), qtm_d(:,:,:), svm_d(:,:,:,:)
    real, device, allocatable :: p_d(:,:,:), pup_d(:,:,:), pvp_d(:,:,:), pwp_d(:,:,:)
    real, device, allocatable :: tau_x_d(:,:,:), tau_y_d(:,:,:), tau_z_d(:,:,:), thl_flux_d(:,:,:)
    real, device, allocatable :: dthvdz_d(:,:,:)
    real, device, allocatable :: ekm_d(:,:,:), ekh_d(:,:,:), sbshr_d(:,:,:), sbbuo_d(:,:,:), sbdiss_d(:,:,:), zlt_d(:,:,:), damp_d(:,:,:)
    real, device, allocatable :: thv0h_d(:,:,:)
+   real, device, allocatable :: IIc_d(:,:,:)
 
    real, device, allocatable :: dumu_d(:,:,:), duml_d(:,:,:)
+   real, device, allocatable :: dummyNO_d(:,:,:), dummyNO2_d(:,:,:), dummyO3_d(:,:,:)
 
    contains
       subroutine initCUDA
@@ -193,8 +196,8 @@ module modcuda
 
          if (loneeqn) then
             allocate(e120_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-            allocate(e12p_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(e12m_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+            allocate(e12p_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(sbshr_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(sbbuo_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(sbdiss_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
@@ -203,6 +206,7 @@ module modcuda
 
          if (ltempeq) then
             allocate(thl0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+            allocate(thlm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(thlp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             if (iadv_thl == iadv_kappa) then
                allocate(thl0c_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc))
@@ -223,6 +227,7 @@ module modcuda
 
          if (lmoist) then
             allocate(qt0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+            allocate(qtm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(qtp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(qt0av_d(kb:ke+kh))
 
@@ -236,8 +241,16 @@ module modcuda
 
          if (nsv>0) then
             allocate(sv0_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv))
+            allocate(svm_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv))
             allocate(svp_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,nsv))
             allocate(sv0av_d(kb:ke+khc,nsv))
+            if (nsv==3 .and. lchem) then
+               allocate(dummyNO_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
+               allocate(dummyNO2_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
+               allocate(dummyO3_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
+               allocate(IIc_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
+               IIc_d = IIc
+            end if
          end if
 
          allocate(ekm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -312,15 +325,20 @@ module modcuda
          deallocate(u0av_d, v0av_d, ug_d, vg_d, whls_d, tsc_d)
          deallocate(dpdxl_d, dpdyl_d, dudxls_d, dudyls_d, dvdxls_d, dvdyls_d)
          deallocate(uprof_d, vprof_d, u0driver_d)
-         if (loneeqn) deallocate(e120_d, e12p_d, e12m_d, sbshr_d, sbbuo_d, sbdiss_d, zlt_d)
+         if (loneeqn) deallocate(e120_d, e12m_d, e12p_d, sbshr_d, sbbuo_d, sbdiss_d, zlt_d)
          if (ltempeq) then
-            deallocate(thl0_d, thlp_d, thl_flux_d)
+            deallocate(thl0_d, thlm_d, thlp_d, thl_flux_d)
             if (iadv_thl == iadv_kappa) deallocate(thl0c_d, thlpc_d)
             deallocate(thv0h_d, thvh_d, thl0av_d, thlpcar_d)
             deallocate(dthldxls_d, dthldyls_d)
          end if
-         if (lmoist) deallocate(qt0_d, qtp_d, qt0av_d, dqtdxls_d, dqtdyls_d, dqtdtls_d)
-         if (nsv>0) deallocate(sv0_d, svp_d, sv0av_d)
+         if (lmoist) deallocate(qt0_d, qtm_d, qtp_d, qt0av_d, dqtdxls_d, dqtdyls_d, dqtdtls_d)
+         if (nsv>0) then
+            deallocate(sv0_d, svm_d, svp_d, sv0av_d)
+            if (nsv==3 .and. lchem) then
+               deallocate(dummyNO_d, dummyNO2_d, dummyO3_d, IIc_d)
+            end if
+         end if
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
             deallocate(dumu_d, duml_d, dxhci_d, dxfc_d, dzhci_d, dzfc_d)
          end if
@@ -430,23 +448,54 @@ module modcuda
          end if
 
          if (ltempeq) then
-            thlp_d = thlp
             thl0_d = thl0
+            thlm_d = thlm
+            thlp_d = thlp
+            if (iadv_thl == iadv_kappa) thl0c_d = thl0c
          end if
          if (lmoist) then
-            qtp_d = qtp
             qt0_d = qt0
+            qtm_d = qtm
+            qtp_d = qtp
+         end if
+         if (nsv>0) then
+            sv0_d = sv0
+            svm_d = svm
+            svp_d = svp
+         end if
+         if (loneeqn) then
+            e12m_d = e12m
+            e120_d = e120
+            e12p_d = e12p
          end if
       end subroutine updateDevicePriorPoiss
 
       subroutine updateHostAfterPoiss
          implicit none
-         up = up_d
-         vp = vp_d
-         wp = wp_d
+         u0 = u0_d
+         v0 = v0_d
+         w0 = w0_d
+         um = um_d
+         vm = vm_d
+         wm = wm_d
          pres0 = pres0_d
-         if (ltempeq) thlp = thlp_d
-         if (lmoist) qtp = qtp_d
+         if (ltempeq) then
+            thl0 = thl0_d
+            thlm = thlm_d
+            if (iadv_thl == iadv_kappa) thl0c = thl0c_d
+         end if
+         if (lmoist) then
+            qt0 = qt0_d
+            qtm = qtm_d
+         end if
+         if (nsv>0) then
+            sv0 = sv0_d
+            svm = svm_d
+         end if
+         if (loneeqn) then
+            e120 = e120_d
+            e12m = e12m_d
+         end if
       end subroutine updateHostAfterPoiss
 
       subroutine updateHost

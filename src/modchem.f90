@@ -22,56 +22,92 @@
 !  Copyright 2006-2021 the uDALES Team.
 !
 module modchem
-implicit none
-save
+  implicit none
+  save
 
-contains
+  contains
     subroutine chem
-    use modglobal,  only : lchem,k1,JNO2,dt,rk3step,ib,ie,ihc,ih,jb,je,jhc,jh,kb,ke,khc,kh
-    use modfields,  only : svp,svm,sv0,IIc
-    implicit none
-    real, dimension(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)     :: dummyNO, dummyNO2, dummyO3
+      use modglobal,  only : lchem, k1, JNO2, dt, rk3step, kb, ke, khc
+#if defined(_GPU)
+      use modcuda,    only : IIc_d, dummyNO_d, dummyNO2_d, dummyO3_d, sv0_d
+#else
+      use modfields,  only : IIc, sv0
+      use modglobal,  only : ib, ie, ihc, jb, je, jhc
+#endif
+      ! use modfields,  only : svp, svm
+      implicit none
+#if !defined(_GPU)
+      real, dimension(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)     :: dummyNO, dummyNO2, dummyO3
+#endif
 
-    if (lchem .eqv. .false.) return
+      if (.not. lchem) return
 
-    ! forward Euler
+      ! forward Euler
 
-    ! [NO]
-!    svp(:,:,:,1) = svp(:,:,:,1) + 30.006 * ( JNO2 * (svm(:,:,:,2)/46.005) - k1 * (svm(:,:,:,1) / 30.006) * (svm(:,:,:,3)/47.997) )
+      ! [NO]
+!      svp(:,:,:,1) = svp(:,:,:,1) + 30.006 * ( JNO2 * (svm(:,:,:,2)/46.005) - k1 * (svm(:,:,:,1) / 30.006) * (svm(:,:,:,3)/47.997) )
 
-    ! [NO2]
-!    svp(:,:,:,2) = svp(:,:,:,2) + 46.005 * (-JNO2 * (svm(:,:,:,2)/46.005) + k1 * (svm(:,:,:,1) / 30.006) * (svm(:,:,:,3)/47.997) )
+      ! [NO2]
+!      svp(:,:,:,2) = svp(:,:,:,2) + 46.005 * (-JNO2 * (svm(:,:,:,2)/46.005) + k1 * (svm(:,:,:,1) / 30.006) * (svm(:,:,:,3)/47.997) )
 
-    ! [O3]
-!    svp(:,:,:,3) = svp(:,:,:,3) + 47.997 * ( JNO2 * (svm(:,:,:,2)/46.005) - k1 * (svm(:,:,:,1) / 30.006) * (svm(:,:,:,3)/47.997) )
+      ! [O3]
+!      svp(:,:,:,3) = svp(:,:,:,3) + 47.997 * ( JNO2 * (svm(:,:,:,2)/46.005) - k1 * (svm(:,:,:,1) / 30.006) * (svm(:,:,:,3)/47.997) )
 
 
-    if (.not. rk3step==3)  return
+      if (.not. rk3step==3)  return
 
-    ! convert into mol/m^3
-    dummyNO = IIc*sv0(:,:,kb:ke+khc,1)/30.006
-    dummyNO2= IIc*sv0(:,:,kb:ke+khc,2)/46.005
-    dummyO3 = IIc*sv0(:,:,kb:ke+khc,3)/47.997
+      ! convert into mol/m^3
+#if defined(_GPU)
+      !$acc kernels default(present)
+      dummyNO_d  = IIc_d*sv0_d(:,:,kb:ke+khc,1)/30.006
+      dummyNO2_d = IIc_d*sv0_d(:,:,kb:ke+khc,2)/46.005
+      dummyO3_d  = IIc_d*sv0_d(:,:,kb:ke+khc,3)/47.997
+      !$acc end kernels
+#else
+      dummyNO  = IIc*sv0(:,:,kb:ke+khc,1)/30.006
+      dummyNO2 = IIc*sv0(:,:,kb:ke+khc,2)/46.005
+      dummyO3  = IIc*sv0(:,:,kb:ke+khc,3)/47.997
+#endif
 
-    !backward Euler, semi-implicit
-!    sv0(:,:,kb:ke+khc,1) = 30.006 * ( ( (sv0(:,:,kb:ke+khc,1)/30.006) + JNO2 * dummyNO2 * dt) / (1. + k1 * dummyO3 * dt) )
+      !backward Euler, semi-implicit
+!      sv0(:,:,kb:ke+khc,1) = 30.006 * ( ( (sv0(:,:,kb:ke+khc,1)/30.006) + JNO2 * dummyNO2 * dt) / (1. + k1 * dummyO3 * dt) )
 
-!    sv0(:,:,kb:ke+khc,2) = 46.005 * ( ( (sv0(:,:,kb:ke+khc,2)/46.005) + k1 * dummyNO * dummyO3 * dt )  / (1. + JNO2 * dt) )
+!      sv0(:,:,kb:ke+khc,2) = 46.005 * ( ( (sv0(:,:,kb:ke+khc,2)/46.005) + k1 * dummyNO * dummyO3 * dt )  / (1. + JNO2 * dt) )
 
-!    sv0(:,:,kb:ke+khc,3) = 47.997 * ( ( (sv0(:,:,kb:ke+khc,3)/47.997) + JNO2 * dummyNO2 * dt) / (1. + k1 * dummyNO * dt) )
+!      sv0(:,:,kb:ke+khc,3) = 47.997 * ( ( (sv0(:,:,kb:ke+khc,3)/47.997) + JNO2 * dummyNO2 * dt) / (1. + k1 * dummyNO * dt) )
 
-    !backward Euler, fully implicit. Derivation at (/projects/Chemistry/FullyImplicit.mw)
-       sv0(:,:,kb:ke+khc,1) = 30.006 * ( (sv0(:,:,kb:ke+khc,1)/30.006) + ( dt * (- k1 * dummyNO * dummyO3 + JNO2 * dummyNO2) ) / &
-                              ( 1. + ( ( dummyNO + dummyO3 ) * k1 + JNO2 ) * dt ) )
+      !backward Euler, fully implicit. Derivation at (/projects/Chemistry/FullyImplicit.mw)
+#if defined(_GPU)
+      !$acc kernels default(present)
+      sv0_d(:,:,kb:ke+khc,1) = 30.006 * ( (sv0_d(:,:,kb:ke+khc,1)/30.006) + ( dt * (- k1 * dummyNO_d * dummyO3_d + JNO2 * dummyNO2_d) ) / &
+                             ( 1. + ( ( dummyNO_d + dummyO3_d ) * k1 + JNO2 ) * dt ) )
+      !$acc end kernels
+#else
+      sv0(:,:,kb:ke+khc,1) = 30.006 * ( (sv0(:,:,kb:ke+khc,1)/30.006) + ( dt * (- k1 * dummyNO * dummyO3 + JNO2 * dummyNO2) ) / &
+                             ( 1. + ( ( dummyNO + dummyO3 ) * k1 + JNO2 ) * dt ) )
+#endif
 
-       sv0(:,:,kb:ke+khc,2) = 46.005 * ( (sv0(:,:,kb:ke+khc,2)/46.005) - ( dt * (- k1 * dummyNO * dummyO3 + JNO2 * dummyNO2) ) / &
-                              ( 1. + ( ( dummyNO + dummyO3 ) * k1 + JNO2 ) * dt ) ) 
+#if defined(_GPU)
+      !$acc kernels default(present)
+      sv0_d(:,:,kb:ke+khc,2) = 46.005 * ( (sv0_d(:,:,kb:ke+khc,2)/46.005) - ( dt * (- k1 * dummyNO_d * dummyO3_d + JNO2 * dummyNO2_d) ) / &
+                             ( 1. + ( ( dummyNO_d + dummyO3_d ) * k1 + JNO2 ) * dt ) )
+      !$acc end kernels
+#else
+      sv0(:,:,kb:ke+khc,2) = 46.005 * ( (sv0(:,:,kb:ke+khc,2)/46.005) - ( dt * (- k1 * dummyNO * dummyO3 + JNO2 * dummyNO2) ) / &
+                             ( 1. + ( ( dummyNO + dummyO3 ) * k1 + JNO2 ) * dt ) )
+#endif
 
-       sv0(:,:,kb:ke+khc,3) = 47.997 * ( (sv0(:,:,kb:ke+khc,3)/47.997) + ( dt * (- k1 * dummyNO * dummyO3 + JNO2 * dummyNO2) ) / &
-                              ( 1. + ( ( dummyNO + dummyO3 ) * k1 + JNO2 ) * dt ) )
- 
-    ! alternative method in Zhong 2017 eqn. 7, analytical solution!
-
+#if defined(_GPU)
+      !$acc kernels default(present)
+      sv0_d(:,:,kb:ke+khc,3) = 47.997 * ( (sv0_d(:,:,kb:ke+khc,3)/47.997) + ( dt * (- k1 * dummyNO_d * dummyO3_d + JNO2 * dummyNO2_d) ) / &
+                             ( 1. + ( ( dummyNO_d + dummyO3_d ) * k1 + JNO2 ) * dt ) )
+      !$acc end kernels
+#else
+      sv0(:,:,kb:ke+khc,3) = 47.997 * ( (sv0(:,:,kb:ke+khc,3)/47.997) + ( dt * (- k1 * dummyNO * dummyO3 + JNO2 * dummyNO2) ) / &
+                             ( 1. + ( ( dummyNO + dummyO3 ) * k1 + JNO2 ) * dt ) )
+#endif 
+      
+      ! alternative method in Zhong 2017 eqn. 7, analytical solution!
     end subroutine chem
 
-  end module modchem
+end module modchem

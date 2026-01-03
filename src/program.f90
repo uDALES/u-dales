@@ -28,7 +28,7 @@ program DALESURBAN      !Version 48
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
 #if defined(_GPU)
   use cudafor
-  use modcuda,           only : initCUDA, updateDevice, updateDevicePriorPoiss, updateHost, updateHostAfterPoiss, checkCUDA, exitCUDA
+  use modcuda,           only : initCUDA, updateDevice, updateHost, updateDevicePriorPoiss, updateHostAfterPoiss, checkCUDA, exitCUDA
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
@@ -46,6 +46,7 @@ program DALESURBAN      !Version 48
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
   use moddriver,         only : initdriver
+  use modtstep,          only : tstep_update,tstep_integrate
 
 !----------------------------------------------------------------
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
@@ -99,10 +100,6 @@ program DALESURBAN      !Version 48
 
   call createscals
 
-#if defined(_GPU)
-  call initCUDA
-#endif
-
 !---------------------------------------------------------
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
@@ -127,6 +124,10 @@ program DALESURBAN      !Version 48
   call init_heatpump
 
   !call fielddump
+
+#if defined(_GPU)
+  call initCUDA
+#endif
 
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
@@ -223,11 +224,11 @@ program DALESURBAN      !Version 48
 
     ! call purifiers      !placing need to be checked; Not GPU compatible yet
 
+    call tstep_integrate
+
 #if defined(_GPU)
     call updateHostAfterPoiss
 #endif
-
-    call tstep_integrate
 
     call halos
 

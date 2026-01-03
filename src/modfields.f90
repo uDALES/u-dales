@@ -27,30 +27,29 @@ module modfields
   ! Prognostic variables
 
   real, allocatable :: worksave(:)      !<   Used in POISR!
-  real, allocatable :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
 #if defined(_GPU)
-  real, allocatable, pinned :: um(:,:,:)
-  real, allocatable, pinned :: vm(:,:,:)
-  real, allocatable, pinned :: wm(:,:,:)
-  real, allocatable, pinned :: e12m(:,:,:)
-#else
-  real, allocatable :: um(:,:,:)        !<   x-component of velocity at time step t-1
-  real, allocatable :: vm(:,:,:)        !<   y-component of velocity at time step t-1
-  real, allocatable :: wm(:,:,:)        !<   z-component of velocity at time step t-1
-  real, allocatable :: e12m(:,:,:)      !<   turb. kin. energy at time step t-1
-#endif
-  real, allocatable :: qtm(:,:,:)       !<   total specific humidity at time step t
-#if defined(_GPU)
+  real, allocatable, pinned         :: um(:,:,:)
+  real, allocatable, pinned         :: vm(:,:,:)
+  real, allocatable, pinned         :: wm(:,:,:)
+  real, allocatable, pinned         :: e12m(:,:,:)
+  real, allocatable, pinned         :: thlm(:,:,:)
+  real, allocatable, pinned         :: qtm(:,:,:)
   real, allocatable, pinned, target :: u0(:,:,:)
   real, allocatable, pinned, target :: v0(:,:,:)
   real, allocatable, pinned, target :: w0(:,:,:)
   real, allocatable, pinned, target :: pres0(:,:,:)
 #else
-  real, allocatable, target :: u0(:,:,:)        !<   x-component of velocity at time step t
-  real, allocatable, target :: v0(:,:,:)        !<   y-component of velocity at time step t
-  real, allocatable, target :: w0(:,:,:)        !<   z-component of velocity at time step t
-  real, allocatable, target :: pres0(:,:,:)     !<   pressure at time step t
-#endif  
+  real, allocatable                 :: um(:,:,:)        !<   x-component of velocity at time step t-1
+  real, allocatable                 :: vm(:,:,:)        !<   y-component of velocity at time step t-1
+  real, allocatable                 :: wm(:,:,:)        !<   z-component of velocity at time step t-1
+  real, allocatable                 :: e12m(:,:,:)      !<   turb. kin. energy at time step t-1
+  real, allocatable                 :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
+  real, allocatable                 :: qtm(:,:,:)       !<   total specific humidity at time step t-1
+  real, allocatable,         target :: u0(:,:,:)        !<   x-component of velocity at time step t
+  real, allocatable,         target :: v0(:,:,:)        !<   y-component of velocity at time step t
+  real, allocatable,         target :: w0(:,:,:)        !<   z-component of velocity at time step t
+  real, allocatable,         target :: pres0(:,:,:)     !<   pressure at time step t
+#endif 
   real, allocatable, target :: div(:,:,:)
   real, allocatable, target :: dudx(:,:,:)
   real, allocatable, target :: dvdy(:,:,:)
@@ -110,11 +109,12 @@ module modfields
   real, allocatable                 :: qtp(:,:,:)       !<   tendency of qtm
 #endif
 
-  real, allocatable :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
 #if defined(_GPU)
+  real, allocatable, pinned         :: svm(:,:,:,:)
   real, allocatable, pinned, target :: sv0(:,:,:,:)
   real, allocatable, pinned         :: svp(:,:,:,:)
 #else
+  real, allocatable                 :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
   real, allocatable,         target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
   real, allocatable                 :: svp(:,:,:,:)             !<  tendency of sv(n)
 #endif
