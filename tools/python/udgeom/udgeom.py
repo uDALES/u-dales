@@ -191,7 +191,8 @@ class UDGeom:
             raise ValueError(f"Error saving STL file {filepath}: {e}")
     
     def show(self, color_buildings: bool = True, plot_quiver: bool = True, 
-             normal_scale: float = 0.2, figsize: tuple = (10, 8)):
+             normal_scale: float = 0.2, figsize: tuple = (10, 8),
+             show_edges: bool = True):
         """
         Visualize the geometry.
         
@@ -211,6 +212,8 @@ class UDGeom:
             Scaling factor for normal vector arrow lengths.
         figsize : tuple, default=(10, 8)
             Figure size in inches (width, height).
+        show_edges : bool, default=True
+            If True, draw facet edges; set False for cleaner surfaces.
             
         Raises
         ------
@@ -240,6 +243,9 @@ class UDGeom:
         
         # Separate ground and building facets
         is_building = face_centers[:, 2] > 0
+
+        edge_color = 'k' if show_edges else 'none'
+        edge_width = 0.2 if show_edges else 0.0
         
         if color_buildings:
             # Plot ground facets (light gray)
@@ -250,9 +256,11 @@ class UDGeom:
                 
                 ground_collection = Poly3DCollection(
                     ground_triangles,
-                    facecolors=[0.85, 0.85, 0.85],
-                    edgecolors='none',
-                    alpha=1.0
+                    facecolors=[0.85, 0.85, 0.85],  # opaque ground
+                    edgecolors=edge_color,
+                    linewidths=edge_width,
+                    alpha=1.0,
+                    zsort='average',
                 )
                 ax.add_collection3d(ground_collection)
             
@@ -265,8 +273,10 @@ class UDGeom:
                 building_collection = Poly3DCollection(
                     building_triangles,
                     facecolors=[0.73, 0.83, 0.96],
-                    edgecolors='none',
-                    alpha=1.0
+                    edgecolors=edge_color,
+                    linewidths=edge_width,
+                    alpha=1.0,
+                    zsort='average',
                 )
                 ax.add_collection3d(building_collection)
         else:
@@ -276,8 +286,10 @@ class UDGeom:
             collection = Poly3DCollection(
                 all_triangles,
                 facecolors=[0.85, 0.85, 0.85],
-                edgecolors='none',
-                alpha=1.0
+                edgecolors=edge_color,
+                linewidths=edge_width,
+                alpha=1.0,
+                zsort='average',
             )
             ax.add_collection3d(collection)
         
@@ -319,6 +331,8 @@ class UDGeom:
         ax.view_init(elev=30, azim=45)
         
         plt.tight_layout()
+        plt.xlabel('x [m]')
+        plt.ylabel('y [m]')
         plt.show()
     
     @property

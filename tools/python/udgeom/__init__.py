@@ -10,9 +10,19 @@ Copyright (C) 2016-2025 the uDALES Team.
 from .udgeom import UDGeom
 from .calculate_outline import calculate_outline
 from .split_buildings import split_buildings
+from .geometry_generation import (
+    create_flat_surface,
+    create_canyons,
+    create_cubes,
+    create_realistic,
+)
 
 __all__ = [
     'UDGeom',
     'calculate_outline',
-    'split_buildings'
+    'split_buildings',
+    'create_flat_surface',
+    'create_canyons',
+    'create_cubes',
+    'create_realistic'
 ]
