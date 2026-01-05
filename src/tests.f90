@@ -14,21 +14,17 @@ module tests
   
   implicit none
   save
-  public :: test_read_sparse_ijk, inittest, exittest
+  public :: tests_read_sparse_ijk, tests_2decomp_init_exit
 
 contains
 
   !> Initialize MPI and 2DECOMP for testing
   subroutine tests_2decomp_init_exit
     integer :: nx=64, ny=64, nz=64
-    !integer :: p_row=2, p_col=2
     integer :: p_row=0, p_col=0
     integer :: ierror
 
     call MPI_INIT(ierror)
-    !call MPI_COMM_RANK(MPI_COMM_WORLD,nrank,ierr)
-    !call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-    !call decomp_2d_init(nx,ny,nz,p_row,p_col)
     call decomp_2d_init(nx,ny,nz,p_row,p_col)
 
     write(*,*) xstart
@@ -46,172 +42,162 @@ contains
 
   end subroutine tests_2decomp_init_exit
 
-contains
-
-  !> Test the read_sparse_ijk routine by comparing with existing manual reading
-  subroutine test_read_sparse_ijk(filename, npts, nskip)
-    use modglobal,    only : ifinput
-    use modmpi,       only : myid, comm3d, mpierr
+  !> Test read_sparse_ijk by comparing with actual IBM initialization
+  !> This test calls initibm which populates all global arrays,
+  !> then compares with the new generic read_sparse_ijk function
+  subroutine tests_read_sparse_ijk()
+    use modglobal,    only : libm, cexpnr
+    use modmpi,       only : myid
     use modfileinput, only : read_sparse_ijk
+    use modibm,       only : initibm
+    use modibm,       only : solid_info_u, solid_info_v, solid_info_w, solid_info_c
+    use modibm,       only : bound_info_u, bound_info_v, bound_info_w, bound_info_c
+    use modibm,       only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c
+    use modibm,       only : nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c
+    use initfac,      only : readfacetfiles
     use decomp_2d,    only : zstart, zend
-    use mpi
     
     implicit none
     
-    character(len=*), intent(in) :: filename
-    integer, intent(in)           :: npts
-    integer, intent(in), optional :: nskip
-    
-    ! Variables for old method
-    integer, allocatable :: pts_glob_old(:,:)
-    logical, allocatable :: lpts_old(:)
-    integer, allocatable :: ids_loc_old(:)
-    integer, allocatable :: pts_loc_old(:,:)
-    integer :: npts_loc_old
-    
-    ! Variables for new method
     integer :: npts_loc_new
     integer, allocatable :: ids_loc_new(:)
     integer, allocatable :: pts_loc_new(:,:)
+    integer :: m
+    logical :: all_passed
     
-    ! Temporary variables
-    integer :: n, m, nh, ierr, i, j, k
-    character(80) :: chmess
-    logical :: test_passed
-    
-    ! Set number of header lines
-    nh = 1
-    if (present(nskip)) nh = nskip
-    
-    !---------------------------------------------------------------------------
-    ! OLD METHOD: Manual reading (existing code pattern)
-    !---------------------------------------------------------------------------
-    allocate(pts_glob_old(npts, 3))
-    allocate(lpts_old(npts))
-    
-    ! Read file on rank 0
-    if (myid == 0) then
-      open(ifinput, file=filename, status='old', iostat=ierr)
-      if (ierr /= 0) then
-        write(*, '(A,A)') 'ERROR: Cannot open file: ', trim(filename)
-        stop 1
-      end if
-      
-      ! Skip header lines
-      do n = 1, nh
-        read(ifinput, '(a80)') chmess
-      end do
-      
-      ! Read coordinates
-      do n = 1, npts
-        read(ifinput, *) pts_glob_old(n, 1), pts_glob_old(n, 2), pts_glob_old(n, 3)
-      end do
-      
-      close(ifinput)
+    if (.not. libm) then
+      if (myid == 0) write(*, '(A)') 'Skipping read_sparse_ijk test: libm=false'
+      return
     end if
     
-    ! Broadcast to all ranks
-    call MPI_BCAST(pts_glob_old, npts*3, MPI_INTEGER, 0, comm3d, mpierr)
+    ! Read facet files and initialize IBM - populates all global arrays
+    call readfacetfiles
+    call initibm
     
-    ! Determine local points and count them
-    npts_loc_old = 0
-    do n = 1, npts
-      if ((pts_glob_old(n,1) >= zstart(1) .and. pts_glob_old(n,1) <= zend(1)) .and. &
-          (pts_glob_old(n,2) >= zstart(2) .and. pts_glob_old(n,2) <= zend(2))) then
-        lpts_old(n) = .true.
-        npts_loc_old = npts_loc_old + 1
-      else
-        lpts_old(n) = .false.
-      end if
-    end do
+    all_passed = .true.
     
-    ! Pack into compact arrays with index remapping
-    allocate(ids_loc_old(npts_loc_old))
-    allocate(pts_loc_old(npts_loc_old, 3))
+    ! Test solid_u
+    call read_sparse_ijk('solid_u.' // cexpnr, nsolpts_u, npts_loc_new, ids_loc_new, pts_loc_new)
+    if (.not. compare_solid(solid_info_u, npts_loc_new, ids_loc_new, pts_loc_new, 'solid_u')) all_passed = .false.
+    deallocate(ids_loc_new, pts_loc_new)
     
-    m = 0
-    do n = 1, npts
-      if (lpts_old(n)) then
-        m = m + 1
-        ids_loc_old(m) = n
-        pts_loc_old(m,1) = pts_glob_old(n,1) - zstart(1) + 1
-        pts_loc_old(m,2) = pts_glob_old(n,2) - zstart(2) + 1
-        pts_loc_old(m,3) = pts_glob_old(n,3) - zstart(3) + 1
-      end if
-    end do
+    ! Test solid_v
+    call read_sparse_ijk('solid_v.' // cexpnr, nsolpts_v, npts_loc_new, ids_loc_new, pts_loc_new)
+    if (.not. compare_solid(solid_info_v, npts_loc_new, ids_loc_new, pts_loc_new, 'solid_v')) all_passed = .false.
+    deallocate(ids_loc_new, pts_loc_new)
     
-    deallocate(pts_glob_old, lpts_old)
+    ! Test solid_w
+    call read_sparse_ijk('solid_w.' // cexpnr, nsolpts_w, npts_loc_new, ids_loc_new, pts_loc_new)
+    if (.not. compare_solid(solid_info_w, npts_loc_new, ids_loc_new, pts_loc_new, 'solid_w')) all_passed = .false.
+    deallocate(ids_loc_new, pts_loc_new)
     
-    !---------------------------------------------------------------------------
-    ! NEW METHOD: Using read_sparse_ijk
-    !---------------------------------------------------------------------------
-    if (present(nskip)) then
-      call read_sparse_ijk(filename, npts, npts_loc_new, ids_loc_new, pts_loc_new, nskip=nh)
-    else
-      call read_sparse_ijk(filename, npts, npts_loc_new, ids_loc_new, pts_loc_new)
+    ! Test solid_c
+    call read_sparse_ijk('solid_c.' // cexpnr, nsolpts_c, npts_loc_new, ids_loc_new, pts_loc_new)
+    if (.not. compare_solid(solid_info_c, npts_loc_new, ids_loc_new, pts_loc_new, 'solid_c')) all_passed = .false.
+    deallocate(ids_loc_new, pts_loc_new)
+    
+    ! Test fluid_boundary_u
+    call read_sparse_ijk('fluid_boundary_u.' // cexpnr, nbndpts_u, npts_loc_new, ids_loc_new, pts_loc_new)
+    if (.not. compare_boundary(bound_info_u, npts_loc_new, ids_loc_new, pts_loc_new, 'fluid_boundary_u')) all_passed = .false.
+    deallocate(ids_loc_new, pts_loc_new)
+    
+    ! Test fluid_boundary_v
+    call read_sparse_ijk('fluid_boundary_v.' // cexpnr, nbndpts_v, npts_loc_new, ids_loc_new, pts_loc_new)
+    if (.not. compare_boundary(bound_info_v, npts_loc_new, ids_loc_new, pts_loc_new, 'fluid_boundary_v')) all_passed = .false.
+    deallocate(ids_loc_new, pts_loc_new)
+    
+    ! Test fluid_boundary_w
+    call read_sparse_ijk('fluid_boundary_w.' // cexpnr, nbndpts_w, npts_loc_new, ids_loc_new, pts_loc_new)
+    if (.not. compare_boundary(bound_info_w, npts_loc_new, ids_loc_new, pts_loc_new, 'fluid_boundary_w')) all_passed = .false.
+    deallocate(ids_loc_new, pts_loc_new)
+    
+    ! Test fluid_boundary_c
+    call read_sparse_ijk('fluid_boundary_c.' // cexpnr, nbndpts_c, npts_loc_new, ids_loc_new, pts_loc_new)
+    if (.not. compare_boundary(bound_info_c, npts_loc_new, ids_loc_new, pts_loc_new, 'fluid_boundary_c')) all_passed = .false.
+    deallocate(ids_loc_new, pts_loc_new)
+    
+    if (all_passed .and. myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A)') 'ALL TESTS PASSED: read_sparse_ijk'
+      write(*, '(A)') '  Tested 8 files successfully'
+      write(*, '(A)') '  All results match IBM initialization code'
+      write(*, '(A)') '================================================'
     end if
     
-    !---------------------------------------------------------------------------
-    ! COMPARISON
-    !---------------------------------------------------------------------------
-    test_passed = .true.
+  end subroutine tests_read_sparse_ijk
+  
+  function compare_solid(solid_info, npts_loc_new, ids_loc_new, pts_loc_new, label) result(passed)
+    use modmpi, only : myid
+    use modibmdata, only : solid_info_type
+    use decomp_2d, only : zstart, zend
     
-    ! Check 1: Number of local points
-    if (npts_loc_new /= npts_loc_old) then
-      write(*, '(A,I0,A)') 'FAIL on rank ', myid, ': Local point count mismatch'
-      write(*, '(A,I0)') '  Old method: ', npts_loc_old
-      write(*, '(A,I0)') '  New method: ', npts_loc_new
-      test_passed = .false.
-    end if
+    type(solid_info_type), intent(in) :: solid_info
+    integer, intent(in) :: npts_loc_new
+    integer, intent(in) :: ids_loc_new(:), pts_loc_new(:,:)
+    character(len=*), intent(in) :: label
+    logical :: passed
+    integer :: m
     
-    ! Check 2: Global indices
-    if (test_passed) then
-      do m = 1, npts_loc_old
-        if (ids_loc_new(m) /= ids_loc_old(m)) then
-          write(*, '(A,I0,A,I0)') 'FAIL on rank ', myid, ': Index mismatch at local position ', m
-          write(*, '(A,I0)') '  Old: ', ids_loc_old(m)
-          write(*, '(A,I0)') '  New: ', ids_loc_new(m)
-          test_passed = .false.
-          exit
-        end if
-      end do
-    end if
+    passed = .true.
     
-    ! Check 3: Local coordinates (remapped)
-    if (test_passed) then
-      do m = 1, npts_loc_old
-        if (pts_loc_new(m,1) /= pts_loc_old(m,1) .or. &
-            pts_loc_new(m,2) /= pts_loc_old(m,2) .or. &
-            pts_loc_new(m,3) /= pts_loc_old(m,3)) then
-          write(*, '(A,I0,A,I0)') 'FAIL on rank ', myid, ': Coordinate mismatch at local position ', m
-          write(*, '(A,3I5)') '  Old: ', pts_loc_old(m,:)
-          write(*, '(A,3I5)') '  New: ', pts_loc_new(m,:)
-          test_passed = .false.
-          exit
-        end if
-      end do
-    end if
-    
-    !---------------------------------------------------------------------------
-    ! REPORT RESULTS
-    !---------------------------------------------------------------------------
-    if (test_passed) then
-      if (myid == 0) then
-        write(*, '(A)') '================================================'
-        write(*, '(A,A)') 'TEST PASSED: read_sparse_ijk for ', trim(filename)
-        write(*, '(A,I0,A)') '  Total points in file: ', npts
-        write(*, '(A)') '  All ranks verified successfully'
-        write(*, '(A)') '================================================'
-      end if
-    else
-      write(*, '(A,A)') 'TEST FAILED for ', trim(filename)
+    if (npts_loc_new /= solid_info%nsolptsrank) then
+      write(*, '(A,I0,A,A,A)') 'FAIL on rank ', myid, ': ', trim(label), ' count mismatch'
+      passed = .false.
       stop 1
     end if
     
-    ! Cleanup
-    deallocate(ids_loc_old, pts_loc_old)
-    deallocate(ids_loc_new, pts_loc_new)
+    do m = 1, solid_info%nsolptsrank
+      if (ids_loc_new(m) /= solid_info%solptsrank(m)) then
+        write(*, '(A,I0,A,A,A)') 'FAIL on rank ', myid, ': ', trim(label), ' index mismatch'
+        passed = .false.
+        stop 1
+      end if
+      if (pts_loc_new(m,1) /= solid_info%solpts_loc(m,1) - zstart(1) + 1 .or. &
+          pts_loc_new(m,2) /= solid_info%solpts_loc(m,2) - zstart(2) + 1 .or. &
+          pts_loc_new(m,3) /= solid_info%solpts_loc(m,3) - zstart(3) + 1) then
+        write(*, '(A,I0,A,A,A)') 'FAIL on rank ', myid, ': ', trim(label), ' coordinate mismatch'
+        passed = .false.
+        stop 1
+      end if
+    end do
     
-  end subroutine test_read_sparse_ijk
+  end function compare_solid
+  
+  function compare_boundary(bound_info, npts_loc_new, ids_loc_new, pts_loc_new, label) result(passed)
+    use modmpi, only : myid
+    use modibmdata, only : bound_info_type
+    use decomp_2d, only : zstart, zend
+    
+    type(bound_info_type), intent(in) :: bound_info
+    integer, intent(in) :: npts_loc_new
+    integer, intent(in) :: ids_loc_new(:), pts_loc_new(:,:)
+    character(len=*), intent(in) :: label
+    logical :: passed
+    integer :: m
+    
+    passed = .true.
+    
+    if (npts_loc_new /= bound_info%nbndptsrank) then
+      write(*, '(A,I0,A,A,A)') 'FAIL on rank ', myid, ': ', trim(label), ' count mismatch'
+      passed = .false.
+      stop 1
+    end if
+    
+    do m = 1, bound_info%nbndptsrank
+      if (ids_loc_new(m) /= bound_info%bndptsrank(m)) then
+        write(*, '(A,I0,A,A,A)') 'FAIL on rank ', myid, ': ', trim(label), ' index mismatch'
+        passed = .false.
+        stop 1
+      end if
+      if (pts_loc_new(m,1) /= bound_info%bndpts_loc(m,1) - zstart(1) + 1 .or. &
+          pts_loc_new(m,2) /= bound_info%bndpts_loc(m,2) - zstart(2) + 1 .or. &
+          pts_loc_new(m,3) /= bound_info%bndpts_loc(m,3) - zstart(3) + 1) then
+        write(*, '(A,I0,A,A,A)') 'FAIL on rank ', myid, ': ', trim(label), ' coordinate mismatch'
+        passed = .false.
+        stop 1
+      end if
+    end do
+    
+  end function compare_boundary
 
 end module tests
