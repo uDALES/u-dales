@@ -71,6 +71,16 @@ module modglobal
    integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
    character(90) :: fname_options = 'namoptions'
    integer, parameter :: longint = 8
+
+   ! Run mode constants and variable
+   integer, parameter :: RUN_SIMULATION = 1
+   integer, parameter :: TEST_JSON = 1001
+   integer, parameter :: TEST_IO = 1002
+   integer, parameter :: TEST_2DCOMP_INIT_EXIT = 1003
+   integer, parameter :: TEST_SPARSE_IJK = 1004
+   integer :: runmode = RUN_SIMULATION
+
+
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
    logical :: lfielddump = .false. !< switch to enable the fielddump

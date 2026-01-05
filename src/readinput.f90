@@ -1,4 +1,4 @@
-module modfileinput
+module readinput
   !> Generic file input routines for uDALES
   !> Provides standardized reading of commonly-used input file formats
   implicit none
@@ -119,4 +119,4 @@ contains
 
   end subroutine read_sparse_ijk
 
-end module modfileinput
+end module readinput

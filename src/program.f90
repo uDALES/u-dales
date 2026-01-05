@@ -19,7 +19,7 @@
 !!  Copyright 1993-2009 Delft University of Technology, Wageningen University,
 !! Utrecht University, KNMI
 !!
-program DALESURBAN      !Version 48
+program uDALES 
 
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
@@ -65,6 +65,9 @@ program DALESURBAN      !Version 48
   call checkinitvalues
 
   call initglobal
+
+  ! Execute tests if needed
+  call execute_runmode_actions
 
   call initfields
 
@@ -226,4 +229,24 @@ program DALESURBAN      !Version 48
   !call exittest
   call exitmpi
 
-end program DALESURBAN
+contains
+  subroutine execute_runmode_actions
+    select case (runmode)
+      case (RUN_SIMULATION)
+        ! Normal execution mode, do nothing special here
+      case (TEST_SPARSE_IJK)
+        ! Execute tests for reading sparse arrays
+
+        call tests_read_sparse_ijk('fluid_boundary_u.001', nbndpts_u)
+        call exitmpi
+      case (TEST_2DCOMP_INIT_EXIT)
+        call tests_2decomp_init_exit
+        ! this routine does mpiexit internally
+      case default
+        write(*,*) 'Unknown runmode:', runmode
+        call exitmpi
+        stop 'Invalid runmode specified'
+    end select
+  end subroutine execute_runmode_actions
+
+end program uDALES
