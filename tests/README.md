@@ -56,7 +56,7 @@ cd tests
 mpiexec -n 4 ../build/debug/u-dales namoptions.101
 ```
 
-**Test mode:** Set `runmode = TEST_SPARSE_IJK` in the namelist file.
+**Test mode:** Set `runmode = 1004` in the namelist file.
 
 **Requirements:**
 - Case directory with IBM input files (e.g., `examples/101`)

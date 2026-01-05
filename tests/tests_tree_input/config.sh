@@ -1,0 +1,9 @@
+export DA_EXPDIR=/work/n02/n02/dip_assure/treeu2/experiments
+export DA_TOOLSDIR=/work/n02/n02/dip_assure/treeu2/u-dales/tools
+export DA_BUILD=/work/n02/n02/dip_assure/treeu2/u-dales/build/release/u-dales
+export DA_WORKDIR=/work/n02/n02/dip_assure/treeu2/outputs
+export NCPU=128
+export NNODE=32
+export WALLTIME="24:00:00"
+export MEM="256gb"
+export QOS="standard"
