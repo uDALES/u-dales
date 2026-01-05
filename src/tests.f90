@@ -46,7 +46,8 @@ contains
   !> Test read_sparse_ijk by comparing with actual IBM initialization
   !> This test calls initibm which populates all global arrays,
   !> then compares with the new generic read_sparse_ijk function
-  subroutine tests_read_sparse_ijk()
+  !> Returns .true. if all tests pass, .false. otherwise
+  logical function tests_read_sparse_ijk()
     use modglobal,    only : libm, cexpnr, runmode
     use readinput, only : read_sparse_ijk
     use modibm,       only : initibm
@@ -126,9 +127,16 @@ contains
       write(*, '(A)') '  Tested 8 files successfully'
       write(*, '(A)') '  All results match IBM initialization code'
       write(*, '(A)') '================================================'
+    else if (.not. all_passed .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'TESTS FAILED: tests_read_sparse_ijk'
+      write(*, '(A)') '  One or more tests did not pass'
+      write(*, '(A)') '================================================'
     end if
     
-  end subroutine tests_read_sparse_ijk
+    tests_read_sparse_ijk = all_passed
+    
+  end function tests_read_sparse_ijk
 
   !> Read test output from file with rank coordinates in filename
   subroutine read_test_output(label, npts_loc, ids_loc, pts_loc)

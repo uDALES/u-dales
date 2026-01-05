@@ -25,3 +25,43 @@ python run_tests.py master dmey/patch-1 Release
 
 Tests outputs are saved under `tests/outputs` and currently include a boxplots of approximate errors for all four dimensional (3D space + time) quantities included in the uDALES output netCDF files.
 
+## Unit Tests
+
+In addition to the integration tests above, uDALES includes unit tests for specific functionality.
+
+### TEST_SPARSE_IJK - IBM File Reading Test
+
+This test validates the `read_sparse_ijk()` routine used for reading sparse i,j,k coordinate files in the Immersed Boundary Method (IBM) implementation.
+
+**Purpose:** Verify that the generic `read_sparse_ijk()` function correctly reads and distributes solid and fluid boundary point data across MPI ranks, producing identical results to previously validated output.
+
+**What it tests:**
+- Reading of 8 sparse coordinate files: `solid_u/v/w/c.txt` and `fluid_boundary_u/v/w/c.txt`
+- MPI broadcast and domain decomposition of coordinate data
+- Correct filtering of points to each rank's subdomain
+- Proper remapping between global and local coordinates
+
+**How to run:**
+
+From the `tests` directory, run the provided shell script:
+
+```bash
+./run_test_sparse_ijk.sh
+```
+
+Or manually execute:
+
+```bash
+cd tests
+mpiexec -n 4 ../build/debug/u-dales namoptions.101
+```
+
+**Test mode:** Set `runmode = TEST_SPARSE_IJK` in the namelist file.
+
+**Requirements:**
+- Case directory with IBM input files (e.g., `examples/101`)
+- Debug or Release build of u-dales
+- Previously generated test reference files (`solid_*_X_Y.txt` and `fluid_boundary_*_X_Y.txt`)
+
+**Expected output:** If successful, the test will report that all comparisons passed. Any discrepancies in point counts, indices, or coordinates will be reported as failures.
+

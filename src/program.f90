@@ -238,10 +238,13 @@ contains
         ! Normal execution mode, do nothing special here
       case (TEST_SPARSE_IJK)
         ! Execute tests for reading sparse arrays
-
-        call tests_read_sparse_ijk()
-        call exitmpi
-        stop
+        if (tests_read_sparse_ijk()) then
+          call exitmpi
+          stop 0  ! Exit with success
+        else
+          call exitmpi
+          stop 1  ! Exit with failure
+        end if
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
         stop
