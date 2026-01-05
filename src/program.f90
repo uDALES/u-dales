@@ -26,6 +26,7 @@ program uDALES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
+  use modglobal,         only : runmode,RUN_SIMULATION,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -50,6 +51,7 @@ program uDALES
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
+  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit
   implicit none
 
 !----------------------------------------------------------------
@@ -237,10 +239,12 @@ contains
       case (TEST_SPARSE_IJK)
         ! Execute tests for reading sparse arrays
 
-        call tests_read_sparse_ijk('fluid_boundary_u.001', nbndpts_u)
+        call tests_read_sparse_ijk()
         call exitmpi
+        stop
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
+        stop
         ! this routine does mpiexit internally
       case default
         write(*,*) 'Unknown runmode:', runmode

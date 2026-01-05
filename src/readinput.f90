@@ -1,10 +1,11 @@
 module readinput
   !> Generic file input routines for uDALES
   !> Provides standardized reading of commonly-used input file formats
-  implicit none
+  use mpi
   use modglobal, only : ifinput
   use modmpi,    only : myid, comm3d, mpierr
   use decomp_2d, only : zstart, zend
+  implicit none
 
   private
 
@@ -27,7 +28,7 @@ contains
   !> @param pts_loc       Output: local point coordinates remapped to local indices (npts_loc, 3)
   !> @param nskip         Number of header/comment lines to skip (default=1)
   
-  subroutine read_sparse_ijk(filename, npts, npts_loc, ids_loc, pts_loc, nskip)
+  subroutine read_sparse_ijk(filename, npts, npts_loc, ids_loc, pts_loc, nskip, pts_glob_out)
     implicit none
 
     character(len=*), intent(in)              :: filename      
@@ -36,6 +37,7 @@ contains
     integer, allocatable, intent(out)         :: ids_loc(:)    
     integer, allocatable, intent(out)         :: pts_loc(:,:)  
     integer, intent(in), optional             :: nskip   
+    integer, allocatable, intent(out), optional :: pts_glob_out(:,:)   
 
     integer, allocatable :: pts_glob(:,:)
     logical, allocatable :: lpts(:)
@@ -106,15 +108,21 @@ contains
       if (lpts(n)) then
         m = m + 1
         ids_loc(m) = n
-        ! Store with local index remapping: global to local coordinates
-        pts_loc(m,1) = pts_glob(n,1) - zstart(1) + 1
-        pts_loc(m,2) = pts_glob(n,2) - zstart(2) + 1
-        pts_loc(m,3) = pts_glob(n,3) - zstart(3) + 1
+        ! Store global coordinates (no conversion)
+        pts_loc(m,1) = pts_glob(n,1)
+        pts_loc(m,2) = pts_glob(n,2)
+        pts_loc(m,3) = pts_glob(n,3)
       end if
     end do
 
-    ! Clean up temporary arrays
-    deallocate(pts_glob)
+    ! Clean up or return temporary arrays
+    if (present(pts_glob_out)) then
+      ! Transfer ownership of global array to caller
+      call move_alloc(pts_glob, pts_glob_out)
+    else
+      ! Clean up global array
+      deallocate(pts_glob)
+    end if
     deallocate(lpts)
 
   end subroutine read_sparse_ijk

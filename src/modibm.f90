@@ -250,60 +250,24 @@ module modibm
 
 
    subroutine initibmnorm(fname, solid_info)
-     use modglobal, only : ifinput
-     use modmpi,    only : myid, comm3d, mpierr
+     use readinput, only : read_sparse_ijk
      use decomp_2d, only : zstart, zend
 
      character(11), intent(in) :: fname
 
      type(solid_info_type), intent(inout) :: solid_info
 
-     logical :: lsolptsrank(solid_info%nsolpts)
-     integer n, m
+     integer, allocatable :: ids_loc(:), pts_loc(:,:)
+     integer :: m
 
-     character(80) chmess
-
-     allocate(solid_info%solpts(solid_info%nsolpts,3))
-
-     ! read u points
-     if (myid == 0) then
-       open (ifinput, file=fname)
-       read (ifinput, '(a80)') chmess
-       do n = 1, solid_info%nsolpts
-         read (ifinput, *) solid_info%solpts(n,1), solid_info%solpts(n,2), solid_info%solpts(n,3)
-       end do
-       close (ifinput)
-     end if
-
-     call MPI_BCAST(solid_info%solpts, solid_info%nsolpts*3, MPI_INTEGER, 0, comm3d, mpierr)
-
-     ! Determine whether points are on this rank
-     solid_info%nsolptsrank = 0
-     do n = 1, solid_info%nsolpts
-       if ((solid_info%solpts(n,1) >= zstart(1) .and. solid_info%solpts(n,1) <= zend(1)) .and. &
-           (solid_info%solpts(n,2) >= zstart(2) .and. solid_info%solpts(n,2) <= zend(2))) then
-          lsolptsrank(n) = .true.
-          solid_info%nsolptsrank = solid_info%nsolptsrank + 1
-        else
-          lsolptsrank(n) = .false.
-       end if
-     end do
-
-     ! Store points on current rank - only loop through these points
-     allocate(solid_info%solptsrank(solid_info%nsolptsrank))
-     allocate(solid_info%solpts_loc(solid_info%nsolptsrank,3))
-     m = 0
-     do n = 1, solid_info%nsolpts
-       if (lsolptsrank(n)) then
-          m = m + 1
-          solid_info%solptsrank(m) = n
-          solid_info%solpts_loc(m,:) = (/solid_info%solpts(n,1),solid_info%solpts(n,2),solid_info%solpts(n,3)/)
-       end if
-     end do
+     ! Use generic read_sparse_ijk to read and distribute solid points
+     call read_sparse_ijk(fname, solid_info%nsolpts, solid_info%nsolptsrank, ids_loc, pts_loc)
+     
+     ! Transfer ownership of arrays (no copying, no conversion needed)
+     call move_alloc(ids_loc, solid_info%solptsrank)
+     call move_alloc(pts_loc, solid_info%solpts_loc)
 
      !write(*,*) "rank ", myid, " has ", solid_info%nsolptsrank, " solid points from ", fname
-
-     deallocate(solid_info%solpts)
 
    end subroutine initibmnorm
 
@@ -314,6 +278,7 @@ module modibm
      use modmpi,    only : myid, comm3d, MY_REAL, mpierr
      use initfac,   only : facnorm, facz0
      use decomp_2d, only : zstart, zend
+     use readinput, only : read_sparse_ijk
 
      character(20), intent(in) :: fname_bnd, fname_sec
      type(bound_info_type) :: bound_info
@@ -321,8 +286,8 @@ module modibm
      real, dimension(ib:itot+ih) :: xgrid
      real, dimension(jb:jtot+jh) :: ygrid
      real, dimension(kb:ktot+kh) :: zgrid
-     logical, dimension(bound_info%nbndpts)  :: lbndptsrank
      logical, dimension(bound_info%nfctsecs) :: lfctsecsrank
+     logical, dimension(:), allocatable :: lbndptsrank
      real, dimension(3) :: norm, p0, p1, pxl, pxu, pyl, pyu, pzl, pzu
      integer, dimension(6) :: check
      integer, dimension(1) :: pos_min_dist
@@ -331,54 +296,24 @@ module modibm
      real :: xc, yc, zc, xl, yl, zl, xu, yu, zu, checkxl, checkxu, checkyl, checkyu, checkzl, checkzu, inter_dist
      integer i, j, k, n, m, norm_align, dir_align, pos, p
      real dst
+     character(80) :: chmess
 
-     character(80) chmess
+     integer, dimension(:), allocatable :: ids_loc
+     integer, dimension(:,:), allocatable :: pts_loc
 
-     allocate(bound_info%bndpts(bound_info%nbndpts,3))
+     ! Read boundary points using generic read_sparse_ijk routine (skips 1 header line)
+     ! Request both local and global arrays since sections need global indices
+     call read_sparse_ijk(fname_bnd, bound_info%nbndpts, bound_info%nbndptsrank, ids_loc, pts_loc, nskip=1, pts_glob_out=bound_info%bndpts)
+    
+     ! Transfer ownership of local arrays (no copying, no conversion needed)
+     call move_alloc(ids_loc, bound_info%bndptsrank)
+     call move_alloc(pts_loc, bound_info%bndpts_loc)
 
-     ! read u points
-     if (myid == 0) then
-       open (ifinput, file=fname_bnd)
-       read (ifinput, '(a80)') chmess
-       do n = 1, bound_info%nbndpts
-         read (ifinput, *) bound_info%bndpts(n,1), bound_info%bndpts(n,2), bound_info%bndpts(n,3)
-       end do
-       close (ifinput)
-     end if
-
-     call MPI_BCAST(bound_info%bndpts, bound_info%nbndpts*3, MPI_INTEGER, 0, comm3d, mpierr)
-
-     ! Determine whether points are on this rank
-     bound_info%nbndptsrank = 0
-     do n = 1, bound_info%nbndpts
-       if ((bound_info%bndpts(n,1) >= zstart(1) .and. bound_info%bndpts(n,1) <= zend(1)) .and. &
-           (bound_info%bndpts(n,2) >= zstart(2) .and. bound_info%bndpts(n,2) <= zend(2))) then
-          lbndptsrank(n) = .true.
-          bound_info%nbndptsrank = bound_info%nbndptsrank + 1
-        else
-          lbndptsrank(n) = .false.
-       end if
-     end do
-
-     !write(*,*) "rank ", myid, " has ", bound_info%nbndptsrank, "points from ", fname_bnd
-
-     ! Store indices of points on current rank - only loop through these points
-     allocate(bound_info%bndptsrank(bound_info%nbndptsrank)) ! index in global list
-     allocate(bound_info%bndpts_loc(bound_info%nbndptsrank,3)) ! location
-     m = 0
-     do n = 1, bound_info%nbndpts
-       if (lbndptsrank(n)) then
-          i = bound_info%bndpts(n,1) - zstart(1) + 1
-          j = bound_info%bndpts(n,2) - zstart(2) + 1
-          k = bound_info%bndpts(n,3) - zstart(3) + 1
-          if ((i < ib) .or. (i > ie) .or. (j < jb) .or. (j > je)) then
-            write(*,*) "problem in initibmwallfun", i, j
-            stop 1
-          end if
-          m = m + 1
-          bound_info%bndptsrank(m) = n
-          bound_info%bndpts_loc(m,:) = (/bound_info%bndpts(n,1),bound_info%bndpts(n,2),bound_info%bndpts(n,3)/)
-       end if
+     ! Build lbndptsrank lookup array for determining which sections are on this rank
+     allocate(lbndptsrank(bound_info%nbndpts))
+     lbndptsrank = .false.
+     do m = 1, bound_info%nbndptsrank
+       lbndptsrank(bound_info%bndptsrank(m)) = .true.
      end do
 
      allocate(bound_info%secfacids(bound_info%nfctsecs))
@@ -659,6 +594,7 @@ module modibm
      deallocate(bound_info%recids_c)
      deallocate(bound_info%lcomprec)
      deallocate(bound_info%lskipsec)
+     deallocate(lbndptsrank)
 
    end subroutine initibmwallfun
 

@@ -56,7 +56,7 @@ module modstartup
       !      Thijs Heus                   15/06/2007                    |
       !-----------------------------------------------------------------|
 
-      use modglobal,         only : initglobal, iexpnr, runtime, dtmax,  &
+      use modglobal,         only : initglobal, iexpnr, runtime, runmode, dtmax,  &
                                     lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, tstatstart, trestart, &
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
@@ -107,6 +107,7 @@ module modstartup
 
       namelist/RUN/ &
          iexpnr, lwarmstart, lstratstart, startfile, &
+         runmode, &
          runtime, dtmax, trestart, ladaptive, &
          irandom, randu, randthl, randqt, krand, &
          courant, diffnr, author, &
@@ -365,6 +366,7 @@ module modstartup
 
       !write (*, *) "starting broadcast"
       call MPI_BCAST(iexpnr, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(runmode, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lwarmstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lstratstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lfielddump, 1, MPI_LOGICAL, 0, comm3d, mpierr)

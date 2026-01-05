@@ -11,6 +11,7 @@
 module tests
   use MPI
   use decomp_2d
+  use modmpi, only : myid
   
   implicit none
   save
@@ -46,16 +47,15 @@ contains
   !> This test calls initibm which populates all global arrays,
   !> then compares with the new generic read_sparse_ijk function
   subroutine tests_read_sparse_ijk()
-    use modglobal,    only : libm, cexpnr
-    use modmpi,       only : myid
-    use modfileinput, only : read_sparse_ijk
+    use modglobal,    only : libm, cexpnr, runmode
+    use readinput, only : read_sparse_ijk
     use modibm,       only : initibm
     use modibm,       only : solid_info_u, solid_info_v, solid_info_w, solid_info_c
     use modibm,       only : bound_info_u, bound_info_v, bound_info_w, bound_info_c
     use modibm,       only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c
     use modibm,       only : nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c
     use initfac,      only : readfacetfiles
-    use decomp_2d,    only : zstart, zend
+    use decomp_2d,    only : zstart, zend, xstart, xend, ystart, yend
     
     implicit none
     
@@ -64,12 +64,16 @@ contains
     integer, allocatable :: pts_loc_new(:,:)
     integer :: m
     logical :: all_passed
+    character(200) :: filename
     
-    if (.not. libm) then
-      if (myid == 0) write(*, '(A)') 'Skipping read_sparse_ijk test: libm=false'
-      return
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_read_sparse_ijk: SPARSE INPUT FILE TEST'
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'Testing sparse solid_*.txt and fluid_boundary_*.txt files'
     end if
-    
+
     ! Read facet files and initialize IBM - populates all global arrays
     call readfacetfiles
     call initibm
@@ -77,58 +81,125 @@ contains
     all_passed = .true.
     
     ! Test solid_u
-    call read_sparse_ijk('solid_u.' // cexpnr, nsolpts_u, npts_loc_new, ids_loc_new, pts_loc_new)
+    call read_test_output('solid_u', npts_loc_new, ids_loc_new, pts_loc_new)
     if (.not. compare_solid(solid_info_u, npts_loc_new, ids_loc_new, pts_loc_new, 'solid_u')) all_passed = .false.
     deallocate(ids_loc_new, pts_loc_new)
     
     ! Test solid_v
-    call read_sparse_ijk('solid_v.' // cexpnr, nsolpts_v, npts_loc_new, ids_loc_new, pts_loc_new)
+    call read_test_output('solid_v', npts_loc_new, ids_loc_new, pts_loc_new)
     if (.not. compare_solid(solid_info_v, npts_loc_new, ids_loc_new, pts_loc_new, 'solid_v')) all_passed = .false.
     deallocate(ids_loc_new, pts_loc_new)
     
     ! Test solid_w
-    call read_sparse_ijk('solid_w.' // cexpnr, nsolpts_w, npts_loc_new, ids_loc_new, pts_loc_new)
+    call read_test_output('solid_w', npts_loc_new, ids_loc_new, pts_loc_new)
     if (.not. compare_solid(solid_info_w, npts_loc_new, ids_loc_new, pts_loc_new, 'solid_w')) all_passed = .false.
     deallocate(ids_loc_new, pts_loc_new)
     
     ! Test solid_c
-    call read_sparse_ijk('solid_c.' // cexpnr, nsolpts_c, npts_loc_new, ids_loc_new, pts_loc_new)
+    call read_test_output('solid_c', npts_loc_new, ids_loc_new, pts_loc_new)
     if (.not. compare_solid(solid_info_c, npts_loc_new, ids_loc_new, pts_loc_new, 'solid_c')) all_passed = .false.
     deallocate(ids_loc_new, pts_loc_new)
     
     ! Test fluid_boundary_u
-    call read_sparse_ijk('fluid_boundary_u.' // cexpnr, nbndpts_u, npts_loc_new, ids_loc_new, pts_loc_new)
+    call read_test_output('fluid_boundary_u', npts_loc_new, ids_loc_new, pts_loc_new)
     if (.not. compare_boundary(bound_info_u, npts_loc_new, ids_loc_new, pts_loc_new, 'fluid_boundary_u')) all_passed = .false.
     deallocate(ids_loc_new, pts_loc_new)
     
     ! Test fluid_boundary_v
-    call read_sparse_ijk('fluid_boundary_v.' // cexpnr, nbndpts_v, npts_loc_new, ids_loc_new, pts_loc_new)
+    call read_test_output('fluid_boundary_v', npts_loc_new, ids_loc_new, pts_loc_new)
     if (.not. compare_boundary(bound_info_v, npts_loc_new, ids_loc_new, pts_loc_new, 'fluid_boundary_v')) all_passed = .false.
     deallocate(ids_loc_new, pts_loc_new)
     
     ! Test fluid_boundary_w
-    call read_sparse_ijk('fluid_boundary_w.' // cexpnr, nbndpts_w, npts_loc_new, ids_loc_new, pts_loc_new)
+    call read_test_output('fluid_boundary_w', npts_loc_new, ids_loc_new, pts_loc_new)
     if (.not. compare_boundary(bound_info_w, npts_loc_new, ids_loc_new, pts_loc_new, 'fluid_boundary_w')) all_passed = .false.
     deallocate(ids_loc_new, pts_loc_new)
     
     ! Test fluid_boundary_c
-    call read_sparse_ijk('fluid_boundary_c.' // cexpnr, nbndpts_c, npts_loc_new, ids_loc_new, pts_loc_new)
+    call read_test_output('fluid_boundary_c', npts_loc_new, ids_loc_new, pts_loc_new)
     if (.not. compare_boundary(bound_info_c, npts_loc_new, ids_loc_new, pts_loc_new, 'fluid_boundary_c')) all_passed = .false.
     deallocate(ids_loc_new, pts_loc_new)
     
     if (all_passed .and. myid == 0) then
-      write(*, '(A)') '================================================'
-      write(*, '(A)') 'ALL TESTS PASSED: read_sparse_ijk'
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'ALL TESTS PASSED: tests_read_sparse_ijk'
       write(*, '(A)') '  Tested 8 files successfully'
       write(*, '(A)') '  All results match IBM initialization code'
       write(*, '(A)') '================================================'
     end if
     
   end subroutine tests_read_sparse_ijk
+
+  !> Read test output from file with rank coordinates in filename
+  subroutine read_test_output(label, npts_loc, ids_loc, pts_loc)
+    use modmpi, only : myidx, myidy
+    
+    implicit none
+    character(len=*), intent(in) :: label
+    integer, intent(out) :: npts_loc
+    integer, allocatable, intent(out) :: ids_loc(:), pts_loc(:,:)
+    
+    character(200) :: filename
+    character(500) :: headerline
+    integer :: funit, m, ierr, colon_pos
+    
+    ! Create filename with cartesian rank coordinates: label_X_Y.txt
+    write(filename, '(A,A,I0,A,I0,A)') trim(label), '_', myidx, '_', myidy, '.txt'
+    
+    ! Open file and read data
+    open(newunit=funit, file=trim(filename), status='old', action='read', iostat=ierr)
+    if (ierr /= 0) then
+      write(*, '(A,A)') 'ERROR: Cannot open test output file: ', trim(filename)
+      stop 1
+    end if
+    
+    ! Read header lines
+    read(funit, '(A500)', iostat=ierr) headerline  ! Line 1: Test output for...
+    read(funit, '(A500)', iostat=ierr) headerline  ! Line 2: Rank cartesian coordinates
+    read(funit, '(A500)', iostat=ierr) headerline  ! Line 3: Number of local points
+    if (ierr /= 0) then
+      write(*, '(A)') 'ERROR: Cannot read header line 3'
+      stop 1
+    end if
+    
+    ! Extract npts_loc from line 3
+    ! Format is: "# Number of local points: N"
+    colon_pos = index(headerline, ':')
+    if (colon_pos > 0) then
+      read(headerline(colon_pos+1:), *, iostat=ierr) npts_loc
+      if (ierr /= 0) then
+        write(*, '(A,A)') 'ERROR: Cannot parse number of points from: ', trim(headerline)
+        stop 1
+      end if
+    else
+      write(*, '(A,A,A)') 'ERROR: Cannot find colon in header: "', trim(headerline), '"'
+      stop 1
+    end if
+    
+    read(funit, '(A500)', iostat=ierr) headerline  ! Line 4: Format description
+    
+    ! Allocate arrays
+    allocate(ids_loc(npts_loc))
+    allocate(pts_loc(npts_loc, 3))
+    
+    ! Read data
+    if (npts_loc > 0) then
+      do m = 1, npts_loc
+        read(funit, *, iostat=ierr) ids_loc(m), pts_loc(m,1), pts_loc(m,2), pts_loc(m,3)
+        if (ierr /= 0) then
+          write(*, '(A,I0,A,A)') 'ERROR: Cannot read data line ', m, ' from ', trim(filename)
+          stop 1
+        end if
+      end do
+    end if
+    
+    close(funit)
+    
+  end subroutine read_test_output
   
   function compare_solid(solid_info, npts_loc_new, ids_loc_new, pts_loc_new, label) result(passed)
     use modmpi, only : myid
-    use modibmdata, only : solid_info_type
+    use modibm, only : solid_info_type
     use decomp_2d, only : zstart, zend
     
     type(solid_info_type), intent(in) :: solid_info
@@ -165,7 +236,7 @@ contains
   
   function compare_boundary(bound_info, npts_loc_new, ids_loc_new, pts_loc_new, label) result(passed)
     use modmpi, only : myid
-    use modibmdata, only : bound_info_type
+    use modibm, only : bound_info_type
     use decomp_2d, only : zstart, zend
     
     type(bound_info_type), intent(in) :: bound_info
