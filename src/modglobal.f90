@@ -73,14 +73,14 @@ module modglobal
    integer, parameter :: longint = 8
 
    ! Run mode constants and variable
-   integer, parameter :: RUN_SIMULATION = 1
+   integer, parameter :: RUN_COLDSTART = 1
+   integer, parameter :: RUN_WARMSTART = 2
    integer, parameter :: TEST_JSON = 1001
    integer, parameter :: TEST_IO = 1002
    integer, parameter :: TEST_2DCOMP_INIT_EXIT = 1003
    integer, parameter :: TEST_SPARSE_IJK = 1004
    integer, parameter :: TEST_TREES_SPARSE_INPUT = 1005
-   integer :: runmode = RUN_SIMULATION
-
+   integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.

@@ -26,7 +26,7 @@ program uDALES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_SIMULATION,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_TREES_SPARSE_INPUT
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_TREES_SPARSE_INPUT
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -235,7 +235,7 @@ program uDALES
 contains
   subroutine execute_runmode_actions
     select case (runmode)
-      case (RUN_SIMULATION)
+      case (RUN_COLDSTART, RUN_WARMSTART)
         ! Normal execution mode, do nothing special here
       case (TEST_SPARSE_IJK)
         ! Execute tests for reading sparse arrays

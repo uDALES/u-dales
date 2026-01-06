@@ -20,14 +20,19 @@ def _iter_block_points(il: int, iu: int, jl: int, ju: int, kl: int, ku: int) -> 
                 yield (i, j, k)
 
 
-def _read_tree_blocks(sim_dir: Path, sim_id: str) -> List[Tuple[int, int, int, int, int, int]]:
-    """Read tree blocks from trees.inp.<id> and return (il,iu,jl,ju,kl,ku) tuples."""
+def _read_tree_blocks(sim_dir: Path, sim_id: str) -> List[Tuple[int, int, int, int, int, int, int]]:
+    """Read tree blocks from trees.inp.<id>, auto-numbered in file order.
+
+    Returns tuples of (id, il, iu, jl, ju, kl, ku). Any id column in the
+    source is ignored; blocks are numbered 1..N in the order encountered.
+    """
 
     tree_file = sim_dir / f"trees.inp.{sim_id}"
     if not tree_file.is_file():
         raise FileNotFoundError(f"Missing trees file: {tree_file}")
 
-    blocks: List[Tuple[int, int, int, int, int, int]] = []
+    blocks: List[Tuple[int, int, int, int, int, int, int]] = []
+    next_id = 1
     with tree_file.open("r", encoding="ascii") as f:
         for line in f:
             stripped = line.strip()
@@ -37,11 +42,21 @@ def _read_tree_blocks(sim_dir: Path, sim_id: str) -> List[Tuple[int, int, int, i
             if len(values) == 6:
                 il, iu, jl, ju, kl, ku = values
             elif len(values) == 7:
-                il, iu, jl, ju, kl, ku = values[1:]
+                _, il, iu, jl, ju, kl, ku = values  # ignore provided id
             else:
                 raise ValueError(f"Expected 6 or 7 integers, got {len(values)}")
 
-            blocks.append((il, iu, jl, ju, kl, ku))
+            # Normalize bounds in case input orders are inverted
+            if il > iu:
+                il, iu = iu, il
+            if jl > ju:
+                jl, ju = ju, jl
+            if kl > ku:
+                kl, ku = ku, kl
+
+            block_id = next_id
+            next_id += 1
+            blocks.append((block_id, il, iu, jl, ju, kl, ku))
 
     if not blocks:
         raise ValueError(f"No tree entries found in {tree_file}")
@@ -49,11 +64,27 @@ def _read_tree_blocks(sim_dir: Path, sim_id: str) -> List[Tuple[int, int, int, i
     return blocks
 
 
-def _blocks_to_sparse_points(blocks: Sequence[Tuple[int, int, int, int, int, int]]) -> List[Tuple[int, int, int]]:
+def _blocks_to_sparse_points(blocks: Sequence[Tuple[int, int, int, int, int, int, int]]) -> List[Tuple[int, int, int]]:
     points: List[Tuple[int, int, int]] = []
-    for il, iu, jl, ju, kl, ku in blocks:
+    for _, il, iu, jl, ju, kl, ku in blocks:
         points.extend(_iter_block_points(il, iu, jl, ju, kl, ku))
     return points
+
+
+def _blocks_to_id_list(blocks: Sequence[Tuple[int, int, int, int, int, int, int]]) -> List[int]:
+    ids: List[int] = []
+    for block_id, il, iu, jl, ju, kl, ku in blocks:
+        for _ in _iter_block_points(il, iu, jl, ju, kl, ku):
+            ids.append(block_id)
+    return ids
+
+
+def _blocks_to_k_list(blocks: Sequence[Tuple[int, int, int, int, int, int, int]]) -> List[int]:
+    ks: List[int] = []
+    for _, il, iu, jl, ju, kl, ku in blocks:
+        for _, _, k in _iter_block_points(il, iu, jl, ju, kl, ku):
+            ks.append(k)
+    return ks
 
 
 def _write_sparse_file(out_path: Path, points: Sequence[Tuple[int, int, int]]) -> None:
@@ -61,6 +92,66 @@ def _write_sparse_file(out_path: Path, points: Sequence[Tuple[int, int, int]]) -
         f.write("# position (i,j,k)\n")
         for i, j, k in points:
             f.write(f"{i:7d} {j:7d} {k:7d}\n")
+
+
+def _write_sparse_id_file(out_path: Path, ids: Sequence[int]) -> None:
+    with out_path.open("w", encoding="ascii", newline="\n") as f:
+        f.write("# block_id for each point in veg.inp, same order\n")
+        for block_id in ids:
+            f.write(f"{block_id:7d}\n")
+
+
+def _write_params_file(
+    out_path: Path,
+    ids: Sequence[int],
+    lad_values: Sequence[float],
+    cd: float,
+    ud: float,
+    dec: float,
+    lsize: float,
+    r_s: float,
+) -> None:
+    with out_path.open("w", encoding="ascii", newline="\n") as f:
+        f.write("# id lad cd ud dec lsize r_s\n")
+        for bid, lad_val in zip(ids, lad_values):
+            f.write(
+                f"{bid:7d} {lad_val:12.6f} {cd:12.6f} {ud:12.6f} {dec:12.6f} {lsize:12.6f} {r_s:12.6f}\n"
+            )
+
+
+def _lad_for_points(
+    points: Sequence[Tuple[int, int, int]],
+    lad_faces: Sequence[float],
+    k_min: int,
+    k_max: int,
+) -> List[float]:
+    """Assign LAD per point using the same indexing as trees_sparse.
+
+    trees_sparse uses lad_idx = ntree_max - (k_max - k) where k_max is the top
+    canopy level (global index) and ntree_max = k_max - k_min + 1. Clamp to
+    [1, len(lad_faces)].
+    """
+
+    nfaces = len(lad_faces)
+    if nfaces < 1:
+        return [0.0 for _ in points]
+
+    lad_vals: List[float] = []
+    for _, _, k in points:
+        # face index starting at canopy base (1-based like Fortran)
+        idx = k - k_min + 1
+        if 1 <= idx <= nfaces:
+            lad_vals.append(float(lad_faces[idx - 1]))
+        else:
+            # Outside canopy range: mirrors Fortran guard (no forcing when out of bounds)
+            lad_vals.append(0.0)
+    return lad_vals
+
+
+def _get_required(sim: "UDBase", name: str) -> float:
+    if not hasattr(sim, name):
+        raise AttributeError(f"UDBase missing required attribute '{name}' for veg params")
+    return float(getattr(sim, name))
 
 
 def _write_lad_file(out_path: Path, ntree_max: int, lad_value: float) -> None:
@@ -110,22 +201,48 @@ def convert_block_to_sparse(sim: "UDBase") -> Path:
     blocks = _read_tree_blocks(sim_dir, sim_id)
     lad_value_resolved, lad_source = _resolve_lad_value(sim)
     points = _blocks_to_sparse_points(blocks)
+    point_ids = _blocks_to_id_list(blocks)
 
     out_path = sim_dir / f"veg.inp.{sim_id}"
     _write_sparse_file(out_path, points)
+    out_id_path = sim_dir / f"veg_id.inp.{sim_id}"
+    _write_sparse_id_file(out_id_path, point_ids)
 
     # LAD profile (uniform) sized by canopy height
-    k_min = min(block[4] for block in blocks)
-    k_max = max(block[5] for block in blocks)
+    k_min = min(block[5] for block in blocks)
+    k_max = max(block[6] for block in blocks)
     ntree_max = k_max - k_min + 1
+    if ntree_max < 1:
+        raise ValueError(
+            f"Invalid canopy vertical extent: k_min={k_min}, k_max={k_max}. "
+            "Check trees.inp kl/ku ordering."
+        )
     lad_path = sim_dir / f"veg_lad.inp.{sim_id}"
     _write_lad_file(lad_path, ntree_max, lad_value_resolved)
+    lad_len = max(1, ntree_max + 1)
+    lad_faces = [lad_value_resolved] * lad_len
+
+    # Parameter file per sparse point
+    cd = _get_required(sim, "cd")
+    ud = _get_required(sim, "ud")
+    dec = _get_required(sim, "dec")
+    lsize = _get_required(sim, "lsize")
+    try:
+        r_s = _get_required(sim, "r_s")
+    except AttributeError:
+        r_s = _get_required(sim, "rs")
+
+    lad_vals = _lad_for_points(points, lad_faces, k_min, k_max)
+    out_params_path = sim_dir / f"veg_params.inp.{sim_id}"
+    _write_params_file(out_params_path, point_ids, lad_vals, cd, ud, dec, lsize, r_s)
 
     print(
         f"Loaded {len(blocks)} tree blocks from {sim_dir}, "
         f"expanded to {len(points)} grid points",
     )
     print(f"Sparse output written to {out_path}")
+    print(f"Sparse output with block ids written to {out_id_path}")
+    print(f"Veg params (id, lad, cd, ud, dec, lsize, r_s) written to {out_params_path}")
     print(
         f"LAD profile (uniform {lad_value_resolved} from {lad_source}) "
         f"written to {lad_path}"
