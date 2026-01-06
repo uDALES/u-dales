@@ -301,13 +301,14 @@ program run
     allocate(secfacids(0))
     allocate(secbndptids(0))
     allocate(bnddst(0))
-    
+
+    actual_threads = 1
     ! Get actual number of threads that will be used
     !$ call OMP_SET_NUM_THREADS(n_threads)
     !$OMP parallel
     !$ actual_threads = omp_get_num_threads()
     !$OMP end parallel
-    
+
     ! Initialize thread-local data arrays
     allocate(thread_data(actual_threads))
     do i = 1, actual_threads
@@ -927,7 +928,7 @@ program run
 
                end if !(solid_IB(i,j,k) .or. search_adj)
 
-               if (isnan(dist) .or. abs(dist)<0.00000001) dist = 0.1 ! 0.1 m minimum distance to avoid singularities
+               if (isnan(dist) .or. abs(dist)<tol) dist = 0.1 ! 0.1 m minimum distance to avoid singularities
                if (isnan(area)) area = 0.0
 
                loc = findloc(ismember_rows(fluid_IB_xyz, xyz), .true., 1)
@@ -1121,7 +1122,7 @@ subroutine fastPoint2TriMesh(connectivityList, faceNormal, nFaces, vertices, nVe
    real :: perpDist, distances(nFaces), projectedPoints(nFaces, 3), &
    sgn, cor1(3), cor2(3), cor3(3), cor4(3), distCornersToEdges(3), edgePoints(3, 3)
    integer :: n, loc
-   logical :: check
+   logical :: check, any_valid
 
    do n = 1,nFaces
       !perpDist = dot_product(queryPoint - incenter(n, :), faceNormal(n, :))
@@ -1153,12 +1154,22 @@ subroutine fastPoint2TriMesh(connectivityList, faceNormal, nFaces, vertices, nVe
          distances(n) = ieee_value(distances(n), ieee_quiet_nan)
       end if
 
-      ! if all(isnan(distances))
-      loc = minloc(distances, 1)
+   end do
+
+   any_valid = any(.not. ieee_is_nan(distances))
+   if (any_valid) then
+      loc = minloc(distances, dim=1, mask=.not.ieee_is_nan(distances))
+   else
+      loc = -1
+   end if
+   
+   if (loc > 0) then
       minDistance = distances(loc)
       interceptPoint = projectedPoints(loc, :)
-
-   end do
+   else
+      minDistance = ieee_value(minDistance, ieee_quiet_nan)
+      interceptPoint = 0.0
+   end if
 
 end subroutine fastPoint2TriMesh
 
