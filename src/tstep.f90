@@ -47,116 +47,115 @@ module modtstep
   save
   contains
 
-subroutine tstep_update
+    subroutine tstep_update
+      use modglobal, only : ib,ie,jb,je,rk3step,timee,runtime,dtmax,dt,ntimee,ntrun,courant,diffnr,&
+                            kb,ke,dx,dxi,dx2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,lwarmstart,&
+                            dzh2i,rk3coef,rk3coefi
+      use modfields, only : um,vm,wm
+      use modsubgriddata, only : ekm,ekh
+      use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
+      implicit none
 
+      integer       :: i, j, k,imin,kmin
+      real,save     :: courtot=-1.,diffnrtot=-1.
+      real          :: courtotl,courold,diffnrtotl,diffnrold
+      ! logical,save  :: spinup=.true.
+      logical,save  :: spinup=.false.
 
-  use modglobal, only : ib,ie,jb,je,rk3step,timee,runtime,dtmax,dt,ntimee,ntrun,courant,diffnr,&
-                        kb,ke,dx,dxi,dx2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,lwarmstart,&
-                        dzh2i,rk3coef,rk3coefi
-  use modfields, only : um,vm,wm
-  use modsubgriddata, only : ekm,ekh
-  use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
-  implicit none
+      if(lwarmstart) spinup = .false.
 
-  integer       :: i, j, k,imin,kmin
-  real,save     :: courtot=-1.,diffnrtot=-1.
-  real          :: courtotl,courold,diffnrtotl,diffnrold
-!  logical,save  :: spinup=.true.
-  logical,save  :: spinup=.false.
+      rk3step = mod(rk3step,3) + 1
 
+      if(rk3step == 1) then
 
-  if(lwarmstart) spinup = .false.
-  rk3step = mod(rk3step,3) + 1
-  if(rk3step == 1) then
+        ! Initialization
+        if (spinup) then
+          write(6,*) '!spinup!'
+          if (ladaptive) then
+            courold = courtot
+            diffnrold = diffnrtot
+            courtotl=0.
+            diffnrtotl = 0.
+            do k=kb,ke
+              do j=jb,je
+                do i=ib,ie
+                  courtotl = max(courtotl,(abs(um(i,j,k))*dxi + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
+                  ! diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dt )
+                  diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt, &
+                                                ekh(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt )
+                end do
+              end do
+            end do
+            call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+            call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+            if ( diffnrold>0) then
+              dt = min(dtmax,dt*courant/courtot,dt*diffnr/diffnrtot)
+              if ((abs(courtot-courold)/courold<0.1) .and. (abs(diffnrtot-diffnrold)/diffnrold<0.1)) then
+                spinup = .false.
+              end if
+            end if
+            dt = dt
+            dt_lim = timeleft
+            timee   = timee  + dt
+            timeleft = timeleft- dt
+            ntimee  = ntimee + 1
+            ntrun   = ntrun  + 1
+          else
+            dt = 2 * dt
+            if (dt >= dtmax) then
+              dt = dtmax
+              spinup = .false.
+            end if
+          end if
+        ! Normal time loop
+        else  !spinup = .false.
 
-    ! Initialization
-    if (spinup) then
-      write(6,*) '!spinup!'
-      if (ladaptive) then
-        courold = courtot
-        diffnrold = diffnrtot
-        courtotl=0.
-        diffnrtotl = 0.
-        do k=kb,ke
-        do j=jb,je
-        do i=ib,ie
-          courtotl = max(courtotl,(abs(um(i,j,k))*dxi + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
-!          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dt )
-          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt, &
-                                        ekh(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt )
-        end do
-        end do
-        end do
-        call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-        call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-        if ( diffnrold>0) then
-          dt = min(dtmax,dt*courant/courtot,dt*diffnr/diffnrtot)
-          if ((abs(courtot-courold)/courold<0.1) .and. (abs(diffnrtot-diffnrold)/diffnrold<0.1)) then
-            spinup = .false.
+          if (ladaptive) then
+            courtotl=0.
+            diffnrtotl = 1e-5
+            do k=kb,ke
+              do j=jb,je
+                do i=ib,ie
+                  courtotl = max(courtotl,(abs(um(i,j,k))*dxi + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
+                  diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt,&
+                                                ekh(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt )
+                  ! if (diffnrtotl ==  ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt) then
+                    ! imin = i
+                    ! kmin = k
+                  ! end if
+                end do
+              end do
+            end do
+            ! write(6,*) 'Peclet criterion at proc,i,k = ', myid,imin,kmin
+
+            call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+            call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+            if (courtot <= 0) then
+              write(6,*) 'courtot=0!'
+            end if
+            if (diffnrtot <= 0) then
+              write(6,*) 'diffnrtot=0!'
+            end if
+            dt = min(dtmax,dt*courant/courtot,dt*diffnr/diffnrtot)
+            timeleft=timeleft-dt
+            dt_lim = timeleft
+            timee   = timee  + dt
+            ntimee  = ntimee + 1
+            ntrun   = ntrun  + 1
+          else
+            dt = dtmax
+            ntimee  = ntimee + 1
+            ntrun   = ntrun  + 1
+            timee   = timee  + dt
+            timeleft=timeleft-dt
           end if
         end if
-        dt = dt
-        dt_lim = timeleft
-        timee   = timee  + dt
-        timeleft = timeleft- dt
-        ntimee  = ntimee + 1
-        ntrun   = ntrun  + 1
-      else
-        dt = 2 * dt
-        if (dt >= dtmax) then
-          dt = dtmax
-          spinup = .false.
-        end if
       end if
-    ! Normal time loop
-    else  !spinup = .false.
 
-      if (ladaptive) then
-        courtotl=0.
-        diffnrtotl = 1e-5
-        do k=kb,ke
-        do j=jb,je
-        do i=ib,ie
-          courtotl = max(courtotl,(abs(um(i,j,k))*dxi + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
-          diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt,&
-                                        ekh(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt )
-!          if (diffnrtotl ==  ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt) then
-!           imin = i
-!           kmin = k
-!          end if
-        end do
-        end do
-        end do
-!     write(6,*) 'Peclet criterion at proc,i,k = ', myid,imin,kmin
+      rk3coef = dt / (4. - dble(rk3step))
+      rk3coefi = 1. / rk3coef
 
-        call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-        call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-        if (courtot <= 0) then
-          write(6,*) 'courtot=0!'
-        end if
-        if (diffnrtot <= 0) then
-          write(6,*) 'diffnrtot=0!'
-        end if
-        dt = min(dtmax,dt*courant/courtot,dt*diffnr/diffnrtot)
-        timeleft=timeleft-dt
-        dt_lim = timeleft
-        timee   = timee  + dt
-        ntimee  = ntimee + 1
-        ntrun   = ntrun  + 1
-      else
-        dt = dtmax
-        ntimee  = ntimee + 1
-        ntrun   = ntrun  + 1
-        timee   = timee  + dt
-        timeleft=timeleft-dt
-      end if
-    end if
-  end if
-
-  rk3coef = dt / (4. - dble(rk3step))
-  rk3coefi = 1. / rk3coef
-
-end subroutine tstep_update
+    end subroutine tstep_update
 
 
     !> Time integration is done by a third order Runge-Kutta scheme.
