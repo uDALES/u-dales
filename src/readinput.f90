@@ -109,9 +109,9 @@ contains
         m = m + 1
         ids_loc(m) = n
         ! Store global coordinates (no conversion)
-        pts_loc(m,1) = pts_glob(n,1)
-        pts_loc(m,2) = pts_glob(n,2)
-        pts_loc(m,3) = pts_glob(n,3)
+        pts_loc(m,1) = pts_glob(n,1) - zstart(1) + 1
+        pts_loc(m,2) = pts_glob(n,2) - zstart(2) + 1
+        pts_loc(m,3) = pts_glob(n,3) - zstart(3) + 1
       end if
     end do
 

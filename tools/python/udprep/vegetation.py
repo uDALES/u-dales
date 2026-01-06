@@ -121,31 +121,13 @@ def _write_params_file(
 
 def _lad_for_points(
     points: Sequence[Tuple[int, int, int]],
-    lad_faces: Sequence[float],
-    k_min: int,
-    k_max: int,
+    lad_value: float,
 ) -> List[float]:
-    """Assign LAD per point using the same indexing as trees_sparse.
+    """Assign constant LAD to all points.
 
-    trees_sparse uses lad_idx = ntree_max - (k_max - k) where k_max is the top
-    canopy level (global index) and ntree_max = k_max - k_min + 1. Clamp to
-    [1, len(lad_faces)].
+    LAD is now constant per vegetation point, not height-dependent.
     """
-
-    nfaces = len(lad_faces)
-    if nfaces < 1:
-        return [0.0 for _ in points]
-
-    lad_vals: List[float] = []
-    for _, _, k in points:
-        # face index starting at canopy base (1-based like Fortran)
-        idx = k - k_min + 1
-        if 1 <= idx <= nfaces:
-            lad_vals.append(float(lad_faces[idx - 1]))
-        else:
-            # Outside canopy range: mirrors Fortran guard (no forcing when out of bounds)
-            lad_vals.append(0.0)
-    return lad_vals
+    return [lad_value for _ in points]
 
 
 def _get_required(sim: "UDBase", name: str) -> float:
@@ -208,21 +190,7 @@ def convert_block_to_sparse(sim: "UDBase") -> Path:
     out_id_path = sim_dir / f"veg_id.inp.{sim_id}"
     _write_sparse_id_file(out_id_path, point_ids)
 
-    # LAD profile (uniform) sized by canopy height
-    k_min = min(block[5] for block in blocks)
-    k_max = max(block[6] for block in blocks)
-    ntree_max = k_max - k_min + 1
-    if ntree_max < 1:
-        raise ValueError(
-            f"Invalid canopy vertical extent: k_min={k_min}, k_max={k_max}. "
-            "Check trees.inp kl/ku ordering."
-        )
-    lad_path = sim_dir / f"veg_lad.inp.{sim_id}"
-    _write_lad_file(lad_path, ntree_max, lad_value_resolved)
-    lad_len = max(1, ntree_max + 1)
-    lad_faces = [lad_value_resolved] * lad_len
-
-    # Parameter file per sparse point
+    # Parameter file per sparse point (constant LAD for all points)
     cd = _get_required(sim, "cd")
     ud = _get_required(sim, "ud")
     dec = _get_required(sim, "dec")
@@ -232,7 +200,7 @@ def convert_block_to_sparse(sim: "UDBase") -> Path:
     except AttributeError:
         r_s = _get_required(sim, "rs")
 
-    lad_vals = _lad_for_points(points, lad_faces, k_min, k_max)
+    lad_vals = _lad_for_points(points, lad_value_resolved)
     out_params_path = sim_dir / f"veg_params.inp.{sim_id}"
     _write_params_file(out_params_path, point_ids, lad_vals, cd, ud, dec, lsize, r_s)
 
@@ -242,11 +210,7 @@ def convert_block_to_sparse(sim: "UDBase") -> Path:
     )
     print(f"Sparse output written to {out_path}")
     print(f"Sparse output with block ids written to {out_id_path}")
-    print(f"Veg params (id, lad, cd, ud, dec, lsize, r_s) written to {out_params_path}")
-    print(
-        f"LAD profile (uniform {lad_value_resolved} from {lad_source}) "
-        f"written to {lad_path}"
-    )
+    print(f"Veg params (id, lad={lad_value_resolved} from {lad_source}, cd, ud, dec, lsize, r_s) written to {out_params_path}")
     return out_path
 
 

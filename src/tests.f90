@@ -284,7 +284,7 @@ contains
     use modglobal, only : ib, ie, jb, je, kb, ke, itot, jtot, ntree_max, cd, cexpnr, ltrees
     use modfields, only : um, vm, wm, tr_u, tr_v, tr_w, up, vp, wp, ladzh, ladzf
     use modtrees,  only : trees_block => trees, createtrees_block => createtrees
-    use vegetation, only : createtrees, trees
+    use vegetation, only : init_vegetation, apply_vegetation
     use modmpi,    only : myid, myidx, myidy, comm3d, mpierr, my_real
     use decomp_2d, only : xstart, ystart, zstart
     implicit none
@@ -315,7 +315,7 @@ contains
 
     ! Ensure tree properties are initialized (also reads veg_lad) and sparse masks are built once
     call createtrees_block
-    call createtrees
+    call init_vegetation
 
     ! Build a simple deterministic velocity field so drag is non-zero
     um = 0.0
@@ -351,10 +351,9 @@ contains
     tr_w = 0.0
 
     ! Apply sparse vegetation forcing via vegetation routine
-    call trees
+    call apply_vegetation
 
     ! Output differences
-    
     diff_local = 0.0
     diff_u_local = 0.0
     diff_v_local = 0.0

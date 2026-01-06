@@ -73,8 +73,8 @@ module modglobal
    ! Run mode constants and variable
    integer, parameter :: RUN_COLDSTART = 1
    integer, parameter :: RUN_WARMSTART = 2
-   integer, parameter :: RUN_STRATSTART = 3
-   integer, parameter :: RUN_DRIVER = 4
+   integer, parameter :: RUN_DRIVER = 3
+   integer, parameter :: RUN_STRATSTART = 4
 
    integer, parameter :: TEST_JSON = 1001
    integer, parameter :: TEST_IO = 1002

@@ -26,7 +26,7 @@ program uDALES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_TREES_SPARSE_INPUT
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_TREES_SPARSE_INPUT
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -36,7 +36,8 @@ program uDALES
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
-  use modtrees,          only : createtrees,trees
+  use modtrees,          only : init_block_canopy => createtrees, trees_block => trees
+  use vegetation,        only : init_vegetation, apply_vegetation
   use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
   use initfac,           only : readfacetfiles
@@ -114,7 +115,8 @@ program uDALES
 
   call boundary
 
-  call createtrees
+  call init_block_canopy
+  call init_vegetation
 
   call createpurifiers
 
@@ -170,7 +172,7 @@ program uDALES
 
     call EB
 
-    call trees
+    call apply_vegetation
 
     call heatpump
 
@@ -235,7 +237,7 @@ program uDALES
 contains
   subroutine execute_runmode_actions
     select case (runmode)
-      case (RUN_COLDSTART, RUN_WARMSTART)
+      case (RUN_COLDSTART, RUN_WARMSTART, RUN_DRIVER, RUN_STRATSTART)
         ! Normal execution mode, do nothing special here
       case (TEST_SPARSE_IJK)
         ! Execute tests for reading sparse arrays

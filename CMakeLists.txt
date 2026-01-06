@@ -47,7 +47,7 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     # means they are stored on the stack (by default), whereas GNU Fortran stores
     # them on the heap (https://github.com/uDALES/u-dales/issues/13).
     set(CMAKE_Fortran_FLAGS "-r8 -fpe0 -heap-arrays 10")
-    set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -O0 -init=snan -CB -check all")
+    set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -O0 -init=snan -CB -check bounds,format,output_conversion,pointers,uninit")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Cray")
     # https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85
