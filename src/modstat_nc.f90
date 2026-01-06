@@ -1,23 +1,23 @@
 !> \file modstat_nc.f90
-!!  Background routines to write NetCDF output
-
-!>
-!!  Background routines to write NetCDF output.
-!>
+!! Background routines to write NetCDF output
 !! All calls to the netcdf library should be directed through here.
-!! Inspired on the UCLA-LES routine by Bjorn Stevens.
-!!  \author Thijs Heus,MPI-M
-!!  \par Revision list
-!!  \todo documentation
-!!   \todo restartfiles in NetCDF?
-!  This file is part of DALES.
+!>
 !
-! DALES is free software; you can redistribute it and/or modify
+!! Inspired on the UCLA-LES routine by Bjorn Stevens.
+!! \author Thijs Heus, MPI-M
+!! \par Revision list
+!!   Dipanjan Majumdar, ICL (2025)
+!! \todo documentation
+!! \todo restartfiles in NetCDF?
+!
+! This file is part of uDALES (https://github.com/uDALES/u-dales).
+!
+! uDALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
-! DALES is distributed in the hope that it will be useful,
+! uDALES is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
@@ -25,7 +25,7 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
+! Copyright (C) 2016- the uDALES Team, Imperial College London.
 !
 module modstat_nc
     use netcdf
@@ -446,8 +446,8 @@ contains
     implicit none
     integer, intent(in)                      :: ncid,nvar,dim1,dim2,dim3
     integer, intent(in)                      :: nrec
-    !real,dimension(dim1,dim2,dim3,nvar),intent(in)       :: vars
-    real,intent(in)       :: vars(0:dim1-1,0:dim2-1,0:dim3-1,nvar)
+    real,dimension(dim1,dim2,dim3,nvar),intent(in)       :: vars
+    !real,intent(in)       :: vars(0:dim1-1,0:dim2-1,0:dim3-1,nvar)
     character(*), dimension(:,:),intent(in)  :: ncname
 
     integer :: iret,n,varid
