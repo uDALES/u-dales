@@ -1,13 +1,14 @@
 &RUN
 iexpnr       = 525
+runmode      = 1005
 runtime      = 691200.
 trestart     = 691200.
 dtmax        = 5.
 irandom      = 43
 randu        = 0.01
 ladaptive    = .true.
-nprocx       = 128
-nprocy       = 32
+nprocx       = 4  
+nprocy       = 4 
 libm         = .true.
 /
 

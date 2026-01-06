@@ -3,6 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable, List, Sequence, Tuple
 
+try:
+    from ..udbase import UDBase
+except ImportError:
+    try:
+        from udbase import UDBase  # type: ignore
+    except ImportError:
+        UDBase = None
+
 def _iter_block_points(il: int, iu: int, jl: int, ju: int, kl: int, ku: int) -> Iterable[Tuple[int, int, int]]:
     """Yield (i,j,k) points inside a block defined by inclusive bounds."""
 
@@ -55,21 +63,44 @@ def _write_sparse_file(out_path: Path, points: Sequence[Tuple[int, int, int]]) -
             f.write(f"{i:7d} {j:7d} {k:7d}\n")
 
 
-def convert_block_to_sparse(sim_id: str, sim_path: Path | None = None) -> Path:
-    """Convert trees.inp.<id> to vegetation.inp.<id> using sparse ijk format.
+def _write_lad_file(out_path: Path, ntree_max: int, lad_value: float) -> None:
+    """Write a simple vertical LAD profile to veg_lad.inp.<id>.
+
+    The profile is uniform and matches the Fortran expectation of one value per
+    canopy face level; length is ntree_max+1.
+    """
+
+    with out_path.open("w", encoding="ascii", newline="\n") as f:
+        f.write("# lad profile at canopy faces (uniform)\n")
+        for _ in range(ntree_max + 1):
+            f.write(f"{lad_value:.6f}\n")
+
+
+def _resolve_lad_value(sim: "UDBase") -> tuple[float, str]:
+    """Resolve LAD value from UDBase (namoptions lad)."""
+
+    if sim is None:
+        raise ValueError("UDBase instance must be provided")
+    if not hasattr(sim, "lad"):
+        raise AttributeError("UDBase loaded but missing lad in namoptions")
+
+    return float(sim.lad), "UDBase namoptions"
+
+
+def convert_block_to_sparse(sim: "UDBase") -> Path:
+    """Convert trees.inp.<id> to veg.inp.<id> and emit a LAD profile.
 
     Parameters
     ----------
-    sim_id : str
-        Experiment identifier (e.g. "525").
-    sim_path : Path, required
-        Directory containing namoptions.<id> and trees.inp.<id>.
+    sim : UDBase
+        Populated UDBase instance; expnr and path are used to locate inputs.
     """
 
-    if sim_path is None:
-        raise ValueError("sim_path must be provided (experiment directory)")
+    if sim is None:
+        raise ValueError("sim (UDBase instance) must be provided")
 
-    sim_dir = Path(sim_path)
+    sim_dir = Path(sim.path)
+    sim_id = sim.expnr
 
     if not (sim_dir / f"namoptions.{sim_id}").is_file():
         raise FileNotFoundError(
@@ -77,18 +108,30 @@ def convert_block_to_sparse(sim_id: str, sim_path: Path | None = None) -> Path:
         )
 
     blocks = _read_tree_blocks(sim_dir, sim_id)
+    lad_value_resolved, lad_source = _resolve_lad_value(sim)
     points = _blocks_to_sparse_points(blocks)
 
-    out_path = sim_dir / f"vegetation.inp.{sim_id}"
+    out_path = sim_dir / f"veg.inp.{sim_id}"
     _write_sparse_file(out_path, points)
+
+    # LAD profile (uniform) sized by canopy height
+    k_min = min(block[4] for block in blocks)
+    k_max = max(block[5] for block in blocks)
+    ntree_max = k_max - k_min + 1
+    lad_path = sim_dir / f"veg_lad.inp.{sim_id}"
+    _write_lad_file(lad_path, ntree_max, lad_value_resolved)
 
     print(
         f"Loaded {len(blocks)} tree blocks from {sim_dir}, "
         f"expanded to {len(points)} grid points",
     )
     print(f"Sparse output written to {out_path}")
+    print(
+        f"LAD profile (uniform {lad_value_resolved} from {lad_source}) "
+        f"written to {lad_path}"
+    )
     return out_path
 
 
 if __name__ == "__main__":
-    convert_block_to_sparse()
+    raise SystemExit("Run via veg.py which constructs UDBase and passes it here")

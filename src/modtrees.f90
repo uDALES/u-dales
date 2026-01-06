@@ -9,17 +9,134 @@ implicit none
 save
 
 contains
+    subroutine createtrees_sparse
+      use modglobal,  only : ltrees
+      implicit none
+      if ((ltrees .eqv. .false.)) return
+      call createtrees
+    end subroutine createtrees_sparse
+
+    subroutine trees_sparse
+    use modglobal,  only : ib,ie,jb,je,kb,ke,ntree_max,cd,cexpnr
+    use modfields,  only : um,vm,wm,tr_u,tr_v,tr_w,ladzh
+    use modmpi,     only : myid,comm3d,mpierr,my_real
+    use readinput,  only : read_sparse_ijk
+    implicit none
+    integer :: i,j,k,m
+    integer :: npts, npts_loc
+    integer, allocatable :: ids_loc(:)
+    integer, allocatable :: pts_loc(:,:)
+    character(200) :: filename
+    integer :: ierr, ifinput
+    character(256) :: line
+    logical, allocatable :: mask_c(:,:,:)
+    logical :: has_top_left, has_top_right, has_w
+    integer :: lad_idx
+
+    if (ntree_max <= 0) return
+
+    ! count points in veg.inp.<expnr> to set npts
+    write(filename, '(A,A)') 'veg.inp.', trim(cexpnr)
+    ifinput = 99
+    npts = 0
+    if (myid == 0) then
+      open(ifinput, file=filename, status='old', iostat=ierr)
+      if (ierr /= 0) then
+        write(*, '(A,A)') 'ERROR: Cannot open file: ', trim(filename)
+        stop 1
+      end if
+      read(ifinput, '(a256)', iostat=ierr) line  ! skip header
+      do
+        read(ifinput, *, iostat=ierr) i, j, k
+        if (ierr /= 0) exit
+        npts = npts + 1
+      end do
+      close(ifinput)
+    end if
+    call MPI_BCAST(npts, 1, MPI_INTEGER, 0, comm3d, mpierr)
+
+    call read_sparse_ijk(filename, npts, npts_loc, ids_loc, pts_loc, nskip=1)
+
+    allocate(mask_c(ib:ie+1, jb:je+1, kb:ke+1)); mask_c = .false.
+
+    do m = 1, npts_loc
+      i = pts_loc(m,1)
+      j = pts_loc(m,2)
+      k = pts_loc(m,3)
+      if (i < ib .or. i > ie .or. j < jb .or. j > je .or. k < kb .or. k > ke) cycle
+      mask_c(i,j,k) = .true.
+    end do
+
+    do k = kb, ke
+      do j = jb, je
+        do i = ib, ie
+          ! w faces
+          has_w = mask_c(i,j,k)
+          if (.not. has_w .and. k > kb) has_w = mask_c(i,j,k-1)
+          if (has_w) then
+            lad_idx = ntree_max - (ke - k)
+            if (lad_idx >= 1 .and. lad_idx <= size(ladzh)) then
+              tr_w(i,j,k) = - cd * ladzh(lad_idx) * wm(i,j,k) * &
+                            sqrt( wm(i,j,k)**2 &
+                            + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j,k-1) + um(i+1,j,k-1)))**2 &
+                            + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i,j,k-1) + vm(i,j+1,k-1)))**2 )
+            end if
+          end if
+
+          ! v faces
+          has_top_left  = mask_c(i,j,k)
+          if (.not. has_top_left  .and. k > kb) has_top_left  = mask_c(i,j,k-1)
+          has_top_right = mask_c(i,j+1,k)
+          if (.not. has_top_right .and. k > kb) has_top_right = mask_c(i,j+1,k-1)
+          if (has_top_left .or. has_top_right) then
+            lad_idx = ntree_max - (ke - k)
+            if (lad_idx >= 1 .and. lad_idx <= size(ladzh)) then
+              tr_v(i,j,k) = - cd * ladzh(lad_idx) * vm(i,j,k) * &
+                            sqrt( vm(i,j,k)**2 &
+                            + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j+1,k) + um(i+1,j+1,k)))**2 &
+                            + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i,j+1,k) + wm(i,j+1,k+1)))**2 )
+            end if
+          end if
+
+          ! u faces
+          has_top_left  = mask_c(i,j,k)
+          if (.not. has_top_left  .and. k > kb) has_top_left  = mask_c(i,j,k-1)
+          has_top_right = mask_c(i+1,j,k)
+          if (.not. has_top_right .and. k > kb) has_top_right = mask_c(i+1,j,k-1)
+          if (has_top_left .or. has_top_right) then
+            lad_idx = ntree_max - (ke - k)
+            if (lad_idx >= 1 .and. lad_idx <= size(ladzh)) then
+              tr_u(i,j,k) = - cd * ladzh(lad_idx) * um(i,j,k) * &
+                            sqrt( um(i,j,k)**2 &
+                            + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i+1,j,k) + vm(i+1,j+1,k)))**2 &
+                            + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i+1,j,k) + wm(i+1,j,k+1)))**2 )
+            end if
+          end if
+
+        end do
+      end do
+    end do
+
+    deallocate(mask_c)
+    deallocate(ids_loc)
+    deallocate(pts_loc)
+
+    call MPI_BARRIER(comm3d, mpierr)
+
+    end subroutine trees_sparse
     subroutine createtrees
     use modglobal,  only : ltrees,ntrees,tree,cexpnr,ifinput,zh,zf,dzh,dzfi,dzhi,dzf,Qstar,&
-                           dec,lad,kb,ke,cp,rhoa,ntree_max,dQdt,tr_A,dy,xh
+                 dec,lad,kb,ke,cp,rhoa,ntree_max,dQdt,tr_A,dy,xh
     use modfields,  only : um,vm,wm,thlm,qt0,svp,up,vp,wp,thlp,qtp,Rn,clai,qc,qa,ladzh,ladzf
     use modmpi,     only : myid,comm3d,mpierr,MY_REAL
     use modsurfdata,only : wtsurf
     use modibmdata ,only : bctfz
     implicit none
-    integer :: n,k
-    real :: Rq
+    integer :: n,k,ierr,nlad_file
+    real :: Rq, lad_val
     character(80) chmess
+    character(256) :: line
+    character(200) :: veg_lad_file
 
     if ((ltrees .eqv. .false.) .or. (ntrees==0)) return
 
@@ -93,12 +210,24 @@ contains
 
         ntree_max = maxval(tree(:,6))-minval(tree(:,5))+1
 
-        ! hard code non-uniform lad profiles - temporary
-        if (.false.) then
-          ladzh(1:ntree_max) = (/  0.1, 0.11, 0.12, 0.14, 0.16, 0.19, 0.22, 0.265, 0.31, 0.335, 0.36, 0.37, 0.38, 0.3725, 0.365, 0.3375, 0.31, 0.2375, 0.165, 0.0875 /) !LAI =2 from Shaw, 1992
-          ! assumes lad at ntree_max+1 is 0.!
-        else
-          ladzh(1:ntree_max+1) = lad !up to ntree_max+1 cos ladzh is at cell faces
+        veg_lad_file = 'veg_lad.inp.'//cexpnr
+        nlad_file = 0
+        open(ifinput, file=veg_lad_file, status='old', iostat=ierr)
+        if (ierr /= 0) then
+          write(*,*) 'ERROR opening ', trim(veg_lad_file), ' iostat=', ierr
+          stop 1
+        end if
+        read(ifinput, '(a256)', iostat=ierr) line  ! skip header
+        do
+          read(ifinput, *, iostat=ierr) lad_val
+          if (ierr /= 0) exit
+          nlad_file = nlad_file + 1
+          ladzh(nlad_file) = lad_val
+        end do
+        close(ifinput)
+        if (nlad_file /= ntree_max + 1) then
+          write(*,*) 'ERROR: veg_lad length ', nlad_file, ' does not match ntree_max+1 ', ntree_max+1
+          stop 1
         end if
 
         ! interpolate to find lad at cell centres
@@ -148,9 +277,11 @@ contains
         end do
       end if
 
-      ! write updated ground and roof heat fluxes
-      write(*,*) 'wtsurf', wtsurf
-      write(*,*) 'bctfz', bctfz
+      ! write updated ground and roof heat fluxes once from root rank
+      if (myid == 0) then
+        write(*,*) 'wtsurf', wtsurf
+        write(*,*) 'bctfz', bctfz
+      end if
 
       ! broadcast variables
       call MPI_BCAST(ntree_max , 1,MY_REAL ,0,comm3d,mpierr)
