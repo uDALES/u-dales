@@ -929,7 +929,7 @@ module modstartup
          wfls, whls, ug, vg, pgx, pgy, uprof, vprof, thlprof, qtprof, e12prof, svprof, &
          v0av, u0av, qt0av, ql0av, thl0av, qt0av, sv0av, exnf, exnh, presf, presh, rhof, &
          thlpcar, uav, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, u0h, thl0c
-            use modglobal,         only : ib,ie,ih,ihc,jb,je,jh,jhc,kb,ke,kh,khc,kmax,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
+            use modglobal,         only : ib,ie,ih,ihc,jb,je,jh,jhc,kb,ke,kh,khc,kmax,rk3step,rk3coef,rk3coefi,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
          zf, zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, Vinf, dy, &
          rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
@@ -2142,6 +2142,9 @@ module modstartup
       tfac = btime
       tnextfac = btime + dtfac
       deallocate (height, th0av)
+
+      rk3coef = dt / (4. - dble(rk3step))
+      rk3coefi = 1. / rk3coef
 
       !    call boundary
 

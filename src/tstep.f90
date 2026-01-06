@@ -153,11 +153,7 @@ subroutine tstep_update
     end if
   end if
 
-  if (rk3step == 0) then ! dt not defined yet
-    rk3coef = 1.
-  else
-    rk3coef = dt / (4. - dble(rk3step))
-  end if
+  rk3coef = dt / (4. - dble(rk3step))
   rk3coefi = 1. / rk3coef
 
 end subroutine tstep_update
