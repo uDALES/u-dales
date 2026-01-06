@@ -52,11 +52,10 @@ contains
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,trestart,tnextrestart,dt_lim,timee,btime,xh,&
                           cexpnr,ntimee,rk3step,ifoutput,nsv,timeleft,dt,ntrun,totavtime,&
                           iinletgen,timee,runavtime,inletav,totinletav,linletRA,ltempeq,lmoist,&
-                          dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,nstore,numol,dy2i,grav,libm,jmax,nblocks
+                          dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,nstore,numol,dy2i,grav,libm,jmax
     use modmpi,    only : cmyid,cmyidx,cmyidy,myid,slabsum,excjs,comm3d
     use modsubgriddata, only : ekm
     use modibmdata,   only  : ibmxforcevol
-    use initfac , only : block
     use modinletdata, only   : Urec,Wrec,Uinl,Utav,QLinl,QTinl,QLrec,QTrec,QTtav,QLtav,Ttav,upupavinl,vpvpavinl,wpwpavinl,upwpavinl,&
                                thlpthlpavinl,thlpupavinl,thlpwpavinl,qlpqlpavinl,qlpupavinl,qlpwpavinl,qtpqtpavinl,qtpupavinl,qtpwpavinl,Tinl,Trec,nstepread
 

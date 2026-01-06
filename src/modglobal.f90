@@ -30,9 +30,9 @@ module modglobal
 
    integer :: poisrcheck = 0 ! switch to check if it is the first (RK) time step
    ! Simulation dimensions (parconst.f90)
-   integer :: itot = 96 ! Used to be called imax
+   integer :: itot = 96
    integer :: jtot = 96
-   integer :: ktot = 96 ! Rename to ktot?
+   integer :: ktot = 96
    integer :: imax
    integer :: imax1
    integer :: imax2
@@ -64,8 +64,6 @@ module modglobal
    integer ::  jhc = 2 ! used in k-scheme
    integer ::  khc = 2 ! used in k-scheme
 
-   integer :: nblocks = 0 ! no. of blocks in IBM
-   integer, allocatable :: block(:,:)
    integer :: nfcts = -1 ! no. of wall facets
    integer ::  iplane ! ib+iplane is the plane that is stored when lstoreplane=.true.
    integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
@@ -75,6 +73,9 @@ module modglobal
    ! Run mode constants and variable
    integer, parameter :: RUN_COLDSTART = 1
    integer, parameter :: RUN_WARMSTART = 2
+   integer, parameter :: RUN_STRATSTART = 3
+   integer, parameter :: RUN_DRIVER = 4
+
    integer, parameter :: TEST_JSON = 1001
    integer, parameter :: TEST_IO = 1002
    integer, parameter :: TEST_2DCOMP_INIT_EXIT = 1003
