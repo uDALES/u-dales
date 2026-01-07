@@ -36,7 +36,6 @@ program uDALES
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
-  use modtrees,          only : init_block_canopy => createtrees, trees_block => trees
   use vegetation,        only : init_vegetation, apply_vegetation
   use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
@@ -56,7 +55,7 @@ program uDALES
   implicit none
 
 !----------------------------------------------------------------
-!     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
+!     0      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
 
@@ -115,7 +114,6 @@ program uDALES
 
   call boundary
 
-  call init_block_canopy
   call init_vegetation
 
   call createpurifiers
@@ -236,36 +234,37 @@ program uDALES
 
 contains
   subroutine execute_runmode_actions
+    logical :: test_failed
+
+    test_failed = .false.
     select case (runmode)
       case (RUN_COLDSTART, RUN_WARMSTART, RUN_DRIVER, RUN_STRATSTART)
+        return
         ! Normal execution mode, do nothing special here
       case (TEST_SPARSE_IJK)
         ! Execute tests for reading sparse arrays
-        if (tests_read_sparse_ijk()) then
-          call exitmpi
-          stop 0  ! Exit with success
-        else
-          call exitmpi
-          stop 1  ! Exit with failure
-        end if
+        test_failed = tests_read_sparse_ijk()
       case (TEST_TREES_SPARSE_INPUT)
         call initfields
-        if (tests_trees_sparse_compare()) then
-          call exitmpi
-          stop 0
-        else
-          call exitmpi
-          stop 1
-        end if
+        test_failed = tests_trees_sparse_compare()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
         stop
         ! this routine does mpiexit internally
       case default
         write(*,*) 'Unknown runmode:', runmode
-        call exitmpi
-        stop 'Invalid runmode specified'
     end select
+
+    call exitmpi
+
+    ! Return appropriate exit code for unit tests:
+    ! 0 = success, 1 = failure
+    if (test_failed) then
+      stop 1
+    else
+      stop 0
+    end if
+
   end subroutine execute_runmode_actions
 
 end program uDALES

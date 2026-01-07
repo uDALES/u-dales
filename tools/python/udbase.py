@@ -64,7 +64,7 @@ class UDBase:
     >>> stats = sim.load_stat_xyt('u')
     """
     
-    def __init__(self, expnr: Union[int, str], path: Optional[Union[str, Path]] = None):
+    def __init__(self, expnr: Union[int, str], path: Optional[Union[str, Path]] = None, load_geometry: bool = True):
         """Initialize UDBase instance."""
         
         # Store experiment number
@@ -90,8 +90,9 @@ class UDBase:
         # Load grid
         self._load_grid()
         
-        # Load geometry if present
-        self._load_geometry()
+        # Load geometry if present (can be disabled for faster startup)
+        if load_geometry:
+            self._load_geometry()
         
         # Load solid masks if present
         self._load_solid_masks()

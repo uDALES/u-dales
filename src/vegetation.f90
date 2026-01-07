@@ -180,10 +180,8 @@ contains
     end do
 
     ! Exchange halos so face averaging has neighbor values (2D decomposition)
-    call exchange_halo_x(lad_3d)
-    call exchange_halo_y(lad_3d)
-    call exchange_halo_x(dcoef_3d)
-    call exchange_halo_y(dcoef_3d)
+    call exchange_halo_z(lad_3d)
+    call exchange_halo_z(dcoef_3d)
     
     ! Step 2: Compute cumulative LAI by integrating downward from top
     ! Start at ke+1 (top of domain) with zero

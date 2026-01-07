@@ -8,7 +8,7 @@ irandom      = 43
 randu        = 0.01
 ladaptive    = .true.
 nprocx       = 4
-nprocy       = 4
+nprocy       = 8
 libm         = .true.
 /
 

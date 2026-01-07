@@ -73,6 +73,18 @@ if r.ltrees || r.ltreesfile
     preprocessing.generate_trees_from_namoptions(r);
     preprocessing.write_trees(r);
     disp(['Written trees.inp.', r.expnr])
+    disp('Generating sparse vegetation inputs from trees (python)')
+    pytools = [DA_TOOLSDIR '/python'];
+    pycmd = sprintf(['python3 -c "import sys; ' ...
+        'sys.path.insert(0, ''%s''); ' ...
+        'from udbase import UDBase; from udprep import convert_block_to_sparse; ' ...
+        'sim=UDBase(expnr=''%s'', path=''%s'', load_geometry=False); ' ...
+        'out=convert_block_to_sparse(sim); ' ...
+        'print(''Conversion complete: %%s'' %% out)"'], pytools, expnr, fpath);
+    [status, cmdout] = system(pycmd);
+    if status ~= 0
+        error('Veg conversion failed: %s', cmdout);
+    end
 end
 
 if isfile(['factypes.inp.', expnr])
