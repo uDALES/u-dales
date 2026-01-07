@@ -107,9 +107,6 @@ contains
           ladzf(k) = 0.5*(ladzh(k)+ladzh(k+1))
         end do
 
-        ! MvR override ladzf interpolation -- this is justified since Tom's implementation does not fully do justice to staggering anyway.
-        ladzf(1:ntree_max) = ladzh(1:ntree_max)
-
         ! clai at cell faces using lad at cell centre
         do k = 1,ntree_max
           clai(k) = sum(0.5*(ladzh(k:ntree_max)+ladzh(k+1:ntree_max+1))*(dzf(maxval(tree(:,6))-ntree_max+k:maxval(tree(:,6)))))
