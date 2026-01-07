@@ -11,6 +11,7 @@ module instant_slice
   implicit none
   private
   public :: instant_init, instant_main
+  public :: write_islice_xcoord_local, write_jslice_ycoord_local, write_kslice_zcoord
   save
 
   integer :: xdim, ydim, zdim, kdim, idim, jdim  ! Added kdim, idim, jdim for multiple slices
@@ -255,7 +256,7 @@ module instant_slice
           call define_nc(ncidislice, 1, slicetimeVar)
           call writestat_dims_nc(ncidislice)
           ! Add islice-specific x coordinate information
-          call write_islice_xcoord_local
+          call write_islice_xcoord_local(ncidislice, local_nislice, nislice, islice, myidx, nprocx, itot)
         end if
         call define_nc(ncidislice, nslicevars, isliceVars)
         
@@ -297,7 +298,7 @@ module instant_slice
         if (nrecjslice==0) then
           call define_nc(ncidjslice, 1, slicetimeVar)
           call writestat_dims_nc(ncidjslice)
-          call write_jslice_ycoord_local
+          call write_jslice_ycoord_local(ncidjslice, local_njslice, njslice, jslice, myidy, nprocy, jtot)
         end if
         call define_nc(ncidjslice, nslicevars, jsliceVars)
         write(*,'(A,A,A,I2,A)') '  Processor (myidy=', cmyidy, ') created islice file with ', local_njslice, ' slices'
@@ -325,7 +326,7 @@ module instant_slice
         ! Use standard writestat_dims_nc - it will write x, y, z dimensions
         call writestat_dims_nc(ncidkslice)
         ! Now add kslice-specific z coordinate information
-        call write_kslice_zcoord(ncidkslice)
+        call write_kslice_zcoord(ncidkslice, nkslice, kslice)
       end if
       call define_nc(ncidkslice, nslicevars, ksliceVars)
     end subroutine instant_create_nckslice
@@ -353,7 +354,7 @@ module instant_slice
           call define_nc(ncidkslice1d, 1, slicetimeVar)
           call writestat_dims_nc(ncidkslice1d)
           ! Add kslice-specific z coordinate information
-          call write_kslice_zcoord(ncidkslice1d)
+          call write_kslice_zcoord(ncidkslice1d, nkslice, kslice)
         end if
         call define_nc(ncidkslice1d, nslicevars, ksliceVars)
       end if
@@ -698,49 +699,51 @@ module instant_slice
       deallocate(tmp_slice)
     end subroutine instant_write_jslice
 
-    subroutine write_islice_xcoord_local
+    subroutine write_islice_xcoord_local(ncid, local_n, nislice_total, islice_positions, myidx_in, nprocx_in, itot_in)
       ! Write x-coordinates for LOCAL islice positions only
       use modglobal, only : xf, xh
-      use modmpi, only : myidx, nprocx
       use netcdf
       implicit none
+      integer, intent(in) :: ncid, local_n, nislice_total
+      integer, dimension(nislice_total), intent(in) :: islice_positions
+      integer, intent(in) :: myidx_in, nprocx_in, itot_in
       integer :: varid, ierr, i, local_idx
       real, allocatable :: x_islice_f(:), x_islice_h(:)
       integer, allocatable :: islice_indices(:)
       
-      ! Allocate and fill x coordinates for LOCAL islices only (use module variable)
-      allocate(x_islice_f(local_nislice))
-      allocate(x_islice_h(local_nislice))
-      allocate(islice_indices(local_nislice))
+      ! Allocate and fill x coordinates for LOCAL islices only
+      allocate(x_islice_f(local_n))
+      allocate(x_islice_h(local_n))
+      allocate(islice_indices(local_n))
       
       local_idx = 0
-      do i = 1, nislice
-        if ( (islice(i)-1)/(itot/nprocx) == myidx) then
+      do i = 1, nislice_total
+        if ( (islice_positions(i)-1)/(itot_in/nprocx_in) == myidx_in) then
           local_idx = local_idx + 1
-          x_islice_f(local_idx) = xf(islice(i))  ! full level (cell center)
-          x_islice_h(local_idx) = xh(islice(i))  ! half level (cell edge)
-          islice_indices(local_idx) = islice(i)
+          x_islice_f(local_idx) = xf(islice_positions(i))  ! full level (cell center)
+          x_islice_h(local_idx) = xh(islice_positions(i))  ! half level (cell edge)
+          islice_indices(local_idx) = islice_positions(i)
         end if
       end do
       
       ! Write xt (full level)
-      ierr = nf90_inq_varid(ncidislice, 'xt', varid)
+      ierr = nf90_inq_varid(ncid, 'xt', varid)
       if (ierr == nf90_noerr) then
-        ierr = nf90_redef(ncidislice)
-        ierr = nf90_put_att(ncidislice, varid, 'islice_indices', islice_indices)
-        ierr = nf90_put_att(ncidislice, varid, 'long_name', 'x-coordinate of i-slices (cell center)')
-        ierr = nf90_enddef(ncidislice)
-        ierr = nf90_put_var(ncidislice, varid, x_islice_f)
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'islice_indices', islice_indices)
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'x-coordinate of i-slices (cell center)')
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, x_islice_f)
       end if
       
       ! Write xm (half level)
-      ierr = nf90_inq_varid(ncidislice, 'xm', varid)
+      ierr = nf90_inq_varid(ncid, 'xm', varid)
       if (ierr == nf90_noerr) then
-        ierr = nf90_redef(ncidislice)
-        ierr = nf90_put_att(ncidislice, varid, 'islice_indices', islice_indices)
-        ierr = nf90_put_att(ncidislice, varid, 'long_name', 'x-coordinate of i-slices (cell edge)')
-        ierr = nf90_enddef(ncidislice)
-        ierr = nf90_put_var(ncidislice, varid, x_islice_h)
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'islice_indices', islice_indices)
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'x-coordinate of i-slices (cell edge)')
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, x_islice_h)
       end if
       
       deallocate(x_islice_f)
@@ -748,46 +751,48 @@ module instant_slice
       deallocate(islice_indices)
     end subroutine write_islice_xcoord_local
 
-    subroutine write_jslice_ycoord_local
+    subroutine write_jslice_ycoord_local(ncid, local_n, njslice_total, jslice_positions, myidy_in, nprocy_in, jtot_in)
       ! Write y-coordinates for LOCAL jslice positions (round-robin assignment over myidy)
       use modglobal, only : yf, yh
-      use modmpi, only : myidy, nprocy
       use netcdf
       implicit none
+      integer, intent(in) :: ncid, local_n, njslice_total
+      integer, dimension(njslice_total), intent(in) :: jslice_positions
+      integer, intent(in) :: myidy_in, nprocy_in, jtot_in
       integer :: varid, ierr, j, local_idy
       real, allocatable :: y_jslice_f(:), y_jslice_h(:)
       integer, allocatable :: jslice_indices(:)
 
-      allocate(y_jslice_f(local_njslice))
-      allocate(y_jslice_h(local_njslice))
-      allocate(jslice_indices(local_njslice))
+      allocate(y_jslice_f(local_n))
+      allocate(y_jslice_h(local_n))
+      allocate(jslice_indices(local_n))
       
       local_idy = 0
-      do j = 1, njslice
-        if ( (jslice(j)-1)/(jtot/nprocy) == myidy) then
+      do j = 1, njslice_total
+        if ( (jslice_positions(j)-1)/(jtot_in/nprocy_in) == myidy_in) then
           local_idy = local_idy + 1
-          y_jslice_f(local_idy) = yf(jslice(j))
-          y_jslice_h(local_idy) = yh(jslice(j))
-          jslice_indices(local_idy) = jslice(j)
+          y_jslice_f(local_idy) = yf(jslice_positions(j))
+          y_jslice_h(local_idy) = yh(jslice_positions(j))
+          jslice_indices(local_idy) = jslice_positions(j)
         end if
       end do
 
-      ierr = nf90_inq_varid(ncidjslice, 'yt', varid)
+      ierr = nf90_inq_varid(ncid, 'yt', varid)
       if (ierr == nf90_noerr) then
-        ierr = nf90_redef(ncidjslice)
-        ierr = nf90_put_att(ncidjslice, varid, 'jslice_indices', jslice_indices)
-        ierr = nf90_put_att(ncidjslice, varid, 'long_name', 'y-coordinate of j-slices (cell center)')
-        ierr = nf90_enddef(ncidjslice)
-        ierr = nf90_put_var(ncidjslice, varid, y_jslice_f)
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'jslice_indices', jslice_indices)
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'y-coordinate of j-slices (cell center)')
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, y_jslice_f)
       end if
 
-      ierr = nf90_inq_varid(ncidjslice, 'ym', varid)
+      ierr = nf90_inq_varid(ncid, 'ym', varid)
       if (ierr == nf90_noerr) then
-        ierr = nf90_redef(ncidjslice)
-        ierr = nf90_put_att(ncidjslice, varid, 'jslice_indices', jslice_indices)
-        ierr = nf90_put_att(ncidjslice, varid, 'long_name', 'y-coordinate of j-slices (cell edge)')
-        ierr = nf90_enddef(ncidjslice)
-        ierr = nf90_put_var(ncidjslice, varid, y_jslice_h)
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'jslice_indices', jslice_indices)
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'y-coordinate of j-slices (cell edge)')
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, y_jslice_h)
       end if
 
       deallocate(y_jslice_f)
@@ -795,49 +800,42 @@ module instant_slice
       deallocate(jslice_indices)
     end subroutine write_jslice_ycoord_local
 
-    subroutine write_kslice_zcoord(ncid)
+    subroutine write_kslice_zcoord(ncid, nkslice_count, kslice_positions)
       ! Update z-coordinate to reflect kslice levels instead of full z levels
       use modglobal, only : zf, zh
       use netcdf
       implicit none
-      integer, intent(in) :: ncid
+      integer, intent(in) :: ncid, nkslice_count
+      integer, dimension(nkslice_count), intent(in) :: kslice_positions
       integer :: varid, ierr, k
       real, allocatable :: z_kslice_f(:), z_kslice_h(:)
       
       ! Allocate and fill z coordinates for kslices
-      allocate(z_kslice_f(nkslice))
-      allocate(z_kslice_h(nkslice))
-      do k = 1, nkslice
-        z_kslice_f(k) = zf(kslice(k))  ! full level (cell center)
-        z_kslice_h(k) = zh(kslice(k))  ! half level (cell edge)
+      allocate(z_kslice_f(nkslice_count))
+      allocate(z_kslice_h(nkslice_count))
+      do k = 1, nkslice_count
+        z_kslice_f(k) = zf(kslice_positions(k))  ! full level (cell center)
+        z_kslice_h(k) = zh(kslice_positions(k))  ! half level (cell edge)
       end do
       
       ! Write zt (full level)
       ierr = nf90_inq_varid(ncid, 'zt', varid)
       if (ierr == nf90_noerr) then
         ierr = nf90_redef(ncid)
-        ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice(1:nkslice))
+        ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice_positions)
         ierr = nf90_put_att(ncid, varid, 'long_name', 'z-coordinate of k-slices (cell center)')
         ierr = nf90_enddef(ncid)
         ierr = nf90_put_var(ncid, varid, z_kslice_f)
-        
-        if (ierr == nf90_noerr .and. myid == 0) then
-          write(*,*) 'Updated zt for kslices:', z_kslice_f
-        end if
       end if
       
       ! Write zm (half level)
       ierr = nf90_inq_varid(ncid, 'zm', varid)
       if (ierr == nf90_noerr) then
         ierr = nf90_redef(ncid)
-        ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice(1:nkslice))
+        ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice_positions)
         ierr = nf90_put_att(ncid, varid, 'long_name', 'z-coordinate of k-slices (cell edge)')
         ierr = nf90_enddef(ncid)
         ierr = nf90_put_var(ncid, varid, z_kslice_h)
-        
-        if (ierr == nf90_noerr .and. myid == 0) then
-          write(*,*) 'Updated zm for kslices:', z_kslice_h
-        end if
       end if
       
       deallocate(z_kslice_f)

@@ -3,10 +3,8 @@ module tests
   use decomp_2d
   use modglobal  ! Import all global variables for comprehensive output
   use modmpi, only : comm3d, my_real, mpierr, myid, myidx, myidy, myid1dy, nprocs, nprocx, nprocy, cmyidx, cmyidy
-!  use stats, only : stats_createnc_tavg1d, ncidt1d, nrect
-  use modstat_nc, only : open_nc, define_nc, writestat_dims_nc, ncinfo, writeoffset, writeoffset_1dx
-  !use json_module
-  !use readparameters, only : readnamelists, readjsonconfig, writenamelists
+  use modstat_nc, only : open_nc, define_nc, writestat_dims_nc, ncinfo, writeoffset, writeoffset_1dx, writestat_nc
+  use instant_slice, only : write_islice_xcoord_local, write_jslice_ycoord_local, write_kslice_zcoord
   implicit none
 
   contains
@@ -71,6 +69,16 @@ module tests
       real, allocatable :: jslice_data(:,:,:)
       character(80) :: jslice_filename
       integer :: njslice_count  ! Actual number of jslices
+      
+      ! Probe variables
+      integer :: nprobe_count
+      integer :: ncid_probe, nrec_probe
+      logical, allocatable :: probe_on_rank(:)
+      integer, allocatable :: probe_local_i(:), probe_local_j(:)
+      integer :: local_nprobe
+      integer, allocatable :: local_probe_map(:)
+      real, allocatable :: probe_data(:)
+      character(80) :: probe_filename
 
       integer :: ii_local, jj_local
 
@@ -152,7 +160,7 @@ module tests
             call ncinfo(timeVar(1,:), 'time', 'Time', 's', 'time')
             call define_nc(ncid_islice, 1, timeVar)
             call writestat_dims_nc(ncid_islice)
-            call write_islice_coords(ncid_islice, local_nislice, nislice_count, islice)
+            call write_islice_xcoord_local(ncid_islice, local_nislice, nislice_count, islice, myidx, nprocx, itot)
           end if
           
           call ncinfo(varinfo(1,:), 'test_value', 'Test coordinate value', '1', 'tttt')
@@ -188,7 +196,7 @@ module tests
             call ncinfo(timeVar(1,:), 'time', 'Time', 's', 'time')
             call define_nc(ncid_jslice, 1, timeVar)
             call writestat_dims_nc(ncid_jslice)
-            call write_jslice_coords(ncid_jslice, local_njslice, njslice_count, jslice)
+            call write_jslice_ycoord_local(ncid_jslice, local_njslice, njslice_count, jslice, myidy, nprocy, jtot)
           end if
           
           call ncinfo(varinfo(1,:), 'test_value', 'Test coordinate value', '1', 'tttt')
@@ -216,13 +224,74 @@ module tests
             call ncinfo(timeVar(1,:), 'time', 'Time', 's', 'time')
             call define_nc(ncid_kslice, 1, timeVar)
             call writestat_dims_nc(ncid_kslice)
-            call write_kslice_coords(ncid_kslice, nkslice_count, kslice)
+            call write_kslice_zcoord(ncid_kslice, nkslice_count, kslice)
           end if
           
           call ncinfo(varinfo(1,:), 'test_value', 'Test coordinate value', '1', 'tttt')
           call define_nc(ncid_kslice, 1, varinfo)
           
           write(*,'(A,I3,A,I2,A)') 'Processor myidx=', myidx, ' created kslice file with ', nkslice_count, ' slices'
+        end if
+      end if
+      
+      call MPI_BARRIER(comm3d, mpierr)
+
+! ============================================= !
+! Create probe files
+! ============================================= !
+      nprobe_count = nprobe
+      if (nprobe_count > 0) then
+        if (myid == 0) write(*,*) 'Creating probe files for ', nprobe_count, ' probes'
+        
+        ! Allocate probe tracking arrays
+        allocate(probe_on_rank(nprobe_count))
+        allocate(probe_local_i(nprobe_count))
+        allocate(probe_local_j(nprobe_count))
+        
+        ! Determine which probes are on this processor
+        probe_on_rank = .false.
+        local_nprobe = 0
+        
+        do n = 1, nprobe_count
+          call get_probe_processor(iprobe(n), jprobe(n), probe_on_rank(n), &
+                                   probe_local_i(n), probe_local_j(n))
+          if (probe_on_rank(n)) then
+            local_nprobe = local_nprobe + 1
+          end if
+        end do
+        
+        ! Create mapping from local to global probe index
+        if (local_nprobe > 0) then
+          allocate(local_probe_map(local_nprobe))
+          allocate(probe_data(local_nprobe))
+          local_idx = 0
+          do n = 1, nprobe_count
+            if (probe_on_rank(n)) then
+              local_idx = local_idx + 1
+              local_probe_map(local_idx) = n
+            end if
+          end do
+          
+          ! Create NetCDF file
+          probe_filename = 'test_probe.xxx.xxx.nc'
+          probe_filename(12:14) = cmyidx
+          probe_filename(16:18) = cmyidy
+          
+          nrec_probe = 0
+          call open_nc(probe_filename, ncid_probe, nrec_probe, n3=local_nprobe)
+          
+          if (nrec_probe == 0) then
+            call ncinfo(timeVar(1,:), 'time', 'Time', 's', 'time')
+            call define_nc(ncid_probe, 1, timeVar)
+            call writestat_dims_nc(ncid_probe)
+            call write_probe_coords(ncid_probe, local_nprobe, local_probe_map, nprobe_count)
+          end if
+          
+          call ncinfo(varinfo(1,:), 'test_value', 'Test coordinate value', '1', 'tttt')
+          call define_nc(ncid_probe, 1, varinfo)
+          
+          write(*,'(A,I3,A,I3,A,I2,A)') 'Processor ', myid, ' created probe file with ', &
+                                         local_nprobe, ' of ', nprobe_count, ' probes'
         end if
       end if
       
@@ -302,6 +371,20 @@ module tests
            call writeoffset(ncid_kslice, 'test_value', kslice_data, nrec_kslice, xdim, ydim, nkslice_count)
          end if
          
+         ! Write probe data
+         if (nprobe_count > 0 .and. local_nprobe > 0) then
+           do local_idx = 1, local_nprobe
+             n = local_probe_map(local_idx)
+             i = probe_local_i(n)
+             j = probe_local_j(n)
+             k = kprobe(n)
+             probe_data(local_idx) = test_var(i, j, k)
+           end do
+           
+           nrec_probe = time_step
+           call writestat_nc(ncid_probe, 1, nrec_probe, varinfo(1,:), probe_data, local_nprobe)
+         end if
+         
          call MPI_BARRIER(comm3d, mpierr)
       end do
       
@@ -310,6 +393,11 @@ module tests
       if (allocated(islice_data)) deallocate(islice_data)
       if (allocated(jslice_data)) deallocate(jslice_data)
       if (allocated(kslice_data)) deallocate(kslice_data)
+      if (allocated(probe_on_rank)) deallocate(probe_on_rank)
+      if (allocated(probe_local_i)) deallocate(probe_local_i)
+      if (allocated(probe_local_j)) deallocate(probe_local_j)
+      if (allocated(local_probe_map)) deallocate(local_probe_map)
+      if (allocated(probe_data)) deallocate(probe_data)
       
       if (myid == 0) then
         write(*,*) 'Test completed! Files written:'
@@ -317,134 +405,67 @@ module tests
         if (nislice_count > 0) write(*,*) '  - test_islice.xxx.xxx.nc (', nislice_count, ' islices)'
         if (njslice_count > 0) write(*,*) '  - test_jslice.xxx.xxx.nc (', njslice_count, ' jslices)'
         if (nkslice_count > 0) write(*,*) '  - test_kslice.xxx.xxx.nc (', nkslice_count, ' kslices)'
+        if (nprobe_count > 0) write(*,*) '  - test_probe.xxx.xxx.nc (', nprobe_count, ' probes)'
       end if
 
     end subroutine tests_io
-
-
-    subroutine write_islice_coords(ncid, local_nislice, nislice_total, islice_positions)
-      use modglobal, only : xf, xh
+    
+    subroutine get_probe_processor(ig, jg, on_rank, local_i, local_j)
+      ! Determine if a probe point is on this processor
+      ! and calculate local indices
+      implicit none
+      integer, intent(in)  :: ig, jg  ! Global indices
+      logical, intent(out) :: on_rank
+      integer, intent(out) :: local_i, local_j
+      
+      integer :: istart, iend, jstart, jend
+      
+      ! Calculate global index range for this processor
+      istart = myidx * (itot / nprocx) + 1
+      iend = (myidx + 1) * (itot / nprocx)
+      jstart = myidy * (jtot / nprocy) + 1
+      jend = (myidy + 1) * (jtot / nprocy)
+      
+      ! Check if probe is within this processor's domain
+      on_rank = (ig >= istart .and. ig <= iend .and. jg >= jstart .and. jg <= jend)
+      
+      if (on_rank) then
+        local_i = ig - istart + ib
+        local_j = jg - jstart + jb
+      else
+        local_i = -1
+        local_j = -1
+      end if
+      
+    end subroutine get_probe_processor
+    
+    subroutine write_probe_coords(ncid, local_nprobe, local_probe_map, nprobe_total)
+      ! Write probe coordinates as variable attributes (only for local probes)
       use netcdf
       implicit none
-      integer, intent(in) :: ncid, local_nislice, nislice_total
-      integer, dimension(nislice_total), intent(in) :: islice_positions
-      integer :: varid, ierr, i, local_idx
-      real, allocatable :: x_f(:), x_h(:)
-      integer, allocatable :: indices(:)
+      integer, intent(in) :: ncid, local_nprobe, nprobe_total
+      integer, intent(in) :: local_probe_map(local_nprobe)
       
-      allocate(x_f(local_nislice))
-      allocate(x_h(local_nislice))
-      allocate(indices(local_nislice))
+      integer :: varid, ierr, n, local_idx
+      integer :: local_iprobe(local_nprobe), local_jprobe(local_nprobe), local_kprobe(local_nprobe)
       
-      local_idx = 0
-      do i = 1, nislice_total
-        if ( (islice(i)-1)/(itot/nprocx) == myidx) then
-          local_idx = local_idx + 1
-          x_f(local_idx) = xf(islice_positions(i))
-          x_h(local_idx) = xh(islice_positions(i))
-          indices(local_idx) = islice_positions(i)
-        end if
+      ! Get local probe coordinates from global arrays
+      do local_idx = 1, local_nprobe
+        n = local_probe_map(local_idx)
+        local_iprobe(local_idx) = iprobe(n)
+        local_jprobe(local_idx) = jprobe(n)
+        local_kprobe(local_idx) = kprobe(n)
       end do
       
-      ierr = nf90_inq_varid(ncid, 'xt', varid)
-      if (ierr == nf90_noerr) then
-        ierr = nf90_redef(ncid)
-        ierr = nf90_put_att(ncid, varid, 'islice_indices', indices)
-        ierr = nf90_enddef(ncid)
-        ierr = nf90_put_var(ncid, varid, x_f)
-      end if
+      ! Get variable ID for test_value
+      ierr = nf90_inq_varid(ncid, 'test_value', varid)
       
-      ierr = nf90_inq_varid(ncid, 'xm', varid)
-      if (ierr == nf90_noerr) then
-        ierr = nf90_redef(ncid)
-        ierr = nf90_put_att(ncid, varid, 'islice_indices', indices)
-        ierr = nf90_enddef(ncid)
-        ierr = nf90_put_var(ncid, varid, x_h)
-      end if
+      ! Write coordinates as attributes
+      ierr = nf90_put_att(ncid, varid, 'probe_i_indices', local_iprobe)
+      ierr = nf90_put_att(ncid, varid, 'probe_j_indices', local_jprobe)
+      ierr = nf90_put_att(ncid, varid, 'probe_k_indices', local_kprobe)
       
-      deallocate(x_f, x_h, indices)
-    end subroutine write_islice_coords
-
-
-    subroutine write_kslice_coords(ncid, nkslice, kslice_positions)
-      use modglobal, only : zf, zh
-      use netcdf
-      implicit none
-      integer, intent(in) :: ncid, nkslice
-      integer, dimension(nkslice), intent(in) :: kslice_positions
-      integer :: varid, ierr, k
-      real, allocatable :: z_f(:), z_h(:)
-      
-      allocate(z_f(nkslice))
-      allocate(z_h(nkslice))
-      
-      do k = 1, nkslice
-        z_f(k) = zf(kslice_positions(k))
-        z_h(k) = zh(kslice_positions(k))
-      end do
-      
-      ierr = nf90_inq_varid(ncid, 'zt', varid)
-      if (ierr == nf90_noerr) then
-        ierr = nf90_redef(ncid)
-        ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice_positions)
-        ierr = nf90_enddef(ncid)
-        ierr = nf90_put_var(ncid, varid, z_f)
-      end if
-      
-      ierr = nf90_inq_varid(ncid, 'zm', varid)
-      if (ierr == nf90_noerr) then
-        ierr = nf90_redef(ncid)
-        ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice_positions)
-        ierr = nf90_enddef(ncid)
-        ierr = nf90_put_var(ncid, varid, z_h)
-      end if
-      
-      deallocate(z_f, z_h)
-    end subroutine write_kslice_coords
-
-
-    subroutine write_jslice_coords(ncid, local_njslice, njslice_total, jslice_positions)
-      use modglobal, only : yf, yh
-      use netcdf
-      implicit none
-      integer, intent(in) :: ncid, local_njslice, njslice_total
-      integer, dimension(njslice_total), intent(in) :: jslice_positions
-      integer :: varid, ierr, j, local_idy
-      real, allocatable :: y_f(:), y_h(:)
-      integer, allocatable :: indices(:)
-      
-      allocate(y_f(local_njslice))
-      allocate(y_h(local_njslice))
-      allocate(indices(local_njslice))
-      
-      local_idy = 0
-      do j = 1, njslice_total
-        if ( (jslice(j)-1)/nprocy == myidy) then
-          local_idy = local_idy + 1
-          y_f(local_idy) = yf(jslice_positions(j))
-          y_h(local_idy) = yh(jslice_positions(j))
-          indices(local_idy) = jslice_positions(j)
-        end if
-      end do
-      
-      ierr = nf90_inq_varid(ncid, 'yt', varid)
-      if (ierr == nf90_noerr) then
-        ierr = nf90_redef(ncid)
-        ierr = nf90_put_att(ncid, varid, 'jslice_indices', indices)
-        ierr = nf90_enddef(ncid)
-        ierr = nf90_put_var(ncid, varid, y_f)
-      end if
-      
-      ierr = nf90_inq_varid(ncid, 'ym', varid)
-      if (ierr == nf90_noerr) then
-        ierr = nf90_redef(ncid)
-        ierr = nf90_put_att(ncid, varid, 'jslice_indices', indices)
-        ierr = nf90_enddef(ncid)
-        ierr = nf90_put_var(ncid, varid, y_h)
-      end if
-      
-      deallocate(y_f, y_h, indices)
-    end subroutine write_jslice_coords
+    end subroutine write_probe_coords
 
 
 end module tests
