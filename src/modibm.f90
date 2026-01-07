@@ -702,9 +702,9 @@ module modibm
      if (present(mask) .eqv. .false.) then
         do n=1,solid_info%nsolptsrank
            !n = solid_info%solptsrank(m)
-           i = solid_info%solpts_loc(n,1) - zstart(1) + 1
-           j = solid_info%solpts_loc(n,2) - zstart(2) + 1
-           k = solid_info%solpts_loc(n,3) - zstart(3) + 1
+           i = solid_info%solpts_loc(n,1)
+           j = solid_info%solpts_loc(n,2)
+           k = solid_info%solpts_loc(n,3)
            var(i,j,k) = val
            rhs(i,j,k) = 0.
         end do
@@ -712,9 +712,9 @@ module modibm
      else
         do n=1,solid_info%nsolptsrank
            !n = solid_info%solptsrank(m)
-           i = solid_info%solpts_loc(n,1) - zstart(1) + 1
-           j = solid_info%solpts_loc(n,2) - zstart(2) + 1
-           k = solid_info%solpts_loc(n,3) - zstart(3) + 1
+           i = solid_info%solpts_loc(n,1)
+           j = solid_info%solpts_loc(n,2)
+           k = solid_info%solpts_loc(n,3)
            var(i,j,k) = val
            rhs(i,j,k) = 0.
            count = 0
@@ -2104,33 +2104,33 @@ module modibm
 
       do n = 1,solid_info_u%nsolptsrank
        !n = solid_info_u%solptsrank(m)
-          i = solid_info_u%solpts_loc(n,1) - zstart(1) + 1
-          j = solid_info_u%solpts_loc(n,2) - zstart(2) + 1
-          k = solid_info_u%solpts_loc(n,3) - zstart(3) + 1
+          i = solid_info_u%solpts_loc(n,1)
+          j = solid_info_u%solpts_loc(n,2)
+          k = solid_info_u%solpts_loc(n,3)
           IIu(i,j,k) = 0
       end do
 
       do n = 1,solid_info_v%nsolptsrank
        !n = solid_info_v%solptsrank(m)
-          i = solid_info_v%solpts_loc(n,1) - zstart(1) + 1
-          j = solid_info_v%solpts_loc(n,2) - zstart(2) + 1
-          k = solid_info_v%solpts_loc(n,3) - zstart(3) + 1
+          i = solid_info_v%solpts_loc(n,1)
+          j = solid_info_v%solpts_loc(n,2)
+          k = solid_info_v%solpts_loc(n,3)
           IIv(i,j,k) = 0
       end do
 
       do n = 1,solid_info_w%nsolptsrank
        !n = solid_info_w%solptsrank(m)
-          i = solid_info_w%solpts_loc(n,1) - zstart(1) + 1
-          j = solid_info_w%solpts_loc(n,2) - zstart(2) + 1
-          k = solid_info_w%solpts_loc(n,3) - zstart(3) + 1
+          i = solid_info_w%solpts_loc(n,1)
+          j = solid_info_w%solpts_loc(n,2)
+          k = solid_info_w%solpts_loc(n,3)
           IIw(i,j,k) = 0
       end do
 
       do n = 1,solid_info_c%nsolptsrank
        !n = solid_info_c%solptsrank(m)
-          i = solid_info_c%solpts_loc(n,1) - zstart(1) + 1
-          j = solid_info_c%solpts_loc(n,2) - zstart(2) + 1
-          k = solid_info_c%solpts_loc(n,3) - zstart(3) + 1
+          i = solid_info_c%solpts_loc(n,1)
+          j = solid_info_c%solpts_loc(n,2)
+          k = solid_info_c%solpts_loc(n,3)
           IIc(i,j,k) = 0
       end do
 

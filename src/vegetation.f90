@@ -21,16 +21,27 @@ module vegetation
 
   type(veg_type) :: veg
 
-  logical :: trees_sparse_ready = .false.
+  type veg_face_type
+    integer :: npts = 0               ! number of face points on this rank
+    integer, allocatable :: ijk(:,:)  ! local grid indices (i,j,k) at face
+    real,    allocatable :: dcoef(:)  ! face-centered (lad*cd)
+  end type veg_face_type
+
+  type(veg_face_type) :: veg_u, veg_v, veg_w
+
+  real, allocatable :: lad_3d(:,:,:)  ! cell-centered LAD with halos for face averaging
+  real, allocatable :: dcoef_3d(:,:,:) ! cell-centered (lad*cd) with halos for face averaging
+
+  logical :: vegetation_ready = .false.
 contains
 
   subroutine init_vegetation
-    use modglobal,  only : ltrees,ib,ie,jb,je,kb,ke,cexpnr,dzf
+    use modglobal,  only : ltrees,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,dzf
     use modmpi,     only : myid,comm3d,mpierr,MY_REAL
     use readinput,  only : read_sparse_ijk
-    use decomp_2d,  only : DECOMP_2D_COMM_CART_Z
+    use decomp_2d,  only : exchange_halo_x, exchange_halo_y, exchange_halo_z
     implicit none
-    integer :: i,j,k,m,kk
+    integer :: i,j,k,m
     integer :: npts
     integer, allocatable :: ids_loc(:)
     integer, allocatable :: pts_in(:,:)
@@ -40,18 +51,17 @@ contains
     integer, allocatable :: id_all(:)
     real, allocatable :: lad_all(:), cd_all(:), ud_all(:), dec_all(:), lsize_all(:), rs_all(:)
     integer :: nread
-    real, allocatable :: lad_3d(:,:,:)      ! 3D LAD field (ib:ie, jb:je, kb:ke)
-    real, allocatable :: lai_3d(:,:,:)  ! Cumulative LAI (ib:ie, jb:je, kb:ke+1)
-    real, allocatable :: lai_from_above(:,:) ! LAI from ranks above (ib:ie, jb:je)
-    real, allocatable :: lai_local_total(:,:) ! Total LAI through this rank (ib:ie, jb:je)
-    real, allocatable :: lai_sum_to_here(:,:) ! Cumulative sum from rank 0 to this rank (ib:ie, jb:je)
-    real, allocatable :: lai_global_total(:,:) ! Total LAI across all ranks (ib:ie, jb:je)
+    real, allocatable :: lai_3d(:,:,:)      ! LAI (ib:ie, jb:je, kb:ke+1)
+    integer :: idx
+    real, allocatable :: dcoef_f(:,:,:)
+    logical, allocatable :: mask_f(:,:,:)
 
     if (.not. ltrees) return
-
-    trees_sparse_ready = .false.
+    vegetation_ready = .false.
 
     ! count points in veg.inp.<expnr> to set npts
+    ! TEMPORARY WHILE WE RUN TREES AND VEG TOGETHER
+    ! npts is contained in ntrees namelist variable
     write(filename, '(A,A)') 'veg.inp.', trim(cexpnr)
     ifinput = 99
     npts = 0
@@ -146,126 +156,195 @@ contains
     deallocate(id_all, lad_all, cd_all, ud_all, dec_all, lsize_all, rs_all)
 
     ! ========================================================================
-    ! Compute cumulative LAI from top of domain downward
-    ! ========================================================================
+    ! Compute LAI from top of domain downward
+    ! Note: Domain is decomposed in x and y (2D pencil decomposition)
+    ! Each rank has the full vertical extent; we need x/y halos for face averaging.
     
-    ! Allocate temporary arrays for LAI calculation
-    allocate(lad_3d(ib:ie, jb:je, kb:ke))
-    allocate(lai_3d(ib:ie, jb:je, kb:ke+1))
-    allocate(lai_from_above(ib:ie, jb:je))
-    allocate(lai_local_total(ib:ie, jb:je))
-    allocate(lai_sum_to_here(ib:ie, jb:je))
-    allocate(lai_global_total(ib:ie, jb:je))
-    
+    ! Allocate LAD with halos and LAI without halos
+    if (allocated(lad_3d)) deallocate(lad_3d)
+    if (allocated(dcoef_3d)) deallocate(dcoef_3d)
+    allocate(lad_3d(ib-ih:ie+ih, jb-jh:je+jh, kb:ke))
+    allocate(dcoef_3d(ib-ih:ie+ih, jb-jh:je+jh, kb:ke))
     lad_3d = 0.
-    lai_3d = 0.
-    lai_from_above = 0.
-    lai_local_total = 0.
-    lai_sum_to_here = 0.
-    lai_global_total = 0.
+    dcoef_3d = 0.
+    allocate(lai_3d(ib:ie, jb:je, kb:ke+1))
     
-    ! Step 1: Build 3D LAD field from sparse vegetation points
+    ! Step 1: Build 3D LAD and dcoef (drag parameter) field from 
+    ! sparse vegetation points
     do m = 1, veg%npts
       i = veg%ijk(m,1)
       j = veg%ijk(m,2)
       k = veg%ijk(m,3)
       lad_3d(i, j, k) = veg%lad(m)
+      dcoef_3d(i, j, k) = veg%lad(m) * veg%cd(m)
     end do
+
+    ! Exchange halos so face averaging has neighbor values (2D decomposition)
+    call exchange_halo_x(lad_3d)
+    call exchange_halo_y(lad_3d)
+    call exchange_halo_x(dcoef_3d)
+    call exchange_halo_y(dcoef_3d)
     
-    ! Step 2: Compute local cumulative LAI by integrating downward from top
-    ! Start at ke+1 (top boundary) with zero
-    lai_3d(:, :, ke+1) = 0.
+    ! Step 2: Compute cumulative LAI by integrating downward from top
+    ! Start at ke+1 (top of domain) with zero
+    lai_3d = 0.
     do k = ke, kb, -1
-      lai_3d(:, :, k) = lai_3d(:, :, k+1) + lad_3d(:, :, k) * dzf(k)
+      lai_3d(:, :, k) = lai_3d(:, :, k+1) + lad_3d(ib:ie, jb:je, k) * dzf(k)
     end do
     
-    ! Step 3: Get cumulative LAI from all ranks above using collective operations
-    ! Store total LAI through this rank (at bottom, kb)
-    lai_local_total = lai_3d(:, :, kb)
-    
-    ! Get cumulative sum from rank 0 through this rank (inclusive)
-    call MPI_Scan(lai_local_total, lai_sum_to_here, (ie-ib+1)*(je-jb+1), MY_REAL, &
-                  MPI_SUM, DECOMP_2D_COMM_CART_Z, mpierr)
-    
-    ! Get total LAI across all ranks in z-direction
-    call MPI_Allreduce(lai_local_total, lai_global_total, (ie-ib+1)*(je-jb+1), MY_REAL, &
-                       MPI_SUM, DECOMP_2D_COMM_CART_Z, mpierr)
-    
-    ! LAI from ranks above = total - sum through here
-    ! (Assumes rank 0 is at bottom, higher ranks at top)
-    lai_from_above = lai_global_total - lai_sum_to_here
-    
-    ! Step 4: Add contribution from above to all levels in this rank
-    do k = kb, ke+1
-      lai_3d(:, :, k) = lai_3d(:, :, k) + lai_from_above(:, :)
-    end do
-    
-    ! Step 5: Sample cumulative LAI at each vegetation point location
+    ! Step 3: Sample cumulative LAI at each vegetation point location
     do m = 1, veg%npts
       i = veg%ijk(m,1)
       j = veg%ijk(m,2)
       k = veg%ijk(m,3)
       
-      ! LAI above this element (at level k, before adding this element's contribution)
       veg%laiv(m) = lai_3d(i, j, k)
     end do
     
     ! Clean up temporary arrays
-    deallocate(lad_3d, lai_3d, lai_from_above, lai_local_total, lai_sum_to_here, lai_global_total)
+    deallocate(lai_3d)
 
-    trees_sparse_ready = .true.
+    ! ========================================================================
+    ! Precompute face lists for staggered u/v/w points 
+    ! ========================================================================
+    if (allocated(veg_u%ijk)) then
+      deallocate(veg_u%ijk, veg_u%dcoef)
+      veg_u%npts = 0
+    end if
+    if (allocated(veg_v%ijk)) then
+      deallocate(veg_v%ijk, veg_v%dcoef)
+      veg_v%npts = 0
+    end if
+    if (allocated(veg_w%ijk)) then
+      deallocate(veg_w%ijk, veg_w%dcoef)
+      veg_w%npts = 0
+    end if
+
+    allocate(dcoef_f(ib:ie, jb:je, kb:ke))
+    allocate(mask_f(ib:ie, jb:je, kb:ke))
+
+    ! u-faces (i-1/i)
+    dcoef_f = 0.5*(dcoef_3d(ib-1:ie-1, jb:je, kb:ke) + dcoef_3d(ib:ie, jb:je, kb:ke))
+    mask_f = (dcoef_f > 0.0)
+
+    veg_u%npts = count(mask_f)
+    if (veg_u%npts > 0) then
+      allocate(veg_u%ijk(veg_u%npts,3), veg_u%dcoef(veg_u%npts))
+      idx = 0
+      do k = kb, ke
+        do j = jb, je
+          do i = ib, ie
+            if (mask_f(i,j,k)) then
+              idx = idx + 1
+              veg_u%ijk(idx,1:3) = (/ i, j, k /)
+              veg_u%dcoef(idx) = dcoef_f(i,j,k)
+            end if
+          end do
+        end do
+      end do
+    end if
+
+    ! v-faces (j-1/j)
+    dcoef_f = 0.5*(dcoef_3d(ib:ie, jb-1:je-1, kb:ke) + dcoef_3d(ib:ie, jb:je, kb:ke))
+    mask_f = (dcoef_f > 0.0)
+    veg_v%npts = count(mask_f)
+    if (veg_v%npts > 0) then
+      allocate(veg_v%ijk(veg_v%npts,3), veg_v%dcoef(veg_v%npts))
+      idx = 0
+      do k = kb, ke
+        do j = jb, je
+          do i = ib, ie
+            if (mask_f(i,j,k)) then
+              idx = idx + 1
+              veg_v%ijk(idx,1:3) = (/ i, j, k /)
+              veg_v%dcoef(idx) = dcoef_f(i,j,k)
+            end if
+          end do
+        end do
+      end do
+    end if
+
+    ! w-faces (k-1/k); no z-halos, so start at kb+1
+    dcoef_f = 0.0
+    dcoef_f(:,:,kb+1:ke) = 0.5*(dcoef_3d(ib:ie, jb:je, kb:ke-1) + dcoef_3d(ib:ie, jb:je, kb+1:ke))
+    mask_f = (dcoef_f > 0.0)
+    veg_w%npts = count(mask_f)
+    if (veg_w%npts > 0) then
+      allocate(veg_w%ijk(veg_w%npts,3), veg_w%dcoef(veg_w%npts))
+      idx = 0
+      do k = kb+1, ke
+        do j = jb, je
+          do i = ib, ie
+            if (mask_f(i,j,k)) then
+              idx = idx + 1
+              veg_w%ijk(idx,1:3) = (/ i, j, k /)
+              veg_w%dcoef(idx) = dcoef_f(i,j,k)
+            end if
+          end do
+        end do
+      end do
+    end if
+
+    deallocate(dcoef_f, mask_f)
+
+    vegetation_ready = .true.
 
   end subroutine init_vegetation
 
   subroutine apply_vegetation
     use modglobal,  only : ib,ie,jb,je,kb,ke,lmoist,ltempeq,nsv,pref0,rlv,cp,rv,rd,rhoa,dzf,&
-                           Qstar,dQdt,dec,dy,ih,jh
+                 Qstar,dQdt,dec,dy,ih,jh,lad
     use modfields,  only : um,vm,wm,tr_u,tr_v,tr_w,tr_qt,tr_thl,tr_sv,thlm,qtm,qtp,thlp,svm,svp,&
                            tr_qtR,tr_qtA,tr_omega,Rn,qa
     use modibmdata, only : bctfz
     use modmpi,     only : myid
     implicit none
     integer :: i,j,k,m,n,npts
-    real :: cdv, ladv, udv, lsizev, rsv, decv
+    integer :: mf
+    real :: dcoefv, ladv, udv, lsizev, rsv, decv
     real :: e_sat, e_vap, D, s, r_a, omega, qe, qh, gam
-    real :: clai, Rn_top, Rn_bot, qc, qa_local, Rq, shade
+    real :: clai, Rn_top, Rn_bot, q_av, Rq, shade
 
-    if (.not. trees_sparse_ready) return
+    if (.not. vegetation_ready) return
 
     ! Compute gamma parameter for psychrometric calculations
     gam = (cp*pref0*rv)/(rlv*rd)
 
     npts = veg%npts
 
-    ! ========================================================================
-    ! Loop 1: Momentum drag forces
-    ! ========================================================================
-    ! The below is not strictly correct since it does not fully account for staggering. 
-    ! However, it is a simple method to avoid complications requiring halos in both the 
-    ! 3d tr_* arrays and the sparse vegetation data.
-    ! Moreover, it is more or less consistent with the original implementation in modtrees.
-    do m = 1, npts
-      i = veg%ijk(m,1)
-      j = veg%ijk(m,2)
-      k = veg%ijk(m,3)
+    if (npts <= 0) return
 
-      cdv  = veg%cd(m)
-      ladv = veg%lad(m)
-
-      ! u face (x-direction) at i
-      tr_u(i,j,k) = - cdv * ladv * um(i,j,k) * &
+    ! ========================================================================
+    ! Loop 1: Momentum drag forces (precomputed staggered faces, no branching)
+    ! ========================================================================
+    do mf = 1, veg_u%npts
+      i = veg_u%ijk(mf,1)
+      j = veg_u%ijk(mf,2)
+      k = veg_u%ijk(mf,3)
+      dcoefv = veg_u%dcoef(mf)
+      tr_u(i,j,k) = - dcoefv * um(i,j,k) * &
                       sqrt( um(i,j,k)**2 &
                       + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i-1,j,k) + vm(i-1,j+1,k)))**2 &
                       + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i-1,j,k) + wm(i-1,j,k+1)))**2 )
+    end do
 
-      ! v face (y-direction) at j
-      tr_v(i,j,k) = - cdv * ladv * vm(i,j,k) * &
+    do mf = 1, veg_v%npts
+      i = veg_v%ijk(mf,1)
+      j = veg_v%ijk(mf,2)
+      k = veg_v%ijk(mf,3)
+      dcoefv = veg_v%dcoef(mf)
+      tr_v(i,j,k) = - dcoefv * vm(i,j,k) * &
                       sqrt( vm(i,j,k)**2 &
                       + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j-1,k) + um(i+1,j-1,k)))**2 &
                       + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i,j-1,k) + wm(i,j-1,k+1)))**2 )
+    end do
 
-      ! w face (vertical) at k
-      tr_w(i,j,k) = - cdv * ladv * wm(i,j,k) * &
+    do mf = 1, veg_w%npts
+      i = veg_w%ijk(mf,1)
+      j = veg_w%ijk(mf,2)
+      k = veg_w%ijk(mf,3)
+      dcoefv = veg_w%dcoef(mf)
+      tr_w(i,j,k) = - dcoefv * wm(i,j,k) * &
                       sqrt( wm(i,j,k)**2 &
                       + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j,k-1) + um(i+1,j,k-1)))**2 &
                       + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i,j,k-1) + vm(i,j+1,k-1)))**2 )
@@ -281,22 +360,20 @@ contains
         k = veg%ijk(m,3)
 
         ladv   = veg%lad(m)
-        lsizev = veg%lsize(m)
-        rsv    = veg%rs(m)
+        lsizev = max(veg%lsize(m), 1.0e-6)
+        rsv    = max(veg%rs(m), 1.0e-6)
         decv   = veg%dec(m)
 
-        ! Use pre-computed cumulative LAI from top of domain to this point
+        ! Use pre-computed cumulative LAI (from top down to bottom of this element)
         clai = veg%laiv(m)
         
-        ! Net radiation at top and bottom of vegetation element
-        Rn_top = Qstar * exp(-decv * clai)
-        Rn_bot = Qstar * exp(-decv * (clai + ladv * dzf(k)))
+        ! Net radiation at bottom and top of vegetation element
+        ! clai includes this element, so use it for bottom radiation
+        Rn_top = Qstar * exp(-decv * (clai - ladv * dzf(k)))
+        Rn_bot = Qstar * exp(-decv * clai)
         
-        ! Change in radiation (absorbed by this element)
-        qc = Rn_top - Rn_bot
-        
-        ! Available energy (W/m²) - simplified, no storage term
-        qa_local = qc
+        ! Available energy (W/m²) - radiation absorbed by this element
+        q_av = Rn_top - Rn_bot
         
         ! Saturation vapour pressure
         e_sat = 610.8*exp((17.27*(thlm(i,j,k)-273.15))/(thlm(i,j,k)-35.85))
@@ -311,23 +388,23 @@ contains
         s = (4098*e_sat)/((thlm(i,j,k)-35.85)**2)
 
         ! Aerodynamic resistance
-        r_a = 130*sqrt(lsizev/(sqrt((0.5*(um(i,j,k)+um(i+1,j,k)))**2 &
-                                   +(0.5*(vm(i,j,k)+vm(i,j+1,k)))**2 &
-                                   +(0.5*(wm(i,j,k)+wm(i,j,k+1)))**2)))
+        r_a = 130*sqrt(max(lsizev, 1.0e-6)/(sqrt(max((0.5*(um(i,j,k)+um(i+1,j,k)))**2 &
+                 +(0.5*(vm(i,j,k)+vm(i,j+1,k)))**2 &
+                 +(0.5*(wm(i,j,k)+wm(i,j,k+1)))**2, 1.0e-12))))
 
         ! Decoupling factor
         omega = 1/(1 + 2*(gam/(s+2*gam)) * (rsv/r_a))
 
         ! Latent heat flux (Penman-Monteith formulation)
-        ! Available energy per unit volume: qa_local/(dzf(k)*ladv)
-        qe = omega*(s/(s+2*gam))*(qa_local/(dzf(k)*ladv)) + (1-omega)*(1/(gam*rsv))*rhoa*cp*D
+        ! Available energy per unit volume: q_av/(dzf(k)*ladv)
+        qe = omega*(s/(s+2*gam))*(q_av/(dzf(k)*max(ladv, 1.0e-12))) + (1-omega)*(1/(gam*rsv))*rhoa*cp*D
 
         ! Sensible heat flux (energy balance residual)
-        qh = qa_local/(dzf(k)*ladv) - qe
+        qh = q_av/(dzf(k)*max(ladv, 1.0e-12)) - qe
 
         ! Store components for diagnostics
         tr_omega(i,j,k) = omega
-        tr_qtR(i,j,k) = ladv*(omega*(s/(s+2*gam))*(qa_local/(dzf(k)*ladv)))/(rhoa*rlv)
+        tr_qtR(i,j,k) = ladv*(omega*(s/(s+2*gam))*(q_av/(dzf(k)*ladv)))/(rhoa*rlv)
         tr_qtA(i,j,k) = ladv*((1-omega)*(1/(gam*rsv))*rhoa*cp*D)/(rhoa*rlv)
 
         ! Volumetric sources/sinks

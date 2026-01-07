@@ -29,6 +29,20 @@ except ImportError:
         warnings.warn("Could not import UDGeom. Geometry functionality will be limited.")
 
 
+def _file_has_data(path: Path, skiprows: int = 0) -> bool:
+    try:
+        with path.open("r", encoding="ascii", errors="ignore") as f:
+            for _ in range(skiprows):
+                next(f, None)
+            for line in f:
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#"):
+                    return True
+    except OSError:
+        return False
+    return False
+
+
 class UDBase:
     """
     Post-processing class for uDALES simulations.
@@ -222,9 +236,17 @@ class UDBase:
             
             if solid_file.exists():
                 try:
+                    if not _file_has_data(solid_file, skiprows=1):
+                        mask = np.zeros((self.itot, self.jtot, self.ktot), dtype=bool)
+                        setattr(self, f'S{grid_type}', mask)
+                        continue
                     # Read indices (1-based from Fortran)
                     indices = np.loadtxt(solid_file, skiprows=1, dtype=int)
-                    
+                    if indices.size == 0:
+                        mask = np.zeros((self.itot, self.jtot, self.ktot), dtype=bool)
+                        setattr(self, f'S{grid_type}', mask)
+                        continue
+
                     # Create boolean mask
                     mask = np.zeros((self.itot, self.jtot, self.ktot), dtype=bool)
                     
@@ -329,11 +351,22 @@ class UDBase:
             
             if facsec_file.exists() and fluid_boundary_file.exists():
                 try:
+                    if not _file_has_data(facsec_file, skiprows=1) or not _file_has_data(fluid_boundary_file, skiprows=1):
+                        self._lffacet_sections = False
+                        continue
                     # Load facet section data
                     facsec_data = np.loadtxt(facsec_file, skiprows=1)
                     
                     # Load fluid boundary locations
                     fluid_boundary = np.loadtxt(fluid_boundary_file, skiprows=1, dtype=int)
+                    if facsec_data.size == 0 or fluid_boundary.size == 0:
+                        self._lffacet_sections = False
+                        continue
+
+                    if facsec_data.ndim == 1:
+                        facsec_data = facsec_data.reshape(1, -1)
+                    if fluid_boundary.ndim == 1:
+                        fluid_boundary = fluid_boundary.reshape(1, -1)
                     
                     # Store in structure
                     self.facsec[grid_type] = {

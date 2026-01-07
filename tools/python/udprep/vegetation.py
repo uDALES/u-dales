@@ -3,13 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable, List, Sequence, Tuple
 
-try:
-    from ..udbase import UDBase
-except ImportError:
-    try:
-        from udbase import UDBase  # type: ignore
-    except ImportError:
-        UDBase = None
+from udbase import UDBase
+from udprep.namelist import update_namelist_value
 
 def _iter_block_points(il: int, iu: int, jl: int, ju: int, kl: int, ku: int) -> Iterable[Tuple[int, int, int]]:
     """Yield (i,j,k) points inside a block defined by inclusive bounds."""
@@ -187,9 +182,6 @@ def convert_block_to_sparse(sim: "UDBase") -> Path:
 
     out_path = sim_dir / f"veg.inp.{sim_id}"
     _write_sparse_file(out_path, points)
-    out_id_path = sim_dir / f"veg_id.inp.{sim_id}"
-    _write_sparse_id_file(out_id_path, point_ids)
-
     # Parameter file per sparse point (constant LAD for all points)
     cd = _get_required(sim, "cd")
     ud = _get_required(sim, "ud")
@@ -204,12 +196,13 @@ def convert_block_to_sparse(sim: "UDBase") -> Path:
     out_params_path = sim_dir / f"veg_params.inp.{sim_id}"
     _write_params_file(out_params_path, point_ids, lad_vals, cd, ud, dec, lsize, r_s)
 
+    update_namelist_value(sim, "TREES", "ntrees", len(points))
+
     print(
         f"Loaded {len(blocks)} tree blocks from {sim_dir}, "
         f"expanded to {len(points)} grid points",
     )
     print(f"Sparse output written to {out_path}")
-    print(f"Sparse output with block ids written to {out_id_path}")
     print(f"Veg params (id, lad={lad_value_resolved} from {lad_source}, cd, ud, dec, lsize, r_s) written to {out_params_path}")
     return out_path
 

@@ -107,6 +107,9 @@ contains
           ladzf(k) = 0.5*(ladzh(k)+ladzh(k+1))
         end do
 
+        ! MvR override ladzf interpolation -- this is justified since Tom's implementation does not fully do justice to staggering anyway.
+        ladzf(1:ntree_max) = ladzh(1:ntree_max)
+
         ! clai at cell faces using lad at cell centre
         do k = 1,ntree_max
           clai(k) = sum(0.5*(ladzh(k:ntree_max)+ladzh(k+1:ntree_max+1))*(dzf(maxval(tree(:,6))-ntree_max+k:maxval(tree(:,6)))))
@@ -217,9 +220,9 @@ contains
           do j = jl,ju
             do i = il,iu
               tr_w(i,j,k) = - cd * ladzh(ntree_max-(ku-k)+1) * wm(i,j,k) * &
-                            sqrt( wm(i,j,k)**2 &
-                            + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j,k-1) + um(i+1,j,k-1)))**2 &
-                            + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i,j,k-1) + vm(i,j+1,k-1)))**2 )
+                              sqrt( wm(i,j,k)**2 &
+                              + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j,k-1) + um(i+1,j,k-1)))**2 &
+                              + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i,j,k-1) + vm(i,j+1,k-1)))**2 )
             end do
           end do
         end do
@@ -244,9 +247,9 @@ contains
           do j = jl,ju
             do i = il,iu
               tr_v(i,j,k) = - cd * ladzf(ntree_max-(ku-k)) * vm(i,j,k) * &
-                           sqrt( vm(i,j,k)**2 &
-                          + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j-1,k) + um(i+1,j-1,k)))**2 &
-                          + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i,j-1,k) + wm(i,j-1,k+1)))**2 )
+                             sqrt( vm(i,j,k)**2 &
+                            + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j-1,k) + um(i+1,j-1,k)))**2 &
+                            + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i,j-1,k) + wm(i,j-1,k+1)))**2 )
             end do
           end do
         end do
@@ -271,9 +274,9 @@ contains
           do j = jl,ju
             do i = il,iu
               tr_u(i,j,k) = - cd * ladzf(ntree_max-(ku-k)) * um(i,j,k) * &
-                           sqrt( um(i,j,k)**2 &
-                          + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i-1,j,k) + vm(i-1,j+1,k)))**2 &
-                          + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i-1,j,k) + wm(i-1,j,k+1)))**2 )
+                             sqrt( um(i,j,k)**2 &
+                            + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i-1,j,k) + vm(i-1,j+1,k)))**2 &
+                            + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i-1,j,k) + wm(i-1,j,k+1)))**2 )
             end do
           end do
         end do
@@ -302,6 +305,8 @@ contains
             do j = jl,ju
               do i = il,iu
 
+                 if (ladzf(ntree_max-(ku-k)) <= 0.0) cycle  ! skip empty layers
+
                  ! psychometrics
                  ! saturation vapour pressure pressure
                  e_sat = 610.8*exp((17.27*(thlm(i,j,k)-273.15))/(thlm(i,j,k)-35.85))
@@ -322,21 +327,21 @@ contains
                  s = (4098*e_sat)/((thlm(i,j,k)-35.85)**2)
 
                  ! aerodynamic resistance
-                 r_a = 130*sqrt(lsize/(sqrt((0.5*(um(i,j,k)+um(i+1,j,k)))**2+(0.5*(vm(i,j,k)+vm(i,j+1,k)))**2+(0.5*(wm(i,j,k)+wm(i,j,k+1)))**2)))
+                 r_a = 130*sqrt(max(lsize, 1.0e-6)/(sqrt(max((0.5*(um(i,j,k)+um(i+1,j,k)))**2+(0.5*(vm(i,j,k)+vm(i,j+1,k)))**2+(0.5*(wm(i,j,k)+wm(i,j,k+1)))**2, 1.0e-12))))
 
                  ! decoupling factor
-                 omega = 1/(1 + 2*(gam/(s+2*gam)) * ((r_s)/r_a) )
+                 omega = 1/(1 + 2*(gam/(s+2*gam)) * (max(r_s, 1.0e-6)/r_a) )
 
                  ! latent heat
-                 qe = omega*(s/(s+2*gam))*(qa(ntree_max-(ku-k))/(dzf(k)*ladzf(ntree_max-(ku-k)))) + (1-omega)*(1/(gam*(r_s)))*rhoa*cp*D
+                 qe = omega*(s/(s+2*gam))*(qa(ntree_max-(ku-k))/(dzf(k)*max(ladzf(ntree_max-(ku-k)), 1.0e-12))) + (1-omega)*(1/(gam*(max(r_s, 1.0e-6))))*rhoa*cp*D
 
                  ! sensible heat
-                 qh = qa(ntree_max-(ku-k))/(dzf(k)*ladzf(ntree_max-(ku-k))) - qe
+                 qh = qa(ntree_max-(ku-k))/(dzf(k)*max(ladzf(ntree_max-(ku-k)), 1.0e-12)) - qe
 
                  ! volumetric sinks/source of specific humidity and temp
                  tr_qt(i,j,k) = ladzf(ntree_max-(ku-k))*qe/(rhoa*rlv)
-                 tr_qtR(i,j,k) = ladzf(ntree_max-(ku-k))*( omega*(s/(s+2*gam))*(qa(ntree_max-(ku-k))/(dzf(k)*ladzf(ntree_max-(ku-k)))))/(rhoa*rlv)
-                 tr_qtA(i,j,k) = ladzf(ntree_max-(ku-k))*((1-omega)*(1/(gam*(r_s)))*rhoa*cp*D)/(rhoa*rlv)
+                 tr_qtR(i,j,k) = ladzf(ntree_max-(ku-k))*( omega*(s/(s+2*gam))*(qa(ntree_max-(ku-k))/(dzf(k)*max(ladzf(ntree_max-(ku-k)), 1.0e-12))))/(rhoa*rlv)
+                 tr_qtA(i,j,k) = ladzf(ntree_max-(ku-k))*((1-omega)*(1/(gam*(max(r_s, 1.0e-6))))*rhoa*cp*D)/(rhoa*rlv)
                  tr_thl(i,j,k) = ladzf(ntree_max-(ku-k))*qh/(rhoa*cp)
 
                  tr_omega(i,j,k) = omega
@@ -354,7 +359,11 @@ contains
           end do
 
           ! fraction of total net radiation reaching the bottom of the tree
-          Rq = Rn(ntree_max+1-(ku+1-kl)) / Qstar
+          if (abs(Qstar) < 1.0e-12) then
+            Rq = 0.0
+          else
+            Rq = Rn(ntree_max+1-(ku+1-kl)) / Qstar
+          end if
 
           ! sensible heat flux from shaded surfaces
           shade = ( (1 - 0.7 ) * Rn(ntree_max+1-(ku+1-kl) ) - 0.33*Rq*dQdt + Rq*38 )/ (rhoa*cp)
@@ -372,12 +381,6 @@ contains
       ! scalar deposition
       if (nsv>0) then
 
-        ! specific to infinite canyon study (tg3315 thesis - Chapter 5)
-        if (BCxs==2) then ! no deposition effect from first or last tree to avoid interaction with BCs
-          if (n==1) cycle
-          if (n==ntrees) cycle
-        end if
-      
         il = tree(n,1) - myidx*itot/nprocx
         iu = tree(n,2) - myidx*itot/nprocx
         kl = tree(n,5)

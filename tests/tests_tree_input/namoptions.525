@@ -1,14 +1,13 @@
 &RUN
 iexpnr       = 525
-runmode      = 1005
 runtime      = 691200.
 trestart     = 691200.
 dtmax        = 5.
 irandom      = 43
 randu        = 0.01
 ladaptive    = .true.
-nprocx       = 4  
-nprocy       = 4 
+nprocx       = 4
+nprocy       = 4
 libm         = .true.
 /
 
@@ -97,7 +96,9 @@ cd           = 0.3
 lad          = 1.0
 lsize        = 0.15
 ud           = 0.0002
-dec          = 0.
-r_s          = 0.
+dec          = 0.3
+Qstar        = 600
+dQdt         = 0
+r_s          = 50.
 ltreedump    = .true.
 /
