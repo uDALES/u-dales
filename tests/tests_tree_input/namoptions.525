@@ -1,5 +1,6 @@
 &RUN
 iexpnr       = 525
+runmode      = 1005
 runtime      = 691200.
 trestart     = 691200.
 dtmax        = 5.
@@ -31,8 +32,8 @@ ylen         = 128
 
 &PHYSICS
 lbuoyancy    = .true.
-ltempeq      = .false.
-lmoist       = .false.
+ltempeq      = .true.
+lmoist       = .true.
 ps           = 101325.00
 igrw_damp    = 0
 /

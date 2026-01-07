@@ -163,8 +163,8 @@ contains
     ! Allocate LAD with halos and LAI without halos
     if (allocated(lad_3d)) deallocate(lad_3d)
     if (allocated(dcoef_3d)) deallocate(dcoef_3d)
-    allocate(lad_3d(ib-ih:ie+ih, jb-jh:je+jh, kb:ke))
-    allocate(dcoef_3d(ib-ih:ie+ih, jb-jh:je+jh, kb:ke))
+    allocate(lad_3d(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+    allocate(dcoef_3d(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
     lad_3d = 0.
     dcoef_3d = 0.
     allocate(lai_3d(ib:ie, jb:je, kb:ke+1))

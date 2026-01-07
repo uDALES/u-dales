@@ -284,7 +284,7 @@ contains
     use modglobal, only : ib, ie, jb, je, kb, ke, itot, jtot, ntree_max, cd, cexpnr, ltrees, lmoist, ltempeq
     use modfields, only : um, vm, wm, thlm, qtm, tr_u, tr_v, tr_w, tr_qt, tr_thl, qtp, thlp, up, vp, wp, ladzh, ladzf
     use modtrees,  only : trees_block => trees, createtrees_block => createtrees
-    use vegetation, only : init_vegetation, apply_vegetation
+    use vegetation, only : init_vegetation, apply_vegetation, lad_3d
     use modmpi,    only : myid, myidx, myidy, comm3d, mpierr, my_real
     use decomp_2d, only : xstart, ystart, zstart
     implicit none
@@ -295,6 +295,12 @@ contains
     real :: diff_local, diff_global
     real :: diff_u_local, diff_v_local, diff_w_local, diff_qt_local, diff_thl_local
     real :: diff_u_global, diff_v_global, diff_w_global, diff_qt_global, diff_thl_global
+    real :: diff_u_int_local, diff_v_int_local, diff_w_int_local
+    real :: diff_u_int_global, diff_v_int_global, diff_w_int_global
+    integer :: n_u_local, n_v_local, n_w_local
+    integer :: n_u_global, n_v_global, n_w_global
+    integer :: n_int_u_local, n_int_v_local, n_int_w_local
+    integer :: n_int_u_global, n_int_v_global, n_int_w_global
     real :: max_tr_u_global, max_tr_v_global, max_tr_w_global, max_tr_qt_global, max_tr_thl_global
     real(kind=8) :: pair_u(2), pair_v(2), pair_w(2), pair_qt(2), pair_thl(2)
     real(kind=8) :: pair_u_g(2), pair_v_g(2), pair_w_g(2), pair_qt_g(2), pair_thl_g(2)
@@ -386,6 +392,15 @@ contains
     diff_w_local = 0.0
     diff_qt_local = 0.0
     diff_thl_local = 0.0
+    diff_u_int_local = 0.0
+    diff_v_int_local = 0.0
+    diff_w_int_local = 0.0
+    n_u_local = 0
+    n_v_local = 0
+    n_w_local = 0
+    n_int_u_local = 0
+    n_int_v_local = 0
+    n_int_w_local = 0
     idx_u = (/ ib, jb, kb /)
     idx_v = (/ ib, jb, kb /)
     idx_w = (/ ib, jb, kb /)
@@ -397,8 +412,23 @@ contains
           diff_u_local = max(diff_u_local, abs(tr_u(i,j,k) - block_u(i,j,k)))
           diff_v_local = max(diff_v_local, abs(tr_v(i,j,k) - block_v(i,j,k)))
           diff_w_local = max(diff_w_local, abs(tr_w(i,j,k) - block_w(i,j,k)))
+          if (tr_u(i,j,k) /= block_u(i,j,k)) n_u_local = n_u_local + 1
+          if (tr_v(i,j,k) /= block_v(i,j,k)) n_v_local = n_v_local + 1
+          if (tr_w(i,j,k) /= block_w(i,j,k)) n_w_local = n_w_local + 1
           diff_qt_local = max(diff_qt_local, abs(tr_qt(i,j,k) - block_qt(i,j,k)))
           diff_thl_local = max(diff_thl_local, abs(tr_thl(i,j,k) - block_thl(i,j,k)))
+          if (i > ib .and. lad_3d(i-1,j,k) > 0.0 .and. lad_3d(i,j,k) > 0.0) then
+            diff_u_int_local = max(diff_u_int_local, abs(tr_u(i,j,k) - block_u(i,j,k)))
+            n_int_u_local = n_int_u_local + 1
+          end if
+          if (j > jb .and. lad_3d(i,j-1,k) > 0.0 .and. lad_3d(i,j,k) > 0.0) then
+            diff_v_int_local = max(diff_v_int_local, abs(tr_v(i,j,k) - block_v(i,j,k)))
+            n_int_v_local = n_int_v_local + 1
+          end if
+          if (k > kb .and. lad_3d(i,j,k-1) > 0.0 .and. lad_3d(i,j,k) > 0.0) then
+            diff_w_int_local = max(diff_w_int_local, abs(tr_w(i,j,k) - block_w(i,j,k)))
+            n_int_w_local = n_int_w_local + 1
+          end if
           if (abs(tr_u(i,j,k) - block_u(i,j,k)) >= diff_u_local) then
             idx_u = (/ i, j, k /)
           end if
@@ -434,7 +464,16 @@ contains
     call MPI_ALLREDUCE(diff_w_local, diff_w_global, 1, MY_REAL, MPI_MAX, comm3d, mpierr)
     call MPI_ALLREDUCE(diff_qt_local, diff_qt_global, 1, MY_REAL, MPI_MAX, comm3d, mpierr)
     call MPI_ALLREDUCE(diff_thl_local, diff_thl_global, 1, MY_REAL, MPI_MAX, comm3d, mpierr)
-    diff_global = max(max(diff_u_global, max(diff_v_global, diff_w_global)), max(diff_qt_global, diff_thl_global))
+    call MPI_ALLREDUCE(diff_u_int_local, diff_u_int_global, 1, MY_REAL, MPI_MAX, comm3d, mpierr)
+    call MPI_ALLREDUCE(diff_v_int_local, diff_v_int_global, 1, MY_REAL, MPI_MAX, comm3d, mpierr)
+    call MPI_ALLREDUCE(diff_w_int_local, diff_w_int_global, 1, MY_REAL, MPI_MAX, comm3d, mpierr)
+    call MPI_ALLREDUCE(n_u_local, n_u_global, 1, MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+    call MPI_ALLREDUCE(n_v_local, n_v_global, 1, MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+    call MPI_ALLREDUCE(n_w_local, n_w_global, 1, MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+    call MPI_ALLREDUCE(n_int_u_local, n_int_u_global, 1, MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+    call MPI_ALLREDUCE(n_int_v_local, n_int_v_global, 1, MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+    call MPI_ALLREDUCE(n_int_w_local, n_int_w_global, 1, MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+    diff_global = max(max(diff_u_int_global, max(diff_v_int_global, diff_w_int_global)), max(diff_qt_global, diff_thl_global))
 
     call MPI_REDUCE(pair_u, pair_u_g, 1, MPI_2DOUBLE_PRECISION, MPI_MAXLOC, 0, comm3d, mpierr)
     call MPI_REDUCE(pair_v, pair_v_g, 1, MPI_2DOUBLE_PRECISION, MPI_MAXLOC, 0, comm3d, mpierr)
@@ -509,6 +548,7 @@ contains
       write(*,*) 'Max abs (block) tr_w = ', max_tr_w_global
       write(*,*) 'Max abs (block) tr_qt = ', max_tr_qt_global
       write(*,*) 'Max abs (block) tr_thl = ', max_tr_thl_global
+      write(*,*) '-----------------------------------------------'
       write(*,*) 'Max diff (sparse vs block) tr_u = ', diff_u_global, &
              ' at local (', idx_u_root(1), ',', idx_u_root(2), ',', idx_u_root(3), &
              ') rank ', rank_u
@@ -518,24 +558,31 @@ contains
       write(*,*) 'Max diff (sparse vs block) tr_w = ', diff_w_global, &
              ' at local (', idx_w_root(1), ',', idx_w_root(2), ',', idx_w_root(3), &
              ') rank ', rank_w
-            write(*,*) 'Max diff (sparse vs block) tr_qt = ', diff_qt_global, &
+      write(*,*) '-----------------------------------------------'
+      write(*,*) 'Count tr_u = ', n_u_global
+      write(*,*) 'Count tr_v = ', n_v_global
+      write(*,*) 'Count tr_w = ', n_w_global
+      write(*,*) '-----------------------------------------------'
+      write(*,*) 'Max diff (interior) tr_u = ', diff_u_int_global, ' count ', n_int_u_global
+      write(*,*) 'Max diff (interior) tr_v = ', diff_v_int_global, ' count ', n_int_v_global
+      write(*,*) 'Max diff (interior) tr_w = ', diff_w_int_global, ' count ', n_int_w_global
+      write(*,*) '-----------------------------------------------'
+      write(*,*) 'Max diff (sparse vs block) tr_qt = ', diff_qt_global, &
               ' at local (', idx_qt_root(1), ',', idx_qt_root(2), ',', idx_qt_root(3), &
               ') rank ', rank_qt
-            write(*,*) 'Max diff (sparse vs block) tr_thl = ', diff_thl_global, &
+      write(*,*) 'Max diff (sparse vs block) tr_thl = ', diff_thl_global, &
               ' at local (', idx_thl_root(1), ',', idx_thl_root(2), ',', idx_thl_root(3), &
               ') rank ', rank_thl
    
+      write(*, '(A)') '------------------------------------------------'
       if (diff_global < 1.0e-12) then
-        write(*, '(A)') '------------------------------------------------'
         write(*, '(A)') 'ALL TESTS PASSED: tests_trees_sparse_compare'
         write(*, '(A)') '  Sparse and block tree forcing match'
-        write(*, '(A)') '================================================'
       else
-        write(*, '(A)') '------------------------------------------------'
         write(*, '(A)') 'TESTS FAILED: tests_trees_sparse_compare'
         write(*, '(A)') '  Sparse and block tree forcing differ'
-        write(*, '(A)') '================================================'
       end if
+      write(*, '(A)') '================================================'
     end if
 
     tests_trees_sparse_compare = diff_global < 1.0e-12
