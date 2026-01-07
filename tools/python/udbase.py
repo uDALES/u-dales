@@ -371,9 +371,9 @@ class UDBase:
                     
                     # Store in structure
                     self.facsec[grid_type] = {
-                        'facid': facsec_data[:, 0].astype(int),
+                        'facid': facsec_data[:, 0].astype(int) - 1,
                         'area': facsec_data[:, 1],
-                        'locs': fluid_boundary[facsec_data[:, 2].astype(int) - 1, :],  # Convert to 0-based
+                        'locs': fluid_boundary[facsec_data[:, 2].astype(int) - 1, :].astype(int) - 1,
                         'distance': facsec_data[:, 3]
                     }
                     
@@ -393,6 +393,7 @@ class UDBase:
                 self.trees = np.loadtxt(trees_file, skiprows=2, dtype=int)
                 if self.trees.ndim == 1:
                     self.trees = self.trees.reshape(1, -1)
+                self.trees = self.trees.astype(int) - 1
             except Exception as e:
                 warnings.warn(f"Error loading trees.inp.{self.expnr}: {e}")
                 self._lftrees = False
@@ -1771,16 +1772,15 @@ class UDBase:
         # Get facet section data
         facids = facsec['facid']
         areas = facsec['area']
-        locs = facsec['locs']  # (i, j, k) locations (1-based from Fortran)
+        locs = facsec['locs']  # (i, j, k) locations (0-based)
         
-        # Convert locations to 0-based indexing
-        i_idx = locs[:, 0] - 1
-        j_idx = locs[:, 1] - 1
-        k_idx = locs[:, 2] - 1
+        i_idx = locs[:, 0].astype(int)
+        j_idx = locs[:, 1].astype(int)
+        k_idx = locs[:, 2].astype(int)
         
         # Loop over all facet sections and create density field
         for m in range(len(areas)):
-            facid = facids[m] - 1  # Convert to 0-based
+            facid = facids[m]
             i, j, k = i_idx[m], j_idx[m], k_idx[m]
             
             # Add contribution to cell
@@ -1870,7 +1870,7 @@ class UDBase:
         # Get facet section data
         facids = facsec['facid']
         areas = facsec['area']
-        locs = facsec['locs']  # (i, j, k) locations
+        locs = facsec['locs']  # (i, j, k) locations (0-based)
         
         # If building IDs specified, get face mask for filtering
         face_mask = None
@@ -1884,14 +1884,14 @@ class UDBase:
         
         # Loop over all facet sections and create density field
         for m in range(len(facids)):
-            facid = int(facids[m]) - 1  # Convert to 0-indexed
+            facid = int(facids[m])
             
             # If building filtering is active, check if this face should be included
             if face_mask is not None and not face_mask[facid]:
                 continue
             
             # Get grid location (convert from 1-indexed to 0-indexed)
-            i, j, k = int(locs[m, 0]) - 1, int(locs[m, 1]) - 1, int(locs[m, 2]) - 1
+            i, j, k = int(locs[m, 0]), int(locs[m, 1]), int(locs[m, 2])
             
             # Add contribution to cell
             cell_volume = self.dx * self.dy * dz[k]
@@ -1944,9 +1944,9 @@ class UDBase:
         -------
         dict
             Dictionary with keys:
-            - 'facid': Facet IDs
+            - 'facid': Facet IDs (0-based)
             - 'area': Facet section areas
-            - 'locs': Fluid boundary point locations (i, j, k)
+            - 'locs': Fluid boundary point locations (i, j, k), 0-based
             - 'distance': Distances from facet to fluid point
             
         Raises
@@ -1975,9 +1975,9 @@ class UDBase:
         
         # Create structure matching MATLAB
         data = {
-            'facid': facsecs[:, 0].astype(int),
+            'facid': facsecs[:, 0].astype(int) - 1,
             'area': facsecs[:, 1],
-            'locs': fluid_boundary[facsecs[:, 2].astype(int) - 1, :].astype(int),  # 1-indexed
+            'locs': fluid_boundary[facsecs[:, 2].astype(int) - 1, :].astype(int) - 1,
             'distance': facsecs[:, 3]
         }
         

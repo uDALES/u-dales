@@ -1,0 +1,485 @@
+from __future__ import annotations
+
+"""
+Direct shortwave radiation on facets with vegetation attenuation.
+
+This module casts parallel rays through the domain to estimate:
+- Direct irradiance on facets (Sdir, W/m2)
+- Vegetation absorption (W/m3) mapped to sparse vegetation points
+
+Key steps:
+1) Read sparse vegetation points/parameters and expand to 3D grids.
+2) Trace rays through the grid with Beer-Lambert attenuation in vegetation.
+3) Accumulate energy intercepted by solids (or ground) per adjacent fluid cell.
+4) Distribute intercepted energy to facet sections (facsec) and aggregate per facet.
+"""
+
+from dataclasses import dataclass
+from typing import Dict, Tuple
+
+import math
+import numpy as np
+
+
+@dataclass
+class VegData:
+    points: np.ndarray  # (n, 3) 1-based (i, j, k)
+    lad: np.ndarray     # (n,)
+    dec: np.ndarray     # (n,)
+
+
+def _read_sparse_points(sim_dir: str, expnr: str) -> np.ndarray:
+    """Load sparse vegetation point indices (1-based i,j,k) from veg.inp.<expnr>."""
+    path = f"{sim_dir}/veg.inp.{expnr}"
+    points = []
+    with open(path, "r", encoding="ascii") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            parts = stripped.split()
+            if len(parts) < 3:
+                continue
+            points.append([int(parts[0]), int(parts[1]), int(parts[2])])
+    if not points:
+        raise ValueError(f"No vegetation points found in {path}")
+    return np.asarray(points, dtype=int)
+
+
+def _read_sparse_params(sim_dir: str, expnr: str) -> Tuple[np.ndarray, np.ndarray]:
+    """Load sparse vegetation parameters (LAD and DEC) from veg_params.inp.<expnr>."""
+    path = f"{sim_dir}/veg_params.inp.{expnr}"
+    lad = []
+    dec = []
+    with open(path, "r", encoding="ascii") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            parts = stripped.split()
+            if len(parts) < 7:
+                continue
+            lad.append(float(parts[1]))
+            dec.append(float(parts[4]))
+    if not lad:
+        raise ValueError(f"No vegetation params found in {path}")
+    return np.asarray(lad, dtype=float), np.asarray(dec, dtype=float)
+
+
+def _load_veg_data(sim_dir: str, expnr: str) -> VegData:
+    """Load vegetation points and parameters, validating length consistency."""
+    points = _read_sparse_points(sim_dir, expnr)
+    lad, dec = _read_sparse_params(sim_dir, expnr)
+    if len(points) != len(lad):
+        raise ValueError(
+            f"veg.inp.{expnr} has {len(points)} points but veg_params has {len(lad)} rows"
+        )
+    return VegData(points=points, lad=lad, dec=dec)
+
+
+def _build_veg_fields(sim, veg: VegData, ktot: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Expand sparse vegetation into dense 3D grids up to ktot.
+
+    Returns
+    -------
+    lad_3d, dec_3d : float arrays (itot, jtot, ktot)
+        Vegetation parameters on the grid.
+    veg_index : int array (itot, jtot, ktot)
+        Maps cell to sparse veg index; -1 means no vegetation.
+    """
+    # Expand sparse vegetation (1-based i,j,k) into dense 3D grids.
+    lad_3d = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
+    dec_3d = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
+    veg_index = -np.ones((sim.itot, sim.jtot, ktot), dtype=int)
+
+    for idx, (i, j, k) in enumerate(veg.points):
+        ii = i - 1
+        jj = j - 1
+        kk = k - 1
+        lad_3d[ii, jj, kk] = veg.lad[idx]
+        dec_3d[ii, jj, kk] = veg.dec[idx]
+        veg_index[ii, jj, kk] = idx
+
+    return lad_3d, dec_3d, veg_index
+
+
+def _point_to_cell(
+    x: float,
+    y: float,
+    z: float,
+    sim,
+    z_edges: np.ndarray,
+    z_max: float,
+    ktot: int,
+) -> Tuple[int, int, int]:
+    """Map a point (x,y,z) to cell indices within truncated vertical extent."""
+    # Clamp to truncated vertical extent so ray tracing stays within allocated arrays.
+    if x < 0.0 or x >= sim.xlen:
+        return -1, -1, -1
+    if y < 0.0 or y >= sim.ylen:
+        return -1, -1, -1
+    if z < 0.0 or z >= z_max:
+        return -1, -1, -1
+    i = int(min(sim.itot - 1, max(0, math.floor(x / sim.dx))))
+    j = int(min(sim.jtot - 1, max(0, math.floor(y / sim.dy))))
+    k = int(min(ktot - 1, max(0, np.searchsorted(z_edges, z, side="right") - 1)))
+    return i, j, k
+
+
+def _ray_box_intersection(
+    origin: np.ndarray,
+    direction: np.ndarray,
+    bounds_min: np.ndarray,
+    bounds_max: np.ndarray,
+) -> Tuple[float, float]:
+    """Compute entry/exit ray parameters for an axis-aligned bounding box."""
+    t_min = -math.inf
+    t_max = math.inf
+    for a in range(3):
+        if abs(direction[a]) < 1.0e-12:
+            if origin[a] < bounds_min[a] or origin[a] > bounds_max[a]:
+                return math.inf, -math.inf
+            continue
+        inv_d = 1.0 / direction[a]
+        t0 = (bounds_min[a] - origin[a]) * inv_d
+        t1 = (bounds_max[a] - origin[a]) * inv_d
+        if t0 > t1:
+            t0, t1 = t1, t0
+        t_min = max(t_min, t0)
+        t_max = min(t_max, t1)
+    return t_min, t_max
+
+
+def _trace_ray(
+    origin: np.ndarray,
+    direction: np.ndarray,
+    sim,
+    z_edges: np.ndarray,
+    z_max: float,
+    lad_3d: np.ndarray,
+    dec_3d: np.ndarray,
+    veg_index: np.ndarray,
+    solid: np.ndarray,
+    energy_in: np.ndarray,
+    solid_hit_energy: np.ndarray,
+    veg_absorb: np.ndarray,
+    ray_area: float,
+    ktot: int,
+    dz: np.ndarray,
+    irradiance: float,
+) -> float:
+    """
+    Trace a single ray through the grid with 3D DDA stepping.
+
+    - Accumulates ray-weighted energy_in per cell.
+    - Applies Beer-Lambert attenuation in vegetation.
+    - Deposits remaining energy into solid_hit_energy of the last fluid cell.
+    - Returns outgoing ray energy for budget accounting.
+    """
+    x, y, z = origin
+    dx = sim.dx
+    dy = sim.dy
+
+    # Start at the first cell inside the truncated domain.
+    i, j, k = _point_to_cell(x, y, z, sim, z_edges, z_max, ktot)
+    if i < 0:
+        return
+
+    dir_x, dir_y, dir_z = direction
+    step_x = 0 if dir_x == 0.0 else (1 if dir_x > 0.0 else -1)
+    step_y = 0 if dir_y == 0.0 else (1 if dir_y > 0.0 else -1)
+    step_z = 0 if dir_z == 0.0 else (1 if dir_z > 0.0 else -1)
+
+    if dir_x == 0.0:
+        t_max_x = math.inf
+        t_delta_x = math.inf
+    else:
+        if dir_x > 0.0:
+            x_next = (i + 1) * dx
+            t_max_x = (x_next - x) / dir_x
+        else:
+            x_prev = i * dx
+            t_max_x = (x - x_prev) / (-dir_x)
+        t_delta_x = dx / abs(dir_x)
+
+    if dir_y == 0.0:
+        t_max_y = math.inf
+        t_delta_y = math.inf
+    else:
+        if dir_y > 0.0:
+            y_next = (j + 1) * dy
+            t_max_y = (y_next - y) / dir_y
+        else:
+            y_prev = j * dy
+            t_max_y = (y - y_prev) / (-dir_y)
+        t_delta_y = dy / abs(dir_y)
+
+    if dir_z == 0.0:
+        t_max_z = math.inf
+        t_delta_z = math.inf
+    else:
+        if dir_z > 0.0:
+            z_next = z_edges[k + 1]
+            t_max_z = (z_next - z) / dir_z
+        else:
+            z_prev = z_edges[k]
+            t_max_z = (z - z_prev) / (-dir_z)
+        t_delta_z = dz[k] / abs(dir_z)
+
+    # 3D DDA traversal through the grid.
+    t = 0.0
+    r_in = 1.0
+    last_i = -1
+    last_j = -1
+    last_k = -1
+    while 0 <= i < sim.itot and 0 <= j < sim.jtot and 0 <= k < ktot:
+        if solid is not None and solid[i, j, k]:
+            # Deposit solid-intercepted energy in the last fluid cell.
+            if last_i >= 0:
+                solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
+            return 0.0
+
+        # Accumulate incoming energy for this cell (ray-weighted).
+        energy_in[i, j, k] += r_in * irradiance * ray_area
+
+        t_next = min(t_max_x, t_max_y, t_max_z)
+        ds = t_next - t
+        if ds < 0.0:
+            ds = 0.0
+
+        # Beer-Lambert attenuation through vegetation in this cell.
+        lad = lad_3d[i, j, k]
+        dec = dec_3d[i, j, k]
+        if lad > 0.0 and dec > 0.0:
+            tau = lad * dec * ds
+            r_out = r_in * math.exp(-tau)
+            absorbed = (r_in - r_out) * ray_area
+            vidx = veg_index[i, j, k]
+            if vidx >= 0:
+                cell_vol = dx * dy * dz[k]
+                veg_absorb[vidx] += absorbed / cell_vol
+            r_in = r_out
+
+        prev_i, prev_j, prev_k = i, j, k
+        if t_max_x == t_next:
+            i += step_x
+            t_max_x += t_delta_x
+        if t_max_y == t_next:
+            j += step_y
+            t_max_y += t_delta_y
+        if t_max_z == t_next:
+            k += step_z
+            if 0 <= k < ktot:
+                t_delta_z = dz[k] / abs(dir_z) if dir_z != 0.0 else math.inf
+                t_max_z = t + t_delta_z
+
+        last_i, last_j, last_k = prev_i, prev_j, prev_k
+        t = t_next
+    if dir_z < 0.0 and k < 0 and last_i >= 0:
+        # Always treat ground as a solid boundary.
+        solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
+        return 0.0
+    return r_in * ray_area * irradiance
+
+
+def directshortwave(
+    sim,
+    nsun: np.ndarray,
+    irradiance: float,
+    ray_scale: float = 1.0,
+) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
+    """
+    Compute direct shortwave on facets and absorbed radiation in vegetation cells.
+
+    Returns
+    -------
+    Sdir : ndarray
+        Direct radiation on facets (W/m2), shape (n_facets,)
+    veg_absorb : ndarray
+        Absorbed radiation per vegetation point (W/m3), aligned with veg.inp order.
+    bud : dict
+        Budget totals (W): incoming (in), absorbed by vegetation (veg),
+        solid-adjacent (sol), outgoing (out), and facets (fac).
+    """
+    if sim.geom is None or sim.geom.stl is None:
+        raise ValueError("Geometry not loaded; UDBase must be created with load_geometry=True")
+
+    nsun = np.asarray(nsun, dtype=float)
+    norm = np.linalg.norm(nsun)
+    if norm <= 0.0:
+        raise ValueError("nsun must be non-zero")
+    nsun_unit = nsun / norm
+    direction = -nsun_unit
+
+    veg = _load_veg_data(str(sim.path), sim.expnr)
+    # Determine the maximum vertical index to allocate (veg + solids + padding).
+    solid_full = getattr(sim, "Sc", None)
+    kmax_solid = -1
+    if solid_full is not None:
+        solid_any = np.any(solid_full, axis=(0, 1))
+        if np.any(solid_any):
+            kmax_solid = int(np.max(np.where(solid_any)[0]))
+    kmax_veg = int(np.max(veg.points[:, 2] - 1))
+    kmax = max(0, min(sim.ktot - 1, max(kmax_solid, kmax_veg)))
+    ktot = min(sim.ktot, kmax + 2)
+
+    lad_3d, dec_3d, veg_index = _build_veg_fields(sim, veg, ktot)
+
+    z_edges_full = np.concatenate([sim.zm, [sim.zsize]])
+    z_edges = z_edges_full[: ktot + 1]
+    z_max = z_edges[-1]
+    dz = sim.dzt[:ktot]
+    energy_in = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
+    solid_hit_energy = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
+    veg_absorb = np.zeros(len(veg.points), dtype=float)
+    solid = solid_full[:, :, :ktot] if solid_full is not None else None
+
+    eps = 1.0e-6
+
+    bounds_min = np.array([0.0, 0.0, 0.0], dtype=float)
+    bounds_max = np.array([sim.xlen, sim.ylen, z_max], dtype=float)
+
+    # Build a plane covering the domain for parallel ray casting.
+    corners = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [sim.xlen, 0.0, 0.0],
+            [0.0, sim.ylen, 0.0],
+            [sim.xlen, sim.ylen, 0.0],
+            [0.0, 0.0, z_max],
+            [sim.xlen, 0.0, z_max],
+            [0.0, sim.ylen, z_max],
+            [sim.xlen, sim.ylen, z_max],
+        ],
+        dtype=float,
+    )
+    dots = corners @ direction
+    p0 = corners[np.argmin(dots)] - direction * (eps * 10.0)
+
+    up = np.array([0.0, 0.0, 1.0], dtype=float)
+    if abs(np.dot(up, nsun_unit)) > 0.95:
+        up = np.array([0.0, 1.0, 0.0], dtype=float)
+    u1 = np.cross(up, nsun_unit)
+    u1 /= np.linalg.norm(u1)
+    u2 = np.cross(nsun_unit, u1)
+
+    proj = (corners - p0) @ np.vstack([u1, u2]).T
+    umin, vmin = proj.min(axis=0)
+    umax, vmax = proj.max(axis=0)
+    du = umax - umin
+    dv = vmax - vmin
+    umin -= 0.125 * du
+    umax += 0.125 * du
+    vmin -= 0.125 * dv
+    vmax += 0.125 * dv
+
+    if ray_scale <= 0.0:
+        raise ValueError("ray_scale must be > 0")
+    step = (min(sim.dx, sim.dy, float(np.min(sim.dzt)))) / ray_scale
+    u_vals = np.arange(umin, umax + step, step)
+    v_vals = np.arange(vmin, vmax + step, step)
+    ray_area = step * step
+
+    bud = {
+        "in": 0.0,
+        "veg": 0.0,
+        "sol": 0.0,
+        "out": 0.0,
+        "fac": 0.0,
+    }
+
+    for u in u_vals:
+        for v in v_vals:
+            origin = p0 + u1 * u + u2 * v
+            t0, t1 = _ray_box_intersection(origin, direction, bounds_min, bounds_max)
+            if t1 < t0:
+                continue
+            if t1 < 0.0:
+                continue
+            bud["in"] += irradiance * ray_area
+            entry = max(t0, 0.0)
+            start = origin + direction * (entry + eps)
+            bud["out"] += _trace_ray(
+                start,
+                direction,
+                sim,
+                z_edges,
+                z_max,
+                lad_3d,
+                dec_3d,
+                veg_index,
+                solid,
+                energy_in,
+                solid_hit_energy,
+                veg_absorb,
+                ray_area,
+                ktot,
+                dz,
+                irradiance,
+            )
+
+    mesh = sim.geom.stl
+    face_normals = mesh.face_normals
+    nfaces = len(face_normals)
+
+    sdir = np.zeros(nfaces, dtype=float)
+    cos_inc_all = np.dot(face_normals, nsun_unit)
+    cos_inc_all = np.where(cos_inc_all > 0.0, cos_inc_all, 0.0)
+
+    # Distribute solid-hit energy to facet sections (facsec).
+    if not hasattr(sim, "facsec") or sim.facsec is None or "c" not in sim.facsec:
+        raise ValueError("Facet sections not available; sim.facsec['c'] is required.")
+    facsec = sim.facsec["c"]
+    facids = facsec["facid"].astype(int)
+    areas = facsec["area"]
+    locs = facsec["locs"].astype(int)
+    i_idx = locs[:, 0]
+    j_idx = locs[:, 1]
+    k_idx = locs[:, 2]
+      
+    # loop over all facet sections to compute total cell facet area per cell
+    cell_area = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
+    for idx in range(len(facids)): 
+        fid = facids[idx]
+        cos_inc = cos_inc_all[fid]
+        if cos_inc <= 0.0:
+            continue
+        i = i_idx[idx]
+        j = j_idx[idx]
+        k = k_idx[idx]
+        cell_area[i, j, k] += areas[idx]
+
+    # loop over all facet sections to distribute energy to facets
+    sdir_accum = np.zeros(nfaces, dtype=float)
+    area_accum = np.zeros(nfaces, dtype=float)
+    for idx in range(len(facids)):
+        fid = facids[idx]
+        cos_inc = cos_inc_all[fid]
+        if cos_inc <= 0.0:
+            continue
+        i = i_idx[idx]
+        j = j_idx[idx]
+        k = k_idx[idx]
+        if cell_area[i, j, k] <= 0.0:
+            continue
+        cell_energy = solid_hit_energy[i, j, k]
+        if cell_energy <= 0.0:
+            continue
+        sect_energy = cell_energy * (areas[idx] / cell_area[i, j, k])
+        sdir_accum[fid] += sect_energy
+        area_accum[fid] += areas[idx]
+
+    mask = area_accum > 0.0
+    areas = sim.facs["area"] if hasattr(sim, "facs") and "area" in sim.facs else mesh.area_faces
+    # sdir[mask] = sdir_accum[mask] / area_accum[mask]
+    sdir[mask] = sdir_accum[mask] / areas[mask]
+
+    # Compute diagnostic totals in watts for budget checks.
+    bud["fac"] = np.sum(sdir * areas)
+    bud["sol"] = float(np.sum(solid_hit_energy))
+    k_idx = veg.points[:, 2].astype(int) - 1
+    cell_vol = sim.dx * sim.dy * dz[k_idx]
+    bud["veg"] = float(np.sum(veg_absorb * cell_vol) * irradiance)
+
+    return sdir, veg_absorb, bud
