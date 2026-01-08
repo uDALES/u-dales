@@ -15,18 +15,14 @@ import numpy as np
 import xarray as xr
 from pathlib import Path
 from typing import Optional, Union, Dict, Any, List
+import importlib.util
 import warnings
 
 # Import UDGeom from the udgeom package
 try:
     from udgeom import UDGeom
 except ImportError:
-    # Fallback for old structure
-    try:
-        from .udgeom import UDGeom
-    except ImportError:
-        UDGeom = None
-        warnings.warn("Could not import UDGeom. Geometry functionality will be limited.")
+    from .udgeom import UDGeom
 
 
 def _file_has_data(path: Path, skiprows: int = 0) -> bool:
@@ -56,6 +52,8 @@ class UDBase:
         Experiment number
     path : str or Path, optional
         Path to experiment directory. Defaults to current directory.
+    load_geometry : bool, optional
+        If True, load STL geometry when available.
     
     Examples
     --------
@@ -65,13 +63,55 @@ class UDBase:
     """
     
     def __init__(self, expnr: Union[int, str], path: Optional[Union[str, Path]] = None, load_geometry: bool = True):
-        """Initialize UDBase instance."""
-        
+        """
+        Initialize a UDBase instance.
+
+        Parameters
+        ----------
+        expnr : int or str
+            Experiment number. Converted to a zero-padded 3-digit string.
+        path : str or Path, optional
+            Path to the experiment directory. Defaults to current working directory.
+        load_geometry : bool, optional
+            If True, load STL geometry when available.
+
+        Attributes
+        ----------
+        expnr : str
+            Experiment number as a zero-padded string.
+        path : Path
+            Base path to the experiment directory.
+        geom : UDGeom or None
+            Loaded geometry instance when STL is present and load_geometry is True.
+        facs : dict
+            Facet data (e.g., area, typeid, normals) if available.
+        factypes : dict
+            Facet type properties if available.
+        facsec : dict
+            Facet section data if available.
+        trees : ndarray or None
+            Tree index data if available.
+
+        Raises
+        ------
+        ImportError
+            If trimesh is not installed.
+        FileNotFoundError
+            If the namoptions file is missing.
+        RuntimeError
+            If geometry loading fails when requested and STL is present.
+        """
+
+        if importlib.util.find_spec("trimesh") is None:
+            raise ImportError("trimesh is required for UDBase. Install with: pip install trimesh")
+
         # Store experiment number
         self.expnr = f"{int(expnr):03d}"
         
         # Set paths
         self.cpath = Path.cwd()
+        if callable(path):
+            path = path()
         self.path = Path(path) if path else self.cpath
         
         # File presence flags
@@ -214,19 +254,12 @@ class UDBase:
             stl_path = self.path / self.stl_file
             if stl_path.exists():
                 try:
-                    # Import udgeom module
-                    from udgeom import UDGeom
                     self.geom = UDGeom(self.path)
                     self.geom.load(self.stl_file)
-                except ImportError as e:
-                    warnings.warn(f"Cannot load geometry: {e}. Install trimesh: pip install trimesh")
-                    self.geom = None
                 except Exception as e:
-                    warnings.warn(f"Error loading geometry: {e}")
-                    self.geom = None
+                    raise RuntimeError(f"Error loading geometry from {stl_path}: {e}") from e
             else:
-                warnings.warn(f"STL file {self.stl_file} not found.")
-                self.geom = None
+                raise FileNotFoundError(f"STL file not found: {stl_path}")
         else:
             self.geom = None
     
@@ -420,7 +453,17 @@ class UDBase:
         
         if hasattr(self, 'nfcts'):
             info.append(f"  facets: {self.nfcts}")
-        
+
+        scalar_types = (int, float, bool, str, np.integer, np.floating)
+        if self.__dict__:
+            for key, val in sorted(self.__dict__.items()):
+                if isinstance(val, scalar_types):
+                    info.append(f"  {key}: {val}")
+                elif isinstance(val, np.ndarray):
+                    info.append(f"  {key}: ndarray[{val.dtype}] shape={val.shape}")
+                else:
+                    info.append(f"  {key}: {type(val).__name__}")
+
         return "\n".join(info)
     
     # ===== Data Loading Methods =====

@@ -119,8 +119,8 @@ ray_factor = 6.0
 #    return_hit_count=True,
 #    extend_bounds=extend_bounds,
 #)
-#elapsed_py = time.perf_counter() - start
-#print(f"Direct shortwave runtime (python): {elapsed_py:.3f} s")
+elapsed_py = time.perf_counter() - start
+print(f"Direct shortwave runtime (python): {elapsed_py:.3f} s")
 
 start = time.perf_counter()
 sdir, veg_absorb, bud = directshortwave_nb(
@@ -145,30 +145,33 @@ sdir, veg_absorb, bud = directshortwave_nb(
     return_hit_count=True,
     extend_bounds=extend_bounds,
 )
-facsec_c = sim.facsec["c"]
-facids = facsec_c["facid"].astype(int)
-areas = facsec_c["area"]
-if hasattr(sim, "facs") and sim.facs is not None and "area" in sim.facs:
-    facet_areas = sim.facs["area"]
-else:
-    facet_areas = sim.geom.stl.area_faces
-area_accum = np.zeros_like(facet_areas, dtype=float)
-np.add.at(area_accum, facids, areas)
-area_ratio = area_accum / facet_areas
-print(
-    "Facet area check (sections / facet): "
-    f"min={np.min(area_ratio):.6f}, max={np.max(area_ratio):.6f}, "
-    f"mean={np.mean(area_ratio):.6f}"
-)
-mesh_areas = sim.geom.stl.area_faces
-if hasattr(sim, "facs") and sim.facs is not None and "area" in sim.facs:
-    facs_areas = sim.facs["area"]
-    mesh_ratio = mesh_areas / facs_areas
-    print(
-        "Facet area check (mesh / facs): "
-        f"min={np.min(mesh_ratio):.6f}, max={np.max(mesh_ratio):.6f}, "
-        f"mean={np.mean(mesh_ratio):.6f}"
-    )
+
+#% ----------------------------------------------------------------
+
+#facsec_c = sim.facsec["c"]
+#facids = facsec_c["facid"].astype(int)
+#areas = facsec_c["area"]
+#if hasattr(sim, "facs") and sim.facs is not None and "area" in sim.facs:
+#    facet_areas = sim.facs["area"]
+#else:
+#    facet_areas = sim.geom.stl.area_faces
+#area_accum = np.zeros_like(facet_areas, dtype=float)
+#np.add.at(area_accum, facids, areas)
+#area_ratio = area_accum / facet_areas
+#print(
+#    "Facet area check (sections / facet): "
+#    f"min={np.min(area_ratio):.6f}, max={np.max(area_ratio):.6f}, "
+#    f"mean={np.mean(area_ratio):.6f}"
+#)
+#mesh_areas = sim.geom.stl.area_faces
+#if hasattr(sim, "facs") and sim.facs is not None and "area" in sim.facs:
+#    facs_areas = sim.facs["area"]
+#    mesh_ratio = mesh_areas / facs_areas
+#    print(
+#        "Facet area check (mesh / facs): "
+#        f"min={np.min(mesh_ratio):.6f}, max={np.max(mesh_ratio):.6f}, "
+#        f"mean={np.mean(mesh_ratio):.6f}"
+#    )
 
 elapsed = time.perf_counter() - start
 print(f"Sdir facets: {sdir.shape}  veg_absorb: {veg_absorb.shape}")
