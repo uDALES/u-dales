@@ -81,7 +81,6 @@ module matchFacets2Cells
    integer :: fluid_IB_read, solid_IB_read, i, j, k, n
    character(80) :: chmess
    integer, parameter :: ifinput = 1
-   integer :: count
 
    allocate(fluid_IB_ijk(nfluid_IB,3), solid_IB_ijk(nsolid_IB,3), fluid_IB_xyz(nfluid_IB,3))
 

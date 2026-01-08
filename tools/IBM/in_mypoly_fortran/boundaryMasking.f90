@@ -65,7 +65,7 @@ module boundaryMasking
 
       else        !! For u, v and c
 
-        call getBoundaryCells(fluid_IB, solid_IB, itot, jtot, ktot, fluid_x, solid_x, include_diagonals, , n_threads)
+        call getBoundaryCells(fluid_IB, solid_IB, itot, jtot, ktot, fluid_x, solid_x, include_diagonals, n_threads)
 
         if (stl_ground) then
           where (.not. solid_x(:,:,1))
