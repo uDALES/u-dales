@@ -112,17 +112,22 @@ def _point_to_cell(
     z_edges: np.ndarray,
     z_max: float,
     ktot: int,
+    allow_outside_xy: bool = False,
 ) -> Tuple[int, int, int]:
     """Map a point (x,y,z) to cell indices within truncated vertical extent."""
     # Clamp to truncated vertical extent so ray tracing stays within allocated arrays.
-    if x < 0.0 or x >= sim.xlen:
-        return -1, -1, -1
-    if y < 0.0 or y >= sim.ylen:
-        return -1, -1, -1
     if z < 0.0 or z >= z_max:
         return -1, -1, -1
-    i = int(min(sim.itot - 1, max(0, math.floor(x / sim.dx))))
-    j = int(min(sim.jtot - 1, max(0, math.floor(y / sim.dy))))
+    if not allow_outside_xy:
+        if x < 0.0 or x >= sim.xlen:
+            return -1, -1, -1
+        if y < 0.0 or y >= sim.ylen:
+            return -1, -1, -1
+        i = int(min(sim.itot - 1, max(0, math.floor(x / sim.dx))))
+        j = int(min(sim.jtot - 1, max(0, math.floor(y / sim.dy))))
+    else:
+        i = int(math.floor(x / sim.dx))
+        j = int(math.floor(y / sim.dy))
     k = int(min(ktot - 1, max(0, np.searchsorted(z_edges, z, side="right") - 1)))
     return i, j, k
 
@@ -168,6 +173,10 @@ def _trace_ray(
     ktot: int,
     dz: np.ndarray,
     irradiance: float,
+    periodic_xy: bool,
+    max_ray_length: float | None,
+    hit_count: np.ndarray | None,
+    allow_outside_xy: bool,
 ) -> float:
     """
     Trace a single ray through the grid with 3D DDA stepping.
@@ -182,11 +191,26 @@ def _trace_ray(
     dy = sim.dy
 
     # Start at the first cell inside the truncated domain.
-    i, j, k = _point_to_cell(x, y, z, sim, z_edges, z_max, ktot)
+    i, j, k = _point_to_cell(
+        x,
+        y,
+        z,
+        sim,
+        z_edges,
+        z_max,
+        ktot,
+        allow_outside_xy=allow_outside_xy,
+    )
     if i < 0:
-        return
+        return 0.0
 
     dir_x, dir_y, dir_z = direction
+    if periodic_xy and abs(dir_z) < 1.0e-12:
+        raise ValueError("periodic_xy requires a non-zero vertical sun component")
+    if allow_outside_xy and abs(dir_z) < 1.0e-12:
+        raise ValueError("extend_bounds requires a non-zero vertical sun component")
+    if max_ray_length is not None and max_ray_length <= 0.0:
+        raise ValueError("max_ray_length must be > 0")
     step_x = 0 if dir_x == 0.0 else (1 if dir_x > 0.0 else -1)
     step_y = 0 if dir_y == 0.0 else (1 if dir_y > 0.0 else -1)
     step_z = 0 if dir_z == 0.0 else (1 if dir_z > 0.0 else -1)
@@ -233,35 +257,50 @@ def _trace_ray(
     last_i = -1
     last_j = -1
     last_k = -1
-    while 0 <= i < sim.itot and 0 <= j < sim.jtot and 0 <= k < ktot:
-        if solid is not None and solid[i, j, k]:
+    while 0 <= k < ktot and (periodic_xy or allow_outside_xy or (0 <= i < sim.itot and 0 <= j < sim.jtot)):
+        inside = 0 <= i < sim.itot and 0 <= j < sim.jtot
+        ii = i % sim.itot if periodic_xy else i
+        jj = j % sim.jtot if periodic_xy else j
+        if inside and solid is not None and solid[ii, jj, k]:
             # Deposit solid-intercepted energy in the last fluid cell.
             if last_i >= 0:
                 solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
             return 0.0
 
+        if hit_count is not None:
+            if inside:
+                hit_count[ii, jj, k] += 1
         # Accumulate incoming energy for this cell (ray-weighted).
-        energy_in[i, j, k] += r_in * irradiance * ray_area
+        if inside:
+            energy_in[ii, jj, k] += r_in * irradiance * ray_area
 
         t_next = min(t_max_x, t_max_y, t_max_z)
-        ds = t_next - t
+        if max_ray_length is not None and t_next > max_ray_length:
+            ds = max_ray_length - t
+        else:
+            ds = t_next - t
         if ds < 0.0:
             ds = 0.0
 
         # Beer-Lambert attenuation through vegetation in this cell.
-        lad = lad_3d[i, j, k]
-        dec = dec_3d[i, j, k]
-        if lad > 0.0 and dec > 0.0:
-            tau = lad * dec * ds
-            r_out = r_in * math.exp(-tau)
-            absorbed = (r_in - r_out) * ray_area
-            vidx = veg_index[i, j, k]
-            if vidx >= 0:
-                cell_vol = dx * dy * dz[k]
-                veg_absorb[vidx] += absorbed / cell_vol
-            r_in = r_out
+        if inside:
+            lad = lad_3d[ii, jj, k]
+            dec = dec_3d[ii, jj, k]
+            if lad > 0.0 and dec > 0.0:
+                tau = lad * dec * ds
+                r_out = r_in * math.exp(-tau)
+                absorbed = (r_in - r_out) * ray_area
+                vidx = veg_index[ii, jj, k]
+                if vidx >= 0:
+                    cell_vol = dx * dy * dz[k]
+                    veg_absorb[vidx] += absorbed / cell_vol
+                r_in = r_out
+        if max_ray_length is not None and t_next > max_ray_length:
+            return r_in * ray_area * irradiance
 
-        prev_i, prev_j, prev_k = i, j, k
+        prev_i, prev_j, prev_k = last_i, last_j, last_k
+        if inside:
+            prev_i, prev_j, prev_k = ii, jj, k
         if t_max_x == t_next:
             i += step_x
             t_max_x += t_delta_x
@@ -288,6 +327,14 @@ def directshortwave(
     nsun: np.ndarray,
     irradiance: float,
     ray_scale: float = 1.0,
+    periodic_xy: bool = False,
+    max_ray_length: float | None = None,
+    halo_pad: float = 0.125,
+    ray_jitter: float = 0.0,
+    ray_jitter_seed: int | None = None,
+    return_hit_count: bool = False,
+    return_ray_debug: bool = False,
+    extend_bounds: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
     """
     Compute direct shortwave on facets and absorbed radiation in vegetation cells.
@@ -337,20 +384,36 @@ def directshortwave(
 
     eps = 1.0e-6
 
-    bounds_min = np.array([0.0, 0.0, 0.0], dtype=float)
-    bounds_max = np.array([sim.xlen, sim.ylen, z_max], dtype=float)
+    if extend_bounds:
+        if abs(direction[2]) < 1.0e-12:
+            raise ValueError("extend_bounds requires a non-zero vertical sun component")
+        pad_x = z_max * abs(direction[0] / direction[2])
+        pad_y = z_max * abs(direction[1] / direction[2])
+        bounds_min = np.array([0.0, 0.0, 0.0], dtype=float)
+        bounds_max = np.array([sim.xlen, sim.ylen, z_max], dtype=float)
+        if direction[0] > 0.0:
+            bounds_min[0] -= pad_x
+        elif direction[0] < 0.0:
+            bounds_max[0] += pad_x
+        if direction[1] > 0.0:
+            bounds_min[1] -= pad_y
+        elif direction[1] < 0.0:
+            bounds_max[1] += pad_y
+    else:
+        bounds_min = np.array([0.0, 0.0, 0.0], dtype=float)
+        bounds_max = np.array([sim.xlen, sim.ylen, z_max], dtype=float)
 
     # Build a plane covering the domain for parallel ray casting.
     corners = np.array(
         [
-            [0.0, 0.0, 0.0],
-            [sim.xlen, 0.0, 0.0],
-            [0.0, sim.ylen, 0.0],
-            [sim.xlen, sim.ylen, 0.0],
-            [0.0, 0.0, z_max],
-            [sim.xlen, 0.0, z_max],
-            [0.0, sim.ylen, z_max],
-            [sim.xlen, sim.ylen, z_max],
+            [bounds_min[0], bounds_min[1], bounds_min[2]],
+            [bounds_max[0], bounds_min[1], bounds_min[2]],
+            [bounds_min[0], bounds_max[1], bounds_min[2]],
+            [bounds_max[0], bounds_max[1], bounds_min[2]],
+            [bounds_min[0], bounds_min[1], bounds_max[2]],
+            [bounds_max[0], bounds_min[1], bounds_max[2]],
+            [bounds_min[0], bounds_max[1], bounds_max[2]],
+            [bounds_max[0], bounds_max[1], bounds_max[2]],
         ],
         dtype=float,
     )
@@ -369,17 +432,24 @@ def directshortwave(
     umax, vmax = proj.max(axis=0)
     du = umax - umin
     dv = vmax - vmin
-    umin -= 0.125 * du
-    umax += 0.125 * du
-    vmin -= 0.125 * dv
-    vmax += 0.125 * dv
+    if halo_pad < 0.0:
+        raise ValueError("halo_pad must be >= 0")
+    umin -= halo_pad * du
+    umax += halo_pad * du
+    vmin -= halo_pad * dv
+    vmax += halo_pad * dv
 
     if ray_scale <= 0.0:
         raise ValueError("ray_scale must be > 0")
+    if max_ray_length is None:
+        max_ray_length = 10.0 * max(sim.xlen, sim.ylen)
+    if ray_jitter < 0.0:
+        raise ValueError("ray_jitter must be >= 0")
     step = (min(sim.dx, sim.dy, float(np.min(sim.dzt)))) / ray_scale
     u_vals = np.arange(umin, umax + step, step)
     v_vals = np.arange(vmin, vmax + step, step)
     ray_area = step * step
+    rng = np.random.default_rng(ray_jitter_seed) if ray_jitter > 0.0 else None
 
     bud = {
         "in": 0.0,
@@ -388,10 +458,20 @@ def directshortwave(
         "out": 0.0,
         "fac": 0.0,
     }
+    bud["rays"] = int(len(u_vals) * len(v_vals))
 
+    hit_count = np.zeros((sim.itot, sim.jtot, ktot), dtype=np.int32) if return_hit_count else None
     for u in u_vals:
         for v in v_vals:
-            origin = p0 + u1 * u + u2 * v
+            if rng is not None:
+                du_jit = (rng.random() - 0.5) * step * ray_jitter
+                dv_jit = (rng.random() - 0.5) * step * ray_jitter
+                u_use = u + du_jit
+                v_use = v + dv_jit
+            else:
+                u_use = u
+                v_use = v
+            origin = p0 + u1 * u_use + u2 * v_use
             t0, t1 = _ray_box_intersection(origin, direction, bounds_min, bounds_max)
             if t1 < t0:
                 continue
@@ -417,6 +497,10 @@ def directshortwave(
                 ktot,
                 dz,
                 irradiance,
+                periodic_xy,
+                max_ray_length,
+                hit_count,
+                extend_bounds,
             )
 
     mesh = sim.geom.stl
@@ -481,5 +565,28 @@ def directshortwave(
     k_idx = veg.points[:, 2].astype(int) - 1
     cell_vol = sim.dx * sim.dy * dz[k_idx]
     bud["veg"] = float(np.sum(veg_absorb * cell_vol) * irradiance)
+    if extend_bounds:
+        unmapped = bud["sol"] - bud["fac"]
+        if unmapped > 0.0:
+            bud["out"] += unmapped
+            bud["sol"] = bud["fac"]
+    if return_hit_count:
+        bud["hit_count"] = hit_count
+    if return_ray_debug:
+        bud["ray_debug"] = {
+            "p0": p0.copy(),
+            "u1": u1.copy(),
+            "u2": u2.copy(),
+            "umin": float(umin),
+            "umax": float(umax),
+            "vmin": float(vmin),
+            "vmax": float(vmax),
+            "corners": corners.copy(),
+            "proj_corners": proj.copy(),
+            "direction": direction.copy(),
+            "bounds_min": bounds_min.copy(),
+            "bounds_max": bounds_max.copy(),
+            "extend_bounds": extend_bounds,
+        }
 
     return sdir, veg_absorb, bud
