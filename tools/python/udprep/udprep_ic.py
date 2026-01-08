@@ -1,46 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List
+from typing import Any, Dict, List
 
 from .udprep import Section, SectionSpec
 
-FIELDS: List[str] = [
-    "u0",
-    "v0",
-    "tke",
-    "thl0",
-    "qt0",
-    "dpdx",
-    "dpdy",
-    "lzstretch",
-    "stretchconst",
-    "lstretchexp",
-    "lstretchexpcheck",
-    "lstretchtanh",
-    "lstretch2tanh",
-    "hlin",
-    "dzlin",
-    "dz",
-]
-
-DEFAULTS: Dict[str, Any | Callable[[Any], Any]] = {
-    "u0": 0,
-    "v0": 0,
-    "tke": 0,
-    "thl0": 288,
-    "qt0": 0,
-    "dpdx": 0,
-    "dpdy": 0,
-    "lzstretch": 0,
-    "stretchconst": 0.01,
-    "lstretchexp": 0,
-    "lstretchexpcheck": 0,
-    "lstretchtanh": 0,
-    "lstretch2tanh": 0,
-    "hlin": 0,
-    "dzlin": 0,
-    "dz": lambda self: self.zsize / self.ktot,
-}
+DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("ic", {})
+FIELDS: List[str] = list(DEFAULTS.keys())
 
 class ICSection(Section):
     def run_all(self) -> None:

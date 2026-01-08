@@ -15,6 +15,7 @@ expdir = (udbase_path.parents[0] / "experiments" / expnr).resolve()
 from udbase import UDBase  # noqa: E402
 from udprep import UDPrep  # noqa: E402
 
+print("Initializing UDPrep demo...")
 # Instantiate UDPrep either as ...
 sim = UDBase(expnr, expdir)
 prep = UDPrep(sim)
@@ -22,15 +23,16 @@ prep = UDPrep(sim)
 # ... or directly from experiment directory:
 prep = UDPrep(expnr, expdir)
 
-# Summary of the derived preprocessing configuration.
+print("-------------------------------------------------------------------")
+print("Summary of the derived preprocessing configuration")
 print(prep)
 
 print('-------------------------------------------------------------------')
-# ... or for individual sections:
+print(' ... or for individual sections')
 print(prep.ibm)
-exit()
 
 print('-------------------------------------------------------------------')
+print("Accessing section parameters...")
 # Example access patterns.
 print(f"ibm dx: {prep.ibm.dx}")
 print(f"ic thl0: {prep.ic.thl0}")
@@ -38,26 +40,35 @@ print(f"vegetation ltrees: {prep.vegetation.ltrees}")
 print(f"scalars nsv: {prep.scalars.nsv}")
 print(f"seb facT: {prep.seb.facT}")
 
-# Example 1: override a parameter, then run a single IC step.
+print('-------------------------------------------------------------------')
+print("Example 1: override IC parameter and write profiles...")
 # (Here we adjust the initial potential temperature before writing profiles.)
 prep.ic.thl0 = 290.0
 prep.ic.generate_prof()
 prep.ic.write_prof()
 
-# Example 2: adjust vegetation switch and run vegetation-only preprocessing.
+print('-------------------------------------------------------------------')
+print("Example 2: enable vegetation and run vegetation preprocessing...")
 prep.vegetation.ltrees = 1
 prep.vegetation.run_all()
 
 print('-------------------------------------------------------------------')
-
-# Example 3: run a single section's run_all explicitly.
+print("Example 3: run IBM section preprocessing...")
 prep.ibm.run_all()
 
-# Example 4: record parameter changes for a section.
-# This will eventually diff against defaults and write only changed params.
+print('-------------------------------------------------------------------')
+print("Example 4: write changed params for IC section...")
+# This will eventually actually write the changed params.
 prep.ic.write_changed_params()
 
 print('-------------------------------------------------------------------')
+print("Example 4b: show changed params for all sections...")
+prep.show_changed_params()
 
-# Example 5: run the full preprocessing chain.
+print('-------------------------------------------------------------------')
+print("Example 4c: write changed params for all sections...")
+prep.write_changed_params()
+
+print('-------------------------------------------------------------------')
+print("Example 5: run full preprocessing chain...")
 prep.run_all()

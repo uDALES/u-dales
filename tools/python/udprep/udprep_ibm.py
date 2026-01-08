@@ -1,58 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List
-
-import numpy as np
+from typing import Any, Dict, List
 
 from .udprep import Section, SectionSpec
 
-FIELDS: List[str] = [
-    "itot",
-    "xlen",
-    "jtot",
-    "ylen",
-    "ktot",
-    "zsize",
-    "dx",
-    "dy",
-    "stl_file",
-    "gen_geom",
-    "geom_path",
-    "diag_neighbs",
-    "stl_ground",
-    "libm",
-    "isolid_bound",
-    "ifacsec",
-    "read_types",
-    "types_path",
-    "nfcts",
-    "factypes",
-    "maxlen",
-]
-
-DEFAULTS: Dict[str, Any | Callable[[Any], Any]] = {
-    "itot": 64,
-    "xlen": 64,
-    "jtot": 64,
-    "ylen": 64,
-    "ktot": 96,
-    "zsize": 96,
-    "dx": lambda self: self.xlen / self.itot,
-    "dy": lambda self: self.ylen / self.jtot,
-    "stl_file": "",
-    "gen_geom": True,
-    "geom_path": "",
-    "diag_neighbs": True,
-    "stl_ground": True,
-    "libm": 1,
-    "isolid_bound": 1,
-    "ifacsec": 1,
-    "read_types": 0,
-    "types_path": 0,
-    "nfcts": 0,
-    "factypes": None,
-    "maxlen": 10,
-}
+DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("ibm", {})
+FIELDS: List[str] = list(DEFAULTS.keys())
 
 
 class IBMSection(Section):

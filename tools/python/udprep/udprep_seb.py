@@ -1,26 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List
+from typing import Any, Dict, List
 
 from .udprep import Section, SectionSpec
 
-FIELDS: List[str] = [
-    "lEB",
-    "lfacTlyrs",
-    "facT",
-    "nfaclyrs",
-    "facT_file",
-    "dtEB",
-]
-
-DEFAULTS: Dict[str, Any | Callable[[Any], Any]] = {
-    "lEB": 0,
-    "lfacTlyrs": 0,
-    "facT": 288.0,
-    "nfaclyrs": 3,
-    "facT_file": "",
-    "dtEB": 10.0,
-}
+DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("seb", {})
+FIELDS: List[str] = list(DEFAULTS.keys())
 
 class SEBSection(Section):
     def run_all(self) -> None:

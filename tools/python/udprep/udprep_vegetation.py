@@ -1,34 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List
+from typing import Any, Dict, List
 
 from .udprep import Section, SectionSpec
 
-FIELDS: List[str] = [
-    "ltrees",
-    "ltreesfile",
-    "treesfile",
-    "tree_dz",
-    "tree_dx",
-    "tree_dy",
-    "tree_h",
-    "tree_w",
-    "tree_b",
-    "nrows",
-]
-
-DEFAULTS: Dict[str, Any | Callable[[Any], Any]] = {
-    "ltrees": 0,
-    "ltreesfile": 0,
-    "treesfile": "",
-    "tree_dz": 0,
-    "tree_dx": 0,
-    "tree_dy": 0,
-    "tree_h": 0,
-    "tree_w": 0,
-    "tree_b": 0,
-    "nrows": 0,
-}
+DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("vegetation", {})
+FIELDS: List[str] = list(DEFAULTS.keys())
 
 class VegetationSection(Section):
     def run_all(self) -> None:

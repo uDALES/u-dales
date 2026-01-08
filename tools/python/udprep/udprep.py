@@ -1,17 +1,28 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 import time
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple, Type
+
+import numpy as np
 
 # Shared base utilities for preprocessing sections.
 SKIP = object()
 
 
 class Section:
-    def __init__(self, name: str, values: Dict[str, Any], sim: Any | None = None):
+    def __init__(
+        self,
+        name: str,
+        values: Dict[str, Any],
+        sim: Any | None = None,
+        defaults: Dict[str, Any] | None = None,
+    ):
         self._name = name
         self.sim = sim
+        self._defaults = defaults or {}
         for key, val in values.items():
             setattr(self, key, val)
 
@@ -23,6 +34,35 @@ class Section:
             elapsed = time.perf_counter() - start
             print(f"[{label}] {name} done in {elapsed:.3f} s")
 
+    @staticmethod
+    def load_defaults_json(path: str | None = None) -> Dict[str, Dict[str, Any]]:
+        defaults_path = Path(path) if path is not None else Path(__file__).with_name("defaults.json")
+        try:
+            with defaults_path.open("r", encoding="ascii") as f:
+                return json.load(f)
+        except OSError:
+            return {}
+
+    @staticmethod
+    def resolve_default(
+        section: str,
+        key: str,
+        ctx: Any,
+        defaults_json: Dict[str, Dict[str, Any]],
+        fallback: Dict[str, Any | Callable[[Any], Any]],
+    ) -> Any:
+        if section in defaults_json and key in defaults_json[section]:
+            value = defaults_json[section][key]
+            if isinstance(value, str) and "/" in value:
+                num, den = value.split("/", 1)
+                num = num.strip()
+                den = den.strip()
+                if num.isidentifier() and den.isidentifier():
+                    return getattr(ctx, num) / getattr(ctx, den)
+            return value
+        default = fallback.get(key, SKIP)
+        return default(ctx) if callable(default) else default
+
     def write_changed_params(self) -> None:
         """
         Compare current values against defaults and write only changed parameters.
@@ -30,11 +70,42 @@ class Section:
         This is a placeholder for logic that will diff section attributes against
         their default values and emit a minimal input file update.
         """
+        changed = self._changed_params()
+        for key, value, default in changed:
+            print(f"[{self._name}] writing {key} = {value} to input file")
+
+    def show_changed_params(self) -> None:
+        """
+        Show changed parameters for this section.
+
+        This is a placeholder for logic that will diff section attributes against
+        their default values and print a summary.
+        """
+        changed = self._changed_params()
+        if not changed:
+            print(f"[{self._name}] no changes")
+            return
+        for key, value, default in changed:
+            print(f"[{self._name}] {key}: {value} (default: {default})")
+
+    def _changed_params(self) -> List[Tuple[str, Any, Any]]:
+        changed = []
+        for key, default in self._defaults.items():
+            if not hasattr(self, key):
+                continue
+            value = getattr(self, key)
+            if isinstance(value, np.ndarray) or isinstance(default, np.ndarray):
+                same = np.array_equal(value, default)
+            else:
+                same = value == default
+            if not same:
+                changed.append((key, value, default))
+        return changed
 
     def __repr__(self) -> str:
         lines = [f"{self._name}:"]
         for key, val in sorted(self.__dict__.items()):
-            if key in ("_name", "sim"):
+            if key in ("_name", "sim", "_defaults"):
                 continue
             lines.append(f"  {key}: {val}")
         return "\n".join(lines)
@@ -84,6 +155,7 @@ class UDPrep:
         SCALARS_SPEC,
         RADIATION_SPEC,
     ]
+    DEFAULTS_JSON = None
 
     def __init__(self, expnr, path=None, load_geometry: bool = True):
         from udbase import UDBase
@@ -95,19 +167,35 @@ class UDPrep:
 
         self.sim = sim
         self._section_spec_map = {spec.name: spec for spec in self.SECTION_SPECS}
+        if self.DEFAULTS_JSON is None:
+            self.DEFAULTS_JSON = Section.load_defaults_json()
 
         for spec in self.SECTION_SPECS:
+            defaults = {}
+            ctx = _DefaultContext(sim, defaults)
+            for key in spec.fields:
+                default = Section.resolve_default(
+                    spec.name,
+                    key,
+                    ctx,
+                    self.DEFAULTS_JSON,
+                    spec.defaults,
+                )
+                if default is SKIP:
+                    continue
+                defaults[key] = default
+
             values = {}
-            ctx = _DefaultContext(sim, values)
             for key in spec.fields:
                 if hasattr(sim, key):
                     values[key] = getattr(sim, key)
-                else:
-                    default = spec.get_default(key, ctx)
-                    if default is SKIP:
-                        continue
-                    values[key] = default
-            setattr(self, spec.name, spec.section_cls(spec.name, values, sim=self.sim))
+                elif key in defaults:
+                    values[key] = defaults[key]
+            setattr(
+                self,
+                spec.name,
+                spec.section_cls(spec.name, values, sim=self.sim, defaults=defaults),
+            )
 
     def addvar(self, name: str, value: Any, section: str | None = None) -> None:
         if section is None:
@@ -128,7 +216,7 @@ class UDPrep:
         return {
             key: val
             for key, val in section_obj.__dict__.items()
-            if key not in ("_name", "sim")
+            if key not in ("_name", "sim", "_defaults")
         }
 
     def __repr__(self) -> str:
@@ -158,6 +246,22 @@ class UDPrep:
         if self.seb.lEB:
             self.radiation.run_all()
             self.seb.run_all()
+
+    def write_changed_params(self) -> None:
+        """Write changed parameters for every section."""
+        for spec in self.SECTION_SPECS:
+            section_obj = getattr(self, spec.name, None)
+            if section_obj is None:
+                continue
+            section_obj.write_changed_params()
+
+    def show_changed_params(self) -> None:
+        """Show changed parameters for every section."""
+        for spec in self.SECTION_SPECS:
+            section_obj = getattr(self, spec.name, None)
+            if section_obj is None:
+                continue
+            section_obj.show_changed_params()
 
     def __str__(self) -> str:
         return self.__repr__()

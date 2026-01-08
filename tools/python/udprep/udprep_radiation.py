@@ -1,74 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List
+from typing import Any, Dict, List
 
 from .udprep import Section, SectionSpec
 
-FIELDS: List[str] = [
-    "iwallmom",
-    "iwalltemp",
-    "lwritefac",
-    "xazimuth",
-    "ltimedepsw",
-    "ishortwave",
-    "isolar",
-    "runtime",
-    "dtSP",
-    "solarazimuth",
-    "solarzenith",
-    "I",
-    "Dsky",
-    "longitude",
-    "latitude",
-    "timezone",
-    "elevation",
-    "hour",
-    "minute",
-    "second",
-    "year",
-    "month",
-    "day",
-    "weatherfname",
-    "psc_res",
-    "lvfsparse",
-    "calc_vf",
-    "maxD",
-    "vf_path",
-    "view3d_out",
-]
-
-DEFAULTS: Dict[str, Any | Callable[[Any], Any]] = {
-    "iwallmom": 3,
-    "iwalltemp": 1,
-    "lwritefac": 0,
-    "xazimuth": 90,
-    "ltimedepsw": 0,
-    "ishortwave": 1,
-    "isolar": 1,
-    "runtime": 0,
-    "dtSP": 10.0,
-    "solarazimuth": 135,
-    "solarzenith": 28.4066,
-    "I": 800,
-    "Dsky": 418.8041,
-    "longitude": -0.13,
-    "latitude": 51.5,
-    "timezone": 0,
-    "elevation": 0,
-    "hour": 6,
-    "minute": 0,
-    "second": 0,
-    "year": 2011,
-    "month": 9,
-    "day": 30,
-    "weatherfname": "",
-    "psc_res": 0.1,
-    "lvfsparse": False,
-    "calc_vf": True,
-    "maxD": float("inf"),
-    "vf_path": "",
-    "view3d_out": 0,
-}
+DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("radiation", {})
+FIELDS: List[str] = list(DEFAULTS.keys())
 
 class RadiationSection(Section):
     def run_all(self) -> None:
