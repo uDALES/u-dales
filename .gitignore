@@ -25,4 +25,5 @@ examples/*/*driver*
 *.m~
 
 # Python
+**/__pycache__/
 *.pyc
