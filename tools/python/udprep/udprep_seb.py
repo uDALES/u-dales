@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List
 
-from .udprep_common import SKIP, Section, SectionSpec
+from .udprep import Section, SectionSpec
 
 FIELDS: List[str] = [
     "lEB",
@@ -19,7 +19,7 @@ DEFAULTS: Dict[str, Any | Callable[[Any], Any]] = {
     "facT": 288.0,
     "nfaclyrs": 3,
     "facT_file": "",
-    "dtEB": lambda self: 10.0 if self.lEB else SKIP,
+    "dtEB": 10.0,
 }
 
 class SEBSection(Section):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List
 
-from .udprep_common import SKIP, Section, SectionSpec
+from .udprep import Section, SectionSpec
 
 FIELDS: List[str] = [
     "u0",
@@ -32,14 +32,14 @@ DEFAULTS: Dict[str, Any | Callable[[Any], Any]] = {
     "dpdx": 0,
     "dpdy": 0,
     "lzstretch": 0,
-    "stretchconst": lambda self: 0.01 if self.lzstretch else SKIP,
-    "lstretchexp": lambda self: 0 if self.lzstretch else SKIP,
-    "lstretchexpcheck": lambda self: 0 if self.lzstretch else SKIP,
-    "lstretchtanh": lambda self: 0 if self.lzstretch else SKIP,
-    "lstretch2tanh": lambda self: 0 if self.lzstretch else SKIP,
-    "hlin": lambda self: 0 if self.lzstretch else SKIP,
-    "dzlin": lambda self: 0 if self.lzstretch else SKIP,
-    "dz": lambda self: self.dzlin if self.lzstretch else (self.zsize / self.ktot),
+    "stretchconst": 0.01,
+    "lstretchexp": 0,
+    "lstretchexpcheck": 0,
+    "lstretchtanh": 0,
+    "lstretch2tanh": 0,
+    "hlin": 0,
+    "dzlin": 0,
+    "dz": lambda self: self.zsize / self.ktot,
 }
 
 class ICSection(Section):

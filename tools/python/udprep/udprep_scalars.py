@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List
 
-from .udprep_common import SKIP, Section, SectionSpec
+from .udprep import Section, SectionSpec
 
 FIELDS: List[str] = [
     "nsv",
@@ -33,29 +33,29 @@ FIELDS: List[str] = [
 
 DEFAULTS: Dict[str, Any | Callable[[Any], Any]] = {
     "nsv": 0,
-    "sv10": lambda self: 0 if self.nsv > 0 else SKIP,
-    "sv20": lambda self: 0 if self.nsv > 0 else SKIP,
-    "sv30": lambda self: 0 if self.nsv > 0 else SKIP,
-    "sv40": lambda self: 0 if self.nsv > 0 else SKIP,
-    "sv50": lambda self: 0 if self.nsv > 0 else SKIP,
-    "lscasrc": lambda self: 0 if self.nsv > 0 else SKIP,
-    "lscasrcl": lambda self: 0 if self.nsv > 0 else SKIP,
-    "lscasrcr": lambda self: 0 if self.nsv > 0 else SKIP,
-    "xS": lambda self: -1 if self.nsv > 0 else SKIP,
-    "yS": lambda self: -1 if self.nsv > 0 else SKIP,
-    "zS": lambda self: -1 if self.nsv > 0 else SKIP,
-    "SSp": lambda self: -1 if self.nsv > 0 else SKIP,
-    "sigSp": lambda self: -1 if self.nsv > 0 else SKIP,
-    "nscasrc": lambda self: 0 if self.nsv > 0 else SKIP,
-    "xSb": lambda self: -1 if self.nsv > 0 else SKIP,
-    "ySb": lambda self: -1 if self.nsv > 0 else SKIP,
-    "zSb": lambda self: -1 if self.nsv > 0 else SKIP,
-    "xSe": lambda self: -1 if self.nsv > 0 else SKIP,
-    "ySe": lambda self: -1 if self.nsv > 0 else SKIP,
-    "zSe": lambda self: -1 if self.nsv > 0 else SKIP,
-    "SSl": lambda self: -1 if self.nsv > 0 else SKIP,
-    "sigSl": lambda self: -1 if self.nsv > 0 else SKIP,
-    "nscasrcl": lambda self: 0 if self.nsv > 0 else SKIP,
+    "sv10": 0,
+    "sv20": 0,
+    "sv30": 0,
+    "sv40": 0,
+    "sv50": 0,
+    "lscasrc": 0,
+    "lscasrcl": 0,
+    "lscasrcr": 0,
+    "xS": -1,
+    "yS": -1,
+    "zS": -1,
+    "SSp": -1,
+    "sigSp": -1,
+    "nscasrc": 0,
+    "xSb": -1,
+    "ySb": -1,
+    "zSb": -1,
+    "xSe": -1,
+    "ySe": -1,
+    "zSe": -1,
+    "SSl": -1,
+    "sigSl": -1,
+    "nscasrcl": 0,
 }
 
 class ScalarsSection(Section):

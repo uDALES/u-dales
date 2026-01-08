@@ -25,6 +25,12 @@ prep = UDPrep(expnr, expdir)
 # Summary of the derived preprocessing configuration.
 print(prep)
 
+print('-------------------------------------------------------------------')
+# ... or for individual sections:
+print(prep.ibm)
+exit()
+
+print('-------------------------------------------------------------------')
 # Example access patterns.
 print(f"ibm dx: {prep.ibm.dx}")
 print(f"ic thl0: {prep.ic.thl0}")
@@ -42,6 +48,8 @@ prep.ic.write_prof()
 prep.vegetation.ltrees = 1
 prep.vegetation.run_all()
 
+print('-------------------------------------------------------------------')
+
 # Example 3: run a single section's run_all explicitly.
 prep.ibm.run_all()
 
@@ -49,5 +57,7 @@ prep.ibm.run_all()
 # This will eventually diff against defaults and write only changed params.
 prep.ic.write_changed_params()
 
-# Example 3: run the full preprocessing chain.
+print('-------------------------------------------------------------------')
+
+# Example 5: run the full preprocessing chain.
 prep.run_all()

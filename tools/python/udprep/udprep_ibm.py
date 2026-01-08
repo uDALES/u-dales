@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List
 
 import numpy as np
 
-from .udprep_common import SKIP, Section, SectionSpec
+from .udprep import Section, SectionSpec
 
 FIELDS: List[str] = [
     "itot",
@@ -48,10 +48,10 @@ DEFAULTS: Dict[str, Any | Callable[[Any], Any]] = {
     "isolid_bound": 1,
     "ifacsec": 1,
     "read_types": 0,
-    "types_path": lambda self: 0 if self.read_types else SKIP,
+    "types_path": 0,
     "nfcts": 0,
-    "factypes": lambda self: SKIP,
-    "maxlen": lambda self: 10 if self.lEB else np.inf,
+    "factypes": None,
+    "maxlen": 10,
 }
 
 

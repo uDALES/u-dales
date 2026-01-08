@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List
 
-from .udprep_common import SKIP, Section, SectionSpec
+from .udprep import Section, SectionSpec
 
 FIELDS: List[str] = [
     "ltrees",
@@ -20,14 +20,14 @@ FIELDS: List[str] = [
 DEFAULTS: Dict[str, Any | Callable[[Any], Any]] = {
     "ltrees": 0,
     "ltreesfile": 0,
-    "treesfile": lambda self: "" if (self.ltrees and self.ltreesfile) else SKIP,
-    "tree_dz": lambda self: 0 if (self.ltrees and not self.ltreesfile) else SKIP,
-    "tree_dx": lambda self: 0 if (self.ltrees and not self.ltreesfile) else SKIP,
-    "tree_dy": lambda self: 0 if (self.ltrees and not self.ltreesfile) else SKIP,
-    "tree_h": lambda self: 0 if (self.ltrees and not self.ltreesfile) else SKIP,
-    "tree_w": lambda self: 0 if (self.ltrees and not self.ltreesfile) else SKIP,
-    "tree_b": lambda self: 0 if (self.ltrees and not self.ltreesfile) else SKIP,
-    "nrows": lambda self: 0 if (self.ltrees and not self.ltreesfile) else SKIP,
+    "treesfile": "",
+    "tree_dz": 0,
+    "tree_dx": 0,
+    "tree_dy": 0,
+    "tree_h": 0,
+    "tree_w": 0,
+    "tree_b": 0,
+    "nrows": 0,
 }
 
 class VegetationSection(Section):
