@@ -129,13 +129,13 @@ if r.libm
         dx = r.dx;
         dy = r.dy;
 
-        if r.isolid_bound == 1
+        if r.isolid_bound == 1     % uses in-house fortran routine
             lmypolyfortran = 1;
             lmypoly = 0;
-        elseif r.isolid_bound == 2
+        elseif r.isolid_bound == 2 % uses in-house matlab routine
             lmypolyfortran = 0;
             lmypoly = 1;
-        elseif r.isolid_bound == 3
+        elseif r.isolid_bound == 3 % uses inpolyhedron matlab routine
             lmypolyfortran = 0;
             lmypoly = 0;
         else
@@ -150,24 +150,28 @@ if r.libm
             error('Unrecognised option for facet section calculation')
         end
 
-        writeIBMFiles; % Could turn into a function and move writing to this script
+        if lmypolyfortran && lmatchFacetsToCellsFortran
+            writeIBMFiles_usingFortran;
+        else
+            writeIBMFiles; % Will depricate soon. Not reccomended. Only for debugging special cases
+        end
 
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_c',size(facet_sections_c,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_w',size(facet_sections_w,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_v',size(facet_sections_v,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_u',size(facet_sections_u,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_c',ncounts(13));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_w',ncounts(12));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_v',ncounts(11));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_u',ncounts(10));
         
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_c',size(fluid_IB_xyz_c,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_w',size(fluid_IB_xyz_w,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_v',size(fluid_IB_xyz_v,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_u',size(fluid_IB_xyz_u,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_c',ncounts(9));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_w',ncounts(8));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_v',ncounts(7));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_u',ncounts(6));
         
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_c',size(solid_ijk_c,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_w',size(solid_ijk_w,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_v',size(solid_ijk_v,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_u',size(solid_ijk_u,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_c',ncounts(5));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_w',ncounts(4));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_v',ncounts(3));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_u',ncounts(2));
         
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfcts',nfcts);
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfcts',ncounts(1));
 
     else
         if isempty(r.geom_path)

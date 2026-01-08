@@ -1053,35 +1053,39 @@ if lBImin
 end
 
 %%
-disp(['nfcts = ', num2str(nfcts)])
-disp(['nsolpts_u = ', num2str(size(solid_ijk_u,1))])
-disp(['nsolpts_v = ', num2str(size(solid_ijk_v,1))])
-disp(['nsolpts_w = ', num2str(size(solid_ijk_w,1))])
-disp(['nsolpts_c = ', num2str(size(solid_ijk_c,1))])
-disp(['nbndpts_u = ', num2str(size(fluid_IB_xyz_u,1))])
-disp(['nbndpts_v = ', num2str(size(fluid_IB_xyz_v,1))])
-disp(['nbndpts_w = ', num2str(size(fluid_IB_xyz_w,1))])
-disp(['nbndpts_c = ', num2str(size(fluid_IB_xyz_c,1))])
-disp(['nfctsecs_u = ', num2str(size(facet_sections_u,1))])
-disp(['nfctsecs_v = ', num2str(size(facet_sections_v,1))])
-disp(['nfctsecs_w = ', num2str(size(facet_sections_w,1))])
-disp(['nfctsecs_c = ', num2str(size(facet_sections_c,1))])
+ncounts = [nfcts size(solid_ijk_u,1) size(solid_ijk_v,1) size(solid_ijk_w,1) size(solid_ijk_c,1)];
+ncounts = [ncounts size(fluid_IB_xyz_u,1) size(fluid_IB_xyz_v,1) size(fluid_IB_xyz_w,1) size(fluid_IB_xyz_c,1)];
+ncounts = [ncounts size(facet_sections_u,1) size(facet_sections_v,1) size(facet_sections_w,1) size(facet_sections_c,1)];
+
+disp(['nfcts = ', num2str(ncounts(1))])
+disp(['nsolpts_u = ', num2str(ncounts(2))])
+disp(['nsolpts_v = ', num2str(ncounts(3))])
+disp(['nsolpts_w = ', num2str(ncounts(4))])
+disp(['nsolpts_c = ', num2str(ncounts(5))])
+disp(['nbndpts_u = ', num2str(ncounts(6))])
+disp(['nbndpts_v = ', num2str(ncounts(7))])
+disp(['nbndpts_w = ', num2str(ncounts(8))])
+disp(['nbndpts_c = ', num2str(ncounts(9))])
+disp(['nfctsecs_u = ', num2str(ncounts(10))])
+disp(['nfctsecs_v = ', num2str(ncounts(11))])
+disp(['nfctsecs_w = ', num2str(ncounts(12))])
+disp(['nfctsecs_c = ', num2str(ncounts(13))])
 
 filename_info = [fpath 'info.txt'];
 fileID_info = fopen(filename_info,'W');
-fprintf(fileID_info, ['nfcts = ', num2str(nfcts), '\n']);
-fprintf(fileID_info, ['nsolpts_u = ', num2str(size(solid_ijk_u,1)), '\n']);
-fprintf(fileID_info, ['nsolpts_v = ', num2str(size(solid_ijk_v,1)), '\n']);
-fprintf(fileID_info, ['nsolpts_w = ', num2str(size(solid_ijk_w,1)), '\n']);
-fprintf(fileID_info, ['nsolpts_c = ', num2str(size(solid_ijk_c,1)), '\n']);
-fprintf(fileID_info, ['nbndpts_u = ', num2str(size(fluid_IB_xyz_u,1)), '\n']);
-fprintf(fileID_info, ['nbndpts_v = ', num2str(size(fluid_IB_xyz_v,1)), '\n']);
-fprintf(fileID_info, ['nbndpts_w = ', num2str(size(fluid_IB_xyz_w,1)), '\n']);
-fprintf(fileID_info, ['nbndpts_c = ', num2str(size(fluid_IB_xyz_c,1)), '\n']);
-fprintf(fileID_info, ['nfctsecs_u = ', num2str(size(facet_sections_u,1)), '\n']);
-fprintf(fileID_info, ['nfctsecs_v = ', num2str(size(facet_sections_v,1)), '\n']);
-fprintf(fileID_info, ['nfctsecs_w = ', num2str(size(facet_sections_w,1)), '\n']);
-fprintf(fileID_info, ['nfctsecs_c = ', num2str(size(facet_sections_c,1)), '\n']);
+fprintf(fileID_info, ['nfcts = ', num2str(ncounts(1)), '\n']);
+fprintf(fileID_info, ['nsolpts_u = ', num2str(ncounts(2)), '\n']);
+fprintf(fileID_info, ['nsolpts_v = ', num2str(ncounts(3)), '\n']);
+fprintf(fileID_info, ['nsolpts_w = ', num2str(ncounts(4)), '\n']);
+fprintf(fileID_info, ['nsolpts_c = ', num2str(ncounts(5)), '\n']);
+fprintf(fileID_info, ['nbndpts_u = ', num2str(ncounts(6)), '\n']);
+fprintf(fileID_info, ['nbndpts_v = ', num2str(ncounts(7)), '\n']);
+fprintf(fileID_info, ['nbndpts_w = ', num2str(ncounts(8)), '\n']);
+fprintf(fileID_info, ['nbndpts_c = ', num2str(ncounts(9)), '\n']);
+fprintf(fileID_info, ['nfctsecs_u = ', num2str(ncounts(11)), '\n']);
+fprintf(fileID_info, ['nfctsecs_v = ', num2str(ncounts(12)), '\n']);
+fprintf(fileID_info, ['nfctsecs_w = ', num2str(ncounts(13)), '\n']);
+fprintf(fileID_info, ['nfctsecs_c = ', num2str(ncounts(14)), '\n']);
 fclose(fileID_info);
 
 %% Clean up exp directory
@@ -1109,22 +1113,22 @@ axis equal tight
 % zlim([0 zsize])
 
 %%solid points
-if isempty(solid_IB_ijk_u)
+if isempty(solid_ijk_u)
    scatter3(xgrid_u([]),ygrid_u([]),zgrid_u([]),10,[0,0,1],'filled')
 else
    scatter3(xgrid_u(solid_ijk_u(:,1)),ygrid_u(solid_ijk_u(:,2)),zgrid_u(solid_ijk_u(:,3)),10,[0,0,1],'filled')
 end
-if isempty(solid_IB_ijk_v)
+if isempty(solid_ijk_v)
    scatter3(xgrid_v([]),ygrid_v([]),zgrid_v([]),10,[0,0,1],'filled')
 else
    scatter3(xgrid_v(solid_ijk_v(:,1)),ygrid_v(solid_ijk_v(:,2)),zgrid_v(solid_ijk_v(:,3)),10,[0,0,1],'filled')
 end
-if isempty(solid_IB_ijk_w)
+if isempty(solid_ijk_w)
    scatter3(xgrid_w([]),ygrid_w([]),zgrid_w([]),10,[0,0,1],'filled')
 else
    scatter3(xgrid_w(solid_ijk_w(:,1)),ygrid_w(solid_ijk_w(:,2)),zgrid_w(solid_ijk_w(:,3)),10,[0,0,1],'filled')
 end
-if isempty(solid_IB_ijk_c)
+if isempty(solid_ijk_c)
    scatter3(xgrid_c([]),ygrid_c([]),zgrid_c([]),10,[0,0,1],'filled')
 else
    scatter3(xgrid_c(solid_ijk_c(:,1)),ygrid_c(solid_ijk_c(:,2)),zgrid_c(solid_ijk_c(:,3)),10,[0,0,1],'filled')
