@@ -1082,10 +1082,10 @@ fprintf(fileID_info, ['nbndpts_u = ', num2str(ncounts(6)), '\n']);
 fprintf(fileID_info, ['nbndpts_v = ', num2str(ncounts(7)), '\n']);
 fprintf(fileID_info, ['nbndpts_w = ', num2str(ncounts(8)), '\n']);
 fprintf(fileID_info, ['nbndpts_c = ', num2str(ncounts(9)), '\n']);
-fprintf(fileID_info, ['nfctsecs_u = ', num2str(ncounts(11)), '\n']);
-fprintf(fileID_info, ['nfctsecs_v = ', num2str(ncounts(12)), '\n']);
-fprintf(fileID_info, ['nfctsecs_w = ', num2str(ncounts(13)), '\n']);
-fprintf(fileID_info, ['nfctsecs_c = ', num2str(ncounts(14)), '\n']);
+fprintf(fileID_info, ['nfctsecs_u = ', num2str(ncounts(10)), '\n']);
+fprintf(fileID_info, ['nfctsecs_v = ', num2str(ncounts(11)), '\n']);
+fprintf(fileID_info, ['nfctsecs_w = ', num2str(ncounts(12)), '\n']);
+fprintf(fileID_info, ['nfctsecs_c = ', num2str(ncounts(13)), '\n']);
 fclose(fileID_info);
 
 %% Clean up exp directory

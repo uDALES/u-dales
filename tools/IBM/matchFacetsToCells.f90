@@ -242,6 +242,9 @@ program run
    integer, parameter :: ifinput = 1
    integer :: count
 
+   fluid_IB = .false.
+   solid_IB = .false.
+
    allocate(fluid_IB_ijk(nfluid_IB,3), solid_IB_ijk(nsolid_IB,3), fluid_IB_xyz(nfluid_IB,3))
 
    open (ifinput, file=fname_fluid_boundary)
