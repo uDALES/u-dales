@@ -168,22 +168,22 @@ program IBM_preproc
     ! u-grid
     call boundaryMasks(fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, &
                        'u', itot, jtot, ktot, xh, yf, zf, &
-                       solid_u, diag_neighbs, stl_ground)
+                       solid_u, diag_neighbs, stl_ground, n_threads)
 
     ! v-grid
     call boundaryMasks(fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, &
                        'v', itot, jtot, ktot, xf, yh, zf, &
-                       solid_v, diag_neighbs, stl_ground)
+                       solid_v, diag_neighbs, stl_ground, n_threads)
 
     ! w-grid
     call boundaryMasks(fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, &
                        'w', itot, jtot, ktot, xf, yf, zh, &
-                       solid_w, diag_neighbs, stl_ground)
+                       solid_w, diag_neighbs, stl_ground, n_threads)
 
     ! c-grid
     call boundaryMasks(fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, &
                        'c', itot, jtot, ktot, xf, yf, zf, &
-                       solid_c, diag_neighbs, stl_ground)
+                       solid_c, diag_neighbs, stl_ground, n_threads)
     
     !! Write fluid_boundary_ files
     call print_IB_index(itot, jtot, ktot, fluid_IB_u, fluid_IB_v, fluid_IB_w, fluid_IB_c, &

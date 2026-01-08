@@ -29,13 +29,14 @@ module boundaryMasking
 
     subroutine boundaryMasks(fluid_IB, solid_IB, fluid_IB_xyz, nfluid_IB, &
                              uvwc, itot, jtot, ktot, xgrid, ygrid, zgrid, &
-                             solid_x, include_diagonals, stl_ground)
+                             solid_x, include_diagonals, stl_ground, n_threads)
       implicit none
       character,                           intent(in)  :: uvwc
       integer,                             intent(in)  :: itot, jtot, ktot
       real,                                intent(in)  :: xgrid(itot), ygrid(jtot), zgrid(ktot)
       logical,  dimension(itot,jtot,ktot), intent(in)  :: solid_x
       logical,                             intent(in)  :: include_diagonals, stl_ground
+      integer,                             intent(in)  :: n_threads
       
       logical,  dimension(itot,jtot,ktot), intent(out) :: fluid_IB, solid_IB
       real,     allocatable,               intent(out) :: fluid_IB_xyz(:,:)
@@ -56,7 +57,7 @@ module boundaryMasking
         solid_x_w = solid_x
         if (stl_ground) solid_x_w(:,:,1) = .true. !! % Bottom is always solid for w
 
-        call getBoundaryCells(fluid_IB, solid_IB, itot, jtot, ktot, fluid_x, solid_x_w, include_diagonals)
+        call getBoundaryCells(fluid_IB, solid_IB, itot, jtot, ktot, fluid_x, solid_x_w, include_diagonals, n_threads)
 
         fluid_IB(:,:,1) = .false. !! % Bottom is always solid for w
         
@@ -64,7 +65,7 @@ module boundaryMasking
 
       else        !! For u, v and c
 
-        call getBoundaryCells(fluid_IB, solid_IB, itot, jtot, ktot, fluid_x, solid_x, include_diagonals)
+        call getBoundaryCells(fluid_IB, solid_IB, itot, jtot, ktot, fluid_x, solid_x, include_diagonals, , n_threads)
 
         if (stl_ground) then
           where (.not. solid_x(:,:,1))
@@ -132,12 +133,13 @@ module boundaryMasking
     end subroutine boundaryMasks
 
 
-    subroutine getBoundaryCells(fluid_IB, solid_IB, itot, jtot, ktot, fluid, solid, include_diagonals)
+    subroutine getBoundaryCells(fluid_IB, solid_IB, itot, jtot, ktot, fluid, solid, include_diagonals, n_threads)
       implicit none
 
       integer,                            intent(in)  :: itot, jtot, ktot
       logical, dimension(itot,jtot,ktot), intent(in)  :: fluid, solid
       logical,                            intent(in)  :: include_diagonals
+      integer,                            intent(in)  :: n_threads
 
       logical, dimension(itot,jtot,ktot), intent(out) :: fluid_IB
       logical, dimension(itot,jtot,ktot), intent(out) :: solid_IB
@@ -148,6 +150,8 @@ module boundaryMasking
       fluid_IB = .false.
       solid_IB = .false.
 
+      !$ call OMP_SET_NUM_THREADS(n_threads)
+      !$OMP parallel do private(ix,iy,iz) schedule(dynamic, 8)
       do iy = 1,jtot
         do iz = 1,ktot
           do ix = 1,itot
@@ -438,6 +442,7 @@ module boundaryMasking
           end do
         end do
       end do
+      !$OMP end parallel do
 
     end subroutine getBoundaryCells
 
