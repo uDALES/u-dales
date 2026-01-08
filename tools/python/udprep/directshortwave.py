@@ -561,6 +561,10 @@ def directshortwave(
     mask = area_accum > 0.0
     areas = sim.facs["area"] if hasattr(sim, "facs") and "area" in sim.facs else mesh.area_faces
     sdir[mask] = sdir_accum[mask] / areas[mask]
+    # WARNING: Temporary cap to avoid unrealistically large sdir on tiny facets when
+    # an entire cell's energy lands on one face. Proper fix should distribute energy
+    # by sub-facet geometry or ray/face intersections so flux per facet is bounded.
+    sdir = np.minimum(sdir, irradiance * cos_inc_all)
 
     bud["fac"] = np.sum(sdir * areas)
     bud["sol"] = float(np.sum(solid_hit_energy))

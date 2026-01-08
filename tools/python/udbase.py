@@ -1241,6 +1241,8 @@ class UDBase:
         # Create colored mesh and render
         mesh = self._create_colored_mesh(var, building_ids)
         fig = self._render_scene(mesh, building_ids=building_ids, show=show)
+        if fig is not None:
+            fig.update_layout(scene=dict(aspectmode="data"))
         
         # Add building outlines
         self._add_building_outlines_to_scene(building_ids)
@@ -1402,6 +1404,7 @@ class UDBase:
                         flatshading=True
                     )
                 )
+
             
             fig = go.Figure(data=traces)
             

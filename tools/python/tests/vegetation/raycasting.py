@@ -7,10 +7,10 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, "/rds/general/user/mvr/home/udales/u-dales/tools/python/")
-sys.path.insert(0, r"C:\Users\mvr\OneDrive - Imperial College London\codes\uDALES\u-dales\tools\python")
+sys.path.insert(0, "C:\\Users\\mvr\\OneDrive - Imperial College London\\codes\\uDALES\\u-dales\\tools\\python")
 
 sim_id = 525
-base_path = Path(r"C:\Users\mvr\OneDrive - Imperial College London\codes\uDALES\u-dales\tests\tests_tree_input")
+base_path = Path("C:\\Users\\mvr\\OneDrive - Imperial College London\\codes\\uDALES\\u-dales\\tests\\tests_tree_input")
 
 from udbase import UDBase  # noqa: E402
 from udprep import convert_block_to_sparse, directshortwave as directshortwave_py  # noqa: E402
@@ -18,6 +18,8 @@ from udprep.directshortwave_numba import directshortwave as directshortwave_nb  
 
 import numpy as np
 
+import matplotlib
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
