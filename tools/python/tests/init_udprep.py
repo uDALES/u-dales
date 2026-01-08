@@ -12,15 +12,9 @@ if str(tools_path) not in sys.path:
 expnr = "526"
 expdir = (udbase_path.parents[0] / "experiments" / expnr).resolve()
 
-from udbase import UDBase  # noqa: E402
 from udprep import UDPrep  # noqa: E402
 
 print("Initializing UDPrep demo...")
-# Instantiate UDPrep either as ...
-sim = UDBase(expnr, expdir)
-prep = UDPrep(sim)
-
-# ... or directly from experiment directory:
 prep = UDPrep(expnr, expdir)
 
 print("-------------------------------------------------------------------")
