@@ -47,33 +47,19 @@ module boundaryMasking
 
       allocate(fluid_x(itot,jtot,ktot))
 
-      do iy = 1,jtot
-        do iz = 1,ktot
-          do ix = 1,itot
-            fluid_x(ix,iy,iz) = .not.(solid_x(ix,iy,iz))
-          end do
-        end do
-      end do
+      fluid_x = .not. solid_x
 
       if (uvwc=='w') then
 
         allocate(solid_x_w(itot,jtot,ktot))
+        
         solid_x_w = solid_x
-        if (stl_ground) then
-          do iy = 1,jtot
-            do ix = 1,itot
-              solid_x_w(ix,iy,1) = .true. !! % Bottom is always solid for w
-            end do
-          end do
-        end if
+        if (stl_ground) solid_x_w(:,:,1) = .true. !! % Bottom is always solid for w
 
         call getBoundaryCells(fluid_IB, solid_IB, itot, jtot, ktot, fluid_x, solid_x_w, include_diagonals)
 
-        do iy = 1,jtot
-          do ix = 1,itot
-            fluid_IB(ix,iy,1) = .false. !! % Bottom is always solid for w
-          end do
-        end do
+        fluid_IB(:,:,1) = .false. !! % Bottom is always solid for w
+        
         deallocate(solid_x_w)
 
       else        !! For u, v and c
@@ -81,13 +67,9 @@ module boundaryMasking
         call getBoundaryCells(fluid_IB, solid_IB, itot, jtot, ktot, fluid_x, solid_x, include_diagonals)
 
         if (stl_ground) then
-          do iy = 1,jtot
-            do ix = 1,itot
-              if (.not.(solid_x(ix,iy,1))) then
-                fluid_IB(ix,iy,1) = .true.
-              end if
-            end do
-          end do
+          where (.not. solid_x(:,:,1))
+            fluid_IB(:,:,1) = .true.
+          end where
         end if
 
       end if
@@ -163,14 +145,8 @@ module boundaryMasking
       integer :: ix, iy, iz
 
       ! Initializing with false
-      do iy = 1,jtot
-        do iz = 1,ktot
-          do ix = 1,itot
-            fluid_IB(ix,iy,iz) = .false.
-            solid_IB(ix,iy,iz) = .false.
-          end do
-        end do
-      end do
+      fluid_IB = .false.
+      solid_IB = .false.
 
       do iy = 1,jtot
         do iz = 1,ktot
