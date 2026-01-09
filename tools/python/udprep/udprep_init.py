@@ -166,18 +166,13 @@ def setup_paths_from_config(expdir: Path) -> str:
     # Read and validate iexpnr
     expnr = read_iexpnr_from_namoptions(namoptions_file)
     
-    # Validate consistency: filename suffix must match iexpnr
-    if namoptions_suffix != expnr:
+    # Validate consistency: directory name, filename suffix, and iexpnr must all match
+    if not (namoptions_suffix == expdir.name == expnr):
         print(f"ERROR: Experiment number mismatch", file=sys.stderr)
+        print(f"  Directory name: {expdir.name}", file=sys.stderr)
         print(f"  Filename: {namoptions_file.name} → {namoptions_suffix}", file=sys.stderr)
-        print(f"  iexpnr in file: {expnr}", file=sys.stderr)
-        sys.exit(1)
-    
-    # Validate consistency: directory name must match expnr
-    if expdir.name != expnr:
-        print(f"ERROR: Directory name mismatch", file=sys.stderr)
-        print(f"  Directory: {expdir.name}", file=sys.stderr)
-        print(f"  Experiment: {expnr}", file=sys.stderr)
+        print(f"  iexpnr in namoptions: {expnr}", file=sys.stderr)
+        print(f"  All three must match. Set iexpnr under &RUN in namoptions to match the experiment case directory name and namoptions filename suffix.", file=sys.stderr)
         sys.exit(1)
     
     # Parse config.sh
