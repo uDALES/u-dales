@@ -452,6 +452,8 @@ if nb is not None:
             ds = t_limit - t
             if ds < 0.0:
                 ds = 0.0
+            if dir_z < 0.0 and k == 0:
+                ds += 1.0e-6
 
             hit_facet = False
             if geom_inside and cell_has_facets[ii, jj, k] and ds > 0.0:
@@ -483,8 +485,9 @@ if nb is not None:
                 )
                 if t_hit >= 0.0:
                     ds = max(0.0, t_hit)
-                    if hit_fid >= 0 and base_inside:
-                        facet_hit_energy[hit_fid] += r_in * ray_area * irradiance
+                    if hit_fid >= 0:
+                        if base_inside:
+                            facet_hit_energy[hit_fid] += r_in * ray_area * irradiance
                     hit_facet = True
 
             if base_inside:
@@ -503,7 +506,8 @@ if nb is not None:
             if hit_facet:
                 if base_inside:
                     solid_hit_energy[ii, jj, k] += r_in * ray_area * irradiance
-                return 0.0
+                    return 0.0
+                return r_in * ray_area * irradiance
 
             if t_next > max_ray_length:
                 return r_in * ray_area * irradiance
@@ -754,6 +758,7 @@ def directshortwave(
     ray_jitter: float = 0.0,
     ray_jitter_seed: int | None = None,
     return_hit_count: bool = False,
+    return_ray_debug: bool = False,
     extend_bounds: bool = False,
     debug_facid: int | None = None,
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
@@ -819,7 +824,6 @@ def directshortwave(
     facet_hit_energy = np.zeros(nfaces, dtype=float)
 
     cos_inc_all = np.dot(face_normals, nsun_unit)
-    face_mask = cos_inc_all > 0.0
 
     if hasattr(mesh, "triangles"):
         triangles = np.asarray(mesh.triangles, dtype=float)
@@ -834,7 +838,6 @@ def directshortwave(
         sim.itot,
         sim.jtot,
         ktot,
-        face_mask=face_mask,
     )
 
     corners = np.array(
@@ -963,7 +966,11 @@ def directshortwave(
     sdir = np.zeros(nfaces, dtype=float)
     cos_inc_all = np.where(cos_inc_all > 0.0, cos_inc_all, 0.0)
 
-    areas = sim.facs["area"] if hasattr(sim, "facs") and "area" in sim.facs else mesh.area_faces
+    areas = mesh.area_faces
+    if hasattr(sim, "facs") and "area" in sim.facs and sim.facs["area"].shape == areas.shape:
+        areas = areas.copy()
+        fac_areas = sim.facs["area"]
+        areas[fac_areas > 0.0] = fac_areas[fac_areas > 0.0]
     mask = areas > 0.0
     sdir[mask] = facet_hit_energy[mask] / areas[mask]
     # WARNING: Temporary cap to avoid unrealistically large sdir on tiny facets when
@@ -989,6 +996,19 @@ def directshortwave(
         bud["debug_min_t"] = float(debug_min_t[0]) if np.isfinite(debug_min_t[0]) else float("inf")
         bud["debug_count"] = int(debug_count[0])
         bud["debug_test_count"] = int(debug_test_count[0])
+    if return_ray_debug:
+        bud["ray_debug"] = {
+            "p0": p0.copy(),
+            "u1": u1.copy(),
+            "u2": u2.copy(),
+            "umin": float(umin),
+            "umax": float(umax),
+            "vmin": float(vmin),
+            "vmax": float(vmax),
+            "bounds_min": bounds_min.copy(),
+            "bounds_max": bounds_max.copy(),
+            "extend_bounds": extend_bounds,
+        }
 
     return sdir, veg_absorb, bud
 
