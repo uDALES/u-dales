@@ -108,36 +108,40 @@ def read_iexpnr_from_namoptions(namoptions_path: Path) -> str:
     sys.exit(1)
 
 
-def setup_paths_from_config(config_dir: Path) -> Tuple[Path, str]:
+def setup_paths_from_config(expdir: Path) -> str:
     """
-    Set up paths from configuration directory.
+    Set up paths from experiment directory.
     
     Parameters
     ----------
-    config_dir : Path
-        Directory containing config.sh and namoptions.XXX
+    expdir : Path
+        Experiment directory containing config.sh and namoptions.XXX
     
     Returns
     -------
-    tuple of (Path, str)
-        - expdir: Experiment directory path
-        - expnr: 3-digit experiment number
+    str
+        3-digit experiment number
     """
-    config_file = config_dir / "config.sh"
+    # Check experiment directory exists
+    if not expdir.exists():
+        print(f"ERROR: Experiment directory does not exist: {expdir}", file=sys.stderr)
+        sys.exit(1)
+    
+    config_file = expdir / "config.sh"
     
     # Check config.sh exists
     if not config_file.exists():
         print(f"ERROR: Config file not found: {config_file}", file=sys.stderr)
-        print(f"\nRequired files in {config_dir}:", file=sys.stderr)
+        print(f"\nRequired files in {expdir}:", file=sys.stderr)
         print(f"  - config.sh (with DA_EXPDIR and DA_TOOLSDIR)", file=sys.stderr)
         print(f"  - namoptions.XXX (XXX = 3-digit experiment number)", file=sys.stderr)
         sys.exit(1)
     
     # Find and validate namoptions file
-    namoptions_files = list(config_dir.glob("namoptions.*"))
+    namoptions_files = list(expdir.glob("namoptions.*"))
     
     if not namoptions_files:
-        print(f"ERROR: No namoptions file in {config_dir}", file=sys.stderr)
+        print(f"ERROR: No namoptions file in {expdir}", file=sys.stderr)
         print(f"Expected: namoptions.XXX (e.g., namoptions.001)", file=sys.stderr)
         sys.exit(1)
     
@@ -147,7 +151,7 @@ def setup_paths_from_config(config_dir: Path) -> Tuple[Path, str]:
     
     if not valid_files:
         found = ', '.join(f.name for f in namoptions_files)
-        print(f"ERROR: Invalid namoptions filename in {config_dir}", file=sys.stderr)
+        print(f"ERROR: Invalid namoptions filename in {expdir}", file=sys.stderr)
         print(f"Found: {found}", file=sys.stderr)
         print(f"Expected: namoptions.XXX (e.g., namoptions.001)", file=sys.stderr)
         sys.exit(1)
@@ -170,9 +174,9 @@ def setup_paths_from_config(config_dir: Path) -> Tuple[Path, str]:
         sys.exit(1)
     
     # Validate consistency: directory name must match expnr
-    if config_dir.name != expnr:
+    if expdir.name != expnr:
         print(f"ERROR: Directory name mismatch", file=sys.stderr)
-        print(f"  Directory: {config_dir.name}", file=sys.stderr)
+        print(f"  Directory: {expdir.name}", file=sys.stderr)
         print(f"  Experiment: {expnr}", file=sys.stderr)
         sys.exit(1)
     
@@ -186,23 +190,24 @@ def setup_paths_from_config(config_dir: Path) -> Tuple[Path, str]:
         print(f"ERROR: Missing variables in config.sh: {', '.join(missing)}", file=sys.stderr)
         sys.exit(1)
     
-    # Determine experiment directory
-    expdir_raw = Path(config["DA_EXPDIR"]).resolve()
-    expdir = expdir_raw if expdir_raw.name == expnr else expdir_raw / expnr
+    # Validate DA_EXPDIR matches the experiment directory
+    config_expdir = Path(config["DA_EXPDIR"]).resolve()
+    expected_expdir = expdir.parent.resolve()
+    
+    if config_expdir != expected_expdir:
+        print(f"WARNING: DA_EXPDIR mismatch in {config_file}:", file=sys.stderr)
+        print(f"  Expected: {expected_expdir}", file=sys.stderr)
+        print(f"  Current: {config_expdir}", file=sys.stderr)
+        print(f"  DA_EXPDIR should be set to the expected path...", file=sys.stderr)
     
     # Validate DA_TOOLSDIR matches script location
     expected_tools = Path(__file__).resolve().parent.parent
     config_tools = (Path(config["DA_TOOLSDIR"]) / "python").resolve()
     
     if expected_tools != config_tools:
-        warnings.warn(
-            f"DA_TOOLSDIR mismatch:\n"
-            f"  Expected: {expected_tools}\n"
-            f"  Config: {config_tools}\n"
-            f"  Using script location.",
-            UserWarning
-        )
+        print(f"WARNING: DA_TOOLSDIR mismatch in {config_file}:", file=sys.stderr)
+        print(f"  Expected: {expected_tools}", file=sys.stderr)
+        print(f"  Current: {config_tools}", file=sys.stderr)
+        print(f"  DA_TOOLSDIR should be set to the expected path...", file=sys.stderr)
     
-    print(f"Experiment {expnr}: {expdir}")
-    
-    return expdir, expnr
+    return expnr

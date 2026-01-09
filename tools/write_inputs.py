@@ -1,9 +1,10 @@
+#%% Import libraries
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
-# Add tools/python to path for imports (this file is in tools/)
+#%% Add u-dales/tools/python to path for imports (this file is in u-dales/tools/)
 script_dir = Path(__file__).resolve().parent
 tools_python = script_dir / "python"
 if str(tools_python) not in sys.path:
@@ -11,10 +12,12 @@ if str(tools_python) not in sys.path:
 
 from udprep.udprep_init import setup_paths_from_config
 
-# Check if a config directory is provided as command-line argument
+
+#%% Key Inputs: Setup experiment directory and number
 if len(sys.argv) > 1:
-    config_dir = Path(sys.argv[1]).resolve()
-    expdir, expnr = setup_paths_from_config(config_dir)
+    # Set from command-line argument
+    expdir = Path(sys.argv[1]).resolve()
+    expnr = setup_paths_from_config(expdir)
 else:
     # Default behavior: use hardcoded paths
     expnr = "999"
@@ -22,7 +25,11 @@ else:
     udales_root = script_dir.parent
     expdir = (udales_root.parent / "experiments" / expnr).resolve()
 
+
+#%% Import UDPrep
 from udprep import UDPrep  # noqa: E402
+
+#%% Initialize UDPrep
 
 print("Initializing UDPrep demo...")
 prep = UDPrep(expnr, expdir)
