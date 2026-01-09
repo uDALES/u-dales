@@ -1,17 +1,7 @@
 from __future__ import annotations
 
 """
-Direct shortwave radiation on facets with vegetation attenuation.
-
-This module casts parallel rays through the domain to estimate:
-- Direct irradiance on facets (Sdir, W/m2)
-- Vegetation absorption (W/m3) mapped to sparse vegetation points
-
-Key steps:
-1) Read sparse vegetation points/parameters and expand to 3D grids.
-2) Trace rays through the grid with Beer-Lambert attenuation in vegetation.
-3) Accumulate energy intercepted by solids (or ground) per adjacent fluid cell.
-4) Distribute intercepted energy to facet sections (facsec) and aggregate per facet.
+Numba-accelerated direct shortwave radiation on facets with vegetation attenuation.
 """
 
 from dataclasses import dataclass
@@ -19,6 +9,11 @@ from typing import Dict, Tuple
 
 import math
 import numpy as np
+
+try:
+    import numba as nb
+except ImportError:  # pragma: no cover - runtime dependent
+    nb = None
 
 
 @dataclass
@@ -88,7 +83,6 @@ def _build_veg_fields(sim, veg: VegData, ktot: int) -> Tuple[np.ndarray, np.ndar
     veg_index : int array (itot, jtot, ktot)
         Maps cell to sparse veg index; -1 means no vegetation.
     """
-    # Expand sparse vegetation (1-based i,j,k) into dense 3D grids.
     lad_3d = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
     dec_3d = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
     veg_index = -np.ones((sim.itot, sim.jtot, ktot), dtype=int)
@@ -104,222 +98,223 @@ def _build_veg_fields(sim, veg: VegData, ktot: int) -> Tuple[np.ndarray, np.ndar
     return lad_3d, dec_3d, veg_index
 
 
-def _point_to_cell(
-    x: float,
-    y: float,
-    z: float,
-    sim,
-    z_edges: np.ndarray,
-    z_max: float,
-    ktot: int,
-    allow_outside_xy: bool = False,
-) -> Tuple[int, int, int]:
-    """Map a point (x,y,z) to cell indices within truncated vertical extent."""
-    # Clamp to truncated vertical extent so ray tracing stays within allocated arrays.
-    if z < 0.0 or z >= z_max:
-        return -1, -1, -1
-    if not allow_outside_xy:
-        if x < 0.0 or x >= sim.xlen:
+def _require_numba() -> None:
+    if nb is None:
+        raise ImportError("numba is required for directshortwave_numba")
+
+
+if nb is not None:
+
+    @nb.njit(cache=True)
+    def _point_to_cell_numba(
+        x: float,
+        y: float,
+        z: float,
+        dx: float,
+        dy: float,
+        z_edges: np.ndarray,
+        z_max: float,
+        itot: int,
+        jtot: int,
+        ktot: int,
+        allow_outside_xy: bool,
+    ) -> Tuple[int, int, int]:
+        if z < 0.0 or z >= z_max:
             return -1, -1, -1
-        if y < 0.0 or y >= sim.ylen:
-            return -1, -1, -1
-        i = int(min(sim.itot - 1, max(0, math.floor(x / sim.dx))))
-        j = int(min(sim.jtot - 1, max(0, math.floor(y / sim.dy))))
-    else:
-        i = int(math.floor(x / sim.dx))
-        j = int(math.floor(y / sim.dy))
-    k = int(min(ktot - 1, max(0, np.searchsorted(z_edges, z, side="right") - 1)))
-    return i, j, k
-
-
-def _ray_box_intersection(
-    origin: np.ndarray,
-    direction: np.ndarray,
-    bounds_min: np.ndarray,
-    bounds_max: np.ndarray,
-) -> Tuple[float, float]:
-    """Compute entry/exit ray parameters for an axis-aligned bounding box."""
-    t_min = -math.inf
-    t_max = math.inf
-    for a in range(3):
-        if abs(direction[a]) < 1.0e-12:
-            if origin[a] < bounds_min[a] or origin[a] > bounds_max[a]:
-                return math.inf, -math.inf
-            continue
-        inv_d = 1.0 / direction[a]
-        t0 = (bounds_min[a] - origin[a]) * inv_d
-        t1 = (bounds_max[a] - origin[a]) * inv_d
-        if t0 > t1:
-            t0, t1 = t1, t0
-        t_min = max(t_min, t0)
-        t_max = min(t_max, t1)
-    return t_min, t_max
-
-
-def _trace_ray(
-    origin: np.ndarray,
-    direction: np.ndarray,
-    sim,
-    z_edges: np.ndarray,
-    z_max: float,
-    lad_3d: np.ndarray,
-    dec_3d: np.ndarray,
-    veg_index: np.ndarray,
-    solid: np.ndarray,
-    energy_in: np.ndarray,
-    solid_hit_energy: np.ndarray,
-    veg_absorb: np.ndarray,
-    ray_area: float,
-    ktot: int,
-    dz: np.ndarray,
-    irradiance: float,
-    periodic_xy: bool,
-    max_ray_length: float | None,
-    hit_count: np.ndarray | None,
-    allow_outside_xy: bool,
-) -> float:
-    """
-    Trace a single ray through the grid with 3D DDA stepping.
-
-    - Accumulates ray-weighted energy_in per cell.
-    - Applies Beer-Lambert attenuation in vegetation.
-    - Deposits remaining energy into solid_hit_energy of the last fluid cell.
-    - Returns outgoing ray energy for budget accounting.
-    """
-    x, y, z = origin
-    dx = sim.dx
-    dy = sim.dy
-
-    # Start at the first cell inside the truncated domain.
-    i, j, k = _point_to_cell(
-        x,
-        y,
-        z,
-        sim,
-        z_edges,
-        z_max,
-        ktot,
-        allow_outside_xy=allow_outside_xy,
-    )
-    if i < 0:
-        return 0.0
-
-    dir_x, dir_y, dir_z = direction
-    if periodic_xy and abs(dir_z) < 1.0e-12:
-        raise ValueError("periodic_xy requires a non-zero vertical sun component")
-    if allow_outside_xy and abs(dir_z) < 1.0e-12:
-        raise ValueError("extend_bounds requires a non-zero vertical sun component")
-    if max_ray_length is not None and max_ray_length <= 0.0:
-        raise ValueError("max_ray_length must be > 0")
-    step_x = 0 if dir_x == 0.0 else (1 if dir_x > 0.0 else -1)
-    step_y = 0 if dir_y == 0.0 else (1 if dir_y > 0.0 else -1)
-    step_z = 0 if dir_z == 0.0 else (1 if dir_z > 0.0 else -1)
-
-    if dir_x == 0.0:
-        t_max_x = math.inf
-        t_delta_x = math.inf
-    else:
-        if dir_x > 0.0:
-            x_next = (i + 1) * dx
-            t_max_x = (x_next - x) / dir_x
+        if not allow_outside_xy:
+            if x < 0.0 or x >= dx * itot:
+                return -1, -1, -1
+            if y < 0.0 or y >= dy * jtot:
+                return -1, -1, -1
+            i = int(min(itot - 1, max(0, math.floor(x / dx))))
+            j = int(min(jtot - 1, max(0, math.floor(y / dy))))
         else:
-            x_prev = i * dx
-            t_max_x = (x - x_prev) / (-dir_x)
-        t_delta_x = dx / abs(dir_x)
+            i = int(math.floor(x / dx))
+            j = int(math.floor(y / dy))
+        k = int(min(ktot - 1, max(0, np.searchsorted(z_edges, z, side="right") - 1)))
+        return i, j, k
 
-    if dir_y == 0.0:
-        t_max_y = math.inf
-        t_delta_y = math.inf
-    else:
-        if dir_y > 0.0:
-            y_next = (j + 1) * dy
-            t_max_y = (y_next - y) / dir_y
-        else:
-            y_prev = j * dy
-            t_max_y = (y - y_prev) / (-dir_y)
-        t_delta_y = dy / abs(dir_y)
+    @nb.njit(cache=True)
+    def _ray_box_intersection_numba(
+        origin: np.ndarray,
+        direction: np.ndarray,
+        bounds_min: np.ndarray,
+        bounds_max: np.ndarray,
+    ) -> Tuple[float, float]:
+        t_min = -math.inf
+        t_max = math.inf
+        for a in range(3):
+            if abs(direction[a]) < 1.0e-12:
+                if origin[a] < bounds_min[a] or origin[a] > bounds_max[a]:
+                    return math.inf, -math.inf
+                continue
+            inv_d = 1.0 / direction[a]
+            t0 = (bounds_min[a] - origin[a]) * inv_d
+            t1 = (bounds_max[a] - origin[a]) * inv_d
+            if t0 > t1:
+                t0, t1 = t1, t0
+            t_min = max(t_min, t0)
+            t_max = min(t_max, t1)
+        return t_min, t_max
 
-    if dir_z == 0.0:
-        t_max_z = math.inf
-        t_delta_z = math.inf
-    else:
-        if dir_z > 0.0:
-            z_next = z_edges[k + 1]
-            t_max_z = (z_next - z) / dir_z
-        else:
-            z_prev = z_edges[k]
-            t_max_z = (z - z_prev) / (-dir_z)
-        t_delta_z = dz[k] / abs(dir_z)
+    @nb.njit(cache=True)
+    def _trace_ray_numba(
+        origin: np.ndarray,
+        direction: np.ndarray,
+        dx: float,
+        dy: float,
+        z_edges: np.ndarray,
+        z_max: float,
+        lad_3d: np.ndarray,
+        dec_3d: np.ndarray,
+        veg_index: np.ndarray,
+        solid: np.ndarray,
+        has_solid: bool,
+        energy_in: np.ndarray,
+        solid_hit_energy: np.ndarray,
+        veg_absorb: np.ndarray,
+        ray_area: float,
+        itot: int,
+        jtot: int,
+        ktot: int,
+        dz: np.ndarray,
+        irradiance: float,
+        periodic_xy: bool,
+        max_ray_length: float,
+        enable_hit_count: bool,
+        hit_count: np.ndarray,
+        allow_outside_xy: bool,
+    ) -> float:
+        x, y, z = origin
 
-    # 3D DDA traversal through the grid.
-    t = 0.0
-    r_in = 1.0
-    last_i = -1
-    last_j = -1
-    last_k = -1
-    while 0 <= k < ktot and (periodic_xy or allow_outside_xy or (0 <= i < sim.itot and 0 <= j < sim.jtot)):
-        inside = 0 <= i < sim.itot and 0 <= j < sim.jtot
-        ii = i % sim.itot if periodic_xy else i
-        jj = j % sim.jtot if periodic_xy else j
-        if inside and solid is not None and solid[ii, jj, k]:
-            # Deposit solid-intercepted energy in the last fluid cell.
-            if last_i >= 0:
-                solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
+        i, j, k = _point_to_cell_numba(
+            x,
+            y,
+            z,
+            dx,
+            dy,
+            z_edges,
+            z_max,
+            itot,
+            jtot,
+            ktot,
+            allow_outside_xy,
+        )
+        if i < 0:
             return 0.0
 
-        if hit_count is not None:
-            if inside:
-                hit_count[ii, jj, k] += 1
-        # Accumulate incoming energy for this cell (ray-weighted).
-        if inside:
-            energy_in[ii, jj, k] += r_in * irradiance * ray_area
+        dir_x, dir_y, dir_z = direction
+        step_x = 0 if dir_x == 0.0 else (1 if dir_x > 0.0 else -1)
+        step_y = 0 if dir_y == 0.0 else (1 if dir_y > 0.0 else -1)
+        step_z = 0 if dir_z == 0.0 else (1 if dir_z > 0.0 else -1)
 
-        t_next = min(t_max_x, t_max_y, t_max_z)
-        if max_ray_length is not None and t_next > max_ray_length:
-            ds = max_ray_length - t
+        if dir_x == 0.0:
+            t_max_x = math.inf
+            t_delta_x = math.inf
         else:
-            ds = t_next - t
-        if ds < 0.0:
-            ds = 0.0
+            if dir_x > 0.0:
+                x_next = (i + 1) * dx
+                t_max_x = (x_next - x) / dir_x
+            else:
+                x_prev = i * dx
+                t_max_x = (x - x_prev) / (-dir_x)
+            t_delta_x = dx / abs(dir_x)
 
-        # Beer-Lambert attenuation through vegetation in this cell.
-        if inside:
-            lad = lad_3d[ii, jj, k]
-            dec = dec_3d[ii, jj, k]
-            if lad > 0.0 and dec > 0.0:
-                tau = lad * dec * ds
-                r_out = r_in * math.exp(-tau)
-                absorbed = (r_in - r_out) * ray_area
-                vidx = veg_index[ii, jj, k]
-                if vidx >= 0:
-                    cell_vol = dx * dy * dz[k]
-                    veg_absorb[vidx] += absorbed / cell_vol
-                r_in = r_out
-        if max_ray_length is not None and t_next > max_ray_length:
-            return r_in * ray_area * irradiance
+        if dir_y == 0.0:
+            t_max_y = math.inf
+            t_delta_y = math.inf
+        else:
+            if dir_y > 0.0:
+                y_next = (j + 1) * dy
+                t_max_y = (y_next - y) / dir_y
+            else:
+                y_prev = j * dy
+                t_max_y = (y - y_prev) / (-dir_y)
+            t_delta_y = dy / abs(dir_y)
 
-        prev_i, prev_j, prev_k = last_i, last_j, last_k
-        if inside:
-            prev_i, prev_j, prev_k = ii, jj, k
-        if t_max_x == t_next:
-            i += step_x
-            t_max_x += t_delta_x
-        if t_max_y == t_next:
-            j += step_y
-            t_max_y += t_delta_y
-        if t_max_z == t_next:
-            k += step_z
-            if 0 <= k < ktot:
-                t_delta_z = dz[k] / abs(dir_z) if dir_z != 0.0 else math.inf
-                t_max_z = t + t_delta_z
+        if dir_z == 0.0:
+            t_max_z = math.inf
+            t_delta_z = math.inf
+        else:
+            if dir_z > 0.0:
+                z_next = z_edges[k + 1]
+                t_max_z = (z_next - z) / dir_z
+            else:
+                z_prev = z_edges[k]
+                t_max_z = (z - z_prev) / (-dir_z)
+            t_delta_z = dz[k] / abs(dir_z)
 
-        last_i, last_j, last_k = prev_i, prev_j, prev_k
-        t = t_next
-    if dir_z < 0.0 and k < 0 and last_i >= 0:
-        # Always treat ground as a solid boundary.
-        solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
-        return 0.0
-    return r_in * ray_area * irradiance
+        t = 0.0
+        r_in = 1.0
+        last_i = -1
+        last_j = -1
+        last_k = -1
+
+        while 0 <= k < ktot and (periodic_xy or allow_outside_xy or (0 <= i < itot and 0 <= j < jtot)):
+            inside = 0 <= i < itot and 0 <= j < jtot
+            if periodic_xy:
+                ii = i % itot
+                jj = j % jtot
+            else:
+                ii = i
+                jj = j
+            if has_solid and solid[ii, jj, k]:
+                if inside and last_i >= 0:
+                    solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
+                return 0.0
+
+            if enable_hit_count:
+                if inside:
+                    hit_count[ii, jj, k] += 1
+            if inside:
+                energy_in[ii, jj, k] += r_in * irradiance * ray_area
+
+            t_next = min(t_max_x, t_max_y, t_max_z)
+            if t_next > max_ray_length:
+                ds = max_ray_length - t
+            else:
+                ds = t_next - t
+            if ds < 0.0:
+                ds = 0.0
+
+            if inside:
+                lad = lad_3d[ii, jj, k]
+                dec = dec_3d[ii, jj, k]
+                if lad > 0.0 and dec > 0.0:
+                    tau = lad * dec * ds
+                    r_out = r_in * math.exp(-tau)
+                    absorbed = (r_in - r_out) * ray_area
+                    vidx = veg_index[ii, jj, k]
+                    if vidx >= 0:
+                        cell_vol = dx * dy * dz[k]
+                        veg_absorb[vidx] += absorbed / cell_vol
+                    r_in = r_out
+
+            if t_next > max_ray_length:
+                return r_in * ray_area * irradiance
+
+            prev_i, prev_j, prev_k = last_i, last_j, last_k
+            if inside:
+                prev_i, prev_j, prev_k = ii, jj, k
+            if t_max_x == t_next:
+                i += step_x
+                t_max_x += t_delta_x
+            if t_max_y == t_next:
+                j += step_y
+                t_max_y += t_delta_y
+            if t_max_z == t_next:
+                k += step_z
+                if 0 <= k < ktot:
+                    t_delta_z = dz[k] / abs(dir_z) if dir_z != 0.0 else math.inf
+                    t_max_z = t_next + t_delta_z
+
+            last_i, last_j, last_k = prev_i, prev_j, prev_k
+            t = t_next
+
+        if dir_z < 0.0 and k < 0 and last_i >= 0:
+            solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
+            return 0.0
+        return r_in * ray_area * irradiance
 
 
 def directshortwave(
@@ -333,22 +328,15 @@ def directshortwave(
     ray_jitter: float = 0.0,
     ray_jitter_seed: int | None = None,
     return_hit_count: bool = False,
-    return_ray_debug: bool = False,
     extend_bounds: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
     """
-    Compute direct shortwave on facets and absorbed radiation in vegetation cells.
+    Numba-accelerated direct shortwave on facets and absorbed radiation in vegetation cells.
 
-    Returns
-    -------
-    Sdir : ndarray
-        Direct radiation on facets (W/m2), shape (n_facets,)
-    veg_absorb : ndarray
-        Absorbed radiation per vegetation point (W/m3), aligned with veg.inp order.
-    bud : dict
-        Budget totals (W): incoming (in), absorbed by vegetation (veg),
-        solid-adjacent (sol), outgoing (out), and facets (fac).
     """
+    if nb is None:
+        raise ImportError("numba is required for directshortwave")
+
     if sim.geom is None or sim.geom.stl is None:
         raise ValueError("Geometry not loaded; UDBase must be created with load_geometry=True")
 
@@ -358,6 +346,10 @@ def directshortwave(
         raise ValueError("nsun must be non-zero")
     nsun_unit = nsun / norm
     direction = -nsun_unit
+    if periodic_xy and abs(direction[2]) < 1.0e-12:
+        raise ValueError("periodic_xy requires a non-zero vertical sun component")
+    if extend_bounds and abs(direction[2]) < 1.0e-12:
+        raise ValueError("extend_bounds requires a non-zero vertical sun component")
 
     ltree = getattr(sim, "ltree", 0)
     if ltree:
@@ -368,7 +360,6 @@ def directshortwave(
             lad=np.empty((0,), dtype=float),
             dec=np.empty((0,), dtype=float),
         )
-    # Determine the maximum vertical index to allocate (veg + solids + padding).
     solid_full = getattr(sim, "Sc", None)
     kmax_solid = -1
     if solid_full is not None:
@@ -388,13 +379,12 @@ def directshortwave(
     energy_in = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
     solid_hit_energy = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
     veg_absorb = np.zeros(len(veg.points), dtype=float)
-    solid = solid_full[:, :, :ktot] if solid_full is not None else None
+    solid = solid_full[:, :, :ktot] if solid_full is not None else np.zeros((1, 1, 1), dtype=bool)
+    has_solid = solid_full is not None
 
     eps = 1.0e-6
 
     if extend_bounds:
-        if abs(direction[2]) < 1.0e-12:
-            raise ValueError("extend_bounds requires a non-zero vertical sun component")
         pad_x = z_max * abs(direction[0] / direction[2])
         pad_y = z_max * abs(direction[1] / direction[2])
         bounds_min = np.array([0.0, 0.0, 0.0], dtype=float)
@@ -411,7 +401,6 @@ def directshortwave(
         bounds_min = np.array([0.0, 0.0, 0.0], dtype=float)
         bounds_max = np.array([sim.xlen, sim.ylen, z_max], dtype=float)
 
-    # Build a plane covering the domain for parallel ray casting.
     corners = np.array(
         [
             [bounds_min[0], bounds_min[1], bounds_min[2]],
@@ -451,13 +440,23 @@ def directshortwave(
         raise ValueError("ray_scale must be > 0")
     if max_ray_length is None:
         max_ray_length = 10.0 * max(sim.xlen, sim.ylen)
+    if max_ray_length <= 0.0:
+        raise ValueError("max_ray_length must be > 0")
     if ray_jitter < 0.0:
         raise ValueError("ray_jitter must be >= 0")
+
     step = (min(sim.dx, sim.dy, float(np.min(sim.dzt)))) / ray_scale
     u_vals = np.arange(umin, umax + step, step)
     v_vals = np.arange(vmin, vmax + step, step)
     ray_area = step * step
     rng = np.random.default_rng(ray_jitter_seed) if ray_jitter > 0.0 else None
+
+    hit_count = (
+        np.zeros((sim.itot, sim.jtot, ktot), dtype=np.int32)
+        if return_hit_count
+        else np.zeros((1, 1, 1), dtype=np.int32)
+    )
+    enable_hit_count = return_hit_count
 
     bud = {
         "in": 0.0,
@@ -468,7 +467,6 @@ def directshortwave(
     }
     bud["rays"] = int(len(u_vals) * len(v_vals))
 
-    hit_count = np.zeros((sim.itot, sim.jtot, ktot), dtype=np.int32) if return_hit_count else None
     for u in u_vals:
         for v in v_vals:
             if rng is not None:
@@ -480,7 +478,7 @@ def directshortwave(
                 u_use = u
                 v_use = v
             origin = p0 + u1 * u_use + u2 * v_use
-            t0, t1 = _ray_box_intersection(origin, direction, bounds_min, bounds_max)
+            t0, t1 = _ray_box_intersection_numba(origin, direction, bounds_min, bounds_max)
             if t1 < t0:
                 continue
             if t1 < 0.0:
@@ -488,25 +486,30 @@ def directshortwave(
             bud["in"] += irradiance * ray_area
             entry = max(t0, 0.0)
             start = origin + direction * (entry + eps)
-            bud["out"] += _trace_ray(
+            bud["out"] += _trace_ray_numba(
                 start,
                 direction,
-                sim,
+                sim.dx,
+                sim.dy,
                 z_edges,
                 z_max,
                 lad_3d,
                 dec_3d,
                 veg_index,
                 solid,
+                has_solid,
                 energy_in,
                 solid_hit_energy,
                 veg_absorb,
                 ray_area,
+                sim.itot,
+                sim.jtot,
                 ktot,
                 dz,
                 irradiance,
                 periodic_xy,
                 max_ray_length,
+                enable_hit_count,
                 hit_count,
                 extend_bounds,
             )
@@ -519,7 +522,6 @@ def directshortwave(
     cos_inc_all = np.dot(face_normals, nsun_unit)
     cos_inc_all = np.where(cos_inc_all > 0.0, cos_inc_all, 0.0)
 
-    # Distribute solid-hit energy to facet sections (facsec).
     if not hasattr(sim, "facsec") or sim.facsec is None or "c" not in sim.facsec:
         raise ValueError("Facet sections not available; sim.facsec['c'] is required.")
     facsec = sim.facsec["c"]
@@ -529,10 +531,9 @@ def directshortwave(
     i_idx = locs[:, 0]
     j_idx = locs[:, 1]
     k_idx = locs[:, 2]
-      
-    # loop over all facet sections to compute total cell facet area per cell
+
     cell_area = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
-    for idx in range(len(facids)): 
+    for idx in range(len(facids)):
         fid = facids[idx]
         cos_inc = cos_inc_all[fid]
         if cos_inc <= 0.0:
@@ -542,7 +543,6 @@ def directshortwave(
         k = k_idx[idx]
         cell_area[i, j, k] += areas[idx]
 
-    # loop over all facet sections to distribute energy to facets
     sdir_accum = np.zeros(nfaces, dtype=float)
     area_accum = np.zeros(nfaces, dtype=float)
     for idx in range(len(facids)):
@@ -564,10 +564,12 @@ def directshortwave(
 
     mask = area_accum > 0.0
     areas = sim.facs["area"] if hasattr(sim, "facs") and "area" in sim.facs else mesh.area_faces
-    # sdir[mask] = sdir_accum[mask] / area_accum[mask]
     sdir[mask] = sdir_accum[mask] / areas[mask]
+    # WARNING: Temporary cap to avoid unrealistically large sdir on tiny facets when
+    # an entire cell's energy lands on one face. Proper fix should distribute energy
+    # by sub-facet geometry or ray/face intersections so flux per facet is bounded.
+    sdir = np.minimum(sdir, irradiance * cos_inc_all)
 
-    # Compute diagnostic totals in watts for budget checks.
     bud["fac"] = np.sum(sdir * areas)
     bud["sol"] = float(np.sum(solid_hit_energy))
     if veg_absorb.size:
@@ -581,21 +583,5 @@ def directshortwave(
             bud["sol"] = bud["fac"]
     if return_hit_count:
         bud["hit_count"] = hit_count
-    if return_ray_debug:
-        bud["ray_debug"] = {
-            "p0": p0.copy(),
-            "u1": u1.copy(),
-            "u2": u2.copy(),
-            "umin": float(umin),
-            "umax": float(umax),
-            "vmin": float(vmin),
-            "vmax": float(vmax),
-            "corners": corners.copy(),
-            "proj_corners": proj.copy(),
-            "direction": direction.copy(),
-            "bounds_min": bounds_min.copy(),
-            "bounds_max": bounds_max.copy(),
-            "extend_bounds": extend_bounds,
-        }
 
     return sdir, veg_absorb, bud

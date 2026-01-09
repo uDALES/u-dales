@@ -14,12 +14,12 @@ if tools_path not in sys.path:
     sys.path.insert(0, str(tools_path))
 udprep_path = (udbase_path / "tools" / "python" / "udprep").resolve()
 
-expnr = '222'
+expnr = '064'
 expdir = (udbase_path.parents[0] / "experiments" / expnr).resolve
 
 from udbase import UDBase  # noqa: E402
 from udprep import convert_block_to_sparse
-from udprep.directshortwave import directshortwave as directshortwave_nb  # noqa: E402
+from udprep.directshortwave_nur1 import directshortwave as directshortwave_nb  # noqa: E402
 
 import numpy as np
 
@@ -31,8 +31,7 @@ import plotly.io as pio
 elapsed = time.perf_counter() - start
 print(f"loading libraries runtime: {elapsed:.3f} s")
 
-
-def run_directshortwave_f2py(sim, nsun, irradiance, resolution, periodic=True):
+def run_directshortwave_f2py(sim, nsun, irradiance, resolution):
     """
     Run the Fortran directShortwave via f2py.
 
@@ -157,10 +156,13 @@ elevation_deg = 15.0
 az = np.deg2rad(azimuth_deg)
 el = np.deg2rad(elevation_deg)
 nsun = [np.cos(el) * np.cos(az), np.cos(el) * np.sin(az), np.sin(el)]
+nsun_unit = np.asarray(nsun, dtype=float)
+nsun_unit /= np.linalg.norm(nsun_unit)
 irradiance = 800.0
 extend_bounds = True
 
-ray_factor = 2.0
+ray_factor = 6.0
+ray_jitter = 0.0
 
 # print(ds.__file__)
 # print([name for name in dir(ds) if "shortwave" in name.lower() or "mod" in name.lower()])
@@ -169,7 +171,7 @@ use_f2py = True
 sdir_f2py = None
 elapsed_f2py = None
 if use_f2py:
-    resolution = min(sim.dx, sim.dy) * 0.25
+    resolution = min(sim.dx, sim.dy) / ray_factor
     start_f2py = time.perf_counter()
     sdir_f2py = run_directshortwave_f2py(sim, nsun, irradiance, resolution)
     elapsed_f2py = time.perf_counter() - start_f2py
@@ -182,15 +184,16 @@ sdir, veg_absorb, bud = directshortwave_nb(
     nsun=nsun,
     irradiance=irradiance,
     ray_scale=ray_factor,
-    ray_jitter=1.0,
+    ray_jitter=ray_jitter,
+    ray_jitter_seed=0,
     return_hit_count=True,
     extend_bounds=extend_bounds,
+    periodic_xy=True
 )
 elapsed_nb = time.perf_counter() - start
-print(f"Direct shortwave runtime (numba, first call): {elapsed_nb:.3f} s")
+print(f"Direct shortwave runtime (numba): {elapsed_nb:.3f} s")
 
 print(f"Sdir facets: {sdir.shape}  veg_absorb: {veg_absorb.shape}")
-print(f"Direct shortwave runtime (numba, warm): {elapsed:.3f} s")
 if "rays" in bud:
     print(f"Rays cast: {bud['rays']}")
 
@@ -209,6 +212,8 @@ print(f"  balance    : {balance_kW:12.2f} kW")
 print(f"  solid_hit  : {bud['sol'] * kw:12.2f} kW (should match facets)")
 if "hit_count" in bud:
     hit_count = bud["hit_count"]
+
+save_path = Path(__file__).parent / "directshortwave_numba_output.npz"
 
 # %% ----------------------------------------------------------------
 
@@ -275,27 +280,3 @@ if sdir_f2py is not None:
         yaxis_title="Count",
     )
     fig_hist.show(renderer="browser")
-
-# Diagnostics for extreme sdir values vs facet area.
-mesh = sim.geom.stl
-faces = mesh.faces
-vertices = mesh.vertices
-areas = sim.facs["area"] if hasattr(sim, "facs") and "area" in sim.facs else mesh.area_faces
-centroids = vertices[faces].mean(axis=1)
-top = np.argsort(sdir)[-10:]
-print("Top sdir facets:")
-for idx in top:
-    c = centroids[idx]
-    print(
-        f"  facet {idx}: sdir={sdir[idx]:.2f}, area={areas[idx]:.4e}, "
-        f"at ({c[0]:.2f},{c[1]:.2f},{c[2]:.2f})"
-    )
-
-fig_area, ax_area = plt.subplots(figsize=(6, 4))
-ax_area.scatter(areas, sdir, s=5)
-ax_area.set_xscale("log")
-ax_area.set_yscale("log")
-ax_area.set_xlabel("Facet area")
-ax_area.set_ylabel("Sdir (W/m2)")
-ax_area.set_title("Facet area vs Sdir")
-plt.show()

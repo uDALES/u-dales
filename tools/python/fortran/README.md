@@ -9,11 +9,12 @@ Python tooling. The authoritative Fortran implementations live under
 From the `u-dales` repo root:
 
 ```powershell
-python -m numpy.f2py -c -m directshortwave_f2py tools/python/fortran/directShortwave_f2py.f90
+./tools/python/fortran/build_f2py.f90
 ```
 
-Optional optimization:
-
+Install build dependencies (and Fortran compiler). From within the virtual environment run:
 ```powershell
-python -m numpy.f2py -c -m directshortwave_f2py tools/python/fortran/directShortwave_f2py.f90 --opt="-O3"
+conda install -c conda-forge gfortran meson ninja --solver=classic
 ```
+
+Build dependencies are also listed in `tools/python/requirements-build.txt`.
