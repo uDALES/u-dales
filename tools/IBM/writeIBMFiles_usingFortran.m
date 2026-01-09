@@ -36,12 +36,12 @@ disp('Determining both fluid/solid points and facet sections using Fortran.')
 %%Compile Fortran script
 
 n_threads = 8;
-in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
+in_mypoly_fortran_path = [folder '/IBM_preproc_fortran/'];
 addpath(in_mypoly_fortran_path)
 cd(in_mypoly_fortran_path);
-system('gfortran -O3 -fopenmp in_mypoly_functions.f90 boundaryMasking.f90 matchFacetsCells.f90 IBM_preproc_io.f90 IBM_preproc_main.f90 -o pre.exe');
-copyfile('pre.exe', fpath)
-delete pre.exe in_mypoly_functions.mod boundaryMasking.mod matchFacets2Cells.mod IBM_preproc_io.mod
+system('gfortran -O3 -fopenmp in_mypoly_functions.f90 boundaryMasking.f90 matchFacetsCells.f90 IBM_preproc_io.f90 IBM_preproc_main.f90 -o IBM_preproc.exe');
+copyfile('IBM_preproc.exe', fpath)
+delete IBM_preproc.exe in_mypoly_functions.mod boundaryMasking.mod matchFacets2Cells.mod IBM_preproc_io.mod
 
 
 %%Write input files to run Fortran script
@@ -82,11 +82,11 @@ fclose(fileID);
 %%Run Fortran script
 cd(fpath)
 if lwindows
-    system('pre.exe');
+    system('IBM_preproc.exe');
 else
-    system('./pre.exe');
+    system('./IBM_preproc.exe');
 end
-delete pre.exe inmypoly_inp_info.txt faces.txt vertices.txt zfgrid.txt zhgrid.txt;
+delete IBM_preproc.exe inmypoly_inp_info.txt faces.txt vertices.txt zfgrid.txt zhgrid.txt;
 cd(currentPath)
 
 

@@ -47,7 +47,7 @@ if lmypolyfortran
     disp('Determining fluid/solid points using Fortran.')
     % Compile
     n_threads = 8;
-    in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
+    in_mypoly_fortran_path = [folder '/IBM_preproc_fortran/'];
     addpath(in_mypoly_fortran_path)
     cd(in_mypoly_fortran_path);
     system('gfortran -O2 -fopenmp in_mypoly_functions.f90 ibm_necessary_functions.f90 IBM_flagging.f90 -o pre.exe');
@@ -852,10 +852,8 @@ end
 
 if lmatchFacetsToCellsFortran
     disp('Determining facet sections using Fortran.')
-%     in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
-%     addpath(in_mypoly_fortran_path)
     cd(folder);
-    % Needs fluid_IB_u.txt and fluid_boundary_u.txt to be defined.
+    % Needs fluid_boundary_u.txt and solid_boundary_u.txt to be defined.
     system('gfortran -O2 -fopenmp matchFacetsToCells.f90 -o MFTC.exe');
     copyfile('MFTC.exe', fpath)
     delete MFTC.exe
