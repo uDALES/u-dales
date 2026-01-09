@@ -7,13 +7,22 @@ import shutil
 PYTHON_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PYTHON_DIR))
 
-from udprep.namelist import update_namelist_value  # noqa: E402
+from udbase import UDBase  # noqa: E402
 
 
 class DummySim:
     def __init__(self, expnr: str, path: Path):
         self.expnr = expnr
         self.path = path
+        self._namelist_map = {
+            "ntrees": "TREES",
+            "newvar": "TREES",
+        }
+
+    def _load_namelist_map(self):
+        return self._namelist_map
+
+    save_param = UDBase.save_param
 
 
 def _get_block(lines, name):
@@ -49,7 +58,7 @@ class TestNamelistUpdate(unittest.TestCase):
         return (self.workdir / "namoptions.525").read_text(encoding="ascii").splitlines()
 
     def test_update_existing_variable(self):
-        update_namelist_value(self.sim, "TREES", "ntrees", 5)
+        self.sim.save_param("ntrees", 5)
         lines = self._read_lines()
         block = _get_block(lines, "TREES")
         self.assertIsNotNone(block)
@@ -58,7 +67,7 @@ class TestNamelistUpdate(unittest.TestCase):
         self.assertIn("= 5", matches[0])
 
     def test_add_missing_variable(self):
-        update_namelist_value(self.sim, "TREES", "newvar", 123)
+        self.sim.save_param("newvar", 123)
         lines = self._read_lines()
         block = _get_block(lines, "TREES")
         self.assertIsNotNone(block)
@@ -67,11 +76,11 @@ class TestNamelistUpdate(unittest.TestCase):
         self.assertIn("= 123", matches[0])
 
     def test_add_missing_namelist(self):
-        update_namelist_value(self.sim, "newblock", "foo", 7)
+        self.sim.save_param("foo", 7)
         lines = self._read_lines()
-        block = _get_block(lines, "NEWBLOCK")
+        block = _get_block(lines, "INP")
         self.assertIsNotNone(block)
-        self.assertTrue(block[0].strip().startswith("&NEWBLOCK"))
+        self.assertTrue(block[0].strip().startswith("&INP"))
         self.assertTrue(any(line.strip().lower().startswith("foo") for line in block))
 
 

@@ -13,6 +13,7 @@ Copyright (C) 2016- the uDALES Team.
 
 import numpy as np
 import xarray as xr
+import json
 from pathlib import Path
 from typing import Optional, Union, Dict, Any, List
 import importlib.util
@@ -37,6 +38,10 @@ def _file_has_data(path: Path, skiprows: int = 0) -> bool:
     except OSError:
         return False
     return False
+
+
+def _empty_2d(dtype: np.dtype) -> np.ndarray:
+    return np.empty((0, 0), dtype=dtype)
 
 
 class UDBase:
@@ -126,6 +131,7 @@ class UDBase:
         
         # Read namoptions file
         self._read_namoptions()
+        self._namelist_map = self._load_namelist_map()
         
         # Load grid
         self._load_grid()
@@ -193,6 +199,52 @@ class UDBase:
             self.dx = self.xlen / self.itot
         if hasattr(self, 'ylen') and hasattr(self, 'jtot'):
             self.dy = self.ylen / self.jtot
+
+    def _load_namelist_map(self) -> Dict[str, str]:
+        """Load variable->namelist mapping from namelists.json."""
+        map_path = Path(__file__).resolve().parent / "namelists.json"
+        if not map_path.is_file():
+            return {}
+        try:
+            data = json.loads(map_path.read_text(encoding="ascii"))
+        except json.JSONDecodeError:
+            return {}
+        return {k.lower(): v for k, v in data.get("variables", {}).items()}
+
+    def _load_sparse_file(
+        self,
+        path: Path,
+        *,
+        skiprows: int = 0,
+        dtype: np.dtype = float,
+        min_cols: int | None = None,
+        zero_based_cols: list[int] | None = None,
+    ) -> np.ndarray:
+        """Load a sparse text file with comments, returning a 2D array."""
+        if not path.exists():
+            return _empty_2d(dtype)
+        rows = []
+        with path.open("r", encoding="ascii", errors="ignore") as f:
+            for _ in range(skiprows):
+                next(f, None)
+            for line in f:
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#"):
+                    continue
+                parts = stripped.split()
+                if min_cols is not None and len(parts) < min_cols:
+                    raise ValueError(f"Expected at least {min_cols} columns in {path}")
+                rows.append(parts)
+        if not rows:
+            return _empty_2d(dtype)
+        arr = np.asarray(rows, dtype=dtype)
+        if arr.ndim == 1:
+            arr = arr.reshape(1, -1)
+        if min_cols is not None and arr.shape[1] < min_cols:
+            raise ValueError(f"Expected at least {min_cols} columns in {path}")
+        if zero_based_cols:
+            arr[:, zero_based_cols] -= 1
+        return arr
     
     def _load_grid(self):
         """
@@ -270,25 +322,17 @@ class UDBase:
             
             if solid_file.exists():
                 try:
-                    if not _file_has_data(solid_file, skiprows=1):
-                        mask = np.zeros((self.itot, self.jtot, self.ktot), dtype=bool)
-                        setattr(self, f'S{grid_type}', mask)
-                        continue
-                    # Read indices (1-based from Fortran)
-                    indices = np.loadtxt(solid_file, skiprows=1, dtype=int)
-                    if indices.size == 0:
-                        mask = np.zeros((self.itot, self.jtot, self.ktot), dtype=bool)
-                        setattr(self, f'S{grid_type}', mask)
-                        continue
+                    indices = self._load_sparse_file(
+                        solid_file,
+                        skiprows=1,
+                        dtype=int,
+                        min_cols=3,
+                        zero_based_cols=[0, 1, 2],
+                    )
 
-                    # Create boolean mask
                     mask = np.zeros((self.itot, self.jtot, self.ktot), dtype=bool)
-                    
-                    if indices.ndim == 1:
-                        indices = indices.reshape(1, -1)
-                    
-                    # Convert to 0-based indexing
-                    mask[indices[:, 0] - 1, indices[:, 1] - 1, indices[:, 2] - 1] = True
+                    if indices.size:
+                        mask[indices[:, 0], indices[:, 1], indices[:, 2]] = True
                     
                     # Store as attribute (Su, Sv, Sw, Sc)
                     setattr(self, f'S{grid_type}', mask)
@@ -378,35 +422,35 @@ class UDBase:
     def _load_facet_sections(self):
         """Load facet section information for u, v, w, c grids."""
         self.facsec = {}
-        
+
         for grid_type in ['u', 'v', 'w', 'c']:
             facsec_file = self.path / f"facet_sections_{grid_type}.txt"
             fluid_boundary_file = self.path / f"fluid_boundary_{grid_type}.txt"
             
             if facsec_file.exists() and fluid_boundary_file.exists():
                 try:
-                    if not _file_has_data(facsec_file, skiprows=1) or not _file_has_data(fluid_boundary_file, skiprows=1):
-                        self._lffacet_sections = False
-                        continue
-                    # Load facet section data
-                    facsec_data = np.loadtxt(facsec_file, skiprows=1)
-                    
-                    # Load fluid boundary locations
-                    fluid_boundary = np.loadtxt(fluid_boundary_file, skiprows=1, dtype=int)
+                    facsec_data = self._load_sparse_file(
+                        facsec_file,
+                        skiprows=1,
+                        dtype=float,
+                        min_cols=4,
+                    )
+                    fluid_boundary = self._load_sparse_file(
+                        fluid_boundary_file,
+                        skiprows=1,
+                        dtype=int,
+                        min_cols=3,
+                        zero_based_cols=[0, 1, 2],
+                    )
                     if facsec_data.size == 0 or fluid_boundary.size == 0:
                         self._lffacet_sections = False
                         continue
-
-                    if facsec_data.ndim == 1:
-                        facsec_data = facsec_data.reshape(1, -1)
-                    if fluid_boundary.ndim == 1:
-                        fluid_boundary = fluid_boundary.reshape(1, -1)
                     
                     # Store in structure
                     self.facsec[grid_type] = {
                         'facid': facsec_data[:, 0].astype(int) - 1,
                         'area': facsec_data[:, 1],
-                        'locs': fluid_boundary[facsec_data[:, 2].astype(int) - 1, :].astype(int) - 1,
+                        'locs': fluid_boundary[facsec_data[:, 2].astype(int) - 1, :].astype(int),
                         'distance': facsec_data[:, 3]
                     }
                     
@@ -434,6 +478,242 @@ class UDBase:
         else:
             self._lftrees = False
             self.trees = None
+
+    def save_param(self, varname: str, value: Any) -> Path:
+        """Update a namelist variable in namoptions.<id> using a lookup map."""
+        if not hasattr(self, "_namelist_map") or self._namelist_map is None:
+            self._namelist_map = self._load_namelist_map()
+        namelist = self._namelist_map.get(varname.lower(), "INP")
+
+        def _format_value(val: Any) -> str:
+            if isinstance(val, (list, tuple, np.ndarray)):
+                arr = np.asarray(val)
+                if arr.ndim == 0:
+                    return _format_value(arr.item())
+                return ", ".join(_format_value(v) for v in arr.ravel())
+
+            if isinstance(val, (np.bool_, bool)):
+                return ".true." if bool(val) else ".false."
+            if isinstance(val, (np.integer, int)):
+                return f"{int(val):d}"
+            if isinstance(val, (np.floating, float)):
+                s = f"{float(val):.6g}"
+                if "e" not in s and "E" not in s and "." not in s:
+                    s = f"{s}."
+                return s
+            if isinstance(val, str):
+                trimmed = val
+                if (trimmed.startswith("'") and trimmed.endswith("'")) or (
+                    trimmed.startswith('"') and trimmed.endswith('"')
+                ):
+                    trimmed = trimmed[1:-1]
+                return f"'{trimmed}'"
+            return str(val)
+
+        namelist_path = Path(self.path) / f"namoptions.{self.expnr}"
+        if not namelist_path.is_file():
+            raise FileNotFoundError(f"Missing {namelist_path}")
+
+        lines = namelist_path.read_text(encoding="ascii").splitlines(keepends=True)
+        nml_lower = namelist.strip().lower()
+        var_lower = varname.strip().lower()
+        value_str = _format_value(value)
+
+        start_idx = None
+        end_idx = None
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.lower().startswith("&") and stripped[1:].strip().lower() == nml_lower:
+                start_idx = i
+                break
+
+        if start_idx is not None:
+            for i in range(start_idx + 1, len(lines)):
+                if lines[i].strip().startswith("/"):
+                    end_idx = i
+                    break
+            if end_idx is None:
+                raise ValueError(f"Namelist block '{namelist}' in {namelist_path} has no terminator '/'")
+
+            updated = False
+            for i in range(start_idx + 1, end_idx):
+                line = lines[i]
+                if "=" not in line:
+                    continue
+                left, right = line.split("=", 1)
+                if left.strip().lower() != var_lower:
+                    continue
+                comment = ""
+                if "!" in right:
+                    _, comment = right.split("!", 1)
+                    comment = "!" + comment.rstrip("\n")
+                newline = f"{left.rstrip()} = {value_str}"
+                if comment:
+                    newline = f"{newline} {comment}"
+                lines[i] = newline + ("\n" if line.endswith("\n") else "")
+                updated = True
+                break
+
+            if not updated:
+                indent = "  "
+                insert_line = f"{indent}{varname} = {value_str}\n"
+                lines.insert(end_idx, insert_line)
+        else:
+            block_name = namelist.strip().upper()
+            lines.append(f"&{block_name}\n")
+            lines.append(f"  {varname} = {value_str}\n")
+            lines.append("/\n")
+
+        namelist_path.write_text("".join(lines), encoding="ascii", newline="\n")
+        setattr(self, varname.strip(), value)
+        return namelist_path
+
+    def save_veg(
+        self,
+        points: np.ndarray,
+        ids: np.ndarray,
+        lad_values: np.ndarray,
+        cd: float,
+        ud: float,
+        dec: float,
+        lsize: float,
+        r_s: float,
+        *,
+        write_ids: bool = False,
+    ) -> Dict[str, Path]:
+        """Write vegetation sparse inputs (veg.inp, veg_params, optional veg_id)."""
+        if points.ndim != 2 or points.shape[1] < 3:
+            raise ValueError("points must be an (n, 3) array of 1-based indices")
+        if len(points) != len(lad_values) or len(points) != len(ids):
+            raise ValueError("points, ids, and lad_values must be the same length")
+
+        sim_dir = Path(self.path)
+        sim_id = self.expnr
+        out_paths: Dict[str, Path] = {}
+
+        veg_path = sim_dir / f"veg.inp.{sim_id}"
+        with veg_path.open("w", encoding="ascii", newline="\n") as f:
+            f.write("# position (i,j,k)\n")
+            for i, j, k in points:
+                f.write(f"{int(i):7d} {int(j):7d} {int(k):7d}\n")
+        out_paths["veg"] = veg_path
+
+        params_path = sim_dir / f"veg_params.inp.{sim_id}"
+        with params_path.open("w", encoding="ascii", newline="\n") as f:
+            f.write("# id lad cd ud dec lsize r_s\n")
+            for bid, lad_val in zip(ids, lad_values):
+                f.write(
+                    f"{int(bid):7d} {float(lad_val):12.6f} {cd:12.6f} {ud:12.6f} "
+                    f"{dec:12.6f} {lsize:12.6f} {r_s:12.6f}\n"
+                )
+        out_paths["params"] = params_path
+
+        if write_ids:
+            ids_path = sim_dir / f"veg_id.inp.{sim_id}"
+            with ids_path.open("w", encoding="ascii", newline="\n") as f:
+                f.write("# block_id for each point in veg.inp, same order\n")
+                for block_id in ids:
+                    f.write(f"{int(block_id):7d}\n")
+            out_paths["ids"] = ids_path
+
+        points = np.asarray(points)
+        ids = np.asarray(ids)
+        lad_values = np.asarray(lad_values)
+        points_zero = points[:, :3].astype(int, copy=False) - 1
+        self.veg = {
+            "points": points_zero,
+            "params": {
+                "id": ids.astype(int, copy=False),
+                "lad": lad_values.astype(float, copy=False),
+                "cd": np.full(len(ids), cd, dtype=float),
+                "ud": np.full(len(ids), ud, dtype=float),
+                "dec": np.full(len(ids), dec, dtype=float),
+                "lsize": np.full(len(ids), lsize, dtype=float),
+                "r_s": np.full(len(ids), r_s, dtype=float),
+            },
+        }
+        self._lftrees = True
+
+        return out_paths
+
+    def save_trees(
+        self,
+        points: np.ndarray,
+        ids: np.ndarray,
+        lad_values: np.ndarray,
+        cd: float,
+        ud: float,
+        dec: float,
+        lsize: float,
+        r_s: float,
+        *,
+        write_ids: bool = False,
+    ) -> Dict[str, Path]:
+        """Backward-compatible alias for save_veg."""
+        return self.save_veg(points, ids, lad_values, cd, ud, dec, lsize, r_s, write_ids=write_ids)
+
+    def load_veg(self, *, zero_based: bool = True, cache: bool = True) -> Dict[str, Any]:
+        """Load vegetation sparse points and parameters."""
+        if cache and hasattr(self, "veg") and self.veg is not None:
+            return self.veg
+
+        points_path = self.path / f"veg.inp.{self.expnr}"
+        params_path = self.path / f"veg_params.inp.{self.expnr}"
+        point_cols = [0, 1, 2] if zero_based else None
+        points = self._load_sparse_file(
+            points_path,
+            dtype=int,
+            min_cols=3,
+            zero_based_cols=point_cols,
+        )
+        params = self._load_sparse_file(
+            params_path,
+            dtype=float,
+            min_cols=7,
+        )
+
+        if points.size == 0 and params.size == 0:
+            veg = {
+                "points": np.empty((0, 3), dtype=int),
+                "params": {
+                    "id": np.empty((0,), dtype=int),
+                    "lad": np.empty((0,), dtype=float),
+                    "cd": np.empty((0,), dtype=float),
+                    "ud": np.empty((0,), dtype=float),
+                    "dec": np.empty((0,), dtype=float),
+                    "lsize": np.empty((0,), dtype=float),
+                    "r_s": np.empty((0,), dtype=float),
+                },
+            }
+            if cache:
+                self.veg = veg
+            return veg
+
+        if points.size == 0 or params.size == 0:
+            raise ValueError("veg.inp and veg_params.inp must both be present and non-empty")
+
+        points = points[:, :3].astype(int, copy=False)
+        params = params[:, :7]
+        if len(points) != len(params):
+            raise ValueError(
+                f"veg.inp.{self.expnr} has {len(points)} points but veg_params has {len(params)} rows"
+            )
+
+        veg = {
+            "points": points,
+            "params": {
+                "id": params[:, 0].astype(int),
+                "lad": params[:, 1],
+                "cd": params[:, 2],
+                "ud": params[:, 3],
+                "dec": params[:, 4],
+                "lsize": params[:, 5],
+                "r_s": params[:, 6],
+            },
+        }
+        if cache:
+            self.veg = veg
+        return veg
     
     def __repr__(self):
         """String representation of UDBase object."""
@@ -1137,10 +1417,9 @@ class UDBase:
 
         return out
     
-    def plot_trees(self, show: bool = True):
+    def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False):
         """
-        Plot tree volumetric regions on top of the geometry using trimesh/plotly,
-        matching the rendering pipeline used by plot_fac.
+        Plot vegetation points on top of the geometry using a single Plotly trace.
         
         Parameters
         ----------
@@ -1148,42 +1427,42 @@ class UDBase:
             Display the plot immediately. If False, return the figure without showing.
         """
         if not self._lfgeom or self.geom is None:
-            raise ValueError("Geometry (STL) file required for plot_trees()")
-        if not self._lftrees or self.trees is None:
-            raise ValueError("trees.inp file required for plot_trees()")
-        
+            raise ValueError("Geometry (STL) file required for plot_veg()")
+        if veg is None:
+            if not hasattr(self, "veg") or self.veg is None:
+                self.load_veg(cache=True)
+            if not hasattr(self, "veg") or self.veg is None:
+                raise ValueError("veg.inp file required for plot_veg()")
+            veg = self.veg
+        points = np.asarray(veg.get("points", []))
+        if points.size == 0:
+            raise ValueError("veg.inp contains no vegetation points")
+
+        max_points = 50000
+        if len(points) > max_points:
+            rng = np.random.default_rng(0)
+            points = points[rng.choice(len(points), size=max_points, replace=False)]
+            print(f"plot_veg: showing {max_points} of {len(veg['points'])} points")
+
+        xs = self.xt[points[:, 0].astype(int)]
+        ys = self.yt[points[:, 1].astype(int)]
+        zs = self.zt[points[:, 2].astype(int)]
+
+        try:
+            import plotly.graph_objects as go
+        except ImportError:
+            raise ImportError("plotly is required for plot_veg. Install with: pip install plotly")
+
+        # Build a base mesh and use the existing rendering pipeline for outlines.
         try:
             import trimesh
         except ImportError:
-            raise ImportError("trimesh is required for visualization. Install with: pip install trimesh")
-        
-        # Base geometry mesh (light gray)
+            raise ImportError("trimesh is required for plot_veg. Install with: pip install trimesh")
+
         base_mesh = self.geom.stl.copy()
         base_color = np.array([220, 220, 220, 255], dtype=np.uint8)
         base_mesh.visual.face_colors = np.tile(base_color, (len(base_mesh.faces), 1))
-        
-        tree_meshes = []
-        tree_color = np.array([34, 139, 34, 140], dtype=np.uint8)  # forest green, semi-transparent
-        
-        for i in range(self.trees.shape[0]):
-            il, iu, jl, ju, kl, ku = self.trees[i, :]
-            # Convert 1-based to 0-based
-            il, iu, jl, ju, kl, ku = il - 1, iu - 1, jl - 1, ju - 1, kl - 1, ku - 1
-            
-            xmin, xmax = self.xm[il], self.xm[iu] + self.dx
-            ymin, ymax = self.ym[jl], self.ym[ju] + self.dy
-            zmin, zmax = self.zm[kl], self.zm[ku] + self.dzm[ku]
-            
-            extents = np.array([xmax - xmin, ymax - ymin, zmax - zmin])
-            center = np.array([xmin + extents[0] / 2, ymin + extents[1] / 2, zmin + extents[2] / 2])
-            
-            box = trimesh.creation.box(extents=extents, transform=trimesh.transformations.translation_matrix(center))
-            box.visual.face_colors = np.tile(tree_color, (len(box.faces), 1))
-            tree_meshes.append(box)
-        
-        meshes = [base_mesh] + tree_meshes if tree_meshes else [base_mesh]
-        
-        # Build full edge list so all facet edges (front and back) are shown
+
         faces = self.geom.stl.faces
         edges = set()
         for tri in faces:
@@ -1192,11 +1471,33 @@ class UDBase:
             e2 = tuple(sorted((tri[2], tri[0])))
             edges.update([e0, e1, e2])
         outline_edges = list(edges)
-        
-        fig = self._render_scene(meshes, show_outlines=True, custom_edges=outline_edges, show=show)
-        if fig is not None:
-            fig.update_layout(title=f'Geometry with Trees ({len(tree_meshes)} regions)')
+
+        fig = self._render_scene(
+            [base_mesh],
+            show_outlines=True,
+            custom_edges=outline_edges,
+            show=False,
+        )
+        if fig is None:
+            return None
+        veg_trace = go.Scatter3d(
+            x=xs,
+            y=ys,
+            z=zs,
+            mode="markers",
+            marker=dict(size=2, color="rgb(34,139,34)", opacity=0.2),
+            name="vegetation",
+        )
+
+        fig.add_trace(veg_trace)
+        fig.update_layout(title=f"Geometry with Vegetation ({len(points)} points)")
+        if show:
+            fig.show()
         return fig
+
+    def plot_trees(self, show: bool = False):
+        """Backward-compatible alias for plot_veg."""
+        return self.plot_veg(show=show)
     
     def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, show: bool = True):
         """
@@ -2010,20 +2311,26 @@ class UDBase:
         if not fname_sec.exists():
             raise FileNotFoundError(f"Facet section file not found: {fname_sec}")
         
-        facsecs = np.loadtxt(fname_sec, skiprows=1)
+        facsecs = self._load_sparse_file(fname_sec, skiprows=1, dtype=float, min_cols=4)
         
         # Load fluid boundary points
         fname_fluid = self.path / f"{self.ffluid_boundary}_{var}.txt"
         if not fname_fluid.exists():
             raise FileNotFoundError(f"Fluid boundary file not found: {fname_fluid}")
         
-        fluid_boundary = np.loadtxt(fname_fluid, skiprows=1)
-        
+        fluid_boundary = self._load_sparse_file(
+            fname_fluid,
+            skiprows=1,
+            dtype=int,
+            min_cols=3,
+            zero_based_cols=[0, 1, 2],
+        )
+
         # Create structure matching MATLAB
         data = {
             'facid': facsecs[:, 0].astype(int) - 1,
             'area': facsecs[:, 1],
-            'locs': fluid_boundary[facsecs[:, 2].astype(int) - 1, :].astype(int) - 1,
+            'locs': fluid_boundary[facsecs[:, 2].astype(int) - 1, :].astype(int),
             'distance': facsecs[:, 3]
         }
         

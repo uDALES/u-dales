@@ -12,13 +12,14 @@ udprep_path = (udbase_path / "tools" / "python" / "udprep").resolve()
 if str(udprep_path) not in sys.path:
     sys.path.append(str(udprep_path))
 
-expnr = '064'
+expnr = '065'
 expdir = (udbase_path.parents[0] / "experiments" / expnr).resolve()
 
 start = time.perf_counter()
 from udbase import UDBase  # noqa: E402
-from udprep.directshortwave_facsec import directshortwave as directshortwave_nb  # noqa: E402
-import udprep.directshortwave_f2py as ds  # noqa: E402
+from udprep.directshortwave_facsec import directshortwave  # noqa: E402
+from directshortwave_f2py import directshortwave_f2py_mod as _dsmod  # noqa: E402
+calculate_direct_shortwave = _dsmod.calculate_direct_shortwave
 
 import numpy as np
 
@@ -48,7 +49,7 @@ ray_factor = 6.0
 ray_jitter = 1.0
 
 start = time.perf_counter()
-sdir, veg_absorb, bud = directshortwave_nb(
+sdir, veg_absorb, bud = directshortwave(
     sim,
     nsun=nsun,
     irradiance=irradiance,
@@ -79,13 +80,8 @@ print(f"  vegetation : {absorb_kw:12.2f} kW")
 print(f"  facets     : {facets_kw:12.2f} kW")
 print(f"  balance    : {balance_kW:12.2f} kW")
 print(f"  solid_hit  : {bud['sol'] * kw:12.2f} kW (should match facets)")
-if "hit_count" in bud:
-    hit_count = bud["hit_count"]
 
 # f2py comparison (no helper functions)
-sdir_f2py = None
-elapsed_f2py = None
-
 mesh = sim.geom.stl
 vertices = np.asarray(mesh.vertices, dtype=float, order="F")
 faces = np.asarray(mesh.faces, dtype=np.int32) + 1  # Fortran expects 1-based indices
@@ -93,12 +89,11 @@ incenter = np.asarray(mesh.triangles_center, dtype=float, order="F")
 face_normal = np.asarray(mesh.face_normals, dtype=float, order="F")
 nsun_f = np.asarray(nsun, dtype=float)
 resolution = 0.25*min(sim.dx, sim.dy, min(sim.dzt)) / ray_factor
-calc = ds.directshortwave_f2py_mod.calculate_direct_shortwave
 faces_f = np.asfortranarray(faces, dtype=np.int32)
 incenter_f = np.asfortranarray(incenter, dtype=float)
 face_normal_f = np.asfortranarray(face_normal, dtype=float)
 start_f2py = time.perf_counter()
-sdir_f2py = calc(
+sdir_f2py = calculate_direct_shortwave(
     faces_f,
     incenter_f,
     face_normal_f,
@@ -111,6 +106,9 @@ sdir_f2py = np.asarray(sdir_f2py, dtype=float)
 elapsed_f2py = time.perf_counter() - start_f2py
 print(f"Direct shortwave runtime (f2py): {elapsed_f2py:.3f} s")
 print(f"Sdir facets (f2py): {sdir_f2py.shape}")
+areas = mesh.area_faces
+f2py_facets_kw = np.sum(sdir_f2py * areas) * kw
+print(f"  facets (f2py): {f2py_facets_kw:12.2f} kW")
 
 # %% ----------------------------------------------------------------
 
@@ -169,6 +167,7 @@ fig_f2py.update_layout(title=f2py_title)
 fig_f2py.show(renderer="browser")
 
 diff = sdir_f2py - sdir
+print(f"Diff stats (f2py - numba): mean={float(np.mean(diff)):.3f} max={float(np.max(diff)):.3f} min={float(np.min(diff)):.3f}")
 fig_hist = go.Figure(data=go.Histogram(x=diff, nbinsx=60))
 fig_hist.update_layout(
     title="Histogram of Sdir differences (f2py - numba)",

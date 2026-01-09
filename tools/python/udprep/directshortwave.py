@@ -18,58 +18,9 @@ except ImportError:  # pragma: no cover - runtime dependent
 
 @dataclass
 class VegData:
-    points: np.ndarray  # (n, 3) 1-based (i, j, k)
+    points: np.ndarray  # (n, 3) 0-based (i, j, k)
     lad: np.ndarray     # (n,)
     dec: np.ndarray     # (n,)
-
-
-def _read_sparse_points(sim_dir: str, expnr: str) -> np.ndarray:
-    """Load sparse vegetation point indices (1-based i,j,k) from veg.inp.<expnr>."""
-    path = f"{sim_dir}/veg.inp.{expnr}"
-    points = []
-    with open(path, "r", encoding="ascii") as f:
-        for line in f:
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            parts = stripped.split()
-            if len(parts) < 3:
-                continue
-            points.append([int(parts[0]), int(parts[1]), int(parts[2])])
-    if not points:
-        raise ValueError(f"No vegetation points found in {path}")
-    return np.asarray(points, dtype=int)
-
-
-def _read_sparse_params(sim_dir: str, expnr: str) -> Tuple[np.ndarray, np.ndarray]:
-    """Load sparse vegetation parameters (LAD and DEC) from veg_params.inp.<expnr>."""
-    path = f"{sim_dir}/veg_params.inp.{expnr}"
-    lad = []
-    dec = []
-    with open(path, "r", encoding="ascii") as f:
-        for line in f:
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            parts = stripped.split()
-            if len(parts) < 7:
-                continue
-            lad.append(float(parts[1]))
-            dec.append(float(parts[4]))
-    if not lad:
-        raise ValueError(f"No vegetation params found in {path}")
-    return np.asarray(lad, dtype=float), np.asarray(dec, dtype=float)
-
-
-def _load_veg_data(sim_dir: str, expnr: str) -> VegData:
-    """Load vegetation points and parameters, validating length consistency."""
-    points = _read_sparse_points(sim_dir, expnr)
-    lad, dec = _read_sparse_params(sim_dir, expnr)
-    if len(points) != len(lad):
-        raise ValueError(
-            f"veg.inp.{expnr} has {len(points)} points but veg_params has {len(lad)} rows"
-        )
-    return VegData(points=points, lad=lad, dec=dec)
 
 
 def _build_veg_fields(sim, veg: VegData, ktot: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -88,12 +39,9 @@ def _build_veg_fields(sim, veg: VegData, ktot: int) -> Tuple[np.ndarray, np.ndar
     veg_index = -np.ones((sim.itot, sim.jtot, ktot), dtype=int)
 
     for idx, (i, j, k) in enumerate(veg.points):
-        ii = i - 1
-        jj = j - 1
-        kk = k - 1
-        lad_3d[ii, jj, kk] = veg.lad[idx]
-        dec_3d[ii, jj, kk] = veg.dec[idx]
-        veg_index[ii, jj, kk] = idx
+        lad_3d[i, j, k] = veg.lad[idx]
+        dec_3d[i, j, k] = veg.dec[idx]
+        veg_index[i, j, k] = idx
 
     return lad_3d, dec_3d, veg_index
 
@@ -108,7 +56,7 @@ def _compute_ktot_and_z_edges(
         solid_any = np.any(solid_full, axis=(0, 1))
         if np.any(solid_any):
             kmax_solid = int(np.max(np.where(solid_any)[0]))
-    kmax_veg = int(np.max(veg_points[:, 2] - 1)) if veg_points is not None and veg_points.size else -1
+    kmax_veg = int(np.max(veg_points[:, 2])) if veg_points is not None and veg_points.size else -1
     kmax = max(0, min(sim.ktot - 1, max(kmax_solid, kmax_veg)))
     ktot = min(sim.ktot, kmax + 2)
     z_base = getattr(sim, "zf", None)
@@ -785,7 +733,12 @@ def directshortwave(
 
     ltree = getattr(sim, "ltree", 0)
     if ltree:
-        veg = _load_veg_data(str(sim.path), sim.expnr)
+        veg_data = sim.load_veg()
+        veg = VegData(
+            points=veg_data["points"],
+            lad=veg_data["params"]["lad"],
+            dec=veg_data["params"]["dec"],
+        )
     else:
         veg = VegData(
             points=np.empty((0, 3), dtype=int),
@@ -981,7 +934,7 @@ def directshortwave(
     bud["fac"] = np.sum(sdir * areas)
     bud["sol"] = float(np.sum(solid_hit_energy))
     if veg_absorb.size:
-        k_idx = veg.points[:, 2].astype(int) - 1
+        k_idx = veg.points[:, 2].astype(int)
         cell_vol = sim.dx * sim.dy * dz[k_idx]
         bud["veg"] = float(np.sum(veg_absorb * cell_vol) * irradiance)
     if extend_bounds:
