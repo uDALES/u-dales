@@ -39,7 +39,7 @@ n_threads = 8;
 in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
 addpath(in_mypoly_fortran_path)
 cd(in_mypoly_fortran_path);
-system('gfortran -O2 -fopenmp in_mypoly_functions.f90 boundaryMasking.f90 matchFacetsCells.f90 IBM_preproc_io.f90 IBM_preproc_main.f90 -o pre.exe');
+system('gfortran -O3 -fopenmp in_mypoly_functions.f90 boundaryMasking.f90 matchFacetsCells.f90 IBM_preproc_io.f90 IBM_preproc_main.f90 -o pre.exe');
 copyfile('pre.exe', fpath)
 delete pre.exe in_mypoly_functions.mod boundaryMasking.mod matchFacets2Cells.mod IBM_preproc_io.mod
 
