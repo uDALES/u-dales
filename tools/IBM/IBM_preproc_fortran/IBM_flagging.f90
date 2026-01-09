@@ -1,9 +1,8 @@
-program Xie
+program IBM_flagging
 
     use omp_lib
     use in_mypoly_functions
     use ibm_necessary_functions
-
     implicit none
 
     real :: max_height, L_char, tol, Ray_dir_u(3), Ray_dir_v(3), Ray_dir_w(3), Ray_dir_c(3)
@@ -15,7 +14,9 @@ program Xie
     real, allocatable, dimension(:) :: xf, xh, yf, yh, zf, zh, vertices, incenters, faceNormals
     integer, allocatable, dimension(:) :: facets
     logical, allocatable, dimension(:,:,:) :: solid_u, solid_v, solid_w, solid_c
+    real(8) :: start_time, end_time
 
+    start_time = OMP_GET_WTIME()
 
     open(unit=50,file='inmypoly_inp_info.txt')
     read(unit=50,fmt='(f15.10,x,f15.10)') dx, dy  !, dz
@@ -45,7 +46,6 @@ program Xie
     else
         print *, "Incorrect input for 'diag_neighbs'."
     end if
-
 
     allocate(vertices(n_vert*3))
     allocate(facets(n_fcts*3))
@@ -78,28 +78,34 @@ program Xie
     max_height = MAXVAL(vertices(3:n_vert*3:3)) + tol
     L_char = max_facet_side(n_vert,vertices,n_fcts,facets) + tol
 
-    write(*,*) 'Determining solid points for u-grid.'
+
     solid_u = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
                                     itot,xh,jtot,yf,ktot,zf,Ray_dir_u,L_char,max_height,tol,n_threads)
-    write(*,*) 'Determining solid points for v-grid.'
+    write(*,*) 'Determined solid points for u-grid.'
     solid_v = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
                                     itot,xf,jtot,yh,ktot,zf,Ray_dir_v,L_char,max_height,tol,n_threads)
-    write(*,*) 'Determining solid points for w-grid.'
+    write(*,*) 'Determined solid points for v-grid.'
     solid_w = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
                                     itot,xf,jtot,yf,ktot,zh,Ray_dir_w,L_char,max_height,tol,n_threads)
-    write(*,*) 'Determining solid points for c-grid.'
+    write(*,*) 'Determined solid points for w-grid.'
     solid_c = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &
                                     itot,xf,jtot,yf,ktot,zf,Ray_dir_c,L_char,max_height,tol,n_threads)
+    write(*,*) 'Determined solid points for c-grid.'
+
 
     ! call print_solid_flags(itot,jtot,ktot,solid_u,solid_v,solid_w,solid_c)
-
     call print_solid_points_index(itot,jtot,ktot,solid_u,solid_v,solid_w,solid_c)
+
 
     call boundaryMasks('u', itot, jtot, ktot, solid_u, diag_neighbs, stl_ground)
     call boundaryMasks('v', itot, jtot, ktot, solid_v, diag_neighbs, stl_ground)
     call boundaryMasks('w', itot, jtot, ktot, solid_w, diag_neighbs, stl_ground)
     call boundaryMasks('c', itot, jtot, ktot, solid_c, diag_neighbs, stl_ground)
 
+
     deallocate(xf,xh,yf,yh,zf,zh,vertices,facets,incenters,faceNormals,solid_u,solid_v,solid_w,solid_c)
 
-end program Xie
+    end_time = OMP_GET_WTIME()
+    write(*,'(A,F10.3,A)') 'Elapsed time by IBM solid-fluid tagging: ', end_time - start_time, ' seconds.'
+
+end program IBM_flagging
