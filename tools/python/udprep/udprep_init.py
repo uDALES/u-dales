@@ -195,19 +195,23 @@ def setup_paths_from_config(expdir: Path) -> str:
     expected_expdir = expdir.parent.resolve()
     
     if config_expdir != expected_expdir:
-        print(f"WARNING: DA_EXPDIR mismatch in {config_file}:", file=sys.stderr)
+        print("="*67, file=sys.stderr)
+        print(f"WARNING: DA_EXPDIR mismatch in {config_file}", file=sys.stderr)
         print(f"  Expected: {expected_expdir}", file=sys.stderr)
         print(f"  Current: {config_expdir}", file=sys.stderr)
         print(f"  DA_EXPDIR should be set to the expected path...", file=sys.stderr)
+        print("="*67, file=sys.stderr)
     
     # Validate DA_TOOLSDIR matches script location
     expected_tools = Path(__file__).resolve().parent.parent
     config_tools = (Path(config["DA_TOOLSDIR"]) / "python").resolve()
     
     if expected_tools != config_tools:
-        print(f"WARNING: DA_TOOLSDIR mismatch in {config_file}:", file=sys.stderr)
+        print("="*67, file=sys.stderr)
+        print(f"WARNING: DA_TOOLSDIR mismatch in {config_file}", file=sys.stderr)
         print(f"  Expected: {expected_tools}", file=sys.stderr)
         print(f"  Current: {config_tools}", file=sys.stderr)
         print(f"  DA_TOOLSDIR should be set to the expected path...", file=sys.stderr)
+        print("="*67, file=sys.stderr)
     
     return expnr
