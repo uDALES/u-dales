@@ -255,13 +255,23 @@ if nb is not None:
             if periodic_xy:
                 ii = i % itot
                 jj = j % jtot
+                if has_solid and solid[ii, jj, k]:
+                    if inside and last_i >= 0:
+                        solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
+                        return 0.0
+                    return r_in * ray_area * irradiance
             else:
-                ii = i
-                jj = j
-            if has_solid and solid[ii, jj, k]:
-                if inside and last_i >= 0:
-                    solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
-                return 0.0
+                if inside:
+                    ii = i
+                    jj = j
+                    if has_solid and solid[ii, jj, k]:
+                        if last_i >= 0:
+                            solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
+                            return 0.0
+                        return r_in * ray_area * irradiance
+                else:
+                    ii = i
+                    jj = j
 
             if enable_hit_count:
                 if inside:
