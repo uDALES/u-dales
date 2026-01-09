@@ -13,7 +13,7 @@ sim_id = 525
 base_path = Path("C:\\Users\\mvr\\OneDrive - Imperial College London\\codes\\uDALES\\u-dales\\tests\\tests_tree_input")
 
 from udbase import UDBase  # noqa: E402
-from udprep import convert_block_to_sparse, directshortwave as directshortwave_py  # noqa: E402
+from udprep import directshortwave as directshortwave_py  # noqa: E402
 from udprep.directshortwave_numba import directshortwave as directshortwave_nb  # noqa: E402
 
 import numpy as np

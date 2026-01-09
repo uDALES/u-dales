@@ -542,7 +542,7 @@ def directshortwave(
     j_idx = locs[:, 1]
     k_idx = locs[:, 2]
 
-    cell_area = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
+    cell_proj_area = np.zeros((sim.itot, sim.jtot, ktot), dtype=float)
     for idx in range(len(facids)):
         fid = facids[idx]
         cos_inc = cos_inc_all[fid]
@@ -551,7 +551,7 @@ def directshortwave(
         i = i_idx[idx]
         j = j_idx[idx]
         k = k_idx[idx]
-        cell_area[i, j, k] += areas[idx]
+        cell_proj_area[i, j, k] += areas[idx] * cos_inc
 
     sdir_accum = np.zeros(nfaces, dtype=float)
     area_accum = np.zeros(nfaces, dtype=float)
@@ -563,12 +563,13 @@ def directshortwave(
         i = i_idx[idx]
         j = j_idx[idx]
         k = k_idx[idx]
-        if cell_area[i, j, k] <= 0.0:
+        if cell_proj_area[i, j, k] <= 0.0:
             continue
         cell_energy = solid_hit_energy[i, j, k]
         if cell_energy <= 0.0:
             continue
-        sect_energy = cell_energy * (areas[idx] / cell_area[i, j, k])
+        proj_area = areas[idx] * cos_inc
+        sect_energy = cell_energy * (proj_area / cell_proj_area[i, j, k])
         sdir_accum[fid] += sect_energy
         area_accum[fid] += areas[idx]
 
