@@ -432,16 +432,17 @@ if nb is not None:
         last_k = -1
 
         while 0 <= k < ktot and (periodic_xy or allow_outside_xy or (0 <= i < itot and 0 <= j < jtot)):
-            inside = periodic_xy or (0 <= i < itot and 0 <= j < jtot)
+            base_inside = 0 <= i < itot and 0 <= j < jtot
+            geom_inside = base_inside or periodic_xy
             if periodic_xy:
                 ii = i % itot
                 jj = j % jtot
             else:
                 ii = i
                 jj = j
-            if enable_hit_count and inside:
+            if enable_hit_count and base_inside:
                 hit_count[ii, jj, k] += 1
-            if inside:
+            if base_inside:
                 energy_in[ii, jj, k] += r_in * irradiance * ray_area
 
             t_next = min(t_max_x, t_max_y, t_max_z)
@@ -453,7 +454,7 @@ if nb is not None:
                 ds = 0.0
 
             hit_facet = False
-            if inside and cell_has_facets[ii, jj, k] and ds > 0.0:
+            if geom_inside and cell_has_facets[ii, jj, k] and ds > 0.0:
                 cell_idx = ii + itot * (jj + jtot * k)
                 ox = x + dir_x * t
                 oy = y + dir_y * t
@@ -482,11 +483,11 @@ if nb is not None:
                 )
                 if t_hit >= 0.0:
                     ds = max(0.0, t_hit)
-                    if hit_fid >= 0 and inside:
+                    if hit_fid >= 0 and base_inside:
                         facet_hit_energy[hit_fid] += r_in * ray_area * irradiance
                     hit_facet = True
 
-            if inside:
+            if base_inside:
                 lad = lad_3d[ii, jj, k]
                 dec = dec_3d[ii, jj, k]
                 if lad > 0.0 and dec > 0.0:
@@ -500,7 +501,7 @@ if nb is not None:
                     r_in = r_out
 
             if hit_facet:
-                if inside:
+                if base_inside:
                     solid_hit_energy[ii, jj, k] += r_in * ray_area * irradiance
                 return 0.0
 
@@ -508,7 +509,7 @@ if nb is not None:
                 return r_in * ray_area * irradiance
 
             prev_i, prev_j, prev_k = last_i, last_j, last_k
-            if inside:
+            if base_inside:
                 prev_i, prev_j, prev_k = ii, jj, k
             if t_max_x == t_next:
                 i += step_x

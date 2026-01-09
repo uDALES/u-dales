@@ -19,7 +19,7 @@ expdir = (udbase_path.parents[0] / "experiments" / expnr).resolve
 
 from udbase import UDBase  # noqa: E402
 from udprep import convert_block_to_sparse
-from udprep.directshortwave_nur1 import directshortwave as directshortwave_nb  # noqa: E402
+from udprep.directshortwave import directshortwave as directshortwave_nb  # noqa: E402
 
 import numpy as np
 
@@ -162,7 +162,7 @@ irradiance = 800.0
 extend_bounds = True
 
 ray_factor = 6.0
-ray_jitter = 0.0
+ray_jitter = 1.0
 
 # print(ds.__file__)
 # print([name for name in dir(ds) if "shortwave" in name.lower() or "mod" in name.lower()])
@@ -171,7 +171,7 @@ use_f2py = True
 sdir_f2py = None
 elapsed_f2py = None
 if use_f2py:
-    resolution = min(sim.dx, sim.dy) / ray_factor
+    resolution = min(sim.dx, sim.dy, min(sim.dzt)) / ray_factor
     start_f2py = time.perf_counter()
     sdir_f2py = run_directshortwave_f2py(sim, nsun, irradiance, resolution)
     elapsed_f2py = time.perf_counter() - start_f2py
