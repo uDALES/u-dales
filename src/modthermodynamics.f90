@@ -438,8 +438,9 @@ contains
 
 
     !  use modglobal, only : ih,jh,i1,j1,k1,es0,at,bt,rd,rv,rlv,cp,tmelt
-    use modglobal, only : ih,jh,ib,ie,jb,je,kb,ke,kh,es0,at,bt,rd,rv,rlv,cp,tmelt
+    use modglobal, only : ih,jh,ib,ie,jb,je,kb,ke,kh,es0,at,bt,rd,rv,rlv,cp,tmelt,rk3step
     use modsurfdata, only : thls
+    use modmpi, only :myidx,myidy
     implicit none
 
     integer i, j, k
@@ -449,6 +450,8 @@ contains
     real, intent(out) :: ql(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
     real :: Tnr,qsatur,Tnr_old
     integer :: niter,nitert
+    logical ::warning_tl
+    warning_tl=.false.
 
     if (lqlnr) then
        !mc      calculation of T with Newton-Raphson method
@@ -486,6 +489,19 @@ contains
           do j=jb,je
              do i=ib,ie
                 tl  = thl(i,j,k)*exner(k)
+
+                 if (tl<100.0) then
+                        tl =100.0
+                  if(.not. warning_tl) then
+                    if (myidx==0 .AND. myidy==0) then
+                       if (rk3step==3) then
+                          write(*,*) 'Warning:liquid water temperature tl is lower than 100 [K]!!!'
+                       end if
+                     end if
+                    warning_tl=.true.
+                   end if
+                 end if
+
                 es  = es0*exp(at*(tl-tmelt)/(tl-bt))
                 qsl = rd/rv*es/(pressure(k)-(1-rd/rv)*es)
                 b1  = rlv**2/(tl**2*cp*rv)
