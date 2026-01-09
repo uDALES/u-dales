@@ -123,8 +123,8 @@ module matchFacets2Cells
     integer, dimension(:), allocatable, intent(out) :: secfacids, secbndptids
     real, dimension(:), allocatable, intent(out) :: secareas, bnddst
     integer, intent(out) :: nfacsecs
-    type(thread_results_type), dimension(:), allocatable :: thread_data
-    integer :: actual_threads
+    !$ type(thread_results_type), dimension(:), allocatable :: thread_data
+    !$ integer :: actual_threads
     integer, dimension(:,:), allocatable :: clipFaces
     real, dimension(:,:), allocatable :: clipVertices, projVert, clipFaceNormal
     logical :: il_comp(itot+1), iu_comp(itot+1), jl_comp(jtot+1), ju_comp(jtot+1), kl_comp(ktot+1), ku_comp(ktot+1)
@@ -143,7 +143,7 @@ module matchFacets2Cells
     allocate(secbndptids(0))
     allocate(bnddst(0))
 
-    actual_threads = 1
+    !$ actual_threads = 1
     ! Get actual number of threads that will be used
     !$ call OMP_SET_NUM_THREADS(n_threads)
     !$OMP parallel
@@ -151,13 +151,13 @@ module matchFacets2Cells
     !$OMP end parallel
 
     ! Initialize thread-local data arrays
-    allocate(thread_data(actual_threads))
-    do i = 1, actual_threads
-        allocate(thread_data(i)%areas(0))
-        allocate(thread_data(i)%facet_ids(0))
-        allocate(thread_data(i)%bnd_pts(0))
-        allocate(thread_data(i)%distances(0))
-    end do
+    !$ allocate(thread_data(actual_threads))
+    !$ do i = 1, actual_threads
+    !$     allocate(thread_data(i)%areas(0))
+    !$     allocate(thread_data(i)%facet_ids(0))
+    !$     allocate(thread_data(i)%bnd_pts(0))
+    !$     allocate(thread_data(i)%distances(0))
+    !$ end do
 
     dx = xgrid(2)-xgrid(1)
     dy = ygrid(2)-ygrid(1)
@@ -774,14 +774,13 @@ module matchFacets2Cells
 
                loc = findloc(ismember_rows(fluid_IB_xyz, xyz), .true., 1)
 
-               ! !$ OMP critical
+               !! For serial run version: Append to global arrays
                ! call appendToArray1D_real(secareas, area)
                ! call appendToArray1D_integer(secfacids, n)
                ! call appendToArray1D_integer(secbndptids, loc)
                ! call appendToArray1D_real(bnddst, abs(dist))
-               ! !$ OMP end critical
                
-               ! Alternatively Append to thread-specific arrays
+               ! Alternatively for OpenMP run: Append to thread-specific arrays
                !$ call appendToThreadResults(thread_data(thread_id), area, n, loc, abs(dist))
 
                deallocate(clipFaces)
@@ -793,7 +792,7 @@ module matchFacets2Cells
     !$OMP end parallel do
 
     ! Merge and sort results from all threads
-    call mergeAndSortThreadResults(thread_data, actual_threads, secfacids, secareas, secbndptids, bnddst)
+    !$ call mergeAndSortThreadResults(thread_data, actual_threads, secfacids, secareas, secbndptids, bnddst)
 
     nfacsecs = size(secfacids,1)
 
