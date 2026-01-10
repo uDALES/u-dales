@@ -7,7 +7,7 @@
     "facT_file": "",
     "dtEB": 10.0
   },
-  "ibm": {
+  "grid": {
     "itot": 64,
     "xlen": 64,
     "jtot": 64,
@@ -16,6 +16,17 @@
     "zsize": 96,
     "dx": "xlen/itot",
     "dy": "ylen/jtot",
+    "dz": "zsize/ktot",
+    "lzstretch": 0,
+    "stretchconst": 0.01,
+    "lstretchexp": 0,
+    "lstretchexpcheck": 0,
+    "lstretchtanh": 0,
+    "lstretch2tanh": 0,
+    "hlin": "0.1*zsize",
+    "dzlin": "zsize/ktot"
+  },
+  "ibm": {
     "stl_file": "",
     "gen_geom": true,
     "geom_path": "",
@@ -37,16 +48,7 @@
     "thl0": 288,
     "qt0": 0,
     "dpdx": 0,
-    "dpdy": 0,
-    "lzstretch": 0,
-    "stretchconst": 0.01,
-    "lstretchexp": 0,
-    "lstretchexpcheck": 0,
-    "lstretchtanh": 0,
-    "lstretch2tanh": 0,
-    "hlin": 0,
-    "dzlin": 0,
-    "dz": "zsize/ktot"
+    "dpdy": 0
   },
   "vegetation": {
     "ltrees": false,

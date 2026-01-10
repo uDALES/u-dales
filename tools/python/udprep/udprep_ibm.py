@@ -12,10 +12,6 @@ class IBMSection(Section):
     def run_all(self) -> None:
         """Run IBM preprocessing steps in the standard order."""
         steps = [
-            ("generate_xygrid", self.generate_xygrid),
-            ("generate_zgrid", self.generate_zgrid),
-            ("write_xgrid", self.write_xgrid),
-            ("write_zgrid", self.write_zgrid),
             ("generate_lscale", self.generate_lscale),
             ("write_lscale", self.write_lscale),
             ("generate_factypes", self.generate_factypes),
@@ -24,30 +20,6 @@ class IBMSection(Section):
             ("write_facetarea", self.write_facetarea),
         ]
         self.run_steps("ibm", steps)
-
-    def generate_xygrid(self) -> None:
-        """Create staggered x/y grids for IBM preprocessing."""
-
-    def write_xgrid(self) -> None:
-        """Write x-grid definitions to disk."""
-
-    def generate_zgrid(self) -> None:
-        """Create vertical grid and stretching based on z parameters."""
-
-    def stretch_exp(self) -> None:
-        """Generate exponential stretch profile (stretch_exp in MATLAB)."""
-
-    def stretch_exp_check(self) -> None:
-        """Validate exponential stretch (stretch_exp_check in MATLAB)."""
-
-    def stretch_tanh(self) -> None:
-        """Generate tanh-based stretch profile (stretch_tanh in MATLAB)."""
-
-    def stretch_2tanh(self) -> None:
-        """Generate double-tanh stretch profile (stretch_2tanh in MATLAB)."""
-
-    def write_zgrid(self) -> None:
-        """Write z-grid definitions to disk."""
 
     def generate_lscale(self) -> None:
         """Compute the length scale input (generate_lscale in MATLAB)."""

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Optional, Union, Dict, Any, List
 import importlib.util
 import warnings
+import sys
 
 # Import UDGeom from the udgeom package
 try:
@@ -275,11 +276,15 @@ class UDBase:
                 self.dzm = np.concatenate([[2 * self.zt[0]], np.diff(self.zt)])
                 
             except Exception as e:
-                warnings.warn(f"Error loading prof.inp.{self.expnr}: {e}. Using uniform grid.")
+                print("="*67, file=sys.stderr)
+                print(f"WARNING: Error loading prof.inp.{self.expnr}: {e}. Using uniform grid.", file=sys.stderr)
+                print("="*67, file=sys.stderr)
                 self._lfprof = False
                 self._generate_uniform_zgrid()
         else:
-            warnings.warn(f"prof.inp.{self.expnr} not found. Assuming equidistant grid.")
+            print("="*67, file=sys.stderr)
+            print(f"WARNING: prof.inp.{self.expnr} not found. Assuming equidistant grid.", file=sys.stderr)
+            print("="*67, file=sys.stderr)
             self._lfprof = False
             self._generate_uniform_zgrid()
         
@@ -301,7 +306,9 @@ class UDBase:
             self.dzm = np.full(self.ktot, dz)
             self.dzt = np.full(self.ktot, dz)
         else:
-            warnings.warn("Cannot generate z-grid: zsize or ktot not found in namoptions")
+            print("="*67, file=sys.stderr)
+            print("WARNING: Cannot generate z-grid: zsize or ktot not found in namoptions", file=sys.stderr)
+            print("="*67, file=sys.stderr)
     
     def _load_geometry(self):
         """Load STL geometry file if present."""
@@ -341,7 +348,9 @@ class UDBase:
                     setattr(self, f'S{grid_type}', mask)
                     
                 except Exception as e:
-                    warnings.warn(f"Error loading solid_{grid_type}.txt: {e}")
+                    print("="*67, file=sys.stderr)
+                    print(f"WARNING: Error loading solid_{grid_type}.txt: {e}", file=sys.stderr)
+                    print("="*67, file=sys.stderr)
                     setattr(self, f'S{grid_type}', None)
                     self._lfsolid = False
             else:
@@ -358,7 +367,9 @@ class UDBase:
             try:
                 self.facs['area'] = np.loadtxt(facetarea_file, skiprows=1)
             except Exception as e:
-                warnings.warn(f"Error loading facetarea.inp.{self.expnr}: {e}")
+                print("="*67, file=sys.stderr)
+                print(f"WARNING: Error loading facetarea.inp.{self.expnr}: {e}", file=sys.stderr)
+                print("="*67, file=sys.stderr)
                 self._lffacetarea = False
         else:
             self._lffacetarea = False
@@ -371,7 +382,9 @@ class UDBase:
                 self.facs['typeid'] = data[:, 0].astype(int)
                 self.facs['normals'] = data[:, 1:4]  # Surface normals
             except Exception as e:
-                warnings.warn(f"Error loading facets.inp.{self.expnr}: {e}")
+                print("="*67, file=sys.stderr)
+                print(f"WARNING: Error loading facets.inp.{self.expnr}: {e}", file=sys.stderr)
+                print("="*67, file=sys.stderr)
                 self._lffacets = False
         else:
             self._lffacets = False
@@ -414,7 +427,9 @@ class UDBase:
                 ]
                 
             except Exception as e:
-                warnings.warn(f"Error loading factypes.inp.{self.expnr}: {e}")
+                print("="*67, file=sys.stderr)
+                print(f"WARNING: Error loading factypes.inp.{self.expnr}: {e}", file=sys.stderr)
+                print("="*67, file=sys.stderr)
                 self._lffactypes = False
         else:
             self._lffactypes = False
@@ -458,7 +473,9 @@ class UDBase:
                     }
                     
                 except Exception as e:
-                    warnings.warn(f"Error loading facet_sections_{grid_type}.txt: {e}")
+                    print("="*67, file=sys.stderr)
+                    print(f"WARNING: Error loading facet_sections_{grid_type}.txt: {e}", file=sys.stderr)
+                    print("="*67, file=sys.stderr)
                     self._lffacet_sections = False
             else:
                 self._lffacet_sections = False
@@ -475,7 +492,9 @@ class UDBase:
                     self.trees = self.trees.reshape(1, -1)
                 self.trees = self.trees.astype(int) - 1
             except Exception as e:
-                warnings.warn(f"Error loading trees.inp.{self.expnr}: {e}")
+                print("="*67, file=sys.stderr)
+                print(f"WARNING: Error loading trees.inp.{self.expnr}: {e}", file=sys.stderr)
+                print("="*67, file=sys.stderr)
                 self._lftrees = False
                 self.trees = None
         else:
@@ -1598,7 +1617,9 @@ class UDBase:
                 selected_var = var[face_mask]
             else:
                 # No valid faces found - show warning and use all
-                print('Warning: No valid faces found for the specified building IDs')
+                print("="*67, file=sys.stderr)
+                print('WARNING: No valid faces found for the specified building IDs', file=sys.stderr)
+                print("="*67, file=sys.stderr)
                 selected_faces = faces
                 selected_var = var
                 face_mask = None

@@ -4,7 +4,9 @@ from dataclasses import dataclass
 import json
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple, Type
+from types import SimpleNamespace
+from typing import Any, Callable, Dict, List, Tuple, Type, Union
+import warnings
 
 import numpy as np
 
@@ -53,12 +55,29 @@ class Section:
     ) -> Any:
         if section in defaults_json and key in defaults_json[section]:
             value = defaults_json[section][key]
-            if isinstance(value, str) and "/" in value:
-                num, den = value.split("/", 1)
-                num = num.strip()
-                den = den.strip()
-                if num.isidentifier() and den.isidentifier():
-                    return getattr(ctx, num) / getattr(ctx, den)
+            # Handle expression strings like "xlen/itot" or "0.1*zsize"
+            if isinstance(value, str):
+                # Division: "xlen/itot"
+                if "/" in value:
+                    num, den = value.split("/", 1)
+                    num = num.strip()
+                    den = den.strip()
+                    if num.isidentifier() and den.isidentifier():
+                        num_val = getattr(ctx, num)
+                        den_val = getattr(ctx, den)
+                        return num_val / den_val
+                # Multiplication: "0.1*zsize" or "zsize*0.1"
+                elif "*" in value:
+                    parts = value.split("*", 1)
+                    left = parts[0].strip()
+                    right = parts[1].strip()
+                    # Try to evaluate both sides (could be number or identifier)
+                    try:
+                        left_val = float(left) if not left.isidentifier() else getattr(ctx, left)
+                        right_val = float(right) if not right.isidentifier() else getattr(ctx, right)
+                        return left_val * right_val
+                    except (ValueError, AttributeError):
+                        pass  # Return string as-is if evaluation fails
             return value
         default = fallback.get(key, SKIP)
         return default(ctx) if callable(default) else default
@@ -129,13 +148,16 @@ class _DefaultContext:
         self._values = values
 
     def __getattr__(self, name: str) -> Any:
-        if name in self._values:
-            return self._values[name]
+        # Check sim FIRST (namoptions values take precedence)
         if self._sim is not None and hasattr(self._sim, name):
             return getattr(self._sim, name)
+        # Then check defaults being built up
+        if name in self._values:
+            return self._values[name]
         raise AttributeError(name)
 from .udprep_ic import SPEC as IC_SPEC
 from .udprep_ibm import SPEC as IBM_SPEC
+from .udprep_grid import SPEC as GRID_SPEC
 from .udprep_radiation import SPEC as RADIATION_SPEC
 from .udprep_scalars import SPEC as SCALARS_SPEC
 from .udprep_seb import SPEC as SEB_SPEC
@@ -150,6 +172,7 @@ class UDPrep:
     SECTION_SPECS = [
         SEB_SPEC,
         IBM_SPEC,
+        GRID_SPEC,
         IC_SPEC,
         VEGETATION_SPEC,
         SCALARS_SPEC,
@@ -157,14 +180,63 @@ class UDPrep:
     ]
     DEFAULTS_JSON = None
 
-    def __init__(self, expnr, path=None, load_geometry: bool = True):
-        from udbase import UDBase
-
-        if isinstance(expnr, UDBase):
-            sim = expnr
+    def __init__(self, expdir: Union[Path, Any], load_geometry: bool = True, 
+                 use_udbase: bool = False):
+        """
+        Initialize UDPrep for preprocessing.
+        
+        Parameters
+        ----------
+        expdir : Path or UDBase
+            - If Path: experiment directory containing namoptions file
+              (directory name must match experiment number)
+            - If UDBase: existing UDBase object (backward compatibility)
+        load_geometry : bool, default True
+            Whether to load STL geometry
+        use_udbase : bool, default False
+            If True, use UDBase for initialization (legacy mode)
+            If False, use lightweight namoptions parser (recommended)
+            
+        Examples
+        --------
+        # Recommended: lightweight mode
+        >>> prep = UDPrep(Path('experiments/001'))
+        
+        # Legacy: use UDBase
+        >>> prep = UDPrep(Path('experiments/001'), use_udbase=True)
+        
+        # Backward compatible: pass UDBase object
+        >>> from udbase import UDBase
+        >>> sim = UDBase('001', 'experiments/001')
+        >>> prep = UDPrep(sim)
+        """
+        # Import here to avoid circular dependency
+        try:
+            from udbase import UDBase
+            UDBASE_AVAILABLE = True
+        except ImportError:
+            UDBASE_AVAILABLE = False
+            UDBase = type(None)  # Placeholder for type checking
+        
+        # Option 1: UDBase object passed directly (backward compatibility)
+        if isinstance(expdir, UDBase):
+            sim = expdir
+        
+        # Option 2: Use UDBase (legacy mode)
+        elif use_udbase:
+            if not UDBASE_AVAILABLE:
+                raise ImportError("UDBase not available. Set use_udbase=False to use lightweight parser.")
+            if not isinstance(expdir, Path):
+                expdir = Path(expdir)
+            # Extract expnr from directory for UDBase
+            from .udprep_init import set_expnr
+            expnr = set_expnr(expdir)
+            sim = UDBase(expnr, str(expdir), load_geometry=load_geometry)
+        
+        # Option 3: Lightweight parser (recommended default)
         else:
-            sim = UDBase(expnr, path, load_geometry=load_geometry)
-
+            sim = self._create_sim_from_namoptions(expdir, load_geometry)
+        
         self.sim = sim
         self._section_spec_map = {spec.name: spec for spec in self.SECTION_SPECS}
         if self.DEFAULTS_JSON is None:
@@ -197,6 +269,55 @@ class UDPrep:
                 spec.section_cls(spec.name, values, sim=self.sim, defaults=defaults),
             )
 
+    def _create_sim_from_namoptions(self, expdir: Union[Path, str], 
+                                      load_geometry: bool) -> SimpleNamespace:
+        """
+        Create lightweight sim object from namoptions file.
+        
+        This replaces UDBase for preprocessing, reading only namoptions and geometry.
+        
+        Parameters
+        ----------
+        expdir : Path or str
+            Experiment directory containing namoptions file
+        load_geometry : bool
+            Whether to load STL geometry
+        """
+        from .udprep_readnamelist import read_namoptions
+        from .udprep_init import set_expnr
+        
+        # Convert to Path and validate directory structure
+        expdir = Path(expdir)
+        expnr_str = set_expnr(expdir)
+        
+        # Read namoptions
+        namoptions_path = expdir / f"namoptions.{expnr_str}"
+        params = read_namoptions(namoptions_path)
+        
+        # Create sim object with all namoptions as attributes
+        sim = SimpleNamespace(**params)
+        sim.expnr = expnr_str
+        sim.path = str(expdir)
+        
+        # Load geometry if STL file specified and loading requested
+        if load_geometry and hasattr(sim, 'stl_file') and sim.stl_file:
+            try:
+                from udgeom import UDGeom
+                stl_path = expdir / sim.stl_file
+                if stl_path.exists():
+                    sim.geom = UDGeom(path=expdir)
+                    sim.geom.load(sim.stl_file)
+                else:
+                    warnings.warn(f"STL file not found: {stl_path}")
+                    sim.geom = None
+            except ImportError:
+                warnings.warn("UDGeom not available. Geometry will not be loaded.")
+                sim.geom = None
+        else:
+            sim.geom = None
+        
+        return sim
+    
     def addvar(self, name: str, value: Any, section: str | None = None) -> None:
         if section is None:
             raise ValueError("section is required; add variables to a specific section")
