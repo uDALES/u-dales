@@ -10,14 +10,11 @@ tools_python = script_dir / "python"
 if str(tools_python) not in sys.path:
     sys.path.insert(0, str(tools_python))
 
-from udprep.udprep_init import setup_paths_from_config
-
 
 #%% Key Inputs: Setup experiment directory and number
 if len(sys.argv) > 1:
     # Set from command-line argument
     expdir = Path(sys.argv[1]).resolve()
-    expnr = setup_paths_from_config(expdir)
 else:
     # Default behavior: use hardcoded paths
     expnr = "999"
@@ -26,13 +23,15 @@ else:
     expdir = (udales_root.parent / "experiments" / expnr).resolve()
 
 
-#%% Import UDPrep
+#%% Initialize UDPrep
+print("Initializing UDPrep...")
 from udprep import UDPrep  # noqa: E402
 
-#%% Initialize UDPrep
+# Lightweight approach (default) - only reads namoptions + STL
+prep = UDPrep(expdir)
 
-print("Initializing UDPrep demo...")
-prep = UDPrep(expnr, expdir)
+# Alternative: Use legacy UDBase mode
+# prep = UDPrep(expdir, use_udbase=True)
 
 print("-------------------------------------------------------------------")
 print("Summary of the derived preprocessing configuration")
@@ -40,16 +39,21 @@ print(prep)
 
 print('-------------------------------------------------------------------')
 print(' ... or for individual sections')
-print(prep.ibm)
+print(prep.grid)
 
 print('-------------------------------------------------------------------')
 print("Accessing section parameters...")
 # Example access patterns.
-print(f"ibm dx: {prep.ibm.dx}")
+print(f"grid dx: {prep.grid.dx}")
+print(f"grid itot: {prep.grid.itot}")
 print(f"ic thl0: {prep.ic.thl0}")
 print(f"vegetation ltrees: {prep.vegetation.ltrees}")
 print(f"scalars nsv: {prep.scalars.nsv}")
 print(f"seb facT: {prep.seb.facT}")
+
+print('-------------------------------------------------------------------')
+print("Example 0: run grid generation...")
+prep.grid.run_all()
 
 print('-------------------------------------------------------------------')
 print("Example 1: override IC parameter and write profiles...")
@@ -58,10 +62,10 @@ prep.ic.thl0 = 290.0
 prep.ic.generate_prof()
 prep.ic.write_prof()
 
-print('-------------------------------------------------------------------')
-print("Example 2: enable vegetation and run vegetation preprocessing...")
-prep.vegetation.ltrees = 1
-prep.vegetation.run_all()
+# print('-------------------------------------------------------------------')
+# print("Example 2: enable vegetation and run vegetation preprocessing...")
+# prep.vegetation.ltrees = 1
+# prep.vegetation.run_all()
 
 print('-------------------------------------------------------------------')
 print("Example 3: run IBM section preprocessing...")
