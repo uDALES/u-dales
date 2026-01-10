@@ -68,7 +68,13 @@ class UDBase:
     >>> stats = sim.load_stat_xyt('u')
     """
     
-    def __init__(self, expnr: Union[int, str], path: Optional[Union[str, Path]] = None, load_geometry: bool = True):
+    def __init__(
+        self,
+        expnr: Union[int, str],
+        path: Optional[Union[str, Path]] = None,
+        load_geometry: bool = True,
+        suppress_load_warnings: bool = False,
+    ):
         """
         Initialize a UDBase instance.
 
@@ -80,6 +86,8 @@ class UDBase:
             Path to the experiment directory. Defaults to current working directory.
         load_geometry : bool, optional
             If True, load STL geometry when available.
+        suppress_load_warnings : bool, optional
+            If True, suppress missing-file warnings during constructor loading.
 
         Attributes
         ----------
@@ -120,6 +128,9 @@ class UDBase:
             path = path()
         self.path = Path(path) if path else self.cpath
         
+        # Load-time warning control
+        self._suppress_load_warnings = suppress_load_warnings
+
         # File presence flags
         self._lfprof = True
         self._lfsolid = True
@@ -276,15 +287,13 @@ class UDBase:
                 self.dzm = np.concatenate([[2 * self.zt[0]], np.diff(self.zt)])
                 
             except Exception as e:
-                print("="*67, file=sys.stderr)
-                print(f"WARNING: Error loading prof.inp.{self.expnr}: {e}. Using uniform grid.", file=sys.stderr)
-                print("="*67, file=sys.stderr)
+                self._warn_load(
+                    f"Error loading prof.inp.{self.expnr}: {e}. Using uniform grid."
+                )
                 self._lfprof = False
                 self._generate_uniform_zgrid()
         else:
-            print("="*67, file=sys.stderr)
-            print(f"WARNING: prof.inp.{self.expnr} not found. Assuming equidistant grid.", file=sys.stderr)
-            print("="*67, file=sys.stderr)
+            self._warn_load(f"prof.inp.{self.expnr} not found. Assuming equidistant grid.")
             self._lfprof = False
             self._generate_uniform_zgrid()
         
@@ -306,9 +315,14 @@ class UDBase:
             self.dzm = np.full(self.ktot, dz)
             self.dzt = np.full(self.ktot, dz)
         else:
-            print("="*67, file=sys.stderr)
-            print("WARNING: Cannot generate z-grid: zsize or ktot not found in namoptions", file=sys.stderr)
-            print("="*67, file=sys.stderr)
+            self._warn_load("Cannot generate z-grid: zsize or ktot not found in namoptions")
+
+    def _warn_load(self, message: str) -> None:
+        if self._suppress_load_warnings:
+            return
+        print("=" * 67, file=sys.stderr)
+        print(f"WARNING: {message}", file=sys.stderr)
+        print("=" * 67, file=sys.stderr)
     
     def _load_geometry(self):
         """Load STL geometry file if present."""
@@ -348,9 +362,7 @@ class UDBase:
                     setattr(self, f'S{grid_type}', mask)
                     
                 except Exception as e:
-                    print("="*67, file=sys.stderr)
-                    print(f"WARNING: Error loading solid_{grid_type}.txt: {e}", file=sys.stderr)
-                    print("="*67, file=sys.stderr)
+                    self._warn_load(f"Error loading solid_{grid_type}.txt: {e}")
                     setattr(self, f'S{grid_type}', None)
                     self._lfsolid = False
             else:
@@ -367,9 +379,7 @@ class UDBase:
             try:
                 self.facs['area'] = np.loadtxt(facetarea_file, skiprows=1)
             except Exception as e:
-                print("="*67, file=sys.stderr)
-                print(f"WARNING: Error loading facetarea.inp.{self.expnr}: {e}", file=sys.stderr)
-                print("="*67, file=sys.stderr)
+                self._warn_load(f"Error loading facetarea.inp.{self.expnr}: {e}")
                 self._lffacetarea = False
         else:
             self._lffacetarea = False
@@ -382,9 +392,7 @@ class UDBase:
                 self.facs['typeid'] = data[:, 0].astype(int)
                 self.facs['normals'] = data[:, 1:4]  # Surface normals
             except Exception as e:
-                print("="*67, file=sys.stderr)
-                print(f"WARNING: Error loading facets.inp.{self.expnr}: {e}", file=sys.stderr)
-                print("="*67, file=sys.stderr)
+                self._warn_load(f"Error loading facets.inp.{self.expnr}: {e}")
                 self._lffacets = False
         else:
             self._lffacets = False
@@ -427,9 +435,7 @@ class UDBase:
                 ]
                 
             except Exception as e:
-                print("="*67, file=sys.stderr)
-                print(f"WARNING: Error loading factypes.inp.{self.expnr}: {e}", file=sys.stderr)
-                print("="*67, file=sys.stderr)
+                self._warn_load(f"Error loading factypes.inp.{self.expnr}: {e}")
                 self._lffactypes = False
         else:
             self._lffactypes = False
@@ -473,9 +479,7 @@ class UDBase:
                     }
                     
                 except Exception as e:
-                    print("="*67, file=sys.stderr)
-                    print(f"WARNING: Error loading facet_sections_{grid_type}.txt: {e}", file=sys.stderr)
-                    print("="*67, file=sys.stderr)
+                    self._warn_load(f"Error loading facet_sections_{grid_type}.txt: {e}")
                     self._lffacet_sections = False
             else:
                 self._lffacet_sections = False
@@ -492,9 +496,7 @@ class UDBase:
                     self.trees = self.trees.reshape(1, -1)
                 self.trees = self.trees.astype(int) - 1
             except Exception as e:
-                print("="*67, file=sys.stderr)
-                print(f"WARNING: Error loading trees.inp.{self.expnr}: {e}", file=sys.stderr)
-                print("="*67, file=sys.stderr)
+                self._warn_load(f"Error loading trees.inp.{self.expnr}: {e}")
                 self._lftrees = False
                 self.trees = None
         else:
@@ -513,7 +515,8 @@ class UDBase:
         try:
             self.load_veg(zero_based=True, cache=True)
         except Exception as exc:
-            warnings.warn(f"Error loading vegetation data: {exc}")
+            if not self._suppress_load_warnings:
+                warnings.warn(f"Error loading vegetation data: {exc}")
             self.veg = None
 
     def save_param(self, varname: str, value: Any) -> Path:

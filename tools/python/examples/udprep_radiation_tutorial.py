@@ -60,11 +60,11 @@ irradiance = 800.0
 # Shared solver options
 # ray_density controls the ray spacing on the sampling plane:
 #   spacing = min(dx, dy, dz) / ray_density
-# So ray_density=1 uses one ray per smallest grid spacing. This can be too coarse
-# for complex geometries, and results may be noisy or inaccurate. Always test
-# sensitivity by increasing ray_density (e.g., 2, 4, 8) until results stabilize.
-# Default is 4, but this may still be insufficient for some cases.
-ray_density = 6.0
+# So ray_density=1 uses one ray per smallest grid spacing. The default value is 4, 
+# but this can be too coarse for some geometries/facet sizes, and results may be 
+# noisy or inaccurate. Always test sensitivity by increasing ray_density (e.g., 2, 4, 8)
+# until results stabilize.
+ray_density = 3.0 # reducing for faster demo runs; increase for production
 
 plot_az_case1 = 30.0
 plot_az_case2 = plot_az_case1
