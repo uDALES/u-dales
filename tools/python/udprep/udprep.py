@@ -229,8 +229,8 @@ class UDPrep:
             if not isinstance(expdir, Path):
                 expdir = Path(expdir)
             # Extract expnr from directory for UDBase
-            from .udprep_init import setup_paths_from_config
-            expnr = setup_paths_from_config(expdir)
+            from .udprep_init import set_expnr
+            expnr = set_expnr(expdir)
             sim = UDBase(expnr, str(expdir), load_geometry=load_geometry)
         
         # Option 3: Lightweight parser (recommended default)
@@ -284,11 +284,11 @@ class UDPrep:
             Whether to load STL geometry
         """
         from .udprep_readnamelist import read_namoptions
-        from .udprep_init import setup_paths_from_config
+        from .udprep_init import set_expnr
         
         # Convert to Path and validate directory structure
         expdir = Path(expdir)
-        expnr_str = setup_paths_from_config(expdir)
+        expnr_str = set_expnr(expdir)
         
         # Read namoptions
         namoptions_path = expdir / f"namoptions.{expnr_str}"

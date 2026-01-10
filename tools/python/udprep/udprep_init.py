@@ -108,33 +108,33 @@ def read_iexpnr_from_namoptions(namoptions_path: Path) -> str:
     sys.exit(1)
 
 
-def setup_paths_from_config(expdir: Path) -> str:
+def set_expnr(expdir: Path) -> str:
     """
-    Set up paths from experiment directory.
+    Extract and validate experiment number from directory structure.
+    
+    This is the essential validation that ensures consistency between:
+    - Directory name (e.g., "999")
+    - Namoptions filename suffix (e.g., "namoptions.999")
+    - iexpnr value inside namoptions file
     
     Parameters
     ----------
     expdir : Path
-        Experiment directory containing config.sh and namoptions.XXX
+        Experiment directory containing namoptions.XXX
     
     Returns
     -------
     str
         3-digit experiment number
+        
+    Raises
+    ------
+    SystemExit
+        If directory doesn't exist, namoptions not found, or inconsistent numbering
     """
     # Check experiment directory exists
     if not expdir.exists():
         print(f"ERROR: Experiment directory does not exist: {expdir}", file=sys.stderr)
-        sys.exit(1)
-    
-    config_file = expdir / "config.sh"
-    
-    # Check config.sh exists
-    if not config_file.exists():
-        print(f"ERROR: Config file not found: {config_file}", file=sys.stderr)
-        print(f"\nRequired files in {expdir}:", file=sys.stderr)
-        print(f"  - config.sh (with DA_EXPDIR and DA_TOOLSDIR)", file=sys.stderr)
-        print(f"  - namoptions.XXX (XXX = 3-digit experiment number)", file=sys.stderr)
         sys.exit(1)
     
     # Find and validate namoptions file
@@ -175,6 +175,41 @@ def setup_paths_from_config(expdir: Path) -> str:
         print(f"  All three must match. Set iexpnr under &RUN in namoptions to match the experiment case directory name and namoptions filename suffix.", file=sys.stderr)
         sys.exit(1)
     
+    # Optional: validate config.sh paths (warnings only, non-blocking)
+    validate_config_paths(expdir)
+    
+    return expnr
+
+
+def validate_config_paths(expdir: Path) -> None:
+    """
+    Validate config.sh paths (optional validation).
+    
+    Checks if config.sh exists and validates that DA_EXPDIR and DA_TOOLSDIR
+    point to the expected locations. This is optional for preprocessing but
+    required for execution scripts (archer_execute.sh, etc.).
+    
+    Parameters
+    ----------
+    expdir : Path
+        Experiment directory that should contain config.sh
+        
+    Notes
+    -----
+    If config.sh is missing, only a warning is printed.
+    If config.sh exists but has incorrect paths, warnings are printed.
+    """
+    config_file = expdir / "config.sh"
+    
+    # Check config.sh exists
+    if not config_file.exists():
+        print("="*67, file=sys.stderr)
+        print(f"WARNING: Config file not found: {config_file}", file=sys.stderr)
+        print(f"  config.sh is optional for preprocessing but required for execution.", file=sys.stderr)
+        print(f"  Expected variables: DA_EXPDIR, DA_TOOLSDIR, DA_WORKDIR, DA_BUILD", file=sys.stderr)
+        print("="*67, file=sys.stderr)
+        return
+    
     # Parse config.sh
     print(f"Reading: {config_file}")
     config = parse_shell_config(config_file)
@@ -182,8 +217,11 @@ def setup_paths_from_config(expdir: Path) -> str:
     # Check required variables
     missing = [var for var in ["DA_EXPDIR", "DA_TOOLSDIR"] if var not in config]
     if missing:
-        print(f"ERROR: Missing variables in config.sh: {', '.join(missing)}", file=sys.stderr)
-        sys.exit(1)
+        print("="*67, file=sys.stderr)
+        print(f"WARNING: Missing variables in config.sh: {', '.join(missing)}", file=sys.stderr)
+        print(f"  These are required for execution scripts but optional for preprocessing.", file=sys.stderr)
+        print("="*67, file=sys.stderr)
+        return
     
     # Validate DA_EXPDIR matches the experiment directory
     config_expdir = Path(config["DA_EXPDIR"]).resolve()
@@ -194,7 +232,7 @@ def setup_paths_from_config(expdir: Path) -> str:
         print(f"WARNING: DA_EXPDIR mismatch in {config_file}", file=sys.stderr)
         print(f"  Expected: {expected_expdir}", file=sys.stderr)
         print(f"  Current: {config_expdir}", file=sys.stderr)
-        print(f"  DA_EXPDIR should be set to the expected path...", file=sys.stderr)
+        print(f"  DA_EXPDIR should point to the experiments directory.", file=sys.stderr)
         print("="*67, file=sys.stderr)
     
     # Validate DA_TOOLSDIR matches script location
@@ -206,7 +244,8 @@ def setup_paths_from_config(expdir: Path) -> str:
         print(f"WARNING: DA_TOOLSDIR mismatch in {config_file}", file=sys.stderr)
         print(f"  Expected: {expected_tools}", file=sys.stderr)
         print(f"  Current: {config_tools}", file=sys.stderr)
-        print(f"  DA_TOOLSDIR should be set to the expected path...", file=sys.stderr)
+        print(f"  DA_TOOLSDIR should point to u-dales/tools directory.", file=sys.stderr)
         print("="*67, file=sys.stderr)
-    
-    return expnr
+
+
+

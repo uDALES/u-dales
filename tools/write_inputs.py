@@ -4,6 +4,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+
 #%% Add u-dales/tools/python to path for imports (this file is in u-dales/tools/)
 script_dir = Path(__file__).resolve().parent
 tools_python = script_dir / "python"
@@ -24,8 +25,10 @@ else:
 
 
 #%% Initialize UDPrep
-print("Initializing UDPrep...")
 from udprep import UDPrep  # noqa: E402
+
+print("Initializing UDPrep...")
+sys.stdout.flush()
 
 # Lightweight approach (default) - only reads namoptions + STL
 prep = UDPrep(expdir)
@@ -33,6 +36,8 @@ prep = UDPrep(expdir)
 # Alternative: Use legacy UDBase mode
 # prep = UDPrep(expdir, use_udbase=True)
 
+
+#%% Display derived configuration
 print("-------------------------------------------------------------------")
 print("Summary of the derived preprocessing configuration")
 print(prep)
