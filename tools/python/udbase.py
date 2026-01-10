@@ -148,6 +148,9 @@ class UDBase:
         
         # Load tree data if present
         self._load_tree_data()
+
+        # Load vegetation data if present
+        self._load_veg_data()
     
     def _read_namoptions(self):
         """
@@ -478,6 +481,21 @@ class UDBase:
         else:
             self._lftrees = False
             self.trees = None
+
+    def _load_veg_data(self):
+        """Load vegetation sparse data if present."""
+        points_path = self.path / f"veg.inp.{self.expnr}"
+        params_path = self.path / f"veg_params.inp.{self.expnr}"
+
+        if not points_path.exists() or not params_path.exists():
+            self.veg = None
+            return
+
+        try:
+            self.load_veg(zero_based=True, cache=True)
+        except Exception as exc:
+            warnings.warn(f"Error loading vegetation data: {exc}")
+            self.veg = None
 
     def save_param(self, varname: str, value: Any) -> Path:
         """Update a namelist variable in namoptions.<id> using a lookup map."""

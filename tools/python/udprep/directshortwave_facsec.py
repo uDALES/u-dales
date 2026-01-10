@@ -2,10 +2,16 @@ from __future__ import annotations
 
 """
 Numba-accelerated direct shortwave radiation on facets with vegetation attenuation.
+
+Method summary
+--------------
+- Ray casting on a regular grid using 3D DDA voxel traversal.
+- Solid hits are detected via the cell mask (no ray/triangle tests).
+- Facet fluxes are reconstructed from facet sections (facsec) per cell.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple
 
 import math
 import numpy as np
@@ -18,58 +24,9 @@ except ImportError:  # pragma: no cover - runtime dependent
 
 @dataclass
 class VegData:
-    points: np.ndarray  # (n, 3) 1-based (i, j, k)
+    points: np.ndarray  # (n, 3) 0-based (i, j, k)
     lad: np.ndarray     # (n,)
     dec: np.ndarray     # (n,)
-
-
-def _read_sparse_points(sim_dir: str, expnr: str) -> np.ndarray:
-    """Load sparse vegetation point indices (1-based i,j,k) from veg.inp.<expnr>."""
-    path = f"{sim_dir}/veg.inp.{expnr}"
-    points = []
-    with open(path, "r", encoding="ascii") as f:
-        for line in f:
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            parts = stripped.split()
-            if len(parts) < 3:
-                continue
-            points.append([int(parts[0]), int(parts[1]), int(parts[2])])
-    if not points:
-        raise ValueError(f"No vegetation points found in {path}")
-    return np.asarray(points, dtype=int)
-
-
-def _read_sparse_params(sim_dir: str, expnr: str) -> Tuple[np.ndarray, np.ndarray]:
-    """Load sparse vegetation parameters (LAD and DEC) from veg_params.inp.<expnr>."""
-    path = f"{sim_dir}/veg_params.inp.{expnr}"
-    lad = []
-    dec = []
-    with open(path, "r", encoding="ascii") as f:
-        for line in f:
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            parts = stripped.split()
-            if len(parts) < 7:
-                continue
-            lad.append(float(parts[1]))
-            dec.append(float(parts[4]))
-    if not lad:
-        raise ValueError(f"No vegetation params found in {path}")
-    return np.asarray(lad, dtype=float), np.asarray(dec, dtype=float)
-
-
-def _load_veg_data(sim_dir: str, expnr: str) -> VegData:
-    """Load vegetation points and parameters, validating length consistency."""
-    points = _read_sparse_points(sim_dir, expnr)
-    lad, dec = _read_sparse_params(sim_dir, expnr)
-    if len(points) != len(lad):
-        raise ValueError(
-            f"veg.inp.{expnr} has {len(points)} points but veg_params has {len(lad)} rows"
-        )
-    return VegData(points=points, lad=lad, dec=dec)
 
 
 def _build_veg_fields(sim, veg: VegData, ktot: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -88,14 +45,31 @@ def _build_veg_fields(sim, veg: VegData, ktot: int) -> Tuple[np.ndarray, np.ndar
     veg_index = -np.ones((sim.itot, sim.jtot, ktot), dtype=int)
 
     for idx, (i, j, k) in enumerate(veg.points):
-        ii = i - 1
-        jj = j - 1
-        kk = k - 1
-        lad_3d[ii, jj, kk] = veg.lad[idx]
-        dec_3d[ii, jj, kk] = veg.dec[idx]
-        veg_index[ii, jj, kk] = idx
+        lad_3d[i, j, k] = veg.lad[idx]
+        dec_3d[i, j, k] = veg.dec[idx]
+        veg_index[i, j, k] = idx
 
     return lad_3d, dec_3d, veg_index
+
+
+def _veg_from_data(veg_data: Dict[str, Any] | None) -> VegData:
+    if veg_data is None:
+        return VegData(
+            points=np.empty((0, 3), dtype=int),
+            lad=np.empty((0,), dtype=float),
+            dec=np.empty((0,), dtype=float),
+        )
+    points = np.asarray(veg_data.get("points", []), dtype=int)
+    if points.ndim == 1 and points.size:
+        points = points.reshape(1, -1)
+    params = veg_data.get("params", {})
+    lad = np.asarray(params.get("lad", []), dtype=float)
+    dec = np.asarray(params.get("dec", []), dtype=float)
+    if points.size == 0:
+        raise ValueError("veg_data contains no vegetation points")
+    if len(points) != len(lad) or len(points) != len(dec):
+        raise ValueError("veg_data points and params lengths do not match")
+    return VegData(points=points, lad=lad, dec=dec)
 
 
 def _require_numba() -> None:
@@ -331,17 +305,22 @@ def directshortwave(
     sim,
     nsun: np.ndarray,
     irradiance: float,
-    ray_scale: float = 1.0,
+    ray_density: float = 4.0,
     periodic_xy: bool = False,
     max_ray_length: float | None = None,
-    halo_pad: float = 0.125,
-    ray_jitter: float = 0.0,
-    ray_jitter_seed: int | None = None,
+    ray_jitter: float = 1.0,
+    extend_bounds: bool = True,
     return_hit_count: bool = False,
-    extend_bounds: bool = False,
+    veg_data: Dict[str, Any] | None = None,
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
     """
     Numba-accelerated direct shortwave on facets and absorbed radiation in vegetation cells.
+
+    This implementation casts a grid of parallel rays in the sun direction, traverses
+    cells with a DDA walk, and uses the solid cell mask to detect geometry hits.
+    Facet fluxes are then reconstructed using facet sections (facsec) per cell.
+
+    If vegetation is present, pass veg_data from UDBase.load_veg().
 
     """
     if nb is None:
@@ -361,22 +340,14 @@ def directshortwave(
     if extend_bounds and abs(direction[2]) < 1.0e-12:
         raise ValueError("extend_bounds requires a non-zero vertical sun component")
 
-    ltree = getattr(sim, "ltree", 0)
-    if ltree:
-        veg = _load_veg_data(str(sim.path), sim.expnr)
-    else:
-        veg = VegData(
-            points=np.empty((0, 3), dtype=int),
-            lad=np.empty((0,), dtype=float),
-            dec=np.empty((0,), dtype=float),
-        )
+    veg = _veg_from_data(veg_data)
     solid_full = getattr(sim, "Sc", None)
     kmax_solid = -1
     if solid_full is not None:
         solid_any = np.any(solid_full, axis=(0, 1))
         if np.any(solid_any):
             kmax_solid = int(np.max(np.where(solid_any)[0]))
-    kmax_veg = int(np.max(veg.points[:, 2] - 1)) if veg.points.size else -1
+    kmax_veg = int(np.max(veg.points[:, 2])) if veg.points.size else -1
     kmax = max(0, min(sim.ktot - 1, max(kmax_solid, kmax_veg)))
     ktot = min(sim.ktot, kmax + 2)
 
@@ -439,15 +410,8 @@ def directshortwave(
     umax, vmax = proj.max(axis=0)
     du = umax - umin
     dv = vmax - vmin
-    if halo_pad < 0.0:
-        raise ValueError("halo_pad must be >= 0")
-    umin -= halo_pad * du
-    umax += halo_pad * du
-    vmin -= halo_pad * dv
-    vmax += halo_pad * dv
-
-    if ray_scale <= 0.0:
-        raise ValueError("ray_scale must be > 0")
+    if ray_density <= 0.0:
+        raise ValueError("ray_density must be > 0")
     if max_ray_length is None:
         max_ray_length = 10.0 * max(sim.xlen, sim.ylen)
     if max_ray_length <= 0.0:
@@ -455,11 +419,11 @@ def directshortwave(
     if ray_jitter < 0.0:
         raise ValueError("ray_jitter must be >= 0")
 
-    step = (min(sim.dx, sim.dy, float(np.min(sim.dzt)))) / ray_scale
+    step = (min(sim.dx, sim.dy, float(np.min(sim.dzt)))) / ray_density
     u_vals = np.arange(umin, umax + step, step)
     v_vals = np.arange(vmin, vmax + step, step)
     ray_area = step * step
-    rng = np.random.default_rng(ray_jitter_seed) if ray_jitter > 0.0 else None
+    rng = np.random.default_rng(0) if ray_jitter > 0.0 else None
 
     hit_count = (
         np.zeros((sim.itot, sim.jtot, ktot), dtype=np.int32)
@@ -584,15 +548,15 @@ def directshortwave(
     bud["fac"] = np.sum(sdir * areas)
     bud["sol"] = float(np.sum(solid_hit_energy))
     if veg_absorb.size:
-        k_idx = veg.points[:, 2].astype(int) - 1
+        k_idx = veg.points[:, 2].astype(int)
         cell_vol = sim.dx * sim.dy * dz[k_idx]
         bud["veg"] = float(np.sum(veg_absorb * cell_vol) * irradiance)
+    if return_hit_count:
+        bud["hit_count"] = hit_count
+
+    return sdir, veg_absorb, bud
     if extend_bounds:
         unmapped = bud["sol"] - bud["fac"]
         if unmapped > 0.0:
             bud["out"] += unmapped
             bud["sol"] = bud["fac"]
-    if return_hit_count:
-        bud["hit_count"] = hit_count
-
-    return sdir, veg_absorb, bud

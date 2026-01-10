@@ -11,7 +11,7 @@ if str(tools_path) not in sys.path:
     sys.path.insert(0, str(tools_path))
 
 from udbase import UDBase  # noqa: E402
-from udprep.directshortwave import directshortwave  # noqa: E402
+from udprep.directshortwave_moller import directshortwave  # noqa: E402
 
 import plotly.graph_objects as go
 
@@ -19,6 +19,7 @@ expnr = "064"
 expdir = (udbase_path.parents[0] / "experiments" / expnr).resolve()
 
 sim = UDBase(expnr, expdir)
+veg_data = sim.load_veg(zero_based=True, cache=True) if getattr(sim, "ltrees", False) else None
 
 azimuth_deg = 20.0
 elevation_deg = 15.0
@@ -33,12 +34,11 @@ for periodic_xy in [False, True]:
         sim,
         nsun=nsun,
         irradiance=800.0,
-        ray_scale=6.0,
+        ray_density=6.0,
         ray_jitter=0.0,
-        ray_jitter_seed=0,
         return_hit_count=False,
-        extend_bounds=True,
         periodic_xy=periodic_xy,
+        veg_data=veg_data,
     )
     results[periodic_xy] = (sdir, veg_absorb, bud)
 

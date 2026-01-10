@@ -27,7 +27,42 @@ class VegetationSection(Section):
 
     def save(self) -> None:
         """Write veg_* to file."""
-        self.sim.save_veg(self.veg)
+        sim = self.sim
+        if sim is None:
+            raise ValueError("UDBase instance must be provided")
+        if not hasattr(self, "veg") or self.veg is None:
+            raise ValueError("No vegetation data available; run load_block/load_stl first")
+
+        veg = self.veg
+        points = np.asarray(veg.get("points", []), dtype=int)
+        if points.ndim == 1 and points.size:
+            points = points.reshape(1, -1)
+        params = veg.get("params", {})
+        ids = np.asarray(params.get("id", []), dtype=int)
+        lad_values = np.asarray(params.get("lad", []), dtype=float)
+        if points.size == 0 or ids.size == 0 or lad_values.size == 0:
+            raise ValueError("veg data missing points/ids/lad values")
+        if len(points) != len(ids) or len(points) != len(lad_values):
+            raise ValueError("veg points/ids/lad lengths do not match")
+
+        def _coerce_scalar(name: str) -> float:
+            values = np.asarray(params.get(name, []), dtype=float)
+            if values.size == 0:
+                raise ValueError(f"veg params missing '{name}'")
+            if not np.allclose(values, values.flat[0]):
+                warnings.warn(
+                    f"veg param '{name}' varies per point; using the first value when writing.",
+                    RuntimeWarning,
+                )
+            return float(values.flat[0])
+
+        cd = _coerce_scalar("cd")
+        ud = _coerce_scalar("ud")
+        dec = _coerce_scalar("dec")
+        lsize = _coerce_scalar("lsize")
+        r_s = _coerce_scalar("r_s")
+
+        sim.save_veg(points + 1, ids, lad_values, cd, ud, dec, lsize, r_s)
         self.write_changed_params()
 
     def load_block(self, filename: str | Path | None = None) -> Path:
@@ -122,7 +157,7 @@ class VegetationSection(Section):
         self.ltrees = True
         self.veg = veg
         if getattr(sim, "veg", None) is not veg:
-            warnings.warn("vegetation data is not saved to disk; call vegetation.save() to persist veg inputs")
+            warnings.warn("vegetation data is not saved to disk; call the save() method to persist veg inputs")
 
         fig = sim.plot_veg(veg, show=False)
 

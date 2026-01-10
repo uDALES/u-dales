@@ -2,10 +2,15 @@ from __future__ import annotations
 
 """
 Numba-accelerated direct shortwave radiation on facets with vegetation attenuation.
+
+Method summary
+--------------
+- Ray casting on a regular grid using 3D DDA voxel traversal.
+- Ray/triangle hits via the Moller-Trumbore intersection test.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple
 
 import math
 import numpy as np
@@ -44,6 +49,26 @@ def _build_veg_fields(sim, veg: VegData, ktot: int) -> Tuple[np.ndarray, np.ndar
         veg_index[i, j, k] = idx
 
     return lad_3d, dec_3d, veg_index
+
+
+def _veg_from_data(veg_data: Dict[str, Any] | None) -> VegData:
+    if veg_data is None:
+        return VegData(
+            points=np.empty((0, 3), dtype=int),
+            lad=np.empty((0,), dtype=float),
+            dec=np.empty((0,), dtype=float),
+        )
+    points = np.asarray(veg_data.get("points", []), dtype=int)
+    if points.ndim == 1 and points.size:
+        points = points.reshape(1, -1)
+    params = veg_data.get("params", {})
+    lad = np.asarray(params.get("lad", []), dtype=float)
+    dec = np.asarray(params.get("dec", []), dtype=float)
+    if points.size == 0:
+        raise ValueError("veg_data contains no vegetation points")
+    if len(points) != len(lad) or len(points) != len(dec):
+        raise ValueError("veg_data points and params lengths do not match")
+    return VegData(points=points, lad=lad, dec=dec)
 
 
 def _compute_ktot_and_z_edges(
@@ -700,18 +725,24 @@ def directshortwave(
     sim,
     nsun: np.ndarray,
     irradiance: float,
-    ray_scale: float = 1.0,
+    ray_density: float = 4.0,
     periodic_xy: bool = False,
     max_ray_length: float | None = None,
-    ray_jitter: float = 0.0,
-    ray_jitter_seed: int | None = None,
+    ray_jitter: float = 1.0,
+    extend_bounds: bool = True,
     return_hit_count: bool = False,
     return_ray_debug: bool = False,
-    extend_bounds: bool = False,
     debug_facid: int | None = None,
+    veg_data: Dict[str, Any] | None = None,
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
     """
     Numba-accelerated direct shortwave on facets and absorbed radiation in vegetation cells.
+
+    This implementation casts a grid of parallel rays in the sun direction, traverses
+    cells with a DDA walk, and tests intersections against triangles using the
+    Moller-Trumbore algorithm.
+
+    If vegetation is present, pass veg_data from UDBase.load_veg().
 
     """
     if nb is None:
@@ -731,20 +762,7 @@ def directshortwave(
     if extend_bounds and abs(direction[2]) < 1.0e-12:
         raise ValueError("extend_bounds requires a non-zero vertical sun component")
 
-    ltree = getattr(sim, "ltree", 0)
-    if ltree:
-        veg_data = sim.load_veg()
-        veg = VegData(
-            points=veg_data["points"],
-            lad=veg_data["params"]["lad"],
-            dec=veg_data["params"]["dec"],
-        )
-    else:
-        veg = VegData(
-            points=np.empty((0, 3), dtype=int),
-            lad=np.empty((0,), dtype=float),
-            dec=np.empty((0,), dtype=float),
-        )
+    veg = _veg_from_data(veg_data)
     ktot, z_edges, z_max, dz = _compute_ktot_and_z_edges(sim, veg.points)
 
     lad_3d, dec_3d, veg_index = _build_veg_fields(sim, veg, ktot)
@@ -822,8 +840,8 @@ def directshortwave(
     du = umax - umin
     dv = vmax - vmin
 
-    if ray_scale <= 0.0:
-        raise ValueError("ray_scale must be > 0")
+    if ray_density <= 0.0:
+        raise ValueError("ray_density must be > 0")
     if max_ray_length is None:
         max_ray_length = 10.0 * max(sim.xlen, sim.ylen)
     if max_ray_length <= 0.0:
@@ -831,7 +849,7 @@ def directshortwave(
     if ray_jitter < 0.0:
         raise ValueError("ray_jitter must be >= 0")
 
-    step = (min(sim.dx, sim.dy, float(np.min(sim.dzt)))) / ray_scale
+    step = (min(sim.dx, sim.dy, float(np.min(sim.dzt)))) / ray_density
     u_vals = np.arange(umin, umax + step, step)
     v_vals = np.arange(vmin, vmax + step, step)
     ray_area = step * step
@@ -858,7 +876,7 @@ def directshortwave(
     }
     bud["rays"] = int(len(u_vals) * len(v_vals))
     if use_jitter:
-        rng = np.random.default_rng(ray_jitter_seed)
+        rng = np.random.default_rng(0)
         jitter_u = (rng.random(bud["rays"]) - 0.5) * step * ray_jitter
         jitter_v = (rng.random(bud["rays"]) - 0.5) * step * ray_jitter
     else:
@@ -937,11 +955,6 @@ def directshortwave(
         k_idx = veg.points[:, 2].astype(int)
         cell_vol = sim.dx * sim.dy * dz[k_idx]
         bud["veg"] = float(np.sum(veg_absorb * cell_vol) * irradiance)
-    if extend_bounds:
-        unmapped = bud["sol"] - bud["fac"]
-        if unmapped > 0.0:
-            bud["out"] += unmapped
-            bud["sol"] = bud["fac"]
     if return_hit_count:
         bud["hit_count"] = hit_count
     if debug_enabled:
@@ -994,3 +1007,8 @@ def trace_ray_segments(
         max_steps,
     )
     return buf[:count]
+    if extend_bounds:
+        unmapped = bud["sol"] - bud["fac"]
+        if unmapped > 0.0:
+            bud["out"] += unmapped
+            bud["sol"] = bud["fac"]

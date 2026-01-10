@@ -33,6 +33,7 @@ start = time.perf_counter()
 
 # Instantiate UDBase with geometry for direct shortwave
 sim = UDBase(expnr, expdir)
+veg_data = sim.load_veg(zero_based=True, cache=True) if getattr(sim, "ltrees", False) else None
 
 elapsed = time.perf_counter() - start
 print(f"UDbase startup runtime: {elapsed:.3f} s")
@@ -43,9 +44,8 @@ az = np.deg2rad(azimuth_deg)
 el = np.deg2rad(elevation_deg)
 nsun = [np.cos(el) * np.cos(az), np.cos(el) * np.sin(az), np.sin(el)]
 irradiance = 800.0
-extend_bounds = True
 
-ray_factor = 6.0
+ray_density = 6.0
 ray_jitter = 1.0
 
 start = time.perf_counter()
@@ -53,12 +53,11 @@ sdir, veg_absorb, bud = directshortwave(
     sim,
     nsun=nsun,
     irradiance=irradiance,
-    ray_scale=ray_factor,
+    ray_density=ray_density,
     ray_jitter=ray_jitter,
-    ray_jitter_seed=0,
     return_hit_count=True,
-    extend_bounds=extend_bounds,
-    periodic_xy=False
+    periodic_xy=False,
+    veg_data=veg_data,
 )
 elapsed_nb = time.perf_counter() - start
 print(f"Direct shortwave runtime (numba): {elapsed_nb:.3f} s")
@@ -88,7 +87,7 @@ faces = np.asarray(mesh.faces, dtype=np.int32) + 1  # Fortran expects 1-based in
 incenter = np.asarray(mesh.triangles_center, dtype=float, order="F")
 face_normal = np.asarray(mesh.face_normals, dtype=float, order="F")
 nsun_f = np.asarray(nsun, dtype=float)
-resolution = 0.25*min(sim.dx, sim.dy, min(sim.dzt)) / ray_factor
+resolution = 0.25*min(sim.dx, sim.dy, min(sim.dzt)) / ray_density
 faces_f = np.asfortranarray(faces, dtype=np.int32)
 incenter_f = np.asfortranarray(incenter, dtype=float)
 face_normal_f = np.asfortranarray(face_normal, dtype=float)
