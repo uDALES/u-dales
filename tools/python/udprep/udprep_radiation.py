@@ -3,14 +3,24 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
-import warnings
-
 from .udprep import Section, SectionSpec
+from .directshortwave import DirectShortwaveSolver
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("radiation", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
 
 class RadiationSection(Section):
+    def __init__(
+        self,
+        name: str,
+        values: Dict[str, Any],
+        sim: Any | None = None,
+        defaults: Dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(name, values, sim=sim, defaults=defaults)
+        self._direct_sw_solver: DirectShortwaveSolver | None = None
+        self._direct_sw_solver_cfg: Dict[str, Any] | None = None
+
     def run_all(self) -> None:
         """Run radiation preprocessing steps."""
         steps = [
@@ -45,16 +55,55 @@ class RadiationSection(Section):
             - "facsec": ray casting with solid mask + facet-section reconstruction (accurate, cheaper)
             - "scanline": f2py scanline rasterization (no vegetation, fastest)
         kwargs : dict
-            Method-specific optional arguments forwarded to the implementation.
+            Optional arguments that define the solver configuration:
+            - ray_density (float): ray grid density (default 4)
+            - periodic_xy (bool): periodic boundaries in x/y (default False)
+            - ray_jitter (float): jitter factor for ray positions (default 1)
+            - veg_data (dict): vegetation data (default: loaded from sim)
+            - resolution (float): scanline resolution override (scanline only)
+            The solver is cached; changing any of these options recreates it.
         """
         method_key = method.strip().lower()
         if method_key in ("moller", "raycast", "mt"):
-            return self.calc_direct_sw_moller(nsun, irradiance, **kwargs)
-        if method_key in ("facsec", "section"):
-            return self.calc_direct_sw_facsec(nsun, irradiance, **kwargs)
-        if method_key in ("scanline", "f2py"):
-            return self.calc_direct_sw_scanline(nsun, irradiance, **kwargs)
-        raise ValueError(f"Unknown direct shortwave method: {method}")
+            method_key = "moller"
+        elif method_key in ("facsec", "section"):
+            method_key = "facsec"
+        elif method_key in ("scanline", "f2py"):
+            method_key = "scanline"
+        else:
+            raise ValueError(f"Unknown direct shortwave method: {method}")
+
+        veg_data = kwargs.pop("veg_data", self._get_veg_data())
+        ray_density = kwargs.pop("ray_density", 4.0)
+        periodic_xy = kwargs.pop("periodic_xy", False)
+        ray_jitter = kwargs.pop("ray_jitter", 1.0)
+        resolution = kwargs.pop("resolution", None)
+        if kwargs:
+            raise ValueError(f"Unknown direct shortwave options: {', '.join(sorted(kwargs.keys()))}")
+
+        cfg = {
+            "method": method_key,
+            "ray_density": float(ray_density),
+            "ray_jitter": float(ray_jitter),
+            "veg_key": id(veg_data) if veg_data is not None else None,
+        }
+        if self._direct_sw_solver is None or self._direct_sw_solver_cfg != cfg:
+            sim = self._require_sim()
+            self._direct_sw_solver = DirectShortwaveSolver(
+                sim,
+                method_key,
+                ray_density=ray_density,
+                ray_jitter=ray_jitter,
+                veg_data=veg_data,
+            )
+            self._direct_sw_solver_cfg = cfg
+
+        return self._direct_sw_solver.compute(
+            nsun,
+            irradiance,
+            periodic_xy=periodic_xy,
+            resolution=resolution,
+        )
 
     def calc_direct_sw_moller(
         self,
@@ -63,11 +112,7 @@ class RadiationSection(Section):
         **kwargs: Any,
     ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
         """Most accurate and most expensive: ray casting with Moller-Trumbore hits."""
-        sim = self._require_sim()
-        from .directshortwave_moller import directshortwave
-
-        veg_data = kwargs.pop("veg_data", self._get_veg_data())
-        return directshortwave(sim, nsun=nsun, irradiance=irradiance, veg_data=veg_data, **kwargs)
+        return self.calc_direct_sw(nsun, irradiance, method="moller", **kwargs)
 
     def calc_direct_sw_facsec(
         self,
@@ -76,72 +121,25 @@ class RadiationSection(Section):
         **kwargs: Any,
     ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
         """Accurate and cheaper: ray casting on cell solids + facsec reconstruction."""
-        sim = self._require_sim()
-        from .directshortwave_facsec import directshortwave
-
-        veg_data = kwargs.pop("veg_data", self._get_veg_data())
-        return directshortwave(sim, nsun=nsun, irradiance=irradiance, veg_data=veg_data, **kwargs)
+        return self.calc_direct_sw(nsun, irradiance, method="facsec", **kwargs)
 
     def calc_direct_sw_scanline(
         self,
         nsun: np.ndarray,
         irradiance: float,
-        ray_density: float = 1.0,
+        ray_density: float = 4.0,
         resolution: float | None = None,
     ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
         """
         Scanline polygon rasterization via f2py-wrapped Fortran (no vegetation).
         """
-        sim = self._require_sim()
-        if bool(getattr(sim, "ltree", 0)):
-            warnings.warn(
-                "Scanline (f2py) direct shortwave does not include vegetation; "
-                "results ignore tree attenuation.",
-                RuntimeWarning,
-            )
-        try:
-            from udprep.directshortwave_f2py import directshortwave_f2py_mod as _dsmod
-        except ImportError as exc:
-            raise RuntimeError(
-                "directshortwave_f2py module not available; "
-                "build it with tools/python/fortran/build_f2py.ps1"
-            ) from exc
-
-        if sim.geom is None or sim.geom.stl is None:
-            raise ValueError("Geometry not loaded; UDBase must be created with load_geometry=True")
-        if ray_density <= 0.0:
-            raise ValueError("ray_density must be > 0")
-
-        mesh = sim.geom.stl
-        vertices = np.asfortranarray(mesh.vertices, dtype=float)
-        faces = np.asfortranarray(mesh.faces, dtype=np.int32) + 1  # 1-based
-        incenter = np.asfortranarray(mesh.triangles_center, dtype=float)
-        face_normal = np.asfortranarray(mesh.face_normals, dtype=float)
-        nsun_f = np.asarray(nsun, dtype=float)
-        if resolution is None:
-            cell_min = min(sim.dx, sim.dy, float(np.min(sim.dzt)))
-            resolution = 0.25 * cell_min / ray_density
-        if resolution <= 0.0:
-            raise ValueError("resolution must be > 0")
-
-        sdir = _dsmod.calculate_direct_shortwave(
-            faces,
-            incenter,
-            face_normal,
-            vertices,
-            nsun_f,
-            float(irradiance),
-            float(resolution),
+        return self.calc_direct_sw(
+            nsun,
+            irradiance,
+            method="scanline",
+            ray_density=ray_density,
+            resolution=resolution,
         )
-        sdir = np.asarray(sdir, dtype=float)
-        areas = mesh.area_faces
-        if hasattr(sim, "facs") and "area" in sim.facs and sim.facs["area"].shape == areas.shape:
-            areas = sim.facs["area"]
-        bud = {
-            "fac": float(np.sum(sdir * areas)),
-            "veg": 0.0,
-        }
-        return sdir, np.zeros(0, dtype=float), bud
 
     def solar_position(self) -> None:
         """Compute solar position (SPA/solarPosition.m)."""

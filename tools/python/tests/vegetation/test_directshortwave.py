@@ -17,7 +17,7 @@ expdir = (udbase_path.parents[0] / "experiments" / expnr).resolve()
 
 start = time.perf_counter()
 from udbase import UDBase  # noqa: E402
-from udprep.directshortwave_facsec import directshortwave  # noqa: E402
+from udprep.directshortwave import DirectShortwaveSolver  # noqa: E402
 from directshortwave_f2py import directshortwave_f2py_mod as _dsmod  # noqa: E402
 calculate_direct_shortwave = _dsmod.calculate_direct_shortwave
 
@@ -49,16 +49,14 @@ ray_density = 6.0
 ray_jitter = 1.0
 
 start = time.perf_counter()
-sdir, veg_absorb, bud = directshortwave(
+solver = DirectShortwaveSolver(
     sim,
-    nsun=nsun,
-    irradiance=irradiance,
+    method="facsec",
     ray_density=ray_density,
     ray_jitter=ray_jitter,
-    return_hit_count=True,
-    periodic_xy=False,
     veg_data=veg_data,
 )
+sdir, veg_absorb, bud = solver.compute(nsun=nsun, irradiance=irradiance, periodic_xy=False)
 elapsed_nb = time.perf_counter() - start
 print(f"Direct shortwave runtime (numba): {elapsed_nb:.3f} s")
 

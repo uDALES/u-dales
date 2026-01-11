@@ -19,6 +19,7 @@ Notes
 
 from pathlib import Path
 import sys
+import time
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -64,7 +65,7 @@ irradiance = 800.0
 # but this can be too coarse for some geometries/facet sizes, and results may be 
 # noisy or inaccurate. Always test sensitivity by increasing ray_density (e.g., 2, 4, 8)
 # until results stabilize.
-ray_density = 3.0 # reducing for faster demo runs; increase for production
+ray_density = 6.0 # reducing for faster demo runs; increase for production
 
 plot_az_case1 = 30.0
 plot_az_case2 = plot_az_case1
@@ -160,18 +161,6 @@ expdir = udales_path.parents[0] / "experiments" / expnr
 prep = UDPrep(expnr, expdir, load_geometry=True)
 sim = prep.sim
 
-print("Compute direct shortwave (facsec, no vegetation)...")
-sdir_facsec, _, bud_facsec = prep.radiation.calc_direct_sw(
-    nsun=nsun,
-    irradiance=irradiance,
-    method="facsec",
-    ray_density=ray_density,
-    return_hit_count=False,
-    periodic_xy=False,
-)
-print_budget("facsec", bud_facsec)
-plot_shortwave(sim, sdir_facsec, "Direct shortwave (facsec, no vegetation)", plot_az_case1)
-
 print("Compute direct shortwave (scanline, no vegetation)...")
 sdir_scanline, _, bud_scanline = prep.radiation.calc_direct_sw(
     nsun=nsun,
@@ -181,6 +170,18 @@ sdir_scanline, _, bud_scanline = prep.radiation.calc_direct_sw(
 )
 print_budget("scanline", bud_scanline)
 plot_shortwave(sim, sdir_scanline, "Direct shortwave (scanline, no vegetation)", plot_az_case1)
+
+print("Compute direct shortwave (facsec, no vegetation)...")
+sdir_facsec, _, bud_facsec = prep.radiation.calc_direct_sw(
+    nsun=nsun,
+    irradiance=irradiance,
+    method="facsec",
+    ray_density=ray_density,
+    periodic_xy=False,
+)
+print_budget("facsec", bud_facsec)
+plot_shortwave(sim, sdir_facsec, "Direct shortwave (facsec, no vegetation)", plot_az_case1)
+
 diff = sdir_scanline - sdir_facsec
 print(
     "Scanline - facsec difference stats: "
@@ -196,13 +197,12 @@ print(
 # the domain, so shading includes upwind buildings beyond the edges.
 print("Compute direct shortwave (facsec, periodic)...")
 sdir_facsec_per, veg_absorb_facsec_per, bud_facsec_per = prep.radiation.calc_direct_sw(
-    nsun=nsun,
-    irradiance=irradiance,
-    method="facsec",
-    ray_density=ray_density,
-    return_hit_count=False,
-    periodic_xy=True,
-)
+        nsun=nsun,
+        irradiance=irradiance,
+        method="facsec",
+        ray_density=ray_density,
+        periodic_xy=True,
+    )
 print_budget("facsec periodic", bud_facsec_per)
 plot_shortwave(sim, sdir_facsec_per, "Direct shortwave (facsec, periodic)", plot_az_case2)
 
@@ -221,7 +221,6 @@ sdir_facsec_veg, veg_absorb_facsec_veg, bud_facsec_veg = prep_veg.radiation.calc
     method="facsec",
     ray_density=ray_density,
     periodic_xy=False,
-    return_hit_count=False,
 )
 print_budget("facsec vegetation", bud_facsec_veg)
 veg_data = sim_veg.load_veg(zero_based=True, cache=True)

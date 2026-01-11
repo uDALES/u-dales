@@ -1,3 +1,4 @@
-from .directshortwave_moller import directshortwave
+from .directshortwave import DirectShortwaveSolver
 from .udprep import UDPrep
-__all__ = ["directshortwave", "UDPrep"]
+
+__all__ = ["DirectShortwaveSolver", "UDPrep"]
