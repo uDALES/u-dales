@@ -159,7 +159,8 @@ expdir = udales_path.parents[0] / "experiments" / expnr
 
 prep = UDPrep(expnr, expdir, load_geometry=True)
 sim = prep.sim
-
+prep.run_all()
+exit()
 print("Compute shortwave (facsec, no vegetation)...")
 S_dir_facsec, K_star_facsec, S_veg_facsec = prep.radiation.calc_short_wave(
     nsun=nsun,

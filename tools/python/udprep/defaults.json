@@ -1,12 +1,4 @@
 {
-  "seb": {
-    "lEB": 0,
-    "lfacTlyrs": 0,
-    "facT": 288.0,
-    "nfaclyrs": 3,
-    "facT_file": "",
-    "dtEB": 10.0
-  },
   "grid": {
     "itot": 64,
     "xlen": 64,
@@ -46,30 +38,7 @@
     "v0": 0,
     "tke": 0,
     "thl0": 288,
-    "qt0": 0,
-    "dpdx": 0,
-    "dpdy": 0
-  },
-  "vegetation": {
-    "ltrees": false,
-    "ltreesfile": false,
-    "treesfile": "",
-    "tree_dz": 0.0,
-    "tree_dx": 0.0,
-    "tree_dy": 0.0,
-    "tree_h": 0.0,
-    "tree_w": 0.0,
-    "tree_b": 0.0,
-    "nrows": 0,
-    "cd" : 0.2,
-    "dec" : 0.3,
-    "dqdt": 0,
-    "lad" : 1.0,
-    "lsize" : 0.1,
-    "ntrees" : 0,
-    "qstar" : 400.0,
-    "r_s" : 50.0,
-    "ud" : 1e-3
+    "qt0": 0
   },
   "scalars": {
     "nsv": 0,
@@ -102,9 +71,6 @@
     "ray_density": 4.0,
     "ray_jitter": 1.0,
     "periodic_xy": false,
-    "iwallmom": 3,
-    "iwalltemp": 1,
-    "lwritefac": 0,
     "xazimuth": 90,
     "ltimedepsw": 0,
     "ishortwave": 1,
@@ -127,10 +93,32 @@
     "day": 30,
     "weatherfname": "",
     "psc_res": 0.1,
-    "lvfsparse": false,
+    "lvfsparse": true,
     "calc_vf": true,
-    "maxD": 1.0e308,
+    "maxD": 1e3,
     "vf_path": "",
-    "view3d_out": 0
+    "view3d_out": 2
+  },
+  "seb": {
+    "lEB": 0,
+    "lfacTlyrs": 0,
+    "facT": 288.0,
+    "nfaclyrs": 3,
+    "facT_file": "",
+    "dtEB": 10.0
+  },
+  "vegetation": {
+    "ltrees": false,
+    "ltreesfile": false,
+    "treesfile": "",
+    "cd" : 0.2,
+    "dec" : 0.3,
+    "dqdt": 0,
+    "lad" : 1.0,
+    "lsize" : 0.1,
+    "ntrees" : 0,
+    "qstar" : 400.0,
+    "r_s" : 50.0,
+    "ud" : 1e-3
   }
 }

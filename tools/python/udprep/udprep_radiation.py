@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple
 
 from pathlib import Path
@@ -7,6 +8,7 @@ from pathlib import Path
 import numpy as np
 from .udprep import Section, SectionSpec
 from .directshortwave import DirectShortwaveSolver
+from .solar import nsun_from_angles, solar_position_python, solar_state, solar_strength_ashrae
 from udgeom.view3d import (
     compute_svf,
     read_view3d_output,
@@ -38,12 +40,8 @@ class RadiationSection(Section):
     def run_all(self) -> None:
         """Run radiation preprocessing steps."""
         steps = [
-            ("compute_direct_shortwave", self.compute_direct_shortwave),
-            ("compute_view_factors", self.compute_view_factors),
-            ("write_vf", self.write_vf),
-            ("write_svf", self.write_svf),
-            ("write_netsw", self.write_netsw),
-            ("write_timedepsw", self.write_timedepsw),
+            ("run_short_wave", self.run_short_wave),
+            ("run_short_wave_timedep", self.run_short_wave_timedep),
         ]
         self.run_steps("radiation", steps)
 
@@ -157,11 +155,92 @@ class RadiationSection(Section):
             resolution=resolution,
         )
 
-    def solar_position(self) -> None:
-        """Compute solar position (SPA/solarPosition.m)."""
+    def solar_position(
+        self,
+        time_of_day: datetime | None = None,
+    ) -> Dict[str, Any]:
+        """
+        Compute solar position using the Python SPA port.
 
-    def ashrae_coeffs(self) -> None:
-        """Load ASHRAE coefficients (ASHRAE.m)."""
+        Parameters
+        ----------
+        time_of_day : datetime, optional
+            Timestamp to evaluate. Defaults to the date/time fields in the section.
+        """
+        if time_of_day is None:
+            time_of_day = datetime(
+                int(self.year),
+                int(self.month),
+                int(self.day),
+                int(self.hour),
+                int(self.minute),
+                int(self.second),
+            )
+        return solar_position_python(
+            time_of_day,
+            float(self.longitude),
+            float(self.latitude),
+            float(self.timezone),
+            float(self.elevation),
+        )
+
+    def calc_solar_state(
+        self,
+        *,
+        backend: str = "python",
+        time_of_day: datetime | None = None,
+    ) -> Tuple[np.ndarray, float, float, float, float]:
+        """
+        Compute solar state (nsun, zenith, azimuth, I, Dsky) based on isolar.
+
+        Returns
+        -------
+        nsun : np.ndarray
+            Unit vector pointing toward the sun in local coordinates.
+        zenith : float
+            Solar zenith angle [deg].
+        azimuth_local : float
+            Solar azimuth angle [deg] in local coordinates (solarazimuth - xazimuth).
+        I : float
+            Direct normal irradiance [W/m^2].
+        Dsky : float
+            Diffuse sky irradiance [W/m^2].
+        """
+        isolar = int(getattr(self, "isolar", 1))
+        xazimuth = float(getattr(self, "xazimuth", 0.0))
+
+        if isolar == 1:
+            zenith = float(self.solarzenith)
+            azimuth_local = float(self.solarazimuth) - xazimuth
+            nsun = nsun_from_angles(zenith, azimuth_local)
+            return nsun, zenith, azimuth_local, float(self.I), float(self.Dsky)
+
+        if isolar == 2:
+            if time_of_day is None:
+                time_of_day = datetime(
+                    int(self.year),
+                    int(self.month),
+                    int(self.day),
+                    int(self.hour),
+                    int(self.minute),
+                    int(self.second),
+                )
+            return solar_state(
+                time_of_day,
+                float(self.longitude),
+                float(self.latitude),
+                float(self.timezone),
+                float(self.elevation),
+                xazimuth=xazimuth,
+                backend=backend,
+            )
+
+        if isolar == 3:
+            raise NotImplementedError(
+                "isolar=3 (weatherfile-based solar state) is not implemented in udprep yet."
+            )
+
+        raise ValueError(f"Unsupported isolar value: {isolar}")
 
     def calc_view_factors(self, maxD: float = 250.0, force: bool = False):
         """
@@ -428,8 +507,189 @@ class RadiationSection(Section):
             return sdir, k_star, s_veg, vf, svf
         return sdir, k_star, s_veg
 
-    def write_timedepsw(self) -> None:
-        """Write time-dependent shortwave (write_timedepsw in preprocessing.m)."""
+    def run_short_wave(self) -> None:
+        """
+        Compute and write single-step shortwave (Sdir + netsw) like MATLAB.
+        """
+        sim = self._require_sim()
+        expnr = getattr(sim, "expnr", "")
+        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        start = datetime(
+            int(self.year),
+            int(self.month),
+            int(self.day),
+            int(self.hour),
+            int(self.minute),
+            int(self.second),
+        )
+        nsun, _, _, irradiance, dsky = self._solar_state_time(start)
+
+        lscatter = bool(getattr(sim, "lEB", False))
+        albedo = sim.assign_prop_to_fac("al")
+        face_normals = sim.geom.stl.face_normals
+        fss = (1.0 + face_normals[:, 2]) * 0.5 if not lscatter else None
+
+        method, resolution = self._shortwave_method()
+        vf = None
+        svf = None
+        if lscatter:
+            vf, svf, _ = self.calc_view_factors(maxD=float(self.maxD))
+
+        sdir, knet = self._compute_knet(
+            nsun,
+            irradiance,
+            dsky,
+            method,
+            resolution,
+            lscatter,
+            albedo,
+            vf,
+            svf,
+            fss,
+        )
+        self.write_netsw(knet)
+        sdir_path = out_dir / "Sdir.txt"
+        np.savetxt(sdir_path, sdir, fmt="%8.2f")
+
+    def run_short_wave_timedep(self) -> None:
+        """
+        Compute and write time-dependent shortwave (timedepsw + Sdir.nc).
+        """
+        if not bool(getattr(self, "ltimedepsw", False)):
+            return
+
+        sim = self._require_sim()
+        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        runtime = float(self.runtime)
+        dtSP = float(self.dtSP)
+        tSP = np.arange(0.0, runtime + 0.5 * dtSP, dtSP, dtype=float)
+        nt = tSP.size
+
+        lscatter = bool(getattr(sim, "lEB", False))
+        albedo = sim.assign_prop_to_fac("al")
+        face_normals = sim.geom.stl.face_normals
+        fss = (1.0 + face_normals[:, 2]) * 0.5 if not lscatter else None
+
+        method, resolution = self._shortwave_method()
+
+        vf = None
+        svf = None
+        if lscatter:
+            vf, svf, _ = self.calc_view_factors(maxD=float(self.maxD))
+
+        sdir_all = np.zeros((albedo.size, nt), dtype=float)
+        knet_all = np.zeros((albedo.size, nt), dtype=float)
+
+        start = datetime(
+            int(self.year),
+            int(self.month),
+            int(self.day),
+            int(self.hour),
+            int(self.minute),
+            int(self.second),
+        )
+
+        if int(getattr(self, "isolar", 1)) == 3:
+            weather = self._read_weather_table(Path(self.weatherfname))
+            date_val = int(start.strftime("%d%m%y"))
+            rows = weather["date"] == date_val
+            if not np.any(rows):
+                raise ValueError(f"No weather data for date {date_val} in {self.weatherfname}")
+
+            timedep_time = weather["TIME"][rows]
+            timedep_zenith = weather["SOLAR"][rows]
+            timedep_azimuth = weather["SOLAR_1"][rows] + 90.0
+            timedep_I = weather["HELIOM"][rows]
+            timedep_Dsky = weather["DIFSOLAR"][rows]
+
+            shift = -start.hour
+            timedep_zenith = np.roll(timedep_zenith, shift)
+            timedep_azimuth = np.roll(timedep_azimuth, shift)
+            timedep_I = np.roll(timedep_I, shift)
+            timedep_Dsky = np.roll(timedep_Dsky, shift)
+
+            x = np.concatenate([timedep_time, [86400.0]])
+            zenith_interp = self._interp_makima(x, np.concatenate([timedep_zenith, [timedep_zenith[0]]]), tSP)
+            azimuth_interp = self._interp_makima(x, np.concatenate([timedep_azimuth, [timedep_azimuth[0]]]), tSP)
+            I_interp = self._interp_makima(x, np.concatenate([timedep_I, [timedep_I[0]]]), tSP)
+            Dsky_interp = self._interp_makima(x, np.concatenate([timedep_Dsky, [timedep_Dsky[0]]]), tSP)
+
+            for n, t_val in enumerate(tSP):
+                solarzenith = float(zenith_interp[n])
+                irradiance = float(I_interp[n])
+                if solarzenith < 90.0 and irradiance > 0.0:
+                    azimuth = float(azimuth_interp[n]) - float(self.xazimuth)
+                    nsun = nsun_from_angles(solarzenith, azimuth)
+                    dsky = float(Dsky_interp[n])
+                    sdir, knet = self._compute_knet(
+                        nsun,
+                        irradiance,
+                        dsky,
+                        method,
+                        resolution,
+                        lscatter,
+                        albedo,
+                        vf,
+                        svf,
+                        fss,
+                    )
+                    sdir_all[:, n] = sdir
+                    knet_all[:, n] = knet
+        else:
+            for n, t_val in enumerate(tSP):
+                time_of_day = start + timedelta(seconds=float(t_val))
+                nsun, solarzenith, _, irradiance, dsky = self._solar_state_time(time_of_day)
+                if solarzenith < 90.0 and irradiance > 0.0:
+                    sdir, knet = self._compute_knet(
+                        nsun,
+                        irradiance,
+                        dsky,
+                        method,
+                        resolution,
+                        lscatter,
+                        albedo,
+                        vf,
+                        svf,
+                        fss,
+                    )
+                    sdir_all[:, n] = sdir
+                    knet_all[:, n] = knet
+
+        self._write_sdir_nc(out_dir / "Sdir.nc", tSP, sdir_all)
+        self.write_timedepsw(tSP, knet_all)
+
+    def write_timedepsw(self, tSP: np.ndarray, knet: np.ndarray) -> None:
+        """Write time-dependent net shortwave (timedepsw.inp.<expnr>)."""
+        sim = self._require_sim()
+        expnr = getattr(sim, "expnr", "")
+        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        timedepsw_path = out_dir / f"timedepsw.inp.{expnr}"
+        with timedepsw_path.open("w", encoding="ascii", newline="\n") as f:
+            f.write(
+                "# time-dependent net shortwave on facets [W/m2]. "
+                "First line: times (1 x nt), then netsw (nfcts x nt)\n"
+            )
+        with timedepsw_path.open("a", encoding="ascii", newline="\n") as f:
+            np.savetxt(f, tSP[None, :], fmt="%9.2f")
+            np.savetxt(f, knet, fmt="%9.4f")
+
+    def write_netsw(self, knet: np.ndarray) -> None:
+        """Write net shortwave on facets (netsw.inp.<expnr>)."""
+        sim = self._require_sim()
+        expnr = getattr(sim, "expnr", "")
+        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        netsw_path = out_dir / f"netsw.inp.{expnr}"
+        with netsw_path.open("w", encoding="ascii", newline="\n") as f:
+            f.write("# net shortwave on facets [W/m2] (including reflections and diffusive)\n")
+            np.savetxt(f, knet, fmt="%6.4f")
 
     def _require_sim(self):
         if self.sim is None:
@@ -446,6 +706,185 @@ class RadiationSection(Section):
         if not hasattr(sim, "load_veg"):
             raise ValueError("Vegetation data not available; sim.load_veg() is required")
         return sim.load_veg(zero_based=True, cache=True)
+
+    def _shortwave_method(self) -> Tuple[str, float | None]:
+        ishortwave = int(getattr(self, "ishortwave", 1))
+        if ishortwave == 1:
+            return "scanline", float(self.psc_res)
+        return getattr(self, "directsw_method", "facsec"), None
+
+    def _solar_state_time(
+        self,
+        time_of_day: datetime,
+    ) -> Tuple[np.ndarray, float, float, float, float]:
+        isolar = int(getattr(self, "isolar", 1))
+        xazimuth = float(getattr(self, "xazimuth", 0.0))
+
+        if isolar == 1:
+            zenith = float(self.solarzenith)
+            azimuth = float(self.solarazimuth) - xazimuth
+            nsun = nsun_from_angles(zenith, azimuth)
+            return nsun, zenith, azimuth, float(self.I), float(self.Dsky)
+
+        if isolar == 2:
+            sp = solar_position_python(
+                time_of_day,
+                float(self.longitude),
+                float(self.latitude),
+                float(self.timezone),
+                float(self.elevation),
+            )
+            zenith = float(sp["zenith"])
+            azimuth = float(sp["azimuth"]) - xazimuth
+            nsun = nsun_from_angles(zenith, azimuth)
+            irradiance, dsky = solar_strength_ashrae(time_of_day.month, zenith)
+            return nsun, zenith, azimuth, float(irradiance), float(dsky)
+
+        if isolar == 3:
+            weather = self._read_weather_table(Path(self.weatherfname))
+            date_val = int(time_of_day.strftime("%d%m%y"))
+            time_val = int(time_of_day.hour * 3600)
+            rows = (weather["date"] == date_val) & (weather["time"] == time_val)
+            if not np.any(rows):
+                raise ValueError(
+                    f"No weather data for date {date_val} and time {time_val} in {self.weatherfname}"
+                )
+            solarzenith = float(weather["SOLAR"][rows][0])
+            solarazimuth = float(weather["SOLAR_1"][rows][0]) + 90.0
+            irradiance = float(weather["HELIOM"][rows][0])
+            dsky = float(weather["DIFSOLAR"][rows][0])
+            azimuth = solarazimuth - xazimuth
+            nsun = nsun_from_angles(solarzenith, azimuth)
+            return nsun, solarzenith, azimuth, irradiance, dsky
+
+        raise ValueError(f"Unsupported isolar value: {isolar}")
+
+    def _compute_knet(
+        self,
+        nsun: np.ndarray,
+        irradiance: float,
+        dsky: float,
+        method: str,
+        resolution: float | None,
+        lscatter: bool,
+        albedo: np.ndarray,
+        vf,
+        svf: np.ndarray | None,
+        fss: np.ndarray | None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        sdir, _, _ = self.calc_direct_sw(
+            nsun,
+            irradiance,
+            method=method,
+            resolution=resolution,
+        )
+        if lscatter:
+            if vf is None or svf is None:
+                raise ValueError("View factors are required for shortwave reflections")
+            knet = self.calc_reflections_sw(sdir, dsky, vf, svf, albedo)
+        else:
+            if fss is None:
+                raise ValueError("Fss is required for non-scattering shortwave")
+            knet = (1.0 - albedo) * (sdir + dsky * fss)
+        return sdir, knet
+
+    @staticmethod
+    def _read_weather_table(path: Path) -> Dict[str, np.ndarray]:
+        if not path.exists():
+            raise FileNotFoundError(f"Weather file not found: {path}")
+
+        with path.open("r", encoding="ascii", errors="ignore") as f:
+            header = ""
+            for line in f:
+                if line.strip() and not line.strip().startswith("#"):
+                    header = line.strip()
+                    break
+            if not header:
+                raise ValueError(f"Weather file is empty: {path}")
+
+            delimiter = "," if "," in header else None
+            names = header.split(",") if delimiter == "," else header.split()
+            names = [n.strip() for n in names]
+
+            rows = []
+            for line in f:
+                if not line.strip() or line.strip().startswith("#"):
+                    continue
+                parts = line.split(",") if delimiter == "," else line.split()
+                if len(parts) != len(names):
+                    continue
+                rows.append([float(p) for p in parts])
+
+        if not rows:
+            raise ValueError(f"Weather file contains no data rows: {path}")
+
+        data = np.asarray(rows, dtype=float)
+        table = {name: data[:, i] for i, name in enumerate(names)}
+        table["date"] = data[:, 0].astype(int)
+        table["time"] = data[:, 1].astype(int)
+        return table
+
+    @staticmethod
+    def _interp_makima(x: np.ndarray, y: np.ndarray, x_new: np.ndarray) -> np.ndarray:
+        x = np.asarray(x, dtype=float)
+        y = np.asarray(y, dtype=float)
+        x_new = np.asarray(x_new, dtype=float)
+
+        if x.size < 2:
+            raise ValueError("Need at least two points for interpolation")
+        if np.any(np.diff(x) <= 0):
+            raise ValueError("x must be strictly increasing for interpolation")
+
+        m = np.diff(y) / np.diff(x)
+        m1 = 2.0 * m[0] - m[1]
+        m2 = 2.0 * m1 - m[0]
+        m_end1 = 2.0 * m[-1] - m[-2]
+        m_end2 = 2.0 * m_end1 - m[-1]
+        m_ext = np.concatenate(([m2, m1], m, [m_end1, m_end2]))
+
+        d = np.zeros_like(x)
+        for i in range(x.size):
+            w1 = abs(m_ext[i + 3] - m_ext[i + 2]) + abs(m_ext[i + 3] + m_ext[i + 2]) * 0.5
+            w2 = abs(m_ext[i + 1] - m_ext[i]) + abs(m_ext[i + 1] + m_ext[i]) * 0.5
+            if w1 + w2 > 0.0:
+                d[i] = (w1 * m_ext[i + 1] + w2 * m_ext[i + 2]) / (w1 + w2)
+            else:
+                d[i] = 0.5 * (m_ext[i + 1] + m_ext[i + 2])
+
+        idx = np.searchsorted(x, x_new, side="right") - 1
+        idx = np.clip(idx, 0, x.size - 2)
+        x0 = x[idx]
+        x1 = x[idx + 1]
+        y0 = y[idx]
+        y1 = y[idx + 1]
+        d0 = d[idx]
+        d1 = d[idx + 1]
+        h = x1 - x0
+        t = (x_new - x0) / h
+
+        t2 = t * t
+        t3 = t2 * t
+        h00 = 2.0 * t3 - 3.0 * t2 + 1.0
+        h10 = t3 - 2.0 * t2 + t
+        h01 = -2.0 * t3 + 3.0 * t2
+        h11 = t3 - t2
+
+        return h00 * y0 + h10 * h * d0 + h01 * y1 + h11 * h * d1
+
+    @staticmethod
+    def _write_sdir_nc(path: Path, tSP: np.ndarray, sdir: np.ndarray) -> None:
+        try:
+            from netCDF4 import Dataset
+        except ImportError as exc:
+            raise ImportError("netCDF4 is required to write Sdir.nc") from exc
+
+        with Dataset(path, "w", format="NETCDF4") as ds:
+            ds.createDimension("rows", sdir.shape[0])
+            ds.createDimension("columns", sdir.shape[1])
+            var_t = ds.createVariable("tSP", "f4", ("columns",))
+            var_s = ds.createVariable("Sdir", "f4", ("rows", "columns"))
+            var_t[:] = tSP.astype(np.float32)
+            var_s[:, :] = sdir.astype(np.float32)
 
 
 SPEC = SectionSpec(
