@@ -29,3 +29,16 @@ examples/*/*driver*
 *.pyc
 **/*.pyd
 facets*.vs3
+tools/View3D/build*/
+tools/View3D/*.exe
+tools/View3D/*.dll
+tools/View3D/*.lib
+tools/View3D/*.pdb
+tools/View3D/*.ilk
+tools/View3D/*.obj
+tools/View3D/*.exp
+tools/View3D/CMakeFiles/
+tools/View3D/CMakeCache.txt
+tools/View3D/Makefile
+tools/View3D/*.vcxproj*
+tools/View3D/*.sln
