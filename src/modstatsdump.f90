@@ -283,6 +283,7 @@ contains
 
     !> Generate time averaged NetCDF: tdump.xxx.nc
     if (ltdump) then
+      return
 
       tname(7:9) = cmyidx
       tname(11:13) = cmyidy
@@ -417,7 +418,8 @@ contains
 
     !> Generate sliced NetCDF: slicedump.xxx.xxx.nc
     if (lkslicedump) then
-
+      return
+      
       kslicename(12:14) = cmyidx
       kslicename(16:18) = cmyidy
       kslicename(20:22) = cexpnr
@@ -442,64 +444,64 @@ contains
 
     if (lislicedump) then
 
-      islicename(12:14) = cmyidx
-      islicename(16:18) = cmyidy
-      islicename(20:22) = cexpnr
-
-      call ncinfo(tncstatislice(1,:),'time'     ,'Time'   ,'s'   ,'time')
-      call ncinfo(ncstatislice( 1,:),'u_islice'     ,'Streamwise velocity at islice', '-', '0ttt')
-      call ncinfo(ncstatislice( 2,:),'v_islice'     ,'Spanwise velocity at islice', '-', '0mtt')
-      call ncinfo(ncstatislice( 3,:),'w_islice'     ,'Vertical velocity at islice', '-', '0tmt')
-      call ncinfo(ncstatislice( 4,:),'thl_islice'   ,'Potential temperature at islice', '-', '0ttt')
-      call ncinfo(ncstatislice( 5,:),'qt_islice'    ,'Specific humidity at islice', '-', '0ttt')
-
-      if ((islice >= zstart(1)) .and. (islice <= zend(1))) then
-        islicerank = .true.
-        isliceloc = islice - zstart(1) + 1
-      else
-        islicerank = .false.
-      end if
-
-      if (islicerank) then
-        call open_nc(islicename, ncidislice, nrecislice, n2=jmax, n3=khigh-klow+1)
-        if (nrecislice==0) then
-          call define_nc( ncidislice, 1, tncstatislice)
-          call writestat_dims_nc(ncidislice)
-        end if
-        call define_nc( ncidislice, nstatislice, ncstatislice)
-      end if
+    !  islicename(12:14) = cmyidx
+    !  islicename(16:18) = cmyidy
+    !  islicename(20:22) = cexpnr
+!
+ !     call ncinfo(tncstatislice(1,:),'time'     ,'Time'   ,'s'   ,'time')
+ !     call ncinfo(ncstatislice( 1,:),'u_islice'     ,'Streamwise velocity at islice', '-', '0ttt')
+ !     call ncinfo(ncstatislice( 2,:),'v_islice'     ,'Spanwise velocity at islice', '-', '0mtt')
+ !     call ncinfo(ncstatislice( 3,:),'w_islice'     ,'Vertical velocity at islice', '-', '0tmt')
+ !     call ncinfo(ncstatislice( 4,:),'thl_islice'   ,'Potential temperature at islice', '-', '0ttt')
+ !     call ncinfo(ncstatislice( 5,:),'qt_islice'    ,'Specific humidity at islice', '-', '0ttt')
+!
+ !     if ((islice >= zstart(1)) .and. (islice <= zend(1))) then
+ !       islicerank = .true.
+ !       isliceloc = islice - zstart(1) + 1
+ !     else
+ !       islicerank = .false.
+ !     end if
+!
+ !     if (islicerank) then
+ !       call open_nc(islicename, ncidislice, nrecislice, n2=jmax, n3=khigh-klow+1)
+ !       if (nrecislice==0) then
+ !         call define_nc( ncidislice, 1, tncstatislice)
+ !         call writestat_dims_nc(ncidislice)
+ !       end if
+ !       call define_nc( ncidislice, nstatislice, ncstatislice)
+ !     end if
 
     end if
 
     if (ljslicedump) then
 
-      jslicename(12:14) = cmyidx
-      jslicename(16:18) = cmyidy
-      jslicename(20:22) = cexpnr
-
-      call ncinfo(tncstatjslice(1,:),'time'     ,'Time'   ,'s'   ,'time')
-      call ncinfo(ncstatjslice( 1,:),'u_jslice'     ,'Streamwise velocity at jslice', '-', 'm0tt')
-      call ncinfo(ncstatjslice( 2,:),'v_jslice'     ,'Spanwise velocity at jslice', '-', 't0tt')
-      call ncinfo(ncstatjslice( 3,:),'w_jslice'     ,'Vertical velocity at jslice', '-', 't0mt')
-      call ncinfo(ncstatjslice( 4,:),'thl_jslice'   ,'Potential temperature at jslice', '-', 't0tt')
-      call ncinfo(ncstatjslice( 5,:),'qt_jslice'    ,'Specific humidity at jslice', '-', 't0tt')
-
-      if ((jslice >= zstart(2)) .and. (jslice <= zend(2))) then
-        jslicerank = .true.
-        jsliceloc = jslice - zstart(2) + 1
-      else
-        jslicerank = .false.
-      end if
-
-      if (jslicerank) then
-         call open_nc(jslicename, ncidjslice, nrecjslice, n1=imax, n3=khigh-klow+1)
-         if (nrecjslice==0) then
-            call define_nc( ncidjslice, 1, tncstatjslice)
-            call writestat_dims_nc(ncidjslice)
-         end if
-         call define_nc( ncidjslice, nstatjslice, ncstatjslice)
-      end if
-
+  !    jslicename(12:14) = cmyidx
+  !    jslicename(16:18) = cmyidy
+  !    jslicename(20:22) = cexpnr
+!
+!      call ncinfo(tncstatjslice(1,:),'time'     ,'Time'   ,'s'   ,'time')
+!      call ncinfo(ncstatjslice( 1,:),'u_jslice'     ,'Streamwise velocity at jslice', '-', 'm0tt')
+!      call ncinfo(ncstatjslice( 2,:),'v_jslice'     ,'Spanwise velocity at jslice', '-', 't0tt')
+!      call ncinfo(ncstatjslice( 3,:),'w_jslice'     ,'Vertical velocity at jslice', '-', 't0mt')
+!      call ncinfo(ncstatjslice( 4,:),'thl_jslice'   ,'Potential temperature at jslice', '-', 't0tt')
+!      call ncinfo(ncstatjslice( 5,:),'qt_jslice'    ,'Specific humidity at jslice', '-', 't0tt')
+!
+!      if ((jslice >= zstart(2)) .and. (jslice <= zend(2))) then
+!        jslicerank = .true.
+!        jsliceloc = jslice - zstart(2) + 1
+!      else
+!        jslicerank = .false.
+!      end if
+!
+!      if (jslicerank) then
+!         call open_nc(jslicename, ncidjslice, nrecjslice, n1=imax, n3=khigh-klow+1)
+!         if (nrecjslice==0) then
+!            call define_nc( ncidjslice, 1, tncstatjslice)
+!            call writestat_dims_nc(ncidjslice)
+!         end if
+!         call define_nc( ncidjslice, nstatjslice, ncstatjslice)
+!      end if
+!
     end if
 
     !> Set times to zero so works for warm starts... could have issues with warmstarts here...
@@ -1308,43 +1310,43 @@ contains
     end if !lxydump
 
     if (lkslicedump) then
-     allocate(varkslice(imax,jmax,nstatkslice))
-     call writestat_nc(ncidkslice,1,tncstatkslice,(/timee/),nreckslice,.true.)
-     varkslice(:,:,1) = um(ib:ie,jb:je,kslice)
-     varkslice(:,:,2) = vm(ib:ie,jb:je,kslice)
-     varkslice(:,:,3) = 0.5*(wm(ib:ie,jb:je,kslice)+wm(ib:ie,jb:je,kslice+1)) ! assumes equidistant
-     varkslice(:,:,4) = thlm(ib:ie,jb:je,kslice)
-     varkslice(:,:,5) = qtm(ib:ie,jb:je,kslice)
-     call writestat_nc(ncidkslice,nstatkslice,ncstatkslice,varkslice,nreckslice,imax,jmax)
+!     allocate(varkslice(imax,jmax,nstatkslice))
+!     call writestat_nc(ncidkslice,1,tncstatkslice,(/timee/),nreckslice,.true.)
+!     varkslice(:,:,1) = um(ib:ie,jb:je,kslice)
+!     varkslice(:,:,2) = vm(ib:ie,jb:je,kslice)
+!     varkslice(:,:,3) = 0.5*(wm(ib:ie,jb:je,kslice)+wm(ib:ie,jb:je,kslice+1)) ! assumes equidistant
+!     varkslice(:,:,4) = thlm(ib:ie,jb:je,kslice)
+!     varkslice(:,:,5) = qtm(ib:ie,jb:je,kslice)
+!     call writestat_nc(ncidkslice,nstatkslice,ncstatkslice,varkslice,nreckslice,imax,jmax)
 
     endif
 
     if (lislicedump) then
-      if (islicerank) then
-        allocate(varislice(jmax,khigh-klow+1,nstatislice))
-        call writestat_nc(ncidislice,1,tncstatislice,(/timee/),nrecislice,.true.)
-        varislice(:,:,1) = 0.5*(um(isliceloc,jb:je,kb:ke)+um(isliceloc+1,jb:je,kb:ke))
-        varislice(:,:,2) = vm(isliceloc,jb:je,kb:ke)
-        varislice(:,:,3) = wm(isliceloc,jb:je,kb:ke)
-        varislice(:,:,4) = thlm(isliceloc,jb:je,kb:ke)
-        varislice(:,:,5) = qtm(isliceloc,jb:je,kb:ke)
-        call writestat_nc(ncidislice,nstatislice,ncstatislice,varislice,nrecislice,jmax,khigh-klow+1)
-
-      endif
+!      if (islicerank) then
+!        allocate(varislice(jmax,khigh-klow+1,nstatislice))
+!        call writestat_nc(ncidislice,1,tncstatislice,(/timee/),nrecislice,.true.)
+!        varislice(:,:,1) = 0.5*(um(isliceloc,jb:je,kb:ke)+um(isliceloc+1,jb:je,kb:ke))
+!        varislice(:,:,2) = vm(isliceloc,jb:je,kb:ke)
+!        varislice(:,:,3) = wm(isliceloc,jb:je,kb:ke)
+!        varislice(:,:,4) = thlm(isliceloc,jb:je,kb:ke)
+!        varislice(:,:,5) = qtm(isliceloc,jb:je,kb:ke)
+!        call writestat_nc(ncidislice,nstatislice,ncstatislice,varislice,nrecislice,jmax,khigh-klow+1)
+!
+!      endif
     endif
 
     if (ljslicedump) then
-       if (jslicerank) then
-         allocate(varjslice(imax,khigh-klow+1,nstatjslice))
-         call writestat_nc(ncidjslice,1,tncstatjslice,(/timee/),nrecjslice,.true.)
-         varjslice(:,:,1) = um(ib:ie,jsliceloc,kb:ke)
-         varjslice(:,:,2) = 0.5*(vm(ib:ie,jsliceloc,kb:ke)+vm(ib:ie,jsliceloc+1,kb:ke))
-         varjslice(:,:,3) = wm(ib:ie,jsliceloc,kb:ke)
-         varjslice(:,:,4) = thlm(ib:ie,jsliceloc,kb:ke)
-         varjslice(:,:,5) = qtm(ib:ie,jsliceloc,kb:ke)
-         call writestat_nc(ncidjslice,nstatjslice,ncstatjslice,varjslice,nrecjslice,imax,khigh-klow+1)
-
-      endif
+!       if (jslicerank) then
+!         allocate(varjslice(imax,khigh-klow+1,nstatjslice))
+!         call writestat_nc(ncidjslice,1,tncstatjslice,(/timee/),nrecjslice,.true.)
+!         varjslice(:,:,1) = um(ib:ie,jsliceloc,kb:ke)
+!         varjslice(:,:,2) = 0.5*(vm(ib:ie,jsliceloc,kb:ke)+vm(ib:ie,jsliceloc+1,kb:ke))
+!         varjslice(:,:,3) = wm(ib:ie,jsliceloc,kb:ke)
+!         varjslice(:,:,4) = thlm(ib:ie,jsliceloc,kb:ke)
+!        varjslice(:,:,5) = qtm(ib:ie,jsliceloc,kb:ke)
+!         call writestat_nc(ncidjslice,nstatjslice,ncstatjslice,varjslice,nrecjslice,imax,khigh-klow+1)
+!
+!      endif
     endif
 
     if (ltkedump) then

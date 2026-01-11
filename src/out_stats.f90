@@ -10,8 +10,10 @@ module stats
                          IIuw, IIuws, IIuwt, IIvw, IIvws, IIuv, IIuvs, &
                          tr_u, tr_v, tr_w, tr_thl, tr_qt, tr_qtR, tr_qtA, tr_omega, tr_sv
   use modsubgrid, only : ekh, ekm
-  use modmpi,     only : cmyidx, cmyidy, myid, myidy, spatial_avg
-  use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc
+  use modmpi,     only : cmyidx, cmyidy, myid, myidx, myidy, spatial_avg, comm3d, mpierr,comm1dy
+  use mpi
+  use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset
+
   implicit none
   private
   public :: stats_init, stats_main, stats_exit
@@ -21,6 +23,7 @@ module stats
   real    :: tsamplep, tstatsdumpp, tstatsdumppi
   
   character(80)              :: filenamet
+  character(80)              :: filenamet1d    ! Separate filename for 1D output
   character(80)              :: filenamexyt
   character(80)              :: filenamexy
   character(80)              :: filenameyt
@@ -35,6 +38,7 @@ module stats
                                 ctryt,   ncidyt,   nrecyt, &
                                 ctry,    ncidy,    nrecy, &
                                 ctrtree, ncidtree, nrectree, &
+                                ncidt1d, &                  ! Separate file ID for 1D output
                                 dumpcount
 
   !!> Variables to store time averaged quantities
@@ -96,6 +100,8 @@ module stats
   character(20), allocatable :: wpsvptname(:)
   character(20), allocatable :: svpsvptname(:)
   character(10), allocatable :: svsgsname(:)
+  character(20), allocatable :: upsvptname(:)
+  character(20), allocatable :: vpsvptname(:)
   real, allocatable :: svt(:,:,:,:)
   real, allocatable :: svk(:,:,:,:)
   real, allocatable :: svtk(:,:,:,:)
@@ -103,6 +109,8 @@ module stats
   real, allocatable :: svsvt(:,:,:,:)
   real, allocatable :: svsgs(:,:,:,:)
   real, allocatable :: svsgst(:,:,:,:)
+  real, allocatable :: ucsvtk(:,:,:,:)
+  real, allocatable :: vcsvtk(:,:,:,:)
 
   real, allocatable :: PSS(:,:,:)
   real, allocatable :: PSSt(:,:,:)
@@ -316,7 +324,7 @@ module stats
         tVarsCount = 14
         if (ltempeq) tVarsCount = tVarsCount + 4
         if (lmoist)  tVarsCount = tVarsCount + 4
-        if (nsv>0)   tVarsCount = tVarsCount + 4*nsv
+        if (nsv>0)   tVarsCount = tVarsCount + 6*nsv
         if ((lchem) .and. (nsv>2)) tVarsCount = tVarsCount + 1
 
         allocate(tVars(tVarsCount,4))   !!> Array to store the variable description of the quantities to be written
@@ -328,7 +336,6 @@ module stats
         if ((lchem) .and. (nsv>2)) call stats_init_tavg_PSS
         
         call stats_createnc_tavg
-        
         deallocate(tVars)
       end if
 
@@ -504,8 +511,13 @@ module stats
         end if
         
         if(ltdump) then
-          call writestat_nc(ncidt, 'time', timee, nrect, .true.)
-          call stats_write_tavg_vel
+!          call writestat_nc(ncidt, 'time', timee, nrect, .true.)
+!          call stats_write_tavg_vel
+          if (myidy == 0) then
+            call writestat_nc(ncidt1d, 'time', timee, nrect, .true.)
+          end if
+            call stats_write_tavg_vel
+
           if (ltempeq) call stats_write_tavg_temp
           if (lmoist)  call stats_write_tavg_moist
           if (nsv>0)   call stats_write_tavg_scalar
@@ -675,11 +687,13 @@ module stats
 
     subroutine stats_allocate_tavg_scalar
       implicit none
-      allocate(svt(ib:ie,jb:je,kb:ke+kh,nsv))   ; svt    = 0;
-      allocate(svtk(ib:ie,jb:je,kb:ke+kh,nsv))  ; svtk   = 0;
-      allocate(wsvtk(ib:ie,jb:je,kb:ke+kh,nsv)) ; wsvtk  = 0;
-      allocate(svsvt(ib:ie,jb:je,kb:ke+kh,nsv)) ; svsvt  = 0;
-      allocate(svsgst(ib:ie,jb:je,kb:ke+kh,nsv)); svsgst = 0;
+      allocate(svt(ib:ie,jb:je,kb:ke+kh,nsv))     ; svt      = 0;
+      allocate(svtk(ib:ie,jb:je,kb:ke+kh,nsv))    ; svtk     = 0;
+      allocate(wsvtk(ib:ie,jb:je,kb:ke+kh,nsv))   ; wsvtk    = 0;
+      allocate(svsvt(ib:ie,jb:je,kb:ke+kh,nsv))   ; svsvt    = 0;
+      allocate(svsgst(ib:ie,jb:je,kb:ke+kh,nsv))  ; svsgst   = 0;
+      allocate(ucsvtk(ib:ie,jb:je,kb:ke+kh,nsv))  ; ucsvtk   = 0;
+      allocate(vcsvtk(ib:ie,jb:je,kb:ke+kh,nsv))  ; vcsvtk   = 0;
     end subroutine stats_allocate_tavg_scalar
     subroutine stats_ncdescription_tavg_scalar
       implicit none
@@ -689,18 +703,24 @@ module stats
       allocate(wpsvptname(nsv))
       allocate(svpsvptname(nsv))
       allocate(svsgsname(nsv))
+      allocate(upsvptname(nsv))
+      allocate(vpsvptname(nsv))
       do n = 1, nsv
         write (sid, '(I0)') n
         svtname(n)     = 's'//trim(sid)                        ! s1       at n = 1
         wpsvptname(n)  = 'wps'//trim(sid)//'p'                 ! wps1p    at n = 1
         svpsvptname(n) = 's'//trim(sid)//'ps'//trim(sid)//'p'  ! s1ps1p   at n = 1
         svsgsname(n)   = 's'//trim(sid)//'sgs'                 ! s1sgs    at n = 1
+        upsvptname(n)  = 'ups'//trim(sid)//'p'                 ! ups1p    at n = 1
+        vpsvptname(n)  = 'vps'//trim(sid)//'p'                 ! vps1p    at n = 1
         call ncinfo(tVars(ctrt+n,:)      , trim(svtname(n))    , 'Concentration field '//trim(sid)   , 'g/m^3'  , 'tttt' )
         call ncinfo(tVars(ctrt+nsv+n,:)  , trim(wpsvptname(n)) , 'Turbulent scalar flux '//trim(sid) , 'g/m^2s' , 'ttmt' )
         call ncinfo(tVars(ctrt+2*nsv+n,:), trim(svpsvptname(n)), 'Concentration variance '//trim(sid), 'g^2/m^6', 'tttt' )
         call ncinfo(tVars(ctrt+3*nsv+n,:), trim(svsgsname(n))  , 'SGS scalar flux '//trim(sid)       , 'g/m^2s' , 'ttmt' )
+        call ncinfo(tVars(ctrt+4*nsv+n,:), trim(upsvptname(n)) , 'u-scalar covariance '//trim(sid)   , 'g/m^2s' , 'tttt' )
+        call ncinfo(tVars(ctrt+5*nsv+n,:), trim(vpsvptname(n)) , 'v-scalar covariance '//trim(sid)   , 'g/m^2s' , 'tttt' )
       end do
-      ctrt = ctrt+4*nsv
+      ctrt = ctrt+6*nsv
     end subroutine stats_ncdescription_tavg_scalar
 
     subroutine stats_init_tavg_PSS
@@ -711,22 +731,23 @@ module stats
       ctrt = ctrt+1
     end subroutine stats_init_tavg_PSS
 
+    !! ## %% 1D parallel output creation (y-direction processes only)
     subroutine stats_createnc_tavg
+      use modglobal, only : jtot
       implicit none
-      filenamet = 'stats_t_out.xxx.xxx.xxx.nc'
-      filenamet(13:15) = cmyidx
-      filenamet(17:19) = cmyidy
-      filenamet(21:23) = cexpnr
+      if (myidy ==0) then
+        filenamet1d = 'stats_t_out.xxx.xxx.nc'
+        filenamet1d(13:15) = cmyidx  ! Only x-processor ID
+        filenamet1d(17:19) = cexpnr  ! Experiment number
 
-      nrect = 0
-      call open_nc(filenamet, ncidt, nrect, n1=xdim, n2=ydim, n3=zdim)
-      if (nrect==0) then
-        call define_nc(ncidt, 1, timeVar)
-        call writestat_dims_nc(ncidt)
+        call open_nc(filenamet1d, ncidt1d, nrect, n1=xdim, n2=jtot, n3=zdim)
+        if (nrect==0) then
+          call define_nc(ncidt1d, 1, timeVar)
+          call writestat_dims_nc(ncidt1d)
+        end if
+        call define_nc(ncidt1d, tVarsCount, tVars)
       end if
-      call define_nc(ncidt, tVarsCount, tVars)
     end subroutine stats_createnc_tavg
-
 
     !! ## %% Time, y and x averaging initialization routines
     subroutine stats_init_xytavg_vel
@@ -1335,6 +1356,8 @@ module stats
         call stats_compute_tavg(wsvtk(:,:,:,n) , wm(ib:ie,jb:je,kb:ke+kh)*svk(:,:,:,n) )
         call stats_compute_tavg(svsvt(:,:,:,n) , svm(ib:ie,jb:je,kb:ke+kh,n)*svm(ib:ie,jb:je,kb:ke+kh,n) )
         call stats_compute_tavg(svsgst(:,:,:,n), svsgs(:,:,:,n) )
+        call stats_compute_tavg(ucsvtk(:,:,:,n), uc(ib:ie,jb:je,kb:ke+kh)*svm(ib:ie,jb:je,kb:ke+kh,n) )
+        call stats_compute_tavg(vcsvtk(:,:,:,n), vc(ib:ie,jb:je,kb:ke+kh)*svm(ib:ie,jb:je,kb:ke+kh,n) )
       end do
     end subroutine stats_compute_tavg_scalar
 
@@ -1636,55 +1659,57 @@ module stats
     !! ## %% Time averaged statistics writing routines 
     subroutine stats_write_tavg_vel
       implicit none
-      call writestat_nc(ncidt, 'u', ut(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'v', vt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'w', wt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'p', pt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'u', ut(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'v', vt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'w', wt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'p', pt(:,:,kb:ke), nrect, xdim, ydim, zdim)
 
-      call writestat_nc(ncidt, 'upwp', uwtik(:,:,kb:ke) - utik(:,:,kb:ke)*wtik(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'vpwp', vwtjk(:,:,kb:ke) - vtjk(:,:,kb:ke)*wtjk(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'upvp', uvtij(:,:,kb:ke) - utij(:,:,kb:ke)*vtij(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      
-      call writestat_nc(ncidt, 'upup', uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'vpvp', vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'wpwp', wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'tke' , 0.5*( (uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke)) + (vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke)) + (wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke)) ) , nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'upwp', uwtik(:,:,kb:ke) - utik(:,:,kb:ke)*wtik(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'vpwp', vwtjk(:,:,kb:ke) - vtjk(:,:,kb:ke)*wtjk(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'upvp', uvtij(:,:,kb:ke) - utij(:,:,kb:ke)*vtij(:,:,kb:ke), nrect, xdim, ydim, zdim)
 
-      call writestat_nc(ncidt, 'usgs', usgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'vsgs', vsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'wsgs', wsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'upup', uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'vpvp', vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'wpwp', wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'tke' , 0.5*( (uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke)) + (vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke)) + (wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke)) ) , nrect, xdim, ydim, zdim)
+
+      call writeoffset(ncidt1d, 'usgs', usgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'vsgs', vsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'wsgs', wsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
     end subroutine stats_write_tavg_vel
 
     subroutine stats_write_tavg_temp
       implicit none
-      call writestat_nc(ncidt, 'thl'     , thlt(:,:,kb:ke)                                     , nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'wpthlp'  , wthltk(:,:,kb:ke) - wt(:,:,kb:ke)*thltk(:,:,kb:ke)  , nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'thlpthlp', thlthlt(:,:,kb:ke) - thlt(:,:,kb:ke)*thlt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'thlsgs'  , thlsgst(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'thl'     , thlt(:,:,kb:ke)                                     , nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'wpthlp'  , wthltk(:,:,kb:ke) - wt(:,:,kb:ke)*thltk(:,:,kb:ke)  , nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'thlpthlp', thlthlt(:,:,kb:ke) - thlt(:,:,kb:ke)*thlt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'thlsgs'  , thlsgst(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
     end subroutine stats_write_tavg_temp
 
     subroutine stats_write_tavg_moist
       implicit none
-      call writestat_nc(ncidt, 'qt'    , qtt(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'wpqtp' , wqttk(:,:,kb:ke) - wt(:,:,kb:ke)*qttk(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'qtpqtp', qtqtt(:,:,kb:ke) - qtt(:,:,kb:ke)*qtt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writestat_nc(ncidt, 'qtsgs' , qtsgst(:,:,kb:ke)                               , nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'qt'    , qtt(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'wpqtp' , wqttk(:,:,kb:ke) - wt(:,:,kb:ke)*qttk(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'qtpqtp', qtqtt(:,:,kb:ke) - qtt(:,:,kb:ke)*qtt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'qtsgs' , qtsgst(:,:,kb:ke)                               , nrect, xdim, ydim, zdim)
     end subroutine stats_write_tavg_moist
 
     subroutine stats_write_tavg_scalar
       implicit none
       integer :: n
       do n = 1, nsv
-        call writestat_nc(ncidt, trim(svtname(n))    , svt(:,:,kb:ke,n)                                      , nrect, xdim, ydim, zdim)
-        call writestat_nc(ncidt, trim(wpsvptname(n)) , wsvtk(:,:,kb:ke,n) - wt(:,:,kb:ke)*svtk(:,:,kb:ke,n)  , nrect, xdim, ydim, zdim)
-        call writestat_nc(ncidt, trim(svpsvptname(n)), svsvt(:,:,kb:ke,n) - svt(:,:,kb:ke,n)*svt(:,:,kb:ke,n), nrect, xdim, ydim, zdim)
-        call writestat_nc(ncidt, trim(svsgsname(n))  , svsgst(:,:,kb:ke,n)                                   , nrect, xdim, ydim, zdim)
+        call writeoffset(ncidt1d, trim(svtname(n))    , svt(:,:,kb:ke,n)                                      , nrect, xdim, ydim, zdim)
+        call writeoffset(ncidt1d, trim(wpsvptname(n)) , wsvtk(:,:,kb:ke,n) - wt(:,:,kb:ke)*svtk(:,:,kb:ke,n)  , nrect, xdim, ydim, zdim)
+        call writeoffset(ncidt1d, trim(svpsvptname(n)), svsvt(:,:,kb:ke,n) - svt(:,:,kb:ke,n)*svt(:,:,kb:ke,n), nrect, xdim, ydim, zdim)
+        call writeoffset(ncidt1d, trim(svsgsname(n))  , svsgst(:,:,kb:ke,n)                                   , nrect, xdim, ydim, zdim)
+        call writeoffset(ncidt1d, trim(upsvptname(n)) , ucsvtk(:,:,kb:ke,n) - utc(:,:,kb:ke)*svt(:,:,kb:ke,n) , nrect, xdim, ydim, zdim)
+        call writeoffset(ncidt1d, trim(vpsvptname(n)) , vcsvtk(:,:,kb:ke,n) - vtc(:,:,kb:ke)*svt(:,:,kb:ke,n) , nrect, xdim, ydim, zdim)
       end do
     end subroutine stats_write_tavg_scalar
 
     subroutine stats_write_tavg_PSS
       implicit none
-      call writestat_nc(ncidt, 'PSS', PSSt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt1d, 'PSS', PSSt(:,:,kb:ke), nrect, xdim, ydim, zdim)
     end subroutine stats_write_tavg_PSS
 
 

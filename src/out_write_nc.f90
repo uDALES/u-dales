@@ -29,7 +29,9 @@
 !
 module modstat_nc
     use netcdf
-    use modmpi, only : myid
+    use modmpi, only : myid, myidy, myidx, myid1dy, nbrboty, nbrtopy, nprocy, comm1dy, comm3d
+    use modglobal, only : jmax
+    
     implicit none
     integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0, ztsID=0, fctID=0, lyrID=0
     real(kind=4) :: nc_fillvalue = -999.
@@ -545,6 +547,96 @@ contains
     iret = nf90_put_var(ncid, VarID, var, (/1,1,1,nrec/), (/dim1,dim2,dim3,1/))
     iret = nf90_sync(ncid)
   end subroutine writestat_3D_var_nc
+
+subroutine writeoffset(ncid, ncname, var, nrec, dim1, dim2, dim3)
+  use netcdf
+  use mpi
+  use modmpi, only : MY_REAL
+  implicit none
+
+  integer,      intent(in) :: ncid, nrec, dim1, dim2, dim3
+  real,         intent(in) :: var(dim1,dim2,dim3)
+  character(*), intent(in) :: ncname
+
+  integer :: iret, VarID, ierr, status(MPI_STATUS_SIZE)
+  integer, dimension(4) :: startpos, countpos
+  integer :: step, src
+  real, dimension(dim1,dim2,dim3) :: bufin, bufout
+	
+  call MPI_BARRIER(comm1dy, ierr)
+
+  bufin = var
+
+  iret = nf90_inq_varid(ncid, ncname, VarID)
+
+  countpos = (/ dim1,dim2,dim3, 1 /)
+
+  do step = 1, nprocy
+     if (myid1dy == 0) then
+        src = step - 1
+        startpos = (/ 1, 1 + src*dim2, 1, nrec /)
+        iret = nf90_put_var(ncid, VarID, bufin, start=startpos, count=countpos)
+     end if
+
+     call MPI_SENDRECV( &
+          bufin,  size(bufin),  MY_REAL, nbrboty, 1000+step, &
+          bufout, size(bufout), MY_REAL, nbrtopy, 1000+step, &
+          comm1dy, status, ierr )
+     
+     bufin = bufout
+  end do
+
+  if (myid1dy == 0) then
+     iret = nf90_sync(ncid)
+  end if
+
+end subroutine writeoffset
+
+
+! 1D ring writer along X-direction (comm1dx)
+subroutine writeoffset_1dx(ncid, ncname, var, nrec, dim1, dim2, dim3)
+  use netcdf
+  use mpi
+  use modmpi, only : MY_REAL, comm1dx, myid1dx, nprocx, nbrbotx, nbrtopx
+  implicit none
+
+  integer,      intent(in) :: ncid, nrec, dim1, dim2, dim3
+  real,         intent(in) :: var(dim1,dim2,dim3)
+  character(*), intent(in) :: ncname
+
+  integer :: iret, VarID, ierr, status(MPI_STATUS_SIZE)
+  integer, dimension(4) :: startpos, countpos
+  integer :: step, src
+  real, dimension(dim1,dim2,dim3) :: bufin, bufout
+
+  call MPI_BARRIER(comm1dx, ierr)
+
+  bufin = var
+
+  iret = nf90_inq_varid(ncid, ncname, VarID)
+
+  countpos = (/ dim1,dim2,dim3, 1 /)
+
+  do step = 1, nprocx
+    if (myid1dx == 0) then
+      src = step - 1
+      startpos = (/ 1 + src*dim1, 1, 1, nrec /)
+      iret = nf90_put_var(ncid, VarID, bufin, start=startpos, count=countpos)
+    end if
+
+    call MPI_SENDRECV( &
+       bufin,  size(bufin),  MY_REAL, nbrbotx, 2000+step, &
+       bufout, size(bufout), MY_REAL, nbrtopx, 2000+step, &
+       comm1dx, status, ierr )
+     
+    bufin = bufout
+  end do
+
+  if (myid1dx == 0) then
+    iret = nf90_sync(ncid)
+  end if
+
+end subroutine writeoffset_1dx
 
 
   subroutine ncinfo(out,in1,in2,in3,in4)
