@@ -932,7 +932,7 @@ class DirectShortwaveSolver:
     def __init__(
         self,
         sim,
-        method: str,
+        method: str = "facsec",
         *,
         surface_mesh=None,
         ray_density: float = 4.0,
@@ -1040,7 +1040,7 @@ class DirectShortwaveSolver:
             raise ValueError("nsun must be non-zero")
         nsun_unit = nsun / norm
         direction = -nsun_unit
-        if abs(direction[2]) < 1.0e-12:
+        if abs(direction[2]) < 1.0e-2:
             raise ValueError("direct shortwave requires a non-zero vertical sun component")
 
         if self.method == "scanline":

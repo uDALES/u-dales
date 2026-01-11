@@ -98,6 +98,10 @@
     "nscasrcl": 0
   },
   "radiation": {
+    "directsw_method": "facsec",
+    "ray_density": 4.0,
+    "ray_jitter": 1.0,
+    "periodic_xy": false,
     "iwallmom": 3,
     "iwalltemp": 1,
     "lwritefac": 0,
@@ -110,7 +114,7 @@
     "solarazimuth": 135,
     "solarzenith": 28.4066,
     "I": 800,
-    "Dsky": 418.8041,
+    "Dsky": 250.0,
     "longitude": -0.13,
     "latitude": 51.5,
     "timezone": 0,

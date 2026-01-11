@@ -28,3 +28,4 @@ examples/*/*driver*
 **/__pycache__/
 *.pyc
 **/*.pyd
+facets*.vs3
