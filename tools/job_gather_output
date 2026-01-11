@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+#SBATCH --nodes=1
+#SBATCH --tasks-per-node=1
+#SBATCH --cpus-per-task=32
+#SBATCH --job-name=job_gather_out1d
+#SBATCH --account=n02-ASSURE
+#SBATCH --partition=serial
+#SBATCH --qos=serial
+#SBATCH --time=24:00:0
+##SBATCH --mem=125G
+
+export OMP_NUM_THREADS=32
+
+source /work/n02/n02/jh6016c/myvenv/bin/activate
+
+python gather_out1d_omp.py 106 ./106 ./106
+
