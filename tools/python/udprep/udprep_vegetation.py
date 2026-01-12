@@ -18,11 +18,7 @@ class VegetationSection(Section):
         """Run vegetation preprocessing steps."""
         treefile = str(getattr(self, "treesfile", ""))
         use_stl = treefile.lower().endswith(".stl") if treefile else False
-        steps = [
-            ("generate_trees_from_namoptions", self.generate_trees_from_namoptions),
-            ("write_trees", self.write_trees),
-            ("load_stl", self.load_stl) if use_stl else ("load_block", self.load_block),
-        ]
+        steps = [("load_stl", self.load_stl) if use_stl else ("load_block", self.load_block)]
         self.run_steps("vegetation", steps)
 
     def save(self) -> None:

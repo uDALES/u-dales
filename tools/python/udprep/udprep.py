@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import inspect
 import json
 import time
 from pathlib import Path
@@ -26,11 +27,25 @@ class Section:
         for key, val in values.items():
             setattr(self, key, val)
 
-    def run_steps(self, label: str, steps: List[Tuple[str, Callable[[], None]]]) -> None:
+    def run_steps(
+        self,
+        label: str,
+        steps: List[Tuple[str, Callable[[], None]]],
+        **kwargs: Any,
+    ) -> None:
         for name, func in steps:
             start = time.perf_counter()
             print(f"[{label}] {name}...")
-            func()
+            if kwargs:
+                sig = inspect.signature(func)
+                params = sig.parameters.values()
+                if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
+                    func(**kwargs)
+                else:
+                    call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+                    func(**call_kwargs)
+            else:
+                func()
             elapsed = time.perf_counter() - start
             print(f"[{label}] {name} done in {elapsed:.3f} s")
 
@@ -235,16 +250,23 @@ class UDPrep:
             lines.append(section_obj.__repr__())
         return "\n".join(lines)
 
-    def run_all(self) -> None:
+    def run_all(self, **kwargs: Any) -> None:
         """Run preprocessing in a write_inputs.m-style sequence."""
         self.ibm.run_all()
+        if self.vegetation.ltrees or self.vegetation.ltreesfile:
+            self.vegetation.run_all()
         self.ic.run_all()
         if self.scalars.nsv > 0:
             self.scalars.run_all()
-        if self.vegetation.ltrees or self.vegetation.ltreesfile:
-            self.vegetation.run_all()
         if self.seb.lEB:
-            self.radiation.run_all()
+            run_all = self.radiation.run_all
+            sig = inspect.signature(run_all)
+            params = sig.parameters.values()
+            if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
+                run_all(**kwargs)
+            else:
+                call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+                run_all(**call_kwargs)
             self.seb.run_all()
 
     def write_changed_params(self) -> None:

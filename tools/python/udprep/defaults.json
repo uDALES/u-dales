@@ -72,7 +72,7 @@
     "ray_jitter": 1.0,
     "periodic_xy": false,
     "xazimuth": 90,
-    "ltimedepsw": 0,
+    "ltimedepsw": false,
     "ishortwave": 1,
     "isolar": 1,
     "runtime": 0,
@@ -100,10 +100,8 @@
     "view3d_out": 2
   },
   "seb": {
-    "lEB": 0,
-    "lfacTlyrs": 0,
     "facT": 288.0,
-    "nfaclyrs": 3,
+    "nfaclyrs": 10,
     "facT_file": "",
     "dtEB": 10.0
   },

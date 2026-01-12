@@ -37,13 +37,21 @@ class RadiationSection(Section):
         self._svf_cache: np.ndarray | None = None
         self._vf_cache_key: tuple | None = None
 
-    def run_all(self) -> None:
+    def run_all(self, force: bool = False) -> None:
         """Run radiation preprocessing steps."""
-        steps = [
-            ("run_short_wave", self.run_short_wave),
-            ("run_short_wave_timedep", self.run_short_wave_timedep),
-        ]
-        self.run_steps("radiation", steps)
+        if bool(getattr(self, "ltimedepsw", False)):
+            steps = [("run_short_wave_timedep", self.run_short_wave_timedep)]
+        else:
+            steps = [("run_short_wave", self.run_short_wave)]
+        self.run_steps("radiation", steps, force=force)
+
+    def save(self, force: bool = False) -> None:
+        """
+        Run radiation preprocessing and write updated parameters.
+        """
+        self.run_short_wave(force=force)
+        self.run_short_wave_timedep(force=force)
+        self.write_changed_params()
 
     def calc_direct_sw(
         self,
@@ -264,6 +272,8 @@ class RadiationSection(Section):
         out_dir.mkdir(parents=True, exist_ok=True)
 
         view3d_out = int(self.view3d_out)
+        if view3d_out == 2 and not bool(getattr(sim, "lvfsparse", False)):
+            raise ValueError("view3d_out=2 requires lvfsparse=true in the ENERGYBALANCE section")
         maxD = float(maxD)
 
         stl_path = Path(sim.path) / sim.stl_file
@@ -297,6 +307,8 @@ class RadiationSection(Section):
                 vfsparse_path = out_dir / f"vfsparse.inp.{expnr}"
                 if not vfsparse_path.exists():
                     write_vfsparse(vfsparse_path, vf, threshold=5e-7)
+            nnz = int(getattr(vf, "nnz", np.count_nonzero(vf)))
+            sim.save_param("nnz", nnz)
             self._vf_cache = vf
             self._svf_cache = svf
             self._vf_cache_key = cache_key
@@ -328,6 +340,8 @@ class RadiationSection(Section):
             vfsparse_path = out_dir / f"vfsparse.inp.{expnr}"
             write_vfsparse(vfsparse_path, vf, threshold=5e-7)
 
+        nnz = int(getattr(vf, "nnz", np.count_nonzero(vf)))
+        sim.save_param("nnz", nnz)
         self._vf_cache = vf
         self._svf_cache = svf
         self._vf_cache_key = cache_key
@@ -507,7 +521,7 @@ class RadiationSection(Section):
             return sdir, k_star, s_veg, vf, svf
         return sdir, k_star, s_veg
 
-    def run_short_wave(self) -> None:
+    def run_short_wave(self, force: bool = False) -> None:
         """
         Compute and write single-step shortwave (Sdir + netsw) like MATLAB.
         """
@@ -515,6 +529,12 @@ class RadiationSection(Section):
         expnr = getattr(sim, "expnr", "")
         out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
         out_dir.mkdir(parents=True, exist_ok=True)
+
+        sdir_path = out_dir / "Sdir.txt"
+        netsw_path = out_dir / f"netsw.inp.{expnr}"
+        sveg_path = out_dir / f"sveg.inp.{expnr}"
+        if not force and sdir_path.exists() and netsw_path.exists():
+            return
 
         start = datetime(
             int(self.year),
@@ -537,7 +557,7 @@ class RadiationSection(Section):
         if lscatter:
             vf, svf, _ = self.calc_view_factors(maxD=float(self.maxD))
 
-        sdir, knet = self._compute_knet(
+        sdir, knet, s_veg = self._compute_knet(
             nsun,
             irradiance,
             dsky,
@@ -549,11 +569,10 @@ class RadiationSection(Section):
             svf,
             fss,
         )
-        self.write_netsw(knet)
-        sdir_path = out_dir / "Sdir.txt"
+        self.write_netsw(knet, s_veg=s_veg)
         np.savetxt(sdir_path, sdir, fmt="%8.2f")
 
-    def run_short_wave_timedep(self) -> None:
+    def run_short_wave_timedep(self, force: bool = False) -> None:
         """
         Compute and write time-dependent shortwave (timedepsw + Sdir.nc).
         """
@@ -563,6 +582,18 @@ class RadiationSection(Section):
         sim = self._require_sim()
         out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
         out_dir.mkdir(parents=True, exist_ok=True)
+
+        expnr = getattr(sim, "expnr", "")
+        sdir_nc_path = out_dir / "Sdir.nc"
+        timedepsw_path = out_dir / f"timedepsw.inp.{expnr}"
+        timedepsveg_path = out_dir / f"timedepsveg.inp.{expnr}"
+        if (
+            not force
+            and sdir_nc_path.exists()
+            and timedepsw_path.exists()
+        ):
+            if timedepsveg_path.exists() or not bool(getattr(sim, "ltrees", False)):
+                return
 
         runtime = float(self.runtime)
         dtSP = float(self.dtSP)
@@ -583,6 +614,8 @@ class RadiationSection(Section):
 
         sdir_all = np.zeros((albedo.size, nt), dtype=float)
         knet_all = np.zeros((albedo.size, nt), dtype=float)
+        s_veg_all = np.zeros((albedo.size, nt), dtype=float)
+        has_sveg = False
 
         start = datetime(
             int(self.year),
@@ -625,7 +658,7 @@ class RadiationSection(Section):
                     azimuth = float(azimuth_interp[n]) - float(self.xazimuth)
                     nsun = nsun_from_angles(solarzenith, azimuth)
                     dsky = float(Dsky_interp[n])
-                    sdir, knet = self._compute_knet(
+                    sdir, knet, s_veg = self._compute_knet(
                         nsun,
                         irradiance,
                         dsky,
@@ -639,12 +672,15 @@ class RadiationSection(Section):
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
+                    if s_veg is not None:
+                        s_veg_all[:, n] = s_veg
+                        has_sveg = True
         else:
             for n, t_val in enumerate(tSP):
                 time_of_day = start + timedelta(seconds=float(t_val))
                 nsun, solarzenith, _, irradiance, dsky = self._solar_state_time(time_of_day)
                 if solarzenith < 90.0 and irradiance > 0.0:
-                    sdir, knet = self._compute_knet(
+                    sdir, knet, s_veg = self._compute_knet(
                         nsun,
                         irradiance,
                         dsky,
@@ -658,9 +694,14 @@ class RadiationSection(Section):
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
+                    if s_veg is not None:
+                        s_veg_all[:, n] = s_veg
+                        has_sveg = True
 
-        self._write_sdir_nc(out_dir / "Sdir.nc", tSP, sdir_all)
+        self._write_sdir_nc(sdir_nc_path, tSP, sdir_all)
         self.write_timedepsw(tSP, knet_all)
+        if has_sveg:
+            self.write_timedepsveg(tSP, s_veg_all)
 
     def write_timedepsw(self, tSP: np.ndarray, knet: np.ndarray) -> None:
         """Write time-dependent net shortwave (timedepsw.inp.<expnr>)."""
@@ -679,7 +720,24 @@ class RadiationSection(Section):
             np.savetxt(f, tSP[None, :], fmt="%9.2f")
             np.savetxt(f, knet, fmt="%9.4f")
 
-    def write_netsw(self, knet: np.ndarray) -> None:
+    def write_timedepsveg(self, tSP: np.ndarray, s_veg: np.ndarray) -> None:
+        """Write time-dependent vegetation absorption (timedepsveg.inp.<expnr>)."""
+        sim = self._require_sim()
+        expnr = getattr(sim, "expnr", "")
+        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        path = out_dir / f"timedepsveg.inp.{expnr}"
+        with path.open("w", encoding="ascii", newline="\n") as f:
+            f.write(
+                "# time-dependent vegetation absorption [W/m2]. "
+                "First line: times (1 x nt), then sveg (nfcts x nt)\n"
+            )
+        with path.open("a", encoding="ascii", newline="\n") as f:
+            np.savetxt(f, tSP[None, :], fmt="%9.2f")
+            np.savetxt(f, s_veg, fmt="%9.4f")
+
+    def write_netsw(self, knet: np.ndarray, s_veg: np.ndarray | None = None) -> None:
         """Write net shortwave on facets (netsw.inp.<expnr>)."""
         sim = self._require_sim()
         expnr = getattr(sim, "expnr", "")
@@ -690,6 +748,11 @@ class RadiationSection(Section):
         with netsw_path.open("w", encoding="ascii", newline="\n") as f:
             f.write("# net shortwave on facets [W/m2] (including reflections and diffusive)\n")
             np.savetxt(f, knet, fmt="%6.4f")
+        if s_veg is not None:
+            path = out_dir / f"sveg.inp.{expnr}"
+            with path.open("w", encoding="ascii", newline="\n") as f:
+                f.write("# vegetation absorption on facets [W/m2]\n")
+                np.savetxt(f, s_veg, fmt="%6.4f")
 
     def _require_sim(self):
         if self.sim is None:
@@ -771,8 +834,8 @@ class RadiationSection(Section):
         vf,
         svf: np.ndarray | None,
         fss: np.ndarray | None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        sdir, _, _ = self.calc_direct_sw(
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+        sdir, s_veg, _ = self.calc_direct_sw(
             nsun,
             irradiance,
             method=method,
@@ -786,7 +849,7 @@ class RadiationSection(Section):
             if fss is None:
                 raise ValueError("Fss is required for non-scattering shortwave")
             knet = (1.0 - albedo) * (sdir + dsky * fss)
-        return sdir, knet
+        return sdir, knet, s_veg
 
     @staticmethod
     def _read_weather_table(path: Path) -> Dict[str, np.ndarray]:
