@@ -1,0 +1,686 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>diffv_corr &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>diffv_corr
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.2% of total for procedures.">29 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modibm.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modibm.f90.html'>modibm.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modibm.html'>modibm</a></li>
+            <li class="breadcrumb-item active" aria-current="page">diffv_corr</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/diffv_corr.html#src">diffv_corr</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine diffv_corr()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item">decomp_2d</li>
+                  <li class="list-inline-item"><a href='../module/modsubgriddata.html'>modsubgriddata</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~diffv_corr~~UsesGraph Pages: 1 -->
+<svg id="procdiffv_corrUsesGraph" width="315pt" height="136pt"
+ viewBox="0.00 0.00 314.81 136.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~diffv_corr~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 132.27)">
+<title>proc~~diffv_corr~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-132.27 310.81,-132.27 310.81,4 -4,4"/>
+<!-- proc~diffv_corr -->
+<g id="proc~~diffv_corr~~UsesGraph_node1" class="node">
+<title>proc~diffv_corr</title>
+<polygon fill="none" stroke="black" points="306.81,-87.27 245.04,-87.27 245.04,-63 306.81,-63 306.81,-87.27"/>
+<text text-anchor="middle" x="275.92" y="-71.54" font-family="Helvetica,sans-Serif" font-size="10.50">diffv_corr</text>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~diffv_corr~~UsesGraph_node2" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="73.77,-128.27 0,-128.27 0,-104 73.77,-104 73.77,-128.27"/>
+<text text-anchor="middle" x="36.88" y="-112.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- proc~diffv_corr&#45;&gt;decomp_2d -->
+<g id="proc~~diffv_corr~~UsesGraph_edge1" class="edge">
+<title>proc~diffv_corr&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M260.69,-87.64C248.09,-97.82 228.7,-111.4 209.04,-117.14 168.55,-128.94 120.33,-127.35 85.41,-123.58"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="85.96,-120.12 75.62,-122.42 85.13,-127.08 85.96,-120.12"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~diffv_corr~~UsesGraph_node3" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~diffv_corr~~UsesGraph_node3"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="191.41,-108.27 127.39,-108.27 127.39,-84 191.41,-84 191.41,-108.27"/>
+<text text-anchor="middle" x="159.4" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~diffv_corr&#45;&gt;module~modfields -->
+<g id="proc~~diffv_corr~~UsesGraph_edge2" class="edge">
+<title>proc~diffv_corr&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M244.84,-80.65C232.1,-82.99 217.03,-85.75 203.17,-88.29"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="202.59,-84.84 193.38,-90.09 203.85,-91.73 202.59,-84.84"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~diffv_corr~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~diffv_corr~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="193.66,-66.27 125.14,-66.27 125.14,-42 193.66,-42 193.66,-66.27"/>
+<text text-anchor="middle" x="159.4" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~diffv_corr&#45;&gt;module~modglobal -->
+<g id="proc~~diffv_corr~~UsesGraph_edge3" class="edge">
+<title>proc~diffv_corr&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M244.84,-69.62C232.62,-67.38 218.25,-64.74 204.87,-62.29"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="205.88,-58.92 195.41,-60.55 204.62,-65.8 205.88,-58.92"/>
+</g>
+<!-- module~modsubgriddata -->
+<g id="proc~~diffv_corr~~UsesGraph_node5" class="node">
+<title>module~modsubgriddata</title>
+<g id="a_proc~~diffv_corr~~UsesGraph_node5"><a xlink:href="../module/modsubgriddata.html" xlink:title="modsubgriddata">
+<polygon fill="#337ab7" stroke="#337ab7" points="209.04,-24.27 109.77,-24.27 109.77,0 209.04,0 209.04,-24.27"/>
+<text text-anchor="middle" x="159.4" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgriddata</text>
+</a>
+</g>
+</g>
+<!-- proc~diffv_corr&#45;&gt;module~modsubgriddata -->
+<g id="proc~~diffv_corr~~UsesGraph_edge4" class="edge">
+<title>proc~diffv_corr&#45;&gt;module~modsubgriddata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M256.94,-62.56C243.95,-53.76 225.82,-42.03 209.04,-33.13 206.71,-31.9 204.29,-30.68 201.83,-29.48"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="203.54,-26.42 193,-25.37 200.59,-32.76 203.54,-26.42"/>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~diffv_corr~~UsesGraph_edge5" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M127.05,-101.34C114.29,-103.46 99.25,-105.95 85.2,-108.28"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="84.99,-104.77 75.7,-109.86 86.13,-111.68 84.99,-104.77"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~diffv_corr~~CallsGraph Pages: 1 -->
+<svg id="procdiffv_corrCallsGraph" width="160pt" height="32pt"
+ viewBox="0.00 0.00 159.77 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~diffv_corr~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~diffv_corr~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 155.77,-28.27 155.77,4 -4,4"/>
+<!-- proc~diffv_corr -->
+<g id="proc~~diffv_corr~~CallsGraph_node1" class="node">
+<title>proc~diffv_corr</title>
+<polygon fill="none" stroke="black" points="61.77,-24.27 0,-24.27 0,0 61.77,0 61.77,-24.27"/>
+<text text-anchor="middle" x="30.88" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">diffv_corr</text>
+</g>
+<!-- zstart -->
+<g id="proc~~diffv_corr~~CallsGraph_node2" class="node">
+<title>zstart</title>
+<polygon fill="#777777" stroke="#777777" points="151.77,-24.27 97.77,-24.27 97.77,0 151.77,0 151.77,-24.27"/>
+<text text-anchor="middle" x="124.77" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zstart</text>
+</g>
+<!-- proc~diffv_corr&#45;&gt;zstart -->
+<g id="proc~~diffv_corr~~CallsGraph_edge1" class="edge">
+<title>proc~diffv_corr&#45;&gt;zstart</title>
+<path fill="none" stroke="#ff0000" d="M62.23,-12.13C69.88,-12.13 78.2,-12.13 86.16,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="85.96,-15.64 95.96,-12.14 85.96,-8.64 85.96,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~diffv_corr~~CalledByGraph Pages: 1 -->
+<svg id="procdiffv_corrCalledByGraph" width="296pt" height="32pt"
+ viewBox="0.00 0.00 296.06 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~diffv_corr~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~diffv_corr~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 292.06,-28.27 292.06,4 -4,4"/>
+<!-- proc~diffv_corr -->
+<g id="proc~~diffv_corr~~CalledByGraph_node1" class="node">
+<title>proc~diffv_corr</title>
+<polygon fill="none" stroke="black" points="288.06,-24.27 226.29,-24.27 226.29,0 288.06,0 288.06,-24.27"/>
+<text text-anchor="middle" x="257.18" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">diffv_corr</text>
+</g>
+<!-- proc~ibmwallfun -->
+<g id="proc~~diffv_corr~~CalledByGraph_node2" class="node">
+<title>proc~ibmwallfun</title>
+<g id="a_proc~~diffv_corr~~CalledByGraph_node2"><a xlink:href="../proc/ibmwallfun.html" xlink:title="ibmwallfun">
+<polygon fill="#d9534f" stroke="#d9534f" points="190.29,-24.27 120.27,-24.27 120.27,0 190.29,0 190.29,-24.27"/>
+<text text-anchor="middle" x="155.28" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ibmwallfun</text>
+</a>
+</g>
+</g>
+<!-- proc~ibmwallfun&#45;&gt;proc~diffv_corr -->
+<g id="proc~~diffv_corr~~CalledByGraph_edge1" class="edge">
+<title>proc~ibmwallfun&#45;&gt;proc~diffv_corr</title>
+<path fill="none" stroke="#ff0000" d="M190.66,-12.13C198.39,-12.13 206.68,-12.13 214.67,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="214.56,-15.64 224.56,-12.14 214.56,-8.64 214.56,-15.64"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~diffv_corr~~CalledByGraph_node3" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~diffv_corr~~CalledByGraph_node3"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-24.27 0,-24.27 0,0 84.27,0 84.27,-24.27"/>
+<text text-anchor="middle" x="42.13" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~ibmwallfun -->
+<g id="proc~~diffv_corr~~CalledByGraph_edge2" class="edge">
+<title>program~dalesurban&#45;&gt;proc~ibmwallfun</title>
+<path fill="none" stroke="#ff0000" d="M84.52,-12.13C92.4,-12.13 100.69,-12.13 108.69,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="108.61,-15.64 118.61,-12.14 108.61,-8.64 108.61,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">   </span><span class="k">subroutine </span><span class="n">diffv_corr</span>
+<span class="w">     </span><span class="c">! Negate subgrid rhs contributions from solid points (added by diffv in modsubgrid)</span>
+<span class="w">     </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w">      </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">eps1</span><span class="p">,</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                </span><span class="n">dx2i</span><span class="p">,</span><span class="w"> </span><span class="n">dxi5</span><span class="p">,</span><span class="w"> </span><span class="n">dy2i</span><span class="p">,</span><span class="w"> </span><span class="n">dyi5</span><span class="p">,</span><span class="w"> </span><span class="n">dzf</span><span class="p">,</span><span class="w"> </span><span class="n">dzh2i</span><span class="p">,</span><span class="w"> </span><span class="n">dzfi</span><span class="p">,</span><span class="w"> </span><span class="n">dzhi</span><span class="p">,</span><span class="w"> </span><span class="n">dzfi5</span><span class="p">,</span><span class="w"> </span><span class="n">dzhiq</span>
+<span class="w">     </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w">      </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">vp</span>
+<span class="w">     </span><span class="k">use </span><span class="n">modsubgriddata</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ekm</span>
+<span class="w">     </span><span class="k">use </span><span class="n">decomp_2d</span><span class="p">,</span><span class="w">      </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">zstart</span>
+
+<span class="w">     </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">epmo</span><span class="p">,</span><span class="w"> </span><span class="n">emmo</span><span class="p">,</span><span class="w"> </span><span class="n">eomp</span><span class="p">,</span><span class="w"> </span><span class="n">eomm</span>
+<span class="w">     </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">m</span>
+
+<span class="w">     </span><span class="k">do </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">bound_info_v</span><span class="p">%</span><span class="n">nbndptsrank</span>
+<span class="w">      </span><span class="c">!n = bound_info_v%bndptsrank(m)</span>
+<span class="w">         </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info_v</span><span class="p">%</span><span class="n">bndpts_loc</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">         </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info_v</span><span class="p">%</span><span class="n">bndpts_loc</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">         </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bound_info_v</span><span class="p">%</span><span class="n">bndpts_loc</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">mask_v</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">eps1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">           </span><span class="n">epmo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.25</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
+<span class="w">           </span><span class="n">vp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">epmo</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dx2i</span>
+<span class="w">         </span><span class="k">end if</span>
+
+<span class="k">         if</span><span class="w"> </span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">mask_v</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">eps1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">           </span><span class="n">emmo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.25</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
+<span class="w">           </span><span class="n">vp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">emmo</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dx2i</span>
+<span class="w">         </span><span class="k">end if</span>
+
+<span class="k">         if</span><span class="w"> </span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">mask_v</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">eps1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">           </span><span class="n">eomp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">   </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                    </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="w">  </span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzhiq</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">           </span><span class="n">vp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">eomp</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">         </span><span class="k">end if</span>
+
+<span class="k">         if</span><span class="w"> </span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">mask_v</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">eps1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">           </span><span class="n">eomm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="w">  </span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">   </span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                    </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzhiq</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">           </span><span class="n">vp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">eomm</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">         </span><span class="k">end if</span>
+
+<span class="k">     end do</span>
+
+<span class="k">   end subroutine </span><span class="n">diffv_corr</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

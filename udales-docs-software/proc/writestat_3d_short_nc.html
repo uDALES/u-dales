@@ -1,0 +1,722 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>writestat_3D_short_nc &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>writestat_3D_short_nc
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.1% of total for procedures.">13 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modstat_nc.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modstat_nc.f90.html'>modstat_nc.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modstat_nc.html'>modstat_nc</a></li>
+            <li class="breadcrumb-item active" aria-current="page">writestat_3D_short_nc</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/writestat_3d_short_nc.html#src">writestat_3D_short_nc</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine writestat_3D_short_nc(ncid, nvar, ncname, vars, nrec, dim1, dim2, dim3)  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~11"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvar</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncname~6"></span>
+              character(len=*),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:)
+            </td>
+            <td>::</td>
+            <td><strong>ncname</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars~6"></span>
+              integer(kind=selected_int_kind(4)),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(dim1,dim2,dim3,nvar)
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim1~4"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim1</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim2~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim2</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim3~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim3</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~writestat_3d_short_nc~~CallsGraph Pages: 1 -->
+<svg id="procwritestat_3d_short_ncCallsGraph" width="261pt" height="116pt"
+ viewBox="0.00 0.00 261.29 116.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~writestat_3d_short_nc~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 112.27)">
+<title>proc~~writestat_3d_short_nc~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-112.27 257.29,-112.27 257.29,4 -4,4"/>
+<!-- proc~writestat_3d_short_nc -->
+<g id="proc~~writestat_3d_short_nc~~CallsGraph_node1" class="node">
+<title>proc~writestat_3d_short_nc</title>
+<polygon fill="none" stroke="black" points="127.77,-66.27 0,-66.27 0,-42 127.77,-42 127.77,-66.27"/>
+<text text-anchor="middle" x="63.88" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50">writestat_3D_short_nc</text>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~writestat_3d_short_nc~~CallsGraph_node2" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="253.29,-108.27 163.77,-108.27 163.77,-84 253.29,-84 253.29,-108.27"/>
+<text text-anchor="middle" x="208.53" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~writestat_3d_short_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~writestat_3d_short_nc~~CallsGraph_edge1" class="edge">
+<title>proc~writestat_3d_short_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff0000" d="M107.68,-66.74C122.21,-71.01 138.63,-75.85 153.89,-80.34"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="152.73,-83.65 163.31,-83.12 154.71,-76.93 152.73,-83.65"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~writestat_3d_short_nc~~CallsGraph_node3" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="248.79,-66.27 168.27,-66.27 168.27,-42 248.79,-42 248.79,-66.27"/>
+<text text-anchor="middle" x="208.53" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~writestat_3d_short_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~writestat_3d_short_nc~~CallsGraph_edge2" class="edge">
+<title>proc~writestat_3d_short_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ff0000" d="M127.87,-54.13C137.42,-54.13 147.17,-54.13 156.43,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="156.32,-57.64 166.32,-54.14 156.32,-50.64 156.32,-57.64"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~writestat_3d_short_nc~~CallsGraph_node4" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="240.91,-24.27 176.14,-24.27 176.14,0 240.91,0 240.91,-24.27"/>
+<text text-anchor="middle" x="208.53" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~writestat_3d_short_nc&#45;&gt;nf90_sync -->
+<g id="proc~~writestat_3d_short_nc~~CallsGraph_edge3" class="edge">
+<title>proc~writestat_3d_short_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#ff0000" d="M107.68,-41.53C125.76,-36.21 146.76,-30.03 164.83,-24.71"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="165.59,-28.13 174.2,-21.95 163.61,-21.42 165.59,-28.13"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~writestat_3d_short_nc~~CalledByGraph Pages: 1 -->
+<svg id="procwritestat_3d_short_ncCalledByGraph" width="473pt" height="158pt"
+ viewBox="0.00 0.00 473.33 158.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 154.27)">
+<title>proc~~writestat_3d_short_nc~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-154.27 469.33,-154.27 469.33,4 -4,4"/>
+<!-- proc~writestat_3d_short_nc -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_node1" class="node">
+<title>proc~writestat_3d_short_nc</title>
+<polygon fill="none" stroke="black" points="465.33,-87.27 337.56,-87.27 337.56,-63 465.33,-63 465.33,-87.27"/>
+<text text-anchor="middle" x="401.44" y="-71.54" font-family="Helvetica,sans-Serif" font-size="10.50">writestat_3D_short_nc</text>
+</g>
+<!-- interface~writestat_nc -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_node2" class="node">
+<title>interface~writestat_nc</title>
+<g id="a_proc~~writestat_3d_short_nc~~CalledByGraph_node2"><a xlink:href="../interface/writestat_nc.html" xlink:title="writestat_nc">
+<polygon fill="#a7506f" stroke="#a7506f" points="301.56,-87.27 226.29,-87.27 226.29,-63 301.56,-63 301.56,-87.27"/>
+<text text-anchor="middle" x="263.92" y="-71.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_3d_short_nc -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_edge1" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_3d_short_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M301.96,-75.14C309.45,-75.14 317.57,-75.14 325.83,-75.14"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="325.62,-78.64 335.62,-75.14 325.62,-71.64 325.62,-78.64"/>
+</g>
+<!-- proc~eb -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_node3" class="node">
+<title>proc~eb</title>
+<g id="a_proc~~writestat_3d_short_nc~~CalledByGraph_node3"><a xlink:href="../proc/eb.html" xlink:title="EB">
+<polygon fill="#d9534f" stroke="#d9534f" points="182.28,-150.27 128.28,-150.27 128.28,-126 182.28,-126 182.28,-150.27"/>
+<text text-anchor="middle" x="155.28" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">EB</text>
+</a>
+</g>
+</g>
+<!-- proc~eb&#45;&gt;interface~writestat_nc -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_edge2" class="edge">
+<title>proc~eb&#45;&gt;interface~writestat_nc</title>
+<path fill="none" stroke="#ff0000" d="M177.6,-125.54C193.15,-116.35 214.46,-103.76 231.89,-93.47"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="233.5,-96.58 240.33,-88.48 229.94,-90.55 233.5,-96.58"/>
+</g>
+<!-- proc~fielddump -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_node4" class="node">
+<title>proc~fielddump</title>
+<g id="a_proc~~writestat_3d_short_nc~~CalledByGraph_node4"><a xlink:href="../proc/fielddump.html" xlink:title="fielddump">
+<polygon fill="#d9534f" stroke="#d9534f" points="188.04,-108.27 122.52,-108.27 122.52,-84 188.04,-84 188.04,-108.27"/>
+<text text-anchor="middle" x="155.28" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">fielddump</text>
+</a>
+</g>
+</g>
+<!-- proc~fielddump&#45;&gt;interface~writestat_nc -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_edge3" class="edge">
+<title>proc~fielddump&#45;&gt;interface~writestat_nc</title>
+<path fill="none" stroke="#ff0000" d="M188.28,-89.83C196.65,-88.19 205.85,-86.37 214.86,-84.6"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="215.46,-88.05 224.6,-82.68 214.11,-81.18 215.46,-88.05"/>
+</g>
+<!-- proc~ibmwallfun -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_node5" class="node">
+<title>proc~ibmwallfun</title>
+<g id="a_proc~~writestat_3d_short_nc~~CalledByGraph_node5"><a xlink:href="../proc/ibmwallfun.html" xlink:title="ibmwallfun">
+<polygon fill="#d9534f" stroke="#d9534f" points="190.29,-66.27 120.27,-66.27 120.27,-42 190.29,-42 190.29,-66.27"/>
+<text text-anchor="middle" x="155.28" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ibmwallfun</text>
+</a>
+</g>
+</g>
+<!-- proc~ibmwallfun&#45;&gt;interface~writestat_nc -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_edge4" class="edge">
+<title>proc~ibmwallfun&#45;&gt;interface~writestat_nc</title>
+<path fill="none" stroke="#ff0000" d="M190.61,-60.9C198.4,-62.43 206.8,-64.08 215.04,-65.71"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="214.11,-69.09 224.6,-67.59 215.46,-62.22 214.11,-69.09"/>
+</g>
+<!-- proc~statsdump -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_node6" class="node">
+<title>proc~statsdump</title>
+<g id="a_proc~~writestat_3d_short_nc~~CalledByGraph_node6"><a xlink:href="../proc/statsdump.html" xlink:title="statsdump">
+<polygon fill="#d9534f" stroke="#d9534f" points="188.79,-24.27 121.77,-24.27 121.77,0 188.79,0 188.79,-24.27"/>
+<text text-anchor="middle" x="155.28" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">statsdump</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;interface~writestat_nc -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_edge5" class="edge">
+<title>proc~statsdump&#45;&gt;interface~writestat_nc</title>
+<path fill="none" stroke="#ff0000" d="M177.6,-24.73C193.15,-33.92 214.46,-46.51 231.89,-56.8"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="229.94,-59.72 240.33,-61.79 233.5,-53.69 229.94,-59.72"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_node7" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~writestat_3d_short_nc~~CalledByGraph_node7"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-87.27 0,-87.27 0,-63 84.27,-63 84.27,-87.27"/>
+<text text-anchor="middle" x="42.13" y="-71.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~eb -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_edge6" class="edge">
+<title>program~dalesurban&#45;&gt;proc~eb</title>
+<path fill="none" stroke="#ff0000" d="M65.36,-87.73C81.64,-96.96 103.98,-109.62 122.19,-119.95"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="120.35,-122.93 130.78,-124.81 123.8,-116.84 120.35,-122.93"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~fielddump -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_edge7" class="edge">
+<title>program~dalesurban&#45;&gt;proc~fielddump</title>
+<path fill="none" stroke="#7fff00" d="M84.52,-82.95C93.19,-84.59 102.35,-86.32 111.08,-87.97"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="110.28,-91.38 120.75,-89.8 111.58,-84.5 110.28,-91.38"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~ibmwallfun -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_edge8" class="edge">
+<title>program~dalesurban&#45;&gt;proc~ibmwallfun</title>
+<path fill="none" stroke="#00ffff" d="M84.52,-67.32C92.49,-65.81 100.88,-64.22 108.97,-62.7"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="109.46,-66.17 118.64,-60.87 108.16,-59.29 109.46,-66.17"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~statsdump -->
+<g id="proc~~writestat_3d_short_nc~~CalledByGraph_edge9" class="edge">
+<title>program~dalesurban&#45;&gt;proc~statsdump</title>
+<path fill="none" stroke="#7f00ff" d="M65.36,-62.54C81.64,-53.31 103.98,-40.65 122.19,-30.32"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="123.8,-33.43 130.78,-25.46 120.35,-27.34 123.8,-33.43"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">writestat_3D_short_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="n">nvar</span><span class="p">,</span><span class="n">ncname</span><span class="p">,</span><span class="n">vars</span><span class="p">,</span><span class="n">nrec</span><span class="p">,</span><span class="n">dim1</span><span class="p">,</span><span class="n">dim2</span><span class="p">,</span><span class="n">dim3</span><span class="p">)</span>
+<span class="w">    </span><span class="k">implicit none</span>
+<span class="k">    </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">                      </span><span class="kd">::</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="n">nvar</span><span class="p">,</span><span class="n">dim1</span><span class="p">,</span><span class="n">dim2</span><span class="p">,</span><span class="n">dim3</span>
+<span class="w">    </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">                      </span><span class="kd">::</span><span class="w"> </span><span class="n">nrec</span>
+<span class="w">    </span><span class="kt">integer</span><span class="p">(</span><span class="nb">KIND</span><span class="o">=</span><span class="nb">selected_int_kind</span><span class="p">(</span><span class="mi">4</span><span class="p">)),</span><span class="k">dimension</span><span class="p">(</span><span class="n">dim1</span><span class="p">,</span><span class="n">dim2</span><span class="p">,</span><span class="n">dim3</span><span class="p">,</span><span class="n">nvar</span><span class="p">),</span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">       </span><span class="kd">::</span><span class="w"> </span><span class="n">vars</span>
+<span class="w">    </span><span class="kt">character</span><span class="p">(</span><span class="o">*</span><span class="p">),</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:,:),</span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">  </span><span class="kd">::</span><span class="w"> </span><span class="n">ncname</span>
+
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iret</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">varid</span>
+<span class="w">    </span><span class="c">!write(*,*) &#39;3Dnc short&#39;</span>
+<span class="w">    </span><span class="k">do </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nvar</span>
+<span class="w">      </span><span class="n">iret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_inq_varid</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">ncname</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="n">VarID</span><span class="p">)</span>
+<span class="w">      </span><span class="n">iret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_put_var</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">VarID</span><span class="p">,</span><span class="w"> </span><span class="n">vars</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">dim1</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">dim2</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">dim3</span><span class="p">,</span><span class="n">n</span><span class="p">),(</span><span class="o">/</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">nrec</span><span class="o">/</span><span class="p">),(</span><span class="o">/</span><span class="n">dim1</span><span class="p">,</span><span class="n">dim2</span><span class="p">,</span><span class="n">dim3</span><span class="p">,</span><span class="mi">1</span><span class="o">/</span><span class="p">))</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    </span><span class="n">iret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_sync</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+
+<span class="w">  </span><span class="k">end subroutine </span><span class="n">writestat_3D_short_nc</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

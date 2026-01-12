@@ -1,0 +1,898 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>avexy_ibm &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>avexy_ibm
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.2% of total for procedures.">30 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modmpi.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modmpi.f90.html'>modmpi.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modmpi.html'>modmpi</a></li>
+            <li class="breadcrumb-item active" aria-current="page">avexy_ibm</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/avexy_ibm.html#src">avexy_ibm</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine avexy_ibm(aver, var, ib, ie, jb, je, kb, ke, ih, jh, kh, II, IIs, lnan)  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-aver~2"></span>
+              real
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>aver</strong>(kb:ke+kh)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-var~3"></span>
+              real
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>var</strong>(ib:ie,jb:je,kb:ke+kh)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ib~3"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ib</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ie~3"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-jb~3"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>jb</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-je~3"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>je</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-kb~3"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>kb</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ke~3"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ke</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ih~4"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ih</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-jh~4"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>jh</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-kh~2"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>kh</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ii"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>II</strong>(ib:ie,jb:je,kb:ke+kh)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iis"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>IIs</strong>(kb:ke+kh)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lnan"></span>
+              logical
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lnan</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~avexy_ibm~~CallsGraph Pages: 1 -->
+<svg id="procavexy_ibmCallsGraph" width="198pt" height="32pt"
+ viewBox="0.00 0.00 198.29 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~avexy_ibm~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~avexy_ibm~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 194.29,-28.27 194.29,4 -4,4"/>
+<!-- proc~avexy_ibm -->
+<g id="proc~~avexy_ibm~~CallsGraph_node1" class="node">
+<title>proc~avexy_ibm</title>
+<polygon fill="none" stroke="black" points="67.77,-24.27 0,-24.27 0,0 67.77,0 67.77,-24.27"/>
+<text text-anchor="middle" x="33.88" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">avexy_ibm</text>
+</g>
+<!-- mpi_allreduce -->
+<g id="proc~~avexy_ibm~~CallsGraph_node2" class="node">
+<title>mpi_allreduce</title>
+<polygon fill="#777777" stroke="#777777" points="190.29,-24.27 103.77,-24.27 103.77,0 190.29,0 190.29,-24.27"/>
+<text text-anchor="middle" x="147.03" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_allreduce</text>
+</g>
+<!-- proc~avexy_ibm&#45;&gt;mpi_allreduce -->
+<g id="proc~~avexy_ibm~~CallsGraph_edge1" class="edge">
+<title>proc~avexy_ibm&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#ff0000" d="M68.23,-12.13C75.79,-12.13 84.01,-12.13 92.18,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="92.11,-15.64 102.11,-12.14 92.11,-8.64 92.11,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~avexy_ibm~~CalledByGraph Pages: 1 -->
+<svg id="procavexy_ibmCalledByGraph" width="591pt" height="294pt"
+ viewBox="0.00 0.00 590.60 294.15" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~avexy_ibm~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 290.15)">
+<title>proc~~avexy_ibm~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-290.15 586.6,-290.15 586.6,4 -4,4"/>
+<!-- proc~avexy_ibm -->
+<g id="proc~~avexy_ibm~~CalledByGraph_node1" class="node">
+<title>proc~avexy_ibm</title>
+<polygon fill="none" stroke="black" points="582.6,-150.15 514.83,-150.15 514.83,-125.88 582.6,-125.88 582.6,-150.15"/>
+<text text-anchor="middle" x="548.72" y="-134.42" font-family="Helvetica,sans-Serif" font-size="10.50">avexy_ibm</text>
+</g>
+<!-- proc~bcpup -->
+<g id="proc~~avexy_ibm~~CalledByGraph_node2" class="node">
+<title>proc~bcpup</title>
+<g id="a_proc~~avexy_ibm~~CalledByGraph_node2"><a xlink:href="../proc/bcpup.html" xlink:title="bcpup">
+<polygon fill="#d9534f" stroke="#d9534f" points="464.07,-286.15 410.07,-286.15 410.07,-261.88 464.07,-261.88 464.07,-286.15"/>
+<text text-anchor="middle" x="437.07" y="-270.42" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">bcpup</text>
+</a>
+</g>
+</g>
+<!-- proc~bcpup&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge1" class="edge">
+<title>proc~bcpup&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M461.4,-261.63C467.48,-257.76 473.75,-253.14 478.83,-248.02 504.72,-221.91 525.59,-184.4 537.32,-160.63"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="540.37,-162.36 541.54,-151.83 534.06,-159.33 540.37,-162.36"/>
+</g>
+<!-- proc~diagfld -->
+<g id="proc~~avexy_ibm~~CalledByGraph_node3" class="node">
+<title>proc~diagfld</title>
+<g id="a_proc~~avexy_ibm~~CalledByGraph_node3"><a xlink:href="../proc/diagfld.html" xlink:title="diagfld">
+<polygon fill="#d9534f" stroke="#d9534f" points="464.07,-130.15 410.07,-130.15 410.07,-105.88 464.07,-105.88 464.07,-130.15"/>
+<text text-anchor="middle" x="437.07" y="-114.42" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">diagfld</text>
+</a>
+</g>
+</g>
+<!-- proc~diagfld&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge2" class="edge">
+<title>proc~diagfld&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M464.33,-122.81C475.99,-124.93 490.05,-127.5 503.27,-129.91"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="502.63,-133.35 513.1,-131.7 503.89,-126.47 502.63,-133.35"/>
+</g>
+<!-- proc~fluidvolume -->
+<g id="proc~~avexy_ibm~~CalledByGraph_node4" class="node">
+<title>proc~fluidvolume</title>
+<g id="a_proc~~avexy_ibm~~CalledByGraph_node4"><a xlink:href="../proc/fluidvolume.html" xlink:title="fluidvolume">
+<polygon fill="#d9534f" stroke="#d9534f" points="345.81,-29.15 271.29,-29.15 271.29,-4.88 345.81,-4.88 345.81,-29.15"/>
+<text text-anchor="middle" x="308.55" y="-13.42" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">fluidvolume</text>
+</a>
+</g>
+</g>
+<!-- proc~fluidvolume&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge3" class="edge">
+<title>proc~fluidvolume&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M346.3,-6.97C382.57,0.75 438.31,6.54 478.83,-17.02 514.85,-37.96 533.6,-85.56 542,-114.42"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="538.61,-115.31 544.59,-124.05 545.37,-113.48 538.61,-115.31"/>
+</g>
+<!-- proc~masscorr -->
+<g id="proc~~avexy_ibm~~CalledByGraph_node5" class="node">
+<title>proc~masscorr</title>
+<g id="a_proc~~avexy_ibm~~CalledByGraph_node5"><a xlink:href="../proc/masscorr.html" xlink:title="masscorr">
+<polygon fill="#d9534f" stroke="#d9534f" points="201.54,-241.15 140.52,-241.15 140.52,-216.88 201.54,-216.88 201.54,-241.15"/>
+<text text-anchor="middle" x="171.03" y="-225.42" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">masscorr</text>
+</a>
+</g>
+</g>
+<!-- proc~masscorr&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge4" class="edge">
+<title>proc~masscorr&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M201.64,-227.41C257.39,-223.64 381.1,-211.76 478.83,-177.02 493.09,-171.95 507.84,-164.02 520.01,-156.63"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="521.67,-159.72 528.27,-151.43 517.94,-153.79 521.67,-159.72"/>
+</g>
+<!-- proc~readinitfiles -->
+<g id="proc~~avexy_ibm~~CalledByGraph_node6" class="node">
+<title>proc~readinitfiles</title>
+<g id="a_proc~~avexy_ibm~~CalledByGraph_node6"><a xlink:href="../proc/readinitfiles.html" xlink:title="readinitfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="207.91,-195.15 134.14,-195.15 134.14,-170.88 207.91,-170.88 207.91,-195.15"/>
+<text text-anchor="middle" x="171.03" y="-179.42" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readinitfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readinitfiles&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge5" class="edge">
+<title>proc~readinitfiles&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M208.28,-182.48C266.04,-181.05 382.3,-175.87 478.83,-157.02 486.95,-155.43 495.51,-153.38 503.74,-151.22"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="504.49,-154.64 513.21,-148.63 502.64,-147.89 504.49,-154.64"/>
+</g>
+<!-- proc~thermodynamics -->
+<g id="proc~~avexy_ibm~~CalledByGraph_node8" class="node">
+<title>proc~thermodynamics</title>
+<g id="a_proc~~avexy_ibm~~CalledByGraph_node8"><a xlink:href="../proc/thermodynamics.html" xlink:title="thermodynamics">
+<polygon fill="#d9534f" stroke="#d9534f" points="359.31,-162.15 257.79,-162.15 257.79,-137.88 359.31,-137.88 359.31,-162.15"/>
+<text text-anchor="middle" x="308.55" y="-146.42" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">thermodynamics</text>
+</a>
+</g>
+</g>
+<!-- proc~readinitfiles&#45;&gt;proc~thermodynamics -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge14" class="edge">
+<title>proc~readinitfiles&#45;&gt;proc~thermodynamics</title>
+<path fill="none" stroke="#7f00ff" d="M208.35,-174.17C220.11,-171.31 233.49,-168.05 246.54,-164.87"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="247.02,-168.36 255.91,-162.59 245.36,-161.56 247.02,-168.36"/>
+</g>
+<!-- proc~statsdump -->
+<g id="proc~~avexy_ibm~~CalledByGraph_node7" class="node">
+<title>proc~statsdump</title>
+<g id="a_proc~~avexy_ibm~~CalledByGraph_node7"><a xlink:href="../proc/statsdump.html" xlink:title="statsdump">
+<polygon fill="#d9534f" stroke="#d9534f" points="342.06,-90.15 275.04,-90.15 275.04,-65.88 342.06,-65.88 342.06,-90.15"/>
+<text text-anchor="middle" x="308.55" y="-74.42" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">statsdump</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge6" class="edge">
+<title>proc~statsdump&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M342.25,-77.64C377,-78.15 433.14,-81.66 478.83,-97.02 494.03,-102.13 509.5,-110.94 521.92,-119.09"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="519.68,-121.8 529.91,-124.55 523.62,-116.02 519.68,-121.8"/>
+</g>
+<!-- proc~tkestatsdump -->
+<g id="proc~~avexy_ibm~~CalledByGraph_node9" class="node">
+<title>proc~tkestatsdump</title>
+<g id="a_proc~~avexy_ibm~~CalledByGraph_node9"><a xlink:href="../proc/tkestatsdump.html" xlink:title="tkestatsdump">
+<polygon fill="#d9534f" stroke="#d9534f" points="478.83,-50.15 395.31,-50.15 395.31,-25.88 478.83,-25.88 478.83,-50.15"/>
+<text text-anchor="middle" x="437.07" y="-34.42" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">tkestatsdump</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;proc~tkestatsdump -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge16" class="edge">
+<title>proc~statsdump&#45;&gt;proc~tkestatsdump</title>
+<path fill="none" stroke="#ff00bf" d="M342.46,-67.61C355.65,-63.44 371.14,-58.55 385.68,-53.95"/>
+<polygon fill="#ff00bf" stroke="#ff00bf" points="386.64,-57.31 395.12,-50.96 384.53,-50.64 386.64,-57.31"/>
+</g>
+<!-- proc~thermodynamics&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge7" class="edge">
+<title>proc~thermodynamics&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M359.77,-147.49C402.12,-145.35 462.19,-142.33 502.93,-140.27"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="503.08,-143.77 512.89,-139.77 502.72,-136.78 503.08,-143.77"/>
+</g>
+<!-- proc~thermodynamics&#45;&gt;proc~diagfld -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge9" class="edge">
+<title>proc~thermodynamics&#45;&gt;proc~diagfld</title>
+<path fill="none" stroke="#ffbf00" d="M359.19,-137.46C372.44,-134.11 386.53,-130.55 398.98,-127.4"/>
+<polygon fill="#ffbf00" stroke="#ffbf00" points="399.57,-130.86 408.41,-125.01 397.86,-124.07 399.57,-130.86"/>
+</g>
+<!-- proc~tkestatsdump&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge8" class="edge">
+<title>proc~tkestatsdump&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M459.94,-50.54C466.26,-54.53 473.03,-59.18 478.83,-64.02 498.22,-80.17 517.56,-101.52 530.79,-117.14"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="527.77,-118.98 536.86,-124.42 533.15,-114.5 527.77,-118.98"/>
+</g>
+<!-- proc~calcfluidvolumes -->
+<g id="proc~~avexy_ibm~~CalledByGraph_node10" class="node">
+<title>proc~calcfluidvolumes</title>
+<g id="a_proc~~avexy_ibm~~CalledByGraph_node10"><a xlink:href="../proc/calcfluidvolumes.html" xlink:title="calcfluidvolumes">
+<polygon fill="#d9534f" stroke="#d9534f" points="221.79,-67.15 120.27,-67.15 120.27,-42.88 221.79,-42.88 221.79,-67.15"/>
+<text text-anchor="middle" x="171.03" y="-51.42" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">calcfluidvolumes</text>
+</a>
+</g>
+</g>
+<!-- proc~calcfluidvolumes&#45;&gt;proc~fluidvolume -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge10" class="edge">
+<title>proc~calcfluidvolumes&#45;&gt;proc~fluidvolume</title>
+<path fill="none" stroke="#7fff00" d="M216.78,-42.47C230.65,-38.58 245.98,-34.28 260.03,-30.34"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="260.83,-33.75 269.52,-27.68 258.94,-27.01 260.83,-33.75"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~avexy_ibm~~CalledByGraph_node11" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~avexy_ibm~~CalledByGraph_node11"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-155.15 0,-155.15 0,-130.88 84.27,-130.88 84.27,-155.15"/>
+<text text-anchor="middle" x="42.13" y="-139.42" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~masscorr -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge11" class="edge">
+<title>program~dalesurban&#45;&gt;proc~masscorr</title>
+<path fill="none" stroke="#00ff3f" d="M57.26,-155.64C72.25,-168.67 96.95,-189.15 120.27,-204.02 124.21,-206.53 128.44,-208.99 132.71,-211.32"/>
+<polygon fill="#00ff3f" stroke="#00ff3f" points="130.79,-214.26 141.28,-215.8 134.04,-208.06 130.79,-214.26"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~readinitfiles -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge12" class="edge">
+<title>program~dalesurban&#45;&gt;proc~readinitfiles</title>
+<path fill="none" stroke="#00ffff" d="M82.94,-155.56C95.66,-159.57 109.86,-164.05 123.04,-168.2"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="121.78,-171.48 132.37,-171.15 123.89,-164.8 121.78,-171.48"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~statsdump -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge13" class="edge">
+<title>program~dalesurban&#45;&gt;proc~statsdump</title>
+<path fill="none" stroke="#003fff" d="M84.74,-132.79C133.45,-120.82 213.77,-101.07 263.51,-88.84"/>
+<polygon fill="#003fff" stroke="#003fff" points="264.2,-92.28 273.07,-86.49 262.53,-85.48 264.2,-92.28"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~thermodynamics -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge15" class="edge">
+<title>program~dalesurban&#45;&gt;proc~thermodynamics</title>
+<path fill="none" stroke="#7f00ff" d="M84.74,-144.12C128.19,-145.27 196.78,-147.08 246.39,-148.4"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="246.02,-151.89 256.11,-148.65 246.2,-144.89 246.02,-151.89"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~calcfluidvolumes -->
+<g id="proc~~avexy_ibm~~CalledByGraph_edge17" class="edge">
+<title>program~dalesurban&#45;&gt;proc~calcfluidvolumes</title>
+<path fill="none" stroke="#ff0000" d="M57.36,-130.54C72.43,-117.63 97.18,-97.25 120.27,-82.02 125.02,-78.88 130.17,-75.79 135.29,-72.87"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="136.6,-76.14 143.66,-68.25 133.22,-70.01 136.6,-76.14"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">avexy_ibm</span><span class="p">(</span><span class="n">aver</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">II</span><span class="p">,</span><span class="n">IIs</span><span class="p">,</span><span class="n">lnan</span><span class="p">)</span>
+<span class="w">    </span><span class="k">implicit none</span>
+
+<span class="k">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kh</span>
+<span class="w">    </span><span class="kt">real</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">aver</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">real</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">var</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">II</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">IIs</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">IId</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">real</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">averl</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">real</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">avers</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">k</span>
+<span class="w">    </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">lnan</span>
+
+<span class="w">    </span><span class="n">averl</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="n">avers</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="w">      </span><span class="n">averl</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="n">var</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">II</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
+<span class="w">    </span><span class="k">enddo</span>
+
+<span class="k">    </span><span class="n">IId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IIs</span>
+
+<span class="w">    </span><span class="c">! tg3315 22.03.19 - if not calculating stats and all blocks on lowest layer...</span>
+<span class="w">    </span><span class="c">! should not be necessary but value at kb is used in modthermo so reasonable value must</span>
+<span class="w">    </span><span class="c">! be assigned. Potentially should leave as before and only account for in modthermo...</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">((.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">lnan</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">IId</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      </span><span class="n">averl</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="n">var</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">))</span>
+<span class="w">      </span><span class="n">IId</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IId</span><span class="p">(</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">averl</span><span class="p">,</span><span class="w"> </span><span class="n">avers</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="o">-</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w">  </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                          </span><span class="n">MPI_SUM</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">where</span><span class="w"> </span><span class="p">(</span><span class="n">IId</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span>
+<span class="w">      </span><span class="n">aver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mi">99</span><span class="mf">9.</span>
+<span class="w">    </span><span class="n">elsewhere</span>
+<span class="w">      </span><span class="n">aver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">avers</span><span class="o">/</span><span class="n">IId</span>
+<span class="w">    </span><span class="k">endwhere</span>
+
+<span class="k">    return</span>
+<span class="k">  end subroutine </span><span class="n">avexy_ibm</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

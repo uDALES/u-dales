@@ -1,0 +1,939 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>inittimedep &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>inittimedep
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.8% of total for procedures.">114 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modtimedep.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modtimedep.f90.html'>modtimedep.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modtimedep.html'>modtimedep</a></li>
+            <li class="breadcrumb-item active" aria-current="page">inittimedep</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/inittimedep.html#src">inittimedep</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine inittimedep()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modibmdata.html'>modibmdata</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~inittimedep~~UsesGraph Pages: 1 -->
+<svg id="procinittimedepUsesGraph" width="306pt" height="158pt"
+ viewBox="0.00 0.00 305.81 158.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~inittimedep~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 154.27)">
+<title>proc~~inittimedep~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-154.27 301.81,-154.27 301.81,4 -4,4"/>
+<!-- proc~inittimedep -->
+<g id="proc~~inittimedep~~UsesGraph_node1" class="node">
+<title>proc~inittimedep</title>
+<polygon fill="none" stroke="black" points="297.81,-87.27 225.54,-87.27 225.54,-63 297.81,-63 297.81,-87.27"/>
+<text text-anchor="middle" x="261.67" y="-71.54" font-family="Helvetica,sans-Serif" font-size="10.50">inittimedep</text>
+</g>
+<!-- module~modfields -->
+<g id="proc~~inittimedep~~UsesGraph_node2" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~inittimedep~~UsesGraph_node2"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="181.66,-150.27 117.64,-150.27 117.64,-126 181.66,-126 181.66,-150.27"/>
+<text text-anchor="middle" x="149.65" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~inittimedep&#45;&gt;module~modfields -->
+<g id="proc~~inittimedep~~UsesGraph_edge1" class="edge">
+<title>proc~inittimedep&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M239.94,-87.66C225.82,-96.12 206.65,-107.47 189.54,-117.14 187.69,-118.18 185.78,-119.25 183.85,-120.32"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="182.59,-117.02 175.5,-124.89 185.95,-123.16 182.59,-117.02"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~inittimedep~~UsesGraph_node3" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~inittimedep~~UsesGraph_node3"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="183.91,-108.27 115.39,-108.27 115.39,-84 183.91,-84 183.91,-108.27"/>
+<text text-anchor="middle" x="149.65" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~inittimedep&#45;&gt;module~modglobal -->
+<g id="proc~~inittimedep~~UsesGraph_edge2" class="edge">
+<title>proc~inittimedep&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M225.26,-81.9C215.67,-83.72 205.18,-85.73 195.16,-87.64"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="194.79,-84.15 185.62,-89.46 196.1,-91.02 194.79,-84.15"/>
+</g>
+<!-- module~modibmdata -->
+<g id="proc~~inittimedep~~UsesGraph_node4" class="node">
+<title>module~modibmdata</title>
+<g id="a_proc~~inittimedep~~UsesGraph_node4"><a xlink:href="../module/modibmdata.html" xlink:title="modibmdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="189.54,-66.27 109.77,-66.27 109.77,-42 189.54,-42 189.54,-66.27"/>
+<text text-anchor="middle" x="149.65" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata</text>
+</a>
+</g>
+</g>
+<!-- proc~inittimedep&#45;&gt;module~modibmdata -->
+<g id="proc~~inittimedep~~UsesGraph_edge3" class="edge">
+<title>proc~inittimedep&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M225.26,-68.37C217.48,-66.89 209.11,-65.29 200.88,-63.72"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="201.78,-60.33 191.3,-61.89 200.47,-67.21 201.78,-60.33"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~inittimedep~~UsesGraph_node5" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~inittimedep~~UsesGraph_node5"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="177.54,-24.27 121.77,-24.27 121.77,0 177.54,0 177.54,-24.27"/>
+<text text-anchor="middle" x="149.65" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~inittimedep&#45;&gt;module~modmpi -->
+<g id="proc~~inittimedep~~UsesGraph_edge4" class="edge">
+<title>proc~inittimedep&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M239.94,-62.61C225.82,-54.15 206.65,-42.8 189.54,-33.13 187.69,-32.09 185.78,-31.02 183.85,-29.95"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="185.95,-27.11 175.5,-25.38 182.59,-33.25 185.95,-27.11"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~inittimedep~~UsesGraph_node6" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="73.77,-150.27 0,-150.27 0,-126 73.77,-126 73.77,-150.27"/>
+<text text-anchor="middle" x="36.88" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~inittimedep~~UsesGraph_edge5" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M117.21,-138.13C107.34,-138.13 96.23,-138.13 85.5,-138.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="85.62,-134.64 75.62,-138.14 85.62,-141.64 85.62,-134.64"/>
+</g>
+<!-- mpi -->
+<g id="proc~~inittimedep~~UsesGraph_node7" class="node">
+<title>mpi</title>
+<g id="a_proc~~inittimedep~~UsesGraph_node7"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="63.88,-24.27 9.88,-24.27 9.88,0 63.88,0 63.88,-24.27"/>
+<text text-anchor="middle" x="36.88" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~inittimedep~~UsesGraph_edge6" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#7f00ff" stroke-dasharray="5,2" d="M121.27,-12.13C107.52,-12.13 90.65,-12.13 75.68,-12.13"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="75.7,-8.64 65.7,-12.14 75.7,-15.64 75.7,-8.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~inittimedep~~CallsGraph Pages: 1 -->
+<svg id="procinittimedepCallsGraph" width="307pt" height="158pt"
+ viewBox="0.00 0.00 307.31 158.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~inittimedep~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 154.27)">
+<title>proc~~inittimedep~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-154.27 303.31,-154.27 303.31,4 -4,4"/>
+<!-- proc~inittimedep -->
+<g id="proc~~inittimedep~~CallsGraph_node1" class="node">
+<title>proc~inittimedep</title>
+<polygon fill="none" stroke="black" points="72.27,-108.27 0,-108.27 0,-84 72.27,-84 72.27,-108.27"/>
+<text text-anchor="middle" x="36.13" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50">inittimedep</text>
+</g>
+<!-- mpi_bcast -->
+<g id="proc~~inittimedep~~CallsGraph_node2" class="node">
+<title>mpi_bcast</title>
+<polygon fill="#777777" stroke="#777777" points="173.79,-129.27 108.27,-129.27 108.27,-105 173.79,-105 173.79,-129.27"/>
+<text text-anchor="middle" x="141.03" y="-113.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_bcast</text>
+</g>
+<!-- proc~inittimedep&#45;&gt;mpi_bcast -->
+<g id="proc~~inittimedep~~CallsGraph_edge1" class="edge">
+<title>proc~inittimedep&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#ff0000" d="M72.55,-103.36C80.37,-104.96 88.74,-106.67 96.84,-108.32"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="96.02,-111.73 106.52,-110.3 97.42,-104.87 96.02,-111.73"/>
+</g>
+<!-- proc~timedep -->
+<g id="proc~~inittimedep~~CallsGraph_node3" class="node">
+<title>proc~timedep</title>
+<g id="a_proc~~inittimedep~~CallsGraph_node3"><a xlink:href="../proc/timedep.html" xlink:title="timedep">
+<polygon fill="#d9534f" stroke="#d9534f" points="168.91,-87.27 113.14,-87.27 113.14,-63 168.91,-63 168.91,-87.27"/>
+<text text-anchor="middle" x="141.03" y="-71.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">timedep</text>
+</a>
+</g>
+</g>
+<!-- proc~inittimedep&#45;&gt;proc~timedep -->
+<g id="proc~~inittimedep~~CallsGraph_edge2" class="edge">
+<title>proc~inittimedep&#45;&gt;proc~timedep</title>
+<path fill="none" stroke="#ff0000" d="M72.55,-88.91C81.89,-87 92.01,-84.94 101.51,-83"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="102.1,-86.45 111.2,-81.02 100.7,-79.59 102.1,-86.45"/>
+</g>
+<!-- proc~timedeplw -->
+<g id="proc~~inittimedep~~CallsGraph_node4" class="node">
+<title>proc~timedeplw</title>
+<g id="a_proc~~inittimedep~~CallsGraph_node4"><a xlink:href="../proc/timedeplw.html" xlink:title="timedeplw">
+<polygon fill="#d9534f" stroke="#d9534f" points="288.06,-150.27 221.04,-150.27 221.04,-126 288.06,-126 288.06,-150.27"/>
+<text text-anchor="middle" x="254.55" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">timedeplw</text>
+</a>
+</g>
+</g>
+<!-- proc~timedep&#45;&gt;proc~timedeplw -->
+<g id="proc~~inittimedep~~CallsGraph_edge3" class="edge">
+<title>proc~timedep&#45;&gt;proc~timedeplw</title>
+<path fill="none" stroke="#00ffff" d="M160.98,-87.64C174.39,-96.3 192.92,-107.89 209.79,-117.14 211.87,-118.27 214.02,-119.42 216.2,-120.55"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="214.61,-123.67 225.12,-125.02 217.75,-117.41 214.61,-123.67"/>
+</g>
+<!-- proc~timedepnudge -->
+<g id="proc~~inittimedep~~CallsGraph_node5" class="node">
+<title>proc~timedepnudge</title>
+<g id="a_proc~~inittimedep~~CallsGraph_node5"><a xlink:href="../proc/timedepnudge.html" xlink:title="timedepnudge">
+<polygon fill="#d9534f" stroke="#d9534f" points="299.31,-108.27 209.79,-108.27 209.79,-84 299.31,-84 299.31,-108.27"/>
+<text text-anchor="middle" x="254.55" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">timedepnudge</text>
+</a>
+</g>
+</g>
+<!-- proc~timedep&#45;&gt;proc~timedepnudge -->
+<g id="proc~~inittimedep~~CallsGraph_edge4" class="edge">
+<title>proc~timedep&#45;&gt;proc~timedepnudge</title>
+<path fill="none" stroke="#00ffff" d="M169.31,-80.27C178.12,-81.93 188.22,-83.83 198.3,-85.73"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="197.64,-89.17 208.12,-87.58 198.94,-82.29 197.64,-89.17"/>
+</g>
+<!-- proc~timedepsurf -->
+<g id="proc~~inittimedep~~CallsGraph_node6" class="node">
+<title>proc~timedepsurf</title>
+<g id="a_proc~~inittimedep~~CallsGraph_node6"><a xlink:href="../proc/timedepsurf.html" xlink:title="timedepsurf">
+<polygon fill="#d9534f" stroke="#d9534f" points="292.56,-66.27 216.54,-66.27 216.54,-42 292.56,-42 292.56,-66.27"/>
+<text text-anchor="middle" x="254.55" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">timedepsurf</text>
+</a>
+</g>
+</g>
+<!-- proc~timedep&#45;&gt;proc~timedepsurf -->
+<g id="proc~~inittimedep~~CallsGraph_edge5" class="edge">
+<title>proc~timedep&#45;&gt;proc~timedepsurf</title>
+<path fill="none" stroke="#00ffff" d="M169.31,-70C180.17,-67.95 193,-65.54 205.33,-63.21"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="205.78,-66.69 214.96,-61.4 204.48,-59.81 205.78,-66.69"/>
+</g>
+<!-- proc~timedepsw -->
+<g id="proc~~inittimedep~~CallsGraph_node7" class="node">
+<title>proc~timedepsw</title>
+<g id="a_proc~~inittimedep~~CallsGraph_node7"><a xlink:href="../proc/timedepsw.html" xlink:title="timedepsw">
+<polygon fill="#d9534f" stroke="#d9534f" points="289.18,-24.27 219.91,-24.27 219.91,0 289.18,0 289.18,-24.27"/>
+<text text-anchor="middle" x="254.55" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">timedepsw</text>
+</a>
+</g>
+</g>
+<!-- proc~timedep&#45;&gt;proc~timedepsw -->
+<g id="proc~~inittimedep~~CallsGraph_edge6" class="edge">
+<title>proc~timedep&#45;&gt;proc~timedepsw</title>
+<path fill="none" stroke="#00ffff" d="M160.98,-62.63C174.39,-53.97 192.92,-42.38 209.79,-33.13 211.87,-32 214.02,-30.85 216.2,-29.72"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="217.75,-32.86 225.12,-25.25 214.61,-26.6 217.75,-32.86"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~inittimedep~~CalledByGraph Pages: 1 -->
+<svg id="procinittimedepCalledByGraph" width="201pt" height="32pt"
+ viewBox="0.00 0.00 200.54 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~inittimedep~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~inittimedep~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 196.54,-28.27 196.54,4 -4,4"/>
+<!-- proc~inittimedep -->
+<g id="proc~~inittimedep~~CalledByGraph_node1" class="node">
+<title>proc~inittimedep</title>
+<polygon fill="none" stroke="black" points="192.54,-24.27 120.27,-24.27 120.27,0 192.54,0 192.54,-24.27"/>
+<text text-anchor="middle" x="156.41" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">inittimedep</text>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~inittimedep~~CalledByGraph_node2" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~inittimedep~~CalledByGraph_node2"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-24.27 0,-24.27 0,0 84.27,0 84.27,-24.27"/>
+<text text-anchor="middle" x="42.13" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~inittimedep -->
+<g id="proc~~inittimedep~~CalledByGraph_edge1" class="edge">
+<title>program~dalesurban&#45;&gt;proc~inittimedep</title>
+<path fill="none" stroke="#ff0000" d="M84.62,-12.13C92.43,-12.13 100.64,-12.13 108.59,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="108.48,-15.64 118.48,-12.14 108.48,-8.64 108.48,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">inittimedep</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="n">myid</span><span class="p">,</span><span class="n">my_real</span><span class="p">,</span><span class="n">mpi_logical</span><span class="p">,</span><span class="n">mpierr</span><span class="p">,</span><span class="n">comm3d</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="n">cexpnr</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">kmax</span><span class="p">,</span><span class="n">ifinput</span><span class="p">,</span><span class="n">runtime</span><span class="p">,</span><span class="n">zf</span><span class="p">,</span><span class="n">skyLW</span><span class="p">,</span><span class="n">nfcts</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modibmdata</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">bctfxm</span><span class="p">,</span><span class="w"> </span><span class="n">bctfxp</span><span class="p">,</span><span class="w"> </span><span class="n">bctfym</span><span class="p">,</span><span class="w"> </span><span class="n">bctfyp</span><span class="p">,</span><span class="w"> </span><span class="n">bctfz</span><span class="c">!, bctfzf</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">thlprof</span>
+<span class="w">    </span><span class="c">!use initfac, only : netsw !Should probably be moved to somewhere else</span>
+
+<span class="w">    </span><span class="k">implicit none</span>
+
+<span class="k">    </span><span class="kt">character</span><span class="w"> </span><span class="p">(</span><span class="mi">80</span><span class="p">)</span><span class="kd">::</span><span class="w"> </span><span class="n">chmess</span>
+<span class="w">    </span><span class="kt">character</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">chmess1</span>
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">ierr</span>
+<span class="w">    </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">dummyr</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="w"> </span><span class="p">(:)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">height</span>
+
+<span class="w">    </span><span class="n">ltimedep</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">ltimedepsurf</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ltimedepnudge</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">ltimedeplw</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ltimedepsw</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">ltimedep</span><span class="p">)</span><span class="w"> </span><span class="k">return</span>
+
+<span class="k">    if</span><span class="w"> </span><span class="p">(</span><span class="n">ltimedepsurf</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      allocate</span><span class="p">(</span><span class="n">timeflux</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">ntimedepsurf</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">bctfxmt</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">ntimedepsurf</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">bctfxpt</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">ntimedepsurf</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">bctfymt</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">ntimedepsurf</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">bctfypt</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">ntimedepsurf</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">bctfzt</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">ntimedepsurf</span><span class="p">))</span>
+<span class="w">      </span><span class="c">!allocate(bctfzft (1:ntimedepsurf))</span>
+
+<span class="w">      </span><span class="n">timeflux</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">bctfxmt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bctfxm</span>
+<span class="w">      </span><span class="n">bctfxpt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bctfxp</span>
+<span class="w">      </span><span class="n">bctfymt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bctfym</span>
+<span class="w">      </span><span class="n">bctfypt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bctfyp</span>
+<span class="w">      </span><span class="n">bctfzt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bctfz</span>
+<span class="w">      </span><span class="c">!bctfzft = bctfzf</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        open</span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;timedepsurf.inp.&#39;</span><span class="o">//</span><span class="n">cexpnr</span><span class="p">)</span>
+<span class="w">        </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="s1">&#39;(a80)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">chmess</span>
+<span class="w">        </span><span class="c">!write(6,*) chmess</span>
+<span class="w">        </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="s1">&#39;(a80)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">chmess</span>
+<span class="w">        </span><span class="c">!write(6,*) chmess</span>
+
+<span class="w">        </span><span class="c">!--- load fluxes---</span>
+<span class="w">        </span><span class="c">!t    = 1</span>
+<span class="w">        </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">        </span><span class="k">do </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">ntimedepsurf</span>
+<span class="w">          </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="n">iostat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ierr</span><span class="p">)</span><span class="w"> </span><span class="n">timeflux</span><span class="p">(</span><span class="n">t</span><span class="p">),</span><span class="w"> </span><span class="n">bctfxmt</span><span class="p">(</span><span class="n">t</span><span class="p">),</span><span class="w"> </span><span class="n">bctfxpt</span><span class="p">(</span><span class="n">t</span><span class="p">),</span><span class="w"> </span><span class="n">bctfymt</span><span class="p">(</span><span class="n">t</span><span class="p">),</span><span class="w"> </span><span class="n">bctfypt</span><span class="p">(</span><span class="n">t</span><span class="p">),</span><span class="w"> </span><span class="n">bctfzt</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="c">!, bctfzft(t)</span>
+<span class="w">          </span><span class="c">!write(*,*) t, timeflux(t), bctfxmt(t), bctfxpt(t), bctfymt(t), bctfypt(t), bctfzt(t)!, bctfzft(t)</span>
+<span class="w">          </span><span class="c">!if (ierr &lt; 0) then</span>
+<span class="w">            </span><span class="c">!stop &#39;STOP: No time dependend data for end of run (surface fluxes)&#39;</span>
+<span class="w">          </span><span class="c">!end if</span>
+<span class="w">        </span><span class="k">end do</span>
+<span class="w">        </span><span class="c">!if(timeflux(1)&gt;runtime) then</span>
+<span class="w">         </span><span class="c">!write(6,*) &#39;Time dependent surface variables do not change before end of simulation&#39;</span>
+<span class="w">         </span><span class="c">!ltimedepsurf=.false.</span>
+<span class="w">        </span><span class="c">!endif</span>
+<span class="w">        </span><span class="c">! flush to the end of fluxlist</span>
+<span class="w">        </span><span class="c">!do while (ierr ==0)</span>
+<span class="w">          </span><span class="c">!read (ifinput,*,iostat=ierr) dummyr</span>
+<span class="w">        </span><span class="c">!end do</span>
+<span class="w">        </span><span class="c">!backspace (ifinput)</span>
+<span class="w">        </span><span class="c">!close(ifinput)</span>
+
+<span class="w">      </span><span class="k">end if</span><span class="w"> </span><span class="c">!myid==0</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">timeflux</span><span class="p">,</span><span class="w"> </span><span class="n">ntimedepsurf</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">bctfxmt</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">ntimedepsurf</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">bctfxpt</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">ntimedepsurf</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">bctfymt</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">ntimedepsurf</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">bctfypt</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">ntimedepsurf</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">bctfzt</span><span class="w">  </span><span class="p">,</span><span class="w"> </span><span class="n">ntimedepsurf</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="c">!call MPI_BCAST(bctfzft , ntimedepsurf, MY_REAL, 0, comm3d,mpierr)</span>
+
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    if</span><span class="w"> </span><span class="p">(</span><span class="n">ltimedepnudge</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      allocate</span><span class="p">(</span><span class="n">timenudge</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">ntimedepnudge</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">height</span><span class="w">    </span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">uproft</span><span class="w">    </span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="n">ntimedepnudge</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">vproft</span><span class="w">    </span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="n">ntimedepnudge</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">thlproft</span><span class="w">  </span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="n">ntimedepnudge</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">qtproft</span><span class="w">   </span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span><span class="n">ntimedepnudge</span><span class="p">))</span>
+
+<span class="w">      </span><span class="n">timenudge</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">      </span><span class="n">thlproft</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">      </span><span class="n">qtproft</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">      </span><span class="n">uproft</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">      </span><span class="n">vproft</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="w">        </span><span class="c">!---load nudging profiles----</span>
+<span class="w">        </span><span class="k">open</span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;timedepnudge.inp.&#39;</span><span class="o">//</span><span class="n">cexpnr</span><span class="p">)</span>
+<span class="w">        </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="s1">&#39;(a80)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">chmess</span>
+<span class="w">        </span><span class="c">!write(6,*) chmess</span>
+
+<span class="w">        </span><span class="c">!t = 0</span>
+<span class="w">        </span><span class="k">do </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">ntimedepnudge</span>
+<span class="w">          </span><span class="c">!t = t + 1</span>
+<span class="w">          </span><span class="n">chmess1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;#&quot;</span>
+<span class="w">          </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="c">! not zero</span>
+<span class="w">          </span><span class="k">do while</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.(</span><span class="n">chmess1</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;#&quot;</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">ierr</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">))</span><span class="w"> </span><span class="c">!search for the next line consisting of &quot;# time&quot;, from there onwards the profiles will be read</span>
+<span class="w">            </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="o">*</span><span class="p">,</span><span class="n">iostat</span><span class="o">=</span><span class="n">ierr</span><span class="p">)</span><span class="w"> </span><span class="n">chmess1</span><span class="p">,</span><span class="w"> </span><span class="n">timenudge</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="w">            </span><span class="c">!if (ierr &lt; 0) then</span>
+<span class="w">              </span><span class="c">!stop &#39;STOP: No time dependend data for end of run&#39;</span>
+<span class="w">            </span><span class="c">!end if</span>
+<span class="w">          </span><span class="k">end do</span>
+
+<span class="w">          </span><span class="c">!write (*,*) &#39;timenudge = &#39;,timenudge(t)</span>
+<span class="w">          </span><span class="c">!write(*,*) &#39;Nudging profiles&#39;</span>
+<span class="w">          </span><span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<span class="w">            </span><span class="k">read</span><span class="w"> </span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">            </span><span class="n">height</span><span class="w">   </span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">            </span><span class="n">thlproft</span><span class="w"> </span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">t</span><span class="p">),</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">            </span><span class="n">qtproft</span><span class="w">  </span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">t</span><span class="p">),</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">            </span><span class="n">uproft</span><span class="w">   </span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">t</span><span class="p">),</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">            </span><span class="n">vproft</span><span class="w">   </span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">t</span><span class="p">)</span>
+
+<span class="w">            </span><span class="c">!write(*,*) height(k), thlproft (k,t), qtproft(k,t), uproft(k,t), vproft(k,t)</span>
+<span class="w">          </span><span class="k">end do</span>
+<span class="k">        end do</span>
+<span class="k">      end if</span><span class="w"> </span><span class="c">!myid == 0</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">timenudge</span><span class="p">,</span><span class="w"> </span><span class="n">ntimedepnudge</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">thlproft</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">kmax</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">ntimedepnudge</span><span class="p">,</span><span class="n">MY_REAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">qtproft</span><span class="p">,</span><span class="w">  </span><span class="p">(</span><span class="n">kmax</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">ntimedepnudge</span><span class="p">,</span><span class="n">MY_REAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">uproft</span><span class="p">,</span><span class="w">   </span><span class="p">(</span><span class="n">kmax</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">ntimedepnudge</span><span class="p">,</span><span class="n">MY_REAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">vproft</span><span class="p">,</span><span class="w">   </span><span class="p">(</span><span class="n">kmax</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">ntimedepnudge</span><span class="p">,</span><span class="n">MY_REAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">deallocate</span><span class="p">(</span><span class="n">height</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    if</span><span class="w"> </span><span class="p">(</span><span class="n">ltimedeplw</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      allocate</span><span class="p">(</span><span class="n">timelw</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">ntimedeplw</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">skyLWt</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">ntimedeplw</span><span class="p">))</span>
+
+<span class="w">      </span><span class="c">! Read longwave</span>
+<span class="w">      </span><span class="n">timelw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">skyLWt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">skyLW</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">       open</span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;timedeplw.inp.&#39;</span><span class="o">//</span><span class="n">cexpnr</span><span class="p">)</span>
+<span class="w">       </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="s1">&#39;(a80)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">chmess</span>
+<span class="w">       </span><span class="c">!write(6,*) chmess</span>
+<span class="w">       </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="s1">&#39;(a80)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">chmess</span>
+<span class="w">       </span><span class="c">!write(6,*) chmess</span>
+
+<span class="w">       </span><span class="c">!--- load fluxes---</span>
+<span class="w">       </span><span class="c">!t    = 1</span>
+<span class="w">       </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">       </span><span class="k">do </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">ntimedeplw</span>
+<span class="w">          </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="n">iostat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ierr</span><span class="p">)</span><span class="w"> </span><span class="n">timelw</span><span class="p">(</span><span class="n">t</span><span class="p">),</span><span class="w"> </span><span class="n">skyLWt</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="w">          </span><span class="c">!write(*,*) t, timelw(t), skyLWt(t)</span>
+<span class="w">          </span><span class="c">!if (ierr &lt; 0) then</span>
+<span class="w">            </span><span class="c">!stop &#39;STOP: No time dependend data for end of run (surface fluxes)&#39;</span>
+<span class="w">          </span><span class="c">!end if</span>
+<span class="w">       </span><span class="k">end do</span>
+<span class="w">       </span><span class="c">!if(timelw(1)&gt;runtime) then</span>
+<span class="w">         </span><span class="c">!write(6,*) &#39;Time dependent surface variables do not change before end of simulation&#39;</span>
+<span class="w">         </span><span class="c">!ltimedeplw=.false.</span>
+<span class="w">       </span><span class="c">!endif</span>
+<span class="w">       </span><span class="c">! flush to the end of fluxlist</span>
+<span class="w">       </span><span class="c">!do while (ierr ==0)</span>
+<span class="w">          </span><span class="c">!read (ifinput,*,iostat=ierr) dummyr</span>
+<span class="w">       </span><span class="c">!end do</span>
+<span class="w">       </span><span class="c">!backspace (ifinput)</span>
+<span class="w">       </span><span class="c">!close(ifinput)</span>
+
+<span class="w">      </span><span class="k">end if</span><span class="w"> </span><span class="c">! myid = 0</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">timelw</span><span class="p">,</span><span class="w"> </span><span class="n">ntimedeplw</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">skyLWt</span><span class="p">,</span><span class="w"> </span><span class="n">ntimedeplw</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">end if</span><span class="w"> </span><span class="c">!ltimedeplw</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltimedepsw</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      allocate</span><span class="p">(</span><span class="n">timesw</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">ntimedepsw</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">netswt</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nfcts</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span><span class="n">ntimedepsw</span><span class="p">))</span>
+
+<span class="w">      </span><span class="n">timesw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">netswt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="w">        </span><span class="c">! Read shortwave</span>
+<span class="w">        </span><span class="k">open</span><span class="w"> </span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;timedepsw.inp.&#39;</span><span class="o">//</span><span class="n">cexpnr</span><span class="p">)</span>
+<span class="w">        </span><span class="k">read</span><span class="w"> </span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="s1">&#39;(a80)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">chmess</span><span class="w"> </span><span class="c">! first line is a description of the file</span>
+<span class="w">        </span><span class="k">read</span><span class="w"> </span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="n">timesw</span><span class="p">(</span><span class="n">t</span><span class="p">),</span><span class="w"> </span><span class="n">t</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">ntimedepsw</span><span class="p">)</span><span class="w"> </span><span class="c">! second line is the times</span>
+
+<span class="w">        </span><span class="k">do </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">nfcts</span>
+<span class="w">         </span><span class="k">read</span><span class="w"> </span><span class="p">(</span><span class="n">ifinput</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="n">netswt</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">t</span><span class="p">),</span><span class="w"> </span><span class="n">t</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">ntimedepsw</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end do</span>
+
+<span class="w">        </span><span class="c">!write(*,*) &quot;read timedepsw&quot;</span>
+
+<span class="w">      </span><span class="k">end if</span><span class="w"> </span><span class="c">!myid==0</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">timesw</span><span class="p">,</span><span class="w"> </span><span class="n">ntimedepsw</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">netswt</span><span class="p">,</span><span class="w"> </span><span class="n">ntimedepsw</span><span class="o">*</span><span class="n">nfcts</span><span class="p">,</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">end if</span><span class="w"> </span><span class="c">! timedepsw</span>
+
+<span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">ltimedepsurf</span><span class="w"> </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_LOGICAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">ltimedepnudge</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_LOGICAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">ltimedeplw</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_LOGICAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">ltimedepsw</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_LOGICAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">call </span><span class="n">timedep</span>
+
+<span class="w">  </span><span class="k">end subroutine </span><span class="n">inittimedep</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

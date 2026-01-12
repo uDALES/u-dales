@@ -1,0 +1,2052 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the building-resolving urban multi-physics code uDALES">
+      
+      
+        <meta name="author" content="The uDALES Team">
+      
+      
+        <link rel="canonical" href="https://uDALES.github.io/u-dales/udales-facets-tutorial/">
+      
+      
+        <link rel="prev" href="../udales-fields-tutorial/">
+      
+      
+        <link rel="next" href="../udales-utility-tutorial/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.17">
+    
+    
+      
+        <title>Facets - uDALES</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="pink">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#working-with-udales-facet-data-in-matlab" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="uDALES" class="md-header__button md-logo" aria-label="uDALES" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            uDALES
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Facets
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="uDALES" class="md-nav__button md-logo" aria-label="uDALES" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    uDALES
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Simulation inputs
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Simulation inputs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-namoptions-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List of input parameters
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-boundary-conditions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Boundary conditions
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-geometry-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry generation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-copy-inputs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Copying from other simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-driver-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Precursor simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Running the simulation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Running the simulation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-pre-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Pre-processing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-simulation-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Running uDALES
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-post-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Post-processing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Data post-processing
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Data post-processing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-udbase-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    udbase
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-fields-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Flow fields and statistics
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Facets
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Facets
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#initialising-udbase" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initialising udbase
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calculate_frontal_properties-calculate-skyline-blockage-ratio-and-frontal-areas" class="md-nav__link">
+    <span class="md-ellipsis">
+      calculate_frontal_properties: calculate skyline, blockage ratio and frontal areas
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plot_building_ids-display-the-building-ids-in-the-domain" class="md-nav__link">
+    <span class="md-ellipsis">
+      plot_building_ids: display the building ids in the domain
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plot_2dmap-display-2dmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      plot_2dmap: display 2dmap
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plot_fac_type-display-surface-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      plot_fac_type: display surface types
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#assign_prop_to_fac-assigning-wall-properties-to-facets" class="md-nav__link">
+    <span class="md-ellipsis">
+      assign_prop_to_fac: assigning wall properties to facets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plot_fac-plot-facet-quantities" class="md-nav__link">
+    <span class="md-ellipsis">
+      plot_fac: plot facet quantities
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load_fac_momentum-load-facet-pressure-and-shear-stresses" class="md-nav__link">
+    <span class="md-ellipsis">
+      load_fac_momentum: load facet pressure and shear stresses
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load_fac_eb-load-term-from-the-surface-energy-balance" class="md-nav__link">
+    <span class="md-ellipsis">
+      load_fac_eb: load term from the surface energy balance
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load_seb-load-all-surface-energy-balance-terms" class="md-nav__link">
+    <span class="md-ellipsis">
+      load_seb: load all surface energy balance terms
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load_fac_temperature-load-temperatures-inside-facets" class="md-nav__link">
+    <span class="md-ellipsis">
+      load_fac_temperature: load temperatures inside facets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#area_average_seb-perform-area-averaging-of-the-surface-energy-balance-terms" class="md-nav__link">
+    <span class="md-ellipsis">
+      area_average_seb: perform area-averaging of the surface energy balance terms
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#area_average_fac-area-averaging-over-facet-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      area_average_fac: area-averaging over facet data
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#convert_facvar_to_field-convert-facet-data-to-grid" class="md-nav__link">
+    <span class="md-ellipsis">
+      convert_facvar_to_field: convert facet data to grid
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#convert_facflx_to_field-convert-facet-data-to-3d-density-field" class="md-nav__link">
+    <span class="md-ellipsis">
+      convert_facflx_to_field: convert facet data to 3D density field
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#function-to-format-surface-plots" class="md-nav__link">
+    <span class="md-ellipsis">
+      Function to format surface plots
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      References
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-utility-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Utility routines
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-example-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Example simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-how-to-cite/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to cite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-pub-list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Publication list
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DEVELOP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Development notes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to contribute
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-docs-software/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Software docs
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#initialising-udbase" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initialising udbase
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calculate_frontal_properties-calculate-skyline-blockage-ratio-and-frontal-areas" class="md-nav__link">
+    <span class="md-ellipsis">
+      calculate_frontal_properties: calculate skyline, blockage ratio and frontal areas
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plot_building_ids-display-the-building-ids-in-the-domain" class="md-nav__link">
+    <span class="md-ellipsis">
+      plot_building_ids: display the building ids in the domain
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plot_2dmap-display-2dmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      plot_2dmap: display 2dmap
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plot_fac_type-display-surface-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      plot_fac_type: display surface types
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#assign_prop_to_fac-assigning-wall-properties-to-facets" class="md-nav__link">
+    <span class="md-ellipsis">
+      assign_prop_to_fac: assigning wall properties to facets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plot_fac-plot-facet-quantities" class="md-nav__link">
+    <span class="md-ellipsis">
+      plot_fac: plot facet quantities
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load_fac_momentum-load-facet-pressure-and-shear-stresses" class="md-nav__link">
+    <span class="md-ellipsis">
+      load_fac_momentum: load facet pressure and shear stresses
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load_fac_eb-load-term-from-the-surface-energy-balance" class="md-nav__link">
+    <span class="md-ellipsis">
+      load_fac_eb: load term from the surface energy balance
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load_seb-load-all-surface-energy-balance-terms" class="md-nav__link">
+    <span class="md-ellipsis">
+      load_seb: load all surface energy balance terms
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load_fac_temperature-load-temperatures-inside-facets" class="md-nav__link">
+    <span class="md-ellipsis">
+      load_fac_temperature: load temperatures inside facets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#area_average_seb-perform-area-averaging-of-the-surface-energy-balance-terms" class="md-nav__link">
+    <span class="md-ellipsis">
+      area_average_seb: perform area-averaging of the surface energy balance terms
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#area_average_fac-area-averaging-over-facet-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      area_average_fac: area-averaging over facet data
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#convert_facvar_to_field-convert-facet-data-to-grid" class="md-nav__link">
+    <span class="md-ellipsis">
+      convert_facvar_to_field: convert facet data to grid
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#convert_facflx_to_field-convert-facet-data-to-3d-density-field" class="md-nav__link">
+    <span class="md-ellipsis">
+      convert_facflx_to_field: convert facet data to 3D density field
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#function-to-format-surface-plots" class="md-nav__link">
+    <span class="md-ellipsis">
+      Function to format surface plots
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      References
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="working-with-udales-facet-data-in-matlab">Working with uDALES facet data in MATLAB<a class="headerlink" href="#working-with-udales-facet-data-in-matlab" title="Permanent link">&para;</a></h1>
+<p>In this tutorial we cover how to work with uDALES facet data. This pertains to all surface quanties, e.g. shear stress, surface pressure, surface energy balance terms and the temperature inside each of the facets.</p>
+<p>The <strong><code>udbase</code></strong> post-processing class reads in most important input parameters, and contains a number of methods to work with facet data:</p>
+<ul>
+<li><a href="#calculate_frontal_properties-calculate-skyline-blockage-ratio-and-frontal-areas"><strong>calculate_frontal_properties</strong></a>. This method calculates the skylines, frontal areas and blockage ratios in the x- and y-direction.</li>
+<li><a href="#plot_building_ids-display-the-building-ids-in-the-domain"><strong>plot_bulding_ids</strong></a>. This method displays a 2d map with the building ids of the domain.</li>
+<li><a href="#plot_2dmap-display-2dmap"><strong>plot_2dmap</strong></a>. This method displays a 2d map with coloring and optional labels.</li>
+<li><a href="#plot_fac_type-display-surface-types"><strong>plot_fac_type</strong></a>. This method displays the type of surface for each facet.</li>
+<li><a href="#assign_prop_to_fac-assigning-wall-properties-to-facets"><strong>assign_prop_to_fac</strong></a>. This method assigns a property of the facet type to each of the facets, so it can be used for calculation and visualisation</li>
+<li><a href="#plot_fac-plot-facet-quantities"><strong>plot_fac</strong></a>. This method displays a surface variable on the surface mesh.</li>
+<li><a href="#load_fac_momentum-load-facet-pressure-and-shear-stresses"><strong>load_fac_momentum</strong></a>. This method loads instantaneous momentum surface data from <code>fac.expnr.nc</code>. The first index is the facet id and second index is time.</li>
+<li><a href="#load_fac_eb-load-term-from-the-surface-energy-balance"><strong>load_fac_eb</strong></a>. This method loads instantaneous surface energy balance data from <code>facEB.expnr.nc</code>. The first index is the facet id and second index is time.</li>
+<li><a href="#load_seb-load-all-surface-energy-balance-terms"><strong>load_seb</strong></a>. This method loads all instantaneous surface energy balance terms. The first index is the facet id and second index is time.</li>
+<li><a href="#load_fac_temperature-load-temperatures-inside-facets"><strong>load_fac_temperature</strong></a>. This method loads instantaneous facet temperature data <code>facT.expnr.nc</code>. The first index is the facet id, the second is the layer index and the third index is time.</li>
+<li><a href="#area_average_seb-perform-area-averaging-of-the-surface-energy-balance-terms"><strong>area_average_seb</strong></a>. This method calculates the area-averaged surface energy balance from the facet surface energy balances obtained using <code>load_seb</code>.</li>
+<li><a href="#area_average_fac-area-averaging-over-facet-data"><strong>area_average_fac</strong></a>. This method performs area-averaging over (a selection of) the facets. The facet index is assumed to be the first index of the array.</li>
+<li><a href="#convert_facvar_to_field-convert-facet-data-to-grid"><strong>convert_facvar_to_field</strong></a>. This method transfers a facet variable onto the grid, so it can be used for post-processing.</li>
+<li><a href="#convert_facflx_to_field-convert-facet-data-to-3d-density-field"><strong>convert_facflx_to_field</strong></a>. This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag).</li>
+</ul>
+<p><strong>The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.</strong></p>
+<h2 id="initialising-udbase">Initialising udbase<a class="headerlink" href="#initialising-udbase" title="Permanent link">&para;</a></h2>
+<p>The starting point of this tutorial is that you have run a simulation and have merged the output files. If the simulations were performed on a HPC system, <strong>we assume that you have copied the output directory to your own workstation</strong>. Some of the netCDF (*.nc) files may be very large and you may only want to copy these if you plan to analyse the data.</p>
+<p><strong>Note that the uDALES/tools/matlab path must be added via the Set Path button in order to use the udbase class. Alternatively, it can be added using the addpath function inside the script (done here).</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c">% preamble</span>
+<span class="nb">clear</span><span class="w"> </span><span class="n">variables</span>
+<span class="nb">close</span><span class="w"> </span><span class="nb">all</span>
+
+<span class="c">% add the uDALES matlab path</span>
+<span class="nb">addpath</span><span class="p">(</span><span class="s">&#39;path_to_udales\tools\matlab&#39;</span><span class="p">)</span>
+
+<span class="c">% create an instance of the udbase class</span>
+<span class="n">expnr</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">065</span><span class="p">;</span>
+<span class="n">expdir</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;path_to_experiments\065&#39;</span><span class="p">;</span>
+
+<span class="n">sim</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">udbase</span><span class="p">(</span><span class="n">expnr</span><span class="p">,</span><span class="w"> </span><span class="n">expdir</span><span class="p">);</span>
+</code></pre></div>
+<h2 id="calculate_frontal_properties-calculate-skyline-blockage-ratio-and-frontal-areas">calculate_frontal_properties: calculate skyline, blockage ratio and frontal areas<a class="headerlink" href="#calculate_frontal_properties-calculate-skyline-blockage-ratio-and-frontal-areas" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">calculate_frontal_properties</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/calculate_frontal_properties ---
+
+  A method to calculate the skyline, frontal areas and blockage
+  ratios in the x- and y-direction.
+
+  res = calculate_frontal_properties(OBJ) executes the method
+                                and returns a structure with
+                                the skyline, frontal areas and
+                                blockage ratios in x- and
+                                y-direction.
+  Example:
+    res = obj.calculate_frontal_properties();
+</code></pre></div>
+<p>This method calculates the frontal areas and blockage ratios in the x- and y-direction. Here, the frontal area represents the surface area projected <em>summed over each individual building</em> in the domain. In order to calculate the blockage ratio, we first calculate the skyline (see below in black) and determine the fraction of the image that is not occupied by fluid (white).</p>
+<div class="highlight"><pre><span></span><code><span class="n">res</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">calculate_frontal_properties</span><span class="p">();</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>x-direction: frontal area = 368.0 m2, blockage ratio = 0.090
+y-direction: frontal area = 208.0 m2, blockage ratio = 0.051
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="n">res</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>res = struct with fields:
+    skylinex: [64x64 double]
+    skyliney: [64x64 double]
+         Afx: 368
+         Afy: 208
+         brx: 0.0898
+         bry: 0.0508
+</code></pre></div>
+<p>Let's plot the skyline in the x- and y-direction</p>
+<div class="highlight"><pre><span></span><code><span class="nb">figure</span>
+<span class="nb">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="nb">pcolor</span><span class="p">(</span><span class="n">sim</span><span class="p">.</span><span class="n">yt</span><span class="p">,</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">zt</span><span class="p">,</span><span class="w"> </span><span class="n">res</span><span class="p">.</span><span class="n">skylinex</span><span class="o">&#39;</span><span class="p">)</span>
+<span class="nb">shading</span><span class="w"> </span><span class="n">flat</span>
+<span class="nb">colormap</span><span class="p">(</span><span class="nb">flipud</span><span class="p">(</span><span class="nb">colormap</span><span class="p">(</span><span class="s">&#39;gray&#39;</span><span class="p">)))</span>
+<span class="nb">xlabel</span><span class="p">(</span><span class="s">&#39;y [m]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="nb">ylabel</span><span class="p">(</span><span class="s">&#39;z [m]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">gca</span><span class="p">;</span>
+<span class="n">ax</span><span class="p">.</span><span class="n">TickLabelInterpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="n">axis</span><span class="w"> </span><span class="s">equal</span><span class="w"> </span><span class="s">tight</span>
+<span class="nb">title</span><span class="p">(</span><span class="s">&#39;skyline in x-direction&#39;</span><span class="p">)</span>
+
+<span class="nb">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="nb">pcolor</span><span class="p">(</span><span class="n">sim</span><span class="p">.</span><span class="n">xt</span><span class="p">,</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">zt</span><span class="p">,</span><span class="w"> </span><span class="n">res</span><span class="p">.</span><span class="n">skyliney</span><span class="o">&#39;</span><span class="p">)</span>
+<span class="nb">shading</span><span class="w"> </span><span class="n">flat</span>
+<span class="nb">colormap</span><span class="p">(</span><span class="nb">flipud</span><span class="p">(</span><span class="nb">colormap</span><span class="p">(</span><span class="s">&#39;gray&#39;</span><span class="p">)))</span>
+<span class="nb">xlabel</span><span class="p">(</span><span class="s">&#39;x [m]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="nb">ylabel</span><span class="p">(</span><span class="s">&#39;z [m]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="nb">axis</span><span class="w"> </span><span class="n">equal</span><span class="w"> </span><span class="n">tight</span>
+<span class="n">ax</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">gca</span><span class="p">;</span>
+<span class="n">ax</span><span class="p">.</span><span class="n">TickLabelInterpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="nb">title</span><span class="p">(</span><span class="s">&#39;skyline in y-direction&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_0.png" src="../udales-facets-tutorial_media/figure_0.png" /></p>
+<h2 id="plot_building_ids-display-the-building-ids-in-the-domain">plot_building_ids: display the building ids in the domain<a class="headerlink" href="#plot_building_ids-display-the-building-ids-in-the-domain" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">plot_building_ids</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/plot_building_ids ---
+
+  A method for plotting building IDs from above (x,y view) with distinct colors
+
+  plot_building_ids(OBJ) creates a top-view plot showing buildings
+  in different colors with building IDs at center of gravity
+
+  SEE ALSO: udgeom.splitBuildings, plot_outline, plot_2dmap
+</code></pre></div>
+<p>This method displays the ids of the individual buildings inside the domain, buildings are numbered from left-bottom to right-top.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">figure</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_building_ids</span><span class="p">()</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Extracting individual buildings from STL geometry...
+Ground preprocessing: removing ground faces using deleteGround
+Ground preprocessing: 694 faces after deleteGround (removed 1964 ground faces)
+Ground preprocessing: direct mapping provided by deleteGround
+
+Building separation completed:
+  Buildings identified: 2 separate components
+  Total building faces: 694
+  Largest building: 580 faces
+  Smallest building: 114 faces
+  Average faces per building: 347.0
+Creating face-to-building mapping: 694 faces, 2 components
+Mapping 694 processed building assignments back to 2658 original faces
+Successfully mapped 694 faces to buildings
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nb">xlim</span><span class="p">([</span><span class="mi">0</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">xlen</span><span class="p">])</span>
+<span class="nb">ylim</span><span class="p">([</span><span class="mi">0</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">ylen</span><span class="p">])</span>
+</code></pre></div>
+<p><img alt="figure_1.png" src="../udales-facets-tutorial_media/figure_1.png" /></p>
+<h2 id="plot_2dmap-display-2dmap">plot_2dmap: display 2dmap<a class="headerlink" href="#plot_2dmap-display-2dmap" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">plot_2dmap</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/plot_2dmap ---
+
+  Plot a 2D map of buildings colored by a value per building.
+
+  plot_2dmap(OBJ, val)
+    val: numeric scalar or vector with length equal to number of buildings.
+
+  plot_2dmap(OBJ, val, labels)
+    labels: optional cell or string array with labels to display at
+          the centroid of each building. If provided it must
+          match the number of buildings.
+</code></pre></div>
+<p>This plot creates maps showing the 2d building outline, together with some text</p>
+<div class="highlight"><pre><span></span><code><span class="c">% get individual building information from the udgeom instance, the</span>
+<span class="c">% buildings ids are ordered according to their centroid.</span>
+
+<span class="n">buildings</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">geom</span><span class="p">.</span><span class="n">get_buildings</span><span class="p">();</span>
+
+<span class="c">% calculate the maximum height for each building</span>
+<span class="n">ids</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">cell</span><span class="p">(</span><span class="nb">length</span><span class="p">(</span><span class="n">buildings</span><span class="p">),</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="n">hmax</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">zeros</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">buildings</span><span class="p">));</span>
+<span class="k">for</span><span class="w"> </span><span class="nb">i</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">buildings</span><span class="p">)</span>
+<span class="w">    </span><span class="n">bld</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">buildings</span><span class="p">{</span><span class="nb">i</span><span class="p">};</span>
+<span class="w">    </span><span class="n">hmax</span><span class="p">(</span><span class="nb">i</span><span class="p">)</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">bld</span><span class="p">.</span><span class="n">Points</span><span class="p">(:,</span><span class="mi">3</span><span class="p">));</span>
+<span class="w">    </span><span class="n">ids</span><span class="p">{</span><span class="nb">i</span><span class="p">}</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">num2str</span><span class="p">(</span><span class="nb">i</span><span class="p">);</span>
+<span class="k">end</span>
+
+<span class="c">% plot the result</span>
+<span class="nb">figure</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_2dmap</span><span class="p">(</span><span class="n">hmax</span><span class="p">,</span><span class="w"> </span><span class="n">ids</span><span class="p">)</span>
+<span class="nb">colorbar</span>
+<span class="nb">xlim</span><span class="p">([</span><span class="mi">0</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">xlen</span><span class="p">])</span>
+<span class="nb">ylim</span><span class="p">([</span><span class="mi">0</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">ylen</span><span class="p">])</span>
+<span class="nb">title</span><span class="p">(</span><span class="s">&#39;maximum building height&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_2.png" src="../udales-facets-tutorial_media/figure_2.png" /></p>
+<p>The function <code>format_surface_plot</code> applies a consistent layout to the surface plots. Its implementation</p>
+<h2 id="plot_fac_type-display-surface-types">plot_fac_type: display surface types<a class="headerlink" href="#plot_fac_type-display-surface-types" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">plot_fac_type</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/plot_fac_type ---
+
+  A method for plotting the different surface types used in a
+  geometry.
+
+  plot_fac_type(OBJ) plots the surface types for all buildings
+
+  plot_fac_type(OBJ, building_ids) plots the surface types only for
+  the specified building IDs (array of positive integers)
+
+  Examples:
+    % Plot surface types for all buildings
+    obj.plot_fac_type();
+
+    % Plot surface types only for specific buildings
+    obj.plot_fac_type([1, 5, 10]);
+</code></pre></div>
+<p>When working with a surface energy balance model, each facet will have a specific wall type with its own properties (albedo, emissivity, thickness etc). The wall types of the geometry can be conveniently displayed using the method <code>plot_fac_type</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">figure</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac_type</span><span class="p">()</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;SkipColorbar&#39;</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_3.png" src="../udales-facets-tutorial_media/figure_3.png" /></p>
+<p>The function <code>format_surface_plot</code> applies a consistent layout to the surface plots. Its implementation is given at the end of the tutorial.</p>
+<h2 id="assign_prop_to_fac-assigning-wall-properties-to-facets">assign_prop_to_fac: assigning wall properties to facets<a class="headerlink" href="#assign_prop_to_fac-assigning-wall-properties-to-facets" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">assign_prop_to_fac</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/assign_prop_to_fac ---
+
+  Method for assigning properties of a material (stored in
+  factypes) to each facet for visualisation or calculation..
+
+  assign_prop_to_fac(OBJ, strprop) assigns the property strprop
+                                   to the appropriate facet.
+
+  Example (assign albedo to each facet):
+    obj = udbase(expnr);
+    al = obj.assign_prop_to_fac(&#39;al&#39;);
+</code></pre></div>
+<p>The wall type of each facet assigns properties to it which are stored in the <code>factypes</code> structure.</p>
+<div class="highlight"><pre><span></span><code><span class="n">sim</span><span class="p">.</span><span class="n">factypes</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>ans = struct with fields:
+      id: [9x1 double]
+    name: [9x1 string]
+     lGR: [9x1 double]
+      z0: [9x1 double]
+     z0h: [9x1 double]
+      al: [9x1 double]
+      em: [9x1 double]
+       d: [9x5 double]
+       C: [9x5 double]
+     lam: [9x6 double]
+</code></pre></div>
+<p>Description:</p>
+<ul>
+<li><code>id</code>: type identifier</li>
+<li><code>name</code>: type name</li>
+<li><code>lGR</code>: boolean that indicates whether or not there is evaporation on the facet</li>
+<li><code>z0</code>: [m] momentum roughness length for wall-function</li>
+<li><code>z0h</code>: [m] heat roughness length for wall-function</li>
+<li><code>al</code>: [-] surface albedo</li>
+<li><code>em</code>: [-] surface emissivity</li>
+<li><code>d</code>: [m] thickness of each layer inside the facet</li>
+<li><code>C</code>: [J/m3K] volumetric heat capacity of each layer inside the facet.</li>
+<li><code>lam</code>: [W/mK] thermal conductivity on each cell face inside the facet.</li>
+</ul>
+<p>In order to assign these properties to each facet, use the method <code>assign_prop_to_fac</code>. For example, to assign the albedo to each surface facet:</p>
+<div class="highlight"><pre><span></span><code><span class="n">albs</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">assign_prop_to_fac</span><span class="p">(</span><span class="s">&#39;al&#39;</span><span class="p">);</span>
+</code></pre></div>
+<h2 id="plot_fac-plot-facet-quantities">plot_fac: plot facet quantities<a class="headerlink" href="#plot_fac-plot-facet-quantities" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/plot_fac ---
+
+  A method for plotting a facet variable var as a 3D surface
+
+  plot_fac(OBJ, var) plots variable var for all facets
+
+  plot_fac(OBJ, var, building_ids) plots variable var only for
+  the specified building IDs (array of positive integers)
+
+  Examples:
+    % Plot net shortwave radiation for all buildings
+    obj.plot_fac(K);
+
+    % Plot only for specific buildings
+    obj.plot_fac(K, [1, 5, 10]);
+</code></pre></div>
+<p>We can now plot the albedo using the method <code>plot_fac</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">figure</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span><span class="p">(</span><span class="n">albs</span><span class="p">)</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$\alpha$ [-]&#39;</span><span class="p">)</span>
+<span class="n">clim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">])</span>
+<span class="nb">xlim</span><span class="p">([</span><span class="mi">0</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">xlen</span><span class="p">])</span>
+<span class="nb">ylim</span><span class="p">([</span><span class="mi">0</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">ylen</span><span class="p">])</span>
+</code></pre></div>
+<p><img alt="figure_4.png" src="../udales-facets-tutorial_media/figure_4.png" /></p>
+<p>Note that we can also choose to plot only the information for building 1.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">figure</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span><span class="p">(</span><span class="n">albs</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$\alpha$ [-]&#39;</span><span class="p">)</span>
+<span class="n">clim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">])</span>
+<span class="nb">xlim</span><span class="p">([</span><span class="mi">0</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">xlen</span><span class="p">])</span>
+<span class="nb">ylim</span><span class="p">([</span><span class="mi">0</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">ylen</span><span class="p">])</span>
+</code></pre></div>
+<p><img alt="figure_5.png" src="../udales-facets-tutorial_media/figure_5.png" /></p>
+<p>... or for both buildings:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">figure</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span><span class="p">(</span><span class="n">albs</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="mi">1</span><span class="w"> </span><span class="mi">2</span><span class="p">])</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$\alpha$ [-]&#39;</span><span class="p">)</span>
+<span class="n">clim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">])</span>
+<span class="nb">xlim</span><span class="p">([</span><span class="mi">0</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">xlen</span><span class="p">])</span>
+<span class="nb">ylim</span><span class="p">([</span><span class="mi">0</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">ylen</span><span class="p">])</span>
+</code></pre></div>
+<p><img alt="figure_6.png" src="../udales-facets-tutorial_media/figure_6.png" /></p>
+<h2 id="load_fac_momentum-load-facet-pressure-and-shear-stresses">load_fac_momentum: load facet pressure and shear stresses<a class="headerlink" href="#load_fac_momentum-load-facet-pressure-and-shear-stresses" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_momentum</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/load_fac_momentum ---
+
+  A method to retrieve facet data for pressure and shear
+  information from the fac file.  
+
+  load_fac_momentum(OBJ) displays the variables in the file
+
+  load_fac_momentum(OBJ, svar) retrieves a variable from the file
+
+  Example (view contents of output):
+    obj = udbase(expnr);
+    obj.load_fac_momentum();
+</code></pre></div>
+<p>Surface information about shear and pressure can be obtained using the method <code>load_fac_momentum</code>. Calling it without parameters shows the data inside the file:</p>
+<div class="highlight"><pre><span></span><code><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_momentum</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Contents of fac.065.nc:
+    Name               Description              Units      Size       Dimensions
+    _____    _______________________________    _____    _________    __________
+
+    cth      heat transfer coefficient (Ivo)             2658x1000    fct, time
+    fct      Facet number                                2658         fct
+    htc      heat transfer coefficient                   2658x1000    fct, time
+    pres     pressure                            Pa      2658x1000    fct, time
+    t        Time                                s       1000         time
+    tau_x    tau_x                               Pa      2658x1000    fct, time
+    tau_y    tau_y                               Pa      2658x1000    fct, time
+    tau_z    tau_z                               Pa      2658x1000    fct, time
+</code></pre></div>
+<p>Now we load the pressure data using the <code>load_fac_momentum</code> method and visualise it using the <code>plot_fac</code> method.</p>
+<div class="highlight"><pre><span></span><code><span class="n">pres</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_momentum</span><span class="p">(</span><span class="s">&#39;pres&#39;</span><span class="p">);</span>
+
+<span class="n">figure</span>
+<span class="s">sim.plot_fac(pres(:,end))</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$p$ [m$^{2}$s$^{-2}$]&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_7.png" src="../udales-facets-tutorial_media/figure_7.png" /></p>
+<h2 id="load_fac_eb-load-term-from-the-surface-energy-balance">load_fac_eb: load term from the surface energy balance<a class="headerlink" href="#load_fac_eb-load-term-from-the-surface-energy-balance" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_eb</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/load_fac_eb ---
+
+  A method to retrieve facet data of a surface energy balance
+  term from the facEB file.
+
+  load_fac_eb(OBJ) displays the variables in the file
+
+  load_fac_eb(OBJ, svar) retrieves a variable from the file
+
+  Example (view contents of output):
+    obj = udbase(expnr);
+    obj.load_fac_eb();
+</code></pre></div>
+<p>l<code>oad_fac_eb</code> is a low-level routine that reads individual variables from the surface energy balance file <code>facEB.expnr.nc</code>. It is recommended to use the method <code>load_seb</code> which loads all surface energy balance terms at the same time.</p>
+<p>The variables in <code>facEB.expnr.nc</code> are:</p>
+<div class="highlight"><pre><span></span><code><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_eb</span><span class="p">();</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Contents of facEB.065.nc:
+    Name        Description       Units       Size       Dimensions
+    _____    _________________    _____    __________    __________
+
+    LWin     Incoming longwave    W/m^2    2658x10020    fct, time
+    LWout    Outgoing longwave    W/m^2    2658x10020    fct, time
+    WGR      Water content        ?        2658x10020    fct, time
+    ef       Latent heat          W/m^2    2658x10020    fct, time
+    fct      Facet number                  2658          fct
+    hf       Sensible heat        W/m^2    2658x10020    fct, time
+    netsw    Net shortwave        W/m^2    2658x10020    fct, time
+    t        Time                 s        10020         time
+</code></pre></div>
+<p>Let's load and plot the net shortwave radiation at the end time</p>
+<div class="highlight"><pre><span></span><code><span class="n">Kstar</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_eb</span><span class="p">(</span><span class="s">&#39;netsw&#39;</span><span class="p">);</span>
+
+<span class="n">figure</span>
+<span class="s">sim.plot_fac(Kstar(:,end))</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$K^*$ [Wm$^{-2}$]&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_8.png" src="../udales-facets-tutorial_media/figure_8.png" /></p>
+<h2 id="load_seb-load-all-surface-energy-balance-terms">load_seb: load all surface energy balance terms<a class="headerlink" href="#load_seb-load-all-surface-energy-balance-terms" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_seb</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/load_seb ---
+
+  A method to retrieve all surface energy balance terms on each
+  of the facets as a function of time.
+
+  load_seb(OBJ) loads the terms in the surface energy balance.
+
+  Example:
+    obj = udbase(expnr);
+    obj.load_seb();
+</code></pre></div>
+<p>the method <code>load_seb</code> loads all energy balance terms including surface temperature at once and is the preferred way of working with terms in the surface energy balance.</p>
+<div class="highlight"><pre><span></span><code><span class="n">seb</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_seb</span><span class="p">()</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>seb = struct with fields:
+    Kstar: [2658x10020 single]
+    Lstar: [2658x10020 single]
+      Lin: [2658x10020 single]
+     Lout: [2658x10020 single]
+        H: [2658x10020 single]
+        E: [2658x10020 single]
+        G: [2658x10020 single]
+    Tsurf: [2658x10020 single]
+        t: [10020x1 single]
+</code></pre></div>
+<p>Let's plot all components of the surface energy balance at the last timestep</p>
+<div class="highlight"><pre><span></span><code><span class="nb">figure</span>
+<span class="nb">subplot</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">Kstar</span><span class="p">(:,</span><span class="k">end</span><span class="p">))</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$K^*$ [Wm$^{-2}$]&#39;</span><span class="p">)</span>
+<span class="nb">subplot</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">Lstar</span><span class="p">(:,</span><span class="k">end</span><span class="p">))</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$L^*$ [Wm$^{-2}$]&#39;</span><span class="p">)</span>
+<span class="nb">subplot</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">H</span><span class="p">(:,</span><span class="k">end</span><span class="p">))</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$H$ [Wm$^{-2}$]&#39;</span><span class="p">)</span>
+<span class="nb">subplot</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">E</span><span class="p">(:,</span><span class="k">end</span><span class="p">))</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$E$ [Wm$^{-2}$]&#39;</span><span class="p">)</span>
+<span class="nb">subplot</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">G</span><span class="p">(:,</span><span class="k">end</span><span class="p">))</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$G$ [Wm$^{-2}$]&#39;</span><span class="p">)</span>
+<span class="nb">subplot</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">Tsurf</span><span class="p">(:,</span><span class="k">end</span><span class="p">))</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$T_{surf}$ [K]&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_9.png" src="../udales-facets-tutorial_media/figure_9.png" /></p>
+<h2 id="load_fac_temperature-load-temperatures-inside-facets">load_fac_temperature: load temperatures inside facets<a class="headerlink" href="#load_fac_temperature-load-temperatures-inside-facets" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_temperature</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/load_fac_temperature ---
+
+  A method to retrieve temperature and temperature gradient
+  data from the facT file.
+
+  load_fac_temperature(OBJ) displays the variables in the file
+
+  load_fac_temperature(OBJ, svar) retrieves a variable from the file
+
+  Example (view contents of output):
+    obj = udbase(expnr);
+    obj.load_fac_temperature();
+</code></pre></div>
+<p>The following information is available about the temperature inside facets:</p>
+<div class="highlight"><pre><span></span><code><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_temperature</span><span class="p">();</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Contents of facT.065.nc:
+    Name         Description         Units        Size          Dimensions  
+    ____    _____________________    _____    ____________    ______________
+
+    T       Temperature               K       2658x6x10020    fct, lyr, time
+    dTdz    Temperature gradient      K/m     2658x6x10020    fct, lyr, time
+    fct     Facet number                      2658            fct
+    lyr     Number of wall layers             6               lyr
+    t       Time                      s       10020           time
+</code></pre></div>
+<p>This data can be used to explore what goes on inside each facet. As an example, let's plot the time-evolution of temperature inside facet 1:</p>
+<div class="highlight"><pre><span></span><code><span class="c">% load time, temperature data and layer thicknesses</span>
+<span class="n">t</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_temperature</span><span class="p">(</span><span class="s">&#39;t&#39;</span><span class="p">);</span>
+<span class="n">T</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">load_fac_temperature</span><span class="p">(</span><span class="s">&#39;T&#39;</span><span class="p">);</span>
+<span class="n">d</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">assign_prop_to_fac</span><span class="p">(</span><span class="s">&#39;d&#39;</span><span class="p">);</span><span class="w"> </span><span class="c">% retrieve facet layer thicknesses</span>
+
+<span class="n">facid</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="n">tsel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">t</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">1000</span><span class="p">:</span><span class="k">end</span><span class="p">);</span>
+<span class="n">Tsel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">squeeze</span><span class="p">(</span><span class="n">T</span><span class="p">(</span><span class="n">facid</span><span class="p">,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span><span class="mi">1000</span><span class="p">:</span><span class="k">end</span><span class="p">));</span>
+<span class="n">x</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nb">cumsum</span><span class="p">(</span><span class="n">d</span><span class="p">(</span><span class="n">facid</span><span class="p">,</span><span class="w"> </span><span class="p">:))];</span><span class="w"> </span><span class="c">% temperature is defined on cell faces</span>
+
+<span class="nb">figure</span>
+<span class="nb">hold</span><span class="w"> </span><span class="n">on</span>
+<span class="n">leg</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">cell</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">tsel</span><span class="p">));</span>
+<span class="k">for</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">tsel</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">Tsel</span><span class="p">(:,</span><span class="w"> </span><span class="n">n</span><span class="p">),</span><span class="w"> </span><span class="s">&#39;LineWidth&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="n">leg</span><span class="p">{</span><span class="n">n</span><span class="p">}</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="s">&#39;$t=&#39;</span><span class="p">,</span><span class="w"> </span><span class="nb">num2str</span><span class="p">(</span><span class="n">tsel</span><span class="p">(</span><span class="n">n</span><span class="p">),</span><span class="w"> </span><span class="s">&#39;%8.0f&#39;</span><span class="p">),</span><span class="w"> </span><span class="s">&#39;$ s&#39;</span><span class="p">];</span>
+<span class="k">end</span>
+<span class="n">l</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">legend</span><span class="p">(</span><span class="n">leg</span><span class="p">);</span>
+<span class="n">box</span><span class="w"> </span><span class="s">on</span>
+<span class="n">l</span><span class="p">.</span><span class="n">Interpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="nb">xlabel</span><span class="p">(</span><span class="s">&#39;$x$ [m]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="nb">ylabel</span><span class="p">(</span><span class="s">&#39;$T$ [K]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">gca</span><span class="p">;</span>
+<span class="n">ax</span><span class="p">.</span><span class="n">TickLabelInterpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="nb">title</span><span class="p">(</span><span class="s">&#39;Temperature inside facet 1&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_10.png" src="../udales-facets-tutorial_media/figure_10.png" /></p>
+<h2 id="area_average_seb-perform-area-averaging-of-the-surface-energy-balance-terms">area_average_seb: perform area-averaging of the surface energy balance terms<a class="headerlink" href="#area_average_seb-perform-area-averaging-of-the-surface-energy-balance-terms" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">area_average_seb</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/area_average_seb ---
+
+  A method for calculating the area-averaged surface energy
+  balance.
+
+  area_average_seb(OBJ, seb) averages the variables in seb over the
+  area.
+
+  Example:
+    obj = udbase(expnr);
+    seb = obj.load_seb()
+    seb_av = obj.area_average_seb(seb);
+</code></pre></div>
+<p>This method converts the facet-by-facet surface energy balance to an area-averaged surface energy balance.</p>
+<div class="highlight"><pre><span></span><code><span class="n">seb_av</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">area_average_seb</span><span class="p">(</span><span class="n">seb</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>seb_av = struct with fields:
+    Kstar: [461.2403 461.2403 461.2403 461.2403 461.2403 461.2403 461.2403 461.2403 461.2403 461.2403 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 461.2147 … ] (1x10020 single)
+    Lstar: [-61.3138 -61.3469 -61.3852 -61.4188 -61.4530 -61.4909 -61.5253 -61.5605 -61.5961 -61.6331 -61.3138 -61.3469 -61.3852 -61.4188 -61.4530 -61.4909 -61.5252 -61.5604 -61.5961 -61.6331 -61.3138 -61.3469 -61.3852 -61.4188 … ] (1x10020 single)
+      Lin: [373.6797 373.6832 373.6863 373.6898 373.6931 373.6962 373.6998 373.7029 373.7063 373.7097 373.6797 373.6832 373.6863 373.6898 373.6931 373.6962 373.6998 373.7029 373.7063 373.7096 373.6797 373.6832 373.6863 373.6898 … ] (1x10020 single)
+     Lout: [434.9932 435.0301 435.0715 435.1083 435.1460 435.1872 435.2253 435.2637 435.3025 435.3427 434.9932 435.0299 435.0714 435.1081 435.1460 435.1872 435.2255 435.2637 435.3022 435.3427 434.9932 435.0299 435.0714 435.1081 … ] (1x10020 single)
+        H: [0.7807 3.6902 7.5545 10.5529 11.8296 11.1453 10.0029 9.9542 10.1124 10.3147 0.7807 3.6902 7.5545 10.5530 11.8298 11.1455 10.0029 9.9541 10.1123 10.3149 0.7807 3.6902 7.5545 10.5530 11.8298 11.1455 10.0029 9.9541 10.1123 … ] (1x10020 single)
+        E: [25.9738 16.7287 16.5153 16.3215 16.1434 15.9498 15.7488 15.5422 15.2622 15.0522 25.9738 16.7313 16.5179 16.3240 16.1458 15.9522 15.7511 15.5444 15.2642 15.0543 25.9738 16.7313 16.5179 16.3240 16.1458 15.9522 15.7511 … ] (1x10020 single)
+        G: [373.2034 379.5020 375.8164 372.9749 371.8422 372.6852 373.9917 374.2121 374.2988 374.2705 373.1778 379.4739 375.7881 372.9467 371.8143 372.6568 373.9637 374.1846 374.2715 374.2426 373.1778 379.4739 375.7881 372.9467 … ] (1x10020 single)
+        t: [10020x1 single]
+</code></pre></div>
+<p>Check that the surface energy balance terms sum to zero:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">seb_av</span><span class="p">.</span><span class="n">Kstar</span><span class="o">+</span><span class="n">seb_av</span><span class="p">.</span><span class="n">Lstar</span><span class="o">-</span><span class="n">seb_av</span><span class="p">.</span><span class="n">H</span><span class="o">-</span><span class="n">seb_av</span><span class="p">.</span><span class="n">E</span><span class="o">-</span><span class="n">seb_av</span><span class="p">.</span><span class="n">G</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>ans = single0.0313
+</code></pre></div>
+<p>This value is very small compared to the mean incoming short-wave radiation on the facets (~400 W/m2) and we therefore conclude that the surface energy balance closes. We now create a plot of the area-averaged surface energy balance.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">figure</span><span class="p">()</span>
+<span class="nb">hold</span><span class="w"> </span><span class="n">on</span>
+<span class="nb">plot</span><span class="p">(</span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">seb_av</span><span class="p">.</span><span class="n">Kstar</span><span class="p">,</span><span class="w"> </span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">seb_av</span><span class="p">.</span><span class="n">Lstar</span><span class="p">,</span><span class="w"> </span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">seb_av</span><span class="p">.</span><span class="n">H</span><span class="p">,</span><span class="w"> </span><span class="k">...</span>
+<span class="w">     </span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">seb_av</span><span class="p">.</span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">seb_av</span><span class="p">.</span><span class="n">G</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;LineWidth&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="nb">xlim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">(</span><span class="k">end</span><span class="p">)])</span>
+<span class="n">l</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">legend</span><span class="p">(</span><span class="s">&#39;$K^*$&#39;</span><span class="p">,</span><span class="s">&#39;$L^*$&#39;</span><span class="p">,</span><span class="s">&#39;$H$&#39;</span><span class="p">,</span><span class="s">&#39;$E$&#39;</span><span class="p">,</span><span class="s">&#39;$G$&#39;</span><span class="p">);</span>
+<span class="n">box</span><span class="w"> </span><span class="s">on</span>
+<span class="n">l</span><span class="p">.</span><span class="n">Interpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="nb">xlabel</span><span class="p">(</span><span class="s">&#39;$t$ [s]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="nb">ylabel</span><span class="p">(</span><span class="s">&#39;$\langle F \rangle_s$ [Wm$^{-2}$]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">gca</span><span class="p">;</span>
+<span class="n">ax</span><span class="p">.</span><span class="n">TickLabelInterpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="nb">title</span><span class="p">(</span><span class="s">&#39;Area-averaged surface energy balance&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_11.png" src="../udales-facets-tutorial_media/figure_11.png" /></p>
+<p>Note that this is an average over the surface. In order to obtain the surface energy balances typically used in meteorology, we will need to project this onto a flat ground using a factor <span class="arithmatex"><span class="MathJax_Preview">f=A_{3D} /A_{2D}</span><script type="math/tex">f=A_{3D} /A_{2D}</script></span>, where <span class="arithmatex"><span class="MathJax_Preview">A_{3D}</span><script type="math/tex">A_{3D}</script></span> is the total surface area and <span class="arithmatex"><span class="MathJax_Preview">A_{2D}</span><script type="math/tex">A_{2D}</script></span> is the projected surface area (height x width of the domain).</p>
+<div class="highlight"><pre><span></span><code><span class="c">% Define a factor f = A3D/A2D.</span>
+<span class="n">f</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="n">sim</span><span class="p">.</span><span class="n">facs</span><span class="p">.</span><span class="n">area</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">sim</span><span class="p">.</span><span class="n">xlen</span><span class="o">*</span><span class="n">sim</span><span class="p">.</span><span class="n">ylen</span><span class="p">);</span>
+
+<span class="c">% Upon multiplying the area-averaged SEB with f, the SEB represents a</span>
+<span class="c">% projected-area-averaged SEB term as typically presented in meteorological</span>
+<span class="c">% applications.  </span>
+
+<span class="nb">figure</span><span class="p">()</span>
+<span class="nb">hold</span><span class="w"> </span><span class="n">on</span>
+<span class="nb">plot</span><span class="p">(</span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">f</span><span class="o">*</span><span class="n">seb_av</span><span class="p">.</span><span class="n">Kstar</span><span class="p">,</span><span class="w"> </span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">f</span><span class="o">*</span><span class="n">seb_av</span><span class="p">.</span><span class="n">Lstar</span><span class="p">,</span><span class="w"> </span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">f</span><span class="o">*</span><span class="n">seb_av</span><span class="p">.</span><span class="n">H</span><span class="p">,</span><span class="w"> </span><span class="k">...</span>
+<span class="w">     </span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">f</span><span class="o">*</span><span class="n">seb_av</span><span class="p">.</span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">f</span><span class="o">*</span><span class="n">seb_av</span><span class="p">.</span><span class="n">G</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;LineWidth&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="nb">xlim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">(</span><span class="k">end</span><span class="p">)])</span>
+<span class="n">l</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">legend</span><span class="p">(</span><span class="s">&#39;$K^*$&#39;</span><span class="p">,</span><span class="s">&#39;$L^*$&#39;</span><span class="p">,</span><span class="s">&#39;$H$&#39;</span><span class="p">,</span><span class="s">&#39;$E$&#39;</span><span class="p">,</span><span class="s">&#39;$G$&#39;</span><span class="p">);</span>
+<span class="n">box</span><span class="w"> </span><span class="s">on</span>
+<span class="n">l</span><span class="p">.</span><span class="n">Interpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="nb">xlabel</span><span class="p">(</span><span class="s">&#39;$t$ [s]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="nb">ylabel</span><span class="p">(</span><span class="s">&#39;$F$ [Wm$^{-2}$]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">gca</span><span class="p">;</span>
+<span class="n">ax</span><span class="p">.</span><span class="n">TickLabelInterpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="nb">title</span><span class="p">(</span><span class="s">&#39;Standard surface energy balance&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_12.png" src="../udales-facets-tutorial_media/figure_12.png" /></p>
+<h2 id="area_average_fac-area-averaging-over-facet-data">area_average_fac: area-averaging over facet data<a class="headerlink" href="#area_average_fac-area-averaging-over-facet-data" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">area_average_fac</span><span class="p">;</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/area_average_fac ---
+
+  A method for area-averaging a facet quantity, either over all
+  facets or over a selection.
+
+  area_average_fac(OBJ, var) area-averages variable var over
+  all facets.
+
+  area_average_fac(OBJ, var, sel) area-averages variable var
+  over the facet indices in sel
+
+  Example:
+    K_av = obj.area_average_fac(K);
+</code></pre></div>
+<p>This method performs area-averaging, either over all facets or over a selection of facets.</p>
+<p>Below we provide a non-trivial example on how to this method can be used to obtain a surface energy balance for the sidewalls in the domain. The sidewalls will be selected by using that the z-component of the surface normal has to be zero:</p>
+<div class="highlight"><pre><span></span><code><span class="c">% Select side walls</span>
+<span class="n">norms</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">geom</span><span class="p">.</span><span class="n">stl</span><span class="p">.</span><span class="n">faceNormal</span><span class="p">;</span>
+<span class="n">fac_ids</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">find</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">norms</span><span class="p">(:,</span><span class="w"> </span><span class="mi">3</span><span class="p">))</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">1e-6</span><span class="p">);</span>
+
+<span class="c">% a quick visual check</span>
+<span class="n">I</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">zeros</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">sim</span><span class="p">.</span><span class="n">facs</span><span class="p">.</span><span class="n">area</span><span class="p">));</span>
+<span class="n">I</span><span class="p">(</span><span class="n">fac_ids</span><span class="p">)</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="n">figure</span>
+<span class="s">sim.plot_fac(I)</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_13.png" src="../udales-facets-tutorial_media/figure_13.png" /></p>
+<p>This looks correct. We can now calculate and plot the area-averaged surface energy balance on the side-walls.</p>
+<div class="highlight"><pre><span></span><code><span class="n">Kav_side</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">area_average_fac</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">Kstar</span><span class="p">,</span><span class="w"> </span><span class="n">fac_ids</span><span class="p">);</span>
+<span class="n">Lav_side</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">area_average_fac</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">Lstar</span><span class="p">,</span><span class="w"> </span><span class="n">fac_ids</span><span class="p">);</span>
+<span class="n">Hav_side</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">area_average_fac</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">H</span><span class="p">,</span><span class="w"> </span><span class="n">fac_ids</span><span class="p">);</span>
+<span class="n">Eav_side</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">area_average_fac</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="n">fac_ids</span><span class="p">);</span>
+<span class="n">Gav_side</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">area_average_fac</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">G</span><span class="p">,</span><span class="w"> </span><span class="n">fac_ids</span><span class="p">);</span>
+
+<span class="nb">figure</span><span class="p">()</span>
+<span class="nb">hold</span><span class="w"> </span><span class="n">on</span>
+<span class="nb">plot</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">Kav_side</span><span class="p">,</span><span class="w"> </span><span class="n">seb</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">Lav_side</span><span class="p">,</span><span class="w"> </span><span class="n">seb</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">Hav_side</span><span class="p">,</span><span class="w"> </span><span class="k">...</span>
+<span class="w">     </span><span class="n">seb</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">Eav_side</span><span class="p">,</span><span class="w"> </span><span class="n">seb</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="n">Gav_side</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;LineWidth&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="nb">xlim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="n">seb_av</span><span class="p">.</span><span class="n">t</span><span class="p">(</span><span class="k">end</span><span class="p">)])</span>
+<span class="n">l</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">legend</span><span class="p">(</span><span class="s">&#39;$K^*$&#39;</span><span class="p">,</span><span class="s">&#39;$L^*$&#39;</span><span class="p">,</span><span class="s">&#39;$H$&#39;</span><span class="p">,</span><span class="s">&#39;$E$&#39;</span><span class="p">,</span><span class="s">&#39;$G$&#39;</span><span class="p">);</span>
+<span class="n">box</span><span class="w"> </span><span class="s">on</span>
+<span class="n">l</span><span class="p">.</span><span class="n">Interpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="nb">xlabel</span><span class="p">(</span><span class="s">&#39;$t$ [s]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="nb">ylabel</span><span class="p">(</span><span class="s">&#39;$\langle F \rangle_s$ [Wm$^{-2}$]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">gca</span><span class="p">;</span>
+<span class="n">ax</span><span class="p">.</span><span class="n">TickLabelInterpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="nb">title</span><span class="p">(</span><span class="s">&#39;Area-averaged surface energy balance for sidewalls&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_14.png" src="../udales-facets-tutorial_media/figure_14.png" /></p>
+<div class="highlight"><pre><span></span><code><span class="c">% average over entire time-range, merge short-term time average to</span>
+<span class="c">% long-term</span>
+<span class="c">% see utility_tutorial for functions merge_stat_var and so on</span>
+<span class="p">[</span><span class="n">Havt</span><span class="p">,</span><span class="w"> </span><span class="o">~</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">merge_stat</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">H</span><span class="p">,</span><span class="w"> </span><span class="nb">zeros</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">H</span><span class="p">)),</span><span class="w"> </span><span class="nb">length</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">t</span><span class="p">));</span>
+
+<span class="n">figure</span>
+<span class="s">subplot(1,2,1)</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span><span class="p">(</span><span class="n">Havt</span><span class="p">)</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$H$ [Wm$^{-2}$]&#39;</span><span class="p">)</span>
+<span class="nb">colorbar</span><span class="w"> </span><span class="n">off</span>
+<span class="nb">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">sim</span><span class="p">.</span><span class="n">plot_fac</span><span class="p">(</span><span class="n">Havt</span><span class="p">)</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$H$ [Wm$^{-2}$]&#39;</span><span class="p">)</span>
+<span class="nb">colorbar</span><span class="w"> </span><span class="n">off</span>
+</code></pre></div>
+<p><img alt="figure_15.png" src="../udales-facets-tutorial_media/figure_15.png" /></p>
+<h2 id="convert_facvar_to_field-convert-facet-data-to-grid">convert_facvar_to_field: convert facet data to grid<a class="headerlink" href="#convert_facvar_to_field-convert-facet-data-to-grid" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">convert_facvar_to_field</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/convert_facvar_to_field ---
+
+  Method for transferring a facet variable onto the grid.
+
+  Inputs:
+    var:     facet variable (e.g. from load_fac_eb, load_fac_temperature, etc)
+    facsec:  facet section structure (e.g. obj.facsec.u)
+    building_ids (optional): array of building IDs to include. If not
+                             specified, all buildings are included.
+
+  Outputs:
+    fld:     variable on the grid (itot x jtot x ktot)
+
+  The facsec and dz inputs are required since the routine does not know where % on the staggered grid the variable is located.
+
+  convert_facvar_to_field(OBJ, var, facsec) transfers a variable onto the grid.
+
+  convert_facvar_to_field(OBJ, var, facsec, building_ids) converts only
+                                 facets from the specified building IDs.
+
+  Examples:
+    % Convert all facets
+    fld = obj.convert_facvar_to_field(var, sim.facsec.c);
+
+    % Convert only specific buildings
+    fld = obj.convert_facvar_to_field(var, sim.facsec.c, [1, 5, 10]);
+</code></pre></div>
+<p>This function assigns facet data to the grid, which is useful for some averaging and visualisation methods. For example, we can show the time-averaged surface temperature for buildings 1 and 2 and visualise the associated 3D grid locations:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Tsav</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="n">merge_stat</span><span class="p">(</span><span class="nb">squeeze</span><span class="p">(</span><span class="n">T</span><span class="p">(:,</span><span class="mi">1</span><span class="p">,:)),</span><span class="w"> </span><span class="nb">zeros</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="nb">squeeze</span><span class="p">(</span><span class="n">T</span><span class="p">(:,</span><span class="mi">1</span><span class="p">,:)))),</span><span class="w"> </span><span class="nb">length</span><span class="p">(</span><span class="n">seb</span><span class="p">.</span><span class="n">t</span><span class="p">));</span>
+<span class="n">Tsgrid</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">convert_facvar_to_field</span><span class="p">(</span><span class="n">Tsav</span><span class="p">,</span><span class="n">sim</span><span class="p">.</span><span class="n">facsec</span><span class="p">.</span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="mi">1</span><span class="w"> </span><span class="mi">2</span><span class="p">]);</span>
+
+<span class="c">% Get the (x, y, z) coordinates of non-zero elements</span>
+<span class="p">[</span><span class="nb">i</span><span class="p">,</span><span class="w"> </span><span class="nb">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">ind2sub</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">Tsgrid</span><span class="p">),</span><span class="w"> </span><span class="nb">find</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">Tsgrid</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">));</span>
+<span class="n">x</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">xt</span><span class="p">(</span><span class="nb">i</span><span class="p">);</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">yt</span><span class="p">(</span><span class="nb">j</span><span class="p">);</span><span class="w"> </span><span class="n">z</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">zt</span><span class="p">(</span><span class="n">k</span><span class="p">);</span>
+
+<span class="c">% Get the corresponding values</span>
+<span class="nb">values</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">Tsgrid</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">Tsgrid</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="c">% Plot the data using scatter3</span>
+<span class="nb">figure</span><span class="p">;</span>
+<span class="nb">scatter3</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">z</span><span class="p">,</span><span class="w"> </span><span class="mi">24</span><span class="p">,</span><span class="w"> </span><span class="nb">values</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;filled&#39;</span><span class="p">);</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$T_s$ [K]&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p><img alt="figure_16.png" src="../udales-facets-tutorial_media/figure_16.png" /></p>
+<h2 id="convert_facflx_to_field-convert-facet-data-to-3d-density-field">convert_facflx_to_field: convert facet data to 3D density field<a class="headerlink" href="#convert_facflx_to_field-convert-facet-data-to-3d-density-field" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">help</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">convert_facflx_to_field</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>--- help for udbase/convert_facflx_to_field ---
+
+  Method for converting a facet variable to a density in a 3D
+  field.
+
+  Inputs:
+    var:     facet flux variable (e.g. from load_fac_eb, load_fac_temperature, etc)
+    facsec:  facet section structure (e.g. obj.facsec.u)
+    dz:      vertical grid spacing at cell centers (obj.dzt)
+    building_ids (optional): array of building IDs to include. If not
+                             specified, all buildings are included.
+
+  Outputs:
+    fld:     3D field density (itot x jtot x ktot)
+
+  The facsec and dz inputs are required since the routine does not know where % on the staggered grid the variable is located.
+
+  convert_facflx_to_field(OBJ, var, facsec, dz) converts the facet variable var  
+                                 to a 3D field density for all facets.
+
+  convert_facflx_to_field(OBJ, var, facsec, dz, building_ids) converts only
+                                 facets from the specified building IDs.
+
+  Examples:
+    % Convert all facets
+    fld = obj.convert_facflx_to_field(var, sim.facsec.c, sim.dzt);
+
+    % Convert only specific buildings
+    fld = obj.convert_facflx_to_field(var, sim.facsec.c, sim.dzt, [1, 5, 10]);
+</code></pre></div>
+<p>This function assigns facet data to a density in a 3D field, which is useful for assessing plane-average distributed stresses [1] as well as the multi-scale analysis proposed by Van Reeuwijk and Huang [2]. For example, we can convert the time-averaged heat flux Havt to a 3d density field as follows.</p>
+<div class="highlight"><pre><span></span><code><span class="n">rhoH</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">convert_facflx_to_field</span><span class="p">(</span><span class="n">Havt</span><span class="p">,</span><span class="n">sim</span><span class="p">.</span><span class="n">facsec</span><span class="p">.</span><span class="n">c</span><span class="p">,</span><span class="n">sim</span><span class="p">.</span><span class="n">dzt</span><span class="p">);</span>
+
+<span class="c">% let&#39;s check whether the integrals of the 2D and 3D fields match:</span>
+<span class="n">s</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="k">for</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span><span class="nb">size</span><span class="p">(</span><span class="n">rhoH</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span>
+<span class="w">    </span><span class="n">s</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">rhoH</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">sim</span><span class="p">.</span><span class="n">dx</span><span class="o">*</span><span class="n">sim</span><span class="p">.</span><span class="n">dy</span><span class="o">*</span><span class="n">sim</span><span class="p">.</span><span class="n">dzt</span><span class="p">(</span><span class="n">k</span><span class="p">)));</span>
+<span class="k">end</span>
+
+<span class="c">% calculate the relative error</span>
+<span class="nb">abs</span><span class="p">(</span><span class="n">s</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="n">Havt</span><span class="w"> </span><span class="o">.*</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">facs</span><span class="p">.</span><span class="n">area</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">s</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>ans = single9.4734e-08
+</code></pre></div>
+<p>The relative error is extremely small which shows that the total amount of heat added to the domain is equivalent in both cases. Let's visualise the density field:</p>
+<div class="highlight"><pre><span></span><code><span class="c">% Get the (x, y, z) coordinates of non-zero elements</span>
+<span class="p">[</span><span class="nb">i</span><span class="p">,</span><span class="w"> </span><span class="nb">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">ind2sub</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">rhoH</span><span class="p">),</span><span class="w"> </span><span class="nb">find</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">rhoH</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">));</span>
+<span class="n">x</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">xt</span><span class="p">(</span><span class="nb">i</span><span class="p">);</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">yt</span><span class="p">(</span><span class="nb">j</span><span class="p">);</span><span class="w"> </span><span class="n">z</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">zt</span><span class="p">(</span><span class="n">k</span><span class="p">);</span>
+
+<span class="c">% Get the corresponding values</span>
+<span class="nb">values</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">rhoH</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">rhoH</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="c">% Plot the data using scatter3</span>
+<span class="nb">figure</span><span class="p">;</span>
+<span class="nb">scatter3</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">z</span><span class="p">,</span><span class="w"> </span><span class="mi">24</span><span class="p">,</span><span class="w"> </span><span class="nb">values</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;filled&#39;</span><span class="p">);</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$\rho_{H}$ [Wm$^{-3}$]&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p><img alt="figure_17.png" src="../udales-facets-tutorial_media/figure_17.png" /></p>
+<p>Here, we note that it is a coincidence that the values of the sensible heat flux density <span class="arithmatex"><span class="MathJax_Preview">\rho_{H\;}</span><script type="math/tex">\rho_{H\;}</script></span> are similar to those of the heat flux <span class="arithmatex"><span class="MathJax_Preview">\bar{H\;}</span><script type="math/tex">\bar{H\;}</script></span> itself, despite their units being different.</p>
+<p>We can also select specific buildings:</p>
+<div class="highlight"><pre><span></span><code><span class="n">rhoH</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">convert_facflx_to_field</span><span class="p">(</span><span class="n">Havt</span><span class="p">,</span><span class="n">sim</span><span class="p">.</span><span class="n">facsec</span><span class="p">.</span><span class="n">c</span><span class="p">,</span><span class="n">sim</span><span class="p">.</span><span class="n">dzt</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">]);</span>
+<span class="c">% Get the (x, y, z) coordinates of non-zero elements</span>
+<span class="p">[</span><span class="nb">i</span><span class="p">,</span><span class="w"> </span><span class="nb">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">ind2sub</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">rhoH</span><span class="p">),</span><span class="w"> </span><span class="nb">find</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">rhoH</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">));</span>
+<span class="n">x</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">xt</span><span class="p">(</span><span class="nb">i</span><span class="p">);</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">yt</span><span class="p">(</span><span class="nb">j</span><span class="p">);</span><span class="w"> </span><span class="n">z</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">zt</span><span class="p">(</span><span class="n">k</span><span class="p">);</span>
+
+<span class="c">% Get the corresponding values</span>
+<span class="nb">values</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">rhoH</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">rhoH</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="c">% Plot the data using scatter3</span>
+<span class="nb">figure</span><span class="p">;</span>
+<span class="nb">scatter3</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">z</span><span class="p">,</span><span class="w"> </span><span class="mi">24</span><span class="p">,</span><span class="w"> </span><span class="nb">values</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;filled&#39;</span><span class="p">);</span>
+<span class="n">format_surface_plot</span><span class="p">(</span><span class="s">&#39;$\rho_{H}$ [Wm$^{-3}$]&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p><img alt="figure_18.png" src="../udales-facets-tutorial_media/figure_18.png" /></p>
+<p>To calculate the horizontally-average heat flux density, we can simply average over the horizontal directions.</p>
+<div class="highlight"><pre><span></span><code><span class="n">rhoH</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sim</span><span class="p">.</span><span class="n">convert_facflx_to_field</span><span class="p">(</span><span class="n">Havt</span><span class="p">,</span><span class="n">sim</span><span class="p">.</span><span class="n">facsec</span><span class="p">.</span><span class="n">c</span><span class="p">,</span><span class="n">sim</span><span class="p">.</span><span class="n">dzt</span><span class="p">);</span>
+<span class="n">fH</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">squeeze</span><span class="p">(</span><span class="nb">mean</span><span class="p">(</span><span class="nb">mean</span><span class="p">(</span><span class="n">rhoH</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="mi">2</span><span class="p">));</span>
+<span class="n">figure</span>
+<span class="s">plot(fH,</span><span class="w"> </span><span class="s">sim.zt,</span><span class="w"> </span><span class="s">&#39;LineWidth&#39;,1)</span><span class="p">;</span>
+<span class="n">box</span><span class="w"> </span><span class="s">on</span>
+<span class="nb">ylabel</span><span class="p">(</span><span class="s">&#39;$z$ [m]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="nb">xlabel</span><span class="p">(</span><span class="s">&#39;$f_H$ [Wm$^{-3}$]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">gca</span><span class="p">;</span>
+<span class="n">ax</span><span class="p">.</span><span class="n">TickLabelInterpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="nb">title</span><span class="p">(</span><span class="s">&#39;Distributed heat flux&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="figure_19.png" src="../udales-facets-tutorial_media/figure_19.png" /></p>
+<h2 id="function-to-format-surface-plots">Function to format surface plots<a class="headerlink" href="#function-to-format-surface-plots" title="Permanent link">&para;</a></h2>
+<p>This auxiliary function is used to ensure a consistent layout of all surface plots in this tutorial.</p>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="w"> </span><span class="nf">format_surface_plot</span><span class="p">(</span>strvar, varargin<span class="p">)</span>
+<span class="w">    </span><span class="c">% Parse optional parameters</span>
+<span class="w">    </span><span class="n">p</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">inputParser</span><span class="p">;</span>
+<span class="w">    </span><span class="n">addParameter</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;SkipColorbar&#39;</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="p">@</span><span class="nb">islogical</span><span class="p">);</span>
+<span class="w">    </span><span class="n">parse</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="nb">varargin</span><span class="p">{:});</span>
+
+<span class="w">    </span><span class="c">% Apply standard formatting</span>
+<span class="w">    </span><span class="nb">view</span><span class="p">(</span><span class="o">-</span><span class="mi">25</span><span class="p">,</span><span class="mi">30</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">xlabel</span><span class="p">(</span><span class="s">&#39;$x$ [m]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">ylabel</span><span class="p">(</span><span class="s">&#39;$y$ [m]&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">zlabel</span><span class="p">(</span><span class="s">&#39;$z$ [m]&#39;</span><span class="p">,</span><span class="s">&#39;Interpreter&#39;</span><span class="p">,</span><span class="s">&#39;latex&#39;</span><span class="p">)</span>
+<span class="w">    </span><span class="n">ax</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">gca</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ax</span><span class="p">.</span><span class="n">TickLabelInterpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="w">    </span><span class="n">axis</span><span class="w"> </span><span class="s">equal</span>
+
+<span class="w">    </span><span class="c">% Only create/modify colorbar if not skipped</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">~</span><span class="n">p</span><span class="p">.</span><span class="n">Results</span><span class="p">.</span><span class="n">SkipColorbar</span>
+<span class="w">        </span><span class="n">c</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">colorbar</span><span class="p">;</span>
+<span class="w">        </span><span class="n">c</span><span class="p">.</span><span class="n">Label</span><span class="p">.</span><span class="n">String</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">strvar</span><span class="p">;</span>
+<span class="w">        </span><span class="n">c</span><span class="p">.</span><span class="n">Label</span><span class="p">.</span><span class="n">Interpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="w">        </span><span class="n">c</span><span class="p">.</span><span class="n">TickLabelInterpreter</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;latex&#39;</span><span class="p">;</span>
+<span class="w">    </span><span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<p>[1] Suetzl BS, Rooney GG,  van Reeuwijk M (2020). Drag Distribution in Idealized Heterogeneous Urban Environments. <em>Bound-Lay. Met.</em> <strong>178</strong>, 225-248.</p>
+<p>[2] Maarten van Reeuwijk, Jingzi Huang (2025) Multi-scale Analysis of Flow over Heterogeneous Urban Environments, <em>Bound-Lay. Met.</em> <strong>191</strong>, 47.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      The uDALES Team
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+      
+    
+  </body>
+</html>

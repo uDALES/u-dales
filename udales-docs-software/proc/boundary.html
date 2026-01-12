@@ -1,0 +1,1425 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>boundary &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>boundary
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 1.5% of total for procedures.">205 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modboundary.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modboundary.f90.html'>modboundary.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modboundary.html'>modboundary</a></li>
+            <li class="breadcrumb-item active" aria-current="page">boundary</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/boundary.html#src">boundary</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine boundary()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modsubgriddata.html'>modsubgriddata</a></li>
+                  <li class="list-inline-item"><a href='../module/modsurfdata.html'>modsurfdata</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item">decomp_2d</li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/modinletdata.html'>modinletdata</a></li>
+                  <li class="list-inline-item"><a href='../module/moddriver.html'>moddriver</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~boundary~~UsesGraph Pages: 1 -->
+<svg id="procboundaryUsesGraph" width="325pt" height="307pt"
+ viewBox="0.00 0.00 324.56 307.07" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~boundary~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 303.07)">
+<title>proc~~boundary~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-303.07 320.56,-303.07 320.56,4 -4,4"/>
+<!-- proc~boundary -->
+<g id="proc~~boundary~~UsesGraph_node1" class="node">
+<title>proc~boundary</title>
+<polygon fill="none" stroke="black" points="316.56,-168.27 254.04,-168.27 254.04,-144 316.56,-144 316.56,-168.27"/>
+<text text-anchor="middle" x="285.3" y="-152.53" font-family="Helvetica,sans-Serif" font-size="10.50">boundary</text>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~boundary~~UsesGraph_node2" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="78.27,-292.27 4.5,-292.27 4.5,-268 78.27,-268 78.27,-292.27"/>
+<text text-anchor="middle" x="41.38" y="-276.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- proc~boundary&#45;&gt;decomp_2d -->
+<g id="proc~~boundary~~UsesGraph_edge1" class="edge">
+<title>proc~boundary&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M282.05,-168.62C276.56,-195 259.71,-256.06 218.04,-281.13 179.56,-304.29 127.22,-300.47 89.71,-293.05"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="90.56,-289.66 80.05,-290.98 89.09,-296.5 90.56,-289.66"/>
+</g>
+<!-- module~moddriver -->
+<g id="proc~~boundary~~UsesGraph_node3" class="node">
+<title>module~moddriver</title>
+<g id="a_proc~~boundary~~UsesGraph_node3"><a xlink:href="../module/moddriver.html" xlink:title="moddriver">
+<polygon fill="#337ab7" stroke="#337ab7" points="201.91,-230.27 134.89,-230.27 134.89,-206 201.91,-206 201.91,-230.27"/>
+<text text-anchor="middle" x="168.4" y="-214.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">moddriver</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;module~moddriver -->
+<g id="proc~~boundary~~UsesGraph_edge2" class="edge">
+<title>proc~boundary&#45;&gt;module~moddriver</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M265.59,-168.73C252.55,-177.26 234.59,-188.5 218.04,-197.13 215.67,-198.37 213.2,-199.6 210.7,-200.81"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="209.33,-197.59 201.71,-204.95 212.26,-203.94 209.33,-197.59"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~boundary~~UsesGraph_node4" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~boundary~~UsesGraph_node4"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="200.41,-272.27 136.39,-272.27 136.39,-248 200.41,-248 200.41,-272.27"/>
+<text text-anchor="middle" x="168.4" y="-256.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;module~modfields -->
+<g id="proc~~boundary~~UsesGraph_edge3" class="edge">
+<title>proc~boundary&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M277.04,-168.71C266.21,-186.5 244.27,-219.1 218.04,-239.13 215.77,-240.87 213.33,-242.49 210.81,-244"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="209.32,-240.83 202.1,-248.59 212.58,-247.03 209.32,-240.83"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~boundary~~UsesGraph_node5" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~boundary~~UsesGraph_node5"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="202.66,-188.27 134.14,-188.27 134.14,-164 202.66,-164 202.66,-188.27"/>
+<text text-anchor="middle" x="168.4" y="-172.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;module~modglobal -->
+<g id="proc~~boundary~~UsesGraph_edge4" class="edge">
+<title>proc~boundary&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M253.81,-161.44C241.68,-163.55 227.47,-166.03 214.2,-168.34"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="213.61,-164.89 204.36,-170.05 214.81,-171.78 213.61,-164.89"/>
+</g>
+<!-- module~modinletdata -->
+<g id="proc~~boundary~~UsesGraph_node6" class="node">
+<title>module~modinletdata</title>
+<g id="a_proc~~boundary~~UsesGraph_node6"><a xlink:href="../module/modinletdata.html" xlink:title="modinletdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="82.77,-210.27 0,-210.27 0,-186 82.77,-186 82.77,-210.27"/>
+<text text-anchor="middle" x="41.38" y="-194.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modinletdata</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;module~modinletdata -->
+<g id="proc~~boundary~~UsesGraph_edge5" class="edge">
+<title>proc~boundary&#45;&gt;module~modinletdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M253.81,-151.29C220.14,-147 164.64,-143.11 118.77,-155.13 100.76,-159.85 82.53,-169.88 68.39,-179.06"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="66.45,-176.15 60.14,-184.67 70.38,-181.95 66.45,-176.15"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~boundary~~UsesGraph_node7" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~boundary~~UsesGraph_node7"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="196.29,-108.27 140.52,-108.27 140.52,-84 196.29,-84 196.29,-108.27"/>
+<text text-anchor="middle" x="168.4" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;module~modmpi -->
+<g id="proc~~boundary~~UsesGraph_edge6" class="edge">
+<title>proc~boundary&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M260.21,-143.56C243.75,-134.96 221.68,-123.43 203.42,-113.9"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="205.28,-110.92 194.8,-109.4 202.04,-117.13 205.28,-110.92"/>
+</g>
+<!-- module~modsubgriddata -->
+<g id="proc~~boundary~~UsesGraph_node8" class="node">
+<title>module~modsubgriddata</title>
+<g id="a_proc~~boundary~~UsesGraph_node8"><a xlink:href="../module/modsubgriddata.html" xlink:title="modsubgriddata">
+<polygon fill="#337ab7" stroke="#337ab7" points="218.04,-66.27 118.77,-66.27 118.77,-42 218.04,-42 218.04,-66.27"/>
+<text text-anchor="middle" x="168.4" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgriddata</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;module~modsubgriddata -->
+<g id="proc~~boundary~~UsesGraph_edge7" class="edge">
+<title>proc~boundary&#45;&gt;module~modsubgriddata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M276.78,-143.58C265.81,-126.16 243.86,-94.61 218.04,-75.14 216.73,-74.15 215.37,-73.2 213.97,-72.28"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="216.03,-69.43 205.61,-67.5 212.55,-75.5 216.03,-69.43"/>
+</g>
+<!-- module~modsurfdata -->
+<g id="proc~~boundary~~UsesGraph_node9" class="node">
+<title>module~modsurfdata</title>
+<g id="a_proc~~boundary~~UsesGraph_node9"><a xlink:href="../module/modsurfdata.html" xlink:title="modsurfdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="208.29,-24.27 128.52,-24.27 128.52,0 208.29,0 208.29,-24.27"/>
+<text text-anchor="middle" x="168.4" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsurfdata</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;module~modsurfdata -->
+<g id="proc~~boundary~~UsesGraph_edge8" class="edge">
+<title>proc~boundary&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M280.63,-143.58C272.89,-119.18 252.72,-64.94 218.04,-33.13 217.27,-32.43 216.47,-31.74 215.65,-31.08"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="217.64,-28.2 207.38,-25.57 213.76,-34.03 217.64,-28.2"/>
+</g>
+<!-- module~moddriver&#45;&gt;module~modinletdata -->
+<g id="proc~~boundary~~UsesGraph_edge9" class="edge">
+<title>module~moddriver&#45;&gt;module~modinletdata</title>
+<path fill="none" stroke="#ffbf00" stroke-dasharray="5,2" d="M134.56,-212.88C122.24,-210.91 107.91,-208.62 94.28,-206.44"/>
+<polygon fill="#ffbf00" stroke="#ffbf00" points="94.98,-203 84.55,-204.88 93.87,-209.92 94.98,-203"/>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~boundary~~UsesGraph_edge10" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M136.18,-265.13C122.1,-267.38 105.16,-270.09 89.57,-272.59"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="89.34,-269.08 80.02,-274.11 90.45,-275.99 89.34,-269.08"/>
+</g>
+<!-- mpi -->
+<g id="proc~~boundary~~UsesGraph_node10" class="node">
+<title>mpi</title>
+<g id="a_proc~~boundary~~UsesGraph_node10"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="68.38,-108.27 14.38,-108.27 14.38,-84 68.38,-84 68.38,-108.27"/>
+<text text-anchor="middle" x="41.38" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~boundary~~UsesGraph_edge11" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#003fff" stroke-dasharray="5,2" d="M140.28,-96.14C122.67,-96.14 99.49,-96.14 80.1,-96.14"/>
+<polygon fill="#003fff" stroke="#003fff" points="80.12,-92.64 70.12,-96.14 80.12,-99.64 80.12,-92.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~boundary~~CallsGraph Pages: 1 -->
+<svg id="procboundaryCallsGraph" width="362pt" height="1124pt"
+ viewBox="0.00 0.00 362.06 1124.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~boundary~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 1120.27)">
+<title>proc~~boundary~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-1120.27 358.06,-1120.27 358.06,4 -4,4"/>
+<!-- proc~boundary -->
+<g id="proc~~boundary~~CallsGraph_node1" class="node">
+<title>proc~boundary</title>
+<polygon fill="none" stroke="black" points="62.52,-570.27 0,-570.27 0,-546 62.52,-546 62.52,-570.27"/>
+<text text-anchor="middle" x="31.26" y="-554.53" font-family="Helvetica,sans-Serif" font-size="10.50">boundary</text>
+</g>
+<!-- proc~driverchunkread -->
+<g id="proc~~boundary~~CallsGraph_node2" class="node">
+<title>proc~driverchunkread</title>
+<g id="a_proc~~boundary~~CallsGraph_node2"><a xlink:href="../proc/driverchunkread.html" xlink:title="driverchunkread">
+<polygon fill="#d9534f" stroke="#d9534f" points="197.04,-1116.27 98.52,-1116.27 98.52,-1092 197.04,-1092 197.04,-1116.27"/>
+<text text-anchor="middle" x="147.78" y="-1100.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">driverchunkread</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~driverchunkread -->
+<g id="proc~~boundary~~CallsGraph_edge1" class="edge">
+<title>proc~boundary&#45;&gt;proc~driverchunkread</title>
+<path fill="none" stroke="#ff0000" d="M32.21,-570.66C32.17,-642.19 35.18,-998.58 98.52,-1083.13 98.76,-1083.45 99,-1083.76 99.25,-1084.07"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="96.83,-1086.6 106.6,-1090.7 101.52,-1081.4 96.83,-1086.6"/>
+</g>
+<!-- proc~drivergen -->
+<g id="proc~~boundary~~CallsGraph_node3" class="node">
+<title>proc~drivergen</title>
+<g id="a_proc~~boundary~~CallsGraph_node3"><a xlink:href="../proc/drivergen.html" xlink:title="drivergen">
+<polygon fill="#d9534f" stroke="#d9534f" points="179.41,-1074.27 116.14,-1074.27 116.14,-1050 179.41,-1050 179.41,-1074.27"/>
+<text text-anchor="middle" x="147.78" y="-1058.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">drivergen</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~drivergen -->
+<g id="proc~~boundary~~CallsGraph_edge2" class="edge">
+<title>proc~boundary&#45;&gt;proc~drivergen</title>
+<path fill="none" stroke="#ff0000" d="M32.36,-570.54C33.16,-638.35 40,-963.89 98.52,-1041.13 100.66,-1043.96 103.25,-1046.41 106.12,-1048.53"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="104.26,-1051.5 114.66,-1053.51 107.78,-1045.45 104.26,-1051.5"/>
+</g>
+<!-- proc~fluxtop -->
+<g id="proc~~boundary~~CallsGraph_node4" class="node">
+<title>proc~fluxtop</title>
+<g id="a_proc~~boundary~~CallsGraph_node4"><a xlink:href="../proc/fluxtop.html" xlink:title="fluxtop">
+<polygon fill="#d9534f" stroke="#d9534f" points="174.78,-1032.27 120.78,-1032.27 120.78,-1008 174.78,-1008 174.78,-1032.27"/>
+<text text-anchor="middle" x="147.78" y="-1016.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">fluxtop</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~fluxtop -->
+<g id="proc~~boundary~~CallsGraph_edge3" class="edge">
+<title>proc~boundary&#45;&gt;proc~fluxtop</title>
+<path fill="none" stroke="#ff0000" d="M32.55,-570.72C34.25,-635.31 44.89,-929.28 98.52,-999.13 101.64,-1003.2 105.71,-1006.49 110.16,-1009.15"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="108.41,-1012.19 118.94,-1013.37 111.44,-1005.89 108.41,-1012.19"/>
+</g>
+<!-- proc~fluxtopscal -->
+<g id="proc~~boundary~~CallsGraph_node5" class="node">
+<title>proc~fluxtopscal</title>
+<g id="a_proc~~boundary~~CallsGraph_node5"><a xlink:href="../proc/fluxtopscal.html" xlink:title="fluxtopscal">
+<polygon fill="#d9534f" stroke="#d9534f" points="182.41,-990.27 113.14,-990.27 113.14,-966 182.41,-966 182.41,-990.27"/>
+<text text-anchor="middle" x="147.78" y="-974.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">fluxtopscal</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~fluxtopscal -->
+<g id="proc~~boundary~~CallsGraph_edge4" class="edge">
+<title>proc~boundary&#45;&gt;proc~fluxtopscal</title>
+<path fill="none" stroke="#ff0000" d="M32.77,-570.71C35.44,-631.51 49.72,-894.57 98.52,-957.13 100.07,-959.13 101.85,-960.93 103.79,-962.57"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="101.57,-965.3 111.85,-967.89 105.43,-959.45 101.57,-965.3"/>
+</g>
+<!-- proc~valuetop -->
+<g id="proc~~boundary~~CallsGraph_node6" class="node">
+<title>proc~valuetop</title>
+<g id="a_proc~~boundary~~CallsGraph_node6"><a xlink:href="../proc/valuetop.html" xlink:title="valuetop">
+<polygon fill="#d9534f" stroke="#d9534f" points="176.79,-948.27 118.77,-948.27 118.77,-924 176.79,-924 176.79,-948.27"/>
+<text text-anchor="middle" x="147.78" y="-932.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">valuetop</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~valuetop -->
+<g id="proc~~boundary~~CallsGraph_edge5" class="edge">
+<title>proc~boundary&#45;&gt;proc~valuetop</title>
+<path fill="none" stroke="#ff0000" d="M33.02,-570.5C36.72,-626.96 54.47,-859.76 98.52,-915.13 101.29,-918.62 104.75,-921.53 108.54,-923.97"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="106.6,-926.91 117.08,-928.41 109.82,-920.7 106.6,-926.91"/>
+</g>
+<!-- proc~valuetopscal -->
+<g id="proc~~boundary~~CallsGraph_node7" class="node">
+<title>proc~valuetopscal</title>
+<g id="a_proc~~boundary~~CallsGraph_node7"><a xlink:href="../proc/valuetopscal.html" xlink:title="valuetopscal">
+<polygon fill="#d9534f" stroke="#d9534f" points="187.29,-906.27 108.27,-906.27 108.27,-882 187.29,-882 187.29,-906.27"/>
+<text text-anchor="middle" x="147.78" y="-890.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">valuetopscal</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~valuetopscal -->
+<g id="proc~~boundary~~CallsGraph_edge6" class="edge">
+<title>proc~boundary&#45;&gt;proc~valuetopscal</title>
+<path fill="none" stroke="#ff0000" d="M33.35,-570.43C38.19,-622.57 59.24,-824.94 98.52,-873.13 98.77,-873.44 99.02,-873.74 99.28,-874.04"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="96.97,-876.67 106.85,-880.52 101.53,-871.35 96.97,-876.67"/>
+</g>
+<!-- proc~xmi_driver -->
+<g id="proc~~boundary~~CallsGraph_node8" class="node">
+<title>proc~xmi_driver</title>
+<g id="a_proc~~boundary~~CallsGraph_node8"><a xlink:href="../proc/xmi_driver.html" xlink:title="xmi_driver">
+<polygon fill="#d9534f" stroke="#d9534f" points="181.66,-864.27 113.89,-864.27 113.89,-840 181.66,-840 181.66,-864.27"/>
+<text text-anchor="middle" x="147.78" y="-848.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xmi_driver</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xmi_driver -->
+<g id="proc~~boundary~~CallsGraph_edge7" class="edge">
+<title>proc~boundary&#45;&gt;proc~xmi_driver</title>
+<path fill="none" stroke="#ff0000" d="M31.62,-570.72C30.17,-612.87 31.03,-750.88 98.52,-831.13 100.14,-833.07 101.98,-834.83 103.96,-836.43"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="101.82,-839.21 112.12,-841.67 105.6,-833.32 101.82,-839.21"/>
+</g>
+<!-- proc~xmi_profile -->
+<g id="proc~~boundary~~CallsGraph_node9" class="node">
+<title>proc~xmi_profile</title>
+<g id="a_proc~~boundary~~CallsGraph_node9"><a xlink:href="../proc/xmi_profile.html" xlink:title="xmi_profile">
+<polygon fill="#d9534f" stroke="#d9534f" points="182.79,-822.27 112.77,-822.27 112.77,-798 182.79,-798 182.79,-822.27"/>
+<text text-anchor="middle" x="147.78" y="-806.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xmi_profile</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xmi_profile -->
+<g id="proc~~boundary~~CallsGraph_edge8" class="edge">
+<title>proc~boundary&#45;&gt;proc~xmi_profile</title>
+<path fill="none" stroke="#ff0000" d="M32.3,-570.63C33.07,-608.4 40.35,-722.79 98.52,-789.13 99.97,-790.78 101.56,-792.31 103.28,-793.72"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="101.03,-796.43 111.3,-799 104.88,-790.58 101.03,-796.43"/>
+</g>
+<!-- proc~xmo_convective -->
+<g id="proc~~boundary~~CallsGraph_node10" class="node">
+<title>proc~xmo_convective</title>
+<g id="a_proc~~boundary~~CallsGraph_node10"><a xlink:href="../proc/xmo_convective.html" xlink:title="xmo_convective">
+<polygon fill="#d9534f" stroke="#d9534f" points="196.66,-780.27 98.89,-780.27 98.89,-756 196.66,-756 196.66,-780.27"/>
+<text text-anchor="middle" x="147.78" y="-764.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xmo_convective</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xmo_convective -->
+<g id="proc~~boundary~~CallsGraph_edge9" class="edge">
+<title>proc~boundary&#45;&gt;proc~xmo_convective</title>
+<path fill="none" stroke="#ff0000" d="M33.23,-570.46C36.44,-603.38 49.52,-694.41 98.52,-747.13 99.1,-747.76 99.71,-748.37 100.33,-748.96"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="98.05,-751.63 108.15,-754.82 102.25,-746.02 98.05,-751.63"/>
+</g>
+<!-- proc~xqi_driver -->
+<g id="proc~~boundary~~CallsGraph_node11" class="node">
+<title>proc~xqi_driver</title>
+<g id="a_proc~~boundary~~CallsGraph_node11"><a xlink:href="../proc/xqi_driver.html" xlink:title="xqi_driver">
+<polygon fill="#d9534f" stroke="#d9534f" points="179.79,-738.27 115.77,-738.27 115.77,-714 179.79,-714 179.79,-738.27"/>
+<text text-anchor="middle" x="147.78" y="-722.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xqi_driver</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xqi_driver -->
+<g id="proc~~boundary~~CallsGraph_edge10" class="edge">
+<title>proc~boundary&#45;&gt;proc~xqi_driver</title>
+<path fill="none" stroke="#ff0000" d="M34.66,-570.51C40.65,-598.21 58.67,-665.81 98.52,-705.13 100.6,-707.19 102.91,-709.05 105.36,-710.75"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="103.6,-713.77 114.02,-715.71 107.09,-707.7 103.6,-713.77"/>
+</g>
+<!-- proc~xqi_profile -->
+<g id="proc~~boundary~~CallsGraph_node12" class="node">
+<title>proc~xqi_profile</title>
+<g id="a_proc~~boundary~~CallsGraph_node12"><a xlink:href="../proc/xqi_profile.html" xlink:title="xqi_profile">
+<polygon fill="#d9534f" stroke="#d9534f" points="180.91,-696.27 114.64,-696.27 114.64,-672 180.91,-672 180.91,-696.27"/>
+<text text-anchor="middle" x="147.78" y="-680.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xqi_profile</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xqi_profile -->
+<g id="proc~~boundary~~CallsGraph_edge11" class="edge">
+<title>proc~boundary&#45;&gt;proc~xqi_profile</title>
+<path fill="none" stroke="#ff0000" d="M37.15,-570.5C46.22,-592.02 67.6,-636.61 98.52,-663.13 100.41,-664.75 102.44,-666.27 104.56,-667.68"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="102.57,-670.57 112.99,-672.47 106.03,-664.48 102.57,-670.57"/>
+</g>
+<!-- proc~xqo_convective -->
+<g id="proc~~boundary~~CallsGraph_node13" class="node">
+<title>proc~xqo_convective</title>
+<g id="a_proc~~boundary~~CallsGraph_node13"><a xlink:href="../proc/xqo_convective.html" xlink:title="xqo_convective">
+<polygon fill="#d9534f" stroke="#d9534f" points="194.79,-654.27 100.77,-654.27 100.77,-630 194.79,-630 194.79,-654.27"/>
+<text text-anchor="middle" x="147.78" y="-638.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xqo_convective</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xqo_convective -->
+<g id="proc~~boundary~~CallsGraph_edge12" class="edge">
+<title>proc~boundary&#45;&gt;proc~xqo_convective</title>
+<path fill="none" stroke="#ff0000" d="M42.93,-570.62C55.22,-584.41 76.56,-606.58 98.52,-621.13 100.12,-622.19 101.78,-623.22 103.48,-624.21"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="101.7,-627.23 112.18,-628.8 104.97,-621.04 101.7,-627.23"/>
+</g>
+<!-- proc~xsi_custom -->
+<g id="proc~~boundary~~CallsGraph_node14" class="node">
+<title>proc~xsi_custom</title>
+<g id="a_proc~~boundary~~CallsGraph_node14"><a xlink:href="../proc/xsi_custom.html" xlink:title="xsi_custom">
+<polygon fill="#d9534f" stroke="#d9534f" points="182.79,-612.27 112.77,-612.27 112.77,-588 182.79,-588 182.79,-612.27"/>
+<text text-anchor="middle" x="147.78" y="-596.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xsi_custom</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xsi_custom -->
+<g id="proc~~boundary~~CallsGraph_edge13" class="edge">
+<title>proc~boundary&#45;&gt;proc~xsi_custom</title>
+<path fill="none" stroke="#ff0000" d="M62.95,-569.39C74.85,-573.76 88.73,-578.84 101.72,-583.61"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="100.35,-586.84 110.95,-586.99 102.76,-580.26 100.35,-586.84"/>
+</g>
+<!-- proc~xsi_driver -->
+<g id="proc~~boundary~~CallsGraph_node15" class="node">
+<title>proc~xsi_driver</title>
+<g id="a_proc~~boundary~~CallsGraph_node15"><a xlink:href="../proc/xsi_driver.html" xlink:title="xsi_driver">
+<polygon fill="#d9534f" stroke="#d9534f" points="179.04,-570.27 116.52,-570.27 116.52,-546 179.04,-546 179.04,-570.27"/>
+<text text-anchor="middle" x="147.78" y="-554.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xsi_driver</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xsi_driver -->
+<g id="proc~~boundary~~CallsGraph_edge14" class="edge">
+<title>proc~boundary&#45;&gt;proc~xsi_driver</title>
+<path fill="none" stroke="#ff0000" d="M62.95,-558.13C75.89,-558.13 91.16,-558.13 105.09,-558.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="104.89,-561.64 114.89,-558.14 104.89,-554.64 104.89,-561.64"/>
+</g>
+<!-- proc~xsi_profile -->
+<g id="proc~~boundary~~CallsGraph_node16" class="node">
+<title>proc~xsi_profile</title>
+<g id="a_proc~~boundary~~CallsGraph_node16"><a xlink:href="../proc/xsi_profile.html" xlink:title="xsi_profile">
+<polygon fill="#d9534f" stroke="#d9534f" points="180.16,-528.27 115.39,-528.27 115.39,-504 180.16,-504 180.16,-528.27"/>
+<text text-anchor="middle" x="147.78" y="-512.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xsi_profile</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xsi_profile -->
+<g id="proc~~boundary~~CallsGraph_edge15" class="edge">
+<title>proc~boundary&#45;&gt;proc~xsi_profile</title>
+<path fill="none" stroke="#ff0000" d="M62.95,-546.88C75.71,-542.2 90.72,-536.69 104.5,-531.64"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="105.6,-534.96 113.79,-528.24 103.19,-528.39 105.6,-534.96"/>
+</g>
+<!-- proc~xso_convective -->
+<g id="proc~~boundary~~CallsGraph_node17" class="node">
+<title>proc~xso_convective</title>
+<g id="a_proc~~boundary~~CallsGraph_node17"><a xlink:href="../proc/xso_convective.html" xlink:title="xso_convective">
+<polygon fill="#d9534f" stroke="#d9534f" points="194.04,-486.27 101.52,-486.27 101.52,-462 194.04,-462 194.04,-486.27"/>
+<text text-anchor="middle" x="147.78" y="-470.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xso_convective</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xso_convective -->
+<g id="proc~~boundary~~CallsGraph_edge16" class="edge">
+<title>proc~boundary&#45;&gt;proc~xso_convective</title>
+<path fill="none" stroke="#ff0000" d="M42.93,-545.65C55.22,-531.86 76.56,-509.69 98.52,-495.13 100.12,-494.08 101.78,-493.05 103.48,-492.06"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="104.97,-495.23 112.18,-487.47 101.7,-489.04 104.97,-495.23"/>
+</g>
+<!-- proc~xti_driver -->
+<g id="proc~~boundary~~CallsGraph_node18" class="node">
+<title>proc~xti_driver</title>
+<g id="a_proc~~boundary~~CallsGraph_node18"><a xlink:href="../proc/xti_driver.html" xlink:title="xTi_driver">
+<polygon fill="#d9534f" stroke="#d9534f" points="179.41,-444.27 116.14,-444.27 116.14,-420 179.41,-420 179.41,-444.27"/>
+<text text-anchor="middle" x="147.78" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xTi_driver</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xti_driver -->
+<g id="proc~~boundary~~CallsGraph_edge17" class="edge">
+<title>proc~boundary&#45;&gt;proc~xti_driver</title>
+<path fill="none" stroke="#ff0000" d="M37.15,-545.77C46.22,-524.25 67.6,-479.66 98.52,-453.13 100.81,-451.17 103.32,-449.36 105.95,-447.7"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="107.37,-450.9 114.49,-443.05 104.03,-444.76 107.37,-450.9"/>
+</g>
+<!-- proc~xti_profile -->
+<g id="proc~~boundary~~CallsGraph_node19" class="node">
+<title>proc~xti_profile</title>
+<g id="a_proc~~boundary~~CallsGraph_node19"><a xlink:href="../proc/xti_profile.html" xlink:title="xTi_profile">
+<polygon fill="#d9534f" stroke="#d9534f" points="180.54,-402.27 115.02,-402.27 115.02,-378 180.54,-378 180.54,-402.27"/>
+<text text-anchor="middle" x="147.78" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xTi_profile</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xti_profile -->
+<g id="proc~~boundary~~CallsGraph_edge18" class="edge">
+<title>proc~boundary&#45;&gt;proc~xti_profile</title>
+<path fill="none" stroke="#ff0000" d="M34.66,-545.76C40.65,-518.06 58.67,-450.46 98.52,-411.13 100.51,-409.17 102.72,-407.37 105.06,-405.73"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="106.41,-409 113.27,-400.93 102.87,-402.96 106.41,-409"/>
+</g>
+<!-- proc~xto_convective -->
+<g id="proc~~boundary~~CallsGraph_node20" class="node">
+<title>proc~xto_convective</title>
+<g id="a_proc~~boundary~~CallsGraph_node20"><a xlink:href="../proc/xto_convective.html" xlink:title="xTo_convective">
+<polygon fill="#d9534f" stroke="#d9534f" points="193.66,-360.27 101.89,-360.27 101.89,-336 193.66,-336 193.66,-360.27"/>
+<text text-anchor="middle" x="147.78" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xTo_convective</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~xto_convective -->
+<g id="proc~~boundary~~CallsGraph_edge19" class="edge">
+<title>proc~boundary&#45;&gt;proc~xto_convective</title>
+<path fill="none" stroke="#ff0000" d="M33.23,-545.81C36.44,-512.89 49.52,-421.86 98.52,-369.13 99.1,-368.51 99.71,-367.9 100.33,-367.31"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="102.25,-370.25 108.15,-361.45 98.05,-364.64 102.25,-370.25"/>
+</g>
+<!-- proc~ymi_profile -->
+<g id="proc~~boundary~~CallsGraph_node21" class="node">
+<title>proc~ymi_profile</title>
+<g id="a_proc~~boundary~~CallsGraph_node21"><a xlink:href="../proc/ymi_profile.html" xlink:title="ymi_profile">
+<polygon fill="#d9534f" stroke="#d9534f" points="182.79,-318.27 112.77,-318.27 112.77,-294 182.79,-294 182.79,-318.27"/>
+<text text-anchor="middle" x="147.78" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ymi_profile</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~ymi_profile -->
+<g id="proc~~boundary~~CallsGraph_edge20" class="edge">
+<title>proc~boundary&#45;&gt;proc~ymi_profile</title>
+<path fill="none" stroke="#ff0000" d="M32.3,-545.64C33.07,-507.87 40.35,-393.48 98.52,-327.13 99.97,-325.49 101.56,-323.96 103.28,-322.55"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="104.88,-325.69 111.3,-317.27 101.03,-319.84 104.88,-325.69"/>
+</g>
+<!-- proc~ymo_convective -->
+<g id="proc~~boundary~~CallsGraph_node22" class="node">
+<title>proc~ymo_convective</title>
+<g id="a_proc~~boundary~~CallsGraph_node22"><a xlink:href="../proc/ymo_convective.html" xlink:title="ymo_convective">
+<polygon fill="#d9534f" stroke="#d9534f" points="196.66,-276.27 98.89,-276.27 98.89,-252 196.66,-252 196.66,-276.27"/>
+<text text-anchor="middle" x="147.78" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ymo_convective</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~ymo_convective -->
+<g id="proc~~boundary~~CallsGraph_edge21" class="edge">
+<title>proc~boundary&#45;&gt;proc~ymo_convective</title>
+<path fill="none" stroke="#ff0000" d="M31.62,-545.55C30.17,-503.4 31.03,-365.39 98.52,-285.13 98.96,-284.61 99.42,-284.1 99.89,-283.6"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="101.84,-286.53 107.39,-277.5 97.42,-281.09 101.84,-286.53"/>
+</g>
+<!-- proc~yqi_profile -->
+<g id="proc~~boundary~~CallsGraph_node23" class="node">
+<title>proc~yqi_profile</title>
+<g id="a_proc~~boundary~~CallsGraph_node23"><a xlink:href="../proc/yqi_profile.html" xlink:title="yqi_profile">
+<polygon fill="#d9534f" stroke="#d9534f" points="180.91,-234.27 114.64,-234.27 114.64,-210 180.91,-210 180.91,-234.27"/>
+<text text-anchor="middle" x="147.78" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">yqi_profile</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~yqi_profile -->
+<g id="proc~~boundary~~CallsGraph_edge22" class="edge">
+<title>proc~boundary&#45;&gt;proc~yqi_profile</title>
+<path fill="none" stroke="#ff0000" d="M33.35,-545.84C38.19,-493.7 59.24,-291.33 98.52,-243.13 100.34,-240.9 102.44,-238.9 104.73,-237.11"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="106.34,-240.23 112.98,-231.98 102.64,-234.29 106.34,-240.23"/>
+</g>
+<!-- proc~yqo_convective -->
+<g id="proc~~boundary~~CallsGraph_node24" class="node">
+<title>proc~yqo_convective</title>
+<g id="a_proc~~boundary~~CallsGraph_node24"><a xlink:href="../proc/yqo_convective.html" xlink:title="yqo_convective">
+<polygon fill="#d9534f" stroke="#d9534f" points="194.79,-192.27 100.77,-192.27 100.77,-168 194.79,-168 194.79,-192.27"/>
+<text text-anchor="middle" x="147.78" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">yqo_convective</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~yqo_convective -->
+<g id="proc~~boundary~~CallsGraph_edge23" class="edge">
+<title>proc~boundary&#45;&gt;proc~yqo_convective</title>
+<path fill="none" stroke="#ff0000" d="M33.02,-545.77C36.72,-489.31 54.47,-256.51 98.52,-201.13 98.77,-200.83 99.02,-200.52 99.27,-200.22"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="101.53,-202.9 106.77,-193.7 96.93,-197.62 101.53,-202.9"/>
+</g>
+<!-- proc~ysi_profile -->
+<g id="proc~~boundary~~CallsGraph_node25" class="node">
+<title>proc~ysi_profile</title>
+<g id="a_proc~~boundary~~CallsGraph_node25"><a xlink:href="../proc/ysi_profile.html" xlink:title="ysi_profile">
+<polygon fill="#d9534f" stroke="#d9534f" points="180.16,-150.27 115.39,-150.27 115.39,-126 180.16,-126 180.16,-150.27"/>
+<text text-anchor="middle" x="147.78" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ysi_profile</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~ysi_profile -->
+<g id="proc~~boundary~~CallsGraph_edge24" class="edge">
+<title>proc~boundary&#45;&gt;proc~ysi_profile</title>
+<path fill="none" stroke="#ff0000" d="M32.77,-545.56C35.44,-484.76 49.72,-221.7 98.52,-159.13 100.46,-156.65 102.74,-154.46 105.25,-152.52"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="107.06,-155.52 113.8,-147.34 103.43,-149.54 107.06,-155.52"/>
+</g>
+<!-- proc~yso_convective -->
+<g id="proc~~boundary~~CallsGraph_node26" class="node">
+<title>proc~yso_convective</title>
+<g id="a_proc~~boundary~~CallsGraph_node26"><a xlink:href="../proc/yso_convective.html" xlink:title="yso_convective">
+<polygon fill="#d9534f" stroke="#d9534f" points="194.04,-108.27 101.52,-108.27 101.52,-84 194.04,-84 194.04,-108.27"/>
+<text text-anchor="middle" x="147.78" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">yso_convective</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~yso_convective -->
+<g id="proc~~boundary~~CallsGraph_edge25" class="edge">
+<title>proc~boundary&#45;&gt;proc~yso_convective</title>
+<path fill="none" stroke="#ff0000" d="M32.55,-545.55C34.25,-480.96 44.89,-186.99 98.52,-117.14 98.76,-116.82 99.01,-116.51 99.26,-116.21"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="101.52,-118.88 106.67,-109.62 96.87,-113.65 101.52,-118.88"/>
+</g>
+<!-- proc~yti_profile -->
+<g id="proc~~boundary~~CallsGraph_node27" class="node">
+<title>proc~yti_profile</title>
+<g id="a_proc~~boundary~~CallsGraph_node27"><a xlink:href="../proc/yti_profile.html" xlink:title="yTi_profile">
+<polygon fill="#d9534f" stroke="#d9534f" points="180.54,-66.27 115.02,-66.27 115.02,-42 180.54,-42 180.54,-66.27"/>
+<text text-anchor="middle" x="147.78" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">yTi_profile</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~yti_profile -->
+<g id="proc~~boundary~~CallsGraph_edge26" class="edge">
+<title>proc~boundary&#45;&gt;proc~yti_profile</title>
+<path fill="none" stroke="#ff0000" d="M32.36,-545.73C33.16,-477.92 40,-152.38 98.52,-75.14 100.42,-72.63 102.68,-70.41 105.18,-68.46"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="106.98,-71.46 113.68,-63.26 103.33,-65.49 106.98,-71.46"/>
+</g>
+<!-- proc~yto_convective -->
+<g id="proc~~boundary~~CallsGraph_node28" class="node">
+<title>proc~yto_convective</title>
+<g id="a_proc~~boundary~~CallsGraph_node28"><a xlink:href="../proc/yto_convective.html" xlink:title="yTo_convective">
+<polygon fill="#d9534f" stroke="#d9534f" points="193.66,-24.27 101.89,-24.27 101.89,0 193.66,0 193.66,-24.27"/>
+<text text-anchor="middle" x="147.78" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">yTo_convective</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;proc~yto_convective -->
+<g id="proc~~boundary~~CallsGraph_edge27" class="edge">
+<title>proc~boundary&#45;&gt;proc~yto_convective</title>
+<path fill="none" stroke="#ff0000" d="M32.21,-545.61C32.17,-474.08 35.18,-117.69 98.52,-33.13 98.76,-32.82 99,-32.51 99.25,-32.2"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="101.52,-34.87 106.6,-25.57 96.83,-29.67 101.52,-34.87"/>
+</g>
+<!-- proc~readdriverfile_chunk -->
+<g id="proc~~boundary~~CallsGraph_node29" class="node">
+<title>proc~readdriverfile_chunk</title>
+<g id="a_proc~~boundary~~CallsGraph_node29"><a xlink:href="../proc/readdriverfile_chunk.html" xlink:title="readdriverfile_chunk">
+<polygon fill="#d9534f" stroke="#d9534f" points="354.06,-1116.27 233.04,-1116.27 233.04,-1092 354.06,-1092 354.06,-1116.27"/>
+<text text-anchor="middle" x="293.55" y="-1100.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readdriverfile_chunk</text>
+</a>
+</g>
+</g>
+<!-- proc~driverchunkread&#45;&gt;proc~readdriverfile_chunk -->
+<g id="proc~~boundary~~CallsGraph_edge28" class="edge">
+<title>proc~driverchunkread&#45;&gt;proc~readdriverfile_chunk</title>
+<path fill="none" stroke="#ff0000" d="M197.45,-1104.13C205.15,-1104.13 213.24,-1104.13 221.33,-1104.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="221.19,-1107.64 231.19,-1104.14 221.19,-1100.64 221.19,-1107.64"/>
+</g>
+<!-- proc~writedriverfile -->
+<g id="proc~~boundary~~CallsGraph_node30" class="node">
+<title>proc~writedriverfile</title>
+<g id="a_proc~~boundary~~CallsGraph_node30"><a xlink:href="../proc/writedriverfile.html" xlink:title="writedriverfile">
+<polygon fill="#d9534f" stroke="#d9534f" points="336.43,-1074.27 250.66,-1074.27 250.66,-1050 336.43,-1050 336.43,-1074.27"/>
+<text text-anchor="middle" x="293.55" y="-1058.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writedriverfile</text>
+</a>
+</g>
+</g>
+<!-- proc~drivergen&#45;&gt;proc~writedriverfile -->
+<g id="proc~~boundary~~CallsGraph_edge29" class="edge">
+<title>proc~drivergen&#45;&gt;proc~writedriverfile</title>
+<path fill="none" stroke="#ff3800" d="M179.62,-1062.13C196.87,-1062.13 218.85,-1062.13 238.82,-1062.13"/>
+<polygon fill="#ff3800" stroke="#ff3800" points="238.79,-1065.64 248.79,-1062.14 238.79,-1058.64 238.79,-1065.64"/>
+</g>
+<!-- zstart -->
+<g id="proc~~boundary~~CallsGraph_node31" class="node">
+<title>zstart</title>
+<polygon fill="#777777" stroke="#777777" points="320.55,-612.27 266.55,-612.27 266.55,-588 320.55,-588 320.55,-612.27"/>
+<text text-anchor="middle" x="293.55" y="-596.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zstart</text>
+</g>
+<!-- proc~xsi_custom&#45;&gt;zstart -->
+<g id="proc~~boundary~~CallsGraph_edge30" class="edge">
+<title>proc~xsi_custom&#45;&gt;zstart</title>
+<path fill="none" stroke="#00ffa9" d="M183.22,-600.13C204.9,-600.13 232.9,-600.13 255.14,-600.13"/>
+<polygon fill="#00ffa9" stroke="#00ffa9" points="254.98,-603.64 264.98,-600.14 254.98,-596.64 254.98,-603.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~boundary~~CalledByGraph Pages: 1 -->
+<svg id="procboundaryCalledByGraph" width="191pt" height="32pt"
+ viewBox="0.00 0.00 190.79 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~boundary~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~boundary~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 186.79,-28.27 186.79,4 -4,4"/>
+<!-- proc~boundary -->
+<g id="proc~~boundary~~CalledByGraph_node1" class="node">
+<title>proc~boundary</title>
+<polygon fill="none" stroke="black" points="182.79,-24.27 120.27,-24.27 120.27,0 182.79,0 182.79,-24.27"/>
+<text text-anchor="middle" x="151.53" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">boundary</text>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~boundary~~CalledByGraph_node2" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~boundary~~CalledByGraph_node2"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-24.27 0,-24.27 0,0 84.27,0 84.27,-24.27"/>
+<text text-anchor="middle" x="42.13" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~boundary -->
+<g id="proc~~boundary~~CalledByGraph_edge1" class="edge">
+<title>program~dalesurban&#45;&gt;proc~boundary</title>
+<path fill="none" stroke="#ff0000" d="M84.66,-12.13C92.42,-12.13 100.54,-12.13 108.32,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="108.26,-15.64 118.26,-12.14 108.26,-8.64 108.26,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">   </span><span class="k">subroutine </span><span class="n">boundary</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w">      </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">ihc</span><span class="p">,</span><span class="w"> </span><span class="n">jhc</span><span class="p">,</span><span class="w"> </span><span class="n">khc</span><span class="p">,</span><span class="w"> </span><span class="n">dzf</span><span class="p">,</span><span class="w"> </span><span class="n">zh</span><span class="p">,</span><span class="w"> </span><span class="n">nsv</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">ltempeq</span><span class="p">,</span><span class="w"> </span><span class="n">lmoist</span><span class="p">,</span><span class="w"> </span><span class="n">luvolflowr</span><span class="p">,</span><span class="w"> </span><span class="n">luoutflowr</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">BCxm</span><span class="p">,</span><span class="w"> </span><span class="n">BCym</span><span class="p">,</span><span class="w"> </span><span class="n">BCxT</span><span class="p">,</span><span class="w"> </span><span class="n">BCyT</span><span class="p">,</span><span class="w"> </span><span class="n">BCxq</span><span class="p">,</span><span class="w"> </span><span class="n">BCyq</span><span class="p">,</span><span class="w"> </span><span class="n">BCxs</span><span class="p">,</span><span class="w"> </span><span class="n">BCys</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopm</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopT</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopq</span><span class="p">,</span><span class="w"> </span><span class="n">BCtops</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">BCtopm_freeslip</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopm_noslip</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopm_pressure</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">BCtopT_flux</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopT_value</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopq_flux</span><span class="p">,</span><span class="w"> </span><span class="n">BCtopq_value</span><span class="p">,</span><span class="w"> </span><span class="n">BCtops_flux</span><span class="p">,</span><span class="w"> </span><span class="n">BCtops_value</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">BCxm_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCxm_profile</span><span class="p">,</span><span class="w"> </span><span class="n">BCxm_driver</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">BCxT_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCxT_profile</span><span class="p">,</span><span class="w"> </span><span class="n">BCxT_driver</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">BCxq_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCxq_profile</span><span class="p">,</span><span class="w"> </span><span class="n">BCxq_driver</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">BCxs_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCxs_profile</span><span class="p">,</span><span class="w"> </span><span class="n">BCxs_driver</span><span class="p">,</span><span class="w"> </span><span class="n">BCxs_custom</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">BCym_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCym_profile</span><span class="p">,</span><span class="w"> </span><span class="n">BCyT_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCyT_profile</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">BCyq_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCyq_profile</span><span class="p">,</span><span class="w"> </span><span class="n">BCys_periodic</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">ibrank</span><span class="p">,</span><span class="w"> </span><span class="n">ierank</span><span class="p">,</span><span class="w"> </span><span class="n">jbrank</span><span class="p">,</span><span class="w"> </span><span class="n">jerank</span><span class="p">,</span><span class="w"> </span><span class="n">e12min</span><span class="p">,</span><span class="w"> </span><span class="n">idriver</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">Uinf</span><span class="p">,</span><span class="w"> </span><span class="n">Vinf</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                                 </span><span class="n">rk3step</span><span class="p">,</span><span class="w"> </span><span class="n">lchunkread</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w">      </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">w0</span><span class="p">,</span><span class="w"> </span><span class="n">um</span><span class="p">,</span><span class="w"> </span><span class="n">vm</span><span class="p">,</span><span class="w"> </span><span class="n">wm</span><span class="p">,</span><span class="w"> </span><span class="n">thl0</span><span class="p">,</span><span class="w"> </span><span class="n">thlm</span><span class="p">,</span><span class="w"> </span><span class="n">qt0</span><span class="p">,</span><span class="w"> </span><span class="n">qtm</span><span class="p">,</span><span class="w"> </span><span class="n">e120</span><span class="p">,</span><span class="w"> </span><span class="n">e12m</span><span class="p">,</span><span class="w"> </span><span class="n">sv0</span><span class="p">,</span><span class="w"> </span><span class="n">svm</span><span class="p">,</span><span class="w"> </span><span class="n">u0av</span><span class="p">,</span><span class="w"> </span><span class="n">v0av</span><span class="p">,</span><span class="w"> </span><span class="n">uouttot</span><span class="p">,</span><span class="w"> </span><span class="n">vouttot</span><span class="p">,</span><span class="w"> </span><span class="n">thl0c</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modsubgriddata</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ekh</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span><span class="p">,</span><span class="w"> </span><span class="n">loneeqn</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modsurfdata</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">thl_top</span><span class="p">,</span><span class="w"> </span><span class="n">qt_top</span><span class="p">,</span><span class="w"> </span><span class="n">sv_top</span><span class="p">,</span><span class="w"> </span><span class="n">wttop</span><span class="p">,</span><span class="w"> </span><span class="n">wqtop</span><span class="p">,</span><span class="w"> </span><span class="n">wsvtop</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">         </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">myid</span><span class="p">,</span><span class="w"> </span><span class="n">slabsum</span><span class="p">,</span><span class="w"> </span><span class="n">avey_ibm</span>
+<span class="w">      </span><span class="k">use </span><span class="n">moddriver</span><span class="p">,</span><span class="w">      </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">drivergen</span><span class="p">,</span><span class="w"> </span><span class="n">driverchunkread</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modinletdata</span><span class="p">,</span><span class="w">   </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ubulk</span><span class="p">,</span><span class="w"> </span><span class="n">vbulk</span><span class="p">,</span><span class="w"> </span><span class="n">iangle</span>
+<span class="w">      </span><span class="k">use </span><span class="n">decomp_2d</span><span class="p">,</span><span class="w">      </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">exchange_halo_z</span>
+
+<span class="w">      </span><span class="k">implicit none</span>
+<span class="k">      </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">uaverage</span><span class="p">,</span><span class="w"> </span><span class="n">vaverage</span>
+<span class="w">      </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">uavey</span>
+<span class="w">      </span><span class="kt">integer </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+
+<span class="w">     </span><span class="c">! if not using massflowrate need to set outflow velocity</span>
+<span class="w">     </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">luoutflowr</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="w">        </span><span class="c">! do nothing - calculated in modforces</span>
+<span class="w">     </span><span class="k">elseif</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">luvolflowr</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="w">        </span><span class="c">!ubulk = sum(u0av)/(ke-kb+1)</span>
+<span class="w">        </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">           </span><span class="n">uaverage</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">u0av</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end do</span>
+
+<span class="k">        do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">           </span><span class="n">vaverage</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v0av</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end do</span>
+<span class="w">        </span><span class="c">! need a method to know if we have all blocks at lowest cell kb</span>
+<span class="w">        </span><span class="c">! assuming this for now (hence kb+1)</span>
+<span class="w">        </span><span class="n">uouttot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="n">uaverage</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">zh</span><span class="p">(</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">zh</span><span class="p">(</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+<span class="w">        </span><span class="n">vouttot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="n">vaverage</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">zh</span><span class="p">(</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">zh</span><span class="p">(</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+<span class="w">     </span><span class="k">else</span>
+<span class="k">        </span><span class="n">uouttot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ubulk</span>
+<span class="w">        </span><span class="n">vouttot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vbulk</span>
+<span class="w">     </span><span class="k">end if</span>
+
+<span class="w">     </span><span class="c">! Bottom BC - many ways of enforcing this but this is simplest</span>
+<span class="w">     </span><span class="c">! Other variables handled by bottom</span>
+<span class="w">     </span><span class="n">wm</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">     </span><span class="n">w0</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+
+<span class="w">     </span><span class="c">!! Top</span>
+<span class="w">     </span><span class="c">! Momentum</span>
+<span class="w">     </span><span class="k">select case</span><span class="p">(</span><span class="n">BCtopm</span><span class="p">)</span>
+<span class="w">     </span><span class="k">case</span><span class="p">(</span><span class="n">BCtopm_freeslip</span><span class="p">)</span>
+<span class="w">        </span><span class="c">!free-slip = zero-flux</span>
+<span class="w">        </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">um</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">vm</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span>
+<span class="w">        </span><span class="n">w0</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">        </span><span class="n">wm</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">loneeqn</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">e120</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e12min</span>
+<span class="w">          </span><span class="n">e12m</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e12min</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">     case</span><span class="p">(</span><span class="n">BCtopm_noslip</span><span class="p">)</span>
+<span class="w">        </span><span class="c">!no-slip = fixed velocity at wall</span>
+<span class="w">        </span><span class="k">call </span><span class="n">valuetop</span><span class="p">(</span><span class="n">um</span><span class="p">,</span><span class="w"> </span><span class="n">Uinf</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">valuetop</span><span class="p">(</span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">Uinf</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">valuetop</span><span class="p">(</span><span class="n">vm</span><span class="p">,</span><span class="w"> </span><span class="n">Vinf</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">valuetop</span><span class="p">(</span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">Vinf</span><span class="p">)</span>
+<span class="w">        </span><span class="n">w0</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">        </span><span class="n">wm</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="n">BCtopm_pressure</span><span class="p">)</span>
+<span class="w">         </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">um</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span>
+<span class="w">         </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span>
+<span class="w">         </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">vm</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span>
+<span class="w">         </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span>
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">loneeqn</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">           </span><span class="n">e120</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e12min</span>
+<span class="w">           </span><span class="n">e12m</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e12min</span>
+<span class="w">         </span><span class="k">end if</span>
+<span class="w">         </span><span class="c">! w considered in modpois</span>
+<span class="w">      </span><span class="k">case </span><span class="n">default</span>
+<span class="w">        </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: top boundary type for velocity undefined&quot;</span>
+<span class="w">        </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">     </span><span class="k">end select</span>
+
+<span class="w">     </span><span class="c">! Temperature</span>
+<span class="w">     </span><span class="k">select case</span><span class="p">(</span><span class="n">BCtopT</span><span class="p">)</span>
+<span class="w">     </span><span class="k">case</span><span class="p">(</span><span class="n">BCtopT_flux</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">thlm</span><span class="p">,</span><span class="w"> </span><span class="n">ekh</span><span class="p">,</span><span class="w"> </span><span class="n">wttop</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">thl0</span><span class="p">,</span><span class="w"> </span><span class="n">ekh</span><span class="p">,</span><span class="w"> </span><span class="n">wttop</span><span class="p">)</span>
+<span class="w">        </span><span class="k">do </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">khc</span>
+<span class="w">           </span><span class="n">thl0c</span><span class="p">(:,:,</span><span class="n">ke</span><span class="o">+</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">thl0c</span><span class="p">(:,:,</span><span class="n">ke</span><span class="o">+</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end do</span>
+<span class="k">     case</span><span class="p">(</span><span class="n">BCtopT_value</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">valuetop</span><span class="p">(</span><span class="n">thlm</span><span class="p">,</span><span class="w"> </span><span class="n">thl_top</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">valuetop</span><span class="p">(</span><span class="n">thl0</span><span class="p">,</span><span class="w"> </span><span class="n">thl_top</span><span class="p">)</span>
+<span class="w">     </span><span class="k">case </span><span class="n">default</span>
+<span class="w">        </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: top boundary type for temperature undefined&quot;</span>
+<span class="w">        </span><span class="k">stop </span><span class="mi">1</span>
+
+<span class="w">     </span><span class="k">end select</span>
+
+<span class="w">     </span><span class="c">! Moisture</span>
+<span class="w">     </span><span class="k">select case</span><span class="p">(</span><span class="n">BCtopq</span><span class="p">)</span>
+<span class="w">     </span><span class="k">case</span><span class="p">(</span><span class="n">BCtopq_flux</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">qtm</span><span class="p">,</span><span class="w"> </span><span class="n">ekh</span><span class="p">,</span><span class="w"> </span><span class="n">wqtop</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">fluxtop</span><span class="p">(</span><span class="n">qt0</span><span class="p">,</span><span class="w"> </span><span class="n">ekh</span><span class="p">,</span><span class="w"> </span><span class="n">wqtop</span><span class="p">)</span>
+<span class="w">     </span><span class="k">case</span><span class="p">(</span><span class="n">BCtopq_value</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">valuetop</span><span class="p">(</span><span class="n">qtm</span><span class="p">,</span><span class="w"> </span><span class="n">qt_top</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">valuetop</span><span class="p">(</span><span class="n">qt0</span><span class="p">,</span><span class="w"> </span><span class="n">qt_top</span><span class="p">)</span>
+<span class="w">     </span><span class="k">case </span><span class="n">default</span>
+<span class="w">        </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: top boundary type for moisture undefined&quot;</span>
+<span class="w">        </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">     </span><span class="k">end select</span>
+
+<span class="w">     </span><span class="c">! Scalars</span>
+<span class="w">     </span><span class="k">select case</span><span class="p">(</span><span class="n">BCtops</span><span class="p">)</span>
+<span class="w">     </span><span class="k">case</span><span class="p">(</span><span class="n">BCtops_flux</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">fluxtopscal</span><span class="p">(</span><span class="n">wsvtop</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">fluxtopscal</span><span class="p">(</span><span class="n">wsvtop</span><span class="p">)</span>
+<span class="w">     </span><span class="k">case</span><span class="p">(</span><span class="n">BCtops_value</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">valuetopscal</span><span class="p">(</span><span class="n">sv_top</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">valuetopscal</span><span class="p">(</span><span class="n">sv_top</span><span class="p">)</span>
+<span class="w">     </span><span class="k">case </span><span class="n">default</span>
+<span class="w">        </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: top boundary type for scalars undefined&quot;</span>
+<span class="w">        </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">     </span><span class="k">end select</span>
+
+<span class="k">     if</span><span class="w"> </span><span class="p">(</span><span class="n">idriver</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">drivergen</span><span class="w"> </span><span class="c">! Should be moved elsewhere, as not related to boundary conditions.</span>
+
+<span class="w">     </span><span class="c">! x inlet</span>
+<span class="w">     </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ibrank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">! set inlet</span>
+<span class="w">       </span><span class="c">! Momentum</span>
+<span class="w">       </span><span class="k">select case</span><span class="p">(</span><span class="n">BCxm</span><span class="p">)</span>
+<span class="w">       </span><span class="k">case</span><span class="p">(</span><span class="n">BCxm_periodic</span><span class="p">)</span>
+<span class="w">         </span><span class="c">! Handled in halos</span>
+<span class="w">       </span><span class="k">case</span><span class="p">(</span><span class="n">BCxm_profile</span><span class="p">)</span>
+<span class="w">         </span><span class="c">!uouttot = cos(iangle)*ubulk</span>
+<span class="w">         </span><span class="k">call </span><span class="n">xmi_profile</span>
+<span class="w">       </span><span class="k">case</span><span class="p">(</span><span class="n">BCxm_driver</span><span class="p">)</span>
+<span class="w">         </span><span class="c">!uouttot = ubulk ! does this hold for all forcings of precursor simulations? tg3315</span>
+<span class="w">         </span><span class="k">if</span><span class="p">(</span><span class="n">rk3step</span><span class="o">==</span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">lchunkread</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">driverchunkread</span>
+<span class="w">          </span><span class="k">call </span><span class="n">drivergen</span><span class="w"> </span><span class="c">! think this should be done at the start of an rk3 loop?</span>
+<span class="w">         </span><span class="k">end if</span>
+<span class="k">         call </span><span class="n">xmi_driver</span>
+<span class="w">       </span><span class="k">case </span><span class="n">default</span>
+<span class="w">         </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: lateral boundary type for veloctiy in x-direction undefined&quot;</span>
+<span class="w">         </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">       </span><span class="k">end select</span>
+
+<span class="w">       </span><span class="c">! Temperature</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         select case</span><span class="p">(</span><span class="n">BCxT</span><span class="p">)</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCxT_periodic</span><span class="p">)</span><span class="w"> </span><span class="c">! periodic</span>
+<span class="w">           </span><span class="c">! Handled in halos</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCxT_profile</span><span class="p">)</span><span class="w"> </span><span class="c">! profile</span>
+<span class="w">           </span><span class="k">call </span><span class="n">xTi_profile</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCxT_driver</span><span class="p">)</span>
+<span class="w">           </span><span class="k">call </span><span class="n">xTi_driver</span>
+<span class="w">         </span><span class="k">case </span><span class="n">default</span>
+<span class="w">           </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: lateral boundary type for temperature in x-direction undefined&quot;</span>
+<span class="w">           </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">         </span><span class="k">end select</span>
+<span class="k">       end if</span>
+
+<span class="w">       </span><span class="c">! Moisture</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         select case</span><span class="p">(</span><span class="n">BCxq</span><span class="p">)</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCxq_periodic</span><span class="p">)</span>
+<span class="w">           </span><span class="c">! Handled in halos</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCxq_profile</span><span class="p">)</span>
+<span class="w">           </span><span class="k">call </span><span class="n">xqi_profile</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCxq_driver</span><span class="p">)</span>
+<span class="w">           </span><span class="k">call </span><span class="n">xqi_driver</span>
+<span class="w">         </span><span class="k">case </span><span class="n">default</span>
+<span class="w">           </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: lateral boundary type for humidity in x-direction undefined&quot;</span>
+<span class="w">           </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">         </span><span class="k">end select</span>
+<span class="k">       end if</span>
+
+<span class="w">       </span><span class="c">! Scalars</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         select case</span><span class="p">(</span><span class="n">BCxs</span><span class="p">)</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCxs_periodic</span><span class="p">)</span>
+<span class="w">           </span><span class="c">! Handled in halos</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCxs_profile</span><span class="p">)</span>
+<span class="w">           </span><span class="k">call </span><span class="n">xsi_profile</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCxs_driver</span><span class="p">)</span>
+<span class="w">           </span><span class="k">call </span><span class="n">xsi_driver</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="n">BCxs_custom</span><span class="p">)</span>
+<span class="w">           </span><span class="k">call </span><span class="n">xsi_custom</span>
+<span class="w">         </span><span class="k">case </span><span class="n">default</span>
+<span class="w">           </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: lateral boundary type for scalars in x-direction undefined&quot;</span>
+<span class="w">           </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">         </span><span class="k">end select</span>
+<span class="k">       end if</span>
+
+<span class="k">     end if</span><span class="w"> </span><span class="c">!ibrank</span>
+
+<span class="w">     </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">jbrank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">! set y inlet</span>
+<span class="w">       </span><span class="c">! Momentum</span>
+<span class="w">       </span><span class="k">select case</span><span class="p">(</span><span class="n">BCym</span><span class="p">)</span>
+<span class="w">       </span><span class="k">case</span><span class="p">(</span><span class="n">BCym_periodic</span><span class="p">)</span>
+<span class="w">         </span><span class="c">! Handled in halos</span>
+<span class="w">       </span><span class="k">case</span><span class="p">(</span><span class="n">BCym_profile</span><span class="p">)</span>
+<span class="w">         </span><span class="k">call </span><span class="n">ymi_profile</span>
+<span class="w">       </span><span class="k">case </span><span class="n">default</span>
+<span class="w">         </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: lateral boundary type for veloctiy in y-direction undefined&quot;</span>
+<span class="w">         </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">       </span><span class="k">end select</span>
+
+<span class="w">       </span><span class="c">! Temperature</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         select case</span><span class="p">(</span><span class="n">BCyT</span><span class="p">)</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCyT_periodic</span><span class="p">)</span>
+<span class="w">           </span><span class="c">! Handled in halos</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCyT_profile</span><span class="p">)</span>
+<span class="w">           </span><span class="k">call </span><span class="n">yTi_profile</span>
+<span class="w">         </span><span class="k">case </span><span class="n">default</span>
+<span class="w">           </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: lateral boundary type for temperature in y-direction undefined&quot;</span>
+<span class="w">           </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">         </span><span class="k">end select</span>
+<span class="k">       end if</span>
+
+<span class="w">       </span><span class="c">! Moisture</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         select case</span><span class="p">(</span><span class="n">BCyq</span><span class="p">)</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCyq_periodic</span><span class="p">)</span>
+<span class="w">           </span><span class="c">! Handled in halos</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="n">BCyq_profile</span><span class="p">)</span>
+<span class="w">           </span><span class="k">call </span><span class="n">yqi_profile</span>
+<span class="w">         </span><span class="k">case </span><span class="n">default</span>
+<span class="w">           </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: lateral boundary type for humidity in y-direction undefined&quot;</span>
+<span class="w">           </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">         </span><span class="k">end select</span>
+<span class="k">       end if</span>
+
+<span class="k">       if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">!scalars</span>
+<span class="w">         </span><span class="k">select case</span><span class="p">(</span><span class="n">BCys</span><span class="p">)</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">           </span><span class="c">! Handled in halos</span>
+<span class="w">         </span><span class="k">case</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="w">           </span><span class="k">call </span><span class="n">ysi_profile</span>
+<span class="w">         </span><span class="k">case </span><span class="n">default</span>
+<span class="w">           </span><span class="k">write</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">&quot;ERROR: lateral boundary type for scalars in y-direction undefined&quot;</span>
+<span class="w">           </span><span class="k">stop </span><span class="mi">1</span>
+<span class="w">         </span><span class="k">end select</span>
+<span class="k">       end if</span>
+
+<span class="k">     end if</span><span class="w"> </span><span class="c">!jbrank</span>
+
+<span class="w">     </span><span class="c">!&gt; Outlet</span>
+<span class="w">     </span><span class="c">! Currently only outflow boundary conditions are convective</span>
+<span class="w">     </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ierank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">       if</span><span class="w"> </span><span class="p">(</span><span class="n">BCxm</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="n">BCxm_periodic</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">xmo_convective</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">BCxT</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="n">BCxT_periodic</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">ltempeq</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">xTo_convective</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">BCxq</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="n">BCxq_periodic</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lmoist</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">xqo_convective</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">BCxs</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="n">BCxs_periodic</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">nsv</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">xso_convective</span>
+<span class="w">     </span><span class="k">end if</span>
+
+<span class="k">     if</span><span class="w"> </span><span class="p">(</span><span class="n">jerank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">       if</span><span class="w"> </span><span class="p">(</span><span class="n">BCym</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="n">BCym_periodic</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">ymo_convective</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">BCyT</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="n">BCyT_periodic</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">ltempeq</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">yTo_convective</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">BCyq</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="n">BCyq_periodic</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lmoist</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">yqo_convective</span>
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">BCys</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="n">BCys_periodic</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">nsv</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">yso_convective</span>
+<span class="w">     </span><span class="k">end if</span>
+
+<span class="k">   end subroutine </span><span class="n">boundary</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

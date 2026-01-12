@@ -1,0 +1,1369 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the building-resolving urban multi-physics code uDALES">
+      
+      
+        <meta name="author" content="The uDALES Team">
+      
+      
+        <link rel="canonical" href="https://uDALES.github.io/u-dales/udales-pre-processing/">
+      
+      
+        <link rel="prev" href="../udales-driver-simulations/">
+      
+      
+        <link rel="next" href="../udales-simulation-setup/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.17">
+    
+    
+      
+        <title>Pre-processing - uDALES</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="pink">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#udales-preprocessing" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="uDALES" class="md-header__button md-logo" aria-label="uDALES" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            uDALES
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Pre-processing
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="uDALES" class="md-nav__button md-logo" aria-label="uDALES" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    uDALES
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Simulation inputs
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Simulation inputs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-namoptions-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List of input parameters
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-boundary-conditions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Boundary conditions
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-geometry-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry generation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-copy-inputs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Copying from other simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-driver-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Precursor simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Running the simulation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Running the simulation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Pre-processing
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Pre-processing
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#input-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Input files
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developers-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      Developer's guide
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Developer&#39;s guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;RUN
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#domain" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;DOMAIN
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#walls" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;WALLS
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#physics" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;PHYSICS
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#energybalance" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;ENERGYBALANCE
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chemistry" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;CHEMISTRY
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scalars" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;SCALARS
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inps" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;INPS
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-simulation-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Running uDALES
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-post-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Post-processing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Data post-processing
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Data post-processing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-udbase-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    udbase
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-fields-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Flow fields and statistics
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-facets-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Facets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-utility-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Utility routines
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-example-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Example simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-how-to-cite/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to cite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-pub-list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Publication list
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DEVELOP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Development notes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to contribute
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-docs-software/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Software docs
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#input-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Input files
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developers-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      Developer's guide
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Developer&#39;s guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;RUN
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#domain" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;DOMAIN
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#walls" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;WALLS
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#physics" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;PHYSICS
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#energybalance" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;ENERGYBALANCE
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chemistry" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;CHEMISTRY
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scalars" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;SCALARS
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inps" class="md-nav__link">
+    <span class="md-ellipsis">
+      &amp;INPS
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="udales-preprocessing">uDALES preprocessing<a class="headerlink" href="#udales-preprocessing" title="Permanent link">&para;</a></h1>
+<p>In order to perform a simulation with uDALES, the input data needs to be processed, which creates a number of <a href="#input-files">input files</a> that will be read by the uDALES simulation.
+This can be done from the command line using the shell script <code>write_inputs.sh</code>, which is a wrapper around the MATLAB script <code>write_inputs.m</code>. For more info about the functions see the <a href="#developers-guide">Developer's guide</a>. The script requires several variables in order to be execute without errors. Three main files required inside the experiment case directory are</p>
+<ol>
+<li>an appropriately set namoptions.001 (assumming 001 is the case directory name) file,</li>
+<li>an STL file of the  building geometry (except for few special cases)</li>
+<li>the config.sh file.</li>
+</ol>
+<p>Below is an example setup for copying and pasting. You need to specify these parameters in a <code>config.sh</code> file within the example directory, which is then read by the scripts.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># We assume you are running the following commands from your</span>
+<span class="c1"># top-level project directory.</span>
+
+<span class="nb">export</span><span class="w"> </span><span class="nv">DA_TOOLSDIR</span><span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/u-dales/tools<span class="w"> </span><span class="c1"># Directory of the scripts</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">DA_EXPDIR</span><span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/experiments<span class="w"> </span><span class="c1">#  The top-level directory of the simulation setups</span>
+</code></pre></div>
+<p>Before running the preprocessing, one must build the View3D submodule. This is a one time task and should be done as soon as you clone u-dales from GitHub.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># We assume you are running the following commands from the u-dales directory.</span>
+
+<span class="c1"># To build on local/common ubuntu or mac systems</span>
+./tools/build_preprocessing.sh<span class="w"> </span>common
+
+<span class="c1"># To build on ICL HPC</span>
+./tools/build_preprocessing.sh<span class="w"> </span>icl
+</code></pre></div>
+<p>Then, to start the pre-processing, run:</p>
+<p>For local ubuntu or mac</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># We assume you are running the following commands from your</span>
+<span class="c1"># top-level project directory.</span>
+
+<span class="c1"># General syntax: write_inputs.sh exp_id</span>
+./u-dales/tools/write_inputs.sh<span class="w"> </span>experiments/001
+</code></pre></div>
+<p>For ICL HPC</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># We assume you are running the following commands from your</span>
+<span class="c1"># top-level project directory.</span>
+
+<span class="c1"># General syntax: write_inputs.sh esperiments/exp_id run_node_type</span>
+
+<span class="c1"># To run preprocessing on HPC log in node (not recomended)</span>
+./u-dales/tools/write_inputs.sh<span class="w"> </span>experiments/001<span class="w"> </span>l
+
+<span class="c1"># To run preprocessing on HPC compute node (recomended)</span>
+./u-dales/tools/write_inputs.sh<span class="w"> </span>experiments/001<span class="w"> </span>c
+</code></pre></div>
+<p>In above example commands, replace 001 with the number of your example.</p>
+<p>Note: After editing or creating a <code>namoptions.###</code> file (use an existing template where possible), run <code>write_inputs.sh</code> to generate or update geometry-related input files such as <code>facets.inp</code> and <code>factypes.inp</code>. If your setup requires generating geometry from STL files during pre-processing, set the <code>gen_geom</code> parameter in the <code>namoptions</code> file so the pre-processor will build geometry from the provided STL.</p>
+<h2 id="input-files">Input files<a class="headerlink" href="#input-files" title="Permanent link">&para;</a></h2>
+<p>uDALES requires a number of input files, all suffixed by the experiment number, which is omitted in the following documentation. The <code>namoptions.inp</code> file contains a list of parameters for uDALES and the pre-processing routines, and the pre-processing is intended to run using solely this file (with some exceptions). The input files are:</p>
+<ul>
+<li><code>prof.inp</code>: initial profiles of flow variables (described in DALES documentation).</li>
+<li><code>lscale.inp</code>: large-scale forcings (described in DALES documentation).</li>
+<li><code>facets.inp</code>: column of facet types and three columns (x,y,z) of surface normal components (nfcts x 4).</li>
+<li><code>Tfacinit.inp</code>: list of initial facet temperatures (nfcts x 1).</li>
+<li><code>factypes.inp</code>: a description of the properties of different types of facet (described below). This is copied to the experiment directory automatically. Each row describes a wall type, with the first 6 columns being: wall type id, a boolean for whether it is a 'green' facet or not, momentum roughness length, heat roughness length, albedo, and emissivity. Assuming that each facet is composed of 3 layers, the next 3 columns give the thickness of each, the next 3 give the volumetric heat capacity, the next 3 give the heat conductivity, and the final 4 give the thermal diffusivity at each interface between the layers.</li>
+<li><code>scalar.inp</code>: if using scalars, the initial scalar profiles.</li>
+<li><code>timedepnudge.inp</code>: if using time-dependent nudging (described in DALES documentation).</li>
+<li><code>timedepsurf.inp</code>: if using time-dependent surface fluxes (described in DALES documentation).</li>
+</ul>
+<p>With the IBM, the following additional files are required:</p>
+<ul>
+<li><code>solid_u.txt</code>: Indices of solid points on u-grid (nsolpts_u x 3).</li>
+<li><code>solid_v.txt</code>: Indices of solid points on v-grid (nsolpts_v x 3).</li>
+<li><code>solid_w.txt</code>: Indices of solid points on w-grid (nsolpts_w x 3).</li>
+<li><code>solid_c.txt</code>: Indices of solid points on c-grid (nsolpts_c x 3).</li>
+<li><code>fluid_boundary_u.txt</code>: Indices of fluid boundary points on u-grid (nbndpts_u x 3).</li>
+<li><code>fluid_boundary_v.txt</code>: Indices of fluid boundary points on v-grid (nbndpts_v x 3).</li>
+<li><code>fluid_boundary_w.txt</code>: Indices of fluid boundary points on w-grid (nbndpts_w x 3).</li>
+<li><code>fluid_boundary_c.txt</code>: Indices of fluid boundary points on c-grid (nbndpts_c x 3).</li>
+<li><code>facet_sections_u.txt</code>: Indices of facet sections on u-grid (nfctsecs_u x 3).</li>
+<li><code>facet_sections_v.txt</code>: Indices of facet sections on v-grid (nfctsecs_v x 3).</li>
+<li><code>facet_sections_w.txt</code>: Indices of facet sections on w-grid (nfctsecs_w x 3).</li>
+<li><code>facet_sections_c.txt</code>: Indices of facet sections on c-grid (nfctsecs_c x 3).</li>
+</ul>
+<p>With the SEB, the following additional files are required:</p>
+<ul>
+<li><code>facetarea.inp</code>: list of areas of facets (nfcts x 1).</li>
+<li><code>vf.nc.inp</code> or <code>vfsparse.inp</code>: view factors stored in netcdf or sparse format respectively.</li>
+<li><code>svf.inp</code>: list of sky view factors of facets (nfcts x 1).</li>
+<li><code>netsw.inp</code>: list of net shortwave radiation on facets (nfcts x 1).
+If using time-dependent radiation on facets:</li>
+<li><code>timedepsw.inp</code>: shortwave - row of times (1 x ntimedepsw) followed by array of values (nfcts x ntimedepsw).</li>
+<li><code>timedeplw.inp</code>: longwave - columns for times and values (ntimedeplw x 2). This currently must be generated by a separate user-defined script.</li>
+</ul>
+<h2 id="developers-guide">Developer's guide<a class="headerlink" href="#developers-guide" title="Permanent link">&para;</a></h2>
+<p>The <code>u-dales/tools/preprocessing.m</code> matlab class contains the functionality for preprocessing. The constructor reads the parameters in <code>namoptions</code> and stores them as member variables, and defines default variables for those not specified. These are then used in the member functions. In these member functions, additional data structures are also stored as member variables, including those used repeatedly and those eventually written to files, so that one can easily view and manipulate them using the matlab IDE.</p>
+<p>The <code>u-dales/tools/write_inputs.m</code> matlab script calls member functions of <code>preprocessing.m</code> in order to write the basic input files (those not relating to the IBM or SEB), followed by routines located in the <code>IBM</code> and <code>SEB</code> directories within the uDALES tools directory. It is intended to be as short and readable as possible, with the goal being that a developer can edit for a particular purpose. It will work simply as a normal script using the matlab IDE, but when doing this, ensure that <code>DA_EXPDIR = &lt;top level directory&gt;/experiments/</code> and <code>DA_TOOLSDIR = &lt;top level directory&gt;/u-dales/tools/</code> are defined.</p>
+<p>The <code>u-dales/tools/write_inputs.sh</code> shell script acts as a wrapper around <code>write_inputs.m</code>. Before running the matlab script, it will run the shell script <code>config.sh</code> located in the experiment directory, which defines environmental variables <code>DA_EXPDIR</code> and <code>DA_TOOLSDIR</code>. After running the script, it will also write the correct number of facets to <code>namoptions</code>. It is intended to be run from the top level project directory.</p>
+<p>Some parameters used by uDALES are used in the pre-processing. They are the following:</p>
+<h3 id="run"><code>&amp;RUN</code><a class="headerlink" href="#run" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>runtime</code>: Length of simulation period (in seconds). This is used with time-varying solar position (see below).</li>
+</ul>
+<h3 id="domain"><code>&amp;DOMAIN</code><a class="headerlink" href="#domain" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>itot</code>: number of cells in x-direction. Default: 64.</li>
+<li><code>jtot</code>: number of cells in y-direction. Default: 64.</li>
+<li><code>ktot</code>: number of cells in z-direction. Default: 96.</li>
+<li><code>xlen</code>: domain size in x-direction (metres).</li>
+<li><code>ylen</code>: domain size in y-direction (metres).</li>
+</ul>
+<h3 id="walls"><code>&amp;WALLS</code><a class="headerlink" href="#walls" title="Permanent link">&para;</a></h3>
+<p>This section describes the parameters used by the IBM.</p>
+<ul>
+<li><code>iwallmom</code>: Momentum flux boundary condition - 1:zero flux, 2: non-neutral wall function, 3: neutral wall function.</li>
+<li><code>iwalltemp</code>: Temperature flux boundary condition - 1: constant flux, 2: wall function.
+If either of these are true, then <code>Tfacinit.inp.xxx</code> is written using the value of <code>facT</code>.</li>
+</ul>
+<p>The following parameters are not used, but instead generated by the pre-processing routines and written to the file <code>info.txt</code> by the pre-processing script. They must be added to namoptions manually.</p>
+<ul>
+<li><code>nfcts</code>: number of facets. If using <code>write_inputs.sh</code> (see below), this will write its value into namoptions. Equal to the number of (non-header) lines in <code>facets.inp.xxx</code>.</li>
+<li><code>nsolpts_u</code>: number of solid points on the u-grid. Equal to the number of (non-header) lines in <code>solid_u.txt</code>.</li>
+<li><code>nsolpts_v</code>: number of solid points on the v-grid. Equal to the number of (non-header) lines in <code>solid_v.txt</code>.</li>
+<li><code>nsolpts_w</code>: number of solid points on the w-grid. Equal to the number of (non-header) lines in <code>solid_w.txt</code>.</li>
+<li><code>nsolpts_c</code>: number of solid points on the c-grid. Equal to the number of (non-header) lines in <code>solid_c.txt</code>.</li>
+<li><code>nsndpts_u</code>: number of fluid boundary points on the u-grid. Equal to the number of (non-header) lines in <code>fluid_boundary_u.txt</code>.</li>
+<li><code>nsndpts_v</code>: number of fluid boundary points on the v-grid. Equal to the number of (non-header) lines in <code>fluid_boundary_v.txt</code>.</li>
+<li><code>nsndpts_w</code>: number of fluid boundary points on the w-grid. Equal to the number of (non-header) lines in <code>fluid_boundary_w.txt</code>.</li>
+<li><code>nsndpts_c</code>: number of fluid boundary points on the c-grid. Equal to the number of (non-header) lines in <code>fluid_boundary_c.txt</code>.</li>
+<li><code>nfctsecs_u</code>: number of facet sections on the u-grid. Equal to the number of (non-header) lines in <code>facet_sections_u.txt</code>.</li>
+<li><code>nfctsecs_v</code>: number of facet sections on the v-grid. Equal to the number of (non-header) lines in <code>facet_sections_v.txt</code>.</li>
+<li><code>nfctsecs_w</code>: number of facet sections on the w-grid. Equal to the number of (non-header) lines in <code>facet_sections_w.txt</code>.</li>
+<li><code>nfctsecs_c</code>: number of facet sections on the c-grid. Equal to the number of (non-header) lines in <code>facet_sections_c.txt</code>.</li>
+</ul>
+<h3 id="physics"><code>&amp;PHYSICS</code><a class="headerlink" href="#physics" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>luoutflowr</code>: switch that determines whether u-velocity is corrected to get a fixed outflow rate Default: false.</li>
+<li><code>lvoutflowr</code>: switch that determines whether v-velocity is corrected to get a fixed outflow rate. Default: false.</li>
+<li><code>luvolflowr</code>: switch that determines whether u-velocity is corrected to get a fixed volume flow rate. Default: false.</li>
+<li><code>lvvolflowr</code>: switch that determines whether v-velocity is corrected to get a fixed volume flow rate. Default: false.</li>
+<li><code>lcoriol</code>: switch for coriolis force. Default: false.</li>
+<li><code>lprofforc</code>: switch for nudging flow to a profile. Default: false.</li>
+</ul>
+<p>Note only one forcing should be specified, i.e. one of <code>luoutflowr</code>/<code>lvoutflowr</code>,<code>luvolflowr</code>/<code>lvvolflowr</code>, <code>lprofforc</code>, or <code>lcoriol</code>.</p>
+<h3 id="energybalance"><code>&amp;ENERGYBALANCE</code><a class="headerlink" href="#energybalance" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>lEB</code>: switch for energy balance. Default: false.</li>
+<li><code>lvfsparse</code>: switch for view factors in sparse (text) format.</li>
+<li><code>nnz</code>: number of non-zero view factors when using sparse format - this needs to be written to namoptions after pre-processing.</li>
+<li><code>dtEB</code>: surface energy balance timestep.</li>
+</ul>
+<h3 id="chemistry"><code>&amp;CHEMISTRY</code><a class="headerlink" href="#chemistry" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>lchem</code>: switch for chemistry.</li>
+</ul>
+<h3 id="scalars"><code>&amp;SCALARS</code><a class="headerlink" href="#scalars" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>nsv</code>: number of scalar variables. Default: 0. Note that <code>nsv &gt; 0</code> is not yet supported in the pre-processing.</li>
+</ul>
+<h3 id="inps"><code>&amp;INPS</code><a class="headerlink" href="#inps" title="Permanent link">&para;</a></h3>
+<p>The parameters under the <code>&amp;INPS</code> header are used only in the pre-processing.</p>
+<ul>
+<li><code>zsize</code>: size of domain in z direction (metres).</li>
+<li><code>lzstretch</code>: switch for stretched z grid. Default: false.</li>
+<li><code>lstretchexp</code>: switch for z grid stretched using exp function. Default: false.</li>
+<li><code>lstretchtanh</code>: switch for z grid stretched using tanh function. Default: false.</li>
+<li><code>lstretch2tanh</code>: switch for z grid stretched using 2tanh function. Default: false.</li>
+<li><code>stretchconst</code>: stretch constant. Default: 0.01.</li>
+<li><code>u0</code>: initial u-velocity (m/s). Also applied as geostrophic term where applicable. Default: 0.</li>
+<li><code>v0</code>: initial v-velocity (m/s). Also applied as geostrophic term where applicable. Default: 0.</li>
+<li><code>dpdx</code>: pressure gradient in x direction (Pa/m). Default: 0.</li>
+<li><code>dpdy</code>: pressure gradient in y direction (Pa/m). Default: 0.</li>
+<li><code>thl0</code>: temperature at z = 0. Default: 288.</li>
+<li><code>qt0</code>: specific humidity at z = 0. Default: 0.</li>
+<li><code>lapse</code>: lapse rate (K/m). Default: 0.</li>
+<li><code>w_s</code>: subsidence. Default: 0.</li>
+<li><code>R</code>: radiative forcing (W/m^2). Default: 0.</li>
+<li><code>NOb</code>: initial concentration of NO. Default: 0.</li>
+<li><code>NO2b</code>: initial concentration of NO2b. Default: 0.</li>
+<li><code>O3b</code>: initial concentration of O3b. Default: 0.</li>
+</ul>
+<p>The following parameters are related to the immersed boundary method.</p>
+<ul>
+<li><code>stl_file</code>: Name of STL file defining the geometry.</li>
+<li><code>read_types</code>: Switch for reading facet types from file. Default: false (all facets are set to type 1).</li>
+<li><code>types_path</code>: Name of types file.</li>
+<li><code>facT</code>: if <code>iwallmom = 2</code> or  <code>iwalltemp = 2</code> then (constant) facet temperature, or if <code>lEB = .true.</code> then initial facet temperature. Default: 288.</li>
+<li><code>isolid_bound</code>: Option for classification of solid/fluid points, including boundary points. 1: In-house Fortran routine (default, fast), 2: equivalent MATLAB routine (useful for debugging), 3: inpolyhedron (MATLAB; provided for when option 1 &amp; 2 are not producing expected results): <a href="https://www.mathworks.com/matlabcentral/fileexchange/37856-inpolyhedron-are-points-inside-a-triangulated-volume">https://www.mathworks.com/matlabcentral/fileexchange/37856-inpolyhedron-are-points-inside-a-triangulated-volume</a>.</li>
+<li><code>ifacsec</code>: Option for facet section calculation. 1: Fortran (default, fast), 2: MATLAB (useful for debugging).</li>
+</ul>
+<p>If using the energy balance, the following parameters can also be specified.</p>
+<ul>
+<li><code>ishortwave</code>: Option for shortwave radiation calculation. 1: Fortran (default, fast), 2:  MATLAB (useful for debugging).</li>
+<li><code>isolar</code>: Option for solar radiation (see below for futher detail). 1: custom (default), 2: from latitude &amp; longitude, 3: from weather file.</li>
+<li><code>view3d_out</code>: Output format for View3D: 0: text, 1: binary, 2: sparse (text). Default: 0.</li>
+<li><code>maxD</code>: Maximum distance to check view factors, otherwise they are zero. Default: Inf.</li>
+<li><code>xazimuth</code>: the azimuthal angle of the x-axis (with respect to North). Default : 90 degrees, i.e. East.</li>
+</ul>
+<p>If <code>isolar = 1</code>, then the solar radiation is determined by:</p>
+<ul>
+<li><code>solarazimuth</code>: solar azimuth (degrees). Default: 135. (solaz in uDALES v1).</li>
+<li><code>solarzenith</code>: solar zenith (degrees). Default: 28.4066. (Z in uDALES v1).</li>
+<li><code>I</code>: direct normal irradiance (DNI) (W/m^2). Default: 800.</li>
+<li><code>Dsky</code>: diffuse sky irradiance (W/m^2). Default: 418.8041. (Dsk in uDALES v1).</li>
+</ul>
+<p>If <code>isolar = 2</code>, then the solar position is calculated according to the NOAA solar position algorithm, and <code>I</code> and <code>Dsky</code> are determined by the ASHRAE clear-sky model, and the spacetime location is specified by:</p>
+<ul>
+<li><code>year</code>, e.g. 2023.</li>
+<li><code>month</code>, where e.g. 6 corresponds to June.</li>
+<li><code>day</code>, e.g. 21.</li>
+<li><code>hour</code>, where e.g. 0 corresponds to midnight and 23 corresponds to 11pm. Default: 6.</li>
+<li><code>minute</code>. Default: 0.</li>
+<li><code>second</code>. Default: 0.</li>
+<li><code>longitude</code>. Default: -0.13.</li>
+<li><code>latitude</code>. Default: 51.5.</li>
+<li><code>timezone</code>. Default: 0.</li>
+<li><code>elevation</code>. Default: 0.</li>
+</ul>
+<p>If <code>isolar = 3</code>, then the parameters are specified in a file containing weather data for a given year.</p>
+<ul>
+<li><code>weatherfname</code>: file name.</li>
+<li><code>month</code></li>
+<li><code>day</code></li>
+<li><code>hour</code>. Default: 0.</li>
+</ul>
+<p>The solar parameters can also be varied in time using the <code>ltimedepsw</code> switch. This occurs on a timescale <code>dtSP</code>, which is equal to <code>dtEB</code> by default.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      The uDALES Team
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+      
+    
+  </body>
+</html>

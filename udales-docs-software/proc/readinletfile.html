@@ -1,0 +1,881 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>readinletfile &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>readinletfile
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.8% of total for procedures.">111 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modinlet.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modinlet.f90.html'>modinlet.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modinlet.html'>modinlet</a></li>
+            <li class="breadcrumb-item active" aria-current="page">readinletfile</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/readinletfile.html#src">readinletfile</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine readinletfile()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~readinletfile~~UsesGraph Pages: 1 -->
+<svg id="procreadinletfileUsesGraph" width="278pt" height="74pt"
+ viewBox="0.00 0.00 277.79 74.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~readinletfile~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 70.27)">
+<title>proc~~readinletfile~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-70.27 273.79,-70.27 273.79,4 -4,4"/>
+<!-- proc~readinletfile -->
+<g id="proc~~readinletfile~~UsesGraph_node1" class="node">
+<title>proc~readinletfile</title>
+<polygon fill="none" stroke="black" points="269.79,-45.27 194.52,-45.27 194.52,-21 269.79,-21 269.79,-45.27"/>
+<text text-anchor="middle" x="232.15" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50">readinletfile</text>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~readinletfile~~UsesGraph_node2" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~readinletfile~~UsesGraph_node2"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="158.52,-66.27 90,-66.27 90,-42 158.52,-42 158.52,-66.27"/>
+<text text-anchor="middle" x="124.26" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~readinletfile&#45;&gt;module~modglobal -->
+<g id="proc~~readinletfile~~UsesGraph_edge1" class="edge">
+<title>proc~readinletfile&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M194.12,-40.48C186.33,-42.02 178.05,-43.67 170.01,-45.26"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="169.52,-41.79 160.4,-47.17 170.89,-48.66 169.52,-41.79"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~readinletfile~~UsesGraph_node3" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~readinletfile~~UsesGraph_node3"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="152.14,-24.27 96.38,-24.27 96.38,0 152.14,0 152.14,-24.27"/>
+<text text-anchor="middle" x="124.26" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~readinletfile&#45;&gt;module~modmpi -->
+<g id="proc~~readinletfile~~UsesGraph_edge2" class="edge">
+<title>proc~readinletfile&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M194.12,-25.79C184.26,-23.83 173.59,-21.72 163.66,-19.75"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="164.41,-16.33 153.92,-17.82 163.04,-23.2 164.41,-16.33"/>
+</g>
+<!-- mpi -->
+<g id="proc~~readinletfile~~UsesGraph_node4" class="node">
+<title>mpi</title>
+<g id="a_proc~~readinletfile~~UsesGraph_node4"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~readinletfile~~UsesGraph_edge3" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M95.96,-12.13C86.56,-12.13 75.85,-12.13 65.76,-12.13"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="65.83,-8.64 55.83,-12.14 65.83,-15.64 65.83,-8.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~readinletfile~~CallsGraph Pages: 1 -->
+<svg id="procreadinletfileCallsGraph" width="304pt" height="242pt"
+ viewBox="0.00 0.00 304.31 242.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~readinletfile~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 238.27)">
+<title>proc~~readinletfile~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-238.27 300.31,-238.27 300.31,4 -4,4"/>
+<!-- proc~readinletfile -->
+<g id="proc~~readinletfile~~CallsGraph_node1" class="node">
+<title>proc~readinletfile</title>
+<polygon fill="none" stroke="black" points="75.27,-108.27 0,-108.27 0,-84 75.27,-84 75.27,-108.27"/>
+<text text-anchor="middle" x="37.63" y="-92.53" font-family="Helvetica,sans-Serif" font-size="10.50">readinletfile</text>
+</g>
+<!-- proc~excjs -->
+<g id="proc~~readinletfile~~CallsGraph_node2" class="node">
+<title>proc~excjs</title>
+<g id="a_proc~~readinletfile~~CallsGraph_node2"><a xlink:href="../proc/excjs.html" xlink:title="excjs">
+<polygon fill="#d9534f" stroke="#d9534f" points="180.03,-192.27 126.03,-192.27 126.03,-168 180.03,-168 180.03,-192.27"/>
+<text text-anchor="middle" x="153.03" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">excjs</text>
+</a>
+</g>
+</g>
+<!-- proc~readinletfile&#45;&gt;proc~excjs -->
+<g id="proc~~readinletfile~~CallsGraph_edge1" class="edge">
+<title>proc~readinletfile&#45;&gt;proc~excjs</title>
+<path fill="none" stroke="#ff0000" d="M51.25,-108.75C65.17,-122.25 88.6,-143.79 111.27,-159.13 112.81,-160.18 114.41,-161.21 116.04,-162.21"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="113.89,-165.01 124.31,-166.95 117.37,-158.94 113.89,-165.01"/>
+</g>
+<!-- proc~yinterpolate -->
+<g id="proc~~readinletfile~~CallsGraph_node3" class="node">
+<title>proc~yinterpolate</title>
+<g id="a_proc~~readinletfile~~CallsGraph_node3"><a xlink:href="../proc/yinterpolate.html" xlink:title="yinterpolate">
+<polygon fill="#d9534f" stroke="#d9534f" points="191.04,-150.27 115.02,-150.27 115.02,-126 191.04,-126 191.04,-150.27"/>
+<text text-anchor="middle" x="153.03" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">yinterpolate</text>
+</a>
+</g>
+</g>
+<!-- proc~readinletfile&#45;&gt;proc~yinterpolate -->
+<g id="proc~~readinletfile~~CallsGraph_edge2" class="edge">
+<title>proc~readinletfile&#45;&gt;proc~yinterpolate</title>
+<path fill="none" stroke="#ff0000" d="M72.66,-108.74C83.53,-112.76 95.74,-117.29 107.26,-121.55"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="106.02,-124.83 116.61,-125.02 108.45,-118.26 106.02,-124.83"/>
+</g>
+<!-- proc~zinterpolate -->
+<g id="proc~~readinletfile~~CallsGraph_node4" class="node">
+<title>proc~zinterpolate</title>
+<g id="a_proc~~readinletfile~~CallsGraph_node4"><a xlink:href="../proc/zinterpolate.html" xlink:title="zinterpolate">
+<polygon fill="#d9534f" stroke="#d9534f" points="190.66,-108.27 115.4,-108.27 115.4,-84 190.66,-84 190.66,-108.27"/>
+<text text-anchor="middle" x="153.03" y="-92.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zinterpolate</text>
+</a>
+</g>
+</g>
+<!-- proc~readinletfile&#45;&gt;proc~zinterpolate -->
+<g id="proc~~readinletfile~~CallsGraph_edge3" class="edge">
+<title>proc~readinletfile&#45;&gt;proc~zinterpolate</title>
+<path fill="none" stroke="#ff0000" d="M75.76,-96.13C84.77,-96.13 94.52,-96.13 103.94,-96.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="103.69,-99.64 113.69,-96.14 103.69,-92.64 103.69,-99.64"/>
+</g>
+<!-- proc~zinterpolatet -->
+<g id="proc~~readinletfile~~CallsGraph_node5" class="node">
+<title>proc~zinterpolatet</title>
+<g id="a_proc~~readinletfile~~CallsGraph_node5"><a xlink:href="../proc/zinterpolatet.html" xlink:title="zinterpolatet">
+<polygon fill="#d9534f" stroke="#d9534f" points="192.54,-66.27 113.52,-66.27 113.52,-42 192.54,-42 192.54,-66.27"/>
+<text text-anchor="middle" x="153.03" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zinterpolatet</text>
+</a>
+</g>
+</g>
+<!-- proc~readinletfile&#45;&gt;proc~zinterpolatet -->
+<g id="proc~~readinletfile~~CallsGraph_edge4" class="edge">
+<title>proc~readinletfile&#45;&gt;proc~zinterpolatet</title>
+<path fill="none" stroke="#ff0000" d="M72.66,-83.53C83.53,-79.51 95.74,-74.98 107.26,-70.72"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="108.45,-74.01 116.61,-67.25 106.02,-67.44 108.45,-74.01"/>
+</g>
+<!-- proc~zinterpolatew -->
+<g id="proc~~readinletfile~~CallsGraph_node6" class="node">
+<title>proc~zinterpolatew</title>
+<g id="a_proc~~readinletfile~~CallsGraph_node6"><a xlink:href="../proc/zinterpolatew.html" xlink:title="zinterpolatew">
+<polygon fill="#d9534f" stroke="#d9534f" points="194.79,-24.27 111.27,-24.27 111.27,0 194.79,0 194.79,-24.27"/>
+<text text-anchor="middle" x="153.03" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zinterpolatew</text>
+</a>
+</g>
+</g>
+<!-- proc~readinletfile&#45;&gt;proc~zinterpolatew -->
+<g id="proc~~readinletfile~~CallsGraph_edge5" class="edge">
+<title>proc~readinletfile&#45;&gt;proc~zinterpolatew</title>
+<path fill="none" stroke="#ff0000" d="M51.25,-83.52C65.17,-70.02 88.6,-48.48 111.27,-33.13 112.81,-32.09 114.41,-31.06 116.04,-30.06"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="117.37,-33.33 124.31,-25.32 113.89,-27.26 117.37,-33.33"/>
+</g>
+<!-- mpi_isend -->
+<g id="proc~~readinletfile~~CallsGraph_node7" class="node">
+<title>mpi_isend</title>
+<polygon fill="#777777" stroke="#777777" points="296.31,-234.27 230.79,-234.27 230.79,-210 296.31,-210 296.31,-234.27"/>
+<text text-anchor="middle" x="263.55" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_isend</text>
+</g>
+<!-- proc~excjs&#45;&gt;mpi_isend -->
+<g id="proc~~readinletfile~~CallsGraph_edge6" class="edge">
+<title>proc~excjs&#45;&gt;mpi_isend</title>
+<path fill="none" stroke="#ff0000" d="M180.3,-190.3C192.18,-194.9 206.52,-200.45 219.88,-205.62"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="218.32,-208.77 228.91,-209.12 220.85,-202.24 218.32,-208.77"/>
+</g>
+<!-- mpi_recv -->
+<g id="proc~~readinletfile~~CallsGraph_node8" class="node">
+<title>mpi_recv</title>
+<polygon fill="#777777" stroke="#777777" points="293.31,-192.27 233.79,-192.27 233.79,-168 293.31,-168 293.31,-192.27"/>
+<text text-anchor="middle" x="263.55" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_recv</text>
+</g>
+<!-- proc~excjs&#45;&gt;mpi_recv -->
+<g id="proc~~readinletfile~~CallsGraph_edge7" class="edge">
+<title>proc~excjs&#45;&gt;mpi_recv</title>
+<path fill="none" stroke="#ff0000" d="M180.3,-180.13C192.85,-180.13 208.14,-180.13 222.12,-180.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="221.96,-183.64 231.96,-180.14 221.96,-176.64 221.96,-183.64"/>
+</g>
+<!-- mpi_wait -->
+<g id="proc~~readinletfile~~CallsGraph_node9" class="node">
+<title>mpi_wait</title>
+<polygon fill="#777777" stroke="#777777" points="292.94,-150.27 234.17,-150.27 234.17,-126 292.94,-126 292.94,-150.27"/>
+<text text-anchor="middle" x="263.55" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_wait</text>
+</g>
+<!-- proc~excjs&#45;&gt;mpi_wait -->
+<g id="proc~~readinletfile~~CallsGraph_edge8" class="edge">
+<title>proc~excjs&#45;&gt;mpi_wait</title>
+<path fill="none" stroke="#ff0000" d="M180.3,-169.97C193.2,-164.98 209,-158.86 223.29,-153.33"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="224.38,-156.66 232.44,-149.79 221.86,-150.13 224.38,-156.66"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~readinletfile~~CalledByGraph Pages: 1 -->
+<svg id="procreadinletfileCalledByGraph" width="336pt" height="116pt"
+ viewBox="0.00 0.00 335.81 116.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~readinletfile~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 112.27)">
+<title>proc~~readinletfile~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-112.27 331.81,-112.27 331.81,4 -4,4"/>
+<!-- proc~readinletfile -->
+<g id="proc~~readinletfile~~CalledByGraph_node1" class="node">
+<title>proc~readinletfile</title>
+<polygon fill="none" stroke="black" points="327.81,-66.27 252.54,-66.27 252.54,-42 327.81,-42 327.81,-66.27"/>
+<text text-anchor="middle" x="290.17" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50">readinletfile</text>
+</g>
+<!-- proc~inletgen -->
+<g id="proc~~readinletfile~~CalledByGraph_node2" class="node">
+<title>proc~inletgen</title>
+<g id="a_proc~~readinletfile~~CalledByGraph_node2"><a xlink:href="../proc/inletgen.html" xlink:title="inletgen">
+<polygon fill="#d9534f" stroke="#d9534f" points="195.91,-108.27 140.89,-108.27 140.89,-84 195.91,-84 195.91,-108.27"/>
+<text text-anchor="middle" x="168.4" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">inletgen</text>
+</a>
+</g>
+</g>
+<!-- proc~inletgen&#45;&gt;proc~readinletfile -->
+<g id="proc~~readinletfile~~CalledByGraph_edge1" class="edge">
+<title>proc~inletgen&#45;&gt;proc~readinletfile</title>
+<path fill="none" stroke="#ff0000" d="M196.28,-86.71C209.96,-81.91 226.97,-75.95 242.68,-70.44"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="243.59,-73.83 251.87,-67.22 241.28,-67.22 243.59,-73.83"/>
+</g>
+<!-- proc~inletgennotemp -->
+<g id="proc~~readinletfile~~CalledByGraph_node3" class="node">
+<title>proc~inletgennotemp</title>
+<g id="a_proc~~readinletfile~~CalledByGraph_node3"><a xlink:href="../proc/inletgennotemp.html" xlink:title="inletgennotemp">
+<polygon fill="#d9534f" stroke="#d9534f" points="216.54,-66.27 120.27,-66.27 120.27,-42 216.54,-42 216.54,-66.27"/>
+<text text-anchor="middle" x="168.4" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">inletgennotemp</text>
+</a>
+</g>
+</g>
+<!-- proc~inletgennotemp&#45;&gt;proc~readinletfile -->
+<g id="proc~~readinletfile~~CalledByGraph_edge2" class="edge">
+<title>proc~inletgennotemp&#45;&gt;proc~readinletfile</title>
+<path fill="none" stroke="#ff0000" d="M216.74,-54.13C224.65,-54.13 232.86,-54.13 240.8,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="240.64,-57.64 250.64,-54.14 240.64,-50.64 240.64,-57.64"/>
+</g>
+<!-- proc~readinitfiles -->
+<g id="proc~~readinletfile~~CalledByGraph_node4" class="node">
+<title>proc~readinitfiles</title>
+<g id="a_proc~~readinletfile~~CalledByGraph_node4"><a xlink:href="../proc/readinitfiles.html" xlink:title="readinitfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="205.29,-24.27 131.52,-24.27 131.52,0 205.29,0 205.29,-24.27"/>
+<text text-anchor="middle" x="168.4" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readinitfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readinitfiles&#45;&gt;proc~readinletfile -->
+<g id="proc~~readinletfile~~CalledByGraph_edge3" class="edge">
+<title>proc~readinitfiles&#45;&gt;proc~readinletfile</title>
+<path fill="none" stroke="#ff0000" d="M205.34,-24.74C217.06,-28.85 230.26,-33.47 242.64,-37.82"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="241.24,-41.04 251.84,-41.04 243.56,-34.43 241.24,-41.04"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~readinletfile~~CalledByGraph_node5" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~readinletfile~~CalledByGraph_node5"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-24.27 0,-24.27 0,0 84.27,0 84.27,-24.27"/>
+<text text-anchor="middle" x="42.13" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~readinitfiles -->
+<g id="proc~~readinletfile~~CalledByGraph_edge4" class="edge">
+<title>program~dalesurban&#45;&gt;proc~readinitfiles</title>
+<path fill="none" stroke="#0000ff" d="M84.52,-12.13C95.85,-12.13 108.22,-12.13 119.87,-12.13"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="119.69,-15.64 129.69,-12.14 119.69,-8.64 119.69,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">readinletfile</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">cexpnr</span><span class="p">,</span><span class="n">ifinput</span><span class="p">,</span><span class="n">nstore</span><span class="p">,</span><span class="n">ltempeq</span><span class="p">,</span><span class="n">ntrun</span><span class="p">,</span><span class="n">zh</span><span class="p">,</span><span class="n">jtot</span><span class="p">,</span><span class="n">jh</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">cmyid</span><span class="p">,</span><span class="n">myid</span><span class="p">,</span><span class="n">nprocs</span><span class="p">,</span><span class="n">slabsum</span><span class="p">,</span><span class="n">excjs</span>
+<span class="c">!    use modinletdata, only : storeu0inletbc,storev0inletbc,storew0inletbc,nfile</span>
+
+<span class="w">    </span><span class="k">implicit none</span>
+<span class="k">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ib</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">jb</span><span class="o">+</span><span class="n">inlfactor</span><span class="o">*</span><span class="n">jmax</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">)</span><span class="w">        </span><span class="kd">::</span><span class="w"> </span><span class="n">udummy</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">)</span><span class="w">                                     </span><span class="kd">::</span><span class="w"> </span><span class="n">uread</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">)</span><span class="w">                                     </span><span class="kd">::</span><span class="w"> </span><span class="n">ureaddzfin</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">jb</span><span class="o">+</span><span class="n">jtotin</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">     </span><span class="kd">::</span><span class="w"> </span><span class="n">storeu0inold</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">jb</span><span class="o">+</span><span class="n">jtotin</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">     </span><span class="kd">::</span><span class="w"> </span><span class="n">storev0inold</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">jb</span><span class="o">+</span><span class="n">jtotin</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">   </span><span class="kd">::</span><span class="w"> </span><span class="n">storew0inold</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">jb</span><span class="o">+</span><span class="n">jtotin</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">     </span><span class="kd">::</span><span class="w"> </span><span class="n">storet0inold</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">jb</span><span class="o">+</span><span class="n">jtotdum</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">     </span><span class="kd">::</span><span class="w"> </span><span class="n">storeu0indum</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">jb</span><span class="o">+</span><span class="n">jtotdum</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">     </span><span class="kd">::</span><span class="w"> </span><span class="n">storev0indum</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">jb</span><span class="o">+</span><span class="n">jtotdum</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">   </span><span class="kd">::</span><span class="w"> </span><span class="n">storew0indum</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">jb</span><span class="o">+</span><span class="n">jtotdum</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">     </span><span class="kd">::</span><span class="w"> </span><span class="n">storet0indum</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">     </span><span class="kd">::</span><span class="w"> </span><span class="n">storeu0innew</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">     </span><span class="kd">::</span><span class="w"> </span><span class="n">storev0innew</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">   </span><span class="kd">::</span><span class="w"> </span><span class="n">storew0innew</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kbin</span><span class="p">:</span><span class="n">kein</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">nstore</span><span class="p">)</span><span class="w">     </span><span class="kd">::</span><span class="w"> </span><span class="n">storet0innew</span>
+<span class="w">    </span><span class="kt">integer </span><span class="n">filen</span><span class="p">,</span><span class="n">filee</span>
+<span class="w">    </span><span class="kt">integer </span><span class="n">fileid</span>
+<span class="w">    </span><span class="kt">integer </span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">js</span><span class="p">,</span><span class="n">jf</span><span class="p">,</span><span class="n">jfdum</span><span class="p">,</span><span class="n">jsdum</span>
+<span class="w">    </span><span class="kt">character</span><span class="p">(</span><span class="mi">24</span><span class="p">)</span><span class="w"> </span><span class="n">name</span>
+<span class="w">      </span><span class="n">filen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mi">5</span><span class="w">   </span><span class="c">! should be checked carefully if in use ever</span>
+<span class="w">      </span><span class="n">jfdum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jbdum</span><span class="o">-</span><span class="mi">1</span><span class="w">  </span><span class="c">! initial value</span>
+<span class="w">      </span><span class="k">do </span><span class="n">fileid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">filenumstart</span><span class="p">,</span><span class="w"> </span><span class="n">filenumstart</span><span class="o">+</span><span class="p">(</span><span class="n">filestoread</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">filen</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">filen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nprocsinl</span><span class="o">-</span><span class="mi">1</span><span class="w">                      </span><span class="c">! -1 means the last proc (periodic)</span>
+<span class="w">        </span><span class="k">else</span>
+<span class="k">          </span><span class="n">filen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fileid</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">floor</span><span class="p">(</span><span class="kt">real</span><span class="p">(</span><span class="n">fileid</span><span class="p">)</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">nprocsinl</span><span class="p">))</span><span class="o">*</span><span class="n">nprocsinl</span><span class="w">  </span><span class="c">! loop over proc&#39;s</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">       write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;!!!!! filen = &#39;</span><span class="p">,</span><span class="w"> </span><span class="n">filen</span>
+<span class="w">        </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;inlet/inlet_    k   .&#39;</span>
+<span class="w">        </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">16</span><span class="p">)</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;(i4.4)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">nfile</span>
+<span class="w">        </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">18</span><span class="p">:</span><span class="mi">20</span><span class="p">)</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;(i3.3)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">filen</span>
+<span class="w">        </span><span class="n">name</span><span class="p">(</span><span class="mi">22</span><span class="p">:</span><span class="mi">24</span><span class="p">)</span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">        </span><span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;Reading Inlet velocity: &#39;</span><span class="p">,</span><span class="w"> </span><span class="n">name</span>
+<span class="w">        </span><span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">ifinput</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">storeu0inold</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jbin</span><span class="p">,</span><span class="n">jein</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kbin</span><span class="p">,</span><span class="n">kein</span><span class="p">),</span><span class="w">  </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nstore</span><span class="p">)</span>
+<span class="w">        </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">storev0inold</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jbin</span><span class="p">,</span><span class="n">jein</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kbin</span><span class="p">,</span><span class="n">kein</span><span class="p">),</span><span class="w">  </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nstore</span><span class="p">)</span>
+<span class="w">        </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">storew0inold</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jbin</span><span class="p">,</span><span class="n">jein</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kbin</span><span class="p">,</span><span class="n">kein</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nstore</span><span class="p">)</span>
+<span class="w">        </span><span class="k">close</span><span class="w"> </span><span class="p">(</span><span class="n">ifinput</span><span class="p">)</span>
+
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;inlet/itemp_    k   .&#39;</span>
+<span class="w">          </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">16</span><span class="p">)</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;(i4.4)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">nfile</span>
+<span class="w">          </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">18</span><span class="p">:</span><span class="mi">20</span><span class="p">)</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;(i3.3)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">filen</span>
+<span class="w">          </span><span class="n">name</span><span class="p">(</span><span class="mi">22</span><span class="p">:</span><span class="mi">24</span><span class="p">)</span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">          </span><span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;Reading Inlet temperature: &#39;</span><span class="p">,</span><span class="w"> </span><span class="n">name</span>
+<span class="w">          </span><span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">ifinput</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">read</span><span class="p">(</span><span class="n">ifinput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">storet0inold</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jbin</span><span class="p">,</span><span class="n">jein</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kbin</span><span class="p">,</span><span class="n">kein</span><span class="p">),</span><span class="w">  </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nstore</span><span class="p">)</span>
+<span class="w">          </span><span class="k">close</span><span class="w"> </span><span class="p">(</span><span class="n">ifinput</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+
+
+<span class="w">        </span><span class="c">! determine start and end indices</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">filen</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">procinlo</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">js</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jbeg</span>
+<span class="w">        </span><span class="k">else</span>
+<span class="k">          </span><span class="n">js</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jbin</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        if</span><span class="w"> </span><span class="p">(</span><span class="n">filen</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">procinup</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">jf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jend</span>
+<span class="w">        </span><span class="k">else</span>
+<span class="k">          </span><span class="n">jf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jein</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        </span><span class="n">jsdum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jfdum</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">        </span><span class="n">jfdum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jsdum</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">jf</span><span class="o">-</span><span class="n">js</span><span class="p">)</span>
+<span class="c">!        if (jsdum &gt;= 3) write(6,*) &#39;myid, jsdum = &#39;,myid, jsdum</span>
+<span class="c">!        if (jfdum &gt;= 3) write(6,*) &#39;myid, jfdum = &#39;,myid, jfdum</span>
+
+<span class="w"> </span><span class="c">!!! put values from original in dummy variable</span>
+<span class="w">        </span><span class="n">storeu0indum</span><span class="p">(</span><span class="n">jsdum</span><span class="p">:</span><span class="n">jfdum</span><span class="p">,:,:)</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">storeu0inold</span><span class="p">(</span><span class="n">js</span><span class="p">:</span><span class="n">jf</span><span class="p">,:,:)</span><span class="w">      </span><span class="c">! s: start  f: final</span>
+<span class="w">        </span><span class="n">storev0indum</span><span class="p">(</span><span class="n">jsdum</span><span class="p">:</span><span class="n">jfdum</span><span class="p">,:,:)</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">storev0inold</span><span class="p">(</span><span class="n">js</span><span class="p">:</span><span class="n">jf</span><span class="p">,:,:)</span><span class="w">      </span><span class="c">! s: start  f: final</span>
+<span class="w">        </span><span class="n">storew0indum</span><span class="p">(</span><span class="n">jsdum</span><span class="p">:</span><span class="n">jfdum</span><span class="p">,:,:)</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">storew0inold</span><span class="p">(</span><span class="n">js</span><span class="p">:</span><span class="n">jf</span><span class="p">,:,:)</span><span class="w">      </span><span class="c">! s: start  f: final</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">storet0indum</span><span class="p">(</span><span class="n">jsdum</span><span class="p">:</span><span class="n">jfdum</span><span class="p">,:,:)</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">storet0inold</span><span class="p">(</span><span class="n">js</span><span class="p">:</span><span class="n">jf</span><span class="p">,:,:)</span><span class="w">      </span><span class="c">! s: start  f: final</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">      end do</span><span class="w">  </span><span class="c">! loop over original inlet files</span>
+<span class="w">  </span><span class="c">! now interpolate in y</span>
+<span class="w">      </span><span class="k">call </span><span class="n">yinterpolate</span><span class="w"> </span><span class="p">(</span><span class="n">storeu0indum</span><span class="p">,</span><span class="n">storeu0innew</span><span class="p">,</span><span class="n">kbin</span><span class="p">,</span><span class="n">kein</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">yinterpolate</span><span class="w"> </span><span class="p">(</span><span class="n">storev0indum</span><span class="p">,</span><span class="n">storev0innew</span><span class="p">,</span><span class="n">kbin</span><span class="p">,</span><span class="n">kein</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">yinterpolate</span><span class="w"> </span><span class="p">(</span><span class="n">storew0indum</span><span class="p">,</span><span class="n">storew0innew</span><span class="p">,</span><span class="n">kbin</span><span class="p">,</span><span class="n">kein</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">yinterpolate</span><span class="w"> </span><span class="p">(</span><span class="n">storet0indum</span><span class="p">,</span><span class="n">storet0innew</span><span class="p">,</span><span class="n">kbin</span><span class="p">,</span><span class="n">kein</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="n">lzinzsim</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">! interpolate when zin =/ zsim</span>
+<span class="w">        </span><span class="k">call </span><span class="n">zinterpolate</span><span class="w"> </span><span class="p">(</span><span class="n">storeu0innew</span><span class="p">(:,:,:),</span><span class="n">storeu0inletbc</span><span class="p">)</span><span class="w">   </span><span class="c">! interpolate inlet profile to zgrid</span>
+<span class="w">        </span><span class="k">call </span><span class="n">zinterpolate</span><span class="w"> </span><span class="p">(</span><span class="n">storev0innew</span><span class="p">(:,:,:),</span><span class="n">storev0inletbc</span><span class="p">)</span><span class="w">   </span><span class="c">! interpolate inlet profile to zgrid</span>
+<span class="w">        </span><span class="k">call </span><span class="n">zinterpolatew</span><span class="p">(</span><span class="n">storew0innew</span><span class="p">(:,:,:),</span><span class="n">storew0inletbc</span><span class="p">)</span><span class="w">   </span><span class="c">! interpolate inlet profile to zgrid</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">zinterpolatet</span><span class="p">(</span><span class="n">storet0innew</span><span class="p">(:,:,:),</span><span class="n">storet0inletbc</span><span class="p">)</span><span class="w">   </span><span class="c">! interpolate inlet profile to zgrid</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">      else</span>
+<span class="k">        </span><span class="n">storeu0inletbc</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeu0inold</span><span class="p">(:,:,:)</span>
+<span class="w">        </span><span class="n">storev0inletbc</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storev0inold</span><span class="p">(:,:,:)</span>
+<span class="w">        </span><span class="n">storew0inletbc</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storew0inold</span><span class="p">(:,:,:)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">storet0inletbc</span><span class="p">(:,:,:)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storet0inold</span><span class="p">(:,:,:)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">      end if</span>
+
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">iangle</span><span class="o">/=</span><span class="mf">0.0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w">   </span><span class="c">! modify for inflow angle</span>
+<span class="w">         </span><span class="k">do </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nstore</span>
+<span class="w">         </span><span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<span class="w">         </span><span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>
+<span class="w">           </span><span class="n">u0rot</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storeu0inletbc</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="w">         </span><span class="c">! swap indices in order</span>
+<span class="w">           </span><span class="n">v0rot</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">storev0inletbc</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="w">         </span><span class="c">! to use excjs</span>
+<span class="w">         </span><span class="k">end do</span>
+<span class="k">         end do</span>
+<span class="k">         end do</span>
+<span class="k">         call </span><span class="n">excjs</span><span class="p">(</span><span class="n">u0rot</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">nstore</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">jh</span><span class="p">)</span>
+<span class="w">         </span><span class="k">call </span><span class="n">excjs</span><span class="p">(</span><span class="n">v0rot</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">nstore</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">jh</span><span class="p">)</span>
+<span class="c">!         write(6,*) &#39;v0rot(1,je+1,30) = &#39;,v0rot(1,je+1,30)</span>
+<span class="w">         </span><span class="k">do </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nstore</span>
+<span class="w">         </span><span class="k">do </span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span>
+<span class="w">         </span><span class="k">do </span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span>
+<span class="w">         </span><span class="c">! apply horizontal rotation (neglecting the delta_x difference)</span>
+<span class="w">           </span><span class="n">storeu0inletbc</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">u0rot</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="nb">cos</span><span class="p">(</span><span class="n">iangle</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.5</span><span class="o">*</span><span class="nb">sin</span><span class="p">(</span><span class="n">iangle</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">v0rot</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">+</span><span class="n">v0rot</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
+<span class="w">           </span><span class="n">storev0inletbc</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v0rot</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="nb">cos</span><span class="p">(</span><span class="n">iangle</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.5</span><span class="o">*</span><span class="nb">sin</span><span class="p">(</span><span class="n">iangle</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">u0rot</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">+</span><span class="n">u0rot</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
+<span class="w">         </span><span class="k">end do</span>
+<span class="k">         end do</span>
+<span class="k">         end do</span>
+<span class="k">      end if</span><span class="w"> </span><span class="c">! iangle =/0.0</span>
+
+
+<span class="w">  </span><span class="k">end subroutine </span><span class="n">readinletfile</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

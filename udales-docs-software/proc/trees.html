@@ -1,0 +1,967 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>trees &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>trees
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 1.4% of total for procedures.">183 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modtrees.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modtrees.f90.html'>modtrees.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modtrees.html'>modtrees</a></li>
+            <li class="breadcrumb-item active" aria-current="page">trees</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/trees.html#src">trees</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine trees()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modsubgriddata.html'>modsubgriddata</a></li>
+                  <li class="list-inline-item"><a href='../module/modsurfdata.html'>modsurfdata</a></li>
+                  <li class="list-inline-item"><a href='../module/modibmdata.html'>modibmdata</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~trees~~UsesGraph Pages: 1 -->
+<svg id="proctreesUsesGraph" width="307pt" height="242pt"
+ viewBox="0.00 0.00 307.04 242.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~trees~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 238.27)">
+<title>proc~~trees~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-238.27 303.04,-238.27 303.04,4 -4,4"/>
+<!-- proc~trees -->
+<g id="proc~~trees~~UsesGraph_node1" class="node">
+<title>proc~trees</title>
+<polygon fill="none" stroke="black" points="299.04,-129.27 245.04,-129.27 245.04,-105 299.04,-105 299.04,-129.27"/>
+<text text-anchor="middle" x="272.04" y="-113.54" font-family="Helvetica,sans-Serif" font-size="10.50">trees</text>
+</g>
+<!-- module~modfields -->
+<g id="proc~~trees~~UsesGraph_node2" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~trees~~UsesGraph_node2"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="191.41,-234.27 127.39,-234.27 127.39,-210 191.41,-210 191.41,-234.27"/>
+<text text-anchor="middle" x="159.4" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~trees&#45;&gt;module~modfields -->
+<g id="proc~~trees~~UsesGraph_edge1" class="edge">
+<title>proc~trees&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M264.65,-129.58C254.86,-147.56 234.59,-180.84 209.04,-201.13 206.8,-202.91 204.39,-204.57 201.88,-206.1"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="200.39,-202.94 193.22,-210.73 203.69,-209.11 200.39,-202.94"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~trees~~UsesGraph_node3" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~trees~~UsesGraph_node3"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="193.66,-192.27 125.14,-192.27 125.14,-168 193.66,-168 193.66,-192.27"/>
+<text text-anchor="middle" x="159.4" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~trees&#45;&gt;module~modglobal -->
+<g id="proc~~trees~~UsesGraph_edge2" class="edge">
+<title>proc~trees&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M254.48,-129.61C242.29,-138.48 225.11,-150.32 209.04,-159.13 206.84,-160.34 204.57,-161.52 202.25,-162.68"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="200.87,-159.46 193.32,-166.9 203.86,-165.79 200.87,-159.46"/>
+</g>
+<!-- module~modibmdata -->
+<g id="proc~~trees~~UsesGraph_node4" class="node">
+<title>module~modibmdata</title>
+<g id="a_proc~~trees~~UsesGraph_node4"><a xlink:href="../module/modibmdata.html" xlink:title="modibmdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="199.29,-150.27 119.52,-150.27 119.52,-126 199.29,-126 199.29,-150.27"/>
+<text text-anchor="middle" x="159.4" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata</text>
+</a>
+</g>
+</g>
+<!-- proc~trees&#45;&gt;module~modibmdata -->
+<g id="proc~~trees~~UsesGraph_edge3" class="edge">
+<title>proc~trees&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M244.54,-122.17C234.37,-124.1 222.39,-126.37 210.71,-128.59"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="210.34,-125.09 201.16,-130.4 211.64,-131.97 210.34,-125.09"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~trees~~UsesGraph_node5" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~trees~~UsesGraph_node5"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="187.29,-108.27 131.52,-108.27 131.52,-84 187.29,-84 187.29,-108.27"/>
+<text text-anchor="middle" x="159.4" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~trees&#45;&gt;module~modmpi -->
+<g id="proc~~trees~~UsesGraph_edge4" class="edge">
+<title>proc~trees&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M244.54,-112.1C230.79,-109.49 213.73,-106.26 198.58,-103.38"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="199.42,-99.98 188.94,-101.55 198.12,-106.86 199.42,-99.98"/>
+</g>
+<!-- module~modsubgriddata -->
+<g id="proc~~trees~~UsesGraph_node6" class="node">
+<title>module~modsubgriddata</title>
+<g id="a_proc~~trees~~UsesGraph_node6"><a xlink:href="../module/modsubgriddata.html" xlink:title="modsubgriddata">
+<polygon fill="#337ab7" stroke="#337ab7" points="209.04,-66.27 109.77,-66.27 109.77,-42 209.04,-42 209.04,-66.27"/>
+<text text-anchor="middle" x="159.4" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgriddata</text>
+</a>
+</g>
+</g>
+<!-- proc~trees&#45;&gt;module~modsubgriddata -->
+<g id="proc~~trees~~UsesGraph_edge5" class="edge">
+<title>proc~trees&#45;&gt;module~modsubgriddata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M254.48,-104.66C242.29,-95.79 225.11,-83.95 209.04,-75.14 206.84,-73.93 204.57,-72.75 202.25,-71.59"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="203.86,-68.48 193.32,-67.37 200.87,-74.81 203.86,-68.48"/>
+</g>
+<!-- module~modsurfdata -->
+<g id="proc~~trees~~UsesGraph_node7" class="node">
+<title>module~modsurfdata</title>
+<g id="a_proc~~trees~~UsesGraph_node7"><a xlink:href="../module/modsurfdata.html" xlink:title="modsurfdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="199.29,-24.27 119.52,-24.27 119.52,0 199.29,0 199.29,-24.27"/>
+<text text-anchor="middle" x="159.4" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsurfdata</text>
+</a>
+</g>
+</g>
+<!-- proc~trees&#45;&gt;module~modsurfdata -->
+<g id="proc~~trees~~UsesGraph_edge6" class="edge">
+<title>proc~trees&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M264.65,-104.69C254.86,-86.71 234.59,-53.43 209.04,-33.13 207.91,-32.23 206.73,-31.36 205.51,-30.53"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="207.38,-27.56 196.99,-25.47 203.81,-33.58 207.38,-27.56"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~trees~~UsesGraph_node8" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="73.77,-234.27 0,-234.27 0,-210 73.77,-210 73.77,-234.27"/>
+<text text-anchor="middle" x="36.88" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~trees~~UsesGraph_edge7" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M127.05,-222.13C114.41,-222.13 99.55,-222.13 85.62,-222.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="85.72,-218.64 75.72,-222.14 85.72,-225.64 85.72,-218.64"/>
+</g>
+<!-- mpi -->
+<g id="proc~~trees~~UsesGraph_node9" class="node">
+<title>mpi</title>
+<g id="a_proc~~trees~~UsesGraph_node9"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="63.88,-108.27 9.88,-108.27 9.88,-84 63.88,-84 63.88,-108.27"/>
+<text text-anchor="middle" x="36.88" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~trees~~UsesGraph_edge8" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M131.06,-96.14C114.65,-96.14 93.55,-96.14 75.57,-96.14"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="75.81,-92.64 65.81,-96.14 75.81,-99.64 75.81,-92.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~trees~~CallsGraph Pages: 1 -->
+<svg id="proctreesCallsGraph" width="185pt" height="32pt"
+ viewBox="0.00 0.00 184.52 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~trees~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~trees~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 180.52,-28.27 180.52,4 -4,4"/>
+<!-- proc~trees -->
+<g id="proc~~trees~~CallsGraph_node1" class="node">
+<title>proc~trees</title>
+<polygon fill="none" stroke="black" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">trees</text>
+</g>
+<!-- mpi_allreduce -->
+<g id="proc~~trees~~CallsGraph_node2" class="node">
+<title>mpi_allreduce</title>
+<polygon fill="#777777" stroke="#777777" points="176.52,-24.27 90,-24.27 90,0 176.52,0 176.52,-24.27"/>
+<text text-anchor="middle" x="133.26" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_allreduce</text>
+</g>
+<!-- proc~trees&#45;&gt;mpi_allreduce -->
+<g id="proc~~trees~~CallsGraph_edge1" class="edge">
+<title>proc~trees&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#ff0000" d="M54.31,-12.13C61.69,-12.13 70,-12.13 78.37,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.22,-15.64 88.22,-12.14 78.22,-8.64 78.22,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~trees~~CalledByGraph Pages: 1 -->
+<svg id="proctreesCalledByGraph" width="182pt" height="32pt"
+ viewBox="0.00 0.00 182.27 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~trees~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~trees~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 178.27,-28.27 178.27,4 -4,4"/>
+<!-- proc~trees -->
+<g id="proc~~trees~~CalledByGraph_node1" class="node">
+<title>proc~trees</title>
+<polygon fill="none" stroke="black" points="174.27,-24.27 120.27,-24.27 120.27,0 174.27,0 174.27,-24.27"/>
+<text text-anchor="middle" x="147.27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">trees</text>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~trees~~CalledByGraph_node2" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~trees~~CalledByGraph_node2"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-24.27 0,-24.27 0,0 84.27,0 84.27,-24.27"/>
+<text text-anchor="middle" x="42.13" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~trees -->
+<g id="proc~~trees~~CalledByGraph_edge1" class="edge">
+<title>program~dalesurban&#45;&gt;proc~trees</title>
+<path fill="none" stroke="#ff0000" d="M84.49,-12.13C92.45,-12.13 100.76,-12.13 108.6,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="108.52,-15.64 118.52,-12.14 108.52,-8.64 108.52,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">    </span><span class="k">subroutine </span><span class="n">trees</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w">  </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">dzf</span><span class="p">,</span><span class="n">xh</span><span class="p">,</span><span class="n">dxf</span><span class="p">,</span><span class="n">numol</span><span class="p">,</span><span class="n">prandtlmol</span><span class="p">,</span><span class="n">rlv</span><span class="p">,</span><span class="n">cp</span><span class="p">,</span><span class="n">tree</span><span class="p">,&amp;</span>
+<span class="w">                           </span><span class="n">ntrees</span><span class="p">,</span><span class="n">ltrees</span><span class="p">,</span><span class="n">itot</span><span class="p">,</span><span class="n">jtot</span><span class="p">,</span><span class="n">cd</span><span class="p">,</span><span class="n">ud</span><span class="p">,</span><span class="n">lmoist</span><span class="p">,</span><span class="n">nsv</span><span class="p">,</span><span class="n">dxf</span><span class="p">,</span><span class="n">dy</span><span class="p">,</span><span class="n">dzf</span><span class="p">,</span><span class="n">dzfi</span><span class="p">,</span><span class="n">zf</span><span class="p">,</span><span class="n">dy</span><span class="p">,</span><span class="n">zh</span><span class="p">,&amp;</span>
+<span class="w">                           </span><span class="n">ltempeq</span><span class="p">,</span><span class="n">pref0</span><span class="p">,</span><span class="n">r_s</span><span class="p">,</span><span class="n">lad</span><span class="p">,</span><span class="n">rhoa</span><span class="p">,</span><span class="n">ntree_max</span><span class="p">,</span><span class="n">lsize</span><span class="p">,</span><span class="n">Qstar</span><span class="p">,</span><span class="n">dQdt</span><span class="p">,</span><span class="n">BCxs</span><span class="p">,</span><span class="n">tr_A</span><span class="p">,&amp;</span>
+<span class="w">                           </span><span class="n">rslabs</span><span class="p">,</span><span class="n">kmax</span><span class="p">,</span><span class="n">rv</span><span class="p">,</span><span class="n">rd</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w">  </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">um</span><span class="p">,</span><span class="n">vm</span><span class="p">,</span><span class="n">wm</span><span class="p">,</span><span class="n">thlm</span><span class="p">,</span><span class="n">qtm</span><span class="p">,</span><span class="n">svp</span><span class="p">,</span><span class="n">up</span><span class="p">,</span><span class="n">vp</span><span class="p">,</span><span class="n">wp</span><span class="p">,</span><span class="n">thlp</span><span class="p">,</span><span class="n">qtp</span><span class="p">,</span><span class="n">svm</span><span class="p">,</span><span class="n">Rn</span><span class="p">,</span><span class="n">qc</span><span class="p">,</span><span class="n">qa</span><span class="p">,</span><span class="n">thlm</span><span class="p">,</span><span class="n">clai</span><span class="p">,&amp;</span>
+<span class="w">                           </span><span class="n">ladzf</span><span class="p">,</span><span class="n">ladzh</span><span class="p">,</span><span class="n">IIcs</span><span class="p">,</span><span class="n">tr_omega</span><span class="p">,&amp;</span>
+<span class="w">                           </span><span class="n">tr_u</span><span class="p">,</span><span class="n">tr_v</span><span class="p">,</span><span class="n">tr_w</span><span class="p">,</span><span class="n">tr_qt</span><span class="p">,</span><span class="n">tr_qtR</span><span class="p">,</span><span class="n">tr_qtA</span><span class="p">,</span><span class="n">tr_thl</span><span class="p">,</span><span class="n">tr_sv</span><span class="p">,</span><span class="n">thlpcar</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">     </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">myidx</span><span class="p">,</span><span class="n">myidy</span><span class="p">,</span><span class="n">mpi_sum</span><span class="p">,</span><span class="n">mpierr</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">,</span><span class="n">my_real</span><span class="p">,</span><span class="n">nprocx</span><span class="p">,</span><span class="n">nprocy</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modsurfdata</span><span class="p">,</span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">wtsurf</span><span class="p">,</span><span class="n">wttop</span><span class="p">,</span><span class="n">wqtop</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modibmdata</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">bctfz</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modsubgriddata</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ekh</span>
+<span class="w">    </span><span class="k">implicit none</span>
+<span class="k">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">m</span><span class="p">,</span><span class="n">il</span><span class="p">,</span><span class="n">iu</span><span class="p">,</span><span class="n">jl</span><span class="p">,</span><span class="n">ju</span><span class="p">,</span><span class="n">kl</span><span class="p">,</span><span class="n">ku</span>
+<span class="w">    </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">e_sat</span><span class="p">,</span><span class="n">e_vap</span><span class="p">,</span><span class="n">qh</span><span class="p">,</span><span class="n">qe</span><span class="p">,</span><span class="n">shade</span><span class="p">,</span><span class="n">r_a</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">D</span><span class="p">,</span><span class="n">numoli</span><span class="p">,</span><span class="n">gam</span><span class="p">,</span><span class="n">Rq</span><span class="p">,</span><span class="n">qhmin</span><span class="p">,</span><span class="n">qhmax</span><span class="p">,</span><span class="n">omega</span>
+<span class="w">    </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">Vq_dum</span><span class="p">,</span><span class="n">Vq_dum2</span><span class="p">,</span><span class="n">Vq_dum3</span><span class="p">,</span><span class="n">VT_dum</span><span class="p">,</span><span class="n">VT_dum2</span><span class="p">,</span><span class="n">VT_dum3</span><span class="p">,</span><span class="n">wTbot_dum</span><span class="p">,</span><span class="n">wTbot_dum2</span><span class="p">,</span><span class="n">wTbot</span><span class="p">,</span><span class="n">wTbot_dum3</span>
+
+<span class="w">    </span><span class="n">numoli</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="o">/</span><span class="n">numol</span>
+<span class="w">    </span><span class="n">gam</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">cp</span><span class="o">*</span><span class="n">pref0</span><span class="o">*</span><span class="n">rv</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">rlv</span><span class="o">*</span><span class="n">rd</span><span class="p">)</span>
+<span class="w">    </span><span class="n">qhmin</span><span class="o">=</span><span class="mf">0.</span><span class="p">;</span><span class="n">qhmax</span><span class="o">=</span><span class="mf">0.</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltrees</span><span class="w"> </span><span class="p">.</span><span class="n">eqv</span><span class="p">.</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.)</span><span class="w"> </span><span class="k">return</span>
+
+<span class="w">    </span><span class="c">! dummy variables used for steady-state BC calculation</span>
+<span class="w">    </span><span class="n">VT_dum2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="n">Vq_dum2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="n">wTbot_dum2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+
+<span class="w">    </span><span class="c">! loop over all tree canopies</span>
+<span class="w">    </span><span class="k">do </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">ntrees</span>
+<span class="w"> </span>
+<span class="w">      </span><span class="c">! drag in z-direction</span>
+<span class="w">      </span><span class="n">il</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidx</span><span class="o">*</span><span class="n">itot</span><span class="o">/</span><span class="n">nprocx</span>
+<span class="w">      </span><span class="n">iu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidx</span><span class="o">*</span><span class="n">itot</span><span class="o">/</span><span class="n">nprocx</span>
+<span class="w">      </span><span class="n">kl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+<span class="w">      </span><span class="n">ku</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">      </span><span class="n">jl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidy</span><span class="o">*</span><span class="n">jtot</span><span class="o">/</span><span class="n">nprocy</span>
+<span class="w">      </span><span class="n">ju</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidy</span><span class="o">*</span><span class="n">jtot</span><span class="o">/</span><span class="n">nprocy</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">iu</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ib</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">il</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ie</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ju</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">jl</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">je</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        cycle</span>
+<span class="k">      else</span>
+<span class="k">        if</span><span class="w"> </span><span class="p">(</span><span class="n">iu</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ie</span><span class="p">)</span><span class="w"> </span><span class="n">iu</span><span class="o">=</span><span class="n">ie</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">il</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ib</span><span class="p">)</span><span class="w"> </span><span class="n">il</span><span class="o">=</span><span class="n">ib</span><span class="w"> </span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ju</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">je</span><span class="p">)</span><span class="w"> </span><span class="n">ju</span><span class="o">=</span><span class="n">je</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">jl</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jb</span><span class="p">)</span><span class="w"> </span><span class="n">jl</span><span class="o">=</span><span class="n">jb</span><span class="w">  </span>
+
+<span class="w">        </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kl</span><span class="p">,</span><span class="n">ku</span><span class="w"> </span>
+<span class="w">          </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="n">ju</span>
+<span class="w">            </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="n">iu</span>
+<span class="w">              </span><span class="n">tr_w</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">cd</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ladzh</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="nb">sqrt</span><span class="p">(</span><span class="w"> </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="mf">0.25</span><span class="o">*</span><span class="p">(</span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="mf">0.25</span><span class="o">*</span><span class="p">(</span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">)</span>
+<span class="w">            </span><span class="k">end do</span>
+<span class="k">          end do</span>
+<span class="k">        end do</span>
+<span class="k">      end if</span>
+
+<span class="w">      </span><span class="c">! drag in y-direction</span>
+<span class="w">      </span><span class="n">il</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidx</span><span class="o">*</span><span class="n">itot</span><span class="o">/</span><span class="n">nprocx</span>
+<span class="w">      </span><span class="n">iu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidx</span><span class="o">*</span><span class="n">itot</span><span class="o">/</span><span class="n">nprocx</span>
+<span class="w">      </span><span class="n">kl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+<span class="w">      </span><span class="n">ku</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span>
+<span class="w">      </span><span class="n">jl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidy</span><span class="o">*</span><span class="n">jtot</span><span class="o">/</span><span class="n">nprocy</span>
+<span class="w">      </span><span class="n">ju</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidy</span><span class="o">*</span><span class="n">jtot</span><span class="o">/</span><span class="n">nprocy</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">iu</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ib</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">il</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ie</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ju</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">jl</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">je</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        cycle</span>
+<span class="k">      else</span>
+<span class="k">        if</span><span class="w"> </span><span class="p">(</span><span class="n">iu</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ie</span><span class="p">)</span><span class="w"> </span><span class="n">iu</span><span class="o">=</span><span class="n">ie</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">il</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ib</span><span class="p">)</span><span class="w"> </span><span class="n">il</span><span class="o">=</span><span class="n">ib</span><span class="w"> </span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ju</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">je</span><span class="p">)</span><span class="w"> </span><span class="n">ju</span><span class="o">=</span><span class="n">je</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">jl</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jb</span><span class="p">)</span><span class="w"> </span><span class="n">jl</span><span class="o">=</span><span class="n">jb</span><span class="w"> </span>
+
+<span class="w">        </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kl</span><span class="p">,</span><span class="n">ku</span>
+<span class="w">          </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="n">ju</span>
+<span class="w">            </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="n">iu</span>
+<span class="w">              </span><span class="n">tr_v</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">cd</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ladzf</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="nb">sqrt</span><span class="p">(</span><span class="w"> </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                          </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="mf">0.25</span><span class="o">*</span><span class="p">(</span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                          </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="mf">0.25</span><span class="o">*</span><span class="p">(</span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">)</span>
+<span class="w">            </span><span class="k">end do</span>
+<span class="k">          end do</span>
+<span class="k">        end do</span>
+<span class="k">      end if</span>
+
+<span class="w">      </span><span class="c">! drag in x-direction</span>
+<span class="w">      </span><span class="n">il</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidx</span><span class="o">*</span><span class="n">itot</span><span class="o">/</span><span class="n">nprocx</span>
+<span class="w">      </span><span class="n">iu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidx</span><span class="o">*</span><span class="n">itot</span><span class="o">/</span><span class="n">nprocx</span>
+<span class="w">      </span><span class="n">kl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+<span class="w">      </span><span class="n">ku</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span>
+<span class="w">      </span><span class="n">jl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidy</span><span class="o">*</span><span class="n">jtot</span><span class="o">/</span><span class="n">nprocy</span>
+<span class="w">      </span><span class="n">ju</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidy</span><span class="o">*</span><span class="n">jtot</span><span class="o">/</span><span class="n">nprocy</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">iu</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ib</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">il</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ie</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ju</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">jl</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">je</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        cycle</span>
+<span class="k">      else</span>
+<span class="k">        if</span><span class="w"> </span><span class="p">(</span><span class="n">iu</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ie</span><span class="p">)</span><span class="w"> </span><span class="n">iu</span><span class="o">=</span><span class="n">ie</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">il</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ib</span><span class="p">)</span><span class="w"> </span><span class="n">il</span><span class="o">=</span><span class="n">ib</span><span class="w"> </span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ju</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">je</span><span class="p">)</span><span class="w"> </span><span class="n">ju</span><span class="o">=</span><span class="n">je</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">jl</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jb</span><span class="p">)</span><span class="w"> </span><span class="n">jl</span><span class="o">=</span><span class="n">jb</span><span class="w"> </span>
+<span class="w"> </span>
+<span class="w">        </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kl</span><span class="p">,</span><span class="n">ku</span>
+<span class="w">          </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="n">ju</span>
+<span class="w">            </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="n">iu</span>
+<span class="w">              </span><span class="n">tr_u</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">cd</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ladzf</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                           </span><span class="nb">sqrt</span><span class="p">(</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                          </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="mf">0.25</span><span class="o">*</span><span class="p">(</span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                          </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="mf">0.25</span><span class="o">*</span><span class="p">(</span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">)</span>
+<span class="w">            </span><span class="k">end do</span>
+<span class="k">          end do</span>
+<span class="k">        end do</span>
+<span class="k">      end if</span>
+
+<span class="w">      </span><span class="c">! scalar volumetric sources/sinks</span>
+
+<span class="w">      </span><span class="c">! Canopy EB</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">ltempeq</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">        </span><span class="n">il</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidx</span><span class="o">*</span><span class="n">itot</span><span class="o">/</span><span class="n">nprocx</span>
+<span class="w">        </span><span class="n">iu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidx</span><span class="o">*</span><span class="n">itot</span><span class="o">/</span><span class="n">nprocx</span>
+<span class="w">        </span><span class="n">kl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+<span class="w">        </span><span class="n">ku</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span>
+<span class="w">        </span><span class="n">jl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidy</span><span class="o">*</span><span class="n">jtot</span><span class="o">/</span><span class="n">nprocy</span>
+<span class="w">        </span><span class="n">ju</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidy</span><span class="o">*</span><span class="n">jtot</span><span class="o">/</span><span class="n">nprocy</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">iu</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ib</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">il</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ie</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ju</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">jl</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">je</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          cycle</span>
+<span class="k">        else</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">iu</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ie</span><span class="p">)</span><span class="w"> </span><span class="n">iu</span><span class="o">=</span><span class="n">ie</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">il</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ib</span><span class="p">)</span><span class="w"> </span><span class="n">il</span><span class="o">=</span><span class="n">ib</span><span class="w"> </span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ju</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">je</span><span class="p">)</span><span class="w"> </span><span class="n">ju</span><span class="o">=</span><span class="n">je</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">jl</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jb</span><span class="p">)</span><span class="w"> </span><span class="n">jl</span><span class="o">=</span><span class="n">jb</span><span class="w"> </span>
+<span class="w">       </span>
+<span class="w">          </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kl</span><span class="p">,</span><span class="n">ku</span>
+<span class="w">            </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="n">ju</span>
+<span class="w">              </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="n">iu</span>
+
+<span class="w">                 </span><span class="c">! psychometrics</span>
+<span class="w">                 </span><span class="c">! saturation vapour pressure pressure</span>
+<span class="w">                 </span><span class="n">e_sat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">61</span><span class="mf">0.8</span><span class="o">*</span><span class="nb">exp</span><span class="p">((</span><span class="mi">1</span><span class="mf">7.27</span><span class="o">*</span><span class="p">(</span><span class="n">thlm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="mi">27</span><span class="mf">3.15</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">thlm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="mi">3</span><span class="mf">5.85</span><span class="p">))</span>
+
+<span class="w">                 </span><span class="c">! water vapour partial pressure</span>
+<span class="w">                 </span><span class="n">e_vap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">qtm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">pref0</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="mf">0.378</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">qtm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.622</span><span class="p">)</span>
+<span class="w">                 </span><span class="c">! qtcheck.m and https://earthscience.stackexchange.com/questions/2360/how-do-i-convert-specific-humidity-to-relative-humidity</span>
+
+<span class="w">                 </span><span class="c">! vapour pressure deficit</span>
+<span class="w">                 </span><span class="n">D</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">e_sat</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">e_vap</span><span class="p">,</span><span class="mf">0.</span><span class="p">)</span>
+
+<span class="w">                 </span><span class="c">! output warning - cannot physically occur</span>
+<span class="w">                 </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">e_sat</span><span class="o">&lt;</span><span class="n">e_vap</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">                   write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;D, e_sat, e_vap, thlm, qtm&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="n">e_sat</span><span class="p">,</span><span class="w"> </span><span class="n">e_vap</span><span class="p">,</span><span class="w"> </span><span class="n">thlm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="w"> </span><span class="n">qtm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">                 </span><span class="k">end if</span>
+
+<span class="w">                 </span><span class="c">! slope of the curve relating saturation vapour pressure to temperature</span>
+<span class="w">                 </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mi">4098</span><span class="o">*</span><span class="n">e_sat</span><span class="p">)</span><span class="o">/</span><span class="p">((</span><span class="n">thlm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">-</span><span class="mi">3</span><span class="mf">5.85</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="w">                 </span><span class="c">! aerodynamic resistance</span>
+<span class="w">                 </span><span class="n">r_a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">130</span><span class="o">*</span><span class="nb">sqrt</span><span class="p">(</span><span class="n">lsize</span><span class="o">/</span><span class="p">(</span><span class="nb">sqrt</span><span class="p">((</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">+</span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">+</span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">+</span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span><span class="p">)))</span>
+
+<span class="w">                 </span><span class="c">! decoupling factor</span>
+<span class="w">                 </span><span class="n">omega</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">gam</span><span class="o">/</span><span class="p">(</span><span class="n">s</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">gam</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">((</span><span class="n">r_s</span><span class="p">)</span><span class="o">/</span><span class="n">r_a</span><span class="p">)</span><span class="w"> </span><span class="p">)</span>
+
+<span class="w">                 </span><span class="c">! latent heat</span>
+<span class="w">                 </span><span class="n">qe</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">omega</span><span class="o">*</span><span class="p">(</span><span class="n">s</span><span class="o">/</span><span class="p">(</span><span class="n">s</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">gam</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">qa</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">ladzf</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">))))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">omega</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">gam</span><span class="o">*</span><span class="p">(</span><span class="n">r_s</span><span class="p">)))</span><span class="o">*</span><span class="n">rhoa</span><span class="o">*</span><span class="n">cp</span><span class="o">*</span><span class="n">D</span>
+
+<span class="w">                 </span><span class="c">! sensible heat</span>
+<span class="w">                 </span><span class="n">qh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">qa</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">ladzf</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">)))</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">qe</span>
+
+<span class="w">                 </span><span class="c">! volumetric sinks/source of specific humidity and temp</span>
+<span class="w">                 </span><span class="n">tr_qt</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ladzf</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">qe</span><span class="o">/</span><span class="p">(</span><span class="n">rhoa</span><span class="o">*</span><span class="n">rlv</span><span class="p">)</span>
+<span class="w">                 </span><span class="n">tr_qtR</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ladzf</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="w"> </span><span class="n">omega</span><span class="o">*</span><span class="p">(</span><span class="n">s</span><span class="o">/</span><span class="p">(</span><span class="n">s</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">gam</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">qa</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">ladzf</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">)))))</span><span class="o">/</span><span class="p">(</span><span class="n">rhoa</span><span class="o">*</span><span class="n">rlv</span><span class="p">)</span>
+<span class="w">                 </span><span class="n">tr_qtA</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ladzf</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="p">((</span><span class="mi">1</span><span class="o">-</span><span class="n">omega</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">gam</span><span class="o">*</span><span class="p">(</span><span class="n">r_s</span><span class="p">)))</span><span class="o">*</span><span class="n">rhoa</span><span class="o">*</span><span class="n">cp</span><span class="o">*</span><span class="n">D</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">rhoa</span><span class="o">*</span><span class="n">rlv</span><span class="p">)</span>
+<span class="w">                 </span><span class="n">tr_thl</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ladzf</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="n">qh</span><span class="o">/</span><span class="p">(</span><span class="n">rhoa</span><span class="o">*</span><span class="n">cp</span><span class="p">)</span>
+
+<span class="w">                 </span><span class="n">tr_omega</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">omega</span>
+
+<span class="w">                 </span><span class="c">! add to rhs</span>
+<span class="w">                 </span><span class="n">qtp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">qtp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tr_qt</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">!ladz(ntree_max-(ku-k))*qe/(rhoa*rlv)</span>
+<span class="w">                 </span><span class="n">thlp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">thlp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tr_thl</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">!ladz(ntree_max-(ku-k))*qh/(rhoa*cp)</span>
+
+<span class="w">                 </span><span class="c">! fill dummy variables for steady-state BCs</span>
+<span class="w">                 </span><span class="n">VT_dum2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">VT_dum2</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tr_thl</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dxf</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">dy</span>
+<span class="w">                 </span><span class="n">Vq_dum2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Vq_dum2</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tr_qt</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dxf</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">dy</span>
+
+<span class="w">              </span><span class="k">end do</span>
+<span class="k">            end do</span>
+<span class="k">          end do</span>
+
+<span class="w">          </span><span class="c">! fraction of total net radiation reaching the bottom of the tree</span>
+<span class="w">          </span><span class="n">Rq</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Rn</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">+</span><span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">+</span><span class="mi">1</span><span class="o">-</span><span class="n">kl</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">Qstar</span>
+
+<span class="w">          </span><span class="c">! sensible heat flux from shaded surfaces</span>
+<span class="w">          </span><span class="n">shade</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.7</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Rn</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">+</span><span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">+</span><span class="mi">1</span><span class="o">-</span><span class="n">kl</span><span class="p">)</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.33</span><span class="o">*</span><span class="n">Rq</span><span class="o">*</span><span class="n">dQdt</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Rq</span><span class="o">*</span><span class="mi">38</span><span class="w"> </span><span class="p">)</span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="n">rhoa</span><span class="o">*</span><span class="n">cp</span><span class="p">)</span>
+
+<span class="w">          </span><span class="c">! dummy var for steady-state BC</span>
+<span class="w">          </span><span class="n">wTbot_dum2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wTbot_dum2</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">shade</span><span class="o">*</span><span class="p">(</span><span class="n">xh</span><span class="p">(</span><span class="n">iu</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">xh</span><span class="p">(</span><span class="n">il</span><span class="p">))</span><span class="o">*</span><span class="n">dy</span><span class="o">*</span><span class="p">(</span><span class="n">ju</span><span class="o">-</span><span class="n">jl</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="w">          </span><span class="c">! overwrite standard heat flux defined in modibm in shaded positions</span>
+<span class="w">          </span><span class="n">thlp</span><span class="p">(</span><span class="n">il</span><span class="p">:</span><span class="n">iu</span><span class="p">,</span><span class="n">jl</span><span class="p">:</span><span class="n">ju</span><span class="p">,</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">thlp</span><span class="p">(</span><span class="n">il</span><span class="p">:</span><span class="n">iu</span><span class="p">,</span><span class="n">jl</span><span class="p">:</span><span class="n">ju</span><span class="p">,</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">bctfz</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">shade</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzfi</span><span class="p">(</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w"> </span>
+<span class="w">         </span><span class="k">end if</span>
+
+<span class="k">      end if</span><span class="w"> </span><span class="c">!lmoist and ltempeq</span>
+
+<span class="w">      </span><span class="c">! scalar deposition</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="w">        </span><span class="c">! specific to infinite canyon study (tg3315 thesis - Chapter 5)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">BCxs</span><span class="o">==</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">! no deposition effect from first or last tree to avoid interaction with BCs</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">cycle</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="o">==</span><span class="n">ntrees</span><span class="p">)</span><span class="w"> </span><span class="k">cycle</span>
+<span class="k">        end if</span>
+<span class="k">      </span>
+<span class="k">        </span><span class="n">il</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidx</span><span class="o">*</span><span class="n">itot</span><span class="o">/</span><span class="n">nprocx</span>
+<span class="w">        </span><span class="n">iu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidx</span><span class="o">*</span><span class="n">itot</span><span class="o">/</span><span class="n">nprocx</span>
+<span class="w">        </span><span class="n">kl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+<span class="w">        </span><span class="n">ku</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span>
+<span class="w">        </span><span class="n">jl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidy</span><span class="o">*</span><span class="n">jtot</span><span class="o">/</span><span class="n">nprocy</span>
+<span class="w">        </span><span class="n">ju</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">myidy</span><span class="o">*</span><span class="n">jtot</span><span class="o">/</span><span class="n">nprocy</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">iu</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ib</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">il</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ie</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ju</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">jl</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">je</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          cycle</span>
+<span class="k">        else</span>
+<span class="k">          if</span><span class="w"> </span><span class="p">(</span><span class="n">iu</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ie</span><span class="p">)</span><span class="w"> </span><span class="n">iu</span><span class="o">=</span><span class="n">ie</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">il</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ib</span><span class="p">)</span><span class="w"> </span><span class="n">il</span><span class="o">=</span><span class="n">ib</span><span class="w"> </span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ju</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">je</span><span class="p">)</span><span class="w"> </span><span class="n">ju</span><span class="o">=</span><span class="n">je</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">jl</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">jb</span><span class="p">)</span><span class="w"> </span><span class="n">jl</span><span class="o">=</span><span class="n">jb</span><span class="w"> </span>
+
+<span class="w">          </span><span class="k">do </span><span class="n">m</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="n">nsv</span><span class="w"> </span><span class="c">! define this for scalar variables that are deposited</span>
+<span class="w">            </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kl</span><span class="p">,</span><span class="n">ku</span>
+<span class="w">              </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="n">ju</span>
+<span class="w">                </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="n">iu</span>
+<span class="w">                  </span><span class="n">tr_sv</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">svm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ladzf</span><span class="p">(</span><span class="n">ntree_max</span><span class="o">-</span><span class="p">(</span><span class="n">ku</span><span class="o">-</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ud</span>
+<span class="w">                  </span><span class="n">svp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">svp</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tr_sv</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">m</span><span class="p">)</span>
+<span class="w">                </span><span class="k">end do</span>
+<span class="k">              end do</span>
+<span class="k">            end do</span>
+<span class="k">          end do</span>
+<span class="k">        end if</span>
+<span class="k">      end if</span><span class="w"> </span><span class="c">!nsv</span>
+
+<span class="w">    </span><span class="k">end do</span><span class="w"> </span><span class="c">! ntrees</span>
+
+<span class="w">    </span><span class="c">! define these outside loop to avoid double counting cell faces</span>
+<span class="w">    </span><span class="n">wp</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wp</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tr_w</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">    </span><span class="n">vp</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vp</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tr_v</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">    </span><span class="n">up</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">up</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tr_u</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+
+<span class="w">    </span><span class="c">! steady-state BC calc.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">ltempeq</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="w">      </span><span class="c">! dummy vars - not all used?</span>
+<span class="w">      </span><span class="n">wTbot_dum3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">wTbot_dum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">wTbot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">VT_dum3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">Vq_dum3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">VT_dum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">Vq_dum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+
+<span class="w">      </span><span class="c">! sum dummy variables assigned in main loop</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">wTbot_dum2</span><span class="p">,</span><span class="w">   </span><span class="n">wTbot_dum3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MY_REAL</span><span class="p">,</span><span class="n">MPI_SUM</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span><span class="w">    </span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">VT_dum2</span><span class="p">,</span><span class="w"> </span><span class="n">VT_dum3</span><span class="w">  </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MY_REAL</span><span class="p">,</span><span class="n">MPI_SUM</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">Vq_dum2</span><span class="p">,</span><span class="w"> </span><span class="n">Vq_dum3</span><span class="w">  </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MY_REAL</span><span class="p">,</span><span class="n">MPI_SUM</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+
+<span class="w">      </span><span class="c">! not necessary</span>
+<span class="w">      </span><span class="n">wTbot_dum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wTbot_dum3</span>
+<span class="w">      </span><span class="n">Vq_dum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Vq_dum3</span>
+<span class="w">      </span><span class="n">VT_dum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">VT_dum3</span>
+
+<span class="w">      </span><span class="c">! total flux of temp from ground and roofs accounting for shading</span>
+<span class="w">      </span><span class="n">wTbot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wTbot_dum</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">((</span><span class="n">xh</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">xh</span><span class="p">(</span><span class="n">ib</span><span class="p">))</span><span class="o">*</span><span class="n">jtot</span><span class="o">*</span><span class="n">dy</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tr_A</span><span class="p">)</span><span class="o">*</span><span class="n">bctfz</span>
+
+<span class="w">      </span><span class="c">! temp flux at top equal to half of the total flux of heat (ground, roofs and canopies) - consistent with tg3315 thesis Chapter 4 - method iii</span>
+<span class="w">      </span><span class="n">wttop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">wTbot</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">VT_dum</span><span class="p">)</span><span class="o">/</span><span class="p">((</span><span class="n">xh</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">xh</span><span class="p">(</span><span class="n">ib</span><span class="p">))</span><span class="o">*</span><span class="n">jtot</span><span class="o">*</span><span class="n">dy</span><span class="p">)</span>
+
+<span class="w">      </span><span class="c">! volumetric sink term throughout domain to account for the remaining heating - &quot;&quot;</span>
+<span class="w">      </span><span class="n">thlpcar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wttop</span><span class="o">/</span><span class="p">((</span><span class="nb">sum</span><span class="p">(</span><span class="kt">real</span><span class="p">(</span><span class="n">IIcs</span><span class="p">(</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span><span class="o">/</span><span class="n">rslabs</span><span class="p">)</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">kmax</span><span class="o">-</span><span class="mf">1.</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">zh</span><span class="p">(</span><span class="n">ke</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">zh</span><span class="p">(</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span>
+
+<span class="w">      </span><span class="c">! top flux of qt equal to total from canopies - therefore uniform flux profile</span>
+<span class="w">      </span><span class="n">wqtop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">Vq_dum</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">((</span><span class="n">xh</span><span class="p">(</span><span class="n">ie</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">xh</span><span class="p">(</span><span class="n">ib</span><span class="p">))</span><span class="o">*</span><span class="n">jtot</span><span class="o">*</span><span class="n">dy</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    end subroutine </span><span class="n">trees</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

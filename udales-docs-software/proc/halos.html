@@ -1,0 +1,797 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>halos &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>halos
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.3% of total for procedures.">34 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modboundary.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modboundary.f90.html'>modboundary.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modboundary.html'>modboundary</a></li>
+            <li class="breadcrumb-item active" aria-current="page">halos</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/halos.html#src">halos</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine halos()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item">decomp_2d</li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~halos~~UsesGraph Pages: 1 -->
+<svg id="prochalosUsesGraph" width="276pt" height="94pt"
+ viewBox="0.00 0.00 276.29 94.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~halos~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 90.27)">
+<title>proc~~halos~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-90.27 272.29,-90.27 272.29,4 -4,4"/>
+<!-- proc~halos -->
+<g id="proc~~halos~~UsesGraph_node1" class="node">
+<title>proc~halos</title>
+<polygon fill="none" stroke="black" points="268.29,-66.27 214.29,-66.27 214.29,-42 268.29,-42 268.29,-66.27"/>
+<text text-anchor="middle" x="241.29" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50">halos</text>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~halos~~UsesGraph_node2" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="73.77,-86.27 0,-86.27 0,-62 73.77,-62 73.77,-86.27"/>
+<text text-anchor="middle" x="36.88" y="-70.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- proc~halos&#45;&gt;decomp_2d -->
+<g id="proc~~halos~~UsesGraph_edge1" class="edge">
+<title>proc~halos&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M213.92,-65.19C203.09,-69.17 190.29,-73.16 178.29,-75.14 147.67,-80.18 112.78,-79.96 85.44,-78.46"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="85.93,-74.99 75.73,-77.85 85.49,-81.97 85.93,-74.99"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~halos~~UsesGraph_node3" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~halos~~UsesGraph_node3"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="176.04,-66.27 112.02,-66.27 112.02,-42 176.04,-42 176.04,-66.27"/>
+<text text-anchor="middle" x="144.03" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~halos&#45;&gt;module~modfields -->
+<g id="proc~~halos~~UsesGraph_edge2" class="edge">
+<title>proc~halos&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M214.01,-54.13C205.89,-54.13 196.73,-54.13 187.8,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="187.81,-50.64 177.81,-54.14 187.81,-57.64 187.81,-50.64"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~halos~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~halos~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="178.29,-24.27 109.77,-24.27 109.77,0 178.29,0 178.29,-24.27"/>
+<text text-anchor="middle" x="144.03" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~halos&#45;&gt;module~modglobal -->
+<g id="proc~~halos~~UsesGraph_edge3" class="edge">
+<title>proc~halos&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M214.01,-42.55C204.69,-38.44 193.99,-33.72 183.85,-29.25"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="185.51,-26.16 174.95,-25.33 182.69,-32.56 185.51,-26.16"/>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~halos~~UsesGraph_edge4" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M111.77,-60.08C103.43,-61.67 94.22,-63.42 85.22,-65.13"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="84.67,-61.67 75.5,-66.98 85.98,-68.55 84.67,-61.67"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~halos~~CallsGraph Pages: 1 -->
+<svg id="prochalosCallsGraph" width="200pt" height="368pt"
+ viewBox="0.00 0.00 200.27 368.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~halos~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 364.27)">
+<title>proc~~halos~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-364.27 196.27,-364.27 196.27,4 -4,4"/>
+<!-- proc~halos -->
+<g id="proc~~halos~~CallsGraph_node1" class="node">
+<title>proc~halos</title>
+<polygon fill="none" stroke="black" points="54,-192.27 0,-192.27 0,-168 54,-168 54,-192.27"/>
+<text text-anchor="middle" x="27" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50">halos</text>
+</g>
+<!-- exchange_halo_z -->
+<g id="proc~~halos~~CallsGraph_node2" class="node">
+<title>exchange_halo_z</title>
+<polygon fill="#777777" stroke="#777777" points="192.27,-360.27 90,-360.27 90,-336 192.27,-336 192.27,-360.27"/>
+<text text-anchor="middle" x="141.13" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exchange_halo_z</text>
+</g>
+<!-- proc~halos&#45;&gt;exchange_halo_z -->
+<g id="proc~~halos~~CallsGraph_edge1" class="edge">
+<title>proc~halos&#45;&gt;exchange_halo_z</title>
+<path fill="none" stroke="#ff0000" d="M29.97,-192.54C35,-220.3 50.78,-288.01 90,-327.13 90.61,-327.75 91.25,-328.34 91.9,-328.92"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="89.82,-331.73 99.99,-334.68 93.87,-326.03 89.82,-331.73"/>
+</g>
+<!-- proc~xm_periodic -->
+<g id="proc~~halos~~CallsGraph_node3" class="node">
+<title>proc~xm_periodic</title>
+<g id="a_proc~~halos~~CallsGraph_node3"><a xlink:href="../proc/xm_periodic.html" xlink:title="xm_periodic">
+<polygon fill="#d9534f" stroke="#d9534f" points="179.52,-318.27 102.75,-318.27 102.75,-294 179.52,-294 179.52,-318.27"/>
+<text text-anchor="middle" x="141.13" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xm_periodic</text>
+</a>
+</g>
+</g>
+<!-- proc~halos&#45;&gt;proc~xm_periodic -->
+<g id="proc~~halos~~CallsGraph_edge2" class="edge">
+<title>proc~halos&#45;&gt;proc~xm_periodic</title>
+<path fill="none" stroke="#ff0000" d="M32.32,-192.54C40.42,-214.14 59.84,-258.84 90,-285.13 90.92,-285.94 91.88,-286.72 92.87,-287.47"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="90.82,-290.31 101.13,-292.71 94.57,-284.4 90.82,-290.31"/>
+</g>
+<!-- proc~xq_periodic -->
+<g id="proc~~halos~~CallsGraph_node4" class="node">
+<title>proc~xq_periodic</title>
+<g id="a_proc~~halos~~CallsGraph_node4"><a xlink:href="../proc/xq_periodic.html" xlink:title="xq_periodic">
+<polygon fill="#d9534f" stroke="#d9534f" points="177.64,-276.27 104.62,-276.27 104.62,-252 177.64,-252 177.64,-276.27"/>
+<text text-anchor="middle" x="141.13" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xq_periodic</text>
+</a>
+</g>
+</g>
+<!-- proc~halos&#45;&gt;proc~xq_periodic -->
+<g id="proc~~halos~~CallsGraph_edge3" class="edge">
+<title>proc~halos&#45;&gt;proc~xq_periodic</title>
+<path fill="none" stroke="#ff0000" d="M37.78,-192.73C49.1,-206.61 68.9,-228.86 90,-243.13 91.58,-244.21 93.23,-245.24 94.93,-246.24"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="93.13,-249.25 103.61,-250.81 96.39,-243.05 93.13,-249.25"/>
+</g>
+<!-- proc~xs_periodic -->
+<g id="proc~~halos~~CallsGraph_node5" class="node">
+<title>proc~xs_periodic</title>
+<g id="a_proc~~halos~~CallsGraph_node5"><a xlink:href="../proc/xs_periodic.html" xlink:title="xs_periodic">
+<polygon fill="#d9534f" stroke="#d9534f" points="176.89,-234.27 105.38,-234.27 105.38,-210 176.89,-210 176.89,-234.27"/>
+<text text-anchor="middle" x="141.13" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xs_periodic</text>
+</a>
+</g>
+</g>
+<!-- proc~halos&#45;&gt;proc~xs_periodic -->
+<g id="proc~~halos~~CallsGraph_edge4" class="edge">
+<title>proc~halos&#45;&gt;proc~xs_periodic</title>
+<path fill="none" stroke="#ff0000" d="M54.29,-189.98C66.77,-194.66 82.03,-200.37 96.2,-205.68"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="94.76,-208.88 105.35,-209.11 97.21,-202.32 94.76,-208.88"/>
+</g>
+<!-- proc~xt_periodic -->
+<g id="proc~~halos~~CallsGraph_node6" class="node">
+<title>proc~xt_periodic</title>
+<g id="a_proc~~halos~~CallsGraph_node6"><a xlink:href="../proc/xt_periodic.html" xlink:title="xT_periodic">
+<polygon fill="#d9534f" stroke="#d9534f" points="177.64,-192.27 104.62,-192.27 104.62,-168 177.64,-168 177.64,-192.27"/>
+<text text-anchor="middle" x="141.13" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">xT_periodic</text>
+</a>
+</g>
+</g>
+<!-- proc~halos&#45;&gt;proc~xt_periodic -->
+<g id="proc~~halos~~CallsGraph_edge5" class="edge">
+<title>proc~halos&#45;&gt;proc~xt_periodic</title>
+<path fill="none" stroke="#ff0000" d="M54.29,-180.13C65.81,-180.13 79.68,-180.13 92.89,-180.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="92.73,-183.64 102.73,-180.14 92.73,-176.64 92.73,-183.64"/>
+</g>
+<!-- proc~ym_periodic -->
+<g id="proc~~halos~~CallsGraph_node7" class="node">
+<title>proc~ym_periodic</title>
+<g id="a_proc~~halos~~CallsGraph_node7"><a xlink:href="../proc/ym_periodic.html" xlink:title="ym_periodic">
+<polygon fill="#d9534f" stroke="#d9534f" points="179.52,-150.27 102.75,-150.27 102.75,-126 179.52,-126 179.52,-150.27"/>
+<text text-anchor="middle" x="141.13" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ym_periodic</text>
+</a>
+</g>
+</g>
+<!-- proc~halos&#45;&gt;proc~ym_periodic -->
+<g id="proc~~halos~~CallsGraph_edge6" class="edge">
+<title>proc~halos&#45;&gt;proc~ym_periodic</title>
+<path fill="none" stroke="#ff0000" d="M54.29,-170.29C66.77,-165.61 82.03,-159.9 96.2,-154.59"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="97.21,-157.95 105.35,-151.16 94.76,-151.39 97.21,-157.95"/>
+</g>
+<!-- proc~yq_periodic -->
+<g id="proc~~halos~~CallsGraph_node8" class="node">
+<title>proc~yq_periodic</title>
+<g id="a_proc~~halos~~CallsGraph_node8"><a xlink:href="../proc/yq_periodic.html" xlink:title="yq_periodic">
+<polygon fill="#d9534f" stroke="#d9534f" points="177.64,-108.27 104.62,-108.27 104.62,-84 177.64,-84 177.64,-108.27"/>
+<text text-anchor="middle" x="141.13" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">yq_periodic</text>
+</a>
+</g>
+</g>
+<!-- proc~halos&#45;&gt;proc~yq_periodic -->
+<g id="proc~~halos~~CallsGraph_edge7" class="edge">
+<title>proc~halos&#45;&gt;proc~yq_periodic</title>
+<path fill="none" stroke="#ff0000" d="M37.78,-167.54C49.1,-153.66 68.9,-131.41 90,-117.14 91.58,-116.06 93.23,-115.03 94.93,-114.03"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="96.39,-117.22 103.61,-109.46 93.13,-111.02 96.39,-117.22"/>
+</g>
+<!-- proc~ys_periodic -->
+<g id="proc~~halos~~CallsGraph_node9" class="node">
+<title>proc~ys_periodic</title>
+<g id="a_proc~~halos~~CallsGraph_node9"><a xlink:href="../proc/ys_periodic.html" xlink:title="ys_periodic">
+<polygon fill="#d9534f" stroke="#d9534f" points="176.89,-66.27 105.38,-66.27 105.38,-42 176.89,-42 176.89,-66.27"/>
+<text text-anchor="middle" x="141.13" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ys_periodic</text>
+</a>
+</g>
+</g>
+<!-- proc~halos&#45;&gt;proc~ys_periodic -->
+<g id="proc~~halos~~CallsGraph_edge8" class="edge">
+<title>proc~halos&#45;&gt;proc~ys_periodic</title>
+<path fill="none" stroke="#ff0000" d="M32.32,-167.73C40.42,-146.13 59.84,-101.43 90,-75.14 91.65,-73.69 93.42,-72.34 95.27,-71.07"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="96.8,-74.23 103.69,-66.17 93.28,-68.18 96.8,-74.23"/>
+</g>
+<!-- proc~yt_periodic -->
+<g id="proc~~halos~~CallsGraph_node10" class="node">
+<title>proc~yt_periodic</title>
+<g id="a_proc~~halos~~CallsGraph_node10"><a xlink:href="../proc/yt_periodic.html" xlink:title="yT_periodic">
+<polygon fill="#d9534f" stroke="#d9534f" points="177.64,-24.27 104.62,-24.27 104.62,0 177.64,0 177.64,-24.27"/>
+<text text-anchor="middle" x="141.13" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">yT_periodic</text>
+</a>
+</g>
+</g>
+<!-- proc~halos&#45;&gt;proc~yt_periodic -->
+<g id="proc~~halos~~CallsGraph_edge9" class="edge">
+<title>proc~halos&#45;&gt;proc~yt_periodic</title>
+<path fill="none" stroke="#ff0000" d="M29.97,-167.73C35,-139.97 50.78,-72.26 90,-33.13 91.53,-31.61 93.18,-30.19 94.93,-28.87"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="96.35,-32.11 102.99,-23.85 92.65,-26.16 96.35,-32.11"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~halos~~CalledByGraph Pages: 1 -->
+<svg id="prochalosCalledByGraph" width="292pt" height="52pt"
+ viewBox="0.00 0.00 292.04 52.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~halos~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 48.27)">
+<title>proc~~halos~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-48.27 288.04,-48.27 288.04,4 -4,4"/>
+<!-- proc~halos -->
+<g id="proc~~halos~~CalledByGraph_node1" class="node">
+<title>proc~halos</title>
+<polygon fill="none" stroke="black" points="284.04,-44.27 230.04,-44.27 230.04,-20 284.04,-20 284.04,-44.27"/>
+<text text-anchor="middle" x="257.04" y="-28.53" font-family="Helvetica,sans-Serif" font-size="10.50">halos</text>
+</g>
+<!-- proc~readinitfiles -->
+<g id="proc~~halos~~CalledByGraph_node2" class="node">
+<title>proc~readinitfiles</title>
+<g id="a_proc~~halos~~CalledByGraph_node2"><a xlink:href="../proc/readinitfiles.html" xlink:title="readinitfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="194.04,-24.27 120.27,-24.27 120.27,0 194.04,0 194.04,-24.27"/>
+<text text-anchor="middle" x="157.15" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readinitfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readinitfiles&#45;&gt;proc~halos -->
+<g id="proc~~halos~~CalledByGraph_edge1" class="edge">
+<title>proc~readinitfiles&#45;&gt;proc~halos</title>
+<path fill="none" stroke="#ff0000" d="M194.33,-19.53C202.23,-21.14 210.61,-22.85 218.56,-24.48"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="217.82,-27.9 228.32,-26.47 219.22,-21.04 217.82,-27.9"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~halos~~CalledByGraph_node3" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~halos~~CalledByGraph_node3"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-44.27 0,-44.27 0,-20 84.27,-20 84.27,-44.27"/>
+<text text-anchor="middle" x="42.13" y="-28.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~halos -->
+<g id="proc~~halos~~CalledByGraph_edge2" class="edge">
+<title>program~dalesurban&#45;&gt;proc~halos</title>
+<path fill="none" stroke="#ff0000" d="M84.77,-32.77C96.27,-32.92 108.75,-33.06 120.27,-33.13 153.06,-33.35 161.25,-33.4 194.04,-33.13 201.92,-33.07 210.37,-32.96 218.41,-32.84"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="218.34,-36.34 228.28,-32.68 218.23,-29.34 218.34,-36.34"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~readinitfiles -->
+<g id="proc~~halos~~CalledByGraph_edge3" class="edge">
+<title>program~dalesurban&#45;&gt;proc~readinitfiles</title>
+<path fill="none" stroke="#ff0000" d="M84.58,-24.8C92.46,-23.41 100.76,-21.94 108.8,-20.51"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="109.21,-24 118.45,-18.81 107.99,-17.1 109.21,-24"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">   </span><span class="k">subroutine </span><span class="n">halos</span>
+
+<span class="w">      </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">ihc</span><span class="p">,</span><span class="w"> </span><span class="n">jhc</span><span class="p">,</span><span class="w"> </span><span class="n">khc</span><span class="p">,</span><span class="w"> </span><span class="n">nsv</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="n">BCxm</span><span class="p">,</span><span class="w"> </span><span class="n">BCym</span><span class="p">,</span><span class="w"> </span><span class="n">BCxT</span><span class="p">,</span><span class="w"> </span><span class="n">BCyT</span><span class="p">,</span><span class="w"> </span><span class="n">BCxq</span><span class="p">,</span><span class="w"> </span><span class="n">BCyq</span><span class="p">,</span><span class="w"> </span><span class="n">BCxs</span><span class="p">,</span><span class="w"> </span><span class="n">BCys</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="n">BCxm_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCxT_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCxq_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCxs_periodic</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="n">BCym_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCyT_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCyq_periodic</span><span class="p">,</span><span class="w"> </span><span class="n">BCys_periodic</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="n">ibrank</span><span class="p">,</span><span class="w"> </span><span class="n">ierank</span><span class="p">,</span><span class="w"> </span><span class="n">jbrank</span><span class="p">,</span><span class="w"> </span><span class="n">jerank</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">w0</span><span class="p">,</span><span class="w"> </span><span class="n">um</span><span class="p">,</span><span class="w"> </span><span class="n">vm</span><span class="p">,</span><span class="w"> </span><span class="n">wm</span><span class="p">,</span><span class="w"> </span><span class="n">thl0</span><span class="p">,</span><span class="w"> </span><span class="n">thlm</span><span class="p">,</span><span class="w"> </span><span class="n">qt0</span><span class="p">,</span><span class="w"> </span><span class="n">qtm</span><span class="p">,</span><span class="w"> </span><span class="n">sv0</span><span class="p">,</span><span class="w"> </span><span class="n">svm</span><span class="p">,</span><span class="w"> </span><span class="n">thl0c</span>
+<span class="w">      </span><span class="k">use </span><span class="n">decomp_2d</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">exchange_halo_z</span>
+<span class="w">      </span><span class="k">implicit none</span>
+<span class="k">      </span><span class="kt">integer </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">u0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">v0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">w0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">um</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">vm</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">wm</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">thl0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">thlm</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">thl0c</span><span class="p">,</span><span class="w"> </span><span class="n">opt_zlevel</span><span class="o">=</span><span class="p">(</span><span class="o">/</span><span class="n">ihc</span><span class="p">,</span><span class="n">jhc</span><span class="p">,</span><span class="n">khc</span><span class="o">/</span><span class="p">))</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">qt0</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">qtm</span><span class="p">)</span>
+<span class="w">      </span><span class="k">do </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">nsv</span>
+<span class="w">         </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">sv0</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">n</span><span class="p">),</span><span class="w"> </span><span class="n">opt_zlevel</span><span class="o">=</span><span class="p">(</span><span class="o">/</span><span class="n">ihc</span><span class="p">,</span><span class="n">jhc</span><span class="p">,</span><span class="n">khc</span><span class="o">/</span><span class="p">))</span>
+<span class="w">         </span><span class="k">call </span><span class="n">exchange_halo_z</span><span class="p">(</span><span class="n">svm</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="n">n</span><span class="p">),</span><span class="w"> </span><span class="n">opt_zlevel</span><span class="o">=</span><span class="p">(</span><span class="o">/</span><span class="n">ihc</span><span class="p">,</span><span class="n">jhc</span><span class="p">,</span><span class="n">khc</span><span class="o">/</span><span class="p">))</span>
+<span class="w">      </span><span class="k">enddo</span>
+
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">ibrank</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">ierank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">! not parallelized in x</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">BCxm</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">BCxm_periodic</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">xm_periodic</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">BCxT</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">BCxT_periodic</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">xT_periodic</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">BCxq</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">BCxq_periodic</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">xq_periodic</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">BCxs</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">BCxs_periodic</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">xs_periodic</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">jbrank</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">jerank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="c">! not parallelized in x</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">BCym</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">BCym_periodic</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">ym_periodic</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">BCyT</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">BCyT_periodic</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">yT_periodic</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">BCyq</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">BCyq_periodic</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">yq_periodic</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">BCys</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">BCys_periodic</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">ys_periodic</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">    end subroutine </span><span class="n">halos</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

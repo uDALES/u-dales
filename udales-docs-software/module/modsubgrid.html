@@ -1,0 +1,874 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>modsubgrid &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>modsubgrid
+      <small>Module</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 3.0% of total for modules and submodules.">420 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modsubgrid.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modsubgrid.f90.html'>modsubgrid.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">modsubgrid</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#subs-0"
+         aria-expanded="false" aria-controls="subs-0">
+         <h4 class="card-header bg-primary text-white">Subroutines</h4>
+      </a>
+      <div id="subs-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/modsubgrid.html#proc-initsubgrid">initsubgrid</a>
+            <a class="list-group-item" href="../module/modsubgrid.html#proc-subgridnamelist">subgridnamelist</a>
+            <a class="list-group-item" href="../module/modsubgrid.html#proc-subgrid">subgrid</a>
+            <a class="list-group-item" href="../module/modsubgrid.html#proc-exitsubgrid">exitsubgrid</a>
+            <a class="list-group-item" href="../module/modsubgrid.html#proc-closure">closure</a>
+            <a class="list-group-item" href="../module/modsubgrid.html#proc-sources">sources</a>
+            <a class="list-group-item" href="../module/modsubgrid.html#proc-diffc">diffc</a>
+            <a class="list-group-item" href="../module/modsubgrid.html#proc-diffe">diffe</a>
+            <a class="list-group-item" href="../module/modsubgrid.html#proc-diffu">diffu</a>
+            <a class="list-group-item" href="../module/modsubgrid.html#proc-diffv">diffv</a>
+            <a class="list-group-item" href="../module/modsubgrid.html#proc-diffw">diffw</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+      
+<br>          <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='modsubgriddata.html'>modsubgriddata</a></li>
+                  <li class="list-inline-item"><a href='http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm'>mpi</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: module~~modsubgrid~~UsesGraph Pages: 1 -->
+<svg id="modulemodsubgridUsesGraph" width="219pt" height="74pt"
+ viewBox="0.00 0.00 218.54 74.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~modsubgrid~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 70.27)">
+<title>module~~modsubgrid~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-70.27 214.54,-70.27 214.54,4 -4,4"/>
+<!-- module~modsubgrid -->
+<g id="module~~modsubgrid~~UsesGraph_node1" class="node">
+<title>module~modsubgrid</title>
+<polygon fill="none" stroke="black" points="210.54,-45.27 135.27,-45.27 135.27,-21 210.54,-21 210.54,-45.27"/>
+<text text-anchor="middle" x="172.91" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50">modsubgrid</text>
+</g>
+<!-- module~modsubgriddata -->
+<g id="module~~modsubgrid~~UsesGraph_node2" class="node">
+<title>module~modsubgriddata</title>
+<g id="a_module~~modsubgrid~~UsesGraph_node2"><a xlink:href="../module/modsubgriddata.html" xlink:title="modsubgriddata">
+<polygon fill="#337ab7" stroke="#337ab7" points="99.27,-66.27 0,-66.27 0,-42 99.27,-42 99.27,-66.27"/>
+<text text-anchor="middle" x="49.63" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgriddata</text>
+</a>
+</g>
+</g>
+<!-- module~modsubgrid&#45;&gt;module~modsubgriddata -->
+<g id="module~~modsubgrid~~UsesGraph_edge1" class="edge">
+<title>module~modsubgrid&#45;&gt;module~modsubgriddata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M134.86,-39.55C127.2,-40.88 118.94,-42.31 110.7,-43.73"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="110.27,-40.26 101.01,-45.41 111.47,-47.15 110.27,-40.26"/>
+</g>
+<!-- mpi -->
+<g id="module~~modsubgrid~~UsesGraph_node3" class="node">
+<title>mpi</title>
+<g id="a_module~~modsubgrid~~UsesGraph_node3"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="76.63,-24.27 22.63,-24.27 22.63,0 76.63,0 76.63,-24.27"/>
+<text text-anchor="middle" x="49.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modsubgrid&#45;&gt;mpi -->
+<g id="module~~modsubgrid~~UsesGraph_edge2" class="edge">
+<title>module~modsubgrid&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M134.86,-26.72C120.13,-24.17 103.2,-21.24 88.4,-18.67"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="89.01,-15.23 78.56,-16.97 87.82,-22.13 89.01,-15.23"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+          <div class="card">
+      <h3 class="card-header card-title bg-light">Used by</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: module~~modsubgrid~~UsedByGraph Pages: 1 -->
+<svg id="modulemodsubgridUsedByGraph" width="206pt" height="200pt"
+ viewBox="0.00 0.00 205.79 200.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~modsubgrid~~UsedByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 196.27)">
+<title>module~~modsubgrid~~UsedByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-196.27 201.79,-196.27 201.79,4 -4,4"/>
+<!-- module~modsubgrid -->
+<g id="module~~modsubgrid~~UsedByGraph_node1" class="node">
+<title>module~modsubgrid</title>
+<polygon fill="none" stroke="black" points="75.27,-108.27 0,-108.27 0,-84 75.27,-84 75.27,-108.27"/>
+<text text-anchor="middle" x="37.63" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50">modsubgrid</text>
+</g>
+<!-- proc~exitmodules -->
+<g id="module~~modsubgrid~~UsedByGraph_node2" class="node">
+<title>proc~exitmodules</title>
+<g id="a_module~~modsubgrid~~UsedByGraph_node2"><a xlink:href="../proc/exitmodules.html" xlink:title="exitmodules">
+<polygon fill="#d9534f" stroke="#d9534f" points="192.54,-192.27 116.52,-192.27 116.52,-168 192.54,-168 192.54,-192.27"/>
+<text text-anchor="middle" x="154.53" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exitmodules</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;module~modsubgrid -->
+<g id="module~~modsubgrid~~UsedByGraph_edge1" class="edge">
+<title>proc~exitmodules&#45;&gt;module~modsubgrid</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M125.68,-167.56C120.76,-164.98 115.77,-162.13 111.27,-159.13 92.29,-146.49 72.88,-129.39 58.9,-116.2"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="61.68,-114.02 52.05,-109.62 56.83,-119.07 61.68,-114.02"/>
+</g>
+<!-- proc~readnamelists -->
+<g id="module~~modsubgrid~~UsedByGraph_node3" class="node">
+<title>proc~readnamelists</title>
+<g id="a_module~~modsubgrid~~UsedByGraph_node3"><a xlink:href="../proc/readnamelists.html" xlink:title="readnamelists">
+<polygon fill="#d9534f" stroke="#d9534f" points="197.79,-150.27 111.27,-150.27 111.27,-126 197.79,-126 197.79,-150.27"/>
+<text text-anchor="middle" x="154.53" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readnamelists</text>
+</a>
+</g>
+</g>
+<!-- proc~readnamelists&#45;&gt;module~modsubgrid -->
+<g id="module~~modsubgrid~~UsedByGraph_edge2" class="edge">
+<title>proc~readnamelists&#45;&gt;module~modsubgrid</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M119.06,-125.53C107.92,-121.46 95.41,-116.89 83.63,-112.58"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="85.1,-109.39 74.5,-109.25 82.69,-115.97 85.1,-109.39"/>
+</g>
+<!-- proc~statsdump -->
+<g id="module~~modsubgrid~~UsedByGraph_node4" class="node">
+<title>proc~statsdump</title>
+<g id="a_module~~modsubgrid~~UsedByGraph_node4"><a xlink:href="../proc/statsdump.html" xlink:title="statsdump">
+<polygon fill="#d9534f" stroke="#d9534f" points="188.04,-108.27 121.02,-108.27 121.02,-84 188.04,-84 188.04,-108.27"/>
+<text text-anchor="middle" x="154.53" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">statsdump</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;module~modsubgrid -->
+<g id="module~~modsubgrid~~UsedByGraph_edge3" class="edge">
+<title>proc~statsdump&#45;&gt;module~modsubgrid</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M120.61,-96.14C110.06,-96.14 98.16,-96.14 86.76,-96.14"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="87.12,-92.64 77.12,-96.14 87.12,-99.64 87.12,-92.64"/>
+</g>
+<!-- proc~tkestatsdump -->
+<g id="module~~modsubgrid~~UsedByGraph_node5" class="node">
+<title>proc~tkestatsdump</title>
+<g id="a_module~~modsubgrid~~UsedByGraph_node5"><a xlink:href="../proc/tkestatsdump.html" xlink:title="tkestatsdump">
+<polygon fill="#d9534f" stroke="#d9534f" points="196.29,-66.27 112.77,-66.27 112.77,-42 196.29,-42 196.29,-66.27"/>
+<text text-anchor="middle" x="154.53" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">tkestatsdump</text>
+</a>
+</g>
+</g>
+<!-- proc~tkestatsdump&#45;&gt;module~modsubgrid -->
+<g id="module~~modsubgrid~~UsedByGraph_edge4" class="edge">
+<title>proc~tkestatsdump&#45;&gt;module~modsubgrid</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M119.06,-66.74C107.92,-70.81 95.41,-75.38 83.63,-79.69"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="82.69,-76.3 74.5,-83.02 85.1,-82.88 82.69,-76.3"/>
+</g>
+<!-- program~dalesurban -->
+<g id="module~~modsubgrid~~UsedByGraph_node6" class="node">
+<title>program~dalesurban</title>
+<g id="a_module~~modsubgrid~~UsedByGraph_node6"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="196.66,-24.27 112.4,-24.27 112.4,0 196.66,0 196.66,-24.27"/>
+<text text-anchor="middle" x="154.53" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;module~modsubgrid -->
+<g id="module~~modsubgrid~~UsedByGraph_edge5" class="edge">
+<title>program~dalesurban&#45;&gt;module~modsubgrid</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M125.68,-24.71C120.76,-27.29 115.77,-30.14 111.27,-33.13 92.29,-45.78 72.88,-62.88 58.9,-76.07"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="56.83,-73.2 52.05,-82.65 61.68,-78.25 56.83,-73.2"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsedByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsedByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+      <br>
+
+
+
+
+
+
+
+
+        <section>
+          <h2>Subroutines</h2>
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-initsubgrid"></span> <h3>public  subroutine <a href='../proc/initsubgrid.html'>initsubgrid</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-subgridnamelist"></span> <h3>public  subroutine <a href='../proc/subgridnamelist.html'>subgridnamelist</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-subgrid"></span> <h3>public  subroutine <a href='../proc/subgrid.html'>subgrid</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-exitsubgrid"></span> <h3>public  subroutine <a href='../proc/exitsubgrid.html'>exitsubgrid</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-closure"></span> <h3>public  subroutine <a href='../proc/closure.html'>closure</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-sources"></span> <h3>public  subroutine <a href='../proc/sources.html'>sources</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-diffc"></span> <h3>public  subroutine <a href='../proc/diffc.html'>diffc</a>(hi, hj, hk, putin, putout)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-hi~5"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>hi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-hj~5"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>hj</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-hk~5"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>hk</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-putin~6"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>putin</strong>(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)</td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-putout~6"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>putout</strong>(ib-hi:ie+hi,jb-hj:je+hj,kb:ke+hk)</td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-diffe"></span> <h3>public  subroutine <a href='../proc/diffe.html'>diffe</a>(putout)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-putout~7"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>putout</strong>(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)</td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-diffu"></span> <h3>public  subroutine <a href='../proc/diffu.html'>diffu</a>(putout)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-putout~8"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>putout</strong>(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)</td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-diffv"></span> <h3>public  subroutine <a href='../proc/diffv.html'>diffv</a>(putout)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-putout~9"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>putout</strong>(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)</td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-diffw"></span> <h3>public  subroutine <a href='../proc/diffw.html'>diffw</a>(putout)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-putout~10"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>putout</strong>(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)</td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+        </section>
+        <br>
+
+
+
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

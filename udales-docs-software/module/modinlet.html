@@ -1,0 +1,1863 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>modinlet &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>modinlet
+      <small>Module</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title="12.9% of total for modules and submodules.">1801 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modinlet.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modinlet.f90.html'>modinlet.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">modinlet</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#subs-0"
+         aria-expanded="false" aria-controls="subs-0">
+         <h4 class="card-header bg-primary text-white">Subroutines</h4>
+      </a>
+      <div id="subs-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/modinlet.html#proc-initinlet">initinlet</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-inletgen">inletgen</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-inletgennotemp">inletgennotemp</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-momentumthicknessexp">momentumthicknessexp</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-momentumthickness">momentumthickness</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-momentumthicknessmo">momentumthicknessmo</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-enthalpythickness">enthalpythickness</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-dispthicknessexp">dispthicknessexp</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-dispthickness">dispthickness</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-dispthicknessmo">dispthicknessmo</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-blthicknesst">blthicknesst</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-blthickness">blthickness</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-blthicknessmo">blthicknessmo</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-wallawinlet">wallawinlet</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-writeinletfile">writeinletfile</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-readinletfile">readinletfile</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-zinterpolate">zinterpolate</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-zinterpolate1d">zinterpolate1d</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-zinterpolate2d">zinterpolate2d</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-zinterpolatew">zinterpolatew</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-zinterpolatew1d">zinterpolatew1d</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-zinterpolatet">zinterpolatet</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-zinterpolatet1d">zinterpolatet1d</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-yinterpolate">yinterpolate</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-yinterpolateh">yinterpolateh</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-readzincoord">readzincoord</a>
+            <a class="list-group-item" href="../module/modinlet.html#proc-exitinlet">exitinlet</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+      
+<br>          <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='modinletdata.html'>modinletdata</a></li>
+                  <li class="list-inline-item"><a href='http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm'>mpi</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: module~~modinlet~~UsesGraph Pages: 1 -->
+<svg id="modulemodinletUsesGraph" width="186pt" height="74pt"
+ viewBox="0.00 0.00 185.54 74.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~modinlet~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 70.27)">
+<title>module~~modinlet~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-70.27 181.54,-70.27 181.54,4 -4,4"/>
+<!-- module~modinlet -->
+<g id="module~~modinlet~~UsesGraph_node1" class="node">
+<title>module~modinlet</title>
+<polygon fill="none" stroke="black" points="177.54,-45.27 118.77,-45.27 118.77,-21 177.54,-21 177.54,-45.27"/>
+<text text-anchor="middle" x="148.15" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50">modinlet</text>
+</g>
+<!-- module~modinletdata -->
+<g id="module~~modinlet~~UsesGraph_node2" class="node">
+<title>module~modinletdata</title>
+<g id="a_module~~modinlet~~UsesGraph_node2"><a xlink:href="../module/modinletdata.html" xlink:title="modinletdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="82.77,-66.27 0,-66.27 0,-42 82.77,-42 82.77,-66.27"/>
+<text text-anchor="middle" x="41.38" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modinletdata</text>
+</a>
+</g>
+</g>
+<!-- module~modinlet&#45;&gt;module~modinletdata -->
+<g id="module~~modinlet~~UsesGraph_edge1" class="edge">
+<title>module~modinlet&#45;&gt;module~modinletdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M118.53,-38.87C111.03,-40.38 102.71,-42.04 94.4,-43.71"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="93.76,-40.27 84.64,-45.67 95.13,-47.13 93.76,-40.27"/>
+</g>
+<!-- mpi -->
+<g id="module~~modinlet~~UsesGraph_node3" class="node">
+<title>mpi</title>
+<g id="a_module~~modinlet~~UsesGraph_node3"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="68.38,-24.27 14.38,-24.27 14.38,0 68.38,0 68.38,-24.27"/>
+<text text-anchor="middle" x="41.38" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modinlet&#45;&gt;mpi -->
+<g id="module~~modinlet~~UsesGraph_edge2" class="edge">
+<title>module~modinlet&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M118.53,-27.4C106.65,-25.02 92.71,-22.22 80.02,-19.68"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="80.8,-16.27 70.31,-17.73 79.42,-23.13 80.8,-16.27"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+          <div class="card">
+      <h3 class="card-header card-title bg-light">Used by</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: module~~modinlet~~UsedByGraph Pages: 1 -->
+<svg id="modulemodinletUsedByGraph" width="195pt" height="158pt"
+ viewBox="0.00 0.00 194.54 158.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~modinlet~~UsedByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 154.27)">
+<title>module~~modinlet~~UsedByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-154.27 190.54,-154.27 190.54,4 -4,4"/>
+<!-- module~modinlet -->
+<g id="module~~modinlet~~UsedByGraph_node1" class="node">
+<title>module~modinlet</title>
+<polygon fill="none" stroke="black" points="58.77,-87.27 0,-87.27 0,-63 58.77,-63 58.77,-87.27"/>
+<text text-anchor="middle" x="29.38" y="-71.54" font-family="Helvetica,sans-Serif" font-size="10.50">modinlet</text>
+</g>
+<!-- proc~exitmodules -->
+<g id="module~~modinlet~~UsedByGraph_node2" class="node">
+<title>proc~exitmodules</title>
+<g id="a_module~~modinlet~~UsedByGraph_node2"><a xlink:href="../proc/exitmodules.html" xlink:title="exitmodules">
+<polygon fill="#d9534f" stroke="#d9534f" points="178.66,-150.27 102.64,-150.27 102.64,-126 178.66,-126 178.66,-150.27"/>
+<text text-anchor="middle" x="140.65" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exitmodules</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;module~modinlet -->
+<g id="module~~modinlet~~UsedByGraph_edge1" class="edge">
+<title>proc~exitmodules&#45;&gt;module~modinlet</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M111.34,-125.62C105.77,-122.96 100.03,-120.06 94.77,-117.14 82.14,-110.11 68.68,-101.51 57.34,-93.93"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="59.5,-91.16 49.26,-88.44 55.57,-96.96 59.5,-91.16"/>
+</g>
+<!-- proc~readinitfiles -->
+<g id="module~~modinlet~~UsedByGraph_node3" class="node">
+<title>proc~readinitfiles</title>
+<g id="a_module~~modinlet~~UsedByGraph_node3"><a xlink:href="../proc/readinitfiles.html" xlink:title="readinitfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="177.54,-108.27 103.77,-108.27 103.77,-84 177.54,-84 177.54,-108.27"/>
+<text text-anchor="middle" x="140.65" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readinitfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readinitfiles&#45;&gt;module~modinlet -->
+<g id="module~~modinlet~~UsedByGraph_edge2" class="edge">
+<title>proc~readinitfiles&#45;&gt;module~modinlet</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M103.57,-89.2C92.87,-87.14 81.09,-84.88 70.16,-82.78"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="71.14,-79.4 60.66,-80.95 69.82,-86.28 71.14,-79.4"/>
+</g>
+<!-- proc~readnamelists -->
+<g id="module~~modinlet~~UsedByGraph_node4" class="node">
+<title>proc~readnamelists</title>
+<g id="a_module~~modinlet~~UsedByGraph_node4"><a xlink:href="../proc/readnamelists.html" xlink:title="readnamelists">
+<polygon fill="#d9534f" stroke="#d9534f" points="183.91,-66.27 97.39,-66.27 97.39,-42 183.91,-42 183.91,-66.27"/>
+<text text-anchor="middle" x="140.65" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readnamelists</text>
+</a>
+</g>
+</g>
+<!-- proc~readnamelists&#45;&gt;module~modinlet -->
+<g id="module~~modinlet~~UsedByGraph_edge3" class="edge">
+<title>proc~readnamelists&#45;&gt;module~modinlet</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M97.1,-62.31C88.26,-64.01 78.99,-65.79 70.25,-67.47"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="69.82,-63.99 60.66,-69.32 71.14,-70.87 69.82,-63.99"/>
+</g>
+<!-- proc~readrestartfiles -->
+<g id="module~~modinlet~~UsedByGraph_node5" class="node">
+<title>proc~readrestartfiles</title>
+<g id="a_module~~modinlet~~UsedByGraph_node5"><a xlink:href="../proc/readrestartfiles.html" xlink:title="readrestartfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="186.54,-24.27 94.77,-24.27 94.77,0 186.54,0 186.54,-24.27"/>
+<text text-anchor="middle" x="140.65" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readrestartfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readrestartfiles&#45;&gt;module~modinlet -->
+<g id="module~~modinlet~~UsedByGraph_edge4" class="edge">
+<title>proc~readrestartfiles&#45;&gt;module~modinlet</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M111.34,-24.65C105.77,-27.31 100.03,-30.21 94.77,-33.13 82.14,-40.16 68.68,-48.76 57.34,-56.34"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="55.57,-53.31 49.26,-61.83 59.5,-59.11 55.57,-53.31"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsedByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsedByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+      <br>
+
+
+
+
+
+
+
+
+        <section>
+          <h2>Subroutines</h2>
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-initinlet"></span> <h3>public  subroutine <a href='../proc/initinlet.html'>initinlet</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-inletgen"></span> <h3>public  subroutine <a href='../proc/inletgen.html'>inletgen</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-inletgennotemp"></span> <h3>public  subroutine <a href='../proc/inletgennotemp.html'>inletgennotemp</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-momentumthicknessexp"></span> <h3>public  subroutine <a href='../proc/momentumthicknessexp.html'>momentumthicknessexp</a>(output, uinput)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-uinput"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(kb:ke)
+            </td>
+            <td>::</td>
+            <td><strong>uinput</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-momentumthickness"></span> <h3>public  subroutine <a href='../proc/momentumthickness.html'>momentumthickness</a>(output, ustar, blth)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~2"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ustar~2"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ustar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-blth"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>blth</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-momentumthicknessmo"></span> <h3>public  subroutine <a href='../proc/momentumthicknessmo.html'>momentumthicknessmo</a>(output, ustar, blth, lmo)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~3"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ustar~3"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ustar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-blth~2"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>blth</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lmo"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lmo</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-enthalpythickness"></span> <h3>public  subroutine <a href='../proc/enthalpythickness.html'>enthalpythickness</a>(output, tinput, uinput)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~4"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-tinput"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(kb:ke)
+            </td>
+            <td>::</td>
+            <td><strong>tinput</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-uinput~2"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(kb:ke)
+            </td>
+            <td>::</td>
+            <td><strong>uinput</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-dispthicknessexp"></span> <h3>public  subroutine <a href='../proc/dispthicknessexp.html'>dispthicknessexp</a>(output)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~5"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(ib:ie)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-dispthickness"></span> <h3>public  subroutine <a href='../proc/dispthickness.html'>dispthickness</a>(output)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~6"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(ib:ie)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-dispthicknessmo"></span> <h3>public  subroutine <a href='../proc/dispthicknessmo.html'>dispthicknessmo</a>(output)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~7"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(ib:ie)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-blthicknesst"></span> <h3>public  subroutine <a href='../proc/blthicknesst.html'>blthicknesst</a>(output, uinput, criterion)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~8"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-uinput~3"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(kb:ke)
+            </td>
+            <td>::</td>
+            <td><strong>uinput</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-criterion"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>criterion</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-blthickness"></span> <h3>public  subroutine <a href='../proc/blthickness.html'>blthickness</a>(output, ustar)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~9"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ustar~6"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ustar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-blthicknessmo"></span> <h3>public  subroutine <a href='../proc/blthicknessmo.html'>blthicknessmo</a>(output, ustar, lmo)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~10"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ustar~7"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ustar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lmo~3"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lmo</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-wallawinlet"></span> <h3>public  subroutine <a href='../proc/wallawinlet.html'>wallawinlet</a>(utan, dx, visc, tau)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-utan~5"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>utan</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dx~3"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-visc"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>visc</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-tau"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>tau</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-writeinletfile"></span> <h3>public  subroutine <a href='../proc/writeinletfile.html'>writeinletfile</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-readinletfile"></span> <h3>public  subroutine <a href='../proc/readinletfile.html'>readinletfile</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-zinterpolate"></span> <h3>public  subroutine <a href='../proc/zinterpolate.html'>zinterpolate</a>(input, output)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-input"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(jb:je,kbin:kein,1:nstore)
+            </td>
+            <td>::</td>
+            <td><strong>input</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~11"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(jb:je,kb:ke,1:nstore)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-zinterpolate1d"></span> <h3>public  subroutine <a href='../proc/zinterpolate1d.html'>zinterpolate1d</a>(input, output)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-input~2"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(kbin:kein)
+            </td>
+            <td>::</td>
+            <td><strong>input</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~12"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(kb:ke)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-zinterpolate2d"></span> <h3>public  subroutine <a href='../proc/zinterpolate2d.html'>zinterpolate2d</a>(input, output)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-input~3"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(ib:ie,kbin:kein)
+            </td>
+            <td>::</td>
+            <td><strong>input</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~13"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(ib:ie,kb:ke)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-zinterpolatew"></span> <h3>public  subroutine <a href='../proc/zinterpolatew.html'>zinterpolatew</a>(input, output)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-input~4"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(jb:je,kbin:kein+1,1:nstore)
+            </td>
+            <td>::</td>
+            <td><strong>input</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~14"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(jb:je,kb:ke+1,1:nstore)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-zinterpolatew1d"></span> <h3>public  subroutine <a href='../proc/zinterpolatew1d.html'>zinterpolatew1d</a>(input, output)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-input~5"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(kbin:kein+1)
+            </td>
+            <td>::</td>
+            <td><strong>input</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~15"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(kb:ke+1)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-zinterpolatet"></span> <h3>public  subroutine <a href='../proc/zinterpolatet.html'>zinterpolatet</a>(input, output)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-input~6"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(jb:je,kbin:kein,1:nstore)
+            </td>
+            <td>::</td>
+            <td><strong>input</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~16"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(jb:je,kb:ke,1:nstore)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-zinterpolatet1d"></span> <h3>public  subroutine <a href='../proc/zinterpolatet1d.html'>zinterpolatet1d</a>(input, output)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-input~7"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(kbin:kein)
+            </td>
+            <td>::</td>
+            <td><strong>input</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~17"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(kb:ke)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-yinterpolate"></span> <h3>public  subroutine <a href='../proc/yinterpolate.html'>yinterpolate</a>(input, output, ks, kf)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-input~8"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(jbdum:jedum,ks:kf,1:nstore)
+            </td>
+            <td>::</td>
+            <td><strong>input</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~18"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(jb   :je   ,ks:kf,1:nstore)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ks~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ks</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-kf~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>kf</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-yinterpolateh"></span> <h3>public  subroutine <a href='../proc/yinterpolateh.html'>yinterpolateh</a>(input, output, ks, kf)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-input~9"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(jbdum:jedum,ks:kf,1:nstore)
+            </td>
+            <td>::</td>
+            <td><strong>input</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-output~19"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(jb   :je   ,ks:kf,1:nstore)
+            </td>
+            <td>::</td>
+            <td><strong>output</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ks~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ks</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-kf~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>kf</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-readzincoord"></span> <h3>public  subroutine <a href='../proc/readzincoord.html'>readzincoord</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-exitinlet"></span> <h3>public  subroutine <a href='../proc/exitinlet.html'>exitinlet</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+        </section>
+        <br>
+
+
+
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

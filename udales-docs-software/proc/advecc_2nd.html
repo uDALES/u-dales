@@ -1,0 +1,624 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>advecc_2nd &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>advecc_2nd
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.3% of total for procedures.">40 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/advec_2nd.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/advec_2nd.f90.html'>advec_2nd.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">advecc_2nd</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/advecc_2nd.html#src">advecc_2nd</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2> subroutine advecc_2nd(hi, hj, hk, putin, putout)  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item"><a href='../module/modibm.html'>modibm</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/initfac.html'>initfac</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~advecc_2nd~~UsesGraph Pages: 1 -->
+<svg id="procadvecc_2ndUsesGraph" width="389pt" height="258pt"
+ viewBox="0.00 0.00 389.06 258.22" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~advecc_2nd~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 254.22)">
+<title>proc~~advecc_2nd~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-254.22 385.06,-254.22 385.06,4 -4,4"/>
+<!-- proc~advecc_2nd -->
+<g id="proc~~advecc_2nd~~UsesGraph_node1" class="node">
+<title>proc~advecc_2nd</title>
+<polygon fill="none" stroke="black" points="381.06,-128.22 305.79,-128.22 305.79,-103.95 381.06,-103.95 381.06,-128.22"/>
+<text text-anchor="middle" x="343.42" y="-112.49" font-family="Helvetica,sans-Serif" font-size="10.50">advecc_2nd</text>
+</g>
+<!-- module~initfac -->
+<g id="proc~~advecc_2nd~~UsesGraph_node2" class="node">
+<title>module~initfac</title>
+<g id="a_proc~~advecc_2nd~~UsesGraph_node2"><a xlink:href="../module/initfac.html" xlink:title="initfac">
+<polygon fill="#337ab7" stroke="#337ab7" points="264.78,-170.22 210.78,-170.22 210.78,-145.95 264.78,-145.95 264.78,-170.22"/>
+<text text-anchor="middle" x="237.78" y="-154.49" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfac</text>
+</a>
+</g>
+</g>
+<!-- proc~advecc_2nd&#45;&gt;module~initfac -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge1" class="edge">
+<title>proc~advecc_2nd&#45;&gt;module~initfac</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M311.33,-128.69C300.01,-133.28 287.1,-138.51 275.35,-143.27"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="274.32,-139.91 266.36,-146.91 276.94,-146.4 274.32,-139.91"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~advecc_2nd~~UsesGraph_node3" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~advecc_2nd~~UsesGraph_node3"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="269.79,-87.22 205.77,-87.22 205.77,-62.95 269.79,-62.95 269.79,-87.22"/>
+<text text-anchor="middle" x="237.78" y="-71.49" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~advecc_2nd&#45;&gt;module~modfields -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge2" class="edge">
+<title>proc~advecc_2nd&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M310.76,-103.56C301.32,-99.83 290.82,-95.67 280.82,-91.72"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="282.24,-88.52 271.65,-88.09 279.67,-95.03 282.24,-88.52"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~advecc_2nd~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~advecc_2nd~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="164.14,-250.22 95.62,-250.22 95.62,-225.95 164.14,-225.95 164.14,-250.22"/>
+<text text-anchor="middle" x="129.88" y="-234.49" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~advecc_2nd&#45;&gt;module~modglobal -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge3" class="edge">
+<title>proc~advecc_2nd&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M330.52,-128.53C316.86,-142.28 293.3,-164.41 269.79,-179.09 240.06,-197.64 203.48,-212.92 175.33,-223.27"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="174.24,-219.94 166.02,-226.62 176.61,-226.53 174.24,-219.94"/>
+</g>
+<!-- module~modibm -->
+<g id="proc~~advecc_2nd~~UsesGraph_node5" class="node">
+<title>module~modibm</title>
+<g id="a_proc~~advecc_2nd~~UsesGraph_node5"><a xlink:href="../module/modibm.html" xlink:title="modibm">
+<polygon fill="#337ab7" stroke="#337ab7" points="265.66,-44.22 209.89,-44.22 209.89,-19.95 265.66,-19.95 265.66,-44.22"/>
+<text text-anchor="middle" x="237.78" y="-28.49" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibm</text>
+</a>
+</g>
+</g>
+<!-- proc~advecc_2nd&#45;&gt;module~modibm -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge4" class="edge">
+<title>proc~advecc_2nd&#45;&gt;module~modibm</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M328.54,-103.59C314.15,-90.79 290.85,-70.49 269.79,-54.09 268.65,-53.2 267.47,-52.3 266.28,-51.4"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="268.37,-48.59 258.24,-45.51 264.24,-54.24 268.37,-48.59"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~advecc_2nd~~UsesGraph_node6" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~advecc_2nd~~UsesGraph_node6"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="157.77,-128.22 102,-128.22 102,-103.95 157.77,-103.95 157.77,-128.22"/>
+<text text-anchor="middle" x="129.88" y="-112.49" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~advecc_2nd&#45;&gt;module~modmpi -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge5" class="edge">
+<title>proc~advecc_2nd&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M305.58,-116.09C267.49,-116.09 208.3,-116.09 169.56,-116.09"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="169.75,-112.59 159.75,-116.09 169.75,-119.59 169.75,-112.59"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modglobal -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge6" class="edge">
+<title>module~initfac&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M221.91,-170.7C208.53,-181.91 188.19,-198.55 169.77,-212.09 166.6,-214.42 163.23,-216.8 159.86,-219.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="158.08,-216.11 151.76,-224.61 162,-221.91 158.08,-216.11"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modmpi -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge7" class="edge">
+<title>module~initfac&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M210.33,-147.6C197.76,-142.61 182.51,-136.56 168.74,-131.1"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="170.09,-127.87 159.51,-127.44 167.51,-134.38 170.09,-127.87"/>
+</g>
+<!-- mpi -->
+<g id="proc~~advecc_2nd~~UsesGraph_node9" class="node">
+<title>mpi</title>
+<g id="a_proc~~advecc_2nd~~UsesGraph_node9"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-128.22 0,-128.22 0,-103.95 54,-103.95 54,-128.22"/>
+<text text-anchor="middle" x="27" y="-112.49" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~initfac&#45;&gt;mpi -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge8" class="edge">
+<title>module~initfac&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M210.54,-169.86C180.33,-181.62 129.77,-195.75 90,-179.09 70.03,-170.72 53.24,-152.44 42.19,-137.72"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="45.3,-136.05 36.66,-129.93 39.59,-140.11 45.3,-136.05"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~advecc_2nd~~UsesGraph_node10" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="156.88,-170.22 102.88,-170.22 102.88,-145.95 156.88,-145.95 156.88,-170.22"/>
+<text text-anchor="middle" x="129.88" y="-154.49" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~initfac&#45;&gt;netcdf -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge9" class="edge">
+<title>module~initfac&#45;&gt;netcdf</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M210.33,-158.09C197.7,-158.09 182.35,-158.09 168.52,-158.09"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="168.88,-154.59 158.88,-158.09 168.88,-161.59 168.88,-154.59"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~advecc_2nd~~UsesGraph_node7" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="166.77,-86.22 93,-86.22 93,-61.95 166.77,-61.95 166.77,-86.22"/>
+<text text-anchor="middle" x="129.88" y="-70.49" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge10" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M205.29,-74.79C196.81,-74.71 187.43,-74.62 178.28,-74.54"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="178.44,-71.04 168.41,-74.44 178.38,-78.04 178.44,-71.04"/>
+</g>
+<!-- module~modibmdata -->
+<g id="proc~~advecc_2nd~~UsesGraph_node8" class="node">
+<title>module~modibmdata</title>
+<g id="a_proc~~advecc_2nd~~UsesGraph_node8"><a xlink:href="../module/modibmdata.html" xlink:title="modibmdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="169.77,-44.22 90,-44.22 90,-19.95 169.77,-19.95 169.77,-44.22"/>
+<text text-anchor="middle" x="129.88" y="-28.49" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata</text>
+</a>
+</g>
+</g>
+<!-- module~modibm&#45;&gt;module~modibmdata -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge11" class="edge">
+<title>module~modibm&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M209.51,-32.09C200.88,-32.09 191.04,-32.09 181.32,-32.09"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="181.55,-28.59 171.55,-32.09 181.55,-35.59 181.55,-28.59"/>
+</g>
+<!-- module~modibm&#45;&gt;mpi -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge12" class="edge">
+<title>module~modibm&#45;&gt;mpi</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M211.62,-19.46C180.88,-5.97 128.23,10.73 90,-11.09 59.53,-28.48 42.52,-67.37 34.32,-92.63"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="31.03,-91.43 31.5,-102.01 37.73,-93.44 31.03,-91.43"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~advecc_2nd~~UsesGraph_edge13" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M101.58,-116.09C90.56,-116.09 77.64,-116.09 65.74,-116.09"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="65.79,-112.59 55.79,-116.09 65.79,-119.59 65.79,-112.59"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-hi~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>hi</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-hj~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>hj</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-hk~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>hk</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-putin"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk)
+            </td>
+            <td>::</td>
+            <td><strong>putin</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-putout"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)
+            </td>
+            <td>::</td>
+            <td><strong>putout</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="k">subroutine </span><span class="n">advecc_2nd</span><span class="p">(</span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">hk</span><span class="p">,</span><span class="w"> </span><span class="n">putin</span><span class="p">,</span><span class="w"> </span><span class="n">putout</span><span class="p">)</span>
+
+<span class="w">   </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">dxi</span><span class="p">,</span><span class="w"> </span><span class="n">dxi5</span><span class="p">,</span><span class="w"> </span><span class="n">dyi</span><span class="p">,</span><span class="w"> </span><span class="n">dyi5</span><span class="p">,</span><span class="w"> </span><span class="n">dzf</span><span class="p">,</span><span class="w"> </span><span class="n">dzfi</span><span class="p">,</span><span class="w"> </span><span class="n">dzhi</span><span class="p">,</span><span class="w"> </span><span class="n">dzfi5</span><span class="p">,</span><span class="w"> </span><span class="n">libm</span><span class="p">,</span><span class="w"> </span><span class="n">jmax</span>
+<span class="w">   </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">w0</span>
+<span class="w">   </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">nxwallsnorm</span><span class="p">,</span><span class="w"> </span><span class="n">nzwallsnorm</span><span class="p">,</span><span class="w"> </span><span class="n">nywallsm</span><span class="p">,</span><span class="w"> </span><span class="n">nywallsp</span><span class="p">,</span><span class="w"> </span><span class="n">ywallsm</span><span class="p">,</span><span class="w"> </span><span class="n">ywallsp</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">      </span><span class="n">xwallsnorm</span><span class="p">,</span><span class="w"> </span><span class="n">zwallsnorm</span><span class="p">,</span><span class="w"> </span><span class="n">iypluswall</span><span class="p">,</span><span class="w"> </span><span class="n">iyminwall</span><span class="p">,</span><span class="w"> </span><span class="n">nyminwall</span><span class="p">,</span><span class="w"> </span><span class="n">nypluswall</span>
+<span class="w">   </span><span class="k">use </span><span class="n">initfac</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="k">block</span>
+<span class="k">   use </span><span class="n">modmpi</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">myid</span>
+<span class="w">   </span><span class="k">implicit none</span>
+
+<span class="k">   </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hi</span><span class="w"> </span><span class="c">!&lt; size of halo in i</span>
+<span class="w">   </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hj</span><span class="w"> </span><span class="c">!&lt; size of halo in j</span>
+<span class="w">   </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hk</span><span class="w"> </span><span class="c">!&lt; size of halo in k</span>
+<span class="w">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hk</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">  </span><span class="kd">::</span><span class="w"> </span><span class="n">putin</span><span class="w"> </span><span class="c">!&lt; Input: the cell centered field</span>
+<span class="w">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">putout</span><span class="w"> </span><span class="c">!&lt; Output: the tendency</span>
+
+<span class="w">   </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">,</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="w"> </span><span class="n">iu</span><span class="p">,</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="w"> </span><span class="n">ju</span><span class="p">,</span><span class="w"> </span><span class="n">kl</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+<span class="w">   </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">      </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">      </span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">      </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<span class="w">         </span><span class="n">jm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">         </span><span class="n">jp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">         </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">            </span><span class="n">im</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">            </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">            </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                              </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                              </span><span class="n">u0</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! d(uc)/dx</span>
+<span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dxi5</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">!</span>
+<span class="w">                              </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! d(vc)/dy</span>
+<span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dyi5</span><span class="p">)</span>
+<span class="w">         </span><span class="k">end do</span>
+<span class="k">      end do</span>
+<span class="k">   end do</span>
+
+<span class="k">   do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<span class="w">      </span><span class="n">jm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">      </span><span class="n">jp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">      </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">         </span><span class="n">im</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">         </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">         </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">            </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">            </span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">            </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">putout</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                              </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">kp</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">kp</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">putin</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                              </span><span class="p">)</span><span class="o">*</span><span class="n">dzfi5</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">         </span><span class="k">end do</span>
+<span class="k">      end do</span>
+<span class="k">   end do</span>
+
+<span class="k">end subroutine </span><span class="n">advecc_2nd</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

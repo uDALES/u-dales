@@ -1,0 +1,519 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>  BC &ndash; uDALES
+</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>BC</h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modstartup.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modstartup.f90.html'>modstartup.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modstartup.html'>modstartup</a></li>
+                <li class="breadcrumb-item"><a href='../proc/readnamelists.html'>readnamelists</a></li>
+            <li class="breadcrumb-item active" aria-current="page">BC</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#vars-0"
+         aria-expanded="false" aria-controls="vars-0">
+         <h4 class="card-header bg-primary text-white">Variables</h4>
+      </a>
+      <div id="vars-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcxm">BCxm</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcxt">BCxT</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcxq">BCxq</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcxs">BCxs</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcym">BCym</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcyt">BCyT</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcyq">BCyq</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcys">BCys</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bctopm">BCtopm</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bctopt">BCtopT</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bctopq">BCtopq</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bctops">BCtops</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcbotm">BCbotm</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcbott">BCbotT</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcbotq">BCbotq</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcbots">BCbots</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bctfxm">bctfxm</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bctfxp">bctfxp</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bctfym">bctfym</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bctfyp">bctfyp</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bctfz">bctfz</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcqfxm">bcqfxm</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcqfxp">bcqfxp</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcqfym">bcqfym</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcqfyp">bcqfyp</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bcqfz">bcqfz</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-wttop">wttop</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-thl_top">thl_top</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-qt_top">qt_top</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-qts">qts</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-wsvsurfdum">wsvsurfdum</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-wsvtopdum">wsvtopdum</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-wtsurf">wtsurf</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-wqsurf">wqsurf</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-thls">thls</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-z0">z0</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-z0h">z0h</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-bczp">BCzp</a>
+            <a class="list-group-item" href="../namelist/bc.html#variable-ds">ds</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+        
+  <br class="visible-xs visible-sm hidden-md">
+  <section>
+    <h2>Variables</h2>
+    <table class="table table-striped" id="namelist-bc">
+      <thead><tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Default</th>
+          <th>Description</th>
+      </tr></thead>
+      <tbody>
+              <tr id="variable-bcxm">
+      <td><a href="#variable-bcxm">BCxm</a></td>
+      <td>integer</td>
+      <td>BCxm_periodic</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcxt">
+      <td><a href="#variable-bcxt">BCxT</a></td>
+      <td>integer</td>
+      <td>BCxT_periodic</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcxq">
+      <td><a href="#variable-bcxq">BCxq</a></td>
+      <td>integer</td>
+      <td>BCxq_periodic</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcxs">
+      <td><a href="#variable-bcxs">BCxs</a></td>
+      <td>integer</td>
+      <td>BCxs_periodic</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcym">
+      <td><a href="#variable-bcym">BCym</a></td>
+      <td>integer</td>
+      <td>BCym_periodic</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcyt">
+      <td><a href="#variable-bcyt">BCyT</a></td>
+      <td>integer</td>
+      <td>BCyT_periodic</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcyq">
+      <td><a href="#variable-bcyq">BCyq</a></td>
+      <td>integer</td>
+      <td>BCyq_periodic</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcys">
+      <td><a href="#variable-bcys">BCys</a></td>
+      <td>integer</td>
+      <td>BCys_periodic</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bctopm">
+      <td><a href="#variable-bctopm">BCtopm</a></td>
+      <td>integer</td>
+      <td>BCtopm_freeslip</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bctopt">
+      <td><a href="#variable-bctopt">BCtopT</a></td>
+      <td>integer</td>
+      <td>BCtopT_flux</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bctopq">
+      <td><a href="#variable-bctopq">BCtopq</a></td>
+      <td>integer</td>
+      <td>BCtopq_flux</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bctops">
+      <td><a href="#variable-bctops">BCtops</a></td>
+      <td>integer</td>
+      <td>BCtops_flux</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcbotm">
+      <td><a href="#variable-bcbotm">BCbotm</a></td>
+      <td>integer</td>
+      <td>BCbotm_wf</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcbott">
+      <td><a href="#variable-bcbott">BCbotT</a></td>
+      <td>integer</td>
+      <td>BCbotT_flux</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcbotq">
+      <td><a href="#variable-bcbotq">BCbotq</a></td>
+      <td>integer</td>
+      <td>BCbotq_flux</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcbots">
+      <td><a href="#variable-bcbots">BCbots</a></td>
+      <td>integer</td>
+      <td>BCbots_flux</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bctfxm">
+      <td><a href="#variable-bctfxm">bctfxm</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bctfxp">
+      <td><a href="#variable-bctfxp">bctfxp</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bctfym">
+      <td><a href="#variable-bctfym">bctfym</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bctfyp">
+      <td><a href="#variable-bctfyp">bctfyp</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bctfz">
+      <td><a href="#variable-bctfz">bctfz</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcqfxm">
+      <td><a href="#variable-bcqfxm">bcqfxm</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcqfxp">
+      <td><a href="#variable-bcqfxp">bcqfxp</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcqfym">
+      <td><a href="#variable-bcqfym">bcqfym</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcqfyp">
+      <td><a href="#variable-bcqfyp">bcqfyp</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bcqfz">
+      <td><a href="#variable-bcqfz">bcqfz</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-wttop">
+      <td><a href="#variable-wttop">wttop</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-thl_top">
+      <td><a href="#variable-thl_top">thl_top</a></td>
+      <td>real</td>
+      <td>-1.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-qt_top">
+      <td><a href="#variable-qt_top">qt_top</a></td>
+      <td>real</td>
+      <td>-1.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-qts">
+      <td><a href="#variable-qts">qts</a></td>
+      <td>real</td>
+      <td>-1.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-wsvsurfdum">
+      <td><a href="#variable-wsvsurfdum">wsvsurfdum</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-wsvtopdum">
+      <td><a href="#variable-wsvtopdum">wsvtopdum</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-wtsurf">
+      <td><a href="#variable-wtsurf">wtsurf</a></td>
+      <td>real</td>
+      <td>-1.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-wqsurf">
+      <td><a href="#variable-wqsurf">wqsurf</a></td>
+      <td>real</td>
+      <td>-1.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-thls">
+      <td><a href="#variable-thls">thls</a></td>
+      <td>real</td>
+      <td>-1.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-z0">
+      <td><a href="#variable-z0">z0</a></td>
+      <td>real</td>
+      <td>-1.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-z0h">
+      <td><a href="#variable-z0h">z0h</a></td>
+      <td>real</td>
+      <td>-1.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-bczp">
+      <td><a href="#variable-bczp">BCzp</a></td>
+      <td>integer</td>
+      <td>1</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ds">
+      <td><a href="#variable-ds">ds</a></td>
+      <td>real</td>
+      <td>0</td>
+      <td></td>
+    </tr>
+
+      </tbody>
+    </table>
+  </section>
+
+      <br>
+    </div>
+  </div>
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

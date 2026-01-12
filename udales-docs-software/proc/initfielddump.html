@@ -1,0 +1,1341 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>initfielddump &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>initfielddump
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 1.3% of total for procedures.">171 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modfielddump.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modfielddump.f90.html'>modfielddump.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modfielddump.html'>modfielddump</a></li>
+            <li class="breadcrumb-item active" aria-current="page">initfielddump</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/initfielddump.html#src">initfielddump</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine initfielddump()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item"><a href='../module/modibm.html'>modibm</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modstat_nc.html'>modstat_nc</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item">modpois</li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~initfielddump~~UsesGraph Pages: 1 -->
+<svg id="procinitfielddumpUsesGraph" width="405pt" height="240pt"
+ viewBox="0.00 0.00 404.81 240.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~initfielddump~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 236.27)">
+<title>proc~~initfielddump~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-236.27 400.81,-236.27 400.81,4 -4,4"/>
+<!-- proc~initfielddump -->
+<g id="proc~~initfielddump~~UsesGraph_node1" class="node">
+<title>proc~initfielddump</title>
+<polygon fill="none" stroke="black" points="396.81,-127.27 314.79,-127.27 314.79,-103 396.81,-103 396.81,-127.27"/>
+<text text-anchor="middle" x="355.8" y="-111.54" font-family="Helvetica,sans-Serif" font-size="10.50">initfielddump</text>
+</g>
+<!-- modpois -->
+<g id="proc~~initfielddump~~UsesGraph_node2" class="node">
+<title>modpois</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="270.91,-232.27 213.64,-232.27 213.64,-208 270.91,-208 270.91,-232.27"/>
+<text text-anchor="middle" x="242.28" y="-216.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modpois</text>
+</g>
+<!-- proc~initfielddump&#45;&gt;modpois -->
+<g id="proc~~initfielddump~~UsesGraph_edge1" class="edge">
+<title>proc~initfielddump&#45;&gt;modpois</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M345.48,-127.61C332.06,-145.03 305.91,-177 278.79,-199.13 277.99,-199.79 277.17,-200.44 276.32,-201.07"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="274.4,-198.15 268.12,-206.69 278.35,-203.93 274.4,-198.15"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~initfielddump~~UsesGraph_node3" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~initfielddump~~UsesGraph_node3"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="274.29,-190.27 210.27,-190.27 210.27,-166 274.29,-166 274.29,-190.27"/>
+<text text-anchor="middle" x="242.28" y="-174.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;module~modfields -->
+<g id="proc~~initfielddump~~UsesGraph_edge2" class="edge">
+<title>proc~initfielddump&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M332.5,-127.73C316.17,-136.96 293.75,-149.62 275.47,-159.95"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="273.84,-156.85 266.86,-164.81 277.29,-162.94 273.84,-156.85"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~initfielddump~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~initfielddump~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="276.54,-148.27 208.02,-148.27 208.02,-124 276.54,-124 276.54,-148.27"/>
+<text text-anchor="middle" x="242.28" y="-132.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;module~modglobal -->
+<g id="proc~~initfielddump~~UsesGraph_edge3" class="edge">
+<title>proc~initfielddump&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M314.54,-122.72C305.95,-124.33 296.83,-126.05 288.08,-127.7"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="287.54,-124.24 278.36,-129.53 288.83,-131.12 287.54,-124.24"/>
+</g>
+<!-- module~modibm -->
+<g id="proc~~initfielddump~~UsesGraph_node5" class="node">
+<title>module~modibm</title>
+<g id="a_proc~~initfielddump~~UsesGraph_node5"><a xlink:href="../module/modibm.html" xlink:title="modibm">
+<polygon fill="#337ab7" stroke="#337ab7" points="270.16,-106.27 214.39,-106.27 214.39,-82 270.16,-82 270.16,-106.27"/>
+<text text-anchor="middle" x="242.28" y="-90.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibm</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;module~modibm -->
+<g id="proc~~initfielddump~~UsesGraph_edge4" class="edge">
+<title>proc~initfielddump&#45;&gt;module~modibm</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M314.54,-107.55C303.82,-105.53 292.27,-103.36 281.65,-101.36"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="282.54,-97.97 272.07,-99.56 281.25,-104.85 282.54,-97.97"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~initfielddump~~UsesGraph_node6" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~initfielddump~~UsesGraph_node6"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="157.77,-66.27 102,-66.27 102,-42 157.77,-42 157.77,-66.27"/>
+<text text-anchor="middle" x="129.88" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;module~modmpi -->
+<g id="proc~~initfielddump~~UsesGraph_edge5" class="edge">
+<title>proc~initfielddump&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M336.65,-102.53C321.79,-92.85 299.85,-80.03 278.79,-73.14 242.84,-61.37 199.75,-56.85 169.38,-55.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="169.67,-51.64 159.51,-54.66 169.33,-58.63 169.67,-51.64"/>
+</g>
+<!-- module~modstat_nc -->
+<g id="proc~~initfielddump~~UsesGraph_node7" class="node">
+<title>module~modstat_nc</title>
+<g id="a_proc~~initfielddump~~UsesGraph_node7"><a xlink:href="../module/modstat_nc.html" xlink:title="modstat_nc">
+<polygon fill="#337ab7" stroke="#337ab7" points="278.79,-26.27 205.77,-26.27 205.77,-2 278.79,-2 278.79,-26.27"/>
+<text text-anchor="middle" x="242.28" y="-10.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modstat_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;module~modstat_nc -->
+<g id="proc~~initfielddump~~UsesGraph_edge6" class="edge">
+<title>proc~initfielddump&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M343.21,-102.62C328.73,-87.25 302.93,-60.69 278.79,-40.13 276.14,-37.88 273.31,-35.6 270.45,-33.39"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="272.69,-30.69 262.59,-27.51 268.5,-36.3 272.69,-30.69"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~initfielddump~~UsesGraph_node8" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="166.77,-190.27 93,-190.27 93,-166 166.77,-166 166.77,-190.27"/>
+<text text-anchor="middle" x="129.88" y="-174.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~initfielddump~~UsesGraph_edge7" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ffff00" stroke-dasharray="5,2" d="M209.94,-178.13C200.11,-178.13 189.03,-178.13 178.34,-178.13"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="178.49,-174.64 168.49,-178.14 178.49,-181.64 178.49,-174.64"/>
+</g>
+<!-- module~modibmdata -->
+<g id="proc~~initfielddump~~UsesGraph_node9" class="node">
+<title>module~modibmdata</title>
+<g id="a_proc~~initfielddump~~UsesGraph_node9"><a xlink:href="../module/modibmdata.html" xlink:title="modibmdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="169.77,-146.27 90,-146.27 90,-122 169.77,-122 169.77,-146.27"/>
+<text text-anchor="middle" x="129.88" y="-130.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata</text>
+</a>
+</g>
+</g>
+<!-- module~modibm&#45;&gt;module~modibmdata -->
+<g id="proc~~initfielddump~~UsesGraph_edge8" class="edge">
+<title>module~modibm&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M213.99,-104.02C202.52,-108.18 188.86,-113.13 175.97,-117.8"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="175.01,-114.42 166.8,-121.12 177.4,-121 175.01,-114.42"/>
+</g>
+<!-- mpi -->
+<g id="proc~~initfielddump~~UsesGraph_node10" class="node">
+<title>mpi</title>
+<g id="a_proc~~initfielddump~~UsesGraph_node10"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-86.27 0,-86.27 0,-62 54,-62 54,-86.27"/>
+<text text-anchor="middle" x="27" y="-70.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modibm&#45;&gt;mpi -->
+<g id="proc~~initfielddump~~UsesGraph_edge9" class="edge">
+<title>module~modibm&#45;&gt;mpi</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M214.27,-91.6C176.67,-88.08 108.38,-81.67 65.75,-77.68"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="66.25,-74.21 55.97,-76.76 65.59,-81.18 66.25,-74.21"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~initfielddump~~UsesGraph_edge10" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#0000ff" stroke-dasharray="5,2" d="M101.58,-59.55C90.44,-61.76 77.37,-64.35 65.37,-66.73"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="64.89,-63.25 55.76,-68.63 66.25,-70.12 64.89,-63.25"/>
+</g>
+<!-- module~modstat_nc&#45;&gt;module~modmpi -->
+<g id="proc~~initfielddump~~UsesGraph_edge11" class="edge">
+<title>module~modstat_nc&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff00ff" stroke-dasharray="5,2" d="M206.65,-26.68C194.52,-31.08 180.85,-36.03 168.49,-40.51"/>
+<polygon fill="#ff00ff" stroke="#ff00ff" points="167.67,-37.08 159.46,-43.78 170.05,-43.67 167.67,-37.08"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~initfielddump~~UsesGraph_node11" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="156.88,-24.27 102.88,-24.27 102.88,0 156.88,0 156.88,-24.27"/>
+<text text-anchor="middle" x="129.88" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~modstat_nc&#45;&gt;netcdf -->
+<g id="proc~~initfielddump~~UsesGraph_edge12" class="edge">
+<title>module~modstat_nc&#45;&gt;netcdf</title>
+<path fill="none" stroke="#ff00ff" stroke-dasharray="5,2" d="M205.44,-13.49C193.63,-13.27 180.48,-13.03 168.54,-12.82"/>
+<polygon fill="#ff00ff" stroke="#ff00ff" points="168.68,-9.32 158.62,-12.64 168.56,-16.32 168.68,-9.32"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~initfielddump~~CallsGraph Pages: 1 -->
+<svg id="procinitfielddumpCallsGraph" width="522pt" height="620pt"
+ viewBox="0.00 0.00 522.08 620.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~initfielddump~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 616.27)">
+<title>proc~~initfielddump~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-616.27 518.08,-616.27 518.08,4 -4,4"/>
+<!-- proc~initfielddump -->
+<g id="proc~~initfielddump~~CallsGraph_node1" class="node">
+<title>proc~initfielddump</title>
+<polygon fill="none" stroke="black" points="82.02,-381.27 0,-381.27 0,-357 82.02,-357 82.02,-381.27"/>
+<text text-anchor="middle" x="41.01" y="-365.53" font-family="Helvetica,sans-Serif" font-size="10.50">initfielddump</text>
+</g>
+<!-- mpi_bcast -->
+<g id="proc~~initfielddump~~CallsGraph_node2" class="node">
+<title>mpi_bcast</title>
+<polygon fill="#777777" stroke="#777777" points="203.79,-486.27 138.27,-486.27 138.27,-462 203.79,-462 203.79,-486.27"/>
+<text text-anchor="middle" x="171.03" y="-470.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_bcast</text>
+</g>
+<!-- proc~initfielddump&#45;&gt;mpi_bcast -->
+<g id="proc~~initfielddump~~CallsGraph_edge1" class="edge">
+<title>proc~initfielddump&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#ff0000" d="M50.46,-381.59C63.21,-399.57 88.99,-432.87 118.02,-453.13 121.01,-455.23 124.25,-457.15 127.58,-458.92"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="125.87,-461.99 136.41,-463.11 128.87,-455.66 125.87,-461.99"/>
+</g>
+<!-- proc~define_nc -->
+<g id="proc~~initfielddump~~CallsGraph_node3" class="node">
+<title>proc~define_nc</title>
+<g id="a_proc~~initfielddump~~CallsGraph_node3"><a xlink:href="../proc/define_nc.html" xlink:title="define_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="202.67,-444.27 139.4,-444.27 139.4,-420 202.67,-420 202.67,-444.27"/>
+<text text-anchor="middle" x="171.03" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">define_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;proc~define_nc -->
+<g id="proc~~initfielddump~~CallsGraph_edge2" class="edge">
+<title>proc~initfielddump&#45;&gt;proc~define_nc</title>
+<path fill="none" stroke="#ff0000" d="M67.61,-381.73C86.71,-391.13 113.05,-404.1 134.24,-414.52"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="132.6,-417.62 143.12,-418.89 135.69,-411.34 132.6,-417.62"/>
+</g>
+<!-- proc~ncinfo -->
+<g id="proc~~initfielddump~~CallsGraph_node4" class="node">
+<title>proc~ncinfo</title>
+<g id="a_proc~~initfielddump~~CallsGraph_node4"><a xlink:href="../proc/ncinfo.html" xlink:title="ncinfo">
+<polygon fill="#d9534f" stroke="#d9534f" points="198.03,-381.27 144.03,-381.27 144.03,-357 198.03,-357 198.03,-381.27"/>
+<text text-anchor="middle" x="171.03" y="-365.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ncinfo</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;proc~ncinfo -->
+<g id="proc~~initfielddump~~CallsGraph_edge3" class="edge">
+<title>proc~initfielddump&#45;&gt;proc~ncinfo</title>
+<path fill="none" stroke="#ff0000" d="M82.52,-369.13C98.51,-369.13 116.78,-369.13 132.47,-369.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="132.38,-372.64 142.38,-369.14 132.38,-365.64 132.38,-372.64"/>
+</g>
+<!-- proc~open_nc -->
+<g id="proc~~initfielddump~~CallsGraph_node5" class="node">
+<title>proc~open_nc</title>
+<g id="a_proc~~initfielddump~~CallsGraph_node5"><a xlink:href="../proc/open_nc.html" xlink:title="open_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="199.29,-318.27 142.77,-318.27 142.77,-294 199.29,-294 199.29,-318.27"/>
+<text text-anchor="middle" x="171.03" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">open_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;proc~open_nc -->
+<g id="proc~~initfielddump~~CallsGraph_edge4" class="edge">
+<title>proc~initfielddump&#45;&gt;proc~open_nc</title>
+<path fill="none" stroke="#ff0000" d="M67.61,-356.54C86.71,-347.14 113.05,-334.17 134.24,-323.75"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="135.69,-326.93 143.12,-319.38 132.6,-320.65 135.69,-326.93"/>
+</g>
+<!-- proc~writestat_dims_nc -->
+<g id="proc~~initfielddump~~CallsGraph_node6" class="node">
+<title>proc~writestat_dims_nc</title>
+<g id="a_proc~~initfielddump~~CallsGraph_node6"><a xlink:href="../proc/writestat_dims_nc.html" xlink:title="writestat_dims_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="224.04,-171.27 118.02,-171.27 118.02,-147 224.04,-147 224.04,-171.27"/>
+<text text-anchor="middle" x="171.03" y="-155.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_dims_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;proc~writestat_dims_nc -->
+<g id="proc~~initfielddump~~CallsGraph_edge5" class="edge">
+<title>proc~initfielddump&#45;&gt;proc~writestat_dims_nc</title>
+<path fill="none" stroke="#ff0000" d="M49.63,-356.63C70.67,-322.12 129.73,-225.24 156.52,-181.3"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="159.44,-183.23 161.66,-172.87 153.46,-179.59 159.44,-183.23"/>
+</g>
+<!-- nf90_def_var -->
+<g id="proc~~initfielddump~~CallsGraph_node9" class="node">
+<title>nf90_def_var</title>
+<polygon fill="#777777" stroke="#777777" points="369.44,-402.27 288.92,-402.27 288.92,-378 369.44,-378 369.44,-402.27"/>
+<text text-anchor="middle" x="329.18" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_var</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~initfielddump~~CallsGraph_edge6" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#cbff00" d="M202.88,-423.84C224.15,-418.12 252.92,-410.38 277.52,-403.76"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="278.28,-407.18 287.03,-401.2 276.46,-400.42 278.28,-407.18"/>
+</g>
+<!-- nf90_enddef -->
+<g id="proc~~initfielddump~~CallsGraph_node10" class="node">
+<title>nf90_enddef</title>
+<polygon fill="#777777" stroke="#777777" points="368.31,-528.27 290.04,-528.27 290.04,-504 368.31,-504 368.31,-528.27"/>
+<text text-anchor="middle" x="329.18" y="-512.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_enddef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~initfielddump~~CallsGraph_edge7" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#cbff00" d="M203.01,-441.82C210.26,-444.83 217.71,-448.59 224.04,-453.13 244.01,-467.48 239.48,-481.65 260.04,-495.13 265.88,-498.97 272.46,-502.13 279.16,-504.73"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="277.69,-507.93 288.29,-507.88 279.98,-501.31 277.69,-507.93"/>
+</g>
+<!-- nf90_inq_dimid -->
+<g id="proc~~initfielddump~~CallsGraph_node12" class="node">
+<title>nf90_inq_dimid</title>
+<polygon fill="#777777" stroke="#777777" points="375.44,-486.27 282.92,-486.27 282.92,-462 375.44,-462 375.44,-486.27"/>
+<text text-anchor="middle" x="329.18" y="-470.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_dimid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~initfielddump~~CallsGraph_edge8" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#cbff00" d="M202.88,-440.43C222.43,-445.69 248.32,-452.65 271.48,-458.88"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="270.56,-462.26 281.13,-461.48 272.38,-455.5 270.56,-462.26"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~initfielddump~~CallsGraph_node13" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="373.94,-276.27 284.42,-276.27 284.42,-252 373.94,-252 373.94,-276.27"/>
+<text text-anchor="middle" x="329.18" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~initfielddump~~CallsGraph_edge9" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#cbff00" d="M192.67,-419.55C203.32,-412.15 215.79,-401.92 224.04,-390.13 252.34,-349.72 224.61,-319.47 260.04,-285.13 264,-281.3 268.64,-278.16 273.61,-275.6"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="274.94,-278.83 282.76,-271.69 272.19,-272.4 274.94,-278.83"/>
+</g>
+<!-- nf90_put_att -->
+<g id="proc~~initfielddump~~CallsGraph_node17" class="node">
+<title>nf90_put_att</title>
+<polygon fill="#777777" stroke="#777777" points="367.94,-444.27 290.42,-444.27 290.42,-420 367.94,-420 367.94,-444.27"/>
+<text text-anchor="middle" x="329.18" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_att</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~initfielddump~~CallsGraph_edge10" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#cbff00" d="M202.88,-432.13C224.44,-432.13 253.7,-432.13 278.52,-432.13"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="278.41,-435.64 288.41,-432.14 278.41,-428.64 278.41,-435.64"/>
+</g>
+<!-- nf90_redef -->
+<g id="proc~~initfielddump~~CallsGraph_node19" class="node">
+<title>nf90_redef</title>
+<polygon fill="#777777" stroke="#777777" points="363.44,-570.27 294.92,-570.27 294.92,-546 363.44,-546 363.44,-570.27"/>
+<text text-anchor="middle" x="329.18" y="-554.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_redef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_redef -->
+<g id="proc~~initfielddump~~CallsGraph_edge11" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#cbff00" d="M203,-440.09C210.59,-443.18 218.2,-447.41 224.04,-453.13 253.06,-481.55 229.84,-509.97 260.04,-537.13 266.77,-543.19 275.21,-547.5 283.85,-550.56"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="282.73,-553.88 293.31,-553.39 284.73,-547.17 282.73,-553.88"/>
+</g>
+<!-- proc~nchandle_error -->
+<g id="proc~~initfielddump~~CallsGraph_node21" class="node">
+<title>proc~nchandle_error</title>
+<g id="a_proc~~initfielddump~~CallsGraph_node21"><a xlink:href="../proc/nchandle_error.html" xlink:title="nchandle_error">
+<polygon fill="#d9534f" stroke="#d9534f" points="375.44,-612.27 282.92,-612.27 282.92,-588 375.44,-588 375.44,-612.27"/>
+<text text-anchor="middle" x="329.18" y="-596.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nchandle_error</text>
+</a>
+</g>
+</g>
+<!-- proc~define_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~initfielddump~~CallsGraph_edge12" class="edge">
+<title>proc~define_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#cbff00" d="M202.96,-439.38C210.73,-442.5 218.44,-446.91 224.04,-453.13 262.99,-496.43 219.29,-537.53 260.04,-579.13 263.6,-582.76 267.76,-585.77 272.25,-588.26"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="270.56,-591.33 281.11,-592.29 273.46,-584.96 270.56,-591.33"/>
+</g>
+<!-- nf90_create -->
+<g id="proc~~initfielddump~~CallsGraph_node7" class="node">
+<title>nf90_create</title>
+<polygon fill="#777777" stroke="#777777" points="366.44,-234.27 291.92,-234.27 291.92,-210 366.44,-210 366.44,-234.27"/>
+<text text-anchor="middle" x="329.18" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_create</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_create -->
+<g id="proc~~initfielddump~~CallsGraph_edge13" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_create</title>
+<path fill="none" stroke="#0066ff" d="M186.35,-293.64C203.04,-279.63 231.92,-257.07 260.04,-243.13 266.59,-239.89 273.75,-237.02 280.89,-234.53"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="281.75,-237.93 290.18,-231.51 279.59,-231.27 281.75,-237.93"/>
+</g>
+<!-- nf90_def_dim -->
+<g id="proc~~initfielddump~~CallsGraph_node8" class="node">
+<title>nf90_def_dim</title>
+<polygon fill="#777777" stroke="#777777" points="370.94,-192.27 287.42,-192.27 287.42,-168 370.94,-168 370.94,-192.27"/>
+<text text-anchor="middle" x="329.18" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_dim</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_dim -->
+<g id="proc~~initfielddump~~CallsGraph_edge14" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_dim</title>
+<path fill="none" stroke="#0066ff" d="M179.06,-293.78C192.15,-271.86 222.39,-226.13 260.04,-201.13 265.13,-197.75 270.79,-194.9 276.62,-192.49"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="277.58,-195.86 285.76,-189.13 275.17,-189.29 277.58,-195.86"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~initfielddump~~CallsGraph_edge15" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#0066ff" d="M186.35,-318.63C203.04,-332.64 231.92,-355.2 260.04,-369.13 265.59,-371.88 271.56,-374.36 277.59,-376.56"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="276.4,-379.85 286.99,-379.75 278.65,-373.23 276.4,-379.85"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~initfielddump~~CallsGraph_edge16" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#0066ff" d="M193.36,-318.61C204.08,-325.92 216.39,-336.08 224.04,-348.13 260.1,-404.92 213.9,-446.19 260.04,-495.13 265.29,-500.7 271.98,-504.8 279.1,-507.83"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="277.71,-511.05 288.3,-511.03 280.01,-504.44 277.71,-511.05"/>
+</g>
+<!-- nf90_get_var -->
+<g id="proc~~initfielddump~~CallsGraph_node11" class="node">
+<title>nf90_get_var</title>
+<polygon fill="#777777" stroke="#777777" points="369.44,-150.27 288.92,-150.27 288.92,-126 369.44,-126 369.44,-150.27"/>
+<text text-anchor="middle" x="329.18" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_get_var</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~initfielddump~~CallsGraph_edge17" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#0066ff" d="M175.96,-293.8C185.57,-265.61 213,-196.03 260.04,-159.13 265.47,-154.87 271.77,-151.47 278.3,-148.76"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="279.02,-152.22 287.24,-145.55 276.65,-145.63 279.02,-152.22"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~initfielddump~~CallsGraph_edge18" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#0066ff" d="M192.67,-318.72C203.32,-326.12 215.79,-336.35 224.04,-348.13 252.34,-388.55 224.61,-418.8 260.04,-453.13 263.69,-456.67 267.92,-459.61 272.45,-462.06"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="270.8,-465.16 281.36,-466.05 273.66,-458.77 270.8,-465.16"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~initfielddump~~CallsGraph_edge19" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#0066ff" d="M199.59,-298.72C219.95,-293.25 248.35,-285.61 273.28,-278.9"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="273.87,-282.37 282.62,-276.39 272.05,-275.61 273.87,-282.37"/>
+</g>
+<!-- nf90_inquire -->
+<g id="proc~~initfielddump~~CallsGraph_node14" class="node">
+<title>nf90_inquire</title>
+<polygon fill="#777777" stroke="#777777" points="367.94,-108.27 290.42,-108.27 290.42,-84 367.94,-84 367.94,-108.27"/>
+<text text-anchor="middle" x="329.18" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire -->
+<g id="proc~~initfielddump~~CallsGraph_edge20" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire</title>
+<path fill="none" stroke="#0066ff" d="M177.18,-293.57C193.75,-253.38 245.44,-129.86 260.04,-117.14 265.68,-112.22 272.46,-108.45 279.52,-105.57"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="280.24,-109.02 288.55,-102.44 277.95,-102.41 280.24,-109.02"/>
+</g>
+<!-- nf90_inquire_dimension -->
+<g id="proc~~initfielddump~~CallsGraph_node15" class="node">
+<title>nf90_inquire_dimension</title>
+<polygon fill="#777777" stroke="#777777" points="398.31,-66.27 260.04,-66.27 260.04,-42 398.31,-42 398.31,-66.27"/>
+<text text-anchor="middle" x="329.18" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire_dimension</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~initfielddump~~CallsGraph_edge21" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#0066ff" d="M177.45,-293.72C187.2,-271.23 208.16,-222.2 224.04,-180.13 241.46,-133.98 224.61,-109.47 260.04,-75.14 260.78,-74.42 261.54,-73.73 262.33,-73.06"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="263.96,-76.18 270.2,-67.62 259.98,-70.42 263.96,-76.18"/>
+</g>
+<!-- nf90_open -->
+<g id="proc~~initfielddump~~CallsGraph_node16" class="node">
+<title>nf90_open</title>
+<polygon fill="#777777" stroke="#777777" points="363.06,-360.27 295.29,-360.27 295.29,-336 363.06,-336 363.06,-360.27"/>
+<text text-anchor="middle" x="329.18" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_open</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_open -->
+<g id="proc~~initfielddump~~CallsGraph_edge22" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_open</title>
+<path fill="none" stroke="#0066ff" d="M199.59,-313.55C222.98,-319.84 256.97,-328.98 284.14,-336.29"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="282.9,-339.58 293.47,-338.8 284.72,-332.82 282.9,-339.58"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~initfielddump~~CallsGraph_edge23" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#0066ff" d="M190.81,-318.65C201.41,-326.32 214.41,-336.82 224.04,-348.13 244.95,-372.69 234.87,-390.97 260.04,-411.13 265.68,-415.65 272.3,-419.2 279.15,-421.99"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="277.97,-425.29 288.57,-425.28 280.28,-418.68 277.97,-425.29"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~initfielddump~~CallsGraph_node20" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="361.56,-318.27 296.79,-318.27 296.79,-294 361.56,-294 361.56,-318.27"/>
+<text text-anchor="middle" x="329.18" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_sync -->
+<g id="proc~~initfielddump~~CallsGraph_edge24" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#0066ff" d="M199.59,-306.13C223.26,-306.13 257.79,-306.13 285.11,-306.13"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="284.81,-309.64 294.81,-306.14 284.81,-302.64 284.81,-309.64"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~initfielddump~~CallsGraph_edge25" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#cc00ff" d="M181.77,-171.56C196.72,-189.81 227.06,-223.79 260.04,-243.13 264.3,-245.63 268.88,-247.86 273.59,-249.85"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="272.01,-252.99 282.6,-253.27 274.49,-246.45 272.01,-252.99"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~initfielddump~~CallsGraph_edge26" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#cc00ff" d="M181.77,-146.71C196.72,-128.46 227.06,-94.48 260.04,-75.14 262.47,-73.71 265,-72.37 267.61,-71.12"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="268.72,-74.45 276.52,-67.28 265.95,-68.02 268.72,-74.45"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~initfielddump~~CallsGraph_node18" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="369.44,-24.27 288.92,-24.27 288.92,0 369.44,0 369.44,-24.27"/>
+<text text-anchor="middle" x="329.18" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~initfielddump~~CallsGraph_edge27" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#cc00ff" d="M177.3,-146.69C188.64,-121.44 217.78,-63.95 260.04,-33.13 265.42,-29.21 271.55,-26.01 277.88,-23.4"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="278.96,-26.73 287.19,-20.05 276.59,-20.14 278.96,-26.73"/>
+</g>
+<!-- nf90_strerror -->
+<g id="proc~~initfielddump~~CallsGraph_node22" class="node">
+<title>nf90_strerror</title>
+<polygon fill="#777777" stroke="#777777" points="514.08,-612.27 434.31,-612.27 434.31,-588 514.08,-588 514.08,-612.27"/>
+<text text-anchor="middle" x="474.2" y="-596.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_strerror</text>
+</g>
+<!-- proc~nchandle_error&#45;&gt;nf90_strerror -->
+<g id="proc~~initfielddump~~CallsGraph_edge28" class="edge">
+<title>proc~nchandle_error&#45;&gt;nf90_strerror</title>
+<path fill="none" stroke="#ff0066" d="M375.82,-600.13C390.8,-600.13 407.54,-600.13 422.85,-600.13"/>
+<polygon fill="#ff0066" stroke="#ff0066" points="422.71,-603.64 432.71,-600.14 422.71,-596.64 422.71,-603.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~initfielddump~~CalledByGraph Pages: 1 -->
+<svg id="procinitfielddumpCalledByGraph" width="210pt" height="32pt"
+ viewBox="0.00 0.00 210.29 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~initfielddump~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~initfielddump~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 206.29,-28.27 206.29,4 -4,4"/>
+<!-- proc~initfielddump -->
+<g id="proc~~initfielddump~~CalledByGraph_node1" class="node">
+<title>proc~initfielddump</title>
+<polygon fill="none" stroke="black" points="202.29,-24.27 120.27,-24.27 120.27,0 202.29,0 202.29,-24.27"/>
+<text text-anchor="middle" x="161.28" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">initfielddump</text>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~initfielddump~~CalledByGraph_node2" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~initfielddump~~CalledByGraph_node2"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-24.27 0,-24.27 0,0 84.27,0 84.27,-24.27"/>
+<text text-anchor="middle" x="42.13" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~initfielddump -->
+<g id="proc~~initfielddump~~CalledByGraph_edge1" class="edge">
+<title>program~dalesurban&#45;&gt;proc~initfielddump</title>
+<path fill="none" stroke="#ff0000" d="M84.77,-12.13C92.45,-12.13 100.57,-12.13 108.51,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="108.45,-15.64 118.45,-12.14 108.45,-8.64 108.45,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">initfielddump</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">   </span><span class="k">only</span><span class="w">   </span><span class="p">:</span><span class="n">myid</span><span class="p">,</span><span class="n">my_real</span><span class="p">,</span><span class="n">mpierr</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpi_logical</span><span class="p">,</span><span class="n">mpi_integer</span><span class="p">,</span><span class="n">cmyidx</span><span class="p">,</span><span class="n">cmyidy</span><span class="p">,</span><span class="n">mpi_character</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="k">only</span><span class="w">   </span><span class="p">:</span><span class="n">imax</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">kmax</span><span class="p">,</span><span class="n">imax1</span><span class="p">,</span><span class="n">jmax1</span><span class="p">,</span><span class="n">kmax1</span><span class="p">,</span><span class="n">imax2</span><span class="p">,</span><span class="n">jmax2</span><span class="p">,</span><span class="n">kmax2</span><span class="p">,</span><span class="n">cexpnr</span><span class="p">,</span><span class="n">ifnamopt</span><span class="p">,</span><span class="n">fname_options</span><span class="p">,</span><span class="n">dtmax</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">ladaptive</span><span class="p">,</span><span class="n">dt_lim</span><span class="p">,</span><span class="n">btime</span><span class="p">,</span><span class="n">nsv</span><span class="p">,</span><span class="n">fieldvars</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">lfielddump</span><span class="p">,</span><span class="n">ktot</span><span class="p">,</span><span class="n">kh</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modstat_nc</span><span class="p">,</span><span class="k">only</span><span class="w">  </span><span class="p">:</span><span class="w"> </span><span class="n">open_nc</span><span class="p">,</span><span class="w"> </span><span class="n">define_nc</span><span class="p">,</span><span class="n">ncinfo</span><span class="p">,</span><span class="n">writestat_dims_nc</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w">  </span><span class="p">:</span><span class="w"> </span><span class="n">u0</span><span class="p">,</span><span class="n">v0</span><span class="p">,</span><span class="n">w0</span><span class="p">,</span><span class="n">thl0</span><span class="p">,</span><span class="n">sv0</span><span class="p">,</span><span class="n">ql0</span><span class="p">,</span><span class="n">qt0</span><span class="p">,</span><span class="n">pres0</span><span class="p">,</span><span class="n">div</span><span class="p">,</span><span class="n">dudx</span><span class="p">,</span><span class="n">dvdy</span><span class="p">,</span><span class="n">dwdz</span><span class="p">,</span><span class="n">ru</span><span class="p">,</span><span class="n">rv</span><span class="p">,</span><span class="n">rw</span><span class="p">,</span><span class="n">tau_x</span><span class="p">,</span><span class="w"> </span><span class="n">tau_y</span><span class="p">,</span><span class="w"> </span><span class="n">tau_z</span><span class="p">,</span><span class="w"> </span><span class="n">thl_flux</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modpois</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">pup</span><span class="p">,</span><span class="n">pvp</span><span class="p">,</span><span class="n">pwp</span><span class="p">,</span><span class="w"> </span><span class="n">rhs</span><span class="p">,</span><span class="w"> </span><span class="n">dpupdx</span><span class="p">,</span><span class="w"> </span><span class="n">dpvpdy</span><span class="p">,</span><span class="w"> </span><span class="n">dpwpdz</span><span class="p">,</span><span class="w"> </span><span class="n">xyzrt</span><span class="p">,</span><span class="w"> </span><span class="n">Fxy</span><span class="p">,</span><span class="w"> </span><span class="n">Fxyz</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">mask_u</span><span class="p">,</span><span class="w"> </span><span class="n">mask_v</span><span class="p">,</span><span class="w"> </span><span class="n">mask_w</span><span class="p">,</span><span class="w"> </span><span class="n">mask_c</span>
+<span class="w">    </span><span class="k">implicit none</span>
+<span class="k">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ierr</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+
+<span class="w">    </span><span class="c">!type(domainptr), dimension(nvar) :: pfields</span>
+
+<span class="w">    </span><span class="n">nvar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nb">LEN</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">fieldvars</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nvar</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      </span><span class="n">lfielddump</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">      </span><span class="k">print</span><span class="w"> </span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;empty fieldvars therefore lfielddump = .false. and no instantaneous fields outputted&#39;</span>
+<span class="w">      </span><span class="k">return</span>
+<span class="k">    else</span>
+<span class="k">      allocate</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="n">nvar</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="w">    </span><span class="k">end if</span>
+
+
+
+
+<span class="k">    </span><span class="n">lhalos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lhalos</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      </span><span class="n">ilow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span>
+<span class="w">      </span><span class="n">ihigh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span>
+<span class="w">      </span><span class="n">jlow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span>
+<span class="w">      </span><span class="n">jhigh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="n">jh</span>
+<span class="w">      </span><span class="n">klow</span><span class="o">=</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span>
+<span class="w">      </span><span class="n">khigh</span><span class="o">=</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="k">      </span><span class="n">ilow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span>
+<span class="w">      </span><span class="n">ihigh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">      </span><span class="n">jlow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span>
+<span class="w">      </span><span class="n">jhigh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">je</span>
+<span class="w">      </span><span class="n">klow</span><span class="o">=</span><span class="n">kb</span>
+<span class="w">      </span><span class="n">khigh</span><span class="o">=</span><span class="n">ke</span>
+<span class="w">    </span><span class="k">end if</span>
+
+
+<span class="c">!ils13 13.08.18: why is this broadcast, doesn&#39;t every processor do it anyway?</span>
+<span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">klow</span><span class="w">        </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_INTEGER</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">khigh</span><span class="w">       </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_INTEGER</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">lfielddump</span><span class="w">  </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_LOGICAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">ldiracc</span><span class="w">     </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_LOGICAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">lbinary</span><span class="w">     </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_LOGICAL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">ncname</span><span class="w">     </span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="n">MPI_CHARACTER</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nvar</span><span class="w">       </span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_INTEGER</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">comm3d</span><span class="p">,</span><span class="n">mpierr</span><span class="p">)</span>
+
+<span class="w">    </span><span class="c">!    dt_lim = min(dt_lim,tnext)</span>
+
+<span class="w">    </span><span class="k">if</span><span class="p">(.</span><span class="nb">not</span><span class="p">.(</span><span class="n">lfielddump</span><span class="p">))</span><span class="w"> </span><span class="k">return</span>
+
+<span class="k">    </span><span class="n">fname</span><span class="p">(</span><span class="mi">11</span><span class="p">:</span><span class="mi">13</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<span class="w">    </span><span class="n">fname</span><span class="p">(</span><span class="mi">15</span><span class="p">:</span><span class="mi">17</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidy</span>
+<span class="w">    </span><span class="n">fname</span><span class="p">(</span><span class="mi">19</span><span class="p">:</span><span class="mi">21</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">    </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncname</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+
+<span class="w">    </span><span class="c">! tg3315 reads in fields specified by fieldvars</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lhalos</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">    do </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nvar</span>
+<span class="w">      </span><span class="k">select case</span><span class="p">(</span><span class="n">fieldvars</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">n</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="o">*</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;u0&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;u&#39;</span><span class="p">,</span><span class="s1">&#39;West-East velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;v0&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;v&#39;</span><span class="p">,</span><span class="s1">&#39;South-North velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;tmtt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;w0&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;w&#39;</span><span class="p">,</span><span class="s1">&#39;Vertical velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;th&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;thl&#39;</span><span class="p">,</span><span class="s1">&#39;Liquid water potential temperature&#39;</span><span class="p">,</span><span class="s1">&#39;K&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">thl0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;ql&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;ql&#39;</span><span class="p">,</span><span class="s1">&#39;Liquid water mixing ratio&#39;</span><span class="p">,</span><span class="s1">&#39;1e-5kg/kg&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">ql0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;qt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;qt&#39;</span><span class="p">,</span><span class="s1">&#39;Total water mixing ratio&#39;</span><span class="p">,</span><span class="s1">&#39;1e-5kg/kg&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">qt0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s1&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca1&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 1&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s2&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca2&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 2&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s3&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca3&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 3&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s4&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca4&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 4&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s5&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca5&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 5&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+<span class="w">      </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;p0&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;pres&#39;</span><span class="p">,</span><span class="s1">&#39;pressure field&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">pres0</span><span class="p">(</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">:</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">:</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="c">! case(&#39;pd&#39;)</span>
+<span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;p&#39;,&#39;pressure correction&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">      </span><span class="c">!   pfields(n)%point =&gt; p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<span class="w">      </span><span class="c">! case(&#39;pu&#39;)</span>
+<span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pup&#39;,&#39;predicted u&#39;,&#39;M&#39;,&#39;mttt&#39;)</span>
+<span class="w">      </span><span class="c">!   pfields(n)%point =&gt; pup(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<span class="w">      </span><span class="c">! case(&#39;pv&#39;)</span>
+<span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pvp&#39;,&#39;predicted v&#39;,&#39;M&#39;,&#39;tmtt&#39;)</span>
+<span class="w">      </span><span class="c">!   pfields(n)%point =&gt; pvp(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<span class="w">      </span><span class="c">! case(&#39;pw&#39;)</span>
+<span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pwp&#39;,&#39;predicted w&#39;,&#39;M&#39;,&#39;ttmt&#39;)</span>
+<span class="w">      </span><span class="c">!   pfields(n)%point =&gt; pwp(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<span class="w">      </span><span class="c">! case(&#39;du&#39;)</span>
+<span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpupdx&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">      </span><span class="c">!   pfields(n)%point =&gt; dpupdx(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<span class="w">      </span><span class="c">! case(&#39;dv&#39;)</span>
+<span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpvpdy&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">      </span><span class="c">!   pfields(n)%point =&gt; dpvpdy(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<span class="w">      </span><span class="c">! case(&#39;dw&#39;)</span>
+<span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpwpdz&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">      </span><span class="c">!   pfields(n)%point =&gt; dpwpdz(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<span class="w">      </span><span class="c">! case default</span>
+<span class="w">      </span><span class="c">!   call ncinfo(ncname( n,:),&#39;u&#39;,&#39;West-East velocity&#39;,&#39;m/s&#39;,&#39;mttt&#39;)</span>
+<span class="w">      </span><span class="c">!   pfields(n)%point =&gt; u0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)</span>
+<span class="w">      </span><span class="k">end select</span>
+<span class="k">    end do</span>
+
+<span class="k">    else</span>
+
+<span class="k">      do </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nvar</span>
+<span class="w">        </span><span class="k">select case</span><span class="p">(</span><span class="n">fieldvars</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">n</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="o">*</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;u0&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;u&#39;</span><span class="p">,</span><span class="s1">&#39;West-East velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;v0&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;v&#39;</span><span class="p">,</span><span class="s1">&#39;South-North velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;tmtt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">v0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;w0&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;w&#39;</span><span class="p">,</span><span class="s1">&#39;Vertical velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">w0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;th&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;thl&#39;</span><span class="p">,</span><span class="s1">&#39;Liquid water potential temperature&#39;</span><span class="p">,</span><span class="s1">&#39;K&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">thl0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;ql&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;ql&#39;</span><span class="p">,</span><span class="s1">&#39;Liquid water mixing ratio&#39;</span><span class="p">,</span><span class="s1">&#39;1e-5kg/kg&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">ql0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;qt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;qt&#39;</span><span class="p">,</span><span class="s1">&#39;Total water mixing ratio&#39;</span><span class="p">,</span><span class="s1">&#39;1e-5kg/kg&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">qt0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s1&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca1&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 1&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s2&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca2&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 2&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s3&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca3&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 3&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s4&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca4&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 4&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;s5&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;sca5&#39;</span><span class="p">,</span><span class="s1">&#39;scalar 5&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">sv0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;p0&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;pres&#39;</span><span class="p">,</span><span class="s1">&#39;pressure field&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">pres0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;tx&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;tau_x&#39;</span><span class="p">,</span><span class="s1">&#39;stress x&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">tau_x</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;ty&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;tau_y&#39;</span><span class="p">,</span><span class="s1">&#39;stress y&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tmtt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">tau_y</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;tz&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;tau_z&#39;</span><span class="p">,</span><span class="s1">&#39;stress z&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">tau_z</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;hf&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;thl_flux&#39;</span><span class="p">,</span><span class="s1">&#39;heat flux&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">thl_flux</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;mu&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;mask_u&#39;</span><span class="p">,</span><span class="s1">&#39;mask u&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">mask_u</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;mv&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;mask_v&#39;</span><span class="p">,</span><span class="s1">&#39;mask v&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tmtt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">mask_v</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;mw&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;mask_w&#39;</span><span class="p">,</span><span class="s1">&#39;mask w&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">mask_w</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;mc&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;mask_c&#39;</span><span class="p">,</span><span class="s1">&#39;mask c&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">mask_c</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="c">! case(&#39;pd&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;p&#39;,&#39;pressure correction&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; p(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;pu&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pup&#39;,&#39;predicted u&#39;,&#39;M&#39;,&#39;mttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; pup(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;pv&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pvp&#39;,&#39;predicted v&#39;,&#39;M&#39;,&#39;tmtt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; pvp(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;pw&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;pwp&#39;,&#39;predicted w&#39;,&#39;M&#39;,&#39;ttmt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; pwp(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;rs&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;rhs&#39;,&#39;rhs of poisson equation&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; rhs(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;du&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpupdx&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dpupdx(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;dv&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpvpdy&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dpvpdy(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;dw&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dpwpdz&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dpwpdz(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="k">case</span><span class="p">(</span><span class="s1">&#39;di&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;div&#39;</span><span class="p">,</span><span class="s1">&#39;Divergence after pressure correction&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">div</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="c">! case(&#39;ft&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;ft&#39;,&#39;Fourier transformed data in x and y&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; Fxy(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;ge&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;ge&#39;,&#39;Fourier transformed data in x and y and done GE in z&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; Fxyz(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;ux&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dudx&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dudx(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;vy&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dvdy&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dvdy(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;wz&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;dwdz&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; dwdz(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;up&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;up&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; ru(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;vp&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;vp&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; rv(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;wp&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;wp&#39;,&#39;&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; rw(ib:ie,jb:je,kb:ke)</span>
+<span class="w">        </span><span class="c">! case(&#39;rt&#39;)</span>
+<span class="w">        </span><span class="c">!   call ncinfo(ncname( n,:),&#39;xyzrt&#39;,&#39;Wavenumbers&#39;,&#39;M&#39;,&#39;tttt&#39;)</span>
+<span class="w">        </span><span class="c">!   pfields(n)%point =&gt; xyzrt(1:sp%zsz(1),1:sp%zsz(2),1:ktot)</span>
+<span class="w">        </span><span class="k">case </span><span class="n">default</span>
+<span class="w">          </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncname</span><span class="p">(</span><span class="w"> </span><span class="n">n</span><span class="p">,:),</span><span class="s1">&#39;u&#39;</span><span class="p">,</span><span class="s1">&#39;West-East velocity&#39;</span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="p">)</span>
+<span class="w">          </span><span class="n">pfields</span><span class="p">(</span><span class="n">n</span><span class="p">)%</span><span class="n">point</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">u0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end select</span>
+<span class="k">      end do</span>
+
+<span class="k">    end if</span>
+
+<span class="w">    </span><span class="c">!call ncinfo(ncname( n,:),&#39;u&#39;,&#39;West-East velocity&#39;,&#39;m/s&#39;,&#39;mttt&#39;)</span>
+<span class="w">    </span><span class="c">!call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">open_nc</span><span class="p">(</span><span class="w"> </span><span class="n">fname</span><span class="p">,</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">nrec</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">ihigh</span><span class="o">-</span><span class="n">ilow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jhigh</span><span class="o">-</span><span class="n">jlow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrec</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncname</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">nvar</span><span class="p">,</span><span class="w"> </span><span class="n">ncname</span><span class="p">)</span>
+<span class="w">    </span><span class="c">!call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">open_nc</span><span class="p">(</span><span class="w"> </span><span class="n">fname</span><span class="p">,</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">nrec</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">ihigh</span><span class="o">-</span><span class="n">ilow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jhigh</span><span class="o">-</span><span class="n">jlow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrec</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncname</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end if</span>
+<span class="k">    call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">nvar</span><span class="p">,</span><span class="w"> </span><span class="n">ncname</span><span class="p">)</span>
+
+<span class="w">     </span><span class="c">!   ! X-pencil</span>
+<span class="w">     </span><span class="c">!</span>
+<span class="w">     </span><span class="c">!   fname1(11:13) = cmyidx</span>
+<span class="w">     </span><span class="c">!   fname1(15:17) = cmyidy</span>
+<span class="w">     </span><span class="c">!   fname1(19:21) = cexpnr</span>
+<span class="w">     </span><span class="c">!   call ncinfo(tncname1(1,:),&#39;time&#39;,&#39;Time&#39;,&#39;s&#39;,&#39;time&#39;)</span>
+<span class="w">     </span><span class="c">!   call ncinfo(ncname1(1,:),&#39;u&#39;,&#39;West-East velocity&#39;,&#39;m/s&#39;,&#39;mttt&#39;)</span>
+<span class="w">     </span><span class="c">!</span>
+<span class="w">     </span><span class="c">!   !write(*,*) &quot;done defining pfields&quot;</span>
+<span class="w">     </span><span class="c">!</span>
+<span class="w">     </span><span class="c">!   call open_nc( fname1, ncid1, nrec, n1=imax1+2, n2=jmax1+2, n3=kmax1+2)</span>
+<span class="w">     </span><span class="c">!</span>
+<span class="w">     </span><span class="c">!   if (nrec==0) then</span>
+<span class="w">     </span><span class="c">!     call define_nc( ncid1, 1, tncname1)</span>
+<span class="w">     </span><span class="c">!     call writestat_dims_nc(ncid1)</span>
+<span class="w">     </span><span class="c">!   end if</span>
+<span class="w">     </span><span class="c">!   call define_nc( ncid1, nvar, ncname1)</span>
+<span class="w">     </span><span class="c">!   call open_nc( fname1, ncid1, nrec, n1=imax1+2, n2=jmax1+2, n3=kmax1+2)</span>
+<span class="w">     </span><span class="c">!   ! call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)  !if want to print ghostcells</span>
+<span class="w">     </span><span class="c">!   if (nrec==0) then</span>
+<span class="w">     </span><span class="c">!     call define_nc( ncid1, 1, tncname1)</span>
+<span class="w">     </span><span class="c">!     call writestat_dims_nc(ncid1)</span>
+<span class="w">     </span><span class="c">!  end if</span>
+<span class="w">     </span><span class="c">!  call define_nc( ncid1, nvar, ncname1)</span>
+<span class="w">     </span><span class="c">!</span>
+<span class="w">     </span><span class="c">!</span>
+<span class="w">     </span><span class="c">!  ! Y-pencil</span>
+<span class="w">     </span><span class="c">!</span>
+<span class="w">     </span><span class="c">!  fname2(11:13) = cmyidx</span>
+<span class="w">     </span><span class="c">!  fname2(15:17) = cmyidy</span>
+<span class="w">     </span><span class="c">!  fname2(19:21) = cexpnr</span>
+<span class="w">     </span><span class="c">!  call ncinfo(tncname2(1,:),&#39;time&#39;,&#39;Time&#39;,&#39;s&#39;,&#39;time&#39;)</span>
+<span class="w">     </span><span class="c">!  call ncinfo(ncname2( 1,:),&#39;u&#39;,&#39;West-East velocity&#39;,&#39;m/s&#39;,&#39;mttt&#39;)</span>
+<span class="w">     </span><span class="c">!</span>
+<span class="w">     </span><span class="c">!  call open_nc( fname2, ncid2, nrec, n1=imax2+2, n2=jmax2+2, n3=kmax2+2)</span>
+<span class="w">     </span><span class="c">!  if (nrec==0) then</span>
+<span class="w">     </span><span class="c">!    call define_nc( ncid2, 1, tncname2)</span>
+<span class="w">     </span><span class="c">!    call writestat_dims_nc(ncid2)</span>
+<span class="w">     </span><span class="c">!  end if</span>
+<span class="w">     </span><span class="c">!  call define_nc( ncid2, nvar, ncname2)</span>
+<span class="w">     </span><span class="c">!  call open_nc( fname2, ncid2, nrec, n1=imax2+2, n2=jmax2+2, n3=kmax2+2)</span>
+<span class="w">     </span><span class="c">!  ! call open_nc( fname, ncid, nrec, n1=imax+2, n2=jmax+2, n3=khigh-klow+1)  !if want to print ghostcells</span>
+<span class="w">     </span><span class="c">!  if (nrec==0) then</span>
+<span class="w">     </span><span class="c">!    call define_nc( ncid2, 1, tncname2)</span>
+<span class="w">     </span><span class="c">!    call writestat_dims_nc(ncid2)</span>
+<span class="w">     </span><span class="c">! end if</span>
+<span class="w">     </span><span class="c">! call define_nc( ncid2, nvar, ncname2)</span>
+
+<span class="w">  </span><span class="k">end subroutine </span><span class="n">initfielddump</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

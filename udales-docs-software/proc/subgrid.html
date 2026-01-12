@@ -1,0 +1,762 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>subgrid &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>subgrid
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.1% of total for procedures.">19 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modsubgrid.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modsubgrid.f90.html'>modsubgrid.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modsubgrid.html'>modsubgrid</a></li>
+            <li class="breadcrumb-item active" aria-current="page">subgrid</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+    <em>None</em>
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine subgrid()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item"><a href='../module/modsurfdata.html'>modsurfdata</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~subgrid~~UsesGraph Pages: 1 -->
+<svg id="procsubgridUsesGraph" width="288pt" height="158pt"
+ viewBox="0.00 0.00 287.54 158.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~subgrid~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 154.27)">
+<title>proc~~subgrid~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-154.27 283.54,-154.27 283.54,4 -4,4"/>
+<!-- proc~subgrid -->
+<g id="proc~~subgrid~~UsesGraph_node1" class="node">
+<title>proc~subgrid</title>
+<polygon fill="none" stroke="black" points="279.54,-87.27 225.54,-87.27 225.54,-63 279.54,-63 279.54,-87.27"/>
+<text text-anchor="middle" x="252.54" y="-71.54" font-family="Helvetica,sans-Serif" font-size="10.50">subgrid</text>
+</g>
+<!-- module~modfields -->
+<g id="proc~~subgrid~~UsesGraph_node2" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~subgrid~~UsesGraph_node2"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="181.66,-150.27 117.64,-150.27 117.64,-126 181.66,-126 181.66,-150.27"/>
+<text text-anchor="middle" x="149.65" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;module~modfields -->
+<g id="proc~~subgrid~~UsesGraph_edge1" class="edge">
+<title>proc~subgrid&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M233.94,-87.75C221.7,-96.35 204.88,-107.83 189.54,-117.14 187.92,-118.12 186.24,-119.11 184.55,-120.1"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="183.04,-116.93 176.04,-124.88 186.47,-123.03 183.04,-116.93"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~subgrid~~UsesGraph_node3" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~subgrid~~UsesGraph_node3"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="183.91,-108.27 115.39,-108.27 115.39,-84 183.91,-84 183.91,-108.27"/>
+<text text-anchor="middle" x="149.65" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;module~modglobal -->
+<g id="proc~~subgrid~~UsesGraph_edge2" class="edge">
+<title>proc~subgrid&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M225.3,-80.6C216.22,-82.49 205.77,-84.66 195.62,-86.77"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="194.94,-83.34 185.86,-88.81 196.37,-90.19 194.94,-83.34"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~subgrid~~UsesGraph_node4" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~subgrid~~UsesGraph_node4"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="177.54,-66.27 121.77,-66.27 121.77,-42 177.54,-42 177.54,-66.27"/>
+<text text-anchor="middle" x="149.65" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;module~modmpi -->
+<g id="proc~~subgrid~~UsesGraph_edge3" class="edge">
+<title>proc~subgrid&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M225.3,-69.67C214.24,-67.37 201.14,-64.64 189.03,-62.12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="189.81,-58.71 179.3,-60.1 188.38,-65.56 189.81,-58.71"/>
+</g>
+<!-- module~modsurfdata -->
+<g id="proc~~subgrid~~UsesGraph_node5" class="node">
+<title>module~modsurfdata</title>
+<g id="a_proc~~subgrid~~UsesGraph_node5"><a xlink:href="../module/modsurfdata.html" xlink:title="modsurfdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="189.54,-24.27 109.77,-24.27 109.77,0 189.54,0 189.54,-24.27"/>
+<text text-anchor="middle" x="149.65" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsurfdata</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;module~modsurfdata -->
+<g id="proc~~subgrid~~UsesGraph_edge4" class="edge">
+<title>proc~subgrid&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M233.94,-62.52C221.7,-53.92 204.88,-42.44 189.54,-33.13 187.92,-32.15 186.24,-31.16 184.55,-30.17"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="186.47,-27.24 176.04,-25.39 183.04,-33.34 186.47,-27.24"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~subgrid~~UsesGraph_node6" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="73.77,-150.27 0,-150.27 0,-126 73.77,-126 73.77,-150.27"/>
+<text text-anchor="middle" x="36.88" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~subgrid~~UsesGraph_edge5" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M117.21,-138.13C107.34,-138.13 96.23,-138.13 85.5,-138.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="85.62,-134.64 75.62,-138.14 85.62,-141.64 85.62,-134.64"/>
+</g>
+<!-- mpi -->
+<g id="proc~~subgrid~~UsesGraph_node7" class="node">
+<title>mpi</title>
+<g id="a_proc~~subgrid~~UsesGraph_node7"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="63.88,-66.27 9.88,-66.27 9.88,-42 63.88,-42 63.88,-66.27"/>
+<text text-anchor="middle" x="36.88" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~subgrid~~UsesGraph_edge6" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M121.27,-54.13C107.52,-54.13 90.65,-54.13 75.68,-54.13"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="75.7,-50.64 65.7,-54.14 75.7,-57.64 75.7,-50.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~subgrid~~CallsGraph Pages: 1 -->
+<svg id="procsubgridCallsGraph" width="389pt" height="284pt"
+ viewBox="0.00 0.00 388.79 284.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~subgrid~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 280.27)">
+<title>proc~~subgrid~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-280.27 384.79,-280.27 384.79,4 -4,4"/>
+<!-- proc~subgrid -->
+<g id="proc~~subgrid~~CallsGraph_node1" class="node">
+<title>proc~subgrid</title>
+<polygon fill="none" stroke="black" points="54,-150.27 0,-150.27 0,-126 54,-126 54,-150.27"/>
+<text text-anchor="middle" x="27" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50">subgrid</text>
+</g>
+<!-- proc~closure -->
+<g id="proc~~subgrid~~CallsGraph_node2" class="node">
+<title>proc~closure</title>
+<g id="a_proc~~subgrid~~CallsGraph_node2"><a xlink:href="../proc/closure.html" xlink:title="closure">
+<polygon fill="#d9534f" stroke="#d9534f" points="144,-276.27 90,-276.27 90,-252 144,-252 144,-276.27"/>
+<text text-anchor="middle" x="117" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">closure</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;proc~closure -->
+<g id="proc~~subgrid~~CallsGraph_edge1" class="edge">
+<title>proc~subgrid&#45;&gt;proc~closure</title>
+<path fill="none" stroke="#ff0000" d="M33.6,-150.71C43.2,-171.41 64.26,-213.34 90,-243.13 90.16,-243.32 90.32,-243.51 90.49,-243.69"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="87.99,-246.14 97.61,-250.57 92.85,-241.11 87.99,-246.14"/>
+</g>
+<!-- proc~diffc -->
+<g id="proc~~subgrid~~CallsGraph_node3" class="node">
+<title>proc~diffc</title>
+<g id="a_proc~~subgrid~~CallsGraph_node3"><a xlink:href="../proc/diffc.html" xlink:title="diffc">
+<polygon fill="#d9534f" stroke="#d9534f" points="144,-234.27 90,-234.27 90,-210 144,-210 144,-234.27"/>
+<text text-anchor="middle" x="117" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">diffc</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;proc~diffc -->
+<g id="proc~~subgrid~~CallsGraph_edge2" class="edge">
+<title>proc~subgrid&#45;&gt;proc~diffc</title>
+<path fill="none" stroke="#ff0000" d="M39.49,-150.63C51.65,-163.64 71.58,-184.44 90,-201.13 90.39,-201.49 90.78,-201.84 91.17,-202.19"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="88.77,-204.74 98.66,-208.55 93.31,-199.41 88.77,-204.74"/>
+</g>
+<!-- proc~diffe -->
+<g id="proc~~subgrid~~CallsGraph_node4" class="node">
+<title>proc~diffe</title>
+<g id="a_proc~~subgrid~~CallsGraph_node4"><a xlink:href="../proc/diffe.html" xlink:title="diffe">
+<polygon fill="#d9534f" stroke="#d9534f" points="144,-192.27 90,-192.27 90,-168 144,-168 144,-192.27"/>
+<text text-anchor="middle" x="117" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">diffe</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;proc~diffe -->
+<g id="proc~~subgrid~~CallsGraph_edge3" class="edge">
+<title>proc~subgrid&#45;&gt;proc~diffe</title>
+<path fill="none" stroke="#ff0000" d="M54.4,-150.74C62.23,-154.47 70.96,-158.64 79.32,-162.63"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="77.72,-165.74 88.25,-166.89 80.73,-159.42 77.72,-165.74"/>
+</g>
+<!-- proc~diffu -->
+<g id="proc~~subgrid~~CallsGraph_node5" class="node">
+<title>proc~diffu</title>
+<g id="a_proc~~subgrid~~CallsGraph_node5"><a xlink:href="../proc/diffu.html" xlink:title="diffu">
+<polygon fill="#d9534f" stroke="#d9534f" points="144,-150.27 90,-150.27 90,-126 144,-126 144,-150.27"/>
+<text text-anchor="middle" x="117" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">diffu</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;proc~diffu -->
+<g id="proc~~subgrid~~CallsGraph_edge4" class="edge">
+<title>proc~subgrid&#45;&gt;proc~diffu</title>
+<path fill="none" stroke="#ff0000" d="M54.4,-138.13C61.89,-138.13 70.18,-138.13 78.2,-138.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.1,-141.64 88.1,-138.14 78.1,-134.64 78.1,-141.64"/>
+</g>
+<!-- proc~diffv -->
+<g id="proc~~subgrid~~CallsGraph_node6" class="node">
+<title>proc~diffv</title>
+<g id="a_proc~~subgrid~~CallsGraph_node6"><a xlink:href="../proc/diffv.html" xlink:title="diffv">
+<polygon fill="#d9534f" stroke="#d9534f" points="144,-108.27 90,-108.27 90,-84 144,-84 144,-108.27"/>
+<text text-anchor="middle" x="117" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">diffv</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;proc~diffv -->
+<g id="proc~~subgrid~~CallsGraph_edge5" class="edge">
+<title>proc~subgrid&#45;&gt;proc~diffv</title>
+<path fill="none" stroke="#ff0000" d="M54.4,-125.53C62.23,-121.8 70.96,-117.63 79.32,-113.64"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="80.73,-116.85 88.25,-109.38 77.72,-110.53 80.73,-116.85"/>
+</g>
+<!-- proc~diffw -->
+<g id="proc~~subgrid~~CallsGraph_node7" class="node">
+<title>proc~diffw</title>
+<g id="a_proc~~subgrid~~CallsGraph_node7"><a xlink:href="../proc/diffw.html" xlink:title="diffw">
+<polygon fill="#d9534f" stroke="#d9534f" points="144,-66.27 90,-66.27 90,-42 144,-42 144,-66.27"/>
+<text text-anchor="middle" x="117" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">diffw</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;proc~diffw -->
+<g id="proc~~subgrid~~CallsGraph_edge6" class="edge">
+<title>proc~subgrid&#45;&gt;proc~diffw</title>
+<path fill="none" stroke="#ff0000" d="M39.49,-125.64C51.65,-112.63 71.58,-91.83 90,-75.14 90.39,-74.78 90.78,-74.43 91.17,-74.08"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="93.31,-76.86 98.66,-67.72 88.77,-71.53 93.31,-76.86"/>
+</g>
+<!-- proc~sources -->
+<g id="proc~~subgrid~~CallsGraph_node8" class="node">
+<title>proc~sources</title>
+<g id="a_proc~~subgrid~~CallsGraph_node8"><a xlink:href="../proc/sources.html" xlink:title="sources">
+<polygon fill="#d9534f" stroke="#d9534f" points="144,-24.27 90,-24.27 90,0 144,0 144,-24.27"/>
+<text text-anchor="middle" x="117" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">sources</text>
+</a>
+</g>
+</g>
+<!-- proc~subgrid&#45;&gt;proc~sources -->
+<g id="proc~~subgrid~~CallsGraph_edge7" class="edge">
+<title>proc~subgrid&#45;&gt;proc~sources</title>
+<path fill="none" stroke="#ff0000" d="M33.6,-125.56C43.2,-104.86 64.26,-62.93 90,-33.13 90.16,-32.95 90.32,-32.76 90.49,-32.58"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="92.85,-35.16 97.61,-25.7 87.99,-30.13 92.85,-35.16"/>
+</g>
+<!-- proc~closurebc -->
+<g id="proc~~subgrid~~CallsGraph_node9" class="node">
+<title>proc~closurebc</title>
+<g id="a_proc~~subgrid~~CallsGraph_node9"><a xlink:href="../proc/closurebc.html" xlink:title="closurebc">
+<polygon fill="#d9534f" stroke="#d9534f" points="242.52,-276.27 180,-276.27 180,-252 242.52,-252 242.52,-276.27"/>
+<text text-anchor="middle" x="211.26" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">closurebc</text>
+</a>
+</g>
+</g>
+<!-- proc~closure&#45;&gt;proc~closurebc -->
+<g id="proc~~subgrid~~CallsGraph_edge8" class="edge">
+<title>proc~closure&#45;&gt;proc~closurebc</title>
+<path fill="none" stroke="#ff0000" d="M144.19,-264.13C151.72,-264.13 160.13,-264.13 168.36,-264.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="168.25,-267.64 178.25,-264.14 168.25,-260.64 168.25,-267.64"/>
+</g>
+<!-- exchange_halo_z -->
+<g id="proc~~subgrid~~CallsGraph_node10" class="node">
+<title>exchange_halo_z</title>
+<polygon fill="#777777" stroke="#777777" points="380.79,-276.27 278.52,-276.27 278.52,-252 380.79,-252 380.79,-276.27"/>
+<text text-anchor="middle" x="329.65" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exchange_halo_z</text>
+</g>
+<!-- proc~closurebc&#45;&gt;exchange_halo_z -->
+<g id="proc~~subgrid~~CallsGraph_edge9" class="edge">
+<title>proc~closurebc&#45;&gt;exchange_halo_z</title>
+<path fill="none" stroke="#ff0000" d="M242.84,-264.13C250.25,-264.13 258.44,-264.13 266.72,-264.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="266.51,-267.64 276.51,-264.14 266.51,-260.64 266.51,-267.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~subgrid~~CalledByGraph Pages: 1 -->
+<svg id="procsubgridCalledByGraph" width="182pt" height="32pt"
+ viewBox="0.00 0.00 182.27 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~subgrid~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~subgrid~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 178.27,-28.27 178.27,4 -4,4"/>
+<!-- proc~subgrid -->
+<g id="proc~~subgrid~~CalledByGraph_node1" class="node">
+<title>proc~subgrid</title>
+<polygon fill="none" stroke="black" points="174.27,-24.27 120.27,-24.27 120.27,0 174.27,0 174.27,-24.27"/>
+<text text-anchor="middle" x="147.27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">subgrid</text>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~subgrid~~CalledByGraph_node2" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~subgrid~~CalledByGraph_node2"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-24.27 0,-24.27 0,0 84.27,0 84.27,-24.27"/>
+<text text-anchor="middle" x="42.13" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~subgrid -->
+<g id="proc~~subgrid~~CalledByGraph_edge1" class="edge">
+<title>program~dalesurban&#45;&gt;proc~subgrid</title>
+<path fill="none" stroke="#ff0000" d="M84.49,-12.13C92.45,-12.13 100.76,-12.13 108.6,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="108.52,-15.64 118.52,-12.14 108.52,-8.64 108.52,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

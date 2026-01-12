@@ -1,0 +1,2518 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the building-resolving urban multi-physics code uDALES">
+      
+      
+        <meta name="author" content="The uDALES Team">
+      
+      
+        <link rel="canonical" href="https://uDALES.github.io/u-dales/udales-example-simulations/">
+      
+      
+        <link rel="prev" href="../udales-utility-tutorial/">
+      
+      
+        <link rel="next" href="../udales-how-to-cite/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.17">
+    
+    
+      
+        <title>Example simulations - uDALES</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="pink">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#example-simulations" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="uDALES" class="md-header__button md-logo" aria-label="uDALES" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            uDALES
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Example simulations
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="uDALES" class="md-nav__button md-logo" aria-label="uDALES" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    uDALES
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Simulation inputs
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Simulation inputs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-namoptions-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List of input parameters
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-boundary-conditions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Boundary conditions
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-geometry-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry generation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-copy-inputs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Copying from other simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-driver-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Precursor simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Running the simulation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Running the simulation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-pre-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Pre-processing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-simulation-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Running uDALES
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-post-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Post-processing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Data post-processing
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Data post-processing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-udbase-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    udbase
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-fields-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Flow fields and statistics
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-facets-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Facets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-utility-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Utility routines
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Example simulations
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Example simulations
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#customising-simulations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Customising simulations
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#main-simulation-set-up-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Main simulation set-up options
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#list-of-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      List of examples
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#standard-simulation-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Standard simulation setup
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neutral-simulations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Neutral simulations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Neutral simulations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#001" class="md-nav__link">
+    <span class="md-ellipsis">
+      001
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="001">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#no-buildings-bottom-surface-roughness" class="md-nav__link">
+    <span class="md-ellipsis">
+      No buildings, bottom surface roughness
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#constant-pressure-gradient" class="md-nav__link">
+    <span class="md-ellipsis">
+      Constant pressure gradient
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-instantaneous-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output: instantaneous fields
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#002" class="md-nav__link">
+    <span class="md-ellipsis">
+      002
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="002">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aligned-cuboid-buildings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Aligned cuboid buildings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-space-time-averaged-profiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output: space-time averaged profiles
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-neutral-simulations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Non-neutral simulations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Non-neutral simulations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101" class="md-nav__link">
+    <span class="md-ellipsis">
+      101
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="101">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#infinite-canyon-buildings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Infinite canyon buildings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#volume-flow-rate-forcing-in-x" class="md-nav__link">
+    <span class="md-ellipsis">
+      Volume flow rate forcing in x
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#temperature" class="md-nav__link">
+    <span class="md-ellipsis">
+      Temperature
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isothermal-bc-for-temperature" class="md-nav__link">
+    <span class="md-ellipsis">
+      Isothermal BC for temperature
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#passive-scalars-line-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      Passive scalars line source
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-instantaneous-fields-for-temperature-and-scalars" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output: instantaneous fields for temperature and scalars
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102" class="md-nav__link">
+    <span class="md-ellipsis">
+      102
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="102">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites-for-warmstart-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites for warmstart simulation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#warmstart" class="md-nav__link">
+    <span class="md-ellipsis">
+      Warmstart
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#volume-flow-rate-forcing-in-x_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Volume flow rate forcing in x
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#constant-thermal-flux-bc-for-temperature" class="md-nav__link">
+    <span class="md-ellipsis">
+      Constant thermal flux BC for temperature
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#passive-scalars-point-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      Passive scalars point source
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scalar-inflow-outflow-bc" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scalar inflow-outflow BC
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#energy-balance-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Energy balance simulation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Energy balance simulation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#201" class="md-nav__link">
+    <span class="md-ellipsis">
+      201
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="201">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pre-defined-buildings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pre-defined buildings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-time-averaged-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output: time averaged fields
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#energy-balance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Energy Balance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#moisture" class="md-nav__link">
+    <span class="md-ellipsis">
+      Moisture
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#coriolis-forcing-and-nudging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Coriolis forcing and nudging
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#driver-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Driver simulation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Driver simulation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#949" class="md-nav__link">
+    <span class="md-ellipsis">
+      949
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="949">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#driverprecursor-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Driver/precursor simulation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#950" class="md-nav__link">
+    <span class="md-ellipsis">
+      950
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="950">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites-simulation-with-external-forcing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites simulation with external forcing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#driven-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Driven simulation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-how-to-cite/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to cite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-pub-list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Publication list
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DEVELOP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Development notes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to contribute
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-docs-software/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Software docs
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#customising-simulations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Customising simulations
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#main-simulation-set-up-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Main simulation set-up options
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#list-of-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      List of examples
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#standard-simulation-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Standard simulation setup
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#neutral-simulations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Neutral simulations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Neutral simulations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#001" class="md-nav__link">
+    <span class="md-ellipsis">
+      001
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="001">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#no-buildings-bottom-surface-roughness" class="md-nav__link">
+    <span class="md-ellipsis">
+      No buildings, bottom surface roughness
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#constant-pressure-gradient" class="md-nav__link">
+    <span class="md-ellipsis">
+      Constant pressure gradient
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-instantaneous-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output: instantaneous fields
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#002" class="md-nav__link">
+    <span class="md-ellipsis">
+      002
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="002">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aligned-cuboid-buildings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Aligned cuboid buildings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-space-time-averaged-profiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output: space-time averaged profiles
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-neutral-simulations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Non-neutral simulations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Non-neutral simulations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101" class="md-nav__link">
+    <span class="md-ellipsis">
+      101
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="101">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#infinite-canyon-buildings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Infinite canyon buildings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#volume-flow-rate-forcing-in-x" class="md-nav__link">
+    <span class="md-ellipsis">
+      Volume flow rate forcing in x
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#temperature" class="md-nav__link">
+    <span class="md-ellipsis">
+      Temperature
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isothermal-bc-for-temperature" class="md-nav__link">
+    <span class="md-ellipsis">
+      Isothermal BC for temperature
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#passive-scalars-line-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      Passive scalars line source
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-instantaneous-fields-for-temperature-and-scalars" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output: instantaneous fields for temperature and scalars
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102" class="md-nav__link">
+    <span class="md-ellipsis">
+      102
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="102">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites-for-warmstart-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites for warmstart simulation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#warmstart" class="md-nav__link">
+    <span class="md-ellipsis">
+      Warmstart
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#volume-flow-rate-forcing-in-x_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Volume flow rate forcing in x
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#constant-thermal-flux-bc-for-temperature" class="md-nav__link">
+    <span class="md-ellipsis">
+      Constant thermal flux BC for temperature
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#passive-scalars-point-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      Passive scalars point source
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scalar-inflow-outflow-bc" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scalar inflow-outflow BC
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#energy-balance-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Energy balance simulation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Energy balance simulation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#201" class="md-nav__link">
+    <span class="md-ellipsis">
+      201
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="201">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pre-defined-buildings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pre-defined buildings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-time-averaged-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output: time averaged fields
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#energy-balance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Energy Balance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#moisture" class="md-nav__link">
+    <span class="md-ellipsis">
+      Moisture
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#coriolis-forcing-and-nudging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Coriolis forcing and nudging
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#driver-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Driver simulation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Driver simulation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#949" class="md-nav__link">
+    <span class="md-ellipsis">
+      949
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="949">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#driverprecursor-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Driver/precursor simulation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#950" class="md-nav__link">
+    <span class="md-ellipsis">
+      950
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="950">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites-simulation-with-external-forcing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites simulation with external forcing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#driven-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Driven simulation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<!-- omit in toc -->
+<h1 id="example-simulations">Example simulations<a class="headerlink" href="#example-simulations" title="Permanent link">&para;</a></h1>
+<p>uDALES can simulate a large variety of urban case studies. Here we showcase a few examples (<a href="#list-of-examples">List of examples</a>) with different atmospheric stabilities and various setups (overview in <a href="#main-simulation-set-up-options">Table 1</a>) to help you get started. The setups are in the <code>namoptions</code> file of your simulation. To maximise the benefit of these examples it is advised that you have the <code>namoptions</code> file open for the relevant simulation as you work through the example documentation.</p>
+<p>Note that we limited the simulation time to just a few minutes for demonstration, if you are looking to conduct realistic simulations, you need a much longer simulation time. If you wish to run all examples automatically and plot inputs and outputs as shown in this guide, follow the instructions detailed in the  <a href="https://github.com/uDALES/u-dales/blob/master/DEVELOP.md">development notes</a> instead.</p>
+<!-- omit in toc -->
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
+<p>All examples below assume that you have installed uDALES as per our <a href="../udales-installation/">Installation and First Run</a>.</p>
+<p>Set up the paths and variables for running the simulation, for example with the following:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># We assume you are running the following commands from your</span>
+<span class="c1"># top-level project directory.</span>
+
+<span class="nb">export</span><span class="w"> </span><span class="nv">DA_TOOLSDIR</span><span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/u-dales/tools<span class="w"> </span><span class="c1"># Directory of scripts</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">DA_BUILD</span><span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/u-dales/build/release/u-dales<span class="w"> </span><span class="c1"># Build file</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">NCPU</span><span class="o">=</span><span class="m">2</span><span class="w"> </span><span class="c1"># Number of CPUs to use for a simulation</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">DA_WORKDIR</span><span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/outputs<span class="w"> </span><span class="c1"># Output top-level directory</span>
+</code></pre></div>
+<!-- omit in toc -->
+<h2 id="run">Run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h2>
+<p>Example cases are located under <code>u-dales/examples</code>.</p>
+<p>All examples are run using the following command:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># We assume you are running the following commands from your</span>
+<span class="c1"># top-level project directory.</span>
+
+<span class="c1"># General syntax: local_execute.sh exp_directory</span>
+./u-dales/tools/local_execute.sh<span class="w"> </span>examples/001
+</code></pre></div>
+<!-- omit in toc -->
+<h2 id="customising-simulations">Customising simulations<a class="headerlink" href="#customising-simulations" title="Permanent link">&para;</a></h2>
+<p>If you want to make any changes to the example simulations, e.g. changing the domain size, follow the <a href="../udales-installation/#project-setup">set-up steps</a> in the "Installation and First Run" guide to obtain a copy of the simulation setup and make the changes to your copy of the setup. You may need to run some pre-processing steps (see <a href="../udales-pre-processing/">Pre-processing</a>) before running the simulation. These cases are indicated as such in <a href="#main-simulation-set-up-options">Table 1</a>.</p>
+<!-- omit in toc -->
+<h2 id="main-simulation-set-up-options">Main simulation set-up options<a class="headerlink" href="#main-simulation-set-up-options" title="Permanent link">&para;</a></h2>
+<p>Below is a list of common setups and options for urban case studies. A complete list of all options available with uDALES can be found in the <a href="../udales-namoptions-overview/">Configuration</a> document.</p>
+<p>Table 1: Main setups of urban case studies and reference example simulation(s).</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Setting</th>
+<th>Requires pre-processing</th>
+<th>Example simulation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Domain</td>
+<td>size and resolution</td>
+<td>yes</td>
+<td>all</td>
+</tr>
+<tr>
+<td>Domain</td>
+<td>warmstart</td>
+<td>no</td>
+<td>102</td>
+</tr>
+<tr>
+<td>Morphology</td>
+<td>no buildings</td>
+<td>yes</td>
+<td>001</td>
+</tr>
+<tr>
+<td>Morphology</td>
+<td>infinite canyon builings</td>
+<td>yes</td>
+<td>101</td>
+</tr>
+<tr>
+<td>Morphology</td>
+<td>aligned cuboid buildings</td>
+<td>yes</td>
+<td>002, 949</td>
+</tr>
+<tr>
+<td>Morphology</td>
+<td>staggered cuboid buildings</td>
+<td>yes</td>
+<td>102</td>
+</tr>
+<tr>
+<td>Morphology</td>
+<td>pre-defined buildings</td>
+<td>yes</td>
+<td>201, 950</td>
+</tr>
+<tr>
+<td>Forcing</td>
+<td>pressure gradient</td>
+<td>yes</td>
+<td>001</td>
+</tr>
+<tr>
+<td>Forcing</td>
+<td>volume flow rate</td>
+<td>no</td>
+<td>101, 102, 949</td>
+</tr>
+<tr>
+<td>Forcing</td>
+<td>Coriolis and nudging</td>
+<td>yes</td>
+<td>201</td>
+</tr>
+<tr>
+<td>Forcing</td>
+<td>driving data</td>
+<td>no</td>
+<td>950</td>
+</tr>
+<tr>
+<td>Lateral momentum boundary conditions (BCs)</td>
+<td>periodic</td>
+<td>no</td>
+<td>001, 002, 101, 102, 201, 949</td>
+</tr>
+<tr>
+<td>Lateral momentum BCs</td>
+<td>driving data</td>
+<td>no</td>
+<td>950</td>
+</tr>
+<tr>
+<td>Passive scalar source</td>
+<td>point source</td>
+<td>no</td>
+<td>102</td>
+</tr>
+<tr>
+<td>Passive scalar source</td>
+<td>line source</td>
+<td>no</td>
+<td>101</td>
+</tr>
+<tr>
+<td>Lateral scalar BCs</td>
+<td>periodic</td>
+<td>no</td>
+<td>101, 949</td>
+</tr>
+<tr>
+<td>Lateral scalar BCs</td>
+<td>inflow-outflow</td>
+<td>no</td>
+<td>102</td>
+</tr>
+<tr>
+<td>Surface and top scalar BCs</td>
+<td>constant flux</td>
+<td>no</td>
+<td>102</td>
+</tr>
+<tr>
+<td>Surface and top scalar BCs</td>
+<td>isothermal</td>
+<td>no</td>
+<td>101, 949</td>
+</tr>
+<tr>
+<td>Surface and top scalar BCs</td>
+<td>energy balance</td>
+<td>yes</td>
+<td>201</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>instantaneous fields</td>
+<td>no</td>
+<td>001, 101, 102, 201, 949</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>time-averaged fields</td>
+<td>no</td>
+<td>201, 950</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>space-averaged (along x,y) profiles</td>
+<td>no</td>
+<td>002, 101, 102, 201, 501, 950</td>
+</tr>
+</tbody>
+</table>
+<!-- omit in toc -->
+<!---| Domain                                     | equidistant grid                    | yes                     | 001, 002, 101, 102, 501, 502 | --->
+<!---| Domain                                     | stretched z-grid                    | yes                     | 201                          | --->
+<!---| Morphology                                 | LIDAR-image buildings               | yes                     | 502                          | --->
+<!---| Forcing                                    | outflow rate                        | no                      | --                           |
+| Forcing                                    | free stream velocity                | no                      | --                           |--->
+<!---| Passive scalar source                      | source network                      | no                      | --                           |--->
+<!---| Surface and top scalar BCs                 | zero flux                           | no                      | --                           |--->
+<!---| Output                                     | space-averaged (along y) fields     | no                      | 101                          |--->
+<h2 id="list-of-examples">List of examples<a class="headerlink" href="#list-of-examples" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="#standard-simulation-setup">Standard simulation setup</a></li>
+<li><a href="#neutral-simulations">Neutral simulations</a></li>
+<li><a href="#001">001</a><ul>
+<li><a href="#no-buildings-bottom-surface-roughness">No buildings, bottom surface roughness</a></li>
+<li><a href="#constant-pressure-gradient">Constant pressure gradient</a></li>
+<li><a href="#output-instantaneous-fields">Output: instantaneous fields</a></li>
+</ul>
+</li>
+<li><a href="#002">002</a><ul>
+<li><a href="#aligned-cuboid-buildings">Aligned cuboid buildings</a></li>
+<li><a href="#output-space-time-averaged-profiles">Output: space-time averaged profiles</a></li>
+</ul>
+</li>
+<li><a href="#non-neutral-simulations">Non-neutral simulations</a></li>
+<li><a href="#101">101</a><ul>
+<li><a href="#infinite-canyon-buildings">Infinite canyon buildings</a>
+<!--- - <a href="#output-space-averaged-along-y">Output: space-averaged along y</a>---></li>
+<li><a href="#volume-flow-rate-forcing-in-x">Volume flow rate forcing in x</a></li>
+<li><a href="#temperature">Temperature</a></li>
+<li><a href="#isothermal-bc-for-temperature">Isothermal BC for temperature</a></li>
+<li><a href="#passive-scalars-line-source">Passive scalars line source</a></li>
+<li><a href="#output-instantaneous-fields-for-temperature-and-scalars">Output: instantaneous fields for temperature and scalars</a></li>
+</ul>
+</li>
+<li>
+<p><a href="#102">102</a></p>
+<ul>
+<li><a href="#prerequisites-for-warmstart-simulation">Prerequisites for warmstart simulation</a>
+<!--- - <a href="#staggered-cuboid-buildings">Staggered cuboid buildings</a> ---></li>
+<li><a href="#volume-flow-rate-forcing-in-x">Volume flow rate forcing in x</a></li>
+<li><a href="#constant-thermal-flux-bc-for-temperature">Constant thermal flux BC for temperature</a></li>
+<li><a href="#passive-scalars-point-source">Passive scalars point source</a></li>
+<li><a href="#scalar-inflow-outflow-bc">Scalar inflow-outflow BC</a></li>
+<li><a href="#warmstart">Warmstart</a>
+   <!--- - [Coldstart](#coldstart) ---></li>
+</ul>
+</li>
+<li>
+<p><a href="#energy-balance-simulation">Energy balance simulation</a></p>
+</li>
+<li><a href="#201">201</a><ul>
+<li><a href="#pre-defined-buildings">Pre-defined buildings</a>
+<!--- - <a href="#grid-stretching-in-z">Grid-stretching in z</a> ---></li>
+<li><a href="#output-time-averaged-fields">Output: time averaged fields</a></li>
+<li><a href="#energy-balance">Energy Balance</a></li>
+<li><a href="#moisture">Moisture</a></li>
+<li><a href="#coriolis-forcing-and-nudging">Coriolis forcing and nudging</a></li>
+</ul>
+</li>
+<li><a href="#driver-simulation">Driver simulation</a></li>
+<li><a href="#949">949</a><ul>
+<li><a href="#driverprecursor-simulation">Driver/precursor simulation</a></li>
+</ul>
+</li>
+<li><a href="#950">950</a><ul>
+<li><a href="#prerequisites-simulation-with-external-forcing">Prerequisites simulation with external forcing</a>
+<!--- - <a href="#buildings-from-lidar-image">Buildings from LIDAR image</a> ---></li>
+<li><a href="#driven-simulation">Driven simulation</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="standard-simulation-setup">Standard simulation setup<a class="headerlink" href="#standard-simulation-setup" title="Permanent link">&para;</a></h2>
+<p>The below setups are required for any type of simulation.</p>
+<p>The experiment number, run time and number of pencils in x and y (the product of which is the number of cores to be used):</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">RUN</span>
+<span class="n">iexpnr</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">001</span>
+<span class="n">runtime</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="mf">1.</span>
+<span class="n">nprocx</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+<span class="n">nprocy</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</code></pre></div>
+<p>The simulation domain varies amongst the example simulations. An example is given:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">DOMAIN</span>
+<span class="n">imax</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mi">64</span>
+<span class="n">jtot</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mi">64</span>
+<span class="n">ktot</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mi">64</span>
+<span class="n">xsize</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mi">64</span>
+<span class="n">ysize</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mi">64</span>
+<span class="p">&amp;</span><span class="n">INPS</span>
+<span class="n">zsize</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mi">64</span>
+</code></pre></div>
+<p>We also set an initial profile for u-wind velocity (and other variables if they are used) of e.g. u = 2 m/s by</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">INPS</span>
+<span class="n">u0</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="mf">2.</span>
+</code></pre></div>
+<p>and add some random perturbations to the initial field, such that turbulence develops faster:</p>
+<div class="highlight"><pre><span></span><code><span class="n">randu</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mf">0.01</span>
+</code></pre></div>
+<p>Changes in the domain and initial profiles require pre-processing.</p>
+<p>Further, we recommend running the simulations with adaptive time-stepping, the Fast-Fourier-Transformation algorithm in the poisson solver (<em>this will become default in the future</em>) and using the Vreman sub-grid model:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">RUN</span>
+<span class="n">ladaptive</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="p">&amp;</span><span class="n">DYNAMICS</span>
+<span class="n">ipoiss</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="p">&amp;</span><span class="n">NAMSUBGRID</span>
+<span class="n">lvreman</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+</code></pre></div>
+<p>Further information on these parameters is in the <a href="../udales-namoptions-overview/">Namoptions overview</a>, and more on the required pre-processing steps is found in <a href="../udales-pre-processing/">Pre-processing</a>.</p>
+<h2 id="neutral-simulations">Neutral simulations<a class="headerlink" href="#neutral-simulations" title="Permanent link">&para;</a></h2>
+<h3 id="001">001<a class="headerlink" href="#001" title="Permanent link">&para;</a></h3>
+<h4 id="no-buildings-bottom-surface-roughness">No buildings, bottom surface roughness<a class="headerlink" href="#no-buildings-bottom-surface-roughness" title="Permanent link">&para;</a></h4>
+<p>This simulation does not contain any buildings. Therefore we need to set:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">WALLS</span>
+<span class="n">nfcts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="n">lbottom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+</code></pre></div>
+<p>A rough surface at the bottom is simulated by setting the following parameters:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">BC</span>
+<span class="n">thls</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mi">28</span><span class="mf">8.</span>
+<span class="n">z0</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="mf">0.01</span>
+<span class="n">z0h</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mf">0.000067</span>
+</code></pre></div>
+<p>where <code>z0</code> is the roughness length for momentum. Note that even though this is a neutral simulation, all of these parameters need to be specified to reasonable values.
+The simulation uses periodic lateral boundary conditions by default.</p>
+<h4 id="constant-pressure-gradient">Constant pressure gradient<a class="headerlink" href="#constant-pressure-gradient" title="Permanent link">&para;</a></h4>
+<p>A constant pressure gradient in x is set by</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">INPS</span>
+<span class="n">dpdx</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0001</span>
+</code></pre></div>
+<h4 id="output-instantaneous-fields">Output: instantaneous fields<a class="headerlink" href="#output-instantaneous-fields" title="Permanent link">&para;</a></h4>
+<p>The simulation output contains the 3D instantaneous fields of u, v, and w. The output is produced after every 10 seconds of simulation runtime. We specify this by setting:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">OUTPUT</span>
+<span class="n">lfielddump</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">fieldvars</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;u0,v0,w0&#39;</span>
+<span class="n">tfielddump</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="mf">0.</span>
+</code></pre></div>
+<h3 id="002">002<a class="headerlink" href="#002" title="Permanent link">&para;</a></h3>
+<p><img alt="blocks.002" src="../assets/images/blocks.002.png" /></p>
+<p>This simulation has a similar setup to <code>001</code> and additionally contains buildings.</p>
+<h4 id="aligned-cuboid-buildings">Aligned cuboid buildings<a class="headerlink" href="#aligned-cuboid-buildings" title="Permanent link">&para;</a></h4>
+<p>The simulation contains aligned cube-shaped buildings.</p>
+<p>The IBM must be turned on if buildings are included:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">RUN</span>
+<span class="n">libm</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+</code></pre></div>
+<p>The corresponding number of facets, solid points (for the U, V, W and scalar grids), fluid boundary points and facet sections are automatically updated in <code>WALLS</code>  by the preprocessing routine:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">WALLS</span>
+<span class="n">nfcts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span>
+<span class="n">nsolpts_u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">17408</span>
+<span class="n">nsolpts_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">17408</span>
+<span class="n">nsolpts_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20480</span>
+<span class="n">nsolpts_c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">16384</span>
+<span class="n">nbndpts_u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8576</span>
+<span class="n">nbndpts_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8576</span>
+<span class="n">nbndpts_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8448</span>
+<span class="n">nbndpts_c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8448</span>
+<span class="n">nfctsecs_u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10815</span>
+<span class="n">nfctsecs_v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10811</span>
+<span class="n">nfctsecs_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7168</span>
+<span class="n">nfctsecs_c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10720</span>
+</code></pre></div>
+<h4 id="output-space-time-averaged-profiles">Output: space-time averaged profiles<a class="headerlink" href="#output-space-time-averaged-profiles" title="Permanent link">&para;</a></h4>
+<p>The simulation output contains 1D space-averaged and space-time-averaged vertical profiles. The output is produced after every 10 seconds of simulation runtime and the time-average uses a sample time step of 1 second. We specify this by setting:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">OUTPUT</span>
+<span class="n">lxytdump</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">tstatsdump</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="mf">0.</span>
+<span class="n">tsample</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mf">1.</span>
+</code></pre></div>
+<h2 id="non-neutral-simulations">Non-neutral simulations<a class="headerlink" href="#non-neutral-simulations" title="Permanent link">&para;</a></h2>
+<h3 id="101">101<a class="headerlink" href="#101" title="Permanent link">&para;</a></h3>
+<p><img alt="blocks.101" src="../assets/images/blocks.101.png" /></p>
+<h4 id="infinite-canyon-buildings">Infinite canyon buildings<a class="headerlink" href="#infinite-canyon-buildings" title="Permanent link">&para;</a></h4>
+<p>This simulation has "infinite canyons" along the y-axis as buildings.</p>
+<h4 id="volume-flow-rate-forcing-in-x">Volume flow rate forcing in x<a class="headerlink" href="#volume-flow-rate-forcing-in-x" title="Permanent link">&para;</a></h4>
+<p>The simulation is driven by a fixed volume-flow rate forcing, which prescribes the domain-average velocity of u = 1.5 m/s:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">PHYSICS</span>
+<span class="n">luvolflowr</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">uflowrate</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mf">1.5</span>
+</code></pre></div>
+<h4 id="temperature">Temperature<a class="headerlink" href="#temperature" title="Permanent link">&para;</a></h4>
+<p>The simulation also considers changes in temperature. We therefore need to set</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">PHYSICS</span>
+<span class="n">lbuoyancy</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">ltempeq</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+</code></pre></div>
+<p>set an initial temperature profile (using the surface temperature <code>thl0</code> and the default lapse rate)</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">INPS</span>
+<span class="n">thl0</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mi">29</span><span class="mf">0.</span>
+</code></pre></div>
+<p>and specify the advection scheme for temperature:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">DYNAMICS</span>
+<span class="n">iadv_thl</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</code></pre></div>
+<h4 id="isothermal-bc-for-temperature">Isothermal BC for temperature<a class="headerlink" href="#isothermal-bc-for-temperature" title="Permanent link">&para;</a></h4>
+<p>The temperature on the facets is set by the values in <code>Tfacinit.f90</code> (295 K in this case). These temperatures do not change as the energy balance is not used as a default (<code>lEB = .false.</code>). A fixed temperature at the the top of the domain (<code>thl_top</code>) is set by</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">BC</span>
+<span class="n">thl_top</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">29</span><span class="mf">5.</span>
+<span class="n">BCtopT</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</code></pre></div>
+<p>The temperature flux between the building walls and surrounding air is determined by wall functions:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">WALLS</span>
+<span class="n">iwalltemp</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</code></pre></div>
+<h4 id="passive-scalars-line-source">Passive scalars line source<a class="headerlink" href="#passive-scalars-line-source" title="Permanent link">&para;</a></h4>
+<p>A passive scalar line source is set by</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">SCALARS</span>
+<span class="n">nsv</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<span class="n">lscasrcl</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">nscasrcl</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+</code></pre></div>
+<p>the exact properties of the line are set as follows:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">INPS</span>
+<span class="n">xSb</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">32</span>
+<span class="n">ySb</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="n">zSb</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<span class="n">xSe</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">32</span>
+<span class="n">ySe</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">64</span>
+<span class="n">zSe</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<span class="n">SSl</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<span class="n">sigSl</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span>
+</code></pre></div>
+<p>The scalar advection scheme is also set:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">DYNAMICS</span>
+<span class="n">iadv_sv</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span>
+</code></pre></div>
+<h4 id="output-instantaneous-fields-for-temperature-and-scalars">Output: instantaneous fields for temperature and scalars<a class="headerlink" href="#output-instantaneous-fields-for-temperature-and-scalars" title="Permanent link">&para;</a></h4>
+<p>We added the temperature and scalar concentration to the instantaneous fields:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">OUTPUT</span>
+<span class="n">fieldvars</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;u0,v0,w0,th,s1&#39;</span>
+</code></pre></div>
+<h3 id="102">102<a class="headerlink" href="#102" title="Permanent link">&para;</a></h3>
+<!---
+|                    Domain                     |                         Output slice                          |                         3D output                          |
+| :-------------------------------------------: | :--------------------------------------------------------: | :--------------------------------------------------------: |
+| ![blocks.102](./assets/images/blocks.102.png) | ![102 outputs](./assets/images/fielddump_slice_2D.102.png) | ![102 outputs](./assets/images/fielddump_slice_3D.102.png) |--->
+
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Domain</th>
+<th style="text-align: center;">3D output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><img alt="blocks.102" src="../assets/images/blocks.102.png" /></td>
+<td style="text-align: center;"><img alt="102 outputs" src="../assets/images/fielddump_slice_3D.102.png" /></td>
+</tr>
+</tbody>
+</table>
+<p>The basic setup of this simulation is similar to <code>101</code>.</p>
+<h4 id="prerequisites-for-warmstart-simulation">Prerequisites for warmstart simulation<a class="headerlink" href="#prerequisites-for-warmstart-simulation" title="Permanent link">&para;</a></h4>
+<p>The simulation is continued from a previous simulation with a similar setup. The restart files (<code>initd</code> and <code>inits</code> for scalars) containing all relevant field data are saved in the example directory.</p>
+<!---The restart files are currently not included in the directory and can be downloaded [examples_warmstart_102.zip](https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1) or from the command line (Linux/macOS) with
+
+<div class="highlight"><pre><span></span><code><span class="c1"># From top-level project directory.</span>
+
+<span class="c1"># Download required files</span>
+<span class="nb">pushd</span><span class="w"> </span>u-dales/examples/102/
+curl<span class="w"> </span>-o<span class="w"> </span>examples_warmstart_102.zip<span class="w"> </span>-L<span class="w"> </span>https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl<span class="o">=</span><span class="m">1</span>
+unzip<span class="w"> </span>examples_warmstart_102.zip
+<span class="nb">popd</span>
+<span class="sb">```</span>---&gt;
+
+A<span class="w"> </span>warmstart<span class="w"> </span>simulation<span class="w"> </span>is<span class="w"> </span>required<span class="w"> </span>to<span class="w"> </span>have<span class="w"> </span>the<span class="w"> </span>same<span class="w"> </span>basic<span class="w"> </span>setup<span class="w"> </span>as<span class="w"> </span>the<span class="w"> </span>simulation<span class="w"> </span>is<span class="w"> </span>based<span class="w"> </span>on,<span class="w"> </span>including<span class="w"> </span>the<span class="w"> </span>numbers<span class="w"> </span>of<span class="w"> </span>CPUs<span class="w"> </span>it<span class="w"> </span>is<span class="w"> </span>run<span class="w"> </span>with.<span class="w"> </span>The<span class="w"> </span>example<span class="w"> </span>warmstart<span class="w"> </span>files<span class="w"> </span>are<span class="w"> </span>run<span class="w"> </span>on<span class="w"> </span>four<span class="w"> </span>CPUs,<span class="w"> </span>therefore<span class="w"> </span>this<span class="w"> </span>simulation<span class="w"> </span>will<span class="w"> </span>also<span class="w"> </span>require<span class="w"> </span>four<span class="w"> </span>CPUs.
+&lt;!---<span class="w"> </span>An<span class="w"> </span>alternative<span class="w"> </span>to<span class="w"> </span>running<span class="w"> </span>this<span class="w"> </span>simulation<span class="w"> </span>based<span class="w"> </span>on<span class="w"> </span>the<span class="w"> </span>previous<span class="w"> </span>output<span class="w"> </span>is<span class="w"> </span>described<span class="w"> </span>under<span class="w"> </span><span class="o">[</span>Coldstart<span class="o">](</span><span class="c1">#Coldstart). ---&gt;</span>
+
+&lt;!---<span class="w"> </span><span class="c1">#### Staggered cuboid buildings</span>
+
+The<span class="w"> </span>simulation<span class="w"> </span>has<span class="w"> </span>staggered<span class="w"> </span>cuboid<span class="w"> </span>buildings,<span class="w"> </span>which<span class="w"> </span>can<span class="w"> </span>be<span class="w"> </span><span class="nb">set</span><span class="w"> </span>up<span class="w"> </span>using
+
+<span class="sb">```</span>fortran
+<span class="p">&amp;</span>INPS
+<span class="nv">lstaggered</span><span class="w">   </span><span class="o">=</span><span class="w"> </span>.true.
+</code></pre></div>
+--->
+
+<h4 id="warmstart">Warmstart<a class="headerlink" href="#warmstart" title="Permanent link">&para;</a></h4>
+<p>A warmstart simulation requires setting</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">RUN</span>
+<span class="n">lwarmstart</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">startfile</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;initd00000267_xxx_xxx.102&#39;</span>
+</code></pre></div>
+<p>where the name of the <code>startfile</code> needs to match the name of the restart files (xxx instead of processor number).</p>
+<p>For a warmstart containing scalar concentration fields you need to additionally set</p>
+<h4 id="volume-flow-rate-forcing-in-x_1">Volume flow rate forcing in x<a class="headerlink" href="#volume-flow-rate-forcing-in-x_1" title="Permanent link">&para;</a></h4>
+<p>The simulation is driven by a fixed volume-flow rate forcing:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">PHYSICS</span>
+<span class="n">luvolflowr</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">uflowrate</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mf">1.5</span>
+</code></pre></div>
+<h4 id="constant-thermal-flux-bc-for-temperature">Constant thermal flux BC for temperature<a class="headerlink" href="#constant-thermal-flux-bc-for-temperature" title="Permanent link">&para;</a></h4>
+<p>The temperature is determined by a constant thermal flux from the roads, building roofs and the top of the domain (<code>iwalltemp = 1</code> by default):</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">BC</span>
+<span class="n">wtsurf</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mf">0.01</span>
+<span class="n">wttop</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mf">0.01</span>
+<span class="n">bctfz</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mf">0.01</span>
+</code></pre></div>
+<h4 id="passive-scalars-point-source">Passive scalars point source<a class="headerlink" href="#passive-scalars-point-source" title="Permanent link">&para;</a></h4>
+<p>The simulation contains a scalar field with a scalar point source. The nature of the source is given by:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">SCALARS</span>
+<span class="n">nsv</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<span class="n">lscasrc</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">nscasrc</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<span class="n">lreadscal</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+</code></pre></div>
+<p>Here <code>lreadscal</code> is necessary as we are running a warmstart.</p>
+<p>The position, strength and standard deviation of emission of the source are set by:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">INP</span>
+<span class="n">xS</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span>
+<span class="n">yS</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span>
+<span class="n">zS</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span>
+<span class="n">SSp</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<span class="n">sigSp</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span>
+</code></pre></div>
+<h4 id="scalar-inflow-outflow-bc">Scalar inflow-outflow BC<a class="headerlink" href="#scalar-inflow-outflow-bc" title="Permanent link">&para;</a></h4>
+<p>The scalar concentration is not determined by periodic boundary conditions like momentum and temperature, but leaves the domain at the outflow plane:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">BC</span>
+<span class="n">BCxs</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</code></pre></div>
+<p>The inlet profile is determined by the profile found in <code>scalar.inp.102</code> (defaults to 0. if unspecified)</p>
+<!---
+#### Coldstart
+
+This describes an alternative, if the warmstart files are not available.
+Run the simulation with recommended runtime of >= 1000 s and save the restart files by setting the restart time accordingly:
+
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">RUN</span>
+<span class="n">lwarmstart</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="n">runtime</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="mf">1.</span>
+<span class="n">trestart</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="mf">0.</span>
+</code></pre></div>
+
+Then, change the switches as described above, and make sure `startfile` matches the name of your restart files. --->
+
+<h2 id="energy-balance-simulation">Energy balance simulation<a class="headerlink" href="#energy-balance-simulation" title="Permanent link">&para;</a></h2>
+<h3 id="201">201<a class="headerlink" href="#201" title="Permanent link">&para;</a></h3>
+<p><img alt="blocks.201" src="../assets/images/blocks.201.png" /></p>
+<h4 id="pre-defined-buildings">Pre-defined buildings<a class="headerlink" href="#pre-defined-buildings" title="Permanent link">&para;</a></h4>
+<p>The buildings are read in by the preprocessing from a user provided STL file.</p>
+<!---```fortran
+&INPS
+lblocksfile  = .true.
+blocksfile   = buildings.201
+<div class="highlight"><pre><span></span><code>#### Grid-stretching in z
+
+The vertical grid resolution is stretched by setting up the following parameters:
+
+```fortran
+&amp;INPS
+zsize        = 160
+lzstretch    = .true.
+stretchconst = 0.01
+lstretchexp  = .true.
+hlin         = 40
+dzlin        = 1
+</code></pre></div>
+
+`zsize` is an initial target value for the final domain height and `hlin` determines how many non-stretched grid cells there are at the lower end of the domain. Make sure to always use non-stretched grid cells wherever buildings are present. `dzlin` specifies the resolution for the non-stretched grid cells. `lstretchexp` specifies the exponential grid stretching function to be used. --->
+
+<h4 id="output-time-averaged-fields">Output: time averaged fields<a class="headerlink" href="#output-time-averaged-fields" title="Permanent link">&para;</a></h4>
+<p>We add 3D output fields that are averaged in time:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">OUTPUT</span>
+<span class="n">ltdump</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+</code></pre></div>
+<h4 id="energy-balance">Energy Balance<a class="headerlink" href="#energy-balance" title="Permanent link">&para;</a></h4>
+<p>The simulations solves the surface energy balance.</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">ENERGYBALANCE</span>
+<span class="n">lEB</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">lconstW</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">lwriteEBfiles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">dtEB</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mf">2.</span>
+<span class="n">bldT</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="mf">1.0</span>
+<span class="n">wsoil</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mi">31</span><span class="mf">4.0</span>
+<span class="n">wgrmax</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">45</span><span class="mf">1.0</span>
+<span class="n">wwilt</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mi">17</span><span class="mf">2.0</span>
+<span class="n">wfc</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="mi">31</span><span class="mf">4.0</span>
+<span class="n">skyLW</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mi">39</span><span class="mf">5.0</span>
+<span class="n">GRLAI</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mf">2.1</span>
+<span class="n">rsmin</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mi">20</span><span class="mf">0.0</span>
+<span class="n">nfaclyrs</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span>
+</code></pre></div>
+<p>For that we also need to use wall functions for temperature and moisture at the building facets:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">WALLS</span>
+<span class="n">iwalltemp</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+<span class="n">iwallmoist</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</code></pre></div>
+<h4 id="moisture">Moisture<a class="headerlink" href="#moisture" title="Permanent link">&para;</a></h4>
+<p>The energybalance contains a latent heat flux and therefore we need to solve the full wet thermodynamics including moisture:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">PHYSICS</span>
+<span class="n">lmoist</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+</code></pre></div>
+<p>The advection scheme for moisture is specified by:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">DYNAMICS</span>
+<span class="n">iadv_qt</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+</code></pre></div>
+<p>and domain top- values are chosen:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">BC</span>
+<span class="n">qt_top</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+</code></pre></div>
+<h4 id="coriolis-forcing-and-nudging">Coriolis forcing and nudging<a class="headerlink" href="#coriolis-forcing-and-nudging" title="Permanent link">&para;</a></h4>
+<p>A coriolis force is specified:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">PHYSICS</span>
+<span class="n">lcoriol</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+</code></pre></div>
+<p>The geostrophic velocity is defined by default as a uniform profile of the initial velocity:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">INPS</span>
+<span class="n">u0</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="mf">1.5</span>
+</code></pre></div>
+<p>Nudging is applied in the top 64 cells of the domain with a relaxation timescale of 10800 seconds:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">PHYSICS</span>
+<span class="n">lnudge</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="n">tnudge</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">1080</span><span class="mf">0.</span>
+<span class="n">nnudge</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">64</span>
+</code></pre></div>
+<h2 id="driver-simulation">Driver simulation<a class="headerlink" href="#driver-simulation" title="Permanent link">&para;</a></h2>
+<h3 id="949">949<a class="headerlink" href="#949" title="Permanent link">&para;</a></h3>
+<p><img alt="blocks.501" src="../assets/images/geom_949.png" /></p>
+<p>This simulation is similar to <code>101</code> but does not contain any scalars. It is used as the precursor simulation for simulation <code>949</code>.</p>
+<h4 id="driverprecursor-simulation">Driver/precursor simulation<a class="headerlink" href="#driverprecursor-simulation" title="Permanent link">&para;</a></h4>
+<p>To save the output of a simulation into files that can be read by another simulation as driver-inputs, we set:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">DRIVER</span>
+<span class="n">idriver</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<span class="n">tdriverstart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="mf">0.</span>
+<span class="n">dtdriver</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="mf">1.</span>
+<span class="n">driverstore</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">101</span>
+<span class="n">iplane</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">256</span>
+</code></pre></div>
+<p><code>iplane</code> sets the index of the y-z plane we store (here this is equal to the outlet plane), and <code>(driverstore-1)*dtdriver</code> determines for how long you can run the driven simulation. The time when we start recording the planes should therefore be <code>tdriverstart</code> &lt;= <code>runtime</code> - <code>(driverstore-1)*dtdriver</code>. More information on these parameters is in the documentation on <a href="../udales-simulation-setup/">simulation setup</a>.</p>
+<h3 id="950">950<a class="headerlink" href="#950" title="Permanent link">&para;</a></h3>
+<p><img alt="blocks.502" src="../assets/images/uDALES_geom.png" /></p>
+<h4 id="prerequisites-simulation-with-external-forcing">Prerequisites simulation with external forcing<a class="headerlink" href="#prerequisites-simulation-with-external-forcing" title="Permanent link">&para;</a></h4>
+<p>The driver input files are included in the driver_files folder inside the 950 example folder.</p>
+<!---
+<div class="highlight"><pre><span></span><code><span class="c1"># From top-level project directory.</span>
+
+<span class="c1"># Download required files</span>
+<span class="nb">pushd</span><span class="w"> </span>u-dales/examples/502/
+curl<span class="w"> </span>-o<span class="w"> </span>examples_driver_501.zip<span class="w"> </span>-L<span class="w"> </span>https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl<span class="o">=</span><span class="m">1</span>
+unzip<span class="w"> </span>examples_driver_501.zip
+<span class="nb">popd</span>
+<span class="sb">```</span>---&gt;
+
+These<span class="w"> </span><span class="sb">`</span>*driver*<span class="sb">`</span><span class="w"> </span>files<span class="w"> </span>need<span class="w"> </span>to<span class="w"> </span>be<span class="w"> </span><span class="k">in</span><span class="w"> </span>the<span class="w"> </span>same<span class="w"> </span>place<span class="w"> </span>as<span class="w"> </span>the<span class="w"> </span>other<span class="w"> </span>input<span class="w"> </span>files.<span class="w"> </span>Alternatively,<span class="w"> </span>the<span class="w"> </span>outputted<span class="w"> </span><span class="sb">`</span>*driver*<span class="sb">`</span><span class="w"> </span>files<span class="w"> </span>from<span class="w"> </span>simulation<span class="w"> </span><span class="m">949</span><span class="w"> </span>can<span class="w"> </span>be<span class="w"> </span>used<span class="w"> </span>by<span class="w"> </span>copying<span class="w"> </span>them<span class="w"> </span>into<span class="w"> </span>the<span class="w"> </span>directory<span class="w"> </span>of<span class="w"> </span><span class="m">950</span>.<span class="w"> </span>For<span class="w"> </span>that<span class="w"> </span>we<span class="w"> </span>recommend<span class="w"> </span>to<span class="w"> </span><span class="nb">set</span><span class="w"> </span>the<span class="w"> </span><span class="sb">`</span>runtime<span class="sb">`</span><span class="w"> </span>to<span class="w"> </span>at<span class="w"> </span>least<span class="w"> </span><span class="m">1000</span><span class="w"> </span>s,<span class="w"> </span>and<span class="w"> </span><span class="sb">`</span>tdriverstart<span class="sb">`</span><span class="w"> </span>accordingly<span class="w"> </span>with<span class="w"> </span><span class="sb">`</span>tdriverstart<span class="sb">`</span><span class="w"> </span>&lt;<span class="o">=</span><span class="w"> </span><span class="sb">`</span>runtime<span class="sb">`</span><span class="w"> </span>-<span class="w"> </span><span class="sb">`</span><span class="o">(</span>driverstore-1<span class="o">)</span>*dtdriver<span class="sb">`</span>.
+
+&lt;!---
+<span class="c1">#### Buildings from LIDAR image</span>
+
+The<span class="w"> </span>buildings<span class="w"> </span>of<span class="w"> </span>this<span class="w"> </span>simulation<span class="w"> </span>are<span class="w"> </span>generated<span class="w"> </span>from<span class="w"> </span>a<span class="w"> </span>grey-scale<span class="w"> </span>image<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>buildings<span class="w"> </span>and<span class="w"> </span>their<span class="w"> </span>heights.
+
+<span class="sb">```</span>fortran
+<span class="p">&amp;</span>INPS
+<span class="nv">llidar</span><span class="w">       </span><span class="o">=</span><span class="w"> </span>.true.
+<span class="nv">sourcename</span><span class="w">   </span><span class="o">=</span><span class="w"> </span>DAPPLE7.png
+<span class="nv">dxinp</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="m">1</span>
+<span class="nv">dyinp</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="m">1</span>
+<span class="nv">dzinp</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="m">1</span>
+<span class="nv">centeri</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="m">400</span>
+<span class="nv">centerj</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="m">400</span>
+<span class="nv">maxh</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="m">25</span>
+<span class="nv">pad</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="m">3</span>
+<span class="nv">smallarea</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="m">150</span><span class="w"> </span>
+</code></pre></div>
+--->
+<h4 id="driven-simulation">Driven simulation<a class="headerlink" href="#driven-simulation" title="Permanent link">&para;</a></h4>
+<p>This simulation is forced by the data from the stored outlet plane of simulation <code>949</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">DRIVER</span>
+<span class="n">idriver</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+<span class="n">driverjobnr</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">949</span>
+<span class="n">driverstore</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">101</span>
+</code></pre></div>
+<p>The runtime of this simulation is restricted by the simulation time of the driver output, which is <code>(driverstore-1)*dtdriver</code> of the precursor simulation <code>949</code>. The maximum runtime we can set is therefore</p>
+<div class="highlight"><pre><span></span><code><span class="n">runtime</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="mf">0.</span>
+<span class="n">dtmax</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mf">1.</span>
+</code></pre></div>
+<p>and we want to set <code>dtmax</code> = <code>dtdriver</code> (<code>501</code>) to avoid interpolation of the driver snapshots.</p>
+<p>All boundary conditions (momentum, temperature) are set to inflow-outflow by:</p>
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">BC</span>
+<span class="n">BCxm</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span>
+<span class="n">BCtopm</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span>
+</code></pre></div>
+<!--- for which we will also need to use the cyclic reduction scheme of the poisson solver:
+
+<div class="highlight"><pre><span></span><code><span class="p">&amp;</span><span class="n">DYNAMICS</span>
+<span class="n">ipoiss</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span>
+</code></pre></div>
+--->
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      The uDALES Team
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,903 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>writerestartfiles &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>writerestartfiles
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.6% of total for procedures.">79 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modsave.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modsave.f90.html'>modsave.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modsave.html'>modsave</a></li>
+            <li class="breadcrumb-item active" aria-current="page">writerestartfiles</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/writerestartfiles.html#src">writerestartfiles</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine writerestartfiles()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modsubgriddata.html'>modsubgriddata</a></li>
+                  <li class="list-inline-item"><a href='../module/modsurfdata.html'>modsurfdata</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item"><a href='http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm'>mpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modibmdata.html'>modibmdata</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/initfac.html'>initfac</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/modinletdata.html'>modinletdata</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~writerestartfiles~~UsesGraph Pages: 1 -->
+<svg id="procwriterestartfilesUsesGraph" width="437pt" height="343pt"
+ viewBox="0.00 0.00 437.06 343.33" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~writerestartfiles~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 339.33)">
+<title>proc~~writerestartfiles~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-339.33 433.06,-339.33 433.06,4 -4,4"/>
+<!-- proc~writerestartfiles -->
+<g id="proc~~writerestartfiles~~UsesGraph_node1" class="node">
+<title>proc~writerestartfiles</title>
+<polygon fill="none" stroke="black" points="429.06,-173.33 335.04,-173.33 335.04,-149.06 429.06,-149.06 429.06,-173.33"/>
+<text text-anchor="middle" x="382.05" y="-157.6" font-family="Helvetica,sans-Serif" font-size="10.50">writerestartfiles</text>
+</g>
+<!-- module~initfac -->
+<g id="proc~~writerestartfiles~~UsesGraph_node2" class="node">
+<title>module~initfac</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node2"><a xlink:href="../module/initfac.html" xlink:title="initfac">
+<polygon fill="#337ab7" stroke="#337ab7" points="276.4,-295.33 222.4,-295.33 222.4,-271.06 276.4,-271.06 276.4,-295.33"/>
+<text text-anchor="middle" x="249.4" y="-279.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfac</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~initfac -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge1" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~initfac</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M372.7,-173.71C359.08,-193.38 330.47,-231.92 299.04,-257.2 295.16,-260.32 290.85,-263.25 286.44,-265.93"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="285.07,-262.68 278.08,-270.65 288.51,-268.78 285.07,-262.68"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~writerestartfiles~~UsesGraph_node3" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node3"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="281.41,-131.33 217.39,-131.33 217.39,-107.06 281.41,-107.06 281.41,-131.33"/>
+<text text-anchor="middle" x="249.4" y="-115.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modfields -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge2" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M341.85,-148.6C326.22,-143.57 308.2,-137.78 292.3,-132.67"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="293.73,-129.45 283.14,-129.72 291.59,-136.11 293.73,-129.45"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~writerestartfiles~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="161.14,-335.33 92.62,-335.33 92.62,-311.06 161.14,-311.06 161.14,-335.33"/>
+<text text-anchor="middle" x="126.88" y="-319.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modglobal -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge3" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M377.98,-173.8C370.27,-202.49 347.15,-272.66 299.04,-304.2 261.7,-328.68 209.68,-331.06 172.82,-328.8"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="173.17,-325.32 162.93,-328.04 172.63,-332.3 173.17,-325.32"/>
+</g>
+<!-- module~modibmdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_node5" class="node">
+<title>module~modibmdata</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node5"><a xlink:href="../module/modibmdata.html" xlink:title="modibmdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="289.29,-215.33 209.52,-215.33 209.52,-191.06 289.29,-191.06 289.29,-215.33"/>
+<text text-anchor="middle" x="249.4" y="-199.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modibmdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge4" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M341.85,-173.8C328.8,-177.99 314.09,-182.72 300.34,-187.14"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="299.46,-183.75 291.02,-190.14 301.61,-190.41 299.46,-183.75"/>
+</g>
+<!-- module~modinletdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_node6" class="node">
+<title>module~modinletdata</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node6"><a xlink:href="../module/modinletdata.html" xlink:title="modinletdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="290.79,-173.33 208.02,-173.33 208.02,-149.06 290.79,-149.06 290.79,-173.33"/>
+<text text-anchor="middle" x="249.4" y="-157.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modinletdata</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modinletdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge5" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modinletdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M334.62,-161.2C324.17,-161.2 313.02,-161.2 302.36,-161.2"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="302.56,-157.7 292.56,-161.2 302.56,-164.7 302.56,-157.7"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_node7" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node7"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="154.77,-213.33 99,-213.33 99,-189.06 154.77,-189.06 154.77,-213.33"/>
+<text text-anchor="middle" x="126.88" y="-197.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modmpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge6" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M370.05,-173.62C355.56,-188.95 328.45,-214.21 299.04,-224.2 254.85,-239.21 201.12,-227.46 165.79,-215.95"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="167.03,-212.67 156.44,-212.74 164.76,-219.29 167.03,-212.67"/>
+</g>
+<!-- module~modsubgriddata -->
+<g id="proc~~writerestartfiles~~UsesGraph_node8" class="node">
+<title>module~modsubgriddata</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node8"><a xlink:href="../module/modsubgriddata.html" xlink:title="modsubgriddata">
+<polygon fill="#337ab7" stroke="#337ab7" points="299.04,-89.33 199.77,-89.33 199.77,-65.06 299.04,-65.06 299.04,-89.33"/>
+<text text-anchor="middle" x="249.4" y="-73.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgriddata</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modsubgriddata -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge7" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modsubgriddata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M367.01,-148.66C351.27,-135.04 324.58,-113.21 299.04,-98.2 297.03,-97.01 294.93,-95.86 292.8,-94.74"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="294.5,-91.67 283.98,-90.43 291.43,-97.96 294.5,-91.67"/>
+</g>
+<!-- module~modsurfdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_node9" class="node">
+<title>module~modsurfdata</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node9"><a xlink:href="../module/modsurfdata.html" xlink:title="modsurfdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="289.29,-47.33 209.52,-47.33 209.52,-23.06 289.29,-23.06 289.29,-47.33"/>
+<text text-anchor="middle" x="249.4" y="-31.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsurfdata</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;module~modsurfdata -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge8" class="edge">
+<title>proc~writerestartfiles&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M374.25,-148.88C361.85,-127.42 333.64,-82.92 299.04,-56.2 297.74,-55.2 296.39,-54.23 295,-53.31"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="297.08,-50.46 286.67,-48.49 293.57,-56.52 297.08,-50.46"/>
+</g>
+<!-- mpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_node10" class="node">
+<title>mpi</title>
+<g id="a_proc~~writerestartfiles~~UsesGraph_node10"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-213.33 0,-213.33 0,-189.06 54,-189.06 54,-213.33"/>
+<text text-anchor="middle" x="27" y="-197.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;mpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge9" class="edge">
+<title>proc~writerestartfiles&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M378.54,-148.77C371.79,-119.07 350.2,-44.24 299.04,-14.2 260.99,8.14 241.56,-0.04 199.77,-14.2 141.58,-33.91 130.95,-52.41 90,-98.2 67.96,-122.84 49.46,-156.42 38.55,-178.44"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="35.41,-176.9 34.22,-187.43 41.72,-179.94 35.41,-176.9"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modglobal -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge10" class="edge">
+<title>module~initfac&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M221.96,-291.98C207.41,-296.8 188.97,-302.93 172.27,-308.46"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="171.44,-305.05 163.05,-311.53 173.65,-311.7 171.44,-305.05"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modmpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge11" class="edge">
+<title>module~initfac&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M222.1,-270.86C214.62,-266.9 206.65,-262.23 199.77,-257.2 181.75,-244.03 181.53,-235.71 163.77,-222.2 162.79,-221.45 161.79,-220.72 160.76,-219.99"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="162.75,-217.11 152.47,-214.56 158.92,-222.96 162.75,-217.11"/>
+</g>
+<!-- module~initfac&#45;&gt;mpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge12" class="edge">
+<title>module~initfac&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M221.96,-285.2C189.24,-286.54 132.64,-285.13 90,-264.2 70.86,-254.8 54.23,-237.05 43.03,-222.78"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="45.87,-220.73 37.08,-214.81 40.26,-224.92 45.87,-220.73"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~writerestartfiles~~UsesGraph_node12" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="153.88,-255.33 99.88,-255.33 99.88,-231.06 153.88,-231.06 153.88,-255.33"/>
+<text text-anchor="middle" x="126.88" y="-239.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~initfac&#45;&gt;netcdf -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge13" class="edge">
+<title>module~initfac&#45;&gt;netcdf</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M221.96,-274.42C205.24,-268.87 183.38,-261.62 164.95,-255.5"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="166.3,-252.26 155.71,-252.43 164.1,-258.9 166.3,-252.26"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~writerestartfiles~~UsesGraph_node11" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="163.77,-131.33 90,-131.33 90,-107.06 163.77,-107.06 163.77,-131.33"/>
+<text text-anchor="middle" x="126.88" y="-115.6" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge14" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ffaa00" stroke-dasharray="5,2" d="M217.05,-119.2C204.41,-119.2 189.55,-119.2 175.62,-119.2"/>
+<polygon fill="#ffaa00" stroke="#ffaa00" points="175.72,-115.7 165.72,-119.2 175.72,-122.7 175.72,-115.7"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~writerestartfiles~~UsesGraph_edge15" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#00a9ff" stroke-dasharray="5,2" d="M98.62,-201.2C88.48,-201.2 76.79,-201.2 65.88,-201.2"/>
+<polygon fill="#00a9ff" stroke="#00a9ff" points="65.96,-197.7 55.96,-201.2 65.96,-204.7 65.96,-197.7"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~writerestartfiles~~CallsGraph Pages: 1 -->
+<svg id="procwriterestartfilesCallsGraph" width="204pt" height="74pt"
+ viewBox="0.00 0.00 203.54 74.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~writerestartfiles~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 70.27)">
+<title>proc~~writerestartfiles~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-70.27 199.54,-70.27 199.54,4 -4,4"/>
+<!-- proc~writerestartfiles -->
+<g id="proc~~writerestartfiles~~CallsGraph_node1" class="node">
+<title>proc~writerestartfiles</title>
+<polygon fill="none" stroke="black" points="94.02,-45.27 0,-45.27 0,-21 94.02,-21 94.02,-45.27"/>
+<text text-anchor="middle" x="47.01" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50">writerestartfiles</text>
+</g>
+<!-- mpi_abort -->
+<g id="proc~~writerestartfiles~~CallsGraph_node2" class="node">
+<title>mpi_abort</title>
+<polygon fill="#777777" stroke="#777777" points="195.54,-66.27 130.02,-66.27 130.02,-42 195.54,-42 195.54,-66.27"/>
+<text text-anchor="middle" x="162.78" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_abort</text>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;mpi_abort -->
+<g id="proc~~writerestartfiles~~CallsGraph_edge1" class="edge">
+<title>proc~writerestartfiles&#45;&gt;mpi_abort</title>
+<path fill="none" stroke="#ff0000" d="M94.28,-41.68C102.3,-43.16 110.61,-44.69 118.55,-46.15"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="117.87,-49.59 128.34,-47.96 119.14,-42.7 117.87,-49.59"/>
+</g>
+<!-- mpi_bcast -->
+<g id="proc~~writerestartfiles~~CallsGraph_node3" class="node">
+<title>mpi_bcast</title>
+<polygon fill="#777777" stroke="#777777" points="195.54,-24.27 130.02,-24.27 130.02,0 195.54,0 195.54,-24.27"/>
+<text text-anchor="middle" x="162.78" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_bcast</text>
+</g>
+<!-- proc~writerestartfiles&#45;&gt;mpi_bcast -->
+<g id="proc~~writerestartfiles~~CallsGraph_edge2" class="edge">
+<title>proc~writerestartfiles&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#ff0000" d="M94.28,-24.59C102.3,-23.11 110.61,-21.58 118.55,-20.12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="119.14,-23.57 128.34,-18.31 117.87,-16.68 119.14,-23.57"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~writerestartfiles~~CalledByGraph Pages: 1 -->
+<svg id="procwriterestartfilesCalledByGraph" width="234pt" height="116pt"
+ viewBox="0.00 0.00 234.29 116.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~writerestartfiles~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 112.27)">
+<title>proc~~writerestartfiles~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-112.27 230.29,-112.27 230.29,4 -4,4"/>
+<!-- proc~writerestartfiles -->
+<g id="proc~~writerestartfiles~~CalledByGraph_node1" class="node">
+<title>proc~writerestartfiles</title>
+<polygon fill="none" stroke="black" points="226.29,-66.27 132.27,-66.27 132.27,-42 226.29,-42 226.29,-66.27"/>
+<text text-anchor="middle" x="179.28" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50">writerestartfiles</text>
+</g>
+<!-- proc~inletgen -->
+<g id="proc~~writerestartfiles~~CalledByGraph_node2" class="node">
+<title>proc~inletgen</title>
+<g id="a_proc~~writerestartfiles~~CalledByGraph_node2"><a xlink:href="../proc/inletgen.html" xlink:title="inletgen">
+<polygon fill="#d9534f" stroke="#d9534f" points="75.64,-108.27 20.62,-108.27 20.62,-84 75.64,-84 75.64,-108.27"/>
+<text text-anchor="middle" x="48.13" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">inletgen</text>
+</a>
+</g>
+</g>
+<!-- proc~inletgen&#45;&gt;proc~writerestartfiles -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge1" class="edge">
+<title>proc~inletgen&#45;&gt;proc~writerestartfiles</title>
+<path fill="none" stroke="#ff0000" d="M75.89,-87.43C91.19,-82.46 110.86,-76.06 128.86,-70.21"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="129.93,-73.54 138.36,-67.12 127.77,-66.88 129.93,-73.54"/>
+</g>
+<!-- proc~inletgennotemp -->
+<g id="proc~~writerestartfiles~~CalledByGraph_node3" class="node">
+<title>proc~inletgennotemp</title>
+<g id="a_proc~~writerestartfiles~~CalledByGraph_node3"><a xlink:href="../proc/inletgennotemp.html" xlink:title="inletgennotemp">
+<polygon fill="#d9534f" stroke="#d9534f" points="96.27,-66.27 0,-66.27 0,-42 96.27,-42 96.27,-66.27"/>
+<text text-anchor="middle" x="48.13" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">inletgennotemp</text>
+</a>
+</g>
+</g>
+<!-- proc~inletgennotemp&#45;&gt;proc~writerestartfiles -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge2" class="edge">
+<title>proc~inletgennotemp&#45;&gt;proc~writerestartfiles</title>
+<path fill="none" stroke="#ff0000" d="M96.49,-54.13C104.23,-54.13 112.32,-54.13 120.28,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="120.28,-57.64 130.28,-54.14 120.28,-50.64 120.28,-57.64"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~writerestartfiles~~CalledByGraph_node4" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~writerestartfiles~~CalledByGraph_node4"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="90.27,-24.27 6,-24.27 6,0 90.27,0 90.27,-24.27"/>
+<text text-anchor="middle" x="48.13" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~writerestartfiles -->
+<g id="proc~~writerestartfiles~~CalledByGraph_edge3" class="edge">
+<title>program~dalesurban&#45;&gt;proc~writerestartfiles</title>
+<path fill="none" stroke="#ff0000" d="M87.88,-24.74C100.78,-28.93 115.32,-33.66 128.91,-38.08"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="127.53,-41.31 138.12,-41.07 129.69,-34.65 127.53,-41.31"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">writerestartfiles</span>
+
+<span class="w">    </span><span class="k">use </span><span class="n">mpi</span>
+
+<span class="w">    </span><span class="k">use </span><span class="n">modsurfdata</span><span class="p">,</span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">ustar</span><span class="p">,</span><span class="n">thlflux</span><span class="p">,</span><span class="n">qtflux</span><span class="p">,</span><span class="n">svflux</span><span class="p">,</span><span class="n">dudz</span><span class="p">,</span><span class="n">dvdz</span><span class="p">,</span><span class="n">dthldz</span><span class="p">,</span><span class="n">dqtdz</span><span class="p">,</span><span class="n">ps</span><span class="p">,</span><span class="n">thls</span><span class="p">,</span><span class="n">qts</span><span class="p">,</span><span class="n">thvs</span><span class="p">,</span><span class="n">oblav</span>
+
+<span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">u0</span><span class="p">,</span><span class="n">v0</span><span class="p">,</span><span class="n">w0</span><span class="p">,</span><span class="n">thl0</span><span class="p">,</span><span class="n">qt0</span><span class="p">,</span><span class="n">ql0</span><span class="p">,</span><span class="n">ql0h</span><span class="p">,</span><span class="n">e120</span><span class="p">,</span><span class="n">dthvdz</span><span class="p">,</span><span class="n">presf</span><span class="p">,</span><span class="n">presh</span><span class="p">,</span><span class="n">sv0</span><span class="p">,</span><span class="n">mindist</span><span class="p">,</span><span class="n">wall</span><span class="p">,&amp;</span>
+<span class="w">                          </span><span class="n">uav</span><span class="p">,</span><span class="n">vav</span><span class="p">,</span><span class="n">wav</span><span class="p">,</span><span class="n">uuav</span><span class="p">,</span><span class="n">vvav</span><span class="p">,</span><span class="n">wwav</span><span class="p">,</span><span class="n">uvav</span><span class="p">,</span><span class="n">uwav</span><span class="p">,</span><span class="n">vwav</span><span class="p">,</span><span class="n">thlav</span><span class="p">,</span><span class="n">thl2av</span><span class="p">,</span><span class="n">qtav</span><span class="p">,</span><span class="n">qlav</span><span class="p">,</span><span class="n">ql2av</span><span class="p">,</span><span class="n">qt2av</span><span class="p">,</span><span class="n">svav</span><span class="p">,</span><span class="n">sv2av</span><span class="p">,</span><span class="n">momthick</span><span class="p">,&amp;</span>
+<span class="w">                          </span><span class="n">friction</span><span class="p">,</span><span class="n">displthick</span><span class="p">,</span><span class="n">pres0</span><span class="p">,</span><span class="n">viscratioav</span><span class="p">,</span><span class="n">thluav</span><span class="p">,</span><span class="n">thlvav</span><span class="p">,</span><span class="n">thlwav</span><span class="p">,</span><span class="n">qtuav</span><span class="p">,</span><span class="n">qtvav</span><span class="p">,</span><span class="n">qtwav</span><span class="p">,</span><span class="n">qluav</span><span class="p">,</span><span class="n">qlvav</span><span class="p">,</span><span class="n">qlwav</span><span class="p">,</span><span class="n">svuav</span><span class="p">,</span><span class="n">svvav</span><span class="p">,</span><span class="n">svwav</span><span class="p">,&amp;</span>
+<span class="w">                          </span><span class="n">upupav</span><span class="p">,</span><span class="n">vpvpav</span><span class="p">,</span><span class="n">wpwpav</span><span class="p">,</span><span class="n">thlpthlpav</span><span class="p">,</span><span class="n">qlpqlpav</span><span class="p">,</span><span class="n">qtpqtpav</span><span class="p">,</span><span class="n">svpsvpav</span><span class="p">,</span><span class="n">upvpav</span><span class="p">,</span><span class="n">upwpav</span><span class="p">,</span><span class="n">vpwpav</span><span class="p">,</span><span class="n">thlpupav</span><span class="p">,</span><span class="n">thlpvpav</span><span class="p">,&amp;</span>
+<span class="w">                          </span><span class="n">thlpwpav</span><span class="p">,</span><span class="n">qlpupav</span><span class="p">,</span><span class="n">qlpvpav</span><span class="p">,</span><span class="n">qlpwpav</span><span class="p">,</span><span class="n">qtpupav</span><span class="p">,</span><span class="n">qtpvpav</span><span class="p">,</span><span class="n">qtpwpav</span><span class="p">,</span><span class="n">svpupav</span><span class="p">,</span><span class="n">svpvpav</span><span class="p">,</span><span class="n">svpwpav</span><span class="p">,</span><span class="n">presav</span><span class="p">,&amp;</span>
+<span class="w">                          </span><span class="n">uusgsav</span><span class="p">,</span><span class="n">vvsgsav</span><span class="p">,</span><span class="n">wwsgsav</span><span class="p">,</span><span class="n">uwsgsav</span><span class="p">,</span><span class="n">thlusgsav</span><span class="p">,</span><span class="n">thlwsgsav</span><span class="p">,</span><span class="n">qlusgsav</span><span class="p">,</span><span class="n">qlwsgsav</span><span class="p">,</span><span class="n">qtusgsav</span><span class="p">,</span><span class="n">qtwsgsav</span><span class="p">,</span><span class="n">svusgsav</span><span class="p">,</span><span class="n">svwsgsav</span><span class="p">,</span><span class="n">tkesgsav</span><span class="p">,&amp;</span>
+<span class="w">                          </span><span class="n">strain2av</span><span class="p">,</span><span class="n">disssgsav</span><span class="p">,</span><span class="n">t_vav</span><span class="p">,</span><span class="n">tvmx</span><span class="p">,</span><span class="n">tvmy</span><span class="p">,</span><span class="n">tvmz</span><span class="p">,</span><span class="n">tsgsmx1</span><span class="p">,</span><span class="n">tsgsmx2</span><span class="p">,</span><span class="n">tsgsmy1</span><span class="p">,</span><span class="n">tsgsmy2</span><span class="p">,</span><span class="n">tsgsmz1</span><span class="p">,&amp;</span>
+<span class="w">                          </span><span class="n">tsgsmz2</span><span class="p">,</span><span class="n">t_sgsav</span><span class="p">,</span><span class="n">nusgsav</span><span class="p">,</span><span class="n">tpm</span><span class="p">,</span><span class="n">t_pav</span><span class="p">,</span><span class="n">ttmx</span><span class="p">,</span><span class="n">ttmy</span><span class="p">,</span><span class="n">ttmz</span><span class="p">,</span><span class="n">t_tav</span><span class="p">,</span><span class="n">p_bav</span><span class="p">,</span><span class="n">d_sgsav</span><span class="p">,</span><span class="n">p_tav</span><span class="p">,</span><span class="n">tkeadv</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">ih</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">trestart</span><span class="p">,</span><span class="n">tnextrestart</span><span class="p">,</span><span class="n">dt_lim</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="n">btime</span><span class="p">,</span><span class="n">xh</span><span class="p">,&amp;</span>
+<span class="w">                          </span><span class="n">cexpnr</span><span class="p">,</span><span class="n">ntimee</span><span class="p">,</span><span class="n">rk3step</span><span class="p">,</span><span class="n">ifoutput</span><span class="p">,</span><span class="n">nsv</span><span class="p">,</span><span class="n">timeleft</span><span class="p">,</span><span class="n">dt</span><span class="p">,</span><span class="n">ntrun</span><span class="p">,</span><span class="n">totavtime</span><span class="p">,&amp;</span>
+<span class="w">                          </span><span class="n">iinletgen</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="n">runavtime</span><span class="p">,</span><span class="n">inletav</span><span class="p">,</span><span class="n">totinletav</span><span class="p">,</span><span class="n">linletRA</span><span class="p">,</span><span class="n">ltempeq</span><span class="p">,</span><span class="n">lmoist</span><span class="p">,&amp;</span>
+<span class="w">                          </span><span class="n">dzf</span><span class="p">,</span><span class="n">dzfi</span><span class="p">,</span><span class="n">dzhi</span><span class="p">,</span><span class="n">dxf</span><span class="p">,</span><span class="n">dxfi</span><span class="p">,</span><span class="n">dyi</span><span class="p">,</span><span class="n">dxhi</span><span class="p">,</span><span class="n">nstore</span><span class="p">,</span><span class="n">numol</span><span class="p">,</span><span class="n">dy2i</span><span class="p">,</span><span class="n">grav</span><span class="p">,</span><span class="n">libm</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">nblocks</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">cmyid</span><span class="p">,</span><span class="n">cmyidx</span><span class="p">,</span><span class="n">cmyidy</span><span class="p">,</span><span class="n">myid</span><span class="p">,</span><span class="n">slabsum</span><span class="p">,</span><span class="n">excjs</span><span class="p">,</span><span class="n">comm3d</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modsubgriddata</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ekm</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modibmdata</span><span class="p">,</span><span class="w">   </span><span class="k">only</span><span class="w">  </span><span class="p">:</span><span class="w"> </span><span class="n">ibmxforcevol</span>
+<span class="w">    </span><span class="k">use </span><span class="n">initfac</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="k">block</span>
+<span class="k">    use </span><span class="n">modinletdata</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w">   </span><span class="p">:</span><span class="w"> </span><span class="n">Urec</span><span class="p">,</span><span class="n">Wrec</span><span class="p">,</span><span class="n">Uinl</span><span class="p">,</span><span class="n">Utav</span><span class="p">,</span><span class="n">QLinl</span><span class="p">,</span><span class="n">QTinl</span><span class="p">,</span><span class="n">QLrec</span><span class="p">,</span><span class="n">QTrec</span><span class="p">,</span><span class="n">QTtav</span><span class="p">,</span><span class="n">QLtav</span><span class="p">,</span><span class="n">Ttav</span><span class="p">,</span><span class="n">upupavinl</span><span class="p">,</span><span class="n">vpvpavinl</span><span class="p">,</span><span class="n">wpwpavinl</span><span class="p">,</span><span class="n">upwpavinl</span><span class="p">,&amp;</span>
+<span class="w">                               </span><span class="n">thlpthlpavinl</span><span class="p">,</span><span class="n">thlpupavinl</span><span class="p">,</span><span class="n">thlpwpavinl</span><span class="p">,</span><span class="n">qlpqlpavinl</span><span class="p">,</span><span class="n">qlpupavinl</span><span class="p">,</span><span class="n">qlpwpavinl</span><span class="p">,</span><span class="n">qtpqtpavinl</span><span class="p">,</span><span class="n">qtpupavinl</span><span class="p">,</span><span class="n">qtpwpavinl</span><span class="p">,</span><span class="n">Tinl</span><span class="p">,</span><span class="n">Trec</span><span class="p">,</span><span class="n">nstepread</span>
+
+<span class="w">    </span><span class="k">implicit none</span>
+<span class="k">    </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">lexitnow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="kt">integer </span><span class="n">imin</span><span class="p">,</span><span class="n">ihour</span>
+<span class="w">    </span><span class="kt">integer </span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">im</span><span class="p">,</span><span class="n">ip</span><span class="p">,</span><span class="n">jm</span><span class="p">,</span><span class="n">jp</span><span class="p">,</span><span class="n">jpp</span><span class="p">,</span><span class="n">km</span><span class="p">,</span><span class="n">kp</span><span class="p">,</span><span class="n">kpp</span><span class="p">,</span><span class="n">il</span><span class="p">,</span><span class="n">iu</span><span class="p">,</span><span class="n">jl</span><span class="p">,</span><span class="n">ju</span><span class="p">,</span><span class="n">kl</span><span class="p">,</span><span class="n">ku</span>
+<span class="w">    </span><span class="kt">character</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="n">name2</span><span class="p">,</span><span class="n">name3</span><span class="p">,</span><span class="n">name4</span><span class="p">,</span><span class="n">linkname</span>
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ierr</span><span class="p">,</span><span class="w"> </span><span class="n">err_code</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">timee</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">return</span>
+<span class="c">!    if (rk3step /=3) return</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">iinletgen</span><span class="o">==</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">nstepread</span><span class="o">==</span><span class="n">nstore</span><span class="p">))</span><span class="w"> </span><span class="k">then</span><span class="w">                </span><span class="c">! This overrules the need for rk3step to be 3 in case of reading inletfiles</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;Writing restartfiles after reading in new inletfiles&#39;</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">rk3step</span><span class="w"> </span><span class="o">/=</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w">   </span><span class="c">! Normal check</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;exit_now.&#39;</span><span class="o">//</span><span class="n">cexpnr</span>
+<span class="w">      </span><span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">name</span><span class="p">),</span><span class="w"> </span><span class="n">EXIST</span><span class="o">=</span><span class="n">lexitnow</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end if</span>
+<span class="k">    call </span><span class="n">MPI_Bcast</span><span class="p">(</span><span class="n">lexitnow</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_LOGICAL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">ierr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ierr</span><span class="w"> </span><span class="o">/=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        print</span><span class="w"> </span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Error in MPI Broadcast!&quot;</span>
+<span class="w">      </span><span class="k">end if</span>
+<span class="k">      </span><span class="n">err_code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ierr</span>
+<span class="w">      </span><span class="k">call </span><span class="n">MPI_Abort</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="w"> </span><span class="n">err_code</span><span class="p">,</span><span class="w"> </span><span class="n">ierr</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    if</span><span class="w"> </span><span class="p">(((</span><span class="n">timee</span><span class="o">&gt;=</span><span class="n">tnextrestart</span><span class="p">))</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">((</span><span class="n">lexitnow</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">nstepread</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">nstore</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      </span><span class="n">tnextrestart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tnextrestart</span><span class="o">+</span><span class="n">trestart</span>
+
+<span class="w">      </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;initd        _   _   .&#39;</span>
+<span class="w">      </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">6</span><span class="p">:</span><span class="mi">13</span><span class="p">)</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;(i8.8)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">ntrun</span>
+<span class="w">      </span><span class="n">name</span><span class="p">(</span><span class="mi">15</span><span class="p">:</span><span class="mi">17</span><span class="p">)</span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<span class="w">      </span><span class="n">name</span><span class="p">(</span><span class="mi">19</span><span class="p">:</span><span class="mi">21</span><span class="p">)</span><span class="o">=</span><span class="w"> </span><span class="n">cmyidy</span>
+<span class="w">      </span><span class="n">name</span><span class="p">(</span><span class="mi">23</span><span class="p">:</span><span class="mi">25</span><span class="p">)</span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">      </span><span class="k">open</span><span class="w">  </span><span class="p">(</span><span class="n">ifoutput</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">mindist</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="w">  </span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="w">      </span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="w">   </span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">((((</span><span class="n">wall</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="w">  </span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="w">      </span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="w">   </span><span class="p">),</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">u0</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">v0</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">w0</span><span class="w">    </span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">pres0</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">thl0</span><span class="w">  </span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">e120</span><span class="w">  </span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">ekm</span><span class="w">   </span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">qt0</span><span class="w">   </span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">ql0</span><span class="w">   </span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="p">(((</span><span class="n">ql0h</span><span class="w">  </span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="n">timee</span><span class="p">,</span><span class="w">  </span><span class="n">dt</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;-------------------------&#39;</span>
+<span class="w">        </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;Saving initd restart file&#39;</span>
+<span class="w">        </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;ntrun ::: &#39;</span><span class="p">,</span><span class="w"> </span><span class="n">ntrun</span>
+<span class="w">        </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;timee ::: &#39;</span><span class="p">,</span><span class="w"> </span><span class="n">timee</span>
+<span class="w">        </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;-------------------------&#39;</span>
+<span class="w">      </span><span class="k">endif</span>
+
+<span class="k">      close</span><span class="w"> </span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nsv</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        </span><span class="n">name</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;inits        _   _   .&#39;</span>
+<span class="w">        </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">6</span><span class="p">:</span><span class="mi">13</span><span class="p">)</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;(i8.8)&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">ntrun</span>
+<span class="w">        </span><span class="n">name</span><span class="p">(</span><span class="mi">15</span><span class="p">:</span><span class="mi">17</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<span class="w">        </span><span class="n">name</span><span class="p">(</span><span class="mi">19</span><span class="p">:</span><span class="mi">21</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidy</span>
+<span class="w">        </span><span class="n">name</span><span class="p">(</span><span class="mi">23</span><span class="p">:</span><span class="mi">25</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">        </span><span class="k">open</span><span class="w">  </span><span class="p">(</span><span class="n">ifoutput</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">name</span><span class="p">,</span><span class="n">form</span><span class="o">=</span><span class="s1">&#39;unformatted&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w"> </span><span class="p">((((</span><span class="n">sv0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">i</span><span class="o">=</span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span><span class="p">),</span><span class="n">j</span><span class="o">=</span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="n">je</span><span class="o">+</span><span class="n">jh</span><span class="p">),</span><span class="n">k</span><span class="o">=</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nsv</span><span class="p">)</span>
+<span class="w">        </span><span class="k">write</span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span><span class="w">  </span><span class="n">timee</span>
+
+<span class="w">        </span><span class="k">close</span><span class="w"> </span><span class="p">(</span><span class="n">ifoutput</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(A,F15.7,A,I4)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;dump at time = &#39;</span><span class="p">,</span><span class="n">timee</span><span class="p">,</span><span class="s1">&#39; unit = &#39;</span><span class="p">,</span><span class="n">ifoutput</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">    end if</span>
+
+<span class="k">  end subroutine </span><span class="n">writerestartfiles</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

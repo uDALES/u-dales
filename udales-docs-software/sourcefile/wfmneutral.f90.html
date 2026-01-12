@@ -1,0 +1,484 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>wfmneutral.f90 &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>wfmneutral.f90
+      <small>Source File</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.5% of total for source files.">68 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/wfmneutral.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+            <li class="breadcrumb-item active" aria-current="page">wfmneutral.f90</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#subs-0"
+         aria-expanded="false" aria-controls="subs-0">
+         <h4 class="card-header bg-primary text-white">Subroutines</h4>
+      </a>
+      <div id="subs-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../proc/wfmneutral.html">wfmneutral</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../sourcefile/wfmneutral.f90.html#src">wfmneutral.f90</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    <div class="col-md-9" id='text'>
+      
+      <br>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">This file depends on</h3>
+          </div>
+          <div class="card-body">
+            <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: sourcefile~~wfmneutral.f90~~EfferentGraph Pages: 1 -->
+<svg id="sourcefilewfmneutralf90EfferentGraph" width="493pt" height="172pt"
+ viewBox="0.00 0.00 492.83 172.43" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 168.43)">
+<title>sourcefile~~wfmneutral.f90~~EfferentGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-168.43 488.83,-168.43 488.83,4 -4,4"/>
+<!-- sourcefile~wfmneutral.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_node1" class="node">
+<title>sourcefile~wfmneutral.f90</title>
+<polygon fill="none" stroke="black" points="484.83,-104.27 392.31,-104.27 392.31,-80 484.83,-80 484.83,-104.27"/>
+<text text-anchor="middle" x="438.57" y="-88.53" font-family="Helvetica,sans-Serif" font-size="10.50">wfmneutral.f90</text>
+</g>
+<!-- sourcefile~initfac.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_node2" class="node">
+<title>sourcefile~initfac.f90</title>
+<g id="a_sourcefile~~wfmneutral.f90~~EfferentGraph_node2"><a xlink:href="../sourcefile/initfac.f90.html" xlink:title="initfac.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="328.93,-146.27 264.16,-146.27 264.16,-122 328.93,-122 328.93,-146.27"/>
+<text text-anchor="middle" x="296.55" y="-130.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfac.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~wfmneutral.f90&#45;&gt;sourcefile~initfac.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_edge1" class="edge">
+<title>sourcefile~wfmneutral.f90&#45;&gt;sourcefile~initfac.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M395.56,-104.74C378.03,-109.99 357.7,-116.09 340.11,-121.37"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="339.31,-117.95 330.74,-124.18 341.32,-124.66 339.31,-117.95"/>
+</g>
+<!-- sourcefile~modglobal.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_node3" class="node">
+<title>sourcefile~modglobal.f90</title>
+<g id="a_sourcefile~~wfmneutral.f90~~EfferentGraph_node3"><a xlink:href="../sourcefile/modglobal.f90.html" xlink:title="modglobal.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="200.79,-146.27 112.02,-146.27 112.02,-122 200.79,-122 200.79,-146.27"/>
+<text text-anchor="middle" x="156.4" y="-130.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_edge2" class="edge">
+<title>sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M426.7,-104.55C412.37,-119.88 385.53,-145.14 356.31,-155.13 306.01,-172.35 244.73,-161.46 203.6,-149.93"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="204.59,-146.57 194.01,-147.11 202.61,-153.29 204.59,-146.57"/>
+</g>
+<!-- sourcefile~modibmdata.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_node4" class="node">
+<title>sourcefile~modibmdata.f90</title>
+<g id="a_sourcefile~~wfmneutral.f90~~EfferentGraph_node4"><a xlink:href="../sourcefile/modibmdata.f90.html" xlink:title="modibmdata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="346.56,-104.27 246.54,-104.27 246.54,-80 346.56,-80 346.56,-104.27"/>
+<text text-anchor="middle" x="296.55" y="-88.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modibmdata.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_edge3" class="edge">
+<title>sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modibmdata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M392.11,-92.13C381.21,-92.13 369.4,-92.13 357.94,-92.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="358.16,-88.64 348.16,-92.14 358.16,-95.64 358.16,-88.64"/>
+</g>
+<!-- sourcefile~modmpi.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_node5" class="node">
+<title>sourcefile~modmpi.f90</title>
+<g id="a_sourcefile~~wfmneutral.f90~~EfferentGraph_node5"><a xlink:href="../sourcefile/modmpi.f90.html" xlink:title="modmpi.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="76.02,-105.27 0,-105.27 0,-81 76.02,-81 76.02,-105.27"/>
+<text text-anchor="middle" x="38.01" y="-89.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_edge4" class="edge">
+<title>sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M393.99,-79.52C381.87,-76.39 368.65,-73.31 356.31,-71.13 268.85,-55.76 246.18,-49.97 157.4,-52.13"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M155.4,-52.13C125.63,-52.37 93.88,-64.44 71.07,-75.42"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="69.67,-72.21 62.3,-79.82 72.81,-78.46 69.67,-72.21"/>
+</g>
+<!-- sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_node6" class="node">
+<title>sourcefile~modsubgriddata.f90</title>
+<g id="a_sourcefile~~wfmneutral.f90~~EfferentGraph_node6"><a xlink:href="../sourcefile/modsubgriddata.f90.html" xlink:title="modsubgriddata.f90">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="356.31,-24.27 236.79,-24.27 236.79,0 356.31,0 356.31,-24.27"/>
+<text text-anchor="middle" x="296.55" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgriddata.f90</text>
+</a>
+</g>
+</g>
+<!-- sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modsubgriddata.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_edge5" class="edge">
+<title>sourcefile~wfmneutral.f90&#45;&gt;sourcefile~modsubgriddata.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M420.67,-79.67C404.59,-68.11 379.48,-50.84 356.31,-38.13 350.81,-35.12 344.89,-32.17 339,-29.41"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="340.46,-26.23 329.9,-25.29 337.57,-32.61 340.46,-26.23"/>
+</g>
+<!-- sourcefile~initfac.f90&#45;&gt;sourcefile~modglobal.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_edge6" class="edge">
+<title>sourcefile~initfac.f90&#45;&gt;sourcefile~modglobal.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M263.86,-134.13C248.63,-134.13 229.94,-134.13 212.49,-134.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="212.76,-130.64 202.76,-134.14 212.76,-137.64 212.76,-130.64"/>
+</g>
+<!-- sourcefile~initfac.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_edge7" class="edge">
+<title>sourcefile~initfac.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M263.96,-124.88C254.94,-121.7 245.25,-117.75 236.79,-113.13 197.72,-91.83 201.89,-51.05 157.4,-52.13"/>
+</g>
+<!-- sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90 -->
+<g id="sourcefile~~wfmneutral.f90~~EfferentGraph_edge8" class="edge">
+<title>sourcefile~modglobal.f90&#45;&gt;sourcefile~modmpi.f90</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M119.85,-121.61C109.01,-117.79 96.92,-113.54 85.47,-109.5"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="86.77,-106.25 76.18,-106.23 84.44,-112.85 86.77,-106.25"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#EfferentGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="EfferentGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="200pt" height="32pt"
+ viewBox="0.00 0.00 199.52 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 195.52,-28.27 195.52,4 -4,4"/>
+<!-- Source File -->
+<g id="node1" class="node">
+<title>Source File</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Source File</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node2" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="191.52,-24.27 87.75,-24.27 87.75,0 191.52,0 191.52,-24.27"/>
+<text text-anchor="middle" x="139.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a file to a file which it depends on. A file
+is dependent upon another if the latter must be compiled before the former
+can be.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+<br>
+      <section>
+        <h2><span class="anchor" id="src"></span>Source Code</h2>
+        <div class="hl codehilite"><pre><span></span><a id="ln-1" name="ln-1" href="#ln-1"></a><span class="c">!  This file is part of uDALES.</span>
+<a id="ln-2" name="ln-2" href="#ln-2"></a><span class="c">!</span>
+<a id="ln-3" name="ln-3" href="#ln-3"></a><span class="c">! This program is free software: you can redistribute it and/or modify</span>
+<a id="ln-4" name="ln-4" href="#ln-4"></a><span class="c">! it under the terms of the GNU General Public License as published by</span>
+<a id="ln-5" name="ln-5" href="#ln-5"></a><span class="c">! the Free Software Foundation, either version 3 of the License, or</span>
+<a id="ln-6" name="ln-6" href="#ln-6"></a><span class="c">! (at your option) any later version.</span>
+<a id="ln-7" name="ln-7" href="#ln-7"></a><span class="c">!</span>
+<a id="ln-8" name="ln-8" href="#ln-8"></a><span class="c">! This program is distributed in the hope that it will be useful,</span>
+<a id="ln-9" name="ln-9" href="#ln-9"></a><span class="c">! but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<a id="ln-10" name="ln-10" href="#ln-10"></a><span class="c">! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<a id="ln-11" name="ln-11" href="#ln-11"></a><span class="c">! GNU General Public License for more details.</span>
+<a id="ln-12" name="ln-12" href="#ln-12"></a><span class="c">!</span>
+<a id="ln-13" name="ln-13" href="#ln-13"></a><span class="c">! You should have received a copy of the GNU General Public License</span>
+<a id="ln-14" name="ln-14" href="#ln-14"></a><span class="c">! along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<a id="ln-15" name="ln-15" href="#ln-15"></a><span class="c">!</span>
+<a id="ln-16" name="ln-16" href="#ln-16"></a><span class="c">!  Copyright 2006-2021 the uDALES Team.</span>
+<a id="ln-17" name="ln-17" href="#ln-17"></a><span class="c">!</span>
+<a id="ln-18" name="ln-18" href="#ln-18"></a><span class="k">SUBROUTINE </span><span class="n">wfmneutral</span><span class="p">(</span><span class="n">hi</span><span class="p">,</span><span class="n">hj</span><span class="p">,</span><span class="n">hk</span><span class="p">,</span><span class="n">iout1</span><span class="p">,</span><span class="n">iout2</span><span class="p">,</span><span class="n">iomomflux</span><span class="p">,</span><span class="n">utang1</span><span class="p">,</span><span class="n">utang2</span><span class="p">,</span><span class="n">z0</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">ind</span><span class="p">,</span><span class="n">wforient</span><span class="p">)</span>
+<a id="ln-19" name="ln-19" href="#ln-19"></a><span class="w">   </span><span class="c">!wfmneutral</span>
+<a id="ln-20" name="ln-20" href="#ln-20"></a><span class="w">   </span><span class="c">!wf for momentum under neutral conditions</span>
+<a id="ln-21" name="ln-21" href="#ln-21"></a><span class="w">   </span><span class="c">!calculating wall function for momentum assuming neutral conditions</span>
+<a id="ln-22" name="ln-22" href="#ln-22"></a><span class="w">   </span><span class="c">!follow approach in wfuno</span>
+<a id="ln-23" name="ln-23" href="#ln-23"></a><span class="w">   </span><span class="c">!fluxes in m2/s2</span>
+<a id="ln-24" name="ln-24" href="#ln-24"></a><span class="w">   </span><span class="k">USE </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">ONLY</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">dzf</span><span class="p">,</span><span class="n">dzfi</span><span class="p">,</span><span class="n">dzh2i</span><span class="p">,</span><span class="n">dzhi</span><span class="p">,</span><span class="n">dzhiq</span><span class="p">,</span><span class="n">dy</span><span class="p">,</span><span class="n">dyi</span><span class="p">,</span><span class="n">dy2i</span><span class="p">,</span><span class="n">dyi5</span><span class="p">,</span><span class="n">dxf</span><span class="p">,</span><span class="n">dxh</span><span class="p">,</span><span class="n">dxfi</span><span class="p">,</span><span class="n">dxhi</span><span class="p">,</span><span class="n">dxh2i</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">fkar</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">rk3step</span><span class="p">,</span><span class="n">kmax</span><span class="p">,</span><span class="n">jge</span><span class="p">,</span><span class="n">jgb</span>
+<a id="ln-25" name="ln-25" href="#ln-25"></a><span class="w">   </span><span class="k">USE </span><span class="n">modsubgriddata</span><span class="p">,</span><span class="w"> </span><span class="k">ONLY</span><span class="p">:</span><span class="n">ekh</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span>
+<a id="ln-26" name="ln-26" href="#ln-26"></a><span class="w">   </span><span class="k">USE </span><span class="n">modmpi</span><span class="p">,</span><span class="w"> </span><span class="k">ONLY</span><span class="p">:</span><span class="n">myid</span>
+<a id="ln-27" name="ln-27" href="#ln-27"></a><span class="w">   </span><span class="k">USE </span><span class="n">initfac</span><span class="p">,</span><span class="w"> </span><span class="k">ONLY</span><span class="p">:</span><span class="k">block</span>
+<a id="ln-28" name="ln-28" href="#ln-28"></a><span class="k">   USE </span><span class="n">modibmdata</span>
+<a id="ln-29" name="ln-29" href="#ln-29"></a><span class="w">   </span><span class="kt">INTEGER </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="w"> </span><span class="n">ju</span><span class="p">,</span><span class="w"> </span><span class="n">kl</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">,</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="w"> </span><span class="n">iu</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">,</span><span class="w"> </span><span class="n">im</span><span class="p">,</span><span class="w"> </span><span class="n">jm</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">jp</span><span class="p">,</span><span class="w"> </span><span class="n">kp</span>
+<a id="ln-30" name="ln-30" href="#ln-30"></a>
+<a id="ln-31" name="ln-31" href="#ln-31"></a><span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">bcmomflux</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!temp storage for momentum flux</span>
+<a id="ln-32" name="ln-32" href="#ln-32"></a><span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ctm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!momentum transfer coefficient</span>
+<a id="ln-33" name="ln-33" href="#ln-33"></a><span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">dummy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!for debugging</span>
+<a id="ln-34" name="ln-34" href="#ln-34"></a><span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">delta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!distance from wall</span>
+<a id="ln-35" name="ln-35" href="#ln-35"></a><span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">logdz2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!log(delta/z0)**2</span>
+<a id="ln-36" name="ln-36" href="#ln-36"></a><span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">utang1Int</span><span class="w"> </span><span class="c">!Interpolated 1st tangential velocity component needed for stability calculation (to T location)</span>
+<a id="ln-37" name="ln-37" href="#ln-37"></a><span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">utang2Int</span><span class="w"> </span><span class="c">!Interpolated 2nd tangential velocity component needed for stability calculation (to T location)</span>
+<a id="ln-38" name="ln-38" href="#ln-38"></a><span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">fkar2</span><span class="w"> </span><span class="c">!fkar^2, von Karman constant squared</span>
+<a id="ln-39" name="ln-39" href="#ln-39"></a><span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">emmo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="p">,</span><span class="w"> </span><span class="n">epmo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="p">,</span><span class="w"> </span><span class="n">epom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="p">,</span><span class="w"> </span><span class="n">emom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="p">,</span><span class="w"> </span><span class="n">eopm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="p">,</span><span class="w"> </span><span class="n">eomm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="p">,</span><span class="w"> </span><span class="n">empo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<a id="ln-40" name="ln-40" href="#ln-40"></a><span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">umin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0001</span><span class="w"> </span><span class="c">!m^2/s^2</span>
+<a id="ln-41" name="ln-41" href="#ln-41"></a>
+<a id="ln-42" name="ln-42" href="#ln-42"></a><span class="w">   </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hi</span><span class="w"> </span><span class="c">!&lt;size of halo in i</span>
+<a id="ln-43" name="ln-43" href="#ln-43"></a><span class="w">   </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hj</span><span class="w"> </span><span class="c">!&lt;size of halo in j</span>
+<a id="ln-44" name="ln-44" href="#ln-44"></a><span class="w">   </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hk</span><span class="w"> </span><span class="c">!&lt;size of halo in k</span>
+<a id="ln-45" name="ln-45" href="#ln-45"></a><span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iout1</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!updated prognostic tangential velocity (component1)</span>
+<a id="ln-46" name="ln-46" href="#ln-46"></a><span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iout2</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!updated prognostic tangential velocity (component2)</span>
+<a id="ln-47" name="ln-47" href="#ln-47"></a><span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iomomflux</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="o">-</span><span class="n">hk</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!a field to save the momentum flux</span>
+<a id="ln-48" name="ln-48" href="#ln-48"></a><span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">z0</span>
+<a id="ln-49" name="ln-49" href="#ln-49"></a><span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hk</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!tangential velocity field</span>
+<a id="ln-50" name="ln-50" href="#ln-50"></a><span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hk</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!second tangential velocity field</span>
+<a id="ln-51" name="ln-51" href="#ln-51"></a><span class="w">   </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="c">! number of the block, used to get i,j,k-indeces</span>
+<a id="ln-52" name="ln-52" href="#ln-52"></a><span class="w">   </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ind</span><span class="w"> </span><span class="c">! in case of y-wall (case 3x &amp; 4x) &quot;ind&quot; is used for j-index, otherwise this is irrelevant</span>
+<a id="ln-53" name="ln-53" href="#ln-53"></a><span class="w">   </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">wforient</span><span class="w"> </span><span class="c">!orientation of the facet see below:</span>
+<a id="ln-54" name="ln-54" href="#ln-54"></a><span class="w">   </span><span class="c">!frist digit, orientation of wall, determines iteration indices</span>
+<a id="ln-55" name="ln-55" href="#ln-55"></a><span class="w">   </span><span class="c">!second digit, if for momentum or for scalar (necessary because of staggered grid -&gt; which variable to interpolate)</span>
+<a id="ln-56" name="ln-56" href="#ln-56"></a><span class="w">   </span><span class="c">!xlow=1,xup=2,yup=3,ylow=4,z=5</span>
+<a id="ln-57" name="ln-57" href="#ln-57"></a><span class="w">   </span><span class="c">!momentum=1</span>
+<a id="ln-58" name="ln-58" href="#ln-58"></a><span class="w">   </span><span class="n">fkar2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fkar</span><span class="o">**</span><span class="mi">2</span>
+<a id="ln-59" name="ln-59" href="#ln-59"></a><span class="w">   </span><span class="c">!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</span>
+<a id="ln-60" name="ln-60" href="#ln-60"></a><span class="w">   </span><span class="c">!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES FOR MOMENTUM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</span>
+<a id="ln-61" name="ln-61" href="#ln-61"></a><span class="w">   </span><span class="k">SELECT CASE</span><span class="w"> </span><span class="p">(</span><span class="n">wforient</span><span class="p">)</span>
+<a id="ln-62" name="ln-62" href="#ln-62"></a><span class="w">   </span><span class="c">!!!!!!!!!!!!!!!SPECIAL CASES FOR THE SURFACE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</span>
+<a id="ln-63" name="ln-63" href="#ln-63"></a><span class="w">   </span><span class="c">!can actually be made redundant and just be replaced by standard horizontal case (doesn&#39;t really matter though)</span>
+<a id="ln-64" name="ln-64" href="#ln-64"></a><span class="w">   </span><span class="c">! SO: This code is essentially unchanged from uDALES v1, and should probably be moved out of this file in a later release.</span>
+<a id="ln-65" name="ln-65" href="#ln-65"></a><span class="w">   </span><span class="k">CASE</span><span class="w"> </span><span class="p">(</span><span class="mi">91</span><span class="p">)</span><span class="w"> </span><span class="c">!surface momentum flux</span>
+<a id="ln-66" name="ln-66" href="#ln-66"></a>
+<a id="ln-67" name="ln-67" href="#ln-67"></a><span class="w">      </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="c">!</span>
+<a id="ln-68" name="ln-68" href="#ln-68"></a><span class="w">      </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="c">!</span>
+<a id="ln-69" name="ln-69" href="#ln-69"></a><span class="w">      </span><span class="n">il</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span>
+<a id="ln-70" name="ln-70" href="#ln-70"></a><span class="w">      </span><span class="n">iu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ie</span>
+<a id="ln-71" name="ln-71" href="#ln-71"></a><span class="w">      </span><span class="n">jl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span>
+<a id="ln-72" name="ln-72" href="#ln-72"></a><span class="w">      </span><span class="n">ju</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">je</span>
+<a id="ln-73" name="ln-73" href="#ln-73"></a>
+<a id="ln-74" name="ln-74" href="#ln-74"></a><span class="w">      </span><span class="n">delta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">!might need attention on streched grids! as well as the dzfi when updating up</span>
+<a id="ln-75" name="ln-75" href="#ln-75"></a><span class="w">      </span><span class="n">logdz2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">LOG</span><span class="p">(</span><span class="n">delta</span><span class="o">/</span><span class="n">z0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+<a id="ln-76" name="ln-76" href="#ln-76"></a>
+<a id="ln-77" name="ln-77" href="#ln-77"></a><span class="w">      </span><span class="k">DO </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="w"> </span><span class="n">ju</span><span class="w"> </span><span class="c">!u component</span>
+<a id="ln-78" name="ln-78" href="#ln-78"></a><span class="w">         </span><span class="k">DO </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="w"> </span><span class="n">iu</span>
+<a id="ln-79" name="ln-79" href="#ln-79"></a><span class="w">            </span><span class="n">utang1Int</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span>
+<a id="ln-80" name="ln-80" href="#ln-80"></a><span class="w">            </span><span class="n">utang2Int</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="mf">0.25</span>
+<a id="ln-81" name="ln-81" href="#ln-81"></a><span class="w">            </span><span class="n">utangInt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">umin</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">utang1Int</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2Int</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+<a id="ln-82" name="ln-82" href="#ln-82"></a><span class="w">            </span><span class="n">ctm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fkar2</span><span class="o">/</span><span class="p">(</span><span class="n">logdz2</span><span class="p">)</span>
+<a id="ln-83" name="ln-83" href="#ln-83"></a><span class="w">            </span><span class="c">!dummy = (utang1Int**2)*ctm</span>
+<a id="ln-84" name="ln-84" href="#ln-84"></a><span class="w">            </span><span class="n">dummy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">abs</span><span class="p">(</span><span class="n">utang1Int</span><span class="p">)</span><span class="o">*</span><span class="nb">sqrt</span><span class="p">(</span><span class="n">utangInt</span><span class="p">)</span><span class="o">*</span><span class="n">ctm</span>
+<a id="ln-85" name="ln-85" href="#ln-85"></a><span class="w">            </span><span class="n">bcmomflux</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">SIGN</span><span class="p">(</span><span class="n">dummy</span><span class="p">,</span><span class="w"> </span><span class="n">utang1Int</span><span class="p">)</span>
+<a id="ln-86" name="ln-86" href="#ln-86"></a><span class="w">            </span><span class="n">iomomflux</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iomomflux</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">bcmomflux</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<a id="ln-87" name="ln-87" href="#ln-87"></a><span class="w">            </span><span class="n">emom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dxf</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dxf</span><span class="p">(</span><span class="n">i</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! dx is non-equidistant</span>
+<a id="ln-88" name="ln-88" href="#ln-88"></a><span class="w">                    </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">dxf</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">dxf</span><span class="p">(</span><span class="n">i</span><span class="p">)))</span><span class="o">*</span><span class="n">dxhi</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">dzhiq</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<a id="ln-89" name="ln-89" href="#ln-89"></a><span class="w">            </span><span class="n">iout1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iout1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">emom</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">bcmomflux</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">!</span>
+<a id="ln-90" name="ln-90" href="#ln-90"></a><span class="w">         </span><span class="k">END DO</span>
+<a id="ln-91" name="ln-91" href="#ln-91"></a><span class="k">      END DO</span>
+<a id="ln-92" name="ln-92" href="#ln-92"></a>
+<a id="ln-93" name="ln-93" href="#ln-93"></a><span class="k">      DO </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="w"> </span><span class="n">ju</span><span class="w"> </span><span class="c">!v component</span>
+<a id="ln-94" name="ln-94" href="#ln-94"></a><span class="w">         </span><span class="k">DO </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="w"> </span><span class="n">iu</span>
+<a id="ln-95" name="ln-95" href="#ln-95"></a><span class="w">            </span><span class="n">utang1Int</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="mf">0.25</span>
+<a id="ln-96" name="ln-96" href="#ln-96"></a><span class="w">            </span><span class="n">utang2Int</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span>
+<a id="ln-97" name="ln-97" href="#ln-97"></a><span class="w">            </span><span class="n">utangInt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">umin</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">utang1Int</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2Int</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+<a id="ln-98" name="ln-98" href="#ln-98"></a><span class="w">            </span><span class="n">ctm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fkar2</span><span class="o">/</span><span class="p">(</span><span class="n">logdz2</span><span class="p">)</span>
+<a id="ln-99" name="ln-99" href="#ln-99"></a><span class="w">            </span><span class="c">!dummy = (utang2Int**2)*ctm</span>
+<a id="ln-100" name="ln-100" href="#ln-100"></a><span class="w">            </span><span class="n">dummy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">abs</span><span class="p">(</span><span class="n">utang2Int</span><span class="p">)</span><span class="o">*</span><span class="nb">sqrt</span><span class="p">(</span><span class="n">utangInt</span><span class="p">)</span><span class="o">*</span><span class="n">ctm</span>
+<a id="ln-101" name="ln-101" href="#ln-101"></a><span class="w">            </span><span class="n">bcmomflux</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">SIGN</span><span class="p">(</span><span class="n">dummy</span><span class="p">,</span><span class="w"> </span><span class="n">utang2Int</span><span class="p">)</span>
+<a id="ln-102" name="ln-102" href="#ln-102"></a><span class="w">            </span><span class="n">iomomflux</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iomomflux</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">bcmomflux</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<a id="ln-103" name="ln-103" href="#ln-103"></a><span class="w">            </span><span class="n">eomm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)))</span><span class="o">*</span><span class="n">dzhiq</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<a id="ln-104" name="ln-104" href="#ln-104"></a><span class="w">            </span><span class="n">iout2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iout2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">eomm</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">bcmomflux</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">!</span>
+<a id="ln-105" name="ln-105" href="#ln-105"></a><span class="w">         </span><span class="k">END DO</span>
+<a id="ln-106" name="ln-106" href="#ln-106"></a><span class="k">      END DO</span>
+<a id="ln-107" name="ln-107" href="#ln-107"></a>
+<a id="ln-108" name="ln-108" href="#ln-108"></a><span class="k">   END SELECT</span>
+<a id="ln-109" name="ln-109" href="#ln-109"></a>
+<a id="ln-110" name="ln-110" href="#ln-110"></a><span class="k">END SUBROUTINE </span><span class="n">wfmneutral</span>
+</pre></div>
+
+      </section>
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

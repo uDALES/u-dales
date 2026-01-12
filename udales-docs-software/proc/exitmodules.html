@@ -1,0 +1,764 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>exitmodules &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>exitmodules
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.1% of total for procedures.">16 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modstartup.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modstartup.f90.html'>modstartup.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modstartup.html'>modstartup</a></li>
+            <li class="breadcrumb-item active" aria-current="page">exitmodules</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/exitmodules.html#src">exitmodules</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine exitmodules()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item"><a href='../module/modthermodynamics.html'>modthermodynamics</a></li>
+                  <li class="list-inline-item"><a href='../module/modsubgrid.html'>modsubgrid</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modinlet.html'>modinlet</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item">modpois</li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~exitmodules~~UsesGraph Pages: 1 -->
+<svg id="procexitmodulesUsesGraph" width="381pt" height="284pt"
+ viewBox="0.00 0.00 380.81 284.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~exitmodules~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 280.27)">
+<title>proc~~exitmodules~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-280.27 376.81,-280.27 376.81,4 -4,4"/>
+<!-- proc~exitmodules -->
+<g id="proc~~exitmodules~~UsesGraph_node1" class="node">
+<title>proc~exitmodules</title>
+<polygon fill="none" stroke="black" points="372.81,-150.27 296.79,-150.27 296.79,-126 372.81,-126 372.81,-150.27"/>
+<text text-anchor="middle" x="334.8" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50">exitmodules</text>
+</g>
+<!-- modpois -->
+<g id="proc~~exitmodules~~UsesGraph_node2" class="node">
+<title>modpois</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="226.66,-276.27 169.39,-276.27 169.39,-252 226.66,-252 226.66,-276.27"/>
+<text text-anchor="middle" x="198.03" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modpois</text>
+</g>
+<!-- proc~exitmodules&#45;&gt;modpois -->
+<g id="proc~~exitmodules~~UsesGraph_edge1" class="edge">
+<title>proc~exitmodules&#45;&gt;modpois</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M328.3,-150.76C318.13,-172.69 294.31,-217.89 260.79,-243.13 254.01,-248.24 245.91,-252.16 237.84,-255.14"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="236.85,-251.78 228.42,-258.19 239.01,-258.44 236.85,-251.78"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~exitmodules~~UsesGraph_node3" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~exitmodules~~UsesGraph_node3"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="230.04,-234.27 166.02,-234.27 166.02,-210 230.04,-210 230.04,-234.27"/>
+<text text-anchor="middle" x="198.03" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;module~modfields -->
+<g id="proc~~exitmodules~~UsesGraph_edge2" class="edge">
+<title>proc~exitmodules&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M322.26,-150.65C308.73,-164.67 285.06,-187.25 260.79,-201.13 254.66,-204.64 247.86,-207.69 241.07,-210.29"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="240.2,-206.88 231.94,-213.5 242.53,-213.48 240.2,-206.88"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~exitmodules~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~exitmodules~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="232.29,-192.27 163.77,-192.27 163.77,-168 232.29,-168 232.29,-192.27"/>
+<text text-anchor="middle" x="198.03" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;module~modglobal -->
+<g id="proc~~exitmodules~~UsesGraph_edge3" class="edge">
+<title>proc~exitmodules&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M296.62,-149.72C280.13,-154.86 260.6,-160.95 243.35,-166.32"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="242.36,-162.97 233.86,-169.28 244.44,-169.65 242.36,-162.97"/>
+</g>
+<!-- module~modinlet -->
+<g id="proc~~exitmodules~~UsesGraph_node5" class="node">
+<title>module~modinlet</title>
+<g id="a_proc~~exitmodules~~UsesGraph_node5"><a xlink:href="../module/modinlet.html" xlink:title="modinlet">
+<polygon fill="#337ab7" stroke="#337ab7" points="227.41,-150.27 168.64,-150.27 168.64,-126 227.41,-126 227.41,-150.27"/>
+<text text-anchor="middle" x="198.03" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modinlet</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;module~modinlet -->
+<g id="proc~~exitmodules~~UsesGraph_edge4" class="edge">
+<title>proc~exitmodules&#45;&gt;module~modinlet</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M296.62,-138.13C278.72,-138.13 257.24,-138.13 239,-138.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="239.06,-134.64 229.06,-138.14 239.06,-141.64 239.06,-134.64"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~exitmodules~~UsesGraph_node6" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~exitmodules~~UsesGraph_node6"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="225.91,-108.27 170.14,-108.27 170.14,-84 225.91,-84 225.91,-108.27"/>
+<text text-anchor="middle" x="198.03" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;module~modmpi -->
+<g id="proc~~exitmodules~~UsesGraph_edge5" class="edge">
+<title>proc~exitmodules&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M296.62,-126.55C278.08,-120.77 255.69,-113.79 237.04,-107.98"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="238.29,-104.71 227.71,-105.07 236.21,-111.39 238.29,-104.71"/>
+</g>
+<!-- module~modsubgrid -->
+<g id="proc~~exitmodules~~UsesGraph_node7" class="node">
+<title>module~modsubgrid</title>
+<g id="a_proc~~exitmodules~~UsesGraph_node7"><a xlink:href="../module/modsubgrid.html" xlink:title="modsubgrid">
+<polygon fill="#337ab7" stroke="#337ab7" points="235.66,-66.27 160.39,-66.27 160.39,-42 235.66,-42 235.66,-66.27"/>
+<text text-anchor="middle" x="198.03" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgrid</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;module~modsubgrid -->
+<g id="proc~~exitmodules~~UsesGraph_edge6" class="edge">
+<title>proc~exitmodules&#45;&gt;module~modsubgrid</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M322.26,-125.62C308.73,-111.6 285.06,-89.02 260.79,-75.14 256.36,-72.6 251.57,-70.3 246.69,-68.24"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="247.97,-64.98 237.38,-64.65 245.45,-71.52 247.97,-64.98"/>
+</g>
+<!-- module~modthermodynamics -->
+<g id="proc~~exitmodules~~UsesGraph_node8" class="node">
+<title>module~modthermodynamics</title>
+<g id="a_proc~~exitmodules~~UsesGraph_node8"><a xlink:href="../module/modthermodynamics.html" xlink:title="modthermodynamics">
+<polygon fill="#337ab7" stroke="#337ab7" points="260.79,-24.27 135.27,-24.27 135.27,0 260.79,0 260.79,-24.27"/>
+<text text-anchor="middle" x="198.03" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modthermodynamics</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;module~modthermodynamics -->
+<g id="proc~~exitmodules~~UsesGraph_edge7" class="edge">
+<title>proc~exitmodules&#45;&gt;module~modthermodynamics</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M328.3,-125.51C318.13,-103.58 294.31,-58.38 260.79,-33.13 259.43,-32.11 258.02,-31.14 256.57,-30.21"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="258.28,-27.15 247.82,-25.44 254.93,-33.3 258.28,-27.15"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~exitmodules~~UsesGraph_node9" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="86.52,-234.27 12.75,-234.27 12.75,-210 86.52,-210 86.52,-234.27"/>
+<text text-anchor="middle" x="49.63" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~exitmodules~~UsesGraph_edge8" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ffda00" stroke-dasharray="5,2" d="M165.62,-222.13C146.04,-222.13 120.45,-222.13 98.39,-222.13"/>
+<polygon fill="#ffda00" stroke="#ffda00" points="98.4,-218.64 88.4,-222.14 98.4,-225.64 98.4,-218.64"/>
+</g>
+<!-- module~modinletdata -->
+<g id="proc~~exitmodules~~UsesGraph_node10" class="node">
+<title>module~modinletdata</title>
+<g id="a_proc~~exitmodules~~UsesGraph_node10"><a xlink:href="../module/modinletdata.html" xlink:title="modinletdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="91.02,-150.27 8.25,-150.27 8.25,-126 91.02,-126 91.02,-150.27"/>
+<text text-anchor="middle" x="49.63" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modinletdata</text>
+</a>
+</g>
+</g>
+<!-- module~modinlet&#45;&gt;module~modinletdata -->
+<g id="proc~~exitmodules~~UsesGraph_edge9" class="edge">
+<title>module~modinlet&#45;&gt;module~modinletdata</title>
+<path fill="none" stroke="#00ff91" stroke-dasharray="5,2" d="M168.46,-138.13C149.75,-138.13 124.75,-138.13 102.6,-138.13"/>
+<polygon fill="#00ff91" stroke="#00ff91" points="102.84,-134.64 92.84,-138.14 102.84,-141.64 102.84,-134.64"/>
+</g>
+<!-- mpi -->
+<g id="proc~~exitmodules~~UsesGraph_node12" class="node">
+<title>mpi</title>
+<g id="a_proc~~exitmodules~~UsesGraph_node12"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="76.63,-108.27 22.63,-108.27 22.63,-84 76.63,-84 76.63,-108.27"/>
+<text text-anchor="middle" x="49.63" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modinlet&#45;&gt;mpi -->
+<g id="proc~~exitmodules~~UsesGraph_edge10" class="edge">
+<title>module~modinlet&#45;&gt;mpi</title>
+<path fill="none" stroke="#00ff91" stroke-dasharray="5,2" d="M168.46,-129.94C145.37,-123.31 112.69,-113.94 87.61,-106.74"/>
+<polygon fill="#00ff91" stroke="#00ff91" points="88.71,-103.42 78.14,-104.02 86.78,-110.15 88.71,-103.42"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~exitmodules~~UsesGraph_edge11" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#0091ff" stroke-dasharray="5,2" d="M169.84,-96.14C146.85,-96.14 113.69,-96.14 88.17,-96.14"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="88.21,-92.64 78.21,-96.14 88.21,-99.64 88.21,-92.64"/>
+</g>
+<!-- module~modsubgriddata -->
+<g id="proc~~exitmodules~~UsesGraph_node11" class="node">
+<title>module~modsubgriddata</title>
+<g id="a_proc~~exitmodules~~UsesGraph_node11"><a xlink:href="../module/modsubgriddata.html" xlink:title="modsubgriddata">
+<polygon fill="#337ab7" stroke="#337ab7" points="99.27,-66.27 0,-66.27 0,-42 99.27,-42 99.27,-66.27"/>
+<text text-anchor="middle" x="49.63" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgriddata</text>
+</a>
+</g>
+</g>
+<!-- module~modsubgrid&#45;&gt;module~modsubgriddata -->
+<g id="proc~~exitmodules~~UsesGraph_edge12" class="edge">
+<title>module~modsubgrid&#45;&gt;module~modsubgriddata</title>
+<path fill="none" stroke="#4800ff" stroke-dasharray="5,2" d="M160.09,-54.13C145.22,-54.13 127.69,-54.13 111.06,-54.13"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="111.25,-50.64 101.25,-54.14 111.25,-57.64 111.25,-50.64"/>
+</g>
+<!-- module~modsubgrid&#45;&gt;mpi -->
+<g id="proc~~exitmodules~~UsesGraph_edge13" class="edge">
+<title>module~modsubgrid&#45;&gt;mpi</title>
+<path fill="none" stroke="#4800ff" stroke-dasharray="5,2" d="M160.09,-64.73C138.02,-71.07 110.06,-79.09 87.93,-85.44"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="87.05,-82.05 78.4,-88.17 88.98,-88.78 87.05,-82.05"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~exitmodules~~CallsGraph Pages: 1 -->
+<svg id="procexitmodulesCallsGraph" width="394pt" height="284pt"
+ viewBox="0.00 0.00 393.56 284.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~exitmodules~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 280.27)">
+<title>proc~~exitmodules~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-280.27 389.56,-280.27 389.56,4 -4,4"/>
+<!-- proc~exitmodules -->
+<g id="proc~~exitmodules~~CallsGraph_node1" class="node">
+<title>proc~exitmodules</title>
+<polygon fill="none" stroke="black" points="76.02,-150.27 0,-150.27 0,-126 76.02,-126 76.02,-150.27"/>
+<text text-anchor="middle" x="38.01" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50">exitmodules</text>
+</g>
+<!-- exitpois -->
+<g id="proc~~exitmodules~~CallsGraph_node2" class="node">
+<title>exitpois</title>
+<polygon fill="#777777" stroke="#777777" points="199.15,-276.27 145.15,-276.27 145.15,-252 199.15,-252 199.15,-276.27"/>
+<text text-anchor="middle" x="172.15" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exitpois</text>
+</g>
+<!-- proc~exitmodules&#45;&gt;exitpois -->
+<g id="proc~~exitmodules~~CallsGraph_edge1" class="edge">
+<title>proc~exitmodules&#45;&gt;exitpois</title>
+<path fill="none" stroke="#ff0000" d="M44.54,-150.71C54.77,-172.57 78.67,-217.67 112.02,-243.13 118.49,-248.08 126.23,-251.93 133.94,-254.9"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="132.66,-258.16 143.25,-258.05 134.9,-251.53 132.66,-258.16"/>
+</g>
+<!-- proc~exitfields -->
+<g id="proc~~exitmodules~~CallsGraph_node3" class="node">
+<title>proc~exitfields</title>
+<g id="a_proc~~exitmodules~~CallsGraph_node3"><a xlink:href="../proc/exitfields.html" xlink:title="exitfields">
+<polygon fill="#d9534f" stroke="#d9534f" points="201.54,-234.27 142.77,-234.27 142.77,-210 201.54,-210 201.54,-234.27"/>
+<text text-anchor="middle" x="172.15" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exitfields</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;proc~exitfields -->
+<g id="proc~~exitmodules~~CallsGraph_edge2" class="edge">
+<title>proc~exitmodules&#45;&gt;proc~exitfields</title>
+<path fill="none" stroke="#ff0000" d="M50.58,-150.59C64.14,-164.55 87.85,-187.08 112.02,-201.13 118.2,-204.73 125.1,-207.86 131.94,-210.53"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="130.51,-213.74 141.11,-213.83 132.89,-207.15 130.51,-213.74"/>
+</g>
+<!-- proc~exitglobal -->
+<g id="proc~~exitmodules~~CallsGraph_node4" class="node">
+<title>proc~exitglobal</title>
+<g id="a_proc~~exitmodules~~CallsGraph_node4"><a xlink:href="../proc/exitglobal.html" xlink:title="exitglobal">
+<polygon fill="#d9534f" stroke="#d9534f" points="203.79,-192.27 140.52,-192.27 140.52,-168 203.79,-168 203.79,-192.27"/>
+<text text-anchor="middle" x="172.15" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exitglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;proc~exitglobal -->
+<g id="proc~~exitmodules~~CallsGraph_edge3" class="edge">
+<title>proc~exitmodules&#45;&gt;proc~exitglobal</title>
+<path fill="none" stroke="#ff0000" d="M76.17,-149.95C92.7,-155.2 112.24,-161.41 129.29,-166.83"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="128.04,-170.1 138.63,-169.8 130.16,-163.43 128.04,-170.1"/>
+</g>
+<!-- proc~exitinlet -->
+<g id="proc~~exitmodules~~CallsGraph_node5" class="node">
+<title>proc~exitinlet</title>
+<g id="a_proc~~exitmodules~~CallsGraph_node5"><a xlink:href="../proc/exitinlet.html" xlink:title="exitinlet">
+<polygon fill="#d9534f" stroke="#d9534f" points="199.15,-150.27 145.15,-150.27 145.15,-126 199.15,-126 199.15,-150.27"/>
+<text text-anchor="middle" x="172.15" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exitinlet</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;proc~exitinlet -->
+<g id="proc~~exitmodules~~CallsGraph_edge4" class="edge">
+<title>proc~exitmodules&#45;&gt;proc~exitinlet</title>
+<path fill="none" stroke="#ff0000" d="M76.17,-138.13C94,-138.13 115.32,-138.13 133.24,-138.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="133.22,-141.64 143.22,-138.14 133.22,-134.64 133.22,-141.64"/>
+</g>
+<!-- proc~exitmpi -->
+<g id="proc~~exitmodules~~CallsGraph_node6" class="node">
+<title>proc~exitmpi</title>
+<g id="a_proc~~exitmodules~~CallsGraph_node6"><a xlink:href="../proc/exitmpi.html" xlink:title="exitmpi">
+<polygon fill="#d9534f" stroke="#d9534f" points="199.15,-108.27 145.15,-108.27 145.15,-84 199.15,-84 199.15,-108.27"/>
+<text text-anchor="middle" x="172.15" y="-92.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exitmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;proc~exitmpi -->
+<g id="proc~~exitmodules~~CallsGraph_edge5" class="edge">
+<title>proc~exitmodules&#45;&gt;proc~exitmpi</title>
+<path fill="none" stroke="#ff0000" d="M76.17,-126.32C94.25,-120.58 115.93,-113.69 134.01,-107.94"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="134.82,-111.36 143.29,-104.99 132.7,-104.68 134.82,-111.36"/>
+</g>
+<!-- proc~exitsubgrid -->
+<g id="proc~~exitmodules~~CallsGraph_node7" class="node">
+<title>proc~exitsubgrid</title>
+<g id="a_proc~~exitmodules~~CallsGraph_node7"><a xlink:href="../proc/exitsubgrid.html" xlink:title="exitsubgrid">
+<polygon fill="#d9534f" stroke="#d9534f" points="207.16,-66.27 137.14,-66.27 137.14,-42 207.16,-42 207.16,-66.27"/>
+<text text-anchor="middle" x="172.15" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exitsubgrid</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;proc~exitsubgrid -->
+<g id="proc~~exitmodules~~CallsGraph_edge6" class="edge">
+<title>proc~exitmodules&#45;&gt;proc~exitsubgrid</title>
+<path fill="none" stroke="#ff0000" d="M50.58,-125.68C64.14,-111.72 87.85,-89.19 112.02,-75.13 116.43,-72.57 121.21,-70.24 126.07,-68.15"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="127.3,-71.42 135.32,-64.5 124.73,-64.91 127.3,-71.42"/>
+</g>
+<!-- proc~exitthermodynamics -->
+<g id="proc~~exitmodules~~CallsGraph_node8" class="node">
+<title>proc~exitthermodynamics</title>
+<g id="a_proc~~exitmodules~~CallsGraph_node8"><a xlink:href="../proc/exitthermodynamics.html" xlink:title="exitthermodynamics">
+<polygon fill="#d9534f" stroke="#d9534f" points="232.29,-24.27 112.02,-24.27 112.02,0 232.29,0 232.29,-24.27"/>
+<text text-anchor="middle" x="172.15" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exitthermodynamics</text>
+</a>
+</g>
+</g>
+<!-- proc~exitmodules&#45;&gt;proc~exitthermodynamics -->
+<g id="proc~~exitmodules~~CallsGraph_edge7" class="edge">
+<title>proc~exitmodules&#45;&gt;proc~exitthermodynamics</title>
+<path fill="none" stroke="#ff0000" d="M44.54,-125.56C54.77,-103.7 78.67,-58.6 112.02,-33.13 113.35,-32.12 114.72,-31.16 116.15,-30.23"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="117.64,-33.41 124.69,-25.5 114.24,-27.29 117.64,-33.41"/>
+</g>
+<!-- decomp_2d_finalize -->
+<g id="proc~~exitmodules~~CallsGraph_node9" class="node">
+<title>decomp_2d_finalize</title>
+<polygon fill="#777777" stroke="#777777" points="385.56,-150.27 268.29,-150.27 268.29,-126 385.56,-126 385.56,-150.27"/>
+<text text-anchor="middle" x="326.92" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d_finalize</text>
+</g>
+<!-- proc~exitmpi&#45;&gt;decomp_2d_finalize -->
+<g id="proc~~exitmodules~~CallsGraph_edge8" class="edge">
+<title>proc~exitmpi&#45;&gt;decomp_2d_finalize</title>
+<path fill="none" stroke="#0091ff" d="M199.42,-103.36C218.49,-108.6 245.03,-115.9 268.88,-122.45"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="267.94,-125.82 278.51,-125.1 269.79,-119.07 267.94,-125.82"/>
+</g>
+<!-- mpi_finalize -->
+<g id="proc~~exitmodules~~CallsGraph_node10" class="node">
+<title>mpi_finalize</title>
+<polygon fill="#777777" stroke="#777777" points="364.56,-108.27 289.29,-108.27 289.29,-84 364.56,-84 364.56,-108.27"/>
+<text text-anchor="middle" x="326.92" y="-92.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_finalize</text>
+</g>
+<!-- proc~exitmpi&#45;&gt;mpi_finalize -->
+<g id="proc~~exitmodules~~CallsGraph_edge9" class="edge">
+<title>proc~exitmpi&#45;&gt;mpi_finalize</title>
+<path fill="none" stroke="#0091ff" d="M199.42,-96.13C220.8,-96.13 251.56,-96.13 277.39,-96.13"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="277.35,-99.64 287.35,-96.14 277.35,-92.64 277.35,-99.64"/>
+</g>
+<!-- mpi_wtime -->
+<g id="proc~~exitmodules~~CallsGraph_node11" class="node">
+<title>mpi_wtime</title>
+<polygon fill="#777777" stroke="#777777" points="361.56,-66.27 292.29,-66.27 292.29,-42 361.56,-42 361.56,-66.27"/>
+<text text-anchor="middle" x="326.92" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_wtime</text>
+</g>
+<!-- proc~exitmpi&#45;&gt;mpi_wtime -->
+<g id="proc~~exitmodules~~CallsGraph_edge10" class="edge">
+<title>proc~exitmpi&#45;&gt;mpi_wtime</title>
+<path fill="none" stroke="#0091ff" d="M199.42,-88.91C221.81,-82.76 254.5,-73.77 281.03,-66.48"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="281.81,-69.89 290.52,-63.87 279.95,-63.14 281.81,-69.89"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">   </span><span class="k">subroutine </span><span class="n">exitmodules</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">exitfields</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">exitglobal</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">exitmpi</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modpois</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">exitpois</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modsubgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">exitsubgrid</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modthermodynamics</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">exitthermodynamics</span>
+<span class="w">      </span><span class="k">use </span><span class="n">modinlet</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">exitinlet</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">exitthermodynamics</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exitsubgrid</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exitpois</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exitfields</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exitglobal</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exitinlet</span>
+<span class="w">      </span><span class="k">call </span><span class="n">exitmpi</span>
+
+<span class="w">   </span><span class="k">end subroutine </span><span class="n">exitmodules</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

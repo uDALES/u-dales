@@ -1,0 +1,2703 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>modstat_nc &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>modstat_nc
+      <small>Module</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 2.6% of total for modules and submodules.">369 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modstat_nc.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modstat_nc.f90.html'>modstat_nc.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">modstat_nc</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#vars-0"
+         aria-expanded="false" aria-controls="vars-0">
+         <h4 class="card-header bg-primary text-white">Variables</h4>
+      </a>
+      <div id="vars-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/modstat_nc.html#variable-timeid">timeID</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#variable-ztid">ztID</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#variable-zmid">zmID</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#variable-xtid">xtID</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#variable-xmid">xmID</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#variable-ytid">ytID</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#variable-ymid">ymID</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#variable-ztsid">ztsID</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#variable-fctid">fctID</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#variable-lyrid">lyrID</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#variable-nc_fillvalue">nc_fillvalue</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#inters-0"
+         aria-expanded="false" aria-controls="inters-0">
+         <h4 class="card-header bg-primary text-white">Interfaces</h4>
+      </a>
+      <div id="inters-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/modstat_nc.html#interface-writestat_nc">writestat_nc</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#subs-0"
+         aria-expanded="false" aria-controls="subs-0">
+         <h4 class="card-header bg-primary text-white">Subroutines</h4>
+      </a>
+      <div id="subs-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-initstat_nc">initstat_nc</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-open_nc">open_nc</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-define_nc">define_nc</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-redefine_nc">redefine_nc</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-exitstat_nc">exitstat_nc</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-writestat_dims_nc">writestat_dims_nc</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-writestat_time_nc">writestat_time_nc</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-writestat_1d_nc">writestat_1D_nc</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-writestat_2d_nc">writestat_2D_nc</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-writestat_3d_nc">writestat_3D_nc</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-writestat_3d_short_nc">writestat_3D_short_nc</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-ncinfo">ncinfo</a>
+            <a class="list-group-item" href="../module/modstat_nc.html#proc-nchandle_error">nchandle_error</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+      
+<br>          <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item">netcdf</li>
+                  <li class="list-inline-item"><a href='modmpi.html'>modmpi</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: module~~modstat_nc~~UsesGraph Pages: 1 -->
+<svg id="modulemodstat_ncUsesGraph" width="263pt" height="74pt"
+ viewBox="0.00 0.00 262.79 74.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~modstat_nc~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 70.27)">
+<title>module~~modstat_nc~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-70.27 258.79,-70.27 258.79,4 -4,4"/>
+<!-- module~modstat_nc -->
+<g id="module~~modstat_nc~~UsesGraph_node1" class="node">
+<title>module~modstat_nc</title>
+<polygon fill="none" stroke="black" points="254.79,-45.27 181.77,-45.27 181.77,-21 254.79,-21 254.79,-45.27"/>
+<text text-anchor="middle" x="218.28" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50">modstat_nc</text>
+</g>
+<!-- module~modmpi -->
+<g id="module~~modstat_nc~~UsesGraph_node2" class="node">
+<title>module~modmpi</title>
+<g id="a_module~~modstat_nc~~UsesGraph_node2"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="145.77,-66.27 90,-66.27 90,-42 145.77,-42 145.77,-66.27"/>
+<text text-anchor="middle" x="117.88" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- module~modstat_nc&#45;&gt;module~modmpi -->
+<g id="module~~modstat_nc~~UsesGraph_edge1" class="edge">
+<title>module~modstat_nc&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M181.48,-40.78C173.65,-42.45 165.34,-44.22 157.41,-45.91"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="156.7,-42.48 147.65,-48 158.16,-49.33 156.7,-42.48"/>
+</g>
+<!-- netcdf -->
+<g id="module~~modstat_nc~~UsesGraph_node3" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="144.88,-24.27 90.88,-24.27 90.88,0 144.88,0 144.88,-24.27"/>
+<text text-anchor="middle" x="117.88" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~modstat_nc&#45;&gt;netcdf -->
+<g id="module~~modstat_nc~~UsesGraph_edge2" class="edge">
+<title>module~modstat_nc&#45;&gt;netcdf</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M181.48,-25.49C173.34,-23.76 164.67,-21.91 156.45,-20.15"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="157.24,-16.74 146.73,-18.08 155.78,-23.59 157.24,-16.74"/>
+</g>
+<!-- mpi -->
+<g id="module~~modstat_nc~~UsesGraph_node4" class="node">
+<title>mpi</title>
+<g id="a_module~~modstat_nc~~UsesGraph_node4"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-66.27 0,-66.27 0,-42 54,-42 54,-66.27"/>
+<text text-anchor="middle" x="27" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="module~~modstat_nc~~UsesGraph_edge3" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M89.73,-54.13C82.19,-54.13 73.85,-54.13 65.81,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="65.89,-50.64 55.89,-54.14 65.89,-57.64 65.89,-50.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+          <div class="card">
+      <h3 class="card-header card-title bg-light">Used by</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: module~~modstat_nc~~UsedByGraph Pages: 1 -->
+<svg id="modulemodstat_ncUsedByGraph" width="203pt" height="494pt"
+ viewBox="0.00 0.00 202.79 494.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~modstat_nc~~UsedByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 490.27)">
+<title>module~~modstat_nc~~UsedByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-490.27 198.79,-490.27 198.79,4 -4,4"/>
+<!-- module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_node1" class="node">
+<title>module~modstat_nc</title>
+<polygon fill="none" stroke="black" points="73.02,-255.27 0,-255.27 0,-231 73.02,-231 73.02,-255.27"/>
+<text text-anchor="middle" x="36.51" y="-239.53" font-family="Helvetica,sans-Serif" font-size="10.50">modstat_nc</text>
+</g>
+<!-- proc~eb -->
+<g id="module~~modstat_nc~~UsedByGraph_node2" class="node">
+<title>proc~eb</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node2"><a xlink:href="../proc/eb.html" xlink:title="EB">
+<polygon fill="#d9534f" stroke="#d9534f" points="178.91,-486.27 124.91,-486.27 124.91,-462 178.91,-462 178.91,-486.27"/>
+<text text-anchor="middle" x="151.91" y="-470.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">EB</text>
+</a>
+</g>
+</g>
+<!-- proc~eb&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge1" class="edge">
+<title>proc~eb&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M124.8,-464.96C118.99,-461.93 113.3,-458.04 109.02,-453.13 60.97,-398.04 44.86,-309.19 39.74,-266.94"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="43.24,-266.7 38.67,-257.14 36.28,-267.46 43.24,-266.7"/>
+</g>
+<!-- proc~exitfielddump -->
+<g id="module~~modstat_nc~~UsedByGraph_node3" class="node">
+<title>proc~exitfielddump</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node3"><a xlink:href="../proc/exitfielddump.html" xlink:title="exitfielddump">
+<polygon fill="#d9534f" stroke="#d9534f" points="194.04,-444.27 109.77,-444.27 109.77,-420 194.04,-420 194.04,-444.27"/>
+<text text-anchor="middle" x="151.91" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exitfielddump</text>
+</a>
+</g>
+</g>
+<!-- proc~exitfielddump&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge2" class="edge">
+<title>proc~exitfielddump&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M119.44,-419.52C115.63,-417.12 112.03,-414.34 109.02,-411.13 69.61,-369.18 50.13,-302.22 42.13,-266.83"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="45.59,-266.26 40.09,-257.21 38.74,-267.72 45.59,-266.26"/>
+</g>
+<!-- proc~exitstatsdump -->
+<g id="module~~modstat_nc~~UsedByGraph_node4" class="node">
+<title>proc~exitstatsdump</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node4"><a xlink:href="../proc/exitstatsdump.html" xlink:title="exitstatsdump">
+<polygon fill="#d9534f" stroke="#d9534f" points="194.79,-402.27 109.02,-402.27 109.02,-378 194.79,-378 194.79,-402.27"/>
+<text text-anchor="middle" x="151.91" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exitstatsdump</text>
+</a>
+</g>
+</g>
+<!-- proc~exitstatsdump&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge3" class="edge">
+<title>proc~exitstatsdump&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M120.63,-377.71C116.46,-375.24 112.44,-372.38 109.02,-369.13 77.9,-339.58 56.5,-293.45 45.68,-265.97"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="49.05,-264.96 42.23,-256.85 42.5,-267.44 49.05,-264.96"/>
+</g>
+<!-- proc~fielddump -->
+<g id="module~~modstat_nc~~UsedByGraph_node5" class="node">
+<title>proc~fielddump</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node5"><a xlink:href="../proc/fielddump.html" xlink:title="fielddump">
+<polygon fill="#d9534f" stroke="#d9534f" points="184.66,-360.27 119.15,-360.27 119.15,-336 184.66,-336 184.66,-360.27"/>
+<text text-anchor="middle" x="151.91" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">fielddump</text>
+</a>
+</g>
+</g>
+<!-- proc~fielddump&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge4" class="edge">
+<title>proc~fielddump&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M122.04,-335.6C117.49,-333.08 112.99,-330.25 109.02,-327.13 86.26,-309.28 65.47,-283.26 52.24,-264.92"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="55.19,-263.03 46.58,-256.86 49.46,-267.05 55.19,-263.03"/>
+</g>
+<!-- proc~ibmwallfun -->
+<g id="module~~modstat_nc~~UsedByGraph_node6" class="node">
+<title>proc~ibmwallfun</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node6"><a xlink:href="../proc/ibmwallfun.html" xlink:title="ibmwallfun">
+<polygon fill="#d9534f" stroke="#d9534f" points="186.91,-318.27 116.9,-318.27 116.9,-294 186.91,-294 186.91,-318.27"/>
+<text text-anchor="middle" x="151.91" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ibmwallfun</text>
+</a>
+</g>
+</g>
+<!-- proc~ibmwallfun&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge5" class="edge">
+<title>proc~ibmwallfun&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M125.07,-293.52C119.73,-290.82 114.17,-287.93 109.02,-285.13 95.25,-277.65 80.25,-268.93 67.57,-261.39"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="69.63,-258.54 59.26,-256.41 66.04,-264.55 69.63,-258.54"/>
+</g>
+<!-- proc~initeb -->
+<g id="module~~modstat_nc~~UsedByGraph_node7" class="node">
+<title>proc~initeb</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node7"><a xlink:href="../proc/initeb.html" xlink:title="initEB">
+<polygon fill="#d9534f" stroke="#d9534f" points="178.91,-276.27 124.91,-276.27 124.91,-252 178.91,-252 178.91,-276.27"/>
+<text text-anchor="middle" x="151.91" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initEB</text>
+</a>
+</g>
+</g>
+<!-- proc~initeb&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge6" class="edge">
+<title>proc~initeb&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M124.6,-259.26C112.64,-257.05 98.12,-254.36 84.39,-251.82"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="85.08,-248.38 74.6,-250 83.8,-255.27 85.08,-248.38"/>
+</g>
+<!-- proc~initfielddump -->
+<g id="module~~modstat_nc~~UsedByGraph_node8" class="node">
+<title>proc~initfielddump</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node8"><a xlink:href="../proc/initfielddump.html" xlink:title="initfielddump">
+<polygon fill="#d9534f" stroke="#d9534f" points="192.91,-234.27 110.9,-234.27 110.9,-210 192.91,-210 192.91,-234.27"/>
+<text text-anchor="middle" x="151.91" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfielddump</text>
+</a>
+</g>
+</g>
+<!-- proc~initfielddump&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge7" class="edge">
+<title>proc~initfielddump&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M110.61,-229.6C102.11,-231.17 93.07,-232.85 84.36,-234.46"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="83.84,-231 74.64,-236.26 85.11,-237.88 83.84,-231"/>
+</g>
+<!-- proc~initibm -->
+<g id="module~~modstat_nc~~UsedByGraph_node9" class="node">
+<title>proc~initibm</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node9"><a xlink:href="../proc/initibm.html" xlink:title="initibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="178.91,-192.27 124.91,-192.27 124.91,-168 178.91,-168 178.91,-192.27"/>
+<text text-anchor="middle" x="151.91" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibm</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge8" class="edge">
+<title>proc~initibm&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M125.07,-192.75C119.73,-195.45 114.17,-198.34 109.02,-201.13 95.25,-208.62 80.25,-217.34 67.57,-224.88"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="66.04,-221.72 59.26,-229.86 69.63,-227.73 66.04,-221.72"/>
+</g>
+<!-- proc~initstatsdump -->
+<g id="module~~modstat_nc~~UsedByGraph_node10" class="node">
+<title>proc~initstatsdump</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node10"><a xlink:href="../proc/initstatsdump.html" xlink:title="initstatsdump">
+<polygon fill="#d9534f" stroke="#d9534f" points="193.66,-150.27 110.15,-150.27 110.15,-126 193.66,-126 193.66,-150.27"/>
+<text text-anchor="middle" x="151.91" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initstatsdump</text>
+</a>
+</g>
+</g>
+<!-- proc~initstatsdump&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge9" class="edge">
+<title>proc~initstatsdump&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M122.04,-150.67C117.49,-153.19 112.99,-156.02 109.02,-159.13 86.26,-176.99 65.47,-203.01 52.24,-221.35"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="49.46,-219.22 46.58,-229.41 55.19,-223.24 49.46,-219.22"/>
+</g>
+<!-- proc~statsdump -->
+<g id="module~~modstat_nc~~UsedByGraph_node11" class="node">
+<title>proc~statsdump</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node11"><a xlink:href="../proc/statsdump.html" xlink:title="statsdump">
+<polygon fill="#d9534f" stroke="#d9534f" points="185.41,-108.27 118.4,-108.27 118.4,-84 185.41,-84 185.41,-108.27"/>
+<text text-anchor="middle" x="151.91" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">statsdump</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge10" class="edge">
+<title>proc~statsdump&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M120.63,-108.56C116.46,-111.03 112.44,-113.89 109.02,-117.14 77.9,-146.69 56.5,-192.82 45.68,-220.3"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="42.5,-218.83 42.23,-229.42 49.05,-221.31 42.5,-218.83"/>
+</g>
+<!-- proc~tkestats -->
+<g id="module~~modstat_nc~~UsedByGraph_node12" class="node">
+<title>proc~tkestats</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node12"><a xlink:href="../proc/tkestats.html" xlink:title="tkestats">
+<polygon fill="#d9534f" stroke="#d9534f" points="178.91,-66.27 124.91,-66.27 124.91,-42 178.91,-42 178.91,-66.27"/>
+<text text-anchor="middle" x="151.91" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">tkestats</text>
+</a>
+</g>
+</g>
+<!-- proc~tkestats&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge11" class="edge">
+<title>proc~tkestats&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M124.62,-63.77C118.95,-66.76 113.36,-70.51 109.02,-75.14 69.61,-117.09 50.13,-184.05 42.13,-219.44"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="38.74,-218.55 40.09,-229.06 45.59,-220.01 38.74,-218.55"/>
+</g>
+<!-- program~dalesurban -->
+<g id="module~~modstat_nc~~UsedByGraph_node13" class="node">
+<title>program~dalesurban</title>
+<g id="a_module~~modstat_nc~~UsedByGraph_node13"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="194.04,-24.27 109.77,-24.27 109.77,0 194.04,0 194.04,-24.27"/>
+<text text-anchor="middle" x="151.91" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;module~modstat_nc -->
+<g id="module~~modstat_nc~~UsedByGraph_edge12" class="edge">
+<title>program~dalesurban&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M119.22,-24.54C115.44,-26.98 111.91,-29.82 109.02,-33.13 60.97,-88.23 44.86,-177.08 39.74,-219.33"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="36.28,-218.81 38.67,-229.13 43.24,-219.57 36.28,-218.81"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsedByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsedByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+      <br>
+
+
+        <section>
+          <h2>Variables</h2>
+            <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-timeid"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              save
+            </td>
+            <td>::</td>
+            <td><strong>timeID</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ztid"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              save
+            </td>
+            <td>::</td>
+            <td><strong>ztID</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zmid"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              save
+            </td>
+            <td>::</td>
+            <td><strong>zmID</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xtid"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              save
+            </td>
+            <td>::</td>
+            <td><strong>xtID</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xmid"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              save
+            </td>
+            <td>::</td>
+            <td><strong>xmID</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ytid"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              save
+            </td>
+            <td>::</td>
+            <td><strong>ytID</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ymid"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              save
+            </td>
+            <td>::</td>
+            <td><strong>ymID</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ztsid"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              save
+            </td>
+            <td>::</td>
+            <td><strong>ztsID</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-fctid"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              save
+            </td>
+            <td>::</td>
+            <td><strong>fctID</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lyrid"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              save
+            </td>
+            <td>::</td>
+            <td><strong>lyrID</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nc_fillvalue"></span>
+              real(kind=4),
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nc_fillvalue</strong></td>
+<td> =</td>
+                <td>-999.</td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+        </section>
+        <br>
+
+
+        <section>
+          <h2>Interfaces</h2>
+              <div class="card">
+    <div class="card-header bg-light codesum">
+      <span class="anchor" id="interface-writestat_nc"></span>
+      <h3>public        interface <a href='../interface/writestat_nc.html'>writestat_nc</a> 
+      </h3>
+    </div>
+    <ul class="list-group">
+          <li class="list-group-item">
+                <h3>
+    public  subroutine <a href='../proc/writestat_time_nc.html'>writestat_time_nc</a>(ncid, nvar, ncname, vars, nrec, lraise)  
+
+    </h3>
+    
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncname~2"></span>
+              character(len=*),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:)
+            </td>
+            <td>::</td>
+            <td><strong>ncname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars~2"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(nvar)
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~3"></span>
+              integer,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lraise"></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lraise</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+          <li class="list-group-item">
+                <h3>
+    public  subroutine <a href='../proc/writestat_1d_nc.html'>writestat_1D_nc</a>(ncid, nvar, ncname, vars, nrec, dim1)  
+
+    </h3>
+    
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~8"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar~4"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncname~3"></span>
+              character(len=*),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:)
+            </td>
+            <td>::</td>
+            <td><strong>ncname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars~3"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(dim1,nvar)
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~4"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim1"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim1</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+          <li class="list-group-item">
+                <h3>
+    public  subroutine <a href='../proc/writestat_2d_nc.html'>writestat_2D_nc</a>(ncid, nvar, ncname, vars, nrec, dim1, dim2)  
+
+    </h3>
+    
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~9"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar~5"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncname~4"></span>
+              character(len=*),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:)
+            </td>
+            <td>::</td>
+            <td><strong>ncname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars~4"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:,:)
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~5"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim1~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim1</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim2</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+          <li class="list-group-item">
+                <h3>
+    public  subroutine <a href='../proc/writestat_3d_nc.html'>writestat_3D_nc</a>(ncid, nvar, ncname, vars, nrec, dim1, dim2, dim3)  
+
+    </h3>
+    
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~10"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar~6"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncname~5"></span>
+              character(len=*),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:)
+            </td>
+            <td>::</td>
+            <td><strong>ncname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars~5"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(dim1,dim2,dim3,nvar)
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~6"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim1~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim1</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim2~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim2</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim3</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+          <li class="list-group-item">
+                <h3>
+    public  subroutine <a href='../proc/writestat_3d_short_nc.html'>writestat_3D_short_nc</a>(ncid, nvar, ncname, vars, nrec, dim1, dim2, dim3)  
+
+    </h3>
+    
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~11"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncname~6"></span>
+              character(len=*),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:)
+            </td>
+            <td>::</td>
+            <td><strong>ncname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars~6"></span>
+              integer(kind=selected_int_kind(4)),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(dim1,dim2,dim3,nvar)
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim1~4"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim1</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim2~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim2</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim3~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim3</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+    </ul>
+  </div>
+
+        </section>
+        <br>
+
+
+
+
+        <section>
+          <h2>Subroutines</h2>
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-initstat_nc"></span> <h3>public  subroutine <a href='../proc/initstat_nc.html'>initstat_nc</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-open_nc"></span> <h3>public  subroutine <a href='../proc/open_nc.html'>open_nc</a>(fname, ncid, nrec, n1, n2, n3, ns, nfcts, nlyrs)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-fname~2"></span>
+              character(len=40),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>fname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~3"></span>
+              integer,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~2"></span>
+              integer,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-n1"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>n1</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-n2"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>n2</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-n3"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>n3</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ns~2"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ns</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nfcts~2"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nfcts</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nlyrs"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nlyrs</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-define_nc"></span> <h3>public  subroutine <a href='../proc/define_nc.html'>define_nc</a>(ncID, nVar, sx)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncID</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nVar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-sx~3"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>sx</strong>(nVar,4)</td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-redefine_nc"></span> <h3>public  subroutine <a href='../proc/redefine_nc.html'>redefine_nc</a>(ncid)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~4"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-exitstat_nc"></span> <h3>public  subroutine <a href='../proc/exitstat_nc.html'>exitstat_nc</a>(ncid)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~5"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-writestat_dims_nc"></span> <h3>public  subroutine <a href='../proc/writestat_dims_nc.html'>writestat_dims_nc</a>(ncid)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~6"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-writestat_time_nc"></span> <h3>public  subroutine <a href='../proc/writestat_time_nc.html'>writestat_time_nc</a>(ncid, nvar, ncname, vars, nrec, lraise)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncname~2"></span>
+              character(len=*),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:)
+            </td>
+            <td>::</td>
+            <td><strong>ncname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars~2"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(nvar)
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~3"></span>
+              integer,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lraise"></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lraise</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-writestat_1d_nc"></span> <h3>public  subroutine <a href='../proc/writestat_1d_nc.html'>writestat_1D_nc</a>(ncid, nvar, ncname, vars, nrec, dim1)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~8"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar~4"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncname~3"></span>
+              character(len=*),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:)
+            </td>
+            <td>::</td>
+            <td><strong>ncname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars~3"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(dim1,nvar)
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~4"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim1"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim1</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-writestat_2d_nc"></span> <h3>public  subroutine <a href='../proc/writestat_2d_nc.html'>writestat_2D_nc</a>(ncid, nvar, ncname, vars, nrec, dim1, dim2)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~9"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar~5"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncname~4"></span>
+              character(len=*),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:)
+            </td>
+            <td>::</td>
+            <td><strong>ncname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars~4"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:,:)
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~5"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim1~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim1</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim2</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-writestat_3d_nc"></span> <h3>public  subroutine <a href='../proc/writestat_3d_nc.html'>writestat_3D_nc</a>(ncid, nvar, ncname, vars, nrec, dim1, dim2, dim3)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~10"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar~6"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncname~5"></span>
+              character(len=*),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:)
+            </td>
+            <td>::</td>
+            <td><strong>ncname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars~5"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(dim1,dim2,dim3,nvar)
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~6"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim1~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim1</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim2~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim2</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim3</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-writestat_3d_short_nc"></span> <h3>public  subroutine <a href='../proc/writestat_3d_short_nc.html'>writestat_3D_short_nc</a>(ncid, nvar, ncname, vars, nrec, dim1, dim2, dim3)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~11"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvar~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncname~6"></span>
+              character(len=*),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:,:)
+            </td>
+            <td>::</td>
+            <td><strong>ncname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars~6"></span>
+              integer(kind=selected_int_kind(4)),
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(dim1,dim2,dim3,nvar)
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrec~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrec</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim1~4"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim1</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim2~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim2</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dim3~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dim3</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-ncinfo"></span> <h3>public  subroutine <a href='../proc/ncinfo.html'>ncinfo</a>(out, in1, in2, in3, in4)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-out"></span>
+              character(len=*),
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(4)
+            </td>
+            <td>::</td>
+            <td><strong>out</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-in1"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>in1</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-in2"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>in2</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-in3"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>in3</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-in4"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>in4</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-nchandle_error"></span> <h3>public  subroutine <a href='../proc/nchandle_error.html'>nchandle_error</a>(status)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-status~4"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>status</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+        </section>
+        <br>
+
+
+
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,542 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>gaussji &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>gaussji
+      <small>Function</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.6% of total for procedures.">76 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modEB.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modeb.f90.html'>modEB.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modeb.html'>modEB</a></li>
+            <li class="breadcrumb-item active" aria-current="page">gaussji</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/gaussji.html#src">gaussji</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  function gaussji(c, d, n) result(a)  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-c"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>c</strong>(n,n)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-d~2"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>d</strong>(n,n)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-n~69"></span>
+              integer
+            </td>
+<td></td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>n</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+      <h3>Return Value
+        <small>
+          <span class="anchor" id="variable-a~6"></span>
+          real, (n,n)
+        </small>
+      </h3>
+      
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~gaussji~~CalledByGraph Pages: 1 -->
+<svg id="procgaussjiCalledByGraph" width="272pt" height="74pt"
+ viewBox="0.00 0.00 272.27 74.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~gaussji~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 70.27)">
+<title>proc~~gaussji~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-70.27 268.27,-70.27 268.27,4 -4,4"/>
+<!-- proc~gaussji -->
+<g id="proc~~gaussji~~CalledByGraph_node1" class="node">
+<title>proc~gaussji</title>
+<polygon fill="none" stroke="black" points="264.27,-45.27 210.27,-45.27 210.27,-21 264.27,-21 264.27,-45.27"/>
+<text text-anchor="middle" x="237.27" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50">gaussji</text>
+</g>
+<!-- proc~eb -->
+<g id="proc~~gaussji~~CalledByGraph_node2" class="node">
+<title>proc~eb</title>
+<g id="a_proc~~gaussji~~CalledByGraph_node2"><a xlink:href="../proc/eb.html" xlink:title="EB">
+<polygon fill="#d9534f" stroke="#d9534f" points="174.27,-66.27 120.27,-66.27 120.27,-42 174.27,-42 174.27,-66.27"/>
+<text text-anchor="middle" x="147.27" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">EB</text>
+</a>
+</g>
+</g>
+<!-- proc~eb&#45;&gt;proc~gaussji -->
+<g id="proc~~gaussji~~CalledByGraph_edge1" class="edge">
+<title>proc~eb&#45;&gt;proc~gaussji</title>
+<path fill="none" stroke="#ff0000" d="M174.67,-47.83C182.24,-46.03 190.65,-44.02 198.75,-42.09"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="199.5,-45.51 208.41,-39.78 197.87,-38.7 199.5,-45.51"/>
+</g>
+<!-- proc~initeb -->
+<g id="proc~~gaussji~~CalledByGraph_node3" class="node">
+<title>proc~initeb</title>
+<g id="a_proc~~gaussji~~CalledByGraph_node3"><a xlink:href="../proc/initeb.html" xlink:title="initEB">
+<polygon fill="#d9534f" stroke="#d9534f" points="174.27,-24.27 120.27,-24.27 120.27,0 174.27,0 174.27,-24.27"/>
+<text text-anchor="middle" x="147.27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initEB</text>
+</a>
+</g>
+</g>
+<!-- proc~initeb&#45;&gt;proc~gaussji -->
+<g id="proc~~gaussji~~CalledByGraph_edge2" class="edge">
+<title>proc~initeb&#45;&gt;proc~gaussji</title>
+<path fill="none" stroke="#ff0000" d="M174.67,-18.44C182.24,-20.24 190.65,-22.25 198.75,-24.18"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="197.87,-27.57 208.41,-26.49 199.5,-20.76 197.87,-27.57"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~gaussji~~CalledByGraph_node4" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~gaussji~~CalledByGraph_node4"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-45.27 0,-45.27 0,-21 84.27,-21 84.27,-45.27"/>
+<text text-anchor="middle" x="42.13" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~eb -->
+<g id="proc~~gaussji~~CalledByGraph_edge3" class="edge">
+<title>program~dalesurban&#45;&gt;proc~eb</title>
+<path fill="none" stroke="#ff0000" d="M84.49,-41.56C92.55,-43.2 100.95,-44.91 108.87,-46.52"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="108.05,-49.93 118.55,-48.49 109.45,-43.07 108.05,-49.93"/>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~initeb -->
+<g id="proc~~gaussji~~CalledByGraph_edge4" class="edge">
+<title>program~dalesurban&#45;&gt;proc~initeb</title>
+<path fill="none" stroke="#00ffff" d="M84.49,-24.71C92.55,-23.07 100.95,-21.36 108.87,-19.75"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="109.45,-23.2 118.55,-17.78 108.05,-16.34 109.45,-23.2"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">function </span><span class="n">gaussji</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="n">d</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="k">result</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="w">    </span><span class="c">!Linear equation solution by Gauss-Jordan elimination, used to find inverse of matrix c.</span>
+<span class="w">    </span><span class="c">!possibly slow for large &quot;c&quot; (LAPACK better?)</span>
+<span class="w">    </span><span class="c">!c needs to be square and have dimension n</span>
+<span class="w">    </span><span class="c">!c(1:n,1:n) is an input matrix stored in an array of physical dimensions n by n.</span>
+<span class="w">    </span><span class="c">!d(1:n,1:n) is an input matrix containing the n by n identity matrix.</span>
+<span class="w">    </span><span class="c">!On  output, a(1:n,1:n) (and b(1:n,1:n)) are the inverse of c</span>
+<span class="w">    </span><span class="c">!Parameter: NMAX is  the  largest  anticipated  value  of n.</span>
+
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">n</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">c</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="c">!WILL BE OVERWRITTEN!!</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">d</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">a</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">),</span><span class="n">b</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">parameter</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">NMAX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">50</span>
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">irow</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">,</span><span class="w"> </span><span class="n">ll</span><span class="p">,</span><span class="w"> </span><span class="n">indxc</span><span class="p">(</span><span class="n">NMAX</span><span class="p">),</span><span class="w"> </span><span class="n">indxr</span><span class="p">(</span><span class="n">NMAX</span><span class="p">),</span><span class="w"> </span><span class="n">ipiv</span><span class="p">(</span><span class="n">NMAX</span><span class="p">)</span>
+<span class="w">    </span><span class="c">!The integer arrays ipiv, indxr, and indxc are  used for bookkeeping  on the pivoting.</span>
+<span class="w">    </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">big</span><span class="p">,</span><span class="w"> </span><span class="n">dum</span><span class="p">,</span><span class="w"> </span><span class="n">pivinv</span>
+<span class="w">    </span><span class="n">a</span><span class="o">=</span><span class="n">c</span>
+<span class="w">    </span><span class="n">b</span><span class="o">=</span><span class="n">d</span>
+<span class="w">    </span><span class="n">m</span><span class="o">=</span><span class="n">n</span>
+<span class="w">    </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+<span class="w">      </span><span class="n">ipiv</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="c">!This  is  the  main  loop  over  the  columns  to  be  reduced.</span>
+<span class="w">      </span><span class="n">big</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="c">!This  is  the  outer  loop  of  the  search  for  a  pivot  element.</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ipiv</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ipiv</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="n">eq</span><span class="p">.</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">              if</span><span class="w"> </span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">a</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="p">.</span><span class="n">ge</span><span class="p">.</span><span class="w"> </span><span class="n">big</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">                </span><span class="n">big</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">abs</span><span class="p">(</span><span class="n">a</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span>
+<span class="w">                </span><span class="n">irow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span>
+<span class="w">                </span><span class="n">icol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span>
+<span class="w">              </span><span class="k">endif</span>
+<span class="w">              </span><span class="c">!else if (ipiv(k).gt.1) then</span>
+<span class="w">              </span><span class="c">!pause &#39;singular matrix in gaussj&#39;</span>
+<span class="w">            </span><span class="k">end if</span>
+<span class="k">          end do</span>
+<span class="k">        end if</span>
+<span class="k">      end do</span>
+<span class="k">      </span><span class="n">ipiv</span><span class="p">(</span><span class="n">icol</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ipiv</span><span class="p">(</span><span class="n">icol</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">      </span><span class="c">!We  now  have  the  pivot  element,  so  we  interchange  rows,  if  needed,  to  put  the  pivot</span>
+<span class="w">      </span><span class="c">!element  on  the  diagonal.  The  columns  are  not  physically  interchanged,  only  relabeled:</span>
+<span class="w">      </span><span class="c">!indxc(i), the column of the ith pivot element, is the ith column that is reduced, while</span>
+<span class="w">      </span><span class="c">!indxr(i) is  the  row in  which  that  pivot  element  was  originally  located.  If</span>
+<span class="w">      </span><span class="c">!indxr(i) /= indxc(i) there  is  an  implied  column  interchange.  With  this  form  of  bookkeeping,  the</span>
+<span class="w">      </span><span class="c">!solution b&#39;s  will  end  up  in  the  correct  order,  and  the  inverse  matrix  will  be  scrambled by  columns</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">irow</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="n">icol</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        do </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+<span class="w">          </span><span class="n">dum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">(</span><span class="n">irow</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span>
+<span class="w">          </span><span class="n">a</span><span class="p">(</span><span class="n">irow</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span>
+<span class="w">          </span><span class="n">a</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dum</span>
+<span class="w">        </span><span class="k">end do</span>
+<span class="k">        do </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">m</span>
+<span class="w">          </span><span class="n">dum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">(</span><span class="n">irow</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span>
+<span class="w">          </span><span class="n">b</span><span class="p">(</span><span class="n">irow</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span>
+<span class="w">          </span><span class="n">b</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dum</span>
+<span class="w">        </span><span class="k">enddo</span>
+<span class="k">      endif</span>
+<span class="w">      </span><span class="c">!We are now ready to divide the pivot row by the pivot element, located at irow and icol.</span>
+<span class="w">      </span><span class="n">indxr</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">irow</span>
+<span class="w">      </span><span class="n">indxc</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">icol</span>
+<span class="w">      </span><span class="c">!if (a(icol,icol).eq.0.) pause &#39;singular matrix in gaussj&#39;</span>
+<span class="w">      </span><span class="n">pivinv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.</span><span class="o">/</span><span class="n">a</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">icol</span><span class="p">)</span>
+<span class="w">      </span><span class="n">a</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">icol</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.</span>
+<span class="w">      </span><span class="k">do </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+<span class="w">        </span><span class="n">a</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="n">pivinv</span>
+<span class="w">      </span><span class="k">end do</span>
+<span class="k">      do </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">m</span>
+<span class="w">        </span><span class="n">b</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="n">pivinv</span>
+<span class="w">      </span><span class="k">end do</span>
+<span class="k">      do </span><span class="n">ll</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+<span class="w">        </span><span class="c">!Next,  we  reduce  the  rows, except for the  pivot  one, of course.</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ll</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="n">icol</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">dum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">(</span><span class="n">ll</span><span class="p">,</span><span class="w"> </span><span class="n">icol</span><span class="p">)</span>
+<span class="w">          </span><span class="n">a</span><span class="p">(</span><span class="n">ll</span><span class="p">,</span><span class="w"> </span><span class="n">icol</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">          </span><span class="k">do </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+<span class="w">            </span><span class="n">a</span><span class="p">(</span><span class="n">ll</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">(</span><span class="n">ll</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">a</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="n">dum</span>
+<span class="w">          </span><span class="k">end do</span>
+<span class="k">          do </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">m</span>
+<span class="w">            </span><span class="n">b</span><span class="p">(</span><span class="n">ll</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">(</span><span class="n">ll</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">b</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="o">*</span><span class="n">dum</span>
+<span class="w">          </span><span class="k">end do</span>
+<span class="k">        end if</span>
+<span class="k">      end do</span>
+<span class="k">    end do</span>
+<span class="w">    </span><span class="c">!This is the end of the main loop over columns of the reduction.</span>
+<span class="w">    </span><span class="k">do </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span>
+<span class="w">      </span><span class="c">!It  only  remains  to  unscramble  the  solution  in  view</span>
+<span class="w">      </span><span class="c">!of  the  column  interchanges.  We  do  this  by  in-</span>
+<span class="w">      </span><span class="c">!terchanging pairs of columns in the reverse order</span>
+<span class="w">      </span><span class="c">!that the permutation was built  up.</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">indxr</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="w"> </span><span class="n">indxc</span><span class="p">(</span><span class="n">l</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n</span>
+<span class="w">          </span><span class="n">dum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">indxr</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+<span class="w">          </span><span class="n">a</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">indxr</span><span class="p">(</span><span class="n">l</span><span class="p">))</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">indxc</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+<span class="w">          </span><span class="n">a</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">indxc</span><span class="p">(</span><span class="n">l</span><span class="p">))</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dum</span>
+<span class="w">        </span><span class="k">end do</span>
+<span class="k">      end if</span>
+<span class="k">    end do</span>
+<span class="k">    return</span>
+<span class="w">    </span><span class="c">!And  we  are  done.</span>
+<span class="w">  </span><span class="k">end function </span><span class="n">gaussji</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

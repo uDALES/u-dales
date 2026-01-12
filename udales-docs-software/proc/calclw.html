@@ -1,0 +1,575 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>calclw &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>calclw
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.2% of total for procedures.">22 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modEB.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modeb.f90.html'>modEB.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modeb.html'>modEB</a></li>
+            <li class="breadcrumb-item active" aria-current="page">calclw</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/calclw.html#src">calclw</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine calclw()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/initfac.html'>initfac</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~calclw~~UsesGraph Pages: 1 -->
+<svg id="proccalclwUsesGraph" width="347pt" height="154pt"
+ viewBox="0.00 0.00 346.52 154.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~calclw~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 150.27)">
+<title>proc~~calclw~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-150.27 342.52,-150.27 342.52,4 -4,4"/>
+<!-- proc~calclw -->
+<g id="proc~~calclw~~UsesGraph_node1" class="node">
+<title>proc~calclw</title>
+<polygon fill="none" stroke="black" points="338.52,-124.27 284.52,-124.27 284.52,-100 338.52,-100 338.52,-124.27"/>
+<text text-anchor="middle" x="311.52" y="-108.54" font-family="Helvetica,sans-Serif" font-size="10.50">calclw</text>
+</g>
+<!-- module~initfac -->
+<g id="proc~~calclw~~UsesGraph_node2" class="node">
+<title>module~initfac</title>
+<g id="a_proc~~calclw~~UsesGraph_node2"><a xlink:href="../module/initfac.html" xlink:title="initfac">
+<polygon fill="#337ab7" stroke="#337ab7" points="248.52,-104.27 194.52,-104.27 194.52,-80 248.52,-80 248.52,-104.27"/>
+<text text-anchor="middle" x="221.52" y="-88.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfac</text>
+</a>
+</g>
+</g>
+<!-- proc~calclw&#45;&gt;module~initfac -->
+<g id="proc~~calclw~~UsesGraph_edge1" class="edge">
+<title>proc~calclw&#45;&gt;module~initfac</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M284.12,-106.13C276.55,-104.41 268.14,-102.5 260.04,-100.66"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="260.91,-97.27 250.38,-98.47 259.36,-104.1 260.91,-97.27"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~calclw~~UsesGraph_node3" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~calclw~~UsesGraph_node3"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="158.52,-146.27 90,-146.27 90,-122 158.52,-122 158.52,-146.27"/>
+<text text-anchor="middle" x="124.26" y="-130.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~calclw&#45;&gt;module~modglobal -->
+<g id="proc~~calclw~~UsesGraph_edge2" class="edge">
+<title>proc~calclw&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M284.37,-115.24C254.67,-118.77 205.7,-124.58 169.92,-128.83"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="169.82,-125.32 160.31,-129.97 170.65,-132.27 169.82,-125.32"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modglobal -->
+<g id="proc~~calclw~~UsesGraph_edge3" class="edge">
+<title>module~initfac&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M194.24,-103.72C184.92,-107.83 174.22,-112.55 164.08,-117.02"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="162.92,-113.71 155.18,-120.94 165.74,-120.11 162.92,-113.71"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~calclw~~UsesGraph_node4" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~calclw~~UsesGraph_node4"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="152.14,-104.27 96.38,-104.27 96.38,-80 152.14,-80 152.14,-104.27"/>
+<text text-anchor="middle" x="124.26" y="-88.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- module~initfac&#45;&gt;module~modmpi -->
+<g id="proc~~calclw~~UsesGraph_edge4" class="edge">
+<title>module~initfac&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M194.24,-92.14C184.79,-92.14 173.94,-92.14 163.68,-92.14"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="163.97,-88.64 153.97,-92.14 163.97,-95.64 163.97,-88.64"/>
+</g>
+<!-- mpi -->
+<g id="proc~~calclw~~UsesGraph_node5" class="node">
+<title>mpi</title>
+<g id="a_proc~~calclw~~UsesGraph_node5"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-84.27 0,-84.27 0,-60 54,-60 54,-84.27"/>
+<text text-anchor="middle" x="27" y="-68.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~initfac&#45;&gt;mpi -->
+<g id="proc~~calclw~~UsesGraph_edge5" class="edge">
+<title>module~initfac&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M194.15,-81.08C183.32,-77.1 170.52,-73.11 158.52,-71.14 127.59,-66.04 91.98,-66.74 65.78,-68.47"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="65.67,-64.96 55.96,-69.2 66.2,-71.94 65.67,-64.96"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~calclw~~UsesGraph_node6" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="151.26,-24.27 97.26,-24.27 97.26,0 151.26,0 151.26,-24.27"/>
+<text text-anchor="middle" x="124.26" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~initfac&#45;&gt;netcdf -->
+<g id="proc~~calclw~~UsesGraph_edge6" class="edge">
+<title>module~initfac&#45;&gt;netcdf</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M206.91,-79.91C194.47,-68.83 175.47,-52.13 158.52,-38.13 155.98,-36.04 153.3,-33.87 150.61,-31.73"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="152.85,-29.03 142.83,-25.6 148.52,-34.53 152.85,-29.03"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~calclw~~UsesGraph_edge7" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M95.96,-86.4C86.46,-84.41 75.62,-82.13 65.43,-79.99"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="66.3,-76.6 55.8,-77.97 64.87,-83.45 66.3,-76.6"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 510.88 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: proc~~calclw~~CalledByGraph Pages: 1 -->
+<svg id="proccalclwCalledByGraph" width="272pt" height="32pt"
+ viewBox="0.00 0.00 272.27 32.27" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~calclw~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~calclw~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 268.27,-28.27 268.27,4 -4,4"/>
+<!-- proc~calclw -->
+<g id="proc~~calclw~~CalledByGraph_node1" class="node">
+<title>proc~calclw</title>
+<polygon fill="none" stroke="black" points="264.27,-24.27 210.27,-24.27 210.27,0 264.27,0 264.27,-24.27"/>
+<text text-anchor="middle" x="237.27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">calclw</text>
+</g>
+<!-- proc~eb -->
+<g id="proc~~calclw~~CalledByGraph_node2" class="node">
+<title>proc~eb</title>
+<g id="a_proc~~calclw~~CalledByGraph_node2"><a xlink:href="../proc/eb.html" xlink:title="EB">
+<polygon fill="#d9534f" stroke="#d9534f" points="174.27,-24.27 120.27,-24.27 120.27,0 174.27,0 174.27,-24.27"/>
+<text text-anchor="middle" x="147.27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">EB</text>
+</a>
+</g>
+</g>
+<!-- proc~eb&#45;&gt;proc~calclw -->
+<g id="proc~~calclw~~CalledByGraph_edge1" class="edge">
+<title>proc~eb&#45;&gt;proc~calclw</title>
+<path fill="none" stroke="#ff0000" d="M174.67,-12.13C182.16,-12.13 190.45,-12.13 198.47,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="198.37,-15.64 208.37,-12.14 198.37,-8.64 198.37,-15.64"/>
+</g>
+<!-- program~dalesurban -->
+<g id="proc~~calclw~~CalledByGraph_node3" class="node">
+<title>program~dalesurban</title>
+<g id="a_proc~~calclw~~CalledByGraph_node3"><a xlink:href="../program/dalesurban.html" xlink:title="DALESURBAN">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="84.27,-24.27 0,-24.27 0,0 84.27,0 84.27,-24.27"/>
+<text text-anchor="middle" x="42.13" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">DALESURBAN</text>
+</a>
+</g>
+</g>
+<!-- program~dalesurban&#45;&gt;proc~eb -->
+<g id="proc~~calclw~~CalledByGraph_edge2" class="edge">
+<title>program~dalesurban&#45;&gt;proc~eb</title>
+<path fill="none" stroke="#ff0000" d="M84.49,-12.13C92.45,-12.13 100.76,-12.13 108.6,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="108.52,-15.64 118.52,-12.14 108.52,-8.64 108.52,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 12.2.1 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">calclw</span>
+<span class="w">    </span><span class="c">!calculate the longwave exchange between facets</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">nfcts</span><span class="p">,</span><span class="w"> </span><span class="n">boltz</span><span class="p">,</span><span class="w"> </span><span class="n">skyLW</span><span class="p">,</span><span class="w"> </span><span class="n">nnz</span>
+<span class="w">    </span><span class="k">use </span><span class="n">initfac</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="n">facem</span><span class="p">,</span><span class="w"> </span><span class="n">vf</span><span class="p">,</span><span class="w"> </span><span class="n">svf</span><span class="p">,</span><span class="w"> </span><span class="n">faca</span><span class="p">,</span><span class="w"> </span><span class="n">facT</span><span class="p">,</span><span class="w"> </span><span class="n">facLWin</span><span class="p">,</span><span class="w"> </span><span class="n">facets</span><span class="p">,</span><span class="w"> </span><span class="n">vfsparse</span><span class="p">,</span><span class="w"> </span><span class="n">ivfsparse</span><span class="p">,</span><span class="w"> </span><span class="n">jvfsparse</span>
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span>
+<span class="w">    </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ltemp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lvfsparse</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         </span><span class="n">facLWin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">svf</span><span class="o">*</span><span class="n">skyLW</span><span class="o">*</span><span class="n">facem</span>
+<span class="w">         </span><span class="k">do </span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nnz</span>
+<span class="w">            </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ivfsparse</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="w">            </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jvfsparse</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="w">            </span><span class="n">facLWin</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">facLWin</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vfsparse</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="n">facem</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">facem</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="o">*</span><span class="n">boltz</span><span class="o">*</span><span class="n">facT</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">4</span>
+<span class="w">         </span><span class="k">end do</span>
+
+<span class="k">      else</span>
+<span class="k">         do </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">nfcts</span>
+<span class="w">            </span><span class="c">!if (facets(n) &lt; -100) cycle</span>
+<span class="w">            </span><span class="n">ltemp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">            </span><span class="k">do </span><span class="n">m</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">nfcts</span><span class="w">  </span><span class="c">!for n, sum over all other m facets</span>
+<span class="w">               </span><span class="c">!ltemp = ltemp + vf(m, n)*faca(m)/faca(n)*facem(m)*boltz*facT(m, 1)**4 ![W/m2]</span>
+<span class="w">               </span><span class="n">ltemp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ltemp</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vf</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">m</span><span class="p">)</span><span class="o">*</span><span class="n">facem</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="o">*</span><span class="n">boltz</span><span class="o">*</span><span class="n">facT</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">4</span><span class="w"> </span><span class="c">![W/m2]</span>
+<span class="w">            </span><span class="k">end do</span>
+<span class="k">            </span><span class="n">facLWin</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">ltemp</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">svf</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="n">skyLW</span><span class="p">)</span><span class="o">*</span><span class="n">facem</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+<span class="w">         </span><span class="k">end do</span>
+<span class="k">      end if</span>
+
+<span class="k">  end subroutine </span><span class="n">calclw</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

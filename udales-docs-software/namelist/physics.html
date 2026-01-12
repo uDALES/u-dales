@@ -1,0 +1,439 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>  PHYSICS &ndash; uDALES
+</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/dalesurban.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>PHYSICS</h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modstartup.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modstartup.f90.html'>modstartup.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modstartup.html'>modstartup</a></li>
+                <li class="breadcrumb-item"><a href='../proc/readnamelists.html'>readnamelists</a></li>
+            <li class="breadcrumb-item active" aria-current="page">PHYSICS</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#vars-0"
+         aria-expanded="false" aria-controls="vars-0">
+         <h4 class="card-header bg-primary text-white">Variables</h4>
+      </a>
+      <div id="vars-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../namelist/physics.html#variable-ps">ps</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-igrw_damp">igrw_damp</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-lmoist">lmoist</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-lcoriol">lcoriol</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-lbuoyancy">lbuoyancy</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-ltempeq">ltempeq</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-lprofforc">lprofforc</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-ifixuinf">ifixuinf</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-lvinf">lvinf</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-tscale">tscale</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-dpdx">dpdx</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-luoutflowr">luoutflowr</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-lvoutflowr">lvoutflowr</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-luvolflowr">luvolflowr</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-lvvolflowr">lvvolflowr</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-uflowrate">uflowrate</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-vflowrate">vflowrate</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-lnudge">lnudge</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-lnudgevel">lnudgevel</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-tnudge">tnudge</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-nnudge">nnudge</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-ltimedepsurf">ltimedepsurf</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-ntimedepsurf">ntimedepsurf</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-ltimedepnudge">ltimedepnudge</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-ntimedepnudge">ntimedepnudge</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-ltimedeplw">ltimedeplw</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-ntimedeplw">ntimedeplw</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-ltimedepsw">ltimedepsw</a>
+            <a class="list-group-item" href="../namelist/physics.html#variable-ntimedepsw">ntimedepsw</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+        
+  <br class="visible-xs visible-sm hidden-md">
+  <section>
+    <h2>Variables</h2>
+    <table class="table table-striped" id="namelist-physics">
+      <thead><tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Default</th>
+          <th>Description</th>
+      </tr></thead>
+      <tbody>
+              <tr id="variable-ps">
+      <td><a href="#variable-ps">ps</a></td>
+      <td>real</td>
+      <td>101325.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-igrw_damp">
+      <td><a href="#variable-igrw_damp">igrw_damp</a></td>
+      <td>integer</td>
+      <td>0</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-lmoist">
+      <td><a href="#variable-lmoist">lmoist</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-lcoriol">
+      <td><a href="#variable-lcoriol">lcoriol</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-lbuoyancy">
+      <td><a href="#variable-lbuoyancy">lbuoyancy</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ltempeq">
+      <td><a href="#variable-ltempeq">ltempeq</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-lprofforc">
+      <td><a href="#variable-lprofforc">lprofforc</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ifixuinf">
+      <td><a href="#variable-ifixuinf">ifixuinf</a></td>
+      <td>integer</td>
+      <td>0</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-lvinf">
+      <td><a href="#variable-lvinf">lvinf</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-tscale">
+      <td><a href="#variable-tscale">tscale</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-dpdx">
+      <td><a href="#variable-dpdx">dpdx</a></td>
+      <td>real</td>
+      <td>0.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-luoutflowr">
+      <td><a href="#variable-luoutflowr">luoutflowr</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-lvoutflowr">
+      <td><a href="#variable-lvoutflowr">lvoutflowr</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-luvolflowr">
+      <td><a href="#variable-luvolflowr">luvolflowr</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-lvvolflowr">
+      <td><a href="#variable-lvvolflowr">lvvolflowr</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-uflowrate">
+      <td><a href="#variable-uflowrate">uflowrate</a></td>
+      <td>real</td>
+      <td>1.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-vflowrate">
+      <td><a href="#variable-vflowrate">vflowrate</a></td>
+      <td>real</td>
+      <td>1.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-lnudge">
+      <td><a href="#variable-lnudge">lnudge</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-lnudgevel">
+      <td><a href="#variable-lnudgevel">lnudgevel</a></td>
+      <td>logical</td>
+      <td>.true.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-tnudge">
+      <td><a href="#variable-tnudge">tnudge</a></td>
+      <td>real</td>
+      <td>60.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-nnudge">
+      <td><a href="#variable-nnudge">nnudge</a></td>
+      <td>integer</td>
+      <td>0</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ltimedepsurf">
+      <td><a href="#variable-ltimedepsurf">ltimedepsurf</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ntimedepsurf">
+      <td><a href="#variable-ntimedepsurf">ntimedepsurf</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ltimedepnudge">
+      <td><a href="#variable-ltimedepnudge">ltimedepnudge</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ntimedepnudge">
+      <td><a href="#variable-ntimedepnudge">ntimedepnudge</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ltimedeplw">
+      <td><a href="#variable-ltimedeplw">ltimedeplw</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ntimedeplw">
+      <td><a href="#variable-ntimedeplw">ntimedeplw</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ltimedepsw">
+      <td><a href="#variable-ltimedepsw">ltimedepsw</a></td>
+      <td>logical</td>
+      <td>.false.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ntimedepsw">
+      <td><a href="#variable-ntimedepsw">ntimedepsw</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+      </tbody>
+    </table>
+  </section>
+
+      <br>
+    </div>
+  </div>
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-01-12 13:47 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>
