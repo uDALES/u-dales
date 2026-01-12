@@ -489,16 +489,11 @@ contains
              do i=ib,ie
                 tl  = thl(i,j,k)*exner(k)
                 
-                if (tl<100.0) then
+                !! X. Long: This is a fix to tackle incorrect thls input. The reason why tl is going less than 100K (unphysical) 
+                !! is that it is calculated from thl which dose not change over time here.Probably this is happening at
+                !'calc_halflev and call thermo(thl0h,qt0h,ql0h,presh,exnh)'. This problem should be fixed later.  
+                if (tl<100.0) then 
                     tl=100.0
-                   if(.not. warning_tl) then
-                    if (myidx==0 .AND. myidy==0) then
-                       if (rk3step==3) then
-                          write(*,*) 'Warning:liquid water temperature tl is lower than 100 [K]!!!'
-                       end if
-                     end if
-                    warning_tl=.true.
-                   end if
                 end if
                 
                 es  = es0*exp(at*(tl-tmelt)/(tl-bt))
