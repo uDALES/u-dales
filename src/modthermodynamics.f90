@@ -438,9 +438,8 @@ contains
 
 
     !  use modglobal, only : ih,jh,i1,j1,k1,es0,at,bt,rd,rv,rlv,cp,tmelt
-    use modglobal, only : ih,jh,ib,ie,jb,je,kb,ke,kh,es0,at,bt,rd,rv,rlv,cp,tmelt,rk3step
+    use modglobal, only : ih,jh,ib,ie,jb,je,kb,ke,kh,es0,at,bt,rd,rv,rlv,cp,tmelt
     use modsurfdata, only : thls
-    use modmpi, only :myidx,myidy
     implicit none
 
     integer i, j, k
@@ -450,8 +449,6 @@ contains
     real, intent(out) :: ql(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
     real :: Tnr,qsatur,Tnr_old
     integer :: niter,nitert
-    logical ::warning_tl
-    warning_tl=.false.
     if (lqlnr) then
        !mc      calculation of T with Newton-Raphson method
        !mc      first guess is Tnr=tl
