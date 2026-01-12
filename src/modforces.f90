@@ -892,7 +892,7 @@ module modforces
   !use modglobal, only: ltempeq, lperiodicEBcorr, ib, ie, jb, je, kb, ke, imax, jtot
   use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, kb, ke,&
                           itot, jtot, totheatflux,sinkbase, totqflux, &
-                          zh, dx, dy ,dzh, fraction
+                          zh, dx, dy ,dzh, fraction,xlen,ylen,zf,dzf
   use modmpi, only : comm3d, mpierr, MY_REAL, myid, MPI_SUM
   !
   integer :: i, j, k, n, M
@@ -917,9 +917,9 @@ module modforces
   !!!! The point is to define phitop phibot and R above the loop so the stuff in the loop looks like the eqns.
   ! Do the same for humidity
   ! This follows the work in Grylls 2021
-  H_proj = tot_Tflux/(itot*jtot) ! [Kms^-1]This is total heat flux in divided by the domain cross section.
-  E_proj = tot_qflux/(itot*jtot)
-  abl_height = ke/fraction ! We reverse engineer the ABL height from domain height and fraction
+  H_proj = tot_Tflux/(xlen*ylen) ! [Kms^-1]This is total heat flux in divided by the domain cross section.
+  E_proj = tot_qflux/(xlen*ylen)
+  abl_height = zh(ke+1)/fraction ! We reverse engineer the ABL height from domain height and fraction
   R_theta = H_proj/abl_height ![Ks^-1] This is the forcing F\theta from Grylls 2021
   R_q = E_proj/abl_height
  ! Ke is the number of points in the vertical over which we would apply R if we included the canopy
@@ -927,8 +927,10 @@ module modforces
   R_theta_scaled = R_theta * ke/(M) ! [Ks^-1]The forcing is scaled up beacuse we do not apply it to the whole volume, only to points above the canopy. We add one to sinkbase to be above the buildings and add 1 to (ke-(sinkbase+1)) to correctly count the points.
   R_q_scaled = R_q * ke/(M)
   !phi_theta_t = 0 ! For debugging the flux profile !(1-fraction)*H_proj! The heat flux out the top of the domain.
-  phi_theta_t = (1-fraction)*H_proj
-  phi_q_t = (1-fraction)*E_proj
+  phi_theta_t = (1-fraction)*tot_Tflux/(xlen*ylen*dzf(ke)) ![Ks^-1]    
+  phi_q_t = (1-fraction)*tot_qflux/(xlen*ylen*dzf(ke))
+  !phi_theta_t = (1-fraction)*H_proj
+  !phi_q_t = (1-fraction)*E_proj
 
    if (ltempeq) then
      do i = ib,ie
