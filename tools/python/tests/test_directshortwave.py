@@ -12,7 +12,7 @@ udprep_path = (udbase_path / "tools" / "python" / "udprep").resolve()
 if str(udprep_path) not in sys.path:
     sys.path.append(str(udprep_path))
 
-expnr = '065'
+expnr = '105'
 expdir = (udbase_path.parents[0] / "experiments" / expnr).resolve()
 
 start = time.perf_counter()

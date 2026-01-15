@@ -251,14 +251,14 @@ class UDPrep:
         return "\n".join(lines)
 
     def run_all(self, **kwargs: Any) -> None:
-        """Run preprocessing in a write_inputs.m-style sequence."""
+        """Run preprocessing for all sections."""
         self.ibm.run_all()
         if self.vegetation.ltrees or self.vegetation.ltreesfile:
             self.vegetation.run_all()
         self.ic.run_all()
         if self.scalars.nsv > 0:
             self.scalars.run_all()
-        if self.seb.lEB:
+        if self.sim.lEB:
             run_all = self.radiation.run_all
             sig = inspect.signature(run_all)
             params = sig.parameters.values()
