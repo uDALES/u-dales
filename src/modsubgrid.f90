@@ -324,7 +324,10 @@ contains
              b23 = dx2*a12*a13 + dy2*a22*a23 + dzf2(k)*a32*a33
              bb = b11*b22 - b12*b12 + b11*b33 - b13*b13 + b22*b33 - b23*b23
 
-             ekm(i,j,k) = c_vreman*sqrt( max( (bb/aa), 0.0 ) )   ! Eddy viscosity
+            !ekm(i,j,k) = c_vreman*sqrt( max( (bb/aa), 0.0 ) )   ! Eddy viscosity
+
+            if (bb < 1.e-8) then                                                                                                                             ekm(i,j,k) = 0.                                                                                                                                else                                                                                                                                             ekm(i,j,k) = c_vreman*sqrt(bb / aa)                                                                                                            end if       
+         
            end do
          end do
        end do
