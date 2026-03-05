@@ -88,27 +88,17 @@ export DA_TOOLSDIR=$DA_TOOLSDIR
 export DA_EXPDIR=$DA_EXPDIR
 export MATLAB_USE_USERWORK=0
 
-matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
+nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 < /dev/null
 
 EOF
 
 ## submit job.exp file to queue
 	qsub pre-job.$iexpnr
 	echo "pre-job.$iexpnr submitted."
-
-elif [ $start == "l" ]; then
-	module load tools/prod
-	module load MATLAB/2024b
-	module load GCC/14.2.0
-	export MATLAB_USE_USERWORK=0
-	cd $DA_TOOLSDIR
-	matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit"
-	cd $DA_EXPDIR
-	cd ..
 else
 	###### RUN MATLAB SCRIPT
 	cd $DA_TOOLSDIR
-	nohup matlab -nodesktop -nojvm -nosplash -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 &
+	nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 < /dev/null &
 	cd $DA_EXPDIR
 	cd ..
 fi

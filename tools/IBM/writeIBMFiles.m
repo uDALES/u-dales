@@ -47,7 +47,7 @@ if lmypolyfortran
     disp('Determining fluid/solid points using Fortran.')
     % Compile
     n_threads = 8;
-    in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
+    in_mypoly_fortran_path = [folder '/IBM_preproc_fortran/'];
     addpath(in_mypoly_fortran_path)
     cd(in_mypoly_fortran_path);
     system('gfortran -O2 -fopenmp in_mypoly_functions.f90 ibm_necessary_functions.f90 IBM_flagging.f90 -o pre.exe');
@@ -852,11 +852,9 @@ end
 
 if lmatchFacetsToCellsFortran
     disp('Determining facet sections using Fortran.')
-%     in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
-%     addpath(in_mypoly_fortran_path)
     cd(folder);
-    % Needs fluid_IB_u.txt and fluid_boundary_u.txt to be defined.
-    system('gfortran -O2 matchFacetsToCells.f90 -o MFTC.exe');
+    % Needs fluid_boundary_u.txt and solid_boundary_u.txt to be defined.
+    system('gfortran -O2 -fopenmp matchFacetsToCells.f90 -o MFTC.exe');
     copyfile('MFTC.exe', fpath)
     delete MFTC.exe
 
@@ -867,6 +865,7 @@ if lmatchFacetsToCellsFortran
     fprintf(fileID,'%8d %8d %8d %8d\n',[size(fluid_IB_ijk_u,1) size(fluid_IB_ijk_v,1) size(fluid_IB_ijk_w,1) size(fluid_IB_ijk_c,1)]);
     fprintf(fileID,'%8d %8d %8d %8d\n',[size(solid_IB_ijk_u,1) size(solid_IB_ijk_v,1) size(solid_IB_ijk_w,1) size(solid_IB_ijk_c,1)]);
     fprintf(fileID,'%d %d %d\n',[periodic_x, periodic_y, diag_neighbs]);
+    fprintf(fileID,'%4d\n',n_threads);
     fclose(fileID);
 
     fileID = fopen([fpath 'zhgrid.txt'],'w');
@@ -1052,88 +1051,106 @@ if lBImin
 end
 
 %%
-disp(['nfcts = ', num2str(nfcts)])
-disp(['nsolpts_u = ', num2str(size(solid_ijk_u,1))])
-disp(['nsolpts_v = ', num2str(size(solid_ijk_v,1))])
-disp(['nsolpts_w = ', num2str(size(solid_ijk_w,1))])
-disp(['nsolpts_c = ', num2str(size(solid_ijk_c,1))])
-disp(['nbndpts_u = ', num2str(size(fluid_IB_xyz_u,1))])
-disp(['nbndpts_v = ', num2str(size(fluid_IB_xyz_v,1))])
-disp(['nbndpts_w = ', num2str(size(fluid_IB_xyz_w,1))])
-disp(['nbndpts_c = ', num2str(size(fluid_IB_xyz_c,1))])
-disp(['nfctsecs_u = ', num2str(size(facet_sections_u,1))])
-disp(['nfctsecs_v = ', num2str(size(facet_sections_v,1))])
-disp(['nfctsecs_w = ', num2str(size(facet_sections_w,1))])
-disp(['nfctsecs_c = ', num2str(size(facet_sections_c,1))])
+ncounts = [nfcts size(solid_ijk_u,1) size(solid_ijk_v,1) size(solid_ijk_w,1) size(solid_ijk_c,1)];
+ncounts = [ncounts size(fluid_IB_xyz_u,1) size(fluid_IB_xyz_v,1) size(fluid_IB_xyz_w,1) size(fluid_IB_xyz_c,1)];
+ncounts = [ncounts size(facet_sections_u,1) size(facet_sections_v,1) size(facet_sections_w,1) size(facet_sections_c,1)];
+
+disp(['nfcts = ', num2str(ncounts(1))])
+disp(['nsolpts_u = ', num2str(ncounts(2))])
+disp(['nsolpts_v = ', num2str(ncounts(3))])
+disp(['nsolpts_w = ', num2str(ncounts(4))])
+disp(['nsolpts_c = ', num2str(ncounts(5))])
+disp(['nbndpts_u = ', num2str(ncounts(6))])
+disp(['nbndpts_v = ', num2str(ncounts(7))])
+disp(['nbndpts_w = ', num2str(ncounts(8))])
+disp(['nbndpts_c = ', num2str(ncounts(9))])
+disp(['nfctsecs_u = ', num2str(ncounts(10))])
+disp(['nfctsecs_v = ', num2str(ncounts(11))])
+disp(['nfctsecs_w = ', num2str(ncounts(12))])
+disp(['nfctsecs_c = ', num2str(ncounts(13))])
 
 filename_info = [fpath 'info.txt'];
 fileID_info = fopen(filename_info,'W');
-fprintf(fileID_info, ['nfcts = ', num2str(nfcts), '\n']);
-fprintf(fileID_info, ['nsolpts_u = ', num2str(size(solid_ijk_u,1)), '\n']);
-fprintf(fileID_info, ['nsolpts_v = ', num2str(size(solid_ijk_v,1)), '\n']);
-fprintf(fileID_info, ['nsolpts_w = ', num2str(size(solid_ijk_w,1)), '\n']);
-fprintf(fileID_info, ['nsolpts_c = ', num2str(size(solid_ijk_c,1)), '\n']);
-fprintf(fileID_info, ['nbndpts_u = ', num2str(size(fluid_IB_xyz_u,1)), '\n']);
-fprintf(fileID_info, ['nbndpts_v = ', num2str(size(fluid_IB_xyz_v,1)), '\n']);
-fprintf(fileID_info, ['nbndpts_w = ', num2str(size(fluid_IB_xyz_w,1)), '\n']);
-fprintf(fileID_info, ['nbndpts_c = ', num2str(size(fluid_IB_xyz_c,1)), '\n']);
-fprintf(fileID_info, ['nfctsecs_u = ', num2str(size(facet_sections_u,1)), '\n']);
-fprintf(fileID_info, ['nfctsecs_v = ', num2str(size(facet_sections_v,1)), '\n']);
-fprintf(fileID_info, ['nfctsecs_w = ', num2str(size(facet_sections_w,1)), '\n']);
-fprintf(fileID_info, ['nfctsecs_c = ', num2str(size(facet_sections_c,1)), '\n']);
+fprintf(fileID_info, ['nfcts = ', num2str(ncounts(1)), '\n']);
+fprintf(fileID_info, ['nsolpts_u = ', num2str(ncounts(2)), '\n']);
+fprintf(fileID_info, ['nsolpts_v = ', num2str(ncounts(3)), '\n']);
+fprintf(fileID_info, ['nsolpts_w = ', num2str(ncounts(4)), '\n']);
+fprintf(fileID_info, ['nsolpts_c = ', num2str(ncounts(5)), '\n']);
+fprintf(fileID_info, ['nbndpts_u = ', num2str(ncounts(6)), '\n']);
+fprintf(fileID_info, ['nbndpts_v = ', num2str(ncounts(7)), '\n']);
+fprintf(fileID_info, ['nbndpts_w = ', num2str(ncounts(8)), '\n']);
+fprintf(fileID_info, ['nbndpts_c = ', num2str(ncounts(9)), '\n']);
+fprintf(fileID_info, ['nfctsecs_u = ', num2str(ncounts(10)), '\n']);
+fprintf(fileID_info, ['nfctsecs_v = ', num2str(ncounts(11)), '\n']);
+fprintf(fileID_info, ['nfctsecs_w = ', num2str(ncounts(12)), '\n']);
+fprintf(fileID_info, ['nfctsecs_c = ', num2str(ncounts(13)), '\n']);
 fclose(fileID_info);
 
 %% Clean up exp directory
 if lmypolyfortran
     cd(fpath)
-    delete flag_u.txt flag_v.txt flag_w.txt flag_c.txt;
-    delete fluid_IB_u.txt fluid_IB_v.txt fluid_IB_w.txt fluid_IB_c.txt;
-    delete solid_IB_u.txt solid_IB_v.txt solid_IB_w.txt solid_IB_c.txt;
+    % delete flag_u.txt flag_v.txt flag_w.txt flag_c.txt;
+    % delete fluid_IB_u.txt fluid_IB_v.txt fluid_IB_w.txt fluid_IB_c.txt;
+    % delete solid_IB_u.txt solid_IB_v.txt solid_IB_w.txt solid_IB_c.txt;
     delete solid_boundary_u.txt solid_boundary_v.txt solid_boundary_w.txt solid_boundary_c.txt;
     cd(currentPath)
 end
 
 %% Plot
-% figure
-% 
-% patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
-% hold on
-% incenters = TR.incenter;
-% faceNormals = TR.faceNormal;
-% %quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
-% view(3)
-% 
-% axis equal tight
+fig = figure('Visible', 'off');
 
-% % xlim([0 xsize])
-% % ylim([0 ysize])
-% % zlim([0 zsize])
+patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
+hold on
+incenters = TR.incenter;
+faceNormals = TR.faceNormal;
+quiver3(incenters(:,1), incenters(:,2), incenters(:,3), faceNormals(:,1), faceNormals(:,2), faceNormals(:,3), 0)
+view(3)
+axis equal tight
+% xlim([0 xsize])
+% ylim([0 ysize])
+% zlim([0 zsize])
 
-% %%Uncomment to view solid points
-%if isempty(solid_IB_ijk_u)
-%    scatter3(xgrid_u([]),ygrid_u([]),zgrid_u([]),10,[0,0,1],'filled')
-%else
-%    scatter3(xgrid_u(solid_ijk_u(:,1)),ygrid_u(solid_ijk_u(:,2)),zgrid_u(solid_ijk_u(:,3)),10,[0,0,1],'filled')
-%end
-%if isempty(solid_IB_ijk_v)
-%    scatter3(xgrid_v([]),ygrid_v([]),zgrid_v([]),10,[0,0,1],'filled')
-%else
-%    scatter3(xgrid_v(solid_ijk_v(:,1)),ygrid_v(solid_ijk_v(:,2)),zgrid_v(solid_ijk_v(:,3)),10,[0,0,1],'filled')
-%end
-%if isempty(solid_IB_ijk_w)
-%    scatter3(xgrid_w([]),ygrid_w([]),zgrid_w([]),10,[0,0,1],'filled')
-%else
-%    scatter3(xgrid_w(solid_ijk_w(:,1)),ygrid_w(solid_ijk_w(:,2)),zgrid_w(solid_ijk_w(:,3)),10,[0,0,1],'filled')
-%end
-%if isempty(solid_IB_ijk_c)
-%    scatter3(xgrid_c([]),ygrid_c([]),zgrid_c([]),10,[0,0,1],'filled')
-%else
-%    scatter3(xgrid_c(solid_ijk_c(:,1)),ygrid_c(solid_ijk_c(:,2)),zgrid_c(solid_ijk_c(:,3)),10,[0,0,1],'filled')
-%end
+%%solid points
+if isempty(solid_ijk_u)
+   scatter3(xgrid_u([]),ygrid_u([]),zgrid_u([]),10,[0,0,1],'filled')
+else
+   scatter3(xgrid_u(solid_ijk_u(:,1)),ygrid_u(solid_ijk_u(:,2)),zgrid_u(solid_ijk_u(:,3)),10,[0,0,1],'filled')
+end
+if isempty(solid_ijk_v)
+   scatter3(xgrid_v([]),ygrid_v([]),zgrid_v([]),10,[0,0,1],'filled')
+else
+   scatter3(xgrid_v(solid_ijk_v(:,1)),ygrid_v(solid_ijk_v(:,2)),zgrid_v(solid_ijk_v(:,3)),10,[0,0,1],'filled')
+end
+if isempty(solid_ijk_w)
+   scatter3(xgrid_w([]),ygrid_w([]),zgrid_w([]),10,[0,0,1],'filled')
+else
+   scatter3(xgrid_w(solid_ijk_w(:,1)),ygrid_w(solid_ijk_w(:,2)),zgrid_w(solid_ijk_w(:,3)),10,[0,0,1],'filled')
+end
+if isempty(solid_ijk_c)
+   scatter3(xgrid_c([]),ygrid_c([]),zgrid_c([]),10,[0,0,1],'filled')
+else
+   scatter3(xgrid_c(solid_ijk_c(:,1)),ygrid_c(solid_ijk_c(:,2)),zgrid_c(solid_ijk_c(:,3)),10,[0,0,1],'filled')
+end
 
-% %%Uncomment to view fluid boundary points
-%scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
-%scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
-%scatter3(fluid_IB_xyz_w(:,1),fluid_IB_xyz_w(:,2),fluid_IB_xyz_w(:,3),10,[0,0,1],'filled')
-%scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
+set(fig, 'Visible', 'on');
+savefig(fig, 'solid_points.fig');  % Save figure
+close(fig);  % Close the invisible figure
 
+
+
+fig = figure('Visible', 'off');
+
+patch('Faces', TR.ConnectivityList, 'Vertices', TR.Points, 'FaceColor', ones(3,1)*0.85, 'FaceAlpha', 1)
+hold on
+view(3)
+axis equal tight
+
+%%fluid boundary points
+scatter3(fluid_IB_xyz_u(:,1),fluid_IB_xyz_u(:,2),fluid_IB_xyz_u(:,3),10,[0,0,1],'filled')
+scatter3(fluid_IB_xyz_v(:,1),fluid_IB_xyz_v(:,2),fluid_IB_xyz_v(:,3),10,[0,0,1],'filled')
+scatter3(fluid_IB_xyz_w(:,1),fluid_IB_xyz_w(:,2),fluid_IB_xyz_w(:,3),10,[0,0,1],'filled')
+scatter3(fluid_IB_xyz_c(:,1),fluid_IB_xyz_c(:,2),fluid_IB_xyz_c(:,3),10,[0,0,1],'filled')
+
+set(fig, 'Visible', 'on');
+savefig(fig, 'fluid_boundary_points.fig');  % Save figure
+close(fig);  % Close the invisible figure

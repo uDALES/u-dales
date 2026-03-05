@@ -88,8 +88,6 @@ mkdir -p $outdir
 cp -r $inputdir/* $outdir
 pushd $outdir
 mpiexec -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
-module load NCO/5.2.9-foss-2024a
-$DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
 
 ## submit job.exp file to queue
