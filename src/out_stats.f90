@@ -310,7 +310,7 @@ module stats
         if (nsv>0)   call stats_allocate_tavg_scalar
       end if
 
-      !> Generate time averaged NetCDF: stats_t_out.xxx.xxx.xxx.nc
+      !> Generate time averaged NetCDF: stats_t.xxx.xxx.xxx.nc
       if (ltdump) then
         !> Total numbers of variables to be written
         tVarsCount = 14
@@ -332,7 +332,7 @@ module stats
         deallocate(tVars)
       end if
 
-      !> Generate time, y and x averaged NetCDF: stats_xyt_out.xxx.nc
+      !> Generate time, y and x averaged NetCDF: stats_xyt.xxx.nc
       if (lxytdump) then
         xytVarsCount = 20
         if (ltempeq) xytVarsCount = xytVarsCount + 5
@@ -349,7 +349,7 @@ module stats
         deallocate(xytVars)
       end if
 
-      !> Generate y and x averaged NetCDF: stats_xy_out.xxx.nc
+      !> Generate y and x averaged NetCDF: stats_xy.xxx.nc
       if (lxydump) then
         xyVarsCount = 16
         if (ltempeq) xyVarsCount = xyVarsCount + 4
@@ -366,7 +366,7 @@ module stats
         deallocate(xyVars)
       end if
 
-      !> Generate time and y averaged NetCDF: stats_yt_out.xxx.xxx.nc
+      !> Generate time and y averaged NetCDF: stats_yt.xxx.xxx.nc
       if (lytdump) then
         ytVarsCount = 11
         if (ltempeq) ytVarsCount = ytVarsCount + 5
@@ -385,7 +385,7 @@ module stats
         deallocate(ytVars)
       end if
 
-      !> Generate y averaged NetCDF: stats_y_out.xxx.xxx.nc
+      !> Generate y averaged NetCDF: stats_y.xxx.xxx.nc
       if (lydump) then
         yVarsCount = 8
         if (ltempeq) yVarsCount = yVarsCount + 4
@@ -404,7 +404,7 @@ module stats
         deallocate(yVars)
       end if
 
-      !> Generate time averaged tree data NetCDF: stats_tree_out.xxx.xxx.xxx.nc
+      !> Generate time averaged tree data NetCDF: stats_tree.xxx.xxx.xxx.nc
       if (ltreedump) then
         treeVarsCount = 3
         if (ltempeq) treeVarsCount = treeVarsCount + 1
@@ -713,10 +713,10 @@ module stats
 
     subroutine stats_createnc_tavg
       implicit none
-      filenamet = 'stats_t_out.xxx.xxx.xxx.nc'
-      filenamet(13:15) = cmyidx
-      filenamet(17:19) = cmyidy
-      filenamet(21:23) = cexpnr
+      filenamet = 'stats_t.xxx.xxx.xxx.nc'
+      filenamet(9:11) = cmyidx
+      filenamet(13:15) = cmyidy
+      filenamet(17:19) = cexpnr
 
       nrect = 0
       call open_nc(filenamet, ncidt, nrect, n1=xdim, n2=ydim, n3=zdim)
@@ -807,8 +807,8 @@ module stats
 
     subroutine stats_createnc_xytavg
       implicit none
-      filenamexyt = 'stats_xyt_out.xxx.nc'
-      filenamexyt(15:17) = cexpnr
+      filenamexyt = 'stats_xyt.xxx.nc'
+      filenamexyt(11:13) = cexpnr
 
       nrecxyt = 0
       if (myid==0) then
@@ -897,8 +897,8 @@ module stats
 
     subroutine stats_createnc_xyavg
       implicit none
-      filenamexy = 'stats_xy_out.xxx.nc'
-      filenamexy(14:16) = cexpnr
+      filenamexy = 'stats_xy.xxx.nc'
+      filenamexy(10:12) = cexpnr
 
       nrecxy = 0
       if (myid==0) then
@@ -1002,9 +1002,9 @@ module stats
 
     subroutine stats_createnc_ytavg
       implicit none
-      filenameyt = 'stats_yt_out.xxx.xxx.nc'
-      filenameyt(14:16)  = cmyidx
-      filenameyt(18:20) = cexpnr
+      filenameyt = 'stats_yt.xxx.xxx.nc'
+      filenameyt(10:12)  = cmyidx
+      filenameyt(14:16) = cexpnr
 
       nrecyt = 0
       if (myidy==0) then
@@ -1098,9 +1098,9 @@ module stats
 
     subroutine stats_createnc_yavg
       implicit none
-      filenamey = 'stats_y_out.xxx.xxx.nc'
-      filenamey(13:15)  = cmyidx
-      filenamey(17:19) = cexpnr
+      filenamey = 'stats_y.xxx.xxx.nc'
+      filenamey(9:11)  = cmyidx
+      filenamey(13:15) = cexpnr
       
       nrecy = 0
       if (myidy==0) then
@@ -1162,10 +1162,10 @@ module stats
 
     subroutine stats_createnc_tree
       implicit none
-      filenametree = 'stats_tree_out.xxx.xxx.xxx.nc'
-      filenametree(16:18) = cmyidx
-      filenametree(20:22) = cmyidy
-      filenametree(24:26) = cexpnr
+      filenametree = 'stats_tree.xxx.xxx.xxx.nc'
+      filenametree(12:14) = cmyidx
+      filenametree(16:18) = cmyidy
+      filenametree(20:22) = cexpnr
 
       nrectree = 0
       call open_nc(filenametree, ncidtree, nrectree, n1=xdim, n2=ydim, n3=zdim)

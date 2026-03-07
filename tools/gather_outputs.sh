@@ -93,16 +93,17 @@ for file in *dump.*.000.${expnr}.nc ; do
 done
 
 ## call loop for stats_*
-for file in stats_*_out.*.000.${expnr}.nc ; do
+for file in stats_*.*.000.${expnr}.nc ; do
     if [ -f $file ]; then
         ## Gathering fields along spatial axis y.
         dumps=${file%.000.${expnr}.nc}
+        base=${dumps%%.*}
 
-        if [ ${dumps:0:11} == "stats_t_out" ]; then
-            echo "Merging ${dumps:0:11} along y-direction."
+        if [ "$base" == "stats_t" ]; then
+            echo "Merging $base along y-direction."
 	        ymparam="v,vpwp,upvp,vsgs,ym"
-        elif [ ${dumps:0:14} == "stats_tree_out" ]; then
-            echo "Merging ${dumps:0:14} along y-direction."
+        elif [ "$base" == "stats_tree" ]; then
+            echo "Merging $base along y-direction."
 	        ymparam="tr_v,ym"
         else
             ymparam="ym"
@@ -229,18 +230,21 @@ for file in *dump.000.${expnr}.nc ; do
 done
 
 ## Gathering fields along spatial axis x.
-for file in stats_*_out.000.${expnr}.nc ; do
+for file in stats_*.000.${expnr}.nc ; do
     if [ -f $file ]; then
 
         dumps=${file%.000.${expnr}.nc}
 
-        if [ $dumps == "stats_t_out" ]; then
+        # Skip raw files accidentally matched (e.g. stats_t.000.000.expnr.nc gives dumps=stats_t.000)
+        [[ "$dumps" == *.* ]] && continue  # if dumps contains a dot anywhere (e.g. stats_t.000), skip to next file
+
+        if [ $dumps == "stats_t" ]; then
 	        echo "Merging $dumps along x-direction."	
             xmparam="u,upwp,upvp,usgs,xm"
-        elif [ $dumps == "stats_yt_out" ] || [ $dumps == "stats_y_out" ]; then
+        elif [ $dumps == "stats_yt" ] || [ $dumps == "stats_y" ]; then
 	        echo "Merging $dumps along x-direction."	
             xmparam="u,upwp,uw,usgs,xm"
-        elif [ $dumps == "stats_tree_out" ]; then
+        elif [ $dumps == "stats_tree" ]; then
 	        echo "Merging $dumps along x-direction."	
             xmparam="tr_u,xm"
         else
