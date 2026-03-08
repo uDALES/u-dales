@@ -129,17 +129,6 @@ module modfields
   real, allocatable :: tr_sv(:,:,:,:)       !< tree deposition (scalar sink)
   real, allocatable :: tr_omega(:,:,:)
 
-  real, allocatable :: tr_ut(:,:,:)
-  real, allocatable :: tr_vt(:,:,:)
-  real, allocatable :: tr_wt(:,:,:)
-  real, allocatable :: tr_qtt(:,:,:)
-  real, allocatable :: tr_qtRt(:,:,:)
-  real, allocatable :: tr_qtAt(:,:,:)
-  real, allocatable :: tr_thlt(:,:,:)
-  real, allocatable :: tr_sv1t(:,:,:)
-  real, allocatable :: tr_sv2t(:,:,:)
-  real, allocatable :: tr_omegat(:,:,:)
-
 !  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
   ! statistical fields following notation "[statistical name][averaging directions - x,y,z,t][position in grid - i,j,k]"
@@ -429,7 +418,6 @@ module modfields
   character(80), allocatable :: ncstatislice(:,:)
   character(80), allocatable :: ncstatjslice(:,:)
   character(80), allocatable :: ncstatt(:,:)
-  character(80), allocatable :: ncstattr(:,:)
   character(80), allocatable :: ncstatmint(:,:)
 
   integer, allocatable :: wall(:,:,:,:)             !< wall(ic,jc,kc,1-5) gives the global indices of the wall closest to cell center ic,jc,kc. The 4th and 5th integer gives the corresponding shear components
@@ -626,20 +614,9 @@ contains
       allocate(tr_thl(ib:ie,jb:je,kb:ke))
       allocate(tr_sv(ib:ie,jb:je,kb:ke,1:nsv)) 
       allocate(tr_omega(ib:ie,jb:je,kb:ke))
-
-      allocate(tr_ut(ib:ie,jb:je,kb:ke))
-      allocate(tr_vt(ib:ie,jb:je,kb:ke))
-      allocate(tr_wt(ib:ie,jb:je,kb:ke))
-      allocate(tr_qtt(ib:ie,jb:je,kb:ke))
-      allocate(tr_qtRt(ib:ie,jb:je,kb:ke))
-      allocate(tr_qtAt(ib:ie,jb:je,kb:ke))
-      allocate(tr_thlt(ib:ie,jb:je,kb:ke))
-      allocate(tr_sv1t(ib:ie,jb:je,kb:ke))
-      allocate(tr_sv2t(ib:ie,jb:je,kb:ke))
-      allocate(tr_omegat(ib:ie,jb:je,kb:ke))
       
       clai=0.;Rn=0.;qc=0.;qa=0.;ladzf=0.;ladzh=0.;tr_u=0.;tr_v=0.;tr_w=0.;tr_thl=0.;tr_qt=0.;tr_qtR=0.;tr_qtA=0.;tr_sv=0.
-      tr_ut=0.;tr_vt=0.;tr_wt=0.;tr_thlt=0.;tr_qtt=0.;tr_qtRt=0.;tr_qtAt=0.;tr_sv1t=0.;tr_sv2t=0.;tr_omega=0.;tr_omegat=0.
+      tr_omega=0.
     end if
 
     ! Statistics - currenly not implemented.
