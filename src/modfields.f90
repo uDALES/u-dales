@@ -151,16 +151,6 @@ module modfields
   real, allocatable :: sv2sgsyt(:,:)
   real, allocatable :: sv3sgsyt(:,:)
 
-  real, allocatable :: uxyt(:)
-  real, allocatable :: vxyt(:)
-  real, allocatable :: wxyt(:)
-  real, allocatable :: thlxyt(:)
-  real, allocatable :: qtxyt(:)
-  real, allocatable :: pxyt(:)  ! bss116
-  real, allocatable :: usgsxyt(:)
-  real, allocatable :: thlsgsxyt(:)
-  real, allocatable :: vsgsxyt(:)
-
   real, allocatable :: uwtik(:,:,:)
   real, allocatable :: wthltk(:,:,:)
   real, allocatable :: wqttk(:,:,:)
@@ -412,8 +402,6 @@ module modfields
   character(80), allocatable :: ncstaty(:,:)
   character(80), allocatable :: ncstatyt(:,:)
   character(80), allocatable :: ncstattke(:,:)
-  character(80), allocatable :: ncstatxy(:,:)
-  character(80), allocatable :: ncstatxyt(:,:)
   character(80), allocatable :: ncstatkslice(:,:)
   character(80), allocatable :: ncstatislice(:,:)
   character(80), allocatable :: ncstatjslice(:,:)
@@ -427,7 +415,7 @@ contains
   subroutine initfields
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jtot,nsv,&
-         ihc,jhc,khc,ltdump,lmintdump,lytdump,lxytdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump!, iadv_kappa,iadv_sv
+         ihc,jhc,khc,ltdump,lmintdump,lytdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump!, iadv_kappa,iadv_sv
     use decomp_2d, only : alloc_z
     ! Allocation of prognostic variables
     implicit none
@@ -642,20 +630,7 @@ contains
       uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;usgsyt=0.;thlsgsyt=0.;wsgsyt=0.;qtsgsyt=0.;sv1sgsyt=0.;sv2sgsyt=0.;sv3sgsyt=0.
     end if
 
-    if (lxytdump) then
-      allocate(uxyt(kb:ke+kh))
-      allocate(vxyt(kb:ke+kh))
-      allocate(wxyt(kb:ke+kh))
-      allocate(thlxyt(kb:ke+kh))
-      allocate(qtxyt(kb:ke+kh))
-      allocate(pxyt(kb:ke+kh))
-      allocate(usgsxyt(kb:ke+kh))
-      allocate(thlsgsxyt(kb:ke+kh))
-      allocate(vsgsxyt(kb:ke+kh))
-      uxyt=0.;vxyt=0.;wxyt=0.;thlxyt=0.;qtxyt=0.;pxyt=0.;usgsxyt=0.;vsgsxyt=0.;thlsgsxyt=0.;
-    end if
-
-    if (lxytdump .or. lytdump .or. ltdump .or. lmintdump) then
+    if (lytdump .or. ltdump .or. lmintdump) then
       allocate(umt(ib:ie,jb:je,kb:ke+kh)); umt = 0;
       allocate(vmt(ib:ie,jb:je,kb:ke+kh)); vmt = 0;
       allocate(wmt(ib:ie,jb:je,kb:ke+kh)); wmt = 0;
