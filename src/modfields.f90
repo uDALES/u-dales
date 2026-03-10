@@ -132,24 +132,6 @@ module modfields
 !  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
   ! statistical fields following notation "[statistical name][averaging directions - x,y,z,t][position in grid - i,j,k]"
-  real, allocatable :: uyt(:,:)
-  real, allocatable :: uytik(:,:)
-  real, allocatable :: vyt(:,:)
-  real, allocatable :: wyt(:,:)
-  real, allocatable :: wytik(:,:)
-  real, allocatable :: thlyt(:,:)
-  real, allocatable :: qtyt(:,:)
-  real, allocatable :: thlytk(:,:)
-  real, allocatable :: sca1yt(:,:)
-  real, allocatable :: sca2yt(:,:)
-  real, allocatable :: sca3yt(:,:)
-  real, allocatable :: thlsgsyt(:,:)
-  real, allocatable :: qtsgsyt(:,:)
-  real, allocatable :: usgsyt(:,:)
-  real, allocatable :: wsgsyt(:,:)
-  real, allocatable :: sv1sgsyt(:,:)
-  real, allocatable :: sv2sgsyt(:,:)
-  real, allocatable :: sv3sgsyt(:,:)
 
   real, allocatable :: uwtik(:,:,:)
   real, allocatable :: wthltk(:,:,:)
@@ -399,8 +381,6 @@ module modfields
   character(80), allocatable :: ncname(:,:)
   character(80), allocatable :: ncname1(:,:)
   character(80), allocatable :: ncname2(:,:)
-  character(80), allocatable :: ncstaty(:,:)
-  character(80), allocatable :: ncstatyt(:,:)
   character(80), allocatable :: ncstattke(:,:)
   character(80), allocatable :: ncstatkslice(:,:)
   character(80), allocatable :: ncstatislice(:,:)
@@ -415,7 +395,7 @@ contains
   subroutine initfields
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jtot,nsv,&
-         ihc,jhc,khc,ltdump,lmintdump,lytdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump!, iadv_kappa,iadv_sv
+         ihc,jhc,khc,ltdump,lmintdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump!, iadv_kappa,iadv_sv
     use decomp_2d, only : alloc_z
     ! Allocation of prognostic variables
     implicit none
@@ -607,30 +587,7 @@ contains
       tr_omega=0.
     end if
 
-    ! Statistics - currenly not implemented.
-    if (lytdump) then
-      allocate(uyt(ib:ie,kb:ke))
-      allocate(uytik(ib:ie,kb:ke))
-      allocate(vyt(ib:ie,kb:ke))
-      allocate(wyt(ib:ie,kb:ke))
-      allocate(wytik(ib:ie,kb:ke))
-      allocate(thlyt(ib:ie,kb:ke))
-      allocate(qtyt(ib:ie,kb:ke))
-      allocate(thlytk(ib:ie,kb:ke))
-      allocate(sca1yt(ib:ie,kb:ke))
-      allocate(sca2yt(ib:ie,kb:ke))
-      allocate(sca3yt(ib:ie,kb:ke))
-      allocate(usgsyt(ib:ie,kb:ke))
-      allocate(thlsgsyt(ib:ie,kb:ke))
-      allocate(qtsgsyt(ib:ie,kb:ke))
-      allocate(wsgsyt(ib:ie,kb:ke))
-      allocate(sv1sgsyt(ib:ie,kb:ke))
-      allocate(sv2sgsyt(ib:ie,kb:ke))
-      allocate(sv3sgsyt(ib:ie,kb:ke))
-      uyt=0.;uytik=0.;vyt=0.;wyt=0.;wytik=0.;thlyt=0.;qtyt=0.;thlytk=0.;sca1yt=0.;sca2yt=0.;sca3yt=0.;usgsyt=0.;thlsgsyt=0.;wsgsyt=0.;qtsgsyt=0.;sv1sgsyt=0.;sv2sgsyt=0.;sv3sgsyt=0.
-    end if
-
-    if (lytdump .or. ltdump .or. lmintdump) then
+    if (ltdump .or. lmintdump) then
       allocate(umt(ib:ie,jb:je,kb:ke+kh)); umt = 0;
       allocate(vmt(ib:ie,jb:je,kb:ke+kh)); vmt = 0;
       allocate(wmt(ib:ie,jb:je,kb:ke+kh)); wmt = 0;

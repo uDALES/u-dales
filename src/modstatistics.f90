@@ -148,7 +148,7 @@ contains
  
   subroutine tkestats(tsamplep,tstatsdumpp) ! change of variable names not yet translated across to here ! tg3315 30/11/17
 
-  use modfields,        only : u0,v0,w0,thlm,uyt,vyt,wyt,thlyt,pres0,&
+  use modfields,        only : u0,v0,w0,thlm,pres0,&
                                tvmx,tvmy,tvmz,strain2av,tsgsmx1,tsgsmx2,tsgsmy1,tsgsmy2,&
                                tsgsmz1,tsgsmz2,pres0
   use modglobal,        only : ib,ie,ih,jb,je,jgb,jge,dy,jh,ke,kb,kh,rk3step,cexpnr,tsample,tstatsdump,dzf,zh,dxf,dzf,numol,&
