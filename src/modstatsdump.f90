@@ -35,30 +35,18 @@ module modstatsdump
   save
 
   !NetCDF variables
-  integer :: ncidtke,ncidkslice,ncidislice,ncidjslice,nrectke=0,&
-             nreckslice=0,nrecislice=0,nrecjslice=0,nstattke=8,nstatkslice=5,nstatislice=5,nstatjslice=5,&
+  integer :: ncidtke,nrectke=0,&
+             nstattke=8,&
              ncidt,nrect=0,nstatt=32,ncidmint,nrecmint=0,nstatmint=6
   character(80) :: tkename = 'tkedump.xxx.nc'
   character(80) :: tname = 'tdump.xxx.xxx.xxx.nc'
   character(80) :: mintname = 'mintdump.xxx.xxx.xxx.nc'
-  character(80) :: kslicename = 'kslicedump.xxx.xxx.xxx.nc'
-  character(80) :: islicename = 'islicedump.xxx.xxx.xxx.nc'
-  character(80) :: jslicename = 'jslicedump.xxx.xxx.xxx.nc'
   character(80),dimension(1,4) :: tncstattke
-  character(80),dimension(1,4) :: tncstatkslice
-  character(80),dimension(1,4) :: tncstatislice
-  character(80),dimension(1,4) :: tncstatjslice
   character(80),dimension(1,4) :: tncstatt
   character(80),dimension(1,4) :: tncstatmint
 
   integer :: klow,khigh,i,j,k
   real    :: tsamplep,tstatsdumpp,tsample,tstatsdump
-
-  integer :: isliceloc    ! local islice on core
-  logical :: islicerank    ! cpu that islice is on
-  integer :: jsliceloc    ! local jslice on core
-  logical :: jslicerank    ! cpu that jslice is on
-
 
 contains
 
@@ -69,9 +57,9 @@ contains
   subroutine initstatsdump
     use modmpi,   only : my_real,mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyid,cmyidx,cmyidy
     use modglobal,only : imax,jmax,kmax,cexpnr,ifnamopt,fname_options,ib,ie,jb,je,kb,ke,ladaptive,btime,&
-                         nsv,lkslicedump,lislicedump,ljslicedump,ib,ie,islice,jslice
+                         nsv,ib,ie
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields, only : ncstattke,ncstatkslice,ncstatislice,ncstatjslice,ncstatt,ncstatmint
+    use modfields, only : ncstattke,ncstatt,ncstatmint
     use decomp_2d, only : zstart, zend
     implicit none
     integer :: ierr
@@ -80,9 +68,6 @@ contains
          tsample,klow,khigh,tstatsdump,ltkedump,ltdump,lmintdump    ! maybe removed; NAMSTATSDUMP is not in use anymore
 
     allocate(ncstattke(nstattke,4))
-    allocate(ncstatkslice(nstatkslice,4))
-    allocate(ncstatislice(nstatislice,4))
-    allocate(ncstatjslice(nstatjslice,4))
     allocate(ncstatt(nstatt,4))
     allocate(ncstatmint(nstatmint,4))
 
@@ -217,93 +202,6 @@ contains
 
     endif
 
-    !> Generate sliced NetCDF: slicedump.xxx.xxx.nc
-    if (lkslicedump) then
-
-      kslicename(12:14) = cmyidx
-      kslicename(16:18) = cmyidy
-      kslicename(20:22) = cexpnr
-
-      call ncinfo(tncstatkslice(1,:),'time'     ,'Time'   ,'s'   ,'time')
-      call ncinfo(ncstatkslice( 1,:),'u_kslice'     ,'Streamwise velocity at kslice', '-', 'mt0t')
-      call ncinfo(ncstatkslice( 2,:),'v_kslice'     ,'Spanwise velocity at kslice', '-', 'tm0t')
-      call ncinfo(ncstatkslice( 3,:),'w_kslice'     ,'Vertical velocity at kslice', '-', 'tt0t')
-      call ncinfo(ncstatkslice( 4,:),'thl_kslice'   ,'Potential temperature at kslice', '-', 'tt0t')
-      call ncinfo(ncstatkslice( 5,:),'qt_kslice'    ,'Specific humidity at kslice', '-', 'tt0t')
-
-      call open_nc(kslicename, ncidkslice, nreckslice, n1=imax, n2=jmax)
-
-      if (nreckslice==0) then
-        call define_nc( ncidkslice, 1, tncstatkslice)
-        call writestat_dims_nc(ncidkslice)
-      end if
-
-      call define_nc( ncidkslice, nstatkslice, ncstatkslice)
-
-    end if
-
-    if (lislicedump) then
-
-      islicename(12:14) = cmyidx
-      islicename(16:18) = cmyidy
-      islicename(20:22) = cexpnr
-
-      call ncinfo(tncstatislice(1,:),'time'     ,'Time'   ,'s'   ,'time')
-      call ncinfo(ncstatislice( 1,:),'u_islice'     ,'Streamwise velocity at islice', '-', '0ttt')
-      call ncinfo(ncstatislice( 2,:),'v_islice'     ,'Spanwise velocity at islice', '-', '0mtt')
-      call ncinfo(ncstatislice( 3,:),'w_islice'     ,'Vertical velocity at islice', '-', '0tmt')
-      call ncinfo(ncstatislice( 4,:),'thl_islice'   ,'Potential temperature at islice', '-', '0ttt')
-      call ncinfo(ncstatislice( 5,:),'qt_islice'    ,'Specific humidity at islice', '-', '0ttt')
-
-      if ((islice >= zstart(1)) .and. (islice <= zend(1))) then
-        islicerank = .true.
-        isliceloc = islice - zstart(1) + 1
-      else
-        islicerank = .false.
-      end if
-
-      if (islicerank) then
-        call open_nc(islicename, ncidislice, nrecislice, n2=jmax, n3=khigh-klow+1)
-        if (nrecislice==0) then
-          call define_nc( ncidislice, 1, tncstatislice)
-          call writestat_dims_nc(ncidislice)
-        end if
-        call define_nc( ncidislice, nstatislice, ncstatislice)
-      end if
-
-    end if
-
-    if (ljslicedump) then
-
-      jslicename(12:14) = cmyidx
-      jslicename(16:18) = cmyidy
-      jslicename(20:22) = cexpnr
-
-      call ncinfo(tncstatjslice(1,:),'time'     ,'Time'   ,'s'   ,'time')
-      call ncinfo(ncstatjslice( 1,:),'u_jslice'     ,'Streamwise velocity at jslice', '-', 'm0tt')
-      call ncinfo(ncstatjslice( 2,:),'v_jslice'     ,'Spanwise velocity at jslice', '-', 't0tt')
-      call ncinfo(ncstatjslice( 3,:),'w_jslice'     ,'Vertical velocity at jslice', '-', 't0mt')
-      call ncinfo(ncstatjslice( 4,:),'thl_jslice'   ,'Potential temperature at jslice', '-', 't0tt')
-      call ncinfo(ncstatjslice( 5,:),'qt_jslice'    ,'Specific humidity at jslice', '-', 't0tt')
-
-      if ((jslice >= zstart(2)) .and. (jslice <= zend(2))) then
-        jslicerank = .true.
-        jsliceloc = jslice - zstart(2) + 1
-      else
-        jslicerank = .false.
-      end if
-
-      if (jslicerank) then
-         call open_nc(jslicename, ncidjslice, nrecjslice, n1=imax, n3=khigh-klow+1)
-         if (nrecjslice==0) then
-            call define_nc( ncidjslice, 1, tncstatjslice)
-            call writestat_dims_nc(ncidjslice)
-         end if
-         call define_nc( ncidjslice, nstatjslice, ncstatjslice)
-      end if
-
-    end if
-
     !> Set times to zero so works for warm starts... could have issues with warmstarts here...
     tsamplep = 0.
     tstatsdumpp = 0.
@@ -317,7 +215,7 @@ contains
   subroutine statsdump
 
   use modfields,        only : um,up,vm,wm,svm,qtm,thlm,pres0,ncstattke,ncstatmint,&
-                               ncstatkslice,ncstatislice,ncstatjslice,t_t,t_v,t_p,t_sgs,d_sgs,p_b,p_t,adv,&
+                               t_t,t_v,t_p,t_sgs,d_sgs,p_b,p_t,adv,&
                                IIc,IIu,IIv,IIw,IIuw,IIvw,IIct,IIwt,IIut,IIvt,IIuwt,IIuv,&
                                IIcs,IIws,IIus,IIvs,IIuws,IIvws,IIuvs,&
                                uwtik,vwtjk,uvtij,utik,wtik,wtjk,vtjk,utij,vtij,&
@@ -328,8 +226,8 @@ contains
   use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,dyi,jh,ke,kb,kh,khc,rk3step,&
                                timee,cexpnr,tsample,tstatsdump,tstatstart,jtot,imax,jmax,dzf,&
                                ltempeq,zh,dxf,dzf,dzh2i,lprofforc,lscasrcl,&
-                               lkslicedump,lislicedump,ljslicedump,lchem,dzhi,dzfi,dzhiq,dxhi,lmoist,nsv,&
-                               k1,JNO2,lchem,kslice,islice,jslice
+                               lchem,dzhi,dzfi,dzhiq,dxhi,lmoist,nsv,&
+                               k1,JNO2,lchem
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
   use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,&
@@ -436,8 +334,7 @@ contains
   real, allocatable     :: wpwptc(:,:,:)
   real, allocatable     :: tketc(:,:,:)
 
-  real, allocatable :: varstke(:,:),&
-                       varkslice(:,:,:),varislice(:,:,:),varjslice(:,:,:),varst(:,:,:,:),varsmint(:,:,:,:)
+  real, allocatable :: varstke(:,:),varst(:,:,:,:),varsmint(:,:,:,:)
   real    :: tstatsdumppi,emom
   integer :: i,j,k,ip,im,jp,jm,kp,km,n
   integer :: writecounter = 1
@@ -445,8 +342,7 @@ contains
 
   if (timee < tstatstart) return
 
-  if (.not.(ltdump .or. lmintdump &
-    .or. lkslicedump.or. lislicedump.or. ljslicedump)) return
+  if (.not.(ltdump .or. lmintdump)) return
 
   allocate(thlk(ib:ie,jb:je,kb:ke+kh))
   allocate(qtk(ib:ie,jb:je,kb:ke+kh))
@@ -759,46 +655,6 @@ contains
       !end if ! ltdump
 
     end if ! ltdump .or. lmintdump
-
-    if (lkslicedump) then
-     allocate(varkslice(imax,jmax,nstatkslice))
-     call writestat_nc(ncidkslice,1,tncstatkslice,(/timee/),nreckslice,.true.)
-     varkslice(:,:,1) = um(ib:ie,jb:je,kslice)
-     varkslice(:,:,2) = vm(ib:ie,jb:je,kslice)
-     varkslice(:,:,3) = 0.5*(wm(ib:ie,jb:je,kslice)+wm(ib:ie,jb:je,kslice+1)) ! assumes equidistant
-     varkslice(:,:,4) = thlm(ib:ie,jb:je,kslice)
-     varkslice(:,:,5) = qtm(ib:ie,jb:je,kslice)
-     call writestat_nc(ncidkslice,nstatkslice,ncstatkslice,varkslice,nreckslice,imax,jmax)
-
-    endif
-
-    if (lislicedump) then
-      if (islicerank) then
-        allocate(varislice(jmax,khigh-klow+1,nstatislice))
-        call writestat_nc(ncidislice,1,tncstatislice,(/timee/),nrecislice,.true.)
-        varislice(:,:,1) = 0.5*(um(isliceloc,jb:je,kb:ke)+um(isliceloc+1,jb:je,kb:ke))
-        varislice(:,:,2) = vm(isliceloc,jb:je,kb:ke)
-        varislice(:,:,3) = wm(isliceloc,jb:je,kb:ke)
-        varislice(:,:,4) = thlm(isliceloc,jb:je,kb:ke)
-        varislice(:,:,5) = qtm(isliceloc,jb:je,kb:ke)
-        call writestat_nc(ncidislice,nstatislice,ncstatislice,varislice,nrecislice,jmax,khigh-klow+1)
-
-      endif
-    endif
-
-    if (ljslicedump) then
-       if (jslicerank) then
-         allocate(varjslice(imax,khigh-klow+1,nstatjslice))
-         call writestat_nc(ncidjslice,1,tncstatjslice,(/timee/),nrecjslice,.true.)
-         varjslice(:,:,1) = um(ib:ie,jsliceloc,kb:ke)
-         varjslice(:,:,2) = 0.5*(vm(ib:ie,jsliceloc,kb:ke)+vm(ib:ie,jsliceloc+1,kb:ke))
-         varjslice(:,:,3) = wm(ib:ie,jsliceloc,kb:ke)
-         varjslice(:,:,4) = thlm(ib:ie,jsliceloc,kb:ke)
-         varjslice(:,:,5) = qtm(ib:ie,jsliceloc,kb:ke)
-         call writestat_nc(ncidjslice,nstatjslice,ncstatjslice,varjslice,nrecjslice,imax,khigh-klow+1)
-
-      endif
-    endif
 
     if (ltkedump) then
       !call genstats(tsamplep,tstatsdumpp,umc,vmc,wmc)

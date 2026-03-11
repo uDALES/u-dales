@@ -382,9 +382,6 @@ module modfields
   character(80), allocatable :: ncname1(:,:)
   character(80), allocatable :: ncname2(:,:)
   character(80), allocatable :: ncstattke(:,:)
-  character(80), allocatable :: ncstatkslice(:,:)
-  character(80), allocatable :: ncstatislice(:,:)
-  character(80), allocatable :: ncstatjslice(:,:)
   character(80), allocatable :: ncstatt(:,:)
   character(80), allocatable :: ncstatmint(:,:)
 
