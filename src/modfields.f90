@@ -132,14 +132,12 @@ module modfields
 !  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
   ! statistical fields following notation "[statistical name][averaging directions - x,y,z,t][position in grid - i,j,k]"
-
-  real, allocatable :: wmt(:,:,:)
-  real, allocatable :: thlt(:,:,:)
-
   real, allocatable :: vmt(:,:,:)
   real, allocatable :: umt(:,:,:)
-  real, allocatable :: qtt(:,:,:) ! bss116
-  real, allocatable :: pt(:,:,:)  ! bss116
+  real, allocatable :: wmt(:,:,:)
+  real, allocatable :: thlt(:,:,:)
+  real, allocatable :: qtt(:,:,:)
+  real, allocatable :: pt(:,:,:)
 
   ! fields for scalar sources
   real, allocatable :: scar(:,:)
@@ -154,12 +152,7 @@ module modfields
   real, allocatable :: presav(:,:,:)    !<   time-averaged pressure
   real, allocatable :: svav(:,:,:,:)    !<   time-averaged scalar concentration
   real, allocatable :: viscratioav(:,:,:)    !<   time-averaged viscosity ratio; turb viscosity / molecular viscosity
-  real, allocatable :: umint(:,:,:)     !<   um interpolated to cell-center
-  real, allocatable :: vmint(:,:,:)     !<   vm interpolated to cell-center
-  real, allocatable :: wmint(:,:,:)     !<   wm interpolated to cell-center
   real, allocatable :: thl2av(:,:,:)    !<   time-average: liquid temperature squared
-  real, allocatable :: ql2av(:,:,:)    !<   time-average: liquid temperature squared
-  real, allocatable :: qt2av(:,:,:)    !<   time-average: liquid temperature squared
   real, allocatable :: sv2av(:,:,:,:)   !<   time-average: scalar concentration squared
   real, allocatable :: uuav(:,:,:)      !<   time-average: u-velocity squared
   real, allocatable :: vvav(:,:,:)      !<   time-average: v-velocity squared
@@ -170,40 +163,17 @@ module modfields
   real, allocatable :: thluav(:,:,:)    !<   time-average: thl times u-velocity
   real, allocatable :: thlvav(:,:,:)    !<   time-average: thl times v-velocity
   real, allocatable :: thlwav(:,:,:)    !<   time-average: thl times w-velocity
-  real, allocatable :: thlthlav(:,:,:)  !<   time-average: thl times thl
-  real, allocatable :: qluav(:,:,:)    !<   time-average: ql times u-velocity
-  real, allocatable :: qlvav(:,:,:)    !<   time-average: ql times v-velocity
-  real, allocatable :: qlwav(:,:,:)    !<   time-average: ql times w-velocity
-  real, allocatable :: qtuav(:,:,:)    !<   time-average: qt times u-velocity
-  real, allocatable :: qtvav(:,:,:)    !<   time-average: qt times v-velocity
-  real, allocatable :: qtwav(:,:,:)    !<   time-average: qt times w-velocity
   real, allocatable :: svuav(:,:,:,:)   !<   time-average: sv times u-velocity
   real, allocatable :: svvav(:,:,:,:)   !<   time-average: sv times v-velocity
   real, allocatable :: svwav(:,:,:,:)   !<   time-average: sv times w-velocity
-!  real, allocatable :: tekm(:,:,:)     !tekm = ekm - numol !tg3315
 
   real, allocatable :: upupav(:,:,:)    !<   time-average: u'u'
   real, allocatable :: vpvpav(:,:,:)    !<   time-average: v'v'
   real, allocatable :: wpwpav(:,:,:)    !<   time-average: w'w'
-  real, allocatable :: thlpthlpav(:,:,:)!<   time-average: thl'thl'
-  real, allocatable :: qlpqlpav(:,:,:)  !<   time-average: ql'ql'
-  real, allocatable :: qtpqtpav(:,:,:)!<   time-average: thl'thl'
-  real, allocatable :: svpsvpav(:,:,:,:)!<   time-average: sv'sv'
   real, allocatable :: upvpav(:,:,:)    !<   time-average: u'v'
   real, allocatable :: upwpav(:,:,:)    !<   time-average: u'w'
   real, allocatable :: vpwpav(:,:,:)    !<   time-average: v'w'
-  real, allocatable :: thlpupav(:,:,:)  !<   time-average: thl'u'
-  real, allocatable :: thlpvpav(:,:,:)  !<   time-average: thl'v'
   real, allocatable :: thlpwpav(:,:,:)  !<   time-average: thl'w'
-  real, allocatable :: qlpupav(:,:,:)  !<   time-average: ql'u'
-  real, allocatable :: qlpvpav(:,:,:)  !<   time-average: ql'v'
-  real, allocatable :: qlpwpav(:,:,:)  !<   time-average: ql'w'
-  real, allocatable :: qtpupav(:,:,:)  !<   time-average: qt'u'
-  real, allocatable :: qtpvpav(:,:,:)  !<   time-average: qt'v'
-  real, allocatable :: qtpwpav(:,:,:)  !<   time-average: qt'w'
-  real, allocatable :: svpupav(:,:,:,:) !<   time-average: sv'u'
-  real, allocatable :: svpvpav(:,:,:,:) !<   time-average: sv'v'
-  real, allocatable :: svpwpav(:,:,:,:) !<   time-average: sv'w'
 
 ! SGS fields
   real, allocatable :: uusgsav(:,:,:)    !<   time-average subgrid contribution (estimate)
@@ -212,10 +182,6 @@ module modfields
   real, allocatable :: uwsgsav(:,:,:)    !<   time-average subgrid contribution (estimate)
   real, allocatable :: thlusgsav(:,:,:)  !<   time-average subgrid contribution (estimate)
   real, allocatable :: thlwsgsav(:,:,:)  !<   time-average subgrid contribution (estimate)
-  real, allocatable :: qlusgsav(:,:,:)  !<   time-average subgrid contribution (estimate)
-  real, allocatable :: qlwsgsav(:,:,:)  !<   time-average subgrid contribution (estimate)
-  real, allocatable :: qtusgsav(:,:,:)  !<   time-average subgrid contribution (estimate)
-  real, allocatable :: qtwsgsav(:,:,:)  !<   time-average subgrid contribution (estimate)
   real, allocatable :: svusgsav(:,:,:,:) !<   time-average subgrid contribution (estimate)
   real, allocatable :: svwsgsav(:,:,:,:) !<   time-average subgrid contribution (estimate)
   real, allocatable :: tkesgsav(:,:,:)   !<   time-average subgrid turbulence kinetic energy
@@ -569,9 +535,6 @@ contains
       allocate(qlav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
       allocate(presav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
       allocate(svav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh,1:nsv))
-      allocate(umint(ib:ie,jb:je,kb:ke))
-      allocate(vmint(ib:ie,jb:je,kb:ke))
-      allocate(wmint(ib:ie,jb:je,kb:ke))
       allocate(uuav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
       allocate(vvav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
       allocate(wwav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -611,30 +574,20 @@ contains
 
       uav=0.;vav=0.;wav=0.;thlav=0.;qtav=0.;svav=0.;;uuav=0.;vvav=0.
       wwav=0.;uvav=0.;uwav=0.;vwav=0.;presav=0.
-      umint=0.;vmint=0.;wmint=0.
 
       t_vav=0.;tvmx=0.;tvmy=0.;tvmz=0.;tpm=0.;ttmx=0.;ttmy=0.;ttmz=0.;t_sgsav=0.;p_tav=0.
       tsgsmx1=0.;tsgsmy1=0.;tsgsmz1=0.;tsgsmx2=0.;tsgsmy2=0.;tsgsmz2=0.
       t_pav=0.;t_tav=0.;p_bav=0.;d_sgsav=0.;tkeadv=0.;t_p=0.;t_v=0.;t_t=0.;t_sgs=0.;p_t=0.;p_b=0.;d_sgs=0.;adv=0.
 
       allocate(thl2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-      allocate(ql2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-      allocate(qt2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
       allocate(sv2av(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh,1:nsv))
       allocate(thluav(ib:ie+ih,jb:je   ,kb:ke   ))
       allocate(thlvav(ib:ie   ,jb:je+jh,kb:ke   ))
       allocate(thlwav(ib:ie   ,jb:je,   kb:ke+kh))
-      allocate(thlthlav(ib:ie   ,jb:je,   kb:ke+kh))
-      allocate(qluav(ib:ie+ih,jb:je   ,kb:ke   ))
-      allocate(qlvav(ib:ie   ,jb:je+jh,kb:ke   ))
-      allocate(qlwav(ib:ie   ,jb:je,   kb:ke+kh))
-      allocate(qtuav(ib:ie+ih,jb:je   ,kb:ke   ))
-      allocate(qtvav(ib:ie   ,jb:je+jh,kb:ke   ))
-      allocate(qtwav(ib:ie   ,jb:je,   kb:ke+kh))
       allocate(svuav (ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
       allocate(svvav (ib:ie   ,jb:je+jh,kb:ke   ,1:nsv))
       allocate(svwav (ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
-      thluav=0.;thlvav=0.;thlwav=0.;thlthlav=0.;svuav=0.;svvav=0.;svwav=0.;sv2av=0.;thl2av=0.;ql2av=0.;qt2av=0.;
+      thluav=0.;thlvav=0.;thlwav=0.;svuav=0.;svvav=0.;svwav=0.;sv2av=0.;thl2av=0.;
 
       ! <x'x> ( = <xx> -<x><x> )
       allocate(upupav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -643,24 +596,9 @@ contains
       allocate(upvpav(ib:ie+ih,jb:je+jh,kb:ke   ))
       allocate(upwpav(ib:ie+ih,jb:je   ,kb:ke+kh))
       allocate(vpwpav(ib:ie   ,jb:je+jh,kb:ke+kh))
-      allocate(thlpthlpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-      allocate(thlpupav(ib:ie+ih,jb:je   ,kb:ke   ))
-      allocate(thlpvpav(ib:ie   ,jb:je+jh,kb:ke   ))
       allocate(thlpwpav(ib:ie   ,jb:je   ,kb:ke+kh))
-      allocate(qlpqlpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-      allocate(qlpupav(ib:ie+ih,jb:je   ,kb:ke   ))
-      allocate(qlpvpav(ib:ie   ,jb:je+jh,kb:ke   ))
-      allocate(qlpwpav(ib:ie   ,jb:je   ,kb:ke+kh))
-      allocate(qtpqtpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-      allocate(qtpupav(ib:ie+ih,jb:je   ,kb:ke   ))
-      allocate(qtpvpav(ib:ie   ,jb:je+jh,kb:ke   ))
-      allocate(qtpwpav(ib:ie   ,jb:je   ,kb:ke+kh))
-      allocate(svpsvpav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh,1:nsv))
-      allocate(svpupav(ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
-      allocate(svpvpav(ib:ie   ,jb:je+jh,kb:ke   ,1:nsv))
-      allocate(svpwpav(ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
-      upupav=0.;vpvpav=0.;wpwpav=0.;thlpthlpav=0.;qlpqlpav=0.;qtpqtpav=0.;svpsvpav=0.;upvpav=0.;upwpav=0.;vpwpav=0.
-      thlpupav=0.;thlpvpav=0.;thlpwpav=0.;qlpupav=0.;qlpvpav=0.;qlpwpav=0.;qtpwpav=0.;qtpvpav=0.;qtpupav=0.;svpupav=0.;svpvpav=0.;svpwpav=0.
+      upupav=0.;vpvpav=0.;wpwpav=0.;upvpav=0.;upwpav=0.;vpwpav=0.
+      thlpwpav=0.
 
       ! Subgrid
       allocate(uusgsav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -669,15 +607,11 @@ contains
       allocate(uwsgsav(ib:ie+ih,jb:je   ,kb:ke+kh))
       allocate(thlusgsav(ib:ie+ih,jb:je   ,kb:ke   ))
       allocate(thlwsgsav(ib:ie   ,jb:je,   kb:ke+kh))
-      allocate(qlusgsav(ib:ie+ih,jb:je   ,kb:ke   ))
-      allocate(qlwsgsav(ib:ie   ,jb:je,   kb:ke+kh))
-      allocate(qtusgsav(ib:ie+ih,jb:je   ,kb:ke   ))
-      allocate(qtwsgsav(ib:ie   ,jb:je,   kb:ke+kh))
       allocate(tkesgsav (ib:ie   ,jb:je   ,kb:ke   ))
       allocate(svusgsav (ib:ie+ih,jb:je   ,kb:ke   ,1:nsv))
       allocate(svwsgsav (ib:ie   ,jb:je   ,kb:ke+kh,1:nsv))
       allocate(nusgsav  (ib:ie   ,jb:je   ,kb:ke   ))
-      uusgsav=0.;vvsgsav=0.;wwsgsav=0.;uwsgsav=0.;thlusgsav=0.;thlwsgsav=0.;qlusgsav=0.;qlwsgsav=0.;qtwsgsav=0.;qtusgsav=0.;
+      uusgsav=0.;vvsgsav=0.;wwsgsav=0.;uwsgsav=0.;thlusgsav=0.;thlwsgsav=0.;
       svusgsav=0.;svwsgsav=0.;tkesgsav=0.;nusgsav=0.
 
       allocate(strain2av(ib:ie,jb:je,kb:ke))  ! resolved dissipation
