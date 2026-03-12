@@ -27,3 +27,6 @@ examples/*/*driver*
 # Python
 **/__pycache__/
 *.pyc
+
+# files built by test framework
+unit_tests/*.F90

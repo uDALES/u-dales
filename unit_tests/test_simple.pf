@@ -1,0 +1,17 @@
+module test_simple
+  use funit
+  implicit none
+
+contains
+  @test
+  subroutine test_assert_true_and_false()
+    @assertTrue(1 == 1)
+    @assertFalse(1 == 2)
+  end subroutine test_assert_true_and_false
+
+  @test
+  subroutine test_dqsatdT()
+    use initfac, only: dqsatdT
+    @assertEqual(0.1384832710e-2, dqsatdT(300.0))
+  end subroutine
+end module test_simple
