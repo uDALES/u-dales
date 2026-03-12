@@ -133,57 +133,11 @@ module modfields
 
   ! statistical fields following notation "[statistical name][averaging directions - x,y,z,t][position in grid - i,j,k]"
 
-  real, allocatable :: uwtik(:,:,:)
-  real, allocatable :: wthltk(:,:,:)
-  real, allocatable :: wqttk(:,:,:)
-  real, allocatable :: thlthlt(:,:,:)
-  real, allocatable :: qtqtt(:,:,:)
-  real, allocatable :: sv1sv1t(:,:,:)
-  real, allocatable :: sv2sv2t(:,:,:)
-  real, allocatable :: sv3sv3t(:,:,:)
-  real, allocatable :: sv4sv4t(:,:,:)
-  ! real, allocatable :: sv1max(:,:,:)
-  ! real, allocatable :: sv2max(:,:,:)
-  ! real, allocatable :: sv3max(:,:,:)
-  ! real, allocatable :: sv4max(:,:,:)
-  real, allocatable :: PSSt(:,:,:)
-  real, allocatable :: uutc(:,:,:)
-  real, allocatable :: vvtc(:,:,:)
-  real, allocatable :: wwtc(:,:,:)
-  real, allocatable :: vwtjk(:,:,:)
-  real, allocatable :: uvtij(:,:,:)
-  real, allocatable :: utik(:,:,:)
-  real, allocatable :: wtik(:,:,:)
-  real, allocatable :: vtjk(:,:,:)
-  real, allocatable :: wtjk(:,:,:)
-  real, allocatable :: utij(:,:,:)
-  real, allocatable :: vtij(:,:,:)
   real, allocatable :: wmt(:,:,:)
-  real, allocatable :: thltk(:,:,:)
-  real, allocatable :: qttk(:,:,:)
   real, allocatable :: thlt(:,:,:)
-  real, allocatable :: utc(:,:,:)
-  real, allocatable :: vtc(:,:,:)
-  real, allocatable :: wtc(:,:,:)
 
   real, allocatable :: vmt(:,:,:)
   real, allocatable :: umt(:,:,:)
-  real, allocatable :: sv1t(:,:,:)
-  real, allocatable :: sv2t(:,:,:)
-  real, allocatable :: sv3t(:,:,:)
-  real, allocatable :: sv4t(:,:,:)
-  real, allocatable :: sv1tk(:,:,:)
-  real, allocatable :: sv2tk(:,:,:)
-  real, allocatable :: sv3tk(:,:,:)
-  real, allocatable :: sv4tk(:,:,:)
-  real, allocatable :: wsv1tk(:,:,:)
-  real, allocatable :: wsv2tk(:,:,:)
-  real, allocatable :: wsv3tk(:,:,:)
-  real, allocatable :: wsv4tk(:,:,:)
-  real, allocatable :: sv1sgst(:,:,:)
-  real, allocatable :: sv2sgst(:,:,:)
-  real, allocatable :: sv3sgst(:,:,:)
-  real, allocatable :: sv4sgst(:,:,:)
   real, allocatable :: qtt(:,:,:) ! bss116
   real, allocatable :: pt(:,:,:)  ! bss116
 
@@ -382,7 +336,6 @@ module modfields
   character(80), allocatable :: ncname1(:,:)
   character(80), allocatable :: ncname2(:,:)
   character(80), allocatable :: ncstattke(:,:)
-  character(80), allocatable :: ncstatt(:,:)
   character(80), allocatable :: ncstatmint(:,:)
 
   integer, allocatable :: wall(:,:,:,:)             !< wall(ic,jc,kc,1-5) gives the global indices of the wall closest to cell center ic,jc,kc. The 4th and 5th integer gives the corresponding shear components
@@ -588,73 +541,15 @@ contains
       allocate(umt(ib:ie,jb:je,kb:ke+kh)); umt = 0;
       allocate(vmt(ib:ie,jb:je,kb:ke+kh)); vmt = 0;
       allocate(wmt(ib:ie,jb:je,kb:ke+kh)); wmt = 0;
-      allocate(utc(ib:ie,jb:je,kb:ke+kh)); utc = 0;
-      allocate(vtc(ib:ie,jb:je,kb:ke+kh)); vtc = 0;
-      allocate(wtc(ib:ie,jb:je,kb:ke+kh)); wtc = 0;
-      allocate(utij(ib:ie,jb:je,kb:ke+kh)); utij = 0;
-      allocate(utik(ib:ie,jb:je,kb:ke+kh)); utik = 0;
-      allocate(vtij(ib:ie,jb:je,kb:ke+kh)); vtij = 0;
-      allocate(vtjk(ib:ie,jb:je,kb:ke+kh)); vtjk = 0;
-      allocate(wtik(ib:ie,jb:je,kb:ke+kh)); wtik = 0;
-      allocate(wtjk(ib:ie,jb:je,kb:ke+kh)); wtjk = 0;
-      allocate(uvtij(ib:ie,jb:je,kb:ke+kh)); uvtij = 0;
-      allocate(uwtik(ib:ie,jb:je,kb:ke+kh)); uwtik = 0;
-      allocate(vwtjk(ib:ie,jb:je,kb:ke+kh)); vwtjk = 0;
-      allocate(uutc(ib:ie,jb:je,kb:ke+kh)); uutc = 0;
-      allocate(vvtc(ib:ie,jb:je,kb:ke+kh)); vvtc = 0;
-      allocate(wwtc(ib:ie,jb:je,kb:ke+kh)); wwtc = 0;
       allocate(pt(ib:ie,jb:je,kb:ke+kh)); pt = 0;
 
       !if (ltempeq) then ! can't have this switch for now because arrays will be wrong size in tdump file e.g.
         allocate(thlt(ib:ie,jb:je,kb:ke+kh)); thlt = 0;
-        allocate(thltk(ib:ie,jb:je,kb:ke+kh)); thltk = 0;
-        allocate(wthltk(ib:ie,jb:je,kb:ke+kh)); wthltk = 0;
-        allocate(thlthlt(ib:ie,jb:je,kb:ke+kh)); thlthlt = 0;
       !end if
 
       !if (lmoist) then
         allocate(qtt(ib:ie,jb:je,kb:ke+kh)); qtt = 0;
-        allocate(qttk(ib:ie,jb:je,kb:ke+kh)); qttk = 0;
-        allocate(wqttk(ib:ie,jb:je,kb:ke+kh)); wqttk = 0;
-        allocate(qtqtt(ib:ie,jb:je,kb:ke+kh)); qtqtt = 0;
       !end if
-
-      !if (nsv>0) then
-        allocate(sv1t(ib:ie,jb:je,kb:ke+kh)); sv1t = 0;
-        allocate(sv1tk(ib:ie,jb:je,kb:ke+kh)); sv1tk = 0;
-        allocate(wsv1tk(ib:ie,jb:je,kb:ke+kh)); wsv1tk = 0;
-        allocate(sv1sv1t(ib:ie,jb:je,kb:ke+kh)); sv1sv1t = 0;
-        allocate(sv1sgst(ib:ie,jb:je,kb:ke+kh)); sv1sgst = 0;
-        !if (nsv>1) then
-          allocate(sv2t(ib:ie,jb:je,kb:ke+kh)); sv2t = 0;
-          allocate(sv2tk(ib:ie,jb:je,kb:ke+kh)); sv2tk = 0;
-          allocate(wsv2tk(ib:ie,jb:je,kb:ke+kh)); wsv2tk = 0;
-          allocate(sv2sv2t(ib:ie,jb:je,kb:ke+kh)); sv2sv2t = 0;
-          allocate(sv2sgst(ib:ie,jb:je,kb:ke+kh)); sv2sgst = 0;
-          !if (nsv>2) then
-            allocate(sv3t(ib:ie,jb:je,kb:ke+kh)); sv3t = 0;
-            allocate(sv3tk(ib:ie,jb:je,kb:ke+kh)); sv3tk = 0;
-            allocate(wsv3tk(ib:ie,jb:je,kb:ke+kh)); wsv3tk = 0;
-            allocate(sv3sv3t(ib:ie,jb:je,kb:ke+kh)); sv3sv3t = 0;
-            allocate(sv3sgst(ib:ie,jb:je,kb:ke+kh)); sv3sgst = 0;
-            !if (nsv>3) then
-              allocate(sv4t(ib:ie,jb:je,kb:ke+kh)); sv4t = 0;
-              allocate(sv4tk(ib:ie,jb:je,kb:ke+kh)); sv4tk = 0;
-              allocate(wsv4tk(ib:ie,jb:je,kb:ke+kh)); wsv4tk = 0;
-              allocate(sv4sv4t(ib:ie,jb:je,kb:ke+kh)); sv4sv4t = 0;
-              allocate(sv4sgst(ib:ie,jb:je,kb:ke+kh)); sv4sgst = 0;
-            !end if
-          !end if
-        !end if
-      !end if
-
-      !if ((lchem .eqv. .true.) .and. (nsv>2)) then
-        allocate(PSSt(ib:ie,jb:je,kb:ke+kh)); PSSt = 0;
-      !end if
-      ! uwtik=0.;wthltk=0.;wqttk=0.;thlthlt=0.;qtqtt=0.;sv1sv1t=0.;sv2sv2t=0.;sv3sv3t=0.;sv4sv4t=0.;uutc=0.;vvtc=0.;wwtc=0.;vwtjk=0.;uvtij=0.;utik=0.;wtik=0.;wtjk=0.;vtjk=0.;utij=0.;vtij=0.;
-      ! wmt=0.;thltk=0.;qttk=0.;thlt=0.;utc=0.;vtc=0.;wtc=0.
-      ! wsv1tk=0.;wsv2tk=0.;wsv3tk=0.;wsv4tk=0.;sv1sgst=0.;sv2sgst=0.;sv3sgst=0.;sv4sgst=0.;qtt=0.;pt=0.
-      ! PSSt = 0. !sv1max = 0.; sv2max = 0.; sv3max = 0.; sv4max = 0.
 
     end if
 
