@@ -62,9 +62,14 @@ if r.nsv>0
     preprocessing.write_scalar(r);
     disp(['Written scalar.inp.', r.expnr])
     if (r.lscasrc || r.lscasrcl)
-        preprocessing.generate_scalarsources(r);
-        preprocessing.write_scalarsources(r);
-        disp(['Written scalarsources.inp.', r.expnr])
+        scasourcefiles = dir('scalarsource*');
+        if isempty(scasourcefiles)
+            preprocessing.generate_scalarsources(r);
+            preprocessing.write_scalarsources(r);
+            disp(['Written scalarsources.inp.', r.expnr])
+        else
+            disp('scalarsources.inp.* already exists, skipping...')
+        end
     end
 end
 
