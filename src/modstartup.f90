@@ -61,7 +61,7 @@ module modstartup
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
                                     nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
-                                    linoutflow, lper2inout, libm, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+                                    linoutflow, lper2inout, libm, lconservativeibm, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                                     uflowrate, vflowrate, lstoreplane, iplane, &
                                     lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
                                     lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,lzerogradtop,&
@@ -125,7 +125,8 @@ module modstartup
          uflowrate, vflowrate, &
          lnudge, lnudgevel, tnudge, nnudge, &
          ltimedepsurf, ntimedepsurf, ltimedepnudge, ntimedepnudge, &
-         ltimedeplw, ntimedeplw, ltimedepsw, ntimedepsw
+         ltimedeplw, ntimedeplw, ltimedepsw, ntimedepsw, &
+         lconservativeibm
       namelist/DYNAMICS/ &
          lqlnr, ipoiss, &
          iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
@@ -376,6 +377,7 @@ module modstartup
       call MPI_BCAST(ltempeq, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for solving adv/diff equation for temperature
       call MPI_BCAST(lper2inout, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for restart periodic flow to inoutflow
       call MPI_BCAST(libm, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off IBM method
+      call MPI_BCAST(lconservativeibm, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lnudge, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lnudgevel, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(nnudge, 1, MPI_INTEGER, 0, comm3d, mpierr)
