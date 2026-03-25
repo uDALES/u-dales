@@ -557,6 +557,7 @@ module modibm
      allocate(bound_info%lskipsec_loc(bound_info%nfctsecsrank))
 
      m = 0
+     p = 0  ! counter for sections overridden to simple reconstruction
      do n = 1, bound_info%nfctsecs
        if (lfctsecsrank(n)) then
           m = m + 1
@@ -579,9 +580,36 @@ module modibm
           bound_info%recids_w_loc(m,:) = bound_info%recids_w(n,:)
           bound_info%recids_c_loc(m,:) = bound_info%recids_c(n,:)
           bound_info%lcomprec_loc(m) = bound_info%lcomprec(n)
+
+          ! If any reconstruction cell index falls outside this rank's halo-accessible range,
+          ! override to simple reconstruction to avoid out-of-bounds access in trilinear_interp_var.
+          !
+          ! Skipped sections (lskipsec(n)) never reach trilinear_interp_var
+          ! so they are harmless even if their reconstruction cell is out of range.
+          !
+          ! These sections then self-skip at runtime via the log(dist/z0) <= 1 check, contributing zero stress — a small, localized inaccuracy
+          if (.not. bound_info%lcomprec_loc(m) .and. .not. bound_info%lskipsec(n)) then
+            if (bound_info%recids_u_loc(m,1) < zstart(1)-1 .or. bound_info%recids_u_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_u_loc(m,2) < zstart(2)-1 .or. bound_info%recids_u_loc(m,2) > zend(2)+1 .or. &
+                bound_info%recids_v_loc(m,1) < zstart(1)-1 .or. bound_info%recids_v_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_v_loc(m,2) < zstart(2)-1 .or. bound_info%recids_v_loc(m,2) > zend(2)+1 .or. &
+                bound_info%recids_w_loc(m,1) < zstart(1)-1 .or. bound_info%recids_w_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_w_loc(m,2) < zstart(2)-1 .or. bound_info%recids_w_loc(m,2) > zend(2)+1 .or. &
+                bound_info%recids_c_loc(m,1) < zstart(1)-1 .or. bound_info%recids_c_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_c_loc(m,2) < zstart(2)-1 .or. bound_info%recids_c_loc(m,2) > zend(2)+1) then
+              bound_info%lcomprec_loc(m) = .true.
+              p = p + 1
+            end if
+          end if
+
           bound_info%lskipsec_loc(m) = bound_info%lskipsec(n)
        end if
      end do
+
+     if (p > 0) then
+       write(*,*) "WARNING initibmwallfun: MPI rank", myid, "overrode", p, &
+                  "facet section(s) to simple reconstruction because reconstruction cell falls outside halo range."
+     end if
 
      deallocate(bound_info%bndpts)
      deallocate(bound_info%secfacids)
