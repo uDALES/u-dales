@@ -1,0 +1,2996 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the building-resolving urban multi-physics code uDALES">
+      
+      
+        <meta name="author" content="The uDALES Team">
+      
+      
+        <link rel="canonical" href="https://uDALES.github.io/u-dales/udales-namoptions-overview/">
+      
+      
+        <link rel="prev" href="../udales-installation/">
+      
+      
+        <link rel="next" href="../udales-boundary-conditions/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.17">
+    
+    
+      
+        <title>List of input parameters - uDALES</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="pink">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#input-parameters" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="uDALES" class="md-header__button md-logo" aria-label="uDALES" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            uDALES
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              List of input parameters
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="uDALES" class="md-nav__button md-logo" aria-label="uDALES" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    uDALES
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/uDALES/u-dales" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    u-dales
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Simulation inputs
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Simulation inputs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    List of input parameters
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    List of input parameters
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist RUN
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-domain" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist DOMAIN
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-physics" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist PHYSICS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-dynamics" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist DYNAMICS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-bc" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist BC
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-namsubgrid" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist NAMSUBGRID
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-walls" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist WALLS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-energybalance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist ENERGYBALANCE
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-scalars" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist SCALARS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist DRIVER
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist OUTPUT
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-inps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist INPS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-chemistry" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist CHEMISTRY
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-heatpump" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist HEATPUMP
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-boundary-conditions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Boundary conditions
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-geometry-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry generation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-copy-inputs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Copying from other simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-driver-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Precursor simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Running the simulation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Running the simulation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-pre-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Pre-processing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-simulation-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Running uDALES
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-post-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Post-processing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Data post-processing
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Data post-processing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-udbase-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    udbase
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-fields-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Flow fields and statistics
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-facets-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Facets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-utility-tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Utility routines
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-example-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Example simulations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-how-to-cite/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to cite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-pub-list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Publication list
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DEVELOP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Development notes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to contribute
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udales-docs-software/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Software docs
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist RUN
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-domain" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist DOMAIN
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-physics" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist PHYSICS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-dynamics" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist DYNAMICS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-bc" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist BC
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-namsubgrid" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist NAMSUBGRID
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-walls" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist WALLS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-energybalance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist ENERGYBALANCE
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-scalars" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist SCALARS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist DRIVER
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist OUTPUT
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-inps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist INPS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-chemistry" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist CHEMISTRY
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namelist-heatpump" class="md-nav__link">
+    <span class="md-ellipsis">
+      Namelist HEATPUMP
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="input-parameters">Input parameters<a class="headerlink" href="#input-parameters" title="Permanent link">&para;</a></h1>
+<p>Below we specify the input parameters in the <code>namoptions</code> file of your experiment.</p>
+<!--
+This list 
+This list refers to the original code-base [DALES](https://github.com/dalesteam/dales). The latest version of the namoptions overview of DALES is documented [here](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf).
+-->
+<h2 id="namelist-run">Namelist RUN<a class="headerlink" href="#namelist-run" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>iexpnr</td>
+<td>000</td>
+<td>Three digit integer.</td>
+<td>Experiment case number</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lwarmstart</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>If .true. simulation reads in restart file to initialize fields.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>startfile</td>
+<td>''</td>
+<td>'initd00001234_xxx_xxx.000'</td>
+<td>Name of restart file, the last three digits should match iexpnr.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>runtime</td>
+<td>300</td>
+<td>&gt; 0</td>
+<td>Simulation time.</td>
+<td>[s]</td>
+</tr>
+<tr>
+<td>trestart</td>
+<td>10000.</td>
+<td>0 &lt; trestart &lt; runtime</td>
+<td>Time at which restart files are written, trestart &gt; runtime will prevent restart files being written.</td>
+<td>[s]</td>
+</tr>
+<tr>
+<td>dtmax</td>
+<td>20</td>
+<td>&gt; 0</td>
+<td>Maximum allowed numerical integration timestep.</td>
+<td>[s]</td>
+</tr>
+<tr>
+<td>ladaptive</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for adaptive time-stepping, .true. recommended.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>courant</td>
+<td>1.1</td>
+<td>1 &lt;= courant &lt;=2</td>
+<td>Courant number, default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lrandomize</td>
+<td>.true.</td>
+<td>.true. or .false.</td>
+<td>Switch that determines whether initial field is randomised.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>irandom</td>
+<td>43</td>
+<td><code>INTEGER</code> &gt; 0</td>
+<td>Seed for random number generation.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>randu</td>
+<td>0.01</td>
+<td><code>REAL</code> &gt; 0</td>
+<td>Amplitude of velocity field randomisation.</td>
+<td>[m/s]</td>
+</tr>
+<tr>
+<td>libm</td>
+<td>.true.</td>
+<td>.true. or .false.</td>
+<td>Switch that determines whether the Immersed Boundary Method is turned on.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lles</td>
+<td>.true.</td>
+<td>.true. or .false.</td>
+<td>Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nprocx</td>
+<td>-</td>
+<td><code>INTEGER</code> &gt; 0</td>
+<td>Number of pencils in the x-direction (see 2decomp documentation [<a href="https://2decomp-fft.github.io/">https://2decomp-fft.github.io/</a>]), must be a divisor of itot.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nprocy</td>
+<td>-</td>
+<td><code>INTEGER</code> &gt; 0</td>
+<td>Number of pencils in the y-direction (see 2decomp documentation [<a href="https://2decomp-fft.github.io/">https://2decomp-fft.github.io/</a>]), must be a divisor of jtot and ktot.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<!---
+| randthl | 0.0 | `REAL` > 0 | Amplitude of temperature field randomisation. | [K] |
+| randqt | 0.0 | `REAL` > 0 | Amplitude of moisture field randomisation. | [kg/kg] |
+--->
+
+<h2 id="namelist-domain">Namelist DOMAIN<a class="headerlink" href="#namelist-domain" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>itot</td>
+<td>96</td>
+<td><code>INTEGER</code> &gt; 0</td>
+<td>Number of points in x-direction.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>jtot</td>
+<td>96</td>
+<td><code>INTEGER</code> &gt; 0</td>
+<td>Number of points in y-direction.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ktot</td>
+<td>96</td>
+<td><code>INTEGER</code> &gt; 0</td>
+<td>Number of points in z-direction.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>xlen</td>
+<td>-1</td>
+<td><code>REAL</code> &gt; 0</td>
+<td>Domain size in x-direction.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ylen</td>
+<td>-1</td>
+<td><code>REAL</code> &gt; 0</td>
+<td>Domain size in x-direction.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="namelist-physics">Namelist PHYSICS<a class="headerlink" href="#namelist-physics" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ps</td>
+<td>101325</td>
+<td><code>REAL</code> &gt; 0</td>
+<td>Air pressure at surface, recommend using standard pressure.</td>
+<td>[Pa]</td>
+</tr>
+<tr>
+<td>igrw_damp</td>
+<td>0</td>
+<td>0, 1, 2, 3</td>
+<td>Integer switch to enable gravity wave damping.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ltempeq</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for solving temperature equation.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lbuoyancy</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for buoyancy force in temperature equation.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lmoist</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for solving moisture equation.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lcoriol</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for inluding the Coriolis force.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>luoutflowr</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch that determines whether u-velocity is corrected to get a fixed outflow rate. <em>Only functional when x-direction is not parellelised.</em></td>
+<td></td>
+</tr>
+<tr>
+<td>lvoutflowr</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch that determines whether u-velocity is corrected to get a fixed outflow rate. <em>Only functional when y-direction is not parellelised.</em></td>
+<td></td>
+</tr>
+<tr>
+<td>luvolflowr</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch that determines whether u-velocity is corrected to get a fixed volume flow rate.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lvvolflowr</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch that determines whether u-velocity is corrected to get a fixed volume flow rate.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>luflowr</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch that determines whether u-velocity is corrected to get a fixed flow velocity.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lvflowr</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch that determines whether v-velocity is corrected to get a fixed flow velocity.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>uflowrate</td>
+<td>1.</td>
+<td><code>REAL</code></td>
+<td>U-velocity flow rate for out- or volume-flow forcing.</td>
+<td>[m/s]</td>
+</tr>
+<tr>
+<td>vflowrate</td>
+<td>1.</td>
+<td><code>REAL</code></td>
+<td>V-velocity flow rate out- or volume-flow forcing.</td>
+<td>[m/s]</td>
+</tr>
+<tr>
+<td>lprofforc</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for nudging flow to a profile (forcing).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lnudge</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for nudging flow to profiles (in <code>prof.inp.xxx</code>).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nnudge</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of points from bottom to nudge.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>tnudge</td>
+<td>60.</td>
+<td><code>REAL</code></td>
+<td>Time scale for nudging</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ltimedepsurf</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for time-dependent surface heat flux (<code>bctfz</code> etc - see BC section).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ntimedepsurf</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Number of time-dependent surface heat fluxes in file <code>timedepsurf.inp.xxx</code>.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ltimedepnudge</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for time-dependent profiles. When <code>lnudge = .true.</code>, then this switch causes the nudging profile to vary in time. If using inflow-outflow boundary conditions with inflow given by profile (<code>BCxm/BCxT/BCxq = 2</code>), then the inflow profile varies in time.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ntimedepnudge</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Number of time-dependent nudging profiles in file <code>timedepnudge.inp.xxx</code>.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ltimedepsw</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Time-dependent shortwave radiation on facets</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ntimedepsw</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Number of time-dependent shortwave radiative fluxes in file <code>timedepsw.inp.xxx</code>.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ltimedeplw</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Time-dependent longwave radiation on facets.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ntimedeplw</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Number of time-dependent shortwave radiative fluxes in file <code>timedeplw.inp.xxx</code>.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<!---
+| ifixuinf | 0 | 1, 2 | Choice for free stream forcing. (0 = nothing) | |
+| lvinf | .false. | .true., .false. | Use Vinf instead of Uinf for the fixed velocity at infinity | |
+| tscale | | | Timescale: domain height*Uinf/utau\*\*2 | |
+| dpdx | 0. | | Constant pressure gradient forcing in x. | |
+--->
+
+<h2 id="namelist-dynamics">Namelist DYNAMICS<a class="headerlink" href="#namelist-dynamics" title="Permanent link">&para;</a></h2>
+<p>Possible advection schemes:</p>
+<p>1 = 1<sup>st</sup> order upwind scheme</p>
+<p>2 = 2<sup>nd</sup> order central difference scheme</p>
+<p>7 = Kappa (flux limited) scheme. This scheme can only be applied to passive scalars.</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>lqlnr</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Logical for calculation of liquid water concentration.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ipoiss</td>
+<td>0</td>
+<td>0</td>
+<td>Poisson solver. 0 = using 2D Fast Fourier Transform.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>iadv_mom</td>
+<td>2</td>
+<td>2</td>
+<td>Advection scheme for momentum.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>iadv_tke</td>
+<td>2</td>
+<td>2</td>
+<td>Advection scheme for TKE. Only used if <code>loneeqn = True</code>.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>iadv_thl</td>
+<td>2</td>
+<td>2</td>
+<td>Advection scheme for temperature.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>iadv_qt</td>
+<td>2</td>
+<td>2</td>
+<td>Advection scheme for moisture.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>iadv_sv</td>
+<td>7</td>
+<td>1, 2, 7</td>
+<td>Advection scheme for scalars.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="namelist-bc">Namelist BC<a class="headerlink" href="#namelist-bc" title="Permanent link">&para;</a></h2>
+<p>Switches for boundary conditions: momentum (m), temperature (T), humidity (q) and scalars (s).</p>
+<p>Lateral BCs (BCx, BCy): 1 = periodic, 2 in/outflow conditions, inflow given by profile (usually constant), 3: in/outflow conditions, inflow given by precursor simulation.</p>
+<p>BCs at the top (BCtop): 1 = freeslip, 2 = noslip, 3 = should be used with inflow/outflow conditions.</p>
+<p>BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 = flux, 2 = wall function, 3 = neutral wall function.</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BCxm</td>
+<td>1</td>
+<td>1,2,3</td>
+<td>Domain boundary condition for momentum in x.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCxT</td>
+<td>1</td>
+<td>1,2,3</td>
+<td>Domain boundary condition for temperature in x.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCxq</td>
+<td>1</td>
+<td>1,2,3</td>
+<td>Domain boundary condition for humidity in x.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCxs</td>
+<td>1</td>
+<td>1,2,3</td>
+<td>Domain boundary condition for scalars in x.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCym</td>
+<td>1</td>
+<td>1,2</td>
+<td>Domain boundary condition for momentum in y.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCyT</td>
+<td>1</td>
+<td>1,2</td>
+<td>Domain boundary condition for temperature in y.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCyq</td>
+<td>1</td>
+<td>1,2</td>
+<td>Domain boundary condition for humidity in y.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCys</td>
+<td>1</td>
+<td>1,2</td>
+<td>Domain boundary condition for scalars in y.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCtopm</td>
+<td>1</td>
+<td>1,2,3</td>
+<td>Boundary condition for momentum at domain top.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCtopT</td>
+<td>1</td>
+<td>1,2</td>
+<td>Boundary condition for temperature at domain top.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCtopq</td>
+<td>1</td>
+<td>1,2</td>
+<td>Boundary condition for humidity at domain top.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCtops</td>
+<td>1</td>
+<td>1,2</td>
+<td>Boundary condition for scalars at domain top.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>bctfxm</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Temperature flux on facets with surface normal in -x direction.</td>
+<td>[Km/s]</td>
+</tr>
+<tr>
+<td>bctfxp</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Temperature flux on facets with surface normal in +x direction.</td>
+<td>[Km/s]</td>
+</tr>
+<tr>
+<td>bctfym</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Temperature flux on facets with surface normal in -y direction.</td>
+<td>[Km/s]</td>
+</tr>
+<tr>
+<td>bctfyp</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Temperature flux on facets with surface normal in +y direction.</td>
+<td>[Km/s]</td>
+</tr>
+<tr>
+<td>bctfz</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Temperature flux on facets with surface normal in +z direction.</td>
+<td>[Km/s]</td>
+</tr>
+<tr>
+<td>bcqfxm</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Moisture flux on facets with surface normal in -x direction.</td>
+<td>[m/s]</td>
+</tr>
+<tr>
+<td>bcqfxp</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Moisture flux on facets with surface normal in +x direction.</td>
+<td>[m/s]</td>
+</tr>
+<tr>
+<td>bcqfym</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Moisture flux on facets with surface normal in -y direction.</td>
+<td>[m/s]</td>
+</tr>
+<tr>
+<td>bcqfyp</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Moisture flux on facets with surface normal in +y direction.</td>
+<td>[m/s]</td>
+</tr>
+<tr>
+<td>bcqfz</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Moisture flux on facets with surface normal in +z direction.</td>
+<td>[m/s]</td>
+</tr>
+<tr>
+<td>thl_top</td>
+<td>-1.</td>
+<td><code>REAL</code> &gt;= 0</td>
+<td>Temperature at the top boundary.</td>
+<td>[K]</td>
+</tr>
+<tr>
+<td>qt_top</td>
+<td>-1.</td>
+<td><code>REAL</code> &gt;= 0</td>
+<td>Humidity at the top boundary.</td>
+<td>[kg/kg]</td>
+</tr>
+<tr>
+<td>wttop</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Temperature flux at the top boundary.</td>
+<td>[Km/s]</td>
+</tr>
+<tr>
+<td>BCbotm</td>
+<td>2</td>
+<td>1,2,3</td>
+<td>Boundary condition for momentum at domain bottom (if <code>lbottom = .true.</code>).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCbotT</td>
+<td>1</td>
+<td>1,2</td>
+<td>Boundary condition for temperature at domain bottom (if <code>lbottom = .true.</code>).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCbotq</td>
+<td>1</td>
+<td>1</td>
+<td>Boundary condition for humidity at domain bottom (if <code>lbottom = .true.</code>).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>BCbots</td>
+<td>1</td>
+<td>1</td>
+<td>Boundary condition for scalars at domain bottom (if <code>lbottom = .true.</code>).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>wtsurf</td>
+<td>-1.</td>
+<td><code>REAL</code></td>
+<td>Temperature flux at domain bottom (if <code>lbottom = .true.</code>).</td>
+<td>[Km/s]</td>
+</tr>
+<tr>
+<td>wqsurf</td>
+<td>-1.</td>
+<td><code>REAL</code></td>
+<td>Moisture flux at domain bottom (if <code>lbottom = .true.</code>).</td>
+<td>[m/s]</td>
+</tr>
+<tr>
+<td>thls</td>
+<td>-1.</td>
+<td><code>REAL</code></td>
+<td>Temperature at domain bottom (if <code>lbottom = .true.</code>).</td>
+<td>[K]</td>
+</tr>
+<tr>
+<td>qts</td>
+<td>-1.</td>
+<td><code>REAL</code></td>
+<td>Moisture at domain bottom (if <code>lbottom = .true.</code>). Used in modthermodynamics to get a BC for the moisture profile.</td>
+<td>[kg/kg]</td>
+</tr>
+<tr>
+<td>z0</td>
+<td>-1.</td>
+<td><code>REAL</code></td>
+<td>Momentum roughness length of the domain bottom (if <code>lbottom = .true.</code>).</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>z0h</td>
+<td>-1.</td>
+<td><code>REAL</code></td>
+<td>Heat roughness length of the domain bottom (if <code>lbottom = .true.</code>).</td>
+<td>[m]</td>
+</tr>
+</tbody>
+</table>
+<!---
+| wsvtopdum | 0 | | Scalar boundary conditions top. | - |
+| wsvsurfdum | | | Scalar flux at domain bottom (if `lbottom = .true.`). | - |
+--->
+<h2 id="namelist-namsubgrid">Namelist NAMSUBGRID<a class="headerlink" href="#namelist-namsubgrid" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>lvreman</td>
+<td>.true.</td>
+<td>.true. or .false.</td>
+<td>Switch for Vreman (2004) sub-grid scheme.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<!-- | c_vreman | 0.07 | `REAL` | Model constant for Vreman scheme. | - | --->
+<!---
+| lbuoycorr | .false. | .true. or .false. | Switch for buoyancy correlation in the Vreman scheme. | - |
+| loneeqn | .false. | .true. or .false. | Switch for one-equation sub-grid scheme. | - |
+| ldelta | .false. | .true. or .false. | Switch for diminished sfs in stable flow. | - |
+| lmason | .false. | .true. or .false.| Switch for decreased length scale near the surface | - |
+--->
+<p>| cf | 2.5 | <code>REAL</code> &gt; 0 | Filter constant. | - |
+| cn | 0.76 | <code>REAL</code> &gt; 0 | Subfilter scale parameter. | - |
+| Rigc | 0.25 | <code>REAL</code> &gt; 0 | Critical Richardson number. | - |</p>
+<!---
+| Prandtl | 0.333 |`REAL` > 0 | Prandtl number. | - |
+| lsmagorinsky | .false . | .true. or .false. | Switch for Smagorinsky subgrid scheme. | - |
+| cs | -1 | > 0 | Smagorinsky constant. | - |
+| nmason | 2 | > 0 | Exponent in Mason correction function.| - |
+--->
+
+<!---
+## Namelist NAMCHECKSIM
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| tcheck | 0 | > 0 |  Time interval between checks of velocity divergence and Courant numbers.| [s] |
+--->
+
+<h2 id="namelist-walls">Namelist WALLS<a class="headerlink" href="#namelist-walls" title="Permanent link">&para;</a></h2>
+<p>1 = fixed flux</p>
+<p>2 = flux determined by wall function involving temperature</p>
+<p>3 = flux determined by neutral wall function (set automatically if <code>ltempeq = .false.</code>)</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nblocks</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of blocks specified in <code>blocks.inp</code>.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nfcts</td>
+<td>-1</td>
+<td><code>INTEGER</code></td>
+<td>Number of facets specified in <code>facets.inp</code>.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>iwallmom</td>
+<td>2</td>
+<td>1, 2, 3 (1 means zero flux)</td>
+<td>Building wall momentum flux.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>iwalltemp</td>
+<td>1</td>
+<td>1, 2</td>
+<td>Building wall temperature flux.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>iwallmoist</td>
+<td>1</td>
+<td>1, 2</td>
+<td>Building wall moisture flux.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>iwallscal</td>
+<td>1</td>
+<td>1, 2</td>
+<td>Building wall scalar flux</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lbottom</td>
+<td>.false.</td>
+<td>.true., .false.</td>
+<td>Switch for using wall function as bottom BC. <em>Used only if no ground facets.</em></td>
+<td>-</td>
+</tr>
+<tr>
+<td>nsolpts_u</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of solid points on u-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nsolpts_v</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of solid points on v-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nsolpts_w</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of solid points on w-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nsolpts_c</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of solid points on c-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nbndpts_u</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of fluid boundary points on u-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nbndpts_v</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of fluid boundary points on v-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nbndpts_w</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of fluid boundary points on w-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nbndpts_c</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of fluid boundary points on c-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nfctsecs_u</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of facet sections on u-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nfctsecs_v</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of facet sections on v-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nfctsecs_w</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of facet sections on w-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nfctsecs_c</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of facet sections on c-grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lnorec</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for not using reconstruction.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="namelist-energybalance">Namelist ENERGYBALANCE<a class="headerlink" href="#namelist-energybalance" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>lEB</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for using the facet energy balance.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lwriteEBfiles</td>
+<td>.false.</td>
+<td>.true., .false.</td>
+<td>Switch for writing facet temperatures and energy budget to file.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lconstW</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch whether soil moisture is assumed as constant in time (.true.) or the evaporated water is from the soil (.false.).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>dtEB</td>
+<td>10.</td>
+<td><code>REAL</code></td>
+<td>Time interval between calculations of facet energy balance.</td>
+<td>s</td>
+</tr>
+<tr>
+<td>bldT</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Internal temperature of the buildings.</td>
+<td>[K]</td>
+</tr>
+<tr>
+<td>flrT</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Internal temperature of the ground.</td>
+<td>[K]</td>
+</tr>
+<tr>
+<td>wsoil</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Water content of soil.</td>
+<td>[kg/m3]</td>
+</tr>
+<tr>
+<td>wgrmax</td>
+<td>450.</td>
+<td><code>REAL</code></td>
+<td>Maximum water content.</td>
+<td>[kg/m3]</td>
+</tr>
+<tr>
+<td>wwilt</td>
+<td>171.</td>
+<td><code>REAL</code></td>
+<td>Water content at wilting point.</td>
+<td>[kg/m3]</td>
+</tr>
+<tr>
+<td>wfc</td>
+<td>313.</td>
+<td><code>REAL</code></td>
+<td>Water content at field capacity.</td>
+<td>[kg/m3]</td>
+</tr>
+<tr>
+<td>skyLW</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Long-wave radiation from the sky.</td>
+<td>[W/m2]</td>
+</tr>
+<tr>
+<td>GRLAI</td>
+<td>2.</td>
+<td><code>REAL</code></td>
+<td>Leaf area index of a green roof.</td>
+<td>[m2/m2]</td>
+</tr>
+<tr>
+<td>rsmin</td>
+<td>110.</td>
+<td><code>REAL</code></td>
+<td>Minimum resistance of soil/plant.</td>
+<td>[s/m]</td>
+</tr>
+<tr>
+<td>nfaclyrs</td>
+<td>3</td>
+<td><code>INTEGER</code></td>
+<td>Number of layers making up each facet (nwalllayers in uDALES v1).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lvfsparse</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for view factors in sparse (text) format.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>nnz</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of non-zero view factors (only used with sparse view factor format.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lperiodicEBcorr</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for preventing over-heating and moisture saturation in periodic simualtions.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>sinkbase</td>
+<td>0</td>
+<td><code>INTEGER</code> &gt; 0</td>
+<td>k index above which the periodicEBcorr sink is applied (should be above height of tallest building).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>fraction</td>
+<td>0</td>
+<td><code>REAL</code> &gt; 0</td>
+<td>Ratio of domain height to uncapped boundary layer height.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="namelist-scalars">Namelist SCALARS<a class="headerlink" href="#namelist-scalars" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nsv</td>
+<td>0</td>
+<td><code>INTEGER</code> &gt; 0</td>
+<td>Number of passive scalars.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lreadscal</td>
+<td>.false.</td>
+<td>.true., .false.</td>
+<td>Switch for reading scalar pollutant field (warm start). <em>Deprecated, will be removed in the future.</em></td>
+<td>-</td>
+</tr>
+<tr>
+<td>lscasrcr</td>
+<td>.false.</td>
+<td>.true., .false.</td>
+<td>Switch for 2-D network of point sources at lowest level as defined in scals.inp.xxx.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lscasrcl</td>
+<td>.false.</td>
+<td>.true., .false.</td>
+<td>Switch for passive scalar line source when using canyon geometry.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lscasrc</td>
+<td>.false.</td>
+<td>.true., .false.</td>
+<td>Switch for passive scalar point source defined by xS,yS,zS,SS,sigS.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="namelist-driver">Namelist DRIVER<a class="headerlink" href="#namelist-driver" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>idriver</td>
+<td>0</td>
+<td>0, 1, 2</td>
+<td>Options for running precursor driver simulations where *driver* files will be written (<code>= 1</code>) and reading a completed driver simulation as the inlet to a simulation (<code>= 2</code>). Default (<code>= 0</code>) will do neither.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>tdriverstart</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Time at which *driver* files start being written. In use for <code>idriver = 1</code>.</td>
+<td>s</td>
+</tr>
+<tr>
+<td>dtdriver</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Timestep at which *driver* file planes are written. In use for <code>idriver = 1</code>.</td>
+<td>s</td>
+</tr>
+<tr>
+<td>iplane</td>
+<td>-</td>
+<td><code>INTEGER</code></td>
+<td>Index of the position on the x-axis of the plane that will be written to *driver* files. In use for <code>idriver = 1</code>.</td>
+<td></td>
+</tr>
+<tr>
+<td>driverstore</td>
+<td>0.</td>
+<td><code>INTEGER</code></td>
+<td>Number of timesteps (<code>idriver = 1</code>) to be written to *driver* files or (<code>idriver = 2</code>) contained in *driver* files to be read.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>driverjobnr</td>
+<td>-</td>
+<td>-</td>
+<td>Job number of the *driver* files to be read. These files should be copied into the experiments folder of the driven simulation. In use for <code>idriver = 2</code>.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lsdriver</td>
+<td>.false.</td>
+<td>.true., .false.</td>
+<td>Switch for reading scalar driver files. In use for <code>idriver = 2</code>.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="namelist-output">Namelist OUTPUT<a class="headerlink" href="#namelist-output" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>lfielddump</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for instantaneous field output.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>tfielddump</td>
+<td>10000.</td>
+<td></td>
+<td>Output time for fields.</td>
+<td>[s]</td>
+</tr>
+<tr>
+<td>fieldvars</td>
+<td>''</td>
+<td>Any of the given labels, several are seperated by a comma: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5</td>
+<td>Variable names of fields.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>tsample</td>
+<td>5.</td>
+<td><code>REAL</code></td>
+<td>Sample time for statistics.</td>
+<td>[s]</td>
+</tr>
+<tr>
+<td>tstatsdump</td>
+<td>10000.</td>
+<td><code>REAL</code></td>
+<td>Output time for statistics.</td>
+<td>[s]</td>
+</tr>
+<tr>
+<td>tstatstart</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Time from which statistics computation or data sampling starts.</td>
+<td>[s]</td>
+</tr>
+<tr>
+<td>ltdump</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch to output time-averaged statistics.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lydump</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch to output y-averaged statistics. <em>Only functional if x-direction is not parallelised.</em></td>
+<td>-</td>
+</tr>
+<tr>
+<td>lytdump</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch to output y- and time- averaged statistics. <em>Only functional if x-direction is not parallelised.</em></td>
+<td>-</td>
+</tr>
+<tr>
+<td>lxydump</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch to output x- and y- averaged statistics.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lxytdump</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch to output x-, y- and time-averaged statistics.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lslicedump</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch to output slices in the xy-plane.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<!---
+| ltkedump | .false. | .true. or .false. | *Not supported in the current version.* | - |
+--->
+
+<h2 id="namelist-inps">Namelist INPS<a class="headerlink" href="#namelist-inps" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>zsize</td>
+<td>-</td>
+<td>-</td>
+<td>Size of domain in z direction.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>lzstretch</td>
+<td>false</td>
+<td>true or false</td>
+<td>Switch for stretched z grid.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lstretchexp</td>
+<td>false</td>
+<td>true or false</td>
+<td>Switch for z grid stretched using exp function.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lstretchtanh</td>
+<td>false</td>
+<td>true or false</td>
+<td>Switch for z grid stretched using tanh function.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lstretch2tanh</td>
+<td>false</td>
+<td>true or false</td>
+<td>Switch for z grid stretched using 2tanh function.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>stretchconst</td>
+<td>0.01</td>
+<td>-</td>
+<td>Stretch constant.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>u0</td>
+<td>0</td>
+<td>-</td>
+<td>Initial u-velocity. Also applied as geostrophic term where applicable.</td>
+<td>[m/s]</td>
+</tr>
+<tr>
+<td>v0</td>
+<td>0</td>
+<td>-</td>
+<td>Initial v-velocity. Also applied as geostrophic term where applicable.</td>
+<td>[m/s]</td>
+</tr>
+<tr>
+<td>dpdx</td>
+<td>0</td>
+<td>-</td>
+<td>Pressure gradient in x direction.</td>
+<td>[Pa/m]</td>
+</tr>
+<tr>
+<td>dpdy</td>
+<td>0</td>
+<td>-</td>
+<td>Pressure gradient in y direction.</td>
+<td>[Pa/m]</td>
+</tr>
+<tr>
+<td>thl0</td>
+<td>288</td>
+<td>-</td>
+<td>Temperature at z = 0.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>qt0</td>
+<td>0</td>
+<td>-</td>
+<td>Specific humidity at z = 0.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>lapse</td>
+<td>0</td>
+<td>-</td>
+<td>Lapse rate.</td>
+<td>[K/m]</td>
+</tr>
+<tr>
+<td>w_s</td>
+<td>0</td>
+<td>-</td>
+<td>Subsidence.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>R</td>
+<td>0</td>
+<td>-</td>
+<td>Radiative forcing.</td>
+<td>[W/m^2]</td>
+</tr>
+<tr>
+<td>xS</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Position of scalar point source in x.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>yS</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Position of scalar point source in y.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>zS</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Position of scalar point source in z.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>SSp</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Strength of scalar point source.</td>
+<td>[g/s]</td>
+</tr>
+<tr>
+<td>sigSp</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Standard deviation of scalar point source.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>xSb</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Start of scalar line source in x.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>ySb</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Start of scalar line source in y.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>zSb</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Start of scalar line source in z.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>xSe</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>End of scalar line source in x.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>ySe</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>End of scalar line source in y.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>zSe</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>End of scalar line source in z.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>SSl</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Strength of scalar line source.</td>
+<td>[g/ms]</td>
+</tr>
+<tr>
+<td>sigSl</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Standard deviation of scalar line source.</td>
+<td>[m]</td>
+</tr>
+<tr>
+<td>NOb</td>
+<td>0</td>
+<td>-</td>
+<td>Initial concentration of NO.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>NO2b</td>
+<td>0</td>
+<td>-</td>
+<td>Initial concentration of NO2.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>O3b</td>
+<td>0</td>
+<td>-</td>
+<td>Initial concentration of O3.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>stl_file</td>
+<td>-</td>
+<td><code>STRING</code></td>
+<td>Name of STL file defining the geometry.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>read_types</td>
+<td>false</td>
+<td>true or false</td>
+<td>Switch for reading facet types from file. Default: false (all facets are set to type 1).</td>
+<td>-</td>
+</tr>
+<tr>
+<td>types_path</td>
+<td>-</td>
+<td><code>STRING</code></td>
+<td>Name of types file.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>facT</td>
+<td>288</td>
+<td><code>REAL</code> &gt; 0</td>
+<td>If <code>iwallmom = 2</code> or  <code>iwalltemp = 2</code> then this sets the facet temperature, or if <code>lEB = .true.</code> it is the initial facet temperature</td>
+<td>[K]</td>
+</tr>
+<tr>
+<td>ifacsec</td>
+<td>1</td>
+<td>1 or 2</td>
+<td>Option for facet section calculation. 1: Fortran (default, fast), 2: MATLAB (useful for debugging</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ishortwave</td>
+<td>1</td>
+<td>1  or 2</td>
+<td>Option for shortwave radiation calculation,  1  uses Fortran and is faster, 2 uses MATLAB and useful for debugging.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>isolar</td>
+<td>1</td>
+<td>1 , 2, 3</td>
+<td>Option for solar radiation, 1 uses custom values, 2 uses lattitude and lonigtude, 3 uses weather file.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>view3d_out</td>
+<td>0</td>
+<td>0 , 1 , 2</td>
+<td>Output format for View3D, 0 is text, 2 is binary, 2 is sparse.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>maxD</td>
+<td>Inf</td>
+<td><code>REAL</code> &gt; 0</td>
+<td>Maximum distance to check view factors, otherwise they are zero.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>xazimuth</td>
+<td>90</td>
+<td><code>REAL</code></td>
+<td>The azimuthal angle of the x-axis (with respect to North).</td>
+<td>[degrees]</td>
+</tr>
+<tr>
+<td>solarazimuth</td>
+<td>135</td>
+<td><code>REAL</code></td>
+<td>Solar azimuth, used if isolar = 1.</td>
+<td>[degrees]</td>
+</tr>
+<tr>
+<td>solarzenith</td>
+<td>28.4066</td>
+<td><code>REAL</code></td>
+<td>Solar zenith, used if isolar = 1 .</td>
+<td>[degrees]</td>
+</tr>
+<tr>
+<td>I</td>
+<td>800</td>
+<td><code>REAL</code> &gt; 0</td>
+<td>Shortwave direct normal irradiance (DNI), used if isolar = 1.</td>
+<td>W/m^2</td>
+</tr>
+<tr>
+<td>Dsky</td>
+<td>418.8041</td>
+<td><code>REAL</code> &gt; 0</td>
+<td>Diffuse sky irradiance, used if isolar = 1.</td>
+<td>W/m^2</td>
+</tr>
+<tr>
+<td>year</td>
+<td>-</td>
+<td><code>INTEGER</code></td>
+<td>Year.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>month</td>
+<td>-</td>
+<td>1 &lt;= <code>INTEGER</code> &lt;= 12</td>
+<td>Month (where 6 corresponds to June), if isoloar = 2 or 3.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>day</td>
+<td>-</td>
+<td>1 &lt;= <code>INTEGER</code> &lt;= 31</td>
+<td>Day, if isloar = 2 or 3.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>hour</td>
+<td>6</td>
+<td>0 &lt;= <code>INTEGER</code> &lt;= 23</td>
+<td>Hour (0 for midnight, 23 for 11pm), if isloar = 2 or 3.</td>
+<td>[hours]</td>
+</tr>
+<tr>
+<td>minute</td>
+<td>0</td>
+<td>0 &lt;= <code>INTEGER</code> &lt;= 59</td>
+<td>Minute, if isloar = 2 or 3.</td>
+<td>[mins]</td>
+</tr>
+<tr>
+<td>second</td>
+<td>0</td>
+<td>0 &lt;= <code>INTEGER</code> &lt;= 59</td>
+<td>Second, if isloar = 2 or 3.</td>
+<td>[s]</td>
+</tr>
+<tr>
+<td>longitude</td>
+<td>-0.13</td>
+<td><code>REAL</code></td>
+<td>Longitude, if isloar = 2.</td>
+<td>[degrees]</td>
+</tr>
+<tr>
+<td>latitude</td>
+<td>51.5</td>
+<td><code>REAL</code></td>
+<td>Latitude, if isloar = 2.</td>
+<td>[degrees]</td>
+</tr>
+<tr>
+<td>timezone</td>
+<td>0</td>
+<td>-</td>
+<td>Timezone, if isloar = 2.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>elevation</td>
+<td>0</td>
+<td><code>REAL</code></td>
+<td>Elevation, if isloar = 2.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>weatherfname</td>
+<td>-</td>
+<td><code>STRING</code></td>
+<td>File containing weather data, if isolar = 3.</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="namelist-chemistry">Namelist CHEMISTRY<a class="headerlink" href="#namelist-chemistry" title="Permanent link">&para;</a></h2>
+<!--
+*This section will be updated with the next version.*
+-->
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>lchem</td>
+<td>.false.</td>
+<td>.true., .false.</td>
+<td>Switch for basic chemistry.</td>
+<td>-</td>
+</tr>
+<tr>
+<td>k1</td>
+<td>0.</td>
+<td></td>
+<td>Rate constant (O3 + NO -&gt; NO2 + 02 ). Chemistry model parameter.</td>
+<td></td>
+</tr>
+<tr>
+<td>JNO2</td>
+<td>0.</td>
+<td></td>
+<td>NO2 photolysis rate. Chemistry model parameter.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="namelist-heatpump">Namelist HEATPUMP<a class="headerlink" href="#namelist-heatpump" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Default</th>
+<th>Possible values</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>lheatpump</td>
+<td>.false.</td>
+<td>.true. or .false.</td>
+<td>Switch for basic heat pump.</td>
+<td></td>
+</tr>
+<tr>
+<td>lfan_hp</td>
+<td>.true.</td>
+<td>.true. or .false.</td>
+<td>Switch for heat pump fan on/off.</td>
+<td></td>
+</tr>
+<tr>
+<td>nhppoints</td>
+<td>0</td>
+<td><code>INTEGER</code></td>
+<td>Number of heat pump grid points.</td>
+<td></td>
+</tr>
+<tr>
+<td>Q_dot_hp</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Total volume flux emission from the heat pump in vertical direction.</td>
+<td>[m^3/s]</td>
+</tr>
+<tr>
+<td>QH_dot_hp</td>
+<td>0.</td>
+<td><code>REAL</code></td>
+<td>Rate of total heat extracted from the ambient air by the heat pump.</td>
+<td>[W]</td>
+</tr>
+</tbody>
+</table>
+<!---
+## Namelist INLET
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| Uinf | 0. | `REAL` | Fixed velocity at domain top (x-direction). | m/s |
+| Vinf | 0. | `REAL` | Fixed velocity at domain top (y-direction). | m/s |
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      The uDALES Team
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+      
+    
+  </body>
+</html>
