@@ -39,33 +39,16 @@ cd ${datapath}
 ## call loop for *DUMPS
 for file in *dump.*.000.${expnr}.nc ; do
     if [ -f $file ]; then
-
-        ## Gathering fields along spatial axis.
-        #echo "Gathering fields along spatial axis."
-
+        ## echo "Gathering fields along spatial axis y."
         dumps=${file%.000.${expnr}.nc}
 
         if [ ${dumps:0:9} == "fielddump" ]; then
             echo "Merging fielddump along y-direction."
-	    #ymparam="v,tau_y,ym"
-	    ymparam="v,ym"
-
-        elif [ ${dumps:0:5} == "tdump" ]; then
-            echo "Merging tdump along y-direction."
-	    ymparam="vt,vpwpt,upvpt,ym"
-
+	        #ymparam="v,tau_y,ym"
+	        ymparam="v,ym"
         elif [ ${dumps:0:8} == "mintdump" ]; then
             echo "Merging mintdump along y-direction."
-	    ymparam="vt,ym"
-
-        elif [ ${dumps:0:10} == "kslicedump" ]; then
-            echo "Merging kslicedump along y-direction."
-	    ymparam="v_kslice,ym"
-
-        elif [ ${dumps:0:10} == "islicedump" ]; then
-            echo "Merging islicedump along y-direction."
-	    ymparam="v_islice,ym"
-
+	        ymparam="vt,ym"
         else
             ymparam="ym"
         fi
@@ -78,66 +61,86 @@ for file in *dump.*.000.${expnr}.nc ; do
 
         ${toolsdir}/nco_concatenate_field_y.sh $dumps $ymparam $outfile
         echo "Merging done."
-
-	if [ ${dumps:0:10} == "islicedump" ]; then
-	    # remove procx from name
-            mv $outfile "islicedump.${expnr}.nc"
-    	fi
-
     fi
-
 done
 
+## call loop for stats_*
+for file in stats_*.*.000.${expnr}.nc ; do
+    if [ -f $file ]; then
+        ## Gathering fields along spatial axis y.
+        dumps=${file%.000.${expnr}.nc}
+        base=${dumps%%.*}
 
-#for file in islicedump.???.${expnr}.nc ; do
-#        if [ -f $file ]; then
-#                procy=${file:15:3}
-#                # remove procx from name
-#                mv $file "islicedump.${expnr}.nc"
-#
-#        fi
-#done
+        if [ "$base" == "stats_t" ]; then
+            echo "Merging $base along y-direction."
+	        ymparam="v,vpwp,upvp,vsgs,ym"
+        elif [ "$base" == "stats_tree" ]; then
+            echo "Merging $base along y-direction."
+	        ymparam="tr_v,ym"
+        else
+            ymparam="ym"
+        fi
 
+        outfile="${dumps}.${expnr}.nc"
 
-for file in jslicedump.???.???.${expnr}.nc ; do
+        echo "We are in ${datapath}."
+        echo "Gathering ${dumps} files with ym-dependent variables ${ymparam}."
+        echo "Saving output to ${outfile}."
+
+        ${toolsdir}/nco_concatenate_field_y.sh $dumps $ymparam $outfile
+        echo "Merging done."
+    fi
+done
+
+## call loop for islice* and kslice*
+for file in *slice.*.000.${expnr}.nc ; do
+    if [ -f $file ]; then
+        dumps=${file%.000.${expnr}.nc}
+
+        if [ ${dumps:0:6} == "kslice" ] || [ ${dumps:0:6} == "islice" ]; then
+            echo "Merging $dumps along y-direction."
+	        ymparam="v,ym"
+        fi
+
+        outfile="${dumps}.${expnr}.nc"
+
+        echo "We are in ${datapath}."
+        echo "Gathering ${dumps} files with ym-dependent variables ${ymparam}."
+        echo "Saving output to ${outfile}."
+
+        ${toolsdir}/nco_concatenate_field_y.sh $dumps $ymparam $outfile
+        echo "Merging done."
+
+        if [ ${dumps:0:6} == "islice" ]; then
+            # remove procx from name
+            mv $outfile "islice.${expnr}.nc"
+        fi
+    fi
+done
+
+## call loop for jslice*
+for file in jslice.???.???.${expnr}.nc ; do
 	if [ -f $file ]; then
-		procx=${file:11:3}
-                # remove procy from name
-                cp $file "jslicedump.${procx}.${expnr}.nc"
+		procx=${file:7:3}
+        # remove procy from name
+        cp $file "jslice.${procx}.${expnr}.nc"
 	fi
 done
 
 
 for file in *dump.000.${expnr}.nc ; do
-
     if [ -f $file ]; then
-
-        ## Gathering fields along spatial axis.
-        #echo "Gathering fields along spatial axis."
+        ## echo "Gathering fields along spatial axis x."
 
         dumps=${file%.000.${expnr}.nc}
 
         if [ $dumps == "fielddump" ]; then
-	    echo "Merging fielddump along x-direction."
+	        echo "Merging fielddump along x-direction."
             #xmparam="u,tau_x,xm"
-	    xmparam="u,xm"
-
-        elif [ $dumps == "tdump" ]; then
-	    echo "Merging tdump along x-direction."	
-            xmparam="ut,upwpt,upvpt,xm"
-
-	elif [ $dumps == "mintdump" ]; then
+	        xmparam="u,xm"
+        elif [ $dumps == "mintdump" ]; then
             echo "Merging mintdump along x-direction."
-	    xmparam="ut,xm"
-
-	elif [ $dumps == "kslicedump" ]; then
-            echo "Merging kslicedump along x-direction."
-            xmparam="u_kslice,xm"
-
-        elif [ $dumps == "jslicedump" ]; then
-            echo "Merging jslicedump along x-direction."
-            xmparam="u_jslice,xm"
-
+            xmparam="ut,xm"
         else
             xmparam="xm"
         fi
@@ -150,11 +153,61 @@ for file in *dump.000.${expnr}.nc ; do
 
         ${toolsdir}/nco_concatenate_field_x.sh $dumps $xmparam $outfile
         echo "Merging done."
+    fi
+done
 
-	if [ $dumps == "jslicedump" ]; then
+## Gathering fields along spatial axis x.
+for file in stats_*.000.${expnr}.nc ; do
+    if [ -f $file ]; then
+        dumps=${file%.000.${expnr}.nc}
+
+        # Skip raw files accidentally matched (e.g. stats_t.000.000.expnr.nc gives dumps=stats_t.000)
+        [[ "$dumps" == *.* ]] && continue  # if dumps contains a dot anywhere (e.g. stats_t.000), skip to next file
+
+        if [ $dumps == "stats_t" ]; then
+	        echo "Merging $dumps along x-direction."	
+            xmparam="u,upwp,upvp,usgs,xm"
+        elif [ $dumps == "stats_yt" ] || [ $dumps == "stats_y" ]; then
+	        echo "Merging $dumps along x-direction."	
+            xmparam="u,upwp,uw,usgs,xm"
+        elif [ $dumps == "stats_tree" ]; then
+	        echo "Merging $dumps along x-direction."	
+            xmparam="tr_u,xm"
+        else
+            xmparam="xm"
+        fi
+
+        outfile="${dumps}.${expnr}.nc"
+
+        echo "We are in ${datapath}."
+        echo "Gathering ${dumps} files with xm-dependent variables ${xmparam}."
+        echo "Saving output to ${outfile}."
+
+        ${toolsdir}/nco_concatenate_field_x.sh $dumps $xmparam $outfile
+        echo "Merging done."
+    fi
+done
+
+for file in *slice.000.${expnr}.nc ; do
+    if [ -f $file ]; then
+        dumps=${file%.000.${expnr}.nc}
+
+        if [ $dumps == "kslice" ] || [ $dumps == "jslice" ]; then
+            echo "Merging $dumps along x-direction."
+            xmparam="u,xm"
+        fi
+
+        outfile="${dumps}.${expnr}.nc"
+
+        echo "We are in ${datapath}."
+        echo "Gathering ${dumps} files with xm-dependent variables ${xmparam}."
+        echo "Saving output to ${outfile}."
+
+        ${toolsdir}/nco_concatenate_field_x.sh $dumps $xmparam $outfile
+        echo "Merging done."
+
+	    if [ $dumps == "jslice" ]; then
             rm ${dumps}.???.${expnr}.nc
     	fi
-
     fi
-
 done

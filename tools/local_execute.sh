@@ -75,11 +75,9 @@ pushd $outdir
 mpiexec -n $NCPU --oversubscribe $DA_BUILD namoptions.$exp 2>&1 | tee -a run.$exp.log
 
 ## Merge output files across outputs.
-if (($NCPU > 1 )); then
-    echo "Merging outputs across cores into one..."
-    $DA_TOOLSDIR/gather_outputs.sh $outdir
-fi
+echo "Merging outputs across cores into one..."
+$DA_TOOLSDIR/gather_outputs.sh $outdir
 
 popd
 
-echo "Simulation for case $exp ran sucesfully!"
+echo "Simulation for case $exp ran successfully!"
