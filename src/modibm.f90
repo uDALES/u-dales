@@ -27,7 +27,7 @@ module modibm
    !use wf_uno
    implicit none
    save
-   public :: initibm, ibmnorm, ibmwallfun, bottom, lbottom, createmasks, &
+   public :: initibm, ibmnorm, ibmwallfun, bottom, createmasks, &
              nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
              nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
              nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
@@ -46,7 +46,6 @@ module modibm
       end function interp_temperature
     end interface
 
-   logical :: lbottom = .false.
    logical :: lnorec = .false.
    
    ! read from namoptions
@@ -2223,7 +2222,7 @@ module modibm
       ! By Ivo Suter.
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
-      use modglobal,   only: ih, jh, kh, ltempeq, lmoist, nsv, BCbotm, BCbotT, BCbotq, BCbots
+      use modglobal,   only: ih, jh, kh, lbottom, ltempeq, lmoist, nsv, BCbotm, BCbotT, BCbotq, BCbots
       use modsurfdata, only: thls, z0, z0h, wtsurf, wqsurf
 #if defined(_GPU)
       use cudafor
