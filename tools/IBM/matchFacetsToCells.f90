@@ -1,7 +1,16 @@
 program run
+   use omp_lib
    implicit none
 
-   integer :: itot, jtot, ktot, nFaces, nVertices, periodic_x_i, periodic_y_i, diag_neighbs_i
+   ! Derived type to hold thread-local results
+   type :: thread_results_type
+      real, dimension(:), allocatable :: areas
+      integer, dimension(:), allocatable :: facet_ids
+      integer, dimension(:), allocatable :: bnd_pts
+      real, dimension(:), allocatable :: distances
+   end type thread_results_type
+
+   integer :: itot, jtot, ktot, nFaces, nVertices, periodic_x_i, periodic_y_i, diag_neighbs_i, n_threads
    logical :: diag_neighbs, periodic_x, periodic_y
    real    :: dx, dy  !, dz
    integer :: i, j, k
@@ -16,7 +25,9 @@ program run
    integer, allocatable, dimension(:)     :: secfacids_u, secbndptids_u, secfacids_v, secbndptids_v, &
                                              secfacids_w, secbndptids_w, secfacids_c, secbndptids_c
    real   , allocatable, dimension(:)     :: secareas_u, bnddst_u, secareas_v, bnddst_v, secareas_w, bnddst_w, secareas_c, bnddst_c
-   real :: start, finish
+   real(8) :: start, finish
+
+   start = OMP_GET_WTIME()
 
    open(unit=50,file='info_matchFacetsToCells.txt')
    read(unit=50,fmt='(f15.10,x,f15.10)') dx, dy  !, dz
@@ -25,6 +36,7 @@ program run
    read(unit=50,fmt='(i8,x,i8,x,i8,x,i8)') nfluid_IB_u, nfluid_IB_v, nfluid_IB_w, nfluid_IB_c
    read(unit=50,fmt='(i8,x,i8,x,i8,x,i8)') nsolid_IB_u, nsolid_IB_v, nsolid_IB_w, nsolid_IB_c
    read(unit=50,fmt='(i1,x,i1,x,i1)') periodic_x_i, periodic_y_i, diag_neighbs_i
+   read(unit=50,fmt='(i4)') n_threads
    close(unit=50)
 
    allocate(xf(itot))
@@ -97,30 +109,28 @@ program run
       print *, "Incorrect input for 'diag_neighbs'."
    end if
 
-    if (diag_neighbs_i==1) then
-        diag_neighbs = .true.
-    elseif (diag_neighbs_i==0) then
-        diag_neighbs = .false.
-    else
-        print *, "Incorrect input for 'diag_neighbs'."
-    end if
+   if (diag_neighbs_i==1) then
+      diag_neighbs = .true.
+   elseif (diag_neighbs_i==0) then
+      diag_neighbs = .false.
+   else
+      print *, "Incorrect input for 'diag_neighbs'."
+   end if
 
    call readGeometry('faces.txt', nFaces, 'vertices.txt', nVertices, &
      connectivityList, faceNormal, vertices)
 
-    call cpu_time(start)
-     ! u-grid
 
+   !!!!!!! Computation of facet sections for each grid !!!!!!
+
+   ! u-grid
    call readBoundaryPoints(xh, yf, zf, itot, jtot, ktot, 'fluid_boundary_u.txt' , nfluid_IB_u, &
          'solid_boundary_u.txt' , nsolid_IB_u, fluid_IB_u, solid_IB_u, fluid_IB_xyz_u)
 
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
      fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, xh, yf, zf, itot, jtot, ktot, &
-     diag_neighbs, periodic_x, periodic_y, secfacids_u, secbndptids_u, secareas_u, bnddst_u)
-
-   nfacsecs_u = size(secfacids_u,1)
-   call writeFacetSections(secfacids_u, secareas_u, secbndptids_u, bnddst_u, nfacsecs_u, 'facet_sections_u.txt')
-   write(*,*) 'Written facet_sections_u.txt'
+     diag_neighbs, periodic_x, periodic_y, secfacids_u, secbndptids_u, secareas_u, bnddst_u, n_threads)
+   write(*,*) 'Computation of facet_sections_u.txt done.'
 
    ! v-grid
    call readBoundaryPoints(xf, yh, zf, itot, jtot, ktot, 'fluid_boundary_v.txt' , nfluid_IB_v, &
@@ -128,11 +138,8 @@ program run
 
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
      fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, xf, yh, zf, itot, jtot, ktot, &
-     diag_neighbs, periodic_x, periodic_y, secfacids_v, secbndptids_v, secareas_v, bnddst_v)
-
-   nfacsecs_v = size(secfacids_v,1)
-   call writeFacetSections(secfacids_v, secareas_v, secbndptids_v, bnddst_v, nfacsecs_v, 'facet_sections_v.txt')
-   write(*,*) 'Written facet_sections_v.txt'
+     diag_neighbs, periodic_x, periodic_y, secfacids_v, secbndptids_v, secareas_v, bnddst_v, n_threads)
+   write(*,*) 'Computation of facet_sections_v.txt done.'
 
    ! w-grid
    call readBoundaryPoints(xf, yf, zh, itot, jtot, ktot, 'fluid_boundary_w.txt' , nfluid_IB_w, &
@@ -140,11 +147,8 @@ program run
 
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
      fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, xf, yf, zh, itot, jtot, ktot, &
-     diag_neighbs, periodic_x, periodic_y, secfacids_w, secbndptids_w, secareas_w, bnddst_w)
-
-   nfacsecs_w = size(secfacids_w,1)
-   call writeFacetSections(secfacids_w, secareas_w, secbndptids_w, bnddst_w, nfacsecs_w, 'facet_sections_w.txt')
-   write(*,*) 'Written facet_sections_w.txt'
+     diag_neighbs, periodic_x, periodic_y, secfacids_w, secbndptids_w, secareas_w, bnddst_w, n_threads)
+   write(*,*) 'Computation of facet_sections_w.txt done.'
 
    ! c-grid
    call readBoundaryPoints(xf, yf, zf, itot, jtot, ktot, 'fluid_boundary_c.txt' , nfluid_IB_c, &
@@ -152,14 +156,44 @@ program run
 
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
       fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, xf, yf, zf, itot, jtot, ktot, &
-      diag_neighbs, periodic_x, periodic_y, secfacids_c, secbndptids_c, secareas_c, bnddst_c)
+      diag_neighbs, periodic_x, periodic_y, secfacids_c, secbndptids_c, secareas_c, bnddst_c, n_threads)
+   write(*,*) 'Computation of facet_sections_c.txt done.'
 
+
+   !!!!!!! Writing facet section files !!!!!!
+
+   !$ call OMP_SET_NUM_THREADS(4)
+   !$OMP parallel default(shared)
+   !$OMP sections
+
+   ! u-grid
+   !$OMP section
+   nfacsecs_u = size(secfacids_u,1)
+   call writeFacetSections(secfacids_u, secareas_u, secbndptids_u, bnddst_u, nfacsecs_u, 'facet_sections_u.txt', 10)
+
+   ! v-grid
+   !$OMP section
+   nfacsecs_v = size(secfacids_v,1)
+   call writeFacetSections(secfacids_v, secareas_v, secbndptids_v, bnddst_v, nfacsecs_v, 'facet_sections_v.txt', 20)
+
+   ! w-grid
+   !$OMP section
+   nfacsecs_w = size(secfacids_w,1)
+   call writeFacetSections(secfacids_w, secareas_w, secbndptids_w, bnddst_w, nfacsecs_w, 'facet_sections_w.txt' , 30)
+
+   ! c-grid
+   !$OMP section
    nfacsecs_c = size(secfacids_c,1)
-   call writeFacetSections(secfacids_c, secareas_c, secbndptids_c, bnddst_c, nfacsecs_c, 'facet_sections_c.txt')
-   write(*,*) 'Written facet_sections_c.txt'
+   call writeFacetSections(secfacids_c, secareas_c, secbndptids_c, bnddst_c, nfacsecs_c, 'facet_sections_c.txt', 40)
 
-   call cpu_time(finish)
-   print '("Time = ",f10.3," seconds.")',finish-start
+   !$OMP end sections
+   !$OMP end parallel
+
+   write(*,*) 'Written facet_sections_*.txt files'
+
+
+   finish = OMP_GET_WTIME()
+   write(*,'(A,F10.3,A)') 'Elapsed time by matchFacetsToCells: ', finish-start, ' seconds.'
 
    contains
 
@@ -208,6 +242,9 @@ program run
    integer, parameter :: ifinput = 1
    integer :: count
 
+   fluid_IB = .false.
+   solid_IB = .false.
+
    allocate(fluid_IB_ijk(nfluid_IB,3), solid_IB_ijk(nsolid_IB,3), fluid_IB_xyz(nfluid_IB,3))
 
    open (ifinput, file=fname_fluid_boundary)
@@ -237,10 +274,10 @@ program run
       fluid_IB, solid_IB, fluid_IB_xyz, nfluid_IB, &
       xgrid, ygrid, zgrid, itot, jtot, ktot, &
       diag_neighbs, periodic_x, periodic_y, &
-      secfacids, secbndptids, secareas, bnddst)
+      secfacids, secbndptids, secareas, bnddst, n_threads)
 
     use, intrinsic :: ieee_arithmetic
-    integer, intent(in) :: nFaces, nVertices, nfluid_IB, itot, jtot, ktot
+    integer, intent(in) :: nFaces, nVertices, nfluid_IB, itot, jtot, ktot, n_threads
     integer, intent(in) :: connectivityList(nFaces,3)
     real   , intent(in) :: faceNormal(nFaces,3), vertices(nVertices,3), fluid_IB_xyz(nfluid_IB,3)
     real   , intent(in) :: xgrid(itot), ygrid(jtot), zgrid(ktot)
@@ -248,6 +285,8 @@ program run
     logical, intent(in) :: diag_neighbs, periodic_x, periodic_y
     integer, dimension(:), allocatable, intent(out) :: secfacids, secbndptids
     real, dimension(:), allocatable, intent(out) :: secareas, bnddst
+    type(thread_results_type), dimension(:), allocatable :: thread_data
+    integer :: actual_threads
     integer, dimension(:,:), allocatable :: clipFaces
     real, dimension(:,:), allocatable :: clipVertices, projVert, clipFaceNormal
     logical :: il_comp(itot+1), iu_comp(itot+1), jl_comp(jtot+1), ju_comp(jtot+1), kl_comp(ktot+1), ku_comp(ktot+1)
@@ -259,20 +298,56 @@ program run
     real, dimension(3) :: xyz, xyz1, xyz2, xyz3, xyz4, xyz5, xyz6, xyz7, xyz8, xyz9, &
                           xyz10, xyz11, xyz12, xyz13, xyz14, xyz15, xyz16, xyz17, xyz18, &
                           xyz19, xyz20, xyz21, xyz22, xyz23, xyz24, xyz25, xyz26, xyz27
-    integer :: n, m, i, j, k, p, dir, ids(2)
+    integer :: n, m, i, j, k, p, dir, ids(2), thread_id
 
     allocate(secareas(0))
     allocate(secfacids(0))
     allocate(secbndptids(0))
     allocate(bnddst(0))
 
+    actual_threads = 1
+    ! Get actual number of threads that will be used
+    !$ call OMP_SET_NUM_THREADS(n_threads)
+    !$OMP parallel
+    !$ actual_threads = omp_get_num_threads()
+    !$OMP end parallel
+
+    ! Initialize thread-local data arrays
+    allocate(thread_data(actual_threads))
+    do i = 1, actual_threads
+        allocate(thread_data(i)%areas(0))
+        allocate(thread_data(i)%facet_ids(0))
+        allocate(thread_data(i)%bnd_pts(0))
+        allocate(thread_data(i)%distances(0))
+    end do
+
     dx = xgrid(2)-xgrid(1)
     dy = ygrid(2)-ygrid(1)
     dz = zgrid(2)-zgrid(1)
 
     tol = 1e-8 ! machine precision errors
+    area_miss = 0.0 ! Initialize for OpenMP reduction
 
+    !$OMP parallel do default(none) &
+    !$OMP shared(nFaces, connectivityList, faceNormal, vertices, xgrid, ygrid, zgrid, tol, &
+    !$OMP        fluid_IB, solid_IB, fluid_IB_xyz, nfluid_IB, itot, jtot, ktot, &
+    !$OMP        diag_neighbs, periodic_x, periodic_y, dx, dy, dz, &
+    !$OMP        thread_data, actual_threads) &
+    !$OMP private(xmin, xmax, ymin, ymax, zmin, zmax, &
+    !$OMP         il_comp, iu_comp, jl_comp, ju_comp, kl_comp, ku_comp, &
+    !$OMP         il, iu, jl, ju, kl, ku, xl, xu, yl, yu, zl, zu, planes, &
+    !$OMP         clipVertices, clipFaces, clipFaceNormal, nClipFaces, nClipVertices, &
+    !$OMP         projVert, planeNormal, xproj, yproj, zproj, proj, projVec, projArea, &
+    !$OMP         area, dist, dists, angle, angles, BI, BIs, &
+    !$OMP         xyz, xyz1, xyz2, xyz3, xyz4, xyz5, xyz6, xyz7, xyz8, xyz9, &
+    !$OMP         xyz10, xyz11, xyz12, xyz13, xyz14, xyz15, xyz16, xyz17, xyz18, &
+    !$OMP         xyz19, xyz20, xyz21, xyz22, xyz23, xyz24, xyz25, xyz26, xyz27, &
+    !$OMP         search_adj, id, loc, i, j, k, m, p, dir, ids, thread_id) &
+    !$OMP reduction(+:area_miss) schedule(dynamic)
     do n=1,nFaces
+      ! Get thread ID (1-based)
+      !$ thread_id = omp_get_thread_num() + 1
+      
       ! no shear stress in normal direction
       if ((xgrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/1.,0.,0./)) < tol)) .or. &
           (ygrid(1) == 0. .and. all(abs(abs(faceNormal(n, :)) - (/0.,1.,0./)) < tol)) .or. &
@@ -856,14 +931,20 @@ program run
 
                end if !(solid_IB(i,j,k) .or. search_adj)
 
-               if (isnan(dist) .or. abs(dist)<0.00000001) dist = 0.1 ! 0.1 m minimum distance to avoid singularities
+               if (isnan(dist) .or. abs(dist)<tol) dist = 0.1 ! 0.1 m minimum distance to avoid singularities
                if (isnan(area)) area = 0.0
 
                loc = findloc(ismember_rows(fluid_IB_xyz, xyz), .true., 1)
-               call appendToArray1D_real(secareas, area)
-               call appendToArray1D_integer(secfacids, n)
-               call appendToArray1D_integer(secbndptids, loc)
-               call appendToArray1D_real(bnddst, abs(dist))
+
+               ! !$ OMP critical
+               ! call appendToArray1D_real(secareas, area)
+               ! call appendToArray1D_integer(secfacids, n)
+               ! call appendToArray1D_integer(secbndptids, loc)
+               ! call appendToArray1D_real(bnddst, abs(dist))
+               ! !$ OMP end critical
+               
+               ! Alternatively Append to thread-specific arrays
+               !$ call appendToThreadResults(thread_data(thread_id), area, n, loc, abs(dist))
 
                deallocate(clipFaces)
                deallocate(clipFaceNormal)
@@ -871,36 +952,163 @@ program run
          end do
       end do
     end do
+    !$OMP end parallel do
+
+    ! Merge and sort results from all threads
+    call mergeAndSortThreadResults(thread_data, actual_threads, secfacids, secareas, secbndptids, bnddst)
 
    write(*,*) "Total area missing flux: ", area_miss, " m^2"
 
 end subroutine matchFacetsToCells
 
 
-subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs, fname_facet_sections)
+subroutine appendToThreadResults(thread_data, area, facet_id, bnd_pt, distance)
+   ! Append results to thread's local arrays efficiently
+   implicit none
+   type(thread_results_type), intent(inout) :: thread_data
+   real, intent(in) :: area, distance
+   integer, intent(in) :: facet_id, bnd_pt
+   
+   real, dimension(:), allocatable :: temp_real
+   integer, dimension(:), allocatable :: temp_int
+   integer :: n
+   
+   ! Get current size
+   n = size(thread_data%areas)
+   
+   ! Expand areas array
+   allocate(temp_real(n+1))
+   if (n > 0) temp_real(1:n) = thread_data%areas
+   temp_real(n+1) = area
+   call move_alloc(temp_real, thread_data%areas)
+   
+   ! Expand facet_ids array
+   allocate(temp_int(n+1))
+   if (n > 0) temp_int(1:n) = thread_data%facet_ids
+   temp_int(n+1) = facet_id
+   call move_alloc(temp_int, thread_data%facet_ids)
+   
+   ! Expand bnd_pts array
+   allocate(temp_int(n+1))
+   if (n > 0) temp_int(1:n) = thread_data%bnd_pts
+   temp_int(n+1) = bnd_pt
+   call move_alloc(temp_int, thread_data%bnd_pts)
+   
+   ! Expand distances array
+   allocate(temp_real(n+1))
+   if (n > 0) temp_real(1:n) = thread_data%distances
+   temp_real(n+1) = distance
+   call move_alloc(temp_real, thread_data%distances)
+   
+end subroutine appendToThreadResults
+
+
+subroutine mergeAndSortThreadResults(thread_data, num_threads, merged_facet_ids, merged_areas, merged_bnd_pts, merged_distances)
+   ! Merge thread-local arrays efficiently and sort by facet ID
+   implicit none
+   type(thread_results_type), dimension(:), intent(in) :: thread_data
+   integer, intent(in) :: num_threads
+   integer, dimension(:), allocatable, intent(out) :: merged_facet_ids, merged_bnd_pts
+   real, dimension(:), allocatable, intent(out) :: merged_areas, merged_distances
+   integer :: total_results, current_pos, thread_id, thread_size
+   
+   ! Count total elements efficiently
+   total_results = 0
+   do thread_id = 1, num_threads
+      total_results = total_results + size(thread_data(thread_id)%areas)
+   end do
+   
+   if (total_results == 0) then
+      allocate(merged_facet_ids(0), merged_areas(0), merged_bnd_pts(0), merged_distances(0))
+      return
+   end if
+   
+   ! Allocate merged arrays
+   allocate(merged_facet_ids(total_results))
+   allocate(merged_areas(total_results))
+   allocate(merged_bnd_pts(total_results))
+   allocate(merged_distances(total_results))
+   
+   ! Efficiently concatenate thread arrays
+   current_pos = 1
+   do thread_id = 1, num_threads
+      thread_size = size(thread_data(thread_id)%areas)
+      if (thread_size > 0) then
+         merged_facet_ids(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%facet_ids
+         merged_areas(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%areas
+         merged_bnd_pts(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%bnd_pts
+         merged_distances(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%distances
+         current_pos = current_pos + thread_size
+      end if
+   end do
+   
+   ! Sort by facet ID for deterministic output
+   call sortArraysByFacetId(merged_facet_ids, merged_areas, merged_bnd_pts, merged_distances)
+   
+end subroutine mergeAndSortThreadResults
+
+
+subroutine sortArraysByFacetId(facet_ids, areas, bnd_pts, distances)
+   ! Sort four arrays based on facet IDs
+   implicit none
+   integer, dimension(:), allocatable, intent(inout) :: facet_ids, bnd_pts
+   real, dimension(:), allocatable, intent(inout) :: areas, distances
+   integer :: n, i, j, temp_facet_id, temp_bnd_pt
+   real :: temp_area, temp_dist
+   
+   n = size(facet_ids)
+   
+   ! Insertion sort based on facet_ids
+   do i = 2, n
+      ! Store current element values
+      temp_facet_id = facet_ids(i)
+      temp_area = areas(i)
+      temp_bnd_pt = bnd_pts(i)
+      temp_dist = distances(i)
+      
+      j = i - 1
+      
+      ! Shift elements that are greater than temp_facet_id
+      do while (j >= 1 .and. facet_ids(j) > temp_facet_id)
+         facet_ids(j + 1) = facet_ids(j)
+         areas(j + 1) = areas(j)
+         bnd_pts(j + 1) = bnd_pts(j)
+         distances(j + 1) = distances(j)
+         j = j - 1
+      end do
+      
+      ! Insert the stored elements at correct position
+      facet_ids(j + 1) = temp_facet_id
+      areas(j + 1) = temp_area
+      bnd_pts(j + 1) = temp_bnd_pt
+      distances(j + 1) = temp_dist
+   end do
+   
+end subroutine sortArraysByFacetId
+
+
+subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs, fname_facet_sections, fid)
    integer, intent(in) :: nfacsecs
    integer, intent(in), dimension(nfacsecs) :: secfacids, secbndptids
    real   , intent(in), dimension(nfacsecs) :: secareas, bnddst
    character(20), intent(in) :: fname_facet_sections
+   integer, intent(in) :: fid
    integer :: n
 
-
-   open (unit=10,file=fname_facet_sections,action="write")
-   write(10,*) "# facet      area flux point distance"
+   open (unit=fid,file=fname_facet_sections,action="write")
+   write(fid,*) "# facet      area flux point distance"
    do n=1,nfacsecs
-      !write (10,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+      !write (fid,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
       ! Formatting assumes: #facets < 10 million, #fluid boundary points < 1 billion,
       ! section area < 1000 m^2 (rounded to cm^2), and distance < 1000m
       ! if (bnddst(n) < 0.05*exp(1.)) then
       !    write(*,*) bnddst(n)
       !  end if
-      write(unit=10,fmt='(i8,f10.4,i11,f9.4)') secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+      write(unit=fid,fmt='(i8,f10.4,i11,f9.4)') secfacids(n), secareas(n), secbndptids(n), bnddst(n)
    end do
-   close (10)
-
-
-
+   close (fid)
 end subroutine writeFacetSections
+
 
 subroutine fastPoint2TriMesh(connectivityList, faceNormal, nFaces, vertices, nVertices, &
     queryPoint, minDistance, interceptPoint)
@@ -917,7 +1125,7 @@ subroutine fastPoint2TriMesh(connectivityList, faceNormal, nFaces, vertices, nVe
    real :: perpDist, distances(nFaces), projectedPoints(nFaces, 3), &
    sgn, cor1(3), cor2(3), cor3(3), cor4(3), distCornersToEdges(3), edgePoints(3, 3)
    integer :: n, loc
-   logical :: check
+   logical :: check, any_valid
 
    do n = 1,nFaces
       !perpDist = dot_product(queryPoint - incenter(n, :), faceNormal(n, :))
@@ -949,12 +1157,22 @@ subroutine fastPoint2TriMesh(connectivityList, faceNormal, nFaces, vertices, nVe
          distances(n) = ieee_value(distances(n), ieee_quiet_nan)
       end if
 
-      ! if all(isnan(distances))
-      loc = minloc(distances, 1)
+   end do
+
+   any_valid = any(.not. ieee_is_nan(distances))
+   if (any_valid) then
+      loc = minloc(distances, dim=1, mask=.not.ieee_is_nan(distances))
+   else
+      loc = -1
+   end if
+   
+   if (loc > 0) then
       minDistance = distances(loc)
       interceptPoint = projectedPoints(loc, :)
-
-   end do
+   else
+      minDistance = ieee_value(minDistance, ieee_quiet_nan)
+      interceptPoint = 0.0
+   end if
 
 end subroutine fastPoint2TriMesh
 

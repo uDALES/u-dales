@@ -12,6 +12,7 @@ image.sif
 monitor*.txt
 outputs/
 examples/*/blocks.*.png
+tmp/*
 bin/
 # Restart and driver files
 examples/*/init*
@@ -24,4 +25,5 @@ examples/*/*driver*
 *.m~
 
 # Python
+**/__pycache__/
 *.pyc

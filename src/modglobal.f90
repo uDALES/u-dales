@@ -177,7 +177,7 @@ module modglobal
    logical :: lmoistinout = .false. !<  seperate switch for inflow/outflow BC for moisture (only necessary when linoutflow.eqv..false.).
    logical :: lper2inout = .false. !<  switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from prof.inp
    logical :: libm = .true. !<  switch that determines whether the Immersed Boundary Method is turned on
-   logical :: lbottom = .false. !< switch that determines if the bottom is considered as flat rough ground in the absence of stl facets
+   logical :: lconservativeibm = .false. !<  switch that determines whether the conservative immersed boundary method is used (if libm is true) for temperature, moisture and scalars
    logical :: lwalldist = .false. !<  switch that determines whether the wall distances should be computed
    logical :: lles = .true. !<  switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS)
    logical :: linletRA = .false. !<  switch that determines whether a Running Average should be used (.true.) in inlet generator
