@@ -1,19 +1,20 @@
 !> \file modsave.f90
 !! Writes restart and data files.
 !>
-!! modsave.f90 writes the restart and data files
-!!  \author Jasper Tomas, June 4th 2015
-!!  \todo documentation
-!!  \par Revision list
 !
-!  This file is part of DALES.
+!! \author Jasper Tomas, June 4th 2015
+!! \par Revision list
+!!   Dipanjan Majumdar, ICL (2025-2026)
+!! \todo documentation
 !
-! DALES is free software; you can redistribute it and/or modify
+! This file is part of uDALES (https://github.com/uDALES/u-dales).
+!
+! uDALES is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
-! DALES is distributed in the hope that it will be useful,
+! uDALES is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
@@ -21,51 +22,31 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-!  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
+! Copyright (C) 2016- the uDALES Team, Imperial College London.
 !
 module modsave
 
-
 implicit none
-! private
-! public :: writerestartfiles, writedatafiles
 save
 
 contains
-
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writerestartfiles
 
     use mpi
-
-    use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav
-
-    use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0,mindist,wall,&
-                          uav,vav,wav,uuav,vvav,wwav,uvav,uwav,vwav,thlav,thl2av,qtav,qlav,ql2av,qt2av,svav,sv2av,momthick,&
-                          friction,displthick,pres0,viscratioav,thluav,thlvav,thlwav,qtuav,qtvav,qtwav,qluav,qlvav,qlwav,svuav,svvav,svwav,&
-                          upupav,vpvpav,wpwpav,thlpthlpav,qlpqlpav,qtpqtpav,svpsvpav,upvpav,upwpav,vpwpav,thlpupav,thlpvpav,&
-                          thlpwpav,qlpupav,qlpvpav,qlpwpav,qtpupav,qtpvpav,qtpwpav,svpupav,svpvpav,svpwpav,presav,&
-                          uusgsav,vvsgsav,wwsgsav,uwsgsav,thlusgsav,thlwsgsav,qlusgsav,qlwsgsav,qtusgsav,qtwsgsav,svusgsav,svwsgsav,tkesgsav,&
-                          strain2av,disssgsav,t_vav,tvmx,tvmy,tvmz,tsgsmx1,tsgsmx2,tsgsmy1,tsgsmy2,tsgsmz1,&
-                          tsgsmz2,t_sgsav,nusgsav,tpm,t_pav,ttmx,ttmy,ttmz,t_tav,p_bav,d_sgsav,p_tav,tkeadv
-    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,trestart,tnextrestart,dt_lim,timee,btime,xh,&
-                          cexpnr,ntimee,rk3step,ifoutput,nsv,timeleft,dt,ntrun,totavtime,&
-                          iinletgen,timee,runavtime,inletav,totinletav,linletRA,ltempeq,lmoist,&
-                          dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,nstore,numol,dy2i,grav,libm,jmax,nblocks
-    use modmpi,    only : cmyid,cmyidx,cmyidy,myid,slabsum,excjs,comm3d
+    use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,pres0,sv0,mindist,wall
+    use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,trestart,tnextrestart,timee,&
+                          cexpnr,rk3step,ifoutput,nsv,dt,ntrun,iinletgen,nstore
+    use modmpi,    only : cmyidx,cmyidy,myid,comm3d
     use modsubgriddata, only : ekm
-    use modibmdata,   only  : ibmxforcevol
-    use initfac , only : block
-    use modinletdata, only   : Urec,Wrec,Uinl,Utav,QLinl,QTinl,QLrec,QTrec,QTtav,QLtav,Ttav,upupavinl,vpvpavinl,wpwpavinl,upwpavinl,&
-                               thlpthlpavinl,thlpupavinl,thlpwpavinl,qlpqlpavinl,qlpupavinl,qlpwpavinl,qtpqtpavinl,qtpupavinl,qtpwpavinl,Tinl,Trec,nstepread
+    use modinletdata, only   : nstepread
 
     implicit none
     logical :: lexitnow = .false.
-    integer imin,ihour
-    integer i,j,k,n,im,ip,jm,jp,jpp,km,kp,kpp,il,iu,jl,ju,kl,ku
-    character(25) name,name2,name3,name4,linkname
+    integer :: i,j,k,n
     integer :: ierr, err_code
+    character(len=25) :: name
 
     if (timee == 0) return
 !    if (rk3step /=3) return

@@ -25,7 +25,7 @@ program DALESURBAN      !Version 48
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
-  use modglobal,         only : initglobal,rk3step,timeleft,runmode,TEST_JSON,TEST_IO, RUN_SIMULATION
+  use modglobal,         only : initglobal,rk3step,timeleft
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -52,7 +52,6 @@ program DALESURBAN      !Version 48
   use stats,           only : stats_init,stats_main,stats_exit !DMajumdar
   use instant,         only : slice_init,slice_main,probe_init, probe_main
   use modtimedep,      only : inittimedep,timedep
-  use tests,           only : tests_io
   implicit none
 
 !----------------------------------------------------------------
@@ -68,8 +67,6 @@ program DALESURBAN      !Version 48
   call checkinitvalues
 
   call initglobal
-  
-  call execute_runmode_actions
 
   call initfields
 
@@ -202,7 +199,7 @@ program DALESURBAN      !Version 48
 
     call fielddump
 
-    call statsdump
+    call statsdump     ! will depricate soon; contains tke budget only(not working)
     call stats_main
     call slice_main
     call probe_main
@@ -237,29 +234,5 @@ program DALESURBAN      !Version 48
   !call exitmodules
   !call exittest
   call exitmpi
-
-  contains
-  subroutine execute_runmode_actions
-    select case (runmode)
-      case (RUN_SIMULATION)
-        ! Normal execution mode, do nothing special here
-      case (TEST_JSON)
-        ! Execute JSON tests
-        write(*,*) 'TEST_JSON mode not yet implemented'
-          !call tests_json
-        call exitmpi
-        ! Stop execution after tests (tests are standalone)
-        stop
-      case (TEST_IO)
-
-        call tests_io
-        call exitmpi
-
-      case default
-        write(*,*) 'Unknown runmode:', runmode
-        call exitmpi
-        stop 'Invalid runmode specified'
-    end select
-  end subroutine execute_runmode_actions
 
 end program DALESURBAN

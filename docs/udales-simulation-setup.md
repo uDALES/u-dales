@@ -2,7 +2,14 @@
 
 The scripts `local_execute.sh` (for local machines), `hpc_execute.sh` (for ICL cluster) and `archer_execute.sh` (for ARCHER2) in `u-dales/tools` are used as wrappers to run simulations. These scripts contain several helpers to run the simulations and merge outputs (see [Post-processing](./udales-post-processing.md) for more info) from several CPUs into a single file.
 
-The scripts require several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the experiment directory, which is then read by the scripts. We recommend keeping a `config.sh` in each experiment case directory with the apprpriate variable seeting.
+The scripts require several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the example directory, which is then read by the scripts. We recommend keeping a `config.sh` in each example case directory with the appropriate variable setting.
+The simulation workflow consists of three stages:
+
+1. Pre-processing: create or update input files with `write_input.sh` (calls `write_input.m`) or other pre-processing tools.
+2. Execution: launch the solver using `local_execute.sh` (for desktop) or `hpc_execute.sh` (for clusters).
+3. Post-processing: merge and analyse output files using `gather_outputs.sh` or other scripts.
+
+Example cases shipped with uDALES are located under `u-dales/examples/` and are suitable for testing an installation.
 
 Note that you need to choose the number of CPUs you are using to run the simulation such that the product of `nprocx` and `nprocy` (in the `namoptions` input file) is equal to the total number of CPU asked, i.e., `nprocx * nprocy = NCPU` for local machines, and `nprocx * nprocy = NNODE * NCPU` for ICL HPC or ARCHER2 clusters.
 

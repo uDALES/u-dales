@@ -1,3 +1,28 @@
+!> \file out_stats.f90
+!! Writes statistics of various fields to various NetCDF files.
+!>
+!
+!! Inspired from the uDALES v2.2.0 modstatsdump.f90 routine by Tom Grylls, ICL (2016).
+!! \author Dipanjan Majumdar, ICL (2025-2026)
+!! \todo documentation
+!
+! This file is part of uDALES (https://github.com/uDALES/u-dales).
+!
+! uDALES is free software; you can redistribute it and/or modify
+! it under the terms of the GNU General Public License as published by
+! the Free Software Foundation; either version 3 of the License, or
+! (at your option) any later version.
+!
+! uDALES is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License
+! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+!
+! Copyright (C) 2016- the uDALES Team, Imperial College London.
+!
 module stats
   use modglobal,  only : cexpnr, ltempeq, lmoist, lchem, nsv, rk3step, &
                          ltdump, lxytdump, lxydump, lytdump, lydump, ltreedump, &
@@ -23,7 +48,6 @@ module stats
   real    :: tsamplep, tstatsdumpp, tstatsdumppi
   
   character(80)              :: filenamet
-  character(80)              :: filenamet1d    ! Separate filename for 1D output
   character(80)              :: filenamexyt
   character(80)              :: filenamexy
   character(80)              :: filenameyt
@@ -318,7 +342,7 @@ module stats
         if (nsv>0)   call stats_allocate_tavg_scalar
       end if
 
-      !> Generate time averaged NetCDF: stats_t_out.xxx.xxx.xxx.nc
+      !> Generate time averaged NetCDF: stats_t.xxx.xxx.xxx.nc
       if (ltdump) then
         !> Total numbers of variables to be written
         tVarsCount = 14
@@ -339,7 +363,7 @@ module stats
         deallocate(tVars)
       end if
 
-      !> Generate time, y and x averaged NetCDF: stats_xyt_out.xxx.nc
+      !> Generate time, y and x averaged NetCDF: stats_xyt.xxx.nc
       if (lxytdump) then
         xytVarsCount = 20
         if (ltempeq) xytVarsCount = xytVarsCount + 5
@@ -356,7 +380,7 @@ module stats
         deallocate(xytVars)
       end if
 
-      !> Generate y and x averaged NetCDF: stats_xy_out.xxx.nc
+      !> Generate y and x averaged NetCDF: stats_xy.xxx.nc
       if (lxydump) then
         xyVarsCount = 16
         if (ltempeq) xyVarsCount = xyVarsCount + 4
@@ -373,7 +397,7 @@ module stats
         deallocate(xyVars)
       end if
 
-      !> Generate time and y averaged NetCDF: stats_yt_out.xxx.xxx.nc
+      !> Generate time and y averaged NetCDF: stats_yt.xxx.xxx.nc
       if (lytdump) then
         ytVarsCount = 11
         if (ltempeq) ytVarsCount = ytVarsCount + 5
@@ -392,7 +416,7 @@ module stats
         deallocate(ytVars)
       end if
 
-      !> Generate y averaged NetCDF: stats_y_out.xxx.xxx.nc
+      !> Generate y averaged NetCDF: stats_y.xxx.xxx.nc
       if (lydump) then
         yVarsCount = 8
         if (ltempeq) yVarsCount = yVarsCount + 4
@@ -411,7 +435,7 @@ module stats
         deallocate(yVars)
       end if
 
-      !> Generate time averaged tree data NetCDF: stats_tree_out.xxx.xxx.xxx.nc
+      !> Generate time averaged tree data NetCDF: stats_tree.xxx.xxx.xxx.nc
       if (ltreedump) then
         treeVarsCount = 3
         if (ltempeq) treeVarsCount = treeVarsCount + 1
@@ -736,11 +760,11 @@ module stats
       use modglobal, only : jtot
       implicit none
       if (myidy ==0) then
-        filenamet1d = 'stats_t_out.xxx.xxx.nc'
-        filenamet1d(13:15) = cmyidx  ! Only x-processor ID
-        filenamet1d(17:19) = cexpnr  ! Experiment number
+        filenamet = 'stats_t_out.xxx.xxx.nc'
+        filenamet(13:15) = cmyidx  ! Only x-processor ID
+        filenamet(17:19) = cexpnr  ! Experiment number
 
-        call open_nc(filenamet1d, ncidt1d, nrect, n1=xdim, n2=jtot, n3=zdim)
+        call open_nc(filenamet, ncidt1d, nrect, n1=xdim, n2=jtot, n3=zdim)
         if (nrect==0) then
           call define_nc(ncidt1d, 1, timeVar)
           call writestat_dims_nc(ncidt1d)
@@ -828,8 +852,8 @@ module stats
 
     subroutine stats_createnc_xytavg
       implicit none
-      filenamexyt = 'stats_xyt_out.xxx.nc'
-      filenamexyt(15:17) = cexpnr
+      filenamexyt = 'stats_xyt.xxx.nc'
+      filenamexyt(11:13) = cexpnr
 
       nrecxyt = 0
       if (myid==0) then
@@ -918,8 +942,8 @@ module stats
 
     subroutine stats_createnc_xyavg
       implicit none
-      filenamexy = 'stats_xy_out.xxx.nc'
-      filenamexy(14:16) = cexpnr
+      filenamexy = 'stats_xy.xxx.nc'
+      filenamexy(10:12) = cexpnr
 
       nrecxy = 0
       if (myid==0) then
@@ -1023,9 +1047,9 @@ module stats
 
     subroutine stats_createnc_ytavg
       implicit none
-      filenameyt = 'stats_yt_out.xxx.xxx.nc'
-      filenameyt(14:16)  = cmyidx
-      filenameyt(18:20) = cexpnr
+      filenameyt = 'stats_yt.xxx.xxx.nc'
+      filenameyt(10:12)  = cmyidx
+      filenameyt(14:16) = cexpnr
 
       nrecyt = 0
       if (myidy==0) then
@@ -1119,9 +1143,9 @@ module stats
 
     subroutine stats_createnc_yavg
       implicit none
-      filenamey = 'stats_y_out.xxx.xxx.nc'
-      filenamey(13:15)  = cmyidx
-      filenamey(17:19) = cexpnr
+      filenamey = 'stats_y.xxx.xxx.nc'
+      filenamey(9:11)  = cmyidx
+      filenamey(13:15) = cexpnr
       
       nrecy = 0
       if (myidy==0) then
@@ -1183,10 +1207,10 @@ module stats
 
     subroutine stats_createnc_tree
       implicit none
-      filenametree = 'stats_tree_out.xxx.xxx.xxx.nc'
-      filenametree(16:18) = cmyidx
-      filenametree(20:22) = cmyidy
-      filenametree(24:26) = cexpnr
+      filenametree = 'stats_tree.xxx.xxx.xxx.nc'
+      filenametree(12:14) = cmyidx
+      filenametree(16:18) = cmyidy
+      filenametree(20:22) = cexpnr
 
       nrectree = 0
       call open_nc(filenametree, ncidtree, nrectree, n1=xdim, n2=ydim, n3=zdim)
@@ -1214,9 +1238,13 @@ module stats
             wjk(i,j,k) = 0.5*        (wm(i,j,k)          + wm(i,j-1,k))
             uij(i,j,k) = 0.5*        (um(i,j,k)          + um(i,j-1,k))
             vij(i,j,k) = 0.5*dxhi(i)*(vm(i,j,k)*dxf(i-1) + vm(i-1,j,k)*dxf(i))
-            uc(i,j,k)  = 0.5*dxhi(i)*(um(i,j,k)*dxf(i-1) + um(i-1,j,k)*dxf(i))
-            vc(i,j,k)  = 0.5*        (vm(i,j,k)          + vm(i,j-1,k))
-            wc(i,j,k)  = 0.5*( wm(i,j,k+1) + wm(i,j,k) ) 
+            uc (i,j,k) = 0.5*        (um(i+1,j,k)        + um(i,j,k))
+            vc (i,j,k) = 0.5*        (vm(i,j+1,k)        + vm(i,j,k))
+            if (k==ke+kh) then
+              wc(i,j,k) = wc(i,j,k-1)
+            else
+              wc(i,j,k) = 0.5*        (wm(i,j,k+1)        + wm(i,j,k))
+            end if 
           end do
         end do
       end do

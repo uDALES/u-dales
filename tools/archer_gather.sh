@@ -52,8 +52,8 @@ cat <<EOF > post-job.$exp.slurm
 #!/bin/bash
 #SBATCH --job-name=${exp}_gather
 #SBATCH --time=${WALLTIME}
-#SBATCH --nodes=${NNODE}
-#SBATCH --tasks-per-node=${NCPU}
+#SBATCH --nodes=1
+#SBATCH --tasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --account=n02-ASSURE
 #SBATCH --partition=standard

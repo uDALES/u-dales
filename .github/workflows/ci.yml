@@ -16,7 +16,7 @@ jobs:
     
     steps:
     - name: Check-out project
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -31,12 +31,13 @@ jobs:
       run: bash .github/scripts/install_deps.sh
 
     - name: Install python dependencies
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         miniconda-version: "latest"
         auto-update-conda: true
         activate-environment: udales
         environment-file: environment.yml
+        channel-priority: strict
 
     - name: Build and test uDALES
       # 'shell' required to activate environment.
@@ -55,7 +56,7 @@ jobs:
 
     - name: Publish docs
       if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/master'
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: build/html/

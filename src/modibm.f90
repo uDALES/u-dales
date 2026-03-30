@@ -106,7 +106,7 @@ module modibm
 
    type(bound_info_type) :: bound_info_u, bound_info_v, bound_info_w, bound_info_c
 
-   integer :: nstatfac=6, ncidfac, nrecfac=0
+   integer :: nstatfac=7, ncidfac, nrecfac=0
    character(80), allocatable :: ncstatfac(:,:)
    character(80) :: facname = 'fac.xxx.nc'
    character(80),dimension(1,4) :: tncstatfac
@@ -115,12 +115,14 @@ module modibm
    real, allocatable :: fac_tau_y(:)
    real, allocatable :: fac_tau_z(:)
    real, allocatable :: fac_pres(:)
+   real, allocatable :: fac_pres2(:)
    real, allocatable :: fac_htc(:)
    real, allocatable :: fac_cth(:)
    real, allocatable :: fac_tau_x_av(:)
    real, allocatable :: fac_tau_y_av(:)
    real, allocatable :: fac_tau_z_av(:)
    real, allocatable :: fac_pres_av(:)
+   real, allocatable :: fac_pres2_av(:)
    real, allocatable :: fac_htc_av(:)
    real, allocatable :: fac_cth_av(:)
 
@@ -198,36 +200,41 @@ module modibm
        allocate(fac_tau_y(1:nfcts))
        allocate(fac_tau_z(1:nfcts))
        allocate(fac_pres(1:nfcts))
+       allocate(fac_pres2(1:nfcts))
        allocate(fac_htc(1:nfcts))
        allocate(fac_cth(1:nfcts))
        fac_tau_x = 0.
        fac_tau_y = 0.
        fac_tau_z = 0.
        fac_pres = 0.
+       fac_pres2=0.
        fac_htc = 0.
        fac_cth = 0.
        allocate(fac_tau_x_av(1:nfcts))
        allocate(fac_tau_y_av(1:nfcts))
        allocate(fac_tau_z_av(1:nfcts))
        allocate(fac_pres_av(1:nfcts))
+       allocate(fac_pres2_av(1:nfcts))
        allocate(fac_htc_av(1:nfcts))
        allocate(fac_cth_av(1:nfcts))
        fac_tau_x_av = 0.
        fac_tau_y_av = 0.
        fac_tau_z_av = 0.
        fac_pres_av = 0.
+       fac_pres2_av=0.
        fac_htc_av = 0.
        fac_cth_av = 0.
 
        facname(5:7) = cexpnr
        allocate(ncstatfac(nstatfac,4))
        call ncinfo(tncstatfac(1,:),'t', 'Time', 's', 'time')
-       call ncinfo(ncstatfac( 1,:),'tau_x', 'tau_x', 'Pa','ft')
-       call ncinfo(ncstatfac( 2,:),'tau_y', 'tau_y', 'Pa','ft')
-       call ncinfo(ncstatfac( 3,:),'tau_z', 'tau_z', 'Pa','ft')
-       call ncinfo(ncstatfac( 4,:),'pres', 'pressure', 'Pa','ft')
+       call ncinfo(ncstatfac( 1,:),'tau_x', 'tau_x', 'm^2/s^2','ft')
+       call ncinfo(ncstatfac( 2,:),'tau_y', 'tau_y', 'm^2/s^2','ft')
+       call ncinfo(ncstatfac( 3,:),'tau_z', 'tau_z', 'm^2/s^2','ft')
+       call ncinfo(ncstatfac( 4,:),'pres', 'pressure', 'm^2/s^2','ft')
        call ncinfo(ncstatfac( 5,:),'htc', 'heat transfer coefficient', '','ft')
        call ncinfo(ncstatfac( 6,:),'cth', 'heat transfer coefficient (Ivo)', '','ft')
+       call ncinfo(ncstatfac( 7,:),'pres_flc', 'pressure fluctuation', '','ft')
 
        if (myid==0) then
          call open_nc(facname, ncidfac, nrecfac, nfcts=nfcts)
@@ -615,6 +622,7 @@ module modibm
      allocate(bound_info%lskipsec_loc(bound_info%nfctsecsrank))
 
      m = 0
+     p = 0  ! counter for sections overridden to simple reconstruction
      do n = 1, bound_info%nfctsecs
        if (lfctsecsrank(n)) then
           m = m + 1
@@ -637,9 +645,36 @@ module modibm
           bound_info%recids_w_loc(m,:) = bound_info%recids_w(n,:)
           bound_info%recids_c_loc(m,:) = bound_info%recids_c(n,:)
           bound_info%lcomprec_loc(m) = bound_info%lcomprec(n)
+
+          ! If any reconstruction cell index falls outside this rank's halo-accessible range,
+          ! override to simple reconstruction to avoid out-of-bounds access in trilinear_interp_var.
+          !
+          ! Skipped sections (lskipsec(n)) never reach trilinear_interp_var
+          ! so they are harmless even if their reconstruction cell is out of range.
+          !
+          ! These sections then self-skip at runtime via the log(dist/z0) <= 1 check, contributing zero stress — a small, localized inaccuracy
+          if (.not. bound_info%lcomprec_loc(m) .and. .not. bound_info%lskipsec(n)) then
+            if (bound_info%recids_u_loc(m,1) < zstart(1)-1 .or. bound_info%recids_u_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_u_loc(m,2) < zstart(2)-1 .or. bound_info%recids_u_loc(m,2) > zend(2)+1 .or. &
+                bound_info%recids_v_loc(m,1) < zstart(1)-1 .or. bound_info%recids_v_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_v_loc(m,2) < zstart(2)-1 .or. bound_info%recids_v_loc(m,2) > zend(2)+1 .or. &
+                bound_info%recids_w_loc(m,1) < zstart(1)-1 .or. bound_info%recids_w_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_w_loc(m,2) < zstart(2)-1 .or. bound_info%recids_w_loc(m,2) > zend(2)+1 .or. &
+                bound_info%recids_c_loc(m,1) < zstart(1)-1 .or. bound_info%recids_c_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_c_loc(m,2) < zstart(2)-1 .or. bound_info%recids_c_loc(m,2) > zend(2)+1) then
+              bound_info%lcomprec_loc(m) = .true.
+              p = p + 1
+            end if
+          end if
+
           bound_info%lskipsec_loc(m) = bound_info%lskipsec(n)
        end if
      end do
+
+     if (p > 0) then
+       write(*,*) "WARNING initibmwallfun: MPI rank", myid, "overrode", p, &
+                  "facet section(s) to simple reconstruction because reconstruction cell falls outside halo range."
+     end if
 
      deallocate(bound_info%bndpts)
      deallocate(bound_info%secfacids)
@@ -707,7 +742,7 @@ module modibm
 
 
    subroutine ibmnorm
-     use modglobal,   only : ih, jh, kh, ihc, jhc, khc, nsv, dzf, zh, kb, ke, kh, nsv, libm, ltempeq, lmoist, iadv_sv, iadv_cd2, iadv_thl
+     use modglobal,   only : ih, jh, kh, ihc, jhc, khc, nsv, dzf, zh, kb, ke, kh, nsv, libm, ltempeq, lmoist, iadv_sv, iadv_cd2, iadv_thl, lconservativeibm
      use modfields,   only : um, vm, wm, thlm, qtm, svm, up, vp, wp, thlp, qtp, svp, thl0, qt0, sv0, thl0av
      use modboundary, only : halos
      use decomp_2d,   only : zstart, zend
@@ -727,17 +762,33 @@ module modibm
      ! Set interior to a constant and boundary to average of fluid neighbours
      if (ltempeq) then
         call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1), ih, jh, kh, mask_c)
-        if (iadv_thl == iadv_cd2) call advecc2nd_corr_liberal(thl0, thlp)
+        if (iadv_thl == iadv_cd2) then
+          if (lconservativeibm) then
+            call advecc2nd_corr_conservative(thl0, thlp)
+          else
+            call advecc2nd_corr_liberal(thl0, thlp)
+          end if
+        end if
      end if
 
      if (lmoist) then
        call solid(solid_info_c, qtm, qtp, 0., ih, jh, kh, mask_c)
-       call advecc2nd_corr_liberal(qt0, qtp)
+       if (lconservativeibm) then
+         call advecc2nd_corr_conservative(qt0, qtp)
+       else
+         call advecc2nd_corr_liberal(qt0, qtp)
+       end if
      end if
 
      do n=1,nsv
         call solid(solid_info_c, svm(:,:,:,n), svp(:,:,:,n), 0., ihc, jhc, khc, mask_c)
-        if (iadv_sv(n) == iadv_cd2) call advecc2nd_corr_liberal(sv0(:,:,:,n), svp(:,:,:,n))
+        if (iadv_sv(n) == iadv_cd2) then
+          if (lconservativeibm) then
+            call advecc2nd_corr_conservative(sv0(:,:,:,n), svp(:,:,:,n))
+          else
+            call advecc2nd_corr_liberal(sv0(:,:,:,n), svp(:,:,:,n))
+          end if
+        end if
      end do
 
    end subroutine ibmnorm
@@ -1260,12 +1311,12 @@ module modibm
       deallocate(rhs)
 
       if (lwritefac .and. rk3step==3) then
-
         if (myid == 0) then
             fac_tau_x_av = fac_tau_x_av + dt*fac_tau_x
             fac_tau_y_av = fac_tau_y_av + dt*fac_tau_y
             fac_tau_z_av = fac_tau_z_av + dt*fac_tau_z
             fac_pres_av = fac_pres_av + dt*fac_pres
+            fac_pres2_av = fac_pres2_av + dt*fac_pres2
             fac_htc_av = fac_htc_av + dt*fac_htc
             fac_cth_av = fac_cth_av + dt*fac_cth
 
@@ -1278,26 +1329,24 @@ module modibm
                varsfac(:,4) = fac_pres_av(1:nfcts)/tfac
                varsfac(:,5) = fac_htc_av(1:nfcts)/tfac
                varsfac(:,6) = fac_cth_av(1:nfcts)/tfac
+               varsfac(:,7) = fac_pres2_av(1:nfcts)/tfac - (fac_pres_av(1:nfcts)/dtfac * fac_pres_av(1:nfcts)/tfac)
                call writestat_nc(ncidfac,1,tncstatfac,(/timee/),nrecfac,.true.)
                call writestat_1D_nc(ncidfac,nstatfac,ncstatfac,varsfac,nrecfac,nfcts)
                deallocate(varsfac)
 
                tfac = timee
-               !tnextfac = NINT((timee + dtfac))*1.0
-               tnextfac = (timee+dtfac) *1.0
+               tnextfac = NINT((timee + dtfac))*1.0
                fac_tau_x_av = 0.
                fac_tau_y_av = 0.
                fac_tau_z_av = 0.
                fac_pres_av = 0.
+               fac_pres2_av= 0.
                fac_htc_av = 0.
                fac_cth_av = 0.
             end if
-
         end if !myid
-
       end if
-
-    end subroutine ibmwallfun
+   end subroutine ibmwallfun
 
 
    subroutine wallfunmom(dir, rhs, bound_info)
@@ -1463,12 +1512,14 @@ module modibm
      integer i, j, k, n, m, sec, fac
      real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, htc, cveg, hurel, qtair, qwall, resa, resc, ress, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, span, strm
-     real, dimension(1:nfcts) :: fac_htc_loc, fac_cth_loc, fac_pres_loc
+     real, dimension(1:nfcts) :: fac_htc_loc, fac_cth_loc, fac_pres_loc, fac_pres2_loc
      logical :: valid
 
      fac_htc_loc = 0.
      fac_cth_loc = 0.
      fac_pres_loc = 0.
+     fac_pres2_loc = 0.
+
      do sec = 1,bound_info_c%nfctsecsrank
        ! sec = bound_info_c%fctsecsrank(m) ! index of section
        !n =   bound_info_c%secbndptids(sec) ! index of boundary point
@@ -1489,6 +1540,7 @@ module modibm
         end if
 
        fac_pres_loc(fac) = fac_pres_loc(fac) + pres0(i,j,k) * area ! output pressure on facets
+       fac_pres2_loc(fac) = fac_pres2_loc(fac) +  pres0(i,j,k)* pres0(i,j,k) * area
 
        if (bound_info_c%lskipsec_loc(sec)) cycle
        !if (facz0(fac) < eps1) cycle
@@ -1563,7 +1615,7 @@ module modibm
          if (lEB) then
            totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
            fachf(fac) = fachf(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
-         end if
+         end if !fachf=[Km/s]
        end if
 
        ! Latent heat
@@ -1610,9 +1662,12 @@ module modibm
         fac_cth_loc(1:nfcts) = fac_cth_loc(1:nfcts) / faca(1:nfcts)
         fac_htc_loc(1:nfcts) = fac_htc_loc(1:nfcts) / faca(1:nfcts)
         fac_pres_loc(1:nfcts) = fac_pres_loc(1:nfcts) / faca(1:nfcts)
+        fac_pres2_loc(1:nfcts) = fac_pres2_loc(1:nfcts) / faca(1:nfcts)
+        
         call MPI_ALLREDUCE(fac_cth_loc(1:nfcts), fac_cth(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
         call MPI_ALLREDUCE(fac_htc_loc(1:nfcts), fac_htc(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
         call MPI_ALLREDUCE(fac_pres_loc(1:nfcts), fac_pres(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
+        call MPI_ALLREDUCE(fac_pres2_loc(1:nfcts), fac_pres2(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
      end if
 
    end subroutine wallfunheat

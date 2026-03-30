@@ -73,6 +73,7 @@ nav:
     - udbase: udales-udbase-tutorial.md
     - Flow fields and statistics: udales-fields-tutorial.md
     - Facets: udales-facets-tutorial.md
+    - Utility routines: udales-utility-tutorial.md
   - Example simulations: udales-example-simulations.md
   - How to cite: udales-how-to-cite.md
   - Publication list: udales-pub-list.md

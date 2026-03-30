@@ -62,9 +62,14 @@ if r.nsv>0
     preprocessing.write_scalar(r);
     disp(['Written scalar.inp.', r.expnr])
     if (r.lscasrc || r.lscasrcl)
-        preprocessing.generate_scalarsources(r);
-        preprocessing.write_scalarsources(r);
-        disp(['Written scalarsources.inp.', r.expnr])
+        scasourcefiles = dir('scalarsource*');
+        if isempty(scasourcefiles)
+            preprocessing.generate_scalarsources(r);
+            preprocessing.write_scalarsources(r);
+            disp(['Written scalarsources.inp.', r.expnr])
+        else
+            disp('scalarsources.inp.* already exists, skipping...')
+        end
     end
 end
 
@@ -129,13 +134,13 @@ if r.libm
         dx = r.dx;
         dy = r.dy;
 
-        if r.isolid_bound == 1
+        if r.isolid_bound == 1     % uses in-house fortran routine
             lmypolyfortran = 1;
             lmypoly = 0;
-        elseif r.isolid_bound == 2
+        elseif r.isolid_bound == 2 % uses in-house matlab routine
             lmypolyfortran = 0;
             lmypoly = 1;
-        elseif r.isolid_bound == 3
+        elseif r.isolid_bound == 3 % uses inpolyhedron matlab routine
             lmypolyfortran = 0;
             lmypoly = 0;
         else
@@ -150,30 +155,34 @@ if r.libm
             error('Unrecognised option for facet section calculation')
         end
 
-        writeIBMFiles; % Could turn into a function and move writing to this script
+        if lmypolyfortran && lmatchFacetsToCellsFortran
+            writeIBMFiles_usingFortran;
+        else
+            writeIBMFiles; % Will depricate soon. Not reccomended. Only for debugging special cases
+        end
 
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_c',size(facet_sections_c,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_w',size(facet_sections_w,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_v',size(facet_sections_v,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_u',size(facet_sections_u,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_c',ncounts(13));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_w',ncounts(12));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_v',ncounts(11));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_u',ncounts(10));
         
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_c',size(fluid_IB_xyz_c,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_w',size(fluid_IB_xyz_w,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_v',size(fluid_IB_xyz_v,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_u',size(fluid_IB_xyz_u,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_c',ncounts(9));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_w',ncounts(8));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_v',ncounts(7));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_u',ncounts(6));
         
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_c',size(solid_ijk_c,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_w',size(solid_ijk_w,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_v',size(solid_ijk_v,1));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_u',size(solid_ijk_u,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_c',ncounts(5));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_w',ncounts(4));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_v',ncounts(3));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_u',ncounts(2));
         
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfcts',nfcts);
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfcts',ncounts(1));
 
     else
         if isempty(r.geom_path)
             error('Need to specify the path to geometry files')
         end
-        copy_command = ['cp ' r.geom_path 'solid_* ' r.geom_path 'fluid_boundary_* ' fpath];
+        copy_command = ['cp ' r.geom_path 'solid_* ' fpath];
         system(copy_command);
         copy_command = ['cp ' r.geom_path 'fluid_boundary_* ' fpath];
         system(copy_command);
@@ -222,11 +231,13 @@ if r.libm
             %% Calculate view factors
             % remember to build View3D in local system windows/linux
             % Add check to see if View3D exists in the tools directory.
+            tic
             if lwindows
                 view3d_exe = [DA_TOOLSDIR '/View3D/src/View3D.exe'];
             else
                 view3d_exe = [DA_TOOLSDIR '/View3D/build/src/view3d'];
             end
+            fprintf('Elapsed time by view3d: %.6f seconds\n', toc);
 
             %vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
             if r.calc_vf % run view3d

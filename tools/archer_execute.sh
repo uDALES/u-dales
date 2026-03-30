@@ -81,8 +81,6 @@ cat <<EOF > job.$exp.slurm
 module load epcc-job-env
 export OMP_NUM_THREADS=1
 srun --distribution=block:block --hint=nomultithread ./u-dales $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
-module load nco gsl
-$DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
 
 ## submit job.exp file to queue

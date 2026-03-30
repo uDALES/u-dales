@@ -1,6 +1,6 @@
 # Installation
 
-Getting started with uDALES to set up your own experiments is straightforward. This guide goes through the steps required to [install](#installation) uDALES, and [set-up](#set-up) and [run](#run) a simple example. Results are output in netCDF format, for a quick inspection you can use GUI tools such as [Panoply](https://www.giss.nasa.gov/tools/panoply/) or [ncview](http://meteora.ucsd.edu/~pierce/ncview_home_page.html). To learn more about pre- and post-processing steps see the [what's next section](#whats-next).
+Getting started with uDALES to set up your own experiments is straightforward. This page goes through the steps required to [install](#installation) uDALES and to [set-up the directory structure](#repository-set-up). Results are output in netCDF format, for a quick inspection you can use GUI tools such as [Panoply](https://www.giss.nasa.gov/tools/panoply/) or [ncview](http://meteora.ucsd.edu/~pierce/ncview_home_page.html). To learn more about pre- and post-processing steps see the [what's next section](#whats-next).
 
 If you have [Singularity](https://sylabs.io/) available on your system, you can use the provided scripts under `tools/singularity` to build and run uDALES cases locally or on HPC environments. See [Singularity](#singularity) for instructions; otherwise, see the next section.
 
@@ -13,8 +13,8 @@ uDALES is supported to run on Linux, macOS and Windows Subsystem for Linux (WSL)
 - [CMake](https://cmake.org/) >= 3.9.
 - [NetCDF-Fortran](https://www.unidata.ucar.edu/downloads/netcdf/index.jsp) >= 4.
 - [GNU](https://gcc.gnu.org/wiki/GFortran) >= 9, [Intel](https://software.intel.com/content/www/us/en/develop/documentation/fortran-compiler-developer-guide-and-reference/top.html), or [Cray](https://pubs.cray.com/) Fortran compiler.
-- A recent version of [MPICH](https://www.mpich.org/) or [Open-MPI](https://www.open-mpi.org/). 
-- [FFTW](http://www.fftw.org/) 
+- A recent version of [MPICH](https://www.mpich.org/) or [Open-MPI](https://www.open-mpi.org/).
+- [FFTW](http://www.fftw.org/)
 
 ### Project setup
 
@@ -102,7 +102,6 @@ myproject
 
 In the next steps we will assume your current working directory is the top-level project directory.
 
-
 ## Build on common systems
 
 To compile uDALES (in release mode) on common/local uvuntu or mac systems using helper script, run:
@@ -112,7 +111,7 @@ To compile uDALES (in release mode) on common/local uvuntu or mac systems using 
 tools/build_executable.sh common release
 ```
 
-OR, 
+OR,
 you can do it manually. On standard systems and configurations, you can build uDALES with the following commands:
 
 ```sh
@@ -186,9 +185,9 @@ By default uDALES will compile in `Release` mode. You can change this by specify
 | `NETCDF_FORTRAN_DIR`            | `<path>`           | -         | Path to netCDF-Fortran installation directory |
 | `SKIP_UPDATE_EXTERNAL_PROJECTS` | `ON`, `OFF`        | `OFF`     | Whether to skip updating external projects    |
 
-# Singularity
+## Singularity
 
-If you are looking for information on how to install or use Singularity on your system, please refer to the [Singularity documentation ](https://sylabs.io/docs). The use of Singularity is undoubtedly the easiest way to build and run cases in uDALES as all dependencies are provided and uDALES will compile out of the box. Furthermore, users wishing to achieve a reasonable level of scientific reproducibility may archive software, tools, and data with their Singularity image containing OS and external libraries to an open access repository (e.g. [Meyer et al., 2020](https://doi.org/10.1029/2019MS001961)).
+If you are looking for information on how to install or use Singularity on your system, please refer to the [Singularity documentation](https://sylabs.io/docs). The use of Singularity is undoubtedly the easiest way to build and run cases in uDALES as all dependencies are provided and uDALES will compile out of the box. Furthermore, users wishing to achieve a reasonable level of scientific reproducibility may archive software, tools, and data with their Singularity image containing OS and external libraries to an open access repository (e.g. [Meyer et al., 2020](https://doi.org/10.1029/2019MS001961)).
 
 First clone the uDALES repository with:
 
@@ -217,7 +216,6 @@ Finally, to run an example case use:
 ```
 
 If you are looking to run the build and run commands on HPC, we have provided a sample script under `tools/singularity/udales_pbs_submit.sh`, you can modify and run it with `qsub tools/singularity/udales_pbs_submit.sh`.
-
 
 ## What's next?
 

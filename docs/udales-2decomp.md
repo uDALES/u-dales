@@ -18,4 +18,3 @@ The 2DECOMP&FFT library implements transpose operations from Z->Y, Y->X, X->Y an
 The discretisation stencils in the transport equations require neighbour data.
 At pencil boundaries this requires exchanging data between neighbouring pencils.
 The 2DECOMP&FFT library provides halo exchange subroutines to support such data exchange.
-

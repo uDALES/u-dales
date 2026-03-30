@@ -1,3 +1,29 @@
+!> \file out_instants.f90
+!! Writes instantaneous planes of various fields to different NetCDF files.
+!>
+!
+!! Inspired from the slice routines in uDALES v2.2.0 modstatsdump.f90 written by Sam O. Owens, ICL (2024).
+!! \author Jingzi Huang, ICL (2024-2026)
+!! \author Dipanjan Majumdar, ICL (2025-2026)
+!! \todo documentation
+!
+! This file is part of uDALES (https://github.com/uDALES/u-dales).
+!
+! uDALES is free software; you can redistribute it and/or modify
+! it under the terms of the GNU General Public License as published by
+! the Free Software Foundation; either version 3 of the License, or
+! (at your option) any later version.
+!
+! uDALES is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License
+! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+!
+! Copyright (C) 2016- the uDALES Team, Imperial College London.
+!
 module instant
   use modglobal,  only : cexpnr, rk3step, ltempeq, lmoist, nsv, tsample, dt, timee, runtime, &
                          slicevars, lislicedump, islice, ljslicedump, jslice, lkslicedump, kslice, &

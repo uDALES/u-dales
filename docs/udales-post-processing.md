@@ -1,7 +1,7 @@
 # Post-processing
 
 uDALES saves the outputs as NetCDF files. If a simulation is run on several processors, each processor writes independent output files. The scripts `nco_concatenate_field_x.sh` and `nco_concatenate_field_y.sh` in the `tools` directory can be used together to gather these output files into a single file.
-The wrapper script `gather_outputs.sh` does this automatically for all output fields of the simulation. The script is automatically called after a simulation run when using `local_execute.sh` or `hpc_execute.sh` or `archer_execute.sh` for executing your simulation.
+The wrapper script `gather_outputs.sh` does this automatically for all output fields of the simulation. The script is automatically called after a simulation run when using `local_execute.sh` for executing your simulation. However on Imperial HPC or ARCHER2, the file gathering process should be executed seperately using `hpc_gather.sh` or `archer_gather.sh` respectively, once the main simulation completes.
 
 If you have separate output files of a continuous simulation, e.g. because one simulation is the warmstart of the other simulation, you can append these output files into a single file using the script `append_outputs.sh`.
 
@@ -17,13 +17,24 @@ To gather the output files of serveral processors from your simulation to a sing
 ./u-dales/tools/gather_outputs.sh outputs/009
 ```
 
-Replace 009 with the number of your simulation. When on the ARCHER2 cluster, one should carry out the gather operation on the copute nodes using the wrapper script `archer_gather.sh` as below,
+In the above command, replace 009 with the number of your simulation. 
+
+When on Imperial HPC, one should carry out the gather operation on a compute node using the wrapper script `hpc_gather.sh` as below,
 
 ``` sh
 # We assume you are running the following commands from your
 # top-level project directory.
 
-# General syntax: gather_outputs.sh <path-to-exp-outputs>
+./u-dales/tools/hpc_gather.sh experiments/009
+```
+Note in the above command `path-to-exp` is passed as an input argument instead of `path-to-exp-outputs`. The hpc_gather.sh script will identify the output work directory from the `config.sh` file available in the experiment directory.
+
+When on the ARCHER2 cluster, one should use the wrapper script `archer_gather.sh`. In this case, one should pass `path-to-exp-outputs` as the input argument as below,
+
+``` sh
+# We assume you are running the following commands from your
+# top-level project directory.
+
 ./u-dales/tools/archer_gather.sh outputs/009
 ```
 

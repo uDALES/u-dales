@@ -73,12 +73,6 @@ module modglobal
    integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
    character(90) :: fname_options = 'namoptions'
    integer, parameter :: longint = 8
-   
-   ! Run mode constants and variable
-   integer, parameter :: RUN_SIMULATION = 1
-   integer, parameter :: TEST_JSON = 1001
-   integer, parameter :: TEST_IO = 1002
-   integer :: runmode = RUN_SIMULATION
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
@@ -186,6 +180,7 @@ module modglobal
    logical :: lmoistinout = .false. !<  seperate switch for inflow/outflow BC for moisture (only necessary when linoutflow.eqv..false.).
    logical :: lper2inout = .false. !<  switch that determines type of restart: .true. means switching from periodic to in/outflow: inlet profile is read from prof.inp
    logical :: libm = .true. !<  switch that determines whether the Immersed Boundary Method is turned on
+   logical :: lconservativeibm = .false. !<  switch that determines whether the conservative immersed boundary method is used (if libm is true) for temperature, moisture and scalars
    logical :: lwalldist = .false. !<  switch that determines whether the wall distances should be computed
    logical :: lles = .true. !<  switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS)
    logical :: linletRA = .false. !<  switch that determines whether a Running Average should be used (.true.) in inlet generator
@@ -202,27 +197,25 @@ module modglobal
    logical :: lkslicedump= .false.  !<  switch to output slices in the xy-plane every tsample
    logical :: lislicedump= .false.  !<  switch to output slices in the yz-plane every tsample
    logical :: ljslicedump= .false.  !<  switch to output slices in the xz-plane every tsample
-   !integer :: kslice    = 1! k at which to output slice in xy-plane
+
    integer, parameter :: max_kslices = 50  !<  maximum number of k-slices
    integer :: kslice(max_kslices) = -1     !<  k levels at which to output slices in xy-plane
    integer :: nkslice   = 0                !<  number of valid k-slices
-   !
-   !integer :: islice    = 1! i at which to output slice in yz-plane
-   !integer :: jslice    = 1! j at which to output slice in xz-plane
    
    integer, parameter :: max_islices = 50  !<  maximum number of i-slices
    integer :: islice(max_islices) = -1     !<  i levels at which to output slices in yz-plane
    integer :: nislice   = 0                !<  number of valid i-slices
+   
    integer, parameter :: max_jslices = 50  !<  maximum number of j-slices
    integer :: jslice(max_jslices) = -1     !<  j levels at which to output slices in xz-plane
    integer :: njslice   = 0                !<  number of valid j-slices
    
-   logical :: lprobedump = .false.     !<  switch to output probe (point) time series every tsample
+   logical :: lprobedump = .false.           !<  switch to output probe (point) time series every tsample
    integer, parameter :: max_probes = 10000  !<  maximum number of probe points
-   integer :: iprobe(max_probes) = -1  !<  i indices of probe points
-   integer :: jprobe(max_probes) = -1  !<  j indices of probe points
-   integer :: kprobe(max_probes) = -1  !<  k indices of probe points
-   integer :: nprobe = 0               !<  number of probe points
+   integer :: iprobe(max_probes) = -1        !<  i indices of probe points
+   integer :: jprobe(max_probes) = -1        !<  j indices of probe points
+   integer :: kprobe(max_probes) = -1        !<  k indices of probe points
+   integer :: nprobe = 0                     !<  number of probe points
    
    logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
    logical :: lmintdump    = .false.      !<  switch to output prognostic statistics every tstatsdump
