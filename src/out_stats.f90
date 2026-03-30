@@ -3,7 +3,8 @@
 !>
 !
 !! Inspired from the uDALES v2.2.0 modstatsdump.f90 routine by Tom Grylls, ICL (2016).
-!! \author Dipanjan Majumdar, ICL (2025-2026)
+!! \author Dipanjan Majumdar, ICL (2023-2026)
+!! \author Jingzi Huang, ICL (2024-2026)
 !! \todo documentation
 !
 ! This file is part of uDALES (https://github.com/uDALES/u-dales).
@@ -755,14 +756,13 @@ module stats
       ctrt = ctrt+1
     end subroutine stats_init_tavg_PSS
 
-    !! ## %% 1D parallel output creation (y-direction processes only)
     subroutine stats_createnc_tavg
       use modglobal, only : jtot
       implicit none
       if (myidy ==0) then
-        filenamet = 'stats_t_out.xxx.xxx.nc'
-        filenamet(13:15) = cmyidx  ! Only x-processor ID
-        filenamet(17:19) = cexpnr  ! Experiment number
+        filenamet = 'stats_t.xxx.xxx.nc'
+        filenamet(9:11)  = cmyidx
+        filenamet(13:15) = cexpnr
 
         call open_nc(filenamet, ncidt1d, nrect, n1=xdim, n2=jtot, n3=zdim)
         if (nrect==0) then
@@ -772,6 +772,7 @@ module stats
         call define_nc(ncidt1d, tVarsCount, tVars)
       end if
     end subroutine stats_createnc_tavg
+
 
     !! ## %% Time, y and x averaging initialization routines
     subroutine stats_init_xytavg_vel

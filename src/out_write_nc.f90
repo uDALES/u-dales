@@ -6,7 +6,8 @@
 !! Inspired on the UCLA-LES routine by Bjorn Stevens.
 !! \author Thijs Heus, MPI-M
 !! \par Revision list
-!!   Dipanjan Majumdar, ICL (2025)
+!!   Dipanjan Majumdar, ICL (2023-2026)
+!!   Jingzi Huang, ICL (2024-2026)
 !! \todo documentation
 !! \todo restartfiles in NetCDF?
 !

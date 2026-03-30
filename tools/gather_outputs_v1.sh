@@ -71,7 +71,10 @@ for file in stats_*.*.000.${expnr}.nc ; do
         dumps=${file%.000.${expnr}.nc}
         base=${dumps%%.*}
 
-        if [ "$base" == "stats_tree" ]; then
+        if [ "$base" == "stats_t" ]; then
+            echo "Merging $base along y-direction."
+	        ymparam="v,vpwp,upvp,vsgs,ym"
+        elif [ "$base" == "stats_tree" ]; then
             echo "Merging $base along y-direction."
 	        ymparam="tr_v,ym"
         else
@@ -185,11 +188,11 @@ for file in stats_*.000.${expnr}.nc ; do
     fi
 done
 
-for file in ins_?slice.000.${expnr}.nc ; do
+for file in *slice.000.${expnr}.nc ; do
     if [ -f $file ]; then
         dumps=${file%.000.${expnr}.nc}
 
-        if [ $dumps == "ins_kslice" ] || [ $dumps == "ins_jslice" ]; then
+        if [ $dumps == "kslice" ] || [ $dumps == "jslice" ]; then
             echo "Merging $dumps along x-direction."
             xmparam="u,xm"
         fi
@@ -203,8 +206,8 @@ for file in ins_?slice.000.${expnr}.nc ; do
         ${toolsdir}/nco_concatenate_field_x.sh $dumps $xmparam $outfile
         echo "Merging done."
 
-	    #if [ $dumps == "ins_jslice" ]; then
-        #    rm ${dumps}.???.${expnr}.nc
-    	#fi
+	    if [ $dumps == "jslice" ]; then
+            rm ${dumps}.???.${expnr}.nc
+    	fi
     fi
 done

@@ -4,7 +4,7 @@
 !
 !! Inspired from the slice routines in uDALES v2.2.0 modstatsdump.f90 written by Sam O. Owens, ICL (2024).
 !! \author Jingzi Huang, ICL (2024-2026)
-!! \author Dipanjan Majumdar, ICL (2025-2026)
+!! \author Dipanjan Majumdar, ICL (2023-2026)
 !! \todo documentation
 !
 ! This file is part of uDALES (https://github.com/uDALES/u-dales).
