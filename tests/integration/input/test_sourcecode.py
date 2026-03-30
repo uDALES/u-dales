@@ -85,7 +85,7 @@ def write_reports(indexer: UdalesVariableIndexer, full_support, warnings, errors
             broadcast_check = "✓" if var in indexer.broadcasts else "✗"
             schema_check = "✓" if var in schema_vars_nl else "✗"
             full_report.append(f"| `{namelist}` | `{var}` | {broadcast_check} | {schema_check} |")
-    Path("test_sourcecode_full.md").write_text("\n".join(full_report))
+    (Path(__file__).parent / "test_sourcecode_full.md").write_text("\n".join(full_report))
 
     status_report = []
     status_report.append("# uDALES Variable Status Report")
@@ -110,13 +110,13 @@ def write_reports(indexer: UdalesVariableIndexer, full_support, warnings, errors
         for error in errors:
             status_report.append(f"- `{error['namelist']}.{error['variable']}`: {error['error_type']} - {error['error_detail']}")
         status_report.append("")
-    Path("test_sourcecode_status.md").write_text("\n".join(status_report))
+    (Path(__file__).parent / "test_sourcecode_status.md").write_text("\n".join(status_report))
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Run static source/schema checks for uDALES input variables")
-    parser.add_argument("--src-dir", default="../../src")
-    parser.add_argument("--schema-file", default="../../docs/schemas/udales_input_schema.json")
+    parser.add_argument("--src-dir", default="../../../src")
+    parser.add_argument("--schema-file", default="../../../docs/schemas/udales_input_schema.json")
     parser.add_argument("--fortran-file", default=None)
     args = parser.parse_args(argv)
 
@@ -145,7 +145,7 @@ SUBGRID.sg_cs            SUBGRID.cs
     simple_map = {}
     qualified_map = {}
     map_lines = embedded_map_text.strip().splitlines()
-    map_file = (script_dir / "../../docs/schemas/nam2jsonmap.txt").resolve()
+    map_file = (script_dir / "../../../docs/schemas/nam2jsonmap.txt").resolve()
     if map_file.exists():
         map_lines.extend(map_file.read_text().splitlines())
 

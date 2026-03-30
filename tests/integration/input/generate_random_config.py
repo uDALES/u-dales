@@ -148,10 +148,10 @@ def add_random_params_to_config(base_config_path, schema_path, output_path):
 def main():
     """Main function to generate random config files."""
     # Paths (computed relative to this script)
-    # script is at <repo>/tests/input/generate_random_config.py -> repo root is parents[2]
-    repo_root = Path(__file__).resolve().parents[2]
+    # script is at <repo>/tests/integration/input/generate_random_config.py -> repo root is parents[3]
+    repo_root = Path(__file__).resolve().parents[3]
     schema_path = str(repo_root / "docs" / "schemas" / "udales_input_schema.json")
-    # Write output to the same directory as this script (tests/input)
+    # Write output to the same directory as this script (tests/integration/input)
     script_dir = str(Path(__file__).resolve().parent)
     output_dir = script_dir
     output_path = os.path.join(output_dir, "parameters.random")

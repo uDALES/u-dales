@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Simplified run_all script for tests/input
+# Simplified run_all script for tests/integration/input
 # Assumptions:
-# - This script is located in tests/input
+# - This script is located in tests/integration/input
 # - The two python test scripts are in the same directory
 # - mpirun and other runtime dependencies are available
 

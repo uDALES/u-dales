@@ -4,7 +4,7 @@ Below we specify the input parameters in the `namoptions` file of your experimen
 
 ## Schema Tooling
 
-The complete JSON schema with parameter definitions, types, defaults, and validation rules is available in [`schemas/udales_input_schema.json`](schemas/udales_input_schema.json). It is intended for tooling, editor support, and validation of machine-generated representations of the namelist interface.
+The complete JSON schema with parameter definitions, types, defaults, and validation rules is available in [`schemas/udales_input_schema.json`](schemas/udales_input_schema.json). It is intended for tooling, editor support, and validation of machine-generated representations of the namelist interface. Runtime input remains namelist-based.
 
 Tools may represent the namelist structure in JSON like this:
 

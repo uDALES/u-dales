@@ -2,6 +2,8 @@
 
 This directory contains JSON schemas that describe the u-DALES input interface for tooling, validation, and editor support.
 
+u-DALES runtime input remains namelist-based. The schema and related JSON representations are intended for tooling only.
+
 ## Files
 
 ### `udales_input_schema.json`
@@ -22,7 +24,7 @@ Complete JSON Schema (draft-07) for u-DALES namelist parameters. This schema:
 
 ### For Developers
 - **Documentation**: Parameter definitions can be extracted from this schema
-- **Tools**: External tools can use this schema to generate input files or UIs
+- **Tools**: External tools can use this schema to generate namelist-aware interfaces or intermediate representations
 - **Validation**: Helper scripts can validate tool-produced JSON against the schema
 
 ### For Tools Integration
@@ -34,7 +36,7 @@ import jsonschema
 with open('docs/schemas/udales_input_schema.json', 'r') as f:
     schema = json.load(f)
 
-# Validate input file
+# Validate tool-produced representation
 with open('config.json', 'r') as f:
     config = json.load(f)
 
@@ -71,4 +73,4 @@ This schema should be updated whenever:
 - Parameter constraints are modified
 - New namelist sections are introduced
 
-The schema serves as the authoritative definition of the u-DALES input interface.
+The schema serves as the authoritative tooling definition of the u-DALES input interface.

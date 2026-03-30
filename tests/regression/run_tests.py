@@ -38,8 +38,7 @@ import f90nml
 
 from scripts import compare_outputs, build_model
 
-
-PROJ_DIR = Path(__file__).resolve().parents[1]
+PROJ_DIR = Path(__file__).resolve().parents[2]
 
 
 def main(branch_a: str, branch_b: str, build_type: str):
@@ -62,8 +61,8 @@ def main(branch_a: str, branch_b: str, build_type: str):
         path_to_exes.append(path_to_exe)
 
     # Run model and store outputs - currently impossible for uDALES 2 because it requires different input files, and tests are run in master repo.
-    #test_cases = (PROJ_DIR / 'tests'/ 'cases').iterdir()
-    #patched_example_cases = (PROJ_DIR / 'tests'/ 'patches').iterdir()
+    #test_cases = (PROJ_DIR / 'tests' / 'regression' / 'cases').iterdir()
+    #patched_example_cases = (PROJ_DIR / 'tests' / 'regression' / 'patches').iterdir()
     #run_and_compare(test_cases, path_to_exes, is_patch=False)
     #run_and_compare(patched_example_cases, path_to_exes, is_patch=True)
 

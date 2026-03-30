@@ -1,10 +1,10 @@
 """Standalone namelist round-trip validation test.
 
-This follows the round-trip test structure from the reference branch as closely as possible:
-1. prepare an input case
-2. run u-dales in TEST_ROUNDTRIP mode so the last rank writes `namoptions_roundtrip`
-3. convert both the input namelist and generated namelist to JSON via `ud_nam2json`
-4. compare generated values against explicit input values or schema defaults
+This test:
+1. prepares an input case
+2. runs u-dales in TEST_ROUNDTRIP mode so the last rank writes `namoptions_roundtrip`
+3. converts both the input namelist and generated namelist via `ud_nam2json`
+4. compares generated values against explicit input values or schema defaults
 """
 
 import argparse
@@ -138,12 +138,12 @@ def _copy_case_directory(src_case_dir, workdir):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Run u-DALES namelist round-trip test")
-    parser.add_argument("--comparator-only", action="store_true", help="Skip running u-DALES and compare an existing generated JSON")
-    parser.add_argument("--generated", help="Path to generated JSON to compare (overrides defaults)")
+    parser.add_argument("--comparator-only", action="store_true", help="Skip running u-DALES and compare an existing generated file")
+    parser.add_argument("--generated", help="Path to generated file to compare (overrides defaults)")
     parser.add_argument("--mode", choices=["default", "random"], default="default", help="Test mode. 'random' is currently not implemented for namelist input")
     args = parser.parse_args(argv)
 
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = Path(__file__).resolve().parents[3]
 
     udales_path = shutil.which("u-dales")
     ud_nam2json_path = shutil.which("ud_nam2json")
@@ -165,10 +165,10 @@ def main(argv=None):
 
     if ud_topdir:
         schema_path = Path(ud_topdir) / "docs" / "schemas" / "udales_input_schema.json"
-        input_dir = Path(ud_topdir) / "tests" / "input"
+        input_dir = Path(ud_topdir) / "tests" / "integration" / "input"
     else:
         schema_path = repo_root / "docs" / "schemas" / "udales_input_schema.json"
-        input_dir = repo_root / "tests" / "input"
+        input_dir = repo_root / "tests" / "integration" / "input"
 
     if not schema_path.exists():
         print(f"SKIP: schema not found: {schema_path}")
@@ -214,7 +214,7 @@ def main(argv=None):
         else:
             generated_json_path = input_dir / "parameters_roundtrip"
         if not generated_json_path.exists():
-            print(f"ERROR: generated JSON not found for comparator-only: {generated_json_path}")
+            print(f"ERROR: generated round-trip file not found for comparator-only: {generated_json_path}")
             return 2
         input_json_path = input_dir / "parameters_input"
         if not input_json_path.exists():

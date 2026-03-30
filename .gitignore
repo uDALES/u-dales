@@ -14,6 +14,10 @@ outputs/
 examples/*/blocks.*.png
 tmp/*
 bin/
+tests/integration/input/test_sourcecode_full.md
+tests/integration/input/test_sourcecode_status.md
+tests/integration/input/test_roundtrip_default.md
+tests/integration/input/test_roundtrip_random.md
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-JSON Schema Validation Tool for u-DALES
+Schema Validation Tool for u-DALES
 
-This script validates JSON representations of u-DALES inputs against the official schema.
+This script validates tool-produced JSON representations of u-DALES inputs against the official schema.
 
 Usage:
     python3 validate_json_input.py config.json
@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 def load_schema():
-    """Load the u-DALES JSON schema."""
+    """Load the u-DALES input schema."""
     # Find schema relative to this script
     script_dir = Path(__file__).parent
     schema_path = script_dir / "schemas" / "udales_input_schema.json"
@@ -37,7 +37,7 @@ def load_schema():
         return json.load(f)
 
 def validate_json_file(json_file_path, schema):
-    """Validate a JSON file against the schema."""
+    """Validate a tool-produced JSON file against the schema."""
     try:
         import jsonschema
     except ImportError:
@@ -51,7 +51,7 @@ def validate_json_file(json_file_path, schema):
     
     try:
         jsonschema.validate(config, schema)
-        return True, "JSON file is valid according to schema"
+        return True, "Input representation is valid according to schema"
     except jsonschema.ValidationError as e:
         return False, f"Validation error: {e.message}"
     except jsonschema.SchemaError as e:
@@ -87,7 +87,7 @@ def basic_validation(json_file_path, schema):
 
 def show_schema_info(schema):
     """Display information about the schema."""
-    print("u-DALES JSON Schema Information")
+    print("u-DALES Input Schema Information")
     print("=" * 40)
     print(f"Title: {schema.get('title', 'N/A')}")
     print(f"Description: {schema.get('description', 'N/A')}")

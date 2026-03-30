@@ -1,27 +1,46 @@
 # Tests
 
-The following integration tests are used to verify that any change to the source code does not alter simulation results between the `master` and working branch. **Tests should be run locally before pushing changes** and are run automatically at every commit through CI.
+The `tests` directory is organized by test scope:
 
-Tests are run and can be modified in two different ways by:
+- `integration/`: end-to-end checks of interacting components
+- `regression/`: case comparisons and branch-to-branch output checks
+- `system/`: whole-code validation cases, including resource-heavy runs
+- `unit/`: isolated tests when routines can be tested independently
 
-- specifying a whole case: run using configuration files from the `tests/cases` folder. Tests are run automatically for all case folders included in the `tests/cases` folder and can be easily expanded by adding a new case folders. Currently we run tests for case `103`.
+## Integration
 
-- patching an existing example: run using configuration files from the `examples` folder but with a reduced simulation time to cut CPU costs. This is done by patching namelists with patch files included in the  `tests/patches` folder. Tests are run automatically for all patch files included in the `tests/patches` folder is detected and can be easily expanded by adding a new patch files corresponding to the additional example case to run. Currently we run tests for example case `001`, `102`, `201`, `501` and `502`.
+`tests/integration/input` contains checks for the input interface:
 
-## How to run tests
+- `test_roundtrip_input.py` runs a round-trip integration test. It executes `u-dales`, writes the interpreted namelist state from the last rank, converts both input and output namelists with `ud_nam2json`, and compares the result against explicit input values and schema defaults.
+- `test_sourcecode.py` performs a static consistency check between Fortran namelist definitions, MPI broadcasts, and the schema used for tooling/editor support.
 
-Make sure you have the required Python libraries installed on your system (see [DEVELOP.md](../DEVELOP.md)) and activate the `udales` conda environment. Then, to run the tests run the following commands from the `tests` directory:
+## Regression
 
-```
+`tests/regression` contains branch-comparison and case-based regression assets:
+
+- `cases/`: complete test cases
+- `patches/`: patches applied to example cases to create cheaper regression runs
+- `scripts/`: helper scripts for building models and comparing outputs
+- `run_tests.py`: regression test entry point
+
+To run regression tests:
+
+```bash
+cd tests/regression
 python run_tests.py <branch_a> <branch_b> <build_type>
 ```
 
 Where `<branch_a>` and `<branch_b>` are the two branches you want to compare and `<build_type>` is either `Debug` or `Release`.
 
-E.g.
-```
+Example:
+
+```bash
+cd tests/regression
 python run_tests.py master dmey/patch-1 Release
 ```
 
-Tests outputs are saved under `tests/outputs` and currently include a boxplots of approximate errors for all four dimensional (3D space + time) quantities included in the uDALES output netCDF files.
+## Notes
 
+- Large HPC-scale validation runs should live under `tests/system/`.
+- Python unit tests should live alongside the Python code, for example under `tools/python/tests`.
+- `tests_sparse_ijk` and `tests_tree_input` currently contain old log files rather than active tests, so they have been left untouched.

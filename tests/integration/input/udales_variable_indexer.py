@@ -137,8 +137,8 @@ class UdalesVariableIndexer:
 
 def main():
     parser = argparse.ArgumentParser(description="Analyze uDALES namelist/broadcast/schema consistency")
-    parser.add_argument("--src-dir", default="../../src")
-    parser.add_argument("--schema-file", default="../../docs/schemas/udales_input_schema.json")
+    parser.add_argument("--src-dir", default="../../../src")
+    parser.add_argument("--schema-file", default="../../../docs/schemas/udales_input_schema.json")
     args = parser.parse_args()
 
     script_dir = Path(__file__).parent
