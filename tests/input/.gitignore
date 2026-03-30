@@ -1,0 +1,35 @@
+# JSON Test Output Directory
+# This directory contains outputs from JSON input functionality tests
+
+# Ignore temporary test files
+*.tmp
+*.log
+*.out
+*.err
+
+# Ignore compiled geometry files
+*.stl
+
+# Ignore namelist test files
+namoptions.*
+
+# Keep structure but ignore most content
+*_test_output/
+demo_test_output/
+unit_test_output/
+integration_test_output/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Keep important files
+!README.md
+!JSON_TESTING_README.md
+!*.py
+
+# Keep test_input_comparison for historical reference but ignore its outputs
+test_input_comparison/*/namoptions.*
+test_input_comparison/*/config.json
+test_input_comparison/*/param_extractor
