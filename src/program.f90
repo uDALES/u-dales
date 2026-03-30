@@ -48,7 +48,7 @@ program DALESURBAN      !Version 48
   use modchecksim,     only : initchecksim,checksim
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
-  use tests,           only : tests_roundtrip
+  use tests,           only : init_tests,tests_roundtrip,exit_tests
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use stats,           only : stats_init,stats_main,stats_exit !DMajumdar
   use instant_slice,   only : instant_init,instant_main !DMajumdar
@@ -63,13 +63,13 @@ program DALESURBAN      !Version 48
   !call startup
   call readconfig
 
+  call execute_runmode_actions
+
   call init2decomp
 
   call checkinitvalues
 
   call initglobal
-
-  call execute_runmode_actions
 
   call initfields
 
@@ -233,7 +233,6 @@ program DALESURBAN      !Version 48
   call exit_heatpump
   call stats_exit
   !call exitmodules
-  !call exittest
   call exitmpi
 
 contains
@@ -241,8 +240,9 @@ contains
     select case (runmode)
       case (RUN_SIMULATION)
       case (TEST_ROUNDTRIP)
+        call init_tests
         call tests_roundtrip
-        call exitmpi
+        call exit_tests
         stop
       case (TEST_IO)
         write(*,*) 'TEST_IO mode not yet implemented'

@@ -108,12 +108,15 @@ def run_and_compare(cases_dir, path_to_exes, is_patch=False):
             else:
                  namelist = f'namoptions.{case_id}'
 
+            cpu_count = get_mpi_process_count(model_output_dir / namelist)
+
             # For driver sims we need to copy all files in first from the precursor simulation.
             if case_id in driver_sims:
                 for f_name in (model_output_dir.parents[1] / '501' / model_output_dir.name).glob('*driver*'):
                     shutil.copy(f_name, model_output_dir.parents[1] / '502' / model_output_dir.name)
 
-            run_udales(path_to_exe, namelist, model_output_dir, model_output_dirs)
+            run_udales(path_to_exe, namelist, model_output_dir, model_output_dirs,
+                       cpu_count=cpu_count)
 
         # We do not compare precursor sims
         if not case_id in precursor_sims:
@@ -122,8 +125,22 @@ def run_and_compare(cases_dir, path_to_exes, is_patch=False):
                                     model_output_dirs[1] / f'fielddump.000.{test_case_dir.name}.nc',
                                     model_output_dirs[0].parent)
 
-def run_udales(path_to_exe: Path, namelist: str, model_output_dir: str, 
-               model_output_dirs: list, cpu_count=2) -> None:
+def get_mpi_process_count(namelist_path: Path) -> int:
+    run_nml = f90nml.read(namelist_path).get('run', {})
+    nprocx = int(run_nml.get('nprocx', 1))
+    nprocy = int(run_nml.get('nprocy', 1))
+    cpu_count = nprocx * nprocy
+
+    if cpu_count > 32:
+        raise RuntimeError(
+            f'Refusing to run regression case with {cpu_count} MPI ranks '
+            f'from {namelist_path.name}; limit is 32.')
+
+    return cpu_count
+
+
+def run_udales(path_to_exe: Path, namelist: str, model_output_dir: str,
+               model_output_dirs: list, cpu_count: int) -> None:
     print(f'Running uDALES in: {path_to_exe}')
     try:
         subprocess.run(['mpiexec', '-np', str(cpu_count), path_to_exe / 'u-dales',

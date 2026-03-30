@@ -3,42 +3,43 @@ module tests
   use decomp_2d
   use modglobal
   use modmpi, only : comm3d, my_real, mpierr, myid
-  use readparameters, only : readnamelists, writenamelists
+  use modstartup, only : init2decomp
+  use readparameters, only : writenamelists
   implicit none
 
   contains
-    subroutine inittest
-      integer :: nx=64, ny=64, nz=64
-      integer :: p_row=0, p_col=0
-      integer :: ierror
+    subroutine init_tests
+      implicit none
 
-      call MPI_INIT(ierror)
-      call decomp_2d_init(nx,ny,nz,p_row,p_col)
+      integer :: ierr, myid
 
-      write(*,*) xstart
-      write(*,*) ystart
-      write(*,*) zstart
-      write(*,*) xend
-      write(*,*) yend
-      write(*,*) zend
-      write(*,*) xsize
-      write(*,*) ysize
-      write(*,*) zsize
+      call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
 
-    end subroutine inittest
+      if (nprocx * nprocy > 32) then
+        if (myid == 0) then
+          write(*,*) 'ERROR: input round-trip test refuses to run with more than 32 MPI ranks.'
+          write(*,*) 'Requested nprocx*nprocy =', nprocx * nprocy
+        end if
+        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+      end if
 
-    subroutine exittest
-      integer :: ierror
+      call init2decomp
+
+    end subroutine init_tests
+
+    subroutine exit_tests
+      implicit none
+
+      integer :: ierr
 
       call decomp_2d_finalize
-      call MPI_FINALIZE(ierror)
-
-    end subroutine exittest
+      call MPI_FINALIZE(ierr)
+    end subroutine exit_tests
 
     subroutine tests_roundtrip
       implicit none
 
-      integer :: ierr, last_proc, nprocs, myid
+      integer :: ierr, nprocs, myid, last_proc
 
       call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
       call MPI_COMM_SIZE(MPI_COMM_WORLD, nprocs, ierr)
@@ -49,6 +50,7 @@ module tests
         write(*,*) 'INPUT ROUND-TRIP TEST'
         write(*,*) '========================================='
         write(*,*) 'Total processes:', nprocs
+        write(*,*) 'Requested nprocx*nprocy:', nprocx * nprocy
         write(*,*) 'Last process ID:', last_proc
         write(*,*) '========================================='
       end if
