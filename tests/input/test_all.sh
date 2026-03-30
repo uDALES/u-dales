@@ -12,25 +12,25 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
 PYTHON=python3
-JSON_TEST=./test_json_input.py
+ROUNDTRIP_TEST=./test_roundtrip_input.py
 SOURCE_TEST=./test_sourcecode.py
 
-echo "Running JSON test (default)..."
-${PYTHON} ${JSON_TEST} --mode default
+echo "Running round-trip test (default)..."
+${PYTHON} ${ROUNDTRIP_TEST} --mode default
 rc1=$?
 if [ ${rc1} -eq 0 ]; then
-  echo "test_json_input (default): PASSED"
+  echo "test_roundtrip_input (default): PASSED"
 else
-  echo "test_json_input (default): FAILED"
+  echo "test_roundtrip_input (default): FAILED"
 fi
 
-echo "Running JSON test (random)..."
-${PYTHON} ${JSON_TEST} --mode random
+echo "Running round-trip test (random)..."
+${PYTHON} ${ROUNDTRIP_TEST} --mode random
 rc2=$?
 if [ ${rc2} -eq 0 ]; then
-  echo "test_json_input (random): PASSED"
+  echo "test_roundtrip_input (random): PASSED"
 else
-  echo "test_json_input (random): FAILED"
+  echo "test_roundtrip_input (random): FAILED"
 fi
 
 echo "Running sourcecode test..."
@@ -49,8 +49,8 @@ if [ ${rc1} -eq 0 ] && [ ${rc2} -eq 0 ] && [ ${rc3} -eq 0 ]; then
 else
   echo
   echo "=== SOME TESTS FAILED ==="
-  echo "test_json_input (default):  $( [ ${rc1} -eq 0 ] && echo PASSED || echo FAILED )"
-  echo "test_json_input (random):   $( [ ${rc2} -eq 0 ] && echo PASSED || echo FAILED )"
+  echo "test_roundtrip_input (default):  $( [ ${rc1} -eq 0 ] && echo PASSED || echo FAILED )"
+  echo "test_roundtrip_input (random):   $( [ ${rc2} -eq 0 ] && echo PASSED || echo FAILED )"
   echo "test_sourcecode:            $( [ ${rc3} -eq 0 ] && echo PASSED || echo FAILED )"
   exit 1
 fi

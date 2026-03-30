@@ -2,8 +2,28 @@
 
 Below we specify the input parameters in the `namoptions` file of your experiment.
 
+## Schema Tooling
+
+The complete JSON schema with parameter definitions, types, defaults, and validation rules is available in [`schemas/udales_input_schema.json`](schemas/udales_input_schema.json). It is intended for tooling, editor support, and validation of machine-generated representations of the namelist interface.
+
+Tools may represent the namelist structure in JSON like this:
+
+```json
+{
+  "RUN": {
+    "iexpnr": 1,
+    "runtime": 100.0,
+    "lwarmstart": false
+  },
+  "DOMAIN": {
+    "itot": 64,
+    "jtot": 64,
+    "ktot": 64
+  }
+}
+```
+
 <!--
-This list 
 This list refers to the original code-base [DALES](https://github.com/dalesteam/dales). The latest version of the namoptions overview of DALES is documented [here](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf).
 -->
 ## Namelist RUN

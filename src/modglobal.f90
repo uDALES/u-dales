@@ -72,6 +72,11 @@ module modglobal
    integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
    character(90) :: fname_options = 'namoptions'
    integer, parameter :: longint = 8
+
+   integer, parameter :: RUN_SIMULATION = 1
+   integer, parameter :: TEST_ROUNDTRIP = 1001
+   integer, parameter :: TEST_IO = 1002
+   integer :: runmode = RUN_SIMULATION
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
    logical :: lfielddump = .false. !< switch to enable the fielddump
@@ -387,6 +392,7 @@ module modglobal
    real :: runtime = 300. !<     * simulation time in secs
    real :: dtmax = 20. !<     * maximum time integration interval
 
+   real    :: tcheck = 1. !<    Time interval for basic logging to screen
    real    :: trestart = 10000. !<     * each trestart sec. a restart file is written to disk. bss116: per default do not write restart files
    real    :: tfielddump = 10000. !< Time step for field outputs
    real    :: tsample = 5. !<    Sample time steps for statistics
