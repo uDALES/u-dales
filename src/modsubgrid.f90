@@ -325,9 +325,12 @@ contains
              bb = b11*b22 - b12*b12 + b11*b33 - b13*b13 + b22*b33 - b23*b23
 
             !ekm(i,j,k) = c_vreman*sqrt( max( (bb/aa), 0.0 ) )   ! Eddy viscosity
-
-            if (bb < 1.e-8) then                                                                                                                             ekm(i,j,k) = 0.                                                                                                                                else                                                                                                                                             ekm(i,j,k) = c_vreman*sqrt(bb / aa)                                                                                                            end if       
-         
+            if (bb < 1.e-8) then ! this tolerance is hardcoded here as per the Vremann model
+              ekm(i,j,k) = 0.
+            else
+              ekm(i,j,k) = c_vreman*sqrt(bb/aa)
+            end if
+            
            end do
          end do
        end do
