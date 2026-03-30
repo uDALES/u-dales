@@ -342,7 +342,12 @@ contains
                  b23 = dx2_d*a12*a13 + dy2_d*a22*a23 + dzf2_d(k)*a32*a33
                  bb  = b11*b22 - b12*b12 + b11*b33 - b13*b13 + b22*b33 - b23*b23
 
-                 ekm_d(i,j,k) = c_vreman_d*sqrt( max( (bb/aa), 0.0 ) )
+                 ! ekm_d(i,j,k) = c_vreman_d*sqrt( max( (bb/aa), 0.0 ) )
+                 if (bb < 1.e-8) then
+                   ekm_d(i,j,k) = 0.
+                 else
+                   ekm_d(i,j,k) = c_vreman_d*sqrt(bb/aa)
+                 end if
               end do
            end do
         end do
