@@ -183,14 +183,14 @@ Comprehensive testing infrastructure ensures code quality and reproducibility:
   - Tests MPI distribution of solid/fluid boundary points
   - Verifies coordinate remapping between global/local frames
   - Run mode: `runmode = 1004`
-  - Location: `tests/tests_sparse_ijk/`
+  - Location: `tests/integration/sparse_ijk/`
 
 - **TEST_TREES_SPARSE_INPUT**: Tree input file validation
-  - Location: `tests/tests_tree_input/`
+  - Location: `tests/integration/tree_input/`
 
 #### Test Execution
 ```bash
-cd tests
+cd tests/regression
 python run_tests.py <branch_a> <branch_b> <build_type>
 ```
 

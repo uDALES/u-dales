@@ -218,7 +218,7 @@ print(f"10 cached calls: {dt:.3f} s (avg {dt / 10.0:.3f} s per call)")
 # Case 3: Vegetation case (trees enabled)
 # -----------------------------------------------------------------------------
 expnr_veg = "525"
-expdir_veg = udales_path / "tests" / "tests_tree_input"
+expdir_veg = udales_path / "tests" / "integration" / "tree_input"
 prep_veg = UDPrep(expnr_veg, expdir_veg, load_geometry=True)
 sim_veg = prep_veg.sim
 

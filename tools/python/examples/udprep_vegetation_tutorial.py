@@ -22,7 +22,7 @@ from udprep import UDPrep
 
 # Test case included with uDALES
 expnr = "525"
-expdir = udales_path / "tests" / "tests_tree_input"
+expdir = udales_path / "tests" / "integration" / "tree_input"
 
 # Instantiate UDPrep (loads UDBase + geometry by default).
 prep = UDPrep(expnr, expdir)

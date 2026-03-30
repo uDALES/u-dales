@@ -7,17 +7,21 @@
 # The test validates that read_sparse_ijk() correctly distributes
 # solid and fluid boundary point data across MPI ranks.
 
+set -eu
+
 # Configuration
-NPROCS=4
-UDALES_BUILD="../build/debug/u-dales"
-CASE_DIR="../examples/101"
-NAMELIST="namoptions.101"
+NPROCS="${NPROCS:-4}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/debug/u-dales}"
+CASE_DIR="${CASE_DIR:-${SCRIPT_DIR}}"
+NAMELIST="${NAMELIST:-namoptions.101}"
 
 # Check if executable exists
 if [ ! -f "$UDALES_BUILD" ]; then
     echo "ERROR: u-dales executable not found at: $UDALES_BUILD"
     echo "Please build u-dales in debug mode first:"
-    echo "  cd ../build/debug && cmake -DCMAKE_BUILD_TYPE=Debug ../.. && make"
+    echo "  cd ${REPO_ROOT}/build/debug && cmake -DCMAKE_BUILD_TYPE=Debug ../.. && make"
     exit 1
 fi
 
@@ -41,20 +45,20 @@ echo "Running TEST_SPARSE_IJK"
 echo "=========================================="
 echo "MPI processes: $NPROCS"
 echo "Executable:    $UDALES_BUILD"
-echo "Case:          $(basename $CASE_DIR)"
+echo "Case:          $(basename "$CASE_DIR")"
 echo "Namelist:      $NAMELIST"
 echo "=========================================="
 echo ""
 
 # Run the test
-mpiexec -n $NPROCS "$UDALES_BUILD" "$NAMELIST"
+mpiexec -n "$NPROCS" "$UDALES_BUILD" "$NAMELIST"
 
 # Capture exit code
 EXIT_CODE=$?
 
 echo ""
 echo "=========================================="
-if [ $EXIT_CODE -eq 0 ]; then
+if [ "$EXIT_CODE" -eq 0 ]; then
     echo "Test completed successfully"
 else
     echo "Test failed with exit code: $EXIT_CODE"

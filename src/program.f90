@@ -243,10 +243,10 @@ contains
         ! Normal execution mode, do nothing special here
       case (TEST_SPARSE_IJK)
         ! Execute tests for reading sparse arrays
-        test_failed = tests_read_sparse_ijk()
+        test_failed = .not. tests_read_sparse_ijk()
       case (TEST_TREES_SPARSE_INPUT)
         call initfields
-        test_failed = tests_trees_sparse_compare()
+        test_failed = .not. tests_trees_sparse_compare()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
         stop
