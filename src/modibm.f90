@@ -622,6 +622,7 @@ module modibm
      allocate(bound_info%lskipsec_loc(bound_info%nfctsecsrank))
 
      m = 0
+     p = 0  ! counter for sections overridden to simple reconstruction
      do n = 1, bound_info%nfctsecs
        if (lfctsecsrank(n)) then
           m = m + 1
@@ -644,9 +645,36 @@ module modibm
           bound_info%recids_w_loc(m,:) = bound_info%recids_w(n,:)
           bound_info%recids_c_loc(m,:) = bound_info%recids_c(n,:)
           bound_info%lcomprec_loc(m) = bound_info%lcomprec(n)
+
+          ! If any reconstruction cell index falls outside this rank's halo-accessible range,
+          ! override to simple reconstruction to avoid out-of-bounds access in trilinear_interp_var.
+          !
+          ! Skipped sections (lskipsec(n)) never reach trilinear_interp_var
+          ! so they are harmless even if their reconstruction cell is out of range.
+          !
+          ! These sections then self-skip at runtime via the log(dist/z0) <= 1 check, contributing zero stress — a small, localized inaccuracy
+          if (.not. bound_info%lcomprec_loc(m) .and. .not. bound_info%lskipsec(n)) then
+            if (bound_info%recids_u_loc(m,1) < zstart(1)-1 .or. bound_info%recids_u_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_u_loc(m,2) < zstart(2)-1 .or. bound_info%recids_u_loc(m,2) > zend(2)+1 .or. &
+                bound_info%recids_v_loc(m,1) < zstart(1)-1 .or. bound_info%recids_v_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_v_loc(m,2) < zstart(2)-1 .or. bound_info%recids_v_loc(m,2) > zend(2)+1 .or. &
+                bound_info%recids_w_loc(m,1) < zstart(1)-1 .or. bound_info%recids_w_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_w_loc(m,2) < zstart(2)-1 .or. bound_info%recids_w_loc(m,2) > zend(2)+1 .or. &
+                bound_info%recids_c_loc(m,1) < zstart(1)-1 .or. bound_info%recids_c_loc(m,1) > zend(1)+1 .or. &
+                bound_info%recids_c_loc(m,2) < zstart(2)-1 .or. bound_info%recids_c_loc(m,2) > zend(2)+1) then
+              bound_info%lcomprec_loc(m) = .true.
+              p = p + 1
+            end if
+          end if
+
           bound_info%lskipsec_loc(m) = bound_info%lskipsec(n)
        end if
      end do
+
+     if (p > 0) then
+       write(*,*) "WARNING initibmwallfun: MPI rank", myid, "overrode", p, &
+                  "facet section(s) to simple reconstruction because reconstruction cell falls outside halo range."
+     end if
 
      deallocate(bound_info%bndpts)
      deallocate(bound_info%secfacids)
@@ -714,7 +742,7 @@ module modibm
 
 
    subroutine ibmnorm
-     use modglobal,   only : ih, jh, kh, ihc, jhc, khc, nsv, dzf, zh, kb, ke, kh, nsv, libm, ltempeq, lmoist, iadv_sv, iadv_cd2, iadv_thl
+     use modglobal,   only : ih, jh, kh, ihc, jhc, khc, nsv, dzf, zh, kb, ke, kh, nsv, libm, ltempeq, lmoist, iadv_sv, iadv_cd2, iadv_thl, lconservativeibm
      use modfields,   only : um, vm, wm, thlm, qtm, svm, up, vp, wp, thlp, qtp, svp, thl0, qt0, sv0, thl0av
      use modboundary, only : halos
      use decomp_2d,   only : zstart, zend
@@ -734,17 +762,33 @@ module modibm
      ! Set interior to a constant and boundary to average of fluid neighbours
      if (ltempeq) then
         call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1), ih, jh, kh, mask_c)
-        if (iadv_thl == iadv_cd2) call advecc2nd_corr_conservative(thl0, thlp)
+        if (iadv_thl == iadv_cd2) then
+          if (lconservativeibm) then
+            call advecc2nd_corr_conservative(thl0, thlp)
+          else
+            call advecc2nd_corr_liberal(thl0, thlp)
+          end if
+        end if
      end if
 
      if (lmoist) then
        call solid(solid_info_c, qtm, qtp, 0., ih, jh, kh, mask_c)
-       call advecc2nd_corr_conservative(qt0, qtp)
+       if (lconservativeibm) then
+         call advecc2nd_corr_conservative(qt0, qtp)
+       else
+         call advecc2nd_corr_liberal(qt0, qtp)
+       end if
      end if
 
      do n=1,nsv
         call solid(solid_info_c, svm(:,:,:,n), svp(:,:,:,n), 0., ihc, jhc, khc, mask_c)
-        if (iadv_sv(n) == iadv_cd2) call advecc2nd_corr_conservative(sv0(:,:,:,n), svp(:,:,:,n))
+        if (iadv_sv(n) == iadv_cd2) then
+          if (lconservativeibm) then
+            call advecc2nd_corr_conservative(sv0(:,:,:,n), svp(:,:,:,n))
+          else
+            call advecc2nd_corr_liberal(sv0(:,:,:,n), svp(:,:,:,n))
+          end if
+        end if
      end do
 
    end subroutine ibmnorm
