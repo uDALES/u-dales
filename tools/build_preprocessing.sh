@@ -16,8 +16,7 @@ if [ ! -d tools ]; then
 fi
 
 cd tools/View3D
-mkdir build
-cd build
+mkdir -p build/src
 
 system=$1
 if [ $system == "icl" ]
@@ -31,7 +30,23 @@ else
     exit 1
 fi
 
-cmake ..
-echo "View3D configuration complete."
+if command -v cmake >/dev/null 2>&1
+then
+    cd build
+    cmake ..
+    echo "View3D configuration complete."
+    make
+    if [ -f src/view3d ]
+    then
+        echo "View3D executable available at tools/View3D/build/src/view3d"
+        exit 0
+    fi
+    echo "CMake build completed but build/src/view3d was not created."
+    exit 1
+fi
 
+echo "cmake not found; falling back to src/Makefile"
+cd src
 make
+cp View3D ../build/src/view3d
+echo "View3D executable available at tools/View3D/build/src/view3d"

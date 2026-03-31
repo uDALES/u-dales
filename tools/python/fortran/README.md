@@ -4,17 +4,30 @@ This folder contains f2py wrapper sources for Fortran routines used by the
 Python tooling. The authoritative Fortran implementations live under
 `tools/SEB`.
 
-## Build (PowerShell)
+## Linux / macOS
+
+From the `u-dales` repo root:
+
+```bash
+source .venv/bin/activate
+./tools/python/fortran/build_f2py.sh
+```
+
+## Windows (PowerShell)
 
 From the `u-dales` repo root:
 
 ```powershell
-./tools/python/fortran/build_f2py.f90
+.\tools\python\fortran\build_f2py.ps1
 ```
 
-Install build dependencies (and Fortran compiler). From within the virtual environment run:
-```powershell
-conda install -c conda-forge gfortran meson ninja --solver=classic
-```
+## Requirements
 
-Build dependencies are also listed in `tools/python/requirements-build.txt`.
+- Python development headers for the interpreter used to build the extension
+- `numpy`
+- Python-side build helpers from `tools/python/requirements-build.txt`
+- a Fortran compiler such as `gfortran`
+
+When building with `gfortran`, the wrapper source may require the
+`-ffree-line-length-none` flag. The provided shell and PowerShell build scripts
+set the needed flags.

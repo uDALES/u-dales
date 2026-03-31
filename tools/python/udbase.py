@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 uDALES Post-Processing Module
 
@@ -604,7 +606,8 @@ class UDBase:
             lines.append(f"  {varname} = {value_str}\n")
             lines.append("/\n")
 
-        namelist_path.write_text("".join(lines), encoding="ascii", newline="\n")
+        with namelist_path.open("w", encoding="ascii", newline="\n") as f:
+            f.write("".join(lines))
         setattr(self, varname.strip(), value)
         return namelist_path
 

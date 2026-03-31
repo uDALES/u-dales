@@ -340,7 +340,10 @@ class RadiationSection(Section):
             vfsparse_path = out_dir / f"vfsparse.inp.{expnr}"
             write_vfsparse(vfsparse_path, vf, threshold=5e-7)
 
-        nnz = int(getattr(vf, "nnz", np.count_nonzero(vf)))
+        if hasattr(vf, "nnz"):
+            nnz = int(vf.nnz)
+        else:
+            nnz = int(np.count_nonzero(vf))
         sim.save_param("nnz", nnz)
         self._vf_cache = vf
         self._svf_cache = svf

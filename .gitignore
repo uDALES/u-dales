@@ -25,6 +25,11 @@ examples/*/*driver*
 # Matlab artifacts
 *.m~
 
+# virtual environments
+venv/
+env/
+.venv/
+
 # Python
 **/__pycache__/
 *.pyc

@@ -963,7 +963,8 @@ class DirectShortwaveSolver:
             except ImportError as exc:
                 raise RuntimeError(
                     "directshortwave_f2py module not available; "
-                    "build it with tools/python/fortran/build_f2py.ps1"
+                    "build it with tools/python/fortran/build_f2py.sh "
+                    "or tools/python/fortran/build_f2py.ps1"
                 ) from exc
             self._dsmod = _dsmod
             if self.veg.points.size:

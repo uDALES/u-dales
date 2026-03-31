@@ -7,6 +7,8 @@ h5netcdf>=1.0.0
 trimesh>=3.9.0
 matplotlib>=3.3.0
 f90nml>=1.4.4
+numba>=0.60.0
+pvlib>=0.13.0
 plotly>=5.0.0
 
 # Notebook support (optional)

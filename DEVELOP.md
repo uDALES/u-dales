@@ -16,6 +16,23 @@ conda env create -f environment.yml
 
 Then activate with `conda activate udales`.
 
+If a repo-local virtual environment already exists at `.venv/`, you can also
+use that directly for Python tooling and tests, for example:
+
+```sh
+.venv/bin/python -m unittest tools/python/tests/test_namelist.py
+```
+
+The Python radiation tooling also requires the compiled View3D executable and
+the `directshortwave_f2py` wrapper. The simplest setup path is:
+
+```sh
+PYTHON_BIN=/opt/pbs/python/bin/python3 ./tools/python/setup_venv.sh
+```
+
+Use another interpreter only if it provides the matching Python development
+headers needed by f2py.
+
 ## Installation
 
 To install uDALES on Linux, macOS, and WSL, use the following commands from the command prompt:

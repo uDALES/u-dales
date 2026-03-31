@@ -36,9 +36,17 @@ def resolve_view3d_exe(override: str | Path | None = None) -> Path:
         return Path(env_path).expanduser().resolve()
 
     tools_dir = Path(__file__).resolve().parents[2]
+    candidates = []
     if os.name == "nt":
-        return tools_dir / "View3D" / "src" / "View3D.exe"
-    return tools_dir / "View3D" / "build" / "src" / "view3d"
+        candidates.append(tools_dir / "View3D" / "src" / "View3D.exe")
+    else:
+        candidates.append(tools_dir / "View3D" / "build" / "src" / "view3d")
+        candidates.append(tools_dir / "View3D" / "src" / "View3D")
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
 
 
 def stl_to_view3d(
@@ -200,4 +208,3 @@ def write_vf(path: str | Path, vf: np.ndarray) -> Path:
         var = ds.createVariable("view factor", "f4", ("rows", "columns"))
         var[:, :] = vf
     return path
-

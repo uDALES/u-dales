@@ -1,41 +1,30 @@
 from __future__ import annotations
 
-import time
-from pathlib import Path
+import unittest
 
-import numpy as np
+from _common import REPO_ROOT, copy_case
+from udprep import UDPrep
 
-start = time.perf_counter()
 
-import sys
+class TestView3D(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir, self.case_dir = copy_case(REPO_ROOT / "examples" / "101")
+        self.addCleanup(self.temp_dir.cleanup)
 
-# Add the uDALES python path
-udbase_path = Path("C:/Users/mvr/OneDrive - Imperial College London/codes/uDALES/u-dales").resolve()
-tools_path = (udbase_path / "tools" / "python").resolve()
-if tools_path not in sys.path:
-    sys.path.insert(0, str(tools_path))
+    def test_calc_view_factors(self):
+        prep = UDPrep("101", self.case_dir, load_geometry=True)
+        prep.radiation.view3d_out = 0
 
-expnr = "065"
-expdir = (udbase_path.parents[0] / "experiments" / expnr).resolve()
+        vf, svf, paths = prep.radiation.calc_view_factors(maxD=100.0, force=True)
 
-from udprep import UDPrep  # noqa: E402
+        self.assertEqual(vf.shape[0], prep.sim.geom.stl.faces.shape[0])
+        self.assertEqual(vf.shape[0], vf.shape[1])
+        self.assertEqual(svf.shape[0], vf.shape[0])
+        self.assertTrue(paths["vs3"].exists())
+        self.assertTrue(paths["vf"].exists())
+        self.assertTrue(paths["svf"].exists())
+        self.assertGreater(vf.nnz, 0)
 
-elapsed = time.perf_counter() - start
-print(f"loading libraries runtime: {elapsed:.3f} s")
 
-start = time.perf_counter()
-prep = UDPrep(expnr, expdir)
-sim = prep.sim
-elapsed = time.perf_counter() - start
-print(f"UDbase startup runtime: {elapsed:.3f} s")
-
-maxD = 250.0
-
-vf, svf, paths = prep.radiation.calc_view_factors(maxD=maxD)
-
-print(f"VS3 path: {paths['vs3']}")
-print(f"VF path: {paths['vf']}")
-print(f"SVF path: {paths['svf']}")
-if paths["vfsparse"] is not None:
-    print(f"VF sparse path: {paths['vfsparse']}")
-print(f"Nonzero VF entries: {vf.nnz}")
+if __name__ == "__main__":
+    unittest.main()

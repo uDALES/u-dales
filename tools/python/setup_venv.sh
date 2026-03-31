@@ -1,29 +1,39 @@
 #!/bin/bash
-# Setup script for Linux/WSL
-# Creates a Python virtual environment and installs all dependencies
+# Setup script for Linux/WSL.
+# Creates a repo-local virtual environment, installs Python dependencies,
+# and builds the required preprocessing binaries when possible.
 
 set -e  # Exit on error
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Go to u-dales root (tools/python -> u-dales)
 UDALES_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-# Create venv in parent directory of u-dales
-VENV_DIR="$(cd "${UDALES_ROOT}/.." && pwd)/venv-udales"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+VENV_DIR="${VENV_DIR:-${UDALES_ROOT}/.venv}"
 
 echo "=========================================="
 echo "Setting up Python virtual environment"
 echo "=========================================="
 echo "u-dales repository: $UDALES_ROOT"
+echo "Python interpreter: $PYTHON_BIN"
 echo "Virtual environment: $VENV_DIR"
 echo ""
 
-# Check if Python 3 is available
-if ! command -v python3 &> /dev/null; then
-    echo "Error: python3 is not installed"
+if ! command -v "$PYTHON_BIN" &> /dev/null; then
+    echo "Error: $PYTHON_BIN is not installed"
     exit 1
 fi
 
-echo "Python version: $(python3 --version)"
+echo "Python version: $($PYTHON_BIN --version)"
+
+PYTHON_INCLUDE="$($PYTHON_BIN -c 'import sysconfig; print(sysconfig.get_paths().get("include", ""))')"
+if [ ! -f "$PYTHON_INCLUDE/Python.h" ]; then
+    echo "Error: Python development headers were not found for $PYTHON_BIN"
+    echo "Expected: $PYTHON_INCLUDE/Python.h"
+    echo "The directshortwave f2py wrapper is mandatory."
+    echo "Set PYTHON_BIN to an interpreter with headers, e.g."
+    echo "  PYTHON_BIN=/opt/pbs/python/bin/python3 ./tools/python/setup_venv.sh"
+    exit 1
+fi
 
 # Create virtual environment if it doesn't exist
 if [ -d "$VENV_DIR" ]; then
@@ -35,13 +45,13 @@ if [ -d "$VENV_DIR" ]; then
         rm -rf "$VENV_DIR"
     else
         echo "Using existing virtual environment."
-        echo "To activate: source ../venv-udales/bin/activate (from u-dales root)"
+        echo "To activate: source \"$VENV_DIR/bin/activate\""
         exit 0
     fi
 fi
 
 echo "Creating virtual environment at: $VENV_DIR"
-python3 -m venv "$VENV_DIR"
+"$PYTHON_BIN" -m venv "$VENV_DIR"
 
 echo "Activating virtual environment..."
 source "$VENV_DIR/bin/activate"
@@ -56,19 +66,32 @@ else
     echo "Warning: requirements.txt not found at ${SCRIPT_DIR}/requirements.txt"
 fi
 
+echo "Installing build dependencies from requirements-build.txt..."
+if [ -f "${SCRIPT_DIR}/requirements-build.txt" ]; then
+    pip install -r "${SCRIPT_DIR}/requirements-build.txt"
+else
+    echo "Warning: requirements-build.txt not found at ${SCRIPT_DIR}/requirements-build.txt"
+fi
+
+echo "Building directshortwave f2py wrapper..."
+"${SCRIPT_DIR}/fortran/build_f2py.sh"
+
+echo "Building View3D..."
+"${UDALES_ROOT}/tools/build_preprocessing.sh" common
+
 echo ""
 echo "=========================================="
 echo "Setup complete!"
 echo "=========================================="
 echo ""
 echo "To use the virtual environment:"
-echo "  1. Activate:   source ../venv-udales/bin/activate (from u-dales root)"
+echo "  1. Activate:   source .venv/bin/activate (from u-dales root)"
 echo "  2. Run script: python tools/write_inputs.py [config_dir]"
 echo "  3. Deactivate: deactivate"
 echo ""
 echo "Example workflow:"
 echo "  cd $UDALES_ROOT"
-echo "  source ../venv-udales/bin/activate"
+echo "  source .venv/bin/activate"
 echo "  python tools/write_inputs.py"
 echo "  deactivate"
 echo ""

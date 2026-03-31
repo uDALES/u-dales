@@ -10,3 +10,7 @@ Current contents:
 
 These tests are branch-specific and complement, rather than replace, the
 input-interface integration tests present on other branches.
+
+`tree_input/` currently acts mainly as a shared integration fixture rather than
+as a standalone automated test entry point. That is still appropriate here
+because the case is used by both repo-level and Python-level checks.
