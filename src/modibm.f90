@@ -1356,6 +1356,7 @@ module modibm
 
                tfac = timee
                tnextfac = NINT((timee + dtfac))*1.0
+
                fac_tau_x_av = 0.
                fac_tau_y_av = 0.
                fac_tau_z_av = 0.
