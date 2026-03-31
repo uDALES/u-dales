@@ -161,13 +161,13 @@ module instant
       do n=1,nslicevars
         select case(slicevars(3*n-2:3*n-1))
           case('u0')
-            call ncinfo( isliceVars(n,:), 'u' , 'Streamwise velocity' , 'm/s' , 'tmtt' )
+            call ncinfo( isliceVars(n,:), 'u' , 'Streamwise velocity' , 'm/s' , 'tttt' )
           case('v0')
-            call ncinfo( isliceVars(n,:), 'v' , 'Spanwise velocity'   , 'm/s' , 'tttt' )
+            call ncinfo( isliceVars(n,:), 'v' , 'Spanwise velocity'   , 'm/s' , 'tmtt' )
           case('w0')
             call ncinfo( isliceVars(n,:), 'w' , 'Vertical velocity'   , 'm/s' , 'ttmt' )
           case('p0')
-            call ncinfo( isliceVars(n,:), 'pres' , 'pressure'   , 'M' , 'tttt' )
+            call ncinfo( isliceVars(n,:), 'p' , 'Kinematic Pressure'  , 'm^2/s^2' , 'tttt' )
           case('th')
             if (ltempeq) call ncinfo( isliceVars(n,:), 'thl' , 'Potential temperature' , 'K'     , 'tttt' )
           case('qt')
@@ -196,11 +196,11 @@ module instant
           case('u0')
             call ncinfo( jsliceVars(n,:), 'u' , 'Streamwise velocity' , 'm/s' , 'mttt' )
           case('v0')
-            call ncinfo( jsliceVars(n,:), 'v' , 'Spanwise velocity '  , 'm/s' , 'tmtt' )
+            call ncinfo( jsliceVars(n,:), 'v' , 'Spanwise velocity '  , 'm/s' , 'tttt' )
           case('w0')
             call ncinfo( jsliceVars(n,:), 'w' , 'Vertical velocity'   , 'm/s' , 'ttmt' )
           case('p0')
-            call ncinfo( jsliceVars(n,:), 'pres' , 'pressure'   , 'M' , 'tttt' )
+            call ncinfo( jsliceVars(n,:), 'p' , 'Kinematic Pressure'  , 'm^2/s^2' , 'tttt' )
           case('th')
             if (ltempeq) call ncinfo( jsliceVars(n,:), 'thl' , 'Potential temperature' , 'K'     , 'tttt' )
           case('qt')
@@ -231,9 +231,9 @@ module instant
           case('v0')
             call ncinfo( ksliceVars(n,:), 'v' , 'Spanwise velocity'   , 'm/s' , 'tmtt' )
           case('w0')
-            call ncinfo( ksliceVars(n,:), 'w' , 'Vertical velocity'   , 'm/s' , 'ttmt' )
+            call ncinfo( ksliceVars(n,:), 'w' , 'Vertical velocity'   , 'm/s' , 'tttt' )
           case('p0')
-            call ncinfo( ksliceVars(n,:), 'pres' , 'pressure'   , 'M' , 'tttt' )
+            call ncinfo( ksliceVars(n,:), 'p' , 'Kinematic Pressure'  , 'm^2/s^2' , 'tttt' )
           case('th')
             if (ltempeq) call ncinfo( ksliceVars( n,:), 'thl' , 'Potential temperature' , 'K'     , 'tttt' )
           case('qt')
@@ -447,7 +447,7 @@ module instant
               tmp_slice(local_idx,:,:) = pres0(ii_local,jb:je,kb:ke)
           end if
         end do
-        call writeoffset(ncidislice, 'pres', tmp_slice, nrecislice, local_nislice, ydim, zdim)
+        call writeoffset(ncidislice, 'p', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
 
       ! temperature
@@ -633,7 +633,7 @@ module instant
               tmp_slice(:, local_idy, :) = pres0(ib:ie, jj_local, kb:ke)
           end if
         end do
-        call writeoffset_1dx(ncidjslice, 'pres', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
+        call writeoffset_1dx(ncidjslice, 'p', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
       end if
 
       ! temperature
@@ -928,7 +928,7 @@ module instant
           kk = kslice(k)
           tmp_slice(:,:,k) = pres0(ib:ie, jb:je, kk)
         end do
-        call writeoffset(ncidkslice, 'pres', tmp_slice, nreckslice, xdim, ydim, kdim)
+        call writeoffset(ncidkslice, 'p', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
 
 
@@ -1211,7 +1211,7 @@ module instant
          case('w0')
             ncname = 'w'
          case('p0')
-            ncname = 'pres'
+            ncname = 'p'
          case('th')
             ncname = 'thl'
          case('qt')
