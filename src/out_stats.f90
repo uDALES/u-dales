@@ -576,7 +576,9 @@ module stats
         end if
 
         if(ltreedump) then
-          call writestat_nc(ncidtree, 'time', timee, nrectree, .true.)
+          if (myidy == 0) then
+            call writestat_nc(ncidtree, 'time', timee, nrectree, .true.)
+          end if
           call stats_write_tree_vel
           if (ltempeq) call stats_write_tree_temp
           if (lmoist)  call stats_write_tree_moist
@@ -1207,19 +1209,21 @@ module stats
     end subroutine stats_init_tree_scalar
 
     subroutine stats_createnc_tree
+      use modglobal, only : jtot
       implicit none
-      filenametree = 'stats_tree.xxx.xxx.xxx.nc'
-      filenametree(12:14) = cmyidx
-      filenametree(16:18) = cmyidy
-      filenametree(20:22) = cexpnr
+      if (myidy == 0) then
+        filenametree = 'stats_tree.xxx.xxx.nc'
+        filenametree(12:14) = cmyidx
+        filenametree(16:18) = cexpnr
 
-      nrectree = 0
-      call open_nc(filenametree, ncidtree, nrectree, n1=xdim, n2=ydim, n3=zdim)
-      if (nrectree==0) then
-        call define_nc(ncidtree, 1, timeVar)
-        call writestat_dims_nc(ncidtree)
+        nrectree = 0
+        call open_nc(filenametree, ncidtree, nrectree, n1=xdim, n2=jtot, n3=zdim)
+        if (nrectree==0) then
+          call define_nc(ncidtree, 1, timeVar)
+          call writestat_dims_nc(ncidtree)
+        end if
+        call define_nc(ncidtree, treeVarsCount, treeVars)
       end if
-      call define_nc(ncidtree, treeVarsCount, treeVars)
     end subroutine stats_createnc_tree
 
 
@@ -1915,29 +1919,29 @@ module stats
     !! ## %% Time averaged tree data statistics writing routines 
     subroutine stats_write_tree_vel
       implicit none
-      call writestat_nc(ncidtree, 'tr_u'    , tr_ut    , nrectree, xdim, ydim, zdim)
-      call writestat_nc(ncidtree, 'tr_v'    , tr_vt    , nrectree, xdim, ydim, zdim)
-      call writestat_nc(ncidtree, 'tr_w'    , tr_wt    , nrectree, xdim, ydim, zdim)
+      call writeoffset(ncidtree, 'tr_u'    , tr_ut    , nrectree, xdim, ydim, zdim)
+      call writeoffset(ncidtree, 'tr_v'    , tr_vt    , nrectree, xdim, ydim, zdim)
+      call writeoffset(ncidtree, 'tr_w'    , tr_wt    , nrectree, xdim, ydim, zdim)
     end subroutine stats_write_tree_vel
 
     subroutine stats_write_tree_temp
       implicit none
-      call writestat_nc(ncidtree, 'tr_thl'  , tr_thlt  , nrectree, xdim, ydim, zdim)
+      call writeoffset(ncidtree, 'tr_thl'  , tr_thlt  , nrectree, xdim, ydim, zdim)
     end subroutine stats_write_tree_temp
 
     subroutine stats_write_tree_moist
       implicit none
-      call writestat_nc(ncidtree, 'tr_qt'   , tr_qtt   , nrectree, xdim, ydim, zdim)
-      call writestat_nc(ncidtree, 'tr_qtR'  , tr_qtRt  , nrectree, xdim, ydim, zdim)
-      call writestat_nc(ncidtree, 'tr_qtA'  , tr_qtAt  , nrectree, xdim, ydim, zdim)
-      call writestat_nc(ncidtree, 'tr_omega', tr_omegat, nrectree, xdim, ydim, zdim)
+      call writeoffset(ncidtree, 'tr_qt'   , tr_qtt   , nrectree, xdim, ydim, zdim)
+      call writeoffset(ncidtree, 'tr_qtR'  , tr_qtRt  , nrectree, xdim, ydim, zdim)
+      call writeoffset(ncidtree, 'tr_qtA'  , tr_qtAt  , nrectree, xdim, ydim, zdim)
+      call writeoffset(ncidtree, 'tr_omega', tr_omegat, nrectree, xdim, ydim, zdim)
     end subroutine stats_write_tree_moist
 
     subroutine stats_write_tree_scalar
       implicit none
       integer :: n
       do n = 1, nsv
-        call writestat_nc(ncidtree, trim(svtreename(n)), tr_svt(:,:,:,n), nrectree, xdim, ydim, zdim)
+        call writeoffset(ncidtree, trim(svtreename(n)), tr_svt(:,:,:,n), nrectree, xdim, ydim, zdim)
       end do
     end subroutine stats_write_tree_scalar
 

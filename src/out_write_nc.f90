@@ -30,7 +30,7 @@
 !
 module modstat_nc
     use netcdf
-    use modmpi, only : myid, myidy, myidx, myid1dy, nbrboty, nbrtopy, nprocy, comm1dy, comm3d
+    use modmpi, only : myidy, myidx, myid1dy, nbrboty, nbrtopy, nprocy, comm1dy
     
     implicit none
     integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0, ztsID=0, fctID=0, lyrID=0
@@ -52,7 +52,7 @@ contains
 
   subroutine initstat_nc
     use modglobal, only : kmax,ifnamopt,fname_options,iexpnr
-    use modmpi,    only : mpierr,mpi_logical,comm3d,myid
+    use modmpi,    only : mpierr,mpi_logical
     implicit none
 
     integer             :: ierr
@@ -353,7 +353,6 @@ contains
  end subroutine exitstat_nc
   subroutine writestat_dims_nc(ncid)
     use modglobal, only : xf,xh,yf,yh,dy,zf,zh,jmax,imax,kb,dxh
-    use modmpi, only : myidx, myidy
     implicit none
     integer, intent(in) :: ncid
     integer             :: i=0,iret,length,varid
@@ -549,7 +548,6 @@ contains
   end subroutine writestat_3D_var_nc
 
 subroutine writeoffset(ncid, ncname, var, nrec, dim1, dim2, dim3)
-  use netcdf
   use mpi
   use modmpi, only : MY_REAL
   implicit none
@@ -595,7 +593,6 @@ end subroutine writeoffset
 
 ! 1D ring writer along X-direction (comm1dx)
 subroutine writeoffset_1dx(ncid, ncname, var, nrec, dim1, dim2, dim3)
-  use netcdf
   use mpi
   use modmpi, only : MY_REAL, comm1dx, myid1dx, nprocx, nbrbotx, nbrtopx
   implicit none
@@ -651,7 +648,6 @@ end subroutine writeoffset_1dx
   end subroutine ncinfo
 
   subroutine nchandle_error(status)
-    use netcdf
     implicit none
 
     integer, intent(in) :: status

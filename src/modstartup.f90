@@ -66,8 +66,8 @@ module modstartup
                                     lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
                                     lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,lzerogradtop,&
                                     lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice, &
-                                    nkslice, nislice, njslice, max_kslices, max_islices, max_jslices, &
-                                    lprobedump, iprobe, jprobe, kprobe, nprobe, max_probes, &
+                                    nkslice, nislice, njslice, &
+                                    lprobedump, iprobe, jprobe, kprobe, nprobe, &
                                     lzerogradtopscal, lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
@@ -166,8 +166,8 @@ module modstartup
       namelist/OUTPUT/ &
          lfielddump, tfielddump, fieldvars, &
          ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, ltkedump, &
-         slicevars, lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, &
-         probevars, lprobedump, iprobe, jprobe, kprobe, &
+         slicevars, lkslicedump, kslice, nkslice, lislicedump, islice, nislice, ljslicedump, jslice, njslice, &
+         probevars, lprobedump, iprobe, jprobe, kprobe, nprobe, &
          tstatsdump, tsample, tstatstart
       namelist/TREES/ &
          ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
@@ -324,71 +324,68 @@ module modstartup
          !write (6, OUTPUT)
          close (ifnamopt)
          
-         ! Process kslice array - count valid entries
-         nkslice = 0
-         do ierr = 1, max_kslices
-            if (kslice(ierr) > 0) then
-               nkslice = nkslice + 1
-            else if (kslice(ierr) == -1) then
-               exit  ! Stop at first -1
-            else
-               write(0, *) 'WARNING: Invalid kslice value ignored: kslice(', ierr, ') = ', kslice(ierr)
+         ! Validate kslice: count non-zero entries and compare with nkslice
+         if (lkslicedump) then
+            if (nkslice <= 0) then
+               write(0, *) 'ERROR: lkslicedump=.true. but nkslice=', nkslice, ' (must be > 0)'
+               stop 1
             end if
-         end do
-         
-         if (nkslice > 0) then
+            if (count(kslice(1:nkslice) > 0) /= nkslice) then
+               write(0, *) 'ERROR: nkslice=', nkslice, ' but only', count(kslice(1:nkslice) > 0), &
+                            ' valid (>0) entries found in kslice array'
+               write(0, *) 'Check that kslice has exactly nkslice positive values'
+               stop 1
+            end if
             write(*, *) 'kslice output enabled for', nkslice, 'levels:'
             write(*, '(10I6)') kslice(1:nkslice)
          end if
-         
-         ! Process islice array - count valid entries
-         nislice = 0
-         do ierr = 1, max_islices
-            if (islice(ierr) > 0) then
-               nislice = nislice + 1
-            else if (islice(ierr) == -1) then
-               exit  ! Stop at first -1
-            else
-               write(0, *) 'WARNING: Invalid islice value ignored: islice(', ierr, ') = ', islice(ierr)
+
+         ! Validate islice
+         if (lislicedump) then
+            if (nislice <= 0) then
+               write(0, *) 'ERROR: lislicedump=.true. but nislice=', nislice, ' (must be > 0)'
+               stop 1
             end if
-         end do
-         
-         if (nislice > 0) then
+            if (count(islice(1:nislice) > 0) /= nislice) then
+               write(0, *) 'ERROR: nislice=', nislice, ' but only', count(islice(1:nislice) > 0), &
+                            ' valid (>0) entries found in islice array'
+               write(0, *) 'Check that islice has exactly nislice positive values'
+               stop 1
+            end if
             write(*, *) 'islice output enabled for', nislice, 'levels:'
             write(*, '(10I6)') islice(1:nislice)
          end if
-         
-         ! Process jslice array - count valid entries
-         njslice = 0
-         do ierr = 1, max_jslices
-            if (jslice(ierr) > 0) then
-               njslice = njslice + 1
-            else if (jslice(ierr) == -1) then
-               exit  ! Stop at first -1
-            else
-               write(0, *) 'WARNING: Invalid jslice value ignored: jslice(', ierr, ') = ', jslice(ierr)
+
+         ! Validate jslice
+         if (ljslicedump) then
+            if (njslice <= 0) then
+               write(0, *) 'ERROR: ljslicedump=.true. but njslice=', njslice, ' (must be > 0)'
+               stop 1
             end if
-         end do
-         
-         if (njslice > 0) then
+            if (count(jslice(1:njslice) > 0) /= njslice) then
+               write(0, *) 'ERROR: njslice=', njslice, ' but only', count(jslice(1:njslice) > 0), &
+                            ' valid (>0) entries found in jslice array'
+               write(0, *) 'Check that jslice has exactly njslice positive values'
+               stop 1
+            end if
             write(*, *) 'jslice output enabled for', njslice, 'levels:'
             write(*, '(10I6)') jslice(1:njslice)
          end if
 
-         ! Process probe array - count valid entries
-         nprobe = 0
-         do ierr = 1, max_probes
-            if (iprobe(ierr) > 0 .and. jprobe(ierr) > 0 .and. kprobe(ierr) > 0) then
-               nprobe = nprobe + 1
-            else if (iprobe(ierr) == -1 .or. jprobe(ierr) == -1 .or. kprobe(ierr) == -1) then
-               exit  ! Stop at first -1 sentinel
-            else if (iprobe(ierr) < 0 .or. jprobe(ierr) < 0 .or. kprobe(ierr) < 0) then
-               write(0, *) 'WARNING: Invalid probe entry ignored at index ', ierr, &
-                            ': (i,j,k)=', iprobe(ierr), jprobe(ierr), kprobe(ierr)
+         ! Validate probes
+         if (lprobedump) then
+            if (nprobe <= 0) then
+               write(0, *) 'ERROR: lprobedump=.true. but nprobe=', nprobe, ' (must be > 0)'
+               stop 1
             end if
-         end do
-
-         if (lprobedump .and. nprobe > 0) then
+            if (count(iprobe(1:nprobe) > 0) /= nprobe .or. &
+                count(jprobe(1:nprobe) > 0) /= nprobe .or. &
+                count(kprobe(1:nprobe) > 0) /= nprobe) then
+               write(0, *) 'ERROR: nprobe=', nprobe, ' but iprobe/jprobe/kprobe do not all have', &
+                            ' nprobe valid (>0) entries'
+               write(0, *) 'Check that iprobe, jprobe, kprobe each have exactly nprobe positive values'
+               stop 1
+            end if
             write(*, *) 'probe output enabled for', nprobe, 'points'
             write(*, *) 'probevars:', trim(probevars)
          end if
@@ -534,16 +531,16 @@ module modstartup
       call MPI_BCAST(lislicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ljslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lprobedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-      call MPI_BCAST(nkslice, 1, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast number of kslices
-      call MPI_BCAST(kslice, max_kslices, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast kslice array
-      call MPI_BCAST(nislice, 1, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast number of islices
-      call MPI_BCAST(islice, max_islices, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast islice array
-      call MPI_BCAST(njslice, 1, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast number of jslices
-      call MPI_BCAST(jslice, max_jslices, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast jslice array
-      call MPI_BCAST(nprobe, 1, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast number of probes
-      call MPI_BCAST(iprobe, max_probes, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast iprobe array
-      call MPI_BCAST(jprobe, max_probes, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast jprobe array
-      call MPI_BCAST(kprobe, max_probes, MPI_INTEGER, 0, comm3d, mpierr)  ! Broadcast kprobe array
+      call MPI_BCAST(nkslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(kslice, nkslice, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nislice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(islice, nislice, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(njslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(jslice, njslice, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nprobe, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(iprobe, nprobe, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(jprobe, nprobe, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(kprobe, nprobe, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ltdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(lmintdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(ltkedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing tke budget files

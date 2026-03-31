@@ -198,24 +198,20 @@ module modglobal
    logical :: lislicedump= .false.  !<  switch to output slices in the yz-plane every tsample
    logical :: ljslicedump= .false.  !<  switch to output slices in the xz-plane every tsample
 
-   integer, parameter :: max_kslices = 50  !<  maximum number of k-slices
-   integer :: kslice(max_kslices) = -1     !<  k levels at which to output slices in xy-plane
-   integer :: nkslice   = 0                !<  number of valid k-slices
-   
-   integer, parameter :: max_islices = 50  !<  maximum number of i-slices
-   integer :: islice(max_islices) = -1     !<  i levels at which to output slices in yz-plane
-   integer :: nislice   = 0                !<  number of valid i-slices
-   
-   integer, parameter :: max_jslices = 50  !<  maximum number of j-slices
-   integer :: jslice(max_jslices) = -1     !<  j levels at which to output slices in xz-plane
-   integer :: njslice   = 0                !<  number of valid j-slices
-   
-   logical :: lprobedump = .false.           !<  switch to output probe (point) time series every tsample
-   integer, parameter :: max_probes = 10000  !<  maximum number of probe points
-   integer :: iprobe(max_probes) = -1        !<  i indices of probe points
-   integer :: jprobe(max_probes) = -1        !<  j indices of probe points
-   integer :: kprobe(max_probes) = -1        !<  k indices of probe points
-   integer :: nprobe = 0                     !<  number of probe points
+   integer :: kslice(10000) = 0  !<  k levels at which to output slices in xy-plane
+   integer :: nkslice   = 0  !<  number of k-slices
+
+   integer :: islice(10000) = 0  !<  i levels at which to output slices in yz-plane
+   integer :: nislice   = 0   !<  number of i-slices
+
+   integer :: jslice(10000) = 0  !<  j levels at which to output slices in xz-plane
+   integer :: njslice   = 0   !<  number of j-slices
+
+   logical :: lprobedump = .false.  !<  switch to output probe (point) time series every tsample
+   integer :: iprobe(10000) = 0     !<  i indices of probe points
+   integer :: jprobe(10000) = 0     !<  j indices of probe points
+   integer :: kprobe(10000) = 0     !<  k indices of probe points
+   integer :: nprobe = 0            !<  number of probe points
    
    logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
    logical :: lmintdump    = .false.      !<  switch to output prognostic statistics every tstatsdump

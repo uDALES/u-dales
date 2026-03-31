@@ -28,13 +28,13 @@ module instant
   use modglobal,  only : cexpnr, rk3step, ltempeq, lmoist, nsv, tsample, dt, timee, runtime, &
                          slicevars, lislicedump, islice, ljslicedump, jslice, lkslicedump, kslice, &
                          nkslice, nislice, njslice, itot,jtot, &
-                         ib, ie, jb, je, kb, ke, dzfi, dzh, &
-                         timee, tstatstart, jtot, itot, kmax, &
+                         ib, ie, jb, je, kb, ke, &
+                         tstatstart, &
                          probevars, lprobedump, iprobe, jprobe, kprobe, nprobe, &
                          xf, yf, zf, xh, yh, zh
   use modfields,  only : um, vm, wm, thlm, qtm, svm, pres0
-  use modmpi,     only : myid, cmyidx, cmyidy, comm3d, mpierr, my_real
-  use decomp_2d,  only : zstart, zend, xstart, xend, ystart, yend
+  use modmpi,     only : myid, myidy, cmyidx, cmyidy, comm3d, mpierr, my_real, NPROCY, NPROCX,myidx
+  use decomp_2d,  only : zstart, zend
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset, writeoffset_1dx
   use mpi
   use netcdf
@@ -44,7 +44,7 @@ module instant
   public :: write_islice_xcoord_local, write_jslice_ycoord_local, write_kslice_zcoord
   save
 
-  integer :: xdim, ydim, zdim, kdim, idim, jdim  ! Added kdim, idim, jdim for multiple slices
+  integer :: xdim, ydim, zdim, kdim  ! Added kdim for multiple slices
   real    :: tsampleslice
 
   logical, allocatable :: islicerank(:)   ! array of flags for each islice on this core
@@ -59,14 +59,12 @@ module instant
   character(80)              :: islicename
   character(80)              :: jslicename
   character(80)              :: kslicename
-  character(80)              :: kslicename1d    ! Separate filename for 1D output
   
   character(80)              :: slicetimeVar(1,4)
   character(80), allocatable :: isliceVars(:,:)
   character(80), allocatable :: jsliceVars(:,:)
   character(80), allocatable :: ksliceVars(:,:)
   integer                    :: ncidislice, nrecislice, ncidjslice, nrecjslice, ncidkslice, nreckslice
-  integer                    :: ncidkslice1d, nreckslice1d    ! Separate file ID for 1D output
 
   ! Probe variables
   real    :: tsampleprobe
@@ -109,8 +107,6 @@ module instant
       ydim = je-jb+1
       zdim = ke-kb+1
       kdim = nkslice  ! Set kdim to number of kslices
-      idim = nislice  ! Set idim to number of islices
-      jdim = njslice  ! Set jdim to number of jslices
       tsampleslice = 0.
       call ncinfo(slicetimeVar( 1,:), 'time', 'Time', 's', 'time')
 
@@ -261,8 +257,6 @@ module instant
 
     !! ## %% 1D parallel output creation for islice (y-direction processes only)
     subroutine instant_create_ncislice
-      use modglobal, only : jtot
-      use modmpi, only : myidy, myidx, nprocx
       implicit none
       integer :: i
       logical :: has_islice
@@ -305,8 +299,6 @@ module instant
     end subroutine instant_create_ncislice
 
     subroutine instant_create_ncjslice
-      use modglobal, only : itot
-      use modmpi, only : myidx, myidy, nprocy
       implicit none
       integer :: j
       logical :: has_jslice
@@ -348,8 +340,6 @@ module instant
 
     !! ## %% 1D parallel output creation (y-direction processes only)
     subroutine instant_create_nckslice
-      use modglobal, only : jtot
-      use modmpi, only : myidy
       implicit none
       
       if (nkslice == 0) then
@@ -358,26 +348,24 @@ module instant
       end if
 
       if (myidy == 0) then
-        kslicename1d = 'ins_kslice.xxx.xxx.nc'
-        kslicename1d(12:14) = cmyidx   ! Only x-processor ID
-        kslicename1d(16:18) = cexpnr  ! Experiment number
+        kslicename = 'ins_kslice.xxx.xxx.nc'
+        kslicename(12:14) = cmyidx   ! Only x-processor ID
+        kslicename(16:18) = cexpnr  ! Experiment number
 
-        nreckslice1d = 0
+        nreckslice = 0
         ! Use kdim (nkslice) as the z-dimension, jtot as global y-dimension
-        call open_nc(kslicename1d, ncidkslice1d, nreckslice1d, n1=xdim, n2=jtot, n3=kdim)
-        if (nreckslice1d == 0) then
-          call define_nc(ncidkslice1d, 1, slicetimeVar)
-          call writestat_dims_nc(ncidkslice1d)
+        call open_nc(kslicename, ncidkslice, nreckslice, n1=xdim, n2=jtot, n3=kdim)
+        if (nreckslice == 0) then
+          call define_nc(ncidkslice, 1, slicetimeVar)
+          call writestat_dims_nc(ncidkslice)
           ! Add kslice-specific z coordinate information
-          call write_kslice_zcoord(ncidkslice1d, nkslice, kslice)
+          call write_kslice_zcoord(ncidkslice, nkslice, kslice)
         end if
-        call define_nc(ncidkslice1d, nslicevars, ksliceVars)
+        call define_nc(ncidkslice, nslicevars, ksliceVars)
       end if
     end subroutine instant_create_nckslice
 
     subroutine instant_write_islice
-      use modmpi, only : myidy, myidx, nprocx
-      use modglobal, only : jtot
       implicit none
       real, allocatable :: tmp_slice(:,:,:)
       integer :: i, ii, ii_local, local_idx
@@ -565,8 +553,6 @@ module instant
     end subroutine instant_write_islice
 
     subroutine instant_write_jslice
-      use modmpi, only : myidx, myidy, nprocy
-      use modglobal, only : itot
       implicit none
       real, allocatable :: tmp_slice(:,:,:)
       integer :: j, jj, jj_local, local_idy
@@ -755,7 +741,6 @@ module instant
     subroutine write_islice_xcoord_local(ncid, local_n, nislice_total, islice_positions, myidx_in, nprocx_in, itot_in)
       ! Write x-coordinates for LOCAL islice positions only
       use modglobal, only : xf, xh
-      use netcdf
       implicit none
       integer, intent(in) :: ncid, local_n, nislice_total
       integer, dimension(nislice_total), intent(in) :: islice_positions
@@ -808,7 +793,6 @@ module instant
     subroutine write_jslice_ycoord_local(ncid, local_n, njslice_total, jslice_positions, myidy_in, nprocy_in, jtot_in)
       ! Write y-coordinates for LOCAL jslice positions (round-robin assignment over myidy)
       use modglobal, only : yf, yh
-      use netcdf
       implicit none
       integer, intent(in) :: ncid, local_n, njslice_total
       integer, dimension(njslice_total), intent(in) :: jslice_positions
@@ -858,7 +842,6 @@ module instant
     subroutine write_kslice_zcoord(ncid, nkslice_count, kslice_positions)
       ! Update z-coordinate to reflect kslice levels instead of full z levels
       use modglobal, only : zf, zh
-      use netcdf
       implicit none
       integer, intent(in) :: ncid, nkslice_count
       integer, dimension(nkslice_count), intent(in) :: kslice_positions
@@ -898,8 +881,6 @@ module instant
     end subroutine write_kslice_zcoord
 
     subroutine instant_write_kslice
-      use modmpi, only : myidy
-      use modglobal, only : jtot
       implicit none
       real, allocatable :: tmp_slice(:,:,:)
       integer :: k, kk
@@ -911,7 +892,7 @@ module instant
       
       ! Write time variable (only myidy==0 writes)
       if (myidy == 0) then
-        call writestat_nc(ncidkslice1d, 'time', timee, nreckslice1d, .true.)
+        call writestat_nc(ncidkslice, 'time', timee, nreckslice, .true.)
       end if
       
       ! u velocity
@@ -920,7 +901,7 @@ module instant
           kk = kslice(k)
           tmp_slice(:,:,k) = um(ib:ie, jb:je, kk)
         end do
-        call writeoffset(ncidkslice1d, 'u', tmp_slice, nreckslice1d, xdim, ydim, kdim)
+        call writeoffset(ncidkslice, 'u', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
       
       ! v velocity
@@ -929,7 +910,7 @@ module instant
           kk = kslice(k)
           tmp_slice(:,:,k) = vm(ib:ie, jb:je, kk)
         end do
-        call writeoffset(ncidkslice1d, 'v', tmp_slice, nreckslice1d, xdim, ydim, kdim)
+        call writeoffset(ncidkslice, 'v', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
       
       ! w velocity (interpolated to cell centers)
@@ -938,7 +919,7 @@ module instant
           kk = kslice(k)
           tmp_slice(:,:,k) = 0.5 * (wm(ib:ie, jb:je, kk) + wm(ib:ie, jb:je, kk+1))
         end do
-        call writeoffset(ncidkslice1d, 'w', tmp_slice, nreckslice1d, xdim, ydim, kdim)
+        call writeoffset(ncidkslice, 'w', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
 
       ! pressure
@@ -947,7 +928,7 @@ module instant
           kk = kslice(k)
           tmp_slice(:,:,k) = pres0(ib:ie, jb:je, kk)
         end do
-        call writeoffset(ncidkslice1d, 'pres', tmp_slice, nreckslice1d, xdim, ydim, kdim)
+        call writeoffset(ncidkslice, 'pres', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
 
 
@@ -957,7 +938,7 @@ module instant
           kk = kslice(k)
           tmp_slice(:,:,k) = thlm(ib:ie, jb:je, kk)
         end do
-        call writeoffset(ncidkslice1d, 'thl', tmp_slice, nreckslice1d, xdim, ydim, kdim)
+        call writeoffset(ncidkslice, 'thl', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
       
       ! moisture
@@ -966,7 +947,7 @@ module instant
           kk = kslice(k)
           tmp_slice(:,:,k) = qtm(ib:ie, jb:je, kk)
         end do
-        call writeoffset(ncidkslice1d, 'qt', tmp_slice, nreckslice1d, xdim, ydim, kdim)
+        call writeoffset(ncidkslice, 'qt', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
       
       ! scalars s1-s4
@@ -975,7 +956,7 @@ module instant
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 1)
         end do
-        call writeoffset(ncidkslice1d, 's1', tmp_slice, nreckslice1d, xdim, ydim, kdim)
+        call writeoffset(ncidkslice, 's1', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
       
       if (present('s2') .and. nsv>1) then
@@ -983,7 +964,7 @@ module instant
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 2)
         end do
-        call writeoffset(ncidkslice1d, 's2', tmp_slice, nreckslice1d, xdim, ydim, kdim)
+        call writeoffset(ncidkslice, 's2', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
       
       if (present('s3') .and. nsv>2) then
@@ -991,7 +972,7 @@ module instant
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 3)
         end do
-        call writeoffset(ncidkslice1d, 's3', tmp_slice, nreckslice1d, xdim, ydim, kdim)
+        call writeoffset(ncidkslice, 's3', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
       
       if (present('s4') .and. nsv>3) then
@@ -999,7 +980,7 @@ module instant
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 4)
         end do
-        call writeoffset(ncidkslice1d, 's4', tmp_slice, nreckslice1d, xdim, ydim, kdim)
+        call writeoffset(ncidkslice, 's4', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
       
       deallocate(tmp_slice)
