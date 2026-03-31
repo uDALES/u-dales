@@ -1,52 +1,111 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
 import unittest
 
 import numpy as np
+import trimesh
 
-from _common import REPO_ROOT
-from udbase import UDBase
+try:
+    from _common import REPO_ROOT
+except ModuleNotFoundError:
+    from tools.python.tests._common import REPO_ROOT
+
 from udprep.directshortwave import DirectShortwaveSolver
 
 
-class TestDirectShortwave(unittest.TestCase):
+def _build_flat_terrain_fixture():
+    """Create a minimal flat terrain with a single 1x1 ground cell."""
+    vertices = np.array(
+        [
+            [0.0, 0.0, 1.0],
+            [1.0, 0.0, 1.0],
+            [1.0, 1.0, 1.0],
+            [0.0, 1.0, 1.0],
+        ],
+        dtype=float,
+    )
+    faces = np.array([[0, 1, 2], [0, 2, 3]], dtype=int)
+    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+
+    sim = SimpleNamespace(
+        dx=1.0,
+        dy=1.0,
+        dzt=np.array([1.0, 1.0], dtype=float),
+        itot=1,
+        jtot=1,
+        ktot=2,
+        xlen=1.0,
+        ylen=1.0,
+        zsize=2.0,
+        zf=np.array([0.0, 1.0], dtype=float),
+        Sc=np.array([[[True, False]]], dtype=bool),
+        facsec={
+            "c": {
+                "facid": np.array([0, 1], dtype=int),
+                "area": np.array([0.5, 0.5], dtype=float),
+                "locs": np.array([[0, 0, 1], [0, 0, 1]], dtype=int),
+            }
+        },
+        facs={"area": np.array([0.5, 0.5], dtype=float)},
+    )
+    return sim, mesh
+
+
+class TestDirectShortwaveFlatTerrain(unittest.TestCase):
     def setUp(self):
-        self.sim = UDBase("101", REPO_ROOT / "examples" / "101", load_geometry=True)
+        self.sim, self.mesh = _build_flat_terrain_fixture()
         azimuth_deg = 20.0
         elevation_deg = 15.0
         az = np.deg2rad(azimuth_deg)
         el = np.deg2rad(elevation_deg)
         self.nsun = np.array([np.cos(el) * np.cos(az), np.cos(el) * np.sin(az), np.sin(el)], dtype=float)
+        self.irradiance = 800.0
+        self.expected_flux = self.irradiance * np.sin(el)
 
-    def test_scanline_matches_facsec_shape_and_scale(self):
-        facsec = DirectShortwaveSolver(self.sim, method="facsec", ray_density=2.0, ray_jitter=0.0)
-        scanline = DirectShortwaveSolver(self.sim, method="scanline", ray_density=2.0, ray_jitter=0.0)
-
-        sdir_facsec, _, bud_facsec = facsec.compute(nsun=self.nsun, irradiance=800.0, periodic_xy=False)
-        sdir_scanline, veg_scanline, bud_scanline = scanline.compute(
-            nsun=self.nsun,
-            irradiance=800.0,
-            periodic_xy=False,
+    def test_facsec_matches_analytic_flux_on_flat_terrain(self):
+        solver = DirectShortwaveSolver(
+            self.sim,
+            method="facsec",
+            surface_mesh=self.mesh,
+            ray_density=12.0,
+            ray_jitter=0.0,
         )
+        sdir, veg, bud = solver.compute(nsun=self.nsun, irradiance=self.irradiance, periodic_xy=False)
 
-        self.assertEqual(sdir_facsec.shape, sdir_scanline.shape)
-        self.assertEqual(veg_scanline.size, 0)
-        self.assertTrue(np.all(np.isfinite(sdir_facsec)))
-        self.assertTrue(np.all(np.isfinite(sdir_scanline)))
-        self.assertGreater(bud_facsec["fac"], 0.0)
-        self.assertGreater(bud_scanline["fac"], 0.0)
+        self.assertEqual(veg.size, 0)
+        self.assertTrue(np.allclose(sdir, self.expected_flux, rtol=0.0, atol=1.0e-9))
+        self.assertAlmostEqual(bud["fac"], self.expected_flux, delta=1.0e-9)
 
-        common = (sdir_facsec > 1.0e-6) & (sdir_scanline > 1.0e-6)
-        self.assertTrue(np.any(common))
-        rel = np.abs(sdir_scanline[common] - sdir_facsec[common]) / np.maximum(sdir_facsec[common], 1.0)
-        corr = float(np.corrcoef(sdir_facsec[common], sdir_scanline[common])[0, 1])
-        energy_ratio = float(bud_scanline["fac"] / bud_facsec["fac"])
+    def test_moller_matches_analytic_total_flux_on_flat_terrain(self):
+        solver = DirectShortwaveSolver(
+            self.sim,
+            method="moller",
+            surface_mesh=self.mesh,
+            ray_density=64.0,
+            ray_jitter=0.0,
+        )
+        sdir, veg, bud = solver.compute(nsun=self.nsun, irradiance=self.irradiance, periodic_xy=False)
 
-        self.assertLess(float(np.median(rel)), 0.5)
-        self.assertLess(float(np.quantile(rel, 0.9)), 1.0)
-        self.assertGreater(corr, 0.85)
-        self.assertGreater(energy_ratio, 0.65)
-        self.assertLess(energy_ratio, 0.80)
+        self.assertEqual(veg.size, 0)
+        self.assertTrue(np.all(np.isfinite(sdir)))
+        self.assertAlmostEqual(bud["fac"], self.expected_flux, delta=1.0e-9)
+        self.assertAlmostEqual(float(np.sum(sdir * self.mesh.area_faces)), self.expected_flux, delta=1.0e-9)
+
+    def test_scanline_matches_analytic_total_flux_on_flat_terrain(self):
+        solver = DirectShortwaveSolver(
+            self.sim,
+            method="scanline",
+            surface_mesh=self.mesh,
+            ray_density=64.0,
+            ray_jitter=0.0,
+        )
+        sdir, veg, bud = solver.compute(nsun=self.nsun, irradiance=self.irradiance, periodic_xy=False)
+
+        self.assertEqual(veg.size, 0)
+        self.assertTrue(np.all(np.isfinite(sdir)))
+        self.assertAlmostEqual(bud["fac"], self.expected_flux, delta=0.5)
+        self.assertAlmostEqual(float(np.sum(sdir * self.mesh.area_faces)), self.expected_flux, delta=0.5)
 
 
 if __name__ == "__main__":

@@ -87,20 +87,8 @@ There are two automated test homes in this repo.
 Do not assume all tests belong under `tests/`. Put a new test where the thing
 being validated actually lives.
 
-`tests/` itself is organized by scope.
-
-- `tests/regression/`: branch-to-branch comparison harness
-- `tests/integration/sparse_ijk/`: MPI sparse-input integration test
-- `tests/integration/tree_input/`: vegetation/tree integration assets used by solver and Python tests
-- `tests/system/`: placeholder for heavier whole-code validation
-- `tests/unit/`: placeholder for future isolated non-Python tests
-- `tools/python/tests/`: Python unit tests
-
-Primary test entry points:
-
-- `tests/regression/run_tests.py`
-- `tests/integration/sparse_ijk/run_test.sh`
-- `python -m unittest discover -s tools/python/tests`
+For the current detailed test inventory, fixture layout, and entry points, see
+`tests/README.md`.
 
 Placement guidance:
 
@@ -108,6 +96,8 @@ Placement guidance:
   shared case assets, or cross-branch/regression outputs.
 - Put new tests in `tools/python/tests/` when they validate Python APIs or
   internal Python implementations.
+- If a test is Python-driven but depends on committed case fixtures under
+  `tests/` or compares multiple implementations, prefer `tests/integration/`.
 - Put exploratory, visual, or solver-development scripts in
   `tools/python/examples/` or a dedicated dev area, not in the automated test suites.
 

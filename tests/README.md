@@ -15,6 +15,7 @@ used to run the test.
 
 The `tests` directory itself is organized by test scope:
 
+- `cases/`: shared committed case fixtures used by multiple repo-level tests
 - `integration/`: end-to-end checks of interacting components
 - `regression/`: case comparisons and branch-to-branch output checks
 - `system/`: whole-code validation cases, including resource-heavy runs
@@ -24,13 +25,34 @@ The `tests` directory itself is organized by test scope:
 
 `tests/integration` contains executable-driven end-to-end checks for this branch:
 
-- `sparse_ijk/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
-- `tree_input/`: vegetation/tree input case assets used by solver and Python tooling tests
+- `directshortwave/`: Python-driven integration tests for direct shortwave on committed cases `100` and `525`
+- `ibm_sparse_input/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
+- `tree_sparse_compare/`: MPI validation for sparse tree forcing using `runmode = 1005`
 
-To run the sparse IBM test:
+`tests/cases/` holds shared committed fixtures used by these tests. At present:
+
+- `101/`: IBM sparse-input case used by `integration/ibm_sparse_input/`
+- `100/`: no-tree direct shortwave reference case used by `integration/directshortwave/`
+- `525/`: flat-terrain tree case used by `integration/directshortwave/` and `integration/tree_sparse_compare/`
+
+To run the direct shortwave reference test:
 
 ```bash
-cd tests/integration/sparse_ijk
+source .venv/bin/activate
+python tests/integration/directshortwave/test_directshortwave.py
+```
+
+To run the sparse IBM input test:
+
+```bash
+cd tests/integration/ibm_sparse_input
+./run_test.sh
+```
+
+To run the sparse tree comparison test:
+
+```bash
+cd tests/integration/tree_sparse_compare
 ./run_test.sh
 ```
 
@@ -63,4 +85,5 @@ python run_tests.py master dmey/patch-1 Release
 
 - Put new tests in `tests/` when they validate whole-code behaviour, MPI runs, executable outputs, or shared case fixtures.
 - Put new tests in `tools/python/tests/` when they validate Python modules directly.
+- If a test is driven by Python but relies on committed case fixtures under `tests/` or compares multiple implementations, prefer `tests/integration/`.
 - Do not put exploratory or plotting-heavy development scripts in either automated test tree; keep those in `tools/python/examples/` or a dedicated dev location.
