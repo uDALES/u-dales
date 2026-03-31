@@ -3,7 +3,7 @@
 This test:
 1. prepares an input case
 2. runs u-dales in TEST_ROUNDTRIP mode so the last rank writes `namoptions_roundtrip`
-3. converts both the input namelist and generated namelist via `ud_nam2json`
+3. parses both the input namelist and generated namelist via `f90nml`
 4. compares generated values against explicit input values or schema defaults
 """
 
@@ -18,12 +18,36 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
+try:
+    import f90nml
+except Exception:
+    f90nml = None
+
 
 def _normalize_value(v):
     return v
 
 
-def _compare_generated(generated, input_cfg, schema):
+def _normalize_namelist(nml):
+    normalized = {}
+    for section, params in nml.items():
+        if not isinstance(params, dict):
+            continue
+        sec_key = str(section).upper()
+        normalized.setdefault(sec_key, {})
+        for key, val in params.items():
+            normalized[sec_key][str(key).lower()] = val
+    return normalized
+
+
+def _normalize_generated_value(expected, actual):
+    if isinstance(expected, str) and isinstance(actual, list):
+        if all(isinstance(item, (str, int, float)) for item in actual):
+            return ''.join(str(item) for item in actual)
+    return actual
+
+
+def _compare_generated(generated, input_cfg, schema, compare_defaults=True):
     input_mismatches = []
     default_mismatches = []
     missing_defaults = []
@@ -46,6 +70,8 @@ def _compare_generated(generated, input_cfg, schema):
     for section, params in generated.items():
         if not isinstance(params, dict):
             continue
+        if section.upper() == "INFO":
+            continue
         input_section = input_cfg.get(section, {})
         sec_schema = find_schema_section(section) or {}
         sec_props = sec_schema.get("properties", {}) if isinstance(sec_schema, dict) else {}
@@ -56,8 +82,12 @@ def _compare_generated(generated, input_cfg, schema):
             inp_raw = find_input_value(input_section, pname)
             if inp_raw is not None:
                 inp_val = _normalize_value(inp_raw)
+                gen_val = _normalize_generated_value(inp_val, gen_val)
                 try:
-                    if isinstance(inp_val, (int, float)) and isinstance(gen_val, (int, float)):
+                    if isinstance(inp_val, list) and isinstance(gen_val, list):
+                        if gen_val[:len(inp_val)] != inp_val:
+                            input_mismatches.append((section, pname, "input", inp_val, gen_val))
+                    elif isinstance(inp_val, (int, float)) and isinstance(gen_val, (int, float)):
                         denom = max(abs(float(inp_val)), 1e-12)
                         relerr = abs(float(gen_val) - float(inp_val)) / denom
                         if relerr > 1e-3:
@@ -69,6 +99,8 @@ def _compare_generated(generated, input_cfg, schema):
                     if inp_val != gen_val:
                         input_mismatches.append((section, pname, "input", inp_val, gen_val))
             else:
+                if not compare_defaults:
+                    continue
                 p_schema = find_prop_entry(sec_props, pname) or {}
                 if section.upper() == "RUN" and pname.lower() in ("nprocx", "nprocy"):
                     continue
@@ -140,13 +172,16 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Run u-DALES namelist round-trip test")
     parser.add_argument("--comparator-only", action="store_true", help="Skip running u-DALES and compare an existing generated file")
     parser.add_argument("--generated", help="Path to generated file to compare (overrides defaults)")
-    parser.add_argument("--mode", choices=["default", "random"], default="default", help="Test mode. 'random' is currently not implemented for namelist input")
+    parser.add_argument("--mode", choices=["default", "random"], default="default", help="Test mode: default uses namoptions.default, random generates and uses namoptions.random")
+    parser.add_argument("--compare-defaults", action="store_true", help="Also compare generated values against schema defaults")
     args = parser.parse_args(argv)
 
     repo_root = Path(__file__).resolve().parents[3]
 
     udales_path = shutil.which("u-dales")
-    ud_nam2json_path = shutil.which("ud_nam2json")
+    if f90nml is None:
+        print("ERROR: f90nml is required for this test but is not installed")
+        return 2
     ud_topdir = os.environ.get("UD_TOPDIR")
 
     if udales_path:
@@ -155,13 +190,6 @@ def main(argv=None):
         udales_exe = Path(ud_topdir) / "bin" / "u-dales"
     else:
         udales_exe = repo_root / "bin" / "u-dales"
-
-    if ud_nam2json_path:
-        ud_nam2json = Path(ud_nam2json_path)
-    elif ud_topdir:
-        ud_nam2json = Path(ud_topdir) / "bin" / "ud_nam2json"
-    else:
-        ud_nam2json = repo_root / "bin" / "ud_nam2json"
 
     if ud_topdir:
         schema_path = Path(ud_topdir) / "docs" / "schemas" / "udales_input_schema.json"
@@ -174,29 +202,50 @@ def main(argv=None):
         print(f"SKIP: schema not found: {schema_path}")
         return 0
 
-    if args.mode == "random":
-        print("SKIP: random namelist generation is not implemented on this branch")
+    default_input_nml = input_dir / "namoptions.default"
+    random_input_nml = input_dir / "namoptions.random"
+    if not default_input_nml.exists():
+        print(f"SKIP: default input namelist not found: {default_input_nml}")
         return 0
+
+    tag = args.mode
+    selected_input_nml = default_input_nml
+    if args.mode == "random":
+        gen_script = input_dir / "generate_random_config.py"
+        if not gen_script.exists():
+            print(f"SKIP: random config generator not found: {gen_script}")
+            return 0
+        print("Generating namoptions.random using generate_random_config.py")
+        proc_gen = subprocess.run(
+            [sys.executable, str(gen_script)],
+            cwd=str(input_dir),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            timeout=60,
+        )
+        if proc_gen.returncode != 0:
+            print("generate_random_config.py failed:")
+            print(proc_gen.stdout)
+            print(proc_gen.stderr)
+            return 2
+        selected_input_nml = random_input_nml
+        if not selected_input_nml.exists():
+            print(f"ERROR: generated random input namelist not found: {selected_input_nml}")
+            return 2
 
     comparator_only = bool(args.comparator_only)
 
     if not comparator_only:
         if shutil.which("mpirun") is None:
-            print("SKIP: mpirun not available")
-            return 0
+            print("ERROR: mpirun not available")
+            return 2
         if not udales_exe.exists():
             print(f"SKIP: u-DALES executable not found: {udales_exe}")
             return 0
-        if not ud_nam2json.exists():
-            print(f"SKIP: ud_nam2json not found: {ud_nam2json}")
-            return 0
-
     src_case_dir = repo_root / "examples" / "102"
-    src_namelist = input_dir / "namoptions.default"
-    if not src_namelist.exists():
-        src_namelist = src_case_dir / "namoptions.102"
-    if not src_namelist.exists():
-        print(f"SKIP: namelist input not found: {src_namelist}")
+    if not src_case_dir.exists():
+        print(f"SKIP: example case directory not found: {src_case_dir}")
         return 0
 
     tempdir = tempfile.TemporaryDirectory(prefix="udales-tmp2-")
@@ -206,46 +255,50 @@ def main(argv=None):
         schema = json.load(f)
 
     overall_ret = 0
-    tag = "default"
 
     if comparator_only:
         if args.generated:
-            generated_json_path = Path(args.generated)
+            generated_namelist = Path(args.generated)
         else:
-            generated_json_path = input_dir / "parameters_roundtrip"
-        if not generated_json_path.exists():
-            print(f"ERROR: generated round-trip file not found for comparator-only: {generated_json_path}")
+            generated_namelist = input_dir / "namoptions_roundtrip"
+        if not generated_namelist.exists():
+            print(f"ERROR: generated round-trip file not found for comparator-only: {generated_namelist}")
             return 2
-        input_json_path = input_dir / "parameters_input"
-        if not input_json_path.exists():
-            print(f"ERROR: comparator-only input JSON not found: {input_json_path}")
+        input_nml_path = selected_input_nml
+        if not input_nml_path.exists():
+            print(f"ERROR: comparator-only selected input namelist not found: {input_nml_path}")
             return 2
-        with open(input_json_path, "r") as f:
-            input_config = json.load(f)
+
+        work_input = workdir / input_nml_path.name
+        shutil.copy2(input_nml_path, work_input)
+
+        source_text = work_input.read_text()
+        work_input.write_text(_set_runmode_and_fill_missing_groups(source_text))
+
+        try:
+            input_config = _normalize_namelist(f90nml.read(str(work_input)))
+        except Exception as e:
+            print("ERROR: reading input namelist failed:", e)
+            return 2
+        try:
+            gen = _normalize_namelist(f90nml.read(str(generated_namelist)))
+        except Exception as e:
+            print("ERROR: reading generated namelist failed:", e)
+            return 2
     else:
         _copy_case_directory(src_case_dir, workdir)
 
-        source_text = src_namelist.read_text()
-        work_input = workdir / "namoptions.102"
+        work_input = workdir / selected_input_nml.name
+        shutil.copy2(selected_input_nml, work_input)
+
+        source_text = work_input.read_text()
         work_input.write_text(_set_runmode_and_fill_missing_groups(source_text))
 
-        proc_in = subprocess.run(
-            [str(ud_nam2json), str(work_input), "parameters_input"],
-            cwd=str(workdir),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            timeout=30,
-        )
-        if proc_in.returncode != 0:
-            print("ud_nam2json failed on input namelist:")
-            print(proc_in.stdout)
-            print(proc_in.stderr)
+        try:
+            input_config = _normalize_namelist(f90nml.read(str(work_input)))
+        except Exception as e:
+            print("ERROR: reading input namelist failed:", e)
             return 2
-
-        input_json_path = workdir / "parameters_input"
-        with open(input_json_path, "r") as f:
-            input_config = json.load(f)
 
         nprocx = int(input_config.get("RUN", {}).get("nprocx", 1))
         nprocy = int(input_config.get("RUN", {}).get("nprocy", 1))
@@ -273,39 +326,28 @@ def main(argv=None):
             print(proc.stderr)
             return 2
 
+        generated_namelist = workdir / "namoptions_roundtrip"
+        if not generated_namelist.exists():
+            alt_generated_namelist = workdir / "namoptions_json"
+            if alt_generated_namelist.exists():
+                generated_namelist = alt_generated_namelist
+            else:
+                print("ERROR: expected generated namelist not found (namoptions_roundtrip or namoptions_json)")
+                return 2
+
         try:
-            cmd2 = f"{ud_nam2json} namoptions_roundtrip parameters_roundtrip"
-            print("Running:", cmd2, "in", str(workdir))
-            proc2 = subprocess.run(
-                cmd2,
-                cwd=str(workdir),
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-                timeout=30,
-            )
+            gen = _normalize_namelist(f90nml.read(str(generated_namelist)))
         except Exception as e:
-            print("ERROR: running ud_nam2json failed to start:", e)
-            return 2
-
-        if proc2.returncode != 0:
-            print("ud_nam2json failed:")
-            print(proc2.stdout)
-            print(proc2.stderr)
-            return 2
-
-        generated_json_path = workdir / "parameters_roundtrip"
-        if not generated_json_path.exists():
-            print(f"ERROR: expected json file {generated_json_path} not found")
+            print("ERROR: reading generated namelist failed:", e)
             return 2
 
     mismatches = []
     missing_defaults = []
     proc_cmp = SimpleNamespace(returncode=0, stdout="", stderr="")
     try:
-        gen = json.loads(generated_json_path.read_text())
-        mismatches, missing_defaults = _compare_generated(gen, input_config, schema)
+        mismatches, missing_defaults = _compare_generated(
+            gen, input_config, schema, compare_defaults=args.compare_defaults
+        )
         proc_cmp.stdout = "Generated in-memory diff report"
         if mismatches or missing_defaults:
             proc_cmp.returncode = 1

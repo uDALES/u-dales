@@ -145,7 +145,7 @@ SUBGRID.sg_cs            SUBGRID.cs
     simple_map = {}
     qualified_map = {}
     map_lines = embedded_map_text.strip().splitlines()
-    map_file = (script_dir / "../../../docs/schemas/nam2jsonmap.txt").resolve()
+    map_file = (script_dir / "../../../docs/schemas/nml_mapping.txt").resolve()
     if map_file.exists():
         map_lines.extend(map_file.read_text().splitlines())
 

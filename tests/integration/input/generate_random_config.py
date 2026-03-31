@@ -11,6 +11,13 @@ import os
 import string
 from pathlib import Path
 
+try:
+    import f90nml
+except Exception:
+    f90nml = None
+
+from udales_variable_indexer import UdalesVariableIndexer
+
 def generate_random_string(length=10):
     """Generate a random string of given length."""
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
@@ -87,7 +94,10 @@ def generate_random_config(schema_path):
     config["RUN"]["nprocx"] = 1
     config["RUN"]["nprocy"] = 1
 
-    # Always set number of scalar variables (nsv) to 3 for tests
+    # Tie to an existing example profile set to avoid missing files if execution continues
+    config["RUN"]["iexpnr"] = 102
+
+    # Always set number of scalar variables (nsv) to 3 for tests (match JSON branch)
     nsv = 3
     config["SCALARS"]["nsv"] = nsv
    
@@ -100,11 +110,22 @@ def generate_random_config(schema_path):
     config["DOMAIN"]["xlen"] = 100.0  # 100 meters
     config["DOMAIN"]["ylen"] = 100.0  # 100 meters
 
-    # Choose scheme ids in a reasonable range (1..10)
-    config["DYNAMICS"]["iadv_sv"] = [random.randint(1, 10) for _ in range(nsv)]
+    # Keep iadv_sv consistent with runtime behavior (initglobal forces kappa scheme)
+    iadv_kappa = 7
+    config["DYNAMICS"]["iadv_sv"] = [iadv_kappa for _ in range(nsv)]
  
     config["BC"]["wsvsurfdum"] = [round(random.uniform(0.0, 1.0), 6) for _ in range(nsv)]
     config["BC"]["wsvtopdum"] = [round(random.uniform(0.0, 1.0), 6) for _ in range(nsv)]
+    config["BC"]["bcbotm"] = 3
+
+    # Avoid driver/profile inflow logic that overwrites inputs during startup
+    config["BC"]["bcxm"] = 1  # BCxm_periodic
+    config["BC"]["bcym"] = 1  # BCym_periodic
+    config["BC"].pop("BCxm", None)
+    config["BC"].pop("BCym", None)
+    config["DRIVER"]["idriver"] = 0
+
+    config["WALLS"]["iwallmom"] = 3
     
     return config
 
@@ -145,6 +166,51 @@ def add_random_params_to_config(base_config_path, schema_path, output_path):
     
     return modified_config
 
+def filter_config_for_namelists(config, repo_root, schema_path):
+    indexer = UdalesVariableIndexer(
+        src_dir=str(Path(repo_root) / "src"),
+        schema_file=str(schema_path),
+    )
+    indexer.parse_fortran_files(file_path=str(Path(repo_root) / "src" / "readparameters.f90"))
+
+    filtered = {}
+    for section, params in config.items():
+        if not isinstance(params, dict):
+            continue
+        allowed = indexer.namelists.get(section.upper(), set())
+        if not allowed:
+            continue
+        kept = {}
+        for key, val in params.items():
+            if key.lower() in allowed:
+                kept[key] = val
+        if kept:
+            filtered[section] = kept
+    return filtered
+
+def _format_namelist_value(val):
+    if isinstance(val, bool):
+        return '.true.' if val else '.false.'
+    if isinstance(val, (int, float)):
+        return str(val)
+    if isinstance(val, str):
+        return f"'{val}'"
+    if isinstance(val, list):
+        return ', '.join(_format_namelist_value(v) for v in val)
+    return str(val)
+
+def write_namelist(config, output_path):
+    lines = []
+    for section, params in config.items():
+        if not isinstance(params, dict):
+            continue
+        lines.append(f"&{section}")
+        for key, val in params.items():
+            lines.append(f"  {key} = {_format_namelist_value(val)}")
+        lines.append("/\n")
+    with open(output_path, "w") as f:
+        f.write("\n".join(lines))
+
 def main():
     """Main function to generate random config files."""
     # Paths (computed relative to this script)
@@ -155,6 +221,7 @@ def main():
     script_dir = str(Path(__file__).resolve().parent)
     output_dir = script_dir
     output_path = os.path.join(output_dir, "parameters.random")
+    output_namelist = os.path.join(output_dir, "namoptions.random")
 
     print("Generating a fully-random u-DALES configuration...")
     print(f"Schema: {schema_path}")
@@ -165,11 +232,19 @@ def main():
 
         # Generate fully random configuration
         config = generate_random_config(schema_path)
+        config = filter_config_for_namelists(config, repo_root, schema_path)
 
         with open(output_path, 'w') as f:
             json.dump(config, f, indent=2)
 
+        if f90nml is not None:
+            nml = f90nml.Namelist(config)
+            nml.write(output_namelist, force=True)
+        else:
+            write_namelist(config, output_namelist)
+
         print(f"Created: {output_path} (sections: {len(config)})")
+        print(f"Created: {output_namelist}")
     except Exception as e:
         print(f"Error generating configuration file: {e}")
         return 1

@@ -12,6 +12,7 @@
 
 # Ignore namelist test files
 namoptions.*
+parameters.random
 
 # Keep structure but ignore most content
 *_test_output/

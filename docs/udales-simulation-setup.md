@@ -9,7 +9,7 @@ export UD_TOPDIR=/path/to/u-dales
 export PATH="$UD_TOPDIR/bin:$PATH"
 ```
 
-This makes `u-dales` and `ud_nam2json` directly available on the command line. The wrapper scripts below still use `DA_BUILD`, so set that explicitly in `config.sh`.
+This makes `u-dales` and `ud_nml2json` directly available on the command line. The wrapper scripts below still use `DA_BUILD`, so set that explicitly in `config.sh`.
 
 The scripts require several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the example directory, which is then read by the scripts. We recommend keeping a `config.sh` in each example case directory with the appropriate variable setting.
 The simulation workflow consists of three stages:

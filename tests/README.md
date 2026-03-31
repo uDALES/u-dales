@@ -11,7 +11,7 @@ The `tests` directory is organized by test scope:
 
 `tests/integration/input` contains checks for the input interface:
 
-- `test_roundtrip_input.py` runs a round-trip integration test. It executes `u-dales`, writes the interpreted namelist state from the last rank, converts both input and output namelists with `ud_nam2json`, and compares the result against explicit input values and schema defaults.
+- `test_roundtrip_input.py` runs a round-trip integration test. It executes `u-dales`, writes the interpreted namelist state from the last rank, compares input and output namelists with `f90nml`, and optionally checks schema defaults.
 - `test_sourcecode.py` performs a static consistency check between Fortran namelist definitions, MPI broadcasts, and the schema used for tooling/editor support.
 
 ## Regression

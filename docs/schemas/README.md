@@ -74,3 +74,6 @@ This schema should be updated whenever:
 - New namelist sections are introduced
 
 The schema serves as the authoritative tooling definition of the u-DALES input interface.
+
+### `nml_mapping.txt`
+Mapping rules for renaming or moving namelist sections/keys used by tooling (for example, `ud_nml2v3`).

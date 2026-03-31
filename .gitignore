@@ -13,6 +13,8 @@ outputs/
 
 # markdown files for testing
 tests/outputs/
+test_sourcecode_full.md
+test_sourcecode_status.md
 tests/integration/input/test_sourcecode_full.md
 tests/integration/input/test_sourcecode_status.md
 tests/integration/input/test_roundtrip_default.md

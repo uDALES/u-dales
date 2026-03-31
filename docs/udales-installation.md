@@ -127,7 +127,7 @@ popd
 
 You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
 
-After a successful build, the executable is copied to `u-dales/bin/u-dales`. In the current development environment, `UD_TOPDIR` points to the repository root and `u-dales/bin` is on `PATH`, so `u-dales` and `ud_nam2json` can be run directly from the shell.
+After a successful build, the executable is copied to `u-dales/bin/u-dales`. In the current development environment, `UD_TOPDIR` points to the repository root and `u-dales/bin` is on `PATH`, so `u-dales` and `ud_nml2json` can be run directly from the shell.
 
 If you want the same behaviour in your own shell session, you can add:
 
