@@ -273,7 +273,7 @@ module modibm
 
 
    subroutine initibmwallfun(fname_bnd, fname_sec, dir, bound_info)
-     use modglobal, only : ifinput, ib, ie, itot, ih, jb, je, jtot, jh, kb, ktot, kh, &
+     use modglobal, only : ifinput, ib, ie, itot, ih, jb, je, jtot, jh, kb, ke, ktot, kh, &
                            xf, yf, zf, xh, yh, zh, dx, dy, dzh, dzf, xhat, yhat, zhat, eps1
      use modmpi,    only : myid, comm3d, MY_REAL, mpierr
      use initfac,   only : facnorm, facz0
@@ -444,19 +444,39 @@ module modibm
            bound_info%recids_c(n,3) = findloc(bound_info%recpts(n,3) >= zf, .true., 1, back=.true.)
 
            ! check to see if recids is inside the domain
-           if (bound_info%recids_u(m,1) == 0 .or. bound_info%recids_u(m,2) == 0 .or. bound_info%recids_u(m,3) == 0) then
+           if (bound_info%recids_u(n,1) < ib .or. bound_info%recids_u(n,1)+1 > itot+ih .or. &
+               bound_info%recids_u(n,2) < jb .or. bound_info%recids_u(n,2)+1 > jtot+jh .or. &
+               bound_info%recids_u(n,3) < kb .or. bound_info%recids_u(n,3)+1 > ke+kh) then
+               ! if (myid == 0) then
+               !   write(*,*) "DEBUG: skipping section n=", n, "- u-velocity reconstruction index out of bounds:", bound_info%recids_u(n,1), bound_info%recids_u(n,1)+1, bound_info%recids_u(n,2), bound_info%recids_u(n,2)+1, bound_info%recids_u(n,3), bound_info%recids_u(n,3)+1
+               ! end if
                bound_info%lskipsec(n) = .true.
                cycle
            end if
-           if (bound_info%recids_v(m,1) == 0 .or. bound_info%recids_v(m,2) == 0 .or. bound_info%recids_v(m,3) == 0) then
+           if (bound_info%recids_v(n,1) < ib .or. bound_info%recids_v(n,1)+1 > itot+ih .or. &
+               bound_info%recids_v(n,2) < jb .or. bound_info%recids_v(n,2)+1 > jtot+jh .or. &
+               bound_info%recids_v(n,3) < kb .or. bound_info%recids_v(n,3)+1 > ke+kh) then
+               ! if (myid == 0) then
+               !   write(*,*) "DEBUG: skipping section n=", n, "- v-velocity reconstruction index out of bounds:", bound_info%recids_v(n,1), bound_info%recids_v(n,1)+1, bound_info%recids_v(n,2), bound_info%recids_v(n,2)+1, bound_info%recids_v(n,3), bound_info%recids_v(n,3)+1
+               ! end if
                bound_info%lskipsec(n) = .true.
              cycle
            end if
-           if (bound_info%recids_w(m,1) == 0 .or. bound_info%recids_w(m,2) == 0 .or. bound_info%recids_w(m,3) == 0) then
+           if (bound_info%recids_w(n,1) < ib .or. bound_info%recids_w(n,1)+1 > itot+ih .or. &
+               bound_info%recids_w(n,2) < jb .or. bound_info%recids_w(n,2)+1 > jtot+jh .or. &
+               bound_info%recids_w(n,3) < kb .or. bound_info%recids_w(n,3)+1 > ke+kh) then
+               ! if (myid == 0) then
+               !   write(*,*) "DEBUG: skipping section n=", n, "- w-velocity reconstruction index out of bounds:", bound_info%recids_w(n,1), bound_info%recids_w(n,1)+1, bound_info%recids_w(n,2), bound_info%recids_w(n,2)+1, bound_info%recids_w(n,3), bound_info%recids_w(n,3)+1
+               ! end if
                bound_info%lskipsec(n) = .true.
                cycle
            end if
-           if (bound_info%recids_c(m,1) == 0 .or. bound_info%recids_c(m,2) == 0 .or. bound_info%recids_c(m,3) == 0) then
+           if (bound_info%recids_c(n,1) < ib .or. bound_info%recids_c(n,1)+1 > itot+ih .or. &
+               bound_info%recids_c(n,2) < jb .or. bound_info%recids_c(n,2)+1 > jtot+jh .or. &
+               bound_info%recids_c(n,3) < kb .or. bound_info%recids_c(n,3)+1 > ke+kh) then
+               ! if (myid == 0) then
+               !   write(*,*) "DEBUG: skipping section n=", n, "- c-velocity index out of bounds:", bound_info%recids_c(n,1), bound_info%recids_c(n,1)+1, bound_info%recids_c(n,2), bound_info%recids_c(n,2)+1, bound_info%recids_c(n,3), bound_info%recids_c(n,3)+1
+               ! end if
                bound_info%lskipsec(n) = .true.
              cycle
            end if
