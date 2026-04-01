@@ -206,7 +206,11 @@ def main() -> int:
         suite_class = suite.get("class", "unspecified")
         purpose = suite.get("purpose", "unspecified")
         command = _format_command(suite["command"], variables)
-        code = _run_command(label, suite_class, purpose, command, child_env)
+        suite_env = child_env.copy()
+        for key, value in suite.items():
+            if key.startswith("env_"):
+                suite_env[key.removeprefix("env_")] = value.format(**variables)
+        code = _run_command(label, suite_class, purpose, command, suite_env)
         exit_codes.append(code)
         suite_results.append((label, suite_class, purpose, code))
 

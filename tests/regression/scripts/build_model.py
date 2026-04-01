@@ -28,7 +28,7 @@ from pathlib import Path
 
 
 def build_from_branch(branch_name: str, path_to_proj_dir: Path, build_type: str, clean_build_dir=False, skip_build=False) -> str:
-    subprocess.run(['git', 'checkout', branch_name])
+    subprocess.run(['git', 'checkout', branch_name], cwd=path_to_proj_dir, check=True)
     # Common branch names use / as user separator.
     path_to_build_dir = path_to_proj_dir / 'build' / branch_name.replace('/', '_')
     if not skip_build:
@@ -43,10 +43,13 @@ def build(path_to_proj_dir: Path, path_to_build_dir: Path, build_type: str, clea
         path_to_build_dir.mkdir(parents=True)
 
     subprocess.run(
-        ['cmake', f'-DCMAKE_BUILD_TYPE={build_type}', path_to_proj_dir, '-LA'], cwd=path_to_build_dir)
+        ['cmake', f'-DCMAKE_BUILD_TYPE={build_type}', path_to_proj_dir, '-LA'],
+        cwd=path_to_build_dir,
+        check=True,
+    )
 
     cpu_count = str(os.cpu_count())
-    subprocess.run(['cmake', '--build', '.', '--', '-j', cpu_count], cwd=path_to_build_dir)
+    subprocess.run(['cmake', '--build', '.', '--', '-j', cpu_count], cwd=path_to_build_dir, check=True)
     return None
 
 
