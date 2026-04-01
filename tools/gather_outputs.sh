@@ -165,7 +165,7 @@ for file in stats_*.000.${expnr}.nc ; do
 
         if [ $dumps == "stats_t" ]; then
 	        echo "Merging $dumps along x-direction."	
-            proposed_xmparam="u,upwp,upvp,usgs,ups1p,ups2p,ups3p,xm"
+            proposed_xmparam="u,upwp,upvp,usgs,upthlp,ups1p,ups2p,ups3p,xm"
             xmparam=$(check_existing_variables "$proposed_xmparam" "$file")
         elif [ $dumps == "stats_yt" ] || [ $dumps == "stats_y" ]; then
 	        echo "Merging $dumps along x-direction."	

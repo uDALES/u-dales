@@ -104,8 +104,14 @@ module stats
   real, allocatable :: wsgst(:,:,:)
 
   real, allocatable :: thlt(:,:,:)
+  real, allocatable :: thli(:,:,:)
+  real, allocatable :: thlj(:,:,:)
   real, allocatable :: thlk(:,:,:)
+  real, allocatable :: thlti(:,:,:)
+  real, allocatable :: thltj(:,:,:)
   real, allocatable :: thltk(:,:,:)
+  real, allocatable :: uthlti(:,:,:)
+  real, allocatable :: vthltj(:,:,:)
   real, allocatable :: wthltk(:,:,:)
   real, allocatable :: thlthlt(:,:,:)
   real, allocatable :: thlsgs(:,:,:)
@@ -349,7 +355,7 @@ module stats
       if (ltdump) then
         !> Total numbers of variables to be written
         tVarsCount = 14
-        if (ltempeq) tVarsCount = tVarsCount + 4
+        if (ltempeq) tVarsCount = tVarsCount + 6
         if (lmoist)  tVarsCount = tVarsCount + 4
         if (nsv>0)   tVarsCount = tVarsCount + 6*nsv
         if ((lchem) .and. (nsv>2)) tVarsCount = tVarsCount + 1
@@ -608,6 +614,8 @@ module stats
 
     subroutine stats_allocate_interp_and_sgs_temp
       implicit none
+      allocate(thli(ib:ie,jb:je,kb:ke+kh))
+      allocate(thlj(ib:ie,jb:je,kb:ke+kh))
       allocate(thlk(ib:ie,jb:je,kb:ke+kh))
       allocate(thlsgs(ib:ie,jb:je,kb:ke+kh))
     end subroutine stats_allocate_interp_and_sgs_temp
@@ -679,7 +687,11 @@ module stats
     subroutine stats_allocate_tavg_temp
       implicit none
       allocate(thlt(ib:ie,jb:je,kb:ke+kh))   ; thlt    = 0;
+      allocate(thlti(ib:ie,jb:je,kb:ke+kh))  ; thlti   = 0;
+      allocate(thltj(ib:ie,jb:je,kb:ke+kh))  ; thltj   = 0;
       allocate(thltk(ib:ie,jb:je,kb:ke+kh))  ; thltk   = 0;
+      allocate(uthlti(ib:ie,jb:je,kb:ke+kh)) ; uthlti  = 0;
+      allocate(vthltj(ib:ie,jb:je,kb:ke+kh)) ; vthltj  = 0;
       allocate(wthltk(ib:ie,jb:je,kb:ke+kh)) ; wthltk  = 0;
       allocate(thlthlt(ib:ie,jb:je,kb:ke+kh)); thlthlt = 0;
       allocate(thlsgst(ib:ie,jb:je,kb:ke+kh)); thlsgst = 0;
@@ -687,10 +699,12 @@ module stats
     subroutine stats_ncdescription_tavg_temp
       implicit none
       call ncinfo( tVars(ctrt+1,:) , 'thl'     , 'Temperature'               , 'K'         , 'tttt' )
-      call ncinfo( tVars(ctrt+2,:) , 'wpthlp'  , 'Turbulent heat flux'       , 'K m/s'     , 'ttmt' )
-      call ncinfo( tVars(ctrt+3,:) , 'thlpthlp', 'Temperature variance'      , 'K^2'       , 'tttt' )
-      call ncinfo( tVars(ctrt+4,:) , 'thlsgs'  , 'SGS temperature flux'      , 'K m/s'     , 'ttmt' )
-      ctrt = ctrt+4
+      call ncinfo( tVars(ctrt+2,:) , 'upthlp'  , 'Turbulent heat flux in x'  , 'K m/s'     , 'mttt' )
+      call ncinfo( tVars(ctrt+3,:) , 'vpthlp'  , 'Turbulent heat flux in y'  , 'K m/s'     , 'tmtt' )
+      call ncinfo( tVars(ctrt+4,:) , 'wpthlp'  , 'Turbulent heat flux in z'  , 'K m/s'     , 'ttmt' )
+      call ncinfo( tVars(ctrt+5,:) , 'thlpthlp', 'Temperature variance'      , 'K^2'       , 'tttt' )
+      call ncinfo( tVars(ctrt+6,:) , 'thlsgs'  , 'SGS temperature flux'      , 'K m/s'     , 'ttmt' )
+      ctrt = ctrt+6
     end subroutine stats_ncdescription_tavg_temp
 
     subroutine stats_allocate_tavg_moist
@@ -1286,6 +1300,8 @@ module stats
 
     subroutine stats_interpolate_and_sgs_temp
       implicit none
+      call stats_interpolate_i(thli, thlm(ib-ih:ie,jb:je,kb:ke+kh))
+      call stats_interpolate_j(thlj, thlm(ib:ie,jb-jh:je,kb:ke+kh))
       call stats_interpolate_k(thlk, thlm(ib:ie,jb:je,kb-kh:ke+kh))
       call stats_compute_sgs(thlsgs, thlm(ib:ie,jb:je,kb-kh:ke+kh), ekh(ib:ie,jb:je,kb-kh:ke+kh))
     end subroutine stats_interpolate_and_sgs_temp
@@ -1387,7 +1403,11 @@ module stats
     subroutine stats_compute_tavg_temp
       implicit none
       call stats_compute_tavg(thlt   , thlm(ib:ie,jb:je,kb:ke+kh))
+      call stats_compute_tavg(thlti  , thli)
+      call stats_compute_tavg(thltj  , thlj)
       call stats_compute_tavg(thltk  , thlk)
+      call stats_compute_tavg(uthlti , um(ib:ie,jb:je,kb:ke+kh)*thli)
+      call stats_compute_tavg(vthltj , vm(ib:ie,jb:je,kb:ke+kh)*thlj)
       call stats_compute_tavg(wthltk , wm(ib:ie,jb:je,kb:ke+kh)*thlk)
       call stats_compute_tavg(thlthlt, thlm(ib:ie,jb:je,kb:ke+kh)*thlm(ib:ie,jb:je,kb:ke+kh))
       call stats_compute_tavg(thlsgst, thlsgs)
@@ -1654,7 +1674,7 @@ module stats
       implicit none
       call spatial_avg(qty,qtm(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
       call spatial_avg(wqtyk,wm(ib:ie,jb:je,kb:ke)*qtk(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
-      call spatial_avg(qtyk,thlk(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
+      call spatial_avg(qtyk,qtk(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
       
       wpqtpyk = wqtyk - wy*qtyk
       where (IIwt==0)
@@ -1738,6 +1758,8 @@ module stats
     subroutine stats_write_tavg_temp
       implicit none
       call writeoffset(ncidt, 'thl'     , thlt(:,:,kb:ke)                                     , nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt, 'upthlp'  , uthlti(:,:,kb:ke) - ut(:,:,kb:ke)*thlti(:,:,kb:ke)  , nrect, xdim, ydim, zdim)
+      call writeoffset(ncidt, 'vpthlp'  , vthltj(:,:,kb:ke) - vt(:,:,kb:ke)*thltj(:,:,kb:ke)  , nrect, xdim, ydim, zdim)
       call writeoffset(ncidt, 'wpthlp'  , wthltk(:,:,kb:ke) - wt(:,:,kb:ke)*thltk(:,:,kb:ke)  , nrect, xdim, ydim, zdim)
       call writeoffset(ncidt, 'thlpthlp', thlthlt(:,:,kb:ke) - thlt(:,:,kb:ke)*thlt(:,:,kb:ke), nrect, xdim, ydim, zdim)
       call writeoffset(ncidt, 'thlsgs'  , thlsgst(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
@@ -1975,7 +1997,7 @@ module stats
 
       if (ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump) then
         deallocate(uik,wik,vjk,wjk,uij,vij,uc,vc,wc,usgs,vsgs,wsgs)
-        if (ltempeq) deallocate(thlk,thlsgs)
+        if (ltempeq) deallocate(thli,thlj,thlk,thlsgs)
         if (lmoist)  deallocate(qtk,qtsgs)
       end if
       if (ltdump .or. lytdump) then
@@ -1987,7 +2009,7 @@ module stats
         deallocate(utc,vtc,wtc,uutc,vvtc,wwtc)
         deallocate(utik,wtik,uwtik,vtjk,wtjk,vwtjk,utij,vtij,uvtij)
         deallocate(usgst,vsgst,wsgst)
-        if (ltempeq) deallocate(thlt,thltk,wthltk,thlthlt,thlsgst)
+        if (ltempeq) deallocate(thlt,thlti,thltj,thltk,uthlti,vthltj,wthltk,thlthlt,thlsgst)
         if (lmoist)  deallocate(qtt,qttk,wqttk,qtqtt,qtsgst)
       end if
       if (ltdump .or. lytdump) then
