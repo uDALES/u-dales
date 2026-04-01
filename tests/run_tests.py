@@ -15,6 +15,12 @@ REPO_ROOT = TESTS_DIR.parent
 MANIFEST_PATH = TESTS_DIR / "test_suites.yml"
 DEFAULT_VENV_PYTHON = REPO_ROOT.parent / ".venv" / "bin" / "python"
 MPLCONFIGDIR = Path("/tmp") / "udales-matplotlib"
+PURPOSE_ORDER = {
+    "unit": 0,
+    "integration": 1,
+    "system": 2,
+    "regression": 99,
+}
 
 
 def _load_manifest() -> Dict[str, Any]:
@@ -122,6 +128,13 @@ def _format_command(command: List[str], variables: Dict[str, str]) -> List[str]:
     return [part.format(**variables) for part in command]
 
 
+def _sort_suites(suites: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return sorted(
+        suites,
+        key=lambda suite: PURPOSE_ORDER.get(suite.get("purpose", "unspecified"), 50),
+    )
+
+
 def _run_command(
     label: str,
     suite_class: str,
@@ -196,7 +209,7 @@ def main() -> int:
         "build_type": args.build_type,
     }
 
-    suites = _expand_groups(manifest, args.selection)
+    suites = _sort_suites(_expand_groups(manifest, args.selection))
     child_env = _build_child_env()
     exit_codes = []
     suite_results = []

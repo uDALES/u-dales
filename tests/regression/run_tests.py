@@ -41,6 +41,30 @@ from scripts import compare_outputs, build_model
 PROJ_DIR = Path(__file__).resolve().parents[2]
 
 
+def _current_head(path_to_repo: Path) -> str:
+    result = subprocess.run(
+        ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+        cwd=path_to_repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    head = result.stdout.strip()
+    if head != 'HEAD':
+        return head
+
+    detached = subprocess.run(
+        ['git', 'rev-parse', 'HEAD'],
+        cwd=path_to_repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    return detached.stdout.strip()
+
+
 def _repo_has_uncommitted_changes(path_to_repo: Path) -> bool:
     result = subprocess.run(
         ['git', 'status', '--porcelain'],
@@ -73,26 +97,30 @@ def main(branch_a: str, branch_b: str, build_type: str):
             f'The operating system {platform.system()} is not currently suppoorted.')
 
     _require_clean_worktree_for_branch_switch(PROJ_DIR, branch_a, branch_b)
+    original_head = _current_head(PROJ_DIR)
 
-    if branch_a == branch_b:
-        warnings.warn(
-            'branch_a and branch_b are the same. Skipping regression tests')
-        _ = build_model.build_from_branch(branch_a, PROJ_DIR, build_type)
-        return
+    try:
+        if branch_a == branch_b:
+            warnings.warn(
+                'branch_a and branch_b are the same. Skipping regression tests')
+            _ = build_model.build_from_branch(branch_a, PROJ_DIR, build_type)
+            return
 
-    # Build executables
-    path_to_exes = []
-    for branch in [branch_a, branch_b]:
-        path_to_exe = build_model.build_from_branch(
-            branch, PROJ_DIR, build_type, skip_build=False)
-        # We always compare between two branches -- i.e. two executables.
-        path_to_exes.append(path_to_exe)
+        # Build executables
+        path_to_exes = []
+        for branch in [branch_a, branch_b]:
+            path_to_exe = build_model.build_from_branch(
+                branch, PROJ_DIR, build_type, skip_build=False)
+            # We always compare between two branches -- i.e. two executables.
+            path_to_exes.append(path_to_exe)
 
-    # Run model and store outputs - currently impossible for uDALES 2 because it requires different input files, and tests are run in master repo.
-    #test_cases = (PROJ_DIR / 'tests' / 'regression' / 'cases').iterdir()
-    #patched_example_cases = (PROJ_DIR / 'tests' / 'regression' / 'patches').iterdir()
-    #run_and_compare(test_cases, path_to_exes, is_patch=False)
-    #run_and_compare(patched_example_cases, path_to_exes, is_patch=True)
+        # Run model and store outputs - currently impossible for uDALES 2 because it requires different input files, and tests are run in master repo.
+        #test_cases = (PROJ_DIR / 'tests' / 'regression' / 'cases').iterdir()
+        #patched_example_cases = (PROJ_DIR / 'tests' / 'regression' / 'patches').iterdir()
+        #run_and_compare(test_cases, path_to_exes, is_patch=False)
+        #run_and_compare(patched_example_cases, path_to_exes, is_patch=True)
+    finally:
+        subprocess.run(['git', 'checkout', original_head], cwd=PROJ_DIR, check=True)
 
 
 def run_and_compare(cases_dir, path_to_exes, is_patch=False):
