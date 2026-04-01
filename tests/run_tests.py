@@ -207,6 +207,7 @@ def main() -> int:
         "branch_a": args.branch_a,
         "branch_b": args.branch_b,
         "build_type": args.build_type,
+        "build_type_lower": args.build_type.lower(),
     }
 
     suites = _sort_suites(_expand_groups(manifest, args.selection))

@@ -38,7 +38,7 @@ module vegetation
 contains
 
   subroutine init_vegetation
-    use modglobal,  only : ltrees,ltrees_legacySEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,dzf
+    use modglobal,  only : ltrees,itree_mode,TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,dzf
     use modmpi,     only : myid,comm3d,mpierr,MY_REAL
     use readinput,  only : read_sparse_ijk
     use decomp_2d,  only : exchange_halo_x, exchange_halo_y, exchange_halo_z
@@ -116,7 +116,7 @@ contains
 
       write(filename, '(A,A)') 'sveg.inp.', trim(cexpnr)
       inquire(file=filename, exist=sveg_exists)
-      if (ltrees_legacySEB) then
+      if (itree_mode /= TREE_MODE_SVEG) then
         if (sveg_exists) then
           write(*,'(A,A)') 'NOTE: Found optional vegetation shortwave file: ', trim(filename)
         end if
@@ -332,7 +332,7 @@ contains
   end subroutine init_vegetation
 
   subroutine apply_vegetation
-    use modglobal,  only : ib,ie,jb,je,kb,ke,lmoist,ltempeq,nsv,ltrees_legacySEB
+    use modglobal,  only : ib,ie,jb,je,kb,ke,lmoist,ltempeq,nsv,itree_mode,TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
     use modfields,  only : um,vm,wm,tr_u,tr_v,tr_w,tr_sv,svp,svm
     implicit none
     integer :: i,j,k,m,n,npts
@@ -385,9 +385,9 @@ contains
     ! Loop 2: Canopy energy balance (heat and moisture fluxes)
     ! ========================================================================
     if (lmoist .and. ltempeq) then
-      if (ltrees_legacySEB) then
+      if (itree_mode == TREE_MODE_LEGACY_SEB) then
         call apply_vegetation_legacy
-      else
+      else if (itree_mode == TREE_MODE_SVEG) then
         call apply_vegetation_sveg
       end if
     end if

@@ -75,7 +75,8 @@ module modstartup
                                     BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
-                                    ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,ltrees_legacySEB, &
+                                    ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
+                                    TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
@@ -167,7 +168,7 @@ module modstartup
          lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, ltkedump, tstatsdump, tsample, &
          tstatstart
       namelist/TREES/ &
-         ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump, ltrees_legacySEB
+         ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump, itree_mode
       namelist/PURIFS/ &
          lpurif, npurif, Qpu, epu
       namelist/HEATPUMP/ &
@@ -591,7 +592,7 @@ module modstartup
       call MPI_BCAST(ltrees, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ntrees, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ltreedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-      call MPI_BCAST(ltrees_legacySEB, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(itree_mode, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(Qstar, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(dQdt, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lsize, 1, MY_REAL, 0, comm3d, mpierr)
@@ -722,7 +723,8 @@ module modstartup
                               iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
                               ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,&
                               lydump,lytdump,luoutflowr,lvoutflowr,&
-                              lhdriver,lqdriver,lsdriver
+                              lhdriver,lqdriver,lsdriver,ltrees,lEB,itree_mode,&
+                              TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
       use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
       use modglobal,   only : idriver
       implicit none
@@ -786,6 +788,26 @@ module modstartup
       if ((lwarmstart) .or. (lstratstart)) then
          if (startfile == '') then
             write(0, *) 'ERROR: no restartfile set'
+            stop 1
+         end if
+      end if
+
+      if (ltrees) then
+         select case (itree_mode)
+         case (TREE_MODE_DRAG_ONLY, TREE_MODE_SVEG, TREE_MODE_LEGACY_SEB)
+            continue
+         case default
+            if (myid == 0) then
+               write(0, *) 'ERROR: invalid itree_mode. Supported values are 0 (drag only), 2 (sveg), 99 (legacy SEB).'
+               write(0, *) 'Configured itree_mode = ', itree_mode
+            end if
+            stop 1
+         end select
+
+         if ((itree_mode == TREE_MODE_LEGACY_SEB) .and. lEB) then
+            if (myid == 0) then
+               write(0, *) 'ERROR: legacy tree SEB (itree_mode=99) cannot be combined with lEB=.true.'
+            end if
             stop 1
          end if
       end if

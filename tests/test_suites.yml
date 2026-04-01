@@ -39,7 +39,7 @@ groups:
       - label: "supported: ibm sparse input integration"
         class: supported
         purpose: integration
-        env_UDALES_BUILD: "{repo_root}/build/{branch_b}/u-dales"
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
           - "bash"
           - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"

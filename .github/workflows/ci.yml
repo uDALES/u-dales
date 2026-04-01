@@ -40,6 +40,15 @@ jobs:
         environment-file: environment.yml
         channel-priority: strict
 
+    - name: Build current branch for integration tests
+      shell: bash -l {0}
+      run: |
+        build_dir="build/${{ matrix.build-type }}"
+        build_dir="${build_dir,,}"
+        if [ ${{ matrix.os }} = 'macos-latest' ]; then export FC=gfortran-12; fi
+        cmake -S . -B "$build_dir" -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+        cmake --build "$build_dir" -- -j 4
+
     - name: Build and test uDALES
       # 'shell' required to activate environment.
       # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
