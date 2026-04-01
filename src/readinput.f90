@@ -3,13 +3,13 @@ module readinput
   !> Provides standardized reading of commonly-used input file formats
   use mpi
   use modglobal, only : ifinput
-  use modmpi,    only : myid, comm3d, mpierr
+  use modmpi,    only : myid, comm3d, mpierr, MY_REAL
   use decomp_2d, only : zstart, zend
   implicit none
 
   private
 
-  public :: read_sparse_ijk
+  public :: read_sparse_ijk, read_sparse_real
 
 contains
 
@@ -126,5 +126,67 @@ contains
     deallocate(lpts)
 
   end subroutine read_sparse_ijk
+
+  !> Read one real value per sparse-point row and return only the values
+  !> corresponding to the local sparse-point ids from a companion coordinate file.
+  !>
+  !> This is intended for files aligned with a sparse coordinate list such as
+  !> veg.inp / sveg.inp, where ordering provides the mapping.
+  subroutine read_sparse_real(filename, npts, ids_loc, values_loc, nskip)
+    implicit none
+
+    character(len=*), intent(in)      :: filename
+    integer, intent(in)               :: npts
+    integer, intent(in)               :: ids_loc(:)
+    real, allocatable, intent(out)    :: values_loc(:)
+    integer, intent(in), optional     :: nskip
+
+    real, allocatable :: values_glob(:)
+    integer :: n, nh, ierr
+    character(80) :: chmess
+
+    nh = 1
+    if (present(nskip)) nh = nskip
+
+    allocate(values_glob(npts))
+    values_glob = 0.
+
+    if (myid == 0) then
+      open(ifinput, file=filename, status='old', iostat=ierr)
+      if (ierr /= 0) then
+        write(*, '(A,A)') 'ERROR: Cannot open file: ', trim(filename)
+        write(*, '(A,I0)') '  iostat error code: ', ierr
+        stop 1
+      end if
+
+      do n = 1, nh
+        read(ifinput, '(a80)', iostat=ierr) chmess
+        if (ierr /= 0) then
+          write(*, '(A,I0,A,A)') 'ERROR: Cannot read header line ', n, ' from ', trim(filename)
+          stop 1
+        end if
+      end do
+
+      do n = 1, npts
+        read(ifinput, *, iostat=ierr) values_glob(n)
+        if (ierr /= 0) then
+          write(*, '(A,I0,A,A)') 'ERROR: Cannot read data line ', n, ' from ', trim(filename)
+          write(*, '(A,I0)') '  iostat error code: ', ierr
+          stop 1
+        end if
+      end do
+
+      close(ifinput)
+    end if
+
+    call MPI_BCAST(values_glob, npts, MY_REAL, 0, comm3d, mpierr)
+
+    allocate(values_loc(size(ids_loc)))
+    do n = 1, size(ids_loc)
+      values_loc(n) = values_glob(ids_loc(n))
+    end do
+
+    deallocate(values_glob)
+  end subroutine read_sparse_real
 
 end module readinput

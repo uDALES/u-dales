@@ -43,9 +43,15 @@ def build(path_to_proj_dir: Path, path_to_build_dir: Path, build_type: str, clea
     if not path_to_build_dir.is_dir():
         path_to_build_dir.mkdir(parents=True)
 
+    cmake_configure_cmd = ['cmake', f'-DCMAKE_BUILD_TYPE={build_type}']
+    cmake_args = os.environ.get('UDALES_CMAKE_ARGS', '').strip()
+    if cmake_args:
+        cmake_configure_cmd.extend(cmake_args.split())
+    cmake_configure_cmd.extend([str(path_to_proj_dir), '-LA'])
+
     try:
         subprocess.run(
-            ['cmake', f'-DCMAKE_BUILD_TYPE={build_type}', path_to_proj_dir, '-LA'],
+            cmake_configure_cmd,
             cwd=path_to_build_dir,
             check=True,
             stdout=subprocess.PIPE,

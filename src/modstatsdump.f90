@@ -524,8 +524,7 @@ contains
                                ncstatxyt,qtxyt,pxyt,ncstatt,uutc,vvtc,wwtc,utc,vtc,wtc,&
                                umt,vmt,sv1t,sv2t,sv3t,sv4t,sv1tk,sv2tk,sv3tk,sv4tk,wsv1tk,wsv2tk,wsv3tk,wsv4tk,&
                                sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt,PSSt,& !,sv1max,sv2max,sv3max,sv4max
-                               ncstattr,tr_u,tr_ut,tr_v,tr_vt,tr_w,tr_wt,tr_thl,tr_thlt,tr_qt,tr_qtR,&
-                               tr_qtA,tr_qtt,tr_qtRt,tr_qtAt,tr_sv,tr_sv1t, PSSt, tr_sv2t,tr_omega,tr_omegat
+                               ncstattr,tr_ut,tr_vt,tr_wt,tr_thlt,tr_qtt,tr_qtRt,tr_qtAt,tr_sv1t,PSSt,tr_sv2t,tr_omegat
   use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,dyi,jh,ke,kb,kh,khc,rk3step,&
                                timee,cexpnr,tsample,tstatsdump,tstatstart,jtot,imax,jmax,dzf,&
                                ltempeq,zh,dxf,dzf,dzh2i,lprofforc,lscasrcl,&
@@ -539,6 +538,7 @@ contains
   use modsurfdata,      only : thls
   use modsubgrid,       only : ekh,ekm
   use modstatistics,    only : genstats,tkestats
+  use vegetation,       only : scatter_vegetation_sources
   ! use, intrinsic :: ieee_arithmetic
   implicit none
 
@@ -617,6 +617,15 @@ contains
   real, allocatable     :: sv3psv3pt(:,:,:)
   real, allocatable     :: sv4psv4pt(:,:,:)
   real, allocatable     :: PSS(:,:,:)
+  real, allocatable     :: tr_up_now(:,:,:)
+  real, allocatable     :: tr_vp_now(:,:,:)
+  real, allocatable     :: tr_wp_now(:,:,:)
+  real, allocatable     :: tr_qtp_now(:,:,:)
+  real, allocatable     :: tr_qtpR_now(:,:,:)
+  real, allocatable     :: tr_qtpA_now(:,:,:)
+  real, allocatable     :: tr_thlp_now(:,:,:)
+  real, allocatable     :: tr_svp_now(:,:,:,:)
+  real, allocatable     :: tr_omega_now(:,:,:)
 
   ! real, dimension(ib:ie,jb:je,kb:ke+kh)        :: upwptik
   ! real, dimension(ib:ie,jb:je,kb:ke+kh)        :: vpwptjk
@@ -1231,22 +1240,30 @@ contains
       !end if ! ltdump
 
       if (ltreedump) then
-        tr_ut(ib:ie,jb:je,kb:ke) = (tr_ut(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_u(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-        tr_vt(ib:ie,jb:je,kb:ke) = (tr_vt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_v(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-        tr_wt(ib:ie,jb:je,kb:ke) = (tr_wt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_w(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        allocate(tr_up_now(ib:ie,jb:je,kb:ke), tr_vp_now(ib:ie,jb:je,kb:ke), tr_wp_now(ib:ie,jb:je,kb:ke))
+        allocate(tr_qtp_now(ib:ie,jb:je,kb:ke), tr_qtpR_now(ib:ie,jb:je,kb:ke), tr_qtpA_now(ib:ie,jb:je,kb:ke))
+        allocate(tr_thlp_now(ib:ie,jb:je,kb:ke), tr_svp_now(ib:ie,jb:je,kb:ke,max(1,nsv)), tr_omega_now(ib:ie,jb:je,kb:ke))
+        call scatter_vegetation_sources(tr_up_now, tr_vp_now, tr_wp_now, tr_qtp_now, tr_qtpR_now, tr_qtpA_now, tr_thlp_now, tr_svp_now, tr_omega_now)
+
+        tr_ut(ib:ie,jb:je,kb:ke) = (tr_ut(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_up_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        tr_vt(ib:ie,jb:je,kb:ke) = (tr_vt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_vp_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        tr_wt(ib:ie,jb:je,kb:ke) = (tr_wt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_wp_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
         if (ltempeq) then
-          tr_thlt(ib:ie,jb:je,kb:ke) = (tr_thlt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_thl(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          tr_thlt(ib:ie,jb:je,kb:ke) = (tr_thlt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_thlp_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
         end if
         if (lmoist) then
-          tr_qtt(ib:ie,jb:je,kb:ke) = (tr_qtt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qt(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          tr_qtRt(ib:ie,jb:je,kb:ke) = (tr_qtRt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qtR(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          tr_qtAt(ib:ie,jb:je,kb:ke) = (tr_qtAt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qtA(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          tr_omegat(ib:ie,jb:je,kb:ke) = (tr_omegat(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_omega(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          tr_qtt(ib:ie,jb:je,kb:ke) = (tr_qtt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qtp_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          tr_qtRt(ib:ie,jb:je,kb:ke) = (tr_qtRt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qtpR_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          tr_qtAt(ib:ie,jb:je,kb:ke) = (tr_qtAt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qtpA_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          tr_omegat(ib:ie,jb:je,kb:ke) = (tr_omegat(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_omega_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
         end if
         if (nsv>0) then
-          tr_sv1t(ib:ie,jb:je,kb:ke) = (tr_sv1t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_sv(ib:ie,jb:je,kb:ke,1)*tsamplep)*tstatsdumppi
-          tr_sv2t(ib:ie,jb:je,kb:ke) = (tr_sv2t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_sv(ib:ie,jb:je,kb:ke,2)*tsamplep)*tstatsdumppi
+          tr_sv1t(ib:ie,jb:je,kb:ke) = (tr_sv1t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_svp_now(ib:ie,jb:je,kb:ke,1)*tsamplep)*tstatsdumppi
+          if (nsv > 1) then
+            tr_sv2t(ib:ie,jb:je,kb:ke) = (tr_sv2t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_svp_now(ib:ie,jb:je,kb:ke,2)*tsamplep)*tstatsdumppi
+          end if
         end if
+        deallocate(tr_up_now, tr_vp_now, tr_wp_now, tr_qtp_now, tr_qtpR_now, tr_qtpA_now, tr_thlp_now, tr_svp_now, tr_omega_now)
       end if
 
 !      where (IIuwt==0)

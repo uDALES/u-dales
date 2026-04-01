@@ -284,7 +284,7 @@ contains
     use modglobal, only : ib, ie, jb, je, kb, ke, itot, jtot, ntree_max, cd, cexpnr, ltrees, lmoist, ltempeq
     use modfields, only : um, vm, wm, thlm, qtm, tr_u, tr_v, tr_w, tr_qt, tr_thl, qtp, thlp, up, vp, wp, ladzh, ladzf
     use modtrees,  only : trees_block => trees, createtrees_block => createtrees
-    use vegetation, only : init_vegetation, apply_vegetation, lad_3d
+    use vegetation, only : init_vegetation, apply_vegetation, lad_3d, scatter_vegetation_sources
     use modmpi,    only : myid, myidx, myidy, comm3d, mpierr, my_real
     use decomp_2d, only : xstart, ystart, zstart
     implicit none
@@ -292,6 +292,9 @@ contains
     integer :: i, j, k
     real, allocatable :: block_u(:,:,:), block_v(:,:,:), block_w(:,:,:)
     real, allocatable :: block_qt(:,:,:), block_thl(:,:,:)
+    real, allocatable :: sparse_u(:,:,:), sparse_v(:,:,:), sparse_w(:,:,:)
+    real, allocatable :: sparse_qt(:,:,:), sparse_qtR(:,:,:), sparse_qtA(:,:,:), sparse_thl(:,:,:), sparse_omega(:,:,:)
+    real, allocatable :: sparse_sv(:,:,:,:)
     real :: diff_local, diff_global
     real :: diff_u_local, diff_v_local, diff_w_local, diff_qt_local, diff_thl_local
     real :: diff_u_global, diff_v_global, diff_w_global, diff_qt_global, diff_thl_global
@@ -364,6 +367,15 @@ contains
     allocate(block_w(ib:ie,jb:je,kb:ke))
     allocate(block_qt(ib:ie,jb:je,kb:ke))
     allocate(block_thl(ib:ie,jb:je,kb:ke))
+    allocate(sparse_u(ib:ie,jb:je,kb:ke))
+    allocate(sparse_v(ib:ie,jb:je,kb:ke))
+    allocate(sparse_w(ib:ie,jb:je,kb:ke))
+    allocate(sparse_qt(ib:ie,jb:je,kb:ke))
+    allocate(sparse_qtR(ib:ie,jb:je,kb:ke))
+    allocate(sparse_qtA(ib:ie,jb:je,kb:ke))
+    allocate(sparse_thl(ib:ie,jb:je,kb:ke))
+    allocate(sparse_omega(ib:ie,jb:je,kb:ke))
+    allocate(sparse_sv(ib:ie,jb:je,kb:ke,1))
     block_u = tr_u
     block_v = tr_v
     block_w = tr_w
@@ -384,6 +396,7 @@ contains
 
     ! Apply sparse vegetation forcing via vegetation routine
     call apply_vegetation
+    call scatter_vegetation_sources(sparse_u, sparse_v, sparse_w, sparse_qt, sparse_qtR, sparse_qtA, sparse_thl, sparse_sv, sparse_omega)
 
     ! Output differences
     diff_local = 0.0
@@ -409,39 +422,39 @@ contains
     do k = kb, ke
       do j = jb, je
         do i = ib, ie
-          diff_u_local = max(diff_u_local, abs(tr_u(i,j,k) - block_u(i,j,k)))
-          diff_v_local = max(diff_v_local, abs(tr_v(i,j,k) - block_v(i,j,k)))
-          diff_w_local = max(diff_w_local, abs(tr_w(i,j,k) - block_w(i,j,k)))
-          if (tr_u(i,j,k) /= block_u(i,j,k)) n_u_local = n_u_local + 1
-          if (tr_v(i,j,k) /= block_v(i,j,k)) n_v_local = n_v_local + 1
-          if (tr_w(i,j,k) /= block_w(i,j,k)) n_w_local = n_w_local + 1
-          diff_qt_local = max(diff_qt_local, abs(tr_qt(i,j,k) - block_qt(i,j,k)))
-          diff_thl_local = max(diff_thl_local, abs(tr_thl(i,j,k) - block_thl(i,j,k)))
+          diff_u_local = max(diff_u_local, abs(sparse_u(i,j,k) - block_u(i,j,k)))
+          diff_v_local = max(diff_v_local, abs(sparse_v(i,j,k) - block_v(i,j,k)))
+          diff_w_local = max(diff_w_local, abs(sparse_w(i,j,k) - block_w(i,j,k)))
+          if (sparse_u(i,j,k) /= block_u(i,j,k)) n_u_local = n_u_local + 1
+          if (sparse_v(i,j,k) /= block_v(i,j,k)) n_v_local = n_v_local + 1
+          if (sparse_w(i,j,k) /= block_w(i,j,k)) n_w_local = n_w_local + 1
+          diff_qt_local = max(diff_qt_local, abs(sparse_qt(i,j,k) - block_qt(i,j,k)))
+          diff_thl_local = max(diff_thl_local, abs(sparse_thl(i,j,k) - block_thl(i,j,k)))
           if (i > ib .and. lad_3d(i-1,j,k) > 0.0 .and. lad_3d(i,j,k) > 0.0) then
-            diff_u_int_local = max(diff_u_int_local, abs(tr_u(i,j,k) - block_u(i,j,k)))
+            diff_u_int_local = max(diff_u_int_local, abs(sparse_u(i,j,k) - block_u(i,j,k)))
             n_int_u_local = n_int_u_local + 1
           end if
           if (j > jb .and. lad_3d(i,j-1,k) > 0.0 .and. lad_3d(i,j,k) > 0.0) then
-            diff_v_int_local = max(diff_v_int_local, abs(tr_v(i,j,k) - block_v(i,j,k)))
+            diff_v_int_local = max(diff_v_int_local, abs(sparse_v(i,j,k) - block_v(i,j,k)))
             n_int_v_local = n_int_v_local + 1
           end if
           if (k > kb .and. lad_3d(i,j,k-1) > 0.0 .and. lad_3d(i,j,k) > 0.0) then
-            diff_w_int_local = max(diff_w_int_local, abs(tr_w(i,j,k) - block_w(i,j,k)))
+            diff_w_int_local = max(diff_w_int_local, abs(sparse_w(i,j,k) - block_w(i,j,k)))
             n_int_w_local = n_int_w_local + 1
           end if
-          if (abs(tr_u(i,j,k) - block_u(i,j,k)) >= diff_u_local) then
+          if (abs(sparse_u(i,j,k) - block_u(i,j,k)) >= diff_u_local) then
             idx_u = (/ i, j, k /)
           end if
-          if (abs(tr_v(i,j,k) - block_v(i,j,k)) >= diff_v_local) then
+          if (abs(sparse_v(i,j,k) - block_v(i,j,k)) >= diff_v_local) then
             idx_v = (/ i, j, k /)
           end if
-          if (abs(tr_w(i,j,k) - block_w(i,j,k)) >= diff_w_local) then
+          if (abs(sparse_w(i,j,k) - block_w(i,j,k)) >= diff_w_local) then
             idx_w = (/ i, j, k /)
           end if
-          if (abs(tr_qt(i,j,k) - block_qt(i,j,k)) >= diff_qt_local) then
+          if (abs(sparse_qt(i,j,k) - block_qt(i,j,k)) >= diff_qt_local) then
             idx_qt = (/ i, j, k /)
           end if
-          if (abs(tr_thl(i,j,k) - block_thl(i,j,k)) >= diff_thl_local) then
+          if (abs(sparse_thl(i,j,k) - block_thl(i,j,k)) >= diff_thl_local) then
             idx_thl = (/ i, j, k /)
           end if
         end do
