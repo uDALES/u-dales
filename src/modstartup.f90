@@ -65,9 +65,8 @@ module modstartup
                                     uflowrate, vflowrate, lstoreplane, iplane, &
                                     lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
                                     lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,lzerogradtop,&
-                                    lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice, &
-                                    nkslice, nislice, njslice, &
-                                    lprobedump, iprobe, jprobe, kprobe, nprobe, &
+                                    lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice,nkslice,nislice,njslice, &
+                                    lprobedump,iprobe,jprobe,kprobe,nprobe, &
                                     lzerogradtopscal, lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
@@ -323,72 +322,6 @@ module modstartup
          endif
          !write (6, OUTPUT)
          close (ifnamopt)
-         
-         ! Validate kslice: count non-zero entries and compare with nkslice
-         if (lkslicedump) then
-            if (nkslice <= 0) then
-               write(0, *) 'ERROR: lkslicedump=.true. but nkslice=', nkslice, ' (must be > 0)'
-               stop 1
-            end if
-            if (count(kslice(1:nkslice) > 0) /= nkslice) then
-               write(0, *) 'ERROR: nkslice=', nkslice, ' but only', count(kslice(1:nkslice) > 0), &
-                            ' valid (>0) entries found in kslice array'
-               write(0, *) 'Check that kslice has exactly nkslice positive values'
-               stop 1
-            end if
-            ! write(*, *) 'kslice output enabled for', nkslice, 'levels:'
-            ! write(*, '(10I6)') kslice(1:nkslice)
-         end if
-
-         ! Validate islice
-         if (lislicedump) then
-            if (nislice <= 0) then
-               write(0, *) 'ERROR: lislicedump=.true. but nislice=', nislice, ' (must be > 0)'
-               stop 1
-            end if
-            if (count(islice(1:nislice) > 0) /= nislice) then
-               write(0, *) 'ERROR: nislice=', nislice, ' but only', count(islice(1:nislice) > 0), &
-                            ' valid (>0) entries found in islice array'
-               write(0, *) 'Check that islice has exactly nislice positive values'
-               stop 1
-            end if
-            ! write(*, *) 'islice output enabled for', nislice, 'levels:'
-            ! write(*, '(10I6)') islice(1:nislice)
-         end if
-
-         ! Validate jslice
-         if (ljslicedump) then
-            if (njslice <= 0) then
-               write(0, *) 'ERROR: ljslicedump=.true. but njslice=', njslice, ' (must be > 0)'
-               stop 1
-            end if
-            if (count(jslice(1:njslice) > 0) /= njslice) then
-               write(0, *) 'ERROR: njslice=', njslice, ' but only', count(jslice(1:njslice) > 0), &
-                            ' valid (>0) entries found in jslice array'
-               write(0, *) 'Check that jslice has exactly njslice positive values'
-               stop 1
-            end if
-            ! write(*, *) 'jslice output enabled for', njslice, 'levels:'
-            ! write(*, '(10I6)') jslice(1:njslice)
-         end if
-
-         ! Validate probes
-         if (lprobedump) then
-            if (nprobe <= 0) then
-               write(0, *) 'ERROR: lprobedump=.true. but nprobe=', nprobe, ' (must be > 0)'
-               stop 1
-            end if
-            if (count(iprobe(1:nprobe) > 0) /= nprobe .or. &
-                count(jprobe(1:nprobe) > 0) /= nprobe .or. &
-                count(kprobe(1:nprobe) > 0) /= nprobe) then
-               write(0, *) 'ERROR: nprobe=', nprobe, ' but iprobe/jprobe/kprobe do not all have', &
-                            ' nprobe valid (>0) entries'
-               write(0, *) 'Check that iprobe, jprobe, kprobe each have exactly nprobe positive values'
-               stop 1
-            end if
-            ! write(*, *) 'probe output enabled for', nprobe, 'points'
-            ! write(*, *) 'probevars:', trim(probevars)
-         end if
       end if
 
       call MPI_BCAST(itot,1,MPI_INTEGER,0,comm3d,mpierr)

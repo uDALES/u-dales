@@ -55,9 +55,6 @@ module modglobal
    integer ::  ke
    integer ::  nsv = 0 !< Number of additional scalar fields
    integer ::  nvar = 0
-   character(50) :: fieldvars = ''
-   character(50) :: slicevars = ''
-   character(50) :: probevars = ''
 
    integer ::  ih = 3
    integer ::  jh = 3
@@ -76,7 +73,6 @@ module modglobal
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
-   logical :: lfielddump = .false. !< switch to enable the fielddump
    logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
 
    !Switches for boundary conditions
@@ -188,34 +184,7 @@ module modglobal
    logical :: lfixutauin = .false. !<  switch that determines whether the utau is kept fixed at the inlet (only used when iinletgen=1,2)
    logical :: lscasrc = .false. !
    logical :: lscasrcl = .false. !tg3315
-   logical :: lydump = .false.  !<  switch to output y-averaged statistics every tsample
-   logical :: lytdump = .false.  !<  switch to output y- and time- averaged statistics every tstatsdump
-   logical :: lxydump    = .false.  !<  switch to output x- and y-avewraged statistics every tsample
-   logical :: lxytdump   = .false.  !<  switch to output x-, y- and time-averaged statistics every tstatsdump
    logical :: lscasrcr  = .false.  !<  switch for network of point sources at lowest level
-   logical :: ltkedump = .false. !tg3315
-   logical :: lkslicedump= .false.  !<  switch to output slices in the xy-plane every tsample
-   logical :: lislicedump= .false.  !<  switch to output slices in the yz-plane every tsample
-   logical :: ljslicedump= .false.  !<  switch to output slices in the xz-plane every tsample
-
-   integer :: kslice(10000) = 0  !<  k levels at which to output slices in xy-plane
-   integer :: nkslice   = 0  !<  number of k-slices
-
-   integer :: islice(10000) = 0  !<  i levels at which to output slices in yz-plane
-   integer :: nislice   = 0   !<  number of i-slices
-
-   integer :: jslice(10000) = 0  !<  j levels at which to output slices in xz-plane
-   integer :: njslice   = 0   !<  number of j-slices
-
-   logical :: lprobedump = .false.  !<  switch to output probe (point) time series every tsample
-   integer :: iprobe(10000) = 0     !<  i indices of probe points
-   integer :: jprobe(10000) = 0     !<  j indices of probe points
-   integer :: kprobe(10000) = 0     !<  k indices of probe points
-   integer :: nprobe = 0            !<  number of probe points
-   
-   logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
-   logical :: lmintdump    = .false.      !<  switch to output prognostic statistics every tstatsdump
-
    logical :: ltrees = .false.         !<  switch to turn on trees module
    logical :: lpurif = .false.         !<  switch to turn on purifiers module
    logical :: ltreedump = .false.   !<  switch to output tree results time-averaged statistics every tstatsdump
@@ -248,6 +217,44 @@ module modglobal
    integer :: ifixuinf = 0
    logical :: lvinf = .false. !use Vinf instead of Uinf for the fixed velocity at infinity
    logical :: lrandomize = .true.
+
+   ! Outputting statistics
+   logical :: lydump       = .false.  !<  switch to output y-averaged statistics every tsample
+   logical :: lytdump      = .false.  !<  switch to output y- and time- averaged statistics every tstatsdump
+   logical :: lxydump      = .false.  !<  switch to output x- and y-avewraged statistics every tsample
+   logical :: lxytdump     = .false.  !<  switch to output x-, y- and time-averaged statistics every tstatsdump
+   logical :: ltdump       = .false.  !<  switch to output time-averaged statistics every tstatsdump
+   logical :: lmintdump    = .false.  !<  switch to output prognostic statistics every tstatsdump
+   logical :: ltkedump     = .false.  !tg3315
+   
+   real    :: tstatstart   = 0.       !< Starting time of statistic computation
+   real    :: tstatsdump   = 10000.   !< Time step for statistics outputs tg3315
+   real    :: tsample      = 5.       !<    Sample time steps for statistics
+   
+   ! Outputting instantaneous slices sampled at every tsample
+   logical :: lkslicedump  = .false.  !<  switch to output slices in the xy-plane every tsample
+   integer :: kslice(1000) = 0        !<  k levels at which to output slices in xy-plane
+   integer :: nkslice      = 0        !<  number of k-slices
+   logical :: lislicedump  = .false.  !<  switch to output slices in the yz-plane every tsample
+   integer :: islice(1000) = 0        !<  i levels at which to output slices in yz-plane
+   integer :: nislice      = 0        !<  number of i-slices
+   logical :: ljslicedump  = .false.  !<  switch to output slices in the xz-plane every tsample
+   integer :: jslice(1000) = 0        !<  j levels at which to output slices in xz-plane
+   integer :: njslice      = 0        !<  number of j-slices
+   character(50) :: slicevars = ''    !<  list of variables to be output in slices
+
+   ! Outputting instantaneous probes sampled at every tsample
+   logical :: lprobedump   = .false.  !<  switch to output probe (point) time series every tsample
+   integer :: iprobe(1000) = 0        !<  i indices of probe points
+   integer :: jprobe(1000) = 0        !<  j indices of probe points
+   integer :: kprobe(1000) = 0        !<  k indices of probe points
+   integer :: nprobe       = 0        !<  number of probe points
+   character(50) :: probevars = ''    !<  list of variables to be output at probe points
+
+   ! Outputting instantaneous 3D fields
+   logical :: lfielddump   = .false.  !< switch to enable the fielddump
+   real    :: tfielddump   = 10000.   !< Time step for field outputs
+   character(50) :: fieldvars = ''    !< list of variables to be output in fielddump
 
    logical :: ibrank
    logical :: ierank
@@ -403,10 +410,6 @@ module modglobal
    real :: dtmax = 20. !<     * maximum time integration interval
 
    real    :: trestart = 10000. !<     * each trestart sec. a restart file is written to disk. bss116: per default do not write restart files
-   real    :: tfielddump = 10000. !< Time step for field outputs
-   real    :: tsample = 5. !<    Sample time steps for statistics
-   real    :: tstatsdump = 10000. !< Time step for statistics outputs tg3315
-   real    :: tstatstart = 0.      !< Starting time of statistic computation
    real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
    real    :: tscale !       timescale: domain height*Uinf/utau**2
    real    :: tnextfielddump !<

@@ -81,26 +81,12 @@ module instant
 
       if(.not.(lislicedump .or. ljslicedump .or. lkslicedump)) return
 
-      nslicevars = (LEN(trim(slicevars))+1)/3
-
-      if (nslicevars == 0) then
-        lislicedump = .false.
-        ljslicedump = .false.
-        lkslicedump = .false.
-        print *, "NOTE: invalid 'slicevars' therefore all of lislicedump, ljslicedump &
-                  &and lkslicedump are set to false, and no instantaneous slice will be outputted !!"
-        return
-      end if
-
-      if(runtime <= tstatstart) then
-        if(myid==0) then
-          write(*,*) "ERROR: no instantaneous slice will be written as runtime <= tstatstart. Note that runtime &
-                      &must be greater than tstatstart for wiriting slice files."
-          write(*,*) "You have used runtime = ", runtime, ", tstatstart = ", tstatstart
-          write(*,*) "Either correct the time settings or change all the slice writing flags to false."
-          stop 1
-        end if
-      end if
+      ! Validate slice inputs before proceeding
+      call instant_validate_out_time('slices')
+      call instant_validate_output_vars(nslicevars, slicevars, 'slicevars', 'one or more of lislicedump, ljslicedump and lkslicedump')  ! Validate slicevars only if at least one slice dump is true
+      call instant_validate_slice_inputs(lkslicedump, nkslice, kslice, 'kslice')
+      call instant_validate_slice_inputs(lislicedump, nislice, islice, 'islice') 
+      call instant_validate_slice_inputs(ljslicedump, njslice, jslice, 'jslice')
       
       xdim = ie-ib+1
       ydim = je-jb+1
@@ -180,8 +166,9 @@ module instant
           case('s4')
             if (nsv>3)   call ncinfo( isliceVars(n,:), 's4'  , 'Concentration field 4' , 'g/m^3' , 'tttt' )
           case default
-            print *, "Invalid slice variables name. Check namoptions variable 'slicevars'. &
-                      &There should not be any space in the string."
+            print *, "Invalid slice variables name. Check namoptions setting for 'slicevars'. &
+                      &The variables can be only from the list: u0,v0,w0,p0,th,qt,s1,s2,s3,s4. &
+                      &There should not be any space in the string. "
             STOP 1
         end select
       end do
@@ -213,7 +200,8 @@ module instant
           case('s4')
             if (nsv>3)   call ncinfo( jsliceVars(n,:), 's4'  , 'Concentration field 4' , 'g/m^3' , 'tttt' )
           case default
-            print *, "Invalid slice variables name. Check namoptions variable 'slicevars'. &
+            print *, "Invalid slice variables name. Check namoptions setting for 'slicevars'. &
+                      &The variables can be only from the list: u0,v0,w0,p0,th,qt,s1,s2,s3,s4. &
                       &There should not be any space in the string."
             STOP 1
         end select
@@ -246,7 +234,8 @@ module instant
           case('s4')
             if (nsv>3)   call ncinfo( ksliceVars( n,:), 's4'  , 'Concentration field 4' , 'g/m^3' , 'tttt' )
           case default
-            print *, "Invalid slice variables name. Check namoptions variable 'slicevars'. &
+            print *, "Invalid slice variables name. Check namoptions setting for 'slicevars'. &
+                      &The variables can be only from the list: u0,v0,w0,p0,th,qt,s1,s2,s3,s4. &
                       &There should not be any space in the string."
             STOP 1
         end select
@@ -987,16 +976,24 @@ module instant
       
       if (.not. lprobedump) return
 
-      nprobevars = (LEN(trim(probevars))+1)/3
-      if (nprobevars == 0 .or. nprobe == 0) then
-        lprobedump = .false.
-        if(myid==0) print *, "NOTE: invalid 'probevars' or nprobe=0, probe output disabled"
-        return
-      end if
+      ! Validate probe inputs before proceeding
+      call instant_validate_out_time('probes')
+      call instant_validate_output_vars(nprobevars, probevars, 'probevars', 'lprobedump')
 
-      if(runtime <= tstatstart .and. myid==0) then
-         print *, "NOTE: runtime <= tstatstart, probing starts later"
+      if (nprobe <= 0) then
+        write(0, *) 'ERROR: lprobedump=.true. but nprobe=', nprobe, ' (must be > 0)'
+        stop 1
       end if
+      if (count(iprobe(1:nprobe) > 0) /= nprobe .or. &
+          count(jprobe(1:nprobe) > 0) /= nprobe .or. &
+          count(kprobe(1:nprobe) > 0) /= nprobe) then
+        write(0, *) 'ERROR: nprobe=', nprobe, ' but iprobe/jprobe/kprobe do not all have', &
+                    ' nprobe valid (>0) entries'
+        write(0, *) 'Check that iprobe, jprobe, kprobe each have exactly nprobe positive values'
+        stop 1
+      end if
+      ! write(*, *) 'probe output enabled for', nprobe, 'points'
+      ! write(*, *) 'probevars:', trim(probevars)
       
       tsampleprobe = 0.
       
@@ -1243,5 +1240,59 @@ module instant
         stop 2
       end if
     end subroutine check
+
+
+    subroutine instant_validate_out_time(var_name)
+      implicit none
+      character(len=*), intent(in)  :: var_name
+      if(runtime <= tstatstart) then
+        if(myid==0) then
+          write(*,*) "ERROR: no instantaneous ", trim(var_name), " will be written as runtime <= tstatstart. Note that runtime &
+                      &must be greater than tstatstart for wiriting ", trim(var_name), " files."
+          write(*,*) "You have used runtime = ", runtime, ", tstatstart = ", tstatstart
+          write(*,*) "Either correct the time settings or change all the ", trim(var_name), " writing flags to false."
+          stop 1
+        end if
+      end if
+    end subroutine instant_validate_out_time
+
+    subroutine instant_validate_output_vars(nvars, vars, var_name, var_flag)
+      ! Count variables from vars string; stop with error if none found
+      implicit none
+      integer,          intent(out) :: nvars
+      character(len=*), intent(in)  :: vars
+      character(len=*), intent(in)  :: var_name
+      character(len=*), intent(in)  :: var_flag
+
+      nvars = (LEN(trim(vars))+1)/3
+      if (nvars == 0) then
+        if(myid==0) then
+          print *, "ERROR: no '", trim(var_name), "' entries found, although ", trim(var_flag), " are set to true !!"
+          stop 1
+        end if
+      end if
+    end subroutine instant_validate_output_vars
+
+    subroutine instant_validate_slice_inputs(slice_enabled, n_slice, slice_array, slice_name)
+      ! Validate slice arrays: check count and non-zero entries
+      implicit none
+      logical, intent(in) :: slice_enabled
+      integer, intent(in) :: n_slice
+      integer, intent(in) :: slice_array(:)
+      character(len=*), intent(in) :: slice_name
+      
+      if (slice_enabled) then
+         if (n_slice <= 0) then
+            write(0, *) 'ERROR: l', trim(slice_name), 'dump=.true. but n', trim(slice_name), '=', n_slice, ' (must be > 0)'
+            stop 1
+         end if
+         if (count(slice_array(1:n_slice) > 0) /= n_slice) then
+            write(0, *) 'ERROR: n', trim(slice_name), '=', n_slice, ' but only', count(slice_array(1:n_slice) > 0), &
+                         ' valid (>0) entries found in ', trim(slice_name), ' array'
+            write(0, *) 'Check that ', trim(slice_name), ' has exactly n', trim(slice_name), ' positive values'
+            stop 1
+         end if
+      end if
+    end subroutine instant_validate_slice_inputs
 
 end module instant
