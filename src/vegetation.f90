@@ -17,6 +17,8 @@ module vegetation
     real,    allocatable :: lsize(:)  ! characteristic leaf size (m)
     real,    allocatable :: rs(:)     ! stomatal resistance (s/m)
     real,    allocatable :: laiv(:)  ! cumulative LAI from domain top to top of this element
+    real,    allocatable :: sveg(:)   ! absorbed shortwave on vegetation cells (W/m3)
+    logical :: has_sveg = .false.
   end type veg_type
 
   type(veg_type) :: veg
@@ -36,7 +38,7 @@ module vegetation
 contains
 
   subroutine init_vegetation
-    use modglobal,  only : ltrees,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,dzf
+    use modglobal,  only : ltrees,ltrees_legacySEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,dzf
     use modmpi,     only : myid,comm3d,mpierr,MY_REAL
     use readinput,  only : read_sparse_ijk
     use decomp_2d,  only : exchange_halo_x, exchange_halo_y, exchange_halo_z
@@ -49,15 +51,17 @@ contains
     integer :: ierr, ifinput
     character(256) :: line
     integer, allocatable :: id_all(:)
-    real, allocatable :: lad_all(:), cd_all(:), ud_all(:), dec_all(:), lsize_all(:), rs_all(:)
+    real, allocatable :: lad_all(:), cd_all(:), ud_all(:), dec_all(:), lsize_all(:), rs_all(:), sveg_all(:)
     integer :: nread
     real, allocatable :: lai_3d(:,:,:)      ! LAI (ib:ie, jb:je, kb:ke+1)
     integer :: idx
     real, allocatable :: dcoef_f(:,:,:)
     logical, allocatable :: mask_f(:,:,:)
+    logical :: sveg_exists
 
     if (.not. ltrees) return
     vegetation_ready = .false.
+    veg%has_sveg = .false.
 
     ! count points in veg.inp.<expnr> to set npts
     ! TEMPORARY WHILE WE RUN TREES AND VEG TOGETHER
@@ -90,6 +94,8 @@ contains
     allocate(dec_all(npts))
     allocate(lsize_all(npts))
     allocate(rs_all(npts))
+    allocate(sveg_all(npts))
+    sveg_all = 0.
 
     if (myid == 0) then
       write(filename, '(A,A)') 'veg_params.inp.', trim(cexpnr)
@@ -107,6 +113,36 @@ contains
         end if
       end do
       close(ifinput)
+
+      write(filename, '(A,A)') 'sveg.inp.', trim(cexpnr)
+      inquire(file=filename, exist=sveg_exists)
+      if (ltrees_legacySEB) then
+        if (sveg_exists) then
+          write(*,'(A,A)') 'NOTE: Found optional vegetation shortwave file: ', trim(filename)
+        end if
+      else
+        if (.not. sveg_exists) then
+          write(*,'(A,A)') 'ERROR: Missing vegetation shortwave file: ', trim(filename)
+          stop 1
+        end if
+      end if
+
+      if (sveg_exists) then
+        open(ifinput, file=filename, status='old', iostat=ierr)
+        if (ierr /= 0) then
+          write(*, '(A,A)') 'ERROR: Cannot open file: ', trim(filename)
+          stop 1
+        end if
+        read(ifinput, '(a256)', iostat=ierr) line  ! skip header
+        do nread = 1, npts
+          read(ifinput, *, iostat=ierr) sveg_all(nread)
+          if (ierr /= 0) then
+            write(*, '(A,I0)') 'ERROR reading sveg line ', nread
+            stop 1
+          end if
+        end do
+        close(ifinput)
+      end if
     end if
 
     call MPI_BCAST(id_all, npts, MPI_INTEGER, 0, comm3d, mpierr)
@@ -116,11 +152,13 @@ contains
     call MPI_BCAST(dec_all, npts, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(lsize_all, npts, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(rs_all, npts, MY_REAL, 0, comm3d, mpierr)
+    call MPI_BCAST(sveg_exists, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+    call MPI_BCAST(sveg_all, npts, MY_REAL, 0, comm3d, mpierr)
 
     call read_sparse_ijk('veg.inp.'//trim(cexpnr), npts, veg%npts, ids_loc, pts_in, nskip=1)
 
     if (allocated(veg%id)) then
-      deallocate(veg%id, veg%gidx, veg%ijk, veg%lad, veg%cd, veg%ud, veg%dec, veg%lsize, veg%rs, veg%laiv)
+      deallocate(veg%id, veg%gidx, veg%ijk, veg%lad, veg%cd, veg%ud, veg%dec, veg%lsize, veg%rs, veg%laiv, veg%sveg)
     end if
 
     allocate(veg%id(veg%npts))
@@ -133,9 +171,12 @@ contains
     allocate(veg%lsize(veg%npts))
     allocate(veg%rs(veg%npts))
     allocate(veg%laiv(veg%npts))
+    allocate(veg%sveg(veg%npts))
 
     veg%ijk = 0
     veg%laiv = 0.
+    veg%sveg = 0.
+    veg%has_sveg = sveg_exists
 
     do m = 1, veg%npts
       veg%id(m)    = id_all(ids_loc(m))
@@ -147,13 +188,14 @@ contains
       veg%lsize(m) = lsize_all(ids_loc(m))
       veg%rs(m)    = rs_all(ids_loc(m))
       veg%ijk(m,1:3) = pts_in(m,1:3)
+      if (veg%has_sveg) veg%sveg(m) = sveg_all(ids_loc(m))
     end do
 
     call MPI_BARRIER(comm3d, mpierr)
 
     deallocate(ids_loc)
     deallocate(pts_in)
-    deallocate(id_all, lad_all, cd_all, ud_all, dec_all, lsize_all, rs_all)
+    deallocate(id_all, lad_all, cd_all, ud_all, dec_all, lsize_all, rs_all, sveg_all)
 
     ! ========================================================================
     ! Compute LAI from top of domain downward
@@ -290,23 +332,14 @@ contains
   end subroutine init_vegetation
 
   subroutine apply_vegetation
-    use modglobal,  only : ib,ie,jb,je,kb,ke,lmoist,ltempeq,nsv,pref0,rlv,cp,rv,rd,rhoa,dzf,&
-                 Qstar,dQdt,dec,dy,ih,jh,lad
-    use modfields,  only : um,vm,wm,tr_u,tr_v,tr_w,tr_qt,tr_thl,tr_sv,thlm,qtm,qtp,thlp,svm,svp,&
-                           tr_qtR,tr_qtA,tr_omega,Rn,qa
-    use modibmdata, only : bctfz
-    use modmpi,     only : myid
+    use modglobal,  only : ib,ie,jb,je,kb,ke,lmoist,ltempeq,nsv,ltrees_legacySEB
+    use modfields,  only : um,vm,wm,tr_u,tr_v,tr_w,tr_sv,svp,svm
     implicit none
     integer :: i,j,k,m,n,npts
     integer :: mf
-    real :: dcoefv, ladv, udv, lsizev, rsv, decv
-    real :: e_sat, e_vap, D, s, r_a, omega, qe, qh, gam
-    real :: clai, Rn_top, Rn_bot, q_av, Rq, shade
+    real :: dcoefv, ladv, udv
 
     if (.not. vegetation_ready) return
-
-    ! Compute gamma parameter for psychrometric calculations
-    gam = (cp*pref0*rv)/(rlv*rd)
 
     npts = veg%npts
 
@@ -352,67 +385,11 @@ contains
     ! Loop 2: Canopy energy balance (heat and moisture fluxes)
     ! ========================================================================
     if (lmoist .and. ltempeq) then
-      do m = 1, npts
-        i = veg%ijk(m,1)
-        j = veg%ijk(m,2)
-        k = veg%ijk(m,3)
-
-        ladv   = veg%lad(m)
-        lsizev = max(veg%lsize(m), 1.0e-6)
-        rsv    = max(veg%rs(m), 1.0e-6)
-        decv   = veg%dec(m)
-
-        ! Use pre-computed cumulative LAI (from top down to bottom of this element)
-        clai = veg%laiv(m)
-        
-        ! Net radiation at bottom and top of vegetation element
-        ! clai includes this element, so use it for bottom radiation
-        Rn_top = Qstar * exp(-decv * (clai - ladv * dzf(k)))
-        Rn_bot = Qstar * exp(-decv * clai)
-        
-        ! Available energy (W/m²) - radiation absorbed by this element
-        q_av = Rn_top - Rn_bot
-        
-        ! Saturation vapour pressure
-        e_sat = 610.8*exp((17.27*(thlm(i,j,k)-273.15))/(thlm(i,j,k)-35.85))
-
-        ! Water vapour partial pressure
-        e_vap = (qtm(i,j,k) * pref0) / (0.378 * qtm(i,j,k) + 0.622)
-
-        ! Vapour pressure deficit
-        D = max(e_sat - e_vap, 0.)
-
-        ! Slope of saturation vapour pressure curve
-        s = (4098*e_sat)/((thlm(i,j,k)-35.85)**2)
-
-        ! Aerodynamic resistance
-        r_a = 130*sqrt(max(lsizev, 1.0e-6)/(sqrt(max((0.5*(um(i,j,k)+um(i+1,j,k)))**2 &
-                 +(0.5*(vm(i,j,k)+vm(i,j+1,k)))**2 &
-                 +(0.5*(wm(i,j,k)+wm(i,j,k+1)))**2, 1.0e-12))))
-
-        ! Decoupling factor
-        omega = 1/(1 + 2*(gam/(s+2*gam)) * (rsv/r_a))
-
-        ! Latent heat flux (Penman-Monteith formulation)
-        ! Available energy per unit volume: q_av/(dzf(k)*ladv)
-        qe = omega*(s/(s+2*gam))*(q_av/(dzf(k)*max(ladv, 1.0e-12))) + (1-omega)*(1/(gam*rsv))*rhoa*cp*D
-
-        ! Sensible heat flux (energy balance residual)
-        qh = q_av/(dzf(k)*max(ladv, 1.0e-12)) - qe
-
-        ! Store components for diagnostics
-        tr_omega(i,j,k) = omega
-        tr_qtR(i,j,k) = ladv*(omega*(s/(s+2*gam))*(q_av/(dzf(k)*ladv)))/(rhoa*rlv)
-        tr_qtA(i,j,k) = ladv*((1-omega)*(1/(gam*rsv))*rhoa*cp*D)/(rhoa*rlv)
-
-        ! Volumetric sources/sinks
-        tr_qt(i,j,k) = tr_qt(i,j,k) + ladv*qe/(rhoa*rlv)
-        tr_thl(i,j,k) = tr_thl(i,j,k) + ladv*qh/(rhoa*cp)
-
-        ! Add to RHS
-        qtp(i,j,k) = qtp(i,j,k) + ladv*qe/(rhoa*rlv)
-        thlp(i,j,k) = thlp(i,j,k) + ladv*qh/(rhoa*cp)
-      end do
+      if (ltrees_legacySEB) then
+        call apply_vegetation_legacy
+      else
+        call apply_vegetation_sveg
+      end if
     end if
 
     ! ========================================================================
@@ -435,5 +412,82 @@ contains
     end if
 
   end subroutine apply_vegetation
+
+  subroutine apply_vegetation_legacy
+    use modglobal, only : Qstar, dzf
+    implicit none
+    integer :: i, j, k, m
+    real :: ladv, decv, clai, rn_top, rn_bot, q_av_leaf
+
+    do m = 1, veg%npts
+      i = veg%ijk(m,1)
+      j = veg%ijk(m,2)
+      k = veg%ijk(m,3)
+
+      ladv = veg%lad(m)
+      decv = veg%dec(m)
+      clai = veg%laiv(m)
+
+      rn_top = Qstar * exp(-decv * (clai - ladv * dzf(k)))
+      rn_bot = Qstar * exp(-decv * clai)
+      q_av_leaf = (rn_top - rn_bot) / (dzf(k) * max(ladv, 1.0e-12))
+
+      call apply_vegetation_energy_point(i, j, k, ladv, veg%lsize(m), veg%rs(m), q_av_leaf)
+    end do
+  end subroutine apply_vegetation_legacy
+
+  subroutine apply_vegetation_sveg
+    implicit none
+    integer :: i, j, k, m
+    real :: ladv, q_av_leaf
+
+    do m = 1, veg%npts
+      i = veg%ijk(m,1)
+      j = veg%ijk(m,2)
+      k = veg%ijk(m,3)
+
+      ladv = veg%lad(m)
+      q_av_leaf = veg%sveg(m) / max(ladv, 1.0e-12)
+
+      call apply_vegetation_energy_point(i, j, k, ladv, veg%lsize(m), veg%rs(m), q_av_leaf)
+    end do
+  end subroutine apply_vegetation_sveg
+
+  subroutine apply_vegetation_energy_point(i, j, k, ladv, lsize_in, rs_in, q_av_leaf)
+    use modglobal, only : pref0, rlv, cp, rv, rd, rhoa
+    use modfields, only : thlm, qtm, qtp, thlp, tr_qt, tr_thl, tr_qtR, tr_qtA, tr_omega, um, vm, wm
+    implicit none
+    integer, intent(in) :: i, j, k
+    real, intent(in) :: ladv, lsize_in, rs_in, q_av_leaf
+    real :: e_sat, e_vap, d_vap, slope_sat, r_a, omega, qe, qh, gam
+    real :: lsizev, rsv, wind2
+
+    lsizev = max(lsize_in, 1.0e-6)
+    rsv = max(rs_in, 1.0e-6)
+    gam = (cp*pref0*rv)/(rlv*rd)
+
+    e_sat = 610.8*exp((17.27*(thlm(i,j,k)-273.15))/(thlm(i,j,k)-35.85))
+    e_vap = (qtm(i,j,k) * pref0) / (0.378 * qtm(i,j,k) + 0.622)
+    d_vap = max(e_sat - e_vap, 0.)
+    slope_sat = (4098*e_sat)/((thlm(i,j,k)-35.85)**2)
+
+    wind2 = max((0.5*(um(i,j,k)+um(i+1,j,k)))**2 &
+              +(0.5*(vm(i,j,k)+vm(i,j+1,k)))**2 &
+              +(0.5*(wm(i,j,k)+wm(i,j,k+1)))**2, 1.0e-12)
+    r_a = 130*sqrt(lsizev / sqrt(wind2))
+
+    omega = 1/(1 + 2*(gam/(slope_sat+2*gam)) * (rsv/r_a))
+    qe = omega*(slope_sat/(slope_sat+2*gam))*q_av_leaf + (1-omega)*(1/(gam*rsv))*rhoa*cp*d_vap
+    qh = q_av_leaf - qe
+
+    tr_omega(i,j,k) = omega
+    tr_qtR(i,j,k) = ladv*(omega*(slope_sat/(slope_sat+2*gam))*q_av_leaf)/(rhoa*rlv)
+    tr_qtA(i,j,k) = ladv*((1-omega)*(1/(gam*rsv))*rhoa*cp*d_vap)/(rhoa*rlv)
+
+    tr_qt(i,j,k) = tr_qt(i,j,k) + ladv*qe/(rhoa*rlv)
+    tr_thl(i,j,k) = tr_thl(i,j,k) + ladv*qh/(rhoa*cp)
+    qtp(i,j,k) = qtp(i,j,k) + ladv*qe/(rhoa*rlv)
+    thlp(i,j,k) = thlp(i,j,k) + ladv*qh/(rhoa*cp)
+  end subroutine apply_vegetation_energy_point
 
 end module vegetation

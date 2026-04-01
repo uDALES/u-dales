@@ -75,7 +75,7 @@ module modstartup
                                     BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
-                                    ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump, &
+                                    ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,ltrees_legacySEB, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
@@ -167,7 +167,7 @@ module modstartup
          lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, ltkedump, tstatsdump, tsample, &
          tstatstart
       namelist/TREES/ &
-         ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
+         ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump, ltrees_legacySEB
       namelist/PURIFS/ &
          lpurif, npurif, Qpu, epu
       namelist/HEATPUMP/ &
@@ -591,6 +591,7 @@ module modstartup
       call MPI_BCAST(ltrees, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ntrees, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ltreedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ltrees_legacySEB, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(Qstar, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(dQdt, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lsize, 1, MY_REAL, 0, comm3d, mpierr)

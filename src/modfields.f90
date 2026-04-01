@@ -439,7 +439,7 @@ contains
   subroutine initfields
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jtot,nsv,&
-         ihc,jhc,khc,ltdump,lmintdump,lytdump,lxytdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump!, iadv_kappa,iadv_sv
+         ihc,jhc,khc,ltdump,lmintdump,lytdump,lxytdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltrees,ltreedump!, iadv_kappa,iadv_sv
     use decomp_2d, only : alloc_z
     ! Allocation of prognostic variables
     implicit none
@@ -609,7 +609,7 @@ contains
     allocate(IIuvs(kb:ke+khc))
     IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
 
-    if (ltreedump) then
+    if (ltrees) then
       allocate(qc(kb:ke))
       allocate(qa(kb:ke))
       allocate(ladzf(kb:ke))
@@ -627,6 +627,10 @@ contains
       allocate(tr_sv(ib:ie,jb:je,kb:ke,1:nsv)) 
       allocate(tr_omega(ib:ie,jb:je,kb:ke))
 
+      clai=0.;Rn=0.;qc=0.;qa=0.;ladzf=0.;ladzh=0.;tr_u=0.;tr_v=0.;tr_w=0.;tr_thl=0.;tr_qt=0.;tr_qtR=0.;tr_qtA=0.;tr_sv=0.;tr_omega=0.
+    end if
+
+    if (ltreedump) then
       allocate(tr_ut(ib:ie,jb:je,kb:ke))
       allocate(tr_vt(ib:ie,jb:je,kb:ke))
       allocate(tr_wt(ib:ie,jb:je,kb:ke))
@@ -638,8 +642,7 @@ contains
       allocate(tr_sv2t(ib:ie,jb:je,kb:ke))
       allocate(tr_omegat(ib:ie,jb:je,kb:ke))
       
-      clai=0.;Rn=0.;qc=0.;qa=0.;ladzf=0.;ladzh=0.;tr_u=0.;tr_v=0.;tr_w=0.;tr_thl=0.;tr_qt=0.;tr_qtR=0.;tr_qtA=0.;tr_sv=0.
-      tr_ut=0.;tr_vt=0.;tr_wt=0.;tr_thlt=0.;tr_qtt=0.;tr_qtRt=0.;tr_qtAt=0.;tr_sv1t=0.;tr_sv2t=0.;tr_omega=0.;tr_omegat=0.
+      tr_ut=0.;tr_vt=0.;tr_wt=0.;tr_thlt=0.;tr_qtt=0.;tr_qtRt=0.;tr_qtAt=0.;tr_sv1t=0.;tr_sv2t=0.;tr_omegat=0.
     end if
 
     ! Statistics - currenly not implemented.

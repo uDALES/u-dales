@@ -216,6 +216,7 @@ module modglobal
    logical :: lmintdump    = .false.      !<  switch to output prognostic statistics every tstatsdump
 
    logical :: ltrees = .false.         !<  switch to turn on trees module
+   logical :: ltrees_legacySEB = .true. !< switch to keep legacy vertical tree SEB instead of sparse sveg forcing
    logical :: lpurif = .false.         !<  switch to turn on purifiers module
    logical :: ltreedump = .false.   !<  switch to output tree results time-averaged statistics every tstatsdump
 

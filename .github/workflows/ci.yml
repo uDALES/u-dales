@@ -45,8 +45,6 @@ jobs:
       # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
       shell: bash -l {0}
       run: |
-        export FC="$(command -v mpif90)"
-        export CC="$(command -v mpicc)"
         if [ ${{ matrix.os }} = 'macos-latest' ]; then export FC=gfortran-12; fi
         python3 -u tests/run_tests.py supported --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type}}
 
