@@ -10,13 +10,13 @@
 set -eu
 
 # Configuration
-NPROCS="${NPROCS:-4}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/debug/u-dales}"
 CASE_SOURCE="${CASE_SOURCE:-${REPO_ROOT}/tests/cases/101}"
 NAMELIST="${NAMELIST:-namoptions.101}"
 TMPDIR_PARENT="${TMPDIR_PARENT:-}"
+MPIEXEC="${MPIEXEC:-mpiexec}"
 
 # Check if executable exists
 if [ ! -f "$UDALES_BUILD" ]; then
@@ -36,6 +36,16 @@ fi
 if [ ! -f "$CASE_SOURCE/$NAMELIST" ]; then
     echo "ERROR: Namelist file not found: $CASE_SOURCE/$NAMELIST"
     exit 1
+fi
+
+if [ -z "${NPROCS:-}" ]; then
+    NPROCX="$(awk -F= '/^[[:space:]]*nprocx[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' "$CASE_SOURCE/$NAMELIST")"
+    NPROCY="$(awk -F= '/^[[:space:]]*nprocy[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' "$CASE_SOURCE/$NAMELIST")"
+    if [ -z "$NPROCX" ] || [ -z "$NPROCY" ]; then
+        echo "ERROR: Failed to determine nprocx/nprocy from $CASE_SOURCE/$NAMELIST"
+        exit 1
+    fi
+    NPROCS="$((NPROCX * NPROCY))"
 fi
 
 if [ -n "$TMPDIR_PARENT" ]; then
@@ -63,7 +73,7 @@ echo "=========================================="
 echo ""
 
 # Run the test
-mpiexec -n "$NPROCS" "$UDALES_BUILD" "$NAMELIST"
+"$MPIEXEC" -n "$NPROCS" "$UDALES_BUILD" "$NAMELIST"
 
 # Capture exit code
 EXIT_CODE=$?

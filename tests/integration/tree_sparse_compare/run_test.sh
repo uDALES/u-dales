@@ -6,7 +6,9 @@
 
 set -eu
 
-NPROCS="${NPROCS:-32}"
+NPROCS="${NPROCS:-4}"
+NPROCX="${NPROCX:-2}"
+NPROCY="${NPROCY:-2}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/debug/u-dales}"
@@ -40,6 +42,30 @@ trap 'rm -rf "$RUN_DIR"' EXIT
 
 cp -r "$CASE_SOURCE"/. "$RUN_DIR"/
 cd "$RUN_DIR" || exit 1
+
+if [ "$NPROCS" -gt 4 ]; then
+    echo "ERROR: Refusing to run tree_sparse_compare with more than 4 MPI ranks (requested $NPROCS)"
+    exit 1
+fi
+
+if [ "$((NPROCX * NPROCY))" -ne "$NPROCS" ]; then
+    echo "ERROR: NPROCS ($NPROCS) must equal NPROCX * NPROCY ($NPROCX * $NPROCY)"
+    exit 1
+fi
+
+python3 - "$NAMELIST" "$NPROCX" "$NPROCY" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+namelist = Path(sys.argv[1])
+nprocx = sys.argv[2]
+nprocy = sys.argv[3]
+text = namelist.read_text(encoding="utf-8")
+text = re.sub(r"(?m)^(\s*nprocx\s*=\s*)\d+(\s*)$", rf"\g<1>{nprocx}\2", text)
+text = re.sub(r"(?m)^(\s*nprocy\s*=\s*)\d+(\s*)$", rf"\g<1>{nprocy}\2", text)
+namelist.write_text(text, encoding="utf-8")
+PY
 
 echo "=========================================="
 echo "Running TEST_TREES_SPARSE_COMPARE"

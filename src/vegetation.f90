@@ -17,26 +17,28 @@ module vegetation
     real,    allocatable :: lsize(:)  ! characteristic leaf size (m)
     real,    allocatable :: rs(:)     ! stomatal resistance (s/m)
     real,    allocatable :: laiv(:)  ! cumulative LAI from domain top to top of this element
-    real,    allocatable :: sveg(:)   ! absorbed shortwave on vegetation cells (W/m3)
-    real,    allocatable :: tr_qtp(:)     ! qt tendency contribution on vegetation cells
-    real,    allocatable :: tr_qtpR(:)    ! radiation-driven qt tendency contribution
-    real,    allocatable :: tr_qtpA(:)    ! aerodynamic qt tendency contribution
-    real,    allocatable :: tr_thlp(:)    ! thl tendency contribution on vegetation cells
-    real,    allocatable :: tr_omega(:)   ! decoupling factor on vegetation cells
-    real,    allocatable :: tr_svp(:,:)   ! scalar tendency contribution on vegetation cells
-    logical :: has_sveg = .false.
   end type veg_type
 
   type(veg_type) :: veg
 
-  type veg_face_type
-    integer :: npts = 0               ! number of face points on this rank
-    integer, allocatable :: ijk(:,:)  ! local grid indices (i,j,k) at face
-    real,    allocatable :: dcoef(:)  ! face-centered (lad*cd)
-    real,    allocatable :: tr_p(:)   ! momentum tendency contribution on face points
-  end type veg_face_type
+  type vegp_type
+    real, allocatable :: qtp(:)       ! qt tendency contribution on vegetation cells
+    real, allocatable :: qtpR(:)      ! radiation-driven qt tendency contribution
+    real, allocatable :: qtpA(:)      ! aerodynamic qt tendency contribution
+    real, allocatable :: thlp(:)      ! thl tendency contribution on vegetation cells
+    real, allocatable :: omega(:)     ! decoupling factor on vegetation cells
+    real, allocatable :: svp(:,:)     ! scalar tendency contribution on vegetation cells
+  end type vegp_type
 
-  type(veg_face_type) :: veg_u, veg_v, veg_w
+  type(vegp_type) :: vegp
+
+  logical :: has_sveg = .false.
+  real, allocatable :: sveg(:)        ! absorbed shortwave on vegetation cells (W/m3)
+
+  integer :: npts_u = 0, npts_v = 0, npts_w = 0
+  integer, allocatable :: ijk_u(:,:), ijk_v(:,:), ijk_w(:,:)
+  real, allocatable :: dcoef_u(:), dcoef_v(:), dcoef_w(:)
+  real, allocatable :: veg_up(:), veg_vp(:), veg_wp(:)
 
   real, allocatable :: lad_3d(:,:,:)  ! cell-centered LAD with halos for face averaging
   real, allocatable :: dcoef_3d(:,:,:) ! cell-centered (lad*cd) with halos for face averaging
@@ -67,7 +69,7 @@ contains
 
     if (.not. ltrees) return
     vegetation_ready = .false.
-    veg%has_sveg = .false.
+    has_sveg = .false.
 
     ! count points in veg.inp.<expnr> to set npts
     ! TEMPORARY WHILE WE RUN TREES AND VEG TOGETHER
@@ -147,9 +149,10 @@ contains
     end if
 
     if (allocated(veg%id)) then
-      deallocate(veg%id, veg%gidx, veg%ijk, veg%lad, veg%cd, veg%ud, veg%dec, veg%lsize, veg%rs, veg%laiv, veg%sveg, &
-                 veg%tr_qtp, veg%tr_qtpR, veg%tr_qtpA, veg%tr_thlp, veg%tr_omega, veg%tr_svp)
+      deallocate(veg%id, veg%gidx, veg%ijk, veg%lad, veg%cd, veg%ud, veg%dec, veg%lsize, veg%rs, veg%laiv)
     end if
+    if (allocated(sveg)) deallocate(sveg)
+    if (allocated(vegp%qtp)) deallocate(vegp%qtp, vegp%qtpR, vegp%qtpA, vegp%thlp, vegp%omega, vegp%svp)
 
     allocate(veg%id(veg%npts))
     allocate(veg%gidx(veg%npts))
@@ -161,24 +164,24 @@ contains
     allocate(veg%lsize(veg%npts))
     allocate(veg%rs(veg%npts))
     allocate(veg%laiv(veg%npts))
-    allocate(veg%sveg(veg%npts))
-    allocate(veg%tr_qtp(veg%npts))
-    allocate(veg%tr_qtpR(veg%npts))
-    allocate(veg%tr_qtpA(veg%npts))
-    allocate(veg%tr_thlp(veg%npts))
-    allocate(veg%tr_omega(veg%npts))
-    allocate(veg%tr_svp(veg%npts,max(1,nsv)))
+    allocate(sveg(veg%npts))
+    allocate(vegp%qtp(veg%npts))
+    allocate(vegp%qtpR(veg%npts))
+    allocate(vegp%qtpA(veg%npts))
+    allocate(vegp%thlp(veg%npts))
+    allocate(vegp%omega(veg%npts))
+    allocate(vegp%svp(veg%npts,max(1,nsv)))
 
     veg%ijk = 0
     veg%laiv = 0.
-    veg%sveg = 0.
-    veg%tr_qtp = 0.
-    veg%tr_qtpR = 0.
-    veg%tr_qtpA = 0.
-    veg%tr_thlp = 0.
-    veg%tr_omega = 0.
-    veg%tr_svp = 0.
-    veg%has_sveg = sveg_exists
+    sveg = 0.
+    vegp%qtp = 0.
+    vegp%qtpR = 0.
+    vegp%qtpA = 0.
+    vegp%thlp = 0.
+    vegp%omega = 0.
+    vegp%svp = 0.
+    has_sveg = sveg_exists
 
     do m = 1, veg%npts
       veg%id(m)    = id_all(ids_loc(m))
@@ -190,7 +193,7 @@ contains
       veg%lsize(m) = lsize_all(ids_loc(m))
       veg%rs(m)    = rs_all(ids_loc(m))
       veg%ijk(m,1:3) = pts_in(m,1:3)
-      if (veg%has_sveg) veg%sveg(m) = sveg_loc(m)
+      if (has_sveg) sveg(m) = sveg_loc(m)
     end do
 
     call MPI_BARRIER(comm3d, mpierr)
@@ -227,18 +230,12 @@ contains
     ! ========================================================================
     ! Precompute face lists for staggered u/v/w points 
     ! ========================================================================
-    if (allocated(veg_u%ijk)) then
-      deallocate(veg_u%ijk, veg_u%dcoef, veg_u%tr_p)
-      veg_u%npts = 0
-    end if
-    if (allocated(veg_v%ijk)) then
-      deallocate(veg_v%ijk, veg_v%dcoef, veg_v%tr_p)
-      veg_v%npts = 0
-    end if
-    if (allocated(veg_w%ijk)) then
-      deallocate(veg_w%ijk, veg_w%dcoef, veg_w%tr_p)
-      veg_w%npts = 0
-    end if
+    if (allocated(ijk_u)) deallocate(ijk_u, dcoef_u, veg_up)
+    if (allocated(ijk_v)) deallocate(ijk_v, dcoef_v, veg_vp)
+    if (allocated(ijk_w)) deallocate(ijk_w, dcoef_w, veg_wp)
+    npts_u = 0
+    npts_v = 0
+    npts_w = 0
 
     allocate(dcoef_f(ib:ie, jb:je, kb:ke))
     allocate(mask_f(ib:ie, jb:je, kb:ke))
@@ -247,65 +244,65 @@ contains
     dcoef_f = 0.5*(dcoef_3d(ib-1:ie-1, jb:je, kb:ke) + dcoef_3d(ib:ie, jb:je, kb:ke))
     mask_f = (dcoef_f > 0.0)
 
-    veg_u%npts = count(mask_f)
-    if (veg_u%npts > 0) then
-      allocate(veg_u%ijk(veg_u%npts,3), veg_u%dcoef(veg_u%npts), veg_u%tr_p(veg_u%npts))
+    npts_u = count(mask_f)
+    if (npts_u > 0) then
+      allocate(ijk_u(npts_u,3), dcoef_u(npts_u), veg_up(npts_u))
       idx = 0
       do k = kb, ke
         do j = jb, je
           do i = ib, ie
             if (mask_f(i,j,k)) then
               idx = idx + 1
-              veg_u%ijk(idx,1:3) = (/ i, j, k /)
-              veg_u%dcoef(idx) = dcoef_f(i,j,k)
+              ijk_u(idx,1:3) = (/ i, j, k /)
+              dcoef_u(idx) = dcoef_f(i,j,k)
             end if
           end do
         end do
       end do
-      veg_u%tr_p = 0.
+      veg_up = 0.
     end if
 
     ! v-faces (j-1/j)
     dcoef_f = 0.5*(dcoef_3d(ib:ie, jb-1:je-1, kb:ke) + dcoef_3d(ib:ie, jb:je, kb:ke))
     mask_f = (dcoef_f > 0.0)
-    veg_v%npts = count(mask_f)
-    if (veg_v%npts > 0) then
-      allocate(veg_v%ijk(veg_v%npts,3), veg_v%dcoef(veg_v%npts), veg_v%tr_p(veg_v%npts))
+    npts_v = count(mask_f)
+    if (npts_v > 0) then
+      allocate(ijk_v(npts_v,3), dcoef_v(npts_v), veg_vp(npts_v))
       idx = 0
       do k = kb, ke
         do j = jb, je
           do i = ib, ie
             if (mask_f(i,j,k)) then
               idx = idx + 1
-              veg_v%ijk(idx,1:3) = (/ i, j, k /)
-              veg_v%dcoef(idx) = dcoef_f(i,j,k)
+              ijk_v(idx,1:3) = (/ i, j, k /)
+              dcoef_v(idx) = dcoef_f(i,j,k)
             end if
           end do
         end do
       end do
-      veg_v%tr_p = 0.
+      veg_vp = 0.
     end if
 
     ! w-faces (k-1/k); no z-halos, so start at kb+1
     dcoef_f = 0.0
     dcoef_f(:,:,kb+1:ke) = 0.5*(dcoef_3d(ib:ie, jb:je, kb:ke-1) + dcoef_3d(ib:ie, jb:je, kb+1:ke))
     mask_f = (dcoef_f > 0.0)
-    veg_w%npts = count(mask_f)
-    if (veg_w%npts > 0) then
-      allocate(veg_w%ijk(veg_w%npts,3), veg_w%dcoef(veg_w%npts), veg_w%tr_p(veg_w%npts))
+    npts_w = count(mask_f)
+    if (npts_w > 0) then
+      allocate(ijk_w(npts_w,3), dcoef_w(npts_w), veg_wp(npts_w))
       idx = 0
       do k = kb+1, ke
         do j = jb, je
           do i = ib, ie
             if (mask_f(i,j,k)) then
               idx = idx + 1
-              veg_w%ijk(idx,1:3) = (/ i, j, k /)
-              veg_w%dcoef(idx) = dcoef_f(i,j,k)
+              ijk_w(idx,1:3) = (/ i, j, k /)
+              dcoef_w(idx) = dcoef_f(i,j,k)
             end if
           end do
         end do
       end do
-      veg_w%tr_p = 0.
+      veg_wp = 0.
     end if
 
     deallocate(dcoef_f, mask_f)
@@ -356,40 +353,40 @@ contains
     ! ========================================================================
     ! Loop 1: Momentum drag forces (precomputed staggered faces, no branching)
     ! ========================================================================
-    do mf = 1, veg_u%npts
-      i = veg_u%ijk(mf,1)
-      j = veg_u%ijk(mf,2)
-      k = veg_u%ijk(mf,3)
-      dcoefv = veg_u%dcoef(mf)
-      veg_u%tr_p(mf) = - dcoefv * um(i,j,k) * &
+    do mf = 1, npts_u
+      i = ijk_u(mf,1)
+      j = ijk_u(mf,2)
+      k = ijk_u(mf,3)
+      dcoefv = dcoef_u(mf)
+      veg_up(mf) = - dcoefv * um(i,j,k) * &
                          sqrt( um(i,j,k)**2 &
                          + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i-1,j,k) + vm(i-1,j+1,k)))**2 &
                          + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i-1,j,k) + wm(i-1,j,k+1)))**2 )
-      up(i,j,k) = up(i,j,k) + veg_u%tr_p(mf)
+      up(i,j,k) = up(i,j,k) + veg_up(mf)
     end do
 
-    do mf = 1, veg_v%npts
-      i = veg_v%ijk(mf,1)
-      j = veg_v%ijk(mf,2)
-      k = veg_v%ijk(mf,3)
-      dcoefv = veg_v%dcoef(mf)
-      veg_v%tr_p(mf) = - dcoefv * vm(i,j,k) * &
+    do mf = 1, npts_v
+      i = ijk_v(mf,1)
+      j = ijk_v(mf,2)
+      k = ijk_v(mf,3)
+      dcoefv = dcoef_v(mf)
+      veg_vp(mf) = - dcoefv * vm(i,j,k) * &
                          sqrt( vm(i,j,k)**2 &
                          + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j-1,k) + um(i+1,j-1,k)))**2 &
                          + (0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i,j-1,k) + wm(i,j-1,k+1)))**2 )
-      vp(i,j,k) = vp(i,j,k) + veg_v%tr_p(mf)
+      vp(i,j,k) = vp(i,j,k) + veg_vp(mf)
     end do
 
-    do mf = 1, veg_w%npts
-      i = veg_w%ijk(mf,1)
-      j = veg_w%ijk(mf,2)
-      k = veg_w%ijk(mf,3)
-      dcoefv = veg_w%dcoef(mf)
-      veg_w%tr_p(mf) = - dcoefv * wm(i,j,k) * &
+    do mf = 1, npts_w
+      i = ijk_w(mf,1)
+      j = ijk_w(mf,2)
+      k = ijk_w(mf,3)
+      dcoefv = dcoef_w(mf)
+      veg_wp(mf) = - dcoefv * wm(i,j,k) * &
                          sqrt( wm(i,j,k)**2 &
                          + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j,k-1) + um(i+1,j,k-1)))**2 &
                          + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i,j,k-1) + vm(i,j+1,k-1)))**2 )
-      wp(i,j,k) = wp(i,j,k) + veg_w%tr_p(mf)
+      wp(i,j,k) = wp(i,j,k) + veg_wp(mf)
     end do
 
     ! ========================================================================
@@ -416,8 +413,8 @@ contains
         udv  = veg%ud(m)
 
         do n = 1, nsv
-          veg%tr_svp(m,n) = veg%tr_svp(m,n) - svm(i,j,k,n) * ladv * udv
-          svp(i,j,k,n) = svp(i,j,k,n) + veg%tr_svp(m,n)
+          vegp%svp(m,n) = vegp%svp(m,n) - svm(i,j,k,n) * ladv * udv
+          svp(i,j,k,n) = svp(i,j,k,n) + vegp%svp(m,n)
         end do
       end do
     end if
@@ -425,11 +422,15 @@ contains
   end subroutine apply_vegetation
 
   subroutine apply_vegetation_legacy
-    use modglobal, only : Qstar, dzf
+    use modglobal, only : Qstar, dzf, pref0, rlv, cp, rv, rd, rhoa
+    use modfields, only : thlm, qtm, qtp, thlp, um, vm, wm
     implicit none
     integer :: i, j, k, m
     real :: ladv, decv, clai, rn_top, rn_bot, q_av_leaf
+    real :: e_sat, e_vap, d_vap, slope_sat, r_a, omega, qe, qh, gam
+    real :: lsizev, rsv, wind2
 
+    gam = (cp*pref0*rv)/(rlv*rd)
     do m = 1, veg%npts
       i = veg%ijk(m,1)
       j = veg%ijk(m,2)
@@ -443,73 +444,88 @@ contains
       rn_bot = Qstar * exp(-decv * clai)
       q_av_leaf = (rn_top - rn_bot) / (dzf(k) * max(ladv, 1.0e-12))
 
-      call apply_vegetation_energy_point(m, i, j, k, ladv, veg%lsize(m), veg%rs(m), q_av_leaf)
+      lsizev = max(veg%lsize(m), 1.0e-6)
+      rsv = max(veg%rs(m), 1.0e-6)
+
+      e_sat = 610.8*exp((17.27*(thlm(i,j,k)-273.15))/(thlm(i,j,k)-35.85))
+      e_vap = (qtm(i,j,k) * pref0) / (0.378 * qtm(i,j,k) + 0.622)
+      d_vap = max(e_sat - e_vap, 0.)
+      slope_sat = (4098*e_sat)/((thlm(i,j,k)-35.85)**2)
+
+      wind2 = max((0.5*(um(i,j,k)+um(i+1,j,k)))**2 &
+                +(0.5*(vm(i,j,k)+vm(i,j+1,k)))**2 &
+                +(0.5*(wm(i,j,k)+wm(i,j,k+1)))**2, 1.0e-12)
+      r_a = 130*sqrt(lsizev / sqrt(wind2))
+
+      omega = 1/(1 + 2*(gam/(slope_sat+2*gam)) * (rsv/r_a))
+      qe = omega*(slope_sat/(slope_sat+2*gam))*q_av_leaf + (1-omega)*(1/(gam*rsv))*rhoa*cp*d_vap
+      qh = q_av_leaf - qe
+
+      vegp%omega(m) = omega
+      vegp%qtpR(m) = ladv*(omega*(slope_sat/(slope_sat+2*gam))*q_av_leaf)/(rhoa*rlv)
+      vegp%qtpA(m) = ladv*((1-omega)*(1/(gam*rsv))*rhoa*cp*d_vap)/(rhoa*rlv)
+      vegp%qtp(m) = vegp%qtp(m) + ladv*qe/(rhoa*rlv)
+      vegp%thlp(m) = vegp%thlp(m) + ladv*qh/(rhoa*cp)
+      qtp(i,j,k) = qtp(i,j,k) + vegp%qtp(m)
+      thlp(i,j,k) = thlp(i,j,k) + vegp%thlp(m)
     end do
   end subroutine apply_vegetation_legacy
 
   subroutine apply_vegetation_sveg
+    use modglobal, only : pref0, rlv, cp, rv, rd, rhoa
+    use modfields, only : thlm, qtm, qtp, thlp, um, vm, wm
     implicit none
     integer :: i, j, k, m
     real :: ladv, q_av_leaf
+    real :: e_sat, e_vap, d_vap, slope_sat, r_a, omega, qe, qh, gam
+    real :: lsizev, rsv, wind2
 
+    gam = (cp*pref0*rv)/(rlv*rd)
     do m = 1, veg%npts
       i = veg%ijk(m,1)
       j = veg%ijk(m,2)
       k = veg%ijk(m,3)
 
       ladv = veg%lad(m)
-      q_av_leaf = veg%sveg(m) / max(ladv, 1.0e-12)
+      q_av_leaf = sveg(m) / max(ladv, 1.0e-12)
 
-      call apply_vegetation_energy_point(m, i, j, k, ladv, veg%lsize(m), veg%rs(m), q_av_leaf)
+      lsizev = max(veg%lsize(m), 1.0e-6)
+      rsv = max(veg%rs(m), 1.0e-6)
+
+      e_sat = 610.8*exp((17.27*(thlm(i,j,k)-273.15))/(thlm(i,j,k)-35.85))
+      e_vap = (qtm(i,j,k) * pref0) / (0.378 * qtm(i,j,k) + 0.622)
+      d_vap = max(e_sat - e_vap, 0.)
+      slope_sat = (4098*e_sat)/((thlm(i,j,k)-35.85)**2)
+
+      wind2 = max((0.5*(um(i,j,k)+um(i+1,j,k)))**2 &
+                +(0.5*(vm(i,j,k)+vm(i,j+1,k)))**2 &
+                +(0.5*(wm(i,j,k)+wm(i,j,k+1)))**2, 1.0e-12)
+      r_a = 130*sqrt(lsizev / sqrt(wind2))
+
+      omega = 1/(1 + 2*(gam/(slope_sat+2*gam)) * (rsv/r_a))
+      qe = omega*(slope_sat/(slope_sat+2*gam))*q_av_leaf + (1-omega)*(1/(gam*rsv))*rhoa*cp*d_vap
+      qh = q_av_leaf - qe
+
+      vegp%omega(m) = omega
+      vegp%qtpR(m) = ladv*(omega*(slope_sat/(slope_sat+2*gam))*q_av_leaf)/(rhoa*rlv)
+      vegp%qtpA(m) = ladv*((1-omega)*(1/(gam*rsv))*rhoa*cp*d_vap)/(rhoa*rlv)
+      vegp%qtp(m) = vegp%qtp(m) + ladv*qe/(rhoa*rlv)
+      vegp%thlp(m) = vegp%thlp(m) + ladv*qh/(rhoa*cp)
+      qtp(i,j,k) = qtp(i,j,k) + vegp%qtp(m)
+      thlp(i,j,k) = thlp(i,j,k) + vegp%thlp(m)
     end do
   end subroutine apply_vegetation_sveg
 
-  subroutine apply_vegetation_energy_point(m, i, j, k, ladv, lsize_in, rs_in, q_av_leaf)
-    use modglobal, only : pref0, rlv, cp, rv, rd, rhoa
-    use modfields, only : thlm, qtm, qtp, thlp, um, vm, wm
-    implicit none
-    integer, intent(in) :: m, i, j, k
-    real, intent(in) :: ladv, lsize_in, rs_in, q_av_leaf
-    real :: e_sat, e_vap, d_vap, slope_sat, r_a, omega, qe, qh, gam
-    real :: lsizev, rsv, wind2
-
-    lsizev = max(lsize_in, 1.0e-6)
-    rsv = max(rs_in, 1.0e-6)
-    gam = (cp*pref0*rv)/(rlv*rd)
-
-    e_sat = 610.8*exp((17.27*(thlm(i,j,k)-273.15))/(thlm(i,j,k)-35.85))
-    e_vap = (qtm(i,j,k) * pref0) / (0.378 * qtm(i,j,k) + 0.622)
-    d_vap = max(e_sat - e_vap, 0.)
-    slope_sat = (4098*e_sat)/((thlm(i,j,k)-35.85)**2)
-
-    wind2 = max((0.5*(um(i,j,k)+um(i+1,j,k)))**2 &
-              +(0.5*(vm(i,j,k)+vm(i,j+1,k)))**2 &
-              +(0.5*(wm(i,j,k)+wm(i,j,k+1)))**2, 1.0e-12)
-    r_a = 130*sqrt(lsizev / sqrt(wind2))
-
-    omega = 1/(1 + 2*(gam/(slope_sat+2*gam)) * (rsv/r_a))
-    qe = omega*(slope_sat/(slope_sat+2*gam))*q_av_leaf + (1-omega)*(1/(gam*rsv))*rhoa*cp*d_vap
-    qh = q_av_leaf - qe
-
-    veg%tr_omega(m) = omega
-    veg%tr_qtpR(m) = ladv*(omega*(slope_sat/(slope_sat+2*gam))*q_av_leaf)/(rhoa*rlv)
-    veg%tr_qtpA(m) = ladv*((1-omega)*(1/(gam*rsv))*rhoa*cp*d_vap)/(rhoa*rlv)
-    veg%tr_qtp(m) = veg%tr_qtp(m) + ladv*qe/(rhoa*rlv)
-    veg%tr_thlp(m) = veg%tr_thlp(m) + ladv*qh/(rhoa*cp)
-    qtp(i,j,k) = qtp(i,j,k) + veg%tr_qtp(m)
-    thlp(i,j,k) = thlp(i,j,k) + veg%tr_thlp(m)
-  end subroutine apply_vegetation_energy_point
-
   subroutine reset_vegetation_sources()
-    if (allocated(veg_u%tr_p)) veg_u%tr_p = 0.
-    if (allocated(veg_v%tr_p)) veg_v%tr_p = 0.
-    if (allocated(veg_w%tr_p)) veg_w%tr_p = 0.
-    if (allocated(veg%tr_qtp)) veg%tr_qtp = 0.
-    if (allocated(veg%tr_qtpR)) veg%tr_qtpR = 0.
-    if (allocated(veg%tr_qtpA)) veg%tr_qtpA = 0.
-    if (allocated(veg%tr_thlp)) veg%tr_thlp = 0.
-    if (allocated(veg%tr_omega)) veg%tr_omega = 0.
-    if (allocated(veg%tr_svp)) veg%tr_svp = 0.
+    if (allocated(veg_up)) veg_up = 0.
+    if (allocated(veg_vp)) veg_vp = 0.
+    if (allocated(veg_wp)) veg_wp = 0.
+    if (allocated(vegp%qtp)) vegp%qtp = 0.
+    if (allocated(vegp%qtpR)) vegp%qtpR = 0.
+    if (allocated(vegp%qtpA)) vegp%qtpA = 0.
+    if (allocated(vegp%thlp)) vegp%thlp = 0.
+    if (allocated(vegp%omega)) vegp%omega = 0.
+    if (allocated(vegp%svp)) vegp%svp = 0.
   end subroutine reset_vegetation_sources
 
   subroutine scatter_vegetation_sources(tr_up, tr_vp, tr_wp, tr_qtp, tr_qtpR, tr_qtpA, tr_thlp, tr_sv, tr_omega)
@@ -536,27 +552,27 @@ contains
     tr_sv = 0.
     tr_omega = 0.
 
-    do mf = 1, veg_u%npts
-      i = veg_u%ijk(mf,1); j = veg_u%ijk(mf,2); k = veg_u%ijk(mf,3)
-      tr_up(i,j,k) = veg_u%tr_p(mf)
+    do mf = 1, npts_u
+      i = ijk_u(mf,1); j = ijk_u(mf,2); k = ijk_u(mf,3)
+      tr_up(i,j,k) = veg_up(mf)
     end do
-    do mf = 1, veg_v%npts
-      i = veg_v%ijk(mf,1); j = veg_v%ijk(mf,2); k = veg_v%ijk(mf,3)
-      tr_vp(i,j,k) = veg_v%tr_p(mf)
+    do mf = 1, npts_v
+      i = ijk_v(mf,1); j = ijk_v(mf,2); k = ijk_v(mf,3)
+      tr_vp(i,j,k) = veg_vp(mf)
     end do
-    do mf = 1, veg_w%npts
-      i = veg_w%ijk(mf,1); j = veg_w%ijk(mf,2); k = veg_w%ijk(mf,3)
-      tr_wp(i,j,k) = veg_w%tr_p(mf)
+    do mf = 1, npts_w
+      i = ijk_w(mf,1); j = ijk_w(mf,2); k = ijk_w(mf,3)
+      tr_wp(i,j,k) = veg_wp(mf)
     end do
 
     do m = 1, veg%npts
       i = veg%ijk(m,1); j = veg%ijk(m,2); k = veg%ijk(m,3)
-      tr_qtp(i,j,k) = veg%tr_qtp(m)
-      tr_qtpR(i,j,k) = veg%tr_qtpR(m)
-      tr_qtpA(i,j,k) = veg%tr_qtpA(m)
-      tr_thlp(i,j,k) = veg%tr_thlp(m)
-      tr_omega(i,j,k) = veg%tr_omega(m)
-      if (nsv > 0) tr_sv(i,j,k,1:nsv) = veg%tr_svp(m,1:nsv)
+      tr_qtp(i,j,k) = vegp%qtp(m)
+      tr_qtpR(i,j,k) = vegp%qtpR(m)
+      tr_qtpA(i,j,k) = vegp%qtpA(m)
+      tr_thlp(i,j,k) = vegp%thlp(m)
+      tr_omega(i,j,k) = vegp%omega(m)
+      if (nsv > 0) tr_sv(i,j,k,1:nsv) = vegp%svp(m,1:nsv)
     end do
   end subroutine scatter_vegetation_sources
 

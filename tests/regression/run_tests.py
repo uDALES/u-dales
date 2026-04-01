@@ -187,10 +187,10 @@ def get_mpi_process_count(namelist_path: Path) -> int:
     nprocy = int(run_nml.get('nprocy', 1))
     cpu_count = nprocx * nprocy
 
-    if cpu_count > 32:
+    if cpu_count > 4:
         raise RuntimeError(
             f'Refusing to run regression case with {cpu_count} MPI ranks '
-            f'from {namelist_path.name}; limit is 32.')
+            f'from {namelist_path.name}; limit is 4.')
 
     return cpu_count
 
