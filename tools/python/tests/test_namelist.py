@@ -50,7 +50,7 @@ class TestNamelistUpdate(unittest.TestCase):
         self.temp_dir = TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
         self.workdir = Path(self.temp_dir.name)
-        source = Path(__file__).resolve().parents[3] / "tests" / "integration" / "tree_input" / "namoptions.525"
+        source = Path(__file__).resolve().parents[3] / "tests" / "cases" / "525" / "namoptions.525"
         shutil.copyfile(source, self.workdir / "namoptions.525")
         self.sim = DummySim("525", self.workdir)
 

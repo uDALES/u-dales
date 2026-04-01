@@ -23,4 +23,6 @@ Guidance:
 - Put reusable committed fixtures here when more than one test may need them.
 - Keep test-specific scripts and assertions under `tests/integration/`,
   `tests/regression/`, `tests/system/`, or `tests/unit/`.
+- Keep each consumer suite responsible for documenting its own runtime class:
+  baseline CI, CI integration, CI regression, or heavy/manual.
 - Do not store generated solver outputs or local binaries here.

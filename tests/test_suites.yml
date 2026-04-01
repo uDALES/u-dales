@@ -1,0 +1,88 @@
+description: Run curated test selections by support level from tests/test_suites.yml.
+
+groups:
+  supported:
+    suites:
+      - label: "supported: python namelist unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_namelist.py"
+      - label: "supported: python solar unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_solar.py"
+      - label: "supported: regression"
+        class: supported
+        purpose: regression
+        command:
+          - "{python}"
+          - "{tests_dir}/regression/run_tests.py"
+          - "{branch_a}"
+          - "{branch_b}"
+          - "{build_type}"
+      - label: "supported: ibm sparse input integration"
+        class: supported
+        purpose: integration
+        command:
+          - "bash"
+          - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+
+  experimental:
+    suites:
+      - label: "experimental: python directshortwave unit"
+        class: experimental
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave.py"
+      - label: "experimental: python directshortwave periodic unit"
+        class: experimental
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave_periodic.py"
+      - label: "experimental: directshortwave integration"
+        class: experimental
+        purpose: integration
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/directshortwave/test_directshortwave.py"
+      - label: "experimental: tree sparse compare integration"
+        class: experimental
+        purpose: integration
+        command:
+          - "bash"
+          - "{tests_dir}/integration/tree_sparse_compare/run_test.sh"
+
+  all:
+    includes:
+      - supported
+      - experimental

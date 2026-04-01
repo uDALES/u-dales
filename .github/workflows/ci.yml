@@ -4,8 +4,9 @@ on: [push, pull_request]
 
 jobs:
   main:
-    # https://stackoverflow.com/a/59775665/8893833
-    if: "!contains(github.event.commits[0].message, '[skip ci]')"
+    if: >
+      github.event_name != 'push' ||
+      !contains(github.event.head_commit.message, '[skip ci]')
     name: ${{ matrix.os }} ${{ matrix.build-type }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -45,7 +46,7 @@ jobs:
       shell: bash -l {0}
       run: |
         if [ ${{ matrix.os }} = 'macos-latest' ]; then export FC=gfortran-12; fi
-        python3 -u tests/regression/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
+        python3 -u tests/run_tests.py supported --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type}}
 
     - name: Build docs
       if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release'

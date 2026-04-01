@@ -7,7 +7,7 @@ $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 # Go to u-dales root (tools/python -> u-dales)
 $UDALES_ROOT = (Get-Item (Join-Path $SCRIPT_DIR "..\..")).FullName
 # Create venv in parent directory of u-dales
-$VENV_DIR = Join-Path (Split-Path -Parent $UDALES_ROOT) "venv-udales"
+$VENV_DIR = Join-Path (Split-Path -Parent $UDALES_ROOT) ".venv"
 
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host "Setting up Python virtual environment" -ForegroundColor Cyan
@@ -34,7 +34,7 @@ if (Test-Path $VENV_DIR) {
         Remove-Item -Recurse -Force $VENV_DIR
     } else {
         Write-Host "Using existing virtual environment." -ForegroundColor Green
-        Write-Host "To activate: ..\venv-udales\Scripts\Activate.ps1 (from u-dales root)" -ForegroundColor Green
+        Write-Host "To activate: ..\.venv\Scripts\Activate.ps1 (from u-dales root)" -ForegroundColor Green
         exit 0
     }
 }
@@ -62,13 +62,13 @@ Write-Host "Setup complete!" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "To use the virtual environment:" -ForegroundColor Cyan
-Write-Host "  1. Activate:   ..\venv-udales\Scripts\Activate.ps1 (from u-dales root)" -ForegroundColor White
+Write-Host "  1. Activate:   ..\.venv\Scripts\Activate.ps1 (from u-dales root)" -ForegroundColor White
 Write-Host "  2. Run script: python tools\write_inputs.py [config_dir]" -ForegroundColor White
 Write-Host "  3. Deactivate: deactivate" -ForegroundColor White
 Write-Host ""
 Write-Host "Example workflow:" -ForegroundColor Cyan
 Write-Host "  cd $UDALES_ROOT" -ForegroundColor White
-Write-Host "  ..\venv-udales\Scripts\Activate.ps1" -ForegroundColor White
+Write-Host "  ..\.venv\Scripts\Activate.ps1" -ForegroundColor White
 Write-Host "  python tools\write_inputs.py" -ForegroundColor White
 Write-Host "  deactivate" -ForegroundColor White
 Write-Host ""

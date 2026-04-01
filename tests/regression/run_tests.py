@@ -41,10 +41,38 @@ from scripts import compare_outputs, build_model
 PROJ_DIR = Path(__file__).resolve().parents[2]
 
 
+def _repo_has_uncommitted_changes(path_to_repo: Path) -> bool:
+    result = subprocess.run(
+        ['git', 'status', '--porcelain'],
+        cwd=path_to_repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    return bool(result.stdout.strip())
+
+
+def _require_clean_worktree_for_branch_switch(path_to_repo: Path, branch_a: str, branch_b: str) -> None:
+    if branch_a == branch_b:
+        return
+    if not _repo_has_uncommitted_changes(path_to_repo):
+        return
+    raise RuntimeError(
+        "Regression tests require switching the repository checkout between "
+        f"'{branch_a}' and '{branch_b}'. The current worktree has uncommitted "
+        "changes, so Git checkout would overwrite local edits. This is okay "
+        "for normal development; commit or stash your current changes before "
+        "running the supported regression path locally."
+    )
+
+
 def main(branch_a: str, branch_b: str, build_type: str):
     if platform.system() not in ['Linux', 'Darwin']:
         raise RuntimeError(
             f'The operating system {platform.system()} is not currently suppoorted.')
+
+    _require_clean_worktree_for_branch_switch(PROJ_DIR, branch_a, branch_b)
 
     if branch_a == branch_b:
         warnings.warn(

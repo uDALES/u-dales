@@ -122,15 +122,17 @@ module stack first.
 
 ## Python Environment
 
-- Use the repo-local virtual environment at `.venv/` for Python tooling and tests.
+- Use the canonical shared virtual environment at `../.venv/` for Python
+  tooling and tests.
 - `tools/python/setup_venv.sh` expects a Python interpreter with development
   headers because the `directshortwave_f2py` extension is mandatory.
 - On this cluster, `/opt/pbs/python/bin/python3` is a known-good interpreter
   for creating a build-capable venv when `/usr/bin/python3` lacks `Python.h`.
 - View3D and `directshortwave_f2py` are required parts of the Python radiation
   workflow, not optional extras.
-- The current `.venv` is intended to be the single canonical environment; avoid
-  maintaining parallel repo-local virtual environments.
+- New setups should use the single shared `../.venv/` environment. A
+  legacy repo-local `.venv/` may still exist on older checkouts, but avoid
+  maintaining multiple repo-local virtual environments.
 
 ## Branch-Specific Gotchas
 

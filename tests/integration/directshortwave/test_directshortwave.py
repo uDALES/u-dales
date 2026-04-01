@@ -1,11 +1,12 @@
-from __future__ import annotations
-
+import importlib
+import shutil
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -15,7 +16,29 @@ if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
 from udbase import UDBase
-from udprep.directshortwave import DirectShortwaveSolver
+
+_DIRECTSHORTWAVE_IMPORT_ERROR = None
+try:
+    from udprep.directshortwave import DirectShortwaveSolver
+except ImportError as exc:
+    DirectShortwaveSolver = None
+    _DIRECTSHORTWAVE_IMPORT_ERROR = exc
+
+
+def _missing_directshortwave_prerequisites() -> List[str]:
+    missing: List[str] = []
+    if _DIRECTSHORTWAVE_IMPORT_ERROR is not None:
+        missing.append(f"python directshortwave import failed: {_DIRECTSHORTWAVE_IMPORT_ERROR}")
+    elif importlib.util.find_spec("udprep.directshortwave_f2py") is None:
+        missing.append("compiled directshortwave_f2py wrapper not found")
+    return missing
+
+
+def _missing_reference_prerequisites() -> List[str]:
+    missing = _missing_directshortwave_prerequisites()
+    if shutil.which("gfortran") is None:
+        missing.append("gfortran not found")
+    return missing
 
 
 class _DirectShortwaveCaseMixin:
@@ -53,7 +76,7 @@ class _DirectShortwaveCaseMixin:
         ray_density: float,
         *,
         veg_data=None,
-    ) -> tuple[np.ndarray, np.ndarray, dict[str, float], float]:
+    ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float], float]:
         solver = DirectShortwaveSolver(
             self.sim,
             method=method,
@@ -70,7 +93,7 @@ class _DirectShortwaveCaseMixin:
         elapsed = time.perf_counter() - t0
         return sdir, veg, budget, elapsed
 
-    def _compare_fields(self, candidate: np.ndarray, reference: np.ndarray) -> dict[str, float]:
+    def _compare_fields(self, candidate: np.ndarray, reference: np.ndarray) -> Dict[str, float]:
         diff = candidate - reference
         common = (reference > 1.0e-6) & (candidate > 1.0e-6)
         rel = np.abs(diff[common]) / np.maximum(reference[common], 1.0)
@@ -81,7 +104,7 @@ class _DirectShortwaveCaseMixin:
             "corr": float(np.corrcoef(reference[common], candidate[common])[0, 1]),
         }
 
-    def _assert_budget_conserved(self, budget: dict[str, float], *, rel_tol: float) -> None:
+    def _assert_budget_conserved(self, budget: Dict[str, float], *, rel_tol: float) -> None:
         self.assertIn("in", budget)
         self.assertIn("fac", budget)
         self.assertIn("veg", budget)
@@ -98,6 +121,12 @@ class TestDirectShortwaveReferenceIntegration(_DirectShortwaveCaseMixin, unittes
 
     @classmethod
     def setUpClass(cls) -> None:
+        missing = _missing_reference_prerequisites()
+        if missing:
+            raise unittest.SkipTest(
+                "directshortwave reference integration prerequisites missing: "
+                + "; ".join(missing)
+            )
         super().setUpClass()
         cls.build_dir = tempfile.TemporaryDirectory(prefix="udales-directshortwave-")
         cls.fortran_exe = Path(cls.build_dir.name) / "DS.exe"
@@ -116,7 +145,7 @@ class TestDirectShortwaveReferenceIntegration(_DirectShortwaveCaseMixin, unittes
         if hasattr(cls, "build_dir"):
             cls.build_dir.cleanup()
 
-    def _run_fortran_scanline(self, ray_density: float) -> tuple[np.ndarray, float]:
+    def _run_fortran_scanline(self, ray_density: float) -> Tuple[np.ndarray, float]:
         mesh = self.sim.geom.stl
         resolution = self._scanline_spacing(ray_density)
         faces = np.asarray(mesh.faces, dtype=np.int32) + 1
@@ -180,7 +209,7 @@ class TestDirectShortwaveReferenceIntegration(_DirectShortwaveCaseMixin, unittes
     def test_python_methods_track_legacy_reference(self) -> None:
         reference, _ = self._run_fortran_scanline(self.RAY_DENSITY)
 
-        method_metrics: dict[str, dict[str, float]] = {}
+        method_metrics: Dict[str, Dict[str, float]] = {}
         for method in ("facsec", "moller"):
             candidate, _, budget, elapsed = self._run_python_method(method, self.RAY_DENSITY)
             metrics = self._compare_fields(candidate, reference)
@@ -230,6 +259,16 @@ class TestDirectShortwaveTreesIntegration(_DirectShortwaveCaseMixin, unittest.Te
     """Tree-enabled integration test on flat terrain case `525`."""
 
     CASE = "525"
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        missing = _missing_directshortwave_prerequisites()
+        if missing:
+            raise unittest.SkipTest(
+                "directshortwave tree integration prerequisites missing: "
+                + "; ".join(missing)
+            )
+        super().setUpClass()
 
     def test_trees_reduce_direct_flux_and_absorb_energy(self) -> None:
         for method in ("facsec", "moller"):

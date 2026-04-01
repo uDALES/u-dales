@@ -24,6 +24,14 @@ Why it lives here:
 - it relies on shared case data under `tests/cases/`
 - it checks agreement across multiple implementations rather than one Python API
 
+Current status:
+
+- this is a preprocessing/tooling integration suite
+- it is useful development coverage, but it is not intended to define the
+  primary supported GitHub Actions merge gate yet
+- when prerequisites such as `gfortran` or `directshortwave_f2py` are absent,
+  the test should skip cleanly rather than fail opaquely
+
 The committed fixtures include geometry, facet sections, fluid boundary files,
 solid masks, and vegetation inputs where needed because the ray-based methods
 depend on them.
@@ -31,7 +39,7 @@ depend on them.
 To run it:
 
 ```bash
-source .venv/bin/activate
+source ../.venv/bin/activate
 python tests/integration/directshortwave/test_directshortwave.py
 ```
 

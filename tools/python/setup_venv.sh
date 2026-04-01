@@ -8,7 +8,18 @@ set -e  # Exit on error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UDALES_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-VENV_DIR="${VENV_DIR:-${UDALES_ROOT}/.venv}"
+DEFAULT_VENV_DIR="$(cd "${UDALES_ROOT}/.." && pwd)/.venv"
+LEGACY_VENV_DIR="${UDALES_ROOT}/.venv"
+
+if [ -n "${VENV_DIR:-}" ]; then
+    VENV_DIR="$VENV_DIR"
+elif [ -d "$DEFAULT_VENV_DIR" ]; then
+    VENV_DIR="$DEFAULT_VENV_DIR"
+elif [ -d "$LEGACY_VENV_DIR" ]; then
+    VENV_DIR="$LEGACY_VENV_DIR"
+else
+    VENV_DIR="$DEFAULT_VENV_DIR"
+fi
 
 echo "=========================================="
 echo "Setting up Python virtual environment"
@@ -16,6 +27,9 @@ echo "=========================================="
 echo "u-dales repository: $UDALES_ROOT"
 echo "Python interpreter: $PYTHON_BIN"
 echo "Virtual environment: $VENV_DIR"
+if [ "$VENV_DIR" = "$LEGACY_VENV_DIR" ]; then
+    echo "Note: using legacy repo-local virtual environment. New setups default to $DEFAULT_VENV_DIR"
+fi
 echo ""
 
 if ! command -v "$PYTHON_BIN" &> /dev/null; then
@@ -85,13 +99,13 @@ echo "Setup complete!"
 echo "=========================================="
 echo ""
 echo "To use the virtual environment:"
-echo "  1. Activate:   source .venv/bin/activate (from u-dales root)"
+echo "  1. Activate:   source \"$VENV_DIR/bin/activate\""
 echo "  2. Run script: python tools/write_inputs.py [config_dir]"
 echo "  3. Deactivate: deactivate"
 echo ""
 echo "Example workflow:"
 echo "  cd $UDALES_ROOT"
-echo "  source .venv/bin/activate"
+echo "  source \"$VENV_DIR/bin/activate\""
 echo "  python tools/write_inputs.py"
 echo "  deactivate"
 echo ""
