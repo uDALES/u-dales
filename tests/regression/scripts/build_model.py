@@ -24,6 +24,7 @@
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -42,14 +43,44 @@ def build(path_to_proj_dir: Path, path_to_build_dir: Path, build_type: str, clea
     if not path_to_build_dir.is_dir():
         path_to_build_dir.mkdir(parents=True)
 
-    subprocess.run(
-        ['cmake', f'-DCMAKE_BUILD_TYPE={build_type}', path_to_proj_dir, '-LA'],
-        cwd=path_to_build_dir,
-        check=True,
-    )
+    try:
+        subprocess.run(
+            ['cmake', f'-DCMAKE_BUILD_TYPE={build_type}', path_to_proj_dir, '-LA'],
+            cwd=path_to_build_dir,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"CMake configure failed in {path_to_build_dir} for {path_to_proj_dir} "
+            f"({build_type}).",
+            file=sys.stderr,
+        )
+        if exc.stdout:
+            print(exc.stdout, file=sys.stderr, end="" if exc.stdout.endswith("\n") else "\n")
+        raise
 
     cpu_count = str(os.cpu_count())
-    subprocess.run(['cmake', '--build', '.', '--', '-j', cpu_count], cwd=path_to_build_dir, check=True)
+    try:
+        subprocess.run(
+            ['cmake', '--build', '.', '--', '-j', cpu_count],
+            cwd=path_to_build_dir,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"CMake build failed in {path_to_build_dir} for {path_to_proj_dir} "
+            f"({build_type}).",
+            file=sys.stderr,
+        )
+        if exc.stdout:
+            print(exc.stdout, file=sys.stderr, end="" if exc.stdout.endswith("\n") else "\n")
+        raise
     return None
 
 

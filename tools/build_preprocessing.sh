@@ -47,6 +47,8 @@ fi
 
 echo "cmake not found; falling back to src/Makefile"
 cd src
+make clean
 make
 cp View3D ../build/src/view3d
+make clean
 echo "View3D executable available at tools/View3D/build/src/view3d"

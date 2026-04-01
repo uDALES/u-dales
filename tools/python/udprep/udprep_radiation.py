@@ -724,7 +724,7 @@ class RadiationSection(Section):
             np.savetxt(f, knet, fmt="%9.4f")
 
     def write_timedepsveg(self, tSP: np.ndarray, s_veg: np.ndarray) -> None:
-        """Write time-dependent vegetation absorption (timedepsveg.inp.<expnr>)."""
+        """Write time-dependent vegetation absorption per vegetation cell (timedepsveg.inp.<expnr>)."""
         sim = self._require_sim()
         expnr = getattr(sim, "expnr", "")
         out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
@@ -733,8 +733,8 @@ class RadiationSection(Section):
         path = out_dir / f"timedepsveg.inp.{expnr}"
         with path.open("w", encoding="ascii", newline="\n") as f:
             f.write(
-                "# time-dependent vegetation absorption [W/m2]. "
-                "First line: times (1 x nt), then sveg (nfcts x nt)\n"
+                "# time-dependent vegetation absorption on vegetation cells [W/m3]. "
+                "First line: times (1 x nt), then sveg (nveg x nt)\n"
             )
         with path.open("a", encoding="ascii", newline="\n") as f:
             np.savetxt(f, tSP[None, :], fmt="%9.2f")
@@ -754,7 +754,7 @@ class RadiationSection(Section):
         if s_veg is not None:
             path = out_dir / f"sveg.inp.{expnr}"
             with path.open("w", encoding="ascii", newline="\n") as f:
-                f.write("# vegetation absorption on facets [W/m2]\n")
+                f.write("# vegetation absorption on vegetation cells [W/m3]\n")
                 np.savetxt(f, s_veg, fmt="%6.4f")
 
     def _require_sim(self):
