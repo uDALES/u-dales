@@ -281,10 +281,10 @@ contains
 
   !> Compare block-based tree forcing with sparse vegetation masks
   logical function tests_trees_sparse_compare()
-    use modglobal, only : ib, ie, jb, je, kb, ke, itot, jtot, ntree_max, cd, cexpnr, ltrees, lmoist, ltempeq
+    use modglobal, only : ib, ie, jb, je, kb, ke, ntree_max, cd, cexpnr, ltrees, lmoist, ltempeq, xf, yf, zf, xlen, ylen
     use modfields, only : um, vm, wm, thlm, qtm, tr_u, tr_v, tr_w, tr_qt, tr_thl, qtp, thlp, up, vp, wp, ladzh, ladzf
     use modtrees,  only : trees_block => trees, createtrees_block => createtrees
-    use vegetation, only : init_vegetation, apply_vegetation, lad_3d, scatter_vegetation_sources
+    use vegetation, only : init_vegetation, apply_vegetation, lad_3d, veg, vegp, npts_u, npts_v, npts_w, ijk_u, ijk_v, ijk_w, veg_up, veg_vp, veg_wp
     use modmpi,    only : myid, myidx, myidy, comm3d, mpierr, my_real
     use decomp_2d, only : xstart, ystart, zstart
     implicit none
@@ -300,6 +300,7 @@ contains
     real :: diff_u_global, diff_v_global, diff_w_global, diff_qt_global, diff_thl_global
     real :: diff_u_int_local, diff_v_int_local, diff_w_int_local
     real :: diff_u_int_global, diff_v_int_global, diff_w_int_global
+    real :: qtm_ramp, qtm_ramp_max, e_sat_test, qtm_sat, qtm_scale_local, qtm_scale_global
     integer :: n_u_local, n_v_local, n_w_local
     integer :: n_u_global, n_v_global, n_w_global
     integer :: n_int_u_local, n_int_v_local, n_int_w_local
@@ -330,6 +331,8 @@ contains
 
     lmoist = .true.
     ltempeq = .true.
+    qtm_ramp_max = 0.010 + 1.0e-4*(xlen + ylen + zf(ke))
+    qtm_scale_local = huge(1.0)
 
     ! Build a simple deterministic velocity field so drag is non-zero
     um = 0.0
@@ -343,8 +346,22 @@ contains
           um(i,j,k) = 0.01*real(i) + 0.002*real(j) + 0.0001*real(k)
           vm(i,j,k) = 0.015*real(i) + 0.003*real(j) + 0.0002*real(k)
           wm(i,j,k) = 0.02*real(i) + 0.004*real(j) + 0.0003*real(k)
-          thlm(i,j,k) = 300.0 + 0.01*real(i+j+k)
-          qtm(i,j,k) = 0.010 + 1.0e-4*real(i+j+k)
+          thlm(i,j,k) = 300.0 + 0.01*(xf(i) + yf(j) + zf(k))
+          qtm_ramp = 0.010 + 1.0e-4*(xf(i) + yf(j) + zf(k))
+          e_sat_test = 610.8*exp((17.27*(thlm(i,j,k)-273.15))/(thlm(i,j,k)-35.85))
+          qtm_sat = 0.622*e_sat_test / (101500.0 - 0.378*e_sat_test)
+          qtm_scale_local = min(qtm_scale_local, 0.99*qtm_sat/max(qtm_ramp_max, 1.0e-12))
+        end do
+      end do
+    end do
+
+    call MPI_ALLREDUCE(qtm_scale_local, qtm_scale_global, 1, MY_REAL, MPI_MIN, comm3d, mpierr)
+
+    do k = kb, ke
+      do j = jb, je
+        do i = ib, ie
+          qtm_ramp = 0.010 + 1.0e-4*(xf(i) + yf(j) + zf(k))
+          qtm(i,j,k) = qtm_scale_global*qtm_ramp
         end do
       end do
     end do
@@ -396,7 +413,18 @@ contains
 
     ! Apply sparse vegetation forcing via vegetation routine
     call apply_vegetation
-    call scatter_vegetation_sources(sparse_u, sparse_v, sparse_w, sparse_qt, sparse_qtR, sparse_qtA, sparse_thl, sparse_sv, sparse_omega)
+    sparse_u = 0.0
+    sparse_v = 0.0
+    sparse_w = 0.0
+    if (npts_u > 0) call scatter_sparse_face_field(npts_u, ijk_u, veg_up, sparse_u)
+    if (npts_v > 0) call scatter_sparse_face_field(npts_v, ijk_v, veg_vp, sparse_v)
+    if (npts_w > 0) call scatter_sparse_face_field(npts_w, ijk_w, veg_wp, sparse_w)
+    call scatter_sparse_cell_field(vegp%qt, sparse_qt)
+    call scatter_sparse_cell_field(vegp%qtR, sparse_qtR)
+    call scatter_sparse_cell_field(vegp%qtA, sparse_qtA)
+    call scatter_sparse_cell_field(vegp%thl, sparse_thl)
+    call scatter_sparse_cell_field(vegp%omega, sparse_omega)
+    if (size(sparse_sv,4) > 0) call scatter_sparse_sv_component(1, sparse_sv(:,:,:,1))
 
     ! Output differences
     diff_local = 0.0
@@ -604,5 +632,57 @@ contains
     deallocate(block_qt, block_thl)
 
   end function tests_trees_sparse_compare
+
+  subroutine scatter_sparse_face_field(npts, ijk, field_sparse, field_3d)
+    use modglobal, only : ib, ie, jb, je, kb, ke
+    implicit none
+    integer, intent(in) :: npts
+    integer, intent(in) :: ijk(npts,3)
+    real, intent(in) :: field_sparse(npts)
+    real, intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+    integer :: m, i, j, k
+
+    field_3d = 0.
+    do m = 1, npts
+      i = ijk(m,1)
+      j = ijk(m,2)
+      k = ijk(m,3)
+      field_3d(i,j,k) = field_sparse(m)
+    end do
+  end subroutine scatter_sparse_face_field
+
+  subroutine scatter_sparse_cell_field(field_sparse, field_3d)
+    use modglobal, only : ib, ie, jb, je, kb, ke
+    use vegetation, only : veg
+    implicit none
+    real, intent(in) :: field_sparse(:)
+    real, intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+    integer :: m, i, j, k
+
+    field_3d = 0.
+    do m = 1, veg%npts
+      i = veg%ijk(m,1)
+      j = veg%ijk(m,2)
+      k = veg%ijk(m,3)
+      field_3d(i,j,k) = field_sparse(m)
+    end do
+  end subroutine scatter_sparse_cell_field
+
+  subroutine scatter_sparse_sv_component(component, field_3d)
+    use modglobal, only : ib, ie, jb, je, kb, ke
+    use vegetation, only : veg, vegp
+    implicit none
+    integer, intent(in) :: component
+    real, intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+    integer :: m, i, j, k
+
+    field_3d = 0.
+    do m = 1, veg%npts
+      i = veg%ijk(m,1)
+      j = veg%ijk(m,2)
+      k = veg%ijk(m,3)
+      field_3d(i,j,k) = vegp%sv(m,component)
+    end do
+  end subroutine scatter_sparse_sv_component
 
 end module tests

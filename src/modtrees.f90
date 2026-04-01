@@ -317,7 +317,11 @@ contains
 
                  ! output warning - cannot physically occur
                  if (e_sat<e_vap) then
-                   write(*,*) 'D, e_sat, e_vap, thlm, qtm', D, e_sat, e_vap, thlm(i,j,k), qtm(i,j,k)
+                   write(*,'(A,3(I0,A),A,1PE12.5,A,1PE12.5,A,1PE12.5,A,1PE12.5,A,1PE12.5)') &
+                     'WARNING: tree legacy SEB reached supersaturation at (i,j,k)=(', i, ',', j, ',', k, '). '// &
+                     'This implies liquid-water formation is likely. e_sat=', e_sat, ', e_vap=', e_vap, &
+                     ', D=', D, ', thlm=', thlm(i,j,k), ', qtm=', qtm(i,j,k)
+                   write(*,'(A)') '         Check the thermodynamic setup and forcing fields; uninitialized or inconsistent external state can trigger this in tests.'
                  end if
 
                  ! slope of the curve relating saturation vapour pressure to temperature

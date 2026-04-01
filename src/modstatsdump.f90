@@ -538,7 +538,7 @@ contains
   use modsurfdata,      only : thls
   use modsubgrid,       only : ekh,ekm
   use modstatistics,    only : genstats,tkestats
-  use vegetation,       only : scatter_vegetation_sources
+  use vegetation,       only : veg, vegp, npts_u, npts_v, npts_w, ijk_u, ijk_v, ijk_w, veg_up, veg_vp, veg_wp
   ! use, intrinsic :: ieee_arithmetic
   implicit none
 
@@ -617,15 +617,7 @@ contains
   real, allocatable     :: sv3psv3pt(:,:,:)
   real, allocatable     :: sv4psv4pt(:,:,:)
   real, allocatable     :: PSS(:,:,:)
-  real, allocatable     :: tr_up_now(:,:,:)
-  real, allocatable     :: tr_vp_now(:,:,:)
-  real, allocatable     :: tr_wp_now(:,:,:)
-  real, allocatable     :: tr_qtp_now(:,:,:)
-  real, allocatable     :: tr_qtpR_now(:,:,:)
-  real, allocatable     :: tr_qtpA_now(:,:,:)
-  real, allocatable     :: tr_thlp_now(:,:,:)
-  real, allocatable     :: tr_svp_now(:,:,:,:)
-  real, allocatable     :: tr_omega_now(:,:,:)
+  real, allocatable     :: tr_now(:,:,:)
 
   ! real, dimension(ib:ie,jb:je,kb:ke+kh)        :: upwptik
   ! real, dimension(ib:ie,jb:je,kb:ke+kh)        :: vpwptjk
@@ -1240,30 +1232,52 @@ contains
       !end if ! ltdump
 
       if (ltreedump) then
-        allocate(tr_up_now(ib:ie,jb:je,kb:ke), tr_vp_now(ib:ie,jb:je,kb:ke), tr_wp_now(ib:ie,jb:je,kb:ke))
-        allocate(tr_qtp_now(ib:ie,jb:je,kb:ke), tr_qtpR_now(ib:ie,jb:je,kb:ke), tr_qtpA_now(ib:ie,jb:je,kb:ke))
-        allocate(tr_thlp_now(ib:ie,jb:je,kb:ke), tr_svp_now(ib:ie,jb:je,kb:ke,max(1,nsv)), tr_omega_now(ib:ie,jb:je,kb:ke))
-        call scatter_vegetation_sources(tr_up_now, tr_vp_now, tr_wp_now, tr_qtp_now, tr_qtpR_now, tr_qtpA_now, tr_thlp_now, tr_svp_now, tr_omega_now)
+        allocate(tr_now(ib:ie,jb:je,kb:ke))
 
-        tr_ut(ib:ie,jb:je,kb:ke) = (tr_ut(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_up_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-        tr_vt(ib:ie,jb:je,kb:ke) = (tr_vt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_vp_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-        tr_wt(ib:ie,jb:je,kb:ke) = (tr_wt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_wp_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        if (npts_u > 0) then
+          call scatter_veg_face_field(npts_u, ijk_u, veg_up, tr_now)
+        else
+          tr_now = 0.
+        end if
+        tr_ut(ib:ie,jb:je,kb:ke) = (tr_ut(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+
+        if (npts_v > 0) then
+          call scatter_veg_face_field(npts_v, ijk_v, veg_vp, tr_now)
+        else
+          tr_now = 0.
+        end if
+        tr_vt(ib:ie,jb:je,kb:ke) = (tr_vt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+
+        if (npts_w > 0) then
+          call scatter_veg_face_field(npts_w, ijk_w, veg_wp, tr_now)
+        else
+          tr_now = 0.
+        end if
+        tr_wt(ib:ie,jb:je,kb:ke) = (tr_wt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+
         if (ltempeq) then
-          tr_thlt(ib:ie,jb:je,kb:ke) = (tr_thlt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_thlp_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          call scatter_veg_cell_field(vegp%thl, tr_now)
+          tr_thlt(ib:ie,jb:je,kb:ke) = (tr_thlt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
         end if
         if (lmoist) then
-          tr_qtt(ib:ie,jb:je,kb:ke) = (tr_qtt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qtp_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          tr_qtRt(ib:ie,jb:je,kb:ke) = (tr_qtRt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qtpR_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          tr_qtAt(ib:ie,jb:je,kb:ke) = (tr_qtAt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_qtpA_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          tr_omegat(ib:ie,jb:je,kb:ke) = (tr_omegat(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_omega_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          call scatter_veg_cell_field(vegp%qt, tr_now)
+          tr_qtt(ib:ie,jb:je,kb:ke) = (tr_qtt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          call scatter_veg_cell_field(vegp%qtR, tr_now)
+          tr_qtRt(ib:ie,jb:je,kb:ke) = (tr_qtRt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          call scatter_veg_cell_field(vegp%qtA, tr_now)
+          tr_qtAt(ib:ie,jb:je,kb:ke) = (tr_qtAt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          call scatter_veg_cell_field(vegp%omega, tr_now)
+          tr_omegat(ib:ie,jb:je,kb:ke) = (tr_omegat(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
         end if
         if (nsv>0) then
-          tr_sv1t(ib:ie,jb:je,kb:ke) = (tr_sv1t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_svp_now(ib:ie,jb:je,kb:ke,1)*tsamplep)*tstatsdumppi
+          call scatter_veg_sv_component(1, tr_now)
+          tr_sv1t(ib:ie,jb:je,kb:ke) = (tr_sv1t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
           if (nsv > 1) then
-            tr_sv2t(ib:ie,jb:je,kb:ke) = (tr_sv2t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_svp_now(ib:ie,jb:je,kb:ke,2)*tsamplep)*tstatsdumppi
+            call scatter_veg_sv_component(2, tr_now)
+            tr_sv2t(ib:ie,jb:je,kb:ke) = (tr_sv2t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
           end if
         end if
-        deallocate(tr_up_now, tr_vp_now, tr_wp_now, tr_qtp_now, tr_qtpR_now, tr_qtpA_now, tr_thlp_now, tr_svp_now, tr_omega_now)
+        deallocate(tr_now)
       end if
 
 !      where (IIuwt==0)
@@ -1717,6 +1731,58 @@ contains
   deallocate(upwptik,vpwptjk,upvptij,wpthlptk,thlpthlpt,upuptc,vpvptc,wpwptc,tketc)
 
   end subroutine statsdump
+
+  subroutine scatter_veg_face_field(npts, ijk, field_sparse, field_3d)
+    use modglobal, only : ib, ie, jb, je, kb, ke
+    implicit none
+    integer, intent(in) :: npts
+    integer, intent(in) :: ijk(npts,3)
+    real, intent(in) :: field_sparse(npts)
+    real, intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+    integer :: m, i, j, k
+
+    field_3d = 0.
+    do m = 1, npts
+      i = ijk(m,1)
+      j = ijk(m,2)
+      k = ijk(m,3)
+      field_3d(i,j,k) = field_sparse(m)
+    end do
+  end subroutine scatter_veg_face_field
+
+  subroutine scatter_veg_cell_field(field_sparse, field_3d)
+    use modglobal, only : ib, ie, jb, je, kb, ke
+    use vegetation, only : veg
+    implicit none
+    real, intent(in) :: field_sparse(:)
+    real, intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+    integer :: m, i, j, k
+
+    field_3d = 0.
+    do m = 1, veg%npts
+      i = veg%ijk(m,1)
+      j = veg%ijk(m,2)
+      k = veg%ijk(m,3)
+      field_3d(i,j,k) = field_sparse(m)
+    end do
+  end subroutine scatter_veg_cell_field
+
+  subroutine scatter_veg_sv_component(component, field_3d)
+    use modglobal, only : ib, ie, jb, je, kb, ke
+    use vegetation, only : veg, vegp
+    implicit none
+    integer, intent(in) :: component
+    real, intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+    integer :: m, i, j, k
+
+    field_3d = 0.
+    do m = 1, veg%npts
+      i = veg%ijk(m,1)
+      j = veg%ijk(m,2)
+      k = veg%ijk(m,3)
+      field_3d(i,j,k) = vegp%sv(m,component)
+    end do
+  end subroutine scatter_veg_sv_component
 
   !> tg3315 still under going work to be completed
   subroutine tkestatsdump
