@@ -336,8 +336,8 @@ module modstartup
                write(0, *) 'Check that kslice has exactly nkslice positive values'
                stop 1
             end if
-            write(*, *) 'kslice output enabled for', nkslice, 'levels:'
-            write(*, '(10I6)') kslice(1:nkslice)
+            ! write(*, *) 'kslice output enabled for', nkslice, 'levels:'
+            ! write(*, '(10I6)') kslice(1:nkslice)
          end if
 
          ! Validate islice
@@ -352,8 +352,8 @@ module modstartup
                write(0, *) 'Check that islice has exactly nislice positive values'
                stop 1
             end if
-            write(*, *) 'islice output enabled for', nislice, 'levels:'
-            write(*, '(10I6)') islice(1:nislice)
+            ! write(*, *) 'islice output enabled for', nislice, 'levels:'
+            ! write(*, '(10I6)') islice(1:nislice)
          end if
 
          ! Validate jslice
@@ -368,8 +368,8 @@ module modstartup
                write(0, *) 'Check that jslice has exactly njslice positive values'
                stop 1
             end if
-            write(*, *) 'jslice output enabled for', njslice, 'levels:'
-            write(*, '(10I6)') jslice(1:njslice)
+            ! write(*, *) 'jslice output enabled for', njslice, 'levels:'
+            ! write(*, '(10I6)') jslice(1:njslice)
          end if
 
          ! Validate probes
@@ -386,8 +386,8 @@ module modstartup
                write(0, *) 'Check that iprobe, jprobe, kprobe each have exactly nprobe positive values'
                stop 1
             end if
-            write(*, *) 'probe output enabled for', nprobe, 'points'
-            write(*, *) 'probevars:', trim(probevars)
+            ! write(*, *) 'probe output enabled for', nprobe, 'points'
+            ! write(*, *) 'probevars:', trim(probevars)
          end if
       end if
 

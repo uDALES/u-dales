@@ -41,7 +41,6 @@ module instant
   implicit none
   private
   public :: slice_init, slice_main, probe_init, probe_main
-  public :: write_islice_xcoord_local, write_jslice_ycoord_local, write_kslice_zcoord
   save
 
   integer :: xdim, ydim, zdim, kdim  ! Added kdim for multiple slices
@@ -261,11 +260,6 @@ module instant
       integer :: i
       logical :: has_islice
       
-      if (nislice == 0) then
-        if (myid == 0) write(*,*) "WARNING: nislice=0, no i-slices will be output"
-        return
-      end if
-      
       ! Count how many islices are in this X-processor's range (save to module variable)
       local_nislice = 0
       has_islice = .false.
@@ -294,7 +288,7 @@ module instant
         end if
         call define_nc(ncidislice, nslicevars, isliceVars)
         
-        write(*,'(A,A,A,I2,A)') '  Processor (myidx=', cmyidx, ') created islice file with ', local_nislice, ' slices'
+        ! write(*,'(A,A,A,I2,A)') '  Processor (myidx=', cmyidx, ') created islice file with ', local_nislice, ' slices'
       end if
     end subroutine instant_create_ncislice
 
@@ -302,11 +296,6 @@ module instant
       implicit none
       integer :: j
       logical :: has_jslice
-      
-      if (njslice == 0) then
-        if (myid == 0) write(*,*) "WARNING: njslice=0, no j-slices will be output"
-        return
-      end if
 
       ! Count how many jslices are assigned to this Y-processor
       local_njslice = 0
@@ -334,18 +323,13 @@ module instant
           call write_jslice_ycoord_local(ncidjslice, local_njslice, njslice, jslice, myidy, nprocy, jtot)
         end if
         call define_nc(ncidjslice, nslicevars, jsliceVars)
-        write(*,'(A,A,A,I2,A)') '  Processor (myidy=', cmyidy, ') created islice file with ', local_njslice, ' slices'
+        ! write(*,'(A,A,A,I2,A)') '  Processor (myidy=', cmyidy, ') created islice file with ', local_njslice, ' slices'
       end if
     end subroutine instant_create_ncjslice
 
     !! ## %% 1D parallel output creation (y-direction processes only)
     subroutine instant_create_nckslice
       implicit none
-      
-      if (nkslice == 0) then
-        if (myid == 0) write(*,*) "WARNING: nkslice=0, no k-slices will be output"
-        return
-      end if
 
       if (myidy == 0) then
         kslicename = 'ins_kslice.xxx.xxx.nc'
@@ -1019,9 +1003,9 @@ module instant
       if (myid == 0) then
           allocate(varid_vals(nprobevars))
           
-          write(*,*) "=== Probe Output Init (Gather to Rank 0) ==="
-          write(*,*) "Number of probes:", nprobe
-          write(*,*) "Variables:", trim(probevars)
+          ! write(*,*) "=== Probe Output Init (Gather to Rank 0) ==="
+          ! write(*,*) "Number of probes:", nprobe
+          ! write(*,*) "Variables:", trim(probevars)
           
           probe_filename = 'ins_probe.xxx.nc'
           probe_filename(11:13) = cexpnr

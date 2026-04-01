@@ -1232,16 +1232,16 @@ module stats
       integer :: i, j, k
       real    :: emom
 
-      !> Perform required interpolations to cell centers
+      !> Perform required interpolations to cell faces and centers
+      call stats_interpolate_k(uik, um(ib:ie,jb:je,kb-kh:ke+kh))
+      call stats_interpolate_i(wik, wm(ib-ih:ie,jb:je,kb:ke+kh))
+      call stats_interpolate_k(vjk, vm(ib:ie,jb:je,kb-kh:ke+kh))
+      call stats_interpolate_j(wjk, wm(ib:ie,jb-jh:je,kb:ke+kh))
+      call stats_interpolate_j(uij, um(ib:ie,jb-jh:je,kb:ke+kh))
+      call stats_interpolate_i(vij, vm(ib-ih:ie,jb:je,kb:ke+kh))
       do k=kb,ke+kh
         do j=jb,je
           do i=ib,ie
-            uik(i,j,k) = 0.5*dzhi(k)*(um(i,j,k)*dzf(k-1) + um(i,j,k-1)*dzf(k))
-            wik(i,j,k) = 0.5*dxhi(i)*(wm(i,j,k)*dxf(i-1) + wm(i-1,j,k)*dxf(i))
-            vjk(i,j,k) = 0.5*dzhi(k)*(vm(i,j,k)*dzf(k-1) + vm(i,j,k-1)*dzf(k))
-            wjk(i,j,k) = 0.5*        (wm(i,j,k)          + wm(i,j-1,k))
-            uij(i,j,k) = 0.5*        (um(i,j,k)          + um(i,j-1,k))
-            vij(i,j,k) = 0.5*dxhi(i)*(vm(i,j,k)*dxf(i-1) + vm(i-1,j,k)*dxf(i))
             uc (i,j,k) = 0.5*        (um(i+1,j,k)        + um(i,j,k))
             vc (i,j,k) = 0.5*        (vm(i,j+1,k)        + vm(i,j,k))
             if (k==ke+kh) then
