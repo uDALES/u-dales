@@ -98,7 +98,7 @@ contains
       real   , dimension(:), allocatable :: locCoord1, locCoord2
       integer, dimension(:), allocatable :: counts
       real :: xmin, xmax, xrange, ymin, ymax, yrange, temp
-      real, dimension(3) :: p0, u1, u2
+      real, dimension(3) :: p0, u1, u2, up
       real, dimension(2) :: cor1, cor2, cor3, cor4
       real, dimension(3,3) :: matrix, invMatrix
       integer :: i, j, n, m, id_temp, size_xi, size_eta
@@ -116,7 +116,16 @@ contains
       ! write(*,*) "p0", p0
 
       ! define orthonormal basis on the plane
-      u1 = -(/nsun(2), -nsun(1), 0./)
+      ! When the sun is close to vertical, the historical basis
+      ! u1 = -(/nsun(2), -nsun(1), 0./) becomes singular because its norm
+      ! collapses to zero. Use an alternate up vector in that case so the
+      ! scanline projection remains well-defined for solarzenith = 0 cases
+      ! such as experiment 064.
+      up = (/0., 0., 1./)
+      if (abs(dot_product(up, nsun)) > 0.95) then
+         up = (/0., 1., 0./)
+      end if
+      u1 = cross_product(up, nsun)
       u1 = u1 / norm2(u1)
       u2 = cross_product(u1, nsun)
 

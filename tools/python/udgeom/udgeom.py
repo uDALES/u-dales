@@ -373,6 +373,38 @@ class UDGeom:
             return np.array([])
         return self.stl.triangles_center
 
+    @property
+    def face_incenters(self) -> np.ndarray:
+        """
+        Incenters of all triangular faces.
+
+        Returns
+        -------
+        incenters : ndarray, shape (n_faces, 3)
+            Incenter coordinates for each triangular face.
+        """
+        if self.stl is None:
+            return np.array([])
+
+        vertices = np.asarray(self.stl.vertices, dtype=float)
+        faces = np.asarray(self.stl.faces, dtype=int)
+        if faces.size == 0:
+            return np.empty((0, 3), dtype=float)
+
+        triangles = vertices[faces]
+        edge_a = np.linalg.norm(triangles[:, 1] - triangles[:, 2], axis=1)
+        edge_b = np.linalg.norm(triangles[:, 0] - triangles[:, 2], axis=1)
+        edge_c = np.linalg.norm(triangles[:, 0] - triangles[:, 1], axis=1)
+        perimeter = edge_a + edge_b + edge_c
+        if np.any(perimeter <= 0.0):
+            raise ValueError("Degenerate triangle encountered while computing face incenters")
+
+        return (
+            edge_a[:, None] * triangles[:, 0]
+            + edge_b[:, None] * triangles[:, 1]
+            + edge_c[:, None] * triangles[:, 2]
+        ) / perimeter[:, None]
+
     def get_buildings(self) -> List[trimesh.Trimesh]:
         """
         Get individual building components with lazy loading.

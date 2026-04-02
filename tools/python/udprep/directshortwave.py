@@ -1442,6 +1442,8 @@ class DirectShortwaveSolver:
         mesh = self.mesh
         vertices = np.asfortranarray(mesh.vertices, dtype=float)
         faces = np.asfortranarray(mesh.faces, dtype=np.int32) + 1  # 1-based
+        # The legacy Fortran scanline reference matches the triangle centers
+        # used in the committed integration tests and real-case preprocessing.
         incenter = np.asfortranarray(mesh.triangles_center, dtype=float)
         face_normal = np.asfortranarray(mesh.face_normals, dtype=float)
         if resolution is None:

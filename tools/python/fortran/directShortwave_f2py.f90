@@ -20,7 +20,7 @@ contains
       real   , dimension(:), allocatable :: locCoord1, locCoord2
       integer, dimension(:), allocatable :: counts
       real :: xmin, xmax, xrange, ymin, ymax, yrange, temp
-      real, dimension(3) :: p0, u1, u2, nsun_unit
+      real, dimension(3) :: p0, u1, u2, nsun_unit, up
       real, dimension(3, 3) :: matrix, invMatrix
       integer :: i, j, n, m, id_temp, size_xi, size_eta
       real :: start, finish
@@ -45,7 +45,14 @@ contains
       nsun_unit = nsun / norm2(nsun)
       p0 = (/xmin+xrange/2., ymin+yrange/2., 0./) + 3.*max(xrange,yrange) * nsun_unit
 
-      u1 = -(/nsun_unit(2), -nsun_unit(1), 0./)
+      ! Mirror the legacy Fortran vertical-sun safeguard so the wrapped
+      ! scanline kernel does not build a singular basis when nsun points
+      ! almost exactly along +z.
+      up = (/0., 0., 1./)
+      if (abs(dot_product(up, nsun_unit)) > 0.95) then
+         up = (/0., 1., 0./)
+      end if
+      u1 = cross_product(up, nsun_unit)
       u1 = u1 / norm2(u1)
       u2 = cross_product(u1, nsun_unit)
 

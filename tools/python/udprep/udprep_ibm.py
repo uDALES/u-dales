@@ -255,16 +255,7 @@ class IBMSection(Section):
         np.savetxt(path / "vertices.txt", np.asarray(stl.vertices, dtype=float), fmt="%15.10f %15.10f %15.10f")
         faces = np.asarray(stl.faces, dtype=int) + 1
         vertices = np.asarray(stl.vertices, dtype=float)
-        triangles = vertices[np.asarray(stl.faces, dtype=int)]
-        edge_a = np.linalg.norm(triangles[:, 1] - triangles[:, 2], axis=1)
-        edge_b = np.linalg.norm(triangles[:, 0] - triangles[:, 2], axis=1)
-        edge_c = np.linalg.norm(triangles[:, 0] - triangles[:, 1], axis=1)
-        edge_sum = (edge_a + edge_b + edge_c)[:, None]
-        incenters = (
-            edge_a[:, None] * triangles[:, 0]
-            + edge_b[:, None] * triangles[:, 1]
-            + edge_c[:, None] * triangles[:, 2]
-        ) / edge_sum
+        incenters = np.asarray(sim.geom.face_incenters, dtype=float)
         face_rows = np.hstack(
             [faces, incenters, np.asarray(stl.face_normals, dtype=float)]
         )

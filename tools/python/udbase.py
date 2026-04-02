@@ -374,6 +374,10 @@ class UDBase:
         """Load facet information if present."""
         self.facs = {}
         self.factypes = {}
+        self._lffacetarea = True
+        self._lffacets = True
+        self._lffactypes = True
+        self._lffacet_sections = True
         
         # Load facet areas
         facetarea_file = self.path / f"facetarea.inp.{self.expnr}"
@@ -1135,6 +1139,12 @@ class UDBase:
         >>> albedo = sim.assign_prop_to_fac('al')
         >>> emissivity = sim.assign_prop_to_fac('em')
         """
+        if not self._lffactypes or not self._lffacets:
+            # Preprocessing may have generated facet metadata after UDBase was
+            # initialized. Only fall back to re-reading from disk when the
+            # required data is currently missing in memory.
+            self._load_facet_data()
+
         if not self._lffactypes:
             raise ValueError(f"factypes.inp.{self.expnr} required for this method")
         
