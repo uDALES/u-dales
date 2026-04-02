@@ -79,11 +79,20 @@ path_to_build_dir="$(pwd)/build/$build_type"
 mkdir -p $path_to_build_dir
 pushd $path_to_build_dir
 cmake_build_type="$(capitalize $build_type)"
-FC=$FC cmake -DNETCDF_DIR=$NETCDF_DIR \
-             -DNETCDF_FORTRAN_DIR=$NETCDF_FORTRAN_DIR \
-             -DCMAKE_BUILD_TYPE=$cmake_build_type \
-	     -DFFTW_DOUBLE_OPENMP_LIB=$FFTW_DOUBLE_LIB \
-	     -DFFTW_FLOAT_OPENMP_LIB=$FFTW_FLOAT_LIB \
-              ../../ 2>&1 | tee -a $path_to_build_dir/config.log
+cmake_args=(
+    -DNETCDF_DIR="$NETCDF_DIR"
+    -DNETCDF_FORTRAN_DIR="$NETCDF_FORTRAN_DIR"
+    -DCMAKE_BUILD_TYPE="$cmake_build_type"
+)
+
+if [ -n "${FFTW_DOUBLE_LIB:-}" ]; then
+    cmake_args+=("-DFFTW_DOUBLE_OPENMP_LIB=$FFTW_DOUBLE_LIB")
+fi
+
+if [ -n "${FFTW_FLOAT_LIB:-}" ]; then
+    cmake_args+=("-DFFTW_FLOAT_OPENMP_LIB=$FFTW_FLOAT_LIB")
+fi
+
+FC=$FC cmake "${cmake_args[@]}" ../../ 2>&1 | tee -a $path_to_build_dir/config.log
 make -j$NPROC 2>&1 | tee -a $path_to_build_dir/build.log
 popd

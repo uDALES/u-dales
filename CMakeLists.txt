@@ -85,7 +85,7 @@ include_directories(${FFTW_INCLUDE_DIRS})
 find_package(NetCDF REQUIRED COMPONENTS F90)
 include_directories(${NETCDF_F90_INCLUDE_DIRS})
 
-file(GLOB_RECURSE src_f90 "src/*.f90")
+file(GLOB_RECURSE src_f90 CONFIGURE_DEPENDS "src/*.f90")
 
 #add_subdirectory(external)
 
