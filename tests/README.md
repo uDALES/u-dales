@@ -55,6 +55,9 @@ Today, GitHub Actions runs the curated `supported` selection:
 - this supported selection currently includes lightweight Python unit tests,
   the branch-comparison regression harness, and the IBM sparse-input solver
   integration test
+- on macOS, CI currently runs the lighter `supported-macos` selection instead,
+  which excludes the branch-comparison regression while `master` remains
+  incompatible with the newer Homebrew CMake helper-project path
 - experimental and heavy tests are not part of the required merge gate
 
 For a curated top-level entry point, use `tests/run_tests.py`. The group
@@ -90,6 +93,8 @@ between multiple components rather than one isolated API.
 - `directshortwave/`: Python-driven preprocessing integration tests for direct
   shortwave on committed cases `100` and `525`
 - `ibm_sparse_input/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
+- `python_preproc_against_matlab/`: preprocessing parity test between the
+  MATLAB and Python entry points on no-tree case `100`
 
 `tests/cases/` holds shared committed fixtures used by these tests. At present:
 

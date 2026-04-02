@@ -65,7 +65,16 @@ jobs:
       shell: bash -l {0}
       run: |
         source .github/scripts/setup_mpi_env.sh "${{ matrix.os }}"
-        python3 -u tests/run_tests.py supported --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type }}
+        # Temporary: macOS skips the branch-comparison regression until master
+        # contains the findFFTW helper-project CMake minimum-version fix.
+        # Remove supported-macos and switch back to supported on macOS once
+        # that fix has been merged into master.
+        if [ "${{ matrix.os }}" = "macos-latest" ]; then
+          selection="supported-macos"
+        else
+          selection="supported"
+        fi
+        python3 -u tests/run_tests.py "$selection" --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type }}
 
   docs:
     if: >

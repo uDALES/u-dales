@@ -44,6 +44,40 @@ groups:
           - "bash"
           - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
 
+  supported-macos:
+    suites:
+      - label: "supported: python namelist unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_namelist.py"
+      - label: "supported: python solar unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_solar.py"
+      - label: "supported: ibm sparse input integration"
+        class: supported
+        purpose: integration
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+
   experimental:
     suites:
       - label: "experimental: python directshortwave unit"
