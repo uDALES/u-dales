@@ -741,7 +741,7 @@ contains
   if (timee < tstatstart) return
 
   if (.not.(lytdump .or. lydump .or. lxydump .or. lxytdump .or. ltdump .or. lmintdump &
-    .or. lkslicedump.or. lislicedump.or. ljslicedump)) return
+    .or. lkslicedump .or. lislicedump .or. ljslicedump .or. ltreedump)) return
 
   allocate(thlk(ib:ie,jb:je,kb:ke+kh))
   allocate(qtk(ib:ie,jb:je,kb:ke+kh))
@@ -799,9 +799,9 @@ contains
 
   if (.not. rk3step==3)  return
 
-  if (tsamplep > tsample) then
+  if (tsamplep >= tsample) then
 
-    if (lytdump .or. lydump .or. lxydump .or. lxytdump .or. ltdump .or. lmintdump) then
+    if (lytdump .or. lydump .or. lxydump .or. lxytdump .or. ltdump .or. lmintdump .or. ltreedump) then
 
       ! wpthlptyk=0.;wpqtptyk=0.;wpsv1ptyk=0.;wpsv2ptyk=0.
 
@@ -1395,7 +1395,7 @@ contains
 
   endif
 
-  if (tstatsdumpp > tstatsdump) then
+  if (tstatsdumpp >= tstatsdump) then
 
     ! Final calculations and write xyt-averaged statistics every tsample
     if (lxytdump) then

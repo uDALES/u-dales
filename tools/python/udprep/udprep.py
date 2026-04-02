@@ -255,6 +255,7 @@ class UDPrep:
         self.ibm.run_all()
         if self.vegetation.ltrees or self.vegetation.ltreesfile:
             self.vegetation.run_all()
+            self.vegetation.save()
         self.ic.run_all()
         if self.scalars.nsv > 0:
             self.scalars.run_all()

@@ -17,6 +17,7 @@ CASE_SOURCE="${CASE_SOURCE:-${REPO_ROOT}/tests/cases/101}"
 NAMELIST="${NAMELIST:-namoptions.101}"
 TMPDIR_PARENT="${TMPDIR_PARENT:-}"
 MPIEXEC="${MPIEXEC:-mpiexec}"
+MPI_LAUNCH_EXTRA_ARGS="${MPI_LAUNCH_EXTRA_ARGS:-}"
 
 # Check if executable exists
 if [ ! -f "$UDALES_BUILD" ]; then
@@ -72,8 +73,12 @@ echo "Namelist:      $NAMELIST"
 echo "=========================================="
 echo ""
 
+if "$MPIEXEC" --version 2>/dev/null | grep -qi "Open MPI"; then
+    MPI_LAUNCH_EXTRA_ARGS="--oversubscribe ${MPI_LAUNCH_EXTRA_ARGS}"
+fi
+
 # Run the test
-"$MPIEXEC" -n "$NPROCS" "$UDALES_BUILD" "$NAMELIST"
+"$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$NPROCS" "$UDALES_BUILD" "$NAMELIST"
 
 # Capture exit code
 EXIT_CODE=$?

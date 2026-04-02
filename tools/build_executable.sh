@@ -17,7 +17,7 @@
 
 # Copyright (C) 2016-2019 the uDALES Team.
 
-set -e
+set -euo pipefail
 
 # Usage: ./tools/build_executable.sh [icl, archer, cca, common] [debug, release]
 

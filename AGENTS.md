@@ -120,6 +120,12 @@ cmake --build build/release -j 4
 On the cluster, MPI-enabled builds and tests may require loading the project
 module stack first.
 
+For cluster work, prefer the repo wrappers in `tools/` over ad hoc module and
+launcher combinations. In particular, use `tools/build_executable.sh`,
+`tools/build_preprocessing.sh`, `tools/hpc_execute.sh`, and
+`tools/hpc_gather.sh` as the source of truth for build and run environment
+selection.
+
 ## Python Environment
 
 - Use the canonical shared virtual environment at `../.venv/` for Python
@@ -143,4 +149,7 @@ module stack first.
 - Untracked test artifacts can survive branch switches; Git will not remove them automatically.
 - This branch and others may share the same high-level test layout while keeping different test contents.
 - CI and scripts should use the refactored regression path:
-  `tests/regression/run_tests.py`
+  `tests/regression/david_tests/run_tests.py`
+- For large NetCDF/HDF5 comparison work on shared cluster filesystems, prefer
+  reading local copies from `/tmp` (or node-local scratch) rather than reading
+  directly from shared storage.

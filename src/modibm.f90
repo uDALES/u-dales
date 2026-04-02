@@ -837,17 +837,15 @@ module modibm
                                 dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5
      use modfields,      only : u0, v0, w0
      use modsubgriddata, only : ekh
-     use decomp_2d,      only : zstart
-
      real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
      integer :: i, j, k, n, m
 
      do n = 1,bound_info_c%nbndptsrank
       !n = bound_info_c%bndptsrank(m)
-         i = bound_info_c%bndpts_loc(n,1) - zstart(1) + 1
-         j = bound_info_c%bndpts_loc(n,2) - zstart(2) + 1
-         k = bound_info_c%bndpts_loc(n,3) - zstart(3) + 1
+         i = bound_info_c%bndpts_loc(n,1)
+         j = bound_info_c%bndpts_loc(n,2)
+         k = bound_info_c%bndpts_loc(n,3)
 
          if ((abs(mask_u(i+1,j,k)) < eps1) .or. (abs(mask_c(i+1,j,k)) < eps1)) then
            rhs(i,j,k) = rhs(i,j,k) + u0(i+1,j,k)*(var(i+1,j,k) + var(i,j,k))*dxi5
@@ -889,17 +887,15 @@ module modibm
                                 dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5
      use modfields,      only : u0, v0, w0
      use modsubgriddata, only : ekh
-     use decomp_2d,      only : zstart
-
      real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
      integer :: i, j, k, n, m
 
      do n = 1,bound_info_c%nbndptsrank
       !n = bound_info_c%bndptsrank(m)
-         i = bound_info_c%bndpts_loc(n,1) - zstart(1) + 1
-         j = bound_info_c%bndpts_loc(n,2) - zstart(2) + 1
-         k = bound_info_c%bndpts_loc(n,3) - zstart(3) + 1
+         i = bound_info_c%bndpts_loc(n,1)
+         j = bound_info_c%bndpts_loc(n,2)
+         k = bound_info_c%bndpts_loc(n,3)
 
          if (abs(mask_c(i+1,j,k)) < eps1) then ! var(i+1) is solid
            rhs(i,j,k) = rhs(i,j,k) + u0(i+1,j,k)*(var(i+1,j,k) + var(i,j,k))*dxi5 & ! negate contribution added in advection using var(i+1)
@@ -941,16 +937,14 @@ module modibm
                                 dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5, dzhiq
      use modfields,      only : u0, up
      use modsubgriddata, only : ekm
-     use decomp_2d,      only : zstart
-
      real :: empo, emmo, emop, emom
      integer :: i, j, k, n, m
 
      do n = 1,bound_info_u%nbndptsrank
       !n = bound_info_u%bndptsrank(m)
-         i = bound_info_u%bndpts_loc(n,1) - zstart(1) + 1
-         j = bound_info_u%bndpts_loc(n,2) - zstart(2) + 1
-         k = bound_info_u%bndpts_loc(n,3) - zstart(3) + 1
+         i = bound_info_u%bndpts_loc(n,1)
+         j = bound_info_u%bndpts_loc(n,2)
+         k = bound_info_u%bndpts_loc(n,3)
 
          if (abs(mask_u(i,j+1,k)) < eps1) then
            empo = 0.25 * ((ekm(i,j,k) + ekm(i,j+1,k)) + (ekm(i-1,j,k) + ekm(i-1,j+1,k)))
@@ -986,16 +980,14 @@ module modibm
                                 dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5, dzhiq
      use modfields,      only : v0, vp
      use modsubgriddata, only : ekm
-     use decomp_2d,      only : zstart
-
      real :: epmo, emmo, eomp, eomm
      integer :: i, j, k, n, m
 
      do n = 1,bound_info_v%nbndptsrank
       !n = bound_info_v%bndptsrank(m)
-         i = bound_info_v%bndpts_loc(n,1) - zstart(1) + 1
-         j = bound_info_v%bndpts_loc(n,2) - zstart(2) + 1
-         k = bound_info_v%bndpts_loc(n,3) - zstart(3) + 1
+         i = bound_info_v%bndpts_loc(n,1)
+         j = bound_info_v%bndpts_loc(n,2)
+         k = bound_info_v%bndpts_loc(n,3)
 
          if (abs(mask_v(i+1,j,k)) < eps1) then
            epmo = 0.25 * (ekm(i,j,k) + ekm(i,j-1,k) + ekm(i+1,j-1,k) + ekm(i+1,j,k))
@@ -1030,16 +1022,14 @@ module modibm
                                 dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5, dzhiq
      use modfields,      only : w0, wp
      use modsubgriddata, only : ekm
-     use decomp_2d,      only : zstart
-
      real :: epom, emom, eopm, eomm
      integer :: i, j, k, n, m
 
      do n = 1,bound_info_w%nbndptsrank
       !n = bound_info_w%bndptsrank(m)
-         i = bound_info_w%bndpts_loc(n,1) - zstart(1) + 1
-         j = bound_info_w%bndpts_loc(n,2) - zstart(2) + 1
-         k = bound_info_w%bndpts_loc(n,3) - zstart(3) + 1
+         i = bound_info_w%bndpts_loc(n,1)
+         j = bound_info_w%bndpts_loc(n,2)
+         k = bound_info_w%bndpts_loc(n,3)
 
          ! Account for solid w points
          if (abs(mask_w(i+1,j,k)) < eps1) then
@@ -1076,8 +1066,6 @@ module modibm
      use modglobal,      only : eps1, ib, ie, jb, je, kb, ke, kh, &
                                 dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5
      use modsubgriddata, only : ekh
-     use decomp_2d,      only : zstart
-
      integer, intent(in) :: hi, hj, hk
      real, intent(in)    :: var(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)
      real, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
@@ -1085,9 +1073,9 @@ module modibm
 
      do n = 1,bound_info_c%nbndptsrank
       !n = bound_info_c%bndptsrank(m)
-         i = bound_info_c%bndpts_loc(n,1) - zstart(1) + 1
-         j = bound_info_c%bndpts_loc(n,2) - zstart(2) + 1
-         k = bound_info_c%bndpts_loc(n,3) - zstart(3) + 1
+         i = bound_info_c%bndpts_loc(n,1)
+         j = bound_info_c%bndpts_loc(n,2)
+         k = bound_info_c%bndpts_loc(n,3)
 
          if (abs(mask_c(i+1,j,k)) < eps1) then
            rhs(i,j,k) = rhs(i,j,k) - 0.5 * (ekh(i+1,j,k) + ekh(i,j,k)) * (var(i+1,j,k) - var(i,j,k))*dx2i

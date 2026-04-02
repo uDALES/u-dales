@@ -1,0 +1,107 @@
+&RUN
+iexpnr       = 526
+runtime      = 0.02
+trestart     = 1000.
+dtmax        = 0.01
+irandom      = 43
+randu        = 0.01
+ladaptive    = .true.
+nprocx       = 2
+nprocy       = 2
+libm         = .true.
+/
+
+&OUTPUT
+lfielddump   = .false.
+tfielddump   = 1800.
+fieldvars    = 'u0,v0,w0,p0'
+lxytdump     = .false.
+ltdump       = .false.
+tstatsdump   = 0.005
+tsample      = 0.005
+/
+
+&DOMAIN
+itot         = 128
+jtot         = 64
+ktot         = 64
+xlen         = 256
+ylen         = 128
+/
+
+&PHYSICS
+lbuoyancy    = .true.
+ltempeq      = .true.
+lmoist       = .true.
+ps           = 101325.00
+igrw_damp    = 0
+/
+
+&DYNAMICS
+ipoiss       = 0
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&BC
+BCxm         = 1
+BCxT         = 1
+BCxq         = 1
+BCtopm       = 3
+z0           = 0.01
+z0h          = 0.000067
+/
+
+&WALLS
+nfcts = 3382
+nsolpts_u = 0
+nsolpts_v = 0
+nsolpts_w = 32768
+nsolpts_c = 0
+nbndpts_u = 32768
+nbndpts_v = 32768
+nbndpts_w = 32768
+nbndpts_c = 32768
+nfctsecs_u = 66197
+nfctsecs_v = 66173
+nfctsecs_w = 0
+nfctsecs_c = 66227
+/
+
+&DRIVER
+idriver      = 0
+driverjobnr  = 301
+driverstore  = 138241
+/
+
+&INPS
+ltreesfile   = .true.
+treesfile    = trees.inp.526
+zsize        = 32
+u0           = 0.1
+stl_file     = tree_ground.stl
+stl_ground   = .true.
+diag_neighbs = .true.
+/
+
+&ENERGYBALANCE
+lEB        = .false.
+bldT       = 301.0
+/
+
+&TREES
+ltrees       = .true.
+itree_mode   = 99
+ntrees = 1
+cd           = 0.3
+lad          = 1.0
+lsize        = 0.15
+ud           = 0.0002
+dec          = 0.3
+Qstar        = 600
+dQdt         = 0
+r_s          = 50.
+ltreedump    = .true.
+/

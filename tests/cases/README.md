@@ -4,8 +4,8 @@ This directory contains committed case fixtures shared by repo-level tests.
 
 Current cases:
 
-- `101/`: IBM sparse-input reference case
 - `100/`: no-tree direct shortwave reference case
+- `101/`: IBM sparse-input reference case
 - `525/`: flat-terrain tree case for direct shortwave integration and sparse tree comparison checks
 
 Current consumers:

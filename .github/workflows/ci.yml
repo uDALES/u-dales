@@ -78,6 +78,20 @@ jobs:
         fi
         python3 -u tests/run_tests.py supported --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type}}
 
+    - name: Legacy tree regression
+      if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Debug'
+      shell: bash -l {0}
+      run: |
+        if [ ${{ matrix.os }} = 'macos-latest' ]; then
+          MPI_PREFIX="$(brew --prefix open-mpi)"
+          export UDALES_CMAKE_ARGS="-DCMAKE_Fortran_COMPILER=$MPI_PREFIX/bin/mpif90 -DMPI_Fortran_COMPILER=$MPI_PREFIX/bin/mpif90 -DMPI_C_COMPILER=$MPI_PREFIX/bin/mpicc -DMPIEXEC_EXECUTABLE=$MPI_PREFIX/bin/mpiexec"
+          export MPIEXEC="$MPI_PREFIX/bin/mpiexec"
+        else
+          export UDALES_CMAKE_ARGS="-DCMAKE_Fortran_COMPILER=/usr/bin/mpif90 -DMPI_Fortran_COMPILER=/usr/bin/mpif90 -DMPI_C_COMPILER=/usr/bin/mpicc -DMPIEXEC_EXECUTABLE=/usr/bin/mpiexec"
+          export MPIEXEC=/usr/bin/mpiexec
+        fi
+        python3 -u tests/regression/new_vegetation_module_against_v2.2/run_test.py v2.2.0 $GITHUB_SHA ${{ matrix.build-type }} --ci
+
     - name: Build docs
       if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release'
       shell: bash -l {0}

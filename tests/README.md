@@ -123,19 +123,18 @@ cd tests/integration/tree_sparse_compare
 
 `tests/regression` contains branch-comparison and case-based regression assets:
 
-- `cases/`: complete test cases
-- `patches/`: patches applied to example cases to create cheaper regression runs
-- `scripts/`: helper scripts for building models and comparing outputs
-- `run_tests.py`: regression test entry point
+- `david_tests/`: the older branch-comparison regression harness and its helper assets
+- `new_vegetation_module_against_v2.2/`: the `526` legacy vegetation regression against release `v2.2.0`
 
-At present, the regression harness is primarily a branch-comparison build path.
-The full run-and-compare path for case outputs is planned but not yet the
-default supported behaviour.
+At present there are two regression paths:
+
+- `david_tests/`: an older branch-comparison build harness used by the supported suite
+- `new_vegetation_module_against_v2.2/`: a dedicated solver-output regression for the new vegetation module against the `v2.2.0` release
 
 To run regression tests:
 
 ```bash
-cd tests/regression
+cd tests/regression/david_tests
 python run_tests.py <branch_a> <branch_b> <build_type>
 ```
 
@@ -150,7 +149,7 @@ Where `<branch_a>` and `<branch_b>` are the two branches you want to compare and
 Example:
 
 ```bash
-cd tests/regression
+cd tests/regression/david_tests
 python run_tests.py master dmey/patch-1 Release
 ```
 

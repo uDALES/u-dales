@@ -302,8 +302,6 @@ contains
             do j = jl,ju
               do i = il,iu
 
-                 if (ladzf(ntree_max-(ku-k)) <= 0.0) cycle  ! skip empty layers
-
                  ! psychometrics
                  ! saturation vapour pressure pressure
                  e_sat = 610.8*exp((17.27*(thlm(i,j,k)-273.15))/(thlm(i,j,k)-35.85))
@@ -328,21 +326,21 @@ contains
                  s = (4098*e_sat)/((thlm(i,j,k)-35.85)**2)
 
                  ! aerodynamic resistance
-                 r_a = 130*sqrt(max(lsize, 1.0e-6)/(sqrt(max((0.5*(um(i,j,k)+um(i+1,j,k)))**2+(0.5*(vm(i,j,k)+vm(i,j+1,k)))**2+(0.5*(wm(i,j,k)+wm(i,j,k+1)))**2, 1.0e-12))))
+                 r_a = 130*sqrt(lsize/(sqrt((0.5*(um(i,j,k)+um(i+1,j,k)))**2+(0.5*(vm(i,j,k)+vm(i,j+1,k)))**2+(0.5*(wm(i,j,k)+wm(i,j,k+1)))**2)))
 
                  ! decoupling factor
-                 omega = 1/(1 + 2*(gam/(s+2*gam)) * (max(r_s, 1.0e-6)/r_a) )
+                 omega = 1/(1 + 2*(gam/(s+2*gam)) * ((r_s)/r_a) )
 
                  ! latent heat
-                 qe = omega*(s/(s+2*gam))*(qa(ntree_max-(ku-k))/(dzf(k)*max(ladzf(ntree_max-(ku-k)), 1.0e-12))) + (1-omega)*(1/(gam*(max(r_s, 1.0e-6))))*rhoa*cp*D
+                 qe = omega*(s/(s+2*gam))*(qa(ntree_max-(ku-k))/(dzf(k)*ladzf(ntree_max-(ku-k)))) + (1-omega)*(1/(gam*(r_s)))*rhoa*cp*D
 
                  ! sensible heat
-                 qh = qa(ntree_max-(ku-k))/(dzf(k)*max(ladzf(ntree_max-(ku-k)), 1.0e-12)) - qe
+                 qh = qa(ntree_max-(ku-k))/(dzf(k)*ladzf(ntree_max-(ku-k))) - qe
 
                  ! volumetric sinks/source of specific humidity and temp
                  tr_qt(i,j,k) = ladzf(ntree_max-(ku-k))*qe/(rhoa*rlv)
-                 tr_qtR(i,j,k) = ladzf(ntree_max-(ku-k))*( omega*(s/(s+2*gam))*(qa(ntree_max-(ku-k))/(dzf(k)*max(ladzf(ntree_max-(ku-k)), 1.0e-12))))/(rhoa*rlv)
-                 tr_qtA(i,j,k) = ladzf(ntree_max-(ku-k))*((1-omega)*(1/(gam*(max(r_s, 1.0e-6))))*rhoa*cp*D)/(rhoa*rlv)
+                 tr_qtR(i,j,k) = ladzf(ntree_max-(ku-k))*( omega*(s/(s+2*gam))*(qa(ntree_max-(ku-k))/(dzf(k)*ladzf(ntree_max-(ku-k)))))/(rhoa*rlv)
+                 tr_qtA(i,j,k) = ladzf(ntree_max-(ku-k))*((1-omega)*(1/(gam*(r_s)))*rhoa*cp*D)/(rhoa*rlv)
                  tr_thl(i,j,k) = ladzf(ntree_max-(ku-k))*qh/(rhoa*cp)
 
                  tr_omega(i,j,k) = omega
@@ -360,11 +358,7 @@ contains
           end do
 
           ! fraction of total net radiation reaching the bottom of the tree
-          if (abs(Qstar) < 1.0e-12) then
-            Rq = 0.0
-          else
-            Rq = Rn(ntree_max+1-(ku+1-kl)) / Qstar
-          end if
+          Rq = Rn(ntree_max+1-(ku+1-kl)) / Qstar
 
           ! sensible heat flux from shaded surfaces
           shade = ( (1 - 0.7 ) * Rn(ntree_max+1-(ku+1-kl) ) - 0.33*Rq*dQdt + Rq*38 )/ (rhoa*cp)

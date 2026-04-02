@@ -74,6 +74,9 @@ class VegetationSection(Section):
         # Parse tree blocks (1-based indices) from the input file.
         sim_dir = Path(sim.path)
         sim_id = sim.expnr
+        itot = int(sim.itot)
+        jtot = int(sim.jtot)
+        ktot = int(sim.ktot)
         if not treefile_name:
             warnings.warn("vegetation.treesfile is empty; using default trees.inp.<expnr>")
             tree_file = sim_dir / f"trees.inp.{sim_id}"
@@ -105,6 +108,12 @@ class VegetationSection(Section):
                     jl, ju = ju, jl
                 if kl > ku:
                     kl, ku = ku, kl
+
+                if il < 1 or iu > itot or jl < 1 or ju > jtot or kl < 1 or ku > ktot:
+                    raise ValueError(
+                        f"Tree block ({il}, {iu}, {jl}, {ju}, {kl}, {ku}) is outside "
+                        f"the simulation grid 1..{itot}, 1..{jtot}, 1..{ktot}"
+                    )
 
                 block_id = next_id
                 next_id += 1
