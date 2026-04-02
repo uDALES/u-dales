@@ -3,7 +3,7 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  main:
+  build-and-supported-tests:
     if: >
       github.event_name != 'push' ||
       !contains(github.event.head_commit.message, '[skip ci]')
@@ -14,11 +14,12 @@ jobs:
       matrix:
         os: ['ubuntu-latest', 'macos-latest']
         build-type: ['Debug', 'Release']
-    
+
     steps:
     - name: Check-out project
       uses: actions/checkout@v4
       with:
+        fetch-depth: 0
         submodules: recursive
 
     - name: Set up repository
@@ -27,6 +28,7 @@ jobs:
       run: |
         git remote set-branches --add origin master
         git fetch origin master
+        git fetch --tags origin
 
     - name: Install system dependencies
       run: bash .github/scripts/install_deps.sh
@@ -45,62 +47,87 @@ jobs:
       run: |
         build_dir="build/${{ matrix.build-type }}"
         build_dir="$(printf '%s' "$build_dir" | tr '[:upper:]' '[:lower:]')"
+        source .github/scripts/setup_mpi_env.sh "${{ matrix.os }}"
         if [ ${{ matrix.os }} = 'macos-latest' ]; then
-          MPI_PREFIX="$(brew --prefix open-mpi)"
-          cmake -S . -B "$build_dir" \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-            -DCMAKE_Fortran_COMPILER="$MPI_PREFIX/bin/mpif90" \
-            -DMPI_Fortran_COMPILER="$MPI_PREFIX/bin/mpif90" \
-            -DMPI_C_COMPILER="$MPI_PREFIX/bin/mpicc" \
-            -DMPIEXEC_EXECUTABLE="$MPI_PREFIX/bin/mpiexec"
-        else
-          cmake -S . -B "$build_dir" \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-            -DCMAKE_Fortran_COMPILER=/usr/bin/mpif90 \
-            -DMPI_Fortran_COMPILER=/usr/bin/mpif90 \
-            -DMPI_C_COMPILER=/usr/bin/mpicc \
-            -DMPIEXEC_EXECUTABLE=/usr/bin/mpiexec
+          which gfortran
+          gfortran --version
+          "$UDALES_MPI_FORTRAN_COMPILER" --showme:command || "$UDALES_MPI_FORTRAN_COMPILER" -show
         fi
+        cmake -S . -B "$build_dir" \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+          -DCMAKE_Fortran_COMPILER="$UDALES_MPI_FORTRAN_COMPILER" \
+          -DMPI_Fortran_COMPILER="$UDALES_MPI_FORTRAN_COMPILER" \
+          -DMPI_C_COMPILER="$UDALES_MPI_C_COMPILER" \
+          -DMPIEXEC_EXECUTABLE="$UDALES_MPIEXEC"
         cmake --build "$build_dir" -- -j 4
 
     - name: Build and test uDALES
-      # 'shell' required to activate environment.
-      # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
       shell: bash -l {0}
       run: |
-        if [ ${{ matrix.os }} = 'macos-latest' ]; then
-          MPI_PREFIX="$(brew --prefix open-mpi)"
-          export UDALES_CMAKE_ARGS="-DCMAKE_Fortran_COMPILER=$MPI_PREFIX/bin/mpif90 -DMPI_Fortran_COMPILER=$MPI_PREFIX/bin/mpif90 -DMPI_C_COMPILER=$MPI_PREFIX/bin/mpicc -DMPIEXEC_EXECUTABLE=$MPI_PREFIX/bin/mpiexec"
-          export MPIEXEC="$MPI_PREFIX/bin/mpiexec"
-        else
-          export UDALES_CMAKE_ARGS="-DCMAKE_Fortran_COMPILER=/usr/bin/mpif90 -DMPI_Fortran_COMPILER=/usr/bin/mpif90 -DMPI_C_COMPILER=/usr/bin/mpicc -DMPIEXEC_EXECUTABLE=/usr/bin/mpiexec"
-          export MPIEXEC=/usr/bin/mpiexec
-        fi
-        python3 -u tests/run_tests.py supported --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type}}
+        source .github/scripts/setup_mpi_env.sh "${{ matrix.os }}"
+        python3 -u tests/run_tests.py supported --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type }}
 
-    - name: Legacy tree regression
-      if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Debug'
-      shell: bash -l {0}
+  docs:
+    if: >
+      github.event_name != 'push' ||
+      !contains(github.event.head_commit.message, '[skip ci]')
+    name: docs
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check-out project
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        submodules: recursive
+
+    - name: Set up repository
       run: |
-        if [ ${{ matrix.os }} = 'macos-latest' ]; then
-          MPI_PREFIX="$(brew --prefix open-mpi)"
-          export UDALES_CMAKE_ARGS="-DCMAKE_Fortran_COMPILER=$MPI_PREFIX/bin/mpif90 -DMPI_Fortran_COMPILER=$MPI_PREFIX/bin/mpif90 -DMPI_C_COMPILER=$MPI_PREFIX/bin/mpicc -DMPIEXEC_EXECUTABLE=$MPI_PREFIX/bin/mpiexec"
-          export MPIEXEC="$MPI_PREFIX/bin/mpiexec"
-        else
-          export UDALES_CMAKE_ARGS="-DCMAKE_Fortran_COMPILER=/usr/bin/mpif90 -DMPI_Fortran_COMPILER=/usr/bin/mpif90 -DMPI_C_COMPILER=/usr/bin/mpicc -DMPIEXEC_EXECUTABLE=/usr/bin/mpiexec"
-          export MPIEXEC=/usr/bin/mpiexec
-        fi
-        python3 -u tests/regression/new_vegetation_module_against_v2.2/run_test.py v2.2.0 $GITHUB_SHA ${{ matrix.build-type }} --ci
+        git remote set-branches --add origin master
+        git fetch origin master
+        git fetch --tags origin
+
+    - name: Install system dependencies
+      run: bash .github/scripts/install_deps.sh
+
+    - name: Install python dependencies
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        miniconda-version: "latest"
+        auto-update-conda: true
+        activate-environment: udales
+        environment-file: environment.yml
+        channel-priority: strict
 
     - name: Build docs
-      if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release'
       shell: bash -l {0}
       run: |
         mkdocs build --site-dir build/html
         ford docs/udales-docs-software.md
 
+    - name: Upload docs artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: docs-html
+        path: build/html/
+
+  publish-docs:
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/master' &&
+      !contains(github.event.head_commit.message, '[skip ci]')
+    name: publish-docs
+    runs-on: ubuntu-latest
+    needs: docs
+
+    steps:
+    - name: Download docs artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: docs-html
+        path: build/html/
+
     - name: Publish docs
-      if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/master'
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}

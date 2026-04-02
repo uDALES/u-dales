@@ -8,6 +8,9 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     brew install pkgconf
     brew link --overwrite pkgconf
-    brew install netcdf netcdf-fortran open-mpi graphviz fftw
-    brew link gcc
+    brew install gcc netcdf netcdf-fortran open-mpi graphviz fftw
+    if [[ -n "${GITHUB_PATH:-}" ]]; then
+        echo "$(brew --prefix gcc)/bin" >> "$GITHUB_PATH"
+        echo "$(brew --prefix open-mpi)/bin" >> "$GITHUB_PATH"
+    fi
 fi
