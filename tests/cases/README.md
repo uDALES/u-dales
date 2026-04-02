@@ -6,7 +6,8 @@ Current cases:
 
 - `100/`: no-tree direct shortwave reference case
 - `101/`: IBM sparse-input reference case
-- `525/`: flat-terrain tree case for direct shortwave integration and sparse tree comparison checks
+- `525/`: flat-terrain tree case for direct shortwave integration checks
+- `526/`: reduced tree case for legacy vegetation regression against `v2.2.0`
 
 Current consumers:
 
@@ -15,8 +16,8 @@ Current consumers:
 - `integration/directshortwave/test_directshortwave.py`
   - `100/` for the legacy Fortran vs f2py vs Python no-tree reference test
   - `525/` for the tree-enabled `facsec` vs `moller` comparison
-- `integration/tree_sparse_compare/run_test.sh`
-  - `525/` as the staged base case for the sparse tree forcing solver test
+- `regression/new_vegetation_module_against_v2.2/run_test.py`
+  - `526/` as the staged base case for the reduced legacy vegetation regression
 
 Guidance:
 

@@ -76,13 +76,6 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/directshortwave/test_directshortwave.py"
-      - label: "experimental: tree sparse compare integration"
-        class: experimental
-        purpose: integration
-        command:
-          - "/usr/bin/bash"
-          - "-lc"
-          - "module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0 && TMPDIR_PARENT=/rds/general/user/mvr/ephemeral bash {tests_dir}/integration/tree_sparse_compare/run_test.sh"
       - label: "experimental: new vegetation module against v2.2"
         class: experimental
         purpose: regression

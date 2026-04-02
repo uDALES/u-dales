@@ -20,6 +20,7 @@ import numpy as np
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REGRESSION_DIR = SCRIPT_DIR.parent
+DAVID_TESTS_DIR = REGRESSION_DIR / "david_tests"
 TESTS_DIR = REGRESSION_DIR.parent
 REPO_ROOT = TESTS_DIR.parent
 BUILD_SYSTEM = os.environ.get("UDALES_BUILD_SYSTEM", "icl")
@@ -34,7 +35,7 @@ SCRATCH_ROOT = Path(
     os.environ.get("UDALES_SCRATCH_ROOT", "/tmp")
 ).resolve()
 
-sys.path.insert(0, str(REGRESSION_DIR))
+sys.path.insert(0, str(DAVID_TESTS_DIR))
 from scripts import build_model  # noqa: E402
 
 
@@ -45,6 +46,7 @@ INTERIOR_REL_TOL = 1.0e-3
 NPROCS = 4
 NPROCX = 2
 NPROCY = 2
+CACHED_FFTW_MODULE = REPO_ROOT / "build" / "debug" / "findFFTW-src" / "FindFFTW.cmake"
 
 
 def _read_int_setting(namelist: Path, key: str) -> int:
@@ -75,13 +77,18 @@ def _patch_namelist(run_dir: Path, mode: str) -> None:
 def _run_case(path_to_exe: Path, run_dir: Path) -> None:
     launcher = os.environ.get("MPIEXEC", "mpiexec")
     exe = path_to_exe / "u-dales"
+    diag_log = run_dir / "fortran_diagnostics.log"
     for stale in run_dir.glob("monitor*.txt"):
         stale.unlink()
     for stale in run_dir.glob(f"treedump.*.*.{CASE_ID}.nc"):
         stale.unlink()
+    if diag_log.exists():
+        diag_log.unlink()
     shell_command = (
         f"module load {RUNTIME_MODULES} && "
         f"export HDF5_USE_FILE_LOCKING=FALSE && "
+        f"export FOR_DISABLE_DIAGNOSTIC_DISPLAY=TRUE && "
+        f"export FOR_DIAGNOSTIC_LOG_FILE={shlex_quote(str(diag_log))} && "
         f"cd {shlex_quote(str(run_dir))} && "
         f"{shlex_quote(launcher)} -n {NPROCS} {shlex_quote(str(exe))} namoptions.{CASE_ID}"
     )
@@ -382,11 +389,54 @@ def _populate_local_submodules(worktree: Path) -> None:
         shutil.copytree(source, target, symlinks=True)
 
 
+def _prepare_offline_fftw(worktree: Path) -> None:
+    if not CACHED_FFTW_MODULE.is_file():
+        raise RuntimeError(
+            f"Missing cached FindFFTW.cmake required for offline regression builds: {CACHED_FFTW_MODULE}"
+        )
+    cmake_lists = worktree / "CMakeLists.txt"
+    text = cmake_lists.read_text(encoding="utf-8")
+    if 'set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")' in text:
+        cmake_dir = worktree / "cmake"
+        cmake_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(CACHED_FFTW_MODULE, cmake_dir / "FindFFTW.cmake")
+        return
+
+    old_block = """#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/findFFTW")
+configure_file(downloadFindFFTW.cmake.in findFFTW-download/CMakeLists.txt)
+execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+        RESULT_VARIABLE result
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-download )
+if(result)
+    message(FATAL_ERROR "CMake step for findFFTW failed: ${result}")
+    else()
+    message("CMake step for findFFTW completed (${result}).")
+endif()
+execute_process(COMMAND ${CMAKE_COMMAND} --build .
+        RESULT_VARIABLE result
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-download )
+if(result)
+    message(FATAL_ERROR "Build step for findFFTW failed: ${result}")
+endif()
+set(findFFTW_DIR ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-src)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${findFFTW_DIR}")
+"""
+    new_block = """set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+"""
+    if old_block not in text:
+        raise RuntimeError(f"Unable to patch FFTW lookup in {cmake_lists}")
+    cmake_dir = worktree / "cmake"
+    cmake_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(CACHED_FFTW_MODULE, cmake_dir / "FindFFTW.cmake")
+    cmake_lists.write_text(text.replace(old_block, new_block), encoding="utf-8")
+
+
 def _build_in_worktree(worktree: Path, ref: str, build_type: str) -> Path:
     build_dir = worktree / "build" / build_type.lower()
     build_script = worktree / "tools" / "build_executable.sh"
     if not build_script.is_file():
         raise RuntimeError(f"Missing build script in worktree: {build_script}")
+    _prepare_offline_fftw(worktree)
     subprocess.run(
         ["bash", str(build_script), BUILD_SYSTEM, build_type.lower()],
         cwd=worktree,
@@ -410,6 +460,7 @@ def _build_current_workspace(build_type: str) -> Path:
 def main(branch_a: str, branch_b: str, build_type: str, ci_mode: bool = False) -> int:
     case_source = REPO_ROOT / "tests" / "cases" / str(CASE_ID)
     SCRATCH_ROOT.mkdir(parents=True, exist_ok=True)
+    shutil.rmtree(SCRATCH_ROOT / "udales-tree-regression-compare", ignore_errors=True)
     with tempfile.TemporaryDirectory(prefix="tree-regression-worktrees-", dir=SCRATCH_ROOT) as worktree_tmp, tempfile.TemporaryDirectory(prefix="tree-reference-", dir=SCRATCH_ROOT) as reference_tmp, tempfile.TemporaryDirectory(prefix="tree-current-", dir=SCRATCH_ROOT) as current_tmp:
         worktree_root = Path(worktree_tmp)
         reference_worktree = worktree_root / "reference"

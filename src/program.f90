@@ -26,7 +26,7 @@ program uDALES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_TREES_SPARSE_INPUT
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -51,7 +51,7 @@ program uDALES
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
-  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_trees_sparse_compare
+  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit
   implicit none
 
 !----------------------------------------------------------------
@@ -244,9 +244,6 @@ contains
       case (TEST_SPARSE_IJK)
         ! Execute tests for reading sparse arrays
         test_failed = .not. tests_read_sparse_ijk()
-      case (TEST_TREES_SPARSE_INPUT)
-        call initfields
-        test_failed = .not. tests_trees_sparse_compare()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
         stop

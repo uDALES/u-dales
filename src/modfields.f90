@@ -112,23 +112,6 @@ module modfields
   integer, allocatable :: IIvws(:)          !< 1-D Masking matrix for blocks at y- and z-direction half cells that span ib:ie and 1:jtot
   integer, allocatable :: IIuvs(:)          !< 1-D Masking matrix for blocks at x- and y-direction half cells that span ib:ie and 1:jtot
 
-  real, allocatable :: Rn(:)
-  real, allocatable :: clai(:)
-  real, allocatable :: qc(:)
-  real, allocatable :: qa(:)
-  real, allocatable :: ladzf(:)
-  real, allocatable :: ladzh(:)
-
-  real, allocatable :: tr_u(:,:,:)          !< volumetric drag acting on trees along x
-  real, allocatable :: tr_v(:,:,:)          !< volumetric drag acting on trees along y
-  real, allocatable :: tr_w(:,:,:)          !< volumetric drag acting on trees along z
-  real, allocatable :: tr_qt(:,:,:)
-  real, allocatable :: tr_qtR(:,:,:)
-  real, allocatable :: tr_qtA(:,:,:)
-  real, allocatable :: tr_thl(:,:,:)
-  real, allocatable :: tr_sv(:,:,:,:)       !< tree deposition (scalar sink)
-  real, allocatable :: tr_omega(:,:,:)
-
   real, allocatable :: tr_ut(:,:,:)
   real, allocatable :: tr_vt(:,:,:)
   real, allocatable :: tr_wt(:,:,:)
@@ -608,27 +591,6 @@ contains
     allocate(IIvws(kb:ke+khc))
     allocate(IIuvs(kb:ke+khc))
     IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
-
-    if (ltrees) then
-      allocate(qc(kb:ke))
-      allocate(qa(kb:ke))
-      allocate(ladzf(kb:ke))
-      allocate(ladzh(kb:ke))
-      allocate(Rn(kb:ke))
-      allocate(clai(kb:ke))
-
-      allocate(tr_u(ib:ie,jb:je,kb:ke))
-      allocate(tr_v(ib:ie,jb:je,kb:ke))
-      allocate(tr_w(ib:ie,jb:je,kb:ke))
-      allocate(tr_qt(ib:ie,jb:je,kb:ke))
-      allocate(tr_qtR(ib:ie,jb:je,kb:ke))
-      allocate(tr_qtA(ib:ie,jb:je,kb:ke))
-      allocate(tr_thl(ib:ie,jb:je,kb:ke))
-      allocate(tr_sv(ib:ie,jb:je,kb:ke,1:nsv)) 
-      allocate(tr_omega(ib:ie,jb:je,kb:ke))
-
-      clai=0.;Rn=0.;qc=0.;qa=0.;ladzf=0.;ladzh=0.;tr_u=0.;tr_v=0.;tr_w=0.;tr_thl=0.;tr_qt=0.;tr_qtR=0.;tr_qtA=0.;tr_sv=0.;tr_omega=0.
-    end if
 
     if (ltreedump) then
       allocate(tr_ut(ib:ie,jb:je,kb:ke))

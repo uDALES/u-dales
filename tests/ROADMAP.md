@@ -120,9 +120,6 @@ Current state:
   the lightweight Python unit layer
 - `supported` now includes lightweight Python unit coverage in addition to the
   existing solver-facing checks
-- `tree_sparse_compare` has been moved from `supported` to `experimental`
-  because it is still better treated as developing coverage than as a trusted
-  merge-gating path
 - the regression harness is still only partially mature: it remains in the
   supported path, but its full run-and-compare case-output flow is still a
   later roadmap item

@@ -16,8 +16,24 @@ UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/debug/u-dales}"
 CASE_SOURCE="${CASE_SOURCE:-${REPO_ROOT}/tests/cases/101}"
 NAMELIST="${NAMELIST:-namoptions.101}"
 TMPDIR_PARENT="${TMPDIR_PARENT:-}"
-MPIEXEC="${MPIEXEC:-mpiexec}"
+if [ -z "${MPIEXEC:-}" ] && command -v mpiifort >/dev/null 2>&1; then
+    MPIEXEC="$(dirname "$(command -v mpiifort)")/mpiexec"
+else
+    MPIEXEC="${MPIEXEC:-mpiexec}"
+fi
 MPI_LAUNCH_EXTRA_ARGS="${MPI_LAUNCH_EXTRA_ARGS:-}"
+MPI_VERSION_OUTPUT="$("$MPIEXEC" --version 2>/dev/null || true)"
+
+if printf '%s\n' "$MPI_VERSION_OUTPUT" | grep -Eqi "Open MPI|OpenRTE"; then
+    MPI_LAUNCH_EXTRA_ARGS="--oversubscribe ${MPI_LAUNCH_EXTRA_ARGS}"
+    TMPDIR="${TMPDIR:-/tmp}"
+    export TMPDIR
+    export OMPI_MCA_prte_tmpdir_base="${OMPI_MCA_prte_tmpdir_base:-$TMPDIR}"
+    export PRTE_MCA_prte_tmpdir_base="${PRTE_MCA_prte_tmpdir_base:-$TMPDIR}"
+    if [ -z "$TMPDIR_PARENT" ]; then
+        TMPDIR_PARENT="$TMPDIR"
+    fi
+fi
 
 # Check if executable exists
 if [ ! -f "$UDALES_BUILD" ]; then
@@ -72,10 +88,6 @@ echo "Run directory: $RUN_DIR"
 echo "Namelist:      $NAMELIST"
 echo "=========================================="
 echo ""
-
-if "$MPIEXEC" --version 2>/dev/null | grep -qi "Open MPI"; then
-    MPI_LAUNCH_EXTRA_ARGS="--oversubscribe ${MPI_LAUNCH_EXTRA_ARGS}"
-fi
 
 # Run the test
 "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$NPROCS" "$UDALES_BUILD" "$NAMELIST"

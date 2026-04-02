@@ -90,13 +90,13 @@ between multiple components rather than one isolated API.
 - `directshortwave/`: Python-driven preprocessing integration tests for direct
   shortwave on committed cases `100` and `525`
 - `ibm_sparse_input/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
-- `tree_sparse_compare/`: MPI validation for sparse tree forcing using `runmode = 1005`
 
 `tests/cases/` holds shared committed fixtures used by these tests. At present:
 
 - `101/`: IBM sparse-input case used by `integration/ibm_sparse_input/`
 - `100/`: no-tree direct shortwave reference case used by `integration/directshortwave/`
-- `525/`: flat-terrain tree case used by `integration/directshortwave/` and `integration/tree_sparse_compare/`
+- `525/`: flat-terrain tree case used by `integration/directshortwave/`
+- `526/`: reduced tree case used by `regression/new_vegetation_module_against_v2.2/`
 
 To run the direct shortwave reference test:
 
@@ -109,13 +109,6 @@ To run the sparse IBM input test:
 
 ```bash
 cd tests/integration/ibm_sparse_input
-./run_test.sh
-```
-
-To run the sparse tree comparison test:
-
-```bash
-cd tests/integration/tree_sparse_compare
 ./run_test.sh
 ```
 

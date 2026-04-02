@@ -44,7 +44,7 @@ jobs:
       shell: bash -l {0}
       run: |
         build_dir="build/${{ matrix.build-type }}"
-        build_dir="${build_dir,,}"
+        build_dir="$(printf '%s' "$build_dir" | tr '[:upper:]' '[:lower:]')"
         if [ ${{ matrix.os }} = 'macos-latest' ]; then
           MPI_PREFIX="$(brew --prefix open-mpi)"
           cmake -S . -B "$build_dir" \

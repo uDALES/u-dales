@@ -31,7 +31,7 @@ Key Fortran files under `src/`:
 - `modboundary.f90`, `modinlet*.f90`, `moddriver.f90`: boundaries, inflow, driver runs
 - `modforces.f90`, `modthermodynamics.f90`, `modsubgrid*.f90`, `modpois.f90`: core physics/numerics
 - `modibm*.f90`, `initfac.f90`: immersed boundary method
-- `vegetation.f90`, `modtrees.f90`, `modEB.f90`, `heatpump.f90`, `modchem.f90`, `modpurifiers.f90`: branch/domain-specific physics
+- `vegetation.f90`, `modEB.f90`, `heatpump.f90`, `modchem.f90`, `modpurifiers.f90`: branch/domain-specific physics
 - `tests.f90`: in-solver test routines triggered by runmode
 
 ## Tooling

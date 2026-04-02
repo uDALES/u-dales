@@ -96,7 +96,14 @@ def main(branch_a: str, branch_b: str, build_type: str):
         raise RuntimeError(
             f'The operating system {platform.system()} is not currently suppoorted.')
 
-    _require_clean_worktree_for_branch_switch(PROJ_DIR, branch_a, branch_b)
+    if branch_a != branch_b and _repo_has_uncommitted_changes(PROJ_DIR):
+        warnings.warn(
+            "Skipping supported regression branch-switch harness because the "
+            "worktree has uncommitted changes. This harness checks out both "
+            "refs in-place, so local development edits would be overwritten. "
+            "CI still runs this path from a clean checkout."
+        )
+        return
     original_head = _current_head(PROJ_DIR)
 
     try:

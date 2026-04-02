@@ -18,21 +18,19 @@ Current contents:
 - `directshortwave/` for committed direct shortwave cases, including no-tree
   reference case `100` and tree case `525`
 - `ibm_sparse_input/` for MPI validation of the sparse IBM input reader on committed case `101`
-- `tree_sparse_compare/` for MPI validation of sparse tree forcing on committed case `525`
 
 `directshortwave/` is Python-driven, but it belongs here because it is anchored
 to committed repo fixtures in `tests/cases/` and validates agreement across
 multiple implementations rather than a single Python API. It should be treated
 as a preprocessing integration suite, not as a pure solver test.
 
-`ibm_sparse_input/` and `tree_sparse_compare/` are executable-driven solver tests. They
+`ibm_sparse_input/` is an executable-driven solver test. It
 stage shared inputs from `tests/cases/` into temporary run directories before
 execution.
 
 Current supported status:
 
 - `ibm_sparse_input/`: supported solver-facing integration coverage
-- `tree_sparse_compare/`: experimental solver-facing integration coverage
 - `directshortwave/`: experimental preprocessing/tooling integration coverage
 
 This directory now feeds two different curated paths through
@@ -99,5 +97,4 @@ In the current supported selection, the solver-facing integration suites are:
 
 Experimental integration coverage currently includes:
 
-- `integration/tree_sparse_compare/run_test.sh`
 - `integration/directshortwave/test_directshortwave.py`

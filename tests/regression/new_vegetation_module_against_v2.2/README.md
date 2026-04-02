@@ -1,7 +1,7 @@
 # Legacy Tree Regression
 
-This experimental regression test prepares for the eventual removal of
-`modtrees.f90` from this branch.
+This experimental regression test protects the legacy vegetation behaviour of
+this branch against the `v2.2.0` release baseline.
 
 It builds:
 
