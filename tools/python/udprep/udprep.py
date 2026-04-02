@@ -81,13 +81,21 @@ class Section:
     def write_changed_params(self) -> None:
         """
         Compare current values against defaults and write only changed parameters.
-
-        This is a placeholder for logic that will diff section attributes against
-        their default values and emit a minimal input file update.
         """
+        if self.sim is None:
+            return
         changed = self._changed_params()
         for key, value, default in changed:
-            print(f"[{self._name}] writing {key} = {value} to input file")
+            if isinstance(value, np.ndarray):
+                continue
+            if isinstance(value, (list, tuple)) and any(
+                isinstance(v, (list, tuple, np.ndarray, dict)) for v in value
+            ):
+                continue
+            try:
+                self.sim.save_param(key, value)
+            except Exception:
+                print(f"[{self._name}] skipping writeback for {key} = {value!r}")
 
     def show_changed_params(self) -> None:
         """
@@ -151,6 +159,7 @@ class _DefaultContext:
         raise AttributeError(name)
 from .udprep_ic import SPEC as IC_SPEC
 from .udprep_ibm import SPEC as IBM_SPEC
+from .udprep_grid import SPEC as GRID_SPEC
 from .udprep_radiation import SPEC as RADIATION_SPEC
 from .udprep_scalars import SPEC as SCALARS_SPEC
 from .udprep_seb import SPEC as SEB_SPEC
@@ -163,6 +172,7 @@ class UDPrep:
     """
 
     SECTION_SPECS = [
+        GRID_SPEC,
         SEB_SPEC,
         IBM_SPEC,
         IC_SPEC,
@@ -178,6 +188,11 @@ class UDPrep:
         if isinstance(expnr, UDBase):
             sim = expnr
         else:
+            if path is None and isinstance(expnr, (str, Path)):
+                candidate = Path(expnr)
+                if candidate.exists():
+                    path = candidate
+                    expnr = candidate.name
             sim = UDBase(expnr, path, load_geometry=load_geometry)
 
         self.sim = sim
@@ -252,14 +267,27 @@ class UDPrep:
 
     def run_all(self, **kwargs: Any) -> None:
         """Run preprocessing for all sections."""
-        self.ibm.run_all()
-        if self.vegetation.ltrees or self.vegetation.ltreesfile:
-            self.vegetation.run_all()
-            self.vegetation.save()
+        self.grid.run_all()
+        self.ibm.generate_lscale()
+        self.ibm.write_lscale()
         self.ic.run_all()
         if self.scalars.nsv > 0:
             self.scalars.run_all()
-        if self.sim.lEB:
+        if self.vegetation.ltrees or self.vegetation.ltreesfile:
+            self.vegetation.run_all()
+            self.vegetation.save()
+        if self.ibm.libm:
+            factypes_path = Path(self.sim.path) / f"factypes.inp.{self.sim.expnr}"
+            if not factypes_path.exists():
+                self.ibm.generate_factypes()
+                self.ibm.write_factypes()
+            if self.ibm.gen_geom:
+                self.ibm.run_ibm_fortran()
+            else:
+                self.ibm.copy_geom_outputs()
+            self.ibm.write_facets()
+            self.ibm.write_facetarea()
+        if getattr(self.sim, "lEB", False):
             run_all = self.radiation.run_all
             sig = inspect.signature(run_all)
             params = sig.parameters.values()

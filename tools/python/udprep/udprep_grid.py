@@ -22,11 +22,23 @@ FIELDS: List[str] = list(DEFAULTS.keys())
 class GridSection(Section):
     def run_all(self) -> None:
         """Run grid generation preprocessing steps in the standard order."""
+        self._refresh_derived_grid_params()
         steps = [
             ("generate_xygrid", self.generate_xygrid),
             ("generate_zgrid", self.generate_zgrid),
         ]
         self.run_steps("grid", steps)
+
+    def _refresh_derived_grid_params(self) -> None:
+        """Recompute grid-derived quantities from the active case settings."""
+        self.dx = float(self.xlen) / int(self.itot)
+        self.dy = float(self.ylen) / int(self.jtot)
+        self.dz = float(self.zsize) / int(self.ktot)
+        self.dzlin = self.dz
+        if isinstance(getattr(self, "hlin", None), str) or not np.isfinite(float(self.hlin)):
+            self.hlin = 0.1 * float(self.zsize)
+        else:
+            self.hlin = float(self.hlin)
 
     def generate_xygrid(self) -> None:
         """Create staggered x/y grids for preprocessing.
@@ -41,6 +53,15 @@ class GridSection(Section):
         # Cell-face-centered grids (starting at 0)
         self.xm = np.arange(0, self.xlen + self.dx, self.dx)
         self.ym = np.arange(0, self.ylen + self.dy, self.dy)
+        if self.sim is not None:
+            self.sim.xt = self.xt.copy()
+            self.sim.yt = self.yt.copy()
+            self.sim.xm = self.xm[:-1].copy()
+            self.sim.ym = self.ym[:-1].copy()
+            self.sim.xf = self.xt.copy()
+            self.sim.yf = self.yt.copy()
+            self.sim.xh = self.xm.copy()
+            self.sim.yh = self.ym.copy()
 
     def generate_zgrid(self) -> None:
         """Create vertical grid.
@@ -81,6 +102,13 @@ class GridSection(Section):
             ax.set_xlim(0, len(self.dzt) - 1)
             fig.savefig('dz_variation.png', dpi=300, bbox_inches='tight')
             plt.close(fig)
+        if self.sim is not None:
+            self.sim.zt = self.zt.copy()
+            self.sim.zm = self.zm[:-1].copy()
+            self.sim.zf = self.zt.copy()
+            self.sim.zh = self.zm.copy()
+            self.sim.dzt = self.dzt.copy()
+            self.sim.dzm = np.concatenate([[2 * self.zt[0]], np.diff(self.zt)])
 
     def stretch_exp(self) -> None:
         """Generate exponential stretch grid.

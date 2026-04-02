@@ -61,6 +61,22 @@ class VegetationSection(Section):
         sim.save_veg(points + 1, ids, lad_values, cd, ud, dec, lsize, r_s)
         self.write_changed_params()
 
+    def vegetation_block_to_veg(self, filename: str | Path | None = None):
+        """Compatibility entry point: ingest trees.inp and write sparse vegetation files."""
+        self.load_block(filename=filename)
+        self.save()
+        sim = self.sim
+        if sim is None:
+            raise ValueError("UDBase instance must be provided")
+        return {
+            "veg": Path(sim.path) / f"veg.inp.{sim.expnr}",
+            "params": Path(sim.path) / f"veg_params.inp.{sim.expnr}",
+        }
+
+    def block_to_veg(self, filename: str | Path | None = None):
+        """Backward-compatible alias for legacy callers."""
+        return self.vegetation_block_to_veg(filename=filename)
+
     def load_block(self, filename: str | Path | None = None) -> Path:
         """Convert trees.inp blocks to veg.inp/veg_params.inp."""
         sim = self.sim
@@ -265,6 +281,14 @@ class VegetationSection(Section):
 
         fig = sim.plot_veg(veg, show=False)
         return fig
+
+
+def vegetation_block_to_veg(prep_or_sim, filename: str | Path | None = None):
+    """Compatibility helper for legacy trees.inp -> sparse vegetation conversion."""
+    from .udprep import UDPrep
+
+    prep = prep_or_sim if isinstance(prep_or_sim, UDPrep) else UDPrep(prep_or_sim)
+    return prep.vegetation.vegetation_block_to_veg(filename=filename)
 
 
 SPEC = SectionSpec(
