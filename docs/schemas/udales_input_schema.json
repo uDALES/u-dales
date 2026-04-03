@@ -327,6 +327,11 @@
           "default": 1.0,
           "description": "Fixed v-velocity flow rate [m/s]"
         },
+        "lconservativeibm": {
+          "type": "boolean",
+          "default": false,
+          "description": "Switch that determines whether the conservative immersed boundary method is used (if libm is true) for temperature, moisture and scalars"
+        },
         "lnudge": {
           "type": "boolean",
           "default": false,

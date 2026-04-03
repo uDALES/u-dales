@@ -62,6 +62,7 @@ use mpi
    integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomnizer with
    integer :: krand = huge(0)  ! returns the largest integer that is not an infinity
    real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
+   logical :: has_info_namelist = .false.
 
    ! Module-level namelist definitions
    namelist/RUN/ &
@@ -82,6 +83,7 @@ use mpi
       lprofforc, ifixuinf, lvinf, tscale, dpdx, &
       luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
       uflowrate, vflowrate, &
+      lconservativeibm, &
       lnudge, lnudgevel, tnudge, nnudge, &
       ltimedepsurf, ntimedepsurf, ltimedepnudge, ntimedepnudge, &
       ltimedeplw, ntimedeplw, ltimedepsw, ntimedepsw
@@ -309,7 +311,8 @@ contains
          rewind (ifnamopt)
          !write(6 ,NAMSUBGRID)
  
-         if (has_namelist_group('INFO')) then
+         has_info_namelist = has_namelist_group('INFO')
+         if (has_info_namelist) then
             read (ifnamopt,INFO,iostat=ierr)
             if (ierr > 0) then
                write(0, *) 'Problem in namoptions INFO'
@@ -400,7 +403,8 @@ contains
       call broadcast_chemistry_parameters()
       call broadcast_trees_parameters()
       call broadcast_walls_parameters()
-      if (has_namelist_group('INFO')) call broadcast_info_parameters()
+      call MPI_BCAST(has_info_namelist, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      if (has_info_namelist) call broadcast_info_parameters()
       call broadcast_namsubgrid_parameters()
       
    end subroutine broadcast_config_parameters
@@ -468,6 +472,7 @@ contains
       call MPI_BCAST(lvinf, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(tscale, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(dpdx, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lconservativeibm, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       ! Broadcast PHYSICS variables that are part of the input interface
       call MPI_BCAST(lnudge, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lnudgevel, 1, MPI_LOGICAL, 0, comm3d, mpierr)
