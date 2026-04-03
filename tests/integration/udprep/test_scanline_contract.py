@@ -1,16 +1,13 @@
+from __future__ import annotations
+
 import importlib
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 import numpy as np
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-PYTHON_DIR = REPO_ROOT / "tools" / "python"
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
-
+from tools.python.tests._common import REPO_ROOT
 from udbase import UDBase
 
 _IMPORT_ERROR = None

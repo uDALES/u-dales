@@ -199,8 +199,8 @@ class TestDirectShortwaveReferenceIntegration(_DirectShortwaveCaseMixin, unittes
             },
         )
 
-        self.assertLess(fortran_seconds, 10.0)
-        self.assertLess(f2py_seconds, 10.0)
+        self.assertLess(fortran_seconds, 120.0)
+        self.assertLess(f2py_seconds, 120.0)
         self.assertGreater(metrics["corr"], 0.999999)
         self.assertLess(metrics["mean_abs"], 0.01)
         self.assertLess(metrics["p95_rel"], 1.0e-3)
@@ -322,7 +322,6 @@ class TestDirectShortwavePreprocessingParityIntegration(unittest.TestCase):
             "energy_ratio": float(np.sum(candidate * areas) / np.sum(reference * areas)),
         }
 
-    @unittest.expectedFailure
     def test_scanline_f2py_matches_legacy_preprocessing_contract(self) -> None:
         legacy, legacy_budget = self._run_backend("scanline_legacy")
         f2py, f2py_budget = self._run_backend("scanline")

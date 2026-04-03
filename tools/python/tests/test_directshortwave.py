@@ -11,6 +11,7 @@ try:
 except ModuleNotFoundError:
     from tools.python.tests._common import REPO_ROOT
 
+from udgeom import UDGeom
 from udprep.directshortwave import DirectShortwaveSolver
 
 
@@ -27,6 +28,7 @@ def _build_flat_terrain_fixture():
     )
     faces = np.array([[0, 1, 2], [0, 2, 3]], dtype=int)
     mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+    geom = UDGeom(stl=mesh)
 
     sim = SimpleNamespace(
         dx=1.0,
@@ -48,6 +50,7 @@ def _build_flat_terrain_fixture():
             }
         },
         facs={"area": np.array([0.5, 0.5], dtype=float)},
+        geom=geom,
     )
     return sim, mesh
 

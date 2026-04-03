@@ -27,6 +27,36 @@ groups:
           - "{repo_root}/tools/python/tests"
           - "-p"
           - "test_solar.py"
+      - label: "supported: python directshortwave unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave.py"
+      - label: "supported: python directshortwave periodic unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave_periodic.py"
+      - label: "supported: directshortwave integration"
+        class: supported
+        purpose: integration
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/directshortwave/test_directshortwave.py"
       - label: "supported: python udprep unit"
         class: supported
         purpose: unit
@@ -48,6 +78,19 @@ groups:
           - "tools.python.tests.test_udgeom_against_matlab"
           - "tools.python.tests.test_udgeom_api"
           - "tools.python.tests.test_udgeom_outline_loops"
+          - "tools.python.tests.test_view3d_utils"
+      - label: "supported: udprep integration"
+        class: supported
+        purpose: integration
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{tests_dir}/integration/udprep"
+          - "-p"
+          - "test_*.py"
       - label: "supported: regression"
         class: supported
         purpose: regression
@@ -97,6 +140,36 @@ groups:
           - "{repo_root}/tools/python/tests"
           - "-p"
           - "test_solar.py"
+      - label: "supported: python directshortwave unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave.py"
+      - label: "supported: python directshortwave periodic unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave_periodic.py"
+      - label: "supported: directshortwave integration"
+        class: supported
+        purpose: integration
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/directshortwave/test_directshortwave.py"
       - label: "supported: python udprep unit"
         class: supported
         purpose: unit
@@ -118,6 +191,19 @@ groups:
           - "tools.python.tests.test_udgeom_against_matlab"
           - "tools.python.tests.test_udgeom_api"
           - "tools.python.tests.test_udgeom_outline_loops"
+          - "tools.python.tests.test_view3d_utils"
+      - label: "supported: udprep integration"
+        class: supported
+        purpose: integration
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{tests_dir}/integration/udprep"
+          - "-p"
+          - "test_*.py"
       - label: "supported: ibm sparse input integration"
         class: supported
         purpose: integration

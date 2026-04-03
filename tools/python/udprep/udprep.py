@@ -267,6 +267,7 @@ class UDPrep:
 
     def run_all(self, **kwargs: Any) -> None:
         """Run preprocessing for all sections."""
+        ibm_backend = kwargs.pop("ibm_backend", "f2py")
         self.grid.run_all()
         self.ibm.generate_lscale()
         self.ibm.write_lscale()
@@ -282,7 +283,7 @@ class UDPrep:
                 self.ibm.generate_factypes()
                 self.ibm.write_factypes()
             if self.ibm.gen_geom:
-                self.ibm.run_ibm()
+                self.ibm.run_ibm(backend=ibm_backend)
             else:
                 self.ibm.copy_geom_outputs()
             self.ibm.write_facets()

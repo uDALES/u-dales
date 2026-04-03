@@ -1073,27 +1073,15 @@ class DirectShortwaveSolver:
                 ) from exc
             self._dsmod = getattr(_dsroot, "directshortwave_mod", _dsroot)
             if self.veg.points.size:
-                warnings.warn(
-                    "Scanline (f2py) direct shortwave does not include vegetation; "
-                    "results ignore tree attenuation.",
-                    RuntimeWarning,
-                )
-                self.veg = VegData(
-                    points=np.empty((0, 3), dtype=int),
-                    lad=np.empty((0,), dtype=float),
-                    dec=np.empty((0,), dtype=float),
+                raise ValueError(
+                    "Scanline (f2py) direct shortwave does not support vegetation; "
+                    "use facsec or moller for tree cases."
                 )
         elif self.method == "scanline_legacy":
             if self.veg.points.size:
-                warnings.warn(
-                    "Legacy scanline direct shortwave does not include vegetation; "
-                    "results ignore tree attenuation.",
-                    RuntimeWarning,
-                )
-                self.veg = VegData(
-                    points=np.empty((0, 3), dtype=int),
-                    lad=np.empty((0,), dtype=float),
-                    dec=np.empty((0,), dtype=float),
+                raise ValueError(
+                    "Legacy scanline direct shortwave does not support vegetation; "
+                    "use facsec or moller for tree cases."
                 )
         else:
             raise ValueError(f"Unknown direct shortwave method: {method}")

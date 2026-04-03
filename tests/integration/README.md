@@ -17,12 +17,19 @@ Current contents:
 
 - `directshortwave/` for committed direct shortwave cases, including no-tree
   reference case `100` and tree case `525`
+- `udprep/` for preprocessing integration checks that exercise real `UDPrep`
+  workflows against committed cases or preprocessing binaries
 - `ibm_sparse_input/` for MPI validation of the sparse IBM input reader on committed case `101`
 
 `directshortwave/` is Python-driven, but it belongs here because it is anchored
 to committed repo fixtures in `tests/cases/` and validates agreement across
 multiple implementations rather than a single Python API. It should be treated
 as a preprocessing integration suite, not as a pure solver test.
+
+`udprep/` is also Python-driven, but it exercises end-to-end preprocessing
+paths that depend on committed cases, compiled wrappers, or external
+preprocessing executables. It should be treated as integration coverage rather
+than as pure `tools/python` unit coverage.
 
 `ibm_sparse_input/` is an executable-driven solver test. It
 stage shared inputs from `tests/cases/` into temporary run directories before
@@ -31,6 +38,7 @@ execution.
 Current supported status:
 
 - `ibm_sparse_input/`: supported solver-facing integration coverage
+- `udprep/`: supported preprocessing/tooling integration coverage
 - `directshortwave/`: experimental preprocessing/tooling integration coverage
 
 This directory now feeds two different curated paths through
@@ -94,6 +102,7 @@ python tests/run_tests.py supported --branch-a <branch_a> --branch-b <branch_b> 
 In the current supported selection, the solver-facing integration suites are:
 
 - `integration/ibm_sparse_input/run_test.sh`
+- `integration/udprep/` preprocessing integration tests
 
 Experimental integration coverage currently includes:
 

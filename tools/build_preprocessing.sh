@@ -47,7 +47,9 @@ if ! command -v cmake >/dev/null 2>&1; then
 fi
 
 build_dir="tools/preprocessing/build"
-cmake -S tools/preprocessing -B "${build_dir}" -DPREPROCESSING_PYTHON_EXECUTABLE="${python_cmd}"
+cmake -S tools/preprocessing -B "${build_dir}" \
+    -DPREPROCESSING_PYTHON_EXECUTABLE="${python_cmd}" \
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build "${build_dir}" --target "${target}"
 
 if [ -f "${build_dir}/bin/view3d" ]; then

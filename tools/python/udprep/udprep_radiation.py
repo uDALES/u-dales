@@ -246,9 +246,16 @@ class RadiationSection(Section):
             )
 
         if isolar == 3:
-            raise NotImplementedError(
-                "isolar=3 (weatherfile-based solar state) is not implemented in udprep yet."
-            )
+            if time_of_day is None:
+                time_of_day = datetime(
+                    int(self.year),
+                    int(self.month),
+                    int(self.day),
+                    int(self.hour),
+                    int(self.minute),
+                    int(self.second),
+                )
+            return self._solar_state_time(time_of_day)
 
         raise ValueError(f"Unsupported isolar value: {isolar}")
 
@@ -278,19 +285,7 @@ class RadiationSection(Section):
             raise ValueError("view3d_out=2 requires lvfsparse=true in the ENERGYBALANCE section")
         maxD = float(maxD)
 
-        stl_path = Path(sim.path) / sim.stl_file
-        stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
-        nfacets = sim.geom.stl.faces.shape[0]
-        cache_key = (str(stl_path), stl_mtime, view3d_out, maxD, nfacets)
-        if self._vf_cache is not None and self._svf_cache is not None and self._vf_cache_key == cache_key:
-            return self._vf_cache, self._svf_cache, {
-                "vs3": None,
-                "vf": None,
-                "svf": None,
-                "vfsparse": None,
-            }
-
-        vf_path = None
+        vs3_path = out_dir / f"facets.{expnr}.vs3"
         if view3d_out == 0:
             vf_path = out_dir / "vf.txt"
         elif view3d_out == 1:
@@ -299,29 +294,37 @@ class RadiationSection(Section):
             vf_path = out_dir / f"vfsparse.inp.{expnr}"
         else:
             raise ValueError(f"Unsupported view3d_out: {view3d_out}")
-
         svf_path = out_dir / f"svf.inp.{expnr}"
+        vfsparse_path = None
+        if view3d_out in (0, 1) and bool(getattr(sim, "lvfsparse", False)):
+            vfsparse_path = out_dir / f"vfsparse.inp.{expnr}"
+
+        paths = {
+            "vs3": vs3_path,
+            "vf": vf_path,
+            "svf": svf_path,
+            "vfsparse": vfsparse_path,
+        }
+
+        stl_path = Path(sim.path) / sim.stl_file
+        stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
+        nfacets = sim.geom.stl.faces.shape[0]
+        cache_key = (str(stl_path), stl_mtime, view3d_out, maxD, nfacets)
+        if self._vf_cache is not None and self._svf_cache is not None and self._vf_cache_key == cache_key:
+            return self._vf_cache, self._svf_cache, paths
+
         if not force and vf_path.exists() and svf_path.exists():
             vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=view3d_out)
             svf = np.loadtxt(svf_path)
-            vfsparse_path = None
-            if view3d_out in (0, 1) and bool(getattr(sim, "lvfsparse", False)):
-                vfsparse_path = out_dir / f"vfsparse.inp.{expnr}"
-                if not vfsparse_path.exists():
-                    write_vfsparse(vfsparse_path, vf, threshold=5e-7)
+            if vfsparse_path is not None and not vfsparse_path.exists():
+                write_vfsparse(vfsparse_path, vf, threshold=5e-7)
             nnz = int(getattr(vf, "nnz", np.count_nonzero(vf)))
             sim.save_param("nnz", nnz)
             self._vf_cache = vf
             self._svf_cache = svf
             self._vf_cache_key = cache_key
-            return vf, svf, {
-                "vs3": None,
-                "vf": vf_path,
-                "svf": svf_path,
-                "vfsparse": vfsparse_path,
-            }
+            return vf, svf, paths
 
-        vs3_path = out_dir / f"facets.{expnr}.vs3"
         stl_to_view3d(stl_path, vs3_path, view3d_out, maxD=maxD, row=0, col=0)
 
         view3d_exe = resolve_view3d_exe()
@@ -337,9 +340,7 @@ class RadiationSection(Section):
         svf = compute_svf(vf)
         write_svf(svf_path, svf)
 
-        vfsparse_path = None
-        if view3d_out in (0, 1) and bool(getattr(sim, "lvfsparse", False)):
-            vfsparse_path = out_dir / f"vfsparse.inp.{expnr}"
+        if vfsparse_path is not None:
             write_vfsparse(vfsparse_path, vf, threshold=5e-7)
 
         if hasattr(vf, "nnz"):
@@ -351,12 +352,7 @@ class RadiationSection(Section):
         self._svf_cache = svf
         self._vf_cache_key = cache_key
 
-        return vf, svf, {
-            "vs3": vs3_path,
-            "vf": vf_path,
-            "svf": svf_path,
-            "vfsparse": vfsparse_path,
-        }
+        return vf, svf, paths
 
     def calc_reflections_sw(
         self,

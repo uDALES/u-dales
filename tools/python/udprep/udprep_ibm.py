@@ -11,7 +11,7 @@ import numpy as np
 
 from .udprep import Section, SectionSpec
 
-IBM_FORTRAN_DIR = Path(__file__).resolve().parents[1] / "fortran" / "ibm_preproc"
+IBM_FORTRAN_DIR = Path(__file__).resolve().parents[2] / "IBM" / "IBM_preproc_fortran"
 PREBUILT_IBM_EXE = Path(__file__).resolve().parents[2] / "preprocessing" / "build" / "bin" / "IBM_preproc"
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("ibm", {})
@@ -19,7 +19,7 @@ FIELDS: List[str] = list(DEFAULTS.keys())
 
 
 class IBMSection(Section):
-    def run_all(self) -> None:
+    def run_all(self, backend: str = "f2py") -> None:
         """Run IBM preprocessing steps in the standard order."""
         sim = self._require_sim()
         steps = [("generate_lscale", self.generate_lscale), ("write_lscale", self.write_lscale)]
@@ -31,7 +31,7 @@ class IBMSection(Section):
             if bool(getattr(self, "gen_geom", True)):
                 steps.extend(
                     [
-                        ("run_ibm", self.run_ibm),
+                        ("run_ibm", lambda: self.run_ibm(backend=backend)),
                         ("write_facets", self.write_facets),
                         ("write_facetarea", self.write_facetarea),
                     ]
@@ -196,8 +196,19 @@ class IBMSection(Section):
         geom_path = Path(geom_value)
         if not geom_path.is_absolute():
             geom_path = Path(sim.path) / geom_path
-        for pattern in ("solid_*", "fluid_boundary_*", "facet_sections_*"):
+        for pattern in ("solid_*", "fluid_boundary_*"):
             for source in geom_path.glob(pattern):
+                shutil.copy2(source, Path(sim.path) / source.name)
+        calculate_facet_sections_uvw = int(getattr(sim, "iwallmom", 0)) > 1
+        calculate_facet_sections_c = bool(getattr(sim, "ltempeq", False)) or bool(
+            getattr(sim, "lmoist", False)
+        ) or bool(getattr(sim, "lwritefac", False))
+        if calculate_facet_sections_uvw:
+            for pattern in ("facet_sections_u*", "facet_sections_v*", "facet_sections_w*"):
+                for source in geom_path.glob(pattern):
+                    shutil.copy2(source, Path(sim.path) / source.name)
+        if calculate_facet_sections_c:
+            for source in geom_path.glob("facet_sections_c*"):
                 shutil.copy2(source, Path(sim.path) / source.name)
         self._update_counts_from_existing_outputs()
 
