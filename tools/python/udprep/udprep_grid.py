@@ -2,16 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 import numpy as np
-import sys
 from scipy.optimize import fsolve
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend for headless systems
-import matplotlib.pyplot as plt
-
-# Configure matplotlib to use LaTeX rendering
-plt.rcParams['text.usetex'] = True
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['font.serif'] = ['Computer Modern Roman']
+import warnings
 
 from .udprep import Section, SectionSpec
 
@@ -35,10 +27,54 @@ class GridSection(Section):
         self.dy = float(self.ylen) / int(self.jtot)
         self.dz = float(self.zsize) / int(self.ktot)
         self.dzlin = self.dz
-        if isinstance(getattr(self, "hlin", None), str) or not np.isfinite(float(self.hlin)):
+        hlin = getattr(self, "hlin", None)
+        try:
+            hlin = float(hlin)
+        except (TypeError, ValueError):
+            hlin = np.nan
+        if not np.isfinite(hlin):
             self.hlin = 0.1 * float(self.zsize)
         else:
-            self.hlin = float(self.hlin)
+            self.hlin = hlin
+
+    def _set_vertical_grid_from_faces(self, zm: np.ndarray) -> None:
+        """Store vertical face/center coordinates from a face grid in real space."""
+        self.zm = np.asarray(zm, dtype=float)
+        self.zt = 0.5 * (self.zm[:-1] + self.zm[1:])
+        self.dzt = np.diff(self.zm)
+
+    def _linear_prefix_faces(self) -> tuple[int, int, np.ndarray]:
+        """Return the linear near-wall prefix of the vertical face grid."""
+        il = int(round(self.hlin / self.dzlin))
+        ir = int(self.ktot) - il
+        zm = np.zeros(int(self.ktot) + 1, dtype=float)
+        zm[: il + 1] = np.arange(0.0, self.hlin + self.dzlin, self.dzlin)
+        return il, ir, zm
+
+    def _warn_large_top_spacing(self, dz: np.ndarray) -> None:
+        if dz[-1] > 3 * self.dzlin:
+            warnings.warn("Final grid spacing large; consider reducing domain height", RuntimeWarning)
+
+    def _stretch_from_computational_coordinate(self, transform) -> None:
+        """Map a uniform computational coordinate to a stretched real-space z-grid."""
+        il, ir, zm = self._linear_prefix_faces()
+        if ir <= 0:
+            self._set_vertical_grid_from_faces(zm)
+            return
+
+        gf = float(self.stretchconst)
+        xi = np.arange(0, ir + 1, dtype=float) / ir
+
+        while True:
+            stretched = zm[il] + (self.zsize - zm[il]) * transform(gf, xi)
+            zm[il:] = stretched
+            if (zm[il + 1] - zm[il]) < self.dzlin:
+                gf -= 0.01
+                continue
+            self._warn_large_top_spacing(np.diff(zm))
+            break
+
+        self._set_vertical_grid_from_faces(zm)
 
     def generate_xygrid(self) -> None:
         """Create staggered x/y grids for preprocessing.
@@ -86,22 +122,7 @@ class GridSection(Section):
             elif self.lstretch2tanh:
                 self.stretch_2tanh()
             else:
-                print("="*67, file=sys.stderr)
-                print("ERROR: Invalid stretch configuration", file=sys.stderr)
-                print("="*67, file=sys.stderr)
                 raise ValueError("Invalid stretch")
-            
-            # Plot and save dzt variation
-            fig, ax = plt.subplots(figsize=(6, 4))
-            ax.plot(self.dzt, linewidth=1.5, color='#2C3E50')
-            ax.set_title(r'\textbf{Vertical Grid Spacing Variation}', fontsize=12)
-            ax.set_xlabel(r'Grid Index $k$', fontsize=11)
-            ax.set_ylabel(r'Grid Spacing $\Delta z$ [m]', fontsize=11)
-            ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
-            ax.tick_params(labelsize=10)
-            ax.set_xlim(0, len(self.dzt) - 1)
-            fig.savefig('dz_variation.png', dpi=300, bbox_inches='tight')
-            plt.close(fig)
         if self.sim is not None:
             self.sim.zt = self.zt.copy()
             self.sim.zm = self.zm[:-1].copy()
@@ -116,39 +137,9 @@ class GridSection(Section):
         Creates a vertical grid with linear spacing in the lower part and 
         exponentially stretched spacing in the upper part.
         """
-        il = round(self.hlin / self.dzlin)
-        ir = self.ktot - il
-        
-        # Initialize arrays
-        self.zt = np.zeros(self.ktot)
-        self.dzt = np.zeros(self.ktot)
-        self.zm = np.zeros(self.ktot + 1)
-        
-        # Linear spacing in lower part
-        self.zt[:il] = np.arange(0.5 * self.dzlin, self.hlin, self.dzlin)
-        self.zm[:il + 1] = np.arange(0, self.hlin + self.dzlin, self.dzlin)
-        
-        # Exponential stretching in upper part
-        gf = self.stretchconst
-        
-        while True:
-            # Exponential spacing
-            indices = np.arange(0, ir + 1)
-            self.zm[il:] = self.zm[il] + (self.zsize - self.zm[il]) * (np.exp(gf * indices / ir) - 1) / (np.exp(gf) - 1)
-            
-            if (self.zm[il + 1] - self.zm[il]) < self.dzlin:
-                gf -= 0.01  # Make sufficiently small steps to avoid an initial bump in dz
-            else:
-                if (self.zm[-1] - self.zm[-2]) > 3 * self.dzlin:
-                    print("="*67, file=sys.stderr)
-                    print("WARNING: Final grid spacing large - consider reducing domain height", file=sys.stderr)
-                    print("="*67, file=sys.stderr)
-                break
-        
-        # Calculate cell centers and spacings
-        for i in range(self.ktot):
-            self.zt[i] = (self.zm[i] + self.zm[i + 1]) / 2
-            self.dzt[i] = self.zm[i + 1] - self.zm[i]
+        self._stretch_from_computational_coordinate(
+            lambda gf, xi: (np.exp(gf * xi) - 1.0) / (np.exp(gf) - 1.0)
+        )
 
     def stretch_exp_check(self) -> None:
         """Generate exponential stretch grid after validating exponential stretch.
@@ -159,11 +150,6 @@ class GridSection(Section):
         il = round(self.hlin / self.dzlin)
         ir = self.ktot - il
         z0 = il * self.dzlin  # hlin will be modified as z0
-        
-        # Initialize arrays
-        self.zt = np.zeros(self.ktot)
-        self.dzt = np.zeros(self.ktot)
-        self.zm = np.zeros(self.ktot + 1)
         
         L = self.zsize - z0
         dxi = 1 / ir
@@ -181,33 +167,30 @@ class GridSection(Section):
         zhat = A * (np.exp(alpha * xi) - 1)
         z = z0 + zhat * L
         
-        # Create grid
-        self.zm[:il + 1] = np.arange(0, z0 + self.dzlin, self.dzlin)  # Linear part
-        self.zm[il:] = z  # Stretched part
+        zm = np.zeros(self.ktot + 1, dtype=float)
+        zm[:il + 1] = np.arange(0, z0 + self.dzlin, self.dzlin)
+        zm[il:] = z
         
         # Perform grid quality checks
-        dz = np.diff(self.zm)
+        dz = np.diff(zm)
         stretch = dz[1:] / dz[:-1]
         
         if (np.min(stretch) < 0.95 or np.max(stretch) > 1.05):
-            print("="*67, file=sys.stderr)
-            print("WARNING: Generated grid is of bad quality", file=sys.stderr)
-            print("Stretching factor = dz(n+1)/dz(n) should be between 0.95 and 1.05", file=sys.stderr)
-            print(f"min value = {np.min(stretch):.3f}", file=sys.stderr)
-            print(f"max value = {np.max(stretch):.3f}", file=sys.stderr)
-            print("="*67, file=sys.stderr)
+            warnings.warn(
+                "Generated grid is of bad quality; stretching factor dz(n+1)/dz(n) "
+                f"should stay between 0.95 and 1.05 (min={np.min(stretch):.3f}, "
+                f"max={np.max(stretch):.3f})",
+                RuntimeWarning,
+            )
         
         # Warning if grid is refined near the top
         if alpha < 0:
-            print("="*67, file=sys.stderr)
-            print("WARNING: Possibly incorrect value for alpha", file=sys.stderr)
-            print("The calculated value of alpha is less than zero, which implies", file=sys.stderr)
-            print("you are refining the grid towards the domain top.", file=sys.stderr)
-            print("="*67, file=sys.stderr)
-        
-        # Calculate cell centers and spacings
-        self.zt = (self.zm[1:] + self.zm[:-1]) / 2.0
-        self.dzt = self.zm[1:] - self.zm[:-1]
+            warnings.warn(
+                "Calculated alpha is negative, implying refinement towards the domain top.",
+                RuntimeWarning,
+            )
+
+        self._set_vertical_grid_from_faces(zm)
 
     def stretch_tanh(self) -> None:
         """Generate tanh-based stretch grid.
@@ -215,39 +198,9 @@ class GridSection(Section):
         Creates a vertical grid with linear spacing in the lower part and
         tanh-based stretched spacing in the upper part.
         """
-        il = round(self.hlin / self.dzlin)
-        ir = self.ktot - il
-        
-        # Initialize arrays
-        self.zt = np.zeros(self.ktot)
-        self.dzt = np.zeros(self.ktot)
-        self.zm = np.zeros(self.ktot + 1)
-        
-        # Linear spacing in lower part
-        self.zt[:il] = np.arange(0.5 * self.dzlin, self.hlin, self.dzlin)
-        self.zm[:il + 1] = np.arange(0, self.hlin + self.dzlin, self.dzlin)
-        
-        # Tanh stretching in upper part
-        gf = self.stretchconst
-        
-        while True:
-            # Tanh-based spacing
-            indices = np.arange(0, ir + 1)
-            self.zm[il:] = self.zm[il] + (self.zsize - self.zm[il]) * (1 - np.tanh(gf * (1 - 2 * indices / (2 * ir))) / np.tanh(gf))
-            
-            if (self.zm[il + 1] - self.zm[il]) < self.dzlin:
-                gf -= 0.01  # Make sufficiently small steps to avoid an initial bump in dz
-            else:
-                if (self.zm[-1] - self.zm[-2]) > 3 * self.dzlin:
-                    print("="*67, file=sys.stderr)
-                    print("WARNING: Final grid spacing large - consider reducing domain height", file=sys.stderr)
-                    print("="*67, file=sys.stderr)
-                break
-        
-        # Calculate cell centers and spacings
-        for i in range(self.ktot):
-            self.zt[i] = 0.5 * (self.zm[i] + self.zm[i + 1])
-            self.dzt[i] = self.zm[i + 1] - self.zm[i]
+        self._stretch_from_computational_coordinate(
+            lambda gf, xi: 1.0 - np.tanh(gf * (1.0 - xi)) / np.tanh(gf)
+        )
 
     def stretch_2tanh(self) -> None:
         """Generate double-tanh stretch grid.
@@ -255,39 +208,9 @@ class GridSection(Section):
         Creates a vertical grid with linear spacing in the lower part and
         double-tanh stretched spacing in the upper part.
         """
-        il = round(self.hlin / self.dzlin)
-        ir = self.ktot - il
-        
-        # Initialize arrays
-        self.zt = np.zeros(self.ktot)
-        self.dzt = np.zeros(self.ktot)
-        self.zm = np.zeros(self.ktot + 1)
-        
-        # Linear spacing in lower part
-        self.zt[:il] = np.arange(0.5 * self.dzlin, self.hlin, self.dzlin)
-        self.zm[:il + 1] = np.arange(0, self.hlin + self.dzlin, self.dzlin)
-        
-        # Double-tanh stretching in upper part
-        gf = self.stretchconst
-        
-        while True:
-            # Double-tanh based spacing
-            indices = np.arange(0, ir + 1)
-            self.zm[il:] = self.zm[il] + (self.zsize - self.zm[il]) / 2 * (1 - np.tanh(gf * (1 - 2 * indices / ir)) / np.tanh(gf))
-            
-            if (self.zm[il + 1] - self.zm[il]) < self.dzlin:
-                gf -= 0.01  # Make sufficiently small steps to avoid an initial bump in dz
-            else:
-                if np.max(np.diff(self.zm)) > 3 * self.dzlin:
-                    print("="*67, file=sys.stderr)
-                    print("WARNING: Final grid spacing large - consider reducing domain height", file=sys.stderr)
-                    print("="*67, file=sys.stderr)
-                break
-        
-        # Calculate cell centers and spacings
-        for i in range(self.ktot):
-            self.zt[i] = (self.zm[i] + self.zm[i + 1]) / 2
-            self.dzt[i] = self.zm[i + 1] - self.zm[i]
+        self._stretch_from_computational_coordinate(
+            lambda gf, xi: 0.5 * (1.0 - np.tanh(gf * (1.0 - 2.0 * xi)) / np.tanh(gf))
+        )
 
 
 SPEC = SectionSpec(name="grid", fields=FIELDS, defaults=DEFAULTS, section_cls=GridSection)

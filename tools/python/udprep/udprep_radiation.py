@@ -194,7 +194,7 @@ class RadiationSection(Section):
         sim = self._require_sim()
         mesh = sim.geom.stl
         faces = np.asarray(mesh.faces, dtype=np.int32) + 1
-        centers = np.asarray(mesh.triangles_center, dtype=float)
+        centers = np.asarray(sim.geom.face_incenters, dtype=float)
         normals = np.asarray(mesh.face_normals, dtype=float)
         vertices = np.asarray(mesh.vertices, dtype=float)
         nsun_unit = np.asarray(nsun, dtype=float)

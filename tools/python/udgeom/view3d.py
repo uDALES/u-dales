@@ -72,20 +72,27 @@ def stl_to_view3d(
     vertices = np.asarray(mesh.vertices, dtype=float)
     faces = np.asarray(mesh.faces, dtype=int) + 1  # View3D expects 1-based indices
 
-    with out_path.open("w", encoding="ascii", newline="\n") as f:
-        f.write("T\n")
+    # Match tools/SEB/STLtoView3D.m byte-for-byte as closely as practical:
+    # CRLF line endings, 6-decimal vertex formatting, and the historical
+    # trailing literal "f" on each surface line. View3D is sensitive enough
+    # that keeping the export contract aligned avoids tiny sparse-VF deltas on
+    # larger cases such as 065.
+    with out_path.open("w", encoding="ascii", newline="") as f:
+        f.write("T\r\n")
         if maxD < np.inf:
-            f.write(f"C out={outformat} maxD={maxD} row={row} col={col}\n")
+            f.write(f"C out={outformat} maxD={maxD} row={row} col={col}\r\n")
         else:
-            f.write(f"C out={outformat} row={row} col={col}\n")
-        f.write("F 3\n")
-        f.write("!    #      x      y      z\n")
+            f.write(f"C out={outformat} row={row} col={col}\r\n")
+        f.write("F 3\r\n")
+        f.write("!    #      x      y      z\r\n")
         for idx, (x, y, z) in enumerate(vertices, start=1):
-            f.write(f"V {idx:4d} {x:6.6f} {y:6.6f} {z:6.6f}\n")
-        f.write("!    #     v1     v2     v3     v4   base    cmb   emit   name\n")
+            f.write(f"V {idx:4d} {x:6.6f} {y:6.6f} {z:6.6f}\r\n")
+        f.write("!    #     v1     v2     v3     v4   base    cmb   emit   name\r\n")
         for idx, (v1, v2, v3) in enumerate(faces, start=1):
-            f.write(f"S {idx:4d} {v1:6d} {v2:6d} {v3:6d} {0:6d} {0:6d} {0:6d} {0:6d} {idx:6d}\n")
-        f.write("End of Data\n")
+            f.write(
+                f"S {idx:4d} {v1:6d} {v2:6d} {v3:6d} {0:6d} {0:6d} {0:6d} {0:6d} {idx:6d}f\r\n"
+            )
+        f.write("End of Data\r\n")
 
     return out_path
 

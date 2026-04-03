@@ -180,9 +180,9 @@ class VegetationSection(Section):
         if getattr(sim, "veg", None) is not veg:
             warnings.warn("vegetation data is not saved to disk; call the save() method to persist veg inputs")
 
-        fig = sim.plot_veg(veg, show=False)
-
-        return fig
+        if getattr(sim, "_lfgeom", False) and getattr(sim, "geom", None) is not None:
+            return sim.plot_veg(veg, show=False)
+        return tree_file
 
     def load_stl(self, filename: str | Path | None = None) -> Dict[str, np.ndarray]:
         """Convert a closed STL volume to sparse vegetation points."""

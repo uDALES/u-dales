@@ -74,13 +74,15 @@ if r.ltrees || r.ltreesfile
     preprocessing.write_trees(r);
     disp(['Written trees.inp.', r.expnr])
     disp('Generating sparse vegetation inputs from trees (python)')
-    pytools = [DA_TOOLSDIR '/python'];
-    pycmd = sprintf(['python3 -c "import sys; ' ...
-        'sys.path.insert(0, ''%s''); ' ...
-        'from udprep import UDPrep; ' ...
-        'prep=UDPrep(expnr=''%s'', path=''%s'', load_geometry=False); ' ...
-        'out=prep.vegetation.block_to_veg(); ' ...
-        'print(''Conversion complete: %%s'' %% out)"'], pytools, expnr, fpath);
+    pyscript = [DA_TOOLSDIR '/python/convert_trees_to_sparse.py'];
+    % Allow callers to override the Python command when preprocessing needs a
+    % specific environment (for example a venv with the required packages).
+    % Fall back to plain python3 for general usage.
+    pyexe = getenv('UDALES_PYTHON_CMD');
+    if isempty(pyexe)
+        pyexe = 'python3';
+    end
+    pycmd = sprintf(['bash -lc "%s ''%s'' ''%s'' ''%s''"'], pyexe, pyscript, expnr, fpath);
     [status, cmdout] = system(pycmd);
     if status ~= 0
         error('Veg conversion failed: %s', cmdout);
