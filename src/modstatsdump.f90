@@ -530,7 +530,7 @@ contains
                                ltempeq,zh,dxf,dzf,dzh2i,lprofforc,lscasrcl,&
                                lkslicedump,lislicedump,ljslicedump,lchem,dzhi,dzfi,dzhiq,dxhi,lmoist,nsv,&
                                k1,JNO2,lchem,kslice,islice,jslice,isliceloc,jsliceloc,islicerank,jslicerank,&
-                               ltreedump
+                               ltreedump,ltrees
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
   use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,&
@@ -1261,26 +1261,28 @@ contains
         end if
         tr_wt(ib:ie,jb:je,kb:ke) = (tr_wt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
 
-        if (ltempeq) then
-          call scatter_veg_cell_field(vegp%thl, tr_now)
-          tr_thlt(ib:ie,jb:je,kb:ke) = (tr_thlt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-        end if
-        if (lmoist) then
-          call scatter_veg_cell_field(vegp%qt, tr_now)
-          tr_qtt(ib:ie,jb:je,kb:ke) = (tr_qtt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          call scatter_veg_cell_field(vegp%qtR, tr_now)
-          tr_qtRt(ib:ie,jb:je,kb:ke) = (tr_qtRt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          call scatter_veg_cell_field(vegp%qtA, tr_now)
-          tr_qtAt(ib:ie,jb:je,kb:ke) = (tr_qtAt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          call scatter_veg_cell_field(vegp%omega, tr_now)
-          tr_omegat(ib:ie,jb:je,kb:ke) = (tr_omegat(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-        end if
-        if (nsv>0) then
-          call scatter_veg_sv_component(1, tr_now)
-          tr_sv1t(ib:ie,jb:je,kb:ke) = (tr_sv1t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          if (nsv > 1) then
-            call scatter_veg_sv_component(2, tr_now)
-            tr_sv2t(ib:ie,jb:je,kb:ke) = (tr_sv2t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        if (ltrees) then
+          if (ltempeq) then
+            call scatter_veg_cell_field(vegp%thl, tr_now)
+            tr_thlt(ib:ie,jb:je,kb:ke) = (tr_thlt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          end if
+          if (lmoist) then
+            call scatter_veg_cell_field(vegp%qt, tr_now)
+            tr_qtt(ib:ie,jb:je,kb:ke) = (tr_qtt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+            call scatter_veg_cell_field(vegp%qtR, tr_now)
+            tr_qtRt(ib:ie,jb:je,kb:ke) = (tr_qtRt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+            call scatter_veg_cell_field(vegp%qtA, tr_now)
+            tr_qtAt(ib:ie,jb:je,kb:ke) = (tr_qtAt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+            call scatter_veg_cell_field(vegp%omega, tr_now)
+            tr_omegat(ib:ie,jb:je,kb:ke) = (tr_omegat(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          end if
+          if (nsv>0) then
+            call scatter_veg_sv_component(1, tr_now)
+            tr_sv1t(ib:ie,jb:je,kb:ke) = (tr_sv1t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+            if (nsv > 1) then
+              call scatter_veg_sv_component(2, tr_now)
+              tr_sv2t(ib:ie,jb:je,kb:ke) = (tr_sv2t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+            end if
           end if
         end if
         deallocate(tr_now)

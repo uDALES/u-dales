@@ -235,8 +235,10 @@ program uDALES
 contains
   subroutine execute_runmode_actions
     logical :: test_failed
+    logical :: invalid_runmode
 
     test_failed = .false.
+    invalid_runmode = .false.
     select case (runmode)
       case (RUN_COLDSTART, RUN_WARMSTART, RUN_DRIVER, RUN_STRATSTART)
         return
@@ -246,13 +248,16 @@ contains
         test_failed = .not. tests_read_sparse_ijk()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
-        stop
-        ! this routine does mpiexit internally
       case default
         write(*,*) 'Unknown runmode:', runmode
+        invalid_runmode = .true.
     end select
 
     call exitmpi
+
+    if (invalid_runmode) then
+      stop 1
+    end if
 
     ! Return appropriate exit code for unit tests:
     ! 0 = success, 1 = failure

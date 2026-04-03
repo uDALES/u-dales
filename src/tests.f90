@@ -9,7 +9,6 @@
 ! (at your option) any later version.
 
 module tests
-  use MPI
   use decomp_2d
   use modmpi, only : myid
   
@@ -19,15 +18,11 @@ module tests
 
 contains
 
-  !> Initialize MPI and 2DECOMP for testing
+  !> Report the currently initialized 2DECOMP layout and exit cleanly.
+  !! This runmode is dispatched after the normal startup path has already
+  !! called initmpi and init2decomp, so it must not initialize MPI or the
+  !! decomposition a second time.
   subroutine tests_2decomp_init_exit
-    integer :: nx=64, ny=64, nz=64
-    integer :: p_row=0, p_col=0
-    integer :: ierror
-
-    call MPI_INIT(ierror)
-    call decomp_2d_init(nx,ny,nz,p_row,p_col)
-
     write(*,*) xstart
     write(*,*) ystart
     write(*,*) zstart
@@ -37,9 +32,6 @@ contains
     write(*,*) xsize
     write(*,*) ysize
     write(*,*) zsize
-
-    call decomp_2d_finalize
-    call MPI_FINALIZE(ierror)
 
   end subroutine tests_2decomp_init_exit
 

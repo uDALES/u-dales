@@ -27,6 +27,14 @@ The test file has two variants:
   compares `ut`, `vt`, and `wt` between serial and decomposed runs
 - a tree-forcing comparison on case `526` based on `treedump.*.*.526.nc`
 
+Note:
+
+- the no-tree `tdump` comparison allows a very small residual in the global
+  `wt` check for `y`/`xy` splits because `tdump` is written as single-precision
+  NetCDF output (`NF90_FLOAT`) even though the solver runs in `r8`
+- the vegetation `treedump` comparison remains exact in the current one-step
+  diagnostic
+
 Status:
 
 - classification: `local developer / diagnostic`
