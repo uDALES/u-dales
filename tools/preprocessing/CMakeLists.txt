@@ -116,7 +116,7 @@ if(BUILD_PREPROCESSING_IBM_F2PY)
             "${CMAKE_CURRENT_SOURCE_DIR}/../IBM/IBM_preproc_fortran/IBM_preproc_io.f90"
             "${CMAKE_CURRENT_SOURCE_DIR}/../IBM/IBM_preproc_fortran/IBM_preproc_driver.f90"
             "${_ibm_f2py_wrapper}"
-            --f90flags=-O3\ -fopenmp\ -ffree-line-length-none\ -J${_ibm_fortran_module_dir}\ -I${_ibm_fortran_module_dir}
+            --f90flags=-O3\ -fopenmp\ -ffree-line-length-none\ -I${_ibm_fortran_module_dir}
             -lgomp
     WORKING_DIRECTORY "${_ibm_f2py_target_dir}"
     DEPENDS "${_ibm_f2py_signature}" "${_ibm_f2py_wrapper}" ${_ibm_f2py_sources}
