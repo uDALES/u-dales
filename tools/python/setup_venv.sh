@@ -1,7 +1,8 @@
 #!/bin/bash
 # Setup script for Linux/WSL.
 # Creates a repo-local virtual environment, installs Python dependencies,
-# and builds the required preprocessing binaries when possible.
+# and builds the required preprocessing artifacts through the standalone
+# preprocessing CMake entry point.
 
 set -e  # Exit on error
 
@@ -87,11 +88,9 @@ else
     echo "Warning: requirements-build.txt not found at ${SCRIPT_DIR}/requirements-build.txt"
 fi
 
-echo "Building directshortwave f2py wrapper..."
-"${SCRIPT_DIR}/fortran/build_f2py.sh"
-
-echo "Building View3D..."
-"${UDALES_ROOT}/tools/build_preprocessing.sh" common
+echo "Building preprocessing tools..."
+PREPROCESSING_PYTHON_EXECUTABLE="$(command -v python)" \
+    "${UDALES_ROOT}/tools/build_preprocessing.sh" common preprocessing_tools
 
 echo ""
 echo "=========================================="

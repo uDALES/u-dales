@@ -12,8 +12,12 @@ required when running it.
 
 Current scope:
 
-- case `tests/cases/100/`
-- no-tree preprocessing only
+- cases:
+  - `tests/cases/100/`
+  - `tests/cases/064/`
+- includes:
+  - a no-tree core preprocessing reference case (`100`)
+  - a small SEB/View3D preprocessing reference case (`064`)
 - committed MATLAB-generated preprocessing outputs live directly in the case
   directory
 - the test copies the case to a temp directory, cleans generated preprocessing
@@ -24,7 +28,8 @@ Why it exists:
 
 - it is a repo-level integration test, not a Python unit test
 - it compares Python preprocessing against a committed MATLAB reference contract
-- it avoids vegetation for now so the test isolates the core preprocessing path
+- it still avoids vegetation for now
+- it now covers both the core preprocessing path and a small SEB/View3D path
 
 Reference refresh:
 
@@ -54,10 +59,11 @@ source ../.venv/bin/activate
 python tests/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py
 ```
 
-To refresh the committed MATLAB references for case `100`:
+To refresh the committed MATLAB references for a case:
 
 ```bash
 module load tools/prod MATLAB/2024b Python/3.9.6-GCCcore-11.2.0
 source /rds/general/user/mvr/home/udales/.venv/bin/activate
 python tools/harvest_preprocessing_reference.py --case-dir tests/cases/100
+python tools/harvest_preprocessing_reference.py --case-dir tests/cases/064
 ```

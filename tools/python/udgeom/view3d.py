@@ -40,6 +40,7 @@ def resolve_view3d_exe(override: str | Path | None = None) -> Path:
     if os.name == "nt":
         candidates.append(tools_dir / "View3D" / "src" / "View3D.exe")
     else:
+        candidates.append(tools_dir / "preprocessing" / "build" / "bin" / "view3d")
         candidates.append(tools_dir / "View3D" / "build" / "src" / "view3d")
         candidates.append(tools_dir / "View3D" / "src" / "View3D")
 

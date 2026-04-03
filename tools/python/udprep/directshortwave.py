@@ -13,6 +13,10 @@ from typing import Any, Dict, Tuple
 
 import math
 import numpy as np
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
 import warnings
 
 try:
@@ -26,6 +30,17 @@ class VegData:
     points: np.ndarray  # (n, 3) 0-based (i, j, k)
     lad: np.ndarray     # (n,)
     dec: np.ndarray     # (n,)
+
+
+@dataclass
+class ScanlineInputs:
+    faces_1based: np.ndarray
+    facet_points: np.ndarray
+    face_normals: np.ndarray
+    vertices: np.ndarray
+    nsun: np.ndarray
+    irradiance: float
+    resolution: float
 
 
 def _build_veg_fields(sim, veg: VegData, ktot: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -988,12 +1003,13 @@ class DirectShortwaveSolver:
 
     Models
     ------
-    method : {"moller", "facsec", "scanline"}
+    method : {"moller", "facsec", "scanline", "scanline_legacy"}
         - "moller": DDA ray casting with Moller-Trumbore triangle hits
           (most accurate, most expensive; supports vegetation + periodic_xy).
         - "facsec": DDA ray casting with solid mask + facet-section reconstruction
           (accurate, faster; supports vegetation + periodic_xy).
         - "scanline": f2py scanline rasterization on the surface mesh
+        - "scanline_legacy": standalone Fortran scanline executable
           (fastest; no vegetation support, no periodicity).
 
     Constructor options
@@ -1049,17 +1065,28 @@ class DirectShortwaveSolver:
                 raise ImportError("numba is required for direct shortwave (moller/facsec)")
         elif self.method == "scanline":
             try:
-                from udprep.directshortwave_f2py import directshortwave_f2py_mod as _dsmod
+                import udprep.directshortwave_f2py as _dsroot
             except ImportError as exc:
                 raise RuntimeError(
                     "directshortwave_f2py module not available; "
-                    "build it with tools/python/fortran/build_f2py.sh "
-                    "or tools/python/fortran/build_f2py.ps1"
+                    "build it with tools/build_preprocessing.sh."
                 ) from exc
-            self._dsmod = _dsmod
+            self._dsmod = getattr(_dsroot, "directshortwave_mod", _dsroot)
             if self.veg.points.size:
                 warnings.warn(
                     "Scanline (f2py) direct shortwave does not include vegetation; "
+                    "results ignore tree attenuation.",
+                    RuntimeWarning,
+                )
+                self.veg = VegData(
+                    points=np.empty((0, 3), dtype=int),
+                    lad=np.empty((0,), dtype=float),
+                    dec=np.empty((0,), dtype=float),
+                )
+        elif self.method == "scanline_legacy":
+            if self.veg.points.size:
+                warnings.warn(
+                    "Legacy scanline direct shortwave does not include vegetation; "
                     "results ignore tree attenuation.",
                     RuntimeWarning,
                 )
@@ -1136,6 +1163,8 @@ class DirectShortwaveSolver:
 
         if self.method == "scanline":
             return self._compute_scanline(nsun_unit, irradiance, resolution=resolution)
+        if self.method == "scanline_legacy":
+            return self._compute_scanline_legacy(nsun_unit, irradiance, resolution=resolution)
         if self.method == "moller":
             return self._compute_moller(nsun_unit, irradiance, direction, periodic_xy)
         if self.method == "facsec":
@@ -1439,27 +1468,16 @@ class DirectShortwaveSolver:
         *,
         resolution: float | None = None,
     ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
-        mesh = self.mesh
-        vertices = np.asfortranarray(mesh.vertices, dtype=float)
-        faces = np.asfortranarray(mesh.faces, dtype=np.int32) + 1  # 1-based
-        # The legacy Fortran scanline reference matches the triangle centers
-        # used in the committed integration tests and real-case preprocessing.
-        incenter = np.asfortranarray(mesh.triangles_center, dtype=float)
-        face_normal = np.asfortranarray(mesh.face_normals, dtype=float)
-        if resolution is None:
-            cell_min = min(self.sim.dx, self.sim.dy, float(np.min(self.sim.dzt)))
-            resolution = 0.25 * cell_min / self.ray_density
-        if resolution <= 0.0:
-            raise ValueError("resolution must be > 0")
+        inputs = self._build_scanline_inputs(nsun_unit, irradiance, resolution=resolution)
 
-        sdir = self._dsmod.calculate_direct_shortwave(
-            faces,
-            incenter,
-            face_normal,
-            vertices,
-            nsun_unit,
-            float(irradiance),
-            float(resolution),
+        sdir = self._dsmod.calculate_direct_shortwave_f2py(
+            np.asfortranarray(inputs.faces_1based, dtype=np.int32),
+            np.asfortranarray(inputs.facet_points, dtype=np.float32),
+            np.asfortranarray(inputs.face_normals, dtype=np.float32),
+            np.asfortranarray(inputs.vertices, dtype=np.float32),
+            inputs.nsun,
+            inputs.irradiance,
+            inputs.resolution,
         )
         sdir = np.asarray(sdir, dtype=float)
         bud = {
@@ -1467,6 +1485,104 @@ class DirectShortwaveSolver:
             "veg": 0.0,
         }
         return sdir, np.zeros(0, dtype=float), bud
+
+    def _compute_scanline_legacy(
+        self,
+        nsun_unit: np.ndarray,
+        irradiance: float,
+        *,
+        resolution: float | None = None,
+    ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
+        inputs = self._build_scanline_inputs(nsun_unit, irradiance, resolution=resolution)
+
+        source = Path(__file__).resolve().parents[3] / "tools" / "SEB" / "directShortwave.f90"
+        with tempfile.TemporaryDirectory(prefix="udales-directshortwave-legacy-") as td:
+            td_path = Path(td)
+            self._write_scanline_legacy_inputs(td_path, inputs)
+
+            compiler = shutil.which("gfortran")
+            if compiler is None:
+                raise RuntimeError("gfortran not found for legacy scanline execution")
+            exe_path = td_path / "DS.exe"
+            subprocess.run(
+                [compiler, "-O3", str(source), "-o", str(exe_path)],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            subprocess.run(
+                [str(exe_path)],
+                cwd=td_path,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            sdir = np.loadtxt(td_path / "Sdir.txt")
+
+        sdir = np.asarray(sdir, dtype=float)
+        bud = {
+            "fac": float(np.sum(sdir * self.face_areas)),
+            "veg": 0.0,
+        }
+        return sdir, np.zeros(0, dtype=float), bud
+
+    def _build_scanline_inputs(
+        self,
+        nsun_unit: np.ndarray,
+        irradiance: float,
+        *,
+        resolution: float | None = None,
+    ) -> ScanlineInputs:
+        """
+        Build the canonical scanline input bundle shared by both backends.
+
+        This mirrors the MATLAB shortwave contract:
+        - faces.txt uses 1-based connectivity
+        - facet reference points are TRIANGLE INCENTERS, not centroids
+        - normals are TR.faceNormal
+        - vertices are TR.Points
+        - info_directShortwave.txt carries nsun, irradiance, and resolution
+        """
+        mesh = self.mesh
+        if resolution is None:
+            cell_min = min(self.sim.dx, self.sim.dy, float(np.min(self.sim.dzt)))
+            resolution = 0.25 * cell_min / self.ray_density
+        if resolution <= 0.0:
+            raise ValueError("resolution must be > 0")
+        return ScanlineInputs(
+            faces_1based=np.asfortranarray(np.asarray(mesh.faces, dtype=np.int32) + 1),
+            facet_points=np.asfortranarray(np.asarray(self.sim.geom.face_incenters, dtype=float)),
+            face_normals=np.asfortranarray(np.asarray(mesh.face_normals, dtype=float)),
+            vertices=np.asfortranarray(np.asarray(mesh.vertices, dtype=float)),
+            nsun=np.asfortranarray(np.asarray(nsun_unit, dtype=float)),
+            irradiance=float(irradiance),
+            resolution=float(resolution),
+        )
+
+    @staticmethod
+    def _scanline_face_rows(inputs: ScanlineInputs) -> np.ndarray:
+        return np.hstack([inputs.faces_1based, inputs.facet_points, inputs.face_normals])
+
+    @staticmethod
+    def _scanline_info_lines(inputs: ScanlineInputs) -> tuple[str, str, str, str]:
+        return (
+            f"{len(inputs.faces_1based):8d} {len(inputs.vertices):8d}\n",
+            f"{inputs.nsun[0]:15.10f} {inputs.nsun[1]:15.10f} {inputs.nsun[2]:15.10f}\n",
+            f"{inputs.irradiance:15.10f}\n",
+            f"{inputs.resolution:15.10f}\n",
+        )
+
+    def _write_scanline_legacy_inputs(self, out_dir: Path, inputs: ScanlineInputs) -> None:
+        np.savetxt(out_dir / "vertices.txt", inputs.vertices, fmt="%15.10f %15.10f %15.10f")
+        np.savetxt(
+            out_dir / "faces.txt",
+            self._scanline_face_rows(inputs),
+            fmt="%8d %8d %8d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f",
+        )
+        with (out_dir / "info_directShortwave.txt").open("w", encoding="ascii") as f:
+            f.writelines(self._scanline_info_lines(inputs))
 
     def trace_ray_segments(
         self,

@@ -23,7 +23,7 @@
 !
 
 program IBM_preproc
-    use IBM_preproc_driver
+    use ibm_preproc_mod
     implicit none
 
     call run_ibm_preproc()

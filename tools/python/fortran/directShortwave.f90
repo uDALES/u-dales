@@ -1,116 +1,260 @@
-module directshortwave_f2py_mod
+module directshortwave_mod
    implicit none
+
 contains
 
-   subroutine calculate_direct_shortwave(connectivityList, incenter, faceNormal, vertices, nFaces, nVertices, nsun, irradiance, resolution, Sdir)
-      integer, intent(in) :: nFaces, nVertices
-      integer, intent(in), dimension(nFaces, 3) :: connectivityList
-      real   , intent(in), dimension(nFaces, 3) :: incenter, faceNormal
-      real   , intent(in), dimension(nVertices, 3) :: vertices
-      real   , intent(in) :: nsun(3), irradiance, resolution
-      real   , intent(out), dimension(nFaces) :: Sdir
+   subroutine readGeometry(fname_faces, nFaces, fname_vertices, nVertices, &
+                           connectivityList, incenter, faceNormal, vertices)
+     character(9), intent(in) :: fname_faces
+     character(12), intent(in) :: fname_vertices
+     integer, intent(in) :: nFaces, nVertices
+     integer, intent(out) :: connectivityList(nFaces,3)
+     real   , intent(out) :: faceNormal(nFaces,3), incenter(nFaces,3), vertices(nVertices,3)
+     integer, parameter :: ifinput = 1
+     integer :: n
 
-      real   , dimension(:, :), allocatable :: planeIncenter
-      real   , dimension(:), allocatable :: areas, distIncenter, projAreas
-      integer, dimension(:), allocatable :: visibility, sortedFaces
-      real   , dimension(:, :), allocatable :: planeVertices, projVertices
-      real   , dimension(:, :), allocatable :: locVertices
-      real   , dimension(:), allocatable :: distVertices
-      integer, dimension(:, :), allocatable :: maskIDs
+     open (ifinput, file=fname_faces)
+     do n = 1,nFaces
+       read (ifinput, *) connectivityList(n,1), connectivityList(n,2), connectivityList(n,3), &
+                         incenter(n,1), incenter(n,2), incenter(n,3), &
+                         faceNormal(n,1), faceNormal(n,2), faceNormal(n,3)
+     end do
+     close (ifinput)
+
+     open (ifinput, file=fname_vertices)
+     do n = 1,nVertices
+       read (ifinput, *) vertices(n,1), vertices(n,2), vertices(n,3)
+     end do
+     close (ifinput)
+
+   end subroutine readGeometry
+
+
+   subroutine calculateDirectShortwave(connectivityList, incenter, faceNormal, nFaces, vertices, nVertices, &
+      nsun, irradiance, resolution, Sdir)
+      integer, intent(in) :: nFaces, nVertices
+      integer, intent(in), dimension(nFaces,3)    :: connectivityList
+      real   , intent(in), dimension(nFaces,3)    :: incenter, faceNormal
+      real   , intent(in), dimension(nVertices,3) :: vertices
+      real   , intent(in) :: nsun(3), irradiance, resolution ! nsun must be normalized
+      real   , intent(out), dimension(nFaces) :: Sdir
+      !real   , dimension(nFaces) :: Sdir
+      real   , dimension(nFaces,3) :: planeIncenter
+      real   , dimension(nFaces) :: areas, distIncenter, projAreas
+      integer, dimension(nFaces) :: visibility, sortedFaces ! if visiblity is false then face is self-shaded, i.e. not visible to the sun
+      real   , dimension(nVertices,3) :: planeVertices, projVertices
+      real   , dimension(nVertices,2) :: locVertices
+      real   , dimension(nVertices) :: distVertices
+      logical, dimension(:,:), allocatable :: mask
+      integer, dimension(:,:), allocatable :: maskIDs
       real   , dimension(:), allocatable :: locCoord1, locCoord2
       integer, dimension(:), allocatable :: counts
       real :: xmin, xmax, xrange, ymin, ymax, yrange, temp
-      real, dimension(3) :: p0, u1, u2, nsun_unit, up
-      real, dimension(3, 3) :: matrix, invMatrix
+      real, dimension(3) :: p0, u1, u2, up
+      real, dimension(2) :: cor1, cor2, cor3, cor4
+      real, dimension(3,3) :: matrix, invMatrix
       integer :: i, j, n, m, id_temp, size_xi, size_eta
+      logical :: flag
       real :: start, finish
 
-      allocate(planeIncenter(nFaces, 3))
-      allocate(areas(nFaces))
-      allocate(distIncenter(nFaces))
-      allocate(projAreas(nFaces))
-      allocate(visibility(nFaces))
-      allocate(sortedFaces(nFaces))
-      allocate(planeVertices(nVertices, 3))
-      allocate(projVertices(nVertices, 3))
-      allocate(locVertices(nVertices, 2))
-      allocate(distVertices(nVertices))
-
+      ! projection
       xmin = minval(vertices(:,1))
       xmax = maxval(vertices(:,1))
       xrange = xmax - xmin
       ymin = minval(vertices(:,2))
       ymax = maxval(vertices(:,2))
       yrange = ymax - ymin
-      nsun_unit = nsun / norm2(nsun)
-      p0 = (/xmin+xrange/2., ymin+yrange/2., 0./) + 3.*max(xrange,yrange) * nsun_unit
+      p0 = (/xmin+xrange/2., ymin+yrange/2., 0./) + 3.*max(xrange,yrange) * nsun
+      ! write(*,*) "p0", p0
 
-      ! Mirror the legacy Fortran vertical-sun safeguard so the wrapped
-      ! scanline kernel does not build a singular basis when nsun points
-      ! almost exactly along +z.
+      ! define orthonormal basis on the plane
+      ! When the sun is close to vertical, the historical basis
+      ! u1 = -(/nsun(2), -nsun(1), 0./) becomes singular because its norm
+      ! collapses to zero. Use an alternate up vector in that case so the
+      ! scanline projection remains well-defined for solarzenith = 0 cases
+      ! such as experiment 064.
       up = (/0., 0., 1./)
-      if (abs(dot_product(up, nsun_unit)) > 0.95) then
+      if (abs(dot_product(up, nsun)) > 0.95) then
          up = (/0., 1., 0./)
       end if
-      u1 = cross_product(up, nsun_unit)
+      u1 = cross_product(up, nsun)
       u1 = u1 / norm2(u1)
-      u2 = cross_product(u1, nsun_unit)
+      u2 = cross_product(u1, nsun)
 
+      ! write(*,*) "u1", u1
+      ! write(*,*) "u2", u2
+
+      ! M(1,:) = u1
+      ! M(2,:) = u2
+      ! M(3,:) = -nsun
+      ! Note difference to MATLAB here - matrix has been transposed because need to left-multiply inverse
       matrix(:,1) = u1
       matrix(:,2) = u2
-      matrix(:,3) = -nsun_unit
+      matrix(:,3) = -nsun
+
+      ! write(*,*) "M", matrix
+      ! write(*,*) matrix(1,:)
+      ! write(*,*) matrix(2,:)
+      ! write(*,*) matrix(3,:)
 
       invMatrix = matinv3(matrix)
 
+      ! write(*,*) "matmul(M, Minv)", matmul(matrix, invMatrix)
+      !
+      ! write(*,*) "Minv"
+      ! write(*,*) invMatrix(1,:)
+      ! write(*,*) invMatrix(2,:)
+      ! write(*,*) invMatrix(3,:)
+            ! solve matrix system M * projIncenter = (incenter - p0)
+
+      ! calculate areas and determine visiblity
+
       sortedFaces(1) = 1
+
       do n=1,nFaces
          areas(n) = 0.5*norm2(cross_product(vertices(connectivityList(n,2),:) - vertices(connectivityList(n,1),:), &
                                             vertices(connectivityList(n,3),:) - vertices(connectivityList(n,1),:)))
          visibility(n) = 0
-         if (dot_product(faceNormal(n,:), nsun_unit) > 0)  visibility(n) = 1
+         if (dot_product(faceNormal(n,:), nsun) > 0)  visibility(n) = 1
          planeIncenter(n,:) = matmul(invMatrix, incenter(n,:) - p0)
          distIncenter(n) = planeIncenter(n,3)
+         !write(*,*) n, distIncenter(n)
+         ! sort
          if (n > 1) then
             m = n
-            do while (m > 1 .and. distIncenter(m) > distIncenter(m - 1))
-               temp = distIncenter(m)
-               distIncenter(m) = distIncenter(m - 1)
-               distIncenter(m - 1) = temp
-               id_temp = sortedFaces(m)
-               sortedFaces(m) = sortedFaces(m - 1)
-               sortedFaces(m - 1) = id_temp
-               m = m - 1
+            do while (m > 1 .and. distIncenter(m) > distIncenter(m - 1)) ! note in descending order (>)
+            ! Swap array(m) and array(m - 1)
+            temp = distIncenter(m)
+            distIncenter(m) = distIncenter(m - 1)
+            distIncenter(m - 1) = temp
+            ! Update the corresponding index
+            id_temp = sortedFaces(m)
+            sortedFaces(m) = sortedFaces(m - 1)
+            sortedFaces(m - 1) = id_temp
+            m = m - 1
             end do
+            ! Update the index for the newly inserted element
             sortedFaces(m) = n
          end if
       end do
 
+      ! open (unit=11,file='sortedFaces_fort.txt',action="write")
+      ! do n=1,nFaces
+      !    !write (10,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+      !    ! Formatting assumes: #facets < 10 million, #fluid boundary points < 1 billion,
+      !    ! section area < 1000 m^2 (rounded to cm^2), and distance < 1000m
+      !    write(unit=11,fmt='(i4)') sortedFaces(n)
+      ! end do
+      ! close (11)
+
+      ! do n=1,nFaces
+      !    write(*,*) sortedFaces(n), distIncenter(n)
+      ! end do
+
       do n=1,nVertices
          planeVertices(n,:) = matmul(invMatrix, vertices(n,:) - p0)
          distVertices(n) = planeVertices(n,3)
-         projVertices(n,:) = vertices(n,:) + distVertices(n) * nsun_unit
+         projVertices(n,:) = vertices(n,:) + distVertices(n) * nsun
+         !write(*,*) n, projVertices(n,:)
       end do
 
       locVertices(:,1) = planeVertices(:,1) + abs(minval(planeVertices(:,1)))
       locVertices(:,2) = planeVertices(:,2) + abs(minval(planeVertices(:,2)))
 
-      size_xi = ceiling(maxval(locVertices(:,1)) / resolution)
-      size_eta = ceiling(maxval(locVertices(:,2)) / resolution)
+      ! do n=1,nVertices
+      !    write(*,*) n, locVertices(n,:)
+      ! end do
+
+      ! construct mask
+      size_xi = ceiling(maxval(locVertices(:,1) / resolution))
+      size_eta = ceiling(maxval(locVertices(:,2) / resolution))
+      !write(*,*) "sizeMask1, sizeMask2", sizeMask1, sizeMask2
+      !allocate(mask(size_eta, size_xi))
       allocate(maskIDs(size_eta, size_xi))
       maskIDs = 0
 
-      allocate(locCoord1(size_xi))
-      allocate(locCoord2(size_eta))
-      locCoord1 = (/ ( (i - 0.5) * resolution, i = 1, size_xi ) /)
-      locCoord2 = (/ ( (i - 0.5) * resolution, i = 1, size_eta ) /)
+      ! allocate(locCoord1(sizeMask1))
+      ! allocate(locCoord2(sizeMask2))
+      !
+      ! ! cell centres
+      ! do i=1,sizeMask1
+      !    locCoord1(i) = resolution/2. + resolution*i
+      !    !write(*,*) locCoord1(i)
+      ! end do
+      !
+      ! do j=1,sizeMask2
+      !    locCoord2(j) = resolution/2. + resolution*j
+      !    !write(*,*) locCoord2(j)
+      ! end do
 
-      call cpu_time(start)
-      do n=1,nFaces
-         m = sortedFaces(n)
-         call poly2maskIDs(locVertices(connectivityList(m, :), 1) / resolution, &
+      ! ! polygon scan conversion
+      ! do n=1,nFaces
+      !   write(*,*) "n", n
+      !    m = sortedFaces(n)
+      !    cor1 = locVertices(connectivityList(m, 1), :)
+      !    cor2 = locVertices(connectivityList(m, 2), :)
+      !    cor3 = locVertices(connectivityList(m, 3), :)
+      !    mask = .false.
+      !
+      !    ! poly2mask
+      !    do i=1,sizeMask1
+      !       do j=1,sizeMask2
+      !          cor4 = (/locCoord1(i), locCoord2(j)/)
+      !          if (isInsideTriangle(cor1, cor2, cor3, cor4)) then
+      !              !mask(i,j) = .true.
+      !              maskIDs(i,j) = m * visibility(m)
+      !           end if
+      !       end do
+      !    end do
+      !
+      !    !where (mask) maskIDs = m * visibility(m)
+      ! end do
+
+         ! do i=1,sizeMask1
+         !    write(*,*) "i", i
+         !    do j=1,sizeMask2
+         !       n = 0
+         !       flag = .true.
+         !       do while(flag .and. n < nFaces) ! looping closest facets first
+         !          n = n+1
+         !          m = sortedFaces(n)
+         !          cor1 = locVertices(connectivityList(m, 1), :)
+         !          cor2 = locVertices(connectivityList(m, 2), :)
+         !          cor3 = locVertices(connectivityList(m, 3), :)
+         !          cor4 = (/locCoord1(i), locCoord2(j)/)
+         !          if (isInsideTriangle(cor1, cor2, cor3, cor4)) then
+         !             maskIDs(i,j) = m * visibility(m)
+         !             flag = .false. ! once facet found, no need to loop any more
+         !          end if
+         !       end do
+         !    end do
+         ! end do
+
+         call cpu_time(start)
+
+         ! polygon scan conversion
+         do n=1,nFaces
+           !write(*,*) "n", n
+            m = sortedFaces(n)
+            !mask = .false.
+            call poly2maskIDs(locVertices(connectivityList(m, :), 1) / resolution, &
                            locVertices(connectivityList(m, :), 2) / resolution, size_eta, &
                            size_xi, maskIDs, m*visibility(m))
-      end do
+
+            ! call poly2maskIDs([locVertices(connectivityList(m, :), 1) / resolution, &
+            !                    locVertices(connectivityList(m, 1), 1) / resolution], &
+            !                   [locVertices(connectivityList(m, :), 2) / resolution, &
+            !                    locVertices(connectivityList(m, 1), 2) / resolution], &
+            !                   size_eta, size_xi, mask, maskIDs, m*visibility(m));
+
+            !write(*,*) mask
+            !maskIDs(i,j) = m * visibility(m)
+
+            !where (mask) maskIDs = m * visibility(m)
+            !write(*,*) maskIDs
+         end do
+
+         !write(*,*) shape(mask)
 
       allocate(counts(nFaces))
       counts = 0
@@ -120,15 +264,45 @@ contains
          end do
       end do
 
-      call cpu_time(finish)
+      ! open (unit=11,file='counts_fort.txt',action="write")
+      ! do n=1,nFaces
+      !    !write (10,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+      !    ! Formatting assumes: #facets < 10 million, #fluid boundary points < 1 billion,
+      !    ! section area < 1000 m^2 (rounded to cm^2), and distance < 1000m
+      !    write(unit=11,fmt='(i8)') counts(n)
+      ! end do
+      ! close (11)
+
+            call cpu_time(finish)
+
       projAreas = counts * resolution**2
+
       Sdir = irradiance * projAreas / areas
 
-      deallocate(planeIncenter, areas, distIncenter, projAreas, visibility, sortedFaces)
-      deallocate(planeVertices, projVertices, locVertices, distVertices, maskIDs)
-      deallocate(locCoord1, locCoord2, counts)
+      ! write(*,*) "n", "count", "projArea", "Sdir"
+      ! do n=1,1000
+      !    write(*,*) n, counts(n), projAreas(n), Sdir(n)
+      ! end do
 
-   end subroutine calculate_direct_shortwave
+      print '("Time = ",f10.3," seconds.")',finish-start
+
+   end subroutine calculateDirectShortwave
+
+
+   subroutine writeDirectShortwave(Sdir, nFaces)
+      integer, intent(in) :: nFaces
+      real   , intent(in), dimension(nFaces) :: Sdir
+      integer :: n
+
+      open (unit=10,file='Sdir.txt',action="write")
+      do n=1,nFaces
+         write(unit=10,fmt='(f8.2)') Sdir(n)
+      end do
+      close (10)
+
+      write(*,*) "written Sdir.txt"
+
+   end subroutine writeDirectShortwave
 
 
    function cross_product(a,b)
@@ -139,6 +313,7 @@ contains
      cross_product(1) = a(2)*b(3) - a(3)*b(2)
      cross_product(2) = a(3)*b(1) - a(1)*b(3)
      cross_product(3) = a(1)*b(2) - a(2)*b(1)
+
    end function cross_product
 
 
@@ -160,11 +335,11 @@ contains
      B(1, 3) = +detinv*(A(1, 2)*A(2, 3) - A(1, 3)*A(2, 2))
      B(2, 3) = -detinv*(A(1, 1)*A(2, 3) - A(1, 3)*A(2, 1))
      B(3, 3) = +detinv*(A(1, 1)*A(2, 2) - A(1, 2)*A(2, 1))
-   end function matinv3
+   end function
 
 
     subroutine poly2maskIDs(xpt, ypt, M, N, outIDs, id)
-        real  , intent(in) :: xpt(:), ypt(:)
+        real  , intent(in) :: xpt(:), ypt(:) ! assumes x(end) != x(1)
         real, allocatable, dimension(:) :: x, y
         integer, intent(in) :: M, N, id
         logical :: out(M, N)
@@ -175,7 +350,8 @@ contains
 
         minY = 0
         maxY = 0
-        sizeX = size(xpt,1)+1
+        out = .false.
+        sizeX = size(xpt,1)+1 ! number of vertices
         allocate(x(sizeX), y(sizeX))
         x(1:sizeX-1) = xpt
         y(1:sizeX-1) = ypt
@@ -186,6 +362,7 @@ contains
         call parityScan(out, N, minY, maxY, outIDs, id)
 
         deallocate(x, y)
+
     end subroutine poly2maskIDs
 
 
@@ -219,7 +396,7 @@ contains
         allocate(xLinePts(borderSize), yLinePts(borderSize))
         call makeBorder(x, y, xLength, borderSize, xLinePts, yLinePts)
 
-        do pt = 1, borderSize - 1
+         do pt = 1, borderSize - 1
            diff = xLinePts(pt + 1) - xLinePts(pt)
            if (abs(diff) >= 1.0) then
              yLinePts(pt) = min(yLinePts(pt), yLinePts(pt + 1))
@@ -268,7 +445,6 @@ contains
 
     end subroutine poly2edgelist
 
-
     subroutine makeBorder(x, y, xLength, borderSize, xLinePts, yLinePts)
         real   , intent(in) :: x(:), y(:)
         integer, intent(in) :: xLength, borderSize
@@ -277,12 +453,12 @@ contains
         integer :: i
 
         borderPosition = 1
+
         do i = 2, xLength
            call intLine(x(i-1),y(i-1),x(i),y(i), xLinePts, yLinePts, borderPosition)
         end do
 
     end subroutine makeBorder
-
 
     subroutine intLine(x1, y1, x2, y2, xLinePts, yLinePts, borderPosition)
         real   , intent(in) :: x1, y1, x2, y2
@@ -344,7 +520,6 @@ contains
         end if
     end subroutine intLine
 
-
     subroutine parityScan(out, N, minY, maxY, outIDs, id)
         logical, intent(inout) :: out(:,:)
         integer, intent(out) :: outIDs(:,:)
@@ -363,4 +538,4 @@ contains
         end do
     end subroutine parityScan
 
-end module directshortwave_f2py_mod
+end module directshortwave_mod

@@ -1,33 +1,25 @@
-# Fortran f2py wrappers
+# Fortran preprocessing wrappers
 
-This folder contains f2py wrapper sources for Fortran routines used by the
-Python tooling. The authoritative Fortran implementations live under
-`tools/SEB`.
+This folder contains the Python-facing Fortran sources, wrapper glue, and
+`.pyf` signatures used to build the preprocessing extension modules.
 
-## Linux / macOS
-
-From the `u-dales` repo root:
+The build entry point is the standalone preprocessing CMake project:
 
 ```bash
-source .venv/bin/activate
-./tools/python/fortran/build_f2py.sh
+./tools/build_preprocessing.sh common
 ```
 
-## Windows (PowerShell)
+Or directly:
 
-From the `u-dales` repo root:
-
-```powershell
-.\tools\python\fortran\build_f2py.ps1
+```bash
+cmake -S tools/preprocessing -B tools/preprocessing/build \
+  -DPREPROCESSING_PYTHON_EXECUTABLE=$(command -v python)
+cmake --build tools/preprocessing/build --target preprocessing_tools
 ```
 
-## Requirements
+Current wrapped targets include:
 
-- Python development headers for the interpreter used to build the extension
-- `numpy`
-- Python-side build helpers from `tools/python/requirements-build.txt`
-- a Fortran compiler such as `gfortran`
+- `directshortwave_f2py`
+- `ibm_preproc_f2py`
 
-When building with `gfortran`, the wrapper source may require the
-`-ffree-line-length-none` flag. The provided shell and PowerShell build scripts
-set the needed flags.
+The built extension modules are written to `tools/python/udprep/`.

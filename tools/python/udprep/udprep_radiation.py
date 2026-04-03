@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-import os
-import subprocess
-import tempfile
 from typing import Any, Dict, List, Tuple
 
 from pathlib import Path
@@ -108,11 +105,6 @@ class RadiationSection(Section):
         if kwargs:
             raise ValueError(f"Unknown direct shortwave options: {', '.join(sorted(kwargs.keys()))}")
 
-        if method_key == "scanline_legacy":
-            if periodic_xy:
-                raise ValueError("legacy scanline does not support periodic_xy")
-            return self._calc_direct_sw_scanline_legacy(nsun, irradiance, resolution=resolution)
-
         cfg = {
             "method": method_key,
             "ray_density": float(ray_density),
@@ -172,89 +164,6 @@ class RadiationSection(Section):
             ray_density=ray_density,
             resolution=resolution,
         )
-
-    def _calc_direct_sw_scanline_legacy(
-        self,
-        nsun: np.ndarray,
-        irradiance: float,
-        *,
-        resolution: float | None = None,
-    ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
-        """
-        Run the legacy standalone Fortran scanline executable used by MATLAB.
-
-        This route is used for preprocessing parity when ishortwave == 1.
-        The f2py-wrapped scanline kernel is still available for direct Python
-        use, but for real preprocessing cases such as 064 the standalone
-        executable matches MATLAB exactly whereas the wrapper can differ by a
-        few raster cells. Keeping the preprocessing path on the legacy
-        executable preserves like-for-like behaviour during the MATLAB to
-        Python migration.
-        """
-        sim = self._require_sim()
-        mesh = sim.geom.stl
-        faces = np.asarray(mesh.faces, dtype=np.int32) + 1
-        centers = np.asarray(sim.geom.face_incenters, dtype=float)
-        normals = np.asarray(mesh.face_normals, dtype=float)
-        vertices = np.asarray(mesh.vertices, dtype=float)
-        nsun_unit = np.asarray(nsun, dtype=float)
-        nsun_unit /= np.linalg.norm(nsun_unit)
-
-        if resolution is None:
-            resolution = float(self.psc_res)
-
-        source = Path(__file__).resolve().parents[3] / "tools" / "SEB" / "directShortwave.f90"
-        with tempfile.TemporaryDirectory(prefix="udales-directshortwave-legacy-") as td:
-            td_path = Path(td)
-            np.savetxt(td_path / "vertices.txt", vertices, fmt="%15.10f %15.10f %15.10f")
-            face_rows = np.hstack([faces, centers, normals])
-            np.savetxt(
-                td_path / "faces.txt",
-                face_rows,
-                fmt="%8d %8d %8d %15.10f %15.10f %15.10f %15.10f %15.10f %15.10f",
-            )
-            with (td_path / "info_directShortwave.txt").open("w", encoding="ascii", newline="\n") as f:
-                f.write(f"{len(faces):8d} {len(vertices):8d}\n")
-                f.write(f"{nsun_unit[0]:15.10f} {nsun_unit[1]:15.10f} {nsun_unit[2]:15.10f}\n")
-                f.write(f"{float(irradiance):15.10f}\n")
-                f.write(f"{float(resolution):15.10f}\n")
-
-            exe_path = td_path / "DS.exe"
-            subprocess.run(
-                ["gfortran", "-O3", str(source), "-o", str(exe_path)],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-
-            env = os.environ.copy()
-            libgfortran = subprocess.run(
-                ["gfortran", "-print-file-name=libgfortran.so"],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            ).stdout.strip()
-            if libgfortran and libgfortran != "libgfortran.so":
-                libdir = str(Path(libgfortran).resolve().parent)
-                current = env.get("LD_LIBRARY_PATH", "")
-                env["LD_LIBRARY_PATH"] = libdir if not current else f"{libdir}:{current}"
-
-            subprocess.run(
-                [str(exe_path)],
-                cwd=td_path,
-                check=True,
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-            sdir = np.loadtxt(td_path / "Sdir.txt")
-
-        zeros = np.zeros_like(sdir)
-        budget = {"fac": float(np.sum(sdir * mesh.area_faces)), "veg": 0.0, "ground": 0.0}
-        return sdir, zeros, budget
 
     def solar_position(
         self,
@@ -869,9 +778,7 @@ class RadiationSection(Section):
     def _shortwave_method(self) -> Tuple[str, float | None]:
         ishortwave = int(getattr(self, "ishortwave", 1))
         if ishortwave == 1:
-            # Match the historical MATLAB preprocessing contract exactly for
-            # the "Fortran shortwave" option used in legacy cases.
-            return "scanline_legacy", float(self.psc_res)
+            return "scanline", float(self.psc_res)
         return getattr(self, "directsw_method", "facsec"), None
 
     def _solar_state_time(

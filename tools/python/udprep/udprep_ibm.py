@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+from contextlib import contextmanager
 from pathlib import Path
 import shutil
 import subprocess
@@ -9,8 +11,8 @@ import numpy as np
 
 from .udprep import Section, SectionSpec
 
-IBM_FORTRAN_DIR = Path(__file__).resolve().parents[2] / "IBM" / "IBM_preproc_fortran"
-
+IBM_FORTRAN_DIR = Path(__file__).resolve().parents[1] / "fortran" / "ibm_preproc"
+PREBUILT_IBM_EXE = Path(__file__).resolve().parents[2] / "preprocessing" / "build" / "bin" / "IBM_preproc"
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("ibm", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
@@ -29,7 +31,7 @@ class IBMSection(Section):
             if bool(getattr(self, "gen_geom", True)):
                 steps.extend(
                     [
-                        ("run_ibm_fortran", self.run_ibm_fortran),
+                        ("run_ibm", self.run_ibm),
                         ("write_facets", self.write_facets),
                         ("write_facetarea", self.write_facetarea),
                     ]
@@ -199,34 +201,91 @@ class IBMSection(Section):
                 shutil.copy2(source, Path(sim.path) / source.name)
         self._update_counts_from_existing_outputs()
 
-    def run_ibm_fortran(self) -> None:
+    def run_ibm(self, backend: str = "f2py") -> None:
         sim = self._require_sim()
-        compiler = shutil.which("gfortran")
-        if compiler is None:
-            raise RuntimeError("gfortran is required for IBM preprocessing")
-        build_dir = Path(sim.path) / ".ibm_build"
-        build_dir.mkdir(parents=True, exist_ok=True)
-        exe = build_dir / "IBM_preproc.exe"
-
-        sources = [
-            "in_mypoly_functions.f90",
-            "boundaryMasking.f90",
-            "matchFacetsCells.f90",
-            "IBM_preproc_io.f90",
-            "IBM_preproc_main.f90",
-        ]
-        cmd = [compiler, "-O3", "-fopenmp"]
-        cmd.extend(str(IBM_FORTRAN_DIR / src) for src in sources)
-        cmd.extend(["-o", str(exe)])
-        subprocess.run(cmd, check=True, cwd=build_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-
         self._write_ibm_input_files()
-        subprocess.run([str(exe)], check=True, cwd=Path(sim.path), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        backend_key = backend.strip().lower()
+        if backend_key == "f2py":
+            self._run_ibm_via_f2py()
+        elif backend_key in {"legacy", "exe", "fortran_exe"}:
+            self._run_ibm_via_legacy()
+        else:
+            raise ValueError(f"Unknown IBM backend: {backend}")
         self._update_counts_from_info_fort()
         for name in ("inmypoly_inp_info.txt", "faces.txt", "vertices.txt", "zfgrid.txt", "zhgrid.txt", "info_fort.txt"):
             path = Path(sim.path) / name
             if path.exists():
                 path.unlink()
+
+    def _run_ibm_via_f2py(self) -> None:
+        try:
+            from . import ibm_preproc_f2py as _ibm_mod
+        except ImportError as exc:
+            raise RuntimeError(
+                "ibm_preproc_f2py module not available; build it with "
+                "tools/build_preprocessing.sh."
+            ) from exc
+
+        sim = self._require_sim()
+        with self._pushd(Path(sim.path)):
+            _ibm_mod.run_ibm_preproc_f2py()
+
+    def _run_ibm_via_legacy(self) -> None:
+        sim = self._require_sim()
+        exe = self._resolve_ibm_preprocessor()
+        subprocess.run(
+            [str(exe)],
+            check=True,
+            cwd=Path(sim.path),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+
+    def _resolve_ibm_preprocessor(self) -> Path:
+        if PREBUILT_IBM_EXE.exists():
+            return PREBUILT_IBM_EXE
+
+        compiler = shutil.which("gfortran")
+        if compiler is None:
+            raise RuntimeError(
+                "gfortran is required for the legacy IBM preprocessor, or build "
+                "tools/preprocessing/build/bin/IBM_preproc with tools/build_preprocessing.sh."
+            )
+
+        build_dir = Path(self._require_sim().path) / ".ibm_build"
+        build_dir.mkdir(parents=True, exist_ok=True)
+        exe = build_dir / "IBM_preproc.exe"
+        sources = [
+            "in_mypoly_functions.f90",
+            "boundaryMasking.f90",
+            "matchFacetsCells.f90",
+            "IBM_preproc_io.f90",
+            "IBM_preproc_driver.f90",
+            "IBM_preproc_main.f90",
+        ]
+        cmd = [compiler, "-O3", "-fopenmp"]
+        cmd.extend(str(IBM_FORTRAN_DIR / src) for src in sources)
+        cmd.extend(["-o", str(exe)])
+        subprocess.run(
+            cmd,
+            check=True,
+            cwd=build_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        return exe
+
+    @staticmethod
+    @contextmanager
+    def _pushd(path: Path):
+        previous = Path.cwd()
+        os.chdir(path)
+        try:
+            yield
+        finally:
+            os.chdir(previous)
 
     def _write_ibm_input_files(self) -> None:
         sim = self._require_sim()

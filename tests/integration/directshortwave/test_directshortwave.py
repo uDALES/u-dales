@@ -16,6 +16,7 @@ if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
 from udbase import UDBase
+from udprep.solar import nsun_from_angles
 
 _DIRECTSHORTWAVE_IMPORT_ERROR = None
 try:
@@ -149,7 +150,7 @@ class TestDirectShortwaveReferenceIntegration(_DirectShortwaveCaseMixin, unittes
         mesh = self.sim.geom.stl
         resolution = self._scanline_spacing(ray_density)
         faces = np.asarray(mesh.faces, dtype=np.int32) + 1
-        incenter = np.asarray(mesh.triangles_center, dtype=float)
+        incenter = np.asarray(self.sim.geom.face_incenters, dtype=float)
         face_normal = np.asarray(mesh.face_normals, dtype=float)
         vertices = np.asarray(mesh.vertices, dtype=float)
 
@@ -253,6 +254,100 @@ class TestDirectShortwaveReferenceIntegration(_DirectShortwaveCaseMixin, unittes
         self.assertLess(moller["mean_abs"], facsec["mean_abs"])
         self.assertLess(moller["p95_rel"], facsec["p95_rel"])
         self.assertGreater(moller["corr"], facsec["corr"])
+
+
+class TestDirectShortwavePreprocessingParityIntegration(unittest.TestCase):
+    """
+    Backend parity check on the SEB preprocessing case `064`.
+
+    This test is intentionally stricter than the generic direct shortwave
+    benchmark above: it uses the real preprocessing inputs that matter for the
+    MATLAB reference workflow (legacy `ishortwave == 1` contract, `psc_res`,
+    and case-defined solar state). It remains an expected failure until the
+    f2py scanline backend reproduces the legacy executable closely enough for
+    preprocessing-reference parity.
+    """
+
+    CASE = "064"
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        missing = _missing_reference_prerequisites()
+        if missing:
+            raise unittest.SkipTest(
+                "directshortwave preprocessing parity prerequisites missing: "
+                + "; ".join(missing)
+            )
+        cls.repo_root = REPO_ROOT
+        cls.case_dir = cls.repo_root / "tests" / "cases" / cls.CASE
+        cls.sim = UDBase(cls.CASE, cls.case_dir, load_geometry=True)
+        cls.areas = np.asarray(cls.sim.geom.stl.area_faces, dtype=float)
+
+        zenith_deg = float(getattr(cls.sim, "solarzenith"))
+        azimuth_deg = float(getattr(cls.sim, "solarazimuth")) - float(getattr(cls.sim, "xazimuth", 0.0))
+        cls.nsun = nsun_from_angles(zenith_deg, azimuth_deg)
+        cls.irradiance = float(getattr(cls.sim, "I"))
+        cls.resolution = float(getattr(cls.sim, "psc_res", 0.1))
+
+    def _run_backend(self, method: str) -> Tuple[np.ndarray, Dict[str, float]]:
+        solver = DirectShortwaveSolver(
+            self.sim,
+            method=method,
+            ray_density=12.0,
+            ray_jitter=0.0,
+        )
+        sdir, _, budget = solver.compute(
+            nsun=self.nsun,
+            irradiance=self.irradiance,
+            periodic_xy=False,
+            resolution=self.resolution,
+        )
+        return np.asarray(sdir, dtype=float), budget
+
+    @staticmethod
+    def _compare_fields(candidate: np.ndarray, reference: np.ndarray, areas: np.ndarray) -> Dict[str, float]:
+        diff = candidate - reference
+        common = (reference > 1.0e-6) & (candidate > 1.0e-6)
+        if np.any(common):
+            corr = float(np.corrcoef(reference[common], candidate[common])[0, 1])
+            p95_rel = float(np.quantile(np.abs(diff[common]) / np.maximum(reference[common], 1.0), 0.95))
+        else:
+            corr = 1.0
+            p95_rel = 0.0
+        return {
+            "max_abs": float(np.max(np.abs(diff))),
+            "mean_abs": float(np.mean(np.abs(diff))),
+            "p95_rel": p95_rel,
+            "corr": corr,
+            "energy_ratio": float(np.sum(candidate * areas) / np.sum(reference * areas)),
+        }
+
+    @unittest.expectedFailure
+    def test_scanline_f2py_matches_legacy_preprocessing_contract(self) -> None:
+        legacy, legacy_budget = self._run_backend("scanline_legacy")
+        f2py, f2py_budget = self._run_backend("scanline")
+        metrics = self._compare_fields(f2py, legacy, self.areas)
+
+        print(
+            "\npreprocessing scanline parity:",
+            {
+                "case": self.CASE,
+                "resolution": self.resolution,
+                "legacy_fac": round(legacy_budget["fac"], 6),
+                "f2py_fac": round(f2py_budget["fac"], 6),
+                "energy_ratio": round(metrics["energy_ratio"], 6),
+                "corr": round(metrics["corr"], 6),
+                "mean_abs": round(metrics["mean_abs"], 6),
+                "max_abs": round(metrics["max_abs"], 6),
+                "p95_rel": round(metrics["p95_rel"], 6),
+            },
+        )
+
+        self.assertGreater(metrics["corr"], 0.999999)
+        self.assertLess(metrics["mean_abs"], 0.01)
+        self.assertLess(metrics["max_abs"], 0.1)
+        self.assertLess(metrics["p95_rel"], 1.0e-3)
+        self.assertAlmostEqual(metrics["energy_ratio"], 1.0, delta=5.0e-4)
 
 
 class TestDirectShortwaveTreesIntegration(_DirectShortwaveCaseMixin, unittest.TestCase):

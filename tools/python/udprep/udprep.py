@@ -282,7 +282,7 @@ class UDPrep:
                 self.ibm.generate_factypes()
                 self.ibm.write_factypes()
             if self.ibm.gen_geom:
-                self.ibm.run_ibm_fortran()
+                self.ibm.run_ibm()
             else:
                 self.ibm.copy_geom_outputs()
             self.ibm.write_facets()

@@ -150,20 +150,22 @@ if [[ $preprocess_only -eq 0 ]]; then
   patterns+=( "${runtime_patterns[@]}" )
 fi
 
-declare -A seen=()
 matches=()
 shopt -s nullglob
 for pattern in "${patterns[@]}"; do
   for path in "$case_dir"/$pattern; do
-    name="$(basename "$path")"
-    if [[ -n "${seen[$name]:-}" ]]; then
-      continue
-    fi
-    seen[$name]=1
     matches+=( "$path" )
   done
 done
 shopt -u nullglob
+
+if [[ ${#matches[@]} -gt 0 ]]; then
+  mapfile_output="$(printf '%s\n' "${matches[@]}" | sort -u)"
+  matches=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && matches+=( "$line" )
+  done <<< "$mapfile_output"
+fi
 
 if [[ ${#matches[@]} -eq 0 ]]; then
   echo "No generated files matched in $case_dir"

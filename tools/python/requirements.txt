@@ -1,4 +1,6 @@
 # Core dependencies for uDALES Python tools
+# Requires Python >= 3.9. Older interpreters such as Python 3.6 do not
+# support this codebase (for example, `from __future__ import annotations`).
 numpy>=1.20.0
 scipy>=1.7.0
 xarray>=0.19.0

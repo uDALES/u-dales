@@ -162,6 +162,7 @@ contains
       do n=1,nFaces
          areas(n) = 0.5*norm2(cross_product(vertices(connectivityList(n,2),:) - vertices(connectivityList(n,1),:), &
                                             vertices(connectivityList(n,3),:) - vertices(connectivityList(n,1),:)))
+         visibility(n) = 0
          if (dot_product(faceNormal(n,:), nsun) > 0)  visibility(n) = 1
          planeIncenter(n,:) = matmul(invMatrix, incenter(n,:) - p0)
          distIncenter(n) = planeIncenter(n,3)
@@ -218,6 +219,7 @@ contains
       !write(*,*) "sizeMask1, sizeMask2", sizeMask1, sizeMask2
       !allocate(mask(size_eta, size_xi))
       allocate(maskIDs(size_eta, size_xi))
+      maskIDs = 0
 
       ! allocate(locCoord1(sizeMask1))
       ! allocate(locCoord2(sizeMask2))
@@ -506,6 +508,7 @@ contains
         ! Initialize minY and maxY arrays
         minY = 0
         maxY = 0
+        out = .false.
         sizeX = size(xpt,1)+1 ! number of vertices
         allocate(x(sizeX), y(sizeX))
         x(1:sizeX-1) = xpt
