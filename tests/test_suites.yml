@@ -27,6 +27,27 @@ groups:
           - "{repo_root}/tools/python/tests"
           - "-p"
           - "test_solar.py"
+      - label: "supported: python udprep unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "tools.python.tests.test_udprep_core"
+          - "tools.python.tests.test_udprep_grid"
+          - "tools.python.tests.test_udprep_profiles_and_scalars"
+          - "tools.python.tests.test_udprep_vegetation"
+      - label: "supported: python udgeom unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "tools.python.tests.test_udgeom_against_matlab"
+          - "tools.python.tests.test_udgeom_api"
+          - "tools.python.tests.test_udgeom_outline_loops"
       - label: "supported: regression"
         class: supported
         purpose: regression
@@ -43,6 +64,12 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+      - label: "supported: python preprocessing reference integration"
+        class: supported
+        purpose: integration
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
 
   supported-macos:
     suites:
@@ -70,6 +97,27 @@ groups:
           - "{repo_root}/tools/python/tests"
           - "-p"
           - "test_solar.py"
+      - label: "supported: python udprep unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "tools.python.tests.test_udprep_core"
+          - "tools.python.tests.test_udprep_grid"
+          - "tools.python.tests.test_udprep_profiles_and_scalars"
+          - "tools.python.tests.test_udprep_vegetation"
+      - label: "supported: python udgeom unit"
+        class: supported
+        purpose: unit
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "tools.python.tests.test_udgeom_against_matlab"
+          - "tools.python.tests.test_udgeom_api"
+          - "tools.python.tests.test_udgeom_outline_loops"
       - label: "supported: ibm sparse input integration"
         class: supported
         purpose: integration
@@ -77,6 +125,12 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+      - label: "supported: python preprocessing reference integration"
+        class: supported
+        purpose: integration
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
 
   experimental:
     suites:

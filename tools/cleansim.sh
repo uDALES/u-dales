@@ -90,7 +90,6 @@ preprocess_patterns=(
   "scalar.inp.*.${expnr}"
   "scalarsourcep.inp.*.${expnr}"
   "scalarsourcel.inp.*.${expnr}"
-  "trees.inp.${expnr}"
   "vegetation.inp.${expnr}"
   "veg.inp.${expnr}"
   "veg_params.inp.${expnr}"

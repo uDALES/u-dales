@@ -31,7 +31,6 @@ jobs:
       run: |
         git remote set-branches --add origin master
         git fetch origin master
-        git fetch --tags origin
 
     - name: Install system dependencies
       run: bash .github/scripts/install_deps.sh
@@ -97,7 +96,6 @@ jobs:
       run: |
         git remote set-branches --add origin master
         git fetch origin master
-        git fetch --tags origin
 
     - name: Install system dependencies
       run: bash .github/scripts/install_deps.sh

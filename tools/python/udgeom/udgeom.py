@@ -524,7 +524,9 @@ class UDGeom:
         if buildings_with_labels:
             centroids = np.array([bld[0].vertices[:, :2].mean(axis=0) for bld in buildings_with_labels])
             proj = centroids[:, 0] + centroids[:, 1]  # x + y projection
-            order = np.argsort(proj)
+            # Match MATLAB's ascending sort on x+y while preserving the
+            # original connected-component order for ties.
+            order = np.argsort(proj, kind="stable")
             
             # Reorder buildings
             buildings_with_labels = [buildings_with_labels[i] for i in order]
@@ -572,9 +574,6 @@ class UDGeom:
         
         if self.stl is None:
             return []
-        if not SCIPY_AVAILABLE:
-            warnings.warn("scipy is required for calculate_outline2d; install scipy to enable building outlines.")
-            return []
         
         # Get individual buildings
         buildings = self.get_buildings()
@@ -583,50 +582,143 @@ class UDGeom:
         
         outlines: List[dict] = []
         for building in buildings:
-            verts = building.vertices
-            if len(verts) < 3:
+            verts = np.asarray(building.vertices, dtype=float)
+            faces = np.asarray(building.faces, dtype=int)
+            if len(verts) < 3 or len(faces) == 0:
                 outlines.append({'polygon': np.array([]), 'centroid': np.array([np.nan, np.nan, 0.0])})
                 continue
-            
-            verts_xy = np.unique(verts[:, :2], axis=0)
-            if len(verts_xy) < 3:
+
+            pts2 = verts[:, :2]
+            if len(pts2) < 3:
                 centroid = np.array([verts[:, 0].mean(), verts[:, 1].mean(), 0.0])
                 outlines.append({'polygon': np.array([]), 'centroid': centroid})
                 continue
 
             try:
-                hull = ConvexHull(verts_xy)
-                polygon_xy = verts_xy[hull.vertices]
+                edge_counts = {}
+                directed_boundary_edges = []
+                for face in faces:
+                    directed_edges = (
+                        (int(face[0]), int(face[1])),
+                        (int(face[1]), int(face[2])),
+                        (int(face[2]), int(face[0])),
+                    )
+                    for start, end in directed_edges:
+                        edge = tuple(sorted((start, end)))
+                        edge_counts[edge] = edge_counts.get(edge, 0) + 1
+                    directed_boundary_edges.extend(directed_edges)
+
+                boundary_directed = [
+                    edge for edge in directed_boundary_edges
+                    if edge_counts[tuple(sorted(edge))] == 1
+                ]
+
+                if boundary_directed:
+                    next_vertices = {}
+                    for start, end in boundary_directed:
+                        next_vertices.setdefault(start, []).append(end)
+
+                    polygon_indices = []
+                    remaining = {start: list(ends) for start, ends in next_vertices.items()}
+
+                    while remaining:
+                        start = min(remaining)
+                        current = start
+
+                        while True:
+                            polygon_indices.append(current)
+                            ends = remaining.get(current)
+                            if not ends:
+                                break
+
+                            next_vertex = ends.pop(0)
+                            if not ends:
+                                remaining.pop(current, None)
+
+                            current = next_vertex
+                            if current == start:
+                                break
+
+                    # Match MATLAB's `tri2.Points(boundary_edges(:,1), :)` by
+                    # preserving one ordered start vertex per boundary edge over
+                    # every loop in the projected free boundary.
+                    polygon = pts2[np.asarray(polygon_indices, dtype=int)]
+                    centroid_xy = polygon.mean(axis=0)
+                else:
+                    polygon = np.array([])
+                    centroid_xy = pts2.mean(axis=0)
             except Exception:
-                # Degenerate (nearly colinear); fallback to all points
-                polygon_xy = verts_xy
+                polygon = np.array([])
+                centroid_xy = pts2.mean(axis=0)
 
-            # Ensure closed polygon ordering
-            polygon_xy = np.vstack([polygon_xy, polygon_xy[0]])
-            polygon = np.column_stack([polygon_xy[:, 0], polygon_xy[:, 1], np.zeros(len(polygon_xy))])
-
-            # Polygon centroid in 2D using shoelace; fallback to mean if degenerate
-            x = polygon_xy[:, 0]
-            y = polygon_xy[:, 1]
-            cross = x[:-1] * y[1:] - x[1:] * y[:-1]
-            area = 0.5 * np.sum(cross)
-            if np.isclose(area, 0):
-                centroid_xy = polygon_xy.mean(axis=0)
+            if polygon.size == 0:
+                polygon3d = np.array([])
             else:
-                cx = np.sum((x[:-1] + x[1:]) * cross) / (6 * area)
-                cy = np.sum((y[:-1] + y[1:]) * cross) / (6 * area)
-                centroid_xy = np.array([cx, cy])
+                polygon3d = np.column_stack(
+                    [polygon[:, 0], polygon[:, 1], np.zeros(len(polygon))]
+                )
 
             centroid = np.array([centroid_xy[0], centroid_xy[1], 0.0])
-            outlines.append({'polygon': polygon, 'centroid': centroid})
+            outlines.append({'polygon': polygon3d, 'centroid': centroid})
 
-        # Sort outlines by y then x (bottom-left to top-right) for consistent IDs
-        outlines.sort(key=lambda o: (o['centroid'][1], o['centroid'][0]))
-        
         # Cache the result
         self._outline2d = outlines
         
         return outlines
+
+    def get_building_outlines(self, angle_threshold: float = 45.0) -> List[np.ndarray]:
+        """
+        Get 3D outline edges for each disconnected building component.
+
+        Parameters
+        ----------
+        angle_threshold : float, default=45.0
+            Angle threshold in degrees for edge detection.
+
+        Returns
+        -------
+        outlines : list of ndarray
+            Per-building edge arrays with shape (n_edges, 2). Edge indices refer
+            to each building submesh, matching the MATLAB method contract.
+        """
+        if self.stl is None:
+            warnings.warn('No STL geometry loaded. Load geometry first.')
+            return []
+
+        if self._outline3d is None:
+            self._outline3d = {}
+
+        cache_key = float(angle_threshold)
+        if cache_key not in self._outline3d:
+            outlines: List[np.ndarray] = []
+            for building in self.get_buildings():
+                edges, _ = calculate_outline(building, angle_threshold)
+                outlines.append(edges)
+            if self._outline3d is None:
+                self._outline3d = {}
+            self._outline3d[cache_key] = outlines
+        return self._outline3d[cache_key]
+
+    def get_outline(self, angle_threshold: float = 45.0) -> np.ndarray:
+        """
+        Get 3D outline edges for the entire geometry.
+
+        Parameters
+        ----------
+        angle_threshold : float, default=45.0
+            Angle threshold in degrees for edge detection.
+
+        Returns
+        -------
+        outline_edges : ndarray, shape (n_edges, 2)
+            Edge vertex pairs referring to ``self.stl.vertices``.
+        """
+        if self.stl is None:
+            warnings.warn('No STL geometry loaded. Load geometry first.')
+            return np.empty((0, 2), dtype=int)
+
+        edges, _ = calculate_outline(self.stl, angle_threshold)
+        return edges
     
     @property
     def face_normals(self) -> np.ndarray:
