@@ -75,14 +75,7 @@ if r.ltrees || r.ltreesfile
     disp(['Written trees.inp.', r.expnr])
     disp('Generating sparse vegetation inputs from trees (python)')
     pyscript = [DA_TOOLSDIR '/python/convert_trees_to_sparse.py'];
-    % Allow callers to override the Python command when preprocessing needs a
-    % specific environment (for example a venv with the required packages).
-    % Fall back to plain python3 for general usage.
-    pyexe = getenv('UDALES_PYTHON_CMD');
-    if isempty(pyexe)
-        pyexe = 'python3';
-    end
-    pycmd = sprintf(['bash -lc "%s ''%s'' ''%s'' ''%s''"'], pyexe, pyscript, expnr, fpath);
+    pycmd = sprintf(['bash -lc "python3 ''%s'' ''%s'' ''%s''"'], pyscript, expnr, fpath);
     [status, cmdout] = system(pycmd);
     if status ~= 0
         error('Veg conversion failed: %s', cmdout);
@@ -164,28 +157,24 @@ if r.libm
             error('Unrecognised option for facet section calculation')
         end
 
-        if lmypolyfortran && lmatchFacetsToCellsFortran
-            writeIBMFiles_usingFortran;
-        else
-            writeIBMFiles; % Will depricate soon. Not reccomended. Only for debugging special cases
-        end
+        writeIBMFiles;
 
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_c',ncounts(13));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_w',ncounts(12));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_v',ncounts(11));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_u',ncounts(10));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_c',size(facet_sections_c,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_w',size(facet_sections_w,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_v',size(facet_sections_v,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfctsecs_u',size(facet_sections_u,1));
         
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_c',ncounts(9));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_w',ncounts(8));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_v',ncounts(7));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_u',ncounts(6));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_c',size(fluid_IB_xyz_c,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_w',size(fluid_IB_xyz_w,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_v',size(fluid_IB_xyz_v,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nbndpts_u',size(fluid_IB_xyz_u,1));
         
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_c',ncounts(5));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_w',ncounts(4));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_v',ncounts(3));
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_u',ncounts(2));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_c',size(solid_ijk_c,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_w',size(solid_ijk_w,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_v',size(solid_ijk_v,1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nsolpts_u',size(solid_ijk_u,1));
         
-        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfcts',ncounts(1));
+        preprocessing.update_namoptions(namoptionsfile,'&WALLS','nfcts',nfcts);
 
     else
         if isempty(r.geom_path)

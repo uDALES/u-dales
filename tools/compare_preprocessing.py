@@ -11,7 +11,6 @@ experiment directories. It can either:
 
 import argparse
 import os
-import shlex
 import shutil
 import struct
 import subprocess
@@ -277,17 +276,11 @@ def _run_matlab(matlab_case_root: Path, case: str, outputs: List[str]) -> str:
     env["MATLAB_USE_USERWORK"] = "0"
     virtual_env = env.get("VIRTUAL_ENV")
     if virtual_env:
-        activate = str(Path(virtual_env).resolve() / "bin" / "activate")
+        venv_bin = str(Path(virtual_env).resolve() / "bin")
     else:
-        activate = str(Path(sys.executable).resolve().parent / "activate")
-    path_export = shlex.quote(env.get("PATH", ""))
-    ld_library_path = shlex.quote(env.get("LD_LIBRARY_PATH", ""))
-    env["UDALES_PYTHON_CMD"] = (
-        f"export PATH={path_export} "
-        f"LD_LIBRARY_PATH={ld_library_path} && "
-        f"source {shlex.quote(activate)} && "
-        "python3"
-    )
+        venv_bin = str(Path(sys.executable).resolve().parent)
+    current_path = env.get("PATH", "")
+    env["PATH"] = venv_bin if not current_path else f"{venv_bin}:{current_path}"
     try:
         libgfortran = subprocess.run(
             ["gfortran", "-print-file-name=libgfortran.so"],

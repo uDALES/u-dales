@@ -18,6 +18,7 @@ MPLCONFIGDIR = Path("/tmp") / "udales-matplotlib"
 PURPOSE_ORDER = {
     "unit": 0,
     "integration": 1,
+    "reference": 2,
     "system": 2,
     "regression": 99,
 }
@@ -131,20 +132,26 @@ def _format_command(command: List[str], variables: Dict[str, str]) -> List[str]:
 def _sort_suites(suites: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return sorted(
         suites,
-        key=lambda suite: PURPOSE_ORDER.get(suite.get("purpose", "unspecified"), 50),
+        key=lambda suite: PURPOSE_ORDER.get(suite.get("kind", suite.get("purpose", "unspecified")), 50),
     )
 
 
 def _run_command(
     label: str,
     suite_class: str,
-    purpose: str,
+    kind: str,
     command: List[str],
     env: Dict[str, str],
+    component: str = "unspecified",
+    platform: str = "any",
+    cost: str = "unspecified",
 ) -> int:
     print(f"\n==> {label}")
     print(f"class: {suite_class}")
-    print(f"purpose: {purpose}")
+    print(f"kind: {kind}")
+    print(f"component: {component}")
+    print(f"platform: {platform}")
+    print(f"cost: {cost}")
     print(" ".join(command))
     completed = subprocess.run(command, cwd=REPO_ROOT, env=env)
     status = "PASS" if completed.returncode == 0 else "FAIL"
@@ -218,20 +225,32 @@ def main() -> int:
     for suite in suites:
         label = suite["label"]
         suite_class = suite.get("class", "unspecified")
-        purpose = suite.get("purpose", "unspecified")
+        kind = suite.get("kind", suite.get("purpose", "unspecified"))
+        component = suite.get("component", "unspecified")
+        platform = suite.get("platform", "any")
+        cost = suite.get("cost", "unspecified")
         command = _format_command(suite["command"], variables)
         suite_env = child_env.copy()
         for key, value in suite.items():
             if key.startswith("env_"):
-                suite_env[key.removeprefix("env_")] = value.format(**variables)
-        code = _run_command(label, suite_class, purpose, command, suite_env)
+                suite_env[key[len("env_"):]] = value.format(**variables)
+        code = _run_command(
+            label,
+            suite_class,
+            kind,
+            command,
+            suite_env,
+            component=component,
+            platform=platform,
+            cost=cost,
+        )
         exit_codes.append(code)
-        suite_results.append((label, suite_class, purpose, code))
+        suite_results.append((label, suite_class, kind, component, platform, cost, code))
 
     print("\nSummary")
-    for label, suite_class, purpose, code in suite_results:
+    for label, suite_class, kind, component, platform, cost, code in suite_results:
         status = "PASS" if code == 0 else "FAIL"
-        print(f"- {label} [{suite_class}, {purpose}]: {status}")
+        print(f"- {label} [{suite_class}, {kind}, {component}, {platform}, {cost}]: {status}")
 
     overall = "PASS" if all(code == 0 for code in exit_codes) else "FAIL"
     print(f"overall: {overall}")

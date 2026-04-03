@@ -69,6 +69,60 @@ python tests/run_tests.py experimental
 python tests/run_tests.py all --branch-a master --branch-b HEAD --build-type Release
 ```
 
+## Test Manifest Schema
+
+`tests/test_suites.yml` is the source of truth for curated automated test
+selections. The current schema is intentionally small and stable.
+
+Top-level structure:
+
+- `description`: short human-readable summary of the manifest
+- `groups`: mapping from selection name to a group definition
+
+Group definition:
+
+- `suites`: optional list of concrete suite entries to run
+- `includes`: optional list of other group names to include
+
+Suite definition:
+
+- `label`: human-readable display name shown by `tests/run_tests.py`
+- `class`: support policy for the suite
+  - `supported`: part of the required, stable merge-gating path
+  - `experimental`: useful automated coverage that is not yet part of the
+    primary merge gate
+- `kind`: scope of validation
+  - `unit`: isolated API or routine checks with minimal dependencies
+  - `integration`: multi-component or real-case checks, often using committed
+    fixtures or external tools
+  - `reference`: compare against committed reference outputs or another
+    implementation
+  - `system`: heavier whole-code validation when used
+  - `regression`: branch/version/reference comparison workflows
+- `component`: subsystem or ownership area, for example `udbase`, `udprep`,
+  `udgeom`, `ibm`, or `solver`
+- `platform`: expected runtime target such as `linux`, `macos`, `hpc`, or `any`
+- `cost`: rough runtime tier such as `fast`, `medium`, or `slow`
+- `command`: ordered command list passed directly to `subprocess.run`
+- `env_<NAME>`: optional per-suite environment variable override injected into
+  the child process as `<NAME>`
+
+Current conventions:
+
+- `class` describes execution policy, not technical scope
+- `kind` describes scope, not whether the suite is required in CI
+- tests that depend on committed real case directories under `tests/cases/` or
+  compare Python against another implementation should usually be
+  `kind: integration` or `kind: reference` even if they are Python-driven
+- `supported-macos` is a temporary compatibility group and should be treated as
+  an exception rather than the long-term schema shape
+
+Planned evolution:
+
+- the schema is expected to keep `class` and `kind` as separate concepts
+- the runner currently tolerates legacy `purpose` entries for compatibility, but
+  new manifest edits should use `kind`
+
 This means a test being placed under `tests/integration/` does not by itself
 mean it runs in the supported merge gate. The suite should document whether it is:
 

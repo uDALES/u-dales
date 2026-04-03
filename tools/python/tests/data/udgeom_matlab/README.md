@@ -7,6 +7,7 @@ Contents:
 - small deterministic STL fixtures
 - one real geometry fixture: `xie_castro_2008`
 - JSON files harvested from the MATLAB `udgeom` class
+- test-owned MATLAB harvest helper: `harvest_udgeom_reference.m`
 
 Regeneration:
 ```bash

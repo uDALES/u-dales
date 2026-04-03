@@ -47,8 +47,13 @@ jobs:
     - name: Build preprocessing tools
       shell: bash -l {0}
       run: |
+        # Work around numpy.f2py + setuptools distutils incompatibility on macOS runners.
+        export SETUPTOOLS_USE_DISTUTILS=stdlib
+        if [ "${{ matrix.os }}" = "macos-latest" ]; then
+          python -m pip install "setuptools<74"
+        fi
         PREPROCESSING_PYTHON_EXECUTABLE="$(command -v python)" \
-          bash tools/build_preprocessing.sh common
+          bash tools/build_preprocessing.sh common preprocessing_tools
 
     - name: Build current branch for integration tests
       shell: bash -l {0}

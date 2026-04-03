@@ -19,7 +19,7 @@ import trimesh
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = REPO_ROOT / "tools" / "python" / "tests" / "data" / "udgeom_matlab"
-MATLAB_HELPER = REPO_ROOT / "tools" / "matlab" / "harvest_udgeom_reference.m"
+MATLAB_HELPER = DATA_DIR / "harvest_udgeom_reference.m"
 
 
 def _scene_single_box() -> trimesh.Trimesh:

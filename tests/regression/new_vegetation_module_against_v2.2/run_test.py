@@ -20,7 +20,6 @@ import numpy as np
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REGRESSION_DIR = SCRIPT_DIR.parent
-DAVID_TESTS_DIR = REGRESSION_DIR / "david_tests"
 TESTS_DIR = REGRESSION_DIR.parent
 REPO_ROOT = TESTS_DIR.parent
 BUILD_SYSTEM = os.environ.get("UDALES_BUILD_SYSTEM", "icl")
@@ -34,10 +33,6 @@ RUNTIME_MODULES = os.environ.get(
 SCRATCH_ROOT = Path(
     os.environ.get("UDALES_SCRATCH_ROOT", "/tmp")
 ).resolve()
-
-sys.path.insert(0, str(DAVID_TESTS_DIR))
-from scripts import build_model  # noqa: E402
-
 
 CASE_ID = 526
 THERMO_FIELDS = ("tr_qt", "tr_thl")
@@ -389,13 +384,19 @@ def _populate_local_submodules(worktree: Path) -> None:
         shutil.copytree(source, target, symlinks=True)
 
 
-def _prepare_offline_fftw(worktree: Path) -> None:
+def _prepare_offline_fftw(worktree: Path, build_dir: Path) -> None:
     if not CACHED_FFTW_MODULE.is_file():
         raise RuntimeError(
             f"Missing cached FindFFTW.cmake required for offline regression builds: {CACHED_FFTW_MODULE}"
         )
     cmake_lists = worktree / "CMakeLists.txt"
     text = cmake_lists.read_text(encoding="utf-8")
+    if 'set(findFFTW_DIR ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-src)' in text:
+        findfftw_dir = build_dir / "findFFTW-src"
+        findfftw_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(CACHED_FFTW_MODULE, findfftw_dir / "FindFFTW.cmake")
+        return
+
     if 'set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")' in text:
         cmake_dir = worktree / "cmake"
         cmake_dir.mkdir(parents=True, exist_ok=True)
@@ -436,7 +437,7 @@ def _build_in_worktree(worktree: Path, ref: str, build_type: str) -> Path:
     build_script = worktree / "tools" / "build_executable.sh"
     if not build_script.is_file():
         raise RuntimeError(f"Missing build script in worktree: {build_script}")
-    _prepare_offline_fftw(worktree)
+    _prepare_offline_fftw(worktree, build_dir)
     subprocess.run(
         ["bash", str(build_script), BUILD_SYSTEM, build_type.lower()],
         cwd=worktree,
@@ -449,12 +450,7 @@ def _build_in_worktree(worktree: Path, ref: str, build_type: str) -> Path:
 
 
 def _build_current_workspace(build_type: str) -> Path:
-    build_dir = REPO_ROOT / "build" / build_type.lower()
-    build_model.build(REPO_ROOT, build_dir, build_type, clean_build_dir=False)
-    exe_path = build_dir / "u-dales"
-    if not exe_path.is_file():
-        raise RuntimeError(f"Workspace build completed without producing executable: {exe_path}")
-    return build_dir
+    return _build_in_worktree(REPO_ROOT, "workspace", build_type)
 
 
 def main(branch_a: str, branch_b: str, build_type: str, ci_mode: bool = False) -> int:

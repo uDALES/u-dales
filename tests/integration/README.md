@@ -19,6 +19,8 @@ Current contents:
   reference case `100` and tree case `525`
 - `udprep/` for preprocessing integration checks that exercise real `UDPrep`
   workflows against committed cases or preprocessing binaries
+- `udbase_against_matlab/` for Python-vs-MATLAB `UDBase` parity checks against
+  committed real cases and harvested MATLAB reference JSON
 - `ibm_sparse_input/` for MPI validation of the sparse IBM input reader on committed case `101`
 
 `directshortwave/` is Python-driven, but it belongs here because it is anchored
@@ -31,6 +33,11 @@ paths that depend on committed cases, compiled wrappers, or external
 preprocessing executables. It should be treated as integration coverage rather
 than as pure `tools/python` unit coverage.
 
+`udbase_against_matlab/` is Python-driven and offline during normal runs, but
+it depends on real case directories under `tests/cases/` and validates parity
+between Python and MATLAB implementations rather than a single Python module in
+isolation. It should be treated as integration coverage.
+
 `ibm_sparse_input/` is an executable-driven solver test. It
 stage shared inputs from `tests/cases/` into temporary run directories before
 execution.
@@ -39,6 +46,7 @@ Current supported status:
 
 - `ibm_sparse_input/`: supported solver-facing integration coverage
 - `udprep/`: supported preprocessing/tooling integration coverage
+- `udbase_against_matlab/`: supported Python/MATLAB parity integration coverage
 - `directshortwave/`: experimental preprocessing/tooling integration coverage
 
 This directory now feeds two different curated paths through
@@ -103,6 +111,7 @@ In the current supported selection, the solver-facing integration suites are:
 
 - `integration/ibm_sparse_input/run_test.sh`
 - `integration/udprep/` preprocessing integration tests
+- `integration/udbase_against_matlab/test_udbase_against_matlab.py`
 
 Experimental integration coverage currently includes:
 
