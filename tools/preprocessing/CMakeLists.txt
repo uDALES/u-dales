@@ -93,6 +93,7 @@ if(BUILD_PREPROCESSING_IBM_F2PY)
 
   set(_ibm_f2py_target_dir "${CMAKE_CURRENT_SOURCE_DIR}/../python/udprep")
   set(_ibm_fortran_module_dir "${CMAKE_CURRENT_SOURCE_DIR}/../IBM/IBM_preproc_fortran")
+  set(_ibm_f2py_build_dir "${CMAKE_CURRENT_BINARY_DIR}/ibm_f2py_build")
   set(_ibm_f2py_output "${_ibm_f2py_target_dir}/ibm_preproc_f2py${_python_ext_suffix_ibm}")
   set(_ibm_f2py_wrapper "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc_f2py.f90")
   set(_ibm_f2py_signature "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc_f2py.pyf")
@@ -107,6 +108,8 @@ if(BUILD_PREPROCESSING_IBM_F2PY)
   add_custom_command(
     OUTPUT "${_ibm_f2py_output}"
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${_ibm_f2py_target_dir}"
+    COMMAND "${CMAKE_COMMAND}" -E remove_directory "${_ibm_f2py_build_dir}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${_ibm_f2py_build_dir}"
     COMMAND "${CMAKE_COMMAND}" -E remove -f "${_ibm_f2py_target_dir}/ibm_preproc_f2py${_python_ext_suffix_ibm}"
     COMMAND "${_python_executable}" -m numpy.f2py -c
             "${_ibm_f2py_signature}"
@@ -116,6 +119,7 @@ if(BUILD_PREPROCESSING_IBM_F2PY)
             "${CMAKE_CURRENT_SOURCE_DIR}/../IBM/IBM_preproc_fortran/IBM_preproc_io.f90"
             "${CMAKE_CURRENT_SOURCE_DIR}/../IBM/IBM_preproc_fortran/IBM_preproc_driver.f90"
             "${_ibm_f2py_wrapper}"
+            --build-dir "${_ibm_f2py_build_dir}"
             --f90flags=-O3\ -fopenmp\ -ffree-line-length-none\ -I${_ibm_fortran_module_dir}
             -lgomp
     WORKING_DIRECTORY "${_ibm_f2py_target_dir}"
