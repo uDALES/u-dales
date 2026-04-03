@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+"""
+ud_nml2v3 - apply section/key renames to a namelist file.
+
+Behavior:
+  - Reads a Fortran namelist using f90nml
+  - Applies mapping rules from docs/schemas/nml_mapping.txt
+  - Writes a transformed namelist
+
+Usage:
+  ud_nml2v3 <input.nml> [output.nml]
+"""
+
+import os
+import sys
+
+try:
+    import f90nml
+except Exception:
+    f90nml = None
+
+# Embedded default mapping (kept here so the script is portable). Each entry is
+# (src, dst) similar to docs/schemas/nml_mapping.txt. The script will read
+# docs/schemas/nml_mapping.txt if present and append/override these entries.
+EMBEDDED_MAP_TEXT = """
+NAMSUBGRID               SUBGRID
+NAMCHECKSIM.tcheck       OUTPUT.tcheck
+SUBGRID.sg_cs            SUBGRID.cs
+"""
+
+
+def _load_map_lines():
+    lines = []
+    lines.extend(EMBEDDED_MAP_TEXT.strip().splitlines())
+
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    map_path = os.path.join(root, "docs", "schemas", "nml_mapping.txt")
+    if os.path.isfile(map_path):
+        with open(map_path, "r") as f:
+            lines.extend(f.read().splitlines())
+    return lines
+
+
+def load_mappings():
+    simple_map = {}
+    qualified_map = {}
+    for raw in _load_map_lines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        src = parts[0]
+        dst = parts[-1]
+        if "." in src:
+            ssec, skey = src.split(".", 1)
+            if "." in dst:
+                dsec, dkey = dst.split(".", 1)
+            else:
+                dsec, dkey = dst, skey
+            qualified_map[(ssec.upper(), skey.lower())] = (dsec.upper(), dkey.lower())
+        else:
+            simple_map[src.lower()] = dst
+    return simple_map, qualified_map
+
+
+def _normalize_namelist(nml):
+    normalized = {}
+    for section, params in nml.items():
+        if not isinstance(params, dict):
+            continue
+        sec_key = str(section).upper()
+        normalized.setdefault(sec_key, {})
+        for key, val in params.items():
+            normalized[sec_key][str(key).lower()] = val
+    return normalized
+
+
+def apply_mappings(data, simple_map, qualified_map):
+    # Section moves or key renames
+    for old, new in list(simple_map.items()):
+        if old.upper() in data and "." not in new:
+            newsec = new.upper()
+            dst = data.get(newsec, {})
+            src = data.pop(old.upper())
+            for k, v in src.items():
+                if k not in dst:
+                    dst[k] = v
+            data[newsec] = dst
+        else:
+            for sec, params in list(data.items()):
+                if not isinstance(params, dict):
+                    continue
+                lok = old.lower()
+                if lok in params:
+                    params[new.lower()] = params.pop(lok)
+
+    # Qualified moves
+    for (ssec, skey), (dsec, dkey) in qualified_map.items():
+        if ssec in data and isinstance(data[ssec], dict):
+            params = data[ssec]
+            if skey in params:
+                val = params.pop(skey)
+                data.setdefault(dsec, {})[dkey] = val
+
+
+def write_namelist(data, output_path):
+    nml = f90nml.Namelist(data)
+    nml.write(output_path, force=True)
+
+
+def main(argv):
+    if len(argv) < 2 or argv[1] in ("-h", "--help"):
+        print("Usage: ud_nml2v3 <input.nml> [output.nml]")
+        return 0
+    if f90nml is None:
+        print("ERROR: f90nml is required but not installed", file=sys.stderr)
+        return 2
+    input_file = argv[1]
+    if not os.path.isfile(input_file):
+        print(f"ERROR: File '{input_file}' not found", file=sys.stderr)
+        return 2
+    if len(argv) > 2:
+        output_file = argv[2]
+    else:
+        output_file = input_file
+
+    try:
+        nml = f90nml.read(input_file)
+    except Exception as e:
+        print(f"ERROR: failed to read namelist: {e}", file=sys.stderr)
+        return 2
+
+    data = _normalize_namelist(nml)
+    simple_map, qualified_map = load_mappings()
+    apply_mappings(data, simple_map, qualified_map)
+
+    try:
+        write_namelist(data, output_file)
+    except Exception as e:
+        print(f"ERROR: failed to write namelist: {e}", file=sys.stderr)
+        return 2
+
+    print(f"Wrote mapped namelist to {output_file}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

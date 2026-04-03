@@ -2244,7 +2244,7 @@ contains
   character(72) chmess
   character(20) namezinlet
   character(20) namezinfo
-  integer ierr,k,kk,kmaxin,j,jj
+  integer ierr,k,kk,j,jj
   real ysizeproc
 
       namelist/INFO/nprocsinl,jgtotinl,kmaxin,dtin,wtop,totalreadu

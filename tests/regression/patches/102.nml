@@ -1,0 +1,13 @@
+&RUN
+runtime = 5.
+lwarmstart   = .false.
+/
+
+&OUTPUT
+tfielddump = 4.
+tstatsdump = 4.
+/
+
+&SCALARS
+lreadscal = .false.
+/

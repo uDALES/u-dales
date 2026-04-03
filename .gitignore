@@ -2,7 +2,6 @@
 build/
 temp/
 tmp/
-tests/outputs/
 .vscode/
 *.o
 *.mod
@@ -11,12 +10,24 @@ image.sif
 *.nc
 monitor*.txt
 outputs/
-examples/*/blocks.*.png
-tmp/*
-bin/
+
+# markdown files for testing
+tests/outputs/
+test_sourcecode_full.md
+test_sourcecode_status.md
+tests/integration/input/test_sourcecode_full.md
+tests/integration/input/test_sourcecode_status.md
+tests/integration/input/test_roundtrip_default.md
+tests/integration/input/test_roundtrip_random.md
+
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*
+examples/*/blocks.*.png
+
+# bin directory
+bin/u-dales
+
 
 # macOS specific
 .DS_Store

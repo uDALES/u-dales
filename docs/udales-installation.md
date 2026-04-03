@@ -127,6 +127,17 @@ popd
 
 You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
 
+After a successful build, the executable is copied to `u-dales/bin/u-dales`. In the current development environment, `UD_TOPDIR` points to the repository root and `u-dales/bin` is on `PATH`, so `u-dales` and `ud_nml2json` can be run directly from the shell.
+
+If you want the same behaviour in your own shell session, you can add:
+
+```sh
+export UD_TOPDIR=$(pwd)/u-dales
+export PATH="$UD_TOPDIR/bin:$PATH"
+```
+
+`UDALES` is not required by the current wrapper scripts or tests.
+
 ## Build on HPCs
 
 To compile uDALES (in release mode) on the ICL HPC cluster run:
