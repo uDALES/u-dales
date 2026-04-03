@@ -1558,7 +1558,7 @@ module modibm
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, itot, jtot, ktot
      use decomp_2d, only : zstart
      implicit none
-     real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:kb+kh)
+     real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
      integer, intent(in) :: cell(3) ! GLOBAL indices of cell containing the point
      real, intent(in), dimension(ib:itot+ih) :: xgrid
      real, intent(in), dimension(jb:jtot+jh) :: ygrid
@@ -1591,7 +1591,7 @@ module modibm
    function eval_corners(var, i, j, k)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
      integer, intent(in) :: i, j, k ! LOCAL indices
-     real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:kb+kh)
+     real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
      real, dimension(8)  :: eval_corners(8)
 
      eval_corners(1) = var(i  ,j  ,k  ) !c000
