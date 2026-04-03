@@ -176,6 +176,16 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+      - label: "supported: processor boundaries integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
       - label: "supported: python preprocessing reference integration"
         class: supported
         kind: reference

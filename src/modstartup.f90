@@ -39,7 +39,7 @@ module modstartup
    ! public :: startup,trestart
    save
 
-   integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomnizer with
+   integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomizer with
    integer :: krand = huge(0)  ! returns the largest integer that is not an infinity
    real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
 
@@ -1224,13 +1224,13 @@ module modstartup
               !! add random fluctuations
               krand = min(krand, ke)
               do k = kb, krand
-                call randomnize(um, k, randu, irandom, ih, jh)
+                call randomize_field(um, k, randu, irandom, ih, jh)
               end do
               do k = kb, krand
-                call randomnize(vm, k, randu, irandom, ih, jh)
+                call randomize_field(vm, k, randu, irandom, ih, jh)
               end do
               do k = kb, krand
-                call randomnize(wm, k, randu, irandom, ih, jh)
+                call randomize_field(wm, k, randu, irandom, ih, jh)
               end do
             end if
 
@@ -1536,14 +1536,14 @@ module modstartup
             end if
 
             !---------------------------------------------------------------
-            !  1.2 randomnize fields
+            !  1.2 randomize fields
             !---------------------------------------------------------------
             !     if (iinletgen /= 2 .and. iinletgen /= 1) then
-            !       write(6,*) 'randomnizing temperature!'
+            !       write(6,*) 'randomizing temperature!'
             !       krand  = min(krand,ke)
             !        do k = kb,ke !edited tg3315 krand --> ke
-            !          call randomnize(thlm,k,randthl,irandom,ih,jh)
-            !          call randomnize(thl0,k,randthl,irandom,ih,jh)
+            !          call randomize_field(thlm,k,randthl,irandom,ih,jh)
+            !          call randomize_field(thl0,k,randthl,irandom,ih,jh)
             !        end do
             !       end if
 
@@ -2381,52 +2381,35 @@ module modstartup
 
    end subroutine exitmodules
 
-   subroutine randomnize(field, klev, ampl, ir, ihl, jhl)
+   subroutine randomize_field(field, klev, ampl, ir, ihl, jhl)
 
-      use modmpi, only:myid, nprocs
-      use modglobal, only:ib, ie, imax, jmax, jb, je, kb, ke, kh, ierank, BCxm
+      use decomp_2d, only: zstart
+      use modglobal, only: ib, ie, jb, je, kb, ke, kh, itot, jtot
       integer(KIND=selected_int_kind(6)):: imm, ia, ic, ir
       integer ihl, jhl
       integer i, j, klev
-      integer m, mfac
+      integer iglob, jglob
+      integer(KIND=selected_int_kind(12)) :: linear_id, state
       real ran, ampl
       real field(ib - ihl:ie + ihl, jb - jhl:je + jhl, kb - kh:ke + kh)
       parameter(imm=134456, ia=8121, ic=28411)
-
-      if (myid > 0) then
-         mfac = myid*jmax*imax
-         do m = 1, mfac
-            ir = mod((ir)*ia + ic, imm)
-
-         end do
-      end if
-
-      ! if (ierank .and. BCxm > 1) then
-      !   do j = jb, je
-      !     do i = ib, ie-1
-      !       ir = mod((ir)*ia + ic, imm)
-      !       ran = real(ir)/real(imm)
-      !       field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
-      !     end do
-      !   end do
-      ! else
-        do j = jb, je
-          do i = ib, ie
-            ir = mod((ir)*ia + ic, imm)
-            ran = real(ir)/real(imm)
+      do j = jb, je
+         jglob = j + zstart(2) - 1
+         do i = ib, ie
+            iglob = i + zstart(1) - 1
+            ! Use the global cell index so the perturbation field is
+            ! identical regardless of the MPI decomposition.
+            linear_id = int(iglob, kind(linear_id)) &
+                        + int(itot, kind(linear_id)) * int(jglob - 1, kind(linear_id)) &
+                        + int(itot, kind(linear_id)) * int(jtot, kind(linear_id)) * int(klev - 1, kind(linear_id))
+            state = mod(int(ir, kind(state)) + linear_id, int(imm, kind(state)))
+            state = mod(state * int(ia, kind(state)) + int(ic, kind(state)), int(imm, kind(state)))
+            ran = real(state)/real(imm)
             field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
-          end do
-        end do
-      !end if
-
-      if (nprocs - 1 - myid > 0) then
-         mfac = (nprocs - 1 - myid)*imax*jmax
-         do m = 1, mfac
-            ir = mod((ir)*ia + ic, imm)
          end do
-      end if
+      end do
 
       return
-   end subroutine randomnize
+   end subroutine randomize_field
 
 end module modstartup

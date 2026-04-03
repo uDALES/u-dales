@@ -22,6 +22,8 @@ Current contents:
 - `udbase_against_matlab/` for Python-vs-MATLAB `UDBase` parity checks against
   committed real cases and harvested MATLAB reference JSON
 - `ibm_sparse_input/` for MPI validation of the sparse IBM input reader on committed case `101`
+- `processor_boundaries/` for MPI decomposition parity diagnostics
+  The no-tree variant now uses committed case `100` as the Xie/Castro-style reference fixture, while the tree-forcing variant still uses case `526`.
 
 `directshortwave/` is Python-driven, but it belongs here because it is anchored
 to committed repo fixtures in `tests/cases/` and validates agreement across

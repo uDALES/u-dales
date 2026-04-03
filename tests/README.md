@@ -147,6 +147,8 @@ between multiple components rather than one isolated API.
 - `directshortwave/`: Python-driven preprocessing integration tests for direct
   shortwave on committed cases `100` and `525`
 - `ibm_sparse_input/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
+- `processor_boundaries/`: MPI decomposition parity checks on the Xie/Castro
+  no-tree case `100` and the vegetation case `526`
 - `python_preproc_against_matlab/`: preprocessing parity test between the
   MATLAB and Python entry points on no-tree case `100`
 
@@ -154,8 +156,12 @@ between multiple components rather than one isolated API.
 
 - `101/`: IBM sparse-input case used by `integration/ibm_sparse_input/`
 - `100/`: no-tree direct shortwave reference case used by `integration/directshortwave/`
+- `100/`: also used by `integration/processor_boundaries/` for the Xie/Castro
+  no-tree decomposition check
 - `525/`: flat-terrain tree case used by `integration/directshortwave/`
 - `526/`: reduced tree case used by `regression/new_vegetation_module_against_v2.2/`
+- `526/`: also used by `integration/processor_boundaries/` for the vegetation
+  decomposition check
 
 To run the direct shortwave reference test:
 

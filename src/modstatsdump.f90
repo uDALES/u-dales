@@ -799,6 +799,12 @@ contains
 
   if (.not. rk3step==3)  return
 
+  ! For one-timestep diagnostics with dump intervals no larger than dt,
+  ! treat the just-completed step as a valid first sample immediately
+  ! instead of waiting for a second call to statsdump.
+  if (tsamplep == 0. .and. tsample <= dt) tsamplep = dt
+  if (tstatsdumpp == 0. .and. tstatsdump <= dt) tstatsdumpp = dt
+
   if (tsamplep >= tsample) then
 
     if (lytdump .or. lydump .or. lxydump .or. lxytdump .or. ltdump .or. lmintdump .or. ltreedump) then
