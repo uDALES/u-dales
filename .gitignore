@@ -4,6 +4,7 @@ temp/
 tmp/
 tests/outputs/
 .vscode/
+.codex
 *.o
 *.mod
 image.sif
@@ -35,3 +36,4 @@ env/
 *.pyc
 **/*.pyd
 facets*.vs3
+tests/cases/**/*.fig
