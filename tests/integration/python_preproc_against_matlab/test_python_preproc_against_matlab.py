@@ -63,6 +63,11 @@ CASE_SPECS = [
 
 
 def _atol_for_output(relpath: str) -> float:
+    if relpath.startswith("facet_sections_"):
+        # These text files are emitted with 4 decimal places for area and
+        # distance, so cross-platform runs can legitimately differ in the last
+        # printed digit after floating-point rounding.
+        return 1.1e-4
     if relpath.startswith("netsw.inp."):
         return 2.0e-3
     return 1.0e-10
