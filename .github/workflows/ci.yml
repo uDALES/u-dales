@@ -37,7 +37,7 @@ jobs:
       run: bash .github/scripts/install_deps.sh
 
     - name: Install python dependencies
-      uses: conda-incubator/setup-miniconda@v3
+      uses: conda-incubator/setup-miniconda@9b650ee299f7fe47ab3a9688166e64e965c83272 # main (node24)
       with:
         miniconda-version: "latest"
         auto-update-conda: true
@@ -103,7 +103,7 @@ jobs:
       run: bash .github/scripts/install_deps.sh
 
     - name: Install python dependencies
-      uses: conda-incubator/setup-miniconda@v3
+      uses: conda-incubator/setup-miniconda@9b650ee299f7fe47ab3a9688166e64e965c83272 # main (node24)
       with:
         miniconda-version: "latest"
         auto-update-conda: true
