@@ -769,7 +769,7 @@ module matchFacets2Cells
 
                end if !(solid_IB(i,j,k) .or. search_adj)
 
-               if (isnan(dist) .or. abs(dist)<tol) dist = 0.1 ! 0.1 m minimum distance to avoid singularities
+               if (isnan(dist) .or. abs(dist)<1e-4) dist = 0.1 ! 0.1 m minimum distance to avoid singularities
                if (isnan(area)) area = 0.0
 
                loc = findloc(ismember_rows(fluid_IB_xyz, xyz), .true., 1)
