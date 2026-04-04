@@ -37,8 +37,6 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine writerestartfiles
 
-    use mpi
-
     use modsurfdata,only: ustar,thlflux,qtflux,svflux,dudz,dvdz,dthldz,dqtdz,ps,thls,qts,thvs,oblav
 
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,dthvdz,presf,presh,sv0,mindist,wall,&
@@ -53,9 +51,10 @@ contains
                           cexpnr,ntimee,rk3step,ifoutput,nsv,timeleft,dt,ntrun,totavtime,&
                           iinletgen,timee,runavtime,inletav,totinletav,linletRA,ltempeq,lmoist,&
                           dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,nstore,numol,dy2i,grav,libm,jmax
-    use modmpi,    only : cmyid,cmyidx,cmyidy,myid,slabsum,excjs,comm3d
+    use modmpi,    only : cmyid,cmyidx,cmyidy,myid,excjs,comm3d,mpierr,bcast,abort_run
+    use operators,   only : reduce_xy_sum
     use modsubgriddata, only : ekm
-    use modibmdata,   only  : ibmxforcevol
+    use ibmdata,   only  : ibmxforcevol
     use modinletdata, only   : Urec,Wrec,Uinl,Utav,QLinl,QTinl,QLrec,QTrec,QTtav,QLtav,Ttav,upupavinl,vpvpavinl,wpwpavinl,upwpavinl,&
                                thlpthlpavinl,thlpupavinl,thlpwpavinl,qlpqlpavinl,qlpupavinl,qlpwpavinl,qtpqtpavinl,qtpupavinl,qtpwpavinl,Tinl,Trec,nstepread
 
@@ -64,7 +63,7 @@ contains
     integer imin,ihour
     integer i,j,k,n,im,ip,jm,jp,jpp,km,kp,kpp,il,iu,jl,ju,kl,ku
     character(25) name,name2,name3,name4,linkname
-    integer :: ierr, err_code
+    integer :: ierr
 
     if (timee == 0) return
 !    if (rk3step /=3) return
@@ -78,13 +77,10 @@ contains
       name = 'exit_now.'//cexpnr
       inquire(file=trim(name), EXIST=lexitnow)
     end if
-    call MPI_Bcast(lexitnow, 1, MPI_LOGICAL, 0, comm3d, ierr)
-    if (ierr /= 0) then
-      if (myid == 0) then
-        print *, "Error in MPI Broadcast!"
-      end if
-      err_code = ierr
-      call MPI_Abort(MPI_COMM_WORLD, err_code, ierr)
+    call bcast(lexitnow, 0)
+    if (mpierr /= 0) then
+      if (myid == 0) print *, "Error in broadcast of exit_now flag"
+      call abort_run(mpierr)
     end if
 
     if (((timee>=tnextrestart)) .or. ((lexitnow) .or. (nstepread == nstore+1))) then

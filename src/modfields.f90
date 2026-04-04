@@ -91,27 +91,6 @@ module modfields
    real, allocatable :: qfluxb(:,:,:)  !< and moisture
    real, allocatable :: cth(:,:,:)     !< heat transfer coefficient
 
-  !tg3315 added variables (statistics, masking and others)
-  integer, allocatable :: IIc(:,:,:)        !< Masking matrix for blocks at cell centres
-  integer, allocatable :: IIu(:,:,:)        !< Masking matrix for blocks at x-direction half cells
-  integer, allocatable :: IIv(:,:,:)        !< Masking matrix for blocks at y-direction half cells
-  integer, allocatable :: IIw(:,:,:)        !< Masking matrix for blocks at z-direction half cells
-  integer, allocatable :: IIuw(:,:,:)       !< Masking matrix for blocks at x-and z-direction half cells
-  integer, allocatable :: IIvw(:,:,:)       !< Masking matrix for blocks at y- and z-direction half cells
-  integer, allocatable :: IIuv(:,:,:)       !< Masking matrix for blocks at x- and y-direction half cells
-  integer, allocatable :: IIct(:,:)         !< 2-D Masking matrix for blocks at cell centre that span 1:jtot
-  integer, allocatable :: IIwt(:,:)         !< 2-D Masking matrix for blocks at z-direction half cells that span 1:jtot
-  integer, allocatable :: IIuwt(:,:)        !< 2-D Masking matrix for blocks at x- and z-direction half cells that span 1:jtot
-  integer, allocatable :: IIut(:,:)         !< 2-D Masking matrix for blocks at x-direction half cells that span 1:jtot
-  integer, allocatable :: IIvt(:,:)         !< 2-D Masking matrix for blocks at y-direction half cells that span 1:jtot
-  integer, allocatable :: IIcs(:)           !< 1-D Masking matrix for blocks at cell centres that span ib:ie and 1:jtot
-  integer, allocatable :: IIus(:)           !< 1-D Masking matrix for blocks at x-direction half cells that span ib:ie and 1:jtot
-  integer, allocatable :: IIvs(:)           !< 1-D Masking matrix for blocks at y-direction half cells that span ib:ie and 1:jtot
-  integer, allocatable :: IIws(:)           !< 1-D Masking matrix for blocks at z-direction half cells that span ib:ie and 1:jtot
-  integer, allocatable :: IIuws(:)          !< 1-D Masking matrix for blocks at x- and z-direction half cells that span ib:ie and 1:jtot
-  integer, allocatable :: IIvws(:)          !< 1-D Masking matrix for blocks at y- and z-direction half cells that span ib:ie and 1:jtot
-  integer, allocatable :: IIuvs(:)          !< 1-D Masking matrix for blocks at x- and y-direction half cells that span ib:ie and 1:jtot
-
   real, allocatable :: tr_ut(:,:,:)
   real, allocatable :: tr_vt(:,:,:)
   real, allocatable :: tr_wt(:,:,:)
@@ -420,7 +399,6 @@ module modfields
 contains
   !> Allocate and initialize the prognostic variables
   subroutine initfields
-
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jtot,nsv,&
          ihc,jhc,khc,ltdump,lmintdump,lytdump,lxytdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltrees,ltreedump!, iadv_kappa,iadv_sv
     use decomp_2d, only : alloc_z
@@ -570,27 +548,6 @@ contains
     !allocate(viscratioav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); viscratioav = 0.
     allocate(rhobf(kb:ke+kh)); rhobf = 1.
     allocate(rhobh(kb:ke+kh)); rhobh = 1.
-
-    allocate(IIc(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-    allocate(IIu(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-    allocate(IIv(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-    allocate(IIw(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-    allocate(IIuw(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-    allocate(IIvw(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-    allocate(IIuv(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-    allocate(IIct(ib:ie,kb:ke))
-    allocate(IIwt(ib:ie,kb:ke))
-    allocate(IIuwt(ib:ie,kb:ke))
-    allocate(IIut(ib:ie,kb:ke))
-    allocate(IIvt(ib:ie,kb:ke))
-    allocate(IIcs(kb:ke+khc))
-    allocate(IIus(kb:ke+khc))
-    allocate(IIvs(kb:ke+khc))
-    allocate(IIws(kb:ke+khc))
-    allocate(IIuws(kb:ke+khc))
-    allocate(IIvws(kb:ke+khc))
-    allocate(IIuvs(kb:ke+khc))
-    IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
 
     if (ltreedump) then
       allocate(tr_ut(ib:ie,jb:je,kb:ke))

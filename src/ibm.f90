@@ -1,4 +1,4 @@
-!!> \file modibm.f90
+!!> \file ibm.f90
 !!!  adds forcing terms for immersed boundaries
 !
 !>
@@ -21,17 +21,26 @@
 !
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-module modibm
+module ibm
    use mpi
-   use modibmdata
+   use ibmdata
+   use ibmmasks, only : IIc, IIu, IIv, IIw, IIuw, IIvw, IIuv, IIct, IIwt, IIuwt, IIut, IIvt, &
+                          IIcs, IIus, IIvs, IIws, IIuws, IIvws, IIuvs, initibm_support, createmasks
    !use wf_uno
    implicit none
    save
-   public :: initibm, ibmnorm, ibmwallfun, bottom, lbottom, createmasks, &
+   public :: initibm, ibmnorm, ibmwallfun, bottom, lbottom, &
              nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
              nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
              nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
-             mask_u, mask_v, mask_w, mask_c
+             mask_u, mask_v, mask_w, mask_c, &
+             initibm_support, createmasks, &
+             solid_info_type, bound_info_type, &
+             solid_info_u, solid_info_v, solid_info_w, solid_info_c, &
+             bound_info_u, bound_info_v, bound_info_w, bound_info_c, &
+             IIc, IIu, IIv, IIw, IIuw, IIvw, IIuv, &
+             IIct, IIwt, IIuwt, IIut, IIvt, &
+             IIcs, IIus, IIvs, IIws, IIuws, IIvws, IIuvs
 
     abstract interface
       function interp_velocity(i,j,k)
@@ -55,57 +64,6 @@ module modibm
               nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c
 
    real, allocatable, target, dimension(:,:,:) :: mask_u, mask_v, mask_w, mask_c
-
-   TYPE solid_info_type
-     integer :: nsolpts
-     integer, allocatable :: solpts(:,:)
-     logical, allocatable :: lsolptsrank(:) !
-     integer, allocatable :: solptsrank(:) ! indices of points on current rank
-     integer :: nsolptsrank
-     integer, allocatable :: solpts_loc(:,:)
-   end TYPE solid_info_type
-
-   type(solid_info_type) :: solid_info_u, solid_info_v, solid_info_w, solid_info_c
-
-   TYPE bound_info_type
-     integer :: nbndpts
-     integer, allocatable :: bndpts(:,:) ! ijk location of fluid boundary point
-     !real, allocatable    :: intpts(:,:) ! xyz location of boundary intercept point
-     !real, allocatable    :: bndvec(:,:) ! vector from boundary to fluid point (normalised)
-     real, allocatable    :: recpts(:,:) ! xyz location of reconstruction point
-     integer, allocatable :: recids_u(:,:) ! ijk location of u grid cell that rec point is in
-     integer, allocatable :: recids_v(:,:) ! ijk location of u grid cell that rec point is in
-     integer, allocatable :: recids_w(:,:) ! ijk location of u grid cell that rec point is in
-     integer, allocatable :: recids_c(:,:) ! ijk location of u grid cell that rec point is in
-     real, allocatable    :: bnddst(:) ! distance between surface & bound point
-     integer, allocatable :: bndptsrank(:) ! indices of points on current rank
-     !integer, allocatable :: bndpts_loc(:,:) ! indices of points on current rank
-     logical, allocatable :: lcomprec(:) ! Switch whether reconstruction point is a computational point
-     logical, allocatable :: lskipsec(:) ! Switch whether to skip finding the shear stress at this point
-     integer :: nbndptsrank
-     integer, allocatable :: bndpts_loc(:,:) ! ijk location of fluid boundary point on rank
-
-     integer :: nfctsecs
-     integer, allocatable :: secbndptids(:)
-     integer, allocatable :: secfacids(:)
-     real,    allocatable :: secareas(:)
-     integer, allocatable :: fctsecsrank(:)
-     integer :: nfctsecsrank
-     integer, allocatable :: secfacids_loc(:)
-     real   , allocatable :: secareas_loc(:)
-     integer, allocatable :: secbndpts_loc(:,:)
-     real   , allocatable :: bnddst_loc(:)
-     real   , allocatable :: recpts_loc(:,:)
-     integer, allocatable :: recids_u_loc(:,:)
-     integer, allocatable :: recids_v_loc(:,:)
-     integer, allocatable :: recids_w_loc(:,:)
-     integer, allocatable :: recids_c_loc(:,:)
-     logical, allocatable :: lcomprec_loc(:)
-     logical, allocatable :: lskipsec_loc(:)
-   end TYPE bound_info_type
-
-   type(bound_info_type) :: bound_info_u, bound_info_v, bound_info_w, bound_info_c
-
    integer :: nstatfac=7, ncidfac, nrecfac=0
    character(80), allocatable :: ncstatfac(:,:)
    character(80) :: facname = 'fac.xxx.nc'
@@ -127,16 +85,17 @@ module modibm
    real, allocatable :: fac_cth_av(:)
 
    contains
-
    subroutine initibm
      use modglobal, only : libm, xh, xf, yh, yf, zh, zf, xhat, yhat, zhat, vec0, &
                            ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, &
                            iwallmom, lmoist, ltempeq, cexpnr, nfcts, lwritefac
      use decomp_2d, only : exchange_halo_z
-     use modmpi,    only : myid
      use modstat_nc,only: open_nc, define_nc, ncinfo, writestat_dims_nc
 
      real, allocatable :: rhs(:,:,:)
+     integer :: myid, ierr
+
+     call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
 
      if (.not. libm) return
 
@@ -275,7 +234,6 @@ module modibm
    subroutine initibmwallfun(fname_bnd, fname_sec, dir, bound_info)
      use modglobal, only : ifinput, ib, ie, itot, ih, jb, je, jtot, jh, kb, ktot, kh, &
                            xf, yf, zf, xh, yh, zh, dx, dy, dzh, dzf, xhat, yhat, zhat, eps1
-     use modmpi,    only : myid, comm3d, MY_REAL, mpierr
      use initfac,   only : facnorm, facz0
      use decomp_2d, only : zstart, zend
      use readinput, only : read_sparse_ijk
@@ -294,12 +252,14 @@ module modibm
      real, dimension(6,3) :: inter
      real, dimension(6) :: inter_dists
      real :: xc, yc, zc, xl, yl, zl, xu, yu, zu, checkxl, checkxu, checkyl, checkyu, checkzl, checkzu, inter_dist
-     integer i, j, k, n, m, norm_align, dir_align, pos, p
+     integer i, j, k, n, m, norm_align, dir_align, pos, p, myid, mpierr
      real dst
      character(80) :: chmess
 
      integer, dimension(:), allocatable :: ids_loc
      integer, dimension(:,:), allocatable :: pts_loc
+
+     call MPI_COMM_RANK(MPI_COMM_WORLD, myid, mpierr)
 
      ! Read boundary points using generic read_sparse_ijk routine (skips 1 header line)
      ! Request both local and global arrays since sections need global indices
@@ -444,19 +404,19 @@ module modibm
            bound_info%recids_c(n,3) = findloc(bound_info%recpts(n,3) >= zf, .true., 1, back=.true.)
 
            ! check to see if recids is inside the domain
-           if (bound_info%recids_u(m,1) == 0 .or. bound_info%recids_u(m,2) == 0 .or. bound_info%recids_u(m,3) == 0) then
+           if (bound_info%recids_u(n,1) == 0 .or. bound_info%recids_u(n,2) == 0 .or. bound_info%recids_u(n,3) == 0) then
                bound_info%lskipsec(n) = .true.
                cycle
            end if
-           if (bound_info%recids_v(m,1) == 0 .or. bound_info%recids_v(m,2) == 0 .or. bound_info%recids_v(m,3) == 0) then
+           if (bound_info%recids_v(n,1) == 0 .or. bound_info%recids_v(n,2) == 0 .or. bound_info%recids_v(n,3) == 0) then
                bound_info%lskipsec(n) = .true.
              cycle
            end if
-           if (bound_info%recids_w(m,1) == 0 .or. bound_info%recids_w(m,2) == 0 .or. bound_info%recids_w(m,3) == 0) then
+           if (bound_info%recids_w(n,1) == 0 .or. bound_info%recids_w(n,2) == 0 .or. bound_info%recids_w(n,3) == 0) then
                bound_info%lskipsec(n) = .true.
                cycle
            end if
-           if (bound_info%recids_c(m,1) == 0 .or. bound_info%recids_c(m,2) == 0 .or. bound_info%recids_c(m,3) == 0) then
+           if (bound_info%recids_c(n,1) == 0 .or. bound_info%recids_c(n,2) == 0 .or. bound_info%recids_c(n,3) == 0) then
                bound_info%lskipsec(n) = .true.
              cycle
            end if
@@ -516,19 +476,19 @@ module modibm
        end do
      end if ! myid==0
 
-     call MPI_BCAST(bound_info%secfacids,   bound_info%nfctsecs,   MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%secareas,    bound_info%nfctsecs,   MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%secbndptids, bound_info%nfctsecs,   MPI_INTEGER, 0, comm3d, mpierr)
+     call MPI_BCAST(bound_info%secfacids,   bound_info%nfctsecs,   MPI_INTEGER, 0, MPI_COMM_WORLD, mpierr)
+     call MPI_BCAST(bound_info%secareas,    bound_info%nfctsecs,   MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, mpierr)
+     call MPI_BCAST(bound_info%secbndptids, bound_info%nfctsecs,   MPI_INTEGER, 0, MPI_COMM_WORLD, mpierr)
      !call MPI_BCAST(bound_info%intpts,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
      !call MPI_BCAST(bound_info%bndvec,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%bnddst,      bound_info%nfctsecs,   MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%recpts,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%recids_u,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%recids_v,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%recids_w,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%recids_c,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%lskipsec,    bound_info%nfctsecs,   MPI_LOGICAL, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%lcomprec,    bound_info%nfctsecs,   MPI_LOGICAL, 0, comm3d, mpierr)
+     call MPI_BCAST(bound_info%bnddst,      bound_info%nfctsecs,   MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, mpierr)
+     call MPI_BCAST(bound_info%recpts,      bound_info%nfctsecs*3, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, mpierr)
+     call MPI_BCAST(bound_info%recids_u,    bound_info%nfctsecs*3, MPI_INTEGER, 0, MPI_COMM_WORLD, mpierr)
+     call MPI_BCAST(bound_info%recids_v,    bound_info%nfctsecs*3, MPI_INTEGER, 0, MPI_COMM_WORLD, mpierr)
+     call MPI_BCAST(bound_info%recids_w,    bound_info%nfctsecs*3, MPI_INTEGER, 0, MPI_COMM_WORLD, mpierr)
+     call MPI_BCAST(bound_info%recids_c,    bound_info%nfctsecs*3, MPI_INTEGER, 0, MPI_COMM_WORLD, mpierr)
+     call MPI_BCAST(bound_info%lskipsec,    bound_info%nfctsecs,   MPI_LOGICAL, 0, MPI_COMM_WORLD, mpierr)
+     call MPI_BCAST(bound_info%lcomprec,    bound_info%nfctsecs,   MPI_LOGICAL, 0, MPI_COMM_WORLD, mpierr)
 
      ! Determine whether section needs to be updated by this rank
      bound_info%nfctsecsrank = 0
@@ -654,7 +614,6 @@ module modibm
      use modfields,   only : um, vm, wm, thlm, qtm, svm, up, vp, wp, thlp, qtp, svp, thl0, qt0, sv0, thl0av
      use modboundary, only : halos
      use decomp_2d,   only : zstart, zend
-     use modmpi, only : myid
 
      integer i, j, k, n, m
 
@@ -1114,13 +1073,14 @@ module modibm
      use modfields, only : u0, v0, w0, thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
                            tau_x, tau_y, tau_z, thl_flux
      use modsubgriddata, only : ekm, ekh
-     use modmpi, only : myid, comm3d, MPI_SUM, mpierr, MY_REAL
      use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
 
      real, allocatable :: rhs(:,:,:)
-     integer n
+     integer n, myid, mpierr
      real :: thl_flux_sum, thl_flux_tot, mom_flux_sum, mom_flux_tot
      logical thl_flux_file_exists, mom_flux_file_exists
+
+      call MPI_COMM_RANK(MPI_COMM_WORLD, myid, mpierr)
 
       if (.not. libm) return
 
@@ -1236,13 +1196,12 @@ module modibm
      use modfields, only : u0, v0, w0, thl0, tau_x, tau_y, tau_z
      use initfac,   only : facT, facz0, facz0h, facnorm, faca
      use decomp_2d, only : zstart
-     use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
 
      real, intent(in)    :: dir(3)
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
      type(bound_info_type) :: bound_info
 
-     integer i, j, k, n, m, sec, pt, fac
+     integer i, j, k, n, m, sec, pt, fac, mpierr
      real dist, stress, stress_dir, stress_aligned, area, vol, momvol, Tair, Tsurf, x, y, z, &
           utan, udir, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, strm, span, stressvec
@@ -1363,7 +1322,7 @@ module modibm
 
      if (lwritefac .and. rk3step==3) then
         fac_tau_loc(1:nfcts) = fac_tau_loc(1:nfcts) / faca(1:nfcts)
-        call MPI_ALLREDUCE(fac_tau_loc(1:nfcts), fac_tau(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
+        call MPI_ALLREDUCE(fac_tau_loc(1:nfcts), fac_tau(1:nfcts), nfcts, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, mpierr)
 
         select case(alignment(dir))
         case(1)
@@ -1385,12 +1344,11 @@ module modibm
                            xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
-     use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
      use modsurfdata, only : z0, z0h
-     use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
+     use ibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
      use decomp_2d, only : zstart
 
-     integer i, j, k, n, m, sec, fac
+     integer i, j, k, n, m, sec, fac, mpierr
      real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, htc, cveg, hurel, qtair, qwall, resa, resc, ress, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, span, strm
      real, dimension(1:nfcts) :: fac_htc_loc, fac_cth_loc, fac_pres_loc, fac_pres2_loc
@@ -1545,10 +1503,10 @@ module modibm
         fac_pres_loc(1:nfcts) = fac_pres_loc(1:nfcts) / faca(1:nfcts)
         fac_pres2_loc(1:nfcts) = fac_pres2_loc(1:nfcts) / faca(1:nfcts)
         
-        call MPI_ALLREDUCE(fac_cth_loc(1:nfcts), fac_cth(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
-        call MPI_ALLREDUCE(fac_htc_loc(1:nfcts), fac_htc(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
-        call MPI_ALLREDUCE(fac_pres_loc(1:nfcts), fac_pres(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
-        call MPI_ALLREDUCE(fac_pres2_loc(1:nfcts), fac_pres2(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
+        call MPI_ALLREDUCE(fac_cth_loc(1:nfcts), fac_cth(1:nfcts), nfcts, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, mpierr)
+        call MPI_ALLREDUCE(fac_htc_loc(1:nfcts), fac_htc(1:nfcts), nfcts, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, mpierr)
+        call MPI_ALLREDUCE(fac_pres_loc(1:nfcts), fac_pres(1:nfcts), nfcts, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, mpierr)
+        call MPI_ALLREDUCE(fac_pres2_loc(1:nfcts), fac_pres2(1:nfcts), nfcts, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, mpierr)
      end if
 
    end subroutine wallfunheat
@@ -1951,9 +1909,10 @@ module modibm
       use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,up,vp,wp,thlp,qtp,svp,shear,momfluxb,tfluxb,cth,tau_x,tau_y,tau_z,thl_flux
       use modsurfdata, only:thlflux, qtflux, svflux, ustar, thvs, wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekm, ekh
-      use modmpi, only:myid
       implicit none
-      integer :: i, j, jp, jm, m
+      integer :: i, j, jp, jm, m, myid, ierr
+
+      call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
 
       e120(:, :, kb - 1) = e120(:, :, kb)
       e12m(:, :, kb - 1) = e12m(:, :, kb)
@@ -2045,139 +2004,4 @@ module modibm
 
       return
    end subroutine bottom
-
-
-   subroutine createmasks
-      use modglobal, only : libm, ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, itot, jtot, rslabs
-      use modfields, only : IIc,  IIu,  IIv,  IIw,  IIuw,  IIvw,  IIuv,  &
-                            IIcs, IIus, IIvs, IIws, IIuws, IIvws, IIuvs, &
-                            IIct, IIut, IIvt, IIwt, IIuwt, um, u0, vm, v0, wm, w0
-      use modmpi,    only : myid, comm3d, mpierr, MY_REAL, nprocs
-      use decomp_2d, only : zstart, exchange_halo_z
-
-      integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
-      integer :: IIcd(ib:ie, kb:ke)
-      integer :: IIwd(ib:ie, kb:ke)
-      integer :: IIuwd(ib:ie, kb:ke)
-      integer :: IIud(ib:ie, kb:ke)
-      integer :: IIvd(ib:ie, kb:ke)
-      integer :: i, j, k, n, m
-
-      ! II*l needn't be defined up to ke_khc, but for now would require large scale changes in modstatsdump so if works leave as is ! tg3315 04/07/18
-
-      if (.not. libm) then
-         IIc(:, :, :) = 1
-         IIu(:, :, :) = 1
-         IIv(:, :, :) = 1
-         IIw(:, :, :) = 1
-         IIuw(:, :, :) = 1
-         IIvw(:, :, :) = 1
-         IIuv(:, :, :) = 1
-         IIcs(:) = nint(rslabs)
-         IIus(:) = nint(rslabs)
-         IIvs(:) = nint(rslabs)
-         IIws(:) = nint(rslabs)
-         IIuws(:) = nint(rslabs)
-         IIvws(:) = nint(rslabs)
-         IIuvs(:) = nint(rslabs)
-         IIct(:, :) = jtot
-         IIut(:, :) = jtot
-         IIvt(:, :) = jtot
-         IIwt(:, :) = jtot
-         IIuwt(:, :) = jtot
-         return
-      end if
-      ! Create masking matrices
-      IIc = 1; IIu = 1; IIv = 1; IIct = 1; IIw = 1; IIuw = 1; IIvw = 1; IIuv = 1; IIwt = 1; IIut = 1; IIvt = 1; IIuwt = 1; IIcs = 1; IIus = 1; IIvs = 1; IIws = 1; IIuws = 1; IIvws = 1; IIuvs = 1
-
-      do n = 1,solid_info_u%nsolptsrank
-       !n = solid_info_u%solptsrank(m)
-          i = solid_info_u%solpts_loc(n,1)
-          j = solid_info_u%solpts_loc(n,2)
-          k = solid_info_u%solpts_loc(n,3)
-          IIu(i,j,k) = 0
-      end do
-
-      do n = 1,solid_info_v%nsolptsrank
-       !n = solid_info_v%solptsrank(m)
-          i = solid_info_v%solpts_loc(n,1)
-          j = solid_info_v%solpts_loc(n,2)
-          k = solid_info_v%solpts_loc(n,3)
-          IIv(i,j,k) = 0
-      end do
-
-      do n = 1,solid_info_w%nsolptsrank
-       !n = solid_info_w%solptsrank(m)
-          i = solid_info_w%solpts_loc(n,1)
-          j = solid_info_w%solpts_loc(n,2)
-          k = solid_info_w%solpts_loc(n,3)
-          IIw(i,j,k) = 0
-      end do
-
-      do n = 1,solid_info_c%nsolptsrank
-       !n = solid_info_c%solptsrank(m)
-          i = solid_info_c%solpts_loc(n,1)
-          j = solid_info_c%solpts_loc(n,2)
-          k = solid_info_c%solpts_loc(n,3)
-          IIc(i,j,k) = 0
-      end do
-
-      IIw(:, :, kb) = 0; IIuw(:, :, kb) = 0; IIvw(:, :, kb) = 0
-
-      do i=ib,ie
-        do j=jb,je
-          IIuv(i,j,kb) = IIu(i,j,kb) * IIu(i,j-1,kb) * IIv(i,j,kb) * IIv(i-1,j,kb)
-          do k=kb+1,ke
-            ! Classed as solid (set to zero) unless ALL points in the stencil are fluid
-            IIuv(i,j,k) = IIu(i,j,k) * IIu(i,j-1,k) * IIv(i,j,k) * IIv(i-1,j,k)
-            IIuw(i,j,k) = IIu(i,j,k) * IIu(i,j,k-1) * IIw(i,j,k) * IIw(i-1,j,k)
-            IIvw(i,j,k) = IIv(i,j,k) * IIv(i,j,k-1) * IIw(i,j,k) * IIw(i,j-1,k)
-          end do
-        end do
-      end do
-
-      ! Can't do this because no interface for integers
-      ! call exchange_halo_z(IIuv, opt_zlevel=(/ihc,jhc,0/))
-      ! call exchange_halo_z(IIuv, opt_zlevel=(/ihc,jhc,0/))
-      ! call exchange_halo_z(IIvw, opt_zlevel=(/ihc,jhc,0/))
-
-      do k = kb, ke + khc
-         IIcl(k) = sum(IIc(ib:ie, jb:je, k))
-         IIul(k) = sum(IIu(ib:ie, jb:je, k))
-         IIvl(k) = sum(IIv(ib:ie, jb:je, k))
-         IIwl(k) = sum(IIw(ib:ie, jb:je, k))
-         IIuwl(k) = sum(IIuw(ib:ie, jb:je, k))
-         IIvwl(k) = sum(IIvw(ib:ie, jb:je, k))
-         IIuvl(k) = sum(IIuv(ib:ie, jb:je, k))
-      enddo
-
-      call MPI_ALLREDUCE(IIcl, IIcs, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIul, IIus, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIvl, IIvs, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIwl, IIws, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIuwl, IIuws, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIvwl, IIvws, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIuvl, IIuvs, ke + khc - kb + 1, MPI_INTEGER, &
-                         MPI_SUM, comm3d, mpierr)
-
-      IIcd(ib:ie, kb:ke) = sum(IIc(ib:ie, jb:je, kb:ke), DIM=2)
-      IIwd(ib:ie, kb:ke) = sum(IIw(ib:ie, jb:je, kb:ke), DIM=2)
-      IIuwd(ib:ie, kb:ke) = sum(IIuw(ib:ie, jb:je, kb:ke), DIM=2)
-      IIud(ib:ie, kb:ke) = sum(IIu(ib:ie, jb:je, kb:ke), DIM=2)
-      IIvd(ib:ie, kb:ke) = sum(IIv(ib:ie, jb:je, kb:ke), DIM=2)
-
-      call MPI_ALLREDUCE(IIwd(ib:ie, kb:ke), IIwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIcd(ib:ie, kb:ke), IIct(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIuwd(ib:ie, kb:ke), IIuwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIud(ib:ie, kb:ke), IIut(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(IIvd(ib:ie, kb:ke), IIvt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-
-   end subroutine createmasks
-
-end module modibm
+end module ibm

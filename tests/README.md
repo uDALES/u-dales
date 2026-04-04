@@ -147,10 +147,17 @@ between multiple components rather than one isolated API.
 - `directshortwave/`: Python-driven preprocessing integration tests for direct
   shortwave on committed cases `100` and `525`
 - `ibm_sparse_input/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
+- `mpi_operators/`: direct MPI operator and architecture validation for
+  `runmode = 1005` and `runmode = 1006` on the Xie/Castro case `100` across
+  `1x1`, `2x1`, `1x2`, and `2x2`
 - `processor_boundaries/`: MPI decomposition parity checks on the Xie/Castro
   no-tree case `100` and the vegetation case `526`
 - `python_preproc_against_matlab/`: preprocessing parity test between the
   MATLAB and Python entry points on no-tree case `100`
+- solver-side direct MPI field-operator validation is available through
+  `runmode = 1005` (`TEST_MPI_OPERATORS`) in `src/tests.f90`
+- solver-side direct MPI abstraction validation is available through
+  `runmode = 1006` (`TEST_MPI_ARCHITECTURE`) in `src/tests.f90`
 
 `tests/cases/` holds shared committed fixtures used by these tests. At present:
 
@@ -177,17 +184,26 @@ cd tests/integration/ibm_sparse_input
 ./run_test.sh
 ```
 
+To run the direct MPI operator and architecture test:
+
+```bash
+cd tests/integration/mpi_operators
+./run_test.sh
+```
+
 ## Regression
 
 `tests/regression` contains branch-comparison and case-based regression assets:
 
 - `david_tests/`: the older branch-comparison regression harness and its helper assets
 - `new_vegetation_module_against_v2.2/`: the `526` legacy vegetation regression against release `v2.2.0`
+- `mpi_averaging_regression/`: branch/commit regression for the MPI averaging and reduction layer
 
 At present there are two regression paths:
 
 - `david_tests/`: an older branch-comparison build harness used by the supported suite
 - `new_vegetation_module_against_v2.2/`: a dedicated solver-output regression for the new vegetation module against the `v2.2.0` release
+- `mpi_averaging_regression/`: a branch/commit regression for `global_sum`, `global_max`, and the intrinsic averaging operators across compact multi-decomposition cases
 
 To run regression tests:
 

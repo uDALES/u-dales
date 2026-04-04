@@ -76,7 +76,7 @@ contains
   subroutine inittimedep
     use modmpi,    only :myid,my_real,mpi_logical,mpierr,comm3d
     use modglobal, only :cexpnr,kb,ke,kh,kmax,ifinput,runtime,zf,skyLW,nfcts
-    use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz!, bctfzf
+    use ibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz!, bctfzf
     use modfields, only: thlprof
     !use initfac, only : netsw !Should probably be moved to somewhere else
 
@@ -321,7 +321,7 @@ contains
   subroutine timedepsurf
     use modmpi,     only : myid
     use modglobal,  only : timee
-    use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz!, bctfzf
+    use ibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz!, bctfzf
     implicit none
     integer t
     real fac

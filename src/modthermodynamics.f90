@@ -56,8 +56,11 @@ contains
   !! Calculate the liquid water content, do the microphysics, calculate the mean hydrostatic pressure, calculate the fields at the half levels, and finally calculate the virtual potential temperature.
   subroutine thermodynamics
     use modglobal, only : lmoist, timee, kb, ke, kh, ib, ih, ie, jb, jh, je,rlv, cp, rslabs, rd, rv, libm, eps1
-    use modfields, only : thl0,thl0h,qt0,qt0h,ql0,ql0h,presf,presh,exnf,exnh,thvh,thv0h,qt0av,ql0av,thvf,rhof,IIc,IIw,IIcs,IIws
-    use modmpi,    only : slabsum,avexy_ibm,myid
+    use modfields, only : thl0,thl0h,qt0,qt0h,ql0,ql0h,presf,presh,exnf,exnh,thvh,thv0h,qt0av,ql0av,thvf,rhof
+    use ibmmasks, only : IIc, IIw, IIcs, IIws
+    use definitions,only : LOC_C, LOC_U, LOC_V, LOC_W
+    use modmpi,    only : myid
+    use operators,   only : reduce_xy_sum, av_intr
 !ILS13 added variables behind "exnh"
     implicit none
     integer :: k
@@ -75,14 +78,14 @@ contains
 
 !ILS13 introduced from DALES4.0   13.05.2015
     thvh=0.
-!    call slabsum(thvh,kb,ke+kh,thv0h(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh) !redefine halflevel thv using calculated thv
+!    call av_intr(thvh, thv0h, LOC_W, kh, .false.) ! redefine halflevel thv using calculated thv
 !    thvh = thvh/rslabs
-    call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+    call av_intr(thvh(kb:ke+kh),thv0h,LOC_W,kh,.false.)
 
 !    if (libm) then
-!      call avexy_ibm(thvh(kb:ke),thv0h(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIws(kb:ke))    
+!      call av_intr(thvh(kb:ke), thv0h, LOC_W, 0, .false.)
 !    else
-!      call slabsum(thvh,kb,ke+kh,thv0h(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
+!      call reduce_xy_sum(thvh, thv0h(ib:ie,jb:je,kb:ke+kh))
 !     !redefine halflevel thv using calculated thv
 !     thvh = thvh/rslabs
 !    end if
@@ -102,9 +105,8 @@ contains
     thvf = 0.0
 
     !write(*,*) "thv0",thv0
-!    call slabsum(thvf,kb,ke+kh,thv0,ib,ie+ih,jb,je+jh,kb,ke+kh,ib+ih,ie,jb+ih,je,kb,ke+kh)
-!    call slabsum(thvf,kb,ke+kh,thv0,ib,ie,jb,je,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+!    call av_intr(thvf, thv0, LOC_C, kh, .false.)
+    call av_intr(thvf(kb:ke+kh),thv0,LOC_C,kh,.false.)
 !    write(*,*) 'IIc(2,2,:), myid' , IIc(12,2,:), myid
 
 !    where (thvf==0) !override slabs completely covered by blocks
@@ -243,9 +245,12 @@ contains
 
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,khc,nsv,zh,zf,rslabs,grav,rlv,cp,rd,rv,pref0
     use modfields, only : u0,v0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
-         presf,presh,exnf,exnh,rhof,thvf,IIc,IIcs,IIu,IIus,IIv,IIvs
+         presf,presh,exnf,exnh,rhof,thvf
+    use ibmmasks, only : IIc, IIcs, IIu, IIus, IIv, IIvs
     use modsurfdata,only : thls,ps
-    use modmpi,    only : slabsum,myid,avexy_ibm
+    use definitions,only : LOC_C, LOC_U, LOC_V
+    use modmpi,    only : myid
+    use operators,   only : reduce_xy_sum, av_intr
     implicit none
 
     real     tv
@@ -268,15 +273,12 @@ contains
 
 
     !CvH changed momentum array dimensions to same value as scalars!
-    !  call slabsum(u0av  ,kb,ke+kh,u0  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-!    call slabsum(u0av  ,kb,ke+kh,u0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call avexy_ibm(u0av(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-    !  call slabsum(v0av  ,kb,ke+kh,v0  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-!    call slabsum(v0av  ,kb,ke+kh,v0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call avexy_ibm(v0av(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-    !  call slabsum(thl0av,kb,ke+kh,thl0,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-!    call slabsum(thl0av,kb,ke+kh,thl0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+    !  call av_intr(u0av(kb:ke+kh), u0, LOC_U, kh, .false.)
+    call av_intr(u0av(kb:ke+kh),u0,LOC_U,kh,.false.)
+    !  call av_intr(v0av(kb:ke+kh), v0, LOC_V, kh, .false.)
+    call av_intr(v0av(kb:ke+kh),v0,LOC_V,kh,.false.)
+    !  call av_intr(thl0av(kb:ke+kh), thl0, LOC_C, kh, .false.)
+    call av_intr(thl0av(kb:ke+kh),thl0,LOC_C,kh,.false.)
 
     !write(*,*) 'thl0av(kb), thl0av(kb+1)', thl0av(kb), thl0av(kb+1)
    
@@ -284,11 +286,10 @@ contains
     !  thl0av(kb) = thl0av(kb+1)
     !end if
 
-    !  call slabsum(qt0av ,kb,ke+kh,qt0 ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-!    call slabsum(qt0av ,kb,ke+kh,qt0(:,:,kb:ke+kh) ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-!    call slabsum(ql0av ,kb,ke+kh,ql0 ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call avexy_ibm(ql0av(kb:ke+kh),ql0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+    !  call av_intr(qt0av(kb:ke+kh), qt0, LOC_C, kh, .false.)
+    call av_intr(qt0av(kb:ke+kh),qt0,LOC_C,kh,.false.)
+!    call av_intr(ql0av(kb:ke+kh), ql0, LOC_C, kh, .false.)
+    call av_intr(ql0av(kb:ke+kh),ql0,LOC_C,kh,.false.)
 
     exnf   = 1-grav*zf/(cp*thls)
     exnh  = 1-grav*zh/(cp*thls)
@@ -299,8 +300,8 @@ contains
     
 
     do n=1,nsv
-!       call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-    call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
+!       call av_intr(sv0av(kb:ke+khc,n), sv0(:,:,:,n), LOC_C, kh, .false.)
+    call av_intr(sv0av(kb:ke+khc,n),sv0(:,:,:,n),LOC_C,kh,.false.)
     end do
 !    sv0av = sv0av/rslabs
 
@@ -366,7 +367,8 @@ contains
   subroutine fromztop
 
     use modglobal, only : kmax,kb,ke,kh,dzf,dzh,rv,rd,cp,tmelt,zf,grav,pref0,lEB
-    use modfields, only : qt0av,ql0av,presf,presh,thvh,thvf,IIcs
+    use modfields, only : qt0av,ql0av,presf,presh,thvh,thvf
+    use ibmmasks, only : IIcs
     use modsurfdata,only : ps,thvs
     implicit none
 

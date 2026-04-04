@@ -29,7 +29,7 @@
 !
 module modstat_nc
     use netcdf
-    use modmpi, only : myid
+    use architecture, only : myid
     implicit none
     integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0, ztsID=0, fctID=0, lyrID=0
     real(kind=4) :: nc_fillvalue = -999.
@@ -46,7 +46,7 @@ contains
 
   subroutine initstat_nc
     use modglobal, only : kmax,ifnamopt,fname_options,iexpnr
-    use modmpi,    only : mpierr,mpi_logical,comm3d,myid
+    use architecture, only : mpierr, comm3d, myid
     implicit none
 
     integer             :: ierr

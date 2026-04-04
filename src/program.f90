@@ -26,16 +26,17 @@ program uDALES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_MPI_ARCHITECTURE
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
+  use ibm,               only : initibm_support, createmasks
   use modsave,           only : writerestartfiles
   use modboundary,       only : initboundary,boundary,grwdamp,halos
   use modthermodynamics, only : initthermodynamics,thermodynamics
   use modsubgrid,        only : initsubgrid,subgrid
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
-  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
+  use ibm,            only : initibm,ibmwallfun,ibmnorm,bottom
   use vegetation,        only : init_vegetation, apply_vegetation
   use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
@@ -51,7 +52,7 @@ program uDALES
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
-  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit
+  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_fieldops,tests_mpi_architecture
   implicit none
 
 !----------------------------------------------------------------
@@ -88,6 +89,7 @@ program uDALES
   call readfacetfiles
   ! These should be combined once file format is sorted
   call initibm
+  call initibm_support
 
   call createmasks
 
@@ -248,6 +250,10 @@ contains
         test_failed = .not. tests_read_sparse_ijk()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
+      case (TEST_MPI_OPERATORS)
+        test_failed = .not. tests_mpi_fieldops()
+      case (TEST_MPI_ARCHITECTURE)
+        test_failed = .not. tests_mpi_architecture()
       case default
         write(*,*) 'Unknown runmode:', runmode
         invalid_runmode = .true.

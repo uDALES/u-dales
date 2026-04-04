@@ -130,7 +130,9 @@ contains
       use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uouttot, vouttot, thl0c
       use modsubgriddata, only : ekh, ekm, loneeqn
       use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
-      use modmpi,         only : myid, slabsum, avey_ibm
+      use definitions,     only : LOC_C, LOC_WU
+      use modmpi,         only : myid
+      use operators,        only : reduce_xy_sum, av_y_intr
       use moddriver,      only : drivergen, driverchunkread
       use modinletdata,   only : ubulk, vbulk, iangle
       use decomp_2d,      only : exchange_halo_z
@@ -1152,8 +1154,11 @@ contains
                               BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
                               BCxm_periodic, BCxm_profile, BCxm_driver, &
                               BCym_periodic, BCym_profile
-     use modfields,    only : pres0, up, vp, wp, um, vm, wm, w0, u0, v0, uouttot, vouttot, uinit, vinit, uprof, vprof, pres0, IIc, IIcs
-     use modmpi,       only : excjs, excis, myid, avexy_ibm
+     use modfields,    only : pres0, up, vp, wp, um, vm, wm, w0, u0, v0, uouttot, vouttot, uinit, vinit, uprof, vprof, pres0
+     use ibmmasks,   only : IIc, IIcs
+     use definitions,     only : LOC_C
+     use modmpi,       only : excjs, excis, myid
+     use operators,      only : av_intr
      use modinletdata, only : u0driver
      use decomp_2d,    only : exchange_halo_z
 
@@ -1189,7 +1194,7 @@ contains
        end do
 
      case(BCtopm_pressure)
-       call avexy_ibm(pres0ij(kb:ke+kh),pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+       call av_intr(pres0ij(kb:ke+kh),pres0,LOC_C,kh,.false.)
 
        do j = jb, je
          do i = ib, ie

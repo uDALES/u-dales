@@ -23,7 +23,7 @@
 module modstatistics
 
   use modglobal, only : dt,ltkedump
-  use modmpi, only : myid
+  use architecture, only : myid
   implicit none
   private
   PUBLIC :: genstats,tkestats
@@ -45,7 +45,7 @@ contains
                                upupav,vpvpav,wpwpav,upvpav,upwpav,vpwpav,thlpwpav
   use modglobal,        only : ib,ie,ih,jb,je,dy,jh,ke,kb,kh,rk3step,timee,cexpnr,tsample,tstatsdump,&
                                ltempeq,dxf,dzf,dzhi
-  use modmpi,           only : myid,cmyid,my_real,mpi_sum,mpierr,comm3d
+  use architecture,     only : myid, cmyid, my_real, mpierr, comm3d
   implicit none
 
   real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: umint

@@ -417,7 +417,7 @@ contains
 
   subroutine poisson
     use modglobal, only : ib,ie,ih,jb,je,kb,ke,kh,itot,jtot,ktot,dy,dzf,dzh,linoutflow,iinletgen,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,imax,jmax,eps1,BCxm,BCym,BCzp,ibrank,jbrank
-    use modmpi, only : myid,nprocs,barrou
+    use modmpi, only : myid,nprocs,barrier_domain
     implicit none
     integer ibc1,ibc2,kbc1,kbc2,ksen
     complex, allocatable, dimension(:,:,:) :: Fx, Fy, Fz
@@ -915,10 +915,12 @@ contains
   ! Adapted fillps for RK3 time loop
 
 
-    use modfields, only : up, vp, wp, um, vm, wm,u0,v0,w0,IIw,IIws
+    use modfields, only : up, vp, wp, um, vm, wm,u0,v0,w0
+    use ibmmasks, only : IIw, IIws
     use modglobal, only : rk3step, ib,ie,jb,je,kb,ke,ih,jh,kh,dxi,dxfi,dyi,dzfi,dt,&
                           linoutflow,libm,dtmax,ierank,jerank,pi,dy,imax,jmax,ylen,xf,zf,jbrank
-    use modmpi,    only : excjs, myidx, myidy, avexy_ibm, myid
+    use modmpi,    only : excjs, myidx, myidy, myid
+    use operators,   only : av_intr
     use modboundary, only: bcpup
 !    use modibm,    only : ibmnorm
 
@@ -1028,9 +1030,12 @@ contains
     !                                                                 |
     !-----------------------------------------------------------------|
 
-    use modfields, only : u0, v0, w0, up, vp, wp, pres0, IIc, IIcs, uouttot
+    use modfields, only : u0, v0, w0, up, vp, wp, pres0, uouttot
+    use ibmmasks, only : IIc, IIcs
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxi,dxhi,dyi,dzhi,linoutflow,rslabs,ibrank,ierank,jbrank,jerank,dxfi,BCtopm,BCtopm_pressure
-    use modmpi,    only : myid,slabsum,avexy_ibm
+    use definitions,only : LOC_C
+    use modmpi,    only : myid
+    use operators,   only : reduce_xy_sum, av_intr
     use modboundary,only : bcp
     implicit none
     integer i,j,k
@@ -1060,7 +1065,7 @@ contains
 
     if (BCtopm .eq. BCtopm_pressure) then
       ! Get out the slab averaged dp/dz = <rhw>
-      call avexy_ibm(pij(kb:ke+kh),p(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call av_intr(pij(kb:ke+kh),p,LOC_C,kh,.false.)
 
       do i=ib,ie
         do j=jb,je
@@ -1091,7 +1096,7 @@ contains
     !pij =0.; pijk=0.;
 
     ! if (.not. linoutflow) then
-    !   call slabsum(pij(kb:ke),kb,ke,p(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ib,ie,jb,je,kb,ke)
+    !   call reduce_xy_sum(pij(kb:ke), p(ib:ie,jb:je,kb:ke))
     !   pij = pij/rslabs
     !   pijk = sum(pij(kb:ke))/(ke-kb)
     ! end if
@@ -1108,7 +1113,7 @@ contains
   end subroutine tderive
 
   subroutine solmpj(x)
-    use modmpi,    only : myid,comm3d,mpierr,nprocs, barrou
+    use modmpi,    only : myid,comm3d,mpierr,nprocs, barrier_domain
     use modglobal, only : imax,jmax,ktot,isen,itot,jtot,pi,dyi,dzf,dzh,dxfi, kb, ke, kh,kmax, ib, ie, jb, je, kb, ke, linoutflow, ierank, jerank, ibrank, jbrank, BCxm, BCym
     use modfields, only : rhobf, rhobh
 

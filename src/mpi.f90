@@ -1,8 +1,8 @@
-!> \file modmpi.f90
-!!  Layer to deal with the parallelization.
+!> \file mpi.f90
+!!  Low-level parallelization layer.
 
 !>
-!!  Layer to deal with the parallelization.
+!!  Low-level parallelization layer.
 !>
 !!  \author Matthieu Pourquie, TU Delft
 !!  \par Revision list
@@ -32,28 +32,12 @@
 
 module modmpi
 use mpi
+use architecture
 implicit none
 save
-  integer comm3d
-  !integer nbrtop
-  integer nbrnorth
-  !integer nbrbottom
-  integer nbrsouth
-  integer nbreast
-  integer nbrwest
-  integer myid
-  integer myidx
-  integer myidy
-  integer nprocs ! Remove
-  integer nprocx
-  integer nprocy
-  integer mpierr
-  integer my_real
-  real    CPU_program    !end time
-  real    CPU_program0   !start time
-  character(3) :: cmyid
-  character(3) :: cmyidx
-  character(3) :: cmyidy
+  ! API naming rule:
+  ! semantic reduction routines are global by default. Use a *_local suffix
+  ! only for routines that intentionally return processor-local results.
 
 contains
   subroutine initmpi
@@ -162,14 +146,6 @@ contains
     call decomp_2d_finalize
     call MPI_FINALIZE(mpierr)
   end subroutine exitmpi
-
-  subroutine barrou()
-    implicit none
-    call MPI_BARRIER(comm3d,mpierr)
-
-  return
-  end subroutine barrou
-
 
 !   subroutine excj( a, sx, ex, sy, ey, sz,ez)
 !     implicit none
@@ -591,165 +567,5 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
 
   return
   end subroutine excjs
-
-  subroutine slabsum(aver,ks,kf,var,ib,ie,jb,je,kb,ke,ibs,ies,jbs,jes,kbs,kes)
-    implicit none
-
-    integer :: ks,kf
-    integer :: ib,ie,jb,je,kb,ke,ibs,ies,jbs,jes,kbs,kes
-    real    :: aver(ks:kf)
-    real    :: var (ib:ie,jb:je,kb:ke)
-    real    :: averl(ks:kf)
-    real    :: avers(ks:kf)
-    integer :: k
-
-    averl       = 0.
-    avers       = 0.
-
-    do k=kbs,kes
-      averl(k) = sum(var(ibs:ies,jbs:jes,k))
-    enddo
-
-    call MPI_ALLREDUCE(averl, avers, kf-ks+1,  MY_REAL, &
-                          MPI_SUM, comm3d,mpierr)
-
-    aver = aver + avers
-
-    return
-  end subroutine slabsum
-
-  subroutine avexy_ibm(aver,var,ib,ie,jb,je,kb,ke,ih,jh,kh,II,IIs,lnan)
-    implicit none
-
-    integer :: ib,ie,jb,je,kb,ke,ih,jh,kh
-    real    :: aver(kb:ke+kh)
-    real    :: var(ib:ie,jb:je,kb:ke+kh)
-    integer :: II(ib:ie,jb:je,kb:ke+kh)
-    integer :: IIs(kb:ke+kh)
-    integer :: IId(kb:ke+kh)
-    real    :: averl(kb:ke+kh)
-    real    :: avers(kb:ke+kh)
-    integer :: k
-    logical :: lnan
-
-    averl       = 0.
-    avers       = 0.
-
-    do k=kb,ke+kh
-      averl(k) = sum(var(ib:ie,jb:je,k)*II(ib:ie,jb:je,k))
-    enddo
-
-    IId = IIs
-
-    ! tg3315 22.03.19 - if not calculating stats and all blocks on lowest layer...
-    ! should not be necessary but value at kb is used in modthermo so reasonable value must
-    ! be assigned. Potentially should leave as before and only account for in modthermo...
-    if ((.not. lnan) .and. (IId(kb)==0)) then
-      averl(kb) = sum(var(ib:ie,jb:je,kb))
-      IId(kb) = IId(ke)
-    end if
-
-    call MPI_ALLREDUCE(averl, avers, ke+kh-kb+1,  MY_REAL, &
-                          MPI_SUM, comm3d,mpierr)
-
-    where (IId==0)
-      aver = -999.
-    elsewhere
-      aver = avers/IId
-    endwhere
-
-    return
-  end subroutine avexy_ibm
-
-  subroutine slabsumi(aver,iis,iif,var,ib,ie,jb,je,kb,ke,ibs,ies,jbs,jes,kbs,kes)
-    implicit none
-
-    integer :: iis,iif
-    integer :: ib,ie,jb,je,kb,ke,ibs,ies,jbs,jes,kbs,kes
-    real    :: aver(iis:iif)
-    real    :: var (ib:ie,jb:je,kb:ke)
-    real    :: averl(iis:iif)
-    real    :: avers(iis:iif)
-    integer :: i
-
-    averl       = 0.
-    avers       = 0.
-
-    do i=ibs,ies
-      averl(i) = sum(var(i,jbs:jes,kbs:kes))
-    enddo
-
-    call MPI_ALLREDUCE(averl, avers, iif-iis+1,  MY_REAL, &
-                          MPI_SUM, comm3d,mpierr)
-
-    aver = aver + avers
-
-    return
-  end subroutine slabsumi
-
-  !Could make this so it has cases like if the input is 1,2 or 3D...
-  subroutine avey_ibm(aver,var,ib,ie,jb,je,kb,ke,II,IIt)
-  implicit none
-  integer                 :: ib,ie,jb,je,kb,ke
-  real                    :: aver(ib:ie,kb:ke)
-  real                    :: avero(ib:ie,kb:ke)
-  real                    :: var(ib:ie,jb:je,kb:ke)
-  integer                 :: II(ib:ie,jb:je,kb:ke)
-  integer                 :: IIt(ib:ie,kb:ke)
-  logical                 :: lytdump,lnan
-
-  avero = 0.
-  aver  = 0.
-
-  avero = sum(var(ib:ie,jb:je,kb:ke)*II(ib:ie,jb:je,kb:ke), DIM=2)
-
-  call MPI_ALLREDUCE(avero(ib:ie,kb:ke), aver(ib:ie,kb:ke), (ke-kb+1)*(ie-ib+1), MY_REAL,MPI_SUM, comm3d,mpierr)
-
-  where (IIt==0)
-    aver = -999.
-  elsewhere
-    aver = aver/IIt
-  endwhere
-
-  end subroutine avey_ibm
-
-  subroutine sumy_ibm(sumy,var,ib,ie,jb,je,kb,ke,II)
-    ! This routine sums up a variable over the y direction,
-    ! only including the fluid cells.
-    implicit none
-    integer                 :: ib,ie,jb,je,kb,ke
-    real                    :: sumy(ib:ie,kb:ke)
-    real                    :: sumproc(ib:ie,kb:ke)
-    real                    :: var(ib:ie,jb:je,kb:ke)
-    integer                 :: II(ib:ie,jb:je,kb:ke)
-
-    sumproc = 0.
-    sumy  = 0.
-
-    sumproc = sum(var(ib:ie,jb:je,kb:ke)*II(ib:ie,jb:je,kb:ke), DIM=2)
-
-    call MPI_ALLREDUCE(sumproc(ib:ie,kb:ke), sumy(ib:ie,kb:ke), (ke-kb+1)*(ie-ib+1), MY_REAL,MPI_SUM, comm3d,mpierr)
-
-    end subroutine sumy_ibm
-
-
-    subroutine sumx_ibm(sumx,var,ib,ie,jb,je,kb,ke,II)
-     ! This routine sums up a variable over the x direction,
-     ! only including the fluid cells.
-     implicit none
-     integer                 :: ib,ie,jb,je,kb,ke
-     real                    :: sumx(jb:je,kb:ke)
-     real                    :: sumproc(jb:je,kb:ke)
-     real                    :: var(ib:ie,jb:je,kb:ke)
-     integer                 :: II(ib:ie,jb:je,kb:ke)
-
-     sumproc = 0.
-     sumx  = 0.
-
-     sumproc = sum(var(ib:ie,jb:je,kb:ke)*II(ib:ie,jb:je,kb:ke), DIM=1)
-
-     call MPI_ALLREDUCE(sumproc(jb:je,kb:ke), sumx(jb:je,kb:ke), (ke-kb+1)*(je-jb+1), MY_REAL,MPI_SUM, comm3d,mpierr)
-
-     end subroutine sumx_ibm
 
 end module

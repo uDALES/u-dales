@@ -44,7 +44,7 @@ contains
 !> Initializing Checksim. Read out the namelist, initializing the variables
   subroutine initchecksim
     use modglobal, only : ifnamopt, fname_options,dtmax,ladaptive,btime
-    use modmpi,    only : myid,my_real,comm3d,mpierr
+    use modmpi,    only : myid, bcast
     implicit none
     integer :: ierr
     namelist/NAMCHECKSIM/ &
@@ -66,7 +66,7 @@ contains
       end if
     end if
 
-    call MPI_BCAST(tcheck     ,1,MY_REAL   ,0,comm3d,mpierr)
+    call bcast(tcheck, 0)
 !    itcheck = floor(tcheck/tres)
     tnext = tcheck+btime
 
@@ -100,7 +100,7 @@ contains
   subroutine calccourant
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxhi,dyi,dzhi,dt,timee
     use modfields, only : um,vm,wm
-    use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
+    use modmpi,    only : myid, global_max
     implicit none
 
 
@@ -117,7 +117,7 @@ contains
       end do
     end do
 
-    call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+    courtot = global_max(courtotl)
     if (myid==0) then
       write(*,'(A,ES10.2)') 'Courant numbers (x,y,z,tot):',courtot
     end if
@@ -130,7 +130,7 @@ contains
 
     use modglobal,      only : ib,ie,jb,je,kb,ke,kh,dxh2i,dy2i,dzh,dt,timee
     use modsubgriddata, only : ekm,ekh
-    use modmpi,         only : myid,comm3d,mpierr,mpi_max,my_real
+    use modmpi,         only : myid, global_max
     implicit none
 
 
@@ -149,7 +149,7 @@ contains
     end do
     end do
 
-    call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+    diffnrtot = global_max(diffnrtotl)
     if (myid==0) then
       write(6,'(A,ES10.2)') 'Diffusion number:',diffnrtot
     end if
@@ -163,7 +163,7 @@ contains
 
     use modglobal, only : ib,ie,jb,je,ke,kb,dy,dxh,dzh
     use modfields, only : u0,v0,w0
-    use modmpi,    only : myid,comm3d,mpi_sum,mpi_max,my_real,mpierr
+    use modmpi,    only : myid, global_max
     use modsubgriddata, only : ekm,ekh
     implicit none
 
@@ -181,7 +181,7 @@ contains
       end do
     end do
 
-    call MPI_ALLREDUCE(reyntotl,reyntot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+    reyntot = global_max(reyntotl)
     if (myid==0) then
       write(6,'(A,ES10.2)') 'Cell Reynolds number:',reyntot
     end if
@@ -193,7 +193,7 @@ contains
 
     use modglobal, only : ib,ie,jb,je,ke,kb,dx,dxi,dy,dyi,dzf,dzfi
     use modfields, only : u0,v0,w0!,divergentie
-    use modmpi,    only : myid,comm3d,mpi_sum,mpi_max,my_real,mpierr
+    use modmpi,    only : myid, global_sum, global_max
     implicit none
 
 
@@ -221,10 +221,8 @@ contains
     end do
     end do
 
-    call MPI_ALLREDUCE(divtotl, divtot, 1,    MY_REAL, &
-                          MPI_SUM, comm3d,mpierr)
-    call MPI_ALLREDUCE(divmaxl, divmax, 1,    MY_REAL, &
-                          MPI_MAX, comm3d,mpierr)
+    divtot = global_sum(divtotl)
+    divmax = global_max(divmaxl)
 
     if(myid==0)then
       write(6,'(A,2ES11.2)')'divmax, divtot = ', divmax, divtot

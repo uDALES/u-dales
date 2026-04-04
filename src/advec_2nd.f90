@@ -35,9 +35,9 @@ subroutine advecc_2nd(hi, hj, hk, putin, putout)
 
    use modglobal, only:ih, jh, kh, kb, ke, ib, ie, jb, je, dxi, dxi5, dyi, dyi5, dzf, dzfi, dzhi, dzfi5, libm, jmax
    use modfields, only:u0, v0, w0
-   use modibm, only:nxwallsnorm, nzwallsnorm, nywallsm, nywallsp, ywallsm, ywallsp, &
+   use ibm, only:nxwallsnorm, nzwallsnorm, nywallsm, nywallsp, ywallsm, ywallsp, &
       xwallsnorm, zwallsnorm, iypluswall, iyminwall, nyminwall, nypluswall
-   use modmpi, only:myid
+   use architecture, only : myid
    implicit none
 
    integer, intent(in) :: hi !< size of halo in i
@@ -93,9 +93,9 @@ subroutine advecu_2nd(putin, putout)
 
    use modglobal, only:ih, ib, ie, jb, je, jh, kb, ke, kh, dxi, dxiq, dyiq, dzf, dzfi5, dzhi, libm, imax, jmax, ktot
    use modfields, only:u0, v0, w0, pres0, uh, vh, wh, pres0h
-   use modibm, only:nxwallsnorm, nzwallsnorm, nywallsm, nywallsp, ywallsm, ywallsp, &
+   use ibm, only:nxwallsnorm, nzwallsnorm, nywallsm, nywallsp, ywallsm, ywallsp, &
       xwallsnorm, zwallsnorm
-   use modmpi, only:myid
+   use architecture, only : myid
    use decomp_2d
    implicit none
 

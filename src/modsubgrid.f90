@@ -35,6 +35,7 @@
 !
 module modsubgrid
   use mpi
+  use architecture, only : myid, bcast
   use modsubgriddata
   implicit none
   save
@@ -44,8 +45,6 @@ contains
   subroutine initsubgrid
     use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,delta,zf,fkar, &
          pi,ifnamopt,fname_options
-    use modmpi, only : myid
-
     implicit none
 
     integer   :: i, k
@@ -84,7 +83,6 @@ contains
 
   subroutine subgridnamelist
     use modglobal, only : pi,ifnamopt,fname_options,lles,lbuoyancy
-    use modmpi,    only : myid, nprocs, comm3d, mpierr, my_real, mpi_logical, mpi_integer
 
     implicit none
 
@@ -105,19 +103,19 @@ contains
        close(ifnamopt)
     end if
 
-    call MPI_BCAST(ldelta     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(lmason     ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(nmason     ,1,MY_REAL    ,0,comm3d,mpierr)
-    call MPI_BCAST(lsmagorinsky,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(lvreman    ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(lbuoycorr  ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(loneeqn    ,1,MPI_LOGICAL,0,comm3d,mpierr)
-    call MPI_BCAST(c_vreman   ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(cs         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(cf         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
-    call MPI_BCAST(Prandtl    ,1,MY_REAL   ,0,comm3d,mpierr)
+    call bcast(ldelta, 0)
+    call bcast(lmason, 0)
+    call bcast(nmason, 0)
+    call bcast(lsmagorinsky, 0)
+    call bcast(lvreman, 0)
+    call bcast(lbuoycorr, 0)
+    call bcast(loneeqn, 0)
+    call bcast(c_vreman, 0)
+    call bcast(cs, 0)
+    call bcast(cf, 0)
+    call bcast(cn, 0)
+    call bcast(Rigc, 0)
+    call bcast(Prandtl, 0)
     prandtli = 1./Prandtl
 
     if ((lsmagorinsky) .or. (lvreman) .or. (loneeqn)) then
@@ -201,7 +199,8 @@ contains
          numol,numoli,prandtlmoli,lles, rk3step,dzfiq,lbuoyancy,dzh
     use modfields,   only : dthvdz,e120,u0,v0,w0,thl0,mindist,wall,shear
     use modsurfdata, only : dudz,dvdz,thvs,ustar
-    use modmpi,    only : excjs, myid, nprocs, comm3d, mpierr, my_real,mpi_sum,slabsumi
+    use modmpi,    only : excjs, myid, nprocs, comm3d, mpierr, my_real,mpi_sum
+    use operators,   only : reduce_yz_sum
     use modboundary, only : closurebc
     use modinletdata, only : utaui
     implicit none

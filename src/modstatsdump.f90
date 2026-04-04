@@ -28,7 +28,7 @@ module modstatsdump
 
   use mpi
   use modglobal, only : dt,lydump,lytdump,ltkedump,lxydump,lxytdump,ltdump,lmintdump,ifoutput !,nstat
-  use modmpi, only : myid
+  use architecture, only : myid
   implicit none
   private
   PUBLIC :: initstatsdump,statsdump,exitstatsdump
@@ -72,7 +72,7 @@ contains
   !-------------------------
 
   subroutine initstatsdump
-    use modmpi,   only : my_real,mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyid,cmyidx,cmyidy
+    use architecture, only : my_real, mpierr, comm3d, cmyid, cmyidx, cmyidy
     use modglobal,only : imax,jmax,kmax,cexpnr,ifnamopt,fname_options,ib,ie,jb,je,kb,ke,ladaptive,btime,&
                          nsv,lkslicedump,lislicedump,ljslicedump,ltreedump,ib,ie,islice,islicerank,isliceloc,jslice,jslicerank,jsliceloc
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
@@ -515,8 +515,6 @@ contains
 
   use modfields,        only : um,up,vm,wm,svm,qtm,thlm,pres0,ncstaty,ncstatxy,ncstatyt,ncstattke,ncstatmint,&
                                ncstatkslice,ncstatislice,ncstatjslice,t_t,t_v,t_p,t_sgs,d_sgs,p_b,p_t,adv,&
-                               IIc,IIu,IIv,IIw,IIuw,IIvw,IIct,IIwt,IIut,IIvt,IIuwt,IIuv,&
-                               IIcs,IIws,IIus,IIvs,IIuws,IIvws,IIuvs,&
                                vyt,uyt,wyt,thlyt,qtyt,&
                                sca1yt,sca2yt,sca3yt,thlsgsyt,qtsgsyt,sv1sgsyt,sv2sgsyt,sv3sgsyt,usgsyt,wsgsyt,&
                                usgsxyt,thlsgsxyt,vsgsxyt,uwtik,vwtjk,uvtij,utik,wtik,wtjk,vtjk,utij,vtij,&
@@ -525,6 +523,8 @@ contains
                                umt,vmt,sv1t,sv2t,sv3t,sv4t,sv1tk,sv2tk,sv3tk,sv4tk,wsv1tk,wsv2tk,wsv3tk,wsv4tk,&
                                sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt,PSSt,& !,sv1max,sv2max,sv3max,sv4max
                                ncstattr,tr_ut,tr_vt,tr_wt,tr_thlt,tr_qtt,tr_qtRt,tr_qtAt,tr_sv1t,PSSt,tr_sv2t,tr_omegat
+  use ibmmasks,       only : IIc,IIu,IIv,IIw,IIuw,IIvw,IIct,IIwt,IIut,IIvt,IIuwt,IIuv,&
+                               IIcs,IIws,IIus,IIvs,IIuws,IIvws,IIuvs
   use modglobal,        only : ib,ie,ih,ihc,xf,xh,jb,je,jhc,jgb,jge,dy,dyi,jh,ke,kb,kh,khc,rk3step,&
                                timee,cexpnr,tsample,tstatsdump,tstatstart,jtot,imax,jmax,dzf,&
                                ltempeq,zh,dxf,dzf,dzh2i,lprofforc,lscasrcl,&
@@ -533,8 +533,9 @@ contains
                                ltreedump,ltrees
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
-  use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,&
-                               comm3d,avexy_ibm,nprocs,myidx,myidy
+  use definitions,      only : LOC_C, LOC_U, LOC_V, LOC_W, LOC_UV, LOC_WU, LOC_VW
+  use architecture,     only : myid, cmyid, my_real, mpierr, comm3d, nprocs, myidx, myidy
+  use operators,          only : av_y_intr, av_intr
   use modsurfdata,      only : thls
   use modsubgrid,       only : ekh,ekm
   use modstatistics,    only : genstats,tkestats
@@ -969,35 +970,35 @@ contains
         uy=0.;vy=0.;wy=0.;uwyik=0.;usgsy=0.;wsgsy=0.;thly=0.;wthlyk=0.;thlsgsy=0.
         qty=0.;wqtyk=0.;qtsgsy=0.;sca1y=0.;sv1sgsy=0.;sv2sgsy=0.;sca2y=0.;sca3y=0.;sv3sgsy=0.
 
-        call avey_ibm(uy,um(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIu(ib:ie,jb:je,kb:ke),IIut(ib:ie,kb:ke))
-        call avey_ibm(vy,vm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIv(ib:ie,jb:je,kb:ke),IIvt(ib:ie,kb:ke))
-        call avey_ibm(wy,wm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(uwyik,uik(ib:ie,jb:je,kb:ke)*wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-        call avey_ibm(usgsy,usgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-        call avey_ibm(wsgsy,wsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call av_y_intr(uy,um,LOC_U)
+        call av_y_intr(vy,vm,LOC_V)
+        call av_y_intr(wy,wm,LOC_W)
+        call av_y_intr(uwyik,uik*wik,LOC_WU)
+        call av_y_intr(usgsy,usgs,LOC_WU)
+        call av_y_intr(wsgsy,wsgs,LOC_W)
         if (ltempeq) then
-          call avey_ibm(thly,thlm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-          call avey_ibm(wthlyk,wm(ib:ie,jb:je,kb:ke)*thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-          call avey_ibm(thlsgsy,thlsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+          call av_y_intr(thly,thlm,LOC_C)
+          call av_y_intr(wthlyk,wm*thlk,LOC_W)
+          call av_y_intr(thlsgsy,thlsgs,LOC_W)
         end if
         if (lmoist) then
-          call avey_ibm(qty,qtm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-          call avey_ibm(wqtyk,wm(ib:ie,jb:je,kb:ke)*qtk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-          call avey_ibm(qtsgsy,qtsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+          call av_y_intr(qty,qtm,LOC_C)
+          call av_y_intr(wqtyk,wm*qtk,LOC_W)
+          call av_y_intr(qtsgsy,qtsgs,LOC_W)
         end if
         if(nsv>0) then
-          call avey_ibm(sca1y,svm(ib:ie,jb:je,kb:ke,1),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-          ! call avey_ibm(wsv1yk,wm(ib:ie,jb:je,kb:ke)*sv1k(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-          call avey_ibm(sv1sgsy,sv1sgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+          call av_y_intr(sca1y,svm(:,:,:,1),LOC_C)
+          ! call av_y_intr(wsv1yk, wm(ib:ie,jb:je,kb:ke)*sv1k(ib:ie,jb:je,kb:ke), LOC_W)
+          call av_y_intr(sv1sgsy,sv1sgs,LOC_W)
         end if
         if (nsv>1) then
-          call avey_ibm(sca2y,svm(ib:ie,jb:je,kb:ke,2),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-          ! call avey_ibm(wsv2yk,wm(ib:ie,jb:je,kb:ke)*sv2k(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-          call avey_ibm(sv2sgsy,sv2sgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+          call av_y_intr(sca2y,svm(:,:,:,2),LOC_C)
+          ! call av_y_intr(wsv2yk, wm(ib:ie,jb:je,kb:ke)*sv2k(ib:ie,jb:je,kb:ke), LOC_W)
+          call av_y_intr(sv2sgsy,sv2sgs,LOC_W)
         end if
         if (nsv>2) then
-          call avey_ibm(sca3y,svm(ib:ie,jb:je,kb:ke,3),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-          call avey_ibm(sv3sgsy,sv3sgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+          call av_y_intr(sca3y,svm(:,:,:,3),LOC_C)
+          call av_y_intr(sv3sgsy,sv3sgs,LOC_W)
         end if
       end if ! lydump .or. lytdump
 
@@ -1006,13 +1007,13 @@ contains
 
         uwyik=0.;wthlyk=0.;uyik=0.;wyik=0.;thlyk=0.;wpthlpyk=0.
 
-        call avey_ibm(uwyik,uik(ib:ie,jb:je,kb:ke)*wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-        call avey_ibm(uyik,uik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-        call avey_ibm(wyik,wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
+        call av_y_intr(uwyik,uik*wik,LOC_WU)
+        call av_y_intr(uyik,uik,LOC_WU)
+        call av_y_intr(wyik,wik,LOC_WU)
 
         if (ltempeq) then
-          call avey_ibm(wthlyk,wm(ib:ie,jb:je,kb:ke)*thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-          call avey_ibm(thlyk,thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+          call av_y_intr(wthlyk,wm*thlk,LOC_W)
+          call av_y_intr(thlyk,thlk,LOC_W)
         end if
 
         upwpyik = uwyik - uyik*wyik
@@ -1042,19 +1043,19 @@ contains
         uxy=0.;vxy=0.;wxy=0.;thlxy=0.;qtxy=0.;pxy=0.;usgsxy=0.;thlsgsxy=0.;sca1xy=0.;vsgsxy=0.
 
         !> Spatial averages of mean quantities
-        call avexy_ibm(uxy(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-        call avexy_ibm(vxy(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-        call avexy_ibm(wxy(kb:ke+kh),wm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+        call av_intr(uxy(kb:ke+kh),um,LOC_U,kh,.false.)
+        call av_intr(vxy(kb:ke+kh),vm,LOC_V,kh,.false.)
+        call av_intr(wxy(kb:ke+kh),wm,LOC_W,kh,.false.)
         if (ltempeq) then
-          call avexy_ibm(thlxy(kb:ke+kh),thlm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-          call avexy_ibm(thlsgsxy(kb:ke+kh),thlsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+          call av_intr(thlxy(kb:ke+kh),thlm,LOC_C,kh,.false.)
+          call av_intr(thlsgsxy(kb:ke+kh),thlsgs,LOC_W,kh,.false.)
         end if
         if (lmoist) then
-          call avexy_ibm(qtxy(kb:ke+kh),qtm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+          call av_intr(qtxy(kb:ke+kh),qtm,LOC_C,kh,.false.)
         end if
-        call avexy_ibm(pxy(kb:ke+kh),pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-        call avexy_ibm(usgsxy(kb:ke+kh),usgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-        call avexy_ibm(vsgsxy(kb:ke+kh),vsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
+        call av_intr(pxy(kb:ke+kh),pres0,LOC_C,kh,.false.)
+        call av_intr(usgsxy(kb:ke+kh),usgs,LOC_WU,kh,.false.)
+        call av_intr(vsgsxy(kb:ke+kh),vsgs,LOC_VW,kh,.false.)
 
       end if ! lxydump .or. lxytdump
 
@@ -1062,16 +1063,16 @@ contains
 
         uwxyik=0.;vwxyjk=0.;uxyik=0.;wxyik=0.;vxyjk=0.;wxyjk=0.;wthlxyk=0.;thlxyk=0.;wpthlpxyk=0.
 
-        call avexy_ibm(uwxyik(kb:ke+kh),uik(ib:ie,jb:je,kb:ke+kh)*wik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
-        call avexy_ibm(vwxyjk(kb:ke+kh),vjk(ib:ie,jb:je,kb:ke+kh)*wjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
-        call avexy_ibm(uxyik(kb:ke+kh),uik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
-        call avexy_ibm(wxyik(kb:ke+kh),wik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
-        call avexy_ibm(wxyjk(kb:ke+kh),wjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
-        call avexy_ibm(vxyjk(kb:ke+kh),vjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
+        call av_intr(uwxyik(kb:ke+kh),uik*wik,LOC_WU,kh,.true.)
+        call av_intr(vwxyjk(kb:ke+kh),vjk*wjk,LOC_VW,kh,.true.)
+        call av_intr(uxyik(kb:ke+kh),uik,LOC_WU,kh,.true.)
+        call av_intr(wxyik(kb:ke+kh),wik,LOC_WU,kh,.true.)
+        call av_intr(wxyjk(kb:ke+kh),wjk,LOC_VW,kh,.true.)
+        call av_intr(vxyjk(kb:ke+kh),vjk,LOC_VW,kh,.true.)
 
         if (ltempeq) then
-          call avexy_ibm(wthlxyk(kb:ke+kh),wm(ib:ie,jb:je,kb:ke+kh)*thlk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
-          call avexy_ibm(thlxyk(kb:ke+kh),thlk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
+          call av_intr(wthlxyk(kb:ke+kh),wm*thlk,LOC_W,kh,.true.)
+          call av_intr(thlxyk(kb:ke+kh),thlk,LOC_W,kh,.true.)
         end if
 
         upwpxyik = uwxyik - uxyik*wxyik
@@ -1412,28 +1413,28 @@ contains
 
       !> Advective flux
       if (ltempeq) then
-        call avexy_ibm(wthltxyk(kb:ke+kh),wmt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+        call av_intr(wthltxyk(kb:ke+kh),wmt*thltk,LOC_W,kh,.false.)
       end if
-      call avexy_ibm(uwtxyik(kb:ke+kh),utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call avexy_ibm(vwtxyjk(kb:ke+kh),vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call avexy_ibm(wwtxyk(kb:ke+kh),wmt(ib:ie,jb:je,kb:ke+kh)*wmt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-      call avexy_ibm(uvtxyij(kb:ke+kh),utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
+      call av_intr(uwtxyik(kb:ke+kh),utik*wtik,LOC_WU,kh,.false.)
+      call av_intr(vwtxyjk(kb:ke+kh),vtjk*wtjk,LOC_VW,kh,.false.)
+      call av_intr(wwtxyk(kb:ke+kh),wmt*wmt,LOC_W,kh,.false.)
+      call av_intr(uvtxyij(kb:ke+kh),utij*vtij,LOC_UV,kh,.false.)
       !> Turbulent fluxes
       if (ltempeq) then
-        call avexy_ibm(wpthlptxyk(kb:ke+kh),wthltk(ib:ie,jb:je,kb:ke+kh)-wmt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+        call av_intr(wpthlptxyk(kb:ke+kh),wthltk-wmt*thltk,LOC_W,kh,.false.)
       end if
-      call avexy_ibm(upwptxyik(kb:ke+kh),uwtik(ib:ie,jb:je,kb:ke+kh)-utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call avexy_ibm(vpwptxyjk(kb:ke+kh),vwtjk(ib:ie,jb:je,kb:ke+kh)-vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call avexy_ibm(upvptxyij(kb:ke+kh),uvtij(ib:ie,jb:je,kb:ke+kh)-utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
+      call av_intr(upwptxyik(kb:ke+kh),uwtik-utik*wtik,LOC_WU,kh,.false.)
+      call av_intr(vpwptxyjk(kb:ke+kh),vwtjk-vtjk*wtjk,LOC_VW,kh,.false.)
+      call av_intr(upvptxyij(kb:ke+kh),uvtij-utij*vtij,LOC_UV,kh,.false.)
 
       !> Variances and TKE
       if (ltempeq) then
-        call avexy_ibm(thlpthlptxy(kb:ke+kh),thlthlt(ib:ie,jb:je,kb:ke+kh)-thlt(ib:ie,jb:je,kb:ke+kh)*thlt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+        call av_intr(thlpthlptxy(kb:ke+kh),thlthlt-thlt*thlt,LOC_C,kh,.false.)
       end if
-      call avexy_ibm(upuptxyc(kb:ke+kh),uutc(ib:ie,jb:je,kb:ke+kh)-utc(ib:ie,jb:je,kb:ke+kh)*utc(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(vpvptxyc(kb:ke+kh),vvtc(ib:ie,jb:je,kb:ke+kh)-vtc(ib:ie,jb:je,kb:ke+kh)*vtc(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(wpwptxyc(kb:ke+kh),wwtc(ib:ie,jb:je,kb:ke+kh)-wtc(ib:ie,jb:je,kb:ke+kh)*wtc(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call avexy_ibm(tketxyc(kb:ke+kh),0.5*((wwtc(ib:ie,jb:je,kb:ke+kh)-wtc(ib:ie,jb:je,kb:ke+kh)*wtc(ib:ie,jb:je,kb:ke+kh))+(vvtc(ib:ie,jb:je,kb:ke+kh)-vtc(ib:ie,jb:je,kb:ke+kh)*vtc(ib:ie,jb:je,kb:ke+kh))+(uutc(ib:ie,jb:je,kb:ke+kh)-utc(ib:ie,jb:je,kb:ke+kh)*utc(ib:ie,jb:je,kb:ke+kh))),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call av_intr(upuptxyc(kb:ke+kh),uutc-utc*utc,LOC_C,kh,.false.)
+      call av_intr(vpvptxyc(kb:ke+kh),vvtc-vtc*vtc,LOC_C,kh,.false.)
+      call av_intr(wpwptxyc(kb:ke+kh),wwtc-wtc*wtc,LOC_C,kh,.false.)
+      call av_intr(tketxyc(kb:ke+kh),0.5*((wwtc-wtc*wtc)+(vvtc-vtc*vtc)+(uutc-utc*utc)),LOC_C,kh,.false.)
 
 
       if (myid == 0) then
@@ -1473,40 +1474,40 @@ contains
 !    call MPI_BCAST(sca1yt ,(ke+kh-(kb-kh))*(ie+ih-(ib-ih)),MY_REAL   ,7,comm3d,mpierr)
 
       ! Turbulent flux
-      call avey_ibm(upwptyik,uwtik(ib:ie,jb:je,kb:ke)-utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-      call avey_ibm(uwtyik,utik(ib:ie,jb:je,kb:ke)*wtik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-      call avey_ibm(upuptyc,uutc(ib:ie,jb:je,kb:ke)-utc(ib:ie,jb:je,kb:ke)*utc(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-      call avey_ibm(vpvptyc,vvtc(ib:ie,jb:je,kb:ke)-vtc(ib:ie,jb:je,kb:ke)*vtc(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
-      call avey_ibm(wpwptyc,wwtc(ib:ie,jb:je,kb:ke)-wtc(ib:ie,jb:je,kb:ke)*wtc(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+      call av_y_intr(upwptyik,uwtik-utik*wtik,LOC_WU)
+      call av_y_intr(uwtyik,utik*wtik,LOC_WU)
+      call av_y_intr(upuptyc,uutc-utc*utc,LOC_C)
+      call av_y_intr(vpvptyc,vvtc-vtc*vtc,LOC_C)
+      call av_y_intr(wpwptyc,wwtc-wtc*wtc,LOC_C)
 
       if (ltempeq) then
-        call avey_ibm(wpthlptyk,wthltk(ib:ie,jb:je,kb:ke)-wmt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(wthltyk,wmt(ib:ie,jb:je,kb:ke)*thltk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(thlpthlpty,thlthlt(ib:ie,jb:je,kb:ke)-thlt(ib:ie,jb:je,kb:ke)*thlt(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+        call av_y_intr(wpthlptyk,wthltk-wmt*thltk,LOC_W)
+        call av_y_intr(wthltyk,wmt*thltk,LOC_W)
+        call av_y_intr(thlpthlpty,thlthlt-thlt*thlt,LOC_C)
       end if
 
       if (lmoist) then
-        call avey_ibm(wpqtptyk,wqttk(ib:ie,jb:je,kb:ke)-wmt(ib:ie,jb:je,kb:ke)*qttk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(wqttyk,wmt(ib:ie,jb:je,kb:ke)*qttk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(qtpqtpty,qtqtt(ib:ie,jb:je,kb:ke)-qtt(ib:ie,jb:je,kb:ke)*qtt(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+        call av_y_intr(wpqtptyk,wqttk-wmt*qttk,LOC_W)
+        call av_y_intr(wqttyk,wmt*qttk,LOC_W)
+        call av_y_intr(qtpqtpty,qtqtt-qtt*qtt,LOC_C)
       end if
 
       if (nsv>0) then
-        call avey_ibm(wpsv1ptyk,wsv1tk(ib:ie,jb:je,kb:ke)-wmt(ib:ie,jb:je,kb:ke)*sv1tk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(wsv1tyk,wmt(ib:ie,jb:je,kb:ke)*sv1tk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(sv1psv1pty,sv1sv1t(ib:ie,jb:je,kb:ke)-sv1t(ib:ie,jb:je,kb:ke)*sv1t(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+        call av_y_intr(wpsv1ptyk,wsv1tk-wmt*sv1tk,LOC_W)
+        call av_y_intr(wsv1tyk,wmt*sv1tk,LOC_W)
+        call av_y_intr(sv1psv1pty,sv1sv1t-sv1t*sv1t,LOC_C)
       end if
 
       if (nsv>1) then
-        call avey_ibm(wpsv2ptyk,wsv2tk(ib:ie,jb:je,kb:ke)-wmt(ib:ie,jb:je,kb:ke)*sv2tk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(wsv2tyk,wmt(ib:ie,jb:je,kb:ke)*sv2tk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(sv2psv2pty,sv2sv2t(ib:ie,jb:je,kb:ke)-sv2t(ib:ie,jb:je,kb:ke)*sv2t(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+        call av_y_intr(wpsv2ptyk,wsv2tk-wmt*sv2tk,LOC_W)
+        call av_y_intr(wsv2tyk,wmt*sv2tk,LOC_W)
+        call av_y_intr(sv2psv2pty,sv2sv2t-sv2t*sv2t,LOC_C)
       end if
 
       if (nsv>2) then
-        call avey_ibm(wpsv3ptyk,wsv3tk(ib:ie,jb:je,kb:ke)-wmt(ib:ie,jb:je,kb:ke)*sv3tk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(wsv3tyk,wmt(ib:ie,jb:je,kb:ke)*sv3tk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
-        call avey_ibm(sv3psv3pty,sv3sv3t(ib:ie,jb:je,kb:ke)-sv3t(ib:ie,jb:je,kb:ke)*sv3t(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
+        call av_y_intr(wpsv3ptyk,wsv3tk-wmt*sv3tk,LOC_W)
+        call av_y_intr(wsv3tyk,wmt*sv3tk,LOC_W)
+        call av_y_intr(sv3psv3pty,sv3sv3t-sv3t*sv3t,LOC_C)
       end if
 
       if (myid == 0) then
@@ -1799,10 +1800,14 @@ contains
                                upupav,vpvpav,wpwpav,thlpthlpav,upvpav,upwpav,vpwpav,thlpupav,thlpvpav,thlpwpav,presav,&
                                strain2av,disssgsav,t_vav,tvmx,tvmy,tvmz,tsgsmx1,tsgsmx2,tsgsmy1,tsgsmy2,tsgsmz1,t_sgsav,nusgsav,&
                                tpm,t_pav,ttmx,ttmy,ttmz,t_tav,p_bav,d_sgsav,p_tav,tkeadv,tsgsmz1,tsgsmz2,t_t,t_v,t_p,t_sgs,d_sgs,&
-                               p_b,p_t,adv,IIc,IIcs
+                               p_b,p_t,adv
+  use ibmmasks,       only : IIc, IIcs
   use modglobal,        only : ib,ie,ih,jb,je,jgb,jge,dy,jh,ke,kb,kh,rk3step,timee,cexpnr,tsample,tstatsdump,jtot,imax,dzf,&
                                dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
-  use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,comm3d,excjs,avexy_ibm
+  use definitions,      only : LOC_C
+  use architecture,     only : myid, cmyid, my_real, mpierr, comm3d
+  use modmpi,           only : excjs
+  use operators,          only : av_y_intr, av_intr
   use modsurfdata,      only : thls
   use modsubgrid,       only : ekh
   use decomp_2d,        only : exchange_halo_z
@@ -2131,14 +2136,14 @@ contains
       end do
 
     ! need updating tg3315
-    call avexy_ibm(p_b(kb:ke+kh),p_bav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(t_p(kb:ke+kh),t_pav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(adv(kb:ke+kh),tkeadv(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(t_t(kb:ke+kh),t_tav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(t_sgs(kb:ke+kh),t_sgsav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(p_t(kb:ke+kh),p_tav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(d_sgs(kb:ke+kh),d_sgsav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-     call avexy_ibm(t_v(kb:ke+kh),t_vav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
+    call av_intr(p_b(kb:ke+kh),p_bav,LOC_C,kh,.true.)
+    call av_intr(t_p(kb:ke+kh),t_pav,LOC_C,kh,.true.)
+    call av_intr(adv(kb:ke+kh),tkeadv,LOC_C,kh,.true.)
+    call av_intr(t_t(kb:ke+kh),t_tav,LOC_C,kh,.true.)
+    call av_intr(t_sgs(kb:ke+kh),t_sgsav,LOC_C,kh,.true.)
+    call av_intr(p_t(kb:ke+kh),p_tav,LOC_C,kh,.true.)
+    call av_intr(d_sgs(kb:ke+kh),d_sgsav,LOC_C,kh,.true.)
+    call av_intr(t_v(kb:ke+kh),t_vav,LOC_C,kh,.true.)
 
    end subroutine tkestatsdump
 

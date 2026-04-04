@@ -48,7 +48,7 @@ subroutine tstep_update
                         dzh2i
   use modfields, only : um,vm,wm
   use modsubgriddata, only : ekm,ekh
-  use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
+  use architecture, only : myid, global_max
   implicit none
 
   integer       :: i, j, k,imin,kmin
@@ -80,8 +80,8 @@ subroutine tstep_update
         end do
         end do
         end do
-        call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-        call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+        courtot = global_max(courtotl)
+        diffnrtot = global_max(diffnrtotl)
         if ( diffnrold>0) then
           dt = min(dtmax,dt*courant/courtot,dt*diffnr/diffnrtot)
           if ((abs(courtot-courold)/courold<0.1) .and. (abs(diffnrtot-diffnrold)/diffnrold<0.1)) then
@@ -122,8 +122,8 @@ subroutine tstep_update
         end do
 !     write(6,*) 'Peclet criterion at proc,i,k = ', myid,imin,kmin
 
-        call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-        call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
+        courtot = global_max(courtotl)
+        diffnrtot = global_max(diffnrtotl)
         if (courtot <= 0) then
           write(6,*) 'courtot=0!'
         end if
@@ -168,7 +168,7 @@ subroutine tstep_integrate
   use modglobal, only : ib,ie,jb,jgb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,ntrun,&
                         linoutflow, iinletgen,ltempeq,idriver,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic, &
                         dzf,dzhi,dzf,dxf,ifixuinf,thlsrc,lchem,ibrank,ierank,jerank,jbrank,BCxm,BCym,ihc,jhc,khc,dyi,dxfi,BCxT,BCxq,BCxs,BCyT,BCyq,BCys
-  use modmpi, only    : cmyid,myid,nprocs
+  use architecture, only : cmyid, myid, nprocs
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,uouttot,&
                         wouttot,dpdxl,dgdt,momfluxb,tfluxb,qfluxb,thl0c

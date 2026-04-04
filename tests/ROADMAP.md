@@ -130,6 +130,347 @@ This means:
 - Phase 2 is complete at an initial merge-gate level.
 - Phases 3 onward remain active roadmap items.
 
+## v3.0 Alignment
+
+As of 2026-04-03, the GitHub repository has an open `3.0` milestone
+([milestone 10](https://github.com/uDALES/u-dales/milestone/10)) with the
+following milestone description:
+
+- `V3.0 will make some substantial changes to input and output data, including`
+  `intermediate files (after pre-processing the data) and post-processing the`
+  `data (particularly not every field file will output their own data). There`
+  `will be changes to filenames, variable names etc.`
+
+At that date the milestone contains 18 tracked items, with 16 open and 2
+closed. The issue set is consistent with the local repo direction and makes the
+major-upgrade priorities much clearer than the local tree alone.
+
+The main `v3.0` themes visible in the GitHub plan are:
+
+- IO and statistics refactors:
+  [#242](https://github.com/uDALES/u-dales/issues/242),
+  [#276](https://github.com/uDALES/u-dales/issues/276),
+  [#277](https://github.com/uDALES/u-dales/issues/277),
+  [#278](https://github.com/uDALES/u-dales/issues/278),
+  [#304](https://github.com/uDALES/u-dales/pull/304),
+  [#305](https://github.com/uDALES/u-dales/pull/305)
+- input-format evolution and schema/tooling work:
+  [#279](https://github.com/uDALES/u-dales/issues/279),
+  [#305](https://github.com/uDALES/u-dales/pull/305)
+- preprocessing and postprocessing updates for new file contracts:
+  [#196](https://github.com/uDALES/u-dales/issues/196),
+  [#280](https://github.com/uDALES/u-dales/issues/280),
+  [#281](https://github.com/uDALES/u-dales/issues/281)
+- documentation catch-up for the new formats and workflows:
+  [#258](https://github.com/uDALES/u-dales/issues/258),
+  [#282](https://github.com/uDALES/u-dales/issues/282)
+- solver cleanup that supports the release quality bar:
+  [#68](https://github.com/uDALES/u-dales/issues/68),
+  [#308](https://github.com/uDALES/u-dales/issues/308)
+- geometry/facet robustness still considered part of the major release:
+  [#265](https://github.com/uDALES/u-dales/issues/265)
+
+For roadmap purposes, this means the test program should not be treated as an
+isolated concern. It should be used to de-risk the actual GitHub-scoped `v3.0`
+upgrade, especially where the milestone explicitly changes the user-facing data
+contract.
+
+## Action Plan From Current Review
+
+The recent repo review identified a small set of architectural and workflow
+gaps that matter disproportionately for a major release. The most useful way to
+act on them is as a set of parallel workstreams rather than as isolated fixes.
+
+### Workstream A: Build And Environment Reproducibility
+
+Goal: make solver and preprocessing builds reproducible enough for a major
+release and easier to reason about in CI, on local systems, and on HPC.
+
+Priority actions:
+
+- replace helper-project side effects in the top-level CMake configure path
+  with a more standard dependency-discovery approach where practical
+- reduce GNU-specific assumptions in preprocessing builds, especially in the
+  f2py and OpenMP wrapper paths
+- make Python-header and compiled-wrapper checks consistent across all
+  preprocessing targets, not only the direct shortwave path
+- tighten the contract between `tools/build_executable.sh`,
+  `tools/build_preprocessing.sh`, CI, and the installation docs so they describe
+  one coherent supported workflow
+- treat [#196](https://github.com/uDALES/u-dales/issues/196) as a key `v3.0`
+  build-system deliverable rather than just a preprocessing convenience
+
+`v3.0` relevance:
+
+- this is foundational work for any major release that wants broader adoption
+- it directly supports the newer Python-first tooling direction
+- it narrows one of the biggest current gaps versus SU2 and PALM
+
+Suggested contract:
+
+- start as documentation + build-system cleanup
+- add or promote lightweight build-smoke tests to `supported` only after the
+  resulting path is stable on standard CI runners
+
+### Workstream B: Test Infrastructure Hardening
+
+Goal: make the curated test layer trustworthy enough to carry a larger release.
+
+Priority actions:
+
+- replace the handwritten parser in `tests/run_tests.py` with a proper YAML
+  loader so `tests/test_suites.yml` can evolve safely
+- keep the manifest as the source of truth, but validate it structurally rather
+  than relying on indentation-sensitive custom parsing
+- improve per-suite reporting so failures leave behind enough context to debug
+  without rerunning everything locally
+- align manifest and runner evolution with the schema-driven input work in
+  [#305](https://github.com/uDALES/u-dales/pull/305), so new input-contract
+  tests do not depend on brittle runner behaviour
+
+`v3.0` relevance:
+
+- the `v3.0` upgrade will likely add more suites, more metadata, and more
+  branch-specific exceptions if the runner remains fragile
+- this is low-risk engineering work with a high leverage payoff
+
+Suggested contract:
+
+- keep the migration itself in `supported`
+- treat any new richer reporting or artifact upload logic as `experimental`
+
+### Workstream C: MPI Averaging Regression Lock-In
+
+Goal: prove that the recent intrinsic-averaging and reduction refactor has not
+changed accepted behaviour relative to `v2.2`.
+
+Priority actions:
+
+- add a dedicated regression test that compares `v2.2` and current-branch
+  outputs for all actively used averaging/reduction paths:
+  `av_intr`, `av_y_intr`, `sum_y_intr`, `sum_x_intr`, `reduce_xy_sum`, and
+  `reduce_yz_sum`
+- include both IBM and non-IBM coverage so intrinsic masking and all-fluid
+  behaviour are both exercised
+- explicitly compare staggered locations (`LOC_C`, `LOC_U`, `LOC_V`, `LOC_W`,
+  `LOC_UV`, `LOC_WU`, `LOC_VW`) where they are scientifically meaningful
+- include at least one case that would expose a ghost-cell/windowing error and
+  one case that would expose an intrinsic-versus-comprehensive normalization
+  error
+- treat this test as a release-safety check for the averaging refactor before
+  expanding the abstraction further
+
+`v3.0` relevance:
+
+- this protects the scientific meaning of slab/profile statistics during the
+  broader IO/statistics changes already planned for `v3.0`
+- it reduces the risk that refactored reduction APIs silently harden a changed
+  definition into the release contract
+
+Suggested contract:
+
+- start as `experimental` while the `v2.2` comparison harness is being built
+- promote to `supported` once the reference workflow is stable and cheap enough
+  to run routinely
+
+### Workstream D: MPI Abstraction Boundary
+
+Goal: remove direct MPI calls from solver and workflow code outside the
+parallel-architecture layer, following the `sparkle` pattern more closely.
+
+Priority actions:
+
+- treat [src/architecture.f90](/rds/general/user/mvr/home/udales/u-dales/src/architecture.f90)
+  as the single home for collective abstractions and shared communicator state
+- replace direct `MPI_BCAST`, `MPI_ALLREDUCE`, `MPI_ABORT`, and related calls
+  in the rest of `src/` with named wrappers or generic interfaces exported from
+  `architecture`
+- migrate in phases, starting with repeated scalar/vector broadcasts in:
+  `modfielddump`, `modstatsdump`, `modsubgrid`, `modtimedep`, `initfac`,
+  `modEB`, `modibm`, and `modinlet`
+- add focused wrappers for the operations that are already repeated many times,
+  for example:
+  broadcast of scalars and arrays, global sums, global maxima, and domain
+  barriers
+- keep low-level neighbour exchange kernels in the parallel layer, but stop
+  calling raw MPI collectives directly from physics, IO, and setup modules
+
+Current raw-MPI hotspots outside the parallel layer include:
+
+- `tstep.f90`, `modchecksim.f90`, and `modforces.f90` for repeated
+  `MPI_ALLREDUCE`
+- `modfielddump.f90`, `modstatsdump.f90`, `modsubgrid.f90`,
+  `modtimedep.f90`, `modinlet.f90`, `initfac.f90`, `modEB.f90`,
+  `modibm.f90`, `modpurifiers.f90`, and `modglobal.f90` for repeated
+  `MPI_BCAST`
+- `modsave.f90` and some safety paths for direct `MPI_ABORT`
+
+`v3.0` relevance:
+
+- a major release is the right time to tighten architectural boundaries
+- the same abstraction layer will make future test harnesses and portability
+  work easier, because collective semantics will no longer be scattered through
+  the solver
+
+Suggested contract:
+
+- do the wrapper introduction first without changing semantics
+- migrate module-by-module with regression coverage after each cluster of
+  replacements
+- avoid mixing this refactor with unrelated physics changes
+
+### Workstream C: Scientific Semantics And Reduction Contracts
+
+Goal: make slab-averaging and masked-reduction semantics explicit before `v3.0`
+locks in new IO, statistics, and postprocessing contracts.
+
+Priority actions:
+
+- treat `src/modmpi.f90` `avexy_ibm` as an intrinsic-average routine by
+  definition, because it computes `sum(var * II) / IIs` rather than a
+  comprehensive/superficial average over total slab area
+- adopt a reduction naming rule in `src/modmpi.f90` and `src/definitions.f90`:
+  reduction results are global by default, and only explicitly processor-local
+  routines should use a `_local` suffix
+- rename `avexy_ibm` to a semantics-explicit name such as `av_intr` or a
+  longer intrinsic-average variant once the migration path is agreed
+- review all current `avexy_ibm` call sites and classify them as:
+  clearly intrinsic and valid, ambiguous, or scientifically invalid
+- prioritize `src/modforces.f90` for that review, because `uvol`, `vvol`, and
+  `fluidvolume` appear to use an intrinsic average where a masked sum or
+  comprehensive quantity may be required instead
+- add a focused regression test that distinguishes intrinsic averages from
+  comprehensive/superficial reductions on an IBM-masked slab, so future helper
+  refactors cannot silently change the scientific meaning
+- document the distinction alongside the `xy`/`xyt` output contract and tie it
+  to the existing user documentation on intrinsic averages
+
+`v3.0` relevance:
+
+- this is a scientific-correctness risk, not just a naming or cleanup issue
+- `v3.0` is already changing filenames, variable names, and output contracts,
+  so this is the right release to make the averaging semantics explicit
+- if invalid call sites survive the IO/statistics refactor, downstream
+  postprocessing could preserve a wrong definition in a much harder-to-detect
+  form
+
+Known hotspot to flag explicitly:
+
+- `src/modforces.f90` currently uses `avexy_ibm` in places where the intended
+  quantity may be a total fluid-area or fluid-volume integral rather than an
+  intrinsic mean; this should be treated as a release-blocking review item for
+  the `v3.0` statistics and solver cleanup track
+  until it proves stable in CI
+
+### Workstream C: Regression Coverage For Major-Upgrade Features
+
+Goal: turn accepted `v3.0` behaviour into protected behaviour.
+
+Priority actions:
+
+- formalize canonical regression cases for facet, tree, and radiation-related
+  workflows that are changing most in the major upgrade
+- add explicit regression protection for the `v3.0` IO/statistics change set in
+  [#242](https://github.com/uDALES/u-dales/issues/242),
+  [#276](https://github.com/uDALES/u-dales/issues/276),
+  [#277](https://github.com/uDALES/u-dales/issues/277), and
+  [#278](https://github.com/uDALES/u-dales/issues/278)
+- keep the existing `526` vegetation comparison, but broaden the reference set
+  to cover the new facet/tree handling and Python preprocessing paths
+- prioritize output comparisons that reflect actual user-visible contracts:
+  generated inputs, field dumps, tree dumps, radiation outputs, and selected
+  statistics or budgets
+- make solver decomposition-parity checks part of this story rather than a
+  separate diagnostic island
+
+`v3.0` relevance:
+
+- the Oct 2025 facet/tree upgrade note in `tools/matlab/udbase.m` is exactly
+  the kind of change that should gain explicit regression protection before a
+  major release
+- this is the main mechanism for preventing silent behavioural drift while the
+  upgrade is still moving
+
+Suggested contract:
+
+- start new major-upgrade coverage in `experimental`
+- promote only the cheapest and most trusted reference cases to `supported`
+- keep larger or cluster-only comparisons in `heavy`
+
+### Workstream D: Solver Robustness And Failure Reporting
+
+Goal: make solver failures easier to interpret during `v3.0` stabilization.
+
+Priority actions:
+
+- reduce reliance on scattered raw `stop 1` aborts in key startup, boundary,
+  IBM, and Poisson-solver paths
+- move toward more consistent fatal-error reporting that preserves context such
+  as the subsystem, namelist setting, file path, or rank-local condition that
+  triggered the stop
+- add targeted tests for known invalid-input and unsupported-configuration
+  branches where the solver should fail clearly rather than opaquely
+- use [#68](https://github.com/uDALES/u-dales/issues/68) and
+  [#308](https://github.com/uDALES/u-dales/issues/308) as the anchor issues
+  for solver-side cleanup that should be test-backed before release
+
+`v3.0` relevance:
+
+- this matters most when interfaces and input contracts are changing, which is
+  exactly what a major upgrade tends to do
+- clearer failure modes reduce the support cost of bringing users onto the new
+  release
+
+Suggested contract:
+
+- add narrow invalid-input tests as `experimental`
+- only promote them to `supported` once they are deterministic across supported
+  MPI environments
+
+### Workstream E: Developer Workflow And Documentation
+
+Goal: make the `v3.0` upgrade legible to contributors and users.
+
+Priority actions:
+
+- replace placeholder pages such as `docs/udales-workflow.md` and incomplete
+  docs metadata such as `docs/udales-docs-software.md`
+- document one recommended developer path for local Linux/WSL, macOS, and
+  cluster workflows instead of leaving contributors to infer the supported
+  combinations from scripts
+- make the relationship between MATLAB legacy tooling and Python-first tooling
+  explicit, especially for upgraded facet/tree workflows
+- tie the documentation plan directly to the active `v3.0` docs issues
+  [#258](https://github.com/uDALES/u-dales/issues/258) and
+  [#282](https://github.com/uDALES/u-dales/issues/282), rather than treating
+  docs as a generic follow-up
+
+`v3.0` relevance:
+
+- a major release needs a coherent contributor and user story, not just working
+  code
+- this is where PALM currently presents a more operationally complete model
+  workflow than uDALES
+
+Suggested contract:
+
+- no special test contract is needed for prose itself
+- but docs should point to the real `supported`, `experimental`, and `heavy`
+  workflows and should stop describing obsolete paths
+
+## Recommended Order For v3.0
+
+To keep the major upgrade tractable, the recommended order is:
+
+1. Harden the build and test infrastructure first.
+2. Add regression protection around the facet/tree/Python-preprocessing upgrade.
+3. Improve solver failure reporting in the highest-friction paths.
+4. Clean up developer and installation documentation around the stabilized path.
+
+This ordering is intentionally conservative. A major release becomes much less
+risky if the project first improves its ability to build, test, compare, and
+diagnose the code it already has.
+
 ## Core Principles
 
 - New functionality should usually get `experimental` unit or integration tests first.

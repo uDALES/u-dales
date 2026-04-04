@@ -182,7 +182,8 @@ contains
                             ibrank,iplanerank,driverid,cdriverid,runtime,lwarmstart,cdriverjobnr
     use modfields,   only : u0,v0,w0,e120,thl0,qt0,wm,uprof,vprof
     use modsave,     only : writerestartfiles
-    use modmpi,      only : slabsum,myid
+    use modmpi,      only : myid
+    use operators,     only : reduce_xy_sum
     implicit none
 
     real :: inlrec                              ! time of last inlet record
@@ -759,7 +760,8 @@ contains
     ! this gets called in modstartup (readinitfiles) when ibrank=.true.
     use modfields, only : u0,sv0
     use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,ltempeq,lmoist,zh,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid,lwarmstart
-    use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
+    use modmpi,    only : cmyid,myid,nprocs,excjs
+    use operators,   only : reduce_xy_sum
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile
     implicit none
     integer :: filen,filee
@@ -942,7 +944,8 @@ contains
   subroutine readdriverfile_chunk
     use modfields, only : u0,sv0
     use modglobal, only : ib,jb,je,jmax,kb,ke,kh,jhc,khc,cexpnr,ifinput,driverstore,chunkread_size,ltempeq,lmoist,zh,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid,lwarmstart
-    use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
+    use modmpi,    only : cmyid,myid,nprocs,excjs
+    use operators,   only : reduce_xy_sum
     use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver,nfile, &
                              chunkreadctr, chunkread_s, chunkread_e
     implicit none

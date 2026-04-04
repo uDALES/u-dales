@@ -81,6 +81,7 @@ module modstartup
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx, ncname
+      use ibm,               only : createmasks
       use modpois,           only : initpois
       use modboundary,       only : initboundary, ksp
       use modthermodynamics, only : initthermodynamics, lqlnr, chi_half
@@ -88,15 +89,15 @@ module modstartup
       use modmpi,            only : comm3d, myid, myidx, myidy, cmyid, cmyidx, cmyidy, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy, nbreast, nbrwest, nbrnorth, nbrsouth
       use modinlet,          only : initinlet
       use modinletdata,      only : di, dr, di_test, dti, iangledeg, iangle
-      use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
+      use ibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
       use modforces,         only : calcfluidvolumes
       use moddriver,         only : initdriver
       use modtimedep,        only : ltimedepsurf, ntimedepsurf, ltimedepnudge, ntimedepnudge, &
                                     ltimedeplw, ntimedeplw, ltimedepsw, ntimedepsw
-      use modibm,            only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
+      use ibm,            only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
                                     nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
                                     nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
-                                    createmasks, lbottom, lnorec
+                                    lbottom, lnorec
       use decomp_2d
 
       implicit none
@@ -951,7 +952,8 @@ module modstartup
          dqtdxls, dqtdyls, dqtdtls, dpdx, dpdxl, dpdyl, &
          wfls, whls, ug, vg, pgx, pgy, uprof, vprof, thlprof, qtprof, e12prof, svprof, &
          v0av, u0av, qt0av, ql0av, thl0av, qt0av, sv0av, exnf, exnh, presf, presh, rhof, &
-         thlpcar, uav, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, u0h, thl0c
+         thlpcar, uav, thvh, thvf, u0h, thl0c
+      use ibmmasks, only : IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws
             use modglobal,         only : ib,ie,ih,ihc,jb,je,jh,jhc,kb,ke,kh,khc,kmax,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
          zf, zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, Vinf, dy, &
          rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
@@ -965,7 +967,9 @@ module modstartup
          thls, thvs, ps, qts, svs, sv_top
       ! use modsurface,        only : surface,dthldz
       use modboundary, only:boundary, tqaver, halos
-      use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm, myidx, myidy
+      use definitions, only: LOC_C, LOC_U, LOC_V, LOC_W
+      use modmpi, only: myid, comm3d, mpierr, my_real, myidx, myidy
+      use operators, only: reduce_xy_sum, av_intr
       use modthermodynamics, only:thermodynamics, calc_halflev
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
@@ -1085,13 +1089,13 @@ module modstartup
          end do
 
          thvh = 0.
-         ! call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) ! redefine halflevel thv using calculated thv
-         call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+         ! call reduce_xy_sum(thvh, thv0h(ib:ie,jb:je,kb:ke)) ! redefine halflevel thv using calculated thv
+         call av_intr(thvh(kb:ke+kh),thv0h,LOC_W,kh,.false.)
          ! thvh = thvh/rslabs
 
          thvf = 0.0
-         call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-         ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
+         call av_intr(thvf(kb:ke+kh),thv0,LOC_C,kh,.false.)
+         ! call reduce_xy_sum(thvf, thv0(ib:ie,jb:je,kb:ke))
          ! thvf = thvf/rslabs
 
       else !if not lstratstart
@@ -1345,14 +1349,14 @@ module modstartup
             ! end do
 
             uaverage = 0.
-            ! call slabsum(uaverage, kb, ke, um, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+            ! call reduce_xy_sum(uaverage, um(ib:ie,jb:je,kb:ke))
             do k = kb, ke
                uaverage(k) = uprof(k)*dzf(k)
             end do
             ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! averaged u-velocity inflow profile
             !write (6, *) 'Modstartup: ubulk=', ubulk
             vaverage = 0.
-            ! call slabsum(vaverage, kb, ke, vm, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+            ! call reduce_xy_sum(vaverage, vm(ib:ie,jb:je,kb:ke))
             do k = kb, ke
                vaverage(k) = vprof(k)*dzf(k)
             end do
@@ -1362,7 +1366,7 @@ module modstartup
             if (iinletgen == 1) then
 
                uaverage = 0.
-               call slabsum(uaverage, kb, ke, um, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+               call reduce_xy_sum(uaverage, um(ib:ie,jb:je,kb:ke))
                do k = kb, ke
                   uaverage(k) = uprof(k)*dzf(k)
                end do
@@ -1462,7 +1466,7 @@ module modstartup
                vminletbc(:, :) = storev0inletbc(:, :, nstepread)
                wminletbc(:, :) = storew0inletbc(:, :, nstepread)
                ! determine bulk velocity
-               call slabsum(uaverage, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+               call reduce_xy_sum(uaverage, u0(ib:ie,jb:je,kb:ke))
                uaverage = uaverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
                do k = kb, ke
                   uaverage(k) = uaverage(k)*dzf(k)
@@ -1499,10 +1503,10 @@ module modstartup
                  ! end do
                ! endif
 
-              ! call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
+              ! call reduce_xy_sum(uaverage, u0(ib:ie,jb:je,kb:ke))
               ! uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
 
-              ! call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
+              ! call av_intr(uaverage(kb:ke), u0, LOC_U, 0, .false.)
               ! do k=kb,ke
               !   uaverage(k) = uaverage(k)*dzf(k)
               ! end do
@@ -1624,10 +1628,10 @@ module modstartup
             call readrestartfiles
 
             ! average initial profiles
-            call avexy_ibm(u_init(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-            call avexy_ibm(v_init(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-            call avexy_ibm(thl_init(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-            call avexy_ibm(qt_init(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call av_intr(u_init(kb:ke+kh),u0,LOC_U,kh,.false.)
+            call av_intr(v_init(kb:ke+kh),v0,LOC_V,kh,.false.)
+            call av_intr(thl_init(kb:ke+kh),thl0,LOC_C,kh,.false.)
+            call av_intr(qt_init(kb:ke+kh),qt0,LOC_C,kh,.false.)
 
             if (myid == 0) then
                ! Read profiles from file (potentially for forcing)
@@ -1773,13 +1777,13 @@ module modstartup
             end do
 
             thvh = 0.
-            ! call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) ! redefine halflevel thv using calculated thv
-            call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+            ! call av_intr(thvh(kb:ke+kh), thv0h, LOC_W, kh, .false.) ! redefine halflevel thv using calculated thv
+            call av_intr(thvh(kb:ke+kh),thv0h,LOC_W,kh,.false.)
             ! thvh = thvh/rslabs
 
             thvf = 0.0
-            call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-            ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
+            call av_intr(thvf(kb:ke+kh),thv0,LOC_C,kh,.false.)
+            ! call av_intr(thvf(kb:ke+kh), thv0, LOC_C, kh, .false.)
             ! thvf = thvf/rslabs
 
             ! Set average inlet profile to initial inlet profile in case of inletgenerator mode
@@ -1790,17 +1794,17 @@ module modstartup
             taveragei = 0.
             taverager = 0.
             if (iinletgen == 1) then
-               call slabsum(uaveragei, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ib, jb, je, kb, ke)
-               call slabsum(uaverager, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, irecy, irecy, jb, je, kb, ke)
-               call slabsum(waverage, kb, ke + 1, w0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke + 1)
-               call slabsum(uaverage, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+               call reduce_xy_sum(uaveragei, u0(ib:ib,jb:je,kb:ke))
+               call reduce_xy_sum(uaverager, u0(irecy:irecy,jb:je,kb:ke))
+               call reduce_xy_sum(waverage, w0(ib:ie,jb:je,kb:ke+1))
+               call reduce_xy_sum(uaverage, u0(ib:ie,jb:je,kb:ke))
                uaverage = uaverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
                uaveragei = uaveragei/(jge - jgb + 1) ! this gives the j-averaged u-velocity at the inlet
                uaverager = uaverager/(jge - jgb + 1) ! this gives the j-averaged u-velocity at the recycle plane
                waverage = waverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged w-velocity (only correct for equidistant grid?)
                if (ltempeq) then
-                  call slabsum(taveragei, kb, ke, thl0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
-                  call slabsum(taverager, kb, ke, thl0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, irecy - 1, irecy - 1, jb, je, kb, ke)
+                  call reduce_xy_sum(taveragei, thl0(ib:ie,jb:je,kb:ke))
+                  call reduce_xy_sum(taverager, thl0(irecy-1:irecy-1,jb:je,kb:ke))
                   taveragei = taveragei/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the j-averaged temperature at the inlet
                   taverager = taverager/(jge - jgb + 1) ! this gives the j-averaged temperature at the recycle plane
                end if
@@ -1836,7 +1840,7 @@ module modstartup
                      ttaui = numol*prandtlmoli*2.*(Tinl(kb) - thls)/(dzf(kb)*utaui) ! friction temp. at inlet (need at first time step)
                   end if
                else ! -> lreadminl -> Uinl, Urec, Wrec already read
-                  call slabsum(uaverage, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+                  call reduce_xy_sum(uaverage, u0(ib:ie,jb:je,kb:ke))
                   uaverage = uaverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
                end if
 
@@ -1896,7 +1900,7 @@ module modstartup
                   tminletbc(:, :) = storet0inletbc(:, :, nstepread)
                end if
                ! determine bulk velocity
-               call slabsum(uaverage, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+               call reduce_xy_sum(uaverage, u0(ib:ie,jb:je,kb:ke))
                uaverage = uaverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
                do k = kb, ke
                   uaverage(k) = uaverage(k)*dzf(k)
@@ -1915,9 +1919,9 @@ module modstartup
                   call drivergen
                end if
 
-              !call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
+              !call reduce_xy_sum(uaverage, u0(ib:ie,jb:je,kb:ke))
               !uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
-              ! call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
+              ! call av_intr(uaverage(kb:ke), u0, LOC_U, 0, .false.)
               ! do k=kb,ke
               !   uaverage(k) = uaverage(k)*dzf(k)
               ! end do
@@ -1988,7 +1992,7 @@ module modstartup
                   enddo
                enddo
                ! outlet bulk velocity
-               call slabsum(uaverage, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
+               call reduce_xy_sum(uaverage, u0(ib:ie,jb:je,kb:ke))
                uaverage = uaverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
                ! determine bulk velocity
                do k = kb, ke
@@ -2038,17 +2042,17 @@ module modstartup
             th0av = 0.0
             sv0av = 0.
 
-            ! call slabsum(u0av  ,kb,ke+kh,u0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(u0av(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-            ! call slabsum(v0av  ,kb,ke+kh,v0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(v0av(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-            ! call slabsum(thl0av,kb,ke+kh,thl0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-            ! call slabsum(qt0av,kb,ke+kh,qt0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            ! call av_intr(u0av(kb:ke+kh), u0, LOC_U, kh, .false.)
+            call av_intr(u0av(kb:ke+kh),u0,LOC_U,kh,.false.)
+            ! call av_intr(v0av(kb:ke+kh), v0, LOC_V, kh, .false.)
+            call av_intr(v0av(kb:ke+kh),v0,LOC_V,kh,.false.)
+            ! call av_intr(thl0av(kb:ke+kh), thl0, LOC_C, kh, .false.)
+            call av_intr(thl0av(kb:ke+kh),thl0,LOC_C,kh,.false.)
+            ! call av_intr(qt0av(kb:ke+kh), qt0, LOC_C, kh, .false.)
+            call av_intr(qt0av(kb:ke+kh),qt0,LOC_C,kh,.false.)
             do n = 1, nsv
-               ! call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-               call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
+               ! call av_intr(sv0av(kb:ke+khc,n), sv0(:,:,:,n), LOC_C, kh, .false.)
+               call av_intr(sv0av(kb:ke+khc,n),sv0(:,:,:,n),LOC_C,kh,.false.)
             end do
 
             ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile

@@ -34,6 +34,7 @@
 
 
 module modforces
+  use architecture, only : myid, nprocs, global_sum
   !Calculates additional forces and large scale tendencies
   implicit none
   save
@@ -66,9 +67,8 @@ module modforces
     !  use modglobal, only : i1,j1,kmax,dzh,dzf,grav
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzhi,dzf,grav,lbuoyancy
     use modfields, only : u0,v0,w0,up,vp,wp,thv0h,dpdxl,dpdyl,thlp,thlpcar,thvh
-    use modibmdata, only : nxwallsnorm, xwallsnorm
+    use ibmdata, only : nxwallsnorm, xwallsnorm
     use modsurfdata,only : thvs
-    use modmpi, only : myid
     implicit none
 
     real thvsi
@@ -140,7 +140,6 @@ module modforces
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
                           Uinf,Vinf,lvinf,dy
     use modfields, only : u0,dpdxl,dgdt,dpdx,v0,u0av,v0av
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
     real, intent(out) :: freestream
 
@@ -159,7 +158,6 @@ module modforces
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
                           Uinf
     use modfields, only : thl0,dpdxl,dgdt,dpdx
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
 
     real, intent(out) :: freestrtmp
@@ -175,7 +173,7 @@ module modforces
       end do
     end do
     ttop = ttop / ( (je-jb+1)*(xh(ie+1)-xh(ib) ) )
-    call MPI_ALLREDUCE(ttop,    freestrtmp,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+    freestrtmp = global_sum(ttop)
     freestrtmp = freestrtmp / nprocs
 
   end subroutine detfreestrtmp
@@ -186,7 +184,6 @@ module modforces
                           freestreamav,freestrtmpav,ltempeq
     use modsurfdata,only: thl_top
     use modfields, only : u0,thl0,dpdxl,dgdt,dpdx,thlsrcdt
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
 
     real  utop,freestream,freestrtmp,rk3coef
@@ -352,8 +349,11 @@ module modforces
                           uflowrate,vflowrate,linoutflow,&
                           luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
     use modfields, only : um,up,vm,vp,uouttot,udef,vouttot,vdef,&
-                          uoutarea,voutarea,fluidvol,IIu,IIv,IIus,IIvs
-    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm,sumx_ibm,avexy_ibm
+                          uoutarea,voutarea,fluidvol
+    use ibmmasks, only : IIu, IIv, IIus, IIvs
+    use definitions,only : LOC_C, LOC_U, LOC_V
+    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL
+    use operators,   only : sum_y_intr, sum_x_intr, av_intr
 
     real, dimension(kb:ke+kh)     :: uvol
     real, dimension(kb:ke+kh)     :: vvol
@@ -363,6 +363,10 @@ module modforces
     real, dimension(kb:ke)        :: vout
     real, dimension(kb:ke)        :: uoutold
     real, dimension(kb:ke)        :: voutold
+    real, dimension(ib:ie,kb:ke)  :: uout_plane
+    real, dimension(ib:ie,kb:ke)  :: uoutold_plane
+    real, dimension(jb:je,kb:ke)  :: vout_plane
+    real, dimension(jb:je,kb:ke)  :: voutold_plane
 
     real                          rk3coef,rk3coefi,&
                                   uoutflow,voutflow,&
@@ -378,10 +382,14 @@ module modforces
       uout = 0.
       uoutflow = 0.
       uoutold = 0.
+      uout_plane = 0.
+      uoutold_plane = 0.
 
       ! integrate u fixed at outlet ie along y
-      call sumy_ibm(uout,up(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u tendency at previous time step
-      call sumy_ibm(uoutold,um(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u at previous time step
+      call sum_y_intr(uout_plane,up*dy,LOC_U)  ! u tendency at previous time step
+      call sum_y_intr(uoutold_plane,um*dy,LOC_U)  ! u at previous time step
+      uout = uout_plane(ie,kb:ke)
+      uoutold = uoutold_plane(ie,kb:ke)
 
       ! integrate u in z
       do k=kb,ke
@@ -421,8 +429,8 @@ module modforces
       uvolold = 0.
 
       ! Assumes equidistant grid
-      call avexy_ibm(uvol(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-      call avexy_ibm(uvolold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call av_intr(uvol(kb:ke+kh),up,LOC_U,kh,.false.)
+      call av_intr(uvolold(kb:ke+kh),um,LOC_U,kh,.false.)
 
       ! average over fluid volume
       uoutflow = rk3coef*sum(uvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
@@ -450,6 +458,8 @@ module modforces
       vout = 0.
       voutflow = 0.
       voutold = 0.
+      vout_plane = 0.
+      voutold_plane = 0.
 
       ! integrate v fixed at outlet je along x
       ! if (myid==nprocs-1) then
@@ -458,8 +468,10 @@ module modforces
       !       voutold(k) = sum(vm(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at previous time step
       !    end do
       ! end if
-      call sumy_ibm(vout,vp(ib:je,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v tendency at previous time step
-      call sumy_ibm(voutold,vm(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v at previous time step
+      call sum_x_intr(vout_plane,vp*dxf(1),LOC_V)  ! v tendency at previous time step
+      call sum_x_intr(voutold_plane,vm*dxf(1),LOC_V)  ! v at previous time step
+      vout = vout_plane(je,kb:ke)
+      voutold = voutold_plane(je,kb:ke)
 
       ! integrate v in z
       do k=kb,ke
@@ -495,8 +507,8 @@ module modforces
       vvolold = 0.
 
       ! Assumes equidistant grid
-      call avexy_ibm(vvol(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-      call avexy_ibm(vvolold(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call av_intr(vvol(kb:ke+kh),vp,LOC_V,kh,.false.)
+      call av_intr(vvolold(kb:ke+kh),vm,LOC_V,kh,.false.)
 
       ! average over fluid volume
       voutflow = rk3coef*sum(vvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
@@ -520,18 +532,22 @@ module modforces
     ! calculates outlet area of domain for u-velocity excluding blocks
 
     use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dzf,ierank
-    use modfields, only   : IIc
-    use modmpi, only      : sumy_ibm
+    use ibmmasks, only  : IIc
+    use definitions, only : LOC_C
+    use operators, only     : sum_y_intr
 
     implicit none
     real, intent(out)       :: area
     real, dimension(kb:ke)  :: sumy
+    real, dimension(ib:ie,kb:ke) :: sumy_plane
     integer                    k
 
     sumy = 0.
+    sumy_plane = 0.
     ! integrate fluid area at outflow plane in y
     ! Assumes ie=itot
-    call sumy_ibm(sumy,IIc(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIc(ie,jb:je,kb:ke))
+    call sum_y_intr(sumy_plane,IIc*dy,LOC_C)
+    sumy = sumy_plane(ie,kb:ke)
 
     ! integrate fluid area at outflow plane in z
     do k=kb,ke
@@ -545,18 +561,22 @@ module modforces
     ! calculates outlet area of domain for v-velocity excluding blocks
 
     use modglobal, only : ib,ie,jb,je,kb,ke,dxf,dzf,jerank
-    use modfields, only : IIc
-    use modmpi,    only : sumx_ibm
+    use ibmmasks, only : IIc
+    use definitions, only : LOC_C
+    use operators,   only : sum_x_intr
 
     implicit none
     real, intent(out)       :: area
     real, dimension(kb:ke)  :: sumx
+    real, dimension(jb:je,kb:ke) :: sumx_plane
     integer                    k
 
     sumx = 0.
+    sumx_plane = 0.
     ! integrate fluid area at outflow plane in x
     ! Assumes je=jtot
-    call sumx_ibm(sumx,IIc(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIc(ib:ie,je,kb:ke))
+    call sum_x_intr(sumx_plane,IIc*dxf(1),LOC_C)
+    sumx = sumx_plane(je,kb:ke)
 
     ! integrate fluid area at outflow plane in z
     do k=kb,ke
@@ -570,8 +590,9 @@ module modforces
     ! calculates fluid volume of domain excluding blocks
 
     use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,dy,dxf,dzf
-    use modfields, only   : IIc, IIcs
-    use modmpi, only      : sumy_ibm, avexy_ibm
+    use ibmmasks, only  : IIc, IIcs
+    use definitions,only : LOC_C
+    use operators, only     : av_intr
 
     implicit none
     real, intent(out)             :: volume
@@ -583,7 +604,7 @@ module modforces
     sumxy = 0.
 
     ! ! integrate fluid volume in y
-    ! call sumy_ibm(sumy,IIc(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke))
+    ! call sum_y_intr(sumy_plane, IIc*dy, LOC_C)
     !
     ! ! integrate fluid area in x
     ! do k=kb,ke
@@ -591,7 +612,7 @@ module modforces
     ! end do
 
     ! Equidistant x
-    call avexy_ibm(sumxy(kb:ke+kh),IIc(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+    call av_intr(sumxy(kb:ke+kh),IIc*dxf(1)*dy,LOC_C,kh,.false.)
 
     ! integrate fluid area in z
     volume = sum(sumxy(kb:ke)*dzf(kb:ke))
@@ -893,7 +914,6 @@ module modforces
   use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, kb, ke,&
                           itot, jtot, totheatflux,sinkbase, totqflux, &
                           zh, dx, dy ,dzh, fraction
-  use modmpi, only : comm3d, mpierr, MY_REAL, myid, MPI_SUM
   !
   integer :: i, j, k, n, M
   real :: tot_Tflux, tot_qflux, sensible_heat_out, latent_heat_out,R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t  !, !tot_qflux !, sink_points
@@ -905,8 +925,8 @@ module modforces
   !
   !call MPI_ALLREDUCE(bctfluxsum,   tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   !call MPI_ALLREDUCE(bcqfluxsum,   tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-  call MPI_ALLREDUCE(totheatflux,tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
-  call MPI_ALLREDUCE(totqflux,tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
+  tot_Tflux = global_sum(totheatflux)
+  tot_qflux = global_sum(totqflux)
   ! Grylls 2021;  R=(phitop-phibot)/l= -phibot/hABL
   ! Since tot_Tflux = phibot/LxLydeltaV
   ! according to  M if use new tot_Tflux then we have phibot = tot_heatflux/lxly

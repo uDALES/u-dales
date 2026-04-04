@@ -20,9 +20,55 @@
 !
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
-module modibmdata
+module ibmdata
   implicit none
   save
+
+    type solid_info_type
+      integer :: nsolpts
+      integer, allocatable :: solpts(:,:)
+      logical, allocatable :: lsolptsrank(:)
+      integer, allocatable :: solptsrank(:)
+      integer :: nsolptsrank
+      integer, allocatable :: solpts_loc(:,:)
+    end type solid_info_type
+
+    type bound_info_type
+      integer :: nbndpts
+      integer, allocatable :: bndpts(:,:)
+      real, allocatable    :: recpts(:,:)
+      integer, allocatable :: recids_u(:,:)
+      integer, allocatable :: recids_v(:,:)
+      integer, allocatable :: recids_w(:,:)
+      integer, allocatable :: recids_c(:,:)
+      real, allocatable    :: bnddst(:)
+      integer, allocatable :: bndptsrank(:)
+      logical, allocatable :: lcomprec(:)
+      logical, allocatable :: lskipsec(:)
+      integer :: nbndptsrank
+      integer, allocatable :: bndpts_loc(:,:)
+
+      integer :: nfctsecs
+      integer, allocatable :: secbndptids(:)
+      integer, allocatable :: secfacids(:)
+      real,    allocatable :: secareas(:)
+      integer, allocatable :: fctsecsrank(:)
+      integer :: nfctsecsrank
+      integer, allocatable :: secfacids_loc(:)
+      real   , allocatable :: secareas_loc(:)
+      integer, allocatable :: secbndpts_loc(:,:)
+      real   , allocatable :: bnddst_loc(:)
+      real   , allocatable :: recpts_loc(:,:)
+      integer, allocatable :: recids_u_loc(:,:)
+      integer, allocatable :: recids_v_loc(:,:)
+      integer, allocatable :: recids_w_loc(:,:)
+      integer, allocatable :: recids_c_loc(:,:)
+      logical, allocatable :: lcomprec_loc(:)
+      logical, allocatable :: lskipsec_loc(:)
+    end type bound_info_type
+
+    type(solid_info_type) :: solid_info_u, solid_info_v, solid_info_w, solid_info_c
+    type(bound_info_type) :: bound_info_u, bound_info_v, bound_info_w, bound_info_c
 
     integer, allocatable :: xwallsglobal(:,:)
     integer, allocatable :: ywallsglobal(:,:)

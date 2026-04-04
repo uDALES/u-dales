@@ -1,6 +1,7 @@
 !> Sparse vegetation support (veg_params-based masking and drag application)
 module vegetation
   use mpi
+  use architecture, only : myid, bcast
   implicit none
   save
 
@@ -48,7 +49,7 @@ contains
 
   subroutine init_vegetation
     use modglobal,  only : ltrees,itree_mode,TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,dzf,nsv
-    use modmpi,     only : myid,comm3d,mpierr,MY_REAL
+    use architecture, only : comm3d, mpierr
     use readinput,  only : read_sparse_ijk, read_sparse_real
     use decomp_2d,  only : exchange_halo_x, exchange_halo_y, exchange_halo_z
     implicit none
@@ -91,7 +92,7 @@ contains
       end do
       close(ifinput)
     end if
-    call MPI_BCAST(npts, 1, MPI_INTEGER, 0, comm3d, mpierr)
+    call bcast(npts, 0)
 
     ! Read veg_params.<expnr> (aligned with veg.inp ordering)
     if (allocated(id_all)) deallocate(id_all, lad_all, cd_all, ud_all, dec_all, lsize_all, rs_all)
@@ -134,14 +135,14 @@ contains
 
     end if
 
-    call MPI_BCAST(id_all, npts, MPI_INTEGER, 0, comm3d, mpierr)
-    call MPI_BCAST(lad_all, npts, MY_REAL, 0, comm3d, mpierr)
-    call MPI_BCAST(cd_all, npts, MY_REAL, 0, comm3d, mpierr)
-    call MPI_BCAST(ud_all, npts, MY_REAL, 0, comm3d, mpierr)
-    call MPI_BCAST(dec_all, npts, MY_REAL, 0, comm3d, mpierr)
-    call MPI_BCAST(lsize_all, npts, MY_REAL, 0, comm3d, mpierr)
-    call MPI_BCAST(rs_all, npts, MY_REAL, 0, comm3d, mpierr)
-    call MPI_BCAST(sveg_exists, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+    call bcast(id_all, 0)
+    call bcast(lad_all, 0)
+    call bcast(cd_all, 0)
+    call bcast(ud_all, 0)
+    call bcast(dec_all, 0)
+    call bcast(lsize_all, 0)
+    call bcast(rs_all, 0)
+    call bcast(sveg_exists, 0)
 
     call read_sparse_ijk('veg.inp.'//trim(cexpnr), npts, veg%npts, ids_loc, pts_in, nskip=1)
     if (sveg_exists) then

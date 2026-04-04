@@ -206,7 +206,8 @@ contains
     use modfields,   only : u0,v0,w0,thl0,wm,uprof
     use modsurfdata, only : thls,thl_top
     use modsave,     only : writerestartfiles
-    use modmpi,      only : slabsum,myid
+    use modmpi,      only : myid
+    use operators,     only : reduce_xy_sum
     implicit none
 
     real,dimension(ib:ib,jb:je,kb:ke)   :: uinletbc2   ! dummy variable
@@ -287,14 +288,14 @@ contains
     uaver=0.
     taver=0.
     do i=ib,ie
-      call slabsum(uaver(i,:),kb,ke,  u0(i:i,jb:je,kb:ke),i,i,jb,je,kb,ke,i,i,jb,je,kb,ke)
-      call slabsum(taver(i,:),kb,ke,thl0(i:i,jb:je,kb:ke),i,i,jb,je,kb,ke,i,i,jb,je,kb,ke)
+      call reduce_xy_sum(uaver(i,:),u0(i:i,jb:je,kb:ke))
+      call reduce_xy_sum(taver(i,:),thl0(i:i,jb:je,kb:ke))
     end do
 
     wrav=0.
-    call slabsum(wrav(kb:ke+1),kb,ke,w0(irecy-1:irecy-1,jb:je,kb:ke+1),irecy-1,irecy-1,jb,je,kb,ke+1,irecy-1,irecy-1,jb,je,kb,ke+1)
+    call reduce_xy_sum(wrav(kb:ke+1),w0(irecy-1:irecy-1,jb:je,kb:ke+1))
     trav=0.
-    call slabsum(trav(kb:ke),  kb,ke,thl0(irecy-1:irecy-1,jb:je,kb:ke), irecy-1,irecy-1,jb,je,kb,ke,  irecy-1,irecy-1,jb,je,kb,ke)
+    call reduce_xy_sum(trav(kb:ke),thl0(irecy-1:irecy-1,jb:je,kb:ke))
 
     uaver = uaver / jtot                    ! average over j-direction
     taver = taver / jtot                    ! average over j-direction
@@ -743,13 +744,13 @@ contains
 
 
    ! Compute j-averaged inlet U  (used for compute thetai)
-    uinletbc2(ib,jb:je,kb:ke) = u0inletbc(jb:je,kb:ke)  ! this is just a dummy variable to give uninletbc the right dimension in slabsum
-    tinletbc2(ib,jb:je,kb:ke) = t0inletbc(jb:je,kb:ke)  ! this is just a dummy variable to give tninletbc the right dimension in slabsum
+    uinletbc2(ib,jb:je,kb:ke) = u0inletbc(jb:je,kb:ke)  ! dummy field to reuse the generic x-y reduction interface
+    tinletbc2(ib,jb:je,kb:ke) = t0inletbc(jb:je,kb:ke)  ! dummy field to reuse the generic x-y reduction interface
     urav = 0.
     trav = 0.
-    call slabsum(urav  ,kb,ke,uinletbc2 ,ib,ib,jb,je,kb,ke,ib,ib,jb,je,kb,ke)
-    call slabsum(trav  ,kb,ke,tinletbc2 ,ib,ib,jb,je,kb,ke,ib,ib,jb,je,kb,ke)
-!    call slabsum(urav  ,kb,ke,u0 ,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ib,jb,je,kb,ke)
+    call reduce_xy_sum(urav,uinletbc2)
+    call reduce_xy_sum(trav,tinletbc2)
+!    call reduce_xy_sum(urav, u0(ib:ib,jb:je,kb:ke))
     urav = urav / jtot                    ! average over j-direction
     trav = trav / jtot                    ! average over j-direction
 
@@ -923,9 +924,9 @@ contains
 
 
 !! massflow correction
-      uinletbc2(ib,jb:je,kb:ke) = u0inletbc(jb:je,kb:ke)  ! this is just a dummy variable to give uninletbc the right dimension in slabsum
+      uinletbc2(ib,jb:je,kb:ke) = u0inletbc(jb:je,kb:ke)  ! dummy field to reuse the generic x-y reduction interface
       urav = 0.
-      call slabsum(urav  ,kb,ke,uinletbc2 ,ib,ib,jb,je,kb,ke,ib,ib,jb,je,kb,ke)
+      call reduce_xy_sum(urav,uinletbc2)
       urav = urav / jtot                    ! average over j-direction
 
    ! determine bulk velocity of new (interpolated) profile
@@ -953,7 +954,8 @@ contains
     use modglobal,   only : ib,ie,jb,je,jb,jtot,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,lfixinlet,lfixutauin,luvolflowr
     use modfields,   only : u0,v0,w0,wm,uprof
     use modsave,     only : writerestartfiles
-    use modmpi,      only : slabsum,myid
+    use modmpi,      only : myid
+    use operators,     only : reduce_xy_sum
     implicit none
 
     real,dimension(ib:ib,jb:je,kb:ke)   :: uinletbc2   ! dummy variable
@@ -1021,11 +1023,11 @@ contains
     avinti = 1./avint
     uaver=0.
     do i=ib,ie
-      call slabsum(uaver(i,:),kb,ke,u0(i:i,jb:je,kb:ke),i,i,jb,je,kb,ke,i,i,jb,je,kb,ke)
+      call reduce_xy_sum(uaver(i,:),u0(i:i,jb:je,kb:ke))
     end do
 
     wrav=0.
-    call slabsum(wrav(kb:ke+1),kb,ke,w0(irecy-1:irecy-1,jb:je,kb:ke+1),irecy-1,irecy-1,jb,je,kb,ke+1,irecy-1,irecy-1,jb,je,kb,ke+1)
+    call reduce_xy_sum(wrav(kb:ke+1),w0(irecy-1:irecy-1,jb:je,kb:ke+1))
 
     uaver = uaver / jtot                ! average over j-direction
     urav = uaver(irecy,:)
@@ -1314,9 +1316,9 @@ contains
 
 
    ! Compute j-averaged inlet U  (used for compute thetai)
-    uinletbc2(ib,jb:je,kb:ke) = u0inletbc(jb:je,kb:ke)  ! this is just a dummy variable to give uninletbc the right dimension in slabsum
+    uinletbc2(ib,jb:je,kb:ke) = u0inletbc(jb:je,kb:ke)  ! dummy field to reuse the generic x-y reduction interface
     urav = 0.
-    call slabsum(urav  ,kb,ke,uinletbc2 ,ib,ib,jb,je,kb,ke,ib,ib,jb,je,kb,ke)
+    call reduce_xy_sum(urav,uinletbc2)
     urav = urav / jtot                   ! average over j-direction
 
 ! determine bulk velocity of new profile
@@ -1444,9 +1446,9 @@ contains
 
 
 !! massflow correction
-      uinletbc2(ib,jb:je,kb:ke) = u0inletbc(jb:je,kb:ke)  ! this is just a dummy variable to give uninletbc the right dimension in slabsum
+      uinletbc2(ib,jb:je,kb:ke) = u0inletbc(jb:je,kb:ke)  ! dummy field to reuse the generic x-y reduction interface
       urav = 0.
-      call slabsum(urav  ,kb,ke,uinletbc2 ,ib,ib,jb,je,kb,ke,ib,ib,jb,je,kb,ke)
+      call reduce_xy_sum(urav,uinletbc2)
       urav = urav / jtot                    ! average over j-direction
 
    ! determine bulk velocity of new (interpolated) profile
@@ -1898,7 +1900,8 @@ contains
 
   subroutine readinletfile
     use modglobal, only : ib,jb,je,jmax,kb,ke,cexpnr,ifinput,nstore,ltempeq,ntrun,zh,jtot,jh
-    use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
+    use modmpi,    only : cmyid,myid,nprocs,excjs
+    use operators,   only : reduce_xy_sum
 !    use modinletdata, only : storeu0inletbc,storev0inletbc,storew0inletbc,nfile
 
     implicit none

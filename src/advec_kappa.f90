@@ -39,7 +39,7 @@
 
 !  use modglobal, only : i1,i2,ih,j1,j2,jh,k1,kmax,dxi,dyi,dzi
      use modglobal, only:ib, ie, ihc, jb, je, jhc, kb, ke, khc, dxhci, dyi, dzhci, dxfc, dzfc, dxfci, dzfci, libm
-     use modibmdata, only:nxwallsnorm, nywallsnorm, nzwallsnorm, xwallsnorm, &
+     use ibmdata, only:nxwallsnorm, nywallsnorm, nzwallsnorm, xwallsnorm, &
         ywallsnorm, zwallsnorm, nywallsp, nywallsm, ywallsp, ywallsm
      use modfields, only:u0, v0, w0
      implicit none
