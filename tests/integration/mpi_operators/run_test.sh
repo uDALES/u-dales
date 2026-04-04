@@ -1,7 +1,7 @@
 #!/bin/bash
 # Direct MPI operator validation using runmode 1005 on case 100.
 
-set -eu
+set -u
 
 if ! command -v module >/dev/null 2>&1 && [ -f /etc/profile.d/modules.sh ]; then
     # shellcheck disable=SC1091
@@ -94,10 +94,18 @@ PY
     echo "Run directory: $run_dir"
     echo "=========================================="
 
+    local run_rc=0
     (
         cd "$run_dir" || exit 1
         "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$np" "$UDALES_BUILD" "$NAMELIST" > run.log 2>&1
-    )
+    ) || run_rc=$?
+
+    if [ "$run_rc" -ne 0 ]; then
+        echo "FAIL: TEST_MPI_OPERATORS [$label] exited with code $run_rc"
+        tail -n 120 "${run_dir}/run.log" || true
+        failures=$((failures + 1))
+        return
+    fi
 
     if ! grep -q "ALL TESTS PASSED: tests_mpi_operators" "${run_dir}/run.log"; then
         echo "FAIL: TEST_MPI_OPERATORS [$label]"

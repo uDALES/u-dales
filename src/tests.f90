@@ -287,9 +287,9 @@ contains
     if (myid == 0) then
       write(*, '(A)') '================================================'
       write(*, '(A, I8)') 'runmode = ', runmode
-      write(*, '(A)') 'tests_mpi_operators: DIRECT MPI FIELD OPERATOR TEST'
+      write(*, '(A)') 'tests_mpi_operators: MODMPI IBM OPERATOR TEST'
       write(*, '(A)') '------------------------------------------------'
-      write(*, '(A)') 'Using Xie/Castro geometry from case 100 with explicit masked references'
+      write(*, '(A)') 'Using case 100 masks to validate avexy_ibm/avey_ibm/sumx_ibm/sumy_ibm'
     end if
 
     call initfields
@@ -299,19 +299,19 @@ contains
 
     all_passed = .true.
 
-    if (.not. check_loc_xy('LOC_C', 1, IIc, IIcs)) all_passed = .false.
-    if (.not. check_loc_xy('LOC_U', 2, IIu, IIus)) all_passed = .false.
-    if (.not. check_loc_xy('LOC_V', 3, IIv, IIvs)) all_passed = .false.
-    if (.not. check_loc_xy('LOC_W', 4, IIw, IIws)) all_passed = .false.
-    if (.not. check_loc_xy('LOC_WU', 5, IIuw, IIuws)) all_passed = .false.
-    if (.not. check_loc_xy('LOC_VW', 6, IIvw, IIvws)) all_passed = .false.
-    if (.not. check_loc_xy('LOC_UV', 7, IIuv, IIuvs)) all_passed = .false.
+    if (.not. check_loc_xy('C', 1, IIc, IIcs)) all_passed = .false.
+    if (.not. check_loc_xy('U', 2, IIu, IIus)) all_passed = .false.
+    if (.not. check_loc_xy('V', 3, IIv, IIvs)) all_passed = .false.
+    if (.not. check_loc_xy('W', 4, IIw, IIws)) all_passed = .false.
+    if (.not. check_loc_xy('WU', 5, IIuw, IIuws)) all_passed = .false.
+    if (.not. check_loc_xy('VW', 6, IIvw, IIvws)) all_passed = .false.
+    if (.not. check_loc_xy('UV', 7, IIuv, IIuvs)) all_passed = .false.
 
-    if (.not. check_loc_y('LOC_C', 1, IIc, IIct)) all_passed = .false.
-    if (.not. check_loc_y('LOC_U', 2, IIu, IIut)) all_passed = .false.
-    if (.not. check_loc_y('LOC_V', 3, IIv, IIvt)) all_passed = .false.
-    if (.not. check_loc_y('LOC_W', 4, IIw, IIwt)) all_passed = .false.
-    if (.not. check_loc_y('LOC_WU', 5, IIuw, IIuwt)) all_passed = .false.
+    if (.not. check_loc_y('C', 1, IIc, IIct)) all_passed = .false.
+    if (.not. check_loc_y('U', 2, IIu, IIut)) all_passed = .false.
+    if (.not. check_loc_y('V', 3, IIv, IIvt)) all_passed = .false.
+    if (.not. check_loc_y('W', 4, IIw, IIwt)) all_passed = .false.
+    if (.not. check_loc_y('WU', 5, IIuw, IIuwt)) all_passed = .false.
 
     if (all_passed .and. myid == 0) then
       write(*, '(A)') '------------------------------------------------'
@@ -331,11 +331,14 @@ contains
       implicit none
       character(len=*), intent(in) :: label
       integer, intent(in) :: loc_id
-      integer, intent(in) :: mask_3d(ib-2:ie+2,jb-2:je+2,kb:ke+khc)
-      integer, intent(in) :: mask_1d(kb:ke+khc)
-      real :: var_clean(ib:ie,jb:je,kb:ke+khc)
-      real :: got(kb:ke+khc), exp(kb:ke+khc), sum_local(kb:ke+khc), sum_global(kb:ke+khc)
+      integer, intent(in) :: mask_3d(:,:,:)
+      integer, intent(in) :: mask_1d(:)
+      real, allocatable :: var_clean(:,:,:)
+      real, allocatable :: got(:), exp(:), sum_local(:), sum_global(:)
       integer :: i, j, k
+
+      allocate(var_clean(ib:ie,jb:je,kb:ke+khc))
+      allocate(got(kb:ke+khc), exp(kb:ke+khc), sum_local(kb:ke+khc), sum_global(kb:ke+khc))
 
       do k = kb, ke + khc
         do j = jb, je
@@ -362,20 +365,28 @@ contains
       end do
 
       check_loc_xy = compare_real_1d('avexy_ibm '//trim(label), got, exp)
+
+      deallocate(var_clean, got, exp, sum_local, sum_global)
     end function check_loc_xy
 
     logical function check_loc_y(label, loc_id, mask_3d, mask_2d)
       implicit none
       character(len=*), intent(in) :: label
       integer, intent(in) :: loc_id
-      integer, intent(in) :: mask_3d(ib-2:ie+2,jb-2:je+2,kb:ke+khc)
-      integer, intent(in) :: mask_2d(ib:ie,kb:ke)
-      real :: var_clean(ib:ie,jb:je,kb:ke)
-      real :: got_avg(ib:ie,kb:ke), got_sum_y(ib:ie,kb:ke), got_sum_x(jb:je,kb:ke)
-      real :: exp_avg(ib:ie,kb:ke), exp_sum_y(ib:ie,kb:ke), exp_sum_x(jb:je,kb:ke)
-      real :: sum_local(ib:ie,kb:ke), sum_global(ib:ie,kb:ke)
-      real :: sumx_local(jb:je,kb:ke), sumx_global(jb:je,kb:ke)
+      integer, intent(in) :: mask_3d(:,:,:)
+      integer, intent(in) :: mask_2d(:,:)
+      real, allocatable :: var_clean(:,:,:)
+      real, allocatable :: got_avg(:,:), got_sum_y(:,:), got_sum_x(:,:)
+      real, allocatable :: exp_avg(:,:), exp_sum_y(:,:), exp_sum_x(:,:)
+      real, allocatable :: sum_local(:,:), sum_global(:,:)
+      real, allocatable :: sumx_local(:,:), sumx_global(:,:)
       integer :: i, j, k
+
+      allocate(var_clean(ib:ie,jb:je,kb:ke))
+      allocate(got_avg(ib:ie,kb:ke), got_sum_y(ib:ie,kb:ke), got_sum_x(jb:je,kb:ke))
+      allocate(exp_avg(ib:ie,kb:ke), exp_sum_y(ib:ie,kb:ke), exp_sum_x(jb:je,kb:ke))
+      allocate(sum_local(ib:ie,kb:ke), sum_global(ib:ie,kb:ke))
+      allocate(sumx_local(jb:je,kb:ke), sumx_global(jb:je,kb:ke))
 
       do k = kb, ke
         do j = jb, je
@@ -421,6 +432,9 @@ contains
       check_loc_y = compare_real_2d('avey_ibm '//trim(label), got_avg, exp_avg)
       if (.not. compare_real_2d('sumy_ibm '//trim(label), got_sum_y, exp_sum_y)) check_loc_y = .false.
       if (.not. compare_real_2d_jk('sumx_ibm '//trim(label), got_sum_x, exp_sum_x)) check_loc_y = .false.
+
+      deallocate(var_clean, got_avg, got_sum_y, got_sum_x, exp_avg, exp_sum_y, exp_sum_x, &
+                 sum_local, sum_global, sumx_local, sumx_global)
     end function check_loc_y
 
     logical function compare_real_1d(label, got, exp)
@@ -442,7 +456,7 @@ contains
     logical function compare_real_2d(label, got, exp)
       implicit none
       character(len=*), intent(in) :: label
-      real, intent(in) :: got(ib:ie,kb:ke), exp(ib:ie,kb:ke)
+      real, intent(in) :: got(:,:), exp(:,:)
       real :: max_abs
       integer :: imax(2)
 
@@ -458,7 +472,7 @@ contains
     logical function compare_real_2d_jk(label, got, exp)
       implicit none
       character(len=*), intent(in) :: label
-      real, intent(in) :: got(jb:je,kb:ke), exp(jb:je,kb:ke)
+      real, intent(in) :: got(:,:), exp(:,:)
       real :: max_abs
       integer :: imax(2)
 
