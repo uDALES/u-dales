@@ -920,7 +920,7 @@ contains
     use modglobal, only : rk3step, ib,ie,jb,je,kb,ke,ih,jh,kh,dxi,dxfi,dyi,dzfi,dt,&
                           linoutflow,libm,dtmax,ierank,jerank,pi,dy,imax,jmax,ylen,xf,zf,jbrank
     use modmpi,    only : excjs, myidx, myidy, myid
-    use operators,   only : av_intr
+    use operators,   only : avg_xy_fluid
     use modboundary, only: bcpup
 !    use modibm,    only : ibmnorm
 
@@ -1035,7 +1035,7 @@ contains
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxi,dxhi,dyi,dzhi,linoutflow,rslabs,ibrank,ierank,jbrank,jerank,dxfi,BCtopm,BCtopm_pressure
     use definitions,only : LOC_C
     use modmpi,    only : myid
-    use operators,   only : reduce_xy_sum, av_intr
+    use operators,   only : reduce_xy_sum, avg_xy_fluid
     use modboundary,only : bcp
     implicit none
     integer i,j,k
@@ -1065,7 +1065,7 @@ contains
 
     if (BCtopm .eq. BCtopm_pressure) then
       ! Get out the slab averaged dp/dz = <rhw>
-      call av_intr(pij(kb:ke+kh),p,LOC_C,kh,.false.)
+      call avg_xy_fluid(pij(kb:ke+kh),p,LOC_C,kh,.false.)
 
       do i=ib,ie
         do j=jb,je

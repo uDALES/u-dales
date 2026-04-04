@@ -132,7 +132,7 @@ contains
       use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
       use definitions,     only : LOC_C, LOC_WU
       use modmpi,         only : myid
-      use operators,        only : reduce_xy_sum, av_y_intr
+      use operators,        only : reduce_xy_sum, avg_y_fluid
       use moddriver,      only : drivergen, driverchunkread
       use modinletdata,   only : ubulk, vbulk, iangle
       use decomp_2d,      only : exchange_halo_z
@@ -1158,7 +1158,7 @@ contains
      use ibmmasks,   only : IIc, IIcs
      use definitions,     only : LOC_C
      use modmpi,       only : excjs, excis, myid
-     use operators,      only : av_intr
+     use operators,      only : avg_xy_fluid
      use modinletdata, only : u0driver
      use decomp_2d,    only : exchange_halo_z
 
@@ -1194,7 +1194,7 @@ contains
        end do
 
      case(BCtopm_pressure)
-       call av_intr(pres0ij(kb:ke+kh),pres0,LOC_C,kh,.false.)
+       call avg_xy_fluid(pres0ij(kb:ke+kh),pres0,LOC_C,kh,.false.)
 
        do j = jb, je
          do i = ib, ie

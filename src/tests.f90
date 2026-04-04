@@ -608,7 +608,7 @@ contains
                             IIct, IIut, IIvt, IIwt, IIuwt, &
                             IIcs, IIus, IIvs, IIws, IIuvs, IIuws, IIvws
     use definitions, only : LOC_C, LOC_U, LOC_V, LOC_W, LOC_UV, LOC_WU, LOC_VW
-    use operators,    only : reduce_xy_sum, reduce_yz_sum, av_intr, av_y_intr, sum_x_intr, sum_y_intr
+    use operators,    only : reduce_xy_sum, reduce_yz_sum, avg_xy_fluid, avg_y_fluid, sum_x_fluid, sum_y_fluid
 
     implicit none
 
@@ -637,19 +637,19 @@ contains
     if (.not. check_reduce_xy_sum()) all_passed = .false.
     if (.not. check_reduce_yz_sum()) all_passed = .false.
 
-    if (.not. check_intrinsic_loc('LOC_C', LOC_C, IIc, IIcs)) all_passed = .false.
-    if (.not. check_intrinsic_loc('LOC_U', LOC_U, IIu, IIus)) all_passed = .false.
-    if (.not. check_intrinsic_loc('LOC_V', LOC_V, IIv, IIvs)) all_passed = .false.
-    if (.not. check_intrinsic_loc('LOC_W', LOC_W, IIw, IIws)) all_passed = .false.
-    if (.not. check_intrinsic_loc('LOC_UV', LOC_UV, IIuv, IIuvs)) all_passed = .false.
-    if (.not. check_intrinsic_loc('LOC_WU', LOC_WU, IIuw, IIuws)) all_passed = .false.
-    if (.not. check_intrinsic_loc('LOC_VW', LOC_VW, IIvw, IIvws)) all_passed = .false.
+    if (.not. check_fluid_loc('LOC_C', LOC_C, IIc, IIcs)) all_passed = .false.
+    if (.not. check_fluid_loc('LOC_U', LOC_U, IIu, IIus)) all_passed = .false.
+    if (.not. check_fluid_loc('LOC_V', LOC_V, IIv, IIvs)) all_passed = .false.
+    if (.not. check_fluid_loc('LOC_W', LOC_W, IIw, IIws)) all_passed = .false.
+    if (.not. check_fluid_loc('LOC_UV', LOC_UV, IIuv, IIuvs)) all_passed = .false.
+    if (.not. check_fluid_loc('LOC_WU', LOC_WU, IIuw, IIuws)) all_passed = .false.
+    if (.not. check_fluid_loc('LOC_VW', LOC_VW, IIvw, IIvws)) all_passed = .false.
 
-    if (.not. check_intrinsic_y_loc('LOC_C', LOC_C, IIc, IIct)) all_passed = .false.
-    if (.not. check_intrinsic_y_loc('LOC_U', LOC_U, IIu, IIut)) all_passed = .false.
-    if (.not. check_intrinsic_y_loc('LOC_V', LOC_V, IIv, IIvt)) all_passed = .false.
-    if (.not. check_intrinsic_y_loc('LOC_W', LOC_W, IIw, IIwt)) all_passed = .false.
-    if (.not. check_intrinsic_y_loc('LOC_WU', LOC_WU, IIuw, IIuwt)) all_passed = .false.
+    if (.not. check_fluid_y_loc('LOC_C', LOC_C, IIc, IIct)) all_passed = .false.
+    if (.not. check_fluid_y_loc('LOC_U', LOC_U, IIu, IIut)) all_passed = .false.
+    if (.not. check_fluid_y_loc('LOC_V', LOC_V, IIv, IIvt)) all_passed = .false.
+    if (.not. check_fluid_y_loc('LOC_W', LOC_W, IIw, IIwt)) all_passed = .false.
+    if (.not. check_fluid_y_loc('LOC_WU', LOC_WU, IIuw, IIuwt)) all_passed = .false.
 
     if (all_passed .and. myid == 0) then
       write(*, '(A)') '------------------------------------------------'
@@ -746,40 +746,48 @@ contains
       deallocate(var, got, exp_local, exp)
     end function check_reduce_yz_sum
 
-    logical function check_intrinsic_loc(label, var_loc, mask_3d, mask_1d)
+    logical function check_fluid_loc(label, var_loc, mask_3d, mask_1d)
       use modglobal, only : kb, ke, kh
       implicit none
       character(len=*), intent(in) :: label
       integer, intent(in)          :: var_loc
       integer, intent(in)          :: mask_3d(:,:,:), mask_1d(:)
-      real, allocatable            :: var(:,:,:), got(:), exp(:), sum_local(:), sum_global(:)
+      real, allocatable            :: var_clean(:,:,:), var_halo(:,:,:)
+      real, allocatable            :: got_clean(:), got_halo(:), exp(:), sum_local(:), sum_global(:)
       integer                      :: i, j, k
       integer                      :: i1, i2, j1, j2, k1, k2
       integer                      :: ii1, ii2, ij1, ij2, ik1, ik2
       integer                      :: is1, is2
 
-      allocate(var(lbound(mask_3d,1):ubound(mask_3d,1), &
-                   lbound(mask_3d,2):ubound(mask_3d,2), &
-                   lbound(mask_3d,3):ubound(mask_3d,3)))
-      allocate(got(kb:ke+kh), exp(kb:ke+kh), sum_local(kb:ke+kh), sum_global(kb:ke+kh))
+      call select_fluid_xy_reference_windows(mask_real_compatible(mask_3d), mask_3d, mask_1d, zsize(3) + kh, kh, &
+           i1, i2, j1, j2, k1, k2, ii1, ii2, ij1, ij2, ik1, ik2, is1, is2)
 
-      var = -9999.
-      do k = kb, ke + kh
-        do j = jb, je
-          do i = ib, ie
-            var(i,j,k) = real(var_loc) + 0.1*real(i) + 0.01*real(j) + 0.001*real(k)
+      allocate(var_clean(lbound(mask_3d,1):ubound(mask_3d,1), &
+                         lbound(mask_3d,2):ubound(mask_3d,2), &
+                         lbound(mask_3d,3):ubound(mask_3d,3)))
+      allocate(var_halo(lbound(mask_3d,1):ubound(mask_3d,1), &
+                        lbound(mask_3d,2):ubound(mask_3d,2), &
+                        lbound(mask_3d,3):ubound(mask_3d,3)))
+      allocate(got_clean(kb:ke+kh), got_halo(kb:ke+kh), exp(kb:ke+kh), sum_local(kb:ke+kh), sum_global(kb:ke+kh))
+
+      var_clean = -9999.
+      var_halo = 7777.
+      do k = k1, k2
+        do j = j1, j2
+          do i = i1, i2
+            var_clean(i,j,k) = real(var_loc) + 0.13*real(i) - 0.07*real(j) + 0.011*real(k)
+            var_halo(i,j,k) = var_clean(i,j,k)
           end do
         end do
       end do
 
-      got = 0.
-      call av_intr(got, var, var_loc, kh, .true.)
-
-      call select_intrinsic_xy_reference_windows(var, mask_3d, mask_1d, zsize(3) + kh, kh, &
-           i1, i2, j1, j2, k1, k2, ii1, ii2, ij1, ij2, ik1, ik2, is1, is2)
+      got_clean = 0.
+      got_halo = 0.
+      call avg_xy_fluid(got_clean, var_clean, var_loc, kh, .true.)
+      call avg_xy_fluid(got_halo, var_halo, var_loc, kh, .true.)
 
       do k = kb, ke + kh
-        sum_local(k) = sum(var(i1:i2,j1:j2,k1+k-1) * real(mask_3d(ii1:ii2,ij1:ij2,ik1+k-1)))
+        sum_local(k) = sum(var_clean(i1:i2,j1:j2,k1+k-1) * real(mask_3d(ii1:ii2,ij1:ij2,ik1+k-1)))
       end do
       call MPI_ALLREDUCE(sum_local, sum_global, size(sum_local), MY_REAL, MPI_SUM, comm3d, mpierr)
 
@@ -791,49 +799,58 @@ contains
         end if
       end do
 
-      check_intrinsic_loc = compare_real_1d('av_intr '//trim(label), got, exp)
+      check_fluid_loc = compare_real_1d('avg_xy_fluid '//trim(label), got_clean, exp)
+      if (.not. compare_real_1d('avg_xy_fluid '//trim(label)//' halo invariance', got_halo, exp)) check_fluid_loc = .false.
+      if (.not. compare_real_1d('avg_xy_fluid '//trim(label)//' clean vs halo', got_halo, got_clean)) check_fluid_loc = .false.
 
-      if (.not. check_sum_y_loc(label, var_loc, mask_3d, var)) check_intrinsic_loc = .false.
-      if (.not. check_sum_x_loc(label, var_loc, mask_3d, var)) check_intrinsic_loc = .false.
+      if (.not. check_sum_y_loc(label, var_loc, mask_3d, var_clean, var_halo)) check_fluid_loc = .false.
+      if (.not. check_sum_x_loc(label, var_loc, mask_3d, var_clean, var_halo)) check_fluid_loc = .false.
 
-      deallocate(var, got, exp, sum_local, sum_global)
-    end function check_intrinsic_loc
+      deallocate(var_clean, var_halo, got_clean, got_halo, exp, sum_local, sum_global)
+    end function check_fluid_loc
 
-    logical function check_intrinsic_y_loc(label, var_loc, mask_3d, mask_2d)
+    logical function check_fluid_y_loc(label, var_loc, mask_3d, mask_2d)
       use modglobal, only : kb, ke
       implicit none
       character(len=*), intent(in) :: label
       integer, intent(in)          :: var_loc
       integer, intent(in)          :: mask_3d(:,:,:), mask_2d(:,:)
-      real, allocatable            :: var(:,:,:), got(:,:), exp(:,:), sum_local(:,:), sum_global(:,:)
+      real, allocatable            :: var_clean(:,:,:), var_halo(:,:,:)
+      real, allocatable            :: got_clean(:,:), got_halo(:,:), exp(:,:), sum_local(:,:), sum_global(:,:)
       integer                      :: i, j, k
       integer                      :: i1, i2, j1, j2, k1, k2
       integer                      :: ii1, ii2, ij1, ij2, ik1, ik2
       integer                      :: it1, it2, kt1, kt2
 
-      allocate(var(lbound(mask_3d,1):ubound(mask_3d,1), &
-                   lbound(mask_3d,2):ubound(mask_3d,2), &
-                   lbound(mask_3d,3):ubound(mask_3d,3)))
-      allocate(got(1:zsize(1),1:zsize(3)), exp(1:zsize(1),1:zsize(3)), &
+      call select_fluid_y_reference_windows(mask_real_compatible(mask_3d), mask_3d, mask_2d, &
+           i1, i2, j1, j2, k1, k2, ii1, ii2, ij1, ij2, ik1, ik2, it1, it2, kt1, kt2)
+
+      allocate(var_clean(lbound(mask_3d,1):ubound(mask_3d,1), &
+                         lbound(mask_3d,2):ubound(mask_3d,2), &
+                         lbound(mask_3d,3):ubound(mask_3d,3)))
+      allocate(var_halo(lbound(mask_3d,1):ubound(mask_3d,1), &
+                        lbound(mask_3d,2):ubound(mask_3d,2), &
+                        lbound(mask_3d,3):ubound(mask_3d,3)))
+      allocate(got_clean(1:zsize(1),1:zsize(3)), got_halo(1:zsize(1),1:zsize(3)), exp(1:zsize(1),1:zsize(3)), &
                sum_local(1:zsize(1),1:zsize(3)), sum_global(1:zsize(1),1:zsize(3)))
 
-      var = -4321.
-      do k = 1, zsize(3)
-        do j = 1, zsize(2)
-          do i = 1, zsize(1)
-            var(i,j,k) = 0.25*real(var_loc) + 0.2*real(i) - 0.03*real(j) + 0.005*real(k)
+      var_clean = -4321.
+      var_halo = 6543.
+      do k = k1, k2
+        do j = j1, j2
+          do i = i1, i2
+            var_clean(i,j,k) = 0.25*real(var_loc) + 0.21*real(i) - 0.03*real(j) + 0.017*real(k)
+            var_halo(i,j,k) = var_clean(i,j,k)
           end do
         end do
       end do
 
-      call av_y_intr(got, var, var_loc)
-
-      call select_intrinsic_y_reference_windows(var, mask_3d, mask_2d, &
-           i1, i2, j1, j2, k1, k2, ii1, ii2, ij1, ij2, ik1, ik2, it1, it2, kt1, kt2)
+      call avg_y_fluid(got_clean, var_clean, var_loc)
+      call avg_y_fluid(got_halo, var_halo, var_loc)
 
       do k = 1, zsize(3)
         do i = 1, zsize(1)
-          sum_local(i,k) = sum(var(i1+i-1,j1:j2,k1+k-1) * real(mask_3d(ii1+i-1,ij1:ij2,ik1+k-1)))
+          sum_local(i,k) = sum(var_clean(i1+i-1,j1:j2,k1+k-1) * real(mask_3d(ii1+i-1,ij1:ij2,ik1+k-1)))
         end do
       end do
       call MPI_ALLREDUCE(sum_local, sum_global, size(sum_local), MY_REAL, MPI_SUM, comm3d, mpierr)
@@ -848,69 +865,79 @@ contains
         end do
       end do
 
-      check_intrinsic_y_loc = compare_real_2d('av_y_intr '//trim(label), got, exp)
+      check_fluid_y_loc = compare_real_2d('avg_y_fluid '//trim(label), got_clean, exp)
+      if (.not. compare_real_2d('avg_y_fluid '//trim(label)//' halo invariance', got_halo, exp)) check_fluid_y_loc = .false.
+      if (.not. compare_real_2d('avg_y_fluid '//trim(label)//' clean vs halo', got_halo, got_clean)) check_fluid_y_loc = .false.
 
-      deallocate(var, got, exp, sum_local, sum_global)
-    end function check_intrinsic_y_loc
+      deallocate(var_clean, var_halo, got_clean, got_halo, exp, sum_local, sum_global)
+    end function check_fluid_y_loc
 
-    logical function check_sum_y_loc(label, var_loc, mask_3d, var)
+    logical function check_sum_y_loc(label, var_loc, mask_3d, var_clean, var_halo)
       implicit none
       character(len=*), intent(in) :: label
       integer, intent(in)          :: var_loc
       integer, intent(in)          :: mask_3d(:,:,:)
-      real, intent(in)             :: var(:,:,:)
-      real, allocatable            :: got(:,:), exp_local(:,:), exp(:,:)
+      real, intent(in)             :: var_clean(:,:,:), var_halo(:,:,:)
+      real, allocatable            :: got_clean(:,:), got_halo(:,:), exp_local(:,:), exp(:,:)
       integer                      :: i, k
       integer                      :: i1, i2, j1, j2, k1, k2
       integer                      :: ii1, ii2, ij1, ij2, ik1, ik2
 
-      allocate(got(1:zsize(1),1:zsize(3)), exp_local(1:zsize(1),1:zsize(3)), exp(1:zsize(1),1:zsize(3)))
+      allocate(got_clean(1:zsize(1),1:zsize(3)), got_halo(1:zsize(1),1:zsize(3)), &
+               exp_local(1:zsize(1),1:zsize(3)), exp(1:zsize(1),1:zsize(3)))
 
-      call sum_y_intr(got, var, var_loc)
+      call sum_y_fluid(got_clean, var_clean, var_loc)
+      call sum_y_fluid(got_halo, var_halo, var_loc)
 
-      call select_intrinsic_sum_reference_windows(var, mask_3d, &
+      call select_fluid_sum_reference_windows(var_clean, mask_3d, &
            i1, i2, j1, j2, k1, k2, ii1, ii2, ij1, ij2, ik1, ik2)
 
       do k = 1, zsize(3)
         do i = 1, zsize(1)
-          exp_local(i,k) = sum(var(i1+i-1,j1:j2,k1+k-1) * real(mask_3d(ii1+i-1,ij1:ij2,ik1+k-1)))
+          exp_local(i,k) = sum(var_clean(i1+i-1,j1:j2,k1+k-1) * real(mask_3d(ii1+i-1,ij1:ij2,ik1+k-1)))
         end do
       end do
       call MPI_ALLREDUCE(exp_local, exp, size(exp_local), MY_REAL, MPI_SUM, comm3d, mpierr)
 
-      check_sum_y_loc = compare_real_2d('sum_y_intr '//trim(label), got, exp)
+      check_sum_y_loc = compare_real_2d('sum_y_fluid '//trim(label), got_clean, exp)
+      if (.not. compare_real_2d('sum_y_fluid '//trim(label)//' halo invariance', got_halo, exp)) check_sum_y_loc = .false.
+      if (.not. compare_real_2d('sum_y_fluid '//trim(label)//' clean vs halo', got_halo, got_clean)) check_sum_y_loc = .false.
 
-      deallocate(got, exp_local, exp)
+      deallocate(got_clean, got_halo, exp_local, exp)
     end function check_sum_y_loc
 
-    logical function check_sum_x_loc(label, var_loc, mask_3d, var)
+    logical function check_sum_x_loc(label, var_loc, mask_3d, var_clean, var_halo)
       implicit none
       character(len=*), intent(in) :: label
       integer, intent(in)          :: var_loc
       integer, intent(in)          :: mask_3d(:,:,:)
-      real, intent(in)             :: var(:,:,:)
-      real, allocatable            :: got(:,:), exp_local(:,:), exp(:,:)
+      real, intent(in)             :: var_clean(:,:,:), var_halo(:,:,:)
+      real, allocatable            :: got_clean(:,:), got_halo(:,:), exp_local(:,:), exp(:,:)
       integer                      :: j, k
       integer                      :: i1, i2, j1, j2, k1, k2
       integer                      :: ii1, ii2, ij1, ij2, ik1, ik2
 
-      allocate(got(1:zsize(2),1:zsize(3)), exp_local(1:zsize(2),1:zsize(3)), exp(1:zsize(2),1:zsize(3)))
+      allocate(got_clean(1:zsize(2),1:zsize(3)), got_halo(1:zsize(2),1:zsize(3)), &
+               exp_local(1:zsize(2),1:zsize(3)), exp(1:zsize(2),1:zsize(3)))
 
-      call sum_x_intr(got, var, var_loc)
+      call sum_x_fluid(got_clean, var_clean, var_loc)
+      call sum_x_fluid(got_halo, var_halo, var_loc)
 
-      call select_intrinsic_sum_reference_windows(var, mask_3d, &
+      call select_fluid_sum_reference_windows(var_clean, mask_3d, &
            i1, i2, j1, j2, k1, k2, ii1, ii2, ij1, ij2, ik1, ik2)
 
       do k = 1, zsize(3)
         do j = 1, zsize(2)
-          exp_local(j,k) = sum(var(i1:i2,j1+j-1,k1+k-1) * real(mask_3d(ii1:ii2,ij1+j-1,ik1+k-1)))
+          exp_local(j,k) = sum(var_clean(i1:i2,j1+j-1,k1+k-1) * real(mask_3d(ii1:ii2,ij1+j-1,ik1+k-1)))
         end do
       end do
       call MPI_ALLREDUCE(exp_local, exp, size(exp_local), MY_REAL, MPI_SUM, comm3d, mpierr)
 
-      check_sum_x_loc = compare_real_2d('sum_x_intr '//trim(label), got, exp)
+      check_sum_x_loc = compare_real_2d('sum_x_fluid '//trim(label), got_clean, exp)
+      if (.not. compare_real_2d('sum_x_fluid '//trim(label)//' halo invariance', got_halo, exp)) check_sum_x_loc = .false.
+      if (.not. compare_real_2d('sum_x_fluid '//trim(label)//' clean vs halo', got_halo, got_clean)) check_sum_x_loc = .false.
 
-      deallocate(got, exp_local, exp)
+      deallocate(got_clean, got_halo, exp_local, exp)
     end function check_sum_x_loc
 
     logical function compare_real_1d(label, got, exp)
@@ -961,7 +988,18 @@ contains
       end if
     end subroutine report_scalar_failure
 
-    subroutine select_intrinsic_xy_reference_windows(var, mask_3d, mask_1d, interior_z, lower_halo_z, &
+    function mask_real_compatible(mask_3d) result(var)
+      implicit none
+      integer, intent(in) :: mask_3d(:,:,:)
+      real, allocatable   :: var(:,:,:)
+
+      allocate(var(lbound(mask_3d,1):ubound(mask_3d,1), &
+                   lbound(mask_3d,2):ubound(mask_3d,2), &
+                   lbound(mask_3d,3):ubound(mask_3d,3)))
+      var = 0.
+    end function mask_real_compatible
+
+    subroutine select_fluid_xy_reference_windows(var, mask_3d, mask_1d, interior_z, lower_halo_z, &
          i1, i2, j1, j2, k1, k2, ii1, ii2, ij1, ij2, ik1, ik2, is1, is2)
       implicit none
       real, intent(in)    :: var(:,:,:)
@@ -974,9 +1012,9 @@ contains
       call reference_bounds_real3d(var, zsize(1), zsize(2), interior_z, lower_halo_z, 0, i1, i2, j1, j2, k1, k2)
       call reference_bounds_int3d(mask_3d, zsize(1), zsize(2), interior_z, lower_halo_z, 0, ii1, ii2, ij1, ij2, ik1, ik2)
       call reference_bounds_int1d(mask_1d, interior_z, lower_halo_z, 0, is1, is2)
-    end subroutine select_intrinsic_xy_reference_windows
+    end subroutine select_fluid_xy_reference_windows
 
-    subroutine select_intrinsic_y_reference_windows(var, mask_3d, mask_2d, &
+    subroutine select_fluid_y_reference_windows(var, mask_3d, mask_2d, &
          i1, i2, j1, j2, k1, k2, ii1, ii2, ij1, ij2, ik1, ik2, it1, it2, kt1, kt2)
       implicit none
       real, intent(in)    :: var(:,:,:)
@@ -988,9 +1026,9 @@ contains
       call reference_bounds_real3d(var, zsize(1), zsize(2), zsize(3), 0, 1, i1, i2, j1, j2, k1, k2)
       call reference_bounds_int3d(mask_3d, zsize(1), zsize(2), zsize(3), 0, 1, ii1, ii2, ij1, ij2, ik1, ik2)
       call reference_bounds_int2d_xz(mask_2d, zsize(1), zsize(3), it1, it2, kt1, kt2)
-    end subroutine select_intrinsic_y_reference_windows
+    end subroutine select_fluid_y_reference_windows
 
-    subroutine select_intrinsic_sum_reference_windows(var, mask_3d, &
+    subroutine select_fluid_sum_reference_windows(var, mask_3d, &
          i1, i2, j1, j2, k1, k2, ii1, ii2, ij1, ij2, ik1, ik2)
       implicit none
       real, intent(in)    :: var(:,:,:)
@@ -1000,7 +1038,7 @@ contains
 
       call reference_bounds_real3d(var, zsize(1), zsize(2), zsize(3), 0, 1, i1, i2, j1, j2, k1, k2)
       call reference_bounds_int3d(mask_3d, zsize(1), zsize(2), zsize(3), 0, 1, ii1, ii2, ij1, ij2, ik1, ik2)
-    end subroutine select_intrinsic_sum_reference_windows
+    end subroutine select_fluid_sum_reference_windows
 
     subroutine reference_bounds_real3d(arr, interior_x, interior_y, interior_z, lower_halo_z, upper_halo_z, &
          i1, i2, j1, j2, k1, k2)

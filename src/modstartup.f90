@@ -971,7 +971,7 @@ module modstartup
       use modboundary, only:boundary, tqaver, halos
       use definitions, only: LOC_C, LOC_U, LOC_V, LOC_W
       use modmpi, only: myid, comm3d, mpierr, my_real, myidx, myidy
-      use operators, only: reduce_xy_sum, av_intr
+      use operators, only: reduce_xy_sum, avg_xy_fluid
       use modthermodynamics, only:thermodynamics, calc_halflev
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
@@ -1092,11 +1092,11 @@ module modstartup
 
          thvh = 0.
          ! call reduce_xy_sum(thvh, thv0h(ib:ie,jb:je,kb:ke)) ! redefine halflevel thv using calculated thv
-         call av_intr(thvh(kb:ke+kh),thv0h,LOC_W,kh,.false.)
+         call avg_xy_fluid(thvh(kb:ke+kh),thv0h,LOC_W,kh,.false.)
          ! thvh = thvh/rslabs
 
          thvf = 0.0
-         call av_intr(thvf(kb:ke+kh),thv0,LOC_C,kh,.false.)
+         call avg_xy_fluid(thvf(kb:ke+kh),thv0,LOC_C,kh,.false.)
          ! call reduce_xy_sum(thvf, thv0(ib:ie,jb:je,kb:ke))
          ! thvf = thvf/rslabs
 
@@ -1508,7 +1508,7 @@ module modstartup
               ! call reduce_xy_sum(uaverage, u0(ib:ie,jb:je,kb:ke))
               ! uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
 
-              ! call av_intr(uaverage(kb:ke), u0, LOC_U, 0, .false.)
+              ! call avg_xy_fluid(uaverage(kb:ke), u0, LOC_U, 0, .false.)
               ! do k=kb,ke
               !   uaverage(k) = uaverage(k)*dzf(k)
               ! end do
@@ -1630,10 +1630,10 @@ module modstartup
             call readrestartfiles
 
             ! average initial profiles
-            call av_intr(u_init(kb:ke+kh),u0,LOC_U,kh,.false.)
-            call av_intr(v_init(kb:ke+kh),v0,LOC_V,kh,.false.)
-            call av_intr(thl_init(kb:ke+kh),thl0,LOC_C,kh,.false.)
-            call av_intr(qt_init(kb:ke+kh),qt0,LOC_C,kh,.false.)
+            call avg_xy_fluid(u_init(kb:ke+kh),u0,LOC_U,kh,.false.)
+            call avg_xy_fluid(v_init(kb:ke+kh),v0,LOC_V,kh,.false.)
+            call avg_xy_fluid(thl_init(kb:ke+kh),thl0,LOC_C,kh,.false.)
+            call avg_xy_fluid(qt_init(kb:ke+kh),qt0,LOC_C,kh,.false.)
 
             if (myid == 0) then
                ! Read profiles from file (potentially for forcing)
@@ -1779,13 +1779,13 @@ module modstartup
             end do
 
             thvh = 0.
-            ! call av_intr(thvh(kb:ke+kh), thv0h, LOC_W, kh, .false.) ! redefine halflevel thv using calculated thv
-            call av_intr(thvh(kb:ke+kh),thv0h,LOC_W,kh,.false.)
+            ! call avg_xy_fluid(thvh(kb:ke+kh), thv0h, LOC_W, kh, .false.) ! redefine halflevel thv using calculated thv
+            call avg_xy_fluid(thvh(kb:ke+kh),thv0h,LOC_W,kh,.false.)
             ! thvh = thvh/rslabs
 
             thvf = 0.0
-            call av_intr(thvf(kb:ke+kh),thv0,LOC_C,kh,.false.)
-            ! call av_intr(thvf(kb:ke+kh), thv0, LOC_C, kh, .false.)
+            call avg_xy_fluid(thvf(kb:ke+kh),thv0,LOC_C,kh,.false.)
+            ! call avg_xy_fluid(thvf(kb:ke+kh), thv0, LOC_C, kh, .false.)
             ! thvf = thvf/rslabs
 
             ! Set average inlet profile to initial inlet profile in case of inletgenerator mode
@@ -1923,7 +1923,7 @@ module modstartup
 
               !call reduce_xy_sum(uaverage, u0(ib:ie,jb:je,kb:ke))
               !uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
-              ! call av_intr(uaverage(kb:ke), u0, LOC_U, 0, .false.)
+              ! call avg_xy_fluid(uaverage(kb:ke), u0, LOC_U, 0, .false.)
               ! do k=kb,ke
               !   uaverage(k) = uaverage(k)*dzf(k)
               ! end do
@@ -2044,17 +2044,17 @@ module modstartup
             th0av = 0.0
             sv0av = 0.
 
-            ! call av_intr(u0av(kb:ke+kh), u0, LOC_U, kh, .false.)
-            call av_intr(u0av(kb:ke+kh),u0,LOC_U,kh,.false.)
-            ! call av_intr(v0av(kb:ke+kh), v0, LOC_V, kh, .false.)
-            call av_intr(v0av(kb:ke+kh),v0,LOC_V,kh,.false.)
-            ! call av_intr(thl0av(kb:ke+kh), thl0, LOC_C, kh, .false.)
-            call av_intr(thl0av(kb:ke+kh),thl0,LOC_C,kh,.false.)
-            ! call av_intr(qt0av(kb:ke+kh), qt0, LOC_C, kh, .false.)
-            call av_intr(qt0av(kb:ke+kh),qt0,LOC_C,kh,.false.)
+            ! call avg_xy_fluid(u0av(kb:ke+kh), u0, LOC_U, kh, .false.)
+            call avg_xy_fluid(u0av(kb:ke+kh),u0,LOC_U,kh,.false.)
+            ! call avg_xy_fluid(v0av(kb:ke+kh), v0, LOC_V, kh, .false.)
+            call avg_xy_fluid(v0av(kb:ke+kh),v0,LOC_V,kh,.false.)
+            ! call avg_xy_fluid(thl0av(kb:ke+kh), thl0, LOC_C, kh, .false.)
+            call avg_xy_fluid(thl0av(kb:ke+kh),thl0,LOC_C,kh,.false.)
+            ! call avg_xy_fluid(qt0av(kb:ke+kh), qt0, LOC_C, kh, .false.)
+            call avg_xy_fluid(qt0av(kb:ke+kh),qt0,LOC_C,kh,.false.)
             do n = 1, nsv
-               ! call av_intr(sv0av(kb:ke+khc,n), sv0(:,:,:,n), LOC_C, kh, .false.)
-               call av_intr(sv0av(kb:ke+khc,n),sv0(:,:,:,n),LOC_C,kh,.false.)
+               ! call avg_xy_fluid(sv0av(kb:ke+khc,n), sv0(:,:,:,n), LOC_C, kh, .false.)
+               call avg_xy_fluid(sv0av(kb:ke+khc,n),sv0(:,:,:,n),LOC_C,kh,.false.)
             end do
 
             ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile

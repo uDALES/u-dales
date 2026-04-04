@@ -60,7 +60,7 @@ contains
     use ibmmasks, only : IIc, IIw, IIcs, IIws
     use definitions,only : LOC_C, LOC_U, LOC_V, LOC_W
     use modmpi,    only : myid
-    use operators,   only : reduce_xy_sum, av_intr
+    use operators,   only : reduce_xy_sum, avg_xy_fluid
 !ILS13 added variables behind "exnh"
     implicit none
     integer :: k
@@ -78,12 +78,12 @@ contains
 
 !ILS13 introduced from DALES4.0   13.05.2015
     thvh=0.
-!    call av_intr(thvh, thv0h, LOC_W, kh, .false.) ! redefine halflevel thv using calculated thv
+!    call avg_xy_fluid(thvh, thv0h, LOC_W, kh, .false.) ! redefine halflevel thv using calculated thv
 !    thvh = thvh/rslabs
-    call av_intr(thvh(kb:ke+kh),thv0h,LOC_W,kh,.false.)
+    call avg_xy_fluid(thvh(kb:ke+kh),thv0h,LOC_W,kh,.false.)
 
 !    if (libm) then
-!      call av_intr(thvh(kb:ke), thv0h, LOC_W, 0, .false.)
+!      call avg_xy_fluid(thvh(kb:ke), thv0h, LOC_W, 0, .false.)
 !    else
 !      call reduce_xy_sum(thvh, thv0h(ib:ie,jb:je,kb:ke+kh))
 !     !redefine halflevel thv using calculated thv
@@ -105,8 +105,8 @@ contains
     thvf = 0.0
 
     !write(*,*) "thv0",thv0
-!    call av_intr(thvf, thv0, LOC_C, kh, .false.)
-    call av_intr(thvf(kb:ke+kh),thv0,LOC_C,kh,.false.)
+!    call avg_xy_fluid(thvf, thv0, LOC_C, kh, .false.)
+    call avg_xy_fluid(thvf(kb:ke+kh),thv0,LOC_C,kh,.false.)
 !    write(*,*) 'IIc(2,2,:), myid' , IIc(12,2,:), myid
 
 !    where (thvf==0) !override slabs completely covered by blocks
@@ -250,7 +250,7 @@ contains
     use modsurfdata,only : thls,ps
     use definitions,only : LOC_C, LOC_U, LOC_V
     use modmpi,    only : myid
-    use operators,   only : reduce_xy_sum, av_intr
+    use operators,   only : reduce_xy_sum, avg_xy_fluid
     implicit none
 
     real     tv
@@ -273,12 +273,12 @@ contains
 
 
     !CvH changed momentum array dimensions to same value as scalars!
-    !  call av_intr(u0av(kb:ke+kh), u0, LOC_U, kh, .false.)
-    call av_intr(u0av(kb:ke+kh),u0,LOC_U,kh,.false.)
-    !  call av_intr(v0av(kb:ke+kh), v0, LOC_V, kh, .false.)
-    call av_intr(v0av(kb:ke+kh),v0,LOC_V,kh,.false.)
-    !  call av_intr(thl0av(kb:ke+kh), thl0, LOC_C, kh, .false.)
-    call av_intr(thl0av(kb:ke+kh),thl0,LOC_C,kh,.false.)
+    !  call avg_xy_fluid(u0av(kb:ke+kh), u0, LOC_U, kh, .false.)
+    call avg_xy_fluid(u0av(kb:ke+kh),u0,LOC_U,kh,.false.)
+    !  call avg_xy_fluid(v0av(kb:ke+kh), v0, LOC_V, kh, .false.)
+    call avg_xy_fluid(v0av(kb:ke+kh),v0,LOC_V,kh,.false.)
+    !  call avg_xy_fluid(thl0av(kb:ke+kh), thl0, LOC_C, kh, .false.)
+    call avg_xy_fluid(thl0av(kb:ke+kh),thl0,LOC_C,kh,.false.)
 
     !write(*,*) 'thl0av(kb), thl0av(kb+1)', thl0av(kb), thl0av(kb+1)
    
@@ -286,10 +286,10 @@ contains
     !  thl0av(kb) = thl0av(kb+1)
     !end if
 
-    !  call av_intr(qt0av(kb:ke+kh), qt0, LOC_C, kh, .false.)
-    call av_intr(qt0av(kb:ke+kh),qt0,LOC_C,kh,.false.)
-!    call av_intr(ql0av(kb:ke+kh), ql0, LOC_C, kh, .false.)
-    call av_intr(ql0av(kb:ke+kh),ql0,LOC_C,kh,.false.)
+    !  call avg_xy_fluid(qt0av(kb:ke+kh), qt0, LOC_C, kh, .false.)
+    call avg_xy_fluid(qt0av(kb:ke+kh),qt0,LOC_C,kh,.false.)
+!    call avg_xy_fluid(ql0av(kb:ke+kh), ql0, LOC_C, kh, .false.)
+    call avg_xy_fluid(ql0av(kb:ke+kh),ql0,LOC_C,kh,.false.)
 
     exnf   = 1-grav*zf/(cp*thls)
     exnh  = 1-grav*zh/(cp*thls)
@@ -300,8 +300,8 @@ contains
     
 
     do n=1,nsv
-!       call av_intr(sv0av(kb:ke+khc,n), sv0(:,:,:,n), LOC_C, kh, .false.)
-    call av_intr(sv0av(kb:ke+khc,n),sv0(:,:,:,n),LOC_C,kh,.false.)
+!       call avg_xy_fluid(sv0av(kb:ke+khc,n), sv0(:,:,:,n), LOC_C, kh, .false.)
+    call avg_xy_fluid(sv0av(kb:ke+khc,n),sv0(:,:,:,n),LOC_C,kh,.false.)
     end do
 !    sv0av = sv0av/rslabs
 

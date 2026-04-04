@@ -353,7 +353,7 @@ module modforces
     use ibmmasks, only : IIu, IIv, IIus, IIvs
     use definitions,only : LOC_C, LOC_U, LOC_V
     use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL
-    use operators,   only : sum_y_intr, sum_x_intr, av_intr
+    use operators,   only : sum_y_fluid, sum_x_fluid, avg_xy_fluid
 
     real, dimension(kb:ke+kh)     :: uvol
     real, dimension(kb:ke+kh)     :: vvol
@@ -386,8 +386,8 @@ module modforces
       uoutold_plane = 0.
 
       ! integrate u fixed at outlet ie along y
-      call sum_y_intr(uout_plane,up*dy,LOC_U)  ! u tendency at previous time step
-      call sum_y_intr(uoutold_plane,um*dy,LOC_U)  ! u at previous time step
+      call sum_y_fluid(uout_plane,up*dy,LOC_U)  ! u tendency at previous time step
+      call sum_y_fluid(uoutold_plane,um*dy,LOC_U)  ! u at previous time step
       uout = uout_plane(ie,kb:ke)
       uoutold = uoutold_plane(ie,kb:ke)
 
@@ -429,8 +429,8 @@ module modforces
       uvolold = 0.
 
       ! Assumes equidistant grid
-      call av_intr(uvol(kb:ke+kh),up,LOC_U,kh,.false.)
-      call av_intr(uvolold(kb:ke+kh),um,LOC_U,kh,.false.)
+      call avg_xy_fluid(uvol(kb:ke+kh),up,LOC_U,kh,.false.)
+      call avg_xy_fluid(uvolold(kb:ke+kh),um,LOC_U,kh,.false.)
 
       ! average over fluid volume
       uoutflow = rk3coef*sum(uvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
@@ -468,8 +468,8 @@ module modforces
       !       voutold(k) = sum(vm(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at previous time step
       !    end do
       ! end if
-      call sum_x_intr(vout_plane,vp*dxf(1),LOC_V)  ! v tendency at previous time step
-      call sum_x_intr(voutold_plane,vm*dxf(1),LOC_V)  ! v at previous time step
+      call sum_x_fluid(vout_plane,vp*dxf(1),LOC_V)  ! v tendency at previous time step
+      call sum_x_fluid(voutold_plane,vm*dxf(1),LOC_V)  ! v at previous time step
       vout = vout_plane(je,kb:ke)
       voutold = voutold_plane(je,kb:ke)
 
@@ -507,8 +507,8 @@ module modforces
       vvolold = 0.
 
       ! Assumes equidistant grid
-      call av_intr(vvol(kb:ke+kh),vp,LOC_V,kh,.false.)
-      call av_intr(vvolold(kb:ke+kh),vm,LOC_V,kh,.false.)
+      call avg_xy_fluid(vvol(kb:ke+kh),vp,LOC_V,kh,.false.)
+      call avg_xy_fluid(vvolold(kb:ke+kh),vm,LOC_V,kh,.false.)
 
       ! average over fluid volume
       voutflow = rk3coef*sum(vvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
@@ -534,7 +534,7 @@ module modforces
     use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dzf,ierank
     use ibmmasks, only  : IIc
     use definitions, only : LOC_C
-    use operators, only     : sum_y_intr
+    use operators, only     : sum_y_fluid
 
     implicit none
     real, intent(out)       :: area
@@ -546,7 +546,7 @@ module modforces
     sumy_plane = 0.
     ! integrate fluid area at outflow plane in y
     ! Assumes ie=itot
-    call sum_y_intr(sumy_plane,IIc*dy,LOC_C)
+    call sum_y_fluid(sumy_plane,IIc*dy,LOC_C)
     sumy = sumy_plane(ie,kb:ke)
 
     ! integrate fluid area at outflow plane in z
@@ -563,7 +563,7 @@ module modforces
     use modglobal, only : ib,ie,jb,je,kb,ke,dxf,dzf,jerank
     use ibmmasks, only : IIc
     use definitions, only : LOC_C
-    use operators,   only : sum_x_intr
+    use operators,   only : sum_x_fluid
 
     implicit none
     real, intent(out)       :: area
@@ -575,7 +575,7 @@ module modforces
     sumx_plane = 0.
     ! integrate fluid area at outflow plane in x
     ! Assumes je=jtot
-    call sum_x_intr(sumx_plane,IIc*dxf(1),LOC_C)
+    call sum_x_fluid(sumx_plane,IIc*dxf(1),LOC_C)
     sumx = sumx_plane(je,kb:ke)
 
     ! integrate fluid area at outflow plane in z
@@ -592,7 +592,7 @@ module modforces
     use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,dy,dxf,dzf
     use ibmmasks, only  : IIc, IIcs
     use definitions,only : LOC_C
-    use operators, only     : av_intr
+    use operators, only     : avg_xy_fluid
 
     implicit none
     real, intent(out)             :: volume
@@ -604,7 +604,7 @@ module modforces
     sumxy = 0.
 
     ! ! integrate fluid volume in y
-    ! call sum_y_intr(sumy_plane, IIc*dy, LOC_C)
+    ! call sum_y_fluid(sumy_plane, IIc*dy, LOC_C)
     !
     ! ! integrate fluid area in x
     ! do k=kb,ke
@@ -612,7 +612,7 @@ module modforces
     ! end do
 
     ! Equidistant x
-    call av_intr(sumxy(kb:ke+kh),IIc*dxf(1)*dy,LOC_C,kh,.false.)
+    call avg_xy_fluid(sumxy(kb:ke+kh),IIc*dxf(1)*dy,LOC_C,kh,.false.)
 
     ! integrate fluid area in z
     volume = sum(sumxy(kb:ke)*dzf(kb:ke))

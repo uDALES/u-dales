@@ -203,7 +203,7 @@ At present there are two regression paths:
 
 - `david_tests/`: an older branch-comparison build harness used by the supported suite
 - `new_vegetation_module_against_v2.2/`: a dedicated solver-output regression for the new vegetation module against the `v2.2.0` release
-- `mpi_averaging_regression/`: a branch/commit regression for `global_sum`, `global_max`, and the intrinsic averaging operators across compact multi-decomposition cases
+- `mpi_averaging_regression/`: a branch/commit regression for `global_sum`, `global_max`, and the fluid-only averaging operators across compact multi-decomposition cases
 
 To run regression tests:
 

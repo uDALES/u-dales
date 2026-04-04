@@ -241,21 +241,21 @@ Suggested contract:
 
 ### Workstream C: MPI Averaging Regression Lock-In
 
-Goal: prove that the recent intrinsic-averaging and reduction refactor has not
+Goal: prove that the recent fluid-only averaging and reduction refactor has not
 changed accepted behaviour relative to `v2.2`.
 
 Priority actions:
 
 - add a dedicated regression test that compares `v2.2` and current-branch
   outputs for all actively used averaging/reduction paths:
-  `av_intr`, `av_y_intr`, `sum_y_intr`, `sum_x_intr`, `reduce_xy_sum`, and
+  `avg_xy_fluid`, `avg_y_fluid`, `sum_y_fluid`, `sum_x_fluid`, `reduce_xy_sum`, and
   `reduce_yz_sum`
-- include both IBM and non-IBM coverage so intrinsic masking and all-fluid
+- include both IBM and non-IBM coverage so fluid masking and all-fluid
   behaviour are both exercised
 - explicitly compare staggered locations (`LOC_C`, `LOC_U`, `LOC_V`, `LOC_W`,
   `LOC_UV`, `LOC_WU`, `LOC_VW`) where they are scientifically meaningful
 - include at least one case that would expose a ghost-cell/windowing error and
-  one case that would expose an intrinsic-versus-comprehensive normalization
+  one case that would expose a fluid-versus-comprehensive normalization
   error
 - treat this test as a release-safety check for the averaging refactor before
   expanding the abstraction further
@@ -326,24 +326,24 @@ locks in new IO, statistics, and postprocessing contracts.
 
 Priority actions:
 
-- treat `src/modmpi.f90` `avexy_ibm` as an intrinsic-average routine by
+- treat `src/modmpi.f90` `avexy_ibm` as a fluid-average routine by
   definition, because it computes `sum(var * II) / IIs` rather than a
   comprehensive/superficial average over total slab area
 - adopt a reduction naming rule in `src/modmpi.f90` and `src/definitions.f90`:
   reduction results are global by default, and only explicitly processor-local
   routines should use a `_local` suffix
-- rename `avexy_ibm` to a semantics-explicit name such as `av_intr` or a
-  longer intrinsic-average variant once the migration path is agreed
+- rename `avexy_ibm` to a semantics-explicit name such as `avg_xy_fluid` or a
+  longer fluid-average variant once the migration path is agreed
 - review all current `avexy_ibm` call sites and classify them as:
-  clearly intrinsic and valid, ambiguous, or scientifically invalid
+  clearly fluid-only and valid, ambiguous, or scientifically invalid
 - prioritize `src/modforces.f90` for that review, because `uvol`, `vvol`, and
-  `fluidvolume` appear to use an intrinsic average where a masked sum or
+  `fluidvolume` appear to use a fluid-only average where a masked sum or
   comprehensive quantity may be required instead
-- add a focused regression test that distinguishes intrinsic averages from
+- add a focused regression test that distinguishes fluid averages from
   comprehensive/superficial reductions on an IBM-masked slab, so future helper
   refactors cannot silently change the scientific meaning
 - document the distinction alongside the `xy`/`xyt` output contract and tie it
-  to the existing user documentation on intrinsic averages
+  to the existing user documentation on fluid-only averages
 
 `v3.0` relevance:
 
@@ -358,7 +358,7 @@ Known hotspot to flag explicitly:
 
 - `src/modforces.f90` currently uses `avexy_ibm` in places where the intended
   quantity may be a total fluid-area or fluid-volume integral rather than an
-  intrinsic mean; this should be treated as a release-blocking review item for
+  fluid-only mean; this should be treated as a release-blocking review item for
   the `v3.0` statistics and solver cleanup track
   until it proves stable in CI
 

@@ -38,10 +38,10 @@ In particular, the comparison is intended to exercise:
 - `global_sum`
 - `reduce_xy_sum`
 - `reduce_yz_sum`
-- `av_intr`
-- `av_y_intr`
-- `sum_x_intr`
-- `sum_y_intr`
+- `avg_xy_fluid`
+- `avg_y_fluid`
+- `sum_x_fluid`
+- `sum_y_fluid`
 
 Coverage note:
 
@@ -57,12 +57,12 @@ Complementary direct test:
   `tests.f90`
 - that direct solver-side test uses the committed Xie/Castro geometry from case
   `100` and checks `global_sum`, `global_max`, `reduce_xy_sum`,
-  `reduce_yz_sum`, `av_intr`, `av_y_intr`, `sum_x_intr`, and `sum_y_intr`
+  `reduce_yz_sum`, `avg_xy_fluid`, `avg_y_fluid`, `sum_x_fluid`, and `sum_y_fluid`
   against explicit masked reference calculations
 - keep this regression as well, because a new runmode cannot be assumed to
   exist in older reference commits
 
-The selected outputs cover the main staggered locations used by the intrinsic
+The selected outputs cover the main staggered locations used by the fluid-only
 averaging operators:
 
 - `LOC_C`

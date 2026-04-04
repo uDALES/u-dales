@@ -535,7 +535,7 @@ contains
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
   use definitions,      only : LOC_C, LOC_U, LOC_V, LOC_W, LOC_UV, LOC_WU, LOC_VW
   use architecture,     only : myid, cmyid, my_real, mpierr, comm3d, nprocs, myidx, myidy
-  use operators,          only : av_y_intr, av_intr
+  use operators,          only : avg_y_fluid, avg_xy_fluid
   use modsurfdata,      only : thls
   use modsubgrid,       only : ekh,ekm
   use modstatistics,    only : genstats,tkestats
@@ -970,35 +970,35 @@ contains
         uy=0.;vy=0.;wy=0.;uwyik=0.;usgsy=0.;wsgsy=0.;thly=0.;wthlyk=0.;thlsgsy=0.
         qty=0.;wqtyk=0.;qtsgsy=0.;sca1y=0.;sv1sgsy=0.;sv2sgsy=0.;sca2y=0.;sca3y=0.;sv3sgsy=0.
 
-        call av_y_intr(uy,um,LOC_U)
-        call av_y_intr(vy,vm,LOC_V)
-        call av_y_intr(wy,wm,LOC_W)
-        call av_y_intr(uwyik,uik*wik,LOC_WU)
-        call av_y_intr(usgsy,usgs,LOC_WU)
-        call av_y_intr(wsgsy,wsgs,LOC_W)
+        call avg_y_fluid(uy,um,LOC_U)
+        call avg_y_fluid(vy,vm,LOC_V)
+        call avg_y_fluid(wy,wm,LOC_W)
+        call avg_y_fluid(uwyik,uik*wik,LOC_WU)
+        call avg_y_fluid(usgsy,usgs,LOC_WU)
+        call avg_y_fluid(wsgsy,wsgs,LOC_W)
         if (ltempeq) then
-          call av_y_intr(thly,thlm,LOC_C)
-          call av_y_intr(wthlyk,wm*thlk,LOC_W)
-          call av_y_intr(thlsgsy,thlsgs,LOC_W)
+          call avg_y_fluid(thly,thlm,LOC_C)
+          call avg_y_fluid(wthlyk,wm*thlk,LOC_W)
+          call avg_y_fluid(thlsgsy,thlsgs,LOC_W)
         end if
         if (lmoist) then
-          call av_y_intr(qty,qtm,LOC_C)
-          call av_y_intr(wqtyk,wm*qtk,LOC_W)
-          call av_y_intr(qtsgsy,qtsgs,LOC_W)
+          call avg_y_fluid(qty,qtm,LOC_C)
+          call avg_y_fluid(wqtyk,wm*qtk,LOC_W)
+          call avg_y_fluid(qtsgsy,qtsgs,LOC_W)
         end if
         if(nsv>0) then
-          call av_y_intr(sca1y,svm(:,:,:,1),LOC_C)
-          ! call av_y_intr(wsv1yk, wm(ib:ie,jb:je,kb:ke)*sv1k(ib:ie,jb:je,kb:ke), LOC_W)
-          call av_y_intr(sv1sgsy,sv1sgs,LOC_W)
+          call avg_y_fluid(sca1y,svm(:,:,:,1),LOC_C)
+          ! call avg_y_fluid(wsv1yk, wm(ib:ie,jb:je,kb:ke)*sv1k(ib:ie,jb:je,kb:ke), LOC_W)
+          call avg_y_fluid(sv1sgsy,sv1sgs,LOC_W)
         end if
         if (nsv>1) then
-          call av_y_intr(sca2y,svm(:,:,:,2),LOC_C)
-          ! call av_y_intr(wsv2yk, wm(ib:ie,jb:je,kb:ke)*sv2k(ib:ie,jb:je,kb:ke), LOC_W)
-          call av_y_intr(sv2sgsy,sv2sgs,LOC_W)
+          call avg_y_fluid(sca2y,svm(:,:,:,2),LOC_C)
+          ! call avg_y_fluid(wsv2yk, wm(ib:ie,jb:je,kb:ke)*sv2k(ib:ie,jb:je,kb:ke), LOC_W)
+          call avg_y_fluid(sv2sgsy,sv2sgs,LOC_W)
         end if
         if (nsv>2) then
-          call av_y_intr(sca3y,svm(:,:,:,3),LOC_C)
-          call av_y_intr(sv3sgsy,sv3sgs,LOC_W)
+          call avg_y_fluid(sca3y,svm(:,:,:,3),LOC_C)
+          call avg_y_fluid(sv3sgsy,sv3sgs,LOC_W)
         end if
       end if ! lydump .or. lytdump
 
@@ -1007,13 +1007,13 @@ contains
 
         uwyik=0.;wthlyk=0.;uyik=0.;wyik=0.;thlyk=0.;wpthlpyk=0.
 
-        call av_y_intr(uwyik,uik*wik,LOC_WU)
-        call av_y_intr(uyik,uik,LOC_WU)
-        call av_y_intr(wyik,wik,LOC_WU)
+        call avg_y_fluid(uwyik,uik*wik,LOC_WU)
+        call avg_y_fluid(uyik,uik,LOC_WU)
+        call avg_y_fluid(wyik,wik,LOC_WU)
 
         if (ltempeq) then
-          call av_y_intr(wthlyk,wm*thlk,LOC_W)
-          call av_y_intr(thlyk,thlk,LOC_W)
+          call avg_y_fluid(wthlyk,wm*thlk,LOC_W)
+          call avg_y_fluid(thlyk,thlk,LOC_W)
         end if
 
         upwpyik = uwyik - uyik*wyik
@@ -1043,19 +1043,19 @@ contains
         uxy=0.;vxy=0.;wxy=0.;thlxy=0.;qtxy=0.;pxy=0.;usgsxy=0.;thlsgsxy=0.;sca1xy=0.;vsgsxy=0.
 
         !> Spatial averages of mean quantities
-        call av_intr(uxy(kb:ke+kh),um,LOC_U,kh,.false.)
-        call av_intr(vxy(kb:ke+kh),vm,LOC_V,kh,.false.)
-        call av_intr(wxy(kb:ke+kh),wm,LOC_W,kh,.false.)
+        call avg_xy_fluid(uxy(kb:ke+kh),um,LOC_U,kh,.false.)
+        call avg_xy_fluid(vxy(kb:ke+kh),vm,LOC_V,kh,.false.)
+        call avg_xy_fluid(wxy(kb:ke+kh),wm,LOC_W,kh,.false.)
         if (ltempeq) then
-          call av_intr(thlxy(kb:ke+kh),thlm,LOC_C,kh,.false.)
-          call av_intr(thlsgsxy(kb:ke+kh),thlsgs,LOC_W,kh,.false.)
+          call avg_xy_fluid(thlxy(kb:ke+kh),thlm,LOC_C,kh,.false.)
+          call avg_xy_fluid(thlsgsxy(kb:ke+kh),thlsgs,LOC_W,kh,.false.)
         end if
         if (lmoist) then
-          call av_intr(qtxy(kb:ke+kh),qtm,LOC_C,kh,.false.)
+          call avg_xy_fluid(qtxy(kb:ke+kh),qtm,LOC_C,kh,.false.)
         end if
-        call av_intr(pxy(kb:ke+kh),pres0,LOC_C,kh,.false.)
-        call av_intr(usgsxy(kb:ke+kh),usgs,LOC_WU,kh,.false.)
-        call av_intr(vsgsxy(kb:ke+kh),vsgs,LOC_VW,kh,.false.)
+        call avg_xy_fluid(pxy(kb:ke+kh),pres0,LOC_C,kh,.false.)
+        call avg_xy_fluid(usgsxy(kb:ke+kh),usgs,LOC_WU,kh,.false.)
+        call avg_xy_fluid(vsgsxy(kb:ke+kh),vsgs,LOC_VW,kh,.false.)
 
       end if ! lxydump .or. lxytdump
 
@@ -1063,16 +1063,16 @@ contains
 
         uwxyik=0.;vwxyjk=0.;uxyik=0.;wxyik=0.;vxyjk=0.;wxyjk=0.;wthlxyk=0.;thlxyk=0.;wpthlpxyk=0.
 
-        call av_intr(uwxyik(kb:ke+kh),uik*wik,LOC_WU,kh,.true.)
-        call av_intr(vwxyjk(kb:ke+kh),vjk*wjk,LOC_VW,kh,.true.)
-        call av_intr(uxyik(kb:ke+kh),uik,LOC_WU,kh,.true.)
-        call av_intr(wxyik(kb:ke+kh),wik,LOC_WU,kh,.true.)
-        call av_intr(wxyjk(kb:ke+kh),wjk,LOC_VW,kh,.true.)
-        call av_intr(vxyjk(kb:ke+kh),vjk,LOC_VW,kh,.true.)
+        call avg_xy_fluid(uwxyik(kb:ke+kh),uik*wik,LOC_WU,kh,.true.)
+        call avg_xy_fluid(vwxyjk(kb:ke+kh),vjk*wjk,LOC_VW,kh,.true.)
+        call avg_xy_fluid(uxyik(kb:ke+kh),uik,LOC_WU,kh,.true.)
+        call avg_xy_fluid(wxyik(kb:ke+kh),wik,LOC_WU,kh,.true.)
+        call avg_xy_fluid(wxyjk(kb:ke+kh),wjk,LOC_VW,kh,.true.)
+        call avg_xy_fluid(vxyjk(kb:ke+kh),vjk,LOC_VW,kh,.true.)
 
         if (ltempeq) then
-          call av_intr(wthlxyk(kb:ke+kh),wm*thlk,LOC_W,kh,.true.)
-          call av_intr(thlxyk(kb:ke+kh),thlk,LOC_W,kh,.true.)
+          call avg_xy_fluid(wthlxyk(kb:ke+kh),wm*thlk,LOC_W,kh,.true.)
+          call avg_xy_fluid(thlxyk(kb:ke+kh),thlk,LOC_W,kh,.true.)
         end if
 
         upwpxyik = uwxyik - uxyik*wxyik
@@ -1413,28 +1413,28 @@ contains
 
       !> Advective flux
       if (ltempeq) then
-        call av_intr(wthltxyk(kb:ke+kh),wmt*thltk,LOC_W,kh,.false.)
+        call avg_xy_fluid(wthltxyk(kb:ke+kh),wmt*thltk,LOC_W,kh,.false.)
       end if
-      call av_intr(uwtxyik(kb:ke+kh),utik*wtik,LOC_WU,kh,.false.)
-      call av_intr(vwtxyjk(kb:ke+kh),vtjk*wtjk,LOC_VW,kh,.false.)
-      call av_intr(wwtxyk(kb:ke+kh),wmt*wmt,LOC_W,kh,.false.)
-      call av_intr(uvtxyij(kb:ke+kh),utij*vtij,LOC_UV,kh,.false.)
+      call avg_xy_fluid(uwtxyik(kb:ke+kh),utik*wtik,LOC_WU,kh,.false.)
+      call avg_xy_fluid(vwtxyjk(kb:ke+kh),vtjk*wtjk,LOC_VW,kh,.false.)
+      call avg_xy_fluid(wwtxyk(kb:ke+kh),wmt*wmt,LOC_W,kh,.false.)
+      call avg_xy_fluid(uvtxyij(kb:ke+kh),utij*vtij,LOC_UV,kh,.false.)
       !> Turbulent fluxes
       if (ltempeq) then
-        call av_intr(wpthlptxyk(kb:ke+kh),wthltk-wmt*thltk,LOC_W,kh,.false.)
+        call avg_xy_fluid(wpthlptxyk(kb:ke+kh),wthltk-wmt*thltk,LOC_W,kh,.false.)
       end if
-      call av_intr(upwptxyik(kb:ke+kh),uwtik-utik*wtik,LOC_WU,kh,.false.)
-      call av_intr(vpwptxyjk(kb:ke+kh),vwtjk-vtjk*wtjk,LOC_VW,kh,.false.)
-      call av_intr(upvptxyij(kb:ke+kh),uvtij-utij*vtij,LOC_UV,kh,.false.)
+      call avg_xy_fluid(upwptxyik(kb:ke+kh),uwtik-utik*wtik,LOC_WU,kh,.false.)
+      call avg_xy_fluid(vpwptxyjk(kb:ke+kh),vwtjk-vtjk*wtjk,LOC_VW,kh,.false.)
+      call avg_xy_fluid(upvptxyij(kb:ke+kh),uvtij-utij*vtij,LOC_UV,kh,.false.)
 
       !> Variances and TKE
       if (ltempeq) then
-        call av_intr(thlpthlptxy(kb:ke+kh),thlthlt-thlt*thlt,LOC_C,kh,.false.)
+        call avg_xy_fluid(thlpthlptxy(kb:ke+kh),thlthlt-thlt*thlt,LOC_C,kh,.false.)
       end if
-      call av_intr(upuptxyc(kb:ke+kh),uutc-utc*utc,LOC_C,kh,.false.)
-      call av_intr(vpvptxyc(kb:ke+kh),vvtc-vtc*vtc,LOC_C,kh,.false.)
-      call av_intr(wpwptxyc(kb:ke+kh),wwtc-wtc*wtc,LOC_C,kh,.false.)
-      call av_intr(tketxyc(kb:ke+kh),0.5*((wwtc-wtc*wtc)+(vvtc-vtc*vtc)+(uutc-utc*utc)),LOC_C,kh,.false.)
+      call avg_xy_fluid(upuptxyc(kb:ke+kh),uutc-utc*utc,LOC_C,kh,.false.)
+      call avg_xy_fluid(vpvptxyc(kb:ke+kh),vvtc-vtc*vtc,LOC_C,kh,.false.)
+      call avg_xy_fluid(wpwptxyc(kb:ke+kh),wwtc-wtc*wtc,LOC_C,kh,.false.)
+      call avg_xy_fluid(tketxyc(kb:ke+kh),0.5*((wwtc-wtc*wtc)+(vvtc-vtc*vtc)+(uutc-utc*utc)),LOC_C,kh,.false.)
 
 
       if (myid == 0) then
@@ -1474,40 +1474,40 @@ contains
 !    call MPI_BCAST(sca1yt ,(ke+kh-(kb-kh))*(ie+ih-(ib-ih)),MY_REAL   ,7,comm3d,mpierr)
 
       ! Turbulent flux
-      call av_y_intr(upwptyik,uwtik-utik*wtik,LOC_WU)
-      call av_y_intr(uwtyik,utik*wtik,LOC_WU)
-      call av_y_intr(upuptyc,uutc-utc*utc,LOC_C)
-      call av_y_intr(vpvptyc,vvtc-vtc*vtc,LOC_C)
-      call av_y_intr(wpwptyc,wwtc-wtc*wtc,LOC_C)
+      call avg_y_fluid(upwptyik,uwtik-utik*wtik,LOC_WU)
+      call avg_y_fluid(uwtyik,utik*wtik,LOC_WU)
+      call avg_y_fluid(upuptyc,uutc-utc*utc,LOC_C)
+      call avg_y_fluid(vpvptyc,vvtc-vtc*vtc,LOC_C)
+      call avg_y_fluid(wpwptyc,wwtc-wtc*wtc,LOC_C)
 
       if (ltempeq) then
-        call av_y_intr(wpthlptyk,wthltk-wmt*thltk,LOC_W)
-        call av_y_intr(wthltyk,wmt*thltk,LOC_W)
-        call av_y_intr(thlpthlpty,thlthlt-thlt*thlt,LOC_C)
+        call avg_y_fluid(wpthlptyk,wthltk-wmt*thltk,LOC_W)
+        call avg_y_fluid(wthltyk,wmt*thltk,LOC_W)
+        call avg_y_fluid(thlpthlpty,thlthlt-thlt*thlt,LOC_C)
       end if
 
       if (lmoist) then
-        call av_y_intr(wpqtptyk,wqttk-wmt*qttk,LOC_W)
-        call av_y_intr(wqttyk,wmt*qttk,LOC_W)
-        call av_y_intr(qtpqtpty,qtqtt-qtt*qtt,LOC_C)
+        call avg_y_fluid(wpqtptyk,wqttk-wmt*qttk,LOC_W)
+        call avg_y_fluid(wqttyk,wmt*qttk,LOC_W)
+        call avg_y_fluid(qtpqtpty,qtqtt-qtt*qtt,LOC_C)
       end if
 
       if (nsv>0) then
-        call av_y_intr(wpsv1ptyk,wsv1tk-wmt*sv1tk,LOC_W)
-        call av_y_intr(wsv1tyk,wmt*sv1tk,LOC_W)
-        call av_y_intr(sv1psv1pty,sv1sv1t-sv1t*sv1t,LOC_C)
+        call avg_y_fluid(wpsv1ptyk,wsv1tk-wmt*sv1tk,LOC_W)
+        call avg_y_fluid(wsv1tyk,wmt*sv1tk,LOC_W)
+        call avg_y_fluid(sv1psv1pty,sv1sv1t-sv1t*sv1t,LOC_C)
       end if
 
       if (nsv>1) then
-        call av_y_intr(wpsv2ptyk,wsv2tk-wmt*sv2tk,LOC_W)
-        call av_y_intr(wsv2tyk,wmt*sv2tk,LOC_W)
-        call av_y_intr(sv2psv2pty,sv2sv2t-sv2t*sv2t,LOC_C)
+        call avg_y_fluid(wpsv2ptyk,wsv2tk-wmt*sv2tk,LOC_W)
+        call avg_y_fluid(wsv2tyk,wmt*sv2tk,LOC_W)
+        call avg_y_fluid(sv2psv2pty,sv2sv2t-sv2t*sv2t,LOC_C)
       end if
 
       if (nsv>2) then
-        call av_y_intr(wpsv3ptyk,wsv3tk-wmt*sv3tk,LOC_W)
-        call av_y_intr(wsv3tyk,wmt*sv3tk,LOC_W)
-        call av_y_intr(sv3psv3pty,sv3sv3t-sv3t*sv3t,LOC_C)
+        call avg_y_fluid(wpsv3ptyk,wsv3tk-wmt*sv3tk,LOC_W)
+        call avg_y_fluid(wsv3tyk,wmt*sv3tk,LOC_W)
+        call avg_y_fluid(sv3psv3pty,sv3sv3t-sv3t*sv3t,LOC_C)
       end if
 
       if (myid == 0) then
@@ -1807,7 +1807,7 @@ contains
   use definitions,      only : LOC_C
   use architecture,     only : myid, cmyid, my_real, mpierr, comm3d
   use modmpi,           only : excjs
-  use operators,          only : av_y_intr, av_intr
+  use operators,          only : avg_y_fluid, avg_xy_fluid
   use modsurfdata,      only : thls
   use modsubgrid,       only : ekh
   use decomp_2d,        only : exchange_halo_z
@@ -2136,14 +2136,14 @@ contains
       end do
 
     ! need updating tg3315
-    call av_intr(p_b(kb:ke+kh),p_bav,LOC_C,kh,.true.)
-    call av_intr(t_p(kb:ke+kh),t_pav,LOC_C,kh,.true.)
-    call av_intr(adv(kb:ke+kh),tkeadv,LOC_C,kh,.true.)
-    call av_intr(t_t(kb:ke+kh),t_tav,LOC_C,kh,.true.)
-    call av_intr(t_sgs(kb:ke+kh),t_sgsav,LOC_C,kh,.true.)
-    call av_intr(p_t(kb:ke+kh),p_tav,LOC_C,kh,.true.)
-    call av_intr(d_sgs(kb:ke+kh),d_sgsav,LOC_C,kh,.true.)
-    call av_intr(t_v(kb:ke+kh),t_vav,LOC_C,kh,.true.)
+    call avg_xy_fluid(p_b(kb:ke+kh),p_bav,LOC_C,kh,.true.)
+    call avg_xy_fluid(t_p(kb:ke+kh),t_pav,LOC_C,kh,.true.)
+    call avg_xy_fluid(adv(kb:ke+kh),tkeadv,LOC_C,kh,.true.)
+    call avg_xy_fluid(t_t(kb:ke+kh),t_tav,LOC_C,kh,.true.)
+    call avg_xy_fluid(t_sgs(kb:ke+kh),t_sgsav,LOC_C,kh,.true.)
+    call avg_xy_fluid(p_t(kb:ke+kh),p_tav,LOC_C,kh,.true.)
+    call avg_xy_fluid(d_sgs(kb:ke+kh),d_sgsav,LOC_C,kh,.true.)
+    call avg_xy_fluid(t_v(kb:ke+kh),t_vav,LOC_C,kh,.true.)
 
    end subroutine tkestatsdump
 
