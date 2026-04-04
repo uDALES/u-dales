@@ -60,7 +60,11 @@ cmake "${cmake_args[@]}"
 cmake --build "${build_dir}" --target "${target}"
 
 if [ -f "${build_dir}/bin/view3d" ]; then
+    legacy_view3d_dir="tools/View3D/build/src"
+    mkdir -p "${legacy_view3d_dir}"
+    ln -sfn "../../../preprocessing/build/bin/view3d" "${legacy_view3d_dir}/view3d"
     echo "View3D executable available at ${build_dir}/bin/view3d"
+    echo "MATLAB compatibility path available at ${legacy_view3d_dir}/view3d"
 fi
 if [ -f "${build_dir}/bin/IBM_preproc" ]; then
     echo "IBM preprocessing executable available at ${build_dir}/bin/IBM_preproc"

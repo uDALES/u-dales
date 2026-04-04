@@ -33,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         # Keep the historical default example behavior when no case is given.
         udales_root = script_dir.parent
-        case_dir = (udales_root.parent / "experiments" / "999").resolve()
+        case_dir = (udales_root / "examples" / "999").resolve()
 
     expnr = case_dir.name
     print("Initializing UDPrep...")
