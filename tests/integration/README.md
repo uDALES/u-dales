@@ -17,13 +17,15 @@ Current contents:
 
 - `directshortwave/` for committed direct shortwave cases, including no-tree
   reference case `100` and tree case `525`
-- `udprep/` for preprocessing integration checks that exercise real `UDPrep`
-  workflows against committed cases or preprocessing binaries
-- `udbase_against_matlab/` for Python-vs-MATLAB `UDBase` parity checks against
-  committed real cases and harvested MATLAB reference JSON
 - `ibm_sparse_input/` for MPI validation of the sparse IBM input reader on committed case `101`
+- `mpi_operators/` for direct MPI validation of `avexy_ibm`, `avey_ibm`,
+  `sumx_ibm`, and `sumy_ibm` on committed case `100`
 - `processor_boundaries/` for MPI decomposition parity diagnostics
   The no-tree variant now uses committed case `100` as the Xie/Castro-style reference fixture, while the tree-forcing variant still uses case `526`.
+- `udbase_against_matlab/` for Python-vs-MATLAB `UDBase` parity checks against
+  committed real cases and harvested MATLAB reference JSON
+- `udprep/` for preprocessing integration checks that exercise real `UDPrep`
+  workflows against committed cases or preprocessing binaries
 
 `directshortwave/` is Python-driven, but it belongs here because it is anchored
 to committed repo fixtures in `tests/cases/` and validates agreement across
@@ -46,18 +48,18 @@ execution.
 
 Current supported status:
 
+- `directshortwave/`: supported preprocessing/tooling integration coverage on Linux
 - `ibm_sparse_input/`: supported solver-facing integration coverage
+- `mpi_operators/`: supported solver-facing integration coverage
+- `processor_boundaries/`: supported solver-facing integration coverage
 - `udprep/`: supported preprocessing/tooling integration coverage
 - `udbase_against_matlab/`: supported Python/MATLAB parity integration coverage
-- `directshortwave/`: experimental preprocessing/tooling integration coverage
 
 This directory now feeds two different curated paths through
 `tests/test_suites.yml`:
 
-- `supported`: solver-facing integration suites that are part of the supported
-  path
-- `experimental`: Python/preprocessing suites that are useful development
-  coverage but not part of the primary supported merge gate
+- `supported`: stable integration suites that are part of the supported path
+- `experimental`: non-primary integration and regression coverage
 
 Each suite here should state whether it is intended for:
 
@@ -66,21 +68,11 @@ Each suite here should state whether it is intended for:
 - local developer use
 - cluster/manual execution only
 
-At present, Python preprocessing/tooling integration tests should generally be
-treated as experimental and non-blocking unless the interface is explicitly
-supported and stable enough to become part of the required merge gate.
-
 Direct shortwave prerequisites:
 
 - Python environment with the project tooling installed
 - compiled `directshortwave_f2py` wrapper
 - `gfortran` for the legacy reference executable used by the no-tree case
-
-Current status:
-
-- useful development coverage for preprocessing
-- not intended to define the primary supported GitHub Actions path yet
-- should skip cleanly when prerequisites are absent rather than fail opaquely
 
 Run the direct shortwave integration test with:
 
@@ -92,10 +84,10 @@ python tests/integration/directshortwave/test_directshortwave.py
 Or via the top-level dispatcher:
 
 ```bash
-python tests/run_tests.py experimental
+python tests/run_tests.py supported
 ```
 
-The `experimental` selection is defined in `tests/test_suites.yml`.
+The curated selections are defined in `tests/test_suites.yml`.
 
 Supported solver-facing integration prerequisites:
 
@@ -111,10 +103,7 @@ python tests/run_tests.py supported --branch-a <branch_a> --branch-b <branch_b> 
 
 In the current supported selection, the solver-facing integration suites are:
 
-- `integration/ibm_sparse_input/run_test.sh`
-- `integration/udprep/` preprocessing integration tests
-- `integration/udbase_against_matlab/test_udbase_against_matlab.py`
-
-Experimental integration coverage currently includes:
-
 - `integration/directshortwave/test_directshortwave.py`
+- `integration/ibm_sparse_input/run_test.sh`
+- `integration/mpi_operators/run_test.sh`
+- `integration/processor_boundaries/test_processor_boundaries.py`

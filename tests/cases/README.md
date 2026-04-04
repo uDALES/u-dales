@@ -11,6 +11,11 @@ Current cases:
 
 Current consumers:
 
+- `integration/mpi_operators/run_test.sh`
+  - `100/` as the staged base case for direct MPI operator validation
+- `integration/processor_boundaries/test_processor_boundaries.py`
+  - `100/` as the staged base case for no-tree decomposition checks
+  - `526/` as the staged base case for vegetation decomposition checks
 - `integration/ibm_sparse_input/run_test.sh`
   - `101/` as the staged base case for the `read_sparse_ijk()` IBM test
 - `integration/directshortwave/test_directshortwave.py`

@@ -53,8 +53,8 @@ Today, GitHub Actions runs the curated `supported` selection:
   MPI, NetCDF, Graphviz, and FFTW
 - the workflow then runs `tests/run_tests.py supported`
 - this supported selection currently includes lightweight Python unit tests,
-  the branch-comparison regression harness, and the IBM sparse-input solver
-  integration test
+  solver-facing integration checks, preprocessing/tooling integration checks,
+  and the older branch-comparison regression harness
 - on macOS, CI currently runs the lighter `supported-macos` selection instead,
   which excludes the branch-comparison regression while `master` remains
   incompatible with the newer Homebrew CMake helper-project path
@@ -153,6 +153,8 @@ between multiple components rather than one isolated API.
   no-tree case `100` and the vegetation case `526`
 - `python_preproc_against_matlab/`: preprocessing parity test between the
   MATLAB and Python entry points on no-tree case `100`
+- `udbase_against_matlab/`: Python-vs-MATLAB parity checks on committed cases
+- `udprep/`: preprocessing integration checks on committed cases and binaries
 
 `tests/cases/` holds shared committed fixtures used by these tests. At present:
 
@@ -162,6 +164,7 @@ between multiple components rather than one isolated API.
   no-tree decomposition check
 - `100/`: also used by `integration/mpi_operators/` for the direct MPI
   operator check
+- `100/`: also used by `integration/python_preproc_against_matlab/`
 - `525/`: flat-terrain tree case used by `integration/directshortwave/`
 - `526/`: reduced tree case used by `regression/new_vegetation_module_against_v2.2/`
 - `526/`: also used by `integration/processor_boundaries/` for the vegetation
@@ -196,7 +199,7 @@ cd tests/integration/mpi_operators
 - `new_vegetation_module_against_v2.2/`: the `526` legacy vegetation regression against release `v2.2.0`
 - `mpi_averaging_regression/`: branch/commit regression for MPI-sensitive dumped fields and diagnostics
 
-At present there are two regression paths:
+At present there are three regression paths:
 
 - `david_tests/`: an older branch-comparison build harness used by the supported suite
 - `new_vegetation_module_against_v2.2/`: a dedicated solver-output regression for the new vegetation module against the `v2.2.0` release
