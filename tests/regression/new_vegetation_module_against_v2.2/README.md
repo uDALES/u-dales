@@ -16,6 +16,12 @@ reproducible from Git state.
 Then it stages case `526` twice, forces `itree_mode = 99` on the current branch copy, runs both executables, and compares the
 resulting `treedump.*.*.526.nc` outputs.
 
+The temporary namelist rewrite also keeps `randu` very small (`1.0e-6`).
+That is intentional: the startup randomisation routines are not identical
+between `v2.2.0` and current `HEAD`, so a larger perturbation amplitude can
+dominate the branch-to-branch difference and drown out the tree-model
+comparison.
+
 On Imperial HPC, it uses the existing `tools/build_executable.sh icl ...`
 wrapper inside each temporary worktree so the regression build matches the
 canonical local build settings.

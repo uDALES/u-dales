@@ -47,7 +47,17 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     # means they are stored on the stack (by default), whereas GNU Fortran stores
     # them on the heap (https://github.com/uDALES/u-dales/issues/13).
     set(CMAKE_Fortran_FLAGS "-r8 -fpe0 -heap-arrays 10" CACHE STRING "Fortran flags" FORCE)
-    set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -O0 -init=snan -CB -check bounds,format,output_conversion,pointers,uninit -warn all" CACHE STRING "Fortran debug flags" FORCE)
+    # FIXME: Intel debug builds currently emit a large number of known
+    # diagnostics (#7712 unused variables and #8889 missing EXTERNAL on MPI
+    # procedures). These are temporarily suppressed to keep test/regression
+    # logs readable, but the underlying code issues should still be cleaned up
+    # and this suppression removed later.
+    set(
+        CMAKE_Fortran_FLAGS_DEBUG
+        "-g -traceback -O0 -init=snan -CB -check bounds,format,output_conversion,pointers,uninit -warn all -diag-disable=7712,8889"
+        CACHE STRING "Fortran debug flags"
+        FORCE
+    )
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3" CACHE STRING "Fortran release flags" FORCE)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Cray")
     # https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85

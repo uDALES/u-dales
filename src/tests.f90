@@ -10,11 +10,11 @@
 
 module tests
   use decomp_2d
-  use modmpi, only : myid
+  use modmpi, only : myid, comm3d, mpierr, my_real, avexy_ibm, avey_ibm, sumx_ibm, sumy_ibm
   
   implicit none
   save
-  public :: tests_read_sparse_ijk, tests_2decomp_init_exit
+  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators
 
 contains
 
@@ -270,5 +270,207 @@ contains
     end do
     
   end function compare_boundary
+
+  logical function tests_mpi_operators()
+    use mpi
+    use modglobal, only : ib, ie, jb, je, kb, ke, khc, runmode
+    use modfields, only : initfields, IIc, IIu, IIv, IIw, IIuw, IIvw, IIuv, &
+                          IIct, IIut, IIvt, IIwt, IIuwt, &
+                          IIcs, IIus, IIvs, IIws, IIuws, IIvws, IIuvs
+    use modibm, only : initibm, createmasks
+    use initfac, only : readfacetfiles
+
+    implicit none
+
+    logical :: all_passed
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_mpi_operators: DIRECT MPI FIELD OPERATOR TEST'
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'Using Xie/Castro geometry from case 100 with explicit masked references'
+    end if
+
+    call initfields
+    call readfacetfiles
+    call initibm
+    call createmasks
+
+    all_passed = .true.
+
+    if (.not. check_loc_xy('LOC_C', 1, IIc, IIcs)) all_passed = .false.
+    if (.not. check_loc_xy('LOC_U', 2, IIu, IIus)) all_passed = .false.
+    if (.not. check_loc_xy('LOC_V', 3, IIv, IIvs)) all_passed = .false.
+    if (.not. check_loc_xy('LOC_W', 4, IIw, IIws)) all_passed = .false.
+    if (.not. check_loc_xy('LOC_WU', 5, IIuw, IIuws)) all_passed = .false.
+    if (.not. check_loc_xy('LOC_VW', 6, IIvw, IIvws)) all_passed = .false.
+    if (.not. check_loc_xy('LOC_UV', 7, IIuv, IIuvs)) all_passed = .false.
+
+    if (.not. check_loc_y('LOC_C', 1, IIc, IIct)) all_passed = .false.
+    if (.not. check_loc_y('LOC_U', 2, IIu, IIut)) all_passed = .false.
+    if (.not. check_loc_y('LOC_V', 3, IIv, IIvt)) all_passed = .false.
+    if (.not. check_loc_y('LOC_W', 4, IIw, IIwt)) all_passed = .false.
+    if (.not. check_loc_y('LOC_WU', 5, IIuw, IIuwt)) all_passed = .false.
+
+    if (all_passed .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'ALL TESTS PASSED: tests_mpi_operators'
+      write(*, '(A)') '================================================'
+    else if ((.not. all_passed) .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'TESTS FAILED: tests_mpi_operators'
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_mpi_operators = all_passed
+
+  contains
+
+    logical function check_loc_xy(label, loc_id, mask_3d, mask_1d)
+      implicit none
+      character(len=*), intent(in) :: label
+      integer, intent(in) :: loc_id
+      integer, intent(in) :: mask_3d(ib-2:ie+2,jb-2:je+2,kb:ke+khc)
+      integer, intent(in) :: mask_1d(kb:ke+khc)
+      real :: var_clean(ib:ie,jb:je,kb:ke+khc)
+      real :: got(kb:ke+khc), exp(kb:ke+khc), sum_local(kb:ke+khc), sum_global(kb:ke+khc)
+      integer :: i, j, k
+
+      do k = kb, ke + khc
+        do j = jb, je
+          do i = ib, ie
+            var_clean(i,j,k) = 0.25 * real(loc_id) + 0.13 * real(i) - 0.07 * real(j) + 0.011 * real(k)
+          end do
+        end do
+      end do
+
+      got = 0.
+      call avexy_ibm(got, var_clean, ib, ie, jb, je, kb, ke, 0, 0, khc, mask_3d(ib:ie,jb:je,kb:ke+khc), mask_1d, .true.)
+
+      do k = kb, ke + khc
+        sum_local(k) = sum(var_clean(ib:ie,jb:je,k) * real(mask_3d(ib:ie,jb:je,k)))
+      end do
+      call MPI_ALLREDUCE(sum_local, sum_global, size(sum_local), MY_REAL, MPI_SUM, comm3d, mpierr)
+
+      do k = kb, ke + khc
+        if (mask_1d(k) == 0) then
+          exp(k) = -999.
+        else
+          exp(k) = sum_global(k) / real(mask_1d(k))
+        end if
+      end do
+
+      check_loc_xy = compare_real_1d('avexy_ibm '//trim(label), got, exp)
+    end function check_loc_xy
+
+    logical function check_loc_y(label, loc_id, mask_3d, mask_2d)
+      implicit none
+      character(len=*), intent(in) :: label
+      integer, intent(in) :: loc_id
+      integer, intent(in) :: mask_3d(ib-2:ie+2,jb-2:je+2,kb:ke+khc)
+      integer, intent(in) :: mask_2d(ib:ie,kb:ke)
+      real :: var_clean(ib:ie,jb:je,kb:ke)
+      real :: got_avg(ib:ie,kb:ke), got_sum_y(ib:ie,kb:ke), got_sum_x(jb:je,kb:ke)
+      real :: exp_avg(ib:ie,kb:ke), exp_sum_y(ib:ie,kb:ke), exp_sum_x(jb:je,kb:ke)
+      real :: sum_local(ib:ie,kb:ke), sum_global(ib:ie,kb:ke)
+      real :: sumx_local(jb:je,kb:ke), sumx_global(jb:je,kb:ke)
+      integer :: i, j, k
+
+      do k = kb, ke
+        do j = jb, je
+          do i = ib, ie
+            var_clean(i,j,k) = 0.5 * real(loc_id) + 0.21 * real(i) - 0.03 * real(j) + 0.017 * real(k)
+          end do
+        end do
+      end do
+
+      got_avg = 0.
+      got_sum_y = 0.
+      got_sum_x = 0.
+      call avey_ibm(got_avg, var_clean, ib, ie, jb, je, kb, ke, mask_3d(ib:ie,jb:je,kb:ke), mask_2d)
+      call sumy_ibm(got_sum_y, var_clean, ib, ie, jb, je, kb, ke, mask_3d(ib:ie,jb:je,kb:ke))
+      call sumx_ibm(got_sum_x, var_clean, ib, ie, jb, je, kb, ke, mask_3d(ib:ie,jb:je,kb:ke))
+
+      do k = kb, ke
+        do i = ib, ie
+          sum_local(i,k) = sum(var_clean(i,jb:je,k) * real(mask_3d(i,jb:je,k)))
+        end do
+      end do
+      call MPI_ALLREDUCE(sum_local, sum_global, size(sum_local), MY_REAL, MPI_SUM, comm3d, mpierr)
+
+      do k = kb, ke
+        do i = ib, ie
+          exp_sum_y(i,k) = sum_global(i,k)
+          if (mask_2d(i,k) == 0) then
+            exp_avg(i,k) = -999.
+          else
+            exp_avg(i,k) = sum_global(i,k) / real(mask_2d(i,k))
+          end if
+        end do
+      end do
+
+      do k = kb, ke
+        do j = jb, je
+          sumx_local(j,k) = sum(var_clean(ib:ie,j,k) * real(mask_3d(ib:ie,j,k)))
+        end do
+      end do
+      call MPI_ALLREDUCE(sumx_local, sumx_global, size(sumx_local), MY_REAL, MPI_SUM, comm3d, mpierr)
+      exp_sum_x = sumx_global
+
+      check_loc_y = compare_real_2d('avey_ibm '//trim(label), got_avg, exp_avg)
+      if (.not. compare_real_2d('sumy_ibm '//trim(label), got_sum_y, exp_sum_y)) check_loc_y = .false.
+      if (.not. compare_real_2d_jk('sumx_ibm '//trim(label), got_sum_x, exp_sum_x)) check_loc_y = .false.
+    end function check_loc_y
+
+    logical function compare_real_1d(label, got, exp)
+      implicit none
+      character(len=*), intent(in) :: label
+      real, intent(in) :: got(:), exp(:)
+      real :: max_abs
+      integer :: imax(1)
+
+      max_abs = maxval(abs(got - exp))
+      compare_real_1d = max_abs <= 1.e-9
+      if ((.not. compare_real_1d) .and. myid == 0) then
+        imax = maxloc(abs(got - exp))
+        write(*,'(A,1X,A,1X,ES12.4,1X,A,I0,1X,A,ES12.4,1X,A,ES12.4)') &
+             'FAIL', trim(label), max_abs, 'idx', imax(1), 'got', got(imax(1)), 'exp', exp(imax(1))
+      end if
+    end function compare_real_1d
+
+    logical function compare_real_2d(label, got, exp)
+      implicit none
+      character(len=*), intent(in) :: label
+      real, intent(in) :: got(ib:ie,kb:ke), exp(ib:ie,kb:ke)
+      real :: max_abs
+      integer :: imax(2)
+
+      max_abs = maxval(abs(got - exp))
+      compare_real_2d = max_abs <= 1.e-9
+      if ((.not. compare_real_2d) .and. myid == 0) then
+        imax = maxloc(abs(got - exp))
+        write(*,'(A,1X,A,1X,ES12.4,1X,A,I0,A,I0,1X,A,ES12.4,1X,A,ES12.4)') &
+             'FAIL', trim(label), max_abs, 'idx', imax(1), ',', imax(2), 'got', got(imax(1),imax(2)), 'exp', exp(imax(1),imax(2))
+      end if
+    end function compare_real_2d
+
+    logical function compare_real_2d_jk(label, got, exp)
+      implicit none
+      character(len=*), intent(in) :: label
+      real, intent(in) :: got(jb:je,kb:ke), exp(jb:je,kb:ke)
+      real :: max_abs
+      integer :: imax(2)
+
+      max_abs = maxval(abs(got - exp))
+      compare_real_2d_jk = max_abs <= 1.e-9
+      if ((.not. compare_real_2d_jk) .and. myid == 0) then
+        imax = maxloc(abs(got - exp))
+        write(*,'(A,1X,A,1X,ES12.4,1X,A,I0,A,I0,1X,A,ES12.4,1X,A,ES12.4)') &
+             'FAIL', trim(label), max_abs, 'idx', imax(1), ',', imax(2), 'got', got(imax(1),imax(2)), 'exp', exp(imax(1),imax(2))
+      end if
+    end function compare_real_2d_jk
+
+  end function tests_mpi_operators
 
 end module tests

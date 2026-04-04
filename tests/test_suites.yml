@@ -176,6 +176,16 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+      - label: "supported: mpi operators integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/mpi_operators/run_test.sh"
       - label: "supported: processor boundaries integration"
         class: supported
         kind: integration
@@ -402,6 +412,18 @@ groups:
           - "{python}"
           - "{tests_dir}/regression/new_vegetation_module_against_v2.2/run_test.py"
           - "v2.2.0"
+          - "{branch_b}"
+          - "{build_type}"
+      - label: "experimental: mpi averaging regression"
+        class: experimental
+        kind: regression
+        component: solver
+        platform: hpc
+        cost: slow
+        command:
+          - "{python}"
+          - "{tests_dir}/regression/mpi_averaging_regression/run_test.py"
+          - "{branch_a}"
           - "{branch_b}"
           - "{build_type}"
 

@@ -147,6 +147,8 @@ between multiple components rather than one isolated API.
 - `directshortwave/`: Python-driven preprocessing integration tests for direct
   shortwave on committed cases `100` and `525`
 - `ibm_sparse_input/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
+- `mpi_operators/`: direct MPI operator validation for `runmode = 1005` on
+  the Xie/Castro case `100` across `1x1`, `2x1`, `1x2`, and `2x2`
 - `processor_boundaries/`: MPI decomposition parity checks on the Xie/Castro
   no-tree case `100` and the vegetation case `526`
 - `python_preproc_against_matlab/`: preprocessing parity test between the
@@ -158,6 +160,8 @@ between multiple components rather than one isolated API.
 - `100/`: no-tree direct shortwave reference case used by `integration/directshortwave/`
 - `100/`: also used by `integration/processor_boundaries/` for the Xie/Castro
   no-tree decomposition check
+- `100/`: also used by `integration/mpi_operators/` for the direct MPI
+  operator check
 - `525/`: flat-terrain tree case used by `integration/directshortwave/`
 - `526/`: reduced tree case used by `regression/new_vegetation_module_against_v2.2/`
 - `526/`: also used by `integration/processor_boundaries/` for the vegetation
@@ -177,17 +181,26 @@ cd tests/integration/ibm_sparse_input
 ./run_test.sh
 ```
 
+To run the direct MPI operator test:
+
+```bash
+cd tests/integration/mpi_operators
+./run_test.sh
+```
+
 ## Regression
 
 `tests/regression` contains branch-comparison and case-based regression assets:
 
 - `david_tests/`: the older branch-comparison regression harness and its helper assets
 - `new_vegetation_module_against_v2.2/`: the `526` legacy vegetation regression against release `v2.2.0`
+- `mpi_averaging_regression/`: branch/commit regression for MPI-sensitive dumped fields and diagnostics
 
 At present there are two regression paths:
 
 - `david_tests/`: an older branch-comparison build harness used by the supported suite
 - `new_vegetation_module_against_v2.2/`: a dedicated solver-output regression for the new vegetation module against the `v2.2.0` release
+- `mpi_averaging_regression/`: a compact branch-comparison regression for decomposition-sensitive dumped fields on cases `100` and `526`
 
 To run regression tests:
 

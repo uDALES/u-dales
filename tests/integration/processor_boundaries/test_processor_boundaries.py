@@ -202,7 +202,39 @@ def _run_case(executable: Path, run_dir: Path, case_id: int, nprocs: int) -> Non
         f"cd '{run_dir}' && "
         f"'{mpiexec}' {extra_args} -n {nprocs} '{executable}' namoptions.{case_id}"
     )
-    subprocess.run(["bash", "-lc", shell_command], cwd=REPO_ROOT, check=True)
+    completed = subprocess.run(
+        ["bash", "-lc", shell_command],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode == 0:
+        return
+
+    def _tail(label: str, text: str, limit: int = 40) -> str:
+        stripped = text.strip()
+        if not stripped:
+            return f"{label}: <empty>"
+        lines = stripped.splitlines()
+        snippet = "\n".join(lines[-limit:])
+        return f"{label} (last {min(len(lines), limit)} lines):\n{snippet}"
+
+    details = [
+        f"u-dales run failed for case {case_id} in {run_dir}",
+        f"command: {shell_command}",
+        f"exit code: {completed.returncode}",
+        _tail("stdout", completed.stdout),
+        _tail("stderr", completed.stderr),
+    ]
+    if diag_log.exists():
+        details.append(
+            _tail(
+                "fortran diagnostics",
+                diag_log.read_text(encoding="utf-8", errors="replace"),
+            )
+        )
+    raise RuntimeError("\n\n".join(details))
 
 
 def _launcher_unavailable_reason() -> Optional[str]:

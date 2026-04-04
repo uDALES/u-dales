@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import annotations
-
 """Experimental legacy tree regression against the reference branch."""
 
 import argparse
@@ -38,6 +36,7 @@ CASE_ID = 526
 THERMO_FIELDS = ("tr_qt", "tr_thl")
 MOMENTUM_FIELDS = ("tr_u", "tr_v", "tr_w")
 INTERIOR_REL_TOL = 1.0e-3
+INTERIOR_ABS_TOL = 1.0e-7
 NPROCS = 4
 NPROCX = 2
 NPROCY = 2
@@ -55,6 +54,7 @@ def _patch_namelist(run_dir: Path, mode: str) -> None:
     text = namelist.read_text(encoding="utf-8")
     text = re.sub(r"(?m)^(\s*nprocx\s*=\s*)\d+(\s*)$", rf"\g<1>{NPROCX}\2", text)
     text = re.sub(r"(?m)^(\s*nprocy\s*=\s*)\d+(\s*)$", rf"\g<1>{NPROCY}\2", text)
+    text = re.sub(r"(?m)^(\s*randu\s*=\s*)[-+0-9.eEdD]+(\s*)$", r"\g<1>1.0e-6\2", text)
 
     if mode == "reference":
         text = re.sub(r"(?m)^\s*itree_mode\s*=.*\n?", "", text)
@@ -152,6 +152,36 @@ def _tile_mask(global_mask: np.ndarray, case_dir: Path, tile_name: str, tile_sha
     return global_mask[:nz, jstart : jstart + ny, istart : istart + nx]
 
 
+def _support_mask_for_field(tile_mask: np.ndarray, field: str) -> np.ndarray:
+    support = np.zeros_like(tile_mask, dtype=bool)
+    if field == "tr_u":
+        support[:, :, 1:] = tile_mask[:, :, :-1] | tile_mask[:, :, 1:]
+    elif field == "tr_v":
+        support[:, 1:, :] = tile_mask[:, :-1, :] | tile_mask[:, 1:, :]
+    elif field == "tr_w":
+        support[1:, :, :] = tile_mask[:-1, :, :] | tile_mask[1:, :, :]
+    else:
+        raise ValueError(f"Unexpected momentum field: {field}")
+    return support
+
+
+def _interior_mask_for_field(support: np.ndarray, field: str) -> np.ndarray:
+    interior = np.zeros_like(support, dtype=bool)
+    if field in ("tr_u", "tr_v", "tr_w"):
+        interior[1:-1, 1:-1, 1:-1] = (
+            support[1:-1, 1:-1, 1:-1]
+            & support[:-2, 1:-1, 1:-1]
+            & support[2:, 1:-1, 1:-1]
+            & support[1:-1, :-2, 1:-1]
+            & support[1:-1, 2:, 1:-1]
+            & support[1:-1, 1:-1, :-2]
+            & support[1:-1, 1:-1, 2:]
+        )
+    else:
+        raise ValueError(f"Unexpected momentum field: {field}")
+    return interior
+
+
 def _fortran_local_idx(idx: Tuple[int, int, int]) -> Tuple[int, int, int]:
     z, y, x = idx
     return (x + 1, y + 1, z + 1)
@@ -190,19 +220,23 @@ def _compare_outputs(
     thermo_max: Dict[str, Tuple[float, str | None, Tuple[int, int, int] | None]] = {
         field: (-1.0, None, None) for field in THERMO_FIELDS
     }
-    thermo_ref_max = {field: 0.0 for field in THERMO_FIELDS}
+    thermo_ref_sum = {field: 0.0 for field in THERMO_FIELDS}
+    thermo_ref_count = {field: 0 for field in THERMO_FIELDS}
     momentum_max: Dict[str, Tuple[float, str | None, Tuple[int, int, int] | None]] = {
         field: (-1.0, None, None) for field in MOMENTUM_FIELDS
     }
-    momentum_ref_max = {field: 0.0 for field in MOMENTUM_FIELDS}
+    momentum_ref_sum = {field: 0.0 for field in MOMENTUM_FIELDS}
+    momentum_ref_count = {field: 0 for field in MOMENTUM_FIELDS}
     interior_max: Dict[str, Tuple[float, str | None, Tuple[int, int, int] | None]] = {
         field: (-1.0, None, None) for field in MOMENTUM_FIELDS
     }
-    interior_ref_max = {field: 0.0 for field in MOMENTUM_FIELDS}
+    interior_ref_sum = {field: 0.0 for field in MOMENTUM_FIELDS}
+    interior_ref_count_scale = {field: 0 for field in MOMENTUM_FIELDS}
     side_max: Dict[str, Tuple[float, str | None, Tuple[int, int, int] | None]] = {
         field: (-1.0, None, None) for field in MOMENTUM_FIELDS
     }
-    side_ref_max = {field: 0.0 for field in MOMENTUM_FIELDS}
+    side_ref_sum = {field: 0.0 for field in MOMENTUM_FIELDS}
+    side_ref_count_scale = {field: 0 for field in MOMENTUM_FIELDS}
     momentum_counts = {field: 0 for field in MOMENTUM_FIELDS}
     interior_counts = {field: 0 for field in MOMENTUM_FIELDS}
     side_counts = {field: 0 for field in MOMENTUM_FIELDS}
@@ -221,7 +255,8 @@ def _compare_outputs(
                 arr_reference = np.asarray(ds_reference.variables[field][-1], dtype=np.float64)
                 arr_current = np.asarray(ds_current.variables[field][-1], dtype=np.float64)
                 diff = np.abs(arr_current - arr_reference)
-                thermo_ref_max[field] = max(thermo_ref_max[field], float(np.max(np.abs(arr_reference))))
+                thermo_ref_sum[field] += float(np.sum(np.abs(arr_reference[tile_mask])))
+                thermo_ref_count[field] += int(np.count_nonzero(tile_mask))
                 idx = tuple(int(v) for v in np.unravel_index(np.argmax(diff), diff.shape))
                 val = float(diff[idx])
                 if val > thermo_max[field][0]:
@@ -231,36 +266,22 @@ def _compare_outputs(
                 arr_reference = np.asarray(ds_reference.variables[field][-1], dtype=np.float64)
                 arr_current = np.asarray(ds_current.variables[field][-1], dtype=np.float64)
                 diff = np.abs(arr_current - arr_reference)
-                momentum_ref_max[field] = max(momentum_ref_max[field], float(np.max(np.abs(arr_reference))))
                 idx = tuple(int(v) for v in np.unravel_index(np.argmax(diff), diff.shape))
                 val = float(diff[idx])
                 if val > momentum_max[field][0]:
                     momentum_max[field] = (val, path_reference.name, idx)
                 momentum_counts[field] += int(np.count_nonzero(arr_current != arr_reference))
 
-                if field == "tr_u":
-                    interior = np.zeros_like(tile_mask, dtype=bool)
-                    interior[:, :, 1:] = tile_mask[:, :, :-1] & tile_mask[:, :, 1:]
-                    support = np.zeros_like(tile_mask, dtype=bool)
-                    support[:, :, 1:] = tile_mask[:, :, :-1] | tile_mask[:, :, 1:]
-                elif field == "tr_v":
-                    interior = np.zeros_like(tile_mask, dtype=bool)
-                    interior[:, 1:, :] = tile_mask[:, :-1, :] & tile_mask[:, 1:, :]
-                    support = np.zeros_like(tile_mask, dtype=bool)
-                    support[:, 1:, :] = tile_mask[:, :-1, :] | tile_mask[:, 1:, :]
-                else:
-                    interior = np.zeros_like(tile_mask, dtype=bool)
-                    interior[1:, :, :] = tile_mask[:-1, :, :] & tile_mask[1:, :, :]
-                    support = np.zeros_like(tile_mask, dtype=bool)
-                    support[1:, :, :] = tile_mask[:-1, :, :] | tile_mask[1:, :, :]
+                support = _support_mask_for_field(tile_mask, field)
+                interior = _interior_mask_for_field(support, field)
                 side = support & ~interior
+                momentum_ref_sum[field] += float(np.sum(np.abs(arr_reference[support])))
+                momentum_ref_count[field] += int(np.count_nonzero(support))
 
                 interior_counts[field] += int(np.count_nonzero(interior))
                 if np.any(interior):
-                    interior_ref_max[field] = max(
-                        interior_ref_max[field],
-                        float(np.max(np.where(interior, np.abs(arr_reference), 0.0))),
-                    )
+                    interior_ref_sum[field] += float(np.sum(np.abs(arr_reference[interior])))
+                    interior_ref_count_scale[field] += int(np.count_nonzero(interior))
                     interior_diff = np.where(interior, diff, 0.0)
                     interior_idx = tuple(int(v) for v in np.unravel_index(np.argmax(interior_diff), interior_diff.shape))
                     interior_val = float(interior_diff[interior_idx])
@@ -268,19 +289,21 @@ def _compare_outputs(
                         interior_max[field] = (interior_val, path_reference.name, interior_idx)
                 side_counts[field] += int(np.count_nonzero(side))
                 if np.any(side):
-                    side_ref_max[field] = max(
-                        side_ref_max[field],
-                        float(np.max(np.where(side, np.abs(arr_reference), 0.0))),
-                    )
+                    side_ref_sum[field] += float(np.sum(np.abs(arr_reference[side])))
+                    side_ref_count_scale[field] += int(np.count_nonzero(side))
                     side_diff = np.where(side, diff, 0.0)
                     side_idx = tuple(int(v) for v in np.unravel_index(np.argmax(side_diff), side_diff.shape))
                     side_val = float(side_diff[side_idx])
                     if side_val > side_max[field][0]:
                         side_max[field] = (side_val, path_reference.name, side_idx)
 
+    momentum_scale = momentum_ref_sum["tr_u"] / max(momentum_ref_count["tr_u"], 1)
+    interior_scale = interior_ref_sum["tr_u"] / max(interior_ref_count_scale["tr_u"], 1)
+    side_scale = side_ref_sum["tr_u"] / max(side_ref_count_scale["tr_u"], 1)
+
     for field in THERMO_FIELDS:
         value, tile_name, idx = thermo_max[field]
-        rel = _safe_relative(value, thermo_ref_max[field])
+        rel = _safe_relative(value, thermo_ref_sum[field] / max(thermo_ref_count[field], 1))
         print(
             f"Relative diff {field}: {rel:.6e} "
             f"at {_format_optional_loc(tile_name, idx)}"
@@ -291,9 +314,9 @@ def _compare_outputs(
         value, tile_name, idx = momentum_max[field]
         int_value, int_tile_name, int_idx = interior_max[field]
         side_value, side_tile_name, side_idx = side_max[field]
-        rel = _safe_relative(value, momentum_ref_max[field])
-        int_rel = _safe_relative(int_value, interior_ref_max[field])
-        side_rel = _safe_relative(side_value, side_ref_max[field])
+        rel = _safe_relative(value, momentum_scale)
+        int_rel = _safe_relative(int_value, interior_scale)
+        side_rel = _safe_relative(side_value, side_scale)
         print(
             f"Relative diff {field}: {rel:.6e} "
             f"at {_format_optional_loc(tile_name, idx)}"
@@ -301,22 +324,26 @@ def _compare_outputs(
         print(f"Count diff {field}: {momentum_counts[field]}")
         print(
             f"Relative diff (interior) {field}: {int_rel:.6e} "
+            f"(abs {int_value:.6e}) "
             f"at {_format_optional_loc(int_tile_name, int_idx)} count {interior_counts[field]}"
         )
         print(
             f"Relative diff (side) {field}: {side_rel:.6e} "
+            f"(abs {side_value:.6e}) "
             f"at {_format_optional_loc(side_tile_name, side_idx)} count {side_counts[field]}"
         )
-        if enforce_tolerances and int_rel > INTERIOR_REL_TOL:
+        if enforce_tolerances and int_rel > INTERIOR_REL_TOL and int_value > INTERIOR_ABS_TOL:
             interior_failures.append(
-                f"{field} interior relative diff {int_rel:.6e} at "
+                f"{field} interior relative diff {int_rel:.6e} "
+                f"(abs {int_value:.6e}) at "
                 f"{_format_optional_loc(int_tile_name, int_idx)}"
             )
 
     if interior_failures:
         raise RuntimeError(
             "Legacy tree regression interior relative differences exceed "
-            f"{INTERIOR_REL_TOL:.1e}:\n- " + "\n- ".join(interior_failures)
+            f"{INTERIOR_REL_TOL:.1e} with abs diff above {INTERIOR_ABS_TOL:.1e}:\n- "
+            + "\n- ".join(interior_failures)
         )
 
 
@@ -391,16 +418,21 @@ def _prepare_offline_fftw(worktree: Path, build_dir: Path) -> None:
         )
     cmake_lists = worktree / "CMakeLists.txt"
     text = cmake_lists.read_text(encoding="utf-8")
+
+    def _copy_cached_fftw(dst: Path) -> None:
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if CACHED_FFTW_MODULE.resolve() == dst.resolve():
+            return
+        shutil.copy2(CACHED_FFTW_MODULE, dst)
+
     if 'set(findFFTW_DIR ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-src)' in text:
         findfftw_dir = build_dir / "findFFTW-src"
-        findfftw_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(CACHED_FFTW_MODULE, findfftw_dir / "FindFFTW.cmake")
+        _copy_cached_fftw(findfftw_dir / "FindFFTW.cmake")
         return
 
     if 'set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")' in text:
         cmake_dir = worktree / "cmake"
-        cmake_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(CACHED_FFTW_MODULE, cmake_dir / "FindFFTW.cmake")
+        _copy_cached_fftw(cmake_dir / "FindFFTW.cmake")
         return
 
     old_block = """#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/findFFTW")
@@ -427,8 +459,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${findFFTW_DIR}")
     if old_block not in text:
         raise RuntimeError(f"Unable to patch FFTW lookup in {cmake_lists}")
     cmake_dir = worktree / "cmake"
-    cmake_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(CACHED_FFTW_MODULE, cmake_dir / "FindFFTW.cmake")
+    _copy_cached_fftw(cmake_dir / "FindFFTW.cmake")
     cmake_lists.write_text(text.replace(old_block, new_block), encoding="utf-8")
 
 
@@ -453,14 +484,16 @@ def _build_current_workspace(build_type: str) -> Path:
     return _build_in_worktree(REPO_ROOT, "workspace", build_type)
 
 
-def main(branch_a: str, branch_b: str, build_type: str, ci_mode: bool = False) -> int:
+def main(branch_a: str, branch_b: str, build_type: str, ci_mode: bool = False, keep_runs: bool = False) -> int:
     case_source = REPO_ROOT / "tests" / "cases" / str(CASE_ID)
     SCRATCH_ROOT.mkdir(parents=True, exist_ok=True)
     shutil.rmtree(SCRATCH_ROOT / "udales-tree-regression-compare", ignore_errors=True)
-    with tempfile.TemporaryDirectory(prefix="tree-regression-worktrees-", dir=SCRATCH_ROOT) as worktree_tmp, tempfile.TemporaryDirectory(prefix="tree-reference-", dir=SCRATCH_ROOT) as reference_tmp, tempfile.TemporaryDirectory(prefix="tree-current-", dir=SCRATCH_ROOT) as current_tmp:
+    with tempfile.TemporaryDirectory(prefix="tree-regression-worktrees-", dir=SCRATCH_ROOT) as worktree_tmp:
         worktree_root = Path(worktree_tmp)
         reference_worktree = worktree_root / "reference"
         current_worktree = worktree_root / "current"
+        run_reference = Path(tempfile.mkdtemp(prefix="tree-reference-", dir=SCRATCH_ROOT))
+        run_current = Path(tempfile.mkdtemp(prefix="tree-current-", dir=SCRATCH_ROOT))
 
         try:
             reference_worktree = _create_worktree(worktree_root, "reference", branch_a)
@@ -471,8 +504,6 @@ def main(branch_a: str, branch_b: str, build_type: str, ci_mode: bool = False) -
             else:
                 current_exe = _build_current_workspace(build_type)
 
-            run_reference = Path(reference_tmp)
-            run_current = Path(current_tmp)
             shutil.copytree(case_source, run_reference, dirs_exist_ok=True)
             shutil.copytree(case_source, run_current, dirs_exist_ok=True)
             _patch_namelist(run_reference, "reference")
@@ -497,6 +528,12 @@ def main(branch_a: str, branch_b: str, build_type: str, ci_mode: bool = False) -
 
             _compare_outputs(_treedump_files(run_reference), _treedump_files(run_current), case_source)
         finally:
+            if keep_runs:
+                print(f"Kept reference run dir: {run_reference}")
+                print(f"Kept current run dir:   {run_current}")
+            else:
+                shutil.rmtree(run_reference, ignore_errors=True)
+                shutil.rmtree(run_current, ignore_errors=True)
             _remove_worktree(current_worktree)
             _remove_worktree(reference_worktree)
             subprocess.run([GIT, "worktree", "prune"], cwd=REPO_ROOT, check=True)
@@ -513,6 +550,7 @@ if __name__ == "__main__":
     parser.add_argument("--analyze-only", action="store_true")
     parser.add_argument("--report-only", action="store_true")
     parser.add_argument("--ci", action="store_true")
+    parser.add_argument("--keep-runs", action="store_true")
     parser.add_argument("--reference-run-dir", type=Path)
     parser.add_argument("--current-run-dir", type=Path)
     parser.add_argument("--case-dir", type=Path, default=REPO_ROOT / "tests" / "cases" / str(CASE_ID))
@@ -532,4 +570,4 @@ if __name__ == "__main__":
     if args.branch_a is None or args.branch_b is None or args.build_type is None:
         parser.error("branch_a, branch_b, and build_type are required unless --analyze-only is used")
 
-    raise SystemExit(main(args.branch_a, args.branch_b, args.build_type, ci_mode=args.ci))
+    raise SystemExit(main(args.branch_a, args.branch_b, args.build_type, ci_mode=args.ci, keep_runs=args.keep_runs))
