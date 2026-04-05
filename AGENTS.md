@@ -120,6 +120,16 @@ cmake --build build/release -j 4
 On the cluster, MPI-enabled builds and tests may require loading the project
 module stack first.
 
+Post-build contract for coding agents:
+
+- After any successful solver or preprocessing compilation, run the Python
+  library test stream with:
+  `python tests/run_tests.py python-library`
+- Treat this as the default validation step unless the user explicitly asks to
+  skip tests.
+- If a suite is skipped due to missing platform prerequisites (for example
+  missing `bash` on native Windows), report the skip reason explicitly.
+
 For cluster work, prefer the repo wrappers in `tools/` over ad hoc module and
 launcher combinations. In particular, use `tools/build_executable.sh`,
 `tools/build_preprocessing.sh`, `tools/hpc_execute.sh`, and
@@ -156,11 +166,18 @@ selection.
 
 ## Agent Skills (Repo-Local)
 
-This repo includes optional agent skills for cluster detection and execution:
+This repo includes repo-local skills for cluster detection and execution:
 
-- `agent_skills/udales-exec/`: execution/runbook guidance
-- `agent_skills/udales-detect/`: environment detection and site lookup
+- `.github/skills/udales-exec/`: execution/runbook guidance
+- `.github/skills/udales-detect/`: environment detection and site lookup
 
-These are repo-local references and are not automatically discovered by Codex.
-If you want them enabled, install them into the global Codex skills directory
-or follow the instructions in their `SKILL.md` files.
+Routing rule:
+
+- For user questions about how to install/build/run on "this machine" (including
+  Windows vs WSL vs Linux vs cluster), use `udales-detect` first, then route
+  execution/build commands to `udales-exec`.
+
+Compatibility note:
+
+- Keep `.github/skills/` as the canonical location for repo-shared skill
+  content and update skill docs there.

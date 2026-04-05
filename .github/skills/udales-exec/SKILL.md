@@ -121,7 +121,7 @@ The Python self-test uses `UD_VENV` and `UD_PYTHON` if set. Example:
 UD_VENV=/rds/general/user/$USER/home/udales/.venv
 UD_PYTHON=python3
 UD_VENV="$UD_VENV" UD_PYTHON="$UD_PYTHON" \
-  skills/udales-exec/scripts/skill_selftest.sh
+   .github/skills/udales-exec/scripts/skill_selftest.sh
 ```
 
 If `UD_VENV` is not set, it falls back to:
@@ -134,5 +134,5 @@ UD_VENV=/rds/general/user/$USER/home/udales/.venv
 UD_PYTHON=python3
 UD_BUILD=/path/to/u-dales
 UD_VENV="$UD_VENV" UD_PYTHON="$UD_PYTHON" UD_BUILD="$UD_BUILD" \
-  skills/udales-exec/scripts/skill_selftest.sh --full
+   .github/skills/udales-exec/scripts/skill_selftest.sh --full
 ```

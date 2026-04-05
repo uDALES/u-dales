@@ -1,6 +1,6 @@
 ---
 name: udales-detect
-description: Detect the current system, gather environment fingerprints, and search for site-specific guidance before running uDALES tools.
+description: Use when users ask how to install, build, run, or test uDALES on this machine (Windows/WSL/Linux/HPC), what modules/toolchain to use, or how to detect the current environment before execution; gather environment fingerprints and route execution tasks to udales-exec.
 ---
 
 # uDALES Detection Skill
@@ -15,6 +15,9 @@ Use this skill when a user asks:
 - "How do I run this here?"
 - "What modules do I need?"
 - "Which MPI/Python stack should I use on this system?"
+- "How do I install preprocessing on my machine?"
+- "Should I use Windows, WSL, local Linux, or cluster modules for this?"
+- "Can you detect this environment first and then give run/build steps?"
 
 ## Steps
 
@@ -33,7 +36,7 @@ Use this skill when a user asks:
 Run:
 
 ```bash
-skills/udales-detect/scripts/detect_env.sh
+.github/skills/udales-detect/scripts/detect_env.sh
 ```
 
 This prints hostname, OS, module availability, mpiexec flavor, and Python paths.
@@ -64,4 +67,4 @@ Leave build/run checks to `udales-exec` after the user confirms the intent.
 - `tools/build_executable.sh`
 - `tools/build_preprocessing.sh`
 - `tests/README.md`
-- `skills/udales-exec/references/clusters.md`
+- `.github/skills/udales-exec/references/clusters.md`

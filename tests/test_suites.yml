@@ -19,6 +19,66 @@ description: Run curated test selections by support level from tests/test_suites
 #   preferred schema shape
 
 groups:
+  python-library:
+    suites:
+      - label: "python-library: tools/python unit tests"
+        class: supported
+        kind: unit
+        component: python
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_*.py"
+      - label: "python-library: directshortwave integration"
+        class: supported
+        kind: integration
+        component: directshortwave
+        platform: any
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/directshortwave/test_directshortwave.py"
+      - label: "python-library: udprep integration"
+        class: supported
+        kind: integration
+        component: udprep
+        platform: any
+        cost: medium
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{tests_dir}/integration/udprep"
+          - "-p"
+          - "test_*.py"
+      - label: "python-library: udbase matlab integration"
+        class: supported
+        kind: reference
+        component: udbase
+        platform: any
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/udbase_against_matlab/test_udbase_against_matlab.py"
+      - label: "python-library: python preprocessing reference integration"
+        class: supported
+        kind: reference
+        component: udprep
+        platform: any
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
+
   supported:
     suites:
       - label: "supported: python namelist unit"

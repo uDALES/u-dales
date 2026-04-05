@@ -76,6 +76,11 @@ def _atol_for_output(relpath: str) -> float:
 class TestPythonPreprocAgainstMatlab(unittest.TestCase):
     """Compare Python preprocessing against committed MATLAB reference outputs."""
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        if shutil.which("bash") is None:
+            raise unittest.SkipTest("bash is required to run tools/cleansim.sh")
+
     @staticmethod
     def _load_numeric_table(path: Path) -> np.ndarray:
         data = np.loadtxt(path, comments="#")
@@ -88,7 +93,7 @@ class TestPythonPreprocAgainstMatlab(unittest.TestCase):
             case_source = spec["case_dir"]
             outputs = spec["outputs"]
             with self.subTest(case=case_source.name):
-                with tempfile.TemporaryDirectory(prefix="udales-preproc-test-", dir="/tmp") as temp_root:
+                with tempfile.TemporaryDirectory(prefix="udales-preproc-test-") as temp_root:
                     temp_root = Path(temp_root)
                     temp_case = temp_root / case_source.name
                     shutil.copytree(case_source, temp_case)

@@ -47,6 +47,17 @@ Current intended categories are:
 - `heavy`: resource-heavy or cluster-oriented coverage not expected in routine
   GitHub Actions
 
+For Python-library-only validation, use the dedicated dispatcher selection:
+
+```bash
+python tests/run_tests.py python-library
+```
+
+This runs Python-library unit tests plus Python-driven library integration/
+reference suites (including directshortwave, udprep integration, udbase
+parity, and Python preprocessing parity). It skips solver/MPI and regression
+suites.
+
 Today, GitHub Actions runs the curated `supported` selection:
 
 - `.github/workflows/ci.yml` installs system dependencies including `gfortran`,
