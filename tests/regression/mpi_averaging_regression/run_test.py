@@ -20,6 +20,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REGRESSION_DIR = SCRIPT_DIR.parent
 TESTS_DIR = REGRESSION_DIR.parent
 REPO_ROOT = TESTS_DIR.parent
+NAMELIST_DIR = SCRIPT_DIR / "namelists"
 
 BUILD_SYSTEM = os.environ.get("UDALES_BUILD_SYSTEM", "icl")
 GIT = os.environ.get("UDALES_GIT", "/usr/bin/git")
@@ -97,38 +98,25 @@ def _read_int_setting(namelist: Path, key: str) -> int:
     return int(match.group(1))
 
 
-def _patch_namelist(run_dir: Path, spec: CaseSpec, nprocx: int, nprocy: int, mode: str) -> None:
-    namelist = run_dir / f"namoptions.{spec.case_id}"
-    text = namelist.read_text(encoding="utf-8")
+def _namelist_path(spec: CaseSpec, label: str, mode: str) -> Path:
+    if spec.case_id == 100:
+        return NAMELIST_DIR / "namoptions.100.serial"
+    if spec.case_id == 526:
+        return NAMELIST_DIR / f"namoptions.526.serial.{mode}"
+    raise ValueError(f"Unsupported case id for namelist templates: {spec.case_id}")
+
+
+def _copy_namelist(run_dir: Path, spec: CaseSpec, label: str, mode: str) -> None:
+    namelist_source = _namelist_path(spec, label, mode)
+    if not namelist_source.is_file():
+        raise RuntimeError(f"Namelist file not found: {namelist_source}")
+    target = run_dir / f"namoptions.{spec.case_id}"
+    shutil.copy2(namelist_source, target)
+    nprocx, nprocy = CONFIGS[label]
+    text = target.read_text(encoding="utf-8")
     text = re.sub(r"(?m)^(\s*nprocx\s*=\s*)\d+(\s*)$", rf"\g<1>{nprocx}\2", text)
     text = re.sub(r"(?m)^(\s*nprocy\s*=\s*)\d+(\s*)$", rf"\g<1>{nprocy}\2", text)
-    text = re.sub(r"(?m)^(\s*runtime\s*=\s*)[0-9.]+(\s*)$", r"\g<1>0.02\2", text)
-    text = re.sub(r"(?m)^(\s*dtmax\s*=\s*)[0-9.]+(\s*)$", r"\g<1>0.01\2", text)
-    text = re.sub(r"(?m)^(\s*tstatstart\s*=\s*)[0-9.]+(\s*)$", r"\g<1>0.0\2", text)
-    text = re.sub(r"(?m)^(\s*tstatsdump\s*=\s*)[0-9.]+(\s*)$", r"\g<1>0.005\2", text)
-    text = re.sub(r"(?m)^(\s*tsample\s*=\s*)[0-9.]+(\s*)$", r"\g<1>0.005\2", text)
-    text = re.sub(r"(?m)^(\s*lxytdump\s*=\s*)\.true\.(\s*)$", r"\g<1>.false.\2", text)
-    if re.search(r"(?m)^\s*randu\s*=", text):
-        text = re.sub(r"(?m)^(\s*randu\s*=\s*)[0-9.]+(\s*)$", r"\g<1>1.0\2", text)
-    else:
-        text = re.sub(r"(?m)^(&RUN\s*)$", r"\1\nrandu        = 1.0", text, count=1)
-
-    if not spec.vegetation_enabled:
-        text = re.sub(r"(?m)^(\s*ltreesfile\s*=\s*)\.true\.(\s*)$", r"\g<1>.false.\2", text)
-        text = re.sub(r"(?m)^(\s*ltrees\s*=\s*)\.true\.(\s*)$", r"\g<1>.false.\2", text)
-        text = re.sub(r"(?m)^(\s*ltreedump\s*=\s*)\.true\.(\s*)$", r"\g<1>.false.\2", text)
-    else:
-        if mode == "reference":
-            text = re.sub(r"(?m)^\s*itree_mode\s*=.*\n?", "", text)
-        elif mode == "current":
-            if re.search(r"(?m)^\s*itree_mode\s*=", text):
-                text = re.sub(r"(?m)^(\s*itree_mode\s*=\s*)\d+(\s*)$", r"\g<1>99\2", text)
-            else:
-                text = text.replace("&TREES\n", "&TREES\nitree_mode   = 99\n", 1)
-        else:
-            raise ValueError(f"Unknown mode: {mode}")
-
-    namelist.write_text(text, encoding="utf-8")
+    target.write_text(text, encoding="utf-8")
 
 
 def _load_veg_mask(case_dir: Path, case_id: int) -> np.ndarray:
@@ -542,8 +530,8 @@ def _run_case_matrix(
         run_current = tmp_root / "current" / spec.case_name / label
         shutil.copytree(case_source, run_reference)
         shutil.copytree(case_source, run_current)
-        _patch_namelist(run_reference, spec, nprocx, nprocy, "reference")
-        _patch_namelist(run_current, spec, nprocx, nprocy, "current")
+        _copy_namelist(run_reference, spec, label, "reference")
+        _copy_namelist(run_current, spec, label, "current")
 
         context = f"case {spec.case_name} [{label}]"
         print(f"Running {context}", flush=True)

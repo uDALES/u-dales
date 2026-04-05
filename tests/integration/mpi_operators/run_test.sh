@@ -16,6 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/debug/u-dales}"
 CASE_SOURCE="${CASE_SOURCE:-${REPO_ROOT}/tests/cases/100}"
+NAMELIST_DIR="${NAMELIST_DIR:-${SCRIPT_DIR}}"
 NAMELIST="${NAMELIST:-namoptions.100}"
 TMPDIR_PARENT="${TMPDIR_PARENT:-}"
 
@@ -48,11 +49,6 @@ if [ ! -d "$CASE_SOURCE" ]; then
     exit 1
 fi
 
-if [ ! -f "$CASE_SOURCE/$NAMELIST" ]; then
-    echo "ERROR: Namelist file not found: $CASE_SOURCE/$NAMELIST"
-    exit 1
-fi
-
 if [ -n "$TMPDIR_PARENT" ]; then
     ROOT_RUN_DIR="$(mktemp -d "${TMPDIR_PARENT%/}/mpi-operators-XXXXXX")"
 else
@@ -67,25 +63,16 @@ run_mode() {
     local npx="$2"
     local npy="$3"
     local np="$4"
+    local namelist_source="$5"
     local run_dir="${ROOT_RUN_DIR}/${label}"
 
     mkdir -p "$run_dir"
     cp -r "$CASE_SOURCE"/. "$run_dir"/
-
-    python3 - <<PY
-from pathlib import Path
-import re
-
-path = Path("${run_dir}/${NAMELIST}")
-text = path.read_text()
-if "runmode" not in text:
-    text = text.replace("&RUN\n", "&RUN\n  runmode      = 1005\n", 1)
-else:
-    text = re.sub(r"runmode\\s*=\\s*\\d+", "runmode      = 1005", text, count=1)
-text = re.sub(r"(?m)^(\\s*nprocx\\s*=\\s*)\\d+(\\s*)$", r"\\g<1>${npx}\\2", text)
-text = re.sub(r"(?m)^(\\s*nprocy\\s*=\\s*)\\d+(\\s*)$", r"\\g<1>${npy}\\2", text)
-path.write_text(text)
-PY
+    if [ ! -f "$namelist_source" ]; then
+        echo "ERROR: Namelist source not found: $namelist_source"
+        exit 1
+    fi
+    cp "$namelist_source" "$run_dir/$NAMELIST"
 
     echo "=========================================="
     echo "Running TEST_MPI_OPERATORS [$label]"
@@ -114,10 +101,10 @@ PY
     fi
 }
 
-run_mode serial 1 1 1
-run_mode xsplit 2 1 2
-run_mode ysplit 1 2 2
-run_mode xysplit 2 2 4
+run_mode serial 1 1 1 "${NAMELIST_DIR}/namoptions.1005.serial"
+run_mode xsplit 2 1 2 "${NAMELIST_DIR}/namoptions.1005.xsplit"
+run_mode ysplit 1 2 2 "${NAMELIST_DIR}/namoptions.1005.ysplit"
+run_mode xysplit 2 2 4 "${NAMELIST_DIR}/namoptions.1005.xysplit"
 
 echo "=========================================="
 if [ "$failures" -eq 0 ]; then

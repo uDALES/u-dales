@@ -153,3 +153,14 @@ selection.
 - For large NetCDF/HDF5 comparison work on shared cluster filesystems, prefer
   reading local copies from `/tmp` (or node-local scratch) rather than reading
   directly from shared storage.
+
+## Agent Skills (Repo-Local)
+
+This repo includes optional agent skills for cluster detection and execution:
+
+- `agent_skills/udales-exec/`: execution/runbook guidance
+- `agent_skills/udales-detect/`: environment detection and site lookup
+
+These are repo-local references and are not automatically discovered by Codex.
+If you want them enabled, install them into the global Codex skills directory
+or follow the instructions in their `SKILL.md` files.

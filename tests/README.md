@@ -138,6 +138,10 @@ The `tests` directory itself is organized by test scope:
 - `system/`: whole-code validation cases, including resource-heavy runs
 - `unit/`: isolated tests when routines can be tested independently
 
+When a suite depends on a specific `runmode`, keep that explicit in the
+test-local namelist template rather than relying on whatever the case fixture
+happens to contain.
+
 ## Integration
 
 `tests/integration` contains end-to-end checks for this branch. These tests may

@@ -25,6 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/debug/u-dales}"
 CASE_SOURCE="${CASE_SOURCE:-${REPO_ROOT}/tests/cases/101}"
+NAMELIST_SOURCE="${NAMELIST_SOURCE:-${SCRIPT_DIR}/namoptions.1004}"
 NAMELIST="${NAMELIST:-namoptions.101}"
 TMPDIR_PARENT="${TMPDIR_PARENT:-}"
 if [ -z "${MPIEXEC:-}" ] && command -v mpiifort >/dev/null 2>&1; then
@@ -60,17 +61,17 @@ if [ ! -d "$CASE_SOURCE" ]; then
     exit 1
 fi
 
-# Check if namelist exists in source
-if [ ! -f "$CASE_SOURCE/$NAMELIST" ]; then
-    echo "ERROR: Namelist file not found: $CASE_SOURCE/$NAMELIST"
+# Check if namelist exists
+if [ ! -f "$NAMELIST_SOURCE" ]; then
+    echo "ERROR: Namelist source not found: $NAMELIST_SOURCE"
     exit 1
 fi
 
 if [ -z "${NPROCS:-}" ]; then
-    NPROCX="$(awk -F= '/^[[:space:]]*nprocx[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' "$CASE_SOURCE/$NAMELIST")"
-    NPROCY="$(awk -F= '/^[[:space:]]*nprocy[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' "$CASE_SOURCE/$NAMELIST")"
+    NPROCX="$(awk -F= '/^[[:space:]]*nprocx[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' "$NAMELIST_SOURCE")"
+    NPROCY="$(awk -F= '/^[[:space:]]*nprocy[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' "$NAMELIST_SOURCE")"
     if [ -z "$NPROCX" ] || [ -z "$NPROCY" ]; then
-        echo "ERROR: Failed to determine nprocx/nprocy from $CASE_SOURCE/$NAMELIST"
+        echo "ERROR: Failed to determine nprocx/nprocy from $NAMELIST_SOURCE"
         exit 1
     fi
     NPROCS="$((NPROCX * NPROCY))"
@@ -84,6 +85,7 @@ fi
 trap 'rm -rf "$RUN_DIR"' EXIT
 
 cp -r "$CASE_SOURCE"/. "$RUN_DIR"/
+cp "$NAMELIST_SOURCE" "$RUN_DIR/$NAMELIST"
 cp "$SCRIPT_DIR"/solid_*_[0-9]_[0-9].txt "$RUN_DIR"/
 cp "$SCRIPT_DIR"/fluid_boundary_*_[0-9]_[0-9].txt "$RUN_DIR"/
 

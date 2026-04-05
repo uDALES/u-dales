@@ -41,6 +41,11 @@ NPROCS = 4
 NPROCX = 2
 NPROCY = 2
 CACHED_FFTW_MODULE = REPO_ROOT / "build" / "debug" / "findFFTW-src" / "FindFFTW.cmake"
+NAMELIST_DIR = SCRIPT_DIR
+NAMELIST_MAP = {
+    "reference": NAMELIST_DIR / "namoptions.526.reference",
+    "current": NAMELIST_DIR / "namoptions.526.current",
+}
 
 
 def _read_int_setting(namelist: Path, key: str) -> int:
@@ -49,24 +54,13 @@ def _read_int_setting(namelist: Path, key: str) -> int:
         raise RuntimeError(f"Missing integer setting '{key}' in {namelist}")
     return int(match.group(1))
 
-def _patch_namelist(run_dir: Path, mode: str) -> None:
-    namelist = run_dir / f"namoptions.{CASE_ID}"
-    text = namelist.read_text(encoding="utf-8")
-    text = re.sub(r"(?m)^(\s*nprocx\s*=\s*)\d+(\s*)$", rf"\g<1>{NPROCX}\2", text)
-    text = re.sub(r"(?m)^(\s*nprocy\s*=\s*)\d+(\s*)$", rf"\g<1>{NPROCY}\2", text)
-    text = re.sub(r"(?m)^(\s*randu\s*=\s*)[-+0-9.eEdD]+(\s*)$", r"\g<1>1.0e-6\2", text)
-
-    if mode == "reference":
-        text = re.sub(r"(?m)^\s*itree_mode\s*=.*\n?", "", text)
-    elif mode == "current":
-        if re.search(r"(?m)^\s*itree_mode\s*=", text):
-            text = re.sub(r"(?m)^(\s*itree_mode\s*=\s*)\d+(\s*)$", r"\g<1>99\2", text)
-        else:
-            text = text.replace("&TREES\n", "&TREES\nitree_mode   = 99\n", 1)
-    else:
+def _copy_namelist(run_dir: Path, mode: str) -> None:
+    namelist_source = NAMELIST_MAP.get(mode)
+    if namelist_source is None:
         raise ValueError(f"Unknown mode: {mode}")
-
-    namelist.write_text(text, encoding="utf-8")
+    if not namelist_source.is_file():
+        raise RuntimeError(f"Namelist file not found: {namelist_source}")
+    shutil.copy2(namelist_source, run_dir / f"namoptions.{CASE_ID}")
 
 
 def _run_case(path_to_exe: Path, run_dir: Path) -> None:
@@ -506,8 +500,8 @@ def main(branch_a: str, branch_b: str, build_type: str, ci_mode: bool = False, k
 
             shutil.copytree(case_source, run_reference, dirs_exist_ok=True)
             shutil.copytree(case_source, run_current, dirs_exist_ok=True)
-            _patch_namelist(run_reference, "reference")
-            _patch_namelist(run_current, "current")
+            _copy_namelist(run_reference, "reference")
+            _copy_namelist(run_current, "current")
 
             print("Running legacy tree regression against reference branch")
             print(f"reference branch:    {branch_a}")

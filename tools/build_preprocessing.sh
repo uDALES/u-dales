@@ -17,7 +17,7 @@ if [ ! -d tools ]; then
 fi
 
 system=$1
-target=${2:-view3d}
+target=${2:-preprocessing_tools}
 
 if [ $system == "icl" ]
 then
@@ -42,6 +42,11 @@ if [ -z "${python_cmd}" ]; then
     fi
 fi
 
+if [ -n "${python_cmd}" ]; then
+    echo "Using preprocessing Python: ${python_cmd}"
+    "${python_cmd}" --version 2>&1 || true
+fi
+
 if ! command -v cmake >/dev/null 2>&1; then
     echo "cmake not found"
     exit 1
@@ -55,9 +60,24 @@ cmake_args=(
 )
 if [ -n "${python_cmd}" ]; then
     cmake_args+=(-DPREPROCESSING_PYTHON_EXECUTABLE="${python_cmd}")
+    missing_f2py_deps=0
+    if ! "${python_cmd}" -c "import numpy" >/dev/null 2>&1; then
+        echo "WARNING: numpy not available for ${python_cmd}; disabling f2py targets."
+        missing_f2py_deps=1
+    fi
+    if ! "${python_cmd}" -c "import pathlib, sysconfig; header = pathlib.Path(sysconfig.get_paths().get('include','')) / 'Python.h'; raise SystemExit(0 if header.is_file() else 1)" >/dev/null 2>&1; then
+        echo "WARNING: Python.h not found for ${python_cmd}; disabling f2py targets."
+        missing_f2py_deps=1
+    fi
+    if [ "${missing_f2py_deps}" -eq 1 ]; then
+        cmake_args+=(-DBUILD_PREPROCESSING_DIRECTSHORTWAVE_F2PY=OFF)
+        cmake_args+=(-DBUILD_PREPROCESSING_IBM_F2PY=OFF)
+    fi
 fi
 cmake "${cmake_args[@]}"
 cmake --build "${build_dir}" --target "${target}"
+
+require_f2py=1
 
 if [ -f "${build_dir}/bin/view3d" ]; then
     legacy_view3d_dir="tools/View3D/build/src"
@@ -71,7 +91,13 @@ if [ -f "${build_dir}/bin/IBM_preproc" ]; then
 fi
 if compgen -G "tools/python/udprep/directshortwave_f2py*.so" >/dev/null; then
     echo "directshortwave f2py module available at tools/python/udprep/"
+elif [ "${require_f2py}" -eq 1 ]; then
+    echo "WARNING: directshortwave f2py module missing in tools/python/udprep/"
+    echo "         This usually means the preprocessing Python lacks numpy or Python headers."
 fi
 if compgen -G "tools/python/udprep/ibm_preproc_f2py*.so" >/dev/null; then
     echo "IBM preprocessing f2py module available at tools/python/udprep/"
+elif [ "${require_f2py}" -eq 1 ]; then
+    echo "WARNING: ibm_preproc f2py module missing in tools/python/udprep/"
+    echo "         This usually means the preprocessing Python lacks numpy or Python headers."
 fi

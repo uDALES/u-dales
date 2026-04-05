@@ -32,3 +32,5 @@ Guidance:
 - Keep each consumer suite responsible for documenting its own runtime class:
   baseline CI, CI integration, CI regression, or heavy/manual.
 - Do not store generated solver outputs or local binaries here.
+- When you change a case fixture (including `namoptions.*`), update this file
+  and the consuming test README(s) so reviewers can quickly see what changed.

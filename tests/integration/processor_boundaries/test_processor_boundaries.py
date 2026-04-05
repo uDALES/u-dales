@@ -39,6 +39,17 @@ CONFIGS = {
     "xy_split": (2, 2),
 }
 
+NAMELIST_MAP = {
+    (NO_TREE_CASE_ID, "serial"): TEST_DIR / "namoptions.100.serial",
+    (NO_TREE_CASE_ID, "x_split"): TEST_DIR / "namoptions.100.serial",
+    (NO_TREE_CASE_ID, "y_split"): TEST_DIR / "namoptions.100.serial",
+    (NO_TREE_CASE_ID, "xy_split"): TEST_DIR / "namoptions.100.serial",
+    (TREE_CASE_ID, "serial"): TEST_DIR / "namoptions.526.serial",
+    (TREE_CASE_ID, "x_split"): TEST_DIR / "namoptions.526.serial",
+    (TREE_CASE_ID, "y_split"): TEST_DIR / "namoptions.526.serial",
+    (TREE_CASE_ID, "xy_split"): TEST_DIR / "namoptions.526.serial",
+}
+
 
 def _read_int_setting(namelist: Path, key: str) -> int:
     match = re.search(
@@ -50,26 +61,18 @@ def _read_int_setting(namelist: Path, key: str) -> int:
     return int(match.group(1))
 
 
-def _patch_namelist(run_dir: Path, case_id: int, nprocx: int, nprocy: int, vegetation_enabled: bool) -> None:
-    namelist = run_dir / f"namoptions.{case_id}"
-    text = namelist.read_text(encoding="utf-8")
+def _copy_namelist(run_dir: Path, case_id: int, label: str, nprocx: int, nprocy: int) -> None:
+    namelist_source = NAMELIST_MAP.get((case_id, label))
+    if namelist_source is None:
+        raise RuntimeError(f"No namelist mapping for case {case_id} and label {label}")
+    if not namelist_source.is_file():
+        raise RuntimeError(f"Namelist file not found: {namelist_source}")
+    target = run_dir / f"namoptions.{case_id}"
+    shutil.copy2(namelist_source, target)
+    text = target.read_text(encoding="utf-8")
     text = re.sub(r"(?m)^(\s*nprocx\s*=\s*)\d+(\s*)$", rf"\g<1>{nprocx}\2", text)
     text = re.sub(r"(?m)^(\s*nprocy\s*=\s*)\d+(\s*)$", rf"\g<1>{nprocy}\2", text)
-    text = re.sub(r"(?m)^(\s*runtime\s*=\s*)[0-9.]+(\s*)$", r"\g<1>0.01\2", text)
-    text = re.sub(r"(?m)^(\s*dtmax\s*=\s*)[0-9.]+(\s*)$", r"\g<1>0.01\2", text)
-    text = re.sub(r"(?m)^(\s*tstatstart\s*=\s*)[0-9.]+(\s*)$", r"\g<1>0.0\2", text)
-    text = re.sub(r"(?m)^(\s*tstatsdump\s*=\s*)[0-9.]+(\s*)$", r"\g<1>0.005\2", text)
-    text = re.sub(r"(?m)^(\s*tsample\s*=\s*)[0-9.]+(\s*)$", r"\g<1>0.005\2", text)
-    text = re.sub(r"(?m)^(\s*lxytdump\s*=\s*)\.true\.(\s*)$", r"\g<1>.false.\2", text)
-    if re.search(r"(?m)^\s*randu\s*=", text):
-        text = re.sub(r"(?m)^(\s*randu\s*=\s*)[0-9.]+(\s*)$", r"\g<1>1.0\2", text)
-    else:
-        text = re.sub(r"(?m)^(&RUN\s*)$", r"\1\nrandu        = 1.0", text, count=1)
-    if not vegetation_enabled:
-        text = re.sub(r"(?m)^(\s*ltreesfile\s*=\s*)\.true\.(\s*)$", r"\g<1>.false.\2", text)
-        text = re.sub(r"(?m)^(\s*ltrees\s*=\s*)\.true\.(\s*)$", r"\g<1>.false.\2", text)
-        text = re.sub(r"(?m)^(\s*ltreedump\s*=\s*)\.true\.(\s*)$", r"\g<1>.false.\2", text)
-    namelist.write_text(text, encoding="utf-8")
+    target.write_text(text, encoding="utf-8")
 
 
 def _load_veg_mask(case_dir: Path, case_id: int) -> np.ndarray:
@@ -300,7 +303,7 @@ class _BaseProcessorBoundaryParity(unittest.TestCase):
         for label, (nprocx, nprocy) in CONFIGS.items():
             run_dir = Path(cls.workdir.name) / label
             shutil.copytree(cls.case_source, run_dir)
-            _patch_namelist(run_dir, cls.CASE_ID, nprocx, nprocy, cls.VEGETATION_ENABLED)
+            _copy_namelist(run_dir, cls.CASE_ID, label, nprocx, nprocy)
             _run_case(UDALES_BUILD, run_dir, cls.CASE_ID, nprocx * nprocy)
             cls.run_dirs[label] = run_dir
             cls.outputs[label] = _load_global_fields(run_dir, cls.CASE_ID, cls.PREFIX, cls.FIELDS)
