@@ -24,7 +24,6 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,jmax,rk3step,kmax,jge,jgb
    USE modsubgriddata, ONLY:ekh, ekm
    USE modmpi, ONLY:myid
-   USE initfac, ONLY:block
    USE modibmdata
    INTEGER i, j, k, jl, ju, kl, ku, il, iu, km, im, jm, ip, jp, kp
 

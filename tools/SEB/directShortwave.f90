@@ -98,7 +98,7 @@ contains
       real   , dimension(:), allocatable :: locCoord1, locCoord2
       integer, dimension(:), allocatable :: counts
       real :: xmin, xmax, xrange, ymin, ymax, yrange, temp
-      real, dimension(3) :: p0, u1, u2
+      real, dimension(3) :: p0, u1, u2, up
       real, dimension(2) :: cor1, cor2, cor3, cor4
       real, dimension(3,3) :: matrix, invMatrix
       integer :: i, j, n, m, id_temp, size_xi, size_eta
@@ -116,7 +116,16 @@ contains
       ! write(*,*) "p0", p0
 
       ! define orthonormal basis on the plane
-      u1 = -(/nsun(2), -nsun(1), 0./)
+      ! When the sun is close to vertical, the historical basis
+      ! u1 = -(/nsun(2), -nsun(1), 0./) becomes singular because its norm
+      ! collapses to zero. Use an alternate up vector in that case so the
+      ! scanline projection remains well-defined for solarzenith = 0 cases
+      ! such as experiment 064.
+      up = (/0., 0., 1./)
+      if (abs(dot_product(up, nsun)) > 0.95) then
+         up = (/0., 1., 0./)
+      end if
+      u1 = cross_product(up, nsun)
       u1 = u1 / norm2(u1)
       u2 = cross_product(u1, nsun)
 
@@ -153,6 +162,7 @@ contains
       do n=1,nFaces
          areas(n) = 0.5*norm2(cross_product(vertices(connectivityList(n,2),:) - vertices(connectivityList(n,1),:), &
                                             vertices(connectivityList(n,3),:) - vertices(connectivityList(n,1),:)))
+         visibility(n) = 0
          if (dot_product(faceNormal(n,:), nsun) > 0)  visibility(n) = 1
          planeIncenter(n,:) = matmul(invMatrix, incenter(n,:) - p0)
          distIncenter(n) = planeIncenter(n,3)
@@ -209,6 +219,7 @@ contains
       !write(*,*) "sizeMask1, sizeMask2", sizeMask1, sizeMask2
       !allocate(mask(size_eta, size_xi))
       allocate(maskIDs(size_eta, size_xi))
+      maskIDs = 0
 
       ! allocate(locCoord1(sizeMask1))
       ! allocate(locCoord2(sizeMask2))
@@ -497,6 +508,7 @@ contains
         ! Initialize minY and maxY arrays
         minY = 0
         maxY = 0
+        out = .false.
         sizeX = size(xpt,1)+1 ! number of vertices
         allocate(x(sizeX), y(sizeX))
         x(1:sizeX-1) = xpt

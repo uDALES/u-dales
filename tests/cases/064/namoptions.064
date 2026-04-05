@@ -1,0 +1,122 @@
+&RUN
+iexpnr       = 064
+runtime      = 2000.
+trestart     = 51000.
+dtmax        = 5
+irandom      = 43
+randu        = 0.01
+ladaptive    = .true.
+nprocx       = 4
+nprocy       = 4
+libm         = .true.
+lrandomize   = .true.
+/
+
+&OUTPUT
+lfielddump   = .false.
+ltdump = .false. 
+tfielddump   = 11.
+fieldvars    = 'v0,th,qt,u0,w0'
+lxytdump     = .true.
+tsample      = 1.
+tstatsdump   = 5.
+/
+
+&DOMAIN
+itot         = 64
+jtot         = 64
+ktot         = 64
+xlen         = 64
+ylen         = 64
+/
+
+&PHYSICS
+ps           = 101300.
+igrw_damp    = 0
+luvolflowr   = .true.
+uflowrate    = 1
+lvoutflowr   = .false.
+vflowrate    = 0
+ltempeq      = .true.
+lmoist       = .true.
+lbuoyancy    = .true.
+/
+
+&DYNAMICS
+ipoiss       = 0
+iadv_thl     = 2
+iadv_qt      = 2
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&BC
+wtsurf       = 0.
+wqsurf       = 0.
+z0           = 0.01
+z0h          = 0.000067
+/
+
+&WALLS
+nfcts = 140
+nsolpts_u = 252
+nsolpts_v = 252
+nsolpts_w = 4312
+nsolpts_c = 216
+nbndpts_u = 4226
+nbndpts_v = 4226
+nbndpts_w = 4216
+nbndpts_c = 4216
+nfctsecs_u = 5644
+nfctsecs_v = 5644
+nfctsecs_w = 202
+nfctsecs_c = 5011
+iwalltemp = 2
+iwallmoist = 2
+/
+
+&ENERGYBALANCE 
+lEB          = .true.
+lvfsparse    = .true.
+lconstW      = .true.
+lwriteEBfiles = .true.
+lperiodicEBcorr = .true.
+sinkbase = 10
+dtEB         = 10
+bldT         = 293.0
+flrT         = 293.0
+wsoil        = 250.0
+wgrmax       = 451.0
+wwilt        = 172.0
+wfc          = 314.0
+skyLW        = 395.0
+GRLAI        = 2.1
+rsmin        = 200.0
+nfaclyrs     = 5
+fraction     = 0.5
+/
+
+&INP
+facT         = 301
+thl0         = 301
+qt0          = 0.01
+lflat        = .true.
+zsize        = 64
+u0           = 1
+stl_file     = geom.064.stl
+diag_neighbs   = .false.
+stl_ground   = .true.
+min_vf       = 0.01 
+lBImin_u = .false.
+lBImin_v = .false.
+lBImin_w = .false.
+lBImin_c = .false.
+maxD = 64
+solarazimuth = 135
+solarzenith = 0
+I = 800
+Dsky = 107.2
+/
+

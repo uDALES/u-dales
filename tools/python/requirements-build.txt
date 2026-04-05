@@ -1,0 +1,4 @@
+# Python-side build dependencies for the f2py wrapper.
+# A system Fortran compiler such as gfortran is also required.
+meson
+ninja

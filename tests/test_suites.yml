@@ -1,0 +1,493 @@
+description: Run curated test selections by support level from tests/test_suites.yml.
+
+# Schema:
+# - groups.<name>.suites: concrete suite entries for that selection
+# - groups.<name>.includes: other group names to include
+# - suite.label: human-readable display name
+# - suite.class: execution policy (`supported` or `experimental`)
+# - suite.kind: validation scope (`unit`, `integration`, `reference`, `system`, `regression`)
+# - suite.component: subsystem or ownership area (`udbase`, `udgeom`, `udprep`, `ibm`, etc.)
+# - suite.platform: expected runtime target (`linux`, `macos`, `hpc`, `any`)
+# - suite.cost: rough runtime tier (`fast`, `medium`, `slow`)
+# - suite.command: argv list executed by tests/run_tests.py
+# - suite.env_<NAME>: optional per-suite environment override exposed as <NAME>
+#
+# Conventions:
+# - `class` is about support/merge-gate policy, not technical scope
+# - `kind` is about technical scope, not CI policy
+# - `supported-macos` is a temporary compatibility group, not the long-term
+#   preferred schema shape
+
+groups:
+  python-library:
+    suites:
+      - label: "python-library: tools/python unit tests"
+        class: supported
+        kind: unit
+        component: python
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_*.py"
+      - label: "python-library: directshortwave integration"
+        class: supported
+        kind: integration
+        component: directshortwave
+        platform: any
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/directshortwave/test_directshortwave.py"
+      - label: "python-library: udprep integration"
+        class: supported
+        kind: integration
+        component: udprep
+        platform: any
+        cost: medium
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{tests_dir}/integration/udprep"
+          - "-p"
+          - "test_*.py"
+      - label: "python-library: udbase matlab integration"
+        class: supported
+        kind: reference
+        component: udbase
+        platform: any
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/udbase_against_matlab/test_udbase_against_matlab.py"
+      - label: "python-library: python preprocessing reference integration"
+        class: supported
+        kind: reference
+        component: udprep
+        platform: any
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
+
+  supported:
+    suites:
+      - label: "supported: python namelist unit"
+        class: supported
+        kind: unit
+        component: python
+        platform: linux
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_namelist.py"
+      - label: "supported: python solar unit"
+        class: supported
+        kind: unit
+        component: python
+        platform: linux
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_solar.py"
+      - label: "supported: python udbase unit"
+        class: supported
+        kind: unit
+        component: udbase
+        platform: linux
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "tools.python.tests.test_udbase_core"
+          - "tools.python.tests.test_udbase_vis"
+      - label: "supported: python directshortwave unit"
+        class: supported
+        kind: unit
+        component: directshortwave
+        platform: linux
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave.py"
+      - label: "supported: python directshortwave periodic unit"
+        class: supported
+        kind: unit
+        component: directshortwave
+        platform: linux
+        cost: medium
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave_periodic.py"
+      - label: "supported: directshortwave integration"
+        class: supported
+        kind: integration
+        component: directshortwave
+        platform: linux
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/directshortwave/test_directshortwave.py"
+      - label: "supported: python udprep unit"
+        class: supported
+        kind: unit
+        component: udprep
+        platform: linux
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "tools.python.tests.test_udprep_core"
+          - "tools.python.tests.test_udprep_grid"
+          - "tools.python.tests.test_udprep_profiles_and_scalars"
+          - "tools.python.tests.test_udprep_vegetation"
+      - label: "supported: python udgeom unit"
+        class: supported
+        kind: unit
+        component: udgeom
+        platform: linux
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "tools.python.tests.test_udgeom_against_matlab"
+          - "tools.python.tests.test_udgeom_api"
+          - "tools.python.tests.test_udgeom_outline_loops"
+          - "tools.python.tests.test_view3d_utils"
+      - label: "supported: udprep integration"
+        class: supported
+        kind: integration
+        component: udprep
+        platform: linux
+        cost: medium
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{tests_dir}/integration/udprep"
+          - "-p"
+          - "test_*.py"
+      - label: "supported: udbase matlab integration"
+        class: supported
+        kind: reference
+        component: udbase
+        platform: linux
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/udbase_against_matlab/test_udbase_against_matlab.py"
+      - label: "supported: regression"
+        class: supported
+        kind: regression
+        component: regression
+        platform: linux
+        cost: slow
+        command:
+          - "{python}"
+          - "{tests_dir}/regression/david_tests/run_tests.py"
+          - "{branch_a}"
+          - "{branch_b}"
+          - "{build_type}"
+      - label: "supported: ibm sparse input integration"
+        class: supported
+        kind: integration
+        component: ibm
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+      - label: "supported: mpi operators integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/mpi_operators/run_test.sh"
+      - label: "supported: processor boundaries integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
+      - label: "supported: python preprocessing reference integration"
+        class: supported
+        kind: reference
+        component: udprep
+        platform: linux
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
+
+  supported-macos:
+    suites:
+      - label: "supported: python namelist unit"
+        class: supported
+        kind: unit
+        component: python
+        platform: macos
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_namelist.py"
+      - label: "supported: python solar unit"
+        class: supported
+        kind: unit
+        component: python
+        platform: macos
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_solar.py"
+      - label: "supported: python udbase unit"
+        class: supported
+        kind: unit
+        component: udbase
+        platform: macos
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "tools.python.tests.test_udbase_core"
+          - "tools.python.tests.test_udbase_vis"
+      - label: "supported: python directshortwave unit"
+        class: supported
+        kind: unit
+        component: directshortwave
+        platform: macos
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave.py"
+      - label: "supported: python directshortwave periodic unit"
+        class: supported
+        kind: unit
+        component: directshortwave
+        platform: macos
+        cost: medium
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave_periodic.py"
+      - label: "supported: directshortwave integration"
+        class: supported
+        kind: integration
+        component: directshortwave
+        platform: macos
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/directshortwave/test_directshortwave.py"
+      - label: "supported: python udprep unit"
+        class: supported
+        kind: unit
+        component: udprep
+        platform: macos
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "tools.python.tests.test_udprep_core"
+          - "tools.python.tests.test_udprep_grid"
+          - "tools.python.tests.test_udprep_profiles_and_scalars"
+          - "tools.python.tests.test_udprep_vegetation"
+      - label: "supported: python udgeom unit"
+        class: supported
+        kind: unit
+        component: udgeom
+        platform: macos
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "tools.python.tests.test_udgeom_against_matlab"
+          - "tools.python.tests.test_udgeom_api"
+          - "tools.python.tests.test_udgeom_outline_loops"
+          - "tools.python.tests.test_view3d_utils"
+      - label: "supported: udprep integration"
+        class: supported
+        kind: integration
+        component: udprep
+        platform: macos
+        cost: medium
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{tests_dir}/integration/udprep"
+          - "-p"
+          - "test_*.py"
+      - label: "supported: udbase matlab integration"
+        class: supported
+        kind: reference
+        component: udbase
+        platform: macos
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/udbase_against_matlab/test_udbase_against_matlab.py"
+      - label: "supported: ibm sparse input integration"
+        class: supported
+        kind: integration
+        component: ibm
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+      - label: "supported: python preprocessing reference integration"
+        class: supported
+        kind: reference
+        component: udprep
+        platform: macos
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
+
+  experimental:
+    suites:
+      - label: "experimental: python directshortwave unit"
+        class: experimental
+        kind: unit
+        component: directshortwave
+        platform: linux
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave.py"
+      - label: "experimental: python directshortwave periodic unit"
+        class: experimental
+        kind: unit
+        component: directshortwave
+        platform: linux
+        cost: medium
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{repo_root}/tools/python/tests"
+          - "-p"
+          - "test_directshortwave_periodic.py"
+      - label: "experimental: directshortwave integration"
+        class: experimental
+        kind: integration
+        component: directshortwave
+        platform: linux
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/directshortwave/test_directshortwave.py"
+      - label: "experimental: new vegetation module against v2.2"
+        class: experimental
+        kind: regression
+        component: vegetation
+        platform: hpc
+        cost: slow
+        command:
+          - "{python}"
+          - "{tests_dir}/regression/new_vegetation_module_against_v2.2/run_test.py"
+          - "v2.2.0"
+          - "{branch_b}"
+          - "{build_type}"
+      - label: "experimental: mpi averaging regression"
+        class: experimental
+        kind: regression
+        component: solver
+        platform: hpc
+        cost: slow
+        command:
+          - "{python}"
+          - "{tests_dir}/regression/mpi_averaging_regression/run_test.py"
+          - "{branch_a}"
+          - "{branch_b}"
+          - "{build_type}"
+
+  all:
+    includes:
+      - supported
+      - experimental

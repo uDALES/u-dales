@@ -852,6 +852,8 @@ end
 
 if lmatchFacetsToCellsFortran
     disp('Determining facet sections using Fortran.')
+%     in_mypoly_fortran_path = [folder '/in_mypoly_fortran/'];
+%     addpath(in_mypoly_fortran_path)
     cd(folder);
     % Needs fluid_boundary_u.txt and solid_boundary_u.txt to be defined.
     system('gfortran -O2 -fopenmp matchFacetsToCells.f90 -o MFTC.exe');

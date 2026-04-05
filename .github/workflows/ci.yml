@@ -2,10 +2,14 @@ name: CI
 
 on: [push, pull_request]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
-  main:
-    # https://stackoverflow.com/a/59775665/8893833
-    if: "!contains(github.event.commits[0].message, '[skip ci]')"
+  build-and-supported-tests:
+    if: >
+      github.event_name != 'push' ||
+      !contains(github.event.head_commit.message, '[skip ci]')
     name: ${{ matrix.os }} ${{ matrix.build-type }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -13,11 +17,12 @@ jobs:
       matrix:
         os: ['ubuntu-latest', 'macos-latest']
         build-type: ['Debug', 'Release']
-    
+
     steps:
     - name: Check-out project
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
+        fetch-depth: 0
         submodules: recursive
 
     - name: Set up repository
@@ -31,7 +36,7 @@ jobs:
       run: bash .github/scripts/install_deps.sh
 
     - name: Install python dependencies
-      uses: conda-incubator/setup-miniconda@v3
+      uses: conda-incubator/setup-miniconda@9b650ee299f7fe47ab3a9688166e64e965c83272 # main (node24)
       with:
         miniconda-version: "latest"
         auto-update-conda: true
@@ -39,23 +44,111 @@ jobs:
         environment-file: environment.yml
         channel-priority: strict
 
-    - name: Build and test uDALES
-      # 'shell' required to activate environment.
-      # See https://github.com/conda-incubator/setup-miniconda#IMPORTANT.
+    - name: Build preprocessing tools
       shell: bash -l {0}
       run: |
-        if [ ${{ matrix.os }} = 'macos-latest' ]; then export FC=gfortran-12; fi
-        python3 -u tests/run_tests.py master $GITHUB_SHA ${{ matrix.build-type}}
+        # Work around numpy.f2py + setuptools distutils incompatibility on macOS runners.
+        export SETUPTOOLS_USE_DISTUTILS=stdlib
+        if [ "${{ matrix.os }}" = "macos-latest" ]; then
+          python -m pip install "setuptools<74"
+        fi
+        PREPROCESSING_PYTHON_EXECUTABLE="$(command -v python)" \
+          bash tools/build_preprocessing.sh common preprocessing_tools
+
+    - name: Build current branch for integration tests
+      shell: bash -l {0}
+      run: |
+        build_dir="build/${{ matrix.build-type }}"
+        build_dir="$(printf '%s' "$build_dir" | tr '[:upper:]' '[:lower:]')"
+        source .github/scripts/setup_mpi_env.sh "${{ matrix.os }}"
+        if [ ${{ matrix.os }} = 'macos-latest' ]; then
+          which gfortran
+          gfortran --version
+          "$UDALES_MPI_FORTRAN_COMPILER" --showme:command || "$UDALES_MPI_FORTRAN_COMPILER" -show
+        fi
+        cmake -S . -B "$build_dir" \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+          -DCMAKE_Fortran_COMPILER="$UDALES_MPI_FORTRAN_COMPILER" \
+          -DMPI_Fortran_COMPILER="$UDALES_MPI_FORTRAN_COMPILER" \
+          -DMPI_C_COMPILER="$UDALES_MPI_C_COMPILER" \
+          -DMPIEXEC_EXECUTABLE="$UDALES_MPIEXEC"
+        cmake --build "$build_dir" -- -j 4
+
+    - name: Build and test uDALES
+      shell: bash -l {0}
+      run: |
+        source .github/scripts/setup_mpi_env.sh "${{ matrix.os }}"
+        # Temporary: macOS skips the branch-comparison regression until master
+        # contains the findFFTW helper-project CMake minimum-version fix.
+        # Remove supported-macos and switch back to supported on macOS once
+        # that fix has been merged into master.
+        if [ "${{ matrix.os }}" = "macos-latest" ]; then
+          selection="supported-macos"
+        else
+          selection="supported"
+        fi
+        python3 -u tests/run_tests.py "$selection" --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type }}
+
+  docs:
+    if: >
+      github.event_name != 'push' ||
+      !contains(github.event.head_commit.message, '[skip ci]')
+    name: docs
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check-out project
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        submodules: recursive
+
+    - name: Set up repository
+      run: |
+        git remote set-branches --add origin master
+        git fetch origin master
+
+    - name: Install system dependencies
+      run: bash .github/scripts/install_deps.sh
+
+    - name: Install python dependencies
+      uses: conda-incubator/setup-miniconda@9b650ee299f7fe47ab3a9688166e64e965c83272 # main (node24)
+      with:
+        miniconda-version: "latest"
+        auto-update-conda: true
+        activate-environment: udales
+        environment-file: environment.yml
+        channel-priority: strict
 
     - name: Build docs
-      if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release'
       shell: bash -l {0}
       run: |
         mkdocs build --site-dir build/html
         ford docs/udales-docs-software.md
 
+    - name: Upload docs artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: docs-html
+        path: build/html/
+
+  publish-docs:
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/master' &&
+      !contains(github.event.head_commit.message, '[skip ci]')
+    name: publish-docs
+    runs-on: ubuntu-latest
+    needs: docs
+
+    steps:
+    - name: Download docs artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: docs-html
+        path: build/html/
+
     - name: Publish docs
-      if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/master'
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}

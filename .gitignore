@@ -4,6 +4,7 @@ temp/
 tmp/
 tests/outputs/
 .vscode/
+.codex
 *.o
 *.mod
 image.sif
@@ -14,6 +15,7 @@ outputs/
 examples/*/blocks.*.png
 tmp/*
 bin/
+tools/python/examples/*.stl
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*
@@ -24,6 +26,14 @@ examples/*/*driver*
 # Matlab artifacts
 *.m~
 
+# virtual environments
+venv/
+env/
+.venv/
+
 # Python
 **/__pycache__/
 *.pyc
+**/*.pyd
+facets*.vs3
+tests/cases/**/*.fig

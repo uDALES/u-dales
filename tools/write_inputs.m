@@ -78,6 +78,13 @@ if r.ltrees || r.ltreesfile
     preprocessing.generate_trees_from_namoptions(r);
     preprocessing.write_trees(r);
     disp(['Written trees.inp.', r.expnr])
+    disp('Generating sparse vegetation inputs from trees (python)')
+    pyscript = [DA_TOOLSDIR '/python/convert_trees_to_sparse.py'];
+    pycmd = sprintf(['bash -lc "python3 ''%s'' ''%s'' ''%s''"'], pyscript, expnr, fpath);
+    [status, cmdout] = system(pycmd);
+    if status ~= 0
+        error('Veg conversion failed: %s', cmdout);
+    end
 end
 
 if isfile(['factypes.inp.', expnr])

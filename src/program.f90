@@ -19,13 +19,14 @@
 !!  Copyright 1993-2009 Delft University of Technology, Wageningen University,
 !! Utrecht University, KNMI
 !!
-program DALESURBAN      !Version 48
+program uDALES 
 
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -35,7 +36,7 @@ program DALESURBAN      !Version 48
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
-  use modtrees,          only : createtrees,trees
+  use vegetation,        only : init_vegetation, apply_vegetation
   use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
   use initfac,           only : readfacetfiles
@@ -50,10 +51,11 @@ program DALESURBAN      !Version 48
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
+  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators
   implicit none
 
 !----------------------------------------------------------------
-!     1      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
+!     0      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
 
@@ -65,6 +67,9 @@ program DALESURBAN      !Version 48
   call checkinitvalues
 
   call initglobal
+
+  ! Execute tests if needed
+  call execute_runmode_actions
 
   call initfields
 
@@ -109,7 +114,7 @@ program DALESURBAN      !Version 48
 
   call boundary
 
-  call createtrees
+  call init_vegetation
 
   call createpurifiers
 
@@ -143,6 +148,7 @@ program DALESURBAN      !Version 48
 !-----------------------------------------------------
 
     call bottom
+
 !-----------------------------------------------------
 !   3.4   REMAINING TERMS
 !-----------------------------------------------------
@@ -164,7 +170,7 @@ program DALESURBAN      !Version 48
 
     call EB
 
-    call trees
+    call apply_vegetation
 
     call heatpump
 
@@ -226,4 +232,43 @@ program DALESURBAN      !Version 48
   !call exittest
   call exitmpi
 
-end program DALESURBAN
+contains
+  subroutine execute_runmode_actions
+    logical :: test_failed
+    logical :: invalid_runmode
+
+    test_failed = .false.
+    invalid_runmode = .false.
+    select case (runmode)
+      case (RUN_COLDSTART, RUN_WARMSTART, RUN_DRIVER, RUN_STRATSTART)
+        return
+        ! Normal execution mode, do nothing special here
+      case (TEST_SPARSE_IJK)
+        ! Execute tests for reading sparse arrays
+        test_failed = .not. tests_read_sparse_ijk()
+      case (TEST_MPI_OPERATORS)
+        test_failed = .not. tests_mpi_operators()
+      case (TEST_2DCOMP_INIT_EXIT)
+        call tests_2decomp_init_exit
+      case default
+        write(*,*) 'Unknown runmode:', runmode
+        invalid_runmode = .true.
+    end select
+
+    call exitmpi
+
+    if (invalid_runmode) then
+      stop 1
+    end if
+
+    ! Return appropriate exit code for unit tests:
+    ! 0 = success, 1 = failure
+    if (test_failed) then
+      stop 1
+    else
+      stop 0
+    end if
+
+  end subroutine execute_runmode_actions
+
+end program uDALES

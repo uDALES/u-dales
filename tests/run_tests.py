@@ -1,145 +1,262 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# uDALES (https://github.com/uDALES/u-dales).
+"""Dispatch curated test selections from a manifest."""
 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-# Copyright (C) 2019 the uDALES Team.
-
-
-"""Test uDALES
-
-This program is used to compare the results obtained from executables
-produced from two different branches.
-"""
-
+import argparse
 import os
+import subprocess
 import sys
 from pathlib import Path
-import platform
-import subprocess
-import shutil
-import argparse
-import warnings
+from typing import Any, Dict, List, Optional
 
 
-import f90nml
-
-from scripts import compare_outputs, build_model
-
-
-PROJ_DIR = Path(__file__).resolve().parents[1]
-
-
-def main(branch_a: str, branch_b: str, build_type: str):
-    if platform.system() not in ['Linux', 'Darwin']:
-        raise RuntimeError(
-            f'The operating system {platform.system()} is not currently suppoorted.')
-
-    if branch_a == branch_b:
-        warnings.warn(
-            'branch_a and branch_b are the same. Skipping regression tests')
-        _ = build_model.build_from_branch(branch_a, PROJ_DIR, build_type)
-        return
-
-    # Build executables
-    path_to_exes = []
-    for branch in [branch_a, branch_b]:
-        path_to_exe = build_model.build_from_branch(
-            branch, PROJ_DIR, build_type, skip_build=False)
-        # We always compare between two branches -- i.e. two executables.
-        path_to_exes.append(path_to_exe)
-
-    # Run model and store outputs - currently impossible for uDALES 2 because it requires different input files, and tests are run in master repo.
-    #test_cases = (PROJ_DIR / 'tests'/ 'cases').iterdir()
-    #patched_example_cases = (PROJ_DIR / 'tests'/ 'patches').iterdir()
-    #run_and_compare(test_cases, path_to_exes, is_patch=False)
-    #run_and_compare(patched_example_cases, path_to_exes, is_patch=True)
+TESTS_DIR = Path(__file__).resolve().parent
+REPO_ROOT = TESTS_DIR.parent
+MANIFEST_PATH = TESTS_DIR / "test_suites.yml"
+DEFAULT_VENV_PYTHON = REPO_ROOT.parent / ".venv" / "bin" / "python"
+MPLCONFIGDIR = Path("/tmp") / "udales-matplotlib"
+PURPOSE_ORDER = {
+    "unit": 0,
+    "integration": 1,
+    "reference": 2,
+    "system": 2,
+    "regression": 99,
+}
 
 
-def run_and_compare(cases_dir, path_to_exes, is_patch=False):
-    excluded_cases = ['501', '502']
-    excluded_platforms = ['Darwin']
-    precursor_sims = ['501']
-    driver_sims = ['502']
+def _load_manifest() -> Dict[str, Any]:
+    manifest: Dict[str, Any] = {"groups": {}}
+    current_group: Optional[Dict[str, Any]] = None
+    current_suite: Optional[Dict[str, Any]] = None
+    current_list_key: Optional[str] = None
 
-    for case_path in sorted(cases_dir):
-        case_id = case_path.stem
+    with MANIFEST_PATH.open("r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.rstrip()
+            stripped = line.strip()
 
-        if case_id in excluded_cases:
-            if platform.system() in excluded_platforms:
-                print(f'Skipping tests for case {case_id} on {excluded_platforms}')
+            if not stripped or stripped.startswith("#"):
                 continue
 
-        print(f'Running tests for example {case_id}')
+            indent = len(line) - len(line.lstrip(" "))
 
-        if is_patch:
-            test_case_dir = PROJ_DIR / 'examples'/ case_id
-        else:
-            test_case_dir = case_path
+            if indent == 0 and stripped.startswith("description:"):
+                manifest["description"] = stripped.split(":", 1)[1].strip()
+                continue
 
-        outputs_case_dir = PROJ_DIR / 'tests' / 'outputs' / test_case_dir.name
-        # Always start afresh.
-        shutil.rmtree(outputs_case_dir, ignore_errors=True)
+            if indent == 0 and stripped == "groups:":
+                continue
 
-        model_output_dirs = []
-        for path_to_exe in path_to_exes:
-            # Create path to out folder
-            model_output_dir = outputs_case_dir / path_to_exe.name
-            shutil.copytree(test_case_dir, model_output_dir)
+            if indent == 2 and stripped.endswith(":"):
+                group_name = stripped[:-1]
+                current_group = {"suites": [], "includes": []}
+                manifest["groups"][group_name] = current_group
+                current_suite = None
+                current_list_key = None
+                continue
 
-            if is_patch:
-                # Apply test namelist patches to examples to reduce runtime
-                nml = model_output_dir / f'namoptions.{case_id}'
-                nml_patch = f90nml.read(case_path)
-                nml_patched = model_output_dir / f'namoptions.{case_id}.patch'
-                f90nml.patch(nml, nml_patch, nml_patched)
-                namelist = nml_patched.name
-            else:
-                 namelist = f'namoptions.{case_id}'
+            if current_group is None:
+                raise RuntimeError(f"Invalid test manifest structure in {MANIFEST_PATH}: {line}")
 
-            # For driver sims we need to copy all files in first from the precursor simulation.
-            if case_id in driver_sims:
-                for f_name in (model_output_dir.parents[1] / '501' / model_output_dir.name).glob('*driver*'):
-                    shutil.copy(f_name, model_output_dir.parents[1] / '502' / model_output_dir.name)
+            if indent == 4 and stripped.endswith(":"):
+                current_list_key = stripped[:-1]
+                if current_list_key not in current_group:
+                    current_group[current_list_key] = []
+                current_suite = None
+                continue
 
-            run_udales(path_to_exe, namelist, model_output_dir, model_output_dirs)
+            if indent == 6 and stripped.startswith("- "):
+                item = stripped[2:]
+                if current_list_key == "includes":
+                    current_group["includes"].append(item)
+                    continue
 
-        # We do not compare precursor sims
-        if not case_id in precursor_sims:
-            # TODO: concatenate filedumps?
-            compare_outputs.compare(model_output_dirs[0] / f'fielddump.000.{test_case_dir.name}.nc',
-                                    model_output_dirs[1] / f'fielddump.000.{test_case_dir.name}.nc',
-                                    model_output_dirs[0].parent)
+                if current_list_key == "suites":
+                    if ":" not in item:
+                        raise RuntimeError(f"Invalid suite entry in {MANIFEST_PATH}: {line}")
+                    key, value = item.split(":", 1)
+                    current_suite = {key.strip(): value.strip().strip('"'), "command": []}
+                    current_group["suites"].append(current_suite)
+                    continue
 
-def run_udales(path_to_exe: Path, namelist: str, model_output_dir: str, 
-               model_output_dirs: list, cpu_count=2) -> None:
-    print(f'Running uDALES in: {path_to_exe}')
-    try:
-        subprocess.run(['mpiexec', '-np', str(cpu_count), path_to_exe / 'u-dales',
-                        namelist], cwd=model_output_dir, check=True,
-                        stdout=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        print(f'Could not run case uDALES in {path_to_exe} for namelist {namelist}')
-        sys.exit(1)
-    model_output_dirs.append(model_output_dir)
+            if indent == 8 and current_suite is not None:
+                if stripped == "command:":
+                    continue
+                if ":" in stripped:
+                    key, value = stripped.split(":", 1)
+                    current_suite[key.strip()] = value.strip().strip('"')
+                    continue
+
+            if indent == 10 and stripped.startswith("- ") and current_suite is not None:
+                current_suite["command"].append(stripped[2:].strip().strip('"'))
+                continue
+
+            raise RuntimeError(f"Unsupported YAML structure in {MANIFEST_PATH}: {line}")
+
+    if "groups" not in manifest or not isinstance(manifest["groups"], dict):
+        raise RuntimeError(f"Invalid test manifest: {MANIFEST_PATH}")
+    return manifest
+
+
+def _expand_groups(
+    manifest: Dict[str, Any],
+    selection: str,
+    seen: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    if seen is None:
+        seen = []
+    if selection in seen:
+        cycle = " -> ".join(seen + [selection])
+        raise RuntimeError(f"Cyclic test group definition in {MANIFEST_PATH}: {cycle}")
+
+    groups = manifest["groups"]
+    if selection not in groups:
+        raise RuntimeError(f"Unknown test group '{selection}' in {MANIFEST_PATH}")
+
+    group = groups[selection]
+    suites: List[Dict[str, Any]] = []
+
+    for include in group.get("includes", []):
+        suites.extend(_expand_groups(manifest, include, seen + [selection]))
+
+    for suite in group.get("suites", []):
+        suites.append(suite)
+
+    return suites
+
+
+def _format_command(command: List[str], variables: Dict[str, str]) -> List[str]:
+    return [part.format(**variables) for part in command]
+
+
+def _sort_suites(suites: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return sorted(
+        suites,
+        key=lambda suite: PURPOSE_ORDER.get(suite.get("kind", suite.get("purpose", "unspecified")), 50),
+    )
+
+
+def _run_command(
+    label: str,
+    suite_class: str,
+    kind: str,
+    command: List[str],
+    env: Dict[str, str],
+    component: str = "unspecified",
+    platform: str = "any",
+    cost: str = "unspecified",
+) -> int:
+    print(f"\n==> {label}")
+    print(f"class: {suite_class}")
+    print(f"kind: {kind}")
+    print(f"component: {component}")
+    print(f"platform: {platform}")
+    print(f"cost: {cost}")
+    print(" ".join(command))
+    completed = subprocess.run(command, cwd=REPO_ROOT, env=env)
+    status = "PASS" if completed.returncode == 0 else "FAIL"
+    print(f"result: {status}")
+    if completed.returncode != 0:
+        print(f"{label} failed with exit code {completed.returncode}", file=sys.stderr)
+    return completed.returncode
+
+
+def _select_python_interpreter() -> str:
+    if DEFAULT_VENV_PYTHON.exists():
+        return str(DEFAULT_VENV_PYTHON)
+    return sys.executable
+
+
+def _build_child_env() -> Dict[str, str]:
+    MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env["MPLCONFIGDIR"] = str(MPLCONFIGDIR)
+    return env
+
+
+def main() -> int:
+    manifest = _load_manifest()
+    groups = manifest["groups"]
+
+    parser = argparse.ArgumentParser(
+        description=manifest.get(
+            "description",
+            "Run curated test selections by support level from tests/test_suites.yml.",
+        )
+    )
+    parser.add_argument(
+        "selection",
+        choices=sorted(groups.keys()),
+        help="Which curated test selection to run.",
+    )
+    parser.add_argument(
+        "--branch-a",
+        default="master",
+        help="Reference branch for supported regression tests (default: master).",
+    )
+    parser.add_argument(
+        "--branch-b",
+        default="HEAD",
+        help="Comparison branch or revision for supported regression tests (default: HEAD).",
+    )
+    parser.add_argument(
+        "--build-type",
+        choices=["Debug", "Release"],
+        default="Release",
+        help="Build type for supported regression tests (default: Release).",
+    )
+    args = parser.parse_args()
+
+    variables = {
+        "python": _select_python_interpreter(),
+        "repo_root": str(REPO_ROOT),
+        "tests_dir": str(TESTS_DIR),
+        "branch_a": args.branch_a,
+        "branch_b": args.branch_b,
+        "build_type": args.build_type,
+        "build_type_lower": args.build_type.lower(),
+    }
+
+    suites = _sort_suites(_expand_groups(manifest, args.selection))
+    child_env = _build_child_env()
+    exit_codes = []
+    suite_results = []
+
+    for suite in suites:
+        label = suite["label"]
+        suite_class = suite.get("class", "unspecified")
+        kind = suite.get("kind", suite.get("purpose", "unspecified"))
+        component = suite.get("component", "unspecified")
+        platform = suite.get("platform", "any")
+        cost = suite.get("cost", "unspecified")
+        command = _format_command(suite["command"], variables)
+        suite_env = child_env.copy()
+        for key, value in suite.items():
+            if key.startswith("env_"):
+                suite_env[key[len("env_"):]] = value.format(**variables)
+        code = _run_command(
+            label,
+            suite_class,
+            kind,
+            command,
+            suite_env,
+            component=component,
+            platform=platform,
+            cost=cost,
+        )
+        exit_codes.append(code)
+        suite_results.append((label, suite_class, kind, component, platform, cost, code))
+
+    print("\nSummary")
+    for label, suite_class, kind, component, platform, cost, code in suite_results:
+        status = "PASS" if code == 0 else "FAIL"
+        print(f"- {label} [{suite_class}, {kind}, {component}, {platform}, {cost}]: {status}")
+
+    overall = "PASS" if all(code == 0 for code in exit_codes) else "FAIL"
+    print(f"overall: {overall}")
+
+    return 0 if overall == "PASS" else 1
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='TODO')
-    parser.add_argument('branch_a', help='TODO')
-    parser.add_argument('branch_b', help='TODO')
-    parser.add_argument('build_type', help='TODO')
-    args = parser.parse_args()
-    main(args.branch_a, args.branch_b, args.build_type)
+    raise SystemExit(main())

@@ -7,9 +7,17 @@ dependencies:
   - pip
   # Tests
   - numpy
+  - scipy
+  - xarray
   - netCDF4
+  - h5netcdf
+  - trimesh
   - matplotlib
   - f90nml
+  - numba
+  - pvlib
+  - meson
+  - ninja
   # Docs
   - graphviz
   - mkdocs-material

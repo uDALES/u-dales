@@ -67,6 +67,7 @@ nav:
     - Precursor simulations: udales-driver-simulations.md
   - "Running the simulation":
     - Pre-processing: udales-pre-processing.md
+    - Windows preprocessing setup: udales-preprocessing-windows.md
     - Running uDALES: udales-simulation-setup.md
     - Post-processing: udales-post-processing.md
   - "Data post-processing":
