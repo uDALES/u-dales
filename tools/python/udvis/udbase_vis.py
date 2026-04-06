@@ -22,7 +22,224 @@ class UDVis:
     """
 
     def __init__(self, sim: Any):
-        self.sim = sim
+        self.sim = sim if hasattr(sim, "geom") else None
+        self.geom = getattr(sim, "geom", sim)
+
+    @staticmethod
+    def _set_equal_axes_matplotlib(ax, vertices: np.ndarray) -> None:
+        """Apply data bounds directly so plots start at the actual ground level."""
+        mins = vertices.min(axis=0)
+        maxs = vertices.max(axis=0)
+        spans = np.maximum(maxs - mins, 1e-9)
+
+        ax.set_xlim(mins[0], maxs[0])
+        ax.set_ylim(mins[1], maxs[1])
+        ax.set_zlim(mins[2], maxs[2])
+        ax.set_box_aspect(spans)
+
+    @staticmethod
+    def _collect_mesh_edges(faces: np.ndarray) -> List[tuple]:
+        """Return unique mesh edges from triangular face connectivity."""
+        edges = set()
+        for tri in np.asarray(faces, dtype=int):
+            edges.add(tuple(sorted((tri[0], tri[1]))))
+            edges.add(tuple(sorted((tri[1], tri[2]))))
+            edges.add(tuple(sorted((tri[2], tri[0]))))
+        return sorted(edges)
+
+    def show_geometry(
+        self,
+        color_buildings: bool = True,
+        plot_quiver: bool = True,
+        normal_scale: float = 0.2,
+        show_edges: bool = True,
+        show_ground: bool = True,
+        show: bool = True,
+    ):
+        """
+        Visualize a geometry mesh using the shared visualization layer.
+
+        Parameters
+        ----------
+        color_buildings : bool, default=True
+            If True, color buildings and ground differently.
+        plot_quiver : bool, default=True
+            If True, overlay face-normal vectors.
+        normal_scale : float, default=0.2
+            Scale factor for normal vectors.
+        show_edges : bool, default=True
+            If True, draw mesh edges / outlines.
+        show_ground : bool, default=True
+            If True, include ground faces in the plot.
+        show : bool, default=True
+            If True, display the figure immediately. If False, only return the
+            Plotly figure object.
+        """
+        if self.geom is None or getattr(self.geom, "stl", None) is None:
+            raise ValueError("No geometry loaded. Cannot visualize.")
+
+        try:
+            import trimesh
+        except ImportError as exc:
+            raise ImportError(
+                "trimesh is required for visualization. Install with: pip install trimesh"
+            ) from exc
+
+        face_centers = self.geom.stl.triangles_center
+        face_normals = self.geom.stl.face_normals
+        is_building = face_centers[:, 2] > 0
+        vertices = self.geom.stl.vertices
+        faces = self.geom.stl.faces
+        meshes = []
+
+        if color_buildings:
+            if show_ground and np.any(~is_building):
+                ground_mesh = trimesh.Trimesh(vertices=vertices, faces=faces[~is_building], process=False)
+                ground_color = np.tile(np.array([217, 217, 217, 255], dtype=np.uint8), (len(ground_mesh.faces), 1))
+                ground_mesh.visual.face_colors = ground_color
+                meshes.append(ground_mesh)
+
+            if np.any(is_building):
+                building_mesh = trimesh.Trimesh(vertices=vertices, faces=faces[is_building], process=False)
+                building_color = np.tile(np.array([186, 212, 245, 255], dtype=np.uint8), (len(building_mesh.faces), 1))
+                building_mesh.visual.face_colors = building_color
+                meshes.append(building_mesh)
+        else:
+            selected_faces = faces if show_ground else faces[is_building]
+            mesh = trimesh.Trimesh(vertices=vertices, faces=selected_faces, process=False)
+            mesh_color = np.tile(np.array([217, 217, 217, 255], dtype=np.uint8), (len(mesh.faces), 1))
+            mesh.visual.face_colors = mesh_color
+            meshes.append(mesh)
+
+        edge_faces = faces if show_ground else faces[is_building]
+        custom_edges = self._collect_mesh_edges(edge_faces) if show_edges else None
+        fig = self._render_scene(
+            meshes,
+            show_outlines=show_edges,
+            custom_edges=custom_edges,
+            show=show,
+        )
+
+        if fig is not None:
+            if color_buildings and show_ground and len(getattr(fig, "data", [])) > 0:
+                first_trace = fig.data[0]
+                if getattr(first_trace, "type", None) == "mesh3d":
+                    first_trace.update(
+                        flatshading=False,
+                        lighting=dict(
+                            ambient=1.0,
+                            diffuse=0.0,
+                            specular=0.0,
+                            roughness=1.0,
+                            fresnel=0.0,
+                        ),
+                        lightposition=dict(x=0, y=0, z=1),
+                    )
+            if plot_quiver:
+                try:
+                    import plotly.graph_objects as go
+
+                    tip = face_centers + normal_scale * face_normals
+                    qx, qy, qz = [], [], []
+                    for p0, p1 in zip(face_centers, tip):
+                        qx.extend([p0[0], p1[0], None])
+                        qy.extend([p0[1], p1[1], None])
+                        qz.extend([p0[2], p1[2], None])
+
+                    fig.add_trace(
+                        go.Scatter3d(
+                            x=qx,
+                            y=qy,
+                            z=qz,
+                            mode="lines",
+                            line=dict(color="red", width=3),
+                            name="normals",
+                            showlegend=False,
+                            hoverinfo="skip",
+                        )
+                    )
+                except ImportError:
+                    pass
+
+            mins = vertices.min(axis=0)
+            maxs = vertices.max(axis=0)
+            fig.update_layout(
+                title=f"Geometry: {len(faces)} facets",
+                scene=dict(
+                    aspectmode="data",
+                    xaxis=dict(range=[float(mins[0]), float(maxs[0])], title="x (m)"),
+                    yaxis=dict(range=[float(mins[1]), float(maxs[1])], title="y (m)"),
+                    zaxis=dict(range=[float(mins[2]), float(maxs[2])], title="z (m)"),
+                ),
+            )
+        return fig
+
+    def show_geometry_outline(
+        self,
+        angle_threshold: float = 45.0,
+        show_ground: bool = True,
+        show: bool = True,
+    ):
+        """
+        Plot a geometry mesh with detected outline edges highlighted.
+
+        Parameters
+        ----------
+        angle_threshold : float, default=45.0
+            Angle threshold used to detect outline edges.
+        show_ground : bool, default=True
+            If True, include ground faces in the visualization.
+        show : bool, default=True
+            If True, display the figure immediately. If False, only return the
+            Plotly figure object.
+        """
+        if self.geom is None or getattr(self.geom, "stl", None) is None:
+            raise ValueError("No geometry loaded. Cannot visualize.")
+
+        outline_edges = self.geom._calculate_outline_edges(angle_threshold)
+        if len(outline_edges) == 0:
+            import warnings
+
+            warnings.warn("No outline edges found.")
+            return None
+
+        try:
+            import trimesh
+        except ImportError as exc:
+            raise ImportError(
+                "trimesh is required for visualization. Install with: pip install trimesh"
+            ) from exc
+
+        face_centers = self.geom.stl.triangles_center
+        face_normals = self.geom.stl.face_normals
+        is_building = face_centers[:, 2] > 0
+        selected_faces = self.geom.stl.faces if show_ground else self.geom.stl.faces[is_building]
+        mesh = trimesh.Trimesh(
+            vertices=self.geom.stl.vertices,
+            faces=selected_faces,
+            process=False,
+        )
+        selected_normals = face_normals if show_ground else face_normals[is_building]
+        horizontal_mask = np.abs(selected_normals[:, 2]) >= np.cos(np.deg2rad(15.0))
+        face_colors = np.tile(np.array([150, 150, 150, 255], dtype=np.uint8), (len(mesh.faces), 1))
+        face_colors[horizontal_mask] = np.array([217, 217, 217, 255], dtype=np.uint8)
+        mesh.visual.face_colors = face_colors
+
+        fig = self._render_scene(mesh, show_outlines=True, custom_edges=outline_edges, show=show)
+        if fig is not None:
+            self._apply_distant_light(fig, ambient=1.0, diffuse=0.0, specular=0.0)
+            mins = self.geom.stl.vertices.min(axis=0)
+            maxs = self.geom.stl.vertices.max(axis=0)
+            fig.update_layout(
+                title=f"Geometry Outline ({len(outline_edges)} edges)",
+                scene=dict(
+                    aspectmode="data",
+                    xaxis=dict(range=[float(mins[0]), float(maxs[0])], title="x (m)"),
+                    yaxis=dict(range=[float(mins[1]), float(maxs[1])], title="y (m)"),
+                    zaxis=dict(range=[float(mins[2]), float(maxs[2])], title="z (m)"),
+                ),
+            )
+        return fig
 
     def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False):
         """Plot vegetation points on top of the geometry."""
@@ -100,11 +317,12 @@ class UDVis:
 
     def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, show: bool = True):
         """Plot facet data as a 3D surface."""
-        if self.sim.geom is None:
+        geom = self.geom if self.sim is None else self.sim.geom
+        if geom is None:
             raise ValueError("This method requires a geometry (STL) file.")
-        if len(var) != self.sim.geom.n_faces:
+        if len(var) != geom.n_faces:
             raise ValueError(
-                f"Variable length ({len(var)}) must match number of facets ({self.sim.geom.n_faces})"
+                f"Variable length ({len(var)}) must match number of facets ({geom.n_faces})"
             )
 
         mesh = self._create_colored_mesh(var, building_ids)
@@ -113,6 +331,86 @@ class UDVis:
             fig.update_layout(scene=dict(aspectmode="data"))
 
         self._add_building_outlines_to_scene(building_ids)
+        return fig
+
+    def plot_independent_surfaces(self, show: bool = True, return_result: bool = False):
+        """
+        Color independent face-connected surfaces by surface id.
+
+        Parameters
+        ----------
+        show : bool, default=True
+            If True, display the figure immediately.
+        return_result : bool, default=False
+            If True, also return the independent-surface partition result.
+
+        Returns
+        -------
+        fig or (fig, result)
+            Figure from ``plot_fac``. When ``return_result=True``, also return
+            the independent-surface partition.
+        """
+        if self.geom is None or getattr(self.geom, "stl", None) is None:
+            raise ValueError("No geometry loaded. Cannot visualize.")
+        try:
+            import matplotlib.cm as cm
+            import matplotlib.pyplot as plt
+            import plotly.graph_objects as go
+        except ImportError as exc:
+            raise ImportError("matplotlib and plotly are required for plot_independent_surfaces") from exc
+
+        result = self.geom.calculate_independent_surfaces()
+        fig = self.plot_fac(np.asarray(result["face_surface_ids"], dtype=float), show=show)
+        if fig is not None:
+            n_surfaces = max(int(result["n_surfaces"]), 1)
+            norm = plt.Normalize(vmin=1, vmax=n_surfaces)
+            cmap = cm.get_cmap("viridis")
+            centers = np.asarray(self.geom.stl.triangles_center, dtype=float)
+
+            for surface in result["surfaces"]:
+                face_ids = np.asarray(surface["face_ids"], dtype=int)
+                if len(face_ids) == 0:
+                    continue
+                color = cmap(norm(surface["surface_id"]))
+                rgba = "rgba({},{},{},{})".format(
+                    int(round(255 * color[0])),
+                    int(round(255 * color[1])),
+                    int(round(255 * color[2])),
+                    float(color[3]),
+                )
+                centroid = centers[face_ids].mean(axis=0)
+                zmin = float(np.min(centers[face_ids, 2]))
+                fig.add_trace(
+                    go.Scatter3d(
+                        x=[float(centroid[0])],
+                        y=[float(centroid[1])],
+                        z=[float(centroid[2])],
+                        mode="markers+text",
+                        marker=dict(size=6, color=rgba),
+                        text=[str(surface["surface_id"])],
+                        textposition="top center",
+                        textfont=dict(size=12, color=rgba),
+                        name=(
+                            f"Surface {surface['surface_id']} | "
+                            f"zmin={zmin:.2f} m | "
+                            f"{surface['n_faces']} faces"
+                        ),
+                        visible=True,
+                        showlegend=True,
+                        hovertemplate=(
+                            f"Surface {surface['surface_id']}<br>"
+                            f"Min face-center z: {zmin:.2f} m<br>"
+                            f"Faces: {surface['n_faces']}<extra></extra>"
+                        ),
+                    )
+                )
+            fig.update_layout(
+                title=f"Independent Surfaces ({result['n_surfaces']})",
+                showlegend=True,
+                legend=dict(title="Surface IDs", itemsizing="constant"),
+            )
+        if return_result:
+            return fig, result
         return fig
 
     def _create_colored_mesh(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
@@ -125,12 +423,13 @@ class UDVis:
         import matplotlib.cm as cm
         import matplotlib.pyplot as plt
 
-        vertices = self.sim.geom.stl.vertices
-        faces = self.sim.geom.stl.faces
+        geom = self.geom if self.sim is None else self.sim.geom
+        vertices = geom.stl.vertices
+        faces = geom.stl.faces
 
         face_mask = None
         if building_ids is not None:
-            face_to_building = self.sim.geom.get_face_to_building_map()
+            face_to_building = geom.get_face_to_building_map()
             building_ids = np.asarray(building_ids)
             face_mask = np.isin(face_to_building, building_ids)
 
@@ -189,12 +488,12 @@ class UDVis:
             if custom_edges is not None:
                 outline_edges = custom_edges
             else:
-                outline_edges = self.sim.geom._calculate_outline_edges(angle_threshold=angle_threshold)
+                outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
 
             if building_ids is not None and len(outline_edges) > 0:
-                face_to_building = self.sim.geom.get_face_to_building_map()
+                face_to_building = self.geom.get_face_to_building_map()
                 building_ids = np.asarray(building_ids)
-                faces = self.sim.geom.stl.faces
+                faces = self.geom.stl.faces
 
                 filtered_edges = []
                 for edge in outline_edges:
@@ -212,7 +511,7 @@ class UDVis:
                 outline_edges = filtered_edges
 
             if len(outline_edges) > 0:
-                vertices = self.sim.geom.stl.vertices
+                vertices = self.geom.stl.vertices
                 entities = [trimesh.path.entities.Line([edge[0], edge[1]]) for edge in outline_edges]
                 entity_colors = np.tile([0, 0, 0, 255], (len(entities), 1))
                 path = trimesh.path.Path3D(entities=entities, vertices=vertices, colors=entity_colors)
@@ -238,6 +537,9 @@ class UDVis:
             import plotly.io as pio
 
             pio.renderers.default = "notebook"
+            az = np.deg2rad(225.0)
+            el = np.deg2rad(20.0)
+            dist = 1.75
             traces = []
             for current_mesh in meshes:
                 vertices = current_mesh.vertices
@@ -295,15 +597,21 @@ class UDVis:
                     xaxis_title="x (m)",
                     yaxis_title="y (m)",
                     zaxis_title="z (m)",
+                    domain=dict(x=[0.0, 1.0], y=[0.0, 1.0]),
                     xaxis=dict(showgrid=False, showbackground=False),
                     yaxis=dict(showgrid=False, showbackground=False),
                     zaxis=dict(showgrid=False, showbackground=False),
                     camera=dict(
                         projection=dict(type="orthographic"),
-                        eye=dict(x=-1.25, y=-1.25, z=1.25),
+                        eye=dict(
+                            x=float(dist * np.cos(el) * np.cos(az)),
+                            y=float(dist * np.cos(el) * np.sin(az)),
+                            z=float(dist * np.sin(el)),
+                        ),
                     ),
                 ),
                 showlegend=False,
+                margin=dict(l=0, r=0, b=0, t=40, pad=0),
             )
 
             if show:
@@ -312,6 +620,24 @@ class UDVis:
         except ImportError:
             print("Plotly not available. Install with: pip install plotly")
             return None
+
+    @staticmethod
+    def _apply_distant_light(fig, *, ambient: float = 0.45, diffuse: float = 0.85, specular: float = 0.1) -> None:
+        """Apply a stable distant-light look to Plotly mesh traces."""
+        for trace in getattr(fig, "data", []):
+            if getattr(trace, "type", None) != "mesh3d":
+                continue
+            trace.update(
+                flatshading=False,
+                lighting=dict(
+                    ambient=ambient,
+                    diffuse=diffuse,
+                    specular=specular,
+                    roughness=0.95,
+                    fresnel=0.02,
+                ),
+                lightposition=dict(x=1800, y=-1200, z=2200),
+            )
 
     def _render_trimesh(self, scene, num_outline_edges, show: bool = True):
         """Render using trimesh viewer."""
@@ -329,6 +655,8 @@ class UDVis:
 
     def _add_building_outlines(self, ax, building_ids=None, angle_threshold: float = 45.0):
         """Add building outline edges to a 3D matplotlib plot."""
+        if self.sim is None:
+            return
         if self.sim.geom is None or not hasattr(self.sim.geom, "stl") or self.sim.geom.stl is None:
             return
 

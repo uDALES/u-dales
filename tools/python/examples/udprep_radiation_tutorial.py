@@ -218,9 +218,14 @@ print(f"10 cached calls: {dt:.3f} s (avg {dt / 10.0:.3f} s per call)")
 # Case 3: Vegetation case (trees enabled)
 # -----------------------------------------------------------------------------
 expnr_veg = "525"
-expdir_veg = udales_path / "tests" / "integration" / "tree_input"
+expdir_veg = udales_path / "tests" / "cases" / expnr_veg
 prep_veg = UDPrep(expnr_veg, expdir_veg, load_geometry=True)
 sim_veg = prep_veg.sim
+
+# Some bundled cases request sparse View3D output but do not enable lvfsparse.
+# For this tutorial we fall back to dense output so the example runs end-to-end.
+if int(prep_veg.radiation.view3d_out) == 2 and not bool(getattr(sim_veg, "lvfsparse", False)):
+    prep_veg.radiation.view3d_out = 0
 
 print("Compute shortwave (facsec, vegetation)...")
 S_dir_facsec_veg, K_star_facsec_veg, S_veg_facsec_veg = prep_veg.radiation.calc_short_wave(

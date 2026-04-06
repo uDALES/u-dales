@@ -318,7 +318,9 @@ class RadiationSection(Section):
             svf = np.loadtxt(svf_path)
             if vfsparse_path is not None and not vfsparse_path.exists():
                 write_vfsparse(vfsparse_path, vf, threshold=5e-7)
-            nnz = int(getattr(vf, "nnz", np.count_nonzero(vf)))
+            if not hasattr(vf, "nnz"):
+                raise TypeError("Expected sparse view-factor matrix with 'nnz' attribute")
+            nnz = int(vf.nnz)
             sim.save_param("nnz", nnz)
             self._vf_cache = vf
             self._svf_cache = svf
@@ -343,10 +345,9 @@ class RadiationSection(Section):
         if vfsparse_path is not None:
             write_vfsparse(vfsparse_path, vf, threshold=5e-7)
 
-        if hasattr(vf, "nnz"):
-            nnz = int(vf.nnz)
-        else:
-            nnz = int(np.count_nonzero(vf))
+        if not hasattr(vf, "nnz"):
+            raise TypeError("Expected sparse view-factor matrix with 'nnz' attribute")
+        nnz = int(vf.nnz)
         sim.save_param("nnz", nnz)
         self._vf_cache = vf
         self._svf_cache = svf

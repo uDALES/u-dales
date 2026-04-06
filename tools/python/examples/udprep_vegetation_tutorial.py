@@ -22,14 +22,14 @@ from udprep import UDPrep
 
 # Test case included with uDALES
 expnr = "525"
-expdir = udales_path / "tests" / "integration" / "tree_input"
+expdir = udales_path / "tests" / "cases" / expnr
 
 # Instantiate UDPrep (loads UDBase + geometry by default).
 prep = UDPrep(expnr, expdir)
 
 # Load vegetation block file (tree bounding boxes)
 print("Load block file...")
-fig = prep.vegetation.load_block('trees.inp.525')
+fig = prep.vegetation.load_block("trees.inp.525")
 
 prep.vegetation.save()  # Save veg.inp/veg_params.inp
 
