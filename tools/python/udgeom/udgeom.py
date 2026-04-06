@@ -11,6 +11,8 @@ Copyright (C) 2016-2024 the uDALES Team.
 Licensed under GNU General Public License v3.0
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import List, Optional, Union
 import numpy as np
