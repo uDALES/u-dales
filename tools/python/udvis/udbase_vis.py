@@ -22,8 +22,8 @@ class UDVis:
     """
 
     def __init__(self, sim: Any):
-        self.sim = sim if hasattr(sim, "geom") else None
-        self.geom = getattr(sim, "geom", sim)
+        self.sim = None if hasattr(sim, "stl") else sim
+        self.geom = sim if hasattr(sim, "stl") else getattr(sim, "geom", None)
 
     @staticmethod
     def _set_equal_axes_matplotlib(ax, vertices: np.ndarray) -> None:
