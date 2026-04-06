@@ -2,4 +2,3 @@
 *.dylib
 *.pyd
 *.html
-.ipynb_checkpoints/*

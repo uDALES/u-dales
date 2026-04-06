@@ -1,5 +1,7 @@
 *.html
 *.stl
+.ipynb_checkpoints/
+__pycache__/
 !uDALES.stl
 !adjacent_buildings.stl
 !building_below_ground.stl
