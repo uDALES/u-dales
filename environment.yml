@@ -13,7 +13,6 @@ dependencies:
   - h5netcdf
   - trimesh
   - shapely
-  - triangle
   - matplotlib
   - plotly
   - f90nml
@@ -26,5 +25,6 @@ dependencies:
   - mkdocs-material
   - mkdocs-material-extensions
   - pip:
+    - triangle
     - mkdocs-bibtex
     - ford

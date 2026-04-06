@@ -8,6 +8,7 @@ netCDF4>=1.5.0
 h5netcdf>=1.0.0
 trimesh>=3.9.0
 shapely>=2.0.0
+triangle
 matplotlib>=3.3.0
 f90nml>=1.4.4
 numba>=0.60.0
