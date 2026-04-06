@@ -18,10 +18,8 @@ from .check_mesh import (
     identify_ground_faces,
 )
 from .delete_ground import delete_ground
-from .extrude_to_ground import extrude_to_ground
 from .fix_mesh import fix, repair_adjacent_buildings, resolve_vertical_coplanar_overlaps, weld_touching_boundaries
 from .split_buildings import split_buildings
-from .truncate_below_ground import truncate_below_ground
 from .geometry_generation import (
     add_ground,
     create_flat_surface,
@@ -53,3 +51,15 @@ __all__ = [
     'create_cubes',
     'plot_ground_generation_step1',
 ]
+
+
+def truncate_below_ground(*args, **kwargs):
+    from .truncate_below_ground import truncate_below_ground as _truncate_below_ground
+
+    return _truncate_below_ground(*args, **kwargs)
+
+
+def extrude_to_ground(*args, **kwargs):
+    from .extrude_to_ground import extrude_to_ground as _extrude_to_ground
+
+    return _extrude_to_ground(*args, **kwargs)

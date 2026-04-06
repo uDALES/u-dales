@@ -46,8 +46,6 @@ from .fix_mesh import (
     weld_touching_boundaries as weld_touching_boundaries_impl,
 )
 from .split_buildings import split_buildings
-from .extrude_to_ground import extrude_to_ground as extrude_to_ground_impl
-from .truncate_below_ground import truncate_below_ground as truncate_below_ground_impl
 
 from udvis import UDVis
 
@@ -1039,6 +1037,8 @@ class UDGeom:
         cleaned_geom, report
             The cleaned geometry plus a truncation report.
         """
+        from .truncate_below_ground import truncate_below_ground as truncate_below_ground_impl
+
         cleaned_geom, report = truncate_below_ground_impl(
             self,
             ground_planarity_tolerance=ground_planarity_tolerance,
@@ -1090,6 +1090,8 @@ class UDGeom:
         cleaned_geom, report
             Extruded geometry plus a repair report.
         """
+        from .extrude_to_ground import extrude_to_ground as extrude_to_ground_impl
+
         cleaned_geom, report = extrude_to_ground_impl(
             self,
             surface_id=surface_id,

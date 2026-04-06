@@ -12,7 +12,10 @@ dependencies:
   - netCDF4
   - h5netcdf
   - trimesh
+  - shapely
+  - triangle
   - matplotlib
+  - plotly
   - f90nml
   - numba
   - pvlib
