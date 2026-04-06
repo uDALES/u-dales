@@ -30,18 +30,9 @@ from .check_mesh import (
 )
 from .delete_ground import delete_ground
 
-try:
-    from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
-    from shapely.ops import triangulate, unary_union
-    SHAPELY_AVAILABLE = True
-except ImportError:  # pragma: no cover - optional dependency at runtime
-    SHAPELY_AVAILABLE = False
-
-try:
-    import triangle as triangle_lib
-    TRIANGLE_AVAILABLE = True
-except ImportError:  # pragma: no cover - optional dependency at runtime
-    TRIANGLE_AVAILABLE = False
+from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
+from shapely.ops import triangulate, unary_union
+import triangle as triangle_lib
 
 
 def _copy_mesh(mesh: "trimesh.Trimesh") -> "trimesh.Trimesh":
@@ -125,46 +116,45 @@ def _triangulate_polygon_region(poly: "Polygon") -> list[np.ndarray]:
     if poly.is_empty or poly.area <= 1.0e-12:
         return []
 
-    if TRIANGLE_AVAILABLE:
-        vertices = []
-        segments = []
-        holes = []
+    vertices = []
+    segments = []
+    holes = []
 
-        def add_ring(coords):
-            start = len(vertices)
-            ring = np.asarray(coords[:-1], dtype=float)
-            vertices.extend(ring.tolist())
-            n = len(ring)
-            for i in range(n):
-                segments.append([start + i, start + ((i + 1) % n)])
+    def add_ring(coords):
+        start = len(vertices)
+        ring = np.asarray(coords[:-1], dtype=float)
+        vertices.extend(ring.tolist())
+        n = len(ring)
+        for i in range(n):
+            segments.append([start + i, start + ((i + 1) % n)])
 
-        add_ring(poly.exterior.coords)
-        for interior in poly.interiors:
-            ring_poly = Polygon(interior)
-            if ring_poly.area <= 1.0e-12:
-                continue
-            add_ring(interior.coords)
-            rep = ring_poly.representative_point()
-            holes.append([float(rep.x), float(rep.y)])
+    add_ring(poly.exterior.coords)
+    for interior in poly.interiors:
+        ring_poly = Polygon(interior)
+        if ring_poly.area <= 1.0e-12:
+            continue
+        add_ring(interior.coords)
+        rep = ring_poly.representative_point()
+        holes.append([float(rep.x), float(rep.y)])
 
-        pslg = {
-            "vertices": np.asarray(vertices, dtype=float),
-            "segments": np.asarray(segments, dtype=int),
-        }
-        if holes:
-            pslg["holes"] = np.asarray(holes, dtype=float)
+    pslg = {
+        "vertices": np.asarray(vertices, dtype=float),
+        "segments": np.asarray(segments, dtype=int),
+    }
+    if holes:
+        pslg["holes"] = np.asarray(holes, dtype=float)
 
-        result = triangle_lib.triangulate(pslg, "pQ")
-        tri_vertices = np.asarray(result.get("vertices", []), dtype=float)
-        tri_faces = np.asarray(result.get("triangles", []), dtype=int)
-        triangles_out = []
-        for simplex in tri_faces:
-            tri2d = tri_vertices[np.asarray(simplex, dtype=int)]
-            tri_poly = Polygon(tri2d)
-            if tri_poly.area > 1.0e-12 and poly.covers(tri_poly.representative_point()):
-                triangles_out.append(tri2d)
-        if triangles_out:
-            return triangles_out
+    result = triangle_lib.triangulate(pslg, "pQ")
+    tri_vertices = np.asarray(result.get("vertices", []), dtype=float)
+    tri_faces = np.asarray(result.get("triangles", []), dtype=int)
+    triangles_out = []
+    for simplex in tri_faces:
+        tri2d = tri_vertices[np.asarray(simplex, dtype=int)]
+        tri_poly = Polygon(tri2d)
+        if tri_poly.area > 1.0e-12 and poly.covers(tri_poly.representative_point()):
+            triangles_out.append(tri2d)
+    if triangles_out:
+        return triangles_out
 
     triangles_out = []
     for tri2d in triangulate(poly):
@@ -186,9 +176,6 @@ def _resolve_axis_aligned_vertical_overlaps(
     This targets the common urban case of adjacent buildings with different
     heights, where one building wall partially overlaps the neighboring wall.
     """
-    if not SHAPELY_AVAILABLE:
-        raise ImportError("shapely is required to resolve coplanar vertical overlaps")
-
     vertices = np.asarray(mesh.vertices, dtype=float)
     faces = np.asarray(mesh.faces, dtype=int)
     normals = np.asarray(mesh.face_normals, dtype=float)

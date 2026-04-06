@@ -24,12 +24,8 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
-try:
-    from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
-    from shapely.ops import unary_union
-    SHAPELY_AVAILABLE = True
-except ImportError:  # pragma: no cover - optional runtime dependency
-    SHAPELY_AVAILABLE = False
+from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
+from shapely.ops import unary_union
 
 
 def _as_trimesh(mesh_or_geom) -> "trimesh.Trimesh":
@@ -196,9 +192,6 @@ def find_internal_touching_wall_regions(
     shared wall, producing an internal touching surface rather than a clean
     exterior mesh.
     """
-    if not SHAPELY_AVAILABLE:
-        return []
-
     mesh = _as_trimesh(mesh_or_geom)
     vertices = np.asarray(mesh.vertices, dtype=float)
     faces = np.asarray(mesh.faces, dtype=int)

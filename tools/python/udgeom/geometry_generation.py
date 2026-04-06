@@ -26,18 +26,9 @@ try:
 except ImportError:
     SCIPY_AVAILABLE = False
 
-try:
-    from shapely.geometry import LineString, MultiPolygon, Point, Polygon
-    from shapely.ops import polygonize, triangulate, unary_union
-    SHAPELY_AVAILABLE = True
-except ImportError:
-    SHAPELY_AVAILABLE = False
-
-try:
-    import triangle as triangle_lib
-    TRIANGLE_AVAILABLE = True
-except ImportError:
-    TRIANGLE_AVAILABLE = False
+from shapely.geometry import LineString, MultiPolygon, Point, Polygon
+from shapely.ops import polygonize, triangulate, unary_union
+import triangle as triangle_lib
 
 from .udgeom import UDGeom
 
@@ -185,9 +176,6 @@ def _build_ground_edge_lines(existing: "trimesh.Trimesh") -> list:
 
 def _ground_footprint_union(existing: "trimesh.Trimesh"):
     """Construct 2D footprint polygons from z=0 building edges."""
-    if not SHAPELY_AVAILABLE:
-        return None
-
     edge_lines = _build_ground_edge_lines(existing)
     if not edge_lines:
         return None
@@ -732,9 +720,6 @@ def _validate_triangle_domain(result: Dict[str, np.ndarray], piece: "Polygon", t
 
 def _triangulate_polygon_with_triangle(piece: "Polygon", spacing: float) -> List[np.ndarray]:
     """Generate a quality constrained triangulation with Triangle."""
-    if not TRIANGLE_AVAILABLE:
-        raise ImportError("triangle is required for constrained ground meshing; install with `pip install triangle`.")
-
     spacing = max(float(spacing), 1e-6)
     max_area = np.sqrt(3.0) * spacing * spacing / 4.0
     pslg = _polygon_to_triangle_pslg(piece, spacing)
@@ -1031,7 +1016,7 @@ def _remove_under_building_ground_faces(
     existing: "trimesh.Trimesh",
 ) -> "trimesh.Trimesh":
     """Mirror MATLAB ground removal: remove z=0 facets whose incenters lie under buildings."""
-    footprint_union = _ground_footprint_union(existing) if SHAPELY_AVAILABLE else None
+    footprint_union = _ground_footprint_union(existing)
     if footprint_union is None or footprint_union.is_empty:
         return combined
 
@@ -1106,32 +1091,31 @@ def _generate_ground_matlab_style(
         "ground_points_inside": interior_points,
     }
 
-    if SHAPELY_AVAILABLE:
-        domain = Polygon([(0.0, 0.0), (xsize, 0.0), (xsize, ysize), (0.0, ysize)])
-        footprint_union = _ground_footprint_union(existing) if existing is not None else None
-        outside_region = domain.difference(footprint_union) if footprint_union is not None else domain
-        xs = _grid_axis(xsize, edgelength)
-        ys = _grid_axis(ysize, edgelength)
-        grid_lines = [LineString([(float(x), 0.0), (float(x), ysize)]) for x in xs]
-        grid_lines.extend(LineString([(0.0, float(y)), (xsize, float(y))]) for y in ys)
-        clipped_grid_lines = []
-        for line in grid_lines:
-            clipped = line.intersection(outside_region)
-            if clipped.is_empty:
-                continue
-            if clipped.geom_type == "LineString":
-                clipped_grid_lines.append(clipped)
-            else:
-                clipped_grid_lines.extend([geom for geom in getattr(clipped, "geoms", []) if geom.geom_type == "LineString"])
-        debug.update(
-            {
-                "domain": domain,
-                "footprint_union": footprint_union,
-                "outside_region": outside_region,
-                "grid_lines": clipped_grid_lines,
-                "planar_cells": [],
-            }
-        )
+    domain = Polygon([(0.0, 0.0), (xsize, 0.0), (xsize, ysize), (0.0, ysize)])
+    footprint_union = _ground_footprint_union(existing) if existing is not None else None
+    outside_region = domain.difference(footprint_union) if footprint_union is not None else domain
+    xs = _grid_axis(xsize, edgelength)
+    ys = _grid_axis(ysize, edgelength)
+    grid_lines = [LineString([(float(x), 0.0), (float(x), ysize)]) for x in xs]
+    grid_lines.extend(LineString([(0.0, float(y)), (xsize, float(y))]) for y in ys)
+    clipped_grid_lines = []
+    for line in grid_lines:
+        clipped = line.intersection(outside_region)
+        if clipped.is_empty:
+            continue
+        if clipped.geom_type == "LineString":
+            clipped_grid_lines.append(clipped)
+        else:
+            clipped_grid_lines.extend([geom for geom in getattr(clipped, "geoms", []) if geom.geom_type == "LineString"])
+    debug.update(
+        {
+            "domain": domain,
+            "footprint_union": footprint_union,
+            "outside_region": outside_region,
+            "grid_lines": clipped_grid_lines,
+            "planar_cells": [],
+        }
+    )
 
     if len(constrained_points) == 0:
         empty = trimesh.Trimesh(
@@ -1141,33 +1125,29 @@ def _generate_ground_matlab_style(
         )
         return empty, debug
 
-    if TRIANGLE_AVAILABLE:
-        pslg = _points_constraints_to_triangle_pslg(
-            constrained_points,
-            constrained_constraints,
-            free_points=interior_points,
+    pslg = _points_constraints_to_triangle_pslg(
+        constrained_points,
+        constrained_constraints,
+        free_points=interior_points,
+    )
+    result = triangle_lib.triangulate(pslg, "pQe")
+    vertices = np.asarray(result.get("vertices", []), dtype=float)
+    simplices = np.asarray(result.get("triangles", []), dtype=int)
+    if validate_boundary:
+        _validate_triangle_boundary(result, pslg)
+    if len(vertices) == 0 or len(simplices) == 0:
+        ground_mesh = trimesh.Trimesh(
+            vertices=np.empty((0, 3), dtype=float),
+            faces=np.empty((0, 3), dtype=int),
+            process=False,
         )
-        result = triangle_lib.triangulate(pslg, "pQe")
-        vertices = np.asarray(result.get("vertices", []), dtype=float)
-        simplices = np.asarray(result.get("triangles", []), dtype=int)
-        if validate_boundary:
-            _validate_triangle_boundary(result, pslg)
-        if len(vertices) == 0 or len(simplices) == 0:
-            ground_mesh = trimesh.Trimesh(
-                vertices=np.empty((0, 3), dtype=float),
-                faces=np.empty((0, 3), dtype=int),
-                process=False,
-            )
-        else:
-            ground_mesh = trimesh.Trimesh(
-                vertices=np.column_stack([vertices, np.zeros(len(vertices))]),
-                faces=simplices,
-                process=False,
-            )
-        debug["triangle_pslg"] = pslg
     else:
-        points_dt = np.vstack([constrained_points, interior_points]) if len(interior_points) else constrained_points.copy()
-        ground_mesh = _triangulate_ground(points_dt, xsize, ysize)
+        ground_mesh = trimesh.Trimesh(
+            vertices=np.column_stack([vertices, np.zeros(len(vertices))]),
+            faces=simplices,
+            process=False,
+        )
+    debug["triangle_pslg"] = pslg
 
     if existing is None or len(existing.faces) == 0:
         return ground_mesh, debug
@@ -1197,9 +1177,6 @@ def _generate_ground_with_constraints(
     Delaunay triangulation: building footprint edges remain hard constraints, so ground
     triangles cannot cut across building bases.
     """
-    if not SHAPELY_AVAILABLE:
-        return None, {}
-
     domain = Polygon([(0.0, 0.0), (xsize, 0.0), (xsize, ysize), (0.0, ysize)])
     xs = _grid_axis(xsize, edgelength)
     ys = _grid_axis(ysize, edgelength)
@@ -1704,30 +1681,29 @@ def add_ground(
             preserve_existing_edges=preserve_existing_edges,
         )
         debug = {}
-        if SHAPELY_AVAILABLE:
-            domain = Polygon([(0.0, 0.0), (xsize, 0.0), (xsize, ysize), (0.0, ysize)])
-            footprint_union = _ground_footprint_union(building_mesh)
-            outside_region = domain.difference(footprint_union) if footprint_union is not None else domain
-            xs = _grid_axis(xsize, edgelength)
-            ys = _grid_axis(ysize, edgelength)
-            grid_lines = [LineString([(float(x), 0.0), (float(x), ysize)]) for x in xs]
-            grid_lines.extend(LineString([(0.0, float(y)), (xsize, float(y))]) for y in ys)
-            clipped_grid_lines = []
-            for line in grid_lines:
-                clipped = line.intersection(outside_region)
-                if clipped.is_empty:
-                    continue
-                if clipped.geom_type == "LineString":
-                    clipped_grid_lines.append(clipped)
-                else:
-                    clipped_grid_lines.extend([geom for geom in getattr(clipped, "geoms", []) if geom.geom_type == "LineString"])
-            debug = {
-                "domain": domain,
-                "footprint_union": footprint_union,
-                "outside_region": outside_region,
-                "grid_lines": clipped_grid_lines,
-                "planar_cells": [],
-            }
+        domain = Polygon([(0.0, 0.0), (xsize, 0.0), (xsize, ysize), (0.0, ysize)])
+        footprint_union = _ground_footprint_union(building_mesh)
+        outside_region = domain.difference(footprint_union) if footprint_union is not None else domain
+        xs = _grid_axis(xsize, edgelength)
+        ys = _grid_axis(ysize, edgelength)
+        grid_lines = [LineString([(float(x), 0.0), (float(x), ysize)]) for x in xs]
+        grid_lines.extend(LineString([(0.0, float(y)), (xsize, float(y))]) for y in ys)
+        clipped_grid_lines = []
+        for line in grid_lines:
+            clipped = line.intersection(outside_region)
+            if clipped.is_empty:
+                continue
+            if clipped.geom_type == "LineString":
+                clipped_grid_lines.append(clipped)
+            else:
+                clipped_grid_lines.extend([geom for geom in getattr(clipped, "geoms", []) if geom.geom_type == "LineString"])
+        debug = {
+            "domain": domain,
+            "footprint_union": footprint_union,
+            "outside_region": outside_region,
+            "grid_lines": clipped_grid_lines,
+            "planar_cells": [],
+        }
         return UDGeom(stl=ground), debug
     ground = _generate_ground(
         building_mesh,

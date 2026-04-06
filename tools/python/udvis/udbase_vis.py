@@ -22,7 +22,7 @@ class UDVis:
     """
 
     def __init__(self, sim: Any):
-        self.sim = sim if hasattr(sim, "geom") else None
+        self.sim = sim
         self.geom = getattr(sim, "geom", sim)
 
     @staticmethod
