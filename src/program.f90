@@ -46,7 +46,6 @@ program DALESURBAN      !Version 48
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
 !----------------------------------------------------------------
   use modchecksim,     only : initchecksim,checksim
-  use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use stats,           only : stats_init,stats_main,stats_exit !DMajumdar
@@ -98,8 +97,6 @@ program DALESURBAN      !Version 48
 !      2     INITIALIZE STATISTICAL ROUTINES AND ADD-ONS
 !---------------------------------------------------------
   call initchecksim ! Could be deprecated
-
-  call initstat_nc ! Could be deprecated
 
   call initstatsdump
   call stats_init

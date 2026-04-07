@@ -49,15 +49,6 @@ module modstat_nc
     end interface writestat_nc
 contains
 
-
-  subroutine initstat_nc
-    use modglobal, only : kmax,ifnamopt,fname_options,iexpnr
-    use modmpi,    only : mpierr,mpi_logical
-    implicit none
-
-    integer             :: ierr
-
-  end subroutine initstat_nc
 !
 ! ----------------------------------------------------------------------
 !> Subroutine Open_NC: Opens a NetCDF File and identifies starting record

@@ -46,13 +46,7 @@ module instant
   integer :: xdim, ydim, zdim, kdim  ! Added kdim for multiple slices
   real    :: tsampleslice
 
-  logical, allocatable :: islicerank(:)   ! array of flags for each islice on this core
-  integer, allocatable :: isliceloc(:)    ! local islice positions on this core
-  logical, allocatable :: jslicerank(:)   ! array of flags for each jslice on this core
-  integer, allocatable :: jsliceloc(:)    ! local jslice positions on this core
-  
   integer :: local_nislice, local_njslice  ! Number of islices on this X-processor (saved from create phase)
-  integer, allocatable :: local_islice_map(:)  ! Mapping from local index to global islice index
   
   integer                    :: nslicevars
   character(80)              :: islicename
@@ -97,9 +91,6 @@ module instant
 
       if (lislicedump) then
         allocate(isliceVars(nslicevars,4))
-        allocate(islicerank(nislice))
-        allocate(isliceloc(nislice))
-        allocate(local_islice_map(nislice))  ! Allocate mapping array
         call instant_ncdescription_islice
         call instant_create_ncislice    !> Generate sliced NetCDF: ins_islice.xxx.xxx.nc
         deallocate(isliceVars)
@@ -107,8 +98,6 @@ module instant
       
       if (ljslicedump) then
         allocate(jsliceVars(nslicevars,4))
-        allocate(jslicerank(njslice))
-        allocate(jsliceloc(njslice))
         call instant_ncdescription_jslice
         call instant_create_ncjslice    ! Unified jslice creation (per myidy file, myidx==0)
         deallocate(jsliceVars)
