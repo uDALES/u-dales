@@ -783,9 +783,9 @@ classdef preprocessing < dynamicprops
             il = round(obj.hlin / obj.dzlin);
             ir  = obj.ktot - il;
 
-            preprocessing.addvar(obj, 'zf', zeros(obj.ktot, 1));
-            preprocessing.addvar(obj, 'dzf', zeros(obj.ktot, 1));
-            preprocessing.addvar(obj, 'zh', zeros(obj.ktot + 1, 1));
+            preprocessing.addvar(obj, 'zf', zeros(1, obj.ktot));
+            preprocessing.addvar(obj, 'dzf', zeros(1, obj.ktot));
+            preprocessing.addvar(obj, 'zh', zeros(1, obj.ktot + 1));
 
             obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.hlin;
             obj.zh(1:il+1) = 0 : obj.dzlin : obj.hlin;
@@ -793,7 +793,7 @@ classdef preprocessing < dynamicprops
             gf = obj.stretchconst;
 
             while true
-                obj.zh(il + 1:end) = obj.zh(il + 1) + (obj.zsize - obj.zh(il + 1)) * (1 - tanh(gf * (1 - 2 * (0:1:ir)' / (2*ir))) / tanh(gf));
+                obj.zh(il + 1:end) = obj.zh(il + 1) + (obj.zsize - obj.zh(il + 1)) * (1 - tanh(gf * (1 - 2 * (0:1:ir) / (2*ir))) / tanh(gf));
 
             if (obj.zh(il + 2) - obj.zh(il + 1)) < obj.dzlin
                 gf = gf - 0.01; % make sufficiently small steps to avoid an initial bump in dz
@@ -816,16 +816,16 @@ classdef preprocessing < dynamicprops
             il = round(obj.hlin / obj.dzlin);
             ir  = obj.ktot - il;
 
-            preprocessing.addvar(obj, 'zf', zeros(obj.ktot, 1));
-            preprocessing.addvar(obj, 'dzf', zeros(obj.ktot, 1));
-            preprocessing.addvar(obj, 'zh', zeros(obj.ktot+1, 1));
+            preprocessing.addvar(obj, 'zf', zeros(1, obj.ktot));
+            preprocessing.addvar(obj, 'dzf', zeros(1, obj.ktot));
+            preprocessing.addvar(obj, 'zh', zeros(1, obj.ktot+1));
 
             obj.zf(1:il) = 0.5 * obj.dzlin:obj.dzlin:obj.hlin;
             obj.zh(1:il+1) = 0:obj.dzlin:obj.hlin;
             gf = obj.stretchconst;
 
             while true
-                obj.zh(il+1:end) = obj.zh(il+1) + (obj.zsize - obj.zh(il+1)) / 2 * (1 - tanh(gf * (1 - 2 * (0:1:ir)'/(ir))) / tanh(gf));
+                obj.zh(il+1:end) = obj.zh(il+1) + (obj.zsize - obj.zh(il+1)) / 2 * (1 - tanh(gf * (1 - 2 * (0:1:ir)/(ir))) / tanh(gf));
                 if (obj.zh(il + 2) - obj.zh(il + 1)) < obj.dzlin
                     gf = gf - 0.01; % make sufficiently small steps to avoid an initial bump in dz
                 else
@@ -872,7 +872,7 @@ classdef preprocessing < dynamicprops
             lscale = fopen(['lscale.inp.' obj.expnr], 'w');
             fprintf(lscale, '%-12s\n', '# SDBL flow');
             fprintf(lscale, '%-60s\n', '# z uq vq pqx pqy wfls dqtdxls dqtdyls dqtdtls dthlrad');
-            fprintf(lscale, '%-20.15f %-12.6f %-12.6f %-12.9f %-12.6f %-15.9f %-12.6f %-12.6f %-12.6f %-17.12f\n', obj.ls');
+            fprintf(lscale, '%-20.15f %-12.6f %-12.6f %-12.9f %-12.9f %-15.9f %-12.6f %-12.6f %-12.6f %-17.12f\n', obj.ls');
             fclose(lscale);
         end
 
