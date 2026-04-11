@@ -3,12 +3,15 @@ build/
 temp/
 tmp/
 tests/outputs/
+tests/system/experiments/
+tests/system/outputs/
 .vscode/
 .codex
 *.o
 *.mod
 image.sif
 *.log
+logdir/
 *.nc
 monitor*.txt
 outputs/
@@ -30,6 +33,7 @@ examples/*/*driver*
 venv/
 env/
 .venv/
+.venv_netcdf/
 
 # Python
 **/__pycache__/
