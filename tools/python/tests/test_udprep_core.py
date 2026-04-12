@@ -144,7 +144,7 @@ class TestUDPrepCore(unittest.TestCase):
         module = types.ModuleType("udbase")
 
         class FakeUDBase(DummySim):
-            def __init__(self, expnr, path=None, load_geometry=True):
+            def __init__(self, expnr, path=None, load_geometry=True, suppress_load_warnings=False):
                 super().__init__(expnr=expnr, path=path)
                 self.load_geometry = load_geometry
                 self.existing = 4

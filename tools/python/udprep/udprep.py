@@ -190,7 +190,7 @@ class UDPrep:
     ]
     DEFAULTS_JSON = None
 
-    def __init__(self, expnr, path=None, load_geometry: bool = True):
+    def __init__(self, expnr, path=None, load_geometry: bool = True, suppress_load_warnings: bool = False):
         from udbase import UDBase
 
         if isinstance(expnr, UDBase):
@@ -201,7 +201,7 @@ class UDPrep:
                 if candidate.exists():
                     path = candidate
                     expnr = candidate.name
-            sim = UDBase(expnr, path, load_geometry=load_geometry)
+            sim = UDBase(expnr, path, load_geometry=load_geometry, suppress_load_warnings=suppress_load_warnings)
 
         self.sim = sim
         self._section_spec_map = {spec.name: spec for spec in self.SECTION_SPECS}
