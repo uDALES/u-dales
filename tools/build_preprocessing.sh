@@ -71,9 +71,9 @@ if [ -n "${python_cmd}" ]; then
         echo "WARNING: Python.h not found for ${python_cmd}; disabling f2py targets."
         missing_f2py_deps=1
     fi
-    if [ "${missing_f2py_deps}" -eq 1 ]; then
-        cmake_args+=(-DBUILD_PREPROCESSING_DIRECTSHORTWAVE_F2PY=OFF)
-        cmake_args+=(-DBUILD_PREPROCESSING_IBM_F2PY=OFF)
+    if [ "${missing_f2py_deps}" -eq 0 ] && [ "${target}" = "preprocessing_tools" ]; then
+        cmake_args+=(-DBUILD_PREPROCESSING_DIRECTSHORTWAVE_F2PY=ON)
+        cmake_args+=(-DBUILD_PREPROCESSING_IBM_F2PY=ON)
     fi
 fi
 cmake "${cmake_args[@]}"
