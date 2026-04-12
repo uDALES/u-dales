@@ -1,4 +1,57 @@
 #!/usr/bin/env bash
+# Build preprocessing tools for uDALES.
+# Compiles the View3D executable and optionally the directshortwave and IBM
+# f2py Python extension modules through the standalone CMake entry point at
+# tools/preprocessing/.
+#
+# Usage (run from the repository root):
+#   tools/build_preprocessing.sh <build_system> [build_target]
+#
+# Arguments:
+#   build_system   Build environment to use (required).
+#                  Allowed values : common | icl
+#                    common - local Linux / WSL system (no module loading)
+#                    icl    - Imperial College London HPC cluster
+#                             (loads CMake/3.31.8-GCCcore-14.3.0 and
+#                              Python/3.9.6-GCCcore-11.2.0 modules)
+#
+#   build_target   CMake target to build.
+#                  Allowed values : view3d | preprocessing_tools
+#                  Default        : view3d
+#                    view3d               - View3D executable only
+#                    preprocessing_tools  - View3D + directshortwave and
+#                                          IBM f2py extension modules
+#                                          (requires numpy and Python headers)
+#
+# Environment variables (optional overrides):
+#   PREPROCESSING_PYTHON_EXECUTABLE
+#                  Python interpreter used for the CMake build and f2py
+#                  compilation. Defaults to the first python or python3 on PATH.
+#                  The f2py targets are silently disabled if numpy or Python.h
+#                  are not available for the chosen interpreter.
+#
+# Output:
+#   tools/preprocessing/build/bin/view3d
+#     View3D executable (also symlinked to tools/View3D/build/src/view3d for
+#     MATLAB compatibility).
+#   tools/python/udprep/directshortwave_f2py*.so
+#     Direct shortwave f2py module (preprocessing_tools target only).
+#   tools/python/udprep/ibm_preproc_f2py*.so
+#     IBM preprocessing f2py module (preprocessing_tools target only).
+#
+# Examples:
+#   # Build View3D only on a local system
+#   tools/build_preprocessing.sh common
+#
+#   # Build View3D + f2py modules on a local system
+#   tools/build_preprocessing.sh common preprocessing_tools
+#
+#   # Full build on the ICL cluster
+#   tools/build_preprocessing.sh icl preprocessing_tools
+#
+#   # Use a specific Python interpreter for the f2py modules
+#   PREPROCESSING_PYTHON_EXECUTABLE=/opt/pbs/python/bin/python3 \
+#       tools/build_preprocessing.sh common preprocessing_tools
 
 set -euo pipefail
 
