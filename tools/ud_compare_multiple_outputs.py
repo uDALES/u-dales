@@ -5,12 +5,14 @@ Compare u-DALES output files across multiple experiment cases (all pairwise comb
 Internally uses ud_compare_outputs.py for all file comparisons — no code duplication.
 
 Usage:
-  ud_compare_multiple_outputs.py <exppath1> <exp1> <exppath2> <exp2> [exppath3 exp3 ...] [tolerance]
+  ud_compare_multiple_outputs.py <exppath1> <exp1> <exppath2> <exp2> [exppath3 exp3 ...] [tolerance] [tol_thl]
 
   exppathN   Parent outputs directory for case N (the exp_num subdirectory is appended)
   expN       Experiment number for case N (integer 1-999)
   tolerance  Max absolute error for NetCDF comparisons (default: 1e-6)
              Detected automatically as the last argument if it parses as a float.
+  tol_thl    Tolerance for temperature variables (default: same as tolerance)
+             Detected automatically as the second-to-last float argument.
 
   At least two cases (4 arguments) are required.
   All pairwise combinations are compared.
@@ -19,6 +21,7 @@ Usage:
 Examples:
   ud_compare_multiple_outputs.py tests/system/outputs/ 224 ref_data/ 224
   ud_compare_multiple_outputs.py path_a/outputs/ 100 path_b/outputs/ 100 path_c/ 100 1e-6
+  ud_compare_multiple_outputs.py path_a/outputs/ 100 path_b/outputs/ 100 1e-6 1e-4
 """
 
 import importlib.util
@@ -48,33 +51,49 @@ def _load_ud_compare_outputs():
 # ---------------------------------------------------------------------------
 
 def _usage():
-    print("Usage: ud_compare_multiple_outputs.py <exppath1> <exp1> <exppath2> <exp2> [exppath3 exp3 ...] [tolerance]")
+    print("Usage: ud_compare_multiple_outputs.py <exppath1> <exp1> <exppath2> <exp2> [exppath3 exp3 ...] [tolerance] [tol_thl]")
     print("")
     print("  exppathN   Parent outputs directory for case N")
     print("  expN       Experiment number for case N (integer 1-999)")
     print("  tolerance  Max absolute error (default: 1e-6); detected as last arg if it parses as a float")
+    print("  tol_thl    Tolerance for temperature variables (default: same as tolerance)")
+    print("             Detected as second-to-last float argument when two trailing floats are given.")
     print("")
     print("  At least two cases (4 arguments) are required.")
 
 
 def _parse_args(argv):
-    """Return list of (exppath, exp_num) pairs and tolerance."""
+    """Return list of (exppath, exp_num) pairs, tolerance, and tol_thl."""
     args = argv[1:]
 
     if len(args) < 4:
         _usage()
         sys.exit(1)
 
-    # Detect optional trailing tolerance: last arg is a float and count is odd
+    # Detect optional trailing floats: tol_thl then tolerance (rightmost first)
     tolerance = 1e-6
-    if len(args) % 2 == 1:
-        try:
-            tolerance = float(args[-1])
-            args = args[:-1]
-        except ValueError:
-            print(f"[ERROR] Odd number of arguments and last argument '{args[-1]}' is not a float tolerance.")
-            _usage()
-            sys.exit(1)
+    tol_thl = None  # None means "same as tolerance"
+
+    # Peel off up to two trailing float arguments (only when arg count would be odd after removal)
+    for _ in range(2):
+        if len(args) % 2 == 1:
+            try:
+                val = float(args[-1])
+                if tol_thl is None and _ == 0:
+                    # first peel: this is tolerance
+                    tolerance = val
+                else:
+                    # second peel: this is tol_thl (was to the left of tolerance)
+                    tol_thl = tolerance
+                    tolerance = val
+                args = args[:-1]
+            except ValueError:
+                print(f"[ERROR] Odd number of arguments and last argument '{args[-1]}' is not a float tolerance.")
+                _usage()
+                sys.exit(1)
+
+    if tol_thl is None:
+        tol_thl = tolerance
 
     if len(args) % 2 != 0:
         print("[ERROR] Arguments must come in pairs: <exppath> <exp_num>.")
@@ -95,7 +114,7 @@ def _parse_args(argv):
             sys.exit(1)
         cases.append((exppath, exp_num))
 
-    return cases, tolerance
+    return cases, tolerance, tol_thl
 
 
 # ---------------------------------------------------------------------------
@@ -103,7 +122,7 @@ def _parse_args(argv):
 # ---------------------------------------------------------------------------
 
 def main():
-    cases, tolerance = _parse_args(sys.argv)
+    cases, tolerance, tol_thl = _parse_args(sys.argv)
 
     # Load the comparison module and initialise NetCDF libs (exits with help if missing)
     uco = _load_ud_compare_outputs()
@@ -137,6 +156,7 @@ def main():
     print(f"  Cases     : {n_cases}")
     print(f"  Pairs     : {len(pairs)}")
     print(f"  Tolerance : {tolerance}")
+    print(f"  Tol THL   : {tol_thl}")
     print(f"  Log file  : {log_path}")
     print("")
     for idx, (case_dir, exp_str) in enumerate(resolved):
@@ -149,6 +169,7 @@ def main():
         # Log header
         log_fh.write(f"ud_compare_multiple_outputs — {datetime.now().isoformat()}\n")
         log_fh.write(f"Tolerance: {tolerance}\n")
+        log_fh.write(f"Tol THL:   {tol_thl}\n")
         log_fh.write("Cases:\n")
         for idx, (case_dir, exp_str) in enumerate(resolved):
             log_fh.write(f"  [{idx + 1}] {case_dir}  (exp {exp_str})\n")
@@ -169,7 +190,7 @@ def main():
             # Capture full comparison output — log only
             buf = io.StringIO()
             with redirect_stdout(buf):
-                counters = uco.run_comparison(dir1, exp_str1, dir2, exp_str2, tolerance)
+                counters = uco.run_comparison(dir1, exp_str1, dir2, exp_str2, tolerance, tol_thl)
 
             output = buf.getvalue()
             log_fh.write(output)

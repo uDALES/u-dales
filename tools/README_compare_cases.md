@@ -152,7 +152,7 @@ Compares NetCDF output files across N experiment cases (all pairwise combination
 ### Signature
 
 ```
-ud_compare_multiple_outputs.py <exppath1> <exp1> <exppath2> <exp2> [exppath3 exp3 ...] [tolerance]
+ud_compare_multiple_outputs.py <exppath1> <exp1> <exppath2> <exp2> [exppath3 exp3 ...] [tolerance] [tol_thl]
 ```
 
 | Argument | Description |
@@ -160,6 +160,7 @@ ud_compare_multiple_outputs.py <exppath1> <exp1> <exppath2> <exp2> [exppath3 exp
 | `exppathN` | Parent outputs directory for case N |
 | `expN` | Experiment number for case N (integer 1–999) |
 | `tolerance` | Max absolute error (default: `1e-6`); detected as the last argument if it parses as a float |
+| `tol_thl` | Tolerance for temperature variables (default: same as `tolerance`); detected as the second-to-last float argument when two trailing floats are given |
 
 At least two cases (4 arguments) are required.
 
@@ -176,6 +177,9 @@ $VENV_PYTHON ud_compare_multiple_outputs.py path_a/outputs/ 100 path_b/outputs/ 
 
 # Custom tolerance
 $VENV_PYTHON ud_compare_multiple_outputs.py tests/system/outputs/ 224 tests/system/ref_data/ 224 1e-8
+
+# Separate tolerances for general and temperature variables
+$VENV_PYTHON ud_compare_multiple_outputs.py tests/system/outputs/ 224 tests/system/ref_data/ 224 1e-8 1e-7
 ```
 
 The log file `ud_compare_multiple_outputs_YYYYMMDD_HHMMSS.log` is written to the current working directory.

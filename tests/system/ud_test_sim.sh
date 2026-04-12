@@ -8,13 +8,14 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Script usage function
 usage() {
-    echo "Usage: $0 <ref_data_path> [case1 case2 ...] [--tolerance <val>] [--system <common|gpu>]"
+    echo "Usage: $0 <ref_data_path> [case1 case2 ...] [--tolerance <val>] [--tol-thl <val>] [--system <common|gpu>]"
     echo ""
     echo "Arguments:"
     echo "  ref_data_path  : Path to the reference data directory (required)"
     echo "  case1 ...      : Optional list of test cases to run (e.g., 100 201 402)"
     echo "                   If not specified, uses default cases for the system"
     echo "  --tolerance    : Max absolute error for NetCDF output comparisons (default: 1e-6)"
+    echo "  --tol-thl      : Tolerance for temperature variables (default: same as --tolerance)"
     echo "  --system       : Build system type: common (CPU) or gpu (default: common)"
     echo ""
     echo "Examples:"
@@ -24,6 +25,7 @@ usage() {
     echo "  $0 ref_data/ 100 201                           # Run specific CPU test cases"
     echo "  $0 ref_data/ 402 502 452 --system gpu          # Run specific GPU test cases"
     echo "  $0 ref_data/ 224 --tolerance 1e-8"
+    echo "  $0 ref_data/ 224 --tolerance 1e-8 --tol-thl 1e-7"
     exit 1
 }
 
@@ -38,6 +40,7 @@ shift
 # Remaining args: test cases and optional flags
 TEST_CASES=()
 TOLERANCE="1e-6"
+TOL_THL=""
 SYSTEM="common"
 
 while [ $# -gt 0 ]; do
@@ -45,6 +48,10 @@ while [ $# -gt 0 ]; do
         --tolerance)
             shift
             TOLERANCE="$1"
+            ;;
+        --tol-thl)
+            shift
+            TOL_THL="$1"
             ;;
         --system)
             shift
@@ -60,6 +67,11 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
+
+# Default tol_thl to tolerance if not explicitly set
+if [ -z "$TOL_THL" ]; then
+    TOL_THL="$TOLERANCE"
+fi
 
 # Validate --system value
 if [ "$SYSTEM" != "common" ] && [ "$SYSTEM" != "gpu" ]; then
@@ -190,6 +202,7 @@ echo "  Experiments path : $SCRIPT_DIR/experiments/" >> "$LOG_FILE"
 echo "  Reference path   : $REF_DATA_PATH" >> "$LOG_FILE"
 echo "  Cases            : ${TEST_CASES[*]}" >> "$LOG_FILE"
 echo "  Tolerance        : $TOLERANCE" >> "$LOG_FILE"
+echo "  Tol THL          : $TOL_THL" >> "$LOG_FILE"
 echo "  System           : $SYSTEM" >> "$LOG_FILE"
 echo "========================================" >> "$LOG_FILE"
 
@@ -201,8 +214,7 @@ echo "========================================"
 echo "  Experiments path : $SCRIPT_DIR/experiments/"
 echo "  Reference path   : $REF_DATA_PATH"
 echo "  Cases            : ${TEST_CASES[*]}"
-echo "  Tolerance        : $TOLERANCE"
-echo "  System           : $SYSTEM"
+echo "  Tolerance        : $TOLERANCE"echo "  Tol THL          : $TOL_THL"echo "  System           : $SYSTEM"
 echo "  Log file         : $LOG_FILE"
 echo "========================================"
 echo ""
@@ -317,7 +329,7 @@ for case_num in "${TEST_CASES[@]}"; do
     echo "PHASE 3: Compare results for case $case_num"
     echo "==========================================="
 
-    COMPARE_CMD="$VENV_PYTHON $REPO_ROOT/tools/ud_compare_outputs.py $case_num $SCRIPT_DIR/outputs/ $REF_DATA_PATH $TOLERANCE"
+    COMPARE_CMD="$VENV_PYTHON $REPO_ROOT/tools/ud_compare_outputs.py $case_num $SCRIPT_DIR/outputs/ $REF_DATA_PATH $TOLERANCE $TOL_THL"
     
     # Disable exit-on-error for comparison (we want to handle failure gracefully)
     set +e

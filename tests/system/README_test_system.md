@@ -10,14 +10,20 @@ For documentation on the comparison and venv-setup scripts themselves, see [`too
 
 ```
 tests/system/
-├── ud_test_sim.sh            # Main entry point — build, simulate, compare outputs
-├── ud_test_preprocess.sh     # Input file entry point — write inputs, compare against reference
+├── ud_test_sim.sh            # Output file comparison entry point — build, simulate, compare outputs
+├── ud_test_preprocess.sh     # Input file comparison entry point — write inputs, compare against reference
 ├── experiments/              # Input files for each test case
-│   ├── 100/                  # namoptions, geometry, profiles, config.sh, ...
-│   └── 224/
+│   ├── 001/                  # Case directories
+|   ├── ...
+│   └── 999/
 ├── ref_data/                 # Reference data to compare against
-│   └── 224/                  # NetCDF outputs + reference input files
-└── outputs/                  # Simulation outputs written here at runtime
+│   ├── 001/                  # Case directories
+|   ├── ...
+│   └── 999/
+├── outputs/                  # Simulation outputs written here at runtime
+│   ├── 001/                  # Case directories
+|   ├── ...
+│   └── 999/
 
 tools/                        # (repo root)
 ├── ud_set_nc_venv.sh         # One-time setup of the Python NetCDF environment
@@ -90,6 +96,9 @@ Run from the `tests/system/` directory:
 
 # Custom tolerance
 ./ud_test_sim.sh ref_data/ 224 --tolerance 1e-8
+
+# Separate tolerances for general and temperature variables
+./ud_test_sim.sh ref_data/ 224 --tolerance 1e-8 --tol-thl 1e-7
 ```
 
 Progress and results are written to `logdir/test_common.log` or `logdir/test_gpu.log`.
@@ -125,7 +134,7 @@ Progress and results are written to `test_inputs.log`.
 |-------|-------------|
 | **1 — Build** | Deletes `build/` and rebuilds u-dales (`tools/build_executable.sh common release` for `--system common`; loads `nvhpc/24.11` and uses `tools/build_executable.sh gpu release` for `--system gpu`) |
 | **2 — Simulate** | For each case, deletes any previous `outputs/<case>/` directory then runs the simulation via `tools/local_execute.sh tests/system/experiments/<case>` |
-| **3 — Compare outputs** | Calls `tools/ud_compare_outputs.py <case> outputs/ <ref_data_path>`, comparing freshly produced NetCDF files in `outputs/<case>/` against `<ref_data_path>/<case>/` |
+| **3 — Compare outputs** | Calls `tools/ud_compare_outputs.py <case> outputs/ <ref_data_path> <tolerance> <tol_thl>`, comparing freshly produced NetCDF files in `outputs/<case>/` against `<ref_data_path>/<case>/`. `--tolerance` applies to all variables; `--tol-thl` applies to temperature variables (defaults to `--tolerance` if not set) |
 | **4 — Compare inputs** *(optional)* | Runs automatically if Phase 3 fails. Calls `tools/ud_compare_inputs.py <case> experiments/ <ref_data_path>` to check whether input files differ from the reference, helping diagnose the root cause |
 
 The script exits with code `0` (all passed) or `1` (any failure).
