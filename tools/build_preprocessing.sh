@@ -8,6 +8,7 @@ then
  echo "The build type <common / icl> must be set."
  echo "usage: from being in u-dales directory run: tools/build_preprocessing.sh <build type> [target]"
  echo "default target: view3d"
+ echo "available targets: view3d, preprocessing_tools (view3d + f2py modules)"
  exit 1
 fi
 
@@ -17,11 +18,12 @@ if [ ! -d tools ]; then
 fi
 
 system=$1
-target=${2:-preprocessing_tools}
+target=${2:-view3d}
 
 if [ $system == "icl" ]
 then
     module load CMake/3.31.8-GCCcore-14.3.0
+    module load Python/3.9.6-GCCcore-11.2.0
 elif [ $system == "common" ]
 then
     echo "Building preprocessing target '${target}' on local system."
@@ -85,9 +87,6 @@ if [ -f "${build_dir}/bin/view3d" ]; then
     ln -sfn "../../../preprocessing/build/bin/view3d" "${legacy_view3d_dir}/view3d"
     echo "View3D executable available at ${build_dir}/bin/view3d"
     echo "MATLAB compatibility path available at ${legacy_view3d_dir}/view3d"
-fi
-if [ -f "${build_dir}/bin/IBM_preproc" ]; then
-    echo "IBM preprocessing executable available at ${build_dir}/bin/IBM_preproc"
 fi
 if compgen -G "tools/python/udprep/directshortwave_f2py*.so" >/dev/null; then
     echo "directshortwave f2py module available at tools/python/udprep/"

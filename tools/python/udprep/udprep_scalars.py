@@ -1,3 +1,9 @@
+"""Scalar field preprocessing for uDALES.
+
+Generates scalar.inp initial profiles and optional point/line scalar
+source files (scalarsources.inp) for passive or reactive tracer
+simulations.
+"""
 from __future__ import annotations
 
 from pathlib import Path

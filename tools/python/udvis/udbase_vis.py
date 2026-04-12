@@ -1,3 +1,9 @@
+"""Visualization facade for uDALES postprocessing.
+
+Provides the :class:`UDVis` class attached to each :class:`udbase.UDBase`
+instance as ``sim.vis``, offering geometry, field, and statistics
+plotting methods backed by matplotlib and pyvista.
+"""
 from __future__ import annotations
 
 import sys

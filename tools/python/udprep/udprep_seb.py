@@ -1,3 +1,8 @@
+"""Surface energy balance (SEB) preprocessing for uDALES.
+
+Writes initial facet-temperature files (Tfacinit, Tfacinit_layers)
+used by the energy balance solver at startup.
+"""
 from __future__ import annotations
 
 from typing import Any, Dict, List

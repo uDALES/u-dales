@@ -36,7 +36,7 @@ program uDALES
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
-  use vegetation,        only : init_vegetation, apply_vegetation
+  use vegetation,        only : init_vegetation, vegetation_forcing
   use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
   use initfac,           only : readfacetfiles
@@ -170,7 +170,7 @@ program uDALES
 
     call EB
 
-    call apply_vegetation
+    call vegetation_forcing
 
     call heatpump
 

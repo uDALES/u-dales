@@ -1,3 +1,9 @@
+"""Immersed boundary method (IBM) preprocessing for uDALES.
+
+Generates facet geometry files, runs the IBM preprocessor (Fortran
+executable or f2py module) to compute solid/fluid boundary masks and
+facet-section mappings, and writes the resulting sparse input files.
+"""
 from __future__ import annotations
 
 import os

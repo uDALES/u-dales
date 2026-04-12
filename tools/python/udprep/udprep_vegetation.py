@@ -1,3 +1,9 @@
+"""Vegetation preprocessing for uDALES.
+
+Converts block-style tree definitions (from namoptions or STL) into
+the sparse per-cell vegetation input files (veg.inp, veg_params.inp)
+consumed by the solver's vegetation module.
+"""
 from __future__ import annotations
 
 from pathlib import Path

@@ -1,4 +1,8 @@
-!> Sparse vegetation support (veg_params-based masking and drag application)
+!> Sparse vegetation module: reads per-cell vegetation properties from
+!! input files (veg.inp, veg_params.inp, sveg.inp), builds face-averaged
+!! drag coefficient lists for the staggered u/v/w grids, and applies
+!! momentum drag, canopy energy balance, and scalar deposition forcing
+!! each timestep.
 module vegetation
   use mpi
   implicit none
@@ -46,6 +50,9 @@ module vegetation
   logical :: vegetation_ready = .false.
 contains
 
+  !> Read sparse vegetation data, distribute across MPI ranks, build 3D
+  !! LAD/drag fields with halo exchanges, and precompute staggered face
+  !! lists used by vegetation_forcing.
   subroutine init_vegetation
     use modglobal,  only : ltrees,itree_mode,TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,dzf,nsv
     use modmpi,     only : myid,comm3d,mpierr,MY_REAL
@@ -311,6 +318,7 @@ contains
 
   end subroutine init_vegetation
 
+  !> Compute cumulative LAI from domain top for legacy SEB radiation extinction.
   subroutine init_vegetation_legacy
     use modglobal, only : ib, ie, jb, je, kb, ke, dzf
     implicit none
@@ -334,7 +342,10 @@ contains
     deallocate(lai_3d)
   end subroutine init_vegetation_legacy
 
-  subroutine apply_vegetation
+  !> Apply vegetation forcing: momentum drag on staggered faces, canopy
+  !! energy balance (heat/moisture), and scalar deposition.  Called once
+  !! per timestep from the main time loop.
+  subroutine vegetation_forcing
     use modglobal,  only : ib,ie,jb,je,kb,ke,lmoist,ltempeq,nsv,itree_mode,TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
     use modfields,  only : um,vm,wm,up,vp,wp,svp,svm
     implicit none
@@ -394,9 +405,9 @@ contains
     ! ========================================================================
     if (lmoist .and. ltempeq) then
       if (itree_mode == TREE_MODE_LEGACY_SEB) then
-        call apply_vegetation_legacy
+        call vegetation_forcing_legacy
       else if (itree_mode == TREE_MODE_SVEG) then
-        call apply_vegetation_sveg
+        call vegetation_forcing_sveg
       end if
     end if
 
@@ -419,9 +430,11 @@ contains
       end do
     end if
 
-  end subroutine apply_vegetation
+  end subroutine vegetation_forcing
 
-  subroutine apply_vegetation_legacy
+  !> Legacy canopy energy balance using Beer-Lambert radiation extinction
+  !! through cumulative LAI (Qstar-based).
+  subroutine vegetation_forcing_legacy
     use modglobal, only : Qstar, dzf, pref0, rlv, cp, rv, rd, rhoa
     use modfields, only : thlm, qtm, qtp, thlp, um, vm, wm
     implicit none
@@ -469,9 +482,11 @@ contains
       qtp(i,j,k) = qtp(i,j,k) + vegp%qt(m)
       thlp(i,j,k) = thlp(i,j,k) + vegp%thl(m)
     end do
-  end subroutine apply_vegetation_legacy
+  end subroutine vegetation_forcing_legacy
 
-  subroutine apply_vegetation_sveg
+  !> Canopy energy balance using pre-computed absorbed shortwave radiation
+  !! per vegetation cell (sveg.inp).
+  subroutine vegetation_forcing_sveg
     use modglobal, only : pref0, rlv, cp, rv, rd, rhoa
     use modfields, only : thlm, qtm, qtp, thlp, um, vm, wm
     implicit none
@@ -514,8 +529,9 @@ contains
       qtp(i,j,k) = qtp(i,j,k) + vegp%qt(m)
       thlp(i,j,k) = thlp(i,j,k) + vegp%thl(m)
     end do
-  end subroutine apply_vegetation_sveg
+  end subroutine vegetation_forcing_sveg
 
+  !> Zero all vegetation source/tendency arrays before accumulation.
   subroutine reset_vegetation_sources()
     if (allocated(veg_up)) veg_up = 0.
     if (allocated(veg_vp)) veg_vp = 0.

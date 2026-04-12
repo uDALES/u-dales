@@ -1241,21 +1241,21 @@ contains
         allocate(tr_now(ib:ie,jb:je,kb:ke))
 
         if (npts_u > 0) then
-          call scatter_veg_face_field(npts_u, ijk_u, veg_up, tr_now)
+          call veg_to_3d_face(npts_u, ijk_u, veg_up, tr_now)
         else
           tr_now = 0.
         end if
         tr_ut(ib:ie,jb:je,kb:ke) = (tr_ut(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
 
         if (npts_v > 0) then
-          call scatter_veg_face_field(npts_v, ijk_v, veg_vp, tr_now)
+          call veg_to_3d_face(npts_v, ijk_v, veg_vp, tr_now)
         else
           tr_now = 0.
         end if
         tr_vt(ib:ie,jb:je,kb:ke) = (tr_vt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
 
         if (npts_w > 0) then
-          call scatter_veg_face_field(npts_w, ijk_w, veg_wp, tr_now)
+          call veg_to_3d_face(npts_w, ijk_w, veg_wp, tr_now)
         else
           tr_now = 0.
         end if
@@ -1263,24 +1263,24 @@ contains
 
         if (ltrees) then
           if (ltempeq) then
-            call scatter_veg_cell_field(vegp%thl, tr_now)
+            call veg_to_3d_cell(vegp%thl, tr_now)
             tr_thlt(ib:ie,jb:je,kb:ke) = (tr_thlt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
           end if
           if (lmoist) then
-            call scatter_veg_cell_field(vegp%qt, tr_now)
+            call veg_to_3d_cell(vegp%qt, tr_now)
             tr_qtt(ib:ie,jb:je,kb:ke) = (tr_qtt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-            call scatter_veg_cell_field(vegp%qtR, tr_now)
+            call veg_to_3d_cell(vegp%qtR, tr_now)
             tr_qtRt(ib:ie,jb:je,kb:ke) = (tr_qtRt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-            call scatter_veg_cell_field(vegp%qtA, tr_now)
+            call veg_to_3d_cell(vegp%qtA, tr_now)
             tr_qtAt(ib:ie,jb:je,kb:ke) = (tr_qtAt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-            call scatter_veg_cell_field(vegp%omega, tr_now)
+            call veg_to_3d_cell(vegp%omega, tr_now)
             tr_omegat(ib:ie,jb:je,kb:ke) = (tr_omegat(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
           end if
           if (nsv>0) then
-            call scatter_veg_sv_component(1, tr_now)
+            call veg_to_3d_sv(1, tr_now)
             tr_sv1t(ib:ie,jb:je,kb:ke) = (tr_sv1t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
             if (nsv > 1) then
-              call scatter_veg_sv_component(2, tr_now)
+              call veg_to_3d_sv(2, tr_now)
               tr_sv2t(ib:ie,jb:je,kb:ke) = (tr_sv2t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
             end if
           end if
@@ -1740,7 +1740,9 @@ contains
 
   end subroutine statsdump
 
-  subroutine scatter_veg_face_field(npts, ijk, field_sparse, field_3d)
+  !> Expand a sparse face-staggered vegetation field into a full 3D array.
+  !! Takes explicit npts/ijk so it can be used for u-, v- or w-faces.
+  subroutine veg_to_3d_face(npts, ijk, field_sparse, field_3d)
     use modglobal, only : ib, ie, jb, je, kb, ke
     implicit none
     integer, intent(in) :: npts
@@ -1756,9 +1758,11 @@ contains
       k = ijk(m,3)
       field_3d(i,j,k) = field_sparse(m)
     end do
-  end subroutine scatter_veg_face_field
+  end subroutine veg_to_3d_face
 
-  subroutine scatter_veg_cell_field(field_sparse, field_3d)
+  !> Expand a sparse cell-centred vegetation field into a full 3D array
+  !! using the vegetation module's point list.
+  subroutine veg_to_3d_cell(field_sparse, field_3d)
     use modglobal, only : ib, ie, jb, je, kb, ke
     use vegetation, only : veg
     implicit none
@@ -1773,9 +1777,11 @@ contains
       k = veg%ijk(m,3)
       field_3d(i,j,k) = field_sparse(m)
     end do
-  end subroutine scatter_veg_cell_field
+  end subroutine veg_to_3d_cell
 
-  subroutine scatter_veg_sv_component(component, field_3d)
+  !> Expand one scalar component of the vegetation tendency array into a
+  !! full 3D field for output.
+  subroutine veg_to_3d_sv(component, field_3d)
     use modglobal, only : ib, ie, jb, je, kb, ke
     use vegetation, only : veg, vegp
     implicit none
@@ -1790,7 +1796,7 @@ contains
       k = veg%ijk(m,3)
       field_3d(i,j,k) = vegp%sv(m,component)
     end do
-  end subroutine scatter_veg_sv_component
+  end subroutine veg_to_3d_sv
 
   !> tg3315 still under going work to be completed
   subroutine tkestatsdump

@@ -1,3 +1,9 @@
+"""Grid generation for uDALES preprocessing.
+
+Builds uniform x/y grids and stretched or uniform z grids from
+namoptions parameters.  Supports exponential and tanh stretching
+schemes with automatic stretch-constant fitting.
+"""
 from __future__ import annotations
 
 from typing import Any, Dict, List

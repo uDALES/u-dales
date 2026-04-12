@@ -1,3 +1,11 @@
+"""Core preprocessing framework for uDALES.
+
+Provides the :class:`Section` base class that all preprocessing modules
+(grid, IBM, radiation, vegetation, ...) inherit from, and the
+:class:`UDPrep` orchestrator that discovers, configures, and runs
+sections in order.  Section defaults are loaded from ``defaults.json``
+and can be overridden per-case via namoptions or keyword arguments.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass

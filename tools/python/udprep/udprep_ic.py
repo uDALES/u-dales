@@ -1,3 +1,8 @@
+"""Initial condition and profile generation for uDALES preprocessing.
+
+Generates prof.inp and lscale.inp files containing initial vertical
+profiles of velocity, temperature, moisture, and large-scale forcings.
+"""
 from __future__ import annotations
 
 from pathlib import Path

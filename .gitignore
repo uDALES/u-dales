@@ -33,6 +33,7 @@ examples/*/*driver*
 venv/
 env/
 .venv/
+tmp/*
 .venv_netcdf/
 
 # Python

@@ -7,9 +7,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 option(BUILD_PREPROCESSING_VIEW3D "Build the View3D executable" ON)
-option(BUILD_PREPROCESSING_IBM "Build the IBM preprocessing executable" ON)
-option(BUILD_PREPROCESSING_DIRECTSHORTWAVE_F2PY "Build the directshortwave f2py module" ON)
-option(BUILD_PREPROCESSING_IBM_F2PY "Build the IBM preprocessing f2py module" ON)
+
+option(BUILD_PREPROCESSING_DIRECTSHORTWAVE_F2PY "Build the directshortwave f2py module" OFF)
+option(BUILD_PREPROCESSING_IBM_F2PY "Build the IBM preprocessing f2py module" OFF)
 
 set(PREPROCESSING_PYTHON_EXECUTABLE "" CACHE FILEPATH "Python interpreter used to build f2py preprocessing modules")
 
@@ -22,22 +22,6 @@ endif()
 
 if(BUILD_PREPROCESSING_VIEW3D)
   add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../View3D" "${CMAKE_CURRENT_BINARY_DIR}/View3D")
-endif()
-
-if(BUILD_PREPROCESSING_IBM)
-  add_executable(
-    IBM_preproc
-    "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/in_mypoly_functions.f90"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/boundaryMasking.f90"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/matchFacetsCells.f90"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/IBM_preproc_io.f90"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/IBM_preproc_driver.f90"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/IBM_preproc_main.f90"
-  )
-  if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(IBM_preproc PRIVATE -O3 -fopenmp)
-    target_link_options(IBM_preproc PRIVATE -fopenmp)
-  endif()
 endif()
 
 if(BUILD_PREPROCESSING_DIRECTSHORTWAVE_F2PY)
@@ -134,9 +118,6 @@ endif()
 add_custom_target(preprocessing_tools)
 if(TARGET view3d)
   add_dependencies(preprocessing_tools view3d)
-endif()
-if(TARGET IBM_preproc)
-  add_dependencies(preprocessing_tools IBM_preproc)
 endif()
 if(TARGET directshortwave_f2py)
   add_dependencies(preprocessing_tools directshortwave_f2py)

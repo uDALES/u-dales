@@ -1,3 +1,9 @@
+"""View3D interface for computing view factors between facets.
+
+Wraps the external View3D executable: converts STL geometry to the
+View3D input format, runs the solver, and reads/writes view-factor
+and sky-view-factor files used by the radiation preprocessing.
+"""
 from __future__ import annotations
 
 from pathlib import Path

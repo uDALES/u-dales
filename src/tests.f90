@@ -9,9 +9,14 @@
 ! (at your option) any later version.
 
 module tests
+  !> In-solver test routines, executed via special runmode values defined in
+  !! modglobal (TEST_*).  Each public entry point is dispatched from
+  !! execute_runmode_actions in program.f90 and exercises solver
+  !! infrastructure that is only reachable after full MPI/2DECOMP
+  !! initialization.
   use decomp_2d
   use modmpi, only : myid, comm3d, mpierr, my_real, avexy_ibm, avey_ibm, sumx_ibm, sumy_ibm
-  
+
   implicit none
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators
@@ -128,6 +133,8 @@ contains
     
   end function tests_read_sparse_ijk
 
+  !> Compare sparse solid points returned by read_sparse_ijk against
+  !! the reference arrays populated by initibm.
   function compare_solid(solid_info, npts_loc_new, ids_loc_new, pts_loc_new, label) result(passed)
     use modmpi, only : myid
     use modibm, only : solid_info_type
@@ -165,6 +172,8 @@ contains
     
   end function compare_solid
   
+  !> Compare sparse fluid-boundary points returned by read_sparse_ijk
+  !! against the reference arrays populated by initibm.
   function compare_boundary(bound_info, npts_loc_new, ids_loc_new, pts_loc_new, label) result(passed)
     use modmpi, only : myid
     use modibm, only : bound_info_type
@@ -202,6 +211,10 @@ contains
     
   end function compare_boundary
 
+  !> Validate the IBM-aware MPI reduction operators (avexy_ibm, avey_ibm,
+  !! sumx_ibm, sumy_ibm) against brute-force local reference sums.
+  !! Requires a case with IBM geometry (e.g. case 100) so that the
+  !! mask arrays are non-trivial.
   logical function tests_mpi_operators()
     use mpi
     use modglobal, only : ib, ie, jb, je, kb, ke, khc, runmode

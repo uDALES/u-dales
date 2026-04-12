@@ -800,7 +800,7 @@ module modstartup
             continue
          case default
             if (myid == 0) then
-               write(0, *) 'ERROR: invalid itree_mode. Supported values are 0 (drag only), 2 (sveg), 99 (legacy SEB).'
+               write(0, *) 'ERROR: invalid itree_mode. Supported values are 1 (drag only), 2 (sveg), 99 (legacy SEB).'
                write(0, *) 'Configured itree_mode = ', itree_mode
             end if
             stop 1
