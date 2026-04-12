@@ -46,7 +46,8 @@ program DALESURBAN      !Version 48
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
 !----------------------------------------------------------------
   use modchecksim,     only : initchecksim,checksim
-  use modfielddump,    only : initfielddump,fielddump,exitfielddump
+!  use modfielddump,    only : initfielddump,fielddump,exitfielddump
+  use out_fields,      only : out_initfields,out_fields_main,out_exitfields
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use stats,           only : stats_init,stats_main,stats_exit !DMajumdar
   use instant,         only : slice_init,slice_main,probe_init, probe_main
@@ -107,7 +108,8 @@ program DALESURBAN      !Version 48
 
   call inittimedep
 
-  call initfielddump
+ ! call initfielddump
+  call out_initfields
 
   call boundary
 
@@ -194,7 +196,8 @@ program DALESURBAN      !Version 48
 
     call checksim
 
-    call fielddump
+   ! call fielddump
+    call out_fields_main
 
     call statsdump     ! will depricate soon; contains tke budget only(not working)
     call stats_main
@@ -224,7 +227,8 @@ program DALESURBAN      !Version 48
 !--------------------------------------------------------
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
-  call exitfielddump
+ ! call exitfielddump
+  call out_exitfields
   call exitstatsdump     !tg3315
   call exit_heatpump
   call stats_exit
