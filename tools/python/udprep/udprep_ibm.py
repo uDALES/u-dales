@@ -28,7 +28,7 @@ class IBMSection(Section):
     def run_all(self, backend: str = "f2py") -> None:
         """Run IBM preprocessing steps in the standard order."""
         sim = self._require_sim()
-        steps = [("generate_lscale", self.generate_lscale), ("write_lscale", self.write_lscale)]
+        steps = []
         factypes_path = Path(sim.path) / f"factypes.inp.{sim.expnr}"
         if not factypes_path.exists():
             steps.extend([("generate_factypes", self.generate_factypes), ("write_factypes", self.write_factypes)])
@@ -51,46 +51,6 @@ class IBMSection(Section):
                     ]
                 )
         self.run_steps("ibm", steps)
-
-    def generate_lscale(self) -> None:
-        """Compute the length scale input (generate_lscale in MATLAB)."""
-        sim = self._require_sim()
-        zf = np.asarray(sim.zf, dtype=float)
-        ls = np.zeros((len(zf), 10), dtype=float)
-        ls[:, 0] = zf
-        ls[:, 5] = float(getattr(sim, "w_s", 0.0))
-        ls[:, 9] = float(getattr(sim, "R", 0.0))
-
-        forcing_flags = sum(
-            bool(getattr(sim, name, False))
-            for name in ("luoutflowr", "lvoutflowr", "luvolflowr", "lvvolflowr", "lprofforc", "lcoriol")
-        )
-        ldp = bool(getattr(sim, "ldp", forcing_flags == 0))
-        if forcing_flags + int(ldp) > 1:
-            raise ValueError("More than one forcing type specified")
-        if bool(getattr(sim, "lprofforc", False)) or bool(getattr(sim, "lcoriol", False)):
-            ls[:, 1] = float(getattr(sim, "u0", 0.0))
-            ls[:, 2] = float(getattr(sim, "v0", 0.0))
-        elif ldp:
-            ls[:, 3] = float(getattr(sim, "dpdx", 0.0))
-            ls[:, 4] = float(getattr(sim, "dpdy", 0.0))
-        self.ls = ls
-
-    def write_lscale(self) -> None:
-        """Write the length scale input to disk."""
-        sim = self._require_sim()
-        if not hasattr(self, "ls"):
-            self.generate_lscale()
-        path = Path(sim.path) / f"lscale.inp.{sim.expnr}"
-        with path.open("w", encoding="ascii", newline="\n") as f:
-            f.write("# SDBL flow \n")
-            f.write("# z uq vq pqx pqy wfls dqtdxls dqtdyls dqtdtls dthlrad      \n")
-            for row in self.ls:
-                f.write(
-                    f"{row[0]:-20.15f} {row[1]:-12.6f} {row[2]:-12.6f} {row[3]:-12.9f} "
-                    f"{row[4]:-12.9f} {row[5]:-15.9f} {row[6]:-12.6f} {row[7]:-12.6f} "
-                    f"{row[8]:-12.6f} {row[9]:-17.12f}\n"
-                )
 
     def generate_factypes(self) -> None:
         """Construct default factypes array (generate_factypes in MATLAB)."""

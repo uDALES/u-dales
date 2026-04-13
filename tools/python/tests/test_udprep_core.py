@@ -204,9 +204,9 @@ class TestUDPrepCore(unittest.TestCase):
     def test_run_all_respects_section_gates(self):
         specs = [
             SectionSpec("grid", ["x"], {"x": 1}, FakeSection),
+            SectionSpec("forcing", ["x"], {"x": 1}, FakeSection),
             SectionSpec("seb", ["x"], {"x": 1}, FakeSection),
             SectionSpec("ibm", ["libm", "gen_geom"], {"libm": True, "gen_geom": True}, FakeSection),
-            SectionSpec("ic", ["x"], {"x": 1}, FakeSection),
             SectionSpec(
                 "vegetation",
                 ["ltrees", "ltreesfile"],
@@ -228,8 +228,6 @@ class TestUDPrepCore(unittest.TestCase):
         prep.SECTION_SPECS = specs
 
         prep.sim.lEB = True
-        prep.ibm.generate_lscale = mock.Mock()
-        prep.ibm.write_lscale = mock.Mock()
         prep.ibm.generate_factypes = mock.Mock()
         prep.ibm.write_factypes = mock.Mock()
         prep.ibm.run_ibm = mock.Mock()
@@ -245,11 +243,9 @@ class TestUDPrepCore(unittest.TestCase):
         prep.run_all(force=True)
 
         self.assertEqual(len(prep.grid.run_all_calls), 1)
-        self.assertEqual(len(prep.ic.run_all_calls), 1)
+        self.assertEqual(len(prep.forcing.run_all_calls), 1)
         self.assertEqual(len(prep.vegetation.run_all_calls), 1)
         self.assertEqual(len(prep.scalars.run_all_calls), 0)
-        prep.ibm.generate_lscale.assert_called_once()
-        prep.ibm.write_lscale.assert_called_once()
         prep.ibm.generate_factypes.assert_called_once()
         prep.ibm.write_factypes.assert_called_once()
         prep.ibm.run_ibm.assert_called_once()

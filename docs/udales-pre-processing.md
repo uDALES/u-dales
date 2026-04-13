@@ -188,6 +188,10 @@ The parameters under the `&INPS` header are used only in the pre-processing.
 - `qt0`: specific humidity at z = 0. Default: 0.
 - `lapse`: lapse rate (K/m). Default: 0.
 - `w_s`: subsidence. Default: 0.
+- `dqtdxls`: large-scale advective tendency of specific humidity in x direction (kg/kg/s). Default: 0.
+- `dqtdyls`: large-scale advective tendency of specific humidity in y direction (kg/kg/s). Default: 0.
+- `dqtdtls`: large-scale advective tendency of specific humidity in time (kg/kg/s). Default: 0.
+- `tke`: initial turbulence kinetic energy (m^2/s^2). Default: 0.
 - `R`: radiative forcing (W/m^2). Default: 0.
 - `NOb`: initial concentration of NO. Default: 0.
 - `NO2b`: initial concentration of NO2b. Default: 0.

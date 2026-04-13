@@ -14,7 +14,7 @@ from _common import PYTHON_DIR
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
-from udprep.udprep_ic import ICSection  # noqa: E402
+from udprep.udprep_forcing import ForcingSection  # noqa: E402
 from udprep.udprep_scalars import ScalarsSection  # noqa: E402
 
 
@@ -27,7 +27,7 @@ class DummySim:
         self.zsize = 6.0
 
 
-class TestICSection(unittest.TestCase):
+class TestForcingSection(unittest.TestCase):
     def setUp(self):
         self.temp_dir = TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
@@ -35,8 +35,8 @@ class TestICSection(unittest.TestCase):
         self.sim = DummySim(self.workdir, expnr="321")
 
     def test_generate_prof_without_lapse(self):
-        section = ICSection(
-            "ic",
+        section = ForcingSection(
+            "forcing",
             {"thl0": 290.0, "qt0": 0.01, "u0": 4.0, "v0": 1.0, "tke": 0.5, "lapse": 0.0},
             sim=self.sim,
             defaults={},
@@ -47,8 +47,8 @@ class TestICSection(unittest.TestCase):
         np.testing.assert_allclose(section.pr[:, 2:], [[0.01, 4.0, 1.0, 0.5]] * 3)
 
     def test_generate_prof_with_lapse(self):
-        section = ICSection(
-            "ic",
+        section = ForcingSection(
+            "forcing",
             {"thl0": 300.0, "qt0": 0.0, "u0": 2.0, "v0": 0.0, "tke": 0.1, "lapse": 0.5},
             sim=self.sim,
             defaults={},
@@ -57,8 +57,8 @@ class TestICSection(unittest.TestCase):
         np.testing.assert_allclose(section.pr[:, 1], [300.0, 301.0, 302.0])
 
     def test_write_prof_creates_expected_file(self):
-        section = ICSection(
-            "ic",
+        section = ForcingSection(
+            "forcing",
             {"thl0": 290.0, "qt0": 0.01, "u0": 4.0, "v0": 1.0, "tke": 0.5, "lapse": 0.0},
             sim=self.sim,
             defaults={},

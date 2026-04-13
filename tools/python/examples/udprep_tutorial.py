@@ -41,17 +41,17 @@ print(prep.ibm)
 print("-------------------------------------------------------------------")
 print("Accessing section parameters...")
 print(f"ibm dx: {prep.ibm.dx}")
-print(f"ic thl0: {prep.ic.thl0}")
+print(f"forcing thl0: {prep.forcing.thl0}")
 print(f"vegetation ltrees: {prep.vegetation.ltrees}")
 print(f"scalars nsv: {prep.scalars.nsv}")
 print(f"seb facT: {prep.seb.facT}")
 
 print("-------------------------------------------------------------------")
-print("Example 1: override IC parameter and write profiles...")
-# Update an IC parameter and regenerate profile inputs.
-prep.ic.thl0 = 290.0
-prep.ic.generate_prof()
-prep.ic.write_prof()
+print("Example 1: override forcing parameter and write profiles...")
+# Update a forcing parameter and regenerate profile inputs.
+prep.forcing.thl0 = 290.0
+prep.forcing.generate_prof()
+prep.forcing.write_prof()
 
 print("-------------------------------------------------------------------")
 print("Example 2: enable vegetation and run vegetation preprocessing...")
@@ -64,9 +64,9 @@ print("Example 3: run IBM section preprocessing...")
 prep.ibm.run_all()
 
 print("-------------------------------------------------------------------")
-print("Example 4: write changed params for IC section...")
+print("Example 4: write changed params for forcing section...")
 # Write changed parameters from one section back to namelist files.
-prep.ic.write_changed_params()
+prep.forcing.write_changed_params()
 
 print("-------------------------------------------------------------------")
 print("Example 4b: show changed params for all sections...")

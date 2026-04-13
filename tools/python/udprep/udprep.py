@@ -22,6 +22,9 @@ SKIP = object()
 
 
 class Section:
+    # Internal attributes always stored on the instance itself, never proxied to sim.
+    _MANAGED_INTERNALS: frozenset = frozenset({"_name", "_defaults", "_fields", "sim"})
+
     def __init__(
         self,
         name: str,
@@ -29,11 +32,51 @@ class Section:
         sim: Any | None = None,
         defaults: Dict[str, Any] | None = None,
     ):
-        self._name = name
-        self.sim = sim
-        self._defaults = defaults or {}
-        for key, val in values.items():
-            setattr(self, key, val)
+        object.__setattr__(self, "_name", name)
+        object.__setattr__(self, "sim", sim)
+        object.__setattr__(self, "_defaults", defaults or {})
+        object.__setattr__(self, "_fields", frozenset(values.keys()))
+        if sim is not None:
+            # Write all resolved field values to sim.
+            # Values dict is already prioritised (namoptions > defaults) by UDPrep.__init__,
+            # so we can write unconditionally — sim becomes the single source of truth.
+            for key, val in values.items():
+                setattr(sim, key, val)
+        else:
+            # No sim available — store fields locally (no proxy possible).
+            for key, val in values.items():
+                object.__setattr__(self, key, val)
+
+    def __getattr__(self, name: str) -> Any:
+        # Called only when normal lookup (instance __dict__, class) fails.
+        # Proxy to sim so that section.attr and sim.attr are the same object.
+        try:
+            sim = object.__getattribute__(self, "sim")
+        except AttributeError:
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        if sim is not None and hasattr(sim, name):
+            return getattr(sim, name)
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name in Section._MANAGED_INTERNALS or name.startswith("_"):
+            object.__setattr__(self, name, value)
+            return
+        try:
+            fields = object.__getattribute__(self, "_fields")
+            sim = object.__getattribute__(self, "sim")
+        except AttributeError:
+            object.__setattr__(self, name, value)
+            return
+        if name in fields:
+            if sim is not None:
+                # Write through to sim — sim is the single source of truth for fields.
+                setattr(sim, name, value)
+            else:
+                object.__setattr__(self, name, value)
+        else:
+            # Computed output or new local attribute — store on the section instance.
+            object.__setattr__(self, name, value)
 
     def run_steps(
         self,
@@ -135,10 +178,24 @@ class Section:
 
     def __repr__(self) -> str:
         lines = [f"{self._name}:"]
-        for key, val in sorted(self.__dict__.items()):
-            if key in ("_name", "sim", "_defaults"):
+        try:
+            fields = object.__getattribute__(self, "_fields")
+            sim = object.__getattribute__(self, "sim")
+        except AttributeError:
+            fields, sim = frozenset(), None
+        shown: set = set()
+        for key in sorted(fields):
+            try:
+                val = getattr(self, key)
+            except AttributeError:
                 continue
-            lines.append(f"  {key}: {val}")
+            lines.append(f"  {key}: {val!r}")
+            shown.add(key)
+        # Also show locally-stored attributes (computed outputs, etc.)
+        for key, val in sorted(self.__dict__.items()):
+            if key in Section._MANAGED_INTERNALS or key.startswith("_") or key in shown:
+                continue
+            lines.append(f"  {key}: {val!r}")
         return "\n".join(lines)
 
 
@@ -165,7 +222,7 @@ class _DefaultContext:
         if self._sim is not None and hasattr(self._sim, name):
             return getattr(self._sim, name)
         raise AttributeError(name)
-from .udprep_ic import SPEC as IC_SPEC
+from .udprep_forcing import SPEC as FORCING_SPEC
 from .udprep_ibm import SPEC as IBM_SPEC
 from .udprep_grid import SPEC as GRID_SPEC
 from .udprep_radiation import SPEC as RADIATION_SPEC
@@ -181,9 +238,9 @@ class UDPrep:
 
     SECTION_SPECS = [
         GRID_SPEC,
+        FORCING_SPEC,
         SEB_SPEC,
         IBM_SPEC,
-        IC_SPEC,
         VEGETATION_SPEC,
         SCALARS_SPEC,
         RADIATION_SPEC,
@@ -251,6 +308,25 @@ class UDPrep:
         section_obj = getattr(self, section, None)
         if section_obj is None:
             return {}
+        # For proxy-style Section, fields are on sim. Use _fields to gather them.
+        try:
+            fields = object.__getattribute__(section_obj, "_fields")
+        except AttributeError:
+            fields = None
+        if fields is not None:
+            result: dict[str, Any] = {}
+            for key in fields:
+                try:
+                    result[key] = getattr(section_obj, key)
+                except AttributeError:
+                    pass
+            # Also include any locally-stored attributes (computed outputs, etc.)
+            for key, val in section_obj.__dict__.items():
+                if key in Section._MANAGED_INTERNALS or key.startswith("_") or key in fields:
+                    continue
+                result[key] = val
+            return result
+        # FakeSection or other non-proxy sections: fall back to __dict__ scan.
         return {
             key: val
             for key, val in section_obj.__dict__.items()
@@ -277,9 +353,7 @@ class UDPrep:
         """Run preprocessing for all sections."""
         ibm_backend = kwargs.pop("ibm_backend", "f2py")
         self.grid.run_all()
-        self.ibm.generate_lscale()
-        self.ibm.write_lscale()
-        self.ic.run_all()
+        self.forcing.run_all()
         if self.scalars.nsv > 0:
             self.scalars.run_all()
         if self.vegetation.ltrees or self.vegetation.ltreesfile:
