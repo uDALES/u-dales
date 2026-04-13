@@ -239,11 +239,11 @@ class UDPrep:
     SECTION_SPECS = [
         GRID_SPEC,
         FORCING_SPEC,
-        SEB_SPEC,
-        IBM_SPEC,
-        VEGETATION_SPEC,
         SCALARS_SPEC,
+        VEGETATION_SPEC,
+        IBM_SPEC,
         RADIATION_SPEC,
+        SEB_SPEC,
     ]
     DEFAULTS_JSON = None
 
