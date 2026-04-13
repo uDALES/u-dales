@@ -3,7 +3,7 @@
 !>
 !
 !! Replaces modfielddump.f90 by gathering y-direction data to the column-head processor
-!! (myidy==0) using writeoffset, producing out_fields.xxx.expnr.nc files.
+!! (myidy==0) using writeoffset, producing ins_fields.xxx.expnr.nc files.
 !!
 !! \author Jingzi Huang, ICL (2024-2026)
 !! \todo documentation
@@ -238,8 +238,8 @@ contains
 
     end if
 
-    ! Create NetCDF file: out_fields.xxx.xxx.nc (one per x-processor column)
-    filename_fields = 'out_fields.xxx.xxx.nc'
+    ! Create NetCDF file: ins_fields.xxx.xxx.nc (one per x-processor column)
+    filename_fields = 'ins_fields.xxx.xxx.nc'
     filename_fields(12:14) = cmyidx
     filename_fields(16:18) = cexpnr
 
