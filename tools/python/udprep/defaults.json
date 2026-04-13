@@ -116,7 +116,7 @@
   },
   "seb": {
     "facT": 288.0,
-    "nfaclyrs": 10,
+    "nfaclyrs": 3,
     "facT_file": "",
     "dtEB": 10.0
   },
