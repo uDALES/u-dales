@@ -320,7 +320,7 @@ class UDBase:
                 self.dzm = np.concatenate([[2 * self.zt[0]], np.diff(self.zt)])
                 
             except Exception as e:
-                self._warn_load(
+                warnings.warn(
                     f"Error loading prof.inp.{self.expnr}: {e}. Using uniform grid."
                 )
                 self._lfprof = False
@@ -395,11 +395,13 @@ class UDBase:
                     setattr(self, f'S{grid_type}', mask)
                     
                 except Exception as e:
-                    self._warn_load(f"Error loading solid_{grid_type}.txt: {e}")
+                    warnings.warn(f"Error loading solid_{grid_type}.txt: {e}")
                     setattr(self, f'S{grid_type}', None)
                     self._lfsolid = False
             else:
+                self._warn_load(f"solid_{grid_type}.txt not found. IBM solid mask not loaded.")
                 setattr(self, f'S{grid_type}', None)
+                self._lfsolid = False
     
     def _load_facet_data(self):
         """Load facet information if present."""
@@ -416,9 +418,10 @@ class UDBase:
             try:
                 self.facs['area'] = np.loadtxt(facetarea_file, skiprows=1)
             except Exception as e:
-                self._warn_load(f"Error loading facetarea.inp.{self.expnr}: {e}")
+                warnings.warn(f"Error loading facetarea.inp.{self.expnr}: {e}")
                 self._lffacetarea = False
         else:
+            self._warn_load(f"facetarea.inp.{self.expnr} not found.")
             self._lffacetarea = False
         
         # Load facet types
@@ -429,9 +432,10 @@ class UDBase:
                 self.facs['typeid'] = data[:, 0].astype(int)
                 self.facs['normals'] = data[:, 1:4]  # Surface normals
             except Exception as e:
-                self._warn_load(f"Error loading facets.inp.{self.expnr}: {e}")
+                warnings.warn(f"Error loading facets.inp.{self.expnr}: {e}")
                 self._lffacets = False
         else:
+            self._warn_load(f"facets.inp.{self.expnr} not found.")
             self._lffacets = False
         
         # Load facet type properties
@@ -472,9 +476,10 @@ class UDBase:
                 ]
                 
             except Exception as e:
-                self._warn_load(f"Error loading factypes.inp.{self.expnr}: {e}")
+                warnings.warn(f"Error loading factypes.inp.{self.expnr}: {e}")
                 self._lffactypes = False
         else:
+            self._warn_load(f"factypes.inp.{self.expnr} not found.")
             self._lffactypes = False
         
         # Load facet sections
@@ -516,9 +521,10 @@ class UDBase:
                     }
                     
                 except Exception as e:
-                    self._warn_load(f"Error loading facet_sections_{grid_type}.txt: {e}")
+                    warnings.warn(f"Error loading facet_sections_{grid_type}.txt: {e}")
                     self._lffacet_sections = False
             else:
+                self._warn_load(f"facet_sections_{grid_type}.txt or fluid_boundary_{grid_type}.txt not found.")
                 self._lffacet_sections = False
     
     def _load_tree_data(self):
@@ -533,10 +539,11 @@ class UDBase:
                     self.trees = self.trees.reshape(1, -1)
                 self.trees = self.trees.astype(int) - 1
             except Exception as e:
-                self._warn_load(f"Error loading trees.inp.{self.expnr}: {e}")
+                warnings.warn(f"Error loading trees.inp.{self.expnr}: {e}")
                 self._lftrees = False
                 self.trees = None
         else:
+            self._warn_load(f"trees.inp.{self.expnr} not found.")
             self._lftrees = False
             self.trees = None
 
@@ -546,14 +553,14 @@ class UDBase:
         params_path = self.path / f"veg_params.inp.{self.expnr}"
 
         if not points_path.exists() or not params_path.exists():
+            self._warn_load(f"veg.inp.{self.expnr} or veg_params.inp.{self.expnr} not found. Vegetation not loaded.")
             self.veg = None
             return
 
         try:
             self.load_veg(zero_based=True, cache=True)
         except Exception as exc:
-            if not self._suppress_load_warnings:
-                warnings.warn(f"Error loading vegetation data: {exc}")
+            warnings.warn(f"Error loading vegetation data: {exc}")
             self.veg = None
 
     def save_param(self, varname: str, value: Any) -> Path:
@@ -825,6 +832,53 @@ class UDBase:
         return "\n".join(info)
     
     # ===== Data Loading Methods =====
+
+    def load_prof(self) -> np.ndarray:
+        """
+        Load information from prof.inp file.
+        
+        Returns
+        -------
+        ndarray
+            Profile data from prof.inp file
+            
+        Raises
+        ------
+        FileNotFoundError
+            If prof.inp file does not exist
+            
+        Examples
+        --------
+        >>> prof_data = sim.load_prof()
+        """
+        fname = f"{self.fprof}.{self.expnr}"
+        fpath = self.path / fname
+        
+        if not fpath.exists():
+            raise FileNotFoundError(f"Profile file not found: {fpath}")
+        
+        # Read data starting from line 3 (skip 2 header lines)
+        data = np.loadtxt(fpath, skiprows=2)
+        return data
+    
+    def load_lscale(self) -> np.ndarray:
+        """
+        Load information from lscale.inp file.
+
+        Returns
+        -------
+        ndarray, shape (ktot, 10)
+            Columns: z, uq, vq, pqx, pqy, wfls, dqtdxls, dqtdyls, dqtdtls, dthlrad
+
+        Raises
+        ------
+        FileNotFoundError
+            If lscale.inp file does not exist
+        """
+        fpath = self.path / f"lscale.inp.{self.expnr}"
+        if not fpath.exists():
+            raise FileNotFoundError(f"Large-scale forcing file not found: {fpath}")
+        return np.loadtxt(fpath, skiprows=2)
     
     def load_field(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
@@ -1751,36 +1805,6 @@ class UDBase:
             fld[i, j, k] += var[facid] * areas[m] / cell_volume
         
         return fld
-    
-    def load_prof(self) -> np.ndarray:
-        """
-        Load information from prof.inp file.
-        
-        Matches MATLAB implementation: load_prof(obj)
-        
-        Returns
-        -------
-        ndarray
-            Profile data from prof.inp file
-            
-        Raises
-        ------
-        FileNotFoundError
-            If prof.inp file does not exist
-            
-        Examples
-        --------
-        >>> prof_data = sim.load_prof()
-        """
-        fname = f"{self.fprof}.{self.expnr}"
-        fpath = self.path / fname
-        
-        if not fpath.exists():
-            raise FileNotFoundError(f"Profile file not found: {fpath}")
-        
-        # Read data starting from line 3 (skip 2 header lines)
-        data = np.loadtxt(fpath, skiprows=2)
-        return data
     
     def load_facsec(self, var: str) -> Dict[str, np.ndarray]:
         """

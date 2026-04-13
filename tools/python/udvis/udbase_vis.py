@@ -982,3 +982,132 @@ class UDVis:
         if show:
             plt.show()
         return fig, ax
+
+    def plot_profiles(self, save: bool = True, show: bool = False):
+        """Plot initial condition profiles read from prof.inp.<expnr>.
+
+        Reads the file directly from the case directory so it reflects the
+        latest written state, independent of any preprocessing arrays.
+
+        Columns in prof.inp: z, thl, qt, u, v, tke
+
+        Parameters
+        ----------
+        save : bool, default=True
+            Save ``profiles.<expnr>.pdf`` to the case directory.
+        show : bool, default=False
+            Call ``plt.show()`` after plotting.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        import matplotlib.pyplot as plt
+
+        pr = self.sim.load_prof()
+        zf = pr[:, 0]
+
+        fig, axes = plt.subplots(1, 5, sharey=True, figsize=(15, 5))
+
+        axes[0].plot(pr[:, 1], zf)
+        axes[0].set_title("Temperature")
+        axes[0].set_xlabel("thl [K]")
+        axes[0].set_ylabel("z [m]")
+
+        axes[1].plot(pr[:, 2], zf)
+        axes[1].set_title("Specific humidity")
+        axes[1].set_xlabel("qt [kg/kg]")
+
+        axes[2].plot(pr[:, 3], zf, label="u")
+        axes[2].plot(pr[:, 4], zf, "r--", label="v")
+        axes[2].set_title("Velocity")
+        axes[2].set_xlabel("[m/s]")
+        axes[2].legend()
+
+        axes[3].plot(pr[:, 5], zf)
+        axes[3].set_title("TKE")
+        axes[3].set_xlabel("e [m\u00b2/s\u00b2]")
+
+        axes[4].axis("off")  # spare panel reserved for future use
+
+        fig.tight_layout()
+
+        if save:
+            from pathlib import Path
+            out = Path(self.sim.path) / f"profiles.{self.sim.expnr}.pdf"
+            fig.savefig(out)
+
+        if show:
+            plt.show()
+
+        return fig
+
+    def plot_lscale(self, save: bool = True, show: bool = False):
+        """Plot large-scale forcing profiles read from lscale.inp.<expnr>.
+
+        Reads the file directly from the case directory so it reflects the
+        latest written state, independent of any preprocessing arrays.
+
+        Columns in lscale.inp:
+          z, uq, vq, pqx, pqy, wfls, dqtdxls, dqtdyls, dqtdtls, dthlrad
+
+        Parameters
+        ----------
+        save : bool, default=True
+            Save ``lscale.<expnr>.pdf`` to the case directory.
+        show : bool, default=False
+            Call ``plt.show()`` after plotting.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        import matplotlib.pyplot as plt
+
+        ls = self.sim.load_lscale()
+        zf = ls[:, 0]
+
+        fig, axes = plt.subplots(1, 6, sharey=True, figsize=(18, 5))
+
+        axes[0].plot(ls[:, 1], zf, label="uq")
+        axes[0].plot(ls[:, 2], zf, "r--", label="vq")
+        axes[0].set_title("Geostrophic velocity")
+        axes[0].set_xlabel("[m/s]")
+        axes[0].set_ylabel("z [m]")
+        axes[0].legend()
+
+        axes[1].plot(ls[:, 3], zf, label="pqx")
+        axes[1].plot(ls[:, 4], zf, "r--", label="pqy")
+        axes[1].set_title("Pressure gradient")
+        axes[1].set_xlabel("[m/s\u00b2]")
+        axes[1].legend()
+
+        axes[2].plot(ls[:, 5], zf)
+        axes[2].set_title("Subsidence")
+        axes[2].set_xlabel("wfls [m/s]")
+
+        axes[3].plot(ls[:, 6], zf, label="dqtdxls")
+        axes[3].plot(ls[:, 7], zf, "r--", label="dqtdyls")
+        axes[3].set_title("Moisture advection")
+        axes[3].set_xlabel("[kg/kg/m]")
+        axes[3].legend()
+
+        axes[4].plot(ls[:, 8], zf)
+        axes[4].set_title("Moisture tendency")
+        axes[4].set_xlabel("dqtdtls [kg/kg/s]")
+
+        axes[5].plot(ls[:, 9], zf)
+        axes[5].set_title("Radiative forcing")
+        axes[5].set_xlabel("dthlrad [K/s]")
+
+        fig.tight_layout()
+
+        if save:
+            from pathlib import Path
+            out = Path(self.sim.path) / f"lscale.{self.sim.expnr}.pdf"
+            fig.savefig(out)
+
+        if show:
+            plt.show()
+
+        return fig

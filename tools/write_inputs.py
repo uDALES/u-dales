@@ -113,6 +113,11 @@ def main(argv: list[str] | None = None) -> int:
     # here — only sections that derive new values (radiation, vegetation)
     # call it internally inside their own run_all/save methods.
     prep.run_all(force=args.force)
+    
+    ### Optional inspection plots (uncomment to enable)
+    # prep.sim.vis.plot_profiles()
+    # prep.sim.vis.plot_lscale()
+    
     return 0
 
 

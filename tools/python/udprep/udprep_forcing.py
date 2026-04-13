@@ -37,6 +37,7 @@ class ForcingSection(Section):
 
         zf = np.asarray(self.zf, dtype=float)
         pr = np.zeros((len(zf), 6), dtype=float)
+        
         pr[:, 0] = zf
 
         lapse = float(self.lapse)
@@ -54,12 +55,14 @@ class ForcingSection(Section):
         pr[:, 3] = float(self.u0)
         pr[:, 4] = float(self.v0)
         pr[:, 5] = float(self.tke)
+        
         self.pr = pr
 
     def write_prof(self) -> None:
         """Write prof.inp file."""
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
+        
         if not hasattr(self, "pr"):
             self.generate_prof()
 
@@ -73,9 +76,6 @@ class ForcingSection(Section):
                     f"{row[3]:-12.6f} {row[4]:-12.6f} {row[5]:-12.6f}\n"
                 )
 
-    def plot_profiles(self) -> None:
-        """Plot initial profiles for inspection (plot_profiles in MATLAB)."""
-
     def generate_lscale(self) -> None:
         """Compute the large-scale forcing array (generate_lscale in MATLAB)."""
         if self.sim is None:
@@ -83,6 +83,7 @@ class ForcingSection(Section):
 
         zf = np.asarray(self.zf, dtype=float)
         ls = np.zeros((len(zf), 10), dtype=float)
+
         ls[:, 0] = zf
         ls[:, 5] = float(self.w_s)
         ls[:, 6] = float(self.dqtdxls)
@@ -93,6 +94,7 @@ class ForcingSection(Section):
         idriver = int(self.idriver)
         no_forcing = not any([self.luoutflowr, self.lvoutflowr, self.luvolflowr,
                                self.lvvolflowr, self.lprofforc, self.lcoriol])
+        
         ldp = no_forcing and (idriver != 2)
         if ldp:
             warnings.warn(
@@ -100,26 +102,31 @@ class ForcingSection(Section):
                 "initial velocities and/or pressure gradients applied.",
                 stacklevel=2,
             )
+
         forcing_flags = (
             bool(self.luoutflowr or self.lvoutflowr)
             + bool(self.luvolflowr or self.lvvolflowr)
             + bool(self.lprofforc)
             + bool(self.lcoriol)
         )
+
         if forcing_flags + int(ldp) > 1:
             raise ValueError("More than one forcing type specified")
+        
         if self.lprofforc or self.lcoriol:
             ls[:, 1] = float(self.u0)
             ls[:, 2] = float(self.v0)
         elif ldp:
             ls[:, 3] = float(self.dpdx)
             ls[:, 4] = float(self.dpdy)
+        
         self.ls = ls
 
     def write_lscale(self) -> None:
         """Write lscale.inp file."""
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
+        
         if not hasattr(self, "ls"):
             self.generate_lscale()
 
