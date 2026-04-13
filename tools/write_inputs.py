@@ -108,10 +108,11 @@ def main(argv: list[str] | None = None) -> int:
     print("Summary of the derived preprocessing configuration")
     print(prep)
     print("-------------------------------------------------------------------")
-    # Run the configured preprocessing sections and persist any derived
-    # namelist updates needed by downstream solver workflows.
+    # Run the configured preprocessing sections.
+    # Namelist writeback (write_changed_params) is intentionally NOT called
+    # here — only sections that derive new values (radiation, vegetation)
+    # call it internally inside their own run_all/save methods.
     prep.run_all(force=args.force)
-    prep.write_changed_params()
     return 0
 
 
