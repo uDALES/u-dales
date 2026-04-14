@@ -50,10 +50,6 @@ class GridSection(Section):
         self.sim.yt = np.arange(0.5 * self.dy, self.ylen, self.dy)
         self.sim.xm = np.arange(0, self.xlen, self.dx)
         self.sim.ym = np.arange(0, self.ylen, self.dy)
-        self.sim.xf = self.sim.xt.copy()
-        self.sim.yf = self.sim.yt.copy()
-        self.sim.xh = self.sim.xm.copy()
-        self.sim.yh = self.sim.ym.copy()
 
     def generate_zgrid(self) -> None:
         """Create vertical grid.
