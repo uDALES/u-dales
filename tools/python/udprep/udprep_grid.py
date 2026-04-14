@@ -93,7 +93,6 @@ class GridSection(Section):
         # Add derived z quantities
         self.sim.zf = self.sim.zt.copy()
         self.sim.zh = self.sim.zm.copy()
-        self.sim.dzm = np.concatenate([[2 * self.sim.zt[0]], np.diff(self.sim.zt)])
 
     def _set_vertical_grid_from_faces(self, zm: np.ndarray) -> None:
         """Store vertical face/center coordinates from a face grid in real space."""

@@ -317,7 +317,6 @@ class UDBase:
                 
                 # Grid spacing
                 self.dzt = np.diff(np.concatenate([self.zm, [self.zsize]]))
-                self.dzm = np.concatenate([[2 * self.zt[0]], np.diff(self.zt)])
                 
             except Exception as e:
                 warnings.warn(
@@ -345,7 +344,6 @@ class UDBase:
             self.zm = np.arange(self.ktot) * dz
             self.zt = self.zm + 0.5 * dz
             
-            self.dzm = np.full(self.ktot, dz)
             self.dzt = np.full(self.ktot, dz)
         else:
             self._warn_load("Cannot generate z-grid: zsize or ktot not found in namoptions")
