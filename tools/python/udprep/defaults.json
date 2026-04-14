@@ -1,22 +1,19 @@
 {
   "grid": {
     "itot": 64,
-    "xlen": 64,
     "jtot": 64,
-    "ylen": 64,
     "ktot": 96,
-    "zsize": 96,
-    "dx": "xlen/itot",
-    "dy": "ylen/jtot",
-    "dz": "zsize/ktot",
-    "lzstretch": 0,
+    "xlen": 64.0,
+    "ylen": 64.0,
+    "zsize": 96.0,
+    "lzstretch": false,
+    "lstretchexp": false,
+    "lstretchexpcheck": false,
+    "lstretchtanh": false,
+    "lstretch2tanh": false,
     "stretchconst": 0.01,
-    "lstretchexp": 0,
-    "lstretchexpcheck": 0,
-    "lstretchtanh": 0,
-    "lstretch2tanh": 0,
-    "hlin": "0.1*zsize",
-    "dzlin": "zsize/ktot"
+    "hlin": null,
+    "dzlin": null
   },
   "forcing": {
     "u0": 0.0,

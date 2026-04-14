@@ -29,25 +29,79 @@ class GridSection(Section):
 
     def _refresh_derived_grid_params(self) -> None:
         """Recompute grid-derived quantities from the active case settings."""
-        self.dx = float(self.xlen) / int(self.itot)
-        self.dy = float(self.ylen) / int(self.jtot)
-        self.dz = float(self.zsize) / int(self.ktot)
-        self.dzlin = self.dz
-        hlin = getattr(self, "hlin", None)
-        try:
-            hlin = float(hlin)
-        except (TypeError, ValueError):
-            hlin = np.nan
-        if not np.isfinite(hlin):
-            self.hlin = 0.1 * float(self.zsize)
+        self.sim.dx = float(self.xlen / self.itot)
+        self.sim.dy = float(self.ylen / self.jtot)
+        self.sim.dz = float(self.zsize / self.ktot)
+        if self.lzstretch:
+            if self.dzlin is None:
+                self.dzlin = self.dz
+            if self.hlin is None:
+                self.hlin = 0.1 * self.zsize
+
+    def generate_xygrid(self) -> None:
+        """Create staggered x/y grids for preprocessing.
+        
+        Generates cell-centered (xt, yt) and cell-face (xm, ym) grids
+        based on domain size and grid spacing.
+        """
+        self.sim.xt = np.arange(0.5 * self.dx, self.xlen, self.dx)
+        self.sim.yt = np.arange(0.5 * self.dy, self.ylen, self.dy)
+        self.sim.xm = np.arange(0, self.xlen, self.dx)
+        self.sim.ym = np.arange(0, self.ylen, self.dy)
+        self.sim.xf = self.sim.xt.copy()
+        self.sim.yf = self.sim.yt.copy()
+        self.sim.xh = self.sim.xm.copy()
+        self.sim.yh = self.sim.ym.copy()
+
+    def generate_zgrid(self) -> None:
+        """Create vertical grid.
+        
+        Generates cell-centered (zt) and cell-faces (zm) vertical grids
+        along with cell spacing (dzt). Uses uniform or stretched grids
+        depending on configuration flags.
+        """
+        if not self.lzstretch:
+            self.sim.zt = np.arange(0.5 * self.dz, self.zsize, self.dz)
+            self.sim.zm = np.arange(0, self.zsize + self.dz, self.dz)
+            self.sim.dzt = self.sim.zm[1:] - self.sim.zm[:-1]
         else:
-            self.hlin = hlin
+            # Validate exactly one stretch method is selected
+            stretch_methods = {
+                "lstretchexp": bool(self.lstretchexp),
+                "lstretchexpcheck": bool(self.lstretchexpcheck),
+                "lstretchtanh": bool(self.lstretchtanh),
+                "lstretch2tanh": bool(self.lstretch2tanh),
+            }
+            active = [name for name, flag in stretch_methods.items() if flag]
+            if len(active) == 0:
+                raise ValueError(
+                    "lzstretch is true but no stretch method is selected. "
+                    "Set exactly one of: lstretchexp, lstretchexpcheck, lstretchtanh, lstretch2tanh."
+                )
+            if len(active) > 1:
+                raise ValueError(
+                    f"lzstretch is true but multiple stretch methods are active: {active}. "
+                    "Set exactly one of: lstretchexp, lstretchexpcheck, lstretchtanh, lstretch2tanh."
+                )
+            # Stretched grid - call appropriate stretching method
+            if self.lstretchexp:
+                self._stretch_exp()
+            elif self.lstretchexpcheck:
+                self._stretch_exp_check()
+            elif self.lstretchtanh:
+                self._stretch_tanh()
+            elif self.lstretch2tanh:
+                self._stretch_2tanh()
+        # Add derived z quantities
+        self.sim.zf = self.sim.zt.copy()
+        self.sim.zh = self.sim.zm.copy()
+        self.sim.dzm = np.concatenate([[2 * self.sim.zt[0]], np.diff(self.sim.zt)])
 
     def _set_vertical_grid_from_faces(self, zm: np.ndarray) -> None:
         """Store vertical face/center coordinates from a face grid in real space."""
-        self.zm = np.asarray(zm, dtype=float)
-        self.zt = 0.5 * (self.zm[:-1] + self.zm[1:])
-        self.dzt = np.diff(self.zm)
+        self.sim.zm = np.asarray(zm, dtype=float)
+        self.sim.zt = 0.5 * (self.sim.zm[:-1] + self.sim.zm[1:])
+        self.sim.dzt = np.diff(self.sim.zm)
 
     def _linear_prefix_faces(self) -> tuple[int, int, np.ndarray]:
         """Return the linear near-wall prefix of the vertical face grid."""
@@ -82,62 +136,7 @@ class GridSection(Section):
 
         self._set_vertical_grid_from_faces(zm)
 
-    def generate_xygrid(self) -> None:
-        """Create staggered x/y grids for preprocessing.
-        
-        Generates cell-centered (xt, yt) and face-centered (xm, ym) grids
-        based on domain size and grid spacing.
-        """
-        # Cell-centered grids (staggered, starting at 0.5*dx)
-        self.xt = np.arange(0.5 * self.dx, self.xlen, self.dx)
-        self.yt = np.arange(0.5 * self.dy, self.ylen, self.dy)
-        
-        # Cell-face-centered grids (starting at 0)
-        self.xm = np.arange(0, self.xlen + self.dx, self.dx)
-        self.ym = np.arange(0, self.ylen + self.dy, self.dy)
-        if self.sim is not None:
-            self.sim.xt = self.xt.copy()
-            self.sim.yt = self.yt.copy()
-            self.sim.xm = self.xm[:-1].copy()
-            self.sim.ym = self.ym[:-1].copy()
-            self.sim.xf = self.xt.copy()
-            self.sim.yf = self.yt.copy()
-            self.sim.xh = self.xm.copy()
-            self.sim.yh = self.ym.copy()
-
-    def generate_zgrid(self) -> None:
-        """Create vertical grid.
-        
-        Generates cell-centered (zt) and cell-faces (zm) vertical grids
-        along with cell spacing (dzt). Uses uniform or stretched grids
-        depending on configuration flags.
-        """
-        if not self.lzstretch:
-            # Uniform grid spacing
-            self.zt = np.arange(0.5 * self.dz, self.zsize, self.dz)
-            self.zm = np.arange(0, self.zsize + self.dz, self.dz)
-            self.dzt = self.zm[1:] - self.zm[:-1]
-        else:
-            # Stretched grid - call appropriate stretching method
-            if self.lstretchexp:
-                self.stretch_exp()
-            elif self.lstretchexpcheck:
-                self.stretch_exp_check()
-            elif self.lstretchtanh:
-                self.stretch_tanh()
-            elif self.lstretch2tanh:
-                self.stretch_2tanh()
-            else:
-                raise ValueError("Invalid stretch")
-        if self.sim is not None:
-            self.sim.zt = self.zt.copy()
-            self.sim.zm = self.zm[:-1].copy()
-            self.sim.zf = self.zt.copy()
-            self.sim.zh = self.zm.copy()
-            self.sim.dzt = self.dzt.copy()
-            self.sim.dzm = np.concatenate([[2 * self.zt[0]], np.diff(self.zt)])
-
-    def stretch_exp(self) -> None:
+    def _stretch_exp(self) -> None:
         """Generate exponential stretch grid.
         
         Creates a vertical grid with linear spacing in the lower part and 
@@ -147,7 +146,7 @@ class GridSection(Section):
             lambda gf, xi: (np.exp(gf * xi) - 1.0) / (np.exp(gf) - 1.0)
         )
 
-    def stretch_exp_check(self) -> None:
+    def _stretch_exp_check(self) -> None:
         """Generate exponential stretch grid after validating exponential stretch.
         
         Creates a vertical grid with exponential stretching using a root-finding
@@ -198,7 +197,7 @@ class GridSection(Section):
 
         self._set_vertical_grid_from_faces(zm)
 
-    def stretch_tanh(self) -> None:
+    def _stretch_tanh(self) -> None:
         """Generate tanh-based stretch grid.
         
         Creates a vertical grid with linear spacing in the lower part and
@@ -208,7 +207,7 @@ class GridSection(Section):
             lambda gf, xi: 1.0 - np.tanh(gf * (1.0 - xi)) / np.tanh(gf)
         )
 
-    def stretch_2tanh(self) -> None:
+    def _stretch_2tanh(self) -> None:
         """Generate double-tanh stretch grid.
         
         Creates a vertical grid with linear spacing in the lower part and

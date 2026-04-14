@@ -32,6 +32,7 @@ def make_grid_section(**overrides):
         "lstretchtanh": 0,
         "lstretch2tanh": 0,
         "hlin": 2.0,
+        "dzlin": 1.0,
     }
     values.update(overrides)
     sim = SimpleNamespace()
@@ -46,10 +47,10 @@ class TestGridSection(unittest.TestCase):
 
         np.testing.assert_allclose(section.xt, [1.0, 3.0, 5.0, 7.0])
         np.testing.assert_allclose(section.yt, [1.0, 3.0, 5.0])
-        np.testing.assert_allclose(section.xm, [0.0, 2.0, 4.0, 6.0, 8.0])
-        np.testing.assert_allclose(section.ym, [0.0, 2.0, 4.0, 6.0])
-        np.testing.assert_allclose(sim.xf, section.xt)
-        np.testing.assert_allclose(sim.xh, section.xm)
+        np.testing.assert_allclose(section.xm, [0.0, 2.0, 4.0, 6.0])
+        np.testing.assert_allclose(section.ym, [0.0, 2.0, 4.0])
+        np.testing.assert_allclose(sim.xt, section.xt)
+        np.testing.assert_allclose(sim.xm, section.xm)
 
     def test_generate_zgrid_uniform_matches_expected_faces_and_centers(self):
         section, sim = make_grid_section()
@@ -59,11 +60,11 @@ class TestGridSection(unittest.TestCase):
         np.testing.assert_allclose(section.zm, [0.0, 2.0, 4.0, 6.0, 8.0, 10.0])
         np.testing.assert_allclose(section.zt, [1.0, 3.0, 5.0, 7.0, 9.0])
         np.testing.assert_allclose(section.dzt, [2.0, 2.0, 2.0, 2.0, 2.0])
-        np.testing.assert_allclose(sim.zh, section.zm)
-        np.testing.assert_allclose(sim.zf, section.zt)
+        np.testing.assert_allclose(sim.zm, section.zm)
+        np.testing.assert_allclose(sim.zt, section.zt)
 
-    def test_refresh_derived_params_recovers_invalid_hlin(self):
-        section, _ = make_grid_section(hlin="invalid")
+    def test_refresh_derived_params_uses_computed_hlin_when_not_set(self):
+        section, _ = make_grid_section(hlin=None, lzstretch=True, lstretchexp=True)
         section._refresh_derived_grid_params()
         self.assertEqual(section.dx, 2.0)
         self.assertEqual(section.dy, 2.0)
@@ -98,7 +99,7 @@ class TestGridSection(unittest.TestCase):
         section._refresh_derived_grid_params()
         section.generate_zgrid()
 
-        np.testing.assert_allclose(section.zm[:2], [0.0, 2.0])
+        np.testing.assert_allclose(section.zm[:2], [0.0, 1.0])
         self.assertTrue(np.all(np.diff(section.zm) > 0.0))
         self.assertAlmostEqual(section.zm[-1], 20.0)
 
