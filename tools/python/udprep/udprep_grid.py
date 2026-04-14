@@ -48,8 +48,8 @@ class GridSection(Section):
         """
         self.sim.xt = np.arange(0.5 * self.dx, self.xlen, self.dx)
         self.sim.yt = np.arange(0.5 * self.dy, self.ylen, self.dy)
-        self.sim.xm = np.arange(0, self.xlen, self.dx)
-        self.sim.ym = np.arange(0, self.ylen, self.dy)
+        self.sim.xm = np.arange(0.0, self.xlen, self.dx)
+        self.sim.ym = np.arange(0.0, self.ylen, self.dy)
 
     def generate_zgrid(self) -> None:
         """Create vertical grid.
@@ -60,8 +60,7 @@ class GridSection(Section):
         """
         if not self.lzstretch:
             self.sim.zt = np.arange(0.5 * self.dz, self.zsize, self.dz)
-            self.sim.zm = np.arange(0, self.zsize + self.dz, self.dz)
-            self.sim.dzt = self.sim.zm[1:] - self.sim.zm[:-1]
+            self.sim.zm = np.arange(0.0, self.zsize, self.dz)
         else:
             # Validate exactly one stretch method is selected
             stretch_methods = {
@@ -90,18 +89,25 @@ class GridSection(Section):
                 self._stretch_tanh()
             elif self.lstretch2tanh:
                 self._stretch_2tanh()
+
         # Add derived z quantities
+        self.sim.dzt = np.diff(np.append(self.zm, self.zsize))
         self.sim.zf = self.sim.zt.copy()
         self.sim.zh = self.sim.zm.copy()
 
     def _set_vertical_grid_from_faces(self, zm: np.ndarray) -> None:
-        """Store vertical face/center coordinates from a face grid in real space."""
-        self.sim.zm = np.asarray(zm, dtype=float)
-        self.sim.zt = 0.5 * (self.sim.zm[:-1] + self.sim.zm[1:])
-        self.sim.dzt = np.diff(self.sim.zm)
+        """Store vertical face/center coordinates from a face grid in real space.
+        
+        zm must have ktot+1 elements (cell faces including top boundary).
+        Produces ktot-length zm (bottom face of each cell), zt, and dzt.
+        """
+        zm = np.asarray(zm, dtype=float)
+        self.sim.zm = zm[:-1]
+        self.sim.zt = 0.5 * (zm[:-1] + zm[1:])
+        self.sim.dzt = np.diff(zm)
 
     def _linear_prefix_faces(self) -> tuple[int, int, np.ndarray]:
-        """Return the linear near-wall prefix of the vertical face grid."""
+        """Return the linear near-wall prefix of the vertical face grid (ktot+1 elements)."""
         il = int(round(self.hlin / self.dzlin))
         ir = int(self.ktot) - il
         zm = np.zeros(int(self.ktot) + 1, dtype=float)

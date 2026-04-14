@@ -316,7 +316,7 @@ class UDBase:
                 self.zm = zm_full[:-1]  # Match dimensions
                 
                 # Grid spacing
-                self.dzt = np.diff(np.concatenate([self.zm, [self.zsize]]))
+                self.dzt = np.diff(np.append(self.zm, self.zsize))
                 
             except Exception as e:
                 warnings.warn(

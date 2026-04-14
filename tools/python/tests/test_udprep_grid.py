@@ -57,7 +57,7 @@ class TestGridSection(unittest.TestCase):
         section._refresh_derived_grid_params()
         section.generate_zgrid()
 
-        np.testing.assert_allclose(section.zm, [0.0, 2.0, 4.0, 6.0, 8.0, 10.0])
+        np.testing.assert_allclose(section.zm, [0.0, 2.0, 4.0, 6.0, 8.0])
         np.testing.assert_allclose(section.zt, [1.0, 3.0, 5.0, 7.0, 9.0])
         np.testing.assert_allclose(section.dzt, [2.0, 2.0, 2.0, 2.0, 2.0])
         np.testing.assert_allclose(sim.zm, section.zm)
@@ -82,11 +82,11 @@ class TestGridSection(unittest.TestCase):
         section._refresh_derived_grid_params()
         section.generate_zgrid()
 
-        self.assertEqual(len(section.zm), 7)
+        self.assertEqual(len(section.zm), 6)
         self.assertEqual(len(section.zt), 6)
         self.assertTrue(np.all(np.diff(section.zm) > 0.0))
-        np.testing.assert_allclose(section.zt, 0.5 * (section.zm[:-1] + section.zm[1:]))
-        np.testing.assert_allclose(section.dzt, np.diff(section.zm))
+        np.testing.assert_allclose(section.zt, section.zm + 0.5 * section.dzt)
+        np.testing.assert_allclose(section.dzt, np.diff(np.append(section.zm, 12.0)))
 
     def test_tanh_stretch_uses_computational_mapping_and_keeps_linear_prefix(self):
         section, _ = make_grid_section(
@@ -101,7 +101,7 @@ class TestGridSection(unittest.TestCase):
 
         np.testing.assert_allclose(section.zm[:2], [0.0, 1.0])
         self.assertTrue(np.all(np.diff(section.zm) > 0.0))
-        self.assertAlmostEqual(section.zm[-1], 20.0)
+        self.assertAlmostEqual(float(section.zm[-1] + section.dzt[-1]), 20.0)
 
     def test_invalid_stretch_configuration_raises(self):
         section, _ = make_grid_section(lzstretch=1)
