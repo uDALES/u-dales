@@ -35,8 +35,10 @@ class GridSection(Section):
         if self.lzstretch:
             if self.dzlin is None:
                 self.dzlin = self.dz
+                warnings.warn(f"dzlin has not been set in namoptions while creating stretched z-grid; using default value (zsize/ktot) = {self.dz}")
             if self.hlin is None:
                 self.hlin = 0.1 * self.zsize
+                warnings.warn(f"hlin has not been set in namoptions while creating stretched z-grid; using default value (0.1*zsize) = {self.hlin}")
 
     def generate_xygrid(self) -> None:
         """Create staggered x/y grids for preprocessing.
