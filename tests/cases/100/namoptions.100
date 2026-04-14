@@ -28,6 +28,7 @@ ylen         = 160
 /
 
 &WALLS
+nfaclyrs     = 3
 nfcts = 1102
 nsolpts_u = 60192
 nsolpts_v = 60192
