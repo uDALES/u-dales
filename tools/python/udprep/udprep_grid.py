@@ -64,10 +64,10 @@ class GridSection(Section):
         else:
             # Validate exactly one stretch method is selected
             stretch_methods = {
-                "lstretchexp": bool(self.lstretchexp),
-                "lstretchexpcheck": bool(self.lstretchexpcheck),
-                "lstretchtanh": bool(self.lstretchtanh),
-                "lstretch2tanh": bool(self.lstretch2tanh),
+                "lstretchexp": self.lstretchexp,
+                "lstretchexpcheck": self.lstretchexpcheck,
+                "lstretchtanh": self.lstretchtanh,
+                "lstretch2tanh": self.lstretch2tanh,
             }
             active = [name for name, flag in stretch_methods.items() if flag]
             if len(active) == 0:
@@ -104,13 +104,12 @@ class GridSection(Section):
         zm = np.asarray(zm, dtype=float)
         self.sim.zm = zm[:-1]
         self.sim.zt = 0.5 * (zm[:-1] + zm[1:])
-        self.sim.dzt = np.diff(zm)
 
     def _linear_prefix_faces(self) -> tuple[int, int, np.ndarray]:
         """Return the linear near-wall prefix of the vertical face grid (ktot+1 elements)."""
         il = int(round(self.hlin / self.dzlin))
-        ir = int(self.ktot) - il
-        zm = np.zeros(int(self.ktot) + 1, dtype=float)
+        ir = self.ktot - il
+        zm = np.zeros(self.ktot + 1, dtype=float)
         zm[: il + 1] = np.arange(0.0, self.hlin + self.dzlin, self.dzlin)
         return il, ir, zm
 
