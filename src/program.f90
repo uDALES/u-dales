@@ -41,17 +41,17 @@ program DALESURBAN      !Version 48
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
   use moddriver,         only : initdriver
+  use modchecksim,        only : initchecksim,checksim
+  use modtimedep,         only : inittimedep,timedep
 
-!----------------------------------------------------------------
-!     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
-!----------------------------------------------------------------
-  use modchecksim,     only : initchecksim,checksim
-!  use modfielddump,    only : initfielddump,fielddump,exitfielddump
-  use out_fields,      only : out_initfields,out_fields_main,out_exitfields
-  use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
-  use stats,           only : stats_init,stats_main,stats_exit !DMajumdar
-  use instant,         only : slice_init,slice_main,probe_init, probe_main
-  use modtimedep,      only : inittimedep,timedep
+!------------------------------------------------------------------------------
+!     0.1     USE STATEMENTS FOR STATISTICAL AND INSTANTANEOUS OUTPUT ROUTINES
+!------------------------------------------------------------------------------
+  use modstatsdump,       only : initstatsdump,statsdump,exitstatsdump    !tg3315
+  use stats,              only : stats_init,stats_main,stats_exit
+  use instant,            only : ins_slice_init,ins_slice_main,ins_probe_init,ins_probe_main
+  use instant_fields_out, only : ins_field_init,ins_field_main,ins_field_exit
+  
   implicit none
 
 !----------------------------------------------------------------
@@ -101,15 +101,13 @@ program DALESURBAN      !Version 48
 
   call initstatsdump
   call stats_init
-  call slice_init
-  call probe_init
+  call ins_field_init
+  call ins_slice_init
+  call ins_probe_init
 
   call initEB
 
   call inittimedep
-
- ! call initfielddump
-  call out_initfields
 
   call boundary
 
@@ -118,8 +116,6 @@ program DALESURBAN      !Version 48
   call createpurifiers
 
   call init_heatpump
-
-  !call fielddump
 
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
@@ -196,13 +192,11 @@ program DALESURBAN      !Version 48
 
     call checksim
 
-   ! call fielddump
-    call out_fields_main
-
     call statsdump     ! will depricate soon; contains tke budget only(not working)
     call stats_main
-    call slice_main
-    call probe_main
+    call ins_field_main
+    call ins_slice_main
+    call ins_probe_main
 
     call boundary
 
@@ -227,11 +221,10 @@ program DALESURBAN      !Version 48
 !--------------------------------------------------------
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
- ! call exitfielddump
-  call out_exitfields
   call exitstatsdump     !tg3315
   call exit_heatpump
   call stats_exit
+  call ins_field_exit
   !call exitmodules
   !call exittest
   call exitmpi

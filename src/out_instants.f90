@@ -40,7 +40,7 @@ module instant
   use netcdf
   implicit none
   private
-  public :: slice_init, slice_main, probe_init, probe_main
+  public :: ins_slice_init, ins_slice_main, ins_probe_init, ins_probe_main, instant_validate_output_vars
   save
 
   integer :: xdim, ydim, zdim, kdim  ! Added kdim for multiple slices
@@ -70,7 +70,7 @@ module instant
 
   contains
 
-    subroutine slice_init
+    subroutine ins_slice_init
       implicit none
 
       if(.not.(lislicedump .or. ljslicedump .or. lkslicedump)) return
@@ -109,10 +109,10 @@ module instant
         call instant_create_nckslice    !> Generate sliced NetCDF: ins_kslice.xxx.xxx.nc
         deallocate(ksliceVars)
       end if
-    end subroutine slice_init
+    end subroutine ins_slice_init
 
 
-    subroutine slice_main
+    subroutine ins_slice_main
       implicit none
       if (timee < tstatstart) return
       if (.not. rk3step==3)  return
@@ -126,7 +126,7 @@ module instant
       else
         tsampleslice = tsampleslice + dt
       endif
-    end subroutine slice_main
+    end subroutine ins_slice_main
 
 
     subroutine instant_ncdescription_islice
@@ -956,7 +956,7 @@ module instant
       present = (pos > 0)
     end function present
 
-    subroutine probe_init
+    subroutine ins_probe_init
       implicit none
       integer :: n, ierr, vn
       character(80) :: probe_filename
@@ -1068,10 +1068,10 @@ module instant
           deallocate(xt, xm, yt, ym, zt, zm)
       end if
       
-    end subroutine probe_init
+    end subroutine ins_probe_init
 
 
-    subroutine probe_main
+    subroutine ins_probe_main
       implicit none
       real, allocatable :: send_buf(:), recv_buf(:)
       integer :: vn
@@ -1122,7 +1122,7 @@ module instant
       else
         tsampleprobe = tsampleprobe + dt
       endif
-    end subroutine probe_main
+    end subroutine ins_probe_main
 
 
     subroutine gather_probe_var(vname, buf)

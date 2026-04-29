@@ -1992,6 +1992,7 @@ module stats
     end subroutine stats_write_tree_scalar
 
     subroutine stats_exit
+      use modstat_nc, only : exitstat_nc
       implicit none
       if(.not.(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump .or. ltreedump)) return
 
@@ -2020,12 +2021,17 @@ module stats
         if ((lchem) .and. (nsv>2)) deallocate(PSS,PSSt)
       end if
 
+      if (ltdump) then
+        if (myidy==0) call exitstat_nc(ncidt)
+      end if
+
       if (lxytdump) then
         deallocate(uxyt,vxyt,wxyt,pxyt,usgsxyt,vsgsxyt,wsgsxyt)
         deallocate(upwpxytik,vpwpxytjk,upvpxytij,upupxytc,vpvpxytc,wpwpxytc,tkexytc)
         deallocate(uwxytik,vwxytjk,uvxytij,uuxyti,vvxytj,wwxytk)
         if (ltempeq) deallocate(thlxyt,wpthlpxytk,wthlxytk,thlpthlpxyt,thlsgsxyt)
         if (lmoist)  deallocate(qtxyt,wpqtpxytk,wqtxytk,qtpqtpxyt,qtsgsxyt)
+        if (myid==0) call exitstat_nc(ncidxyt)
       end if
 
       if (lxydump) then
@@ -2034,6 +2040,7 @@ module stats
         deallocate(uwxyik,uxyik,wxyik,vwxyjk,vxyjk,wxyjk,uvxyij,uxyij,vxyij,uuxyi,vvxyj,wwxyk)
         if (ltempeq) deallocate(thlxy,wpthlpxyk,wthlxyk,thlxyk,thlsgsxy)
         if (lmoist)  deallocate(qtxy,wpqtpxyk,wqtxyk,qtxyk,qtsgsxy)
+        if (myid==0) call exitstat_nc(ncidxy)
       end if
 
       if (lytdump) then
@@ -2042,14 +2049,16 @@ module stats
         if (ltempeq) deallocate(thlyt,wpthlpytk,wthlytk,thlpthlpyt,thlsgsyt)
         if (lmoist)  deallocate(qtyt,wpqtpytk,wqtytk,qtpqtpyt,qtsgsyt)
         if (nsv>0)   deallocate(svytname,wpsvpytname,wsvytname,svpsvpytname,svsgsytname,svyt,wpsvpytk,wsvytk,svpsvpyt,svsgsyt)
+        if (myidy==0) call exitstat_nc(ncidyt)
       end if
 
-      if (lytdump) then
+      if (lydump) then
         deallocate(uy,vy,wy,py,usgsy,wsgsy)
         deallocate(upwpyik,uwyik,uyik,wyik)
         if (ltempeq) deallocate(thly,wpthlpyk,wthlyk,thlyk,thlsgsy)
         if (lmoist)  deallocate(qty,wpqtpyk,wqtyk,qtyk,qtsgsy)
         if (nsv>0)   deallocate(svyname,wpsvpyname,wsvyname,svsgsyname,svy,wpsvpyk,wsvyk,svyk,svsgsy)
+        if (myidy==0) call exitstat_nc(ncidy)
       end if
 
       if (ltreedump) then
@@ -2057,6 +2066,7 @@ module stats
         if (ltempeq) deallocate(tr_thlt)
         if (lmoist)  deallocate(tr_qtt,tr_qtRt,tr_qtAt,tr_omegat)
         if (nsv>0)   deallocate(svtreename,tr_svt)
+        if (myidy==0) call exitstat_nc(ncidtree)
       end if
     end subroutine stats_exit
 end module stats

@@ -253,8 +253,10 @@ module modglobal
 
    ! Outputting instantaneous 3D fields
    logical :: lfielddump   = .false.  !< switch to enable the fielddump
+   real    :: tfieldstart  = 0.       !< Starting time of writing instantaneous fields
    real    :: tfielddump   = 10000.   !< Time step for field outputs
    character(50) :: fieldvars = ''    !< list of variables to be output in fielddump
+   real    :: tnextfielddump          !< time for next fielddump output
 
    logical :: ibrank
    logical :: ierank
@@ -412,7 +414,6 @@ module modglobal
    real    :: trestart = 10000. !<     * each trestart sec. a restart file is written to disk. bss116: per default do not write restart files
    real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
    real    :: tscale !       timescale: domain height*Uinf/utau**2
-   real    :: tnextfielddump !<
    character(90) :: startfile = '' !<    * name of the restart file
 
    real :: totavtime = 0. !<    * the total time over which the values are averaged in meansXXX.XXX
