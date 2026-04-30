@@ -40,7 +40,7 @@ module instant
   use netcdf
   implicit none
   private
-  public :: ins_slice_init, ins_slice_main, ins_probe_init, ins_probe_main, instant_validate_output_vars
+  public :: instant_init, instant_main, instant_validate_output_vars
   save
 
   integer :: xdim, ydim, zdim, kdim  ! Added kdim for multiple slices
@@ -70,7 +70,19 @@ module instant
 
   contains
 
-    subroutine ins_slice_init
+    subroutine instant_init
+      implicit none
+      call instant_slice_init
+      call instant_probe_init
+    end subroutine instant_init
+
+    subroutine instant_main
+      implicit none
+      call instant_slice_main
+      call instant_probe_main
+    end subroutine instant_main
+
+    subroutine instant_slice_init
       implicit none
 
       if(.not.(lislicedump .or. ljslicedump .or. lkslicedump)) return
@@ -109,10 +121,10 @@ module instant
         call instant_create_nckslice    !> Generate sliced NetCDF: ins_kslice.xxx.xxx.nc
         deallocate(ksliceVars)
       end if
-    end subroutine ins_slice_init
+    end subroutine instant_slice_init
 
 
-    subroutine ins_slice_main
+    subroutine instant_slice_main
       implicit none
       if (timee < tstatstart) return
       if (.not. rk3step==3)  return
@@ -126,7 +138,7 @@ module instant
       else
         tsampleslice = tsampleslice + dt
       endif
-    end subroutine ins_slice_main
+    end subroutine instant_slice_main
 
 
     subroutine instant_ncdescription_islice
@@ -262,7 +274,7 @@ module instant
           call define_nc(ncidislice, 1, slicetimeVar)
           call writestat_dims_nc(ncidislice)
           ! Add islice-specific x coordinate information
-          call write_islice_xcoord_local(ncidislice, local_nislice, nislice, islice, myidx, nprocx, itot)
+          call instant_write_islice_xcoord_local(ncidislice, local_nislice, nislice, islice, myidx, nprocx, itot)
         end if
         call define_nc(ncidislice, nslicevars, isliceVars)
         
@@ -298,7 +310,7 @@ module instant
         if (nrecjslice==0) then
           call define_nc(ncidjslice, 1, slicetimeVar)
           call writestat_dims_nc(ncidjslice)
-          call write_jslice_ycoord_local(ncidjslice, local_njslice, njslice, jslice, myidy, nprocy, jtot)
+          call instant_write_jslice_ycoord_local(ncidjslice, local_njslice, njslice, jslice, myidy, nprocy, jtot)
         end if
         call define_nc(ncidjslice, nslicevars, jsliceVars)
         ! write(*,'(A,A,A,I2,A)') '  Processor (myidy=', cmyidy, ') created islice file with ', local_njslice, ' slices'
@@ -321,7 +333,7 @@ module instant
           call define_nc(ncidkslice, 1, slicetimeVar)
           call writestat_dims_nc(ncidkslice)
           ! Add kslice-specific z coordinate information
-          call write_kslice_zcoord(ncidkslice, nkslice, kslice)
+          call instant_write_kslice_zcoord(ncidkslice, nkslice, kslice)
         end if
         call define_nc(ncidkslice, nslicevars, ksliceVars)
       end if
@@ -700,7 +712,7 @@ module instant
       deallocate(tmp_slice)
     end subroutine instant_write_jslice
 
-    subroutine write_islice_xcoord_local(ncid, local_n, nislice_total, islice_positions, myidx_in, nprocx_in, itot_in)
+    subroutine instant_write_islice_xcoord_local(ncid, local_n, nislice_total, islice_positions, myidx_in, nprocx_in, itot_in)
       ! Write x-coordinates for LOCAL islice positions only
       use modglobal, only : xf, xh
       implicit none
@@ -750,9 +762,9 @@ module instant
       deallocate(x_islice_f)
       deallocate(x_islice_h)
       deallocate(islice_indices)
-    end subroutine write_islice_xcoord_local
+    end subroutine instant_write_islice_xcoord_local
 
-    subroutine write_jslice_ycoord_local(ncid, local_n, njslice_total, jslice_positions, myidy_in, nprocy_in, jtot_in)
+    subroutine instant_write_jslice_ycoord_local(ncid, local_n, njslice_total, jslice_positions, myidy_in, nprocy_in, jtot_in)
       ! Write y-coordinates for LOCAL jslice positions (round-robin assignment over myidy)
       use modglobal, only : yf, yh
       implicit none
@@ -799,9 +811,9 @@ module instant
       deallocate(y_jslice_f)
       deallocate(y_jslice_h)
       deallocate(jslice_indices)
-    end subroutine write_jslice_ycoord_local
+    end subroutine instant_write_jslice_ycoord_local
 
-    subroutine write_kslice_zcoord(ncid, nkslice_count, kslice_positions)
+    subroutine instant_write_kslice_zcoord(ncid, nkslice_count, kslice_positions)
       ! Update z-coordinate to reflect kslice levels instead of full z levels
       use modglobal, only : zf, zh
       implicit none
@@ -840,7 +852,7 @@ module instant
       
       deallocate(z_kslice_f)
       deallocate(z_kslice_h)
-    end subroutine write_kslice_zcoord
+    end subroutine instant_write_kslice_zcoord
 
     subroutine instant_write_kslice
       implicit none
@@ -956,7 +968,7 @@ module instant
       present = (pos > 0)
     end function present
 
-    subroutine ins_probe_init
+    subroutine instant_probe_init
       implicit none
       integer :: n, ierr, vn
       character(80) :: probe_filename
@@ -1037,9 +1049,9 @@ module instant
           ! Data Variables
           do vn = 1, nprobevars
              varname = probevars(3*vn-2 : 3*vn-1)
-             call check( nf90_def_var(ncid_probe, trim(get_nc_varname(varname)), NF90_FLOAT, &
+             call check( nf90_def_var(ncid_probe, trim(instant_get_nc_varname(varname)), NF90_FLOAT, &
                                       (/point_dimid, time_dimid/), varid_vals(vn)) )
-             call add_var_atts(ncid_probe, varid_vals(vn), varname)
+             call instant_add_var_atts(ncid_probe, varid_vals(vn), varname)
           end do
           
           call check( nf90_enddef(ncid_probe) )
@@ -1068,10 +1080,10 @@ module instant
           deallocate(xt, xm, yt, ym, zt, zm)
       end if
       
-    end subroutine ins_probe_init
+    end subroutine instant_probe_init
 
 
-    subroutine ins_probe_main
+    subroutine instant_probe_main
       implicit none
       real, allocatable :: send_buf(:), recv_buf(:)
       integer :: vn
@@ -1100,7 +1112,7 @@ module instant
             send_buf = 0.0
             recv_buf = 0.0
             
-            call gather_probe_var(varname, send_buf)
+            call instant_gather_probe_var(varname, send_buf)
             
             ! Reduce to Rank 0
             call MPI_REDUCE(send_buf, recv_buf, nprobe, my_real, MPI_SUM, 0, comm3d, mpierr)
@@ -1122,10 +1134,10 @@ module instant
       else
         tsampleprobe = tsampleprobe + dt
       endif
-    end subroutine ins_probe_main
+    end subroutine instant_probe_main
 
 
-    subroutine gather_probe_var(vname, buf)
+    subroutine instant_gather_probe_var(vname, buf)
       character(len=*), intent(in) :: vname
       real, intent(out) :: buf(:)
       integer :: n, gi, gj, gk, li, lj, lk
@@ -1168,9 +1180,9 @@ module instant
              end select
          endif
       end do
-    end subroutine gather_probe_var
+    end subroutine instant_gather_probe_var
 
-    function get_nc_varname(vname) result(ncname)
+    function instant_get_nc_varname(vname) result(ncname)
        character(len=*), intent(in) :: vname
        character(len=10) :: ncname
        select case(vname)
@@ -1193,7 +1205,7 @@ module instant
        end select
     end function
     
-    subroutine add_var_atts(ncid, vid, vname)
+    subroutine instant_add_var_atts(ncid, vid, vname)
        integer, intent(in) :: ncid, vid
        character(len=*), intent(in) :: vname
        integer :: ierr
@@ -1220,7 +1232,7 @@ module instant
              ierr = nf90_put_att(ncid, vid, 'long_name', 'Scalar concentration')
              ierr = nf90_put_att(ncid, vid, 'units', 'g/m^3')
        end select
-    end subroutine add_var_atts
+    end subroutine instant_add_var_atts
 
     subroutine check(status)
       integer, intent ( in) :: status

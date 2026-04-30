@@ -31,12 +31,12 @@ module instant_fields_out
   use modglobal,  only : cexpnr, rk3step, &
                          ib, ie, jb, je, kb, ke, ih, jh, kh, &
                          jtot, lfielddump, tfieldstart, tfielddump, &
-                         timee, btime, fieldvars, dyi, dxfi, dzhi
+                         timee, btime, runtime, fieldvars, dyi, dxfi, dzhi
   use modfields,  only : u0, v0, w0, thl0, qt0, ql0, sv0, pres0, div, dudx, dvdy, dwdz, &
                          tau_x, tau_y, tau_z, thl_flux
   ! use modpois,    only : p, pup, pvp, pwp, rhs, dpupdx, dpvpdy, dpwpdz
   use modibm,     only : mask_u, mask_v, mask_w, mask_c
-  use modmpi,     only : myidy, cmyidx
+  use modmpi,     only : myid, myidy, cmyidx
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset
 
   implicit none
@@ -70,6 +70,16 @@ contains
     integer :: n, ydimtot
 
     if (.not. lfielddump) return
+
+    if(runtime <= tfieldstart) then
+      if(myid==0) then
+        write(*,*) "ERROR: no instantaneous 3D fields will be written as runtime <= tfieldstart. Note that runtime &
+                    &must be greater than tfieldstart for wiriting ins_fields.* files."
+        write(*,*) "You have used runtime = ", runtime, ", tfieldstart = ", tfieldstart
+        write(*,*) "Either correct the time settings or change all the lfielddump flag to false."
+        stop 1
+      end if
+    end if
 
     call instant_validate_output_vars(nfieldvars, fieldvars, 'fieldvars', 'lfielddump')
 
