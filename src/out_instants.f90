@@ -30,7 +30,7 @@ module instant
                          slicevars, lislicedump, islice, nislice, ljslicedump, jslice, njslice, lkslicedump, kslice, nkslice, &
                          probevars, lprobedump, iprobe, jprobe, kprobe, nprobe, &
                          ib, ie, jb, je, kb, ke, ih, jh, kh, itot, jtot, ktot, &
-                         tinstantstart, tinstantdump, tstatstart, tsample, dt, timee, btime, runtime, &
+                         tinstantstart, tinstantdump, dt, timee, btime, runtime, &
                          xf, yf, zf, xh, yh, zh
   use modfields,  only : um, vm, wm, thlm, qtm, svm, ql0, pres0, &
                          div, dudx, dvdy, dwdz, &
@@ -48,6 +48,7 @@ module instant
   save
 
   real    :: tnextinstantdump
+  logical :: linstantdump
 
   !! Field writing variables
   integer :: xdimfield, ydimfield, zdimfield
@@ -88,7 +89,19 @@ module instant
 
     subroutine instant_init
       implicit none
-      if(.not.(lfielddump .or. lislicedump .or. ljslicedump .or. lkslicedump .or. lprobedump)) return
+
+      linstantdump = lfielddump .or. lislicedump .or. ljslicedump .or. lkslicedump .or. lprobedump
+      if(.not.(linstantdump)) return
+
+      if(runtime+btime <= tinstantstart) then
+        if(myid==0) then
+          write(*,*) "ERROR: no instantaneous fields will be written as runtime+btime <= tinstantstart. Note that &
+                      &runtime+btime must be greater than tinstantstart for wiriting instantaneous output files."
+          write(*,*) "Curent setting: runtime = ", runtime, ", btime = ", btime, ", tinstantstart = ", tinstantstart
+          write(*,*) "Either correct the time settings or change all the instantaneous output flags to false."
+          stop 1
+        end if
+      end if
 
       if (tinstantstart .le. btime) then
         tnextinstantdump = btime
@@ -103,7 +116,7 @@ module instant
 
     subroutine instant_main
       implicit none
-      if(.not.(lfielddump .or. lislicedump .or. ljslicedump .or. lkslicedump .or. lprobedump)) return
+      if(.not.(linstantdump)) return
       
       if (.not. (timee >= tnextinstantdump)) return
       if (.not. rk3step==3)  return
@@ -127,16 +140,6 @@ module instant
       logical :: lhalos_out
 
       if (.not. lfielddump) return
-
-      if(runtime <= tinstantstart) then
-        if(myid==0) then
-          write(*,*) "ERROR: no instantaneous 3D fields will be written as runtime <= tinstantstart. Note that runtime &
-                      &must be greater than tinstantstart for wiriting ins_field.* files."
-          write(*,*) "You have used runtime = ", runtime, ", tinstantstart = ", tinstantstart
-          write(*,*) "Either correct the time settings or change all the lfielddump flag to false."
-          stop 1
-        end if
-      end if
 
       call instant_validate_output_vars(nfieldvars, fieldvars, 'fieldvars', 'lfielddump')
 
@@ -401,7 +404,6 @@ module instant
       if(.not.(lislicedump .or. ljslicedump .or. lkslicedump)) return
 
       ! Validate slice inputs before proceeding
-      call instant_validate_out_time('slices')
       call instant_validate_output_vars(nslicevars, slicevars, 'slicevars', 'one or more of lislicedump, ljslicedump and lkslicedump')  ! Validate slicevars only if at least one slice dump is true
       call instant_validate_slice_inputs(lkslicedump, nkslice, kslice, 'kslice')
       call instant_validate_slice_inputs(lislicedump, nislice, islice, 'islice') 
@@ -1281,7 +1283,6 @@ module instant
       if (.not. lprobedump) return
 
       ! Validate probe inputs before proceeding
-      call instant_validate_out_time('probes')
       call instant_validate_output_vars(nprobevars, probevars, 'probevars', 'lprobedump')
 
       if (nprobe <= 0) then
@@ -1557,20 +1558,6 @@ module instant
       end if
     end subroutine check
 
-
-    subroutine instant_validate_out_time(var_name)
-      implicit none
-      character(len=*), intent(in)  :: var_name
-      if(runtime <= tstatstart) then
-        if(myid==0) then
-          write(*,*) "ERROR: no instantaneous ", trim(var_name), " will be written as runtime <= tstatstart. Note that runtime &
-                      &must be greater than tstatstart for wiriting ", trim(var_name), " files."
-          write(*,*) "You have used runtime = ", runtime, ", tstatstart = ", tstatstart
-          write(*,*) "Either correct the time settings or change all the ", trim(var_name), " writing flags to false."
-          stop 1
-        end if
-      end if
-    end subroutine instant_validate_out_time
 
     subroutine instant_validate_output_vars(nvars, vars, var_name, var_flag)
       ! Count variables from vars string; stop with error if none found
