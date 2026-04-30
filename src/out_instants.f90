@@ -65,7 +65,6 @@ module instant
 
   !! Slice writing variables
   integer :: xdim, ydim, zdim, kdim  ! Added kdim for multiple slices
-  real    :: tsampleslice
   integer :: local_nislice, local_njslice  ! Number of islices on this X-processor (saved from create phase)
   integer                    :: nslicevars
   character(80)              :: filenameislice
@@ -89,10 +88,7 @@ module instant
 
     subroutine instant_init
       implicit none
-
-      call instant_slice_init
-
-      if(.not.(lfielddump .or. lprobedump)) return
+      if(.not.(lfielddump .or. lislicedump .or. ljslicedump .or. lkslicedump .or. lprobedump)) return
 
       if (tinstantstart .le. btime) then
         tnextinstantdump = btime
@@ -101,19 +97,21 @@ module instant
       end if
 
       call instant_field_init
+      call instant_slice_init
       call instant_probe_init
     end subroutine instant_init
 
     subroutine instant_main
       implicit none
-
-      call instant_slice_main
-
-      if(.not.(lfielddump .or. lprobedump)) return
+      if(.not.(lfielddump .or. lislicedump .or. ljslicedump .or. lkslicedump .or. lprobedump)) return
+      
       if (.not. (timee >= tnextinstantdump)) return
       if (.not. rk3step==3)  return
+
       call instant_field_main
+      call instant_slice_main
       call instant_probe_main
+
       tnextinstantdump = tnextinstantdump + tinstantdump
     end subroutine instant_main
 
@@ -413,7 +411,7 @@ module instant
       ydim = je-jb+1
       zdim = ke-kb+1
       kdim = nkslice  ! Set kdim to number of kslices
-      tsampleslice = 0.
+
       call ncinfo(slicetimeVar( 1,:), 'time', 'Time', 's', 'time')
 
       if (lislicedump) then
@@ -440,18 +438,9 @@ module instant
 
     subroutine instant_slice_main
       implicit none
-      if(.not.(lislicedump .or. ljslicedump .or. lkslicedump)) return
-      if (timee < tstatstart) return
-      if (.not. rk3step==3)  return
-
-      if (tsampleslice > tsample) then
-        if (lislicedump) call instant_write_islice
-        if (ljslicedump) call instant_write_jslice
-        if (lkslicedump) call instant_write_kslice
-        tsampleslice = dt
-      else
-        tsampleslice = tsampleslice + dt
-      endif
+      if (lislicedump) call instant_write_islice
+      if (ljslicedump) call instant_write_jslice
+      if (lkslicedump) call instant_write_kslice
     end subroutine instant_slice_main
 
     subroutine instant_ncdescription_islice
