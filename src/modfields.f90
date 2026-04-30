@@ -27,15 +27,15 @@ module modfields
   ! Prognostic variables
 
   real, allocatable :: worksave(:)      !<   Used in POISR!
-  real, allocatable :: um(:,:,:)        !<   x-component of velocity at time step t-1
-  real, allocatable :: vm(:,:,:)        !<   y-component of velocity at time step t-1
-  real, allocatable :: wm(:,:,:)        !<   z-component of velocity at time step t-1
-  real, allocatable :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
+  real, allocatable, target :: um(:,:,:)        !<   x-component of velocity at time step t-1
+  real, allocatable, target :: vm(:,:,:)        !<   y-component of velocity at time step t-1
+  real, allocatable, target :: wm(:,:,:)        !<   z-component of velocity at time step t-1
+  real, allocatable, target :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
   real, allocatable :: e12m(:,:,:)      !<   turb. kin. energy at time step t-1
-  real, allocatable :: qtm(:,:,:)       !<   total specific humidity at time step t
-  real, allocatable, target :: u0(:,:,:)        !<   x-component of velocity at time step t
-  real, allocatable, target :: v0(:,:,:)        !<   y-component of velocity at time step t
-  real, allocatable, target :: w0(:,:,:)        !<   z-component of velocity at time step t
+  real, allocatable, target :: qtm(:,:,:)       !<   total specific humidity at time step t
+  real, allocatable :: u0(:,:,:)        !<   x-component of velocity at time step t
+  real, allocatable :: v0(:,:,:)        !<   y-component of velocity at time step t
+  real, allocatable :: w0(:,:,:)        !<   z-component of velocity at time step t
   real, allocatable, target :: pres0(:,:,:)     !<   pressure at time step t
   real, allocatable, target :: div(:,:,:)
   real, allocatable, target :: dudx(:,:,:)
@@ -52,30 +52,24 @@ module modfields
   real, allocatable :: wh(:,:,:)
   real, allocatable :: pres0h(:,:,:)
 
-  real, allocatable, target :: u01(:,:,:)        !<   x-component of velocity at time step t-1
-  real, allocatable, target :: u02(:,:,:)        !<   x-component of velocity at time step t-1
-
-  real, allocatable, target :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
+  real, allocatable :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
   real, allocatable :: thl0c(:,:,:)      !<   liq. water pot. temperature at time step t
   real, allocatable :: thl0h(:,:,:)     !<   3d-field of theta_l at half levels for kappa scheme
 
   real, allocatable :: qt0h(:,:,:)      !<  3d-field of q_tot   at half levels for kappa scheme
   real, allocatable :: e120(:,:,:)      !<   turb. kin. energy at time step t
-  real, allocatable, target :: qt0(:,:,:)       !<   total specific humidity at time step t
+  real, allocatable :: qt0(:,:,:)       !<   total specific humidity at time step t
 
   real, allocatable :: up(:,:,:)        !<   tendency of um
   real, allocatable :: vp(:,:,:)        !<   tendency of vm
   real, allocatable :: wp(:,:,:)        !<   tendency of wm
-  real, allocatable, target :: ru(:,:,:)        !<   tendency of um
-  real, allocatable, target :: rv(:,:,:)        !<   tendency of vm
-  real, allocatable, target :: rw(:,:,:)        !<   tendency of wm
   real, allocatable :: thlp(:,:,:)      !<   tendency of thlm
   real, allocatable :: thlpc(:,:,:)      !<   tendency of thlm
   real, allocatable :: e12p(:,:,:)      !<   tendency of e12m
   real, allocatable :: qtp(:,:,:)       !<   tendency of qtm
 
-  real, allocatable :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
-  real, allocatable, target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
+  real, allocatable, target :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
+  real, allocatable :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
   real, allocatable :: svp(:,:,:,:)     !<  tendency of sv(n)
   real, allocatable :: svpp(:,:,:,:)
 
@@ -329,9 +323,6 @@ contains
     allocate(up(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; up=0.
     allocate(vp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; vp = 0.
     allocate(wp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; wp = 0.
-    allocate(ru(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; ru=0.
-    allocate(rv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; rv = 0.
-    allocate(rw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; rw = 0.
     ! allocate(pres0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); pres0 = 0.
     !
     ! ! Always have to allocate these, even if they are constant

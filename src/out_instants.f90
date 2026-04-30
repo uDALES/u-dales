@@ -32,8 +32,7 @@ module instant
                          ib, ie, jb, je, kb, ke, ih, jh, kh, itot, jtot, &
                          tfieldstart, tfielddump, tstatstart, tsample, dt, timee, btime, runtime, &
                          xf, yf, zf, xh, yh, zh
-  use modfields,  only : um, vm, wm, thlm, qtm, svm, &
-                         u0, v0, w0, thl0, qt0, ql0, sv0, pres0, &
+  use modfields,  only : um, vm, wm, thlm, qtm, svm, ql0, pres0, &
                          div, dudx, dvdy, dwdz, &
                          tau_x, tau_y, tau_z, thl_flux
   ! use modpois,    only : p, pup, pvp, pwp, rhs, dpupdx, dpvpdy, dpwpdz
@@ -170,37 +169,37 @@ module instant
           select case(fieldvars(3*n-2:3*n-1))
           case('u0')
             call ncinfo(fldVars(n,:), 'u', 'West-East velocity', 'm/s', 'mttt')
-            pfields(n)%point => u0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+            pfields(n)%point => um(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
           case('v0')
             call ncinfo(fldVars(n,:), 'v', 'South-North velocity', 'm/s', 'tmtt')
-            pfields(n)%point => v0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+            pfields(n)%point => vm(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
           case('w0')
             call ncinfo(fldVars(n,:), 'w', 'Vertical velocity', 'm/s', 'ttmt')
-            pfields(n)%point => w0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+            pfields(n)%point => wm(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
           case('th')
             call ncinfo(fldVars(n,:), 'thl', 'Liquid water potential temperature', 'K', 'tttt')
-            pfields(n)%point => thl0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+            pfields(n)%point => thlm(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
           case('ql')
             call ncinfo(fldVars(n,:), 'ql', 'Liquid water mixing ratio', 'kg/kg', 'tttt')
             pfields(n)%point => ql0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
           case('qt')
             call ncinfo(fldVars(n,:), 'qt', 'Total water mixing ratio', 'kg/kg', 'tttt')
-            pfields(n)%point => qt0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+            pfields(n)%point => qtm(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
           case('s1')
             call ncinfo(fldVars(n,:), 's1', 'scalar concentration field 1', 'g/m^3', 'tttt')
-            pfields(n)%point => sv0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 1)
+            pfields(n)%point => svm(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 1)
           case('s2')
             call ncinfo(fldVars(n,:), 's2', 'scalar concentration field 2', 'g/m^3', 'tttt')
-            pfields(n)%point => sv0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 2)
+            pfields(n)%point => svm(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 2)
           case('s3')
             call ncinfo(fldVars(n,:), 's3', 'scalar concentration field 3', 'g/m^3', 'tttt')
-            pfields(n)%point => sv0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 3)
+            pfields(n)%point => svm(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 3)
           case('s4')
             call ncinfo(fldVars(n,:), 's4', 'scalar concentration field 4', 'g/m^3', 'tttt')
-            pfields(n)%point => sv0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 4)
+            pfields(n)%point => svm(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 4)
           case('s5')
             call ncinfo(fldVars(n,:), 's5', 'scalar concentration field 5', 'g/m^3', 'tttt')
-            pfields(n)%point => sv0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 5)
+            pfields(n)%point => svm(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 5)
           case('p0')
             call ncinfo(fldVars(n,:), 'p', 'Kinematic pressure field', 'm^2/s^2', 'tttt')
             pfields(n)%point => pres0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
@@ -230,37 +229,37 @@ module instant
           select case(fieldvars(3*n-2:3*n-1))
           case('u0')
             call ncinfo(fldVars(n,:), 'u', 'West-East velocity', 'm/s', 'mttt')
-            pfields(n)%point => u0(ib:ie, jb:je, kb:ke)
+            pfields(n)%point => um(ib:ie, jb:je, kb:ke)
           case('v0')
             call ncinfo(fldVars(n,:), 'v', 'South-North velocity', 'm/s', 'tmtt')
-            pfields(n)%point => v0(ib:ie, jb:je, kb:ke)
+            pfields(n)%point => vm(ib:ie, jb:je, kb:ke)
           case('w0')
             call ncinfo(fldVars(n,:), 'w', 'Vertical velocity', 'm/s', 'ttmt')
-            pfields(n)%point => w0(ib:ie, jb:je, kb:ke)
+            pfields(n)%point => wm(ib:ie, jb:je, kb:ke)
           case('th')
             call ncinfo(fldVars(n,:), 'thl', 'Liquid water potential temperature', 'K', 'tttt')
-            pfields(n)%point => thl0(ib:ie, jb:je, kb:ke)
+            pfields(n)%point => thlm(ib:ie, jb:je, kb:ke)
           case('ql')
             call ncinfo(fldVars(n,:), 'ql', 'Liquid water mixing ratio', 'kg/kg', 'tttt')
             pfields(n)%point => ql0(ib:ie, jb:je, kb:ke)
           case('qt')
             call ncinfo(fldVars(n,:), 'qt', 'Total water mixing ratio', 'kg/kg', 'tttt')
-            pfields(n)%point => qt0(ib:ie, jb:je, kb:ke)
+            pfields(n)%point => qtm(ib:ie, jb:je, kb:ke)
           case('s1')
             call ncinfo(fldVars(n,:), 's1', 'scalar concentration field 1', 'g/m^3', 'tttt')
-            pfields(n)%point => sv0(ib:ie, jb:je, kb:ke, 1)
+            pfields(n)%point => svm(ib:ie, jb:je, kb:ke, 1)
           case('s2')
             call ncinfo(fldVars(n,:), 's2', 'scalar concentration field 2', 'g/m^3', 'tttt')
-            pfields(n)%point => sv0(ib:ie, jb:je, kb:ke, 2)
+            pfields(n)%point => svm(ib:ie, jb:je, kb:ke, 2)
           case('s3')
             call ncinfo(fldVars(n,:), 's3', 'scalar concentration field 3', 'g/m^3', 'tttt')
-            pfields(n)%point => sv0(ib:ie, jb:je, kb:ke, 3)
+            pfields(n)%point => svm(ib:ie, jb:je, kb:ke, 3)
           case('s4')
             call ncinfo(fldVars(n,:), 's4', 'scalar concentration field 4', 'g/m^3', 'tttt')
-            pfields(n)%point => sv0(ib:ie, jb:je, kb:ke, 4)
+            pfields(n)%point => svm(ib:ie, jb:je, kb:ke, 4)
           case('s5')
             call ncinfo(fldVars(n,:), 's5', 'scalar concentration field 5', 'g/m^3', 'tttt')
-            pfields(n)%point => sv0(ib:ie, jb:je, kb:ke, 5)
+            pfields(n)%point => svm(ib:ie, jb:je, kb:ke, 5)
           case('p0')
             call ncinfo(fldVars(n,:), 'p', 'Kinematic pressure field', 'm^2/s^2', 'tttt')
             pfields(n)%point => pres0(ib:ie, jb:je, kb:ke)
@@ -364,12 +363,12 @@ module instant
       ! do k = kb, ke
       !   do j = jb, je
       !     do i = ib, ie
-      !       dudx(i,j,k) = (u0(i+1,j,k) - u0(i,j,k)) * dxfi(i)
-      !       dvdy(i,j,k) = (v0(i,j+1,k) - v0(i,j,k)) * dyi
-      !       dwdz(i,j,k) = (w0(i,j,k+1) - w0(i,j,k)) * dzhi(k)
-      !       div(i,j,k)  = (u0(i+1,j,k) - u0(i,j,k)) * dxfi(i) + &
-      !                      (v0(i,j+1,k) - v0(i,j,k)) * dyi + &
-      !                      (w0(i,j,k+1) - w0(i,j,k)) * dzhi(k)
+      !       dudx(i,j,k) = (um(i+1,j,k) - um(i,j,k)) * dxfi(i)
+      !       dvdy(i,j,k) = (vm(i,j+1,k) - vm(i,j,k)) * dyi
+      !       dwdz(i,j,k) = (wm(i,j,k+1) - wm(i,j,k)) * dzhi(k)
+      !       div(i,j,k)  = (um(i+1,j,k) - um(i,j,k)) * dxfi(i) + &
+      !                      (vm(i,j+1,k) - vm(i,j,k)) * dyi + &
+      !                      (wm(i,j,k+1) - wm(i,j,k)) * dzhi(k)
       !     end do
       !   end do
       ! end do
