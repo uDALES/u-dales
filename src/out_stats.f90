@@ -46,6 +46,8 @@ module stats
 
   integer :: xdim, ydim, zdim
   real    :: tsamplep, tstatsdumpp, tstatsdumppi
+
+  logical :: lstatsdump, lstatstavgdump
   
   character(80)              :: filenamet
   character(80)              :: filenamexyt
@@ -310,16 +312,20 @@ module stats
   contains
     subroutine stats_init
       implicit none
-      
-      if(.not.(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump .or. ltreedump)) return
 
-      if(runtime <= tstatstart + tstatsdump) then
+      lstatsdump = ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump
+      lstatstavgdump = ltdump .or. lxytdump .or. lytdump
+      
+      if(.not.(lstatsdump .or. ltreedump)) return
+
+      if( (lstatstavgdump .or. ltreedump) &
+          .and. runtime <= tstatstart + tstatsdump ) then
         if(myid==0) then
-          write(*,*) "ERROR: no statistics file will be written as runtime <= tstatstart + tstatsdump. &
-                      &Note that runtime must be greater than tstatstart + tstatsdump for writing statistics files."
+          write(*,*) "ERROR: no time-averaged statistics file will be written as runtime <= tstatstart + tstatsdump. &
+                      &Note that runtime must be greater than tstatstart + tstatsdump for writing time-averaged statistics files."
           write(*,*) "You have used runtime = ", runtime, ", tstatstart = ", tstatstart, ", and &
                      &tstatsdump = ", tstatsdump
-          write(*,*) "Either correct the time settings or change all the stats writing flags to false."
+          write(*,*) "Either correct the time settings or change all time-averaged stats writing flags to false."
           stop 1
         end if
       end if
@@ -332,7 +338,7 @@ module stats
       dumpcount = 0
       call ncinfo(timeVar( 1,:), 'time', 'Time', 's', 'time')
 
-      if(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump) then
+      if(lstatsdump) then
         call stats_allocate_interp_and_sgs_vel
         if (ltempeq) call stats_allocate_interp_and_sgs_temp
         if (lmoist)  call stats_allocate_interp_and_sgs_moist
@@ -341,7 +347,7 @@ module stats
         if (nsv>0)   call stats_allocate_interp_and_sgs_scalar
       end if
 
-      if(ltdump .or. lxytdump .or. lytdump) then
+      if(lstatstavgdump) then
         !> allocate variables to compute time-averaged quantities
         call stats_allocate_tavg_vel
         if (ltempeq) call stats_allocate_tavg_temp
@@ -470,12 +476,12 @@ module stats
 
       if (timee < tstatstart) return
       if (.not. rk3step==3)  return
-      if(.not.(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump .or. ltreedump)) return
+      if(.not.(lstatsdump .or. ltreedump)) return
 
-      if (tsamplep > tsample) then        ! at every stats sampling instance
+      if (tsamplep >= tsample) then        ! at every stats sampling instance
         tstatsdumppi = 1./tstatsdumpp
 
-        if(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump) then
+        if(lstatsdump) then
           call stats_interpolate_and_sgs_vel
           if (ltempeq) call stats_interpolate_and_sgs_temp
           if (lmoist)  call stats_interpolate_and_sgs_moist
@@ -484,7 +490,7 @@ module stats
           if (nsv>0)   call stats_interpolate_and_sgs_scalar
         end if
 
-        if(ltdump .or. lxytdump .or. lytdump) then
+        if(lstatstavgdump) then
           call stats_compute_tavg_vel
           if (ltempeq) call stats_compute_tavg_temp
           if (lmoist)  call stats_compute_tavg_moist
@@ -534,7 +540,8 @@ module stats
         tsamplep = tsamplep + dt
       endif
 
-      if (tstatsdumpp > tstatsdump) then    ! at every stats dump time instance
+      if ( (lstatstavgdump .or. ltreedump) &
+           .and. tstatsdumpp >= tstatsdump ) then    ! at every stats dump time instance
         dumpcount = dumpcount + 1
         if (myid==0) then
           write(*,*) "---------------------------------"
@@ -588,6 +595,25 @@ module stats
         end if
 
         tstatsdumpp = dt
+
+        if(lstatstavgdump) then
+          call stats_reset_tavg_vel
+          if (ltempeq) call stats_reset_tavg_temp
+          if (lmoist)  call stats_reset_tavg_moist
+        end if
+        if(ltdump .or. lytdump) then
+          if (nsv>0)   call stats_reset_tavg_scalar
+        end if
+        if(ltdump) then
+          if ((lchem) .and. (nsv>2)) call stats_reset_tavg_PSS
+        end if
+        if (ltreedump) then
+          call stats_reset_tree_vel
+          if (ltempeq) call stats_reset_tree_temp
+          if (lmoist)  call stats_reset_tree_moist
+          if (nsv>0)   call stats_reset_tree_scalar
+        end if
+
       else
         tstatsdumpp = tstatsdumpp + dt
       endif
@@ -638,28 +664,28 @@ module stats
     !! ## %% Time averaging initialization routines
     subroutine stats_allocate_tavg_vel
       implicit none
-      allocate(ut(ib:ie,jb:je,kb:ke+kh))   ; ut    = 0;
-      allocate(vt(ib:ie,jb:je,kb:ke+kh))   ; vt    = 0;
-      allocate(wt(ib:ie,jb:je,kb:ke+kh))   ; wt    = 0;
-      allocate(pt(ib:ie,jb:je,kb:ke+kh))   ; pt    = 0;
-      allocate(utik(ib:ie,jb:je,kb:ke+kh)) ; utik  = 0;
-      allocate(wtik(ib:ie,jb:je,kb:ke+kh)) ; wtik  = 0;
-      allocate(uwtik(ib:ie,jb:je,kb:ke+kh)); uwtik = 0;
-      allocate(vtjk(ib:ie,jb:je,kb:ke+kh)) ; vtjk  = 0;
-      allocate(wtjk(ib:ie,jb:je,kb:ke+kh)) ; wtjk  = 0;
-      allocate(vwtjk(ib:ie,jb:je,kb:ke+kh)); vwtjk = 0;
-      allocate(utij(ib:ie,jb:je,kb:ke+kh)) ; utij  = 0;
-      allocate(vtij(ib:ie,jb:je,kb:ke+kh)) ; vtij  = 0;
-      allocate(uvtij(ib:ie,jb:je,kb:ke+kh)); uvtij = 0;
-      allocate(utc(ib:ie,jb:je,kb:ke+kh))  ; utc   = 0;
-      allocate(vtc(ib:ie,jb:je,kb:ke+kh))  ; vtc   = 0;
-      allocate(wtc(ib:ie,jb:je,kb:ke+kh))  ; wtc   = 0;
-      allocate(uutc(ib:ie,jb:je,kb:ke+kh)) ; uutc  = 0;
-      allocate(vvtc(ib:ie,jb:je,kb:ke+kh)) ; vvtc  = 0;
-      allocate(wwtc(ib:ie,jb:je,kb:ke+kh)) ; wwtc  = 0;      
-      allocate(usgst(ib:ie,jb:je,kb:ke+kh)); usgst = 0;
-      allocate(vsgst(ib:ie,jb:je,kb:ke+kh)); vsgst = 0;
-      allocate(wsgst(ib:ie,jb:je,kb:ke+kh)); wsgst = 0;
+      allocate(ut(ib:ie,jb:je,kb:ke+kh))   ; ut    = 0.;
+      allocate(vt(ib:ie,jb:je,kb:ke+kh))   ; vt    = 0.;
+      allocate(wt(ib:ie,jb:je,kb:ke+kh))   ; wt    = 0.;
+      allocate(pt(ib:ie,jb:je,kb:ke+kh))   ; pt    = 0.;
+      allocate(utik(ib:ie,jb:je,kb:ke+kh)) ; utik  = 0.;
+      allocate(wtik(ib:ie,jb:je,kb:ke+kh)) ; wtik  = 0.;
+      allocate(uwtik(ib:ie,jb:je,kb:ke+kh)); uwtik = 0.;
+      allocate(vtjk(ib:ie,jb:je,kb:ke+kh)) ; vtjk  = 0.;
+      allocate(wtjk(ib:ie,jb:je,kb:ke+kh)) ; wtjk  = 0.;
+      allocate(vwtjk(ib:ie,jb:je,kb:ke+kh)); vwtjk = 0.;
+      allocate(utij(ib:ie,jb:je,kb:ke+kh)) ; utij  = 0.;
+      allocate(vtij(ib:ie,jb:je,kb:ke+kh)) ; vtij  = 0.;
+      allocate(uvtij(ib:ie,jb:je,kb:ke+kh)); uvtij = 0.;
+      allocate(utc(ib:ie,jb:je,kb:ke+kh))  ; utc   = 0.;
+      allocate(vtc(ib:ie,jb:je,kb:ke+kh))  ; vtc   = 0.;
+      allocate(wtc(ib:ie,jb:je,kb:ke+kh))  ; wtc   = 0.;
+      allocate(uutc(ib:ie,jb:je,kb:ke+kh)) ; uutc  = 0.;
+      allocate(vvtc(ib:ie,jb:je,kb:ke+kh)) ; vvtc  = 0.;
+      allocate(wwtc(ib:ie,jb:je,kb:ke+kh)) ; wwtc  = 0.;
+      allocate(usgst(ib:ie,jb:je,kb:ke+kh)); usgst = 0.;
+      allocate(vsgst(ib:ie,jb:je,kb:ke+kh)); vsgst = 0.;
+      allocate(wsgst(ib:ie,jb:je,kb:ke+kh)); wsgst = 0.;
     end subroutine stats_allocate_tavg_vel
     subroutine stats_ncdescription_tavg_vel
       implicit none
@@ -686,15 +712,15 @@ module stats
 
     subroutine stats_allocate_tavg_temp
       implicit none
-      allocate(thlt(ib:ie,jb:je,kb:ke+kh))   ; thlt    = 0;
-      allocate(thlti(ib:ie,jb:je,kb:ke+kh))  ; thlti   = 0;
-      allocate(thltj(ib:ie,jb:je,kb:ke+kh))  ; thltj   = 0;
-      allocate(thltk(ib:ie,jb:je,kb:ke+kh))  ; thltk   = 0;
-      allocate(uthlti(ib:ie,jb:je,kb:ke+kh)) ; uthlti  = 0;
-      allocate(vthltj(ib:ie,jb:je,kb:ke+kh)) ; vthltj  = 0;
-      allocate(wthltk(ib:ie,jb:je,kb:ke+kh)) ; wthltk  = 0;
-      allocate(thlthlt(ib:ie,jb:je,kb:ke+kh)); thlthlt = 0;
-      allocate(thlsgst(ib:ie,jb:je,kb:ke+kh)); thlsgst = 0;
+      allocate(thlt(ib:ie,jb:je,kb:ke+kh))   ; thlt    = 0.;
+      allocate(thlti(ib:ie,jb:je,kb:ke+kh))  ; thlti   = 0.;
+      allocate(thltj(ib:ie,jb:je,kb:ke+kh))  ; thltj   = 0.;
+      allocate(thltk(ib:ie,jb:je,kb:ke+kh))  ; thltk   = 0.;
+      allocate(uthlti(ib:ie,jb:je,kb:ke+kh)) ; uthlti  = 0.;
+      allocate(vthltj(ib:ie,jb:je,kb:ke+kh)) ; vthltj  = 0.;
+      allocate(wthltk(ib:ie,jb:je,kb:ke+kh)) ; wthltk  = 0.;
+      allocate(thlthlt(ib:ie,jb:je,kb:ke+kh)); thlthlt = 0.;
+      allocate(thlsgst(ib:ie,jb:je,kb:ke+kh)); thlsgst = 0.;
     end subroutine stats_allocate_tavg_temp
     subroutine stats_ncdescription_tavg_temp
       implicit none
@@ -709,11 +735,11 @@ module stats
 
     subroutine stats_allocate_tavg_moist
       implicit none
-      allocate(qtt(ib:ie,jb:je,kb:ke+kh))   ; qtt    = 0;
-      allocate(qttk(ib:ie,jb:je,kb:ke+kh))  ; qttk   = 0;
-      allocate(wqttk(ib:ie,jb:je,kb:ke+kh)) ; wqttk  = 0;
-      allocate(qtqtt(ib:ie,jb:je,kb:ke+kh)) ; qtqtt  = 0;
-      allocate(qtsgst(ib:ie,jb:je,kb:ke+kh)); qtsgst = 0;
+      allocate(qtt(ib:ie,jb:je,kb:ke+kh))   ; qtt    = 0.;
+      allocate(qttk(ib:ie,jb:je,kb:ke+kh))  ; qttk   = 0.;
+      allocate(wqttk(ib:ie,jb:je,kb:ke+kh)) ; wqttk  = 0.;
+      allocate(qtqtt(ib:ie,jb:je,kb:ke+kh)) ; qtqtt  = 0.;
+      allocate(qtsgst(ib:ie,jb:je,kb:ke+kh)); qtsgst = 0.;
     end subroutine stats_allocate_tavg_moist
     subroutine stats_ncdescription_tavg_moist
       implicit none
@@ -726,15 +752,15 @@ module stats
 
     subroutine stats_allocate_tavg_scalar
       implicit none
-      allocate(svt(ib:ie,jb:je,kb:ke+kh,nsv))   ; svt    = 0;
-      allocate(svti(ib:ie,jb:je,kb:ke+kh,nsv))  ; svti   = 0;
-      allocate(svtj(ib:ie,jb:je,kb:ke+kh,nsv))  ; svtj   = 0;
-      allocate(svtk(ib:ie,jb:je,kb:ke+kh,nsv))  ; svtk   = 0;
-      allocate(usvti(ib:ie,jb:je,kb:ke+kh,nsv)) ; usvti  = 0;
-      allocate(vsvtj(ib:ie,jb:je,kb:ke+kh,nsv)) ; vsvtj  = 0;
-      allocate(wsvtk(ib:ie,jb:je,kb:ke+kh,nsv)) ; wsvtk  = 0;
-      allocate(svsvt(ib:ie,jb:je,kb:ke+kh,nsv)) ; svsvt  = 0;
-      allocate(svsgst(ib:ie,jb:je,kb:ke+kh,nsv)); svsgst = 0;
+      allocate(svt(ib:ie,jb:je,kb:ke+kh,nsv))   ; svt    = 0.;
+      allocate(svti(ib:ie,jb:je,kb:ke+kh,nsv))  ; svti   = 0.;
+      allocate(svtj(ib:ie,jb:je,kb:ke+kh,nsv))  ; svtj   = 0.;
+      allocate(svtk(ib:ie,jb:je,kb:ke+kh,nsv))  ; svtk   = 0.;
+      allocate(usvti(ib:ie,jb:je,kb:ke+kh,nsv)) ; usvti  = 0.;
+      allocate(vsvtj(ib:ie,jb:je,kb:ke+kh,nsv)) ; vsvtj  = 0.;
+      allocate(wsvtk(ib:ie,jb:je,kb:ke+kh,nsv)) ; wsvtk  = 0.;
+      allocate(svsvt(ib:ie,jb:je,kb:ke+kh,nsv)) ; svsvt  = 0.;
+      allocate(svsgst(ib:ie,jb:je,kb:ke+kh,nsv)); svsgst = 0.;
     end subroutine stats_allocate_tavg_scalar
     subroutine stats_ncdescription_tavg_scalar
       implicit none
@@ -767,7 +793,7 @@ module stats
     subroutine stats_init_tavg_PSS
       implicit none
       allocate(PSS(ib:ie,jb:je,kb:ke+kh))
-      allocate(PSSt(ib:ie,jb:je,kb:ke+kh)); PSSt = 0;
+      allocate(PSSt(ib:ie,jb:je,kb:ke+kh)); PSSt = 0.;
       call ncinfo( tVars(ctrt+1,:) , 'PSS'      , 'PSS defect'                , 'gm/s'      , 'tttt' )
       ctrt = ctrt+1
     end subroutine stats_init_tavg_PSS
@@ -788,6 +814,42 @@ module stats
         call define_nc(ncidt, tVarsCount, tVars)
       end if
     end subroutine stats_createnc_tavg
+
+    subroutine stats_reset_tavg_vel
+      implicit none
+      ut = 0.; vt = 0.; wt = 0.; pt = 0.
+      utik  = 0. ; wtik  = 0. ; uwtik = 0.
+      vtjk  = 0. ; wtjk  = 0. ; vwtjk = 0.
+      utij  = 0. ; vtij  = 0. ; uvtij = 0.
+      utc   = 0. ; vtc   = 0. ; wtc   = 0.
+      uutc  = 0. ; vvtc  = 0. ; wwtc  = 0.
+      usgst = 0. ; vsgst = 0. ; wsgst = 0.
+    end subroutine stats_reset_tavg_vel
+
+    subroutine stats_reset_tavg_temp
+      implicit none
+      thlt = 0.;
+      thlti   = 0. ; thltj   = 0. ; thltk = 0.
+      uthlti  = 0. ; vthltj  = 0. ; wthltk = 0.
+      thlthlt = 0. ; thlsgst = 0.
+    end subroutine stats_reset_tavg_temp
+
+    subroutine stats_reset_tavg_moist
+      implicit none
+      qtt = 0.; qttk = 0.; wqttk = 0.; qtqtt = 0.; qtsgst = 0.
+    end subroutine stats_reset_tavg_moist
+
+    subroutine stats_reset_tavg_scalar
+      implicit none
+      svt = 0.; svti = 0.; svtj = 0.; svtk = 0.
+      usvti = 0. ; vsvtj  = 0.; wsvtk = 0.
+      svsvt = 0. ; svsgst = 0.
+    end subroutine stats_reset_tavg_scalar
+
+    subroutine stats_reset_tavg_PSS
+      implicit none
+      PSSt = 0.
+    end subroutine stats_reset_tavg_PSS
 
 
     !! ## %% Time, y and x averaging initialization routines
@@ -1179,9 +1241,9 @@ module stats
     !! ## %% time averaging tree data initialization routines
     subroutine stats_init_tree_vel
       implicit none
-      allocate(tr_ut(ib:ie,jb:je,kb:ke))     ; tr_ut     = 0;
-      allocate(tr_vt(ib:ie,jb:je,kb:ke))     ; tr_vt     = 0;
-      allocate(tr_wt(ib:ie,jb:je,kb:ke))     ; tr_wt     = 0;
+      allocate(tr_ut(ib:ie,jb:je,kb:ke))     ; tr_ut     = 0.;
+      allocate(tr_vt(ib:ie,jb:je,kb:ke))     ; tr_vt     = 0.;
+      allocate(tr_wt(ib:ie,jb:je,kb:ke))     ; tr_wt     = 0.;
       call ncinfo( treeVars(ctrtree+ 1,:), 'tr_u'      , 'Drag in x'            , 'm/s^2'   , 'mttt' )
       call ncinfo( treeVars(ctrtree+ 2,:), 'tr_v'      , 'Drag in y'            , 'm/s^2'   , 'tmtt' )
       call ncinfo( treeVars(ctrtree+ 3,:), 'tr_w'      , 'Drag in z'            , 'm/s^2'   , 'ttmt' )
@@ -1190,17 +1252,17 @@ module stats
 
     subroutine stats_init_tree_temp
       implicit none
-      allocate(tr_thlt(ib:ie,jb:je,kb:ke))   ; tr_thlt   = 0;
+      allocate(tr_thlt(ib:ie,jb:je,kb:ke))   ; tr_thlt   = 0.;
       call ncinfo( treeVars(ctrtree+ 1,:), 'tr_thl'    , 'Temp source/ sink'    , 'K/s'     , 'tttt' )
       ctrtree = ctrtree+1
     end subroutine stats_init_tree_temp
 
     subroutine stats_init_tree_moist
       implicit none
-      allocate(tr_qtt(ib:ie,jb:je,kb:ke))    ; tr_qtt    = 0;
-      allocate(tr_qtRt(ib:ie,jb:je,kb:ke))   ; tr_qtRt   = 0;
-      allocate(tr_qtAt(ib:ie,jb:je,kb:ke))   ; tr_qtAt   = 0;
-      allocate(tr_omegat(ib:ie,jb:je,kb:ke)) ; tr_omegat = 0;
+      allocate(tr_qtt(ib:ie,jb:je,kb:ke))    ; tr_qtt    = 0.;
+      allocate(tr_qtRt(ib:ie,jb:je,kb:ke))   ; tr_qtRt   = 0.;
+      allocate(tr_qtAt(ib:ie,jb:je,kb:ke))   ; tr_qtAt   = 0.;
+      allocate(tr_omegat(ib:ie,jb:je,kb:ke)) ; tr_omegat = 0.;
       call ncinfo( treeVars(ctrtree+ 1,:), 'tr_qt'     , 'Moisture source sink' , '1/s'     , 'tttt' )
       call ncinfo( treeVars(ctrtree+ 2,:), 'tr_qtR'    , 'Moisture source sink' , '1/s'     , 'tttt' )
       call ncinfo( treeVars(ctrtree+ 3,:), 'tr_qtA'    , 'Moisture source sink' , '1/s'     , 'tttt' )
@@ -1213,7 +1275,7 @@ module stats
       integer :: n
       character(2) :: sid
       allocate(svtreename(nsv))
-      allocate(tr_svt(ib:ie,jb:je,kb:ke,nsv)); tr_svt = 0;
+      allocate(tr_svt(ib:ie,jb:je,kb:ke,nsv)); tr_svt = 0.;
       do n = 1, nsv
         write (sid, '(I0)') n
         svtreename(n) = 'tr_sv'//trim(sid)         ! tr_sv1       at n = 1
@@ -1238,6 +1300,26 @@ module stats
         call define_nc(ncidtree, treeVarsCount, treeVars)
       end if
     end subroutine stats_createnc_tree
+
+    subroutine stats_reset_tree_vel
+      implicit none
+      tr_ut = 0.; tr_vt = 0.; tr_wt = 0.
+    end subroutine stats_reset_tree_vel
+
+    subroutine stats_reset_tree_temp
+      implicit none
+      tr_thlt = 0.
+    end subroutine stats_reset_tree_temp
+
+    subroutine stats_reset_tree_moist
+      implicit none
+      tr_qtt = 0.; tr_qtRt = 0.; tr_qtAt = 0.; tr_omegat = 0.
+    end subroutine stats_reset_tree_moist
+
+    subroutine stats_reset_tree_scalar
+      implicit none
+      tr_svt = 0.
+    end subroutine stats_reset_tree_scalar
 
 
     !! ## %% Interpolate variables at cell faces and compute sgs fluxes
@@ -1994,18 +2076,18 @@ module stats
     subroutine stats_exit
       use modstat_nc, only : exitstat_nc
       implicit none
-      if(.not.(ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump .or. ltreedump)) return
+      if(.not.(lstatsdump .or. ltreedump)) return
 
-      if (ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump) then
+      if (lstatsdump) then
         deallocate(uik,wik,vjk,wjk,uij,vij,uc,vc,wc,usgs,vsgs,wsgs)
         if (ltempeq) deallocate(thli,thlj,thlk,thlsgs)
         if (lmoist)  deallocate(qtk,qtsgs)
       end if
-      if (ltdump .or. lytdump) then
+      if (ltdump .or. lytdump .or. lydump) then
         if (nsv>0)   deallocate(svi,svj,svk,svsgs)
       end if
 
-      if (ltdump .or. lxytdump .or. lytdump) then
+      if (lstatstavgdump) then
         deallocate(ut,vt,wt,pt)
         deallocate(utc,vtc,wtc,uutc,vvtc,wwtc)
         deallocate(utik,wtik,uwtik,vtjk,wtjk,vwtjk,utij,vtij,uvtij)
