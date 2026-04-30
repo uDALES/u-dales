@@ -44,16 +44,16 @@ module instant_fields_out
   public :: ins_field_init, ins_field_main, ins_field_exit
   save
 
-  integer :: xdim, ydim, zdim
+  integer :: xdimfield, ydimfield, zdimfield
   integer :: nfieldvars
-  integer :: ncid_fields, nrec_fields
+  integer :: ncidfield, nrecfield
 
   integer :: ilow, ihigh, jlow, jhigh, klow, khigh
   logical :: lhalos_out
   real    :: out_tnextfielddump
 
-  character(80)                 :: filename_fields
-  character(80), dimension(1,4) :: tncname
+  character(80)                 :: filenamefield
+  character(80), dimension(1,4) :: fieldtimeVar
   character(80), allocatable    :: fldVars(:,:)
 
   ! Domain pointer type for field variables
@@ -111,11 +111,11 @@ contains
       out_tnextfielddump = tfieldstart
     end if
 
-    xdim = ihigh - ilow + 1
-    ydim = jhigh - jlow + 1
-    zdim = khigh - klow + 1
+    xdimfield = ihigh - ilow + 1
+    ydimfield = jhigh - jlow + 1
+    zdimfield = khigh - klow + 1
 
-    call ncinfo(tncname(1,:), 'time', 'Time', 's', 'time')
+    call ncinfo(fieldtimeVar(1,:), 'time', 'Time', 's', 'time')
 
     ! Set up variable descriptions and field pointers
     if (lhalos_out) then
@@ -289,18 +289,18 @@ contains
     end if
 
     ! Create NetCDF file: ins_fields.xxx.xxx.nc (one per x-processor column)
-    filename_fields = 'ins_fields.xxx.xxx.nc'
-    filename_fields(12:14) = cmyidx
-    filename_fields(16:18) = cexpnr
+    filenamefield = 'ins_fields.xxx.xxx.nc'
+    filenamefield(12:14) = cmyidx
+    filenamefield(16:18) = cexpnr
 
-    nrec_fields = 0
+    nrecfield = 0
     if (myidy == 0) then
-      call open_nc(filename_fields, ncid_fields, nrec_fields, n1=xdim, n2=ydimtot, n3=zdim)
-      if (nrec_fields == 0) then
-        call define_nc(ncid_fields, 1, tncname)
-        call writestat_dims_nc(ncid_fields)
+      call open_nc(filenamefield, ncidfield, nrecfield, n1=xdimfield, n2=ydimtot, n3=zdimfield)
+      if (nrecfield == 0) then
+        call define_nc(ncidfield, 1, fieldtimeVar)
+        call writestat_dims_nc(ncidfield)
       end if
-      call define_nc(ncid_fields, nfieldvars, fldVars)
+      call define_nc(ncidfield, nfieldvars, fldVars)
     end if
 
   end subroutine ins_field_init
@@ -331,11 +331,11 @@ contains
     out_tnextfielddump = out_tnextfielddump + tfielddump
 
     ! Write time
-    if (myidy == 0) call writestat_nc(ncid_fields, 'time', timee, nrec_fields, .true.)
+    if (myidy == 0) call writestat_nc(ncidfield, 'time', timee, nrecfield, .true.)
 
     ! Write each field variable using writeoffset
     do n = 1, nfieldvars
-      call writeoffset(ncid_fields, trim(fldVars(n,1)), pfields(n)%point, nrec_fields, xdim, ydim, zdim)
+      call writeoffset(ncidfield, trim(fldVars(n,1)), pfields(n)%point, nrecfield, xdimfield, ydimfield, zdimfield)
     end do
 
   end subroutine ins_field_main
@@ -345,7 +345,7 @@ contains
     use modstat_nc, only : exitstat_nc
     implicit none
     if (.not. lfielddump) return
-    if (myidy == 0) call exitstat_nc(ncid_fields)
+    if (myidy == 0) call exitstat_nc(ncidfield)
     if (allocated(fldVars)) deallocate(fldVars)
   end subroutine ins_field_exit
 

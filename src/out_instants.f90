@@ -49,9 +49,9 @@ module instant
   integer :: local_nislice, local_njslice  ! Number of islices on this X-processor (saved from create phase)
   
   integer                    :: nslicevars
-  character(80)              :: islicename
-  character(80)              :: jslicename
-  character(80)              :: kslicename
+  character(80)              :: filenameislice
+  character(80)              :: filenamejslice
+  character(80)              :: filenamekslice
   
   character(80)              :: slicetimeVar(1,4)
   character(80), allocatable :: isliceVars(:,:)
@@ -62,10 +62,8 @@ module instant
   ! Probe variables
   real    :: tsampleprobe
   integer :: nprobevars
-  integer :: ncid_probe
-  integer :: point_dimid, time_dimid
-  integer :: varid_xt, varid_xm, varid_yt, varid_ym, varid_zt, varid_zm, varid_time
-  integer, allocatable :: varid_vals(:)
+  character(80) :: filenameprobe
+  integer :: ncidprobe
   integer :: nrecprobe = 0
 
   contains
@@ -263,13 +261,13 @@ module instant
       
       ! Only processors with islices AND myidy==0 create files
       if (has_islice .and. myidy == 0) then
-        islicename = 'ins_islice.xxx.xxx.nc'
-        islicename(12:14) = cmyidx   ! X-processor ID
-        islicename(16:18) = cexpnr  ! Experiment number
+        filenameislice = 'ins_islice.xxx.xxx.nc'
+        filenameislice(12:14) = cmyidx   ! X-processor ID
+        filenameislice(16:18) = cexpnr  ! Experiment number
 
         nrecislice = 0
         ! Use local_nislice (module variable) as first dimension, jtot as global y-dimension
-        call open_nc(islicename, ncidislice, nrecislice, n1=local_nislice, n2=jtot, n3=zdim)
+        call open_nc(filenameislice, ncidislice, nrecislice, n1=local_nislice, n2=jtot, n3=zdim)
         if (nrecislice == 0) then
           call define_nc(ncidislice, 1, slicetimeVar)
           call writestat_dims_nc(ncidislice)
@@ -300,13 +298,13 @@ module instant
       
       ! Only processors with myidx==0 create files for their myidy column
       if (has_jslice .and. myidx == 0) then
-        jslicename = 'ins_jslice.xxx.xxx.nc'
-        jslicename(12:14) = cmyidy   ! Y-processor ID
-        jslicename(16:18) = cexpnr  ! Experiment number
+        filenamejslice = 'ins_jslice.xxx.xxx.nc'
+        filenamejslice(12:14) = cmyidy   ! Y-processor ID
+        filenamejslice(16:18) = cexpnr  ! Experiment number
         
         nrecjslice = 0
         ! Use itot as x-dimension (global), local_n as jslice-dimension, zdim as z
-        call open_nc(jslicename, ncidjslice, nrecjslice, n1=itot, n2=local_njslice, n3=zdim)
+        call open_nc(filenamejslice, ncidjslice, nrecjslice, n1=itot, n2=local_njslice, n3=zdim)
         if (nrecjslice==0) then
           call define_nc(ncidjslice, 1, slicetimeVar)
           call writestat_dims_nc(ncidjslice)
@@ -322,13 +320,13 @@ module instant
       implicit none
 
       if (myidy == 0) then
-        kslicename = 'ins_kslice.xxx.xxx.nc'
-        kslicename(12:14) = cmyidx   ! Only x-processor ID
-        kslicename(16:18) = cexpnr  ! Experiment number
+        filenamekslice = 'ins_kslice.xxx.xxx.nc'
+        filenamekslice(12:14) = cmyidx   ! Only x-processor ID
+        filenamekslice(16:18) = cexpnr  ! Experiment number
 
         nreckslice = 0
         ! Use kdim (nkslice) as the z-dimension, jtot as global y-dimension
-        call open_nc(kslicename, ncidkslice, nreckslice, n1=xdim, n2=jtot, n3=kdim)
+        call open_nc(filenamekslice, ncidkslice, nreckslice, n1=xdim, n2=jtot, n3=kdim)
         if (nreckslice == 0) then
           call define_nc(ncidkslice, 1, slicetimeVar)
           call writestat_dims_nc(ncidkslice)
@@ -961,6 +959,7 @@ module instant
     end subroutine instant_write_kslice
 
     logical function present(str)
+      implicit none
       character(len=*), intent(in) :: str
       integer :: pos
 
@@ -971,9 +970,11 @@ module instant
     subroutine instant_probe_init
       implicit none
       integer :: n, ierr, vn
-      character(80) :: probe_filename
-      character(2) :: varname
-      real, allocatable :: xt(:), xm(:), yt(:), ym(:), zt(:), zm(:)
+      integer :: point_dimid, time_dimid
+      integer :: varid_xt, varid_xm, varid_yt, varid_ym, varid_zt, varid_zm, varid_time
+      integer, allocatable :: varid_vals(:)
+      real,    allocatable :: xt(:), xm(:), yt(:), ym(:), zt(:), zm(:)
+      character(2)  :: varname
       
       if (.not. lprobedump) return
 
@@ -1005,56 +1006,56 @@ module instant
           ! write(*,*) "Number of probes:", nprobe
           ! write(*,*) "Variables:", trim(probevars)
           
-          probe_filename = 'ins_probe.xxx.nc'
-          probe_filename(11:13) = cexpnr
+          filenameprobe = 'ins_probe.xxx.nc'
+          filenameprobe(11:13) = cexpnr
           
           ! Create NetCDF file
-          call check( nf90_create(trim(probe_filename), NF90_CLOBBER, ncid_probe) )
+          call check( nf90_create(trim(filenameprobe), NF90_CLOBBER, ncidprobe) )
           
           ! Define Dimensions
-          call check( nf90_def_dim(ncid_probe, 'point', nprobe, point_dimid) )
-          call check( nf90_def_dim(ncid_probe, 'time', NF90_UNLIMITED, time_dimid) )
+          call check( nf90_def_dim(ncidprobe, 'point', nprobe, point_dimid) )
+          call check( nf90_def_dim(ncidprobe, 'time', NF90_UNLIMITED, time_dimid) )
           
           ! Define Variables Dimensions
           ! Coordinates (cell center and cell edge)
-          call check( nf90_def_var(ncid_probe, 'xt', NF90_FLOAT, (/point_dimid/), varid_xt) )
-          call check( nf90_put_att(ncid_probe, varid_xt, 'long_name', 'x-coordinate (cell center)') )
-          call check( nf90_put_att(ncid_probe, varid_xt, 'units', 'm') )
+          call check( nf90_def_var(ncidprobe, 'xt', NF90_FLOAT, (/point_dimid/), varid_xt) )
+          call check( nf90_put_att(ncidprobe, varid_xt, 'long_name', 'x-coordinate (cell center)') )
+          call check( nf90_put_att(ncidprobe, varid_xt, 'units', 'm') )
           
-          call check( nf90_def_var(ncid_probe, 'xm', NF90_FLOAT, (/point_dimid/), varid_xm) )
-          call check( nf90_put_att(ncid_probe, varid_xm, 'long_name', 'x-coordinate (cell edge)') )
-          call check( nf90_put_att(ncid_probe, varid_xm, 'units', 'm') )
+          call check( nf90_def_var(ncidprobe, 'xm', NF90_FLOAT, (/point_dimid/), varid_xm) )
+          call check( nf90_put_att(ncidprobe, varid_xm, 'long_name', 'x-coordinate (cell edge)') )
+          call check( nf90_put_att(ncidprobe, varid_xm, 'units', 'm') )
           
-          call check( nf90_def_var(ncid_probe, 'yt', NF90_FLOAT, (/point_dimid/), varid_yt) )
-          call check( nf90_put_att(ncid_probe, varid_yt, 'long_name', 'y-coordinate (cell center)') )
-          call check( nf90_put_att(ncid_probe, varid_yt, 'units', 'm') )
+          call check( nf90_def_var(ncidprobe, 'yt', NF90_FLOAT, (/point_dimid/), varid_yt) )
+          call check( nf90_put_att(ncidprobe, varid_yt, 'long_name', 'y-coordinate (cell center)') )
+          call check( nf90_put_att(ncidprobe, varid_yt, 'units', 'm') )
           
-          call check( nf90_def_var(ncid_probe, 'ym', NF90_FLOAT, (/point_dimid/), varid_ym) )
-          call check( nf90_put_att(ncid_probe, varid_ym, 'long_name', 'y-coordinate (cell edge)') )
-          call check( nf90_put_att(ncid_probe, varid_ym, 'units', 'm') )
+          call check( nf90_def_var(ncidprobe, 'ym', NF90_FLOAT, (/point_dimid/), varid_ym) )
+          call check( nf90_put_att(ncidprobe, varid_ym, 'long_name', 'y-coordinate (cell edge)') )
+          call check( nf90_put_att(ncidprobe, varid_ym, 'units', 'm') )
 
-          call check( nf90_def_var(ncid_probe, 'zt', NF90_FLOAT, (/point_dimid/), varid_zt) )
-          call check( nf90_put_att(ncid_probe, varid_zt, 'long_name', 'z-coordinate (cell center)') )
-          call check( nf90_put_att(ncid_probe, varid_zt, 'units', 'm') )
+          call check( nf90_def_var(ncidprobe, 'zt', NF90_FLOAT, (/point_dimid/), varid_zt) )
+          call check( nf90_put_att(ncidprobe, varid_zt, 'long_name', 'z-coordinate (cell center)') )
+          call check( nf90_put_att(ncidprobe, varid_zt, 'units', 'm') )
           
-          call check( nf90_def_var(ncid_probe, 'zm', NF90_FLOAT, (/point_dimid/), varid_zm) )
-          call check( nf90_put_att(ncid_probe, varid_zm, 'long_name', 'z-coordinate (cell edge)') )
-          call check( nf90_put_att(ncid_probe, varid_zm, 'units', 'm') )
+          call check( nf90_def_var(ncidprobe, 'zm', NF90_FLOAT, (/point_dimid/), varid_zm) )
+          call check( nf90_put_att(ncidprobe, varid_zm, 'long_name', 'z-coordinate (cell edge)') )
+          call check( nf90_put_att(ncidprobe, varid_zm, 'units', 'm') )
 
           ! Time
-          call check( nf90_def_var(ncid_probe, 'time', NF90_FLOAT, (/time_dimid/), varid_time) )
-          call check( nf90_put_att(ncid_probe, varid_time, 'long_name', 'Time') )
-          call check( nf90_put_att(ncid_probe, varid_time, 'units', 's') )
+          call check( nf90_def_var(ncidprobe, 'time', NF90_FLOAT, (/time_dimid/), varid_time) )
+          call check( nf90_put_att(ncidprobe, varid_time, 'long_name', 'Time') )
+          call check( nf90_put_att(ncidprobe, varid_time, 'units', 's') )
 
           ! Data Variables
           do vn = 1, nprobevars
              varname = probevars(3*vn-2 : 3*vn-1)
-             call check( nf90_def_var(ncid_probe, trim(instant_get_nc_varname(varname)), NF90_FLOAT, &
+             call check( nf90_def_var(ncidprobe, trim(instant_get_nc_varname(varname)), NF90_FLOAT, &
                                       (/point_dimid, time_dimid/), varid_vals(vn)) )
-             call instant_add_var_atts(ncid_probe, varid_vals(vn), varname)
+             call instant_add_var_atts(ncidprobe, varid_vals(vn), varname)
           end do
           
-          call check( nf90_enddef(ncid_probe) )
+          call check( nf90_enddef(ncidprobe) )
           
           ! Write Static Coordinates immediately
           allocate(xt(nprobe), xm(nprobe))
@@ -1069,13 +1070,13 @@ module instant
              zm(n) = zh(kprobe(n))  ! cell edge
           end do
           
-          call check( nf90_put_var(ncid_probe, varid_xt, xt, start=(/1/), count=(/nprobe/)) )
-          call check( nf90_put_var(ncid_probe, varid_xm, xm, start=(/1/), count=(/nprobe/)) )
-          call check( nf90_put_var(ncid_probe, varid_yt, yt, start=(/1/), count=(/nprobe/)) )
-          call check( nf90_put_var(ncid_probe, varid_ym, ym, start=(/1/), count=(/nprobe/)) )
-          call check( nf90_put_var(ncid_probe, varid_zt, zt, start=(/1/), count=(/nprobe/)) )
-          call check( nf90_put_var(ncid_probe, varid_zm, zm, start=(/1/), count=(/nprobe/)) )
-          call check( nf90_sync(ncid_probe) )
+          call check( nf90_put_var(ncidprobe, varid_xt, xt, start=(/1/), count=(/nprobe/)) )
+          call check( nf90_put_var(ncidprobe, varid_xm, xm, start=(/1/), count=(/nprobe/)) )
+          call check( nf90_put_var(ncidprobe, varid_yt, yt, start=(/1/), count=(/nprobe/)) )
+          call check( nf90_put_var(ncidprobe, varid_ym, ym, start=(/1/), count=(/nprobe/)) )
+          call check( nf90_put_var(ncidprobe, varid_zt, zt, start=(/1/), count=(/nprobe/)) )
+          call check( nf90_put_var(ncidprobe, varid_zm, zm, start=(/1/), count=(/nprobe/)) )
+          call check( nf90_sync(ncidprobe) )
           
           deallocate(xt, xm, yt, ym, zt, zm)
       end if
@@ -1103,7 +1104,7 @@ module instant
          
          ! Always write time first (Rank 0)
          if (myid == 0) then
-             call check( nf90_put_var(ncid_probe, varid_time, timee, start=(/nrecprobe/)) )
+             call check( nf90_put_var(ncidprobe, varid_time, timee, start=(/nrecprobe/)) )
          end if
 
          ! Loop over all requested variables
@@ -1119,13 +1120,13 @@ module instant
             
             if (myid == 0) then
                 ! Use start/count to append to time dimension
-               call check( nf90_put_var(ncid_probe, varid_vals(vn), recv_buf, &
+               call check( nf90_put_var(ncidprobe, varid_vals(vn), recv_buf, &
                                         start=(/1, nrecprobe/), count=(/nprobe, 1/)) )
             end if
          end do
          
          if (myid == 0) then
-            call check( nf90_sync(ncid_probe) )
+            call check( nf90_sync(ncidprobe) )
          end if
          
          deallocate(send_buf, recv_buf)
@@ -1138,6 +1139,7 @@ module instant
 
 
     subroutine instant_gather_probe_var(vname, buf)
+      implicit none
       character(len=*), intent(in) :: vname
       real, intent(out) :: buf(:)
       integer :: n, gi, gj, gk, li, lj, lk
@@ -1183,6 +1185,7 @@ module instant
     end subroutine instant_gather_probe_var
 
     function instant_get_nc_varname(vname) result(ncname)
+       implicit none
        character(len=*), intent(in) :: vname
        character(len=10) :: ncname
        select case(vname)
@@ -1206,6 +1209,7 @@ module instant
     end function
     
     subroutine instant_add_var_atts(ncid, vid, vname)
+       implicit none
        integer, intent(in) :: ncid, vid
        character(len=*), intent(in) :: vname
        integer :: ierr
@@ -1235,7 +1239,8 @@ module instant
     end subroutine instant_add_var_atts
 
     subroutine check(status)
-      integer, intent ( in) :: status
+      implicit none
+      integer, intent(in) :: status
       if(status /= nf90_noerr) then 
         print *, trim(nf90_strerror(status))
         stop 2
