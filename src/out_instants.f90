@@ -29,7 +29,7 @@ module instant
                          fieldvars, lfielddump, &
                          slicevars, lislicedump, islice, nislice, ljslicedump, jslice, njslice, lkslicedump, kslice, nkslice, &
                          probevars, lprobedump, iprobe, jprobe, kprobe, nprobe, &
-                         ib, ie, jb, je, kb, ke, ih, jh, kh, itot, jtot, &
+                         ib, ie, jb, je, kb, ke, ih, jh, kh, itot, jtot, ktot, &
                          tfieldstart, tfielddump, tstatstart, tsample, dt, timee, btime, runtime, &
                          xf, yf, zf, xh, yh, zh
   use modfields,  only : um, vm, wm, thlm, qtm, svm, ql0, pres0, &
@@ -119,7 +119,7 @@ module instant
       if(runtime <= tfieldstart) then
         if(myid==0) then
           write(*,*) "ERROR: no instantaneous 3D fields will be written as runtime <= tfieldstart. Note that runtime &
-                      &must be greater than tfieldstart for wiriting ins_fields.* files."
+                      &must be greater than tfieldstart for wiriting ins_field.* files."
           write(*,*) "You have used runtime = ", runtime, ", tfieldstart = ", tfieldstart
           write(*,*) "Either correct the time settings or change all the lfielddump flag to false."
           stop 1
@@ -333,10 +333,10 @@ module instant
 
       end if
 
-      ! Create NetCDF file: ins_fields.xxx.xxx.nc (one per x-processor column)
-      filenamefield = 'ins_fields.xxx.xxx.nc'
-      filenamefield(12:14) = cmyidx
-      filenamefield(16:18) = cexpnr
+      ! Create NetCDF file: ins_field.xxx.xxx.nc (one per x-processor column)
+      filenamefield = 'ins_field.xxx.xxx.nc'
+      filenamefield(11:13) = cmyidx
+      filenamefield(15:17) = cexpnr
 
       nrecfield = 0
       if (myidy == 0) then
@@ -1276,12 +1276,14 @@ module instant
 
 
     subroutine instant_probe_init
+      use modglobal, only : ifinput
       implicit none
       integer :: n, ierr, vn
       integer :: point_dimid, time_dimid
       integer :: varid_xt, varid_xm, varid_yt, varid_ym, varid_zt, varid_zm
       real,    allocatable :: xt(:), xm(:), yt(:), ym(:), zt(:), zm(:)
       character(2)  :: varname
+      character(80) :: chmess
       
       if (.not. lprobedump) return
 
@@ -1293,17 +1295,36 @@ module instant
         write(0, *) 'ERROR: lprobedump=.true. but nprobe=', nprobe, ' (must be > 0)'
         stop 1
       end if
-      if (count(iprobe(1:nprobe) > 0) /= nprobe .or. &
-          count(jprobe(1:nprobe) > 0) /= nprobe .or. &
-          count(kprobe(1:nprobe) > 0) /= nprobe) then
-        write(0, *) 'ERROR: nprobe=', nprobe, ' but iprobe/jprobe/kprobe do not all have', &
-                    ' nprobe valid (>0) entries'
-        write(0, *) 'Check that iprobe, jprobe, kprobe each have exactly nprobe positive values'
-        stop 1
+
+      ! read global probe point indices
+      if(myid==0) then
+        open (ifinput,file='probe.inp.'//cexpnr)
+          read (ifinput,'(a80)') chmess
+          do n = 1, nprobe
+            read (ifinput,*) iprobe(n), jprobe(n), kprobe(n)
+          end do
+        close (ifinput)
       end if
-      ! write(*, *) 'probe output enabled for', nprobe, 'points'
-      ! write(*, *) 'probevars:', trim(probevars)
+      ! Broadcast the probe point indices to all processes
+      call MPI_BCAST(iprobe, nprobe, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(jprobe, nprobe, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(kprobe, nprobe, MPI_INTEGER, 0, comm3d, mpierr)
       
+      do n = 1, nprobe
+        if (iprobe(n) < 1 .or. iprobe(n) > itot) then
+          write(0, *) 'ERROR: iprobe(', n, ')=', iprobe(n), ' is out of bounds (1 to ', itot, ')'
+          stop 1
+        end if
+        if (jprobe(n) < 1 .or. jprobe(n) > jtot) then
+          write(0, *) 'ERROR: jprobe(', n, ')=', jprobe(n), ' is out of bounds (1 to ', jtot, ')'
+          stop 1
+        end if
+        if (kprobe(n) < 1 .or. kprobe(n) > ktot) then
+          write(0, *) 'ERROR: kprobe(', n, ')=', kprobe(n), ' is out of bounds (1 to ', ktot, ')'
+          stop 1
+        end if
+      end do
+
       tsampleprobe = 0.
       
       if (myid == 0) then

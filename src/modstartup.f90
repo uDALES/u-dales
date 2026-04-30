@@ -66,7 +66,7 @@ module modstartup
                                     lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
                                     lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,lzerogradtop,&
                                     lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice,nkslice,nislice,njslice, &
-                                    lprobedump,iprobe,jprobe,kprobe,nprobe, &
+                                    lprobedump,nprobe, &
                                     lzerogradtopscal, lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
                                     thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
@@ -166,7 +166,7 @@ module modstartup
          lfielddump, tfieldstart, tfielddump, fieldvars, &
          ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, ltkedump, &
          slicevars, lkslicedump, kslice, nkslice, lislicedump, islice, nislice, ljslicedump, jslice, njslice, &
-         probevars, lprobedump, iprobe, jprobe, kprobe, nprobe, &
+         probevars, lprobedump, nprobe, &
          tstatsdump, tsample, tstatstart
       namelist/TREES/ &
          ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
@@ -471,9 +471,6 @@ module modstartup
       call MPI_BCAST(njslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(jslice, njslice, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nprobe, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(iprobe, nprobe, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(jprobe, nprobe, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(kprobe, nprobe, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ltdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(lmintdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(ltkedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing tke budget files

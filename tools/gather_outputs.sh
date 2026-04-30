@@ -215,8 +215,8 @@ for file in ins_?slice.000.${expnr}.nc ; do
     fi
 done
 
-## call loop for ins_fields*
-for file in ins_fields.000.${expnr}.nc ; do
+## call loop for ins_field*
+for file in ins_field.000.${expnr}.nc ; do
     if [ -f $file ]; then
         dumps=${file%.000.${expnr}.nc}
 
