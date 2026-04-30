@@ -29,7 +29,7 @@ module stats
                          ltdump, lxytdump, lxydump, lytdump, lydump, ltreedump, &
                          ib, ie, ih, jb, je, jh, kb, ke, kh, jtot, &
                          dxf, dzf, dzfi, dxhi, dzhi, dzh2i, dyi, dzhiq, &
-                         timee, tstatsdump, tstatstart, tsample, dt, runtime, &
+                         timee, tstatsdump, tstatstart, tstatsgap, tsample, dt, runtime, &
                          k1, JNO2
   use modfields,  only : um, vm, wm, pres0, thlm, qtm, svm, &
                          IIu, IIus, IIut, IIv, IIvs, IIvt, IIw, IIws, IIwt, IIc, IIcs, IIct, &
@@ -595,6 +595,12 @@ module stats
         end if
 
         tstatsdumpp = dt
+
+        if(tstatsgap>0.) then
+          tsamplep = dt
+          tstatstart = tstatstart + tstatsdump + tstatsgap
+          !! note that if tstatsgap is used, stats_xy and stats_y will also be not written during the gap duration as the entire stats_main is skipped for the duration of the gap.
+        end if
 
         if(lstatstavgdump) then
           call stats_reset_tavg_vel

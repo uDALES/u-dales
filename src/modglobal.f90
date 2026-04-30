@@ -228,7 +228,8 @@ module modglobal
    logical :: ltkedump     = .false.  !tg3315
    
    real    :: tstatstart   = 0.       !< Starting time of statistic computation
-   real    :: tstatsdump   = 10000.   !< Time step for statistics outputs tg3315
+   real    :: tstatsdump   = 10000.   !< Time step for statistics outputs
+   real    :: tstatsgap    = 0.       !< Time gap between two consecutive statistics dumps (used in conjunction with tstatstart)
    real    :: tsample      = 5.       !<    Sample time steps for statistics
    
    ! Outputting instantaneous slices sampled at every tsample
