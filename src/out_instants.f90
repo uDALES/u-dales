@@ -30,7 +30,7 @@ module instant
                          slicevars, lislicedump, islice, nislice, ljslicedump, jslice, njslice, lkslicedump, kslice, nkslice, &
                          probevars, lprobedump, iprobe, jprobe, kprobe, nprobe, &
                          ib, ie, jb, je, kb, ke, ih, jh, kh, itot, jtot, ktot, &
-                         tfieldstart, tfielddump, tstatstart, tsample, dt, timee, btime, runtime, &
+                         tinstantstart, tinstantdump, tstatstart, tsample, dt, timee, btime, runtime, &
                          xf, yf, zf, xh, yh, zh
   use modfields,  only : um, vm, wm, thlm, qtm, svm, ql0, pres0, &
                          div, dudx, dvdy, dwdz, &
@@ -47,10 +47,10 @@ module instant
   public :: instant_init, instant_main, instant_exit
   save
 
+  real    :: tnextinstantdump
+
   !! Field writing variables
   integer :: xdimfield, ydimfield, zdimfield
-  real    :: out_tnextfielddump
-  
   integer                       :: nfieldvars
   character(80)                 :: filenamefield
   character(80), dimension(1,4) :: fieldtimeVar
@@ -67,7 +67,6 @@ module instant
   integer :: xdim, ydim, zdim, kdim  ! Added kdim for multiple slices
   real    :: tsampleslice
   integer :: local_nislice, local_njslice  ! Number of islices on this X-processor (saved from create phase)
-  
   integer                    :: nslicevars
   character(80)              :: filenameislice
   character(80)              :: filenamejslice
@@ -79,7 +78,6 @@ module instant
   integer                    :: ncidislice, nrecislice, ncidjslice, nrecjslice, ncidkslice, nreckslice
 
   !! Probe writing variables
-  real    :: tsampleprobe
   integer :: nprobevars
   character(80) :: filenameprobe
   integer :: ncidprobe
@@ -91,16 +89,32 @@ module instant
 
     subroutine instant_init
       implicit none
-      call instant_field_init
+
       call instant_slice_init
+
+      if(.not.(lfielddump .or. lprobedump)) return
+
+      if (tinstantstart .le. btime) then
+        tnextinstantdump = btime
+      else
+        tnextinstantdump = tinstantstart
+      end if
+
+      call instant_field_init
       call instant_probe_init
     end subroutine instant_init
 
     subroutine instant_main
       implicit none
-      call instant_field_main
+
       call instant_slice_main
+
+      if(.not.(lfielddump .or. lprobedump)) return
+      if (.not. (timee >= tnextinstantdump)) return
+      if (.not. rk3step==3)  return
+      call instant_field_main
       call instant_probe_main
+      tnextinstantdump = tnextinstantdump + tinstantdump
     end subroutine instant_main
 
     subroutine instant_exit
@@ -116,11 +130,11 @@ module instant
 
       if (.not. lfielddump) return
 
-      if(runtime <= tfieldstart) then
+      if(runtime <= tinstantstart) then
         if(myid==0) then
-          write(*,*) "ERROR: no instantaneous 3D fields will be written as runtime <= tfieldstart. Note that runtime &
-                      &must be greater than tfieldstart for wiriting ins_field.* files."
-          write(*,*) "You have used runtime = ", runtime, ", tfieldstart = ", tfieldstart
+          write(*,*) "ERROR: no instantaneous 3D fields will be written as runtime <= tinstantstart. Note that runtime &
+                      &must be greater than tinstantstart for wiriting ins_field.* files."
+          write(*,*) "You have used runtime = ", runtime, ", tinstantstart = ", tinstantstart
           write(*,*) "Either correct the time settings or change all the lfielddump flag to false."
           stop 1
         end if
@@ -148,12 +162,6 @@ module instant
         klow  = kb
         khigh = ke
         ydimtot = jtot
-      end if
-
-      if (tfieldstart .le. btime) then
-        out_tnextfielddump = btime
-      else
-        out_tnextfielddump = tfieldstart
       end if
 
       xdimfield = ihigh - ilow + 1
@@ -356,8 +364,6 @@ module instant
       integer :: i, j, k, n
 
       if (.not. lfielddump) return
-      if (.not. (timee >= out_tnextfielddump)) return
-      if (.not. rk3step==3)  return
 
       ! To be uncommented it fo be output via ins_field_out
       ! do k = kb, ke
@@ -372,8 +378,6 @@ module instant
       !     end do
       !   end do
       ! end do
-
-      out_tnextfielddump = out_tnextfielddump + tfielddump
 
       ! Write time
       if (myidy == 0) call writestat_nc(ncidfield, 'time', timee, nrecfield, .true.)
@@ -1324,8 +1328,6 @@ module instant
           stop 1
         end if
       end do
-
-      tsampleprobe = 0.
       
       if (myid == 0) then
           allocate(varid_vals(nprobevars))
@@ -1350,25 +1352,25 @@ module instant
           call check( nf90_put_att(ncidprobe, varid_xt, 'long_name', 'x-coordinate (cell center)') )
           call check( nf90_put_att(ncidprobe, varid_xt, 'units', 'm') )
           
-          call check( nf90_def_var(ncidprobe, 'xm', NF90_FLOAT, (/point_dimid/), varid_xm) )
-          call check( nf90_put_att(ncidprobe, varid_xm, 'long_name', 'x-coordinate (cell edge)') )
-          call check( nf90_put_att(ncidprobe, varid_xm, 'units', 'm') )
+          ! call check( nf90_def_var(ncidprobe, 'xm', NF90_FLOAT, (/point_dimid/), varid_xm) )
+          ! call check( nf90_put_att(ncidprobe, varid_xm, 'long_name', 'x-coordinate (cell edge)') )
+          ! call check( nf90_put_att(ncidprobe, varid_xm, 'units', 'm') )
           
           call check( nf90_def_var(ncidprobe, 'yt', NF90_FLOAT, (/point_dimid/), varid_yt) )
           call check( nf90_put_att(ncidprobe, varid_yt, 'long_name', 'y-coordinate (cell center)') )
           call check( nf90_put_att(ncidprobe, varid_yt, 'units', 'm') )
           
-          call check( nf90_def_var(ncidprobe, 'ym', NF90_FLOAT, (/point_dimid/), varid_ym) )
-          call check( nf90_put_att(ncidprobe, varid_ym, 'long_name', 'y-coordinate (cell edge)') )
-          call check( nf90_put_att(ncidprobe, varid_ym, 'units', 'm') )
+          ! call check( nf90_def_var(ncidprobe, 'ym', NF90_FLOAT, (/point_dimid/), varid_ym) )
+          ! call check( nf90_put_att(ncidprobe, varid_ym, 'long_name', 'y-coordinate (cell edge)') )
+          ! call check( nf90_put_att(ncidprobe, varid_ym, 'units', 'm') )
 
           call check( nf90_def_var(ncidprobe, 'zt', NF90_FLOAT, (/point_dimid/), varid_zt) )
           call check( nf90_put_att(ncidprobe, varid_zt, 'long_name', 'z-coordinate (cell center)') )
           call check( nf90_put_att(ncidprobe, varid_zt, 'units', 'm') )
           
-          call check( nf90_def_var(ncidprobe, 'zm', NF90_FLOAT, (/point_dimid/), varid_zm) )
-          call check( nf90_put_att(ncidprobe, varid_zm, 'long_name', 'z-coordinate (cell edge)') )
-          call check( nf90_put_att(ncidprobe, varid_zm, 'units', 'm') )
+          ! call check( nf90_def_var(ncidprobe, 'zm', NF90_FLOAT, (/point_dimid/), varid_zm) )
+          ! call check( nf90_put_att(ncidprobe, varid_zm, 'long_name', 'z-coordinate (cell edge)') )
+          ! call check( nf90_put_att(ncidprobe, varid_zm, 'units', 'm') )
 
           ! Time
           call check( nf90_def_var(ncidprobe, 'time', NF90_FLOAT, (/time_dimid/), varid_time) )
@@ -1391,19 +1393,19 @@ module instant
           allocate(zt(nprobe), zm(nprobe))
           do n=1, nprobe
              xt(n) = xf(iprobe(n))  ! cell center
-             xm(n) = xh(iprobe(n))  ! cell edge
+            !  xm(n) = xh(iprobe(n))  ! cell edge
              yt(n) = yf(jprobe(n))  ! cell center
-             ym(n) = yh(jprobe(n))  ! cell edge
+            !  ym(n) = yh(jprobe(n))  ! cell edge
              zt(n) = zf(kprobe(n))  ! cell center
-             zm(n) = zh(kprobe(n))  ! cell edge
+            !  zm(n) = zh(kprobe(n))  ! cell edge
           end do
           
           call check( nf90_put_var(ncidprobe, varid_xt, xt, start=(/1/), count=(/nprobe/)) )
-          call check( nf90_put_var(ncidprobe, varid_xm, xm, start=(/1/), count=(/nprobe/)) )
+          ! call check( nf90_put_var(ncidprobe, varid_xm, xm, start=(/1/), count=(/nprobe/)) )
           call check( nf90_put_var(ncidprobe, varid_yt, yt, start=(/1/), count=(/nprobe/)) )
-          call check( nf90_put_var(ncidprobe, varid_ym, ym, start=(/1/), count=(/nprobe/)) )
+          ! call check( nf90_put_var(ncidprobe, varid_ym, ym, start=(/1/), count=(/nprobe/)) )
           call check( nf90_put_var(ncidprobe, varid_zt, zt, start=(/1/), count=(/nprobe/)) )
-          call check( nf90_put_var(ncidprobe, varid_zm, zm, start=(/1/), count=(/nprobe/)) )
+          ! call check( nf90_put_var(ncidprobe, varid_zm, zm, start=(/1/), count=(/nprobe/)) )
           call check( nf90_sync(ncidprobe) )
           
           deallocate(xt, xm, yt, ym, zt, zm)
@@ -1419,50 +1421,41 @@ module instant
       character(80) :: varname
       
       if (.not. lprobedump) return
-      if (timee < tstatstart) return
-      if (.not. rk3step==3) return
+         
+      ! Only rank 0 tracks record number
+      if (myid == 0) nrecprobe = nrecprobe + 1
+      
+      allocate(send_buf(nprobe))
+      allocate(recv_buf(nprobe))
+      
+      ! Always write time first (Rank 0)
+      if (myid == 0) then
+          call check( nf90_put_var(ncidprobe, varid_time, timee, start=(/nrecprobe/)) )
+      end if
 
-      if (tsampleprobe >= tsample) then
-         
-         ! Only rank 0 tracks record number
-         if (myid == 0) nrecprobe = nrecprobe + 1
-         
-         allocate(send_buf(nprobe))
-         allocate(recv_buf(nprobe))
-         
-         ! Always write time first (Rank 0)
-         if (myid == 0) then
-             call check( nf90_put_var(ncidprobe, varid_time, timee, start=(/nrecprobe/)) )
-         end if
-
-         ! Loop over all requested variables
-         do vn = 1, nprobevars
-            varname = probevars(3*vn-2 : 3*vn-1)
-            send_buf = 0.0
-            recv_buf = 0.0
-            
-            call instant_gather_probe_var(varname, send_buf)
-            
-            ! Reduce to Rank 0
-            call MPI_REDUCE(send_buf, recv_buf, nprobe, my_real, MPI_SUM, 0, comm3d, mpierr)
-            
-            if (myid == 0) then
-                ! Use start/count to append to time dimension
-               call check( nf90_put_var(ncidprobe, varid_vals(vn), recv_buf, &
-                                        start=(/1, nrecprobe/), count=(/nprobe, 1/)) )
-            end if
-         end do
-         
-         if (myid == 0) then
-            call check( nf90_sync(ncidprobe) )
-         end if
-         
-         deallocate(send_buf, recv_buf)
-         
-         tsampleprobe = dt ! Reset timer
-      else
-        tsampleprobe = tsampleprobe + dt
-      endif
+      ! Loop over all requested variables
+      do vn = 1, nprobevars
+        varname = probevars(3*vn-2 : 3*vn-1)
+        send_buf = 0.0
+        recv_buf = 0.0
+        
+        call instant_gather_probe_var(varname, send_buf)
+        
+        ! Reduce to Rank 0
+        call MPI_REDUCE(send_buf, recv_buf, nprobe, my_real, MPI_SUM, 0, comm3d, mpierr)
+        
+        if (myid == 0) then
+            ! Use start/count to append to time dimension
+            call check( nf90_put_var(ncidprobe, varid_vals(vn), recv_buf, &
+                                    start=(/1, nrecprobe/), count=(/nprobe, 1/)) )
+        end if
+      end do
+      
+      if (myid == 0) then
+        call check( nf90_sync(ncidprobe) )
+      end if
+      
+      deallocate(send_buf, recv_buf)
     end subroutine instant_probe_main
 
 
@@ -1552,8 +1545,8 @@ module instant
              ierr = nf90_put_att(ncid, vid, 'long_name', 'Vertical velocity')
              ierr = nf90_put_att(ncid, vid, 'units', 'm/s')
          case('p0')
-             ierr = nf90_put_att(ncid, vid, 'long_name', 'Pressure')
-             ierr = nf90_put_att(ncid, vid, 'units', 'Pa')
+             ierr = nf90_put_att(ncid, vid, 'long_name', 'Kinematic pressure')
+             ierr = nf90_put_att(ncid, vid, 'units', 'm^2/s^2')
          case('th')
              ierr = nf90_put_att(ncid, vid, 'long_name', 'Potential temperature')
              ierr = nf90_put_att(ncid, vid, 'units', 'K')

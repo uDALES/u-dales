@@ -57,7 +57,7 @@ module modstartup
       !-----------------------------------------------------------------|
 
       use modglobal,         only : initglobal, iexpnr, runtime, dtmax,  &
-                                    lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfieldstart, tfielddump, fieldvars, slicevars, probevars, tsample, tstatsdump, tstatstart, trestart, &
+                                    lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tinstantstart, tinstantdump, fieldvars, slicevars, probevars, tsample, tstatsdump, tstatstart, trestart, &
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
                                     nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
@@ -163,7 +163,7 @@ module modstartup
       namelist/CHEMISTRY/ &
          lchem, k1, JNO2
       namelist/OUTPUT/ &
-         lfielddump, tfieldstart, tfielddump, fieldvars, &
+         lfielddump, tinstantstart, tinstantdump, fieldvars, &
          ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, ltkedump, &
          slicevars, lkslicedump, kslice, nkslice, lislicedump, islice, nislice, ljslicedump, jslice, njslice, &
          probevars, lprobedump, nprobe, &
@@ -479,8 +479,8 @@ module modstartup
       call MPI_BCAST(author, 80, MPI_CHARACTER, 0, comm3d, mpierr)
       call MPI_BCAST(runtime, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(trestart, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(tfieldstart, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(tfielddump, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(tinstantstart, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(tinstantdump, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tsample, 1, MY_REAL, 0, comm3d, mpierr) !tg3315
       call MPI_BCAST(tstatsdump, 1, MY_REAL, 0, comm3d, mpierr) !tg3315
       call MPI_BCAST(tstatstart, 1, MY_REAL, 0, comm3d, mpierr)
@@ -974,7 +974,7 @@ module modstartup
          rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
          uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
-         tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
+         tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
          tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
@@ -2176,7 +2176,6 @@ module modstartup
       end if
       ntimee = nint(timee/dtmax)
       tnextrestart = btime + trestart
-      tnextfielddump = btime + tfielddump
       tEB = btime
       tnextEB = btime + dtEB
       tfac = btime

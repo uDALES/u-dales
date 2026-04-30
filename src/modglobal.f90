@@ -253,10 +253,10 @@ module modglobal
 
    ! Outputting instantaneous 3D fields
    logical :: lfielddump   = .false.  !< switch to enable the fielddump
-   real    :: tfieldstart  = 0.       !< Starting time of writing instantaneous fields
-   real    :: tfielddump   = 10000.   !< Time step for field outputs
    character(50) :: fieldvars = ''    !< list of variables to be output in fielddump
-   real    :: tnextfielddump          !< time for next fielddump output
+
+   real    :: tinstantstart  = 0.     !< Starting time of writing instantaneous fields
+   real    :: tinstantdump   = 10000. !< Time step for instantaneous field outputs
 
    logical :: ibrank
    logical :: ierank
@@ -867,8 +867,6 @@ contains
       end if
 
       tnextrestart = trestart
-      tnextfielddump = tfielddump
-!    tnextstatsdump = tstatsdump
       timeleft = runtime ! tg3315 previously btime + runtime
 
    end subroutine initglobal
