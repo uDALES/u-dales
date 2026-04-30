@@ -49,8 +49,7 @@ program DALESURBAN      !Version 48
 !------------------------------------------------------------------------------
   use modstatsdump,       only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use stats,              only : stats_init,stats_main,stats_exit
-  use instant,            only : instant_init,instant_main
-  use instant_fields_out, only : ins_field_init,ins_field_main,ins_field_exit
+  use instant,            only : instant_init,instant_main,instant_exit
   
   implicit none
 
@@ -101,7 +100,6 @@ program DALESURBAN      !Version 48
 
   call initstatsdump
   call stats_init
-  call ins_field_init
   call instant_init
 
   call initEB
@@ -193,7 +191,6 @@ program DALESURBAN      !Version 48
 
     call statsdump     ! will depricate soon; contains tke budget only(not working)
     call stats_main
-    call ins_field_main
     call instant_main
 
     call boundary
@@ -222,7 +219,7 @@ program DALESURBAN      !Version 48
   call exitstatsdump     !tg3315
   call exit_heatpump
   call stats_exit
-  call ins_field_exit
+  call instant_exit
   !call exitmodules
   !call exittest
   call exitmpi

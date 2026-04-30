@@ -25,60 +25,374 @@
 ! Copyright (C) 2016- the uDALES Team, Imperial College London.
 !
 module instant
-  use modglobal,  only : cexpnr, rk3step, ltempeq, lmoist, nsv, tsample, dt, timee, runtime, &
-                         slicevars, lislicedump, islice, ljslicedump, jslice, lkslicedump, kslice, &
-                         nkslice, nislice, njslice, itot,jtot, &
-                         ib, ie, jb, je, kb, ke, &
-                         tstatstart, &
+  use modglobal,  only : cexpnr, rk3step, ltempeq, lmoist, nsv,  &
+                         fieldvars, lfielddump, &
+                         slicevars, lislicedump, islice, nislice, ljslicedump, jslice, njslice, lkslicedump, kslice, nkslice, &
                          probevars, lprobedump, iprobe, jprobe, kprobe, nprobe, &
+                         ib, ie, jb, je, kb, ke, ih, jh, kh, itot, jtot, &
+                         tfieldstart, tfielddump, tstatstart, tsample, dt, timee, btime, runtime, &
                          xf, yf, zf, xh, yh, zh
-  use modfields,  only : um, vm, wm, thlm, qtm, svm, pres0
-  use modmpi,     only : myid, myidy, cmyidx, cmyidy, comm3d, mpierr, my_real, NPROCY, NPROCX,myidx
+  use modfields,  only : um, vm, wm, thlm, qtm, svm, &
+                         u0, v0, w0, thl0, qt0, ql0, sv0, pres0, &
+                         div, dudx, dvdy, dwdz, &
+                         tau_x, tau_y, tau_z, thl_flux
+  ! use modpois,    only : p, pup, pvp, pwp, rhs, dpupdx, dpvpdy, dpwpdz
+  use modibm,     only : mask_u, mask_v, mask_w, mask_c
+  use modmpi,     only : myid, myidx, myidy, cmyidx, cmyidy, comm3d, mpierr, my_real, nprocx, nprocy
   use decomp_2d,  only : zstart, zend
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset, writeoffset_1dx
   use mpi
   use netcdf
   implicit none
   private
-  public :: instant_init, instant_main, instant_validate_output_vars
+  public :: instant_init, instant_main, instant_exit
   save
 
+  !! Field writing variables
+  integer :: xdimfield, ydimfield, zdimfield
+  real    :: out_tnextfielddump
+  
+  integer                       :: nfieldvars
+  character(80)                 :: filenamefield
+  character(80), dimension(1,4) :: fieldtimeVar
+  character(80), allocatable    :: fldVars(:,:)
+  integer                       :: ncidfield, nrecfield
+
+  ! Domain pointer type for field variables
+  type domainptr
+    real, pointer :: point(:,:,:)
+  end type domainptr
+  type(domainptr), dimension(30) :: pfields
+
+  !! Slice writing variables
   integer :: xdim, ydim, zdim, kdim  ! Added kdim for multiple slices
   real    :: tsampleslice
-
   integer :: local_nislice, local_njslice  ! Number of islices on this X-processor (saved from create phase)
   
   integer                    :: nslicevars
   character(80)              :: filenameislice
   character(80)              :: filenamejslice
   character(80)              :: filenamekslice
-  
   character(80)              :: slicetimeVar(1,4)
   character(80), allocatable :: isliceVars(:,:)
   character(80), allocatable :: jsliceVars(:,:)
   character(80), allocatable :: ksliceVars(:,:)
   integer                    :: ncidislice, nrecislice, ncidjslice, nrecjslice, ncidkslice, nreckslice
 
-  ! Probe variables
+  !! Probe writing variables
   real    :: tsampleprobe
   integer :: nprobevars
   character(80) :: filenameprobe
   integer :: ncidprobe
   integer :: nrecprobe = 0
+  integer :: varid_time
+  integer, allocatable :: varid_vals(:)
 
   contains
 
     subroutine instant_init
       implicit none
+      call instant_field_init
       call instant_slice_init
       call instant_probe_init
     end subroutine instant_init
 
     subroutine instant_main
       implicit none
+      call instant_field_main
       call instant_slice_main
       call instant_probe_main
     end subroutine instant_main
+
+    subroutine instant_exit
+      implicit none
+      call instant_field_exit
+    end subroutine instant_exit
+
+    subroutine instant_field_init
+      implicit none
+      integer :: ilow, ihigh, jlow, jhigh, klow, khigh
+      integer :: n, ydimtot
+      logical :: lhalos_out
+
+      if (.not. lfielddump) return
+
+      if(runtime <= tfieldstart) then
+        if(myid==0) then
+          write(*,*) "ERROR: no instantaneous 3D fields will be written as runtime <= tfieldstart. Note that runtime &
+                      &must be greater than tfieldstart for wiriting ins_fields.* files."
+          write(*,*) "You have used runtime = ", runtime, ", tfieldstart = ", tfieldstart
+          write(*,*) "Either correct the time settings or change all the lfielddump flag to false."
+          stop 1
+        end if
+      end if
+
+      call instant_validate_output_vars(nfieldvars, fieldvars, 'fieldvars', 'lfielddump')
+
+      allocate(fldVars(nfieldvars,4))
+
+      lhalos_out = .false.
+
+      if (lhalos_out) then
+        ilow  = ib - ih
+        ihigh = ie + ih
+        jlow  = jb - jh
+        jhigh = je + jh
+        klow  = kb - kh
+        khigh = ke + kh
+        ydimtot = jtot + 2*jh
+      else
+        ilow  = ib
+        ihigh = ie
+        jlow  = jb
+        jhigh = je
+        klow  = kb
+        khigh = ke
+        ydimtot = jtot
+      end if
+
+      if (tfieldstart .le. btime) then
+        out_tnextfielddump = btime
+      else
+        out_tnextfielddump = tfieldstart
+      end if
+
+      xdimfield = ihigh - ilow + 1
+      ydimfield = jhigh - jlow + 1
+      zdimfield = khigh - klow + 1
+
+      call ncinfo(fieldtimeVar(1,:), 'time', 'Time', 's', 'time')
+
+      ! Set up variable descriptions and field pointers
+      if (lhalos_out) then
+
+        do n = 1, nfieldvars
+          select case(fieldvars(3*n-2:3*n-1))
+          case('u0')
+            call ncinfo(fldVars(n,:), 'u', 'West-East velocity', 'm/s', 'mttt')
+            pfields(n)%point => u0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+          case('v0')
+            call ncinfo(fldVars(n,:), 'v', 'South-North velocity', 'm/s', 'tmtt')
+            pfields(n)%point => v0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+          case('w0')
+            call ncinfo(fldVars(n,:), 'w', 'Vertical velocity', 'm/s', 'ttmt')
+            pfields(n)%point => w0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+          case('th')
+            call ncinfo(fldVars(n,:), 'thl', 'Liquid water potential temperature', 'K', 'tttt')
+            pfields(n)%point => thl0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+          case('ql')
+            call ncinfo(fldVars(n,:), 'ql', 'Liquid water mixing ratio', 'kg/kg', 'tttt')
+            pfields(n)%point => ql0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+          case('qt')
+            call ncinfo(fldVars(n,:), 'qt', 'Total water mixing ratio', 'kg/kg', 'tttt')
+            pfields(n)%point => qt0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+          case('s1')
+            call ncinfo(fldVars(n,:), 's1', 'scalar concentration field 1', 'g/m^3', 'tttt')
+            pfields(n)%point => sv0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 1)
+          case('s2')
+            call ncinfo(fldVars(n,:), 's2', 'scalar concentration field 2', 'g/m^3', 'tttt')
+            pfields(n)%point => sv0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 2)
+          case('s3')
+            call ncinfo(fldVars(n,:), 's3', 'scalar concentration field 3', 'g/m^3', 'tttt')
+            pfields(n)%point => sv0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 3)
+          case('s4')
+            call ncinfo(fldVars(n,:), 's4', 'scalar concentration field 4', 'g/m^3', 'tttt')
+            pfields(n)%point => sv0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 4)
+          case('s5')
+            call ncinfo(fldVars(n,:), 's5', 'scalar concentration field 5', 'g/m^3', 'tttt')
+            pfields(n)%point => sv0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh, 5)
+          case('p0')
+            call ncinfo(fldVars(n,:), 'p', 'Kinematic pressure field', 'm^2/s^2', 'tttt')
+            pfields(n)%point => pres0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+          ! case('pc')
+          !   call ncinfo(fldVars( n,:),'pc','pressure correction','M','tttt')
+          !   pfields(n)%point => p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+          ! case('du')
+          !   call ncinfo(fldVars( n,:),'dpupdx','','M','tttt')
+          !   pfields(n)%point => dpupdx(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+          ! case('dv')
+          !   call ncinfo(fldVars( n,:),'dpvpdy','','M','tttt')
+          !   pfields(n)%point => dpvpdy(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+          ! case('dw')
+          !   call ncinfo(fldVars( n,:),'dpwpdz','','M','tttt')
+          !   pfields(n)%point => dpwpdz(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+          case default
+            print *, "Invalid field variables name. Check namoptions setting for 'fieldvars'. &
+                      &The variables can be only from the list: u0,v0,w0,p0,th,qt,ql,s1,s2,s3,s4,s5. &
+                      &There should not be any space in the string."
+            STOP 1
+          end select
+        end do
+
+      else
+
+        do n = 1, nfieldvars
+          select case(fieldvars(3*n-2:3*n-1))
+          case('u0')
+            call ncinfo(fldVars(n,:), 'u', 'West-East velocity', 'm/s', 'mttt')
+            pfields(n)%point => u0(ib:ie, jb:je, kb:ke)
+          case('v0')
+            call ncinfo(fldVars(n,:), 'v', 'South-North velocity', 'm/s', 'tmtt')
+            pfields(n)%point => v0(ib:ie, jb:je, kb:ke)
+          case('w0')
+            call ncinfo(fldVars(n,:), 'w', 'Vertical velocity', 'm/s', 'ttmt')
+            pfields(n)%point => w0(ib:ie, jb:je, kb:ke)
+          case('th')
+            call ncinfo(fldVars(n,:), 'thl', 'Liquid water potential temperature', 'K', 'tttt')
+            pfields(n)%point => thl0(ib:ie, jb:je, kb:ke)
+          case('ql')
+            call ncinfo(fldVars(n,:), 'ql', 'Liquid water mixing ratio', 'kg/kg', 'tttt')
+            pfields(n)%point => ql0(ib:ie, jb:je, kb:ke)
+          case('qt')
+            call ncinfo(fldVars(n,:), 'qt', 'Total water mixing ratio', 'kg/kg', 'tttt')
+            pfields(n)%point => qt0(ib:ie, jb:je, kb:ke)
+          case('s1')
+            call ncinfo(fldVars(n,:), 's1', 'scalar concentration field 1', 'g/m^3', 'tttt')
+            pfields(n)%point => sv0(ib:ie, jb:je, kb:ke, 1)
+          case('s2')
+            call ncinfo(fldVars(n,:), 's2', 'scalar concentration field 2', 'g/m^3', 'tttt')
+            pfields(n)%point => sv0(ib:ie, jb:je, kb:ke, 2)
+          case('s3')
+            call ncinfo(fldVars(n,:), 's3', 'scalar concentration field 3', 'g/m^3', 'tttt')
+            pfields(n)%point => sv0(ib:ie, jb:je, kb:ke, 3)
+          case('s4')
+            call ncinfo(fldVars(n,:), 's4', 'scalar concentration field 4', 'g/m^3', 'tttt')
+            pfields(n)%point => sv0(ib:ie, jb:je, kb:ke, 4)
+          case('s5')
+            call ncinfo(fldVars(n,:), 's5', 'scalar concentration field 5', 'g/m^3', 'tttt')
+            pfields(n)%point => sv0(ib:ie, jb:je, kb:ke, 5)
+          case('p0')
+            call ncinfo(fldVars(n,:), 'p', 'Kinematic pressure field', 'm^2/s^2', 'tttt')
+            pfields(n)%point => pres0(ib:ie, jb:je, kb:ke)
+          case('tx')
+            call ncinfo(fldVars(n,:), 'tau_x', 'stress x', 'M', 'mttt')
+            pfields(n)%point => tau_x(ib:ie, jb:je, kb:ke)
+          case('ty')
+            call ncinfo(fldVars(n,:), 'tau_y', 'stress y', 'M', 'tmtt')
+            pfields(n)%point => tau_y(ib:ie, jb:je, kb:ke)
+          case('tz')
+            call ncinfo(fldVars(n,:), 'tau_z', 'stress z', 'M', 'ttmt')
+            pfields(n)%point => tau_z(ib:ie, jb:je, kb:ke)
+          case('hf')
+            call ncinfo(fldVars(n,:), 'thl_flux', 'heat flux', 'M', 'tttt')
+            pfields(n)%point => thl_flux(ib:ie, jb:je, kb:ke)
+          case('mu')
+            call ncinfo(fldVars(n,:), 'mask_u', 'mask u', 'M', 'mttt')
+            pfields(n)%point => mask_u(ib:ie, jb:je, kb:ke)
+          case('mv')
+            call ncinfo(fldVars(n,:), 'mask_v', 'mask v', 'M', 'tmtt')
+            pfields(n)%point => mask_v(ib:ie, jb:je, kb:ke)
+          case('mw')
+            call ncinfo(fldVars(n,:), 'mask_w', 'mask w', 'M', 'ttmt')
+            pfields(n)%point => mask_w(ib:ie, jb:je, kb:ke)
+          case('mc')
+            call ncinfo(fldVars(n,:), 'mask_c', 'mask c', 'M', 'tttt')
+            pfields(n)%point => mask_c(ib:ie, jb:je, kb:ke)
+          ! case('pc')
+          !   call ncinfo(fldVars( n,:),'pc','pressure correction','M','tttt')
+          !   pfields(n)%point => p(ib:ie,jb:je,kb:ke)
+          ! case('pu')
+          !   call ncinfo(fldVars( n,:),'pup','predicted u','M','mttt')
+          !   pfields(n)%point => pup(ib:ie,jb:je,kb:ke)
+          ! case('pv')
+          !   call ncinfo(fldVars( n,:),'pvp','predicted v','M','tmtt')
+          !   pfields(n)%point => pvp(ib:ie,jb:je,kb:ke)
+          ! case('pw')
+          !   call ncinfo(fldVars( n,:),'pwp','predicted w','M','ttmt')
+          !   pfields(n)%point => pwp(ib:ie,jb:je,kb:ke)
+          ! case('rs')
+          !   call ncinfo(fldVars( n,:),'rhs','rhs of poisson equation','M','tttt')
+          !   pfields(n)%point => rhs(ib:ie,jb:je,kb:ke)
+          ! case('du')
+          !   call ncinfo(fldVars( n,:),'dpupdx','','M','tttt')
+          !   pfields(n)%point => dpupdx(ib:ie,jb:je,kb:ke)
+          ! case('dv')
+          !   call ncinfo(fldVars( n,:),'dpvpdy','','M','tttt')
+          !   pfields(n)%point => dpvpdy(ib:ie,jb:je,kb:ke)
+          ! case('dw')
+          !   call ncinfo(fldVars( n,:),'dpwpdz','','M','tttt')
+          !   pfields(n)%point => dpwpdz(ib:ie,jb:je,kb:ke)
+          ! case('di')
+          !   call ncinfo(fldVars(n,:), 'div', 'Divergence after pressure correction', 's^-1', 'tttt')
+          !   pfields(n)%point => div(ib:ie, jb:je, kb:ke)
+          ! case('ux')
+          !   call ncinfo(fldVars( n,:),'dudx','','s^-1','tttt')
+          !   pfields(n)%point => dudx(ib:ie,jb:je,kb:ke)
+          ! case('vy')
+          !   call ncinfo(fldVars( n,:),'dvdy','','s^-1','tttt')
+          !   pfields(n)%point => dvdy(ib:ie,jb:je,kb:ke)
+          ! case('wz')
+          !   call ncinfo(fldVars( n,:),'dwdz','','s^-1','tttt')
+          !   pfields(n)%point => dwdz(ib:ie,jb:je,kb:ke)
+          case default
+            print *, "Invalid field variables name. Check namoptions setting for 'fieldvars'. &
+                      &The variables can be only from the list: u0,v0,w0,p0,th,qt,ql,s1,s2,s3,s4,s5,tx,ty,tz,hf,mu,mv,mw,mc,di. &
+                      &There should not be any space in the string."
+            STOP 1
+          end select
+        end do
+
+      end if
+
+      ! Create NetCDF file: ins_fields.xxx.xxx.nc (one per x-processor column)
+      filenamefield = 'ins_fields.xxx.xxx.nc'
+      filenamefield(12:14) = cmyidx
+      filenamefield(16:18) = cexpnr
+
+      nrecfield = 0
+      if (myidy == 0) then
+        call open_nc(filenamefield, ncidfield, nrecfield, n1=xdimfield, n2=ydimtot, n3=zdimfield)
+        if (nrecfield == 0) then
+          call define_nc(ncidfield, 1, fieldtimeVar)
+          call writestat_dims_nc(ncidfield)
+        end if
+        call define_nc(ncidfield, nfieldvars, fldVars)
+      end if
+
+    end subroutine instant_field_init
+
+    subroutine instant_field_main
+      ! use modglobal, only : dxfi, dyi, dzhi
+      implicit none
+      integer :: i, j, k, n
+
+      if (.not. lfielddump) return
+      if (.not. (timee >= out_tnextfielddump)) return
+      if (.not. rk3step==3)  return
+
+      ! To be uncommented it fo be output via ins_field_out
+      ! do k = kb, ke
+      !   do j = jb, je
+      !     do i = ib, ie
+      !       dudx(i,j,k) = (u0(i+1,j,k) - u0(i,j,k)) * dxfi(i)
+      !       dvdy(i,j,k) = (v0(i,j+1,k) - v0(i,j,k)) * dyi
+      !       dwdz(i,j,k) = (w0(i,j,k+1) - w0(i,j,k)) * dzhi(k)
+      !       div(i,j,k)  = (u0(i+1,j,k) - u0(i,j,k)) * dxfi(i) + &
+      !                      (v0(i,j+1,k) - v0(i,j,k)) * dyi + &
+      !                      (w0(i,j,k+1) - w0(i,j,k)) * dzhi(k)
+      !     end do
+      !   end do
+      ! end do
+
+      out_tnextfielddump = out_tnextfielddump + tfielddump
+
+      ! Write time
+      if (myidy == 0) call writestat_nc(ncidfield, 'time', timee, nrecfield, .true.)
+
+      ! Write each field variable using writeoffset
+      do n = 1, nfieldvars
+        call writeoffset(ncidfield, trim(fldVars(n,1)), pfields(n)%point, nrecfield, xdimfield, ydimfield, zdimfield)
+      end do
+    end subroutine instant_field_main
+
+    subroutine instant_field_exit
+      use modstat_nc, only : exitstat_nc
+      implicit none
+      if (.not. lfielddump) return
+      if (myidy == 0) call exitstat_nc(ncidfield)
+      if (allocated(fldVars)) deallocate(fldVars)
+    end subroutine instant_field_exit
+
 
     subroutine instant_slice_init
       implicit none
@@ -121,12 +435,11 @@ module instant
       end if
     end subroutine instant_slice_init
 
-
     subroutine instant_slice_main
       implicit none
+      if(.not.(lislicedump .or. ljslicedump .or. lkslicedump)) return
       if (timee < tstatstart) return
       if (.not. rk3step==3)  return
-      if(.not.(lislicedump .or. ljslicedump .or. lkslicedump)) return
 
       if (tsampleslice > tsample) then
         if (lislicedump) call instant_write_islice
@@ -137,7 +450,6 @@ module instant
         tsampleslice = tsampleslice + dt
       endif
     end subroutine instant_slice_main
-
 
     subroutine instant_ncdescription_islice
       implicit none
@@ -241,7 +553,6 @@ module instant
       end do
     end subroutine instant_ncdescription_kslice
 
-
     !! ## %% 1D parallel output creation for islice (y-direction processes only)
     subroutine instant_create_ncislice
       implicit none
@@ -252,7 +563,7 @@ module instant
       local_nislice = 0
       has_islice = .false.
       do i = 1, nislice
-!        if ( (islice(i)-1)/(itot/nprocx) == myidx) then
+        ! if ( (islice(i)-1)/(itot/nprocx) == myidx) then
         if (islice(i) >= zstart(1) .and. islice(i) <= zend(1)) then
           local_nislice = local_nislice + 1
           has_islice = .true.
@@ -289,7 +600,7 @@ module instant
       local_njslice = 0
       has_jslice = .false.
       do j = 1, njslice
-!        if (jslice(j) >= ystart(2) .and. jslice(j) <= yend(2)) then
+        ! if (jslice(j) >= ystart(2) .and. jslice(j) <= yend(2)) then
         if (jslice(j) >= zstart(2) .and. jslice(j) <= zend(2)) then
           local_njslice = local_njslice + 1
           has_jslice = .true.
@@ -359,11 +670,11 @@ module instant
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-!          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
+          ! if ( (islice(i)-1)/(itot/nprocx) == myidx) then
           if (islice(i) >= zstart(1) .and. islice(i) <= zend(1)) then
             local_idx = local_idx + 1
             ii = islice(i)  ! Global X-position
-!            ii_local = ii - (myidx * (itot/nprocx))
+            ! ii_local = ii - (myidx * (itot/nprocx))
             ii_local = ii - zstart(1) + 1
               tmp_slice(local_idx,:,:) = 0.5*(um(ii_local,jb:je,kb:ke) + um(ii_local+1,jb:je,kb:ke))
           end if
@@ -376,11 +687,11 @@ module instant
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-!          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
+          ! if ( (islice(i)-1)/(itot/nprocx) == myidx) then
           if (islice(i) >= zstart(1) .and. islice(i) <= zend(1)) then
             local_idx = local_idx + 1
             ii = islice(i)
-!            ii_local = ii - (myidx * (itot/nprocx))
+            ! ii_local = ii - (myidx * (itot/nprocx))
             ii_local = ii - zstart(1) + 1
               tmp_slice(local_idx,:,:) = vm(ii_local,jb:je,kb:ke)
           end if
@@ -393,11 +704,11 @@ module instant
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-!          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
+          ! if ( (islice(i)-1)/(itot/nprocx) == myidx) then
           if (islice(i) >= zstart(1) .and. islice(i) <= zend(1)) then
             local_idx = local_idx + 1
             ii = islice(i)
-!            ii_local = ii - (myidx * (itot/nprocx))
+            ! ii_local = ii - (myidx * (itot/nprocx))
             ii_local = ii - zstart(1) + 1
               tmp_slice(local_idx,:,:) = wm(ii_local,jb:je,kb:ke)
           end if
@@ -410,11 +721,11 @@ module instant
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
-!          if ( (islice(i)-1)/(itot/nprocx) == myidx) then
+          ! if ( (islice(i)-1)/(itot/nprocx) == myidx) then
           if (islice(i) >= zstart(1) .and. islice(i) <= zend(1)) then
             local_idx = local_idx + 1
             ii = islice(i)
-!            ii_local = ii - (myidx * (itot/nprocx))
+            ! ii_local = ii - (myidx * (itot/nprocx))
             ii_local = ii - zstart(1) + 1
               tmp_slice(local_idx,:,:) = pres0(ii_local,jb:je,kb:ke)
           end if
@@ -712,7 +1023,6 @@ module instant
 
     subroutine instant_write_islice_xcoord_local(ncid, local_n, nislice_total, islice_positions, myidx_in, nprocx_in, itot_in)
       ! Write x-coordinates for LOCAL islice positions only
-      use modglobal, only : xf, xh
       implicit none
       integer, intent(in) :: ncid, local_n, nislice_total
       integer, dimension(nislice_total), intent(in) :: islice_positions
@@ -764,7 +1074,6 @@ module instant
 
     subroutine instant_write_jslice_ycoord_local(ncid, local_n, njslice_total, jslice_positions, myidy_in, nprocy_in, jtot_in)
       ! Write y-coordinates for LOCAL jslice positions (round-robin assignment over myidy)
-      use modglobal, only : yf, yh
       implicit none
       integer, intent(in) :: ncid, local_n, njslice_total
       integer, dimension(njslice_total), intent(in) :: jslice_positions
@@ -813,7 +1122,6 @@ module instant
 
     subroutine instant_write_kslice_zcoord(ncid, nkslice_count, kslice_positions)
       ! Update z-coordinate to reflect kslice levels instead of full z levels
-      use modglobal, only : zf, zh
       implicit none
       integer, intent(in) :: ncid, nkslice_count
       integer, dimension(nkslice_count), intent(in) :: kslice_positions
@@ -967,12 +1275,12 @@ module instant
       present = (pos > 0)
     end function present
 
+
     subroutine instant_probe_init
       implicit none
       integer :: n, ierr, vn
       integer :: point_dimid, time_dimid
-      integer :: varid_xt, varid_xm, varid_yt, varid_ym, varid_zt, varid_zm, varid_time
-      integer, allocatable :: varid_vals(:)
+      integer :: varid_xt, varid_xm, varid_yt, varid_ym, varid_zt, varid_zm
       real,    allocatable :: xt(:), xm(:), yt(:), ym(:), zt(:), zm(:)
       character(2)  :: varname
       
@@ -1090,11 +1398,11 @@ module instant
       integer :: vn
       character(80) :: varname
       
+      if (.not. lprobedump) return
       if (timee < tstatstart) return
       if (.not. rk3step==3) return
-      if (.not. lprobedump) return
 
-      if (tsampleprobe > tsample) then
+      if (tsampleprobe >= tsample) then
          
          ! Only rank 0 tracks record number
          if (myid == 0) nrecprobe = nrecprobe + 1
