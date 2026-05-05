@@ -2117,7 +2117,7 @@ module modibm
                             IIcs, IIus, IIvs, IIws, IIuws, IIvws, IIuvs, &
                             IIct, IIut, IIvt, IIwt, IIuwt, um, u0, vm, v0, wm, w0
       use modmpi,    only : myid, comm3d, mpierr, MY_REAL, nprocs
-      use decomp_2d, only : zstart, exchange_halo_z
+      ! use decomp_2d, only : exchange_halo_z
 
       integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
       integer :: IIcd(ib:ie, kb:ke)

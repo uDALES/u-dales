@@ -54,7 +54,7 @@ contains
   !! LAD/drag fields with halo exchanges, and precompute staggered face
   !! lists used by vegetation_forcing.
   subroutine init_vegetation
-    use modglobal,  only : ltrees,itree_mode,TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,dzf,nsv
+    use modglobal,  only : ltrees,ltreedump,itree_mode,TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,dzf,nsv
     use modmpi,     only : myid,comm3d,mpierr,MY_REAL
     use readinput,  only : read_sparse_ijk, read_sparse_real
     use decomp_2d,  only : exchange_halo_x, exchange_halo_y, exchange_halo_z
@@ -74,7 +74,10 @@ contains
     logical, allocatable :: mask_f(:,:,:)
     logical :: sveg_exists
 
-    if (.not. ltrees) return
+    if (.not. ltrees) then
+      ltreedump = .false.
+      return
+    end if
     vegetation_ready = .false.
     has_sveg = .false.
 

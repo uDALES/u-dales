@@ -41,7 +41,7 @@ module modstartup
 
    integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomizer with
    integer :: krand = huge(0)  ! returns the largest integer that is not an infinity
-   real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
+   real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomization
 
    contains
 
@@ -76,7 +76,6 @@ module modstartup
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
-                                    TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts

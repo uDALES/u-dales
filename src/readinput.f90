@@ -29,6 +29,7 @@ contains
   !> @param nskip         Number of header/comment lines to skip (default=1)
   
   subroutine read_sparse_ijk(filename, npts, npts_loc, ids_loc, pts_loc, nskip, pts_glob_out)
+    use modglobal, only : ib, ie, jb, je
     implicit none
 
     character(len=*), intent(in)              :: filename      
@@ -112,6 +113,12 @@ contains
         pts_loc(m,1) = pts_glob(n,1) - zstart(1) + 1
         pts_loc(m,2) = pts_glob(n,2) - zstart(2) + 1
         pts_loc(m,3) = pts_glob(n,3) - zstart(3) + 1
+
+        if ((pts_loc(m,1) < ib) .or. (pts_loc(m,1) > ie) .or. (pts_loc(m,2) < jb) .or. (pts_loc(m,2) > je)) then
+          write(*,*) "problem in ", filename, ": ", n, pts_glob(n,1), pts_glob(n,2), pts_loc(m,1), pts_loc(m,2)
+          stop 1
+        end if
+
       end if
     end do
 

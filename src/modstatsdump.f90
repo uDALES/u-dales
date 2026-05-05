@@ -1261,28 +1261,26 @@ contains
         end if
         tr_wt(ib:ie,jb:je,kb:ke) = (tr_wt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
 
-        if (ltrees) then
-          if (ltempeq) then
-            call veg_to_3d_cell(vegp%thl, tr_now)
-            tr_thlt(ib:ie,jb:je,kb:ke) = (tr_thlt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          end if
-          if (lmoist) then
-            call veg_to_3d_cell(vegp%qt, tr_now)
-            tr_qtt(ib:ie,jb:je,kb:ke) = (tr_qtt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-            call veg_to_3d_cell(vegp%qtR, tr_now)
-            tr_qtRt(ib:ie,jb:je,kb:ke) = (tr_qtRt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-            call veg_to_3d_cell(vegp%qtA, tr_now)
-            tr_qtAt(ib:ie,jb:je,kb:ke) = (tr_qtAt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-            call veg_to_3d_cell(vegp%omega, tr_now)
-            tr_omegat(ib:ie,jb:je,kb:ke) = (tr_omegat(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-          end if
-          if (nsv>0) then
-            call veg_to_3d_sv(1, tr_now)
-            tr_sv1t(ib:ie,jb:je,kb:ke) = (tr_sv1t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-            if (nsv > 1) then
-              call veg_to_3d_sv(2, tr_now)
-              tr_sv2t(ib:ie,jb:je,kb:ke) = (tr_sv2t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
-            end if
+        if (ltempeq) then
+          call veg_to_3d_cell(vegp%thl, tr_now)
+          tr_thlt(ib:ie,jb:je,kb:ke) = (tr_thlt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        end if
+        if (lmoist) then
+          call veg_to_3d_cell(vegp%qt, tr_now)
+          tr_qtt(ib:ie,jb:je,kb:ke) = (tr_qtt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          call veg_to_3d_cell(vegp%qtR, tr_now)
+          tr_qtRt(ib:ie,jb:je,kb:ke) = (tr_qtRt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          call veg_to_3d_cell(vegp%qtA, tr_now)
+          tr_qtAt(ib:ie,jb:je,kb:ke) = (tr_qtAt(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          call veg_to_3d_cell(vegp%omega, tr_now)
+          tr_omegat(ib:ie,jb:je,kb:ke) = (tr_omegat(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+        end if
+        if (nsv>0) then
+          call veg_to_3d_sv(1, tr_now)
+          tr_sv1t(ib:ie,jb:je,kb:ke) = (tr_sv1t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
+          if (nsv > 1) then
+            call veg_to_3d_sv(2, tr_now)
+            tr_sv2t(ib:ie,jb:je,kb:ke) = (tr_sv2t(ib:ie,jb:je,kb:ke)*(tstatsdumpp-tsamplep) + tr_now(ib:ie,jb:je,kb:ke)*tsamplep)*tstatsdumppi
           end if
         end if
         deallocate(tr_now)
