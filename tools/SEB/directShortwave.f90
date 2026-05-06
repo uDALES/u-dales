@@ -500,15 +500,15 @@ contains
         integer, intent(in) :: M, N, id
         !logical, intent(out) :: out(M, N)
         logical :: out(M, N)
-        integer, intent(out) :: outIDs(M, N)
+        integer, intent(inout) :: outIDs(M, N)
         integer :: sizeX
         real    :: scale = 5.0
         integer :: minY(N), maxY(N)
 
-        ! Initialize minY and maxY arrays
+        ! Initialize
+        out = .false.
         minY = 0
         maxY = 0
-        out = .false.
         sizeX = size(xpt,1)+1 ! number of vertices
         allocate(x(sizeX), y(sizeX))
         x(1:sizeX-1) = xpt
@@ -529,8 +529,8 @@ contains
         real  , intent(inout) :: x(:), y(:)
         integer, intent(in) :: xLength, M, N
         real   , intent(in) :: scale
-        logical, intent(out) :: out(M, N)
-        integer, intent(out) :: minY(N), maxY(N)
+        logical, intent(inout) :: out(M, N)
+        integer, intent(inout) :: minY(N), maxY(N)
         real, allocatable, dimension(:) :: xLinePts, yLinePts
         integer :: borderSize
         integer :: i, pt, xUse, yUse
@@ -753,7 +753,7 @@ contains
 
     subroutine parityScan(out, N, minY, maxY, outIDs, id)
         logical, intent(inout) :: out(:,:)
-        integer, intent(out) :: outIDs(:,:)
+        integer, intent(inout) :: outIDs(:,:)
         integer, intent(in) :: N, id
         integer, intent(in) :: minY(N), maxY(N)
         logical :: pixel
