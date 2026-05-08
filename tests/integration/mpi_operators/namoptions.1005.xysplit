@@ -1,0 +1,54 @@
+&RUN
+iexpnr       = 100
+runmode      = 1005
+runtime      = 1820.
+trestart     = 1800.
+dtmax        = 5.
+ladaptive    = .true.
+nprocx       = 2
+nprocy       = 2
+/
+
+&OUTPUT
+lfielddump   = .false.
+tfielddump   = 100.
+fieldvars    = 'u0,v0,w0,p0'
+ltdump       = .true.
+lxytdump     = .true.
+tstatstart   = 900.
+tstatsdump   = 900.
+tsample      = 5.
+/
+
+&DOMAIN
+itot         = 128
+jtot         = 128
+ktot         = 128
+xlen         = 160
+ylen         = 160
+/
+
+&WALLS
+nfcts = 1102
+nsolpts_u = 60192
+nsolpts_v = 60192
+nsolpts_w = 67840
+nsolpts_c = 53504
+nbndpts_u = 48152
+nbndpts_v = 48152
+nbndpts_w = 45328
+nbndpts_c = 46480
+nfctsecs_u = 40904
+nfctsecs_v = 40991
+nfctsecs_w = 34280
+nfctsecs_c = 51712
+/
+
+&INPS
+zsize        = 100.
+u0           = 3.
+v0           = 0.
+dpdx         = 0.0041912
+dpdy         = 0.
+stl_file     = xie_castro_2008_STL.stl
+/

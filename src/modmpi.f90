@@ -63,6 +63,10 @@ contains
     ! logical periods(1)
     ! integer periods2(1)
 
+     ! Initialize CPU timer variables
+     CPU_program = 0.0
+     CPU_program0 = 0.0
+
      call MPI_INIT(mpierr)
      MY_REAL = MPI_DOUBLE_PRECISION  !MPI_REAL8 should be the same..
      comm3d = MPI_COMM_WORLD
@@ -146,8 +150,11 @@ contains
     implicit none
 
     if(myid==0)then
-      CPU_program = MPI_Wtime() - CPU_program0
-      write(6,*)'TOTAL CPU time = ', CPU_program
+      ! Only compute CPU time if timer was started (CPU_program0 > 0)
+      if (CPU_program0 > 0.0) then
+        CPU_program = MPI_Wtime() - CPU_program0
+        write(6,*)'TOTAL CPU time = ', CPU_program
+      end if
     end if
 
     !call MPI_Comm_free( comm3d, mpierr )
