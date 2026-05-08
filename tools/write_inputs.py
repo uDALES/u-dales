@@ -12,10 +12,9 @@ Usage
 
 Arguments
 ---------
-    case_dir   (optional) Path to a case directory containing
-               namoptions.<expnr>. The experiment number is inferred from
-               the directory name (e.g. a directory named "101" sets expnr=101).
-               Default: examples/999 (relative to the repository root).
+    case_dir   Path to a case directory containing namoptions.<expnr>.
+               The experiment number is inferred from the directory name
+               (e.g. a directory named "101" sets expnr=101).
 
     --force    Force regeneration of radiation outputs even when they
                already exist. Only has an effect when surface energy
@@ -29,9 +28,7 @@ Arguments
 
 Default behaviour
 -----------------
-    When invoked with no arguments the script processes the bundled example
-    case at examples/999. This is useful for a quick smoke-test of the
-    preprocessing stack after setting up the environment.
+    When invoked with no arguments the script prints help and exits.
 
 Environment
 -----------
@@ -89,21 +86,15 @@ except ImportError:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run Python preprocessing for a uDALES case directory.")
-    parser.add_argument("case_dir", nargs="?", help="Path to case directory containing namoptions.<expnr>")
+    parser.add_argument("case_dir", help="Path to case directory containing namoptions.<expnr>")
     parser.add_argument("--force", action="store_true", help="Force regeneration where supported.")
     args = parser.parse_args(argv)
 
-    if args.case_dir:
-        case_dir = Path(args.case_dir).resolve()
-    else:
-        # Keep the historical default example behavior when no case is given.
-        udales_root = script_dir.parent
-        case_dir = (udales_root / "examples" / "999").resolve()
+    case_dir = Path(args.case_dir).resolve()
 
-    expnr = case_dir.name
     print("Initializing UDPrep...")
     sys.stdout.flush()
-    prep = UDPrep(expnr, case_dir, load_geometry=True, suppress_load_warnings=True)
+    prep = UDPrep(case_dir, load_geometry=True, suppress_load_warnings=True)
     print("-------------------------------------------------------------------")
     print("Summary of the derived preprocessing configuration")
     print(prep)

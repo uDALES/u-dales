@@ -222,9 +222,10 @@ class _DefaultContext:
         if self._sim is not None and hasattr(self._sim, name):
             return getattr(self._sim, name)
         raise AttributeError(name)
+from .udprep_init import validate_expnr
+from .udprep_grid import SPEC as GRID_SPEC
 from .udprep_forcing import SPEC as FORCING_SPEC
 from .udprep_ibm import SPEC as IBM_SPEC
-from .udprep_grid import SPEC as GRID_SPEC
 from .udprep_radiation import SPEC as RADIATION_SPEC
 from .udprep_scalars import SPEC as SCALARS_SPEC
 from .udprep_seb import SPEC as SEB_SPEC
@@ -253,11 +254,18 @@ class UDPrep:
         if isinstance(expnr, UDBase):
             sim = expnr
         else:
-            if path is None and isinstance(expnr, (str, Path)):
-                candidate = Path(expnr)
-                if candidate.exists():
-                    path = candidate
-                    expnr = candidate.name
+            if path is None:
+                if isinstance(expnr, (str, Path)):
+                    path = Path(expnr)
+                else:
+                    raise TypeError(
+                        f"expnr must be a string or Path pointing to a case directory, "
+                        f"got {type(expnr).__name__!r}.\n"
+                        f"Example: UDPrep('examples/101') or "
+                        f"         UDPrep(101, 'examples/101') or "
+                        f"         UDPrep('101', path='/path/to/cases/101')"
+                    )
+            expnr = validate_expnr(Path(path))
             sim = UDBase(expnr, path, load_geometry=load_geometry, suppress_load_warnings=suppress_load_warnings)
 
         self.sim = sim

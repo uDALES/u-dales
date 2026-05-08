@@ -108,7 +108,7 @@ def read_iexpnr_from_namoptions(namoptions_path: Path) -> str:
     sys.exit(1)
 
 
-def set_expnr(expdir: Path) -> str:
+def validate_expnr(expdir: Path) -> str:
     """
     Extract and validate experiment number from directory structure.
     
@@ -135,6 +135,8 @@ def set_expnr(expdir: Path) -> str:
     # Check experiment directory exists
     if not expdir.exists():
         print(f"ERROR: Experiment directory does not exist: {expdir}", file=sys.stderr)
+        print(f"  Expected a directory named with a 3-digit experiment number (e.g. '001', '101', '999')", file=sys.stderr)
+        print(f"  containing a namoptions file with matching suffix (e.g. namoptions.001).", file=sys.stderr)
         sys.exit(1)
     
     # Find and validate namoptions file
@@ -142,7 +144,8 @@ def set_expnr(expdir: Path) -> str:
     
     if not namoptions_files:
         print(f"ERROR: No namoptions file in {expdir}", file=sys.stderr)
-        print(f"Expected: namoptions.XXX (e.g., namoptions.001)", file=sys.stderr)
+        print(f"  Expected a directory named with a 3-digit experiment number (e.g. '001', '101', '999')", file=sys.stderr)
+        print(f"  containing a namoptions.xxx file with matching suffix (e.g. namoptions.001).", file=sys.stderr)
         sys.exit(1)
     
     # Validate filename pattern (namoptions.XXX where XXX is 3 digits)
@@ -205,13 +208,12 @@ def validate_config_paths(expdir: Path) -> None:
     if not config_file.exists():
         print("="*67, file=sys.stderr)
         print(f"WARNING: Config file not found: {config_file}", file=sys.stderr)
-        print(f"  config.sh is optional for preprocessing but required for execution.", file=sys.stderr)
+        print(f"  config.sh is optional for preprocessing but required for uDALES simulation execution.", file=sys.stderr)
         print(f"  Expected variables: DA_EXPDIR, DA_TOOLSDIR, DA_WORKDIR, DA_BUILD", file=sys.stderr)
         print("="*67, file=sys.stderr)
         return
     
     # Parse config.sh
-    print(f"Reading: {config_file}")
     config = parse_shell_config(config_file)
     
     # Check required variables
@@ -219,7 +221,7 @@ def validate_config_paths(expdir: Path) -> None:
     if missing:
         print("="*67, file=sys.stderr)
         print(f"WARNING: Missing variables in config.sh: {', '.join(missing)}", file=sys.stderr)
-        print(f"  These are required for execution scripts but optional for preprocessing.", file=sys.stderr)
+        print(f"  These are required for uDALES simulation execution but optional for preprocessing.", file=sys.stderr)
         print("="*67, file=sys.stderr)
         return
     

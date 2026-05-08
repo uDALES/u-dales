@@ -138,7 +138,10 @@ class TestUDPrepCore(unittest.TestCase):
     def setUp(self):
         self.temp_dir = TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
-        self.workdir = Path(self.temp_dir.name)
+        # validate_expnr requires: dir name == namoptions suffix == iexpnr value.
+        self.workdir = Path(self.temp_dir.name) / "123"
+        self.workdir.mkdir()
+        (self.workdir / "namoptions.123").write_text("&RUN\niexpnr = 123\n/\n")
 
     def _fake_udbase_module(self):
         module = types.ModuleType("udbase")
