@@ -27,7 +27,7 @@
    module initfac
       use mpi
       use modglobal, only : ifinput, nfcts, cexpnr, libm, bldT, flrT, rsmin, wsoil, wfc, &
-                           nfaclyrs, block, lEB, lvfsparse, nnz, lfacTlyrs, lwritefac
+                           nfaclyrs, lEB, lvfsparse, nnz, lfacTlyrs, lwritefac
       use modmpi,   only : myid, comm3d, mpierr, MY_REAL, nprocs, cmyid
       use netcdf
       implicit none
@@ -86,7 +86,7 @@
     contains
 
       subroutine readfacetfiles
-        use modglobal, only: block, cexpnr, iwallmom, iwalltemp, iwallmoist
+        use modglobal, only: cexpnr, iwallmom, iwalltemp, iwallmoist
         implicit none
 
         !use modglobal, only:block

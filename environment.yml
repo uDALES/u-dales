@@ -7,13 +7,24 @@ dependencies:
   - pip
   # Tests
   - numpy
+  - scipy
+  - xarray
   - netCDF4
+  - h5netcdf
+  - trimesh
+  - shapely
   - matplotlib
+  - plotly
   - f90nml
+  - numba
+  - pvlib
+  - meson
+  - ninja
   # Docs
   - graphviz
   - mkdocs-material
   - mkdocs-material-extensions
   - pip:
+    - triangle
     - mkdocs-bibtex
     - ford

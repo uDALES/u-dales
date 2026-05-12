@@ -30,9 +30,9 @@ module modglobal
 
    integer :: poisrcheck = 0 ! switch to check if it is the first (RK) time step
    ! Simulation dimensions (parconst.f90)
-   integer :: itot = 96 ! Used to be called imax
+   integer :: itot = 96
    integer :: jtot = 96
-   integer :: ktot = 96 ! Rename to ktot?
+   integer :: ktot = 96
    integer :: imax
    integer :: imax1
    integer :: imax2
@@ -63,13 +63,24 @@ module modglobal
    integer ::  jhc = 2 ! used in k-scheme
    integer ::  khc = 2 ! used in k-scheme
 
-   integer :: nblocks = 0 ! no. of blocks in IBM
-   integer, allocatable :: block(:,:)
    integer :: nfcts = -1 ! no. of wall facets
    integer ::  iplane ! ib+iplane is the plane that is stored when lstoreplane=.true.
    integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
    character(90) :: fname_options = 'namoptions'
    integer, parameter :: longint = 8
+
+   ! Run mode constants and variable
+   integer, parameter :: RUN_COLDSTART = 1
+   integer, parameter :: RUN_WARMSTART = 2
+   integer, parameter :: RUN_DRIVER = 3
+   integer, parameter :: RUN_STRATSTART = 4
+
+   integer, parameter :: TEST_NAMELISTS = 1001
+   integer, parameter :: TEST_IO = 1002
+   integer, parameter :: TEST_2DCOMP_INIT_EXIT = 1003
+   integer, parameter :: TEST_SPARSE_IJK = 1004
+   integer, parameter :: TEST_MPI_OPERATORS = 1005
+   integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
@@ -185,7 +196,12 @@ module modglobal
    logical :: lscasrc = .false. !
    logical :: lscasrcl = .false. !tg3315
    logical :: lscasrcr  = .false.  !<  switch for network of point sources at lowest level
+
+   integer, parameter :: TREE_MODE_DRAG_ONLY = 1
+   integer, parameter :: TREE_MODE_SVEG = 2
+   integer, parameter :: TREE_MODE_LEGACY_SEB = 99
    logical :: ltrees = .false.         !<  switch to turn on trees module
+   integer :: itree_mode = TREE_MODE_DRAG_ONLY !< tree mode: 1 drag only, 2 sveg, 99 legacy SEB
    logical :: lpurif = .false.         !<  switch to turn on purifiers module
    logical :: ltreedump = .false.   !<  switch to output tree results time-averaged statistics every tstatsdump
 

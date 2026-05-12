@@ -1,12 +1,67 @@
 #!/usr/bin/env bash
+# Build preprocessing tools for uDALES.
+# Compiles the View3D executable and optionally the directshortwave and IBM
+# f2py Python extension modules through the standalone CMake entry point at
+# tools/preprocessing/.
+#
+# Usage (run from the repository root):
+#   tools/build_preprocessing.sh <build_system> [build_target]
+#
+# Arguments:
+#   build_system   Build environment to use (required).
+#                  Allowed values : common | icl
+#                    common - local Linux / WSL system (no module loading)
+#                    icl    - Imperial College London HPC cluster
+#                             (loads CMake/3.31.8-GCCcore-14.3.0 and
+#                              Python/3.9.6-GCCcore-11.2.0 modules)
+#
+#   build_target   CMake target to build.
+#                  Allowed values : view3d | preprocessing_tools
+#                  Default        : view3d
+#                    view3d               - View3D executable only
+#                    preprocessing_tools  - View3D + directshortwave and
+#                                          IBM f2py extension modules
+#                                          (requires numpy and Python headers)
+#
+# Environment variables (optional overrides):
+#   PREPROCESSING_PYTHON_EXECUTABLE
+#                  Python interpreter used for the CMake build and f2py
+#                  compilation. Defaults to the first python or python3 on PATH.
+#                  The f2py targets are silently disabled if numpy or Python.h
+#                  are not available for the chosen interpreter.
+#
+# Output:
+#   tools/preprocessing/build/bin/view3d
+#     View3D executable (also symlinked to tools/View3D/build/src/view3d for
+#     MATLAB compatibility).
+#   tools/python/udprep/directshortwave_f2py*.so
+#     Direct shortwave f2py module (preprocessing_tools target only).
+#   tools/python/udprep/ibm_preproc_f2py*.so
+#     IBM preprocessing f2py module (preprocessing_tools target only).
+#
+# Examples:
+#   # Build View3D only on a local system
+#   tools/build_preprocessing.sh common
+#
+#   # Build View3D + f2py modules on a local system
+#   tools/build_preprocessing.sh common preprocessing_tools
+#
+#   # Full build on the ICL cluster
+#   tools/build_preprocessing.sh icl preprocessing_tools
+#
+#   # Use a specific Python interpreter for the f2py modules
+#   PREPROCESSING_PYTHON_EXECUTABLE=/opt/pbs/python/bin/python3 \
+#       tools/build_preprocessing.sh common preprocessing_tools
 
-set -e
+set -euo pipefail
 
-# Usage: ./tools/build_preprocessing.sh [common / icl]
+# Usage: ./tools/build_preprocessing.sh [common / icl] [target]
 if (( $# < 1 ))
 then
  echo "The build type <common / icl> must be set."
- echo "usage: from being in u-dales directory run: tools/build_preprocessing.sh <build type>"
+ echo "usage: from being in u-dales directory run: tools/build_preprocessing.sh <build type> [target]"
+ echo "default target: view3d"
+ echo "available targets: view3d, preprocessing_tools (view3d + f2py modules)"
  exit 1
 fi
 
@@ -15,23 +70,86 @@ if [ ! -d tools ]; then
     exit 1
 fi
 
-cd tools/View3D
-mkdir build
-cd build
-
 system=$1
+target=${2:-view3d}
+
 if [ $system == "icl" ]
 then
     module load CMake/3.31.8-GCCcore-14.3.0
+    module load Python/3.9.6-GCCcore-11.2.0
 elif [ $system == "common" ]
 then
-    echo "Building View3D on local system."
+    echo "Building preprocessing target '${target}' on local system."
 else
     echo "This configuration is not avalable"
     exit 1
 fi
 
-cmake ..
-echo "View3D configuration complete."
+python_cmd="${PREPROCESSING_PYTHON_EXECUTABLE:-}"
+if [ -z "${python_cmd}" ]; then
+    if command -v python >/dev/null 2>&1; then
+        python_cmd="$(command -v python)"
+    elif command -v python3 >/dev/null 2>&1; then
+        python_cmd="$(command -v python3)"
+    elif [ "${target}" != "view3d" ]; then
+        echo "Neither python nor python3 was found; cannot configure preprocessing build."
+        exit 1
+    fi
+fi
 
-make
+if [ -n "${python_cmd}" ]; then
+    echo "Using preprocessing Python: ${python_cmd}"
+    "${python_cmd}" --version 2>&1 || true
+fi
+
+if ! command -v cmake >/dev/null 2>&1; then
+    echo "cmake not found"
+    exit 1
+fi
+
+build_dir="tools/preprocessing/build"
+cmake_args=(
+    -S tools/preprocessing
+    -B "${build_dir}"
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+)
+if [ -n "${python_cmd}" ]; then
+    cmake_args+=(-DPREPROCESSING_PYTHON_EXECUTABLE="${python_cmd}")
+    missing_f2py_deps=0
+    if ! "${python_cmd}" -c "import numpy" >/dev/null 2>&1; then
+        echo "WARNING: numpy not available for ${python_cmd}; disabling f2py targets."
+        missing_f2py_deps=1
+    fi
+    if ! "${python_cmd}" -c "import pathlib, sysconfig; header = pathlib.Path(sysconfig.get_paths().get('include','')) / 'Python.h'; raise SystemExit(0 if header.is_file() else 1)" >/dev/null 2>&1; then
+        echo "WARNING: Python.h not found for ${python_cmd}; disabling f2py targets."
+        missing_f2py_deps=1
+    fi
+    if [ "${missing_f2py_deps}" -eq 0 ] && [ "${target}" = "preprocessing_tools" ]; then
+        cmake_args+=(-DBUILD_PREPROCESSING_DIRECTSHORTWAVE_F2PY=ON)
+        cmake_args+=(-DBUILD_PREPROCESSING_IBM_F2PY=ON)
+    fi
+fi
+cmake "${cmake_args[@]}"
+cmake --build "${build_dir}" --target "${target}"
+
+require_f2py=1
+
+if [ -f "${build_dir}/bin/view3d" ]; then
+    legacy_view3d_dir="tools/View3D/build/src"
+    mkdir -p "${legacy_view3d_dir}"
+    ln -sfn "../../../preprocessing/build/bin/view3d" "${legacy_view3d_dir}/view3d"
+    echo "View3D executable available at ${build_dir}/bin/view3d"
+    echo "MATLAB compatibility path available at ${legacy_view3d_dir}/view3d"
+fi
+if compgen -G "tools/python/udprep/directshortwave_f2py*.so" >/dev/null; then
+    echo "directshortwave f2py module available at tools/python/udprep/"
+elif [ "${require_f2py}" -eq 1 ]; then
+    echo "WARNING: directshortwave f2py module missing in tools/python/udprep/"
+    echo "         This usually means the preprocessing Python lacks numpy or Python headers."
+fi
+if compgen -G "tools/python/udprep/ibm_preproc_f2py*.so" >/dev/null; then
+    echo "IBM preprocessing f2py module available at tools/python/udprep/"
+elif [ "${require_f2py}" -eq 1 ]; then
+    echo "WARNING: ibm_preproc f2py module missing in tools/python/udprep/"
+    echo "         This usually means the preprocessing Python lacks numpy or Python headers."
+fi

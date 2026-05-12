@@ -132,7 +132,13 @@ module modstatsdump
 
     if (.not. rk3step==3)  return
 
-    if (tsamplep > tsample) then
+    ! For one-timestep diagnostics with dump intervals no larger than dt,
+    ! treat the just-completed step as a valid first sample immediately
+    ! instead of waiting for a second call to statsdump.
+    if (tsamplep == 0. .and. tsample <= dt) tsamplep = dt
+    if (tstatsdumpp == 0. .and. tstatsdump <= dt) tstatsdumpp = dt
+
+    if (tsamplep >= tsample) then
 
       if (lmintdump) then
 
@@ -156,13 +162,13 @@ module modstatsdump
       end if ! lmintdump
 
       tsamplep = dt
-    else !timestatsdumpp < tsample
+    else !tsamplep < tsample
 
       tsamplep = tsamplep + dt
 
     endif
 
-    if (tstatsdumpp > tstatsdump) then
+  if (tstatsdumpp >= tstatsdump) then
 
       ! Write t-averaged statistics every tsample
       if (lmintdump) then
@@ -204,6 +210,64 @@ module modstatsdump
     endif
 
   end subroutine statsdump
+
+  !> Expand a sparse face-staggered vegetation field into a full 3D array.
+  !! Takes explicit npts/ijk so it can be used for u-, v- or w-faces.
+  subroutine veg_to_3d_face(npts, ijk, field_sparse, field_3d)
+    use modglobal, only : ib, ie, jb, je, kb, ke
+    implicit none
+    integer, intent(in) :: npts
+    integer, intent(in) :: ijk(npts,3)
+    real, intent(in) :: field_sparse(npts)
+    real, intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+    integer :: m, i, j, k
+
+    field_3d = 0.
+    do m = 1, npts
+      i = ijk(m,1)
+      j = ijk(m,2)
+      k = ijk(m,3)
+      field_3d(i,j,k) = field_sparse(m)
+    end do
+  end subroutine veg_to_3d_face
+
+  !> Expand a sparse cell-centred vegetation field into a full 3D array
+  !! using the vegetation module's point list.
+  subroutine veg_to_3d_cell(field_sparse, field_3d)
+    use modglobal, only : ib, ie, jb, je, kb, ke
+    use vegetation, only : veg
+    implicit none
+    real, intent(in) :: field_sparse(:)
+    real, intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+    integer :: m, i, j, k
+
+    field_3d = 0.
+    do m = 1, veg%npts
+      i = veg%ijk(m,1)
+      j = veg%ijk(m,2)
+      k = veg%ijk(m,3)
+      field_3d(i,j,k) = field_sparse(m)
+    end do
+  end subroutine veg_to_3d_cell
+
+  !> Expand one scalar component of the vegetation tendency array into a
+  !! full 3D field for output.
+  subroutine veg_to_3d_sv(component, field_3d)
+    use modglobal, only : ib, ie, jb, je, kb, ke
+    use vegetation, only : veg, vegp
+    implicit none
+    integer, intent(in) :: component
+    real, intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+    integer :: m, i, j, k
+
+    field_3d = 0.
+    do m = 1, veg%npts
+      i = veg%ijk(m,1)
+      j = veg%ijk(m,2)
+      k = veg%ijk(m,3)
+      field_3d(i,j,k) = vegp%sv(m,component)
+    end do
+  end subroutine veg_to_3d_sv
 
   !> tg3315 still under going work to be completed
   subroutine tkestatsdump
