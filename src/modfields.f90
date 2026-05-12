@@ -455,21 +455,6 @@ contains
     allocate(IIuvs(kb:ke+khc))
     IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
 
-    if (ltreedump) then
-      allocate(tr_ut(ib:ie,jb:je,kb:ke))
-      allocate(tr_vt(ib:ie,jb:je,kb:ke))
-      allocate(tr_wt(ib:ie,jb:je,kb:ke))
-      allocate(tr_qtt(ib:ie,jb:je,kb:ke))
-      allocate(tr_qtRt(ib:ie,jb:je,kb:ke))
-      allocate(tr_qtAt(ib:ie,jb:je,kb:ke))
-      allocate(tr_thlt(ib:ie,jb:je,kb:ke))
-      allocate(tr_sv1t(ib:ie,jb:je,kb:ke))
-      allocate(tr_sv2t(ib:ie,jb:je,kb:ke))
-      allocate(tr_omegat(ib:ie,jb:je,kb:ke))
-      
-      tr_ut=0.;tr_vt=0.;tr_wt=0.;tr_thlt=0.;tr_qtt=0.;tr_qtRt=0.;tr_qtAt=0.;tr_sv1t=0.;tr_sv2t=0.;tr_omegat=0.
-    end if
-
     if (lmintdump) then
       allocate(umt(ib:ie,jb:je,kb:ke+kh)); umt = 0;
       allocate(vmt(ib:ie,jb:je,kb:ke+kh)); vmt = 0;
@@ -483,7 +468,6 @@ contains
       !if (lmoist) then
         allocate(qtt(ib:ie,jb:je,kb:ke+kh)); qtt = 0;
       !end if
-
     end if
 
     if (lscasrcr .and. nsv>0) then

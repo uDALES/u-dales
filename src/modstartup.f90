@@ -56,7 +56,7 @@ module modstartup
       !      Thijs Heus                   15/06/2007                    |
       !-----------------------------------------------------------------|
 
-      use modglobal,         only : initglobal, iexpnr, runtime, dtmax,  &
+      use modglobal,         only : initglobal, iexpnr, runtime, runmode, dtmax,  &
                                     lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tinstantstart, tinstantdump, fieldvars, slicevars, probevars, tsample, tstatsdump, tstatstart, tstatsgap, trestart, &
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &

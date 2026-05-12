@@ -33,9 +33,9 @@ module stats
                          k1, JNO2
   use modfields,  only : um, vm, wm, pres0, thlm, qtm, svm, &
                          IIu, IIus, IIut, IIv, IIvs, IIvt, IIw, IIws, IIwt, IIc, IIcs, IIct, &
-                         IIuw, IIuws, IIuwt, IIvw, IIvws, IIuv, IIuvs, &
-                         tr_u, tr_v, tr_w, tr_thl, tr_qt, tr_qtR, tr_qtA, tr_omega, tr_sv
+                         IIuw, IIuws, IIuwt, IIvw, IIvws, IIuv, IIuvs
   use modsubgrid, only : ekh, ekm
+  use vegetation, only : veg, vegp, npts_u, npts_v, npts_w, ijk_u, ijk_v, ijk_w, veg_up, veg_vp, veg_wp
   use modmpi,     only : cmyidx, myid, myidy, spatial_avg
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset
 
@@ -149,6 +149,8 @@ module stats
 
   real, allocatable :: PSS(:,:,:)
   real, allocatable :: PSSt(:,:,:)
+
+  real, allocatable :: tr_now(:,:,:)
 
   !!> Variables to store time, y and x averaged quantities
   real, allocatable :: uxyt(:)
@@ -1305,6 +1307,9 @@ module stats
         end if
         call define_nc(ncidtree, treeVarsCount, treeVars)
       end if
+
+      allocate(tr_now(ib:ie,jb:je,kb:ke))
+
     end subroutine stats_createnc_tree
 
     subroutine stats_reset_tree_vel
@@ -1793,32 +1798,111 @@ module stats
 
     !! ## %% Time averaging tree data computations routines
     subroutine stats_compute_tree_vel
-      implicit none 
-      call stats_compute_tavg(tr_ut,     tr_u(ib:ie,jb:je,kb:ke))
-      call stats_compute_tavg(tr_vt,     tr_v(ib:ie,jb:je,kb:ke))
-      call stats_compute_tavg(tr_wt,     tr_w(ib:ie,jb:je,kb:ke))
+      implicit none
+      if (npts_u > 0) then
+        call veg_to_3d_face(npts_u, ijk_u, veg_up, tr_now)
+      else
+        tr_now = 0.
+      end if
+      call stats_compute_tavg(tr_ut, tr_now)
+
+      if (npts_v > 0) then
+        call veg_to_3d_face(npts_v, ijk_v, veg_vp, tr_now)
+      else
+        tr_now = 0.
+      end if
+      call stats_compute_tavg(tr_vt, tr_now)
+
+      if (npts_w > 0) then
+        call veg_to_3d_face(npts_w, ijk_w, veg_wp, tr_now)
+      else
+        tr_now = 0.
+      end if
+      call stats_compute_tavg(tr_wt, tr_now)
     end subroutine stats_compute_tree_vel
 
     subroutine stats_compute_tree_temp
-      implicit none 
-      call stats_compute_tavg(tr_thlt,   tr_thl(ib:ie,jb:je,kb:ke))
+      implicit none
+      call veg_to_3d_cell(vegp%thl, tr_now)
+      call stats_compute_tavg(tr_thlt, tr_now)
     end subroutine stats_compute_tree_temp
 
     subroutine stats_compute_tree_moist
       implicit none 
-      call stats_compute_tavg(tr_qtt,    tr_qt(ib:ie,jb:je,kb:ke))
-      call stats_compute_tavg(tr_qtRt,   tr_qtR(ib:ie,jb:je,kb:ke))
-      call stats_compute_tavg(tr_qtAt,   tr_qtA(ib:ie,jb:je,kb:ke))
-      call stats_compute_tavg(tr_omegat, tr_omega(ib:ie,jb:je,kb:ke))
+      call veg_to_3d_cell(vegp%qt, tr_now)
+      call stats_compute_tavg(tr_qtt, tr_now)
+
+      call veg_to_3d_cell(vegp%qtR, tr_now)
+      call stats_compute_tavg(tr_qtRt, tr_now)
+
+      call veg_to_3d_cell(vegp%qtA, tr_now)
+      call stats_compute_tavg(tr_qtAt, tr_now)
+
+      call veg_to_3d_cell(vegp%omega, tr_now)
+      call stats_compute_tavg(tr_omegat, tr_now)
     end subroutine stats_compute_tree_moist
 
     subroutine stats_compute_tree_scalar
       implicit none
       integer :: n
       do n = 1, nsv
-        call stats_compute_tavg(tr_svt(:,:,:,n), tr_sv(ib:ie,jb:je,kb:ke,n))
+        call veg_to_3d_sv(n, tr_now)
+        call stats_compute_tavg(tr_svt(:,:,:,n), tr_now)
       end do
     end subroutine stats_compute_tree_scalar
+
+    !> Expand a sparse face-staggered vegetation field into a full 3D array.
+    !! Takes explicit npts/ijk so it can be used for u-, v- or w-faces.
+    subroutine veg_to_3d_face(npts, ijk, field_sparse, field_3d)
+      implicit none
+      integer, intent(in)  :: npts
+      integer, intent(in)  :: ijk(npts,3)
+      real,    intent(in)  :: field_sparse(npts)
+      real,    intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+      integer :: m, i, j, k
+
+      field_3d = 0.
+      do m = 1, npts
+        i = ijk(m,1)
+        j = ijk(m,2)
+        k = ijk(m,3)
+        field_3d(i,j,k) = field_sparse(m)
+      end do
+    end subroutine veg_to_3d_face
+
+    !> Expand a sparse cell-centred vegetation field into a full 3D array
+    !! using the vegetation module's point list.
+    subroutine veg_to_3d_cell(field_sparse, field_3d)
+      implicit none
+      real, intent(in)  :: field_sparse(:)
+      real, intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+      integer :: m, i, j, k
+
+      field_3d = 0.
+      do m = 1, veg%npts
+        i = veg%ijk(m,1)
+        j = veg%ijk(m,2)
+        k = veg%ijk(m,3)
+        field_3d(i,j,k) = field_sparse(m)
+      end do
+    end subroutine veg_to_3d_cell
+
+    !> Expand one scalar component of the vegetation tendency array into a
+    !! full 3D field for output.
+    subroutine veg_to_3d_sv(component, field_3d)
+      implicit none
+      integer, intent(in)  :: component
+      real,    intent(out) :: field_3d(ib:ie,jb:je,kb:ke)
+      integer :: m, i, j, k
+
+      field_3d = 0.
+      do m = 1, veg%npts
+        i = veg%ijk(m,1)
+        j = veg%ijk(m,2)
+        k = veg%ijk(m,3)
+        field_3d(i,j,k) = vegp%sv(m,component)
+      end do
+    end subroutine veg_to_3d_sv
 
 
     !! ## %% Time averaged statistics writing routines 
@@ -2079,6 +2163,7 @@ module stats
       end do
     end subroutine stats_write_tree_scalar
 
+
     subroutine stats_exit
       use modstat_nc, only : exitstat_nc
       implicit none
@@ -2150,7 +2235,7 @@ module stats
       end if
 
       if (ltreedump) then
-        deallocate(tr_ut,tr_vt,tr_wt)
+        deallocate(tr_ut,tr_vt,tr_wt,tr_now)
         if (ltempeq) deallocate(tr_thlt)
         if (lmoist)  deallocate(tr_qtt,tr_qtRt,tr_qtAt,tr_omegat)
         if (nsv>0)   deallocate(svtreename,tr_svt)
