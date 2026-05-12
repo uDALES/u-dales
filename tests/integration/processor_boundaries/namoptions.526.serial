@@ -1,6 +1,6 @@
 &RUN
 iexpnr       = 526
-runtime      = 0.01
+runtime      = 0.02
 trestart     = 1000.
 dtmax        = 0.01
 irandom      = 43
