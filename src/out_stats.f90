@@ -597,9 +597,9 @@ module stats
         end if
 
         tstatsdumpp = dt
+        tsamplep = dt
 
         if(tstatsgap>0.) then
-          tsamplep = dt
           tstatstart = tstatstart + tstatsdump + tstatsgap
           !! note that if tstatsgap is used, stats_xy and stats_y will also be not written during the gap duration as the entire stats_main is skipped for the duration of the gap.
         end if
