@@ -108,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     ### Optional inspection plots (uncomment to enable)
     # prep.sim.vis.plot_profiles()
     # prep.sim.vis.plot_lscale()
+    # prep.sim.vis.plot_scalarsources()
     
     return 0
 
