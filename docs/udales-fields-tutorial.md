@@ -5,11 +5,14 @@ This tutorial describes how to read and process field data output of the LES cod
 
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field data:
 
-- [**load_stat_xyt**](#load_stat_xyt-loading-time-and-slab-averaged-data). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data.
-- [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
-- [**load_stat_tree**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`.
+- **load_stat_y**. This method load the 2D span-averaged statistics from the file `stats_y.expnr.nc`. Several time instances should be present in the data.
+- **load_stat_xy**. This method load the 1D slab-averaged statistics from the file `stats_xy.expnr.nc`. Several time instances should be present in the data.
+- **load_stat_yt**. This method load the 2D span- and time-averaged statistics from the file `stats_yt.expnr.nc`. Several time-intervals may be present in the data.
+- [**load_stat_xyt**](#load_stat_xyt-loading-time-and-slab-averaged-data). This method load the 1D slab- and time-averaged statistics from the file `stats_xyt.expnr.nc`. Several time-intervals may be present in the data.
+- [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `stats_t.expnr.nc`. Several time-intervals may be present in the data.
+- [**load_stat_tree**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `stats_tree.expnr.nc`. This method works exactly the same way as `load_stat_t`.
 - [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
-- [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data.
+- [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslice.expnr.nc` where `X` can be `i`, `j`, or `k`. Several output times may be present in the data.
 - [**plot_trees**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method plots tree patches.
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
@@ -100,7 +103,7 @@ The Reynolds decomposition is used to decompose variables into mean quantities a
 
  $\varphi \left(x,y,z,t\right)=\bar{\varphi \;} \left(x,y,z\right)+\varphi {\;}^{\prime } \left(x,y,z,t\right)$,
 
-where the overbar denotes time-averaging. The time-averaged data is contained in the `tdump.expnr.nc` file.
+where the overbar denotes time-averaging. The time-averaged data is contained in the `stats_t.expnr.nc` file.
 
 Often, we are interested in the quantities that are additionally averaged in the horizontal plane. This is often referred to as a **slab average**.  In this case it is common to further decompose the time-averaged quantity $\bar{\varphi}$ into a spatial average $\langle \bar{\varphi} \rangle \left(z\right)$ (i.e., average over the horizontal surface)  and its spatial variation $\bar{\varphi} \textrm{"}\left(x,y,z\right)=\bar{\varphi} \left(x,y,z\right)-\langle \bar{\varphi} \rangle \left(z\right)$. Upon substituting this expression into the equation above, we obtain the triple decomposition [3]:
 
@@ -114,7 +117,7 @@ where $A_f \left(z\right)$ is the area occupied by fluid and $\Omega_f$ is the h
 
  $$ \langle \bar{\varphi} \rangle_C \left(z\right)=\frac{1}{A}\int_{\Omega_{f\;} } \varphi \;\mathrm{dA}=\frac{A_f }{A}\langle \bar{\varphi} \rangle \left(z\right) $$
 
-where $A$ is the total surface area. In many cases, it is more convenient to work with comprehensive averages than intrinsic averages, particularly when considering averaged budgets of momentum, temperature etc [3]. To convert the intrinsic-average output from uDALES into a comprehensive average, simply multiply the intrinsic average by $A_f /A$ as shown above. Time and intrinsically-averaged data is contained in the `xytdump.expnr.nc` file.
+where $A$ is the total surface area. In many cases, it is more convenient to work with comprehensive averages than intrinsic averages, particularly when considering averaged budgets of momentum, temperature etc [3]. To convert the intrinsic-average output from uDALES into a comprehensive average, simply multiply the intrinsic average by $A_f /A$ as shown above. Time and intrinsically-averaged data is contained in the `stats_xyt.expnr.nc` file.
 
 ## load_stat_xyt: loading time- and slab-averaged data
 
@@ -126,11 +129,11 @@ help sim.load_stat_xyt
 --- help for udbase/load_stat_xyt ---
 
   A method to retrieve plane- and time-averaged 1D statistics
-  information from the xytdump file.  
+  information from the stats_xyt file.  
 
-  load_stat_xyt(OBJ) displays the variables in the xytdump file
+  load_stat_xyt(OBJ) displays the variables in the stats_xyt file
 
-  load_stat_xyt(OBJ, svar) retrieves a variable from the xytdump file
+  load_stat_xyt(OBJ, svar) retrieves a variable from the stats_xyt file
 
   Example (view contents of output):
     obj = udbase(expnr);
@@ -144,36 +147,43 @@ sim.load_stat_xyt();
 ```
 
 ```matlabTextOutput
-Contents of xytdump.110.nc:
-       Name                     Description                  Units     Size     Dimensions
-    ___________    _____________________________________    _______    _____    __________
+Contents of stats_xyt.110.nc:
+       Name                     Description                       Units         Size     Dimensions
+    __________    ________________________________________    ___________    _____    __________
 
-    pxyt           Pressure                                 kgm/s^2    256x3     zt, time
-    qtxyt          Moisture                                 kg/kg      256x3     zt, time
-    thlpthlptxy    Temp. variance                           K^2        256x3     zt, time
-    thlsgsxyt      SGS heat flux                            K m/s      256x3     zm, time
-    thlxyt         Temperature                              K          256x3     zt, time
-    time           Time                                     s          3         time
-    tketxyc        tke                                      m^2/s^2    256x3     zt, time
-    upuptxyc       u variance                               m^2/s^2    256x3     zt, time
-    upvpxyt        Turbulent mom. flux                      m^2/s^2    256x3     zm, time
-    upwpxyt        Turbulent mom. flux                      m^2/s^2    256x3     zm, time
-    usgsxyt        SGS mom. flux                            m^2/s^2    256x3     zm, time
-    uvxyt          Kinematic mom. flux                      m^2/s^2    256x3     zm, time
-    uwxyt          Kinematic mom. flux                      m^2/s^2    256x3     zm, time
-    uxyt           Streamwise velocity                      m/s        256x3     zt, time
-    vpvptxyc       v variance                               m^2/s^2    256x3     zt, time
-    vpwpxyt        Turbulent mom. flux                      m^2/s^2    256x3     zm, time
-    vsgsxyt        SGS mom. flux                            K m/s      256x3     zm, time
-    vwxyt          Kinematic mom. flux                      m^2/s^2    256x3     zm, time
-    vxyt           Spanwise velocity                        m/s        256x3     zt, time
-    wpthlpxyt      Turbulent heat flux                      K m/s      256x3     zm, time
-    wpwptxyc       w variance                               m^2/s^2    256x3     zt, time
-    wthlxyt        Kinematic heat flux                      K m/s      256x3     zm, time
-    wwxyt          Kinematic mom. flux                      m^2/s^2    256x3     zm, time
-    wxyt           Vertical velocity                        m/s        256x3     zm, time
-    zm             Vertical displacement of cell edges      m          256       zm
-    zt             Vertical displacement of cell centers    m          256       zt
+    p              Kinematic Pressure                         m^2/s^2        256x3     zt, time
+    qt             Moisture                                   kg/kg          256x3     zt, time
+    qtpqtp         Moisture variance                          kg^2/kg^2      256x3     zt, time
+    qtsgs          SGS moisture flux                          kg m/kg s      256x3     zm, time
+    thl            Temperature                                K              256x3     zt, time
+    thlpthlp       Temp. variance                             K^2            256x3     zt, time
+    thlsgs         SGS heat flux                              K m/s          256x3     zm, time
+    time           Time                                       s              3         time
+    tke            TKE - cell centered                        m^2/s^2        256x3     zt, time
+    u              Streamwise velocity                        m/s            256x3     zt, time
+    upup           u variance - cell centered                 m^2/s^2        256x3     zt, time
+    upvp           Turbulent mom. flux                        m^2/s^2        256x3     zt, time
+    upwp           Turbulent mom. flux                        m^2/s^2        256x3     zm, time
+    usgs           SGS mom. flux                              m^2/s^2        256x3     zm, time
+    uu             Dispersive mom. flux                       m^2/s^2        256x3     zt, time
+    uv             Dispersive mom. flux                       m^2/s^2        256x3     zt, time
+    uw             Dispersive mom. flux                       m^2/s^2        256x3     zm, time
+    v              Spanwise velocity                          m/s            256x3     zt, time
+    vpvp           v variance - cell centered                 m^2/s^2        256x3     zt, time
+    vpwp           Turbulent mom. flux                        m^2/s^2        256x3     zm, time
+    vsgs           SGS mom. flux                              m^2/s^2        256x3     zm, time
+    vv             Dispersive mom. flux                       m^2/s^2        256x3     zt, time
+    vw             Dispersive mom. flux                       m^2/s^2        256x3     zm, time
+    w              Vertical velocity                          m/s            256x3     zm, time
+    wpqtp          Turbulent moisture flux                    kg m/kg s      256x3     zm, time
+    wpthlp         Turbulent heat flux                        K m/s          256x3     zm, time
+    wpwp           w variance - cell centered                 m^2/s^2        256x3     zt, time
+    wqt            Dispersive moisture flux                   kg m/kg s      256x3     zm, time
+    wsgs           SGS mom. flux                              m^2/s^2        256x3     zm, time
+    wthl           Dispersive heat flux                       K m/s          256x3     zm, time
+    ww             Dispersive mom. flux                       m^2/s^2        256x3     zm, time
+    zm             Vertical displacement of cell edges        m              256       zm
+    zt             Vertical displacement of cell centers      m              256       zt
 ```
 
 Before showing how to display the data, we note that the variable `'time'` has a size `1` $\times$ `3`. Let's load the data to see what is inside.
@@ -215,7 +225,7 @@ The vertical coordinate $z$ and mean streamwise velocity $\langle \bar{u} \rangl
 
 ```matlab
 zm   = sim.load_stat_xyt('zm');
-uxyt = sim.load_stat_xyt('uxyt');
+uxyt = sim.load_stat_xyt('u');
 ```
 
 Since $\langle \bar{u} \rangle$ is the streamwise velocity, it is defined in the vertical cell-center and should thus be plotted against `zm`. We plot $\langle \bar{u} \rangle$ for each averaging time interval below.
@@ -244,9 +254,9 @@ As can be seen, during the first time-interval, the flow is substantially slower
 Using the continuity equation it can be shown that for period domains $\langle \bar{w} \rangle =0$, which also implies that $\langle \bar{w} \textrm{"}\rangle =0$. This means that the dispersive momentum flux $\langle \bar{u\;} \textrm{"}\bar{w\;} \textrm{"}\rangle$ is equal to $\langle \bar{\;u} \;\bar{\;w} \rangle$. Thus, we can load the mean turbulent horizontal momentum flux $\langle \bar{u^{\prime } w^{\prime } } \rangle$ and dispersive flux $\langle \bar{u\;} \textrm{"}\bar{w\;} \textrm{"}\rangle$ can be loaded as:
 
 ```matlab
-zt      = sim.load_stat_xyt('zt');      % location of vertical fluxes of horizontal momentum
-upwpxyt = sim.load_stat_xyt('upwpxyt'); % turbulence fluxes (p indicates prime)
-uwxyt   = sim.load_stat_xyt('uwxyt');   % dispersive fluxes
+zt      = sim.load_stat_xyt('zt');   % location of vertical fluxes of horizontal momentum
+upwpxyt = sim.load_stat_xyt('upwp'); % turbulence fluxes (p indicates prime)
+uwxyt   = sim.load_stat_xyt('uw');   % dispersive fluxes
 ```
 
 Note that these terms should be plotted against against `zt` (cell center) since they represent the vertical exchange of horizontal momentum. Again, we plot the averages for each time interval (now we can do this more compactly as we do not need to create the legend entries):
@@ -289,73 +299,80 @@ help sim.load_stat_t
 ```matlabTextOutput
 --- help for udbase/load_stat_t ---
 
-  A method to retrieve time-averaged statistics from the tdump file
+  A method to retrieve time-averaged statistics from stats_t file
 
-  load_stat_t(OBJ) displays the variables in the tdump file
+  load_stat_t(OBJ) displays the variables in the stats_t file
 
-  load_stat_t(OBJ, svar) retrieves a variable from the tdump file
+  load_stat_t(OBJ, svar) retrieves a variable from the stats_t file
 
   Example (view contents of output):
     obj = udbase(expnr);
     obj.load_stat_t();
 ```
 
-The time-averaged field data is stored in the `tdump.expnr.nc` file. The variables it contains can be listed as:
+The time-averaged field data is stored in the `stats_t.expnr.nc` file. The variables it contains can be listed as:
 
 ```matlab
 sim.load_stat_t();
 ```
 
 ```matlabTextOutput
-Contents of tdump.110.nc:
-       Name                      Description                    Units         Size            Dimensions
-    ___________    ________________________________________    _______    _____________    ________________
+Contents of stats_t.110.nc:
+       Name                      Description                       Units         Size            Dimensions
+    __________    ________________________________________    ___________    _____________    ________________
 
-    PSS            PSS defect                                  gm/s       128x128x256x3    xt, yt, zt, time
-    pt             Pressure                                    kgm/s^2    128x128x256x3    xt, yt, zt, time
-    qtt            Moisture                                    kg/kg      128x128x256x3    xt, yt, zt, time
-    sca1psca1pt    Concentration variance 1                    g^2/m^6    128x128x256x3    xt, yt, zt, time
-    sca1t          Concentration field 1                       g/m^3      128x128x256x3    xt, yt, zt, time
-    sca2psca2pt    Concentration variance 2                    g^2/m^6    128x128x256x3    xt, yt, zt, time
-    sca2t          Concentration field 2                       g/m^3      128x128x256x3    xt, yt, zt, time
-    sca3psca3pt    Concentration variance 3                    g^2/m^6    128x128x256x3    xt, yt, zt, time
-    sca3t          Concentration field 3                       g/m^3      128x128x256x3    xt, yt, zt, time
-    sca4psca4pt    Concentration variance 4                    g^2/m^6    128x128x256x3    xt, yt, zt, time
-    sca4t          Concentration field 4                       g/m^3      128x128x256x3    xt, yt, zt, time
-    sv1sgs         SGS flux 1                                  gm/s       128x128x256x3    xt, yt, zm, time
-    sv2sgs         SGS flux 2                                  gm/s       128x128x256x3    xt, yt, zm, time
-    sv3sgs         SGS flux 3                                  gm/s       128x128x256x3    xt, yt, zm, time
-    sv4sgs         SGS flux 4                                  gm/s       128x128x256x3    xt, yt, zm, time
-    thlpthlpt      Temperature variance                        K^2        128x128x256x3    xt, yt, zt, time
-    thlt           Temperature                                 K          128x128x256x3    xt, yt, zt, time
-    time           Time                                        s          3                time
-    tketc          TKE                                         m^2/s^2    128x128x256x3    xt, yt, zt, time
-    upuptc         u variance                                  m^2/s^2    128x128x256x3    xt, yt, zt, time
-    upvpt          Turbulent momentum flux                     m^2/s^2    128x128x256x3    xm, ym, zt, time
-    upwpt          Turbulent momentum flux                     m^2/s^2    128x128x256x3    xm, yt, zm, time
-    ut             Streamwise velocity                         m/s        128x128x256x3    xm, yt, zt, time
-    vpvptc         v variance                                  m^2/s^2    128x128x256x3    xt, yt, zt, time
-    vpwpt          Turbulent momentum flux                     m^2/s^2    128x128x256x3    xt, ym, zm, time
-    vt             Spanwise velocity                           m/s        128x128x256x3    xt, ym, zt, time
-    wpsca1pt       Turbulent flux 1                            gm/s       128x128x256x3    xt, yt, zm, time
-    wpsca2pt       Turbulent flux 2                            gm/s       128x128x256x3    xt, yt, zm, time
-    wpsca3pt       Turbulent flux 3                            gm/s       128x128x256x3    xt, yt, zm, time
-    wpsca4pt       Turbulent flux 4                            gm/s       128x128x256x3    xt, yt, zm, time
-    wpthlpt        Turbulent heat flux                         K m/s      128x128x256x3    xt, yt, zm, time
-    wpwptc         w variance                                  m^2/s^2    128x128x256x3    xt, yt, zt, time
-    wt             Vertical velocity                           m/s        128x128x256x3    xt, yt, zm, time
-    xm             West-East displacement of cell edges        m          128              xm
-    xt             West-East displacement of cell centers      m          128              xt
-    ym             South-North displacement of cell edges      m          128              ym
-    yt             South-North displacement of cell centers    m          128              yt
-    zm             Vertical displacement of cell edges         m          256              zm
-    zt             Vertical displacement of cell centers       m          256              zt
+    PSS            PSS defect                                  gm/s           128x128x256x3    xt, yt, zt, time
+    p              Kinematic Pressure                          m^2/s^2        128x128x256x3    xt, yt, zt, time
+    qt             Moisture                                    kg/kg          128x128x256x3    xt, yt, zt, time
+    qtpqtp         Moisture variance                           kg^2/kg^2      128x128x256x3    xt, yt, zt, time
+    qtsgs          SGS moisture flux                           kg m/kg s      128x128x256x3    xt, yt, zm, time
+    s1             Concentration field 1                       g/m^3          128x128x256x3    xt, yt, zt, time
+    s1ps1p         Concentration variance 1                    g^2/m^6        128x128x256x3    xt, yt, zt, time
+    s1sgs          SGS scalar flux 1                           g/m^2s         128x128x256x3    xt, yt, zm, time
+    s2             Concentration field 2                       g/m^3          128x128x256x3    xt, yt, zt, time
+    s2ps2p         Concentration variance 2                    g^2/m^6        128x128x256x3    xt, yt, zt, time
+    s2sgs          SGS scalar flux 2                           g/m^2s         128x128x256x3    xt, yt, zm, time
+    s3             Concentration field 3                       g/m^3          128x128x256x3    xt, yt, zt, time
+    s3ps3p         Concentration variance 3                    g^2/m^6        128x128x256x3    xt, yt, zt, time
+    s3sgs          SGS scalar flux 3                           g/m^2s         128x128x256x3    xt, yt, zm, time
+    s4             Concentration field 4                       g/m^3          128x128x256x3    xt, yt, zt, time
+    s4ps4p         Concentration variance 4                    g^2/m^6        128x128x256x3    xt, yt, zt, time
+    s4sgs          SGS scalar flux 4                           g/m^2s         128x128x256x3    xt, yt, zm, time
+    thl            Temperature                                 K              128x128x256x3    xt, yt, zt, time
+    thlpthlp       Temperature variance                        K^2            128x128x256x3    xt, yt, zt, time
+    thlsgs         SGS temperature flux                        K m/s          128x128x256x3    xt, yt, zm, time
+    time           Time                                        s              3                time
+    tke            TKE - cell centered                         m^2/s^2        128x128x256x3    xt, yt, zt, time
+    u              Streamwise velocity                         m/s            128x128x256x3    xm, yt, zt, time
+    upup           u variance - cell centered                  m^2/s^2        128x128x256x3    xt, yt, zt, time
+    upvp           Turbulent momentum flux                     m^2/s^2        128x128x256x3    xm, ym, zt, time
+    upwp           Turbulent momentum flux                     m^2/s^2        128x128x256x3    xm, yt, zm, time
+    usgs           SGS u flux                                  m^2/s^2        128x128x256x3    xm, yt, zm, time
+    v              Spanwise velocity                           m/s            128x128x256x3    xt, ym, zt, time
+    vpvp           v variance - cell centered                  m^2/s^2        128x128x256x3    xt, yt, zt, time
+    vpwp           Turbulent momentum flux                     m^2/s^2        128x128x256x3    xt, ym, zm, time
+    vsgs           SGS v flux                                  m^2/s^2        128x128x256x3    xt, ym, zm, time
+    w              Vertical velocity                           m/s            128x128x256x3    xt, yt, zm, time
+    wpqtp          Turbulent moisture flux                     kg m/kg s      128x128x256x3    xt, yt, zm, time
+    wps1p          Turbulent scalar flux 1                     g/m^2s         128x128x256x3    xt, yt, zm, time
+    wps2p          Turbulent scalar flux 2                     g/m^2s         128x128x256x3    xt, yt, zm, time
+    wps3p          Turbulent scalar flux 3                     g/m^2s         128x128x256x3    xt, yt, zm, time
+    wps4p          Turbulent scalar flux 4                     g/m^2s         128x128x256x3    xt, yt, zm, time
+    wpthlp         Turbulent heat flux                         K m/s          128x128x256x3    xt, yt, zm, time
+    wpwp           w variance - cell centered                  m^2/s^2        128x128x256x3    xt, yt, zt, time
+    wsgs           SGS w flux                                  m^2/s^2        128x128x256x3    xt, yt, zm, time
+    xm             West-East displacement of cell edges        m              128              xm
+    xt             West-East displacement of cell centers      m              128              xt
+    ym             South-North displacement of cell edges      m              128              ym
+    yt             South-North displacement of cell centers    m              128              yt
+    zm             Vertical displacement of cell edges         m              256              zm
+    zt             Vertical displacement of cell centers       m              256              zt
 ```
 
 We load the time-averaged streamwise velocity field u, and the coordinates it relates to. **Note that the appropriate coordinate arrays are listed in the 'Dimensions' column above.**
 
 ```matlab
-ut = sim.load_stat_t('ut');
+ut = sim.load_stat_t('u');
 tt = sim.load_stat_t('time');
 xm = sim.load_stat_t('xm'); % we are interested in plotting u  
 yt = sim.load_stat_t('yt');
@@ -433,7 +450,7 @@ help sim.load_field
      obj.load_field();
 ```
 
-The instantaneous field data is stored in the field`dump.expnr.nc` file, again, the variables it contains can be listed as:
+The instantaneous field data is stored in the `fielddump.expnr.nc` file, again, the variables it contains can be listed as:
 
 ```matlab
 sim.load_field();
@@ -529,7 +546,7 @@ help sim.load_slice
 ```matlabTextOutput
 --- help for udbase/load_slice ---
 
-  A method to retrieve instantaneous 2D slices from from the slicedump file.
+  A method to retrieve instantaneous 2D slices from from the slice file.
 
   load_slice(obj) displays information, option chooses plane.
 
@@ -540,7 +557,7 @@ help sim.load_slice
      obj.load_slice('k');
 ```
 
-The instantaneous slice data is stored in the `Xslicedump.expnr.nc` file. This file contains particular slices of the 3D instantaneous data, which makes this data particularly suitable for creating animations since the output frequency can be much higher than for 3D fields as the filesize will remain much more manageable.
+The instantaneous slice data is stored in the `Xslice.expnr.nc` file. This file contains particular slices of the 3D instantaneous data, which makes this data particularly suitable for creating animations since the output frequency can be much higher than for 3D fields as the filesize will remain much more manageable.
 
 uDALES is capable of outputting slices along the `x`, `y` or `z`-direction. In this particular simulation, we requested to output horizontal slices (fixed height in vertical direction using an index `kslice`, e.g., `zm(kslice)`) using the input parameter:
 
@@ -578,26 +595,27 @@ The first argument to the load_slice method is the slice direction:
 - '`j`': vertical slices taken at fixed `y`. Outputs data that is a function of `x,z` and `t`.
 - '`k`': horizontal slices taken at fixed `z`. Outputs data that is a function of `x,y` and `t`.
 
-To list all the variables stored in `kslicedump.expnr.nc`, we use
+To list all the variables stored in `kslice.expnr.nc`, we use
 
 ```matlab
 sim.load_slice('k');
 ```
 
 ```matlabTextOutput
-Contents of kslicedump.110.nc:
-       Name                     Description                   Units        Size         Dimensions
-    __________    ________________________________________    _____    ____________    ____________
+Contents of kslice.110.nc:
+       Name          Description                   Units        Size         Dimensions
+    ________    ________________________    _______    ____________    ____________
 
-    qt_kslice     Specific humidity at kslice                   -      128x128x1979    xt, yt, time
-    thl_kslice    Potential temperature at kslice               -      128x128x1979    xt, yt, time
-    time          Time                                          s      1979            time
-    u_kslice      Streamwise velocity at kslice                 -      128x128x1979    xm, yt, time
-    v_kslice      Spanwise velocity at kslice                   -      128x8x1979      xt, ym, time
-    w_kslice      Vertical velocity at kslice                   -      128x128x1979    xt, yt, time
-    xm            West-East displacement of cell edges          m      128             xm
-    xt            West-East displacement of cell centers        m      128             xt
-    yt            South-North displacement of cell centers      m      128             yt
+    qt            Specific humidity           kg/kg      128x128x1979    xt, yt, time
+    thl           Potential temperature       K          128x128x1979    xt, yt, time
+    time          Time                        s          1979            time
+    u             Streamwise velocity         m/s        128x128x1979    xm, yt, time
+    v             Spanwise velocity           m/s        128x128x1979    xt, ym, time
+    w             Vertical velocity           m/s        128x128x1979    xt, yt, time
+    xm            West-East cell edges        m          128             xm
+    xt            West-East cell centers      m          128             xt
+    ym            South-North cell edges      m          128             ym
+    yt            South-North cell centers    m          128             yt
 ```
 
 This horizontal slice is at `z = zm(sim.kslice)` or `z = zt(sim.kslice)`, depending on the variable.
@@ -607,7 +625,7 @@ To load the data, we specify the variables we wish to load:
 ```matlab
 xm = sim.load_slice('k', 'xm');
 yt = sim.load_slice('k', 'yt');
-uk = sim.load_slice('k', 'u_kslice');
+uk = sim.load_slice('k', 'u');
 t  = sim.load_slice('k', 'time');
 ```
 
@@ -659,7 +677,7 @@ sim.plot_trees;
 
 ![figure_8.png](udales-fields-tutorial_media/figure_8.png)
 
-The time-averaged tree source data is stored in the `treedump.expnr.nc` file. The variables it contains can be listed as:
+The time-averaged tree source data is stored in the `stats_tree.expnr.nc` file. The variables it contains can be listed as:
 
 ```matlab
 help sim.load_stat_tree
@@ -669,11 +687,11 @@ help sim.load_stat_tree
 --- help for udbase/load_stat_tree ---
 
   A method to retrieve time-averaged statistics of the tree
-  source terms from the treedump file
+  source terms from the stats_tree file
 
-  load_stat_tree(OBJ) displays the variables in the treedump file
+  load_stat_tree(OBJ) displays the variables in the stats_tree file
 
-  load_stat_tree(OBJ, svar) retrieves a variable from the treedump file
+  load_stat_tree(OBJ, svar) retrieves a variable from the stats_tree file
 
   Example (view contents of output):
     obj = udbase(expnr);
@@ -685,7 +703,7 @@ sim.load_stat_tree();
 ```
 
 ```matlabTextOutput
-Contents of treedump.525.nc:
+Contents of stat_tree.525.nc:
       Name                    Description                    Units         Size           Dimensions
     ________    ________________________________________    _______    ____________    ________________
 

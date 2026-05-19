@@ -73,5 +73,11 @@ if (( n > 1 )) ; then
         ncks -64 -A fieldtmp3.nc ${outfile}
         rm fieldtmp3.nc
     fi
+
+elif (( n == 1 )) ; then
+
+    echo "Only one file found. Copying to ${outfile}."
+    cp ${dumps}.*.*.nc ${outfile}
+    
 fi
 

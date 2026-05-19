@@ -59,7 +59,7 @@ cat <<EOF > post-job.$exp.slurm
 #SBATCH --partition=standard
 #SBATCH --qos=${QOS}
 
-module load nco gsl
+module load cray-hdf5 cray-netcdf nco gsl
 $DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
 
