@@ -35,7 +35,10 @@
     "lvoutflowr": false,
     "luvolflowr": false,
     "lvvolflowr": false,
-    "idriver": 0
+    "idriver": 0,
+    "driverjobnr": "",
+    "driveroutpath": "",
+    "drivertimeidx": null
   },
   "ibm": {
     "stl_file": "",

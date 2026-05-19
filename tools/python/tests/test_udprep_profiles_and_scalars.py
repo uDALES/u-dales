@@ -28,6 +28,7 @@ class DummySim:
         self.dzt = np.array([1.0, 2.0, 3.0])
         self.ktot = 3
         self.zsize = 6.0
+        self.idriver = 0
 
 
 class TestForcingSection(unittest.TestCase):

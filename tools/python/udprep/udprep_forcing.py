@@ -53,7 +53,31 @@ class ForcingSection(Section):
         pr[:, 3] = float(self.u0)
         pr[:, 4] = float(self.v0)
         pr[:, 5] = float(self.tke)
-        
+
+        if self.idriver == 2:
+            from udbase import UDBase
+
+            path = Path(self.driveroutpath) / f"xytdump.{self.driverjobnr}.nc"
+            if path.exists():
+                simdriver = UDBase(self.driverjobnr, self.driveroutpath, load_geometry=False, suppress_load_warnings=True)
+                u = simdriver.load_stat_xyt('uxyt')
+                v = simdriver.load_stat_xyt('vxyt')
+                thl = simdriver.load_stat_xyt('thlxyt')
+                qt = simdriver.load_stat_xyt('qtxyt')
+                tke = simdriver.load_stat_xyt('tketxyc')
+
+                if self.drivertimeidx is not None and (self.drivertimeidx > 0 and self.drivertimeidx <= u.shape[1]):
+                    warnings.warn(f"Using driver simulation output xytdump.{self.driverjobnr}.nc data for prof.inp generation.", stacklevel=2)
+                    pr[:, 1] = thl[:,self.drivertimeidx-1]
+                    pr[:, 2] = qt[:,self.drivertimeidx-1]
+                    pr[:, 3] = u[:,self.drivertimeidx-1]
+                    pr[:, 4] = v[:,self.drivertimeidx-1]
+                    pr[:, 5] = tke[:,self.drivertimeidx-1]
+                else:
+                    warnings.warn(f"drivertimeidx is not set or out of bounds for driver output; using namoptions initial conditions instead for prof.inp generation.", stacklevel=2)
+            else:
+                warnings.warn(f"Driver output file {path} not found; using namoptions initial conditions instead for prof.inp generation.", stacklevel=2)
+
         self.sim.pr = pr
 
     def write_prof(self) -> None:
