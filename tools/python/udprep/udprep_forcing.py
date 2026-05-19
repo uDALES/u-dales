@@ -35,18 +35,16 @@ class ForcingSection(Section):
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
 
-        zf = np.asarray(self.zf, dtype=float)
-        pr = np.zeros((len(zf), 6), dtype=float)
+        pr = np.zeros((self.ktot, 6), dtype=float)
         
-        pr[:, 0] = zf
+        pr[:, 0] = self.zt
 
         lapse = float(self.lapse)
         if lapse:
-            thl = np.zeros(int(self.ktot), dtype=float)
+            thl = np.zeros(self.ktot, dtype=float)
             thl[0] = float(self.thl0)
-            dz = float(self.zsize) / float(self.ktot)
-            for k in range(int(self.ktot) - 1):
-                thl[k + 1] = thl[k] + lapse * dz
+            for k in range(self.ktot - 1):
+                thl[k + 1] = thl[k] + lapse * (self.dzt[k] + self.dzt[k+1]) * 0.5
             pr[:, 1] = thl
         else:
             pr[:, 1] = float(self.thl0)
@@ -56,17 +54,20 @@ class ForcingSection(Section):
         pr[:, 4] = float(self.v0)
         pr[:, 5] = float(self.tke)
         
-        self.pr = pr
+        self.sim.pr = pr
 
     def write_prof(self) -> None:
         """Write prof.inp file."""
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
         
-        if not hasattr(self, "pr"):
+        if not hasattr(self.sim, "pr"):
             self.generate_prof()
 
         path = Path(self.path) / f"prof.inp.{self.expnr}"
+        if path.exists():
+            warnings.warn(f"{path} already exists; NOT overwriting.", stacklevel=2)
+            return
         with path.open("w", encoding="ascii", newline="\n") as f:
             f.write("# SDBL flow \n")
             f.write("# z thl qt u v tke                                          \n")
@@ -81,10 +82,9 @@ class ForcingSection(Section):
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
 
-        zf = np.asarray(self.zf, dtype=float)
-        ls = np.zeros((len(zf), 10), dtype=float)
+        ls = np.zeros((self.ktot, 10), dtype=float)
 
-        ls[:, 0] = zf
+        ls[:, 0] = self.zt
         ls[:, 5] = float(self.w_s)
         ls[:, 6] = float(self.dqtdxls)
         ls[:, 7] = float(self.dqtdyls)
@@ -111,7 +111,7 @@ class ForcingSection(Section):
         )
 
         if forcing_flags + int(ldp) > 1:
-            raise ValueError("More than one forcing type specified")
+            raise ValueError("More than one forcing type specified in namoptions which is not allowed")
         
         if self.lprofforc or self.lcoriol:
             ls[:, 1] = float(self.u0)
@@ -120,14 +120,14 @@ class ForcingSection(Section):
             ls[:, 3] = float(self.dpdx)
             ls[:, 4] = float(self.dpdy)
         
-        self.ls = ls
+        self.sim.ls = ls
 
     def write_lscale(self) -> None:
         """Write lscale.inp file."""
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
         
-        if not hasattr(self, "ls"):
+        if not hasattr(self.sim, "ls"):
             self.generate_lscale()
 
         path = Path(self.path) / f"lscale.inp.{self.expnr}"

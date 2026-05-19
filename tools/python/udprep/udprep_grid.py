@@ -29,6 +29,9 @@ class GridSection(Section):
 
     def _refresh_derived_grid_params(self) -> None:
         """Recompute grid-derived quantities from the active case settings."""
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+        
         self.sim.dx = float(self.xlen / self.itot)
         self.sim.dy = float(self.ylen / self.jtot)
         self.sim.dz = float(self.zsize / self.ktot)
@@ -46,6 +49,9 @@ class GridSection(Section):
         Generates cell-centered (xt, yt) and cell-face (xm, ym) grids
         based on domain size and grid spacing.
         """
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+
         self.sim.xt = np.arange(0.5 * self.dx, self.xlen, self.dx)
         self.sim.yt = np.arange(0.5 * self.dy, self.ylen, self.dy)
         self.sim.xm = np.arange(0.0, self.xlen, self.dx)
@@ -58,6 +64,9 @@ class GridSection(Section):
         along with cell spacing (dzt). Uses uniform or stretched grids
         depending on configuration flags.
         """
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+        
         if not self.lzstretch:
             self.sim.zt = np.arange(0.5 * self.dz, self.zsize, self.dz)
             self.sim.zm = np.arange(0.0, self.zsize, self.dz)
@@ -101,6 +110,9 @@ class GridSection(Section):
         zm must have ktot+1 elements (cell faces including top boundary).
         Produces ktot-length zm (bottom face of each cell), zt, and dzt.
         """
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+        
         zm = np.asarray(zm, dtype=float)
         self.sim.zm = zm[:-1]
         self.sim.zt = 0.5 * (zm[:-1] + zm[1:])

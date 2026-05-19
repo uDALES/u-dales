@@ -22,7 +22,10 @@ class DummySim:
     def __init__(self, path: Path, expnr="100"):
         self.path = path
         self.expnr = expnr
-        self.zf = np.array([1.0, 3.0, 5.0])
+        # Non-uniform grid: faces at [0, 1, 3, 6] → centres at [0.5, 2.0, 4.5], widths [1, 2, 3]
+        self.zt = np.array([0.5, 2.0, 4.5])
+        self.zf = self.zt  # legacy alias, set by GridSection
+        self.dzt = np.array([1.0, 2.0, 3.0])
         self.ktot = 3
         self.zsize = 6.0
 
@@ -42,7 +45,7 @@ class TestForcingSection(unittest.TestCase):
             defaults={},
         )
         section.generate_prof()
-        np.testing.assert_allclose(section.pr[:, 0], self.sim.zf)
+        np.testing.assert_allclose(section.pr[:, 0], self.sim.zt)
         np.testing.assert_allclose(section.pr[:, 1], [290.0, 290.0, 290.0])
         np.testing.assert_allclose(section.pr[:, 2:], [[0.01, 4.0, 1.0, 0.5]] * 3)
 
@@ -54,7 +57,10 @@ class TestForcingSection(unittest.TestCase):
             defaults={},
         )
         section.generate_prof()
-        np.testing.assert_allclose(section.pr[:, 1], [300.0, 301.0, 302.0])
+        # With non-uniform dzt=[1,2,3] and lapse=0.5:
+        #   thl[1] = 300.0 + 0.5*(1+2)/2 = 300.75
+        #   thl[2] = 300.75 + 0.5*(2+3)/2 = 302.0
+        np.testing.assert_allclose(section.pr[:, 1], [300.0, 300.75, 302.0])
 
     def test_write_prof_creates_expected_file(self):
         section = ForcingSection(
