@@ -34,39 +34,41 @@ class ScalarsSection(Section):
         self.run_steps("scalars", steps)
 
     def generate_scalar(self) -> None:
-        """Generate scalar initial conditions (generate_scalar in MATLAB)."""
+        """Generate scalar initial conditions"""
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
 
-        if self.nsv > 5:
-            raise ValueError("nsv (number of scalar variables) cannot exceed 5 in current implementation")
-        
-        sc = np.zeros((self.ktot, self.nsv + 1), dtype=float)
-        sc[:, 0] = self.zt
-        for idx, name in enumerate(("sv10", "sv20", "sv30", "sv40", "sv50"), start=1):
-            if idx <= self.nsv:
-                sc[:, idx] = float(getattr(self, name))
-        self.sim.sc = sc
+        if self.nsv > 0:
+            if self.nsv > 5:
+                raise ValueError("nsv (number of scalar variables) cannot exceed 5 in current implementation")
+            
+            sc = np.zeros((self.ktot, self.nsv + 1), dtype=float)
+            sc[:, 0] = self.zt
+            for idx, name in enumerate(("sv10", "sv20", "sv30", "sv40", "sv50"), start=1):
+                if idx <= self.nsv:
+                    sc[:, idx] = float(getattr(self, name))
+            self.sim.sc = sc
 
     def write_scalar(self) -> None:
         """Write scalar.inp file."""
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
         
-        if not hasattr(self.sim, "sc"):
-            self.generate_scalar()
+        if self.nsv > 0:
+            if not hasattr(self.sim, "sc"):
+                self.generate_scalar()
 
-        path = Path(self.path) / f"scalar.inp.{self.expnr}"
-        with path.open("w", encoding="ascii", newline="\n") as f:
-            f.write("# SDBL flow\n")
-            f.write("# z scaN,  N=1,2...nsv\n")
-            for row in self.sc:
-                values = [f"{row[0]:-20.15f}"]
-                values.extend(f"{val:-14.10f}" for val in row[1:])
-                f.write(" ".join(values) + "\n")
+            path = Path(self.path) / f"scalar.inp.{self.expnr}"
+            with path.open("w", encoding="ascii", newline="\n") as f:
+                f.write("# SDBL flow\n")
+                f.write("# z scaN,  N=1,2...nsv\n")
+                for row in self.sc:
+                    values = [f"{row[0]:-20.15f}"]
+                    values.extend(f"{val:-14.10f}" for val in row[1:])
+                    f.write(" ".join(values) + "\n")
 
     def generate_scalarsources(self) -> None:
-        """Generate scalar sources (generate_scalarsources in MATLAB)."""
+        """Generate scalar sources"""
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
         
