@@ -1,0 +1,1419 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="TODO:">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>tests_read_sparse_ijk &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>tests_read_sparse_ijk
+      <small>Function</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.4% of total for procedures.">63 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/tests.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/tests.f90.html'>tests.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/tests.html'>tests</a></li>
+            <li class="breadcrumb-item active" aria-current="page">tests_read_sparse_ijk</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/tests_read_sparse_ijk.html#src">tests_read_sparse_ijk</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  function tests_read_sparse_ijk()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item"><a href='../module/readinput.html'>readinput</a></li>
+                  <li class="list-inline-item"><a href='../module/initfac.html'>initfac</a></li>
+                  <li class="list-inline-item"><a href='../module/modibm.html'>modibm</a></li>
+                  <li class="list-inline-item">decomp_2d</li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~tests_read_sparse_ijk~~UsesGraph Pages: 1 -->
+<svg id="proctests_read_sparse_ijkUsesGraph" width="436pt" height="314pt"
+ viewBox="0.00 0.00 436.00 314.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 310.27)">
+<title>proc~~tests_read_sparse_ijk~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-310.27 431.56,-310.27 431.56,4 -4,4"/>
+<!-- proc~tests_read_sparse_ijk -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_node1" class="node">
+<title>proc~tests_read_sparse_ijk</title>
+<polygon fill="none" stroke="black" points="427.56,-185.27 304.29,-185.27 304.29,-161 427.56,-161 427.56,-185.27"/>
+<text xml:space="preserve" text-anchor="middle" x="365.92" y="-169.53" font-family="Helvetica,sans-Serif" font-size="10.50">tests_read_sparse_ijk</text>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_node2" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="166.77,-306.27 93,-306.27 93,-282 166.77,-282 166.77,-306.27"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-290.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- proc~tests_read_sparse_ijk&#45;&gt;decomp_2d -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge1" class="edge">
+<title>proc~tests_read_sparse_ijk&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M347.29,-185.71C328.32,-198.93 296.99,-219.9 268.29,-235.13 237.92,-251.25 202.21,-266.48 174.8,-277.43"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="173.78,-274.07 165.77,-281 176.35,-280.58 173.78,-274.07"/>
+</g>
+<!-- module~initfac -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_node3" class="node">
+<title>module~initfac</title>
+<g id="a_proc~~tests_read_sparse_ijk~~UsesGraph_node3"><a xlink:href="../module/initfac.html" xlink:title="initfac">
+<polygon fill="#337ab7" stroke="#337ab7" points="264.03,-145.27 210.03,-145.27 210.03,-121 264.03,-121 264.03,-145.27"/>
+<text xml:space="preserve" text-anchor="middle" x="237.03" y="-129.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfac</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_read_sparse_ijk&#45;&gt;module~initfac -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge2" class="edge">
+<title>proc~tests_read_sparse_ijk&#45;&gt;module~initfac</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M325.12,-160.59C309.21,-155.57 290.99,-149.83 275.34,-144.9"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="276.5,-141.59 265.91,-141.92 274.4,-148.27 276.5,-141.59"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~tests_read_sparse_ijk~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="164.14,-184.27 95.62,-184.27 95.62,-160 164.14,-160 164.14,-184.27"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-168.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_read_sparse_ijk&#45;&gt;module~modglobal -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge3" class="edge">
+<title>proc~tests_read_sparse_ijk&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M304.04,-172.87C263.84,-172.7 212.04,-172.48 175.61,-172.33"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="175.89,-168.83 165.87,-172.28 175.86,-175.83 175.89,-168.83"/>
+</g>
+<!-- module~modibm -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_node5" class="node">
+<title>module~modibm</title>
+<g id="a_proc~~tests_read_sparse_ijk~~UsesGraph_node5"><a xlink:href="../module/modibm.html" xlink:title="modibm">
+<polygon fill="#337ab7" stroke="#337ab7" points="264.91,-64.27 209.14,-64.27 209.14,-40 264.91,-40 264.91,-64.27"/>
+<text xml:space="preserve" text-anchor="middle" x="237.03" y="-48.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibm</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_read_sparse_ijk&#45;&gt;module~modibm -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge4" class="edge">
+<title>proc~tests_read_sparse_ijk&#45;&gt;module~modibm</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M351.82,-160.64C329.98,-139.81 285.9,-97.79 259.48,-72.59"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="262,-70.15 252.35,-65.79 257.17,-75.22 262,-70.15"/>
+</g>
+<!-- module~readinput -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_node6" class="node">
+<title>module~readinput</title>
+<g id="a_proc~~tests_read_sparse_ijk~~UsesGraph_node6"><a xlink:href="../module/readinput.html" xlink:title="readinput">
+<polygon fill="#337ab7" stroke="#337ab7" points="268.29,-226.27 205.77,-226.27 205.77,-202 268.29,-202 268.29,-226.27"/>
+<text xml:space="preserve" text-anchor="middle" x="237.03" y="-210.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readinput</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_read_sparse_ijk&#45;&gt;module~readinput -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge5" class="edge">
+<title>proc~tests_read_sparse_ijk&#45;&gt;module~readinput</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M326.16,-185.66C311.27,-190.47 294.22,-195.98 279.11,-200.86"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="278.39,-197.42 269.95,-203.82 280.54,-204.08 278.39,-197.42"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modglobal -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge6" class="edge">
+<title>module~initfac&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M209.77,-142.88C199.24,-146.78 186.82,-151.39 174.99,-155.78"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="173.94,-152.43 165.78,-159.19 176.37,-159 173.94,-152.43"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_node8" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~tests_read_sparse_ijk~~UsesGraph_node8"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="157.77,-226.27 102,-226.27 102,-202 157.77,-202 157.77,-226.27"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-210.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- module~initfac&#45;&gt;module~modmpi -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge7" class="edge">
+<title>module~initfac&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M224.09,-145.59C211.38,-158.45 190.3,-178.62 169.77,-193.13 168.44,-194.08 167.06,-195.01 165.65,-195.92"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="164.16,-192.73 157.4,-200.89 167.77,-198.73 164.16,-192.73"/>
+</g>
+<!-- mpi -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_node9" class="node">
+<title>mpi</title>
+<g id="a_proc~~tests_read_sparse_ijk~~UsesGraph_node9"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-185.27 0,-185.27 0,-161 54,-161 54,-185.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-169.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~initfac&#45;&gt;mpi -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge8" class="edge">
+<title>module~initfac&#45;&gt;mpi</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M209.61,-134.65C180.12,-136.75 131.15,-141.42 90,-151.13 81.82,-153.07 73.23,-155.7 65.13,-158.48"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="64.13,-155.12 55.9,-161.79 66.49,-161.71 64.13,-155.12"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_node10" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="156.88,-104.27 102.88,-104.27 102.88,-80 156.88,-80 156.88,-104.27"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-88.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~initfac&#45;&gt;netcdf -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge9" class="edge">
+<title>module~initfac&#45;&gt;netcdf</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M209.77,-122.89C197.1,-117.95 181.68,-111.94 167.85,-106.55"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="169.17,-103.31 158.59,-102.94 166.63,-109.83 169.17,-103.31"/>
+</g>
+<!-- module~modibmdata -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_node7" class="node">
+<title>module~modibmdata</title>
+<g id="a_proc~~tests_read_sparse_ijk~~UsesGraph_node7"><a xlink:href="../module/modibmdata.html" xlink:title="modibmdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="169.77,-24.27 90,-24.27 90,0 169.77,0 169.77,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata</text>
+</a>
+</g>
+</g>
+<!-- module~modibm&#45;&gt;module~modibmdata -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge10" class="edge">
+<title>module~modibm&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M208.68,-41.73C198.15,-37.72 185.85,-33.05 174.19,-28.61"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="175.72,-25.45 165.13,-25.16 173.23,-31.99 175.72,-25.45"/>
+</g>
+<!-- module~modibm&#45;&gt;mpi -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge11" class="edge">
+<title>module~modibm&#45;&gt;mpi</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M208.89,-49.02C177.64,-46.84 126,-47.7 90,-71.13 61.64,-89.59 44.24,-126 35.35,-149.95"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="32.13,-148.55 32.15,-159.14 38.74,-150.85 32.13,-148.55"/>
+</g>
+<!-- module~readinput&#45;&gt;decomp_2d -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge12" class="edge">
+<title>module~readinput&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M221.61,-226.55C208.39,-237.77 188.15,-254.55 169.77,-268.13 166.6,-270.47 163.24,-272.86 159.88,-275.19"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="158.09,-272.17 151.77,-280.68 162.01,-277.97 158.09,-272.17"/>
+</g>
+<!-- module~readinput&#45;&gt;module~modglobal -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge13" class="edge">
+<title>module~readinput&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M205.34,-201.87C195.15,-197.81 183.64,-193.21 172.76,-188.86"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="174.16,-185.65 163.57,-185.19 171.56,-192.15 174.16,-185.65"/>
+</g>
+<!-- module~readinput&#45;&gt;module~modmpi -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge14" class="edge">
+<title>module~readinput&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M205.34,-214.13C194.15,-214.13 181.36,-214.13 169.57,-214.13"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="169.73,-210.64 159.73,-214.14 169.73,-217.64 169.73,-210.64"/>
+</g>
+<!-- module~readinput&#45;&gt;mpi -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge15" class="edge">
+<title>module~readinput&#45;&gt;mpi</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M207.49,-226.76C177.23,-238.23 128.57,-251.11 90,-235.13 70.35,-226.99 53.67,-209.27 42.58,-194.84"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="45.43,-192.8 36.72,-186.77 39.77,-196.92 45.43,-192.8"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~tests_read_sparse_ijk~~UsesGraph_edge16" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M101.58,-203.04C90.21,-198.42 76.83,-192.98 64.62,-188.02"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="66.26,-184.91 55.68,-184.38 63.63,-191.39 66.26,-184.91"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+      <h3>Return Value
+        <small>
+          <span class="anchor" id="variable-tests_read_sparse_ijk"></span>
+          logical
+        </small>
+      </h3>
+      
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~tests_read_sparse_ijk~~CallsGraph Pages: 1 -->
+<svg id="proctests_read_sparse_ijkCallsGraph" width="641pt" height="844pt"
+ viewBox="0.00 0.00 641.00 844.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph" class="graph" transform="scale(0.897319 0.897319) rotate(0) translate(4 936.27)">
+<title>proc~~tests_read_sparse_ijk~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-936.27 710.35,-936.27 710.35,4 -4,4"/>
+<!-- proc~tests_read_sparse_ijk -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node1" class="node">
+<title>proc~tests_read_sparse_ijk</title>
+<polygon fill="none" stroke="black" points="123.27,-598.27 0,-598.27 0,-574 123.27,-574 123.27,-598.27"/>
+<text xml:space="preserve" text-anchor="middle" x="61.63" y="-582.53" font-family="Helvetica,sans-Serif" font-size="10.50">tests_read_sparse_ijk</text>
+</g>
+<!-- proc~compare_boundary -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node2" class="node">
+<title>proc~compare_boundary</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node2"><a xlink:href="../proc/compare_boundary.html" xlink:title="compare_boundary">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="274.29,-680.27 159.27,-680.27 159.27,-656 274.29,-656 274.29,-680.27"/>
+<text xml:space="preserve" text-anchor="middle" x="216.78" y="-664.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">compare_boundary</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_read_sparse_ijk&#45;&gt;proc~compare_boundary -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge1" class="edge">
+<title>proc~tests_read_sparse_ijk&#45;&gt;proc~compare_boundary</title>
+<path fill="none" stroke="#ff0000" d="M80.15,-598.76C99.03,-611.99 130.28,-632.79 159.27,-647.13 162.13,-648.55 165.11,-649.92 168.14,-651.25"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="166.55,-654.38 177.13,-654.97 169.23,-647.91 166.55,-654.38"/>
+</g>
+<!-- proc~compare_solid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node3" class="node">
+<title>proc~compare_solid</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node3"><a xlink:href="../proc/compare_solid.html" xlink:title="compare_solid">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="261.16,-638.27 172.39,-638.27 172.39,-614 261.16,-614 261.16,-638.27"/>
+<text xml:space="preserve" text-anchor="middle" x="216.78" y="-622.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">compare_solid</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_read_sparse_ijk&#45;&gt;proc~compare_solid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge2" class="edge">
+<title>proc~tests_read_sparse_ijk&#45;&gt;proc~compare_solid</title>
+<path fill="none" stroke="#ff0000" d="M110.67,-598.68C126.64,-602.85 144.53,-607.53 160.97,-611.82"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="160.05,-615.2 170.61,-614.34 161.82,-608.42 160.05,-615.2"/>
+</g>
+<!-- proc~initibm -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node4" class="node">
+<title>proc~initibm</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node4"><a xlink:href="../proc/initibm.html" xlink:title="initibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="243.78,-558.27 189.78,-558.27 189.78,-534 243.78,-534 243.78,-558.27"/>
+<text xml:space="preserve" text-anchor="middle" x="216.78" y="-542.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibm</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_read_sparse_ijk&#45;&gt;proc~initibm -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge3" class="edge">
+<title>proc~tests_read_sparse_ijk&#45;&gt;proc~initibm</title>
+<path fill="none" stroke="#ff0000" d="M110.67,-573.59C132.48,-567.89 157.89,-561.26 178.26,-555.93"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="179.05,-559.35 187.84,-553.43 177.28,-552.57 179.05,-559.35"/>
+</g>
+<!-- proc~read_sparse_ijk -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node5" class="node">
+<title>proc~read_sparse_ijk</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node5"><a xlink:href="../proc/read_sparse_ijk.html" xlink:title="read_sparse_ijk">
+<polygon fill="#d9534f" stroke="#d9534f" points="568.08,-222.27 474.81,-222.27 474.81,-198 568.08,-198 568.08,-222.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-206.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">read_sparse_ijk</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_read_sparse_ijk&#45;&gt;proc~read_sparse_ijk -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge4" class="edge">
+<title>proc~tests_read_sparse_ijk&#45;&gt;proc~read_sparse_ijk</title>
+<path fill="none" stroke="#ff0000" d="M69.06,-573.68C93.66,-527.24 186.67,-362.47 310.29,-277.13 356.39,-245.31 418.41,-227.98 463.12,-218.97"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="463.73,-222.42 472.89,-217.09 462.41,-215.54 463.73,-222.42"/>
+</g>
+<!-- proc~readfacetfiles -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node6" class="node">
+<title>proc~readfacetfiles</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node6"><a xlink:href="../proc/readfacetfiles.html" xlink:title="readfacetfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="405.43,-831.27 321.16,-831.27 321.16,-807 405.43,-807 405.43,-831.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-815.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readfacetfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_read_sparse_ijk&#45;&gt;proc~readfacetfiles -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge5" class="edge">
+<title>proc~tests_read_sparse_ijk&#45;&gt;proc~readfacetfiles</title>
+<path fill="none" stroke="#ff0000" d="M123.39,-575.05C169.61,-570.2 232.24,-571.77 274.29,-605.13 314.26,-636.84 290.92,-666.94 310.29,-714.13 322.27,-743.33 338.83,-775.69 350.02,-796.67"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="346.93,-798.32 354.75,-805.46 353.09,-795 346.93,-798.32"/>
+</g>
+<!-- exchange_halo_z -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node7" class="node">
+<title>exchange_halo_z</title>
+<polygon fill="#777777" stroke="#777777" points="414.43,-621.27 312.16,-621.27 312.16,-597 414.43,-597 414.43,-621.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-605.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exchange_halo_z</text>
+</g>
+<!-- proc~initibm&#45;&gt;exchange_halo_z -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge6" class="edge">
+<title>proc~initibm&#45;&gt;exchange_halo_z</title>
+<path fill="none" stroke="#00ff66" d="M244.19,-558.28C266.87,-568.67 297.81,-582.78 310.29,-588.13 313.45,-589.49 316.74,-590.87 320.05,-592.25"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="318.6,-595.44 329.18,-596 321.26,-588.97 318.6,-595.44"/>
+</g>
+<!-- proc~define_nc -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node12" class="node">
+<title>proc~define_nc</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node12"><a xlink:href="../proc/define_nc.html" xlink:title="define_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="394.93,-416.27 331.66,-416.27 331.66,-392 394.93,-392 394.93,-416.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-400.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">define_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~define_nc -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge7" class="edge">
+<title>proc~initibm&#45;&gt;proc~define_nc</title>
+<path fill="none" stroke="#00ff66" d="M230.61,-533.53C255.63,-508.95 311.17,-454.38 341.51,-424.56"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="343.95,-427.07 348.63,-417.57 339.04,-422.08 343.95,-427.07"/>
+</g>
+<!-- proc~initibmnorm -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node13" class="node">
+<title>proc~initibmnorm</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node13"><a xlink:href="../proc/initibmnorm.html" xlink:title="initibmnorm">
+<polygon fill="#d9534f" stroke="#d9534f" points="401.68,-310.27 324.91,-310.27 324.91,-286 401.68,-286 401.68,-310.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-294.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibmnorm</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~initibmnorm -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge8" class="edge">
+<title>proc~initibm&#45;&gt;proc~initibmnorm</title>
+<path fill="none" stroke="#00ff66" d="M224.61,-533.79C239.75,-506.47 277.41,-438.92 310.29,-383.13 322.95,-361.66 337.84,-337.43 348.43,-320.35"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="351.31,-322.35 353.62,-312.01 345.36,-318.66 351.31,-322.35"/>
+</g>
+<!-- proc~initibmwallfun -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node14" class="node">
+<title>proc~initibmwallfun</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node14"><a xlink:href="../proc/initibmwallfun.html" xlink:title="initibmwallfun">
+<polygon fill="#d9534f" stroke="#d9534f" points="406.56,-144.27 320.04,-144.27 320.04,-120 406.56,-120 406.56,-144.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-128.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibmwallfun</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~initibmwallfun -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge9" class="edge">
+<title>proc~initibm&#45;&gt;proc~initibmwallfun</title>
+<path fill="none" stroke="#00ff66" d="M222.06,-533.51C235.11,-495 275.67,-375.68 310.29,-277.13 325.48,-233.89 343.64,-183.56 353.99,-155.01"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="357.16,-156.55 357.28,-145.95 350.58,-154.16 357.16,-156.55"/>
+</g>
+<!-- proc~ncinfo -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node15" class="node">
+<title>proc~ncinfo</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node15"><a xlink:href="../proc/ncinfo.html" xlink:title="ncinfo">
+<polygon fill="#d9534f" stroke="#d9534f" points="390.3,-705.27 336.3,-705.27 336.3,-681 390.3,-681 390.3,-705.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-689.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ncinfo</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~ncinfo -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge10" class="edge">
+<title>proc~initibm&#45;&gt;proc~ncinfo</title>
+<path fill="none" stroke="#00ff66" d="M244.12,-553.32C254.69,-557.35 266.26,-563.38 274.29,-572.13 306.23,-606.94 277.53,-638.1 310.29,-672.13 314.59,-676.61 319.98,-680.15 325.64,-682.96"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="323.98,-686.06 334.56,-686.67 326.67,-679.6 323.98,-686.06"/>
+</g>
+<!-- proc~open_nc -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node16" class="node">
+<title>proc~open_nc</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node16"><a xlink:href="../proc/open_nc.html" xlink:title="open_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="391.56,-579.27 335.04,-579.27 335.04,-555 391.56,-555 391.56,-579.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-563.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">open_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~open_nc -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge11" class="edge">
+<title>proc~initibm&#45;&gt;proc~open_nc</title>
+<path fill="none" stroke="#00ff66" d="M243.95,-549.94C266.14,-553.16 298.28,-557.83 323.47,-561.49"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="322.95,-564.95 333.35,-562.93 323.96,-558.03 322.95,-564.95"/>
+</g>
+<!-- proc~solid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node18" class="node">
+<title>proc~solid</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node18"><a xlink:href="../proc/solid.html" xlink:title="solid">
+<polygon fill="#d9534f" stroke="#d9534f" points="390.3,-663.27 336.3,-663.27 336.3,-639 390.3,-639 390.3,-663.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-647.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">solid</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~solid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge12" class="edge">
+<title>proc~initibm&#45;&gt;proc~solid</title>
+<path fill="none" stroke="#00ff66" d="M244.12,-554.53C254.33,-558.69 265.63,-564.49 274.29,-572.13 297.03,-592.21 287.08,-610.6 310.29,-630.13 314.78,-633.92 320.05,-637.08 325.47,-639.71"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="323.96,-642.88 334.54,-643.54 326.69,-636.43 323.96,-642.88"/>
+</g>
+<!-- proc~writestat_dims_nc -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node19" class="node">
+<title>proc~writestat_dims_nc</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node19"><a xlink:href="../proc/writestat_dims_nc.html" xlink:title="writestat_dims_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="416.31,-537.27 310.29,-537.27 310.29,-513 416.31,-513 416.31,-537.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-521.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_dims_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~writestat_dims_nc -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge13" class="edge">
+<title>proc~initibm&#45;&gt;proc~writestat_dims_nc</title>
+<path fill="none" stroke="#00ff66" d="M243.95,-542.33C259.32,-540.1 279.46,-537.17 298.76,-534.37"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="299.09,-537.86 308.48,-532.96 298.08,-530.93 299.09,-537.86"/>
+</g>
+<!-- mpi_bcast -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node8" class="node">
+<title>mpi_bcast</title>
+<polygon fill="#777777" stroke="#777777" points="699.22,-222.27 633.7,-222.27 633.7,-198 699.22,-198 699.22,-222.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.46" y="-206.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_bcast</text>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;mpi_bcast -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge14" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#0066ff" d="M568.48,-210.13C585.74,-210.13 605.26,-210.13 622.25,-210.13"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="622.03,-213.64 632.03,-210.14 622.03,-206.64 622.03,-213.64"/>
+</g>
+<!-- zend -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node20" class="node">
+<title>zend</title>
+<polygon fill="#777777" stroke="#777777" points="693.46,-172.27 639.46,-172.27 639.46,-148 693.46,-148 693.46,-172.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.46" y="-156.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zend</text>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;zend -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge15" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;zend</title>
+<path fill="none" stroke="#0066ff" d="M558.53,-197.52C579.96,-190.03 607.05,-180.56 628.61,-173.02"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="629.6,-176.38 637.89,-169.78 627.29,-169.77 629.6,-176.38"/>
+</g>
+<!-- zstart -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node21" class="node">
+<title>zstart</title>
+<polygon fill="#777777" stroke="#777777" points="693.46,-115.27 639.46,-115.27 639.46,-91 693.46,-91 693.46,-115.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.46" y="-99.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zstart</text>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;zstart -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge16" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;zstart</title>
+<path fill="none" stroke="#0066ff" d="M539.13,-197.65C563.89,-179.13 610.56,-144.21 639.72,-122.39"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="641.76,-125.24 647.67,-116.45 637.57,-119.63 641.76,-125.24"/>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;mpi_bcast -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge17" class="edge">
+<title>proc~readfacetfiles&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#cc00ff" d="M383.05,-831.74C425.95,-858.89 532.08,-916.16 590.58,-861.13 638.26,-816.29 606.8,-335.53 626.58,-273.13 631.27,-258.35 640.17,-243.51 648.28,-231.95"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="651.07,-234.06 654.18,-223.93 645.43,-229.91 651.07,-234.06"/>
+</g>
+<!-- nf90_get_var -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node9" class="node">
+<title>nf90_get_var</title>
+<polygon fill="#777777" stroke="#777777" points="561.7,-810.27 481.18,-810.27 481.18,-786 561.7,-786 561.7,-810.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-794.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_get_var</text>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;nf90_get_var -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge18" class="edge">
+<title>proc~readfacetfiles&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#cc00ff" d="M405.73,-813.56C425.33,-810.93 448.9,-807.76 469.57,-804.98"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="469.76,-808.48 479.2,-803.68 468.83,-801.55 469.76,-808.48"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node10" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="566.2,-558.27 476.68,-558.27 476.68,-534 566.2,-534 566.2,-558.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-542.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge19" class="edge">
+<title>proc~readfacetfiles&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#cc00ff" d="M371.64,-806.6C382.68,-787.31 403.61,-748.91 416.31,-714.13 439.38,-650.95 406.17,-616.08 452.31,-567.13 456.24,-562.96 460.98,-559.61 466.11,-556.93"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="467.14,-560.29 474.94,-553.13 464.37,-553.86 467.14,-560.29"/>
+</g>
+<!-- nf90_open -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node11" class="node">
+<title>nf90_open</title>
+<polygon fill="#777777" stroke="#777777" points="555.33,-852.27 487.56,-852.27 487.56,-828 555.33,-828 555.33,-852.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-836.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_open</text>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;nf90_open -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge20" class="edge">
+<title>proc~readfacetfiles&#45;&gt;nf90_open</title>
+<path fill="none" stroke="#cc00ff" d="M405.73,-824.71C427.33,-827.61 453.77,-831.17 475.81,-834.13"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="475.34,-837.6 485.72,-835.47 476.28,-830.66 475.34,-837.6"/>
+</g>
+<!-- proc~qsat -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node17" class="node">
+<title>proc~qsat</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node17"><a xlink:href="../proc/qsat.html" xlink:title="qsat">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="548.44,-932.27 494.44,-932.27 494.44,-908 548.44,-908 548.44,-932.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-916.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">qsat</text>
+</a>
+</g>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;proc~qsat -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge21" class="edge">
+<title>proc~readfacetfiles&#45;&gt;proc~qsat</title>
+<path fill="none" stroke="#cc00ff" d="M376.08,-831.53C392.06,-847.75 422.09,-876.22 452.31,-894.13 462.01,-899.89 473.21,-904.78 483.69,-908.72"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="482.23,-911.92 492.83,-911.97 484.58,-905.32 482.23,-911.92"/>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge25" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ff00" d="M369.89,-416.45C381.61,-440.89 411.1,-495.68 452.31,-525.13 456.44,-528.09 461,-530.64 465.75,-532.83"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="464.34,-536.04 474.92,-536.52 466.96,-529.54 464.34,-536.04"/>
+</g>
+<!-- nf90_def_var -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node24" class="node">
+<title>nf90_def_var</title>
+<polygon fill="#777777" stroke="#777777" points="561.7,-348.27 481.18,-348.27 481.18,-324 561.7,-324 561.7,-348.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-332.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_var</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge22" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#00ff00" d="M385.09,-391.57C402.58,-381.35 428.49,-367.06 452.31,-357.13 457.95,-354.78 463.95,-352.56 469.96,-350.5"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="470.86,-353.89 479.28,-347.45 468.69,-347.23 470.86,-353.89"/>
+</g>
+<!-- nf90_enddef -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node25" class="node">
+<title>nf90_enddef</title>
+<polygon fill="#777777" stroke="#777777" points="560.58,-516.27 482.31,-516.27 482.31,-492 560.58,-492 560.58,-516.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-500.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_enddef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge23" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#00ff00" d="M374.98,-416.65C390.38,-433.97 420.51,-465.13 452.31,-483.13 458.32,-486.54 464.94,-489.45 471.63,-491.93"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="470.08,-495.11 480.68,-495 472.33,-488.48 470.08,-495.11"/>
+</g>
+<!-- nf90_inq_dimid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node26" class="node">
+<title>nf90_inq_dimid</title>
+<polygon fill="#777777" stroke="#777777" points="567.7,-432.27 475.18,-432.27 475.18,-408 567.7,-408 567.7,-432.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-416.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_dimid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge24" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#00ff00" d="M395.15,-407.3C414.61,-409.29 440.35,-411.93 463.43,-414.29"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="463.05,-417.77 473.36,-415.31 463.76,-410.81 463.05,-417.77"/>
+</g>
+<!-- nf90_put_att -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node29" class="node">
+<title>nf90_put_att</title>
+<polygon fill="#777777" stroke="#777777" points="560.2,-390.27 482.68,-390.27 482.68,-366 560.2,-366 560.2,-390.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-374.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_att</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge26" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#00ff00" d="M395.15,-399C416.81,-395.39 446.23,-390.49 471.12,-386.35"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="471.41,-389.85 480.7,-384.75 470.26,-382.94 471.41,-389.85"/>
+</g>
+<!-- nf90_redef -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node31" class="node">
+<title>nf90_redef</title>
+<polygon fill="#777777" stroke="#777777" points="555.7,-264.27 487.18,-264.27 487.18,-240 555.7,-240 555.7,-264.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-248.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_redef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_redef -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge27" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#00ff00" d="M372.05,-391.61C391.38,-360.48 441.04,-281.51 452.31,-273.13 459.29,-267.95 467.56,-264.03 475.9,-261.07"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="476.83,-264.45 485.35,-258.15 474.76,-257.76 476.83,-264.45"/>
+</g>
+<!-- proc~nchandle_error -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node34" class="node">
+<title>proc~nchandle_error</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node34"><a xlink:href="../proc/nchandle_error.html" xlink:title="nchandle_error">
+<polygon fill="#d9534f" stroke="#d9534f" points="567.7,-306.27 475.18,-306.27 475.18,-282 567.7,-282 567.7,-306.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-290.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nchandle_error</text>
+</a>
+</g>
+</g>
+<!-- proc~define_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge28" class="edge">
+<title>proc~define_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#00ff00" d="M373.39,-391.58C387.94,-372.37 418.3,-335.75 452.31,-315.13 456.07,-312.85 460.1,-310.8 464.26,-308.96"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="465.34,-312.3 473.34,-305.35 462.75,-305.79 465.34,-312.3"/>
+</g>
+<!-- proc~initibmnorm&#45;&gt;proc~read_sparse_ijk -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge29" class="edge">
+<title>proc~initibmnorm&#45;&gt;proc~read_sparse_ijk</title>
+<path fill="none" stroke="#00ff66" d="M377.59,-285.58C393.99,-270.71 423.28,-246.06 452.31,-231.13 455.99,-229.24 459.88,-227.48 463.85,-225.86"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="464.94,-229.19 473.07,-222.4 462.48,-222.64 464.94,-229.19"/>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;proc~read_sparse_ijk -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge33" class="edge">
+<title>proc~initibmwallfun&#45;&gt;proc~read_sparse_ijk</title>
+<path fill="none" stroke="#00ffcb" d="M383.36,-144.67C400.84,-155.86 427.69,-172.27 452.31,-184.13 459.13,-187.42 466.48,-190.59 473.74,-193.52"/>
+<polygon fill="#00ffcb" stroke="#00ffcb" points="472.25,-196.69 482.84,-197.07 474.8,-190.17 472.25,-196.69"/>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;mpi_bcast -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge30" class="edge">
+<title>proc~initibmwallfun&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#00ffcb" d="M406.75,-144.01C421.19,-147.96 437.43,-152.33 452.31,-156.13 513.52,-171.78 529.43,-173.27 590.58,-189.13 600.95,-191.82 612.08,-194.86 622.5,-197.78"/>
+<polygon fill="#00ffcb" stroke="#00ffcb" points="621.44,-201.11 632.01,-200.46 623.34,-194.38 621.44,-201.11"/>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;zend -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge34" class="edge">
+<title>proc~initibmwallfun&#45;&gt;zend</title>
+<path fill="none" stroke="#00ffcb" d="M406.81,-136.09C465.85,-141.58 571.72,-151.42 627.96,-156.65"/>
+<polygon fill="#00ffcb" stroke="#00ffcb" points="627.39,-160.11 637.67,-157.55 628.04,-153.14 627.39,-160.11"/>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;zstart -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge35" class="edge">
+<title>proc~initibmwallfun&#45;&gt;zstart</title>
+<path fill="none" stroke="#00ffcb" d="M406.81,-128.04C465.85,-122.36 571.72,-112.16 627.96,-106.75"/>
+<polygon fill="#00ffcb" stroke="#00ffcb" points="628.05,-110.25 637.67,-105.81 627.38,-103.29 628.05,-110.25"/>
+</g>
+<!-- proc~alignment -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node33" class="node">
+<title>proc~alignment</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node33"><a xlink:href="../proc/alignment.html" xlink:title="alignment">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="554.2,-66.27 488.68,-66.27 488.68,-42 554.2,-42 554.2,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-50.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">alignment</text>
+</a>
+</g>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;proc~alignment -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge31" class="edge">
+<title>proc~initibmwallfun&#45;&gt;proc~alignment</title>
+<path fill="none" stroke="#00ffcb" d="M383.36,-119.6C400.84,-108.41 427.69,-92 452.31,-80.14 460.41,-76.23 469.26,-72.49 477.82,-69.13"/>
+<polygon fill="#00ffcb" stroke="#00ffcb" points="478.92,-72.45 487.01,-65.62 476.42,-65.91 478.92,-72.45"/>
+</g>
+<!-- proc~plane_line_intersection -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node35" class="node">
+<title>proc~plane_line_intersection</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node35"><a xlink:href="../proc/plane_line_intersection.html" xlink:title="plane_line_intersection">
+<polygon fill="#d9534f" stroke="#d9534f" points="588.7,-24.27 454.18,-24.27 454.18,0 588.7,0 588.7,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-8.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">plane_line_intersection</text>
+</a>
+</g>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;proc~plane_line_intersection -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge32" class="edge">
+<title>proc~initibmwallfun&#45;&gt;proc~plane_line_intersection</title>
+<path fill="none" stroke="#00ffcb" d="M372.15,-119.51C385.85,-98.5 416.14,-56.4 452.31,-33.14 454.3,-31.85 456.38,-30.65 458.51,-29.51"/>
+<polygon fill="#00ffcb" stroke="#00ffcb" points="459.9,-32.73 467.48,-25.33 456.94,-26.38 459.9,-32.73"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge40" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#0066ff" d="M391.82,-572.64C400.84,-575.76 410.13,-580.61 416.31,-588.13 470.58,-654.21 395.28,-713.42 452.31,-777.13 457.3,-782.71 463.74,-786.83 470.65,-789.86"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="469,-792.98 479.6,-793.06 471.36,-786.39 469,-792.98"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge42" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#0066ff" d="M391.86,-563.43C412.13,-560.7 440.36,-556.91 465.21,-553.56"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="465.41,-557.07 474.85,-552.27 464.47,-550.13 465.41,-557.07"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_open -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge45" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_open</title>
+<path fill="none" stroke="#0066ff" d="M391.96,-572.53C401,-575.63 410.26,-580.51 416.31,-588.13 480.9,-669.53 384.33,-740.55 452.31,-819.13 458.53,-826.32 467.15,-831.09 476.16,-834.24"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="475.2,-837.6 485.77,-836.92 477.08,-830.86 475.2,-837.6"/>
+</g>
+<!-- nf90_create -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node22" class="node">
+<title>nf90_create</title>
+<polygon fill="#777777" stroke="#777777" points="558.7,-642.27 484.18,-642.27 484.18,-618 558.7,-618 558.7,-642.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-626.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_create</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_create -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge36" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_create</title>
+<path fill="none" stroke="#0066ff" d="M391.89,-577.41C399.87,-580.62 408.53,-584.32 416.31,-588.13 432.94,-596.29 435.35,-601.69 452.31,-609.13 458.86,-612.01 465.92,-614.65 472.92,-617.03"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="471.78,-620.34 482.37,-620.07 473.93,-613.67 471.78,-620.34"/>
+</g>
+<!-- nf90_def_dim -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node23" class="node">
+<title>nf90_def_dim</title>
+<polygon fill="#777777" stroke="#777777" points="563.2,-768.27 479.68,-768.27 479.68,-744 563.2,-744 563.2,-768.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-752.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_dim</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_dim -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge37" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_dim</title>
+<path fill="none" stroke="#0066ff" d="M391.87,-572.92C400.79,-576.06 410,-580.85 416.31,-588.13 460.34,-638.99 406.17,-686.19 452.31,-735.13 456.93,-740.04 462.67,-743.81 468.84,-746.7"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="467.51,-749.94 478.1,-750.25 470.02,-743.4 467.51,-749.94"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge38" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#0066ff" d="M391.82,-561.63C400.84,-558.51 410.13,-553.66 416.31,-546.13 470.58,-480.06 395.28,-420.85 452.31,-357.13 457.3,-351.56 463.74,-347.44 470.65,-344.41"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="471.36,-347.88 479.6,-341.21 469,-341.29 471.36,-347.88"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge39" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#0066ff" d="M391.89,-556.86C399.87,-553.65 408.53,-549.95 416.31,-546.13 432.94,-537.98 435.35,-532.58 452.31,-525.13 458.34,-522.49 464.8,-520.04 471.26,-517.81"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="472.19,-521.19 480.6,-514.76 470.01,-514.54 472.19,-521.19"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge41" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#0066ff" d="M392.05,-560.83C400.77,-557.67 409.81,-552.99 416.31,-546.13 450.25,-510.33 416.88,-475.47 452.31,-441.13 455.96,-437.6 460.19,-434.66 464.72,-432.21"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="465.93,-435.5 473.63,-428.22 463.07,-429.11 465.93,-435.5"/>
+</g>
+<!-- nf90_inquire -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node27" class="node">
+<title>nf90_inquire</title>
+<polygon fill="#777777" stroke="#777777" points="560.2,-726.27 482.68,-726.27 482.68,-702 560.2,-702 560.2,-726.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-710.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge43" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire</title>
+<path fill="none" stroke="#0066ff" d="M392.05,-573.44C400.77,-576.6 409.81,-581.28 416.31,-588.13 450.25,-623.94 416.88,-658.8 452.31,-693.13 457.8,-698.46 464.62,-702.44 471.79,-705.41"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="470.43,-708.64 481.02,-708.59 472.71,-702.02 470.43,-708.64"/>
+</g>
+<!-- nf90_inquire_dimension -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node28" class="node">
+<title>nf90_inquire_dimension</title>
+<polygon fill="#777777" stroke="#777777" points="590.58,-600.27 452.31,-600.27 452.31,-576 590.58,-576 590.58,-600.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-584.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire_dimension</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge44" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#0066ff" d="M391.86,-570.84C405.7,-572.7 423.27,-575.07 440.93,-577.44"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="440.03,-580.85 450.41,-578.72 440.96,-573.91 440.03,-580.85"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge46" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#0066ff" d="M391.87,-561.35C400.79,-558.21 410,-553.42 416.31,-546.13 460.34,-495.28 406.17,-448.08 452.31,-399.13 457.62,-393.51 464.39,-389.38 471.6,-386.35"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="472.61,-389.7 480.93,-383.14 470.33,-383.08 472.61,-389.7"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node32" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="553.83,-684.27 489.06,-684.27 489.06,-660 553.83,-660 553.83,-684.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-668.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_sync -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge47" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#0066ff" d="M391.87,-574.39C400.38,-577.59 409.34,-582.05 416.31,-588.13 440.6,-609.34 427.14,-630.97 452.31,-651.13 459.66,-657.02 468.66,-661.26 477.67,-664.32"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="476.54,-667.63 487.12,-667.07 478.5,-660.91 476.54,-667.63"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge48" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#cc00ff" d="M416.73,-532.19C432.27,-534.28 449.34,-536.57 465.06,-538.69"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="464.35,-542.12 474.73,-539.99 465.29,-535.19 464.35,-542.12"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge49" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#cc00ff" d="M397.63,-537.76C403.91,-540.37 410.36,-543.22 416.31,-546.13 432.94,-554.29 435.35,-559.69 452.31,-567.13 456.04,-568.77 459.94,-570.34 463.91,-571.82"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="462.45,-575.02 473.04,-575.04 464.78,-568.42 462.45,-575.02"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node30" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="561.7,-474.27 481.18,-474.27 481.18,-450 561.7,-450 561.7,-474.27"/>
+<text xml:space="preserve" text-anchor="middle" x="521.44" y="-458.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge50" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#cc00ff" d="M388.16,-512.58C405.63,-503.67 430.07,-491.81 452.31,-483.13 458,-480.91 464.04,-478.77 470.06,-476.75"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="470.95,-480.14 479.39,-473.74 468.8,-473.48 470.95,-480.14"/>
+</g>
+<!-- proc~is_equal -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node37" class="node">
+<title>proc~is_equal</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CallsGraph_node37"><a xlink:href="../proc/is_equal.html" xlink:title="is_equal">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="693.97,-66.27 638.95,-66.27 638.95,-42 693.97,-42 693.97,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.46" y="-50.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">is_equal</text>
+</a>
+</g>
+</g>
+<!-- proc~alignment&#45;&gt;proc~is_equal -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge51" class="edge">
+<title>proc~alignment&#45;&gt;proc~is_equal</title>
+<path fill="none" stroke="#b600ff" d="M554.54,-54.14C576.14,-54.14 604.72,-54.14 627.46,-54.14"/>
+<polygon fill="#b600ff" stroke="#b600ff" points="627.24,-57.64 637.24,-54.14 627.24,-50.64 627.24,-57.64"/>
+</g>
+<!-- nf90_strerror -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_node36" class="node">
+<title>nf90_strerror</title>
+<polygon fill="#777777" stroke="#777777" points="706.35,-306.27 626.58,-306.27 626.58,-282 706.35,-282 706.35,-306.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.46" y="-290.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_strerror</text>
+</g>
+<!-- proc~nchandle_error&#45;&gt;nf90_strerror -->
+<g id="proc~~tests_read_sparse_ijk~~CallsGraph_edge52" class="edge">
+<title>proc~nchandle_error&#45;&gt;nf90_strerror</title>
+<path fill="none" stroke="#ff00da" d="M568.09,-294.13C583.07,-294.13 599.81,-294.13 615.12,-294.13"/>
+<polygon fill="#ff00da" stroke="#ff00da" points="614.98,-297.64 624.98,-294.14 614.98,-290.64 614.98,-297.64"/>
+</g>
+</g>
+</svg>
+</div>                <script>
+                  var panproctests_read_sparse_ijkCallsGraph = svgPanZoom('#proctests_read_sparse_ijkCallsGraph',
+                    {zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true,}
+                  );
+                </script>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~tests_read_sparse_ijk~~CalledByGraph Pages: 1 -->
+<svg id="proctests_read_sparse_ijkCalledByGraph" width="408pt" height="32pt"
+ viewBox="0.00 0.00 408.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~tests_read_sparse_ijk~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~tests_read_sparse_ijk~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 404.29,-28.27 404.29,4 -4,4"/>
+<!-- proc~tests_read_sparse_ijk -->
+<g id="proc~~tests_read_sparse_ijk~~CalledByGraph_node1" class="node">
+<title>proc~tests_read_sparse_ijk</title>
+<polygon fill="none" stroke="black" points="400.29,-24.27 277.02,-24.27 277.02,0 400.29,0 400.29,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="338.65" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">tests_read_sparse_ijk</text>
+</g>
+<!-- proc~execute_runmode_actions -->
+<g id="proc~~tests_read_sparse_ijk~~CalledByGraph_node2" class="node">
+<title>proc~execute_runmode_actions</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CalledByGraph_node2"><a xlink:href="../proc/execute_runmode_actions.html" xlink:title="execute_runmode_actions">
+<polygon fill="#d9534f" stroke="#d9534f" points="241.02,-24.27 90,-24.27 90,0 241.02,0 241.02,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="165.51" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">execute_runmode_actions</text>
+</a>
+</g>
+</g>
+<!-- proc~execute_runmode_actions&#45;&gt;proc~tests_read_sparse_ijk -->
+<g id="proc~~tests_read_sparse_ijk~~CalledByGraph_edge1" class="edge">
+<title>proc~execute_runmode_actions&#45;&gt;proc~tests_read_sparse_ijk</title>
+<path fill="none" stroke="#ff0000" d="M241.08,-12.13C249.16,-12.13 257.38,-12.13 265.43,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="265.16,-15.64 275.16,-12.14 265.16,-8.64 265.16,-15.64"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~tests_read_sparse_ijk~~CalledByGraph_node3" class="node">
+<title>program~udales</title>
+<g id="a_proc~~tests_read_sparse_ijk~~CalledByGraph_node3"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~execute_runmode_actions -->
+<g id="proc~~tests_read_sparse_ijk~~CalledByGraph_edge2" class="edge">
+<title>program~udales&#45;&gt;proc~execute_runmode_actions</title>
+<path fill="none" stroke="#ff0000" d="M54.32,-12.13C61.49,-12.13 69.66,-12.13 78.24,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.19,-15.64 88.19,-12.14 78.19,-8.64 78.19,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="kt">logical </span><span class="k">function </span><span class="n">tests_read_sparse_ijk</span><span class="p">()</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">runmode</span>
+<span class="w">    </span><span class="k">use </span><span class="n">readinput</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">read_sparse_ijk</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w">       </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">initibm</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w">       </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">solid_info_u</span><span class="p">,</span><span class="w"> </span><span class="n">solid_info_v</span><span class="p">,</span><span class="w"> </span><span class="n">solid_info_w</span><span class="p">,</span><span class="w"> </span><span class="n">solid_info_c</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w">       </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">bound_info_u</span><span class="p">,</span><span class="w"> </span><span class="n">bound_info_v</span><span class="p">,</span><span class="w"> </span><span class="n">bound_info_w</span><span class="p">,</span><span class="w"> </span><span class="n">bound_info_c</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w">       </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">nsolpts_u</span><span class="p">,</span><span class="w"> </span><span class="n">nsolpts_v</span><span class="p">,</span><span class="w"> </span><span class="n">nsolpts_w</span><span class="p">,</span><span class="w"> </span><span class="n">nsolpts_c</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w">       </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">nbndpts_u</span><span class="p">,</span><span class="w"> </span><span class="n">nbndpts_v</span><span class="p">,</span><span class="w"> </span><span class="n">nbndpts_w</span><span class="p">,</span><span class="w"> </span><span class="n">nbndpts_c</span>
+<span class="w">    </span><span class="k">use </span><span class="n">initfac</span><span class="p">,</span><span class="w">      </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">readfacetfiles</span>
+<span class="w">    </span><span class="k">use </span><span class="n">decomp_2d</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">zstart</span><span class="p">,</span><span class="w"> </span><span class="n">zend</span><span class="p">,</span><span class="w"> </span><span class="n">xstart</span><span class="p">,</span><span class="w"> </span><span class="n">xend</span><span class="p">,</span><span class="w"> </span><span class="n">ystart</span><span class="p">,</span><span class="w"> </span><span class="n">yend</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="k">implicit none</span>
+<span class="k">    </span>
+<span class="k">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">npts_loc_new</span>
+<span class="w">    </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">(:)</span>
+<span class="w">    </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">(:,:)</span>
+<span class="w">    </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">all_passed</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;================================================&#39;</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A, I8)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;runmode = &#39;</span><span class="p">,</span><span class="w"> </span><span class="n">runmode</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;tests_read_sparse_ijk: SPARSE INPUT FILE TEST&#39;</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;------------------------------------------------&#39;</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;Testing sparse solid_*.txt and fluid_boundary_*.txt files&#39;</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="w">    </span><span class="c">! Read facet files and initialize IBM - populates all global arrays</span>
+<span class="w">    </span><span class="k">call </span><span class="n">readfacetfiles</span>
+<span class="w">    </span><span class="k">call </span><span class="n">initibm</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c">! Test solid_u</span>
+<span class="w">    </span><span class="k">call </span><span class="n">read_sparse_ijk</span><span class="p">(</span><span class="s1">&#39;solid_u.txt&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">nsolpts_u</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_solid</span><span class="p">(</span><span class="n">solid_info_u</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;solid_u&#39;</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">deallocate</span><span class="p">(</span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">)</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c">! Test solid_v</span>
+<span class="w">    </span><span class="k">call </span><span class="n">read_sparse_ijk</span><span class="p">(</span><span class="s1">&#39;solid_v.txt&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">nsolpts_v</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_solid</span><span class="p">(</span><span class="n">solid_info_v</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;solid_v&#39;</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">deallocate</span><span class="p">(</span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">)</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c">! Test solid_w</span>
+<span class="w">    </span><span class="k">call </span><span class="n">read_sparse_ijk</span><span class="p">(</span><span class="s1">&#39;solid_w.txt&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">nsolpts_w</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_solid</span><span class="p">(</span><span class="n">solid_info_w</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;solid_w&#39;</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">deallocate</span><span class="p">(</span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">)</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c">! Test solid_c</span>
+<span class="w">    </span><span class="k">call </span><span class="n">read_sparse_ijk</span><span class="p">(</span><span class="s1">&#39;solid_c.txt&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">nsolpts_c</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_solid</span><span class="p">(</span><span class="n">solid_info_c</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;solid_c&#39;</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">deallocate</span><span class="p">(</span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">)</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c">! Test fluid_boundary_u</span>
+<span class="w">    </span><span class="k">call </span><span class="n">read_sparse_ijk</span><span class="p">(</span><span class="s1">&#39;fluid_boundary_u.txt&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">nbndpts_u</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_boundary</span><span class="p">(</span><span class="n">bound_info_u</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;fluid_boundary_u&#39;</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">deallocate</span><span class="p">(</span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">)</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c">! Test fluid_boundary_v</span>
+<span class="w">    </span><span class="k">call </span><span class="n">read_sparse_ijk</span><span class="p">(</span><span class="s1">&#39;fluid_boundary_v.txt&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">nbndpts_v</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_boundary</span><span class="p">(</span><span class="n">bound_info_v</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;fluid_boundary_v&#39;</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">deallocate</span><span class="p">(</span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">)</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c">! Test fluid_boundary_w</span>
+<span class="w">    </span><span class="k">call </span><span class="n">read_sparse_ijk</span><span class="p">(</span><span class="s1">&#39;fluid_boundary_w.txt&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">nbndpts_w</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_boundary</span><span class="p">(</span><span class="n">bound_info_w</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;fluid_boundary_w&#39;</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">deallocate</span><span class="p">(</span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">)</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c">! Test fluid_boundary_c</span>
+<span class="w">    </span><span class="k">call </span><span class="n">read_sparse_ijk</span><span class="p">(</span><span class="s1">&#39;fluid_boundary_c.txt&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">nbndpts_c</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_boundary</span><span class="p">(</span><span class="n">bound_info_c</span><span class="p">,</span><span class="w"> </span><span class="n">npts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;fluid_boundary_c&#39;</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">deallocate</span><span class="p">(</span><span class="n">ids_loc_new</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc_new</span><span class="p">)</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">all_passed</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;------------------------------------------------&#39;</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;ALL TESTS PASSED: tests_read_sparse_ijk&#39;</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;  Tested 8 files successfully&#39;</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;  All results match IBM initialization code&#39;</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;================================================&#39;</span>
+<span class="w">    </span><span class="k">else if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;------------------------------------------------&#39;</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;TESTS FAILED: tests_read_sparse_ijk&#39;</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;  One or more tests did not pass&#39;</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;(A)&#39;</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;================================================&#39;</span>
+<span class="w">    </span><span class="k">end if</span>
+<span class="k">    </span>
+<span class="k">    </span><span class="n">tests_read_sparse_ijk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_passed</span>
+<span class="w">    </span>
+<span class="w">  </span><span class="k">end function </span><span class="n">tests_read_sparse_ijk</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-05-19 16:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>
