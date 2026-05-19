@@ -72,34 +72,40 @@ class TestGridSection(unittest.TestCase):
         self.assertEqual(section.hlin, 1.0)
 
     def test_stretch_exp_check_builds_monotone_face_grid(self):
+        # ktot=20 / dzlin=0.5 gives alpha≈0.44 → cell stretch ratio≈1.028,
+        # within the 0.95–1.05 quality band, so no RuntimeWarning fires.
         section, _ = make_grid_section(
             lzstretch=1,
             lstretchexpcheck=1,
             zsize=12.0,
-            ktot=6,
+            ktot=20,
             hlin=2.0,
+            dzlin=0.5,
         )
         section._refresh_derived_grid_params()
         section.generate_zgrid()
 
-        self.assertEqual(len(section.zm), 6)
-        self.assertEqual(len(section.zt), 6)
+        self.assertEqual(len(section.zm), 20)
+        self.assertEqual(len(section.zt), 20)
         self.assertTrue(np.all(np.diff(section.zm) > 0.0))
         np.testing.assert_allclose(section.zt, section.zm + 0.5 * section.dzt)
         np.testing.assert_allclose(section.dzt, np.diff(np.append(section.zm, 12.0)))
 
     def test_tanh_stretch_uses_computational_mapping_and_keeps_linear_prefix(self):
+        # hlin=3.0 / dzlin=1.5 → loop converges to gf≈0.85,
+        # last spacing ≈ 2.6 m ≤ 3×dzlin=4.5 m, so no RuntimeWarning fires.
         section, _ = make_grid_section(
             lzstretch=1,
             lstretchtanh=1,
             zsize=20.0,
             ktot=10,
-            hlin=2.0,
+            hlin=3.0,
+            dzlin=1.5,
         )
         section._refresh_derived_grid_params()
         section.generate_zgrid()
 
-        np.testing.assert_allclose(section.zm[:2], [0.0, 1.0])
+        np.testing.assert_allclose(section.zm[:2], [0.0, 1.5])
         self.assertTrue(np.all(np.diff(section.zm) > 0.0))
         self.assertAlmostEqual(float(section.zm[-1] + section.dzt[-1]), 20.0)
 
@@ -107,6 +113,69 @@ class TestGridSection(unittest.TestCase):
         section, _ = make_grid_section(lzstretch=1)
         section._refresh_derived_grid_params()
         with self.assertRaises(ValueError):
+            section.generate_zgrid()
+
+    def test_stretch_exp_builds_monotone_face_grid_with_linear_prefix(self):
+        # zsize=20 / ktot=10 / hlin=3 / dzlin=1.5 → loop converges to gf≈0.73,
+        # last spacing ≈ 2.9 m ≤ 3×dzlin=4.5 m, so no RuntimeWarning fires.
+        section, _ = make_grid_section(
+            lzstretch=1,
+            lstretchexp=1,
+            zsize=20.0,
+            ktot=10,
+            hlin=3.0,
+            dzlin=1.5,
+            stretchconst=2.0,
+        )
+        section._refresh_derived_grid_params()
+        section.generate_zgrid()
+
+        self.assertEqual(len(section.zm), 10)
+        self.assertEqual(len(section.zt), 10)
+        # Linear prefix: first two faces should be 0.0 and dzlin
+        np.testing.assert_allclose(section.zm[:2], [0.0, 1.5])
+        # Strictly monotone
+        self.assertTrue(np.all(np.diff(section.zm) > 0.0))
+        # Centers lie at mid-points of their cells
+        np.testing.assert_allclose(section.zt, section.zm + 0.5 * section.dzt)
+        # dzt reconstructed from faces spans up to zsize
+        np.testing.assert_allclose(section.dzt, np.diff(np.append(section.zm, 20.0)))
+
+    def test_stretch_2tanh_builds_monotone_face_grid_with_linear_prefix(self):
+        section, _ = make_grid_section(
+            lzstretch=1,
+            lstretch2tanh=1,
+            zsize=20.0,
+            ktot=10,
+            hlin=2.0,
+            dzlin=1.0,
+            stretchconst=2.0,
+        )
+        section._refresh_derived_grid_params()
+        section.generate_zgrid()
+
+        self.assertEqual(len(section.zm), 10)
+        self.assertEqual(len(section.zt), 10)
+        # Linear prefix preserved
+        np.testing.assert_allclose(section.zm[:2], [0.0, 1.0])
+        # Strictly monotone
+        self.assertTrue(np.all(np.diff(section.zm) > 0.0))
+        # Domain top is respected
+        self.assertAlmostEqual(float(section.zm[-1] + section.dzt[-1]), 20.0)
+
+    def test_warn_large_top_spacing_emits_runtime_warning(self):
+        section, _ = make_grid_section(
+            lzstretch=1,
+            lstretchexp=1,
+            # Very large domain with few cells forces a large top spacing
+            zsize=100.0,
+            ktot=6,
+            hlin=2.0,
+            dzlin=1.0,
+            stretchconst=4.0,
+        )
+        section._refresh_derived_grid_params()
+        with self.assertWarns(RuntimeWarning):
             section.generate_zgrid()
 
 
