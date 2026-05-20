@@ -94,7 +94,7 @@ class ForcingSection(Section):
         
         path = Path(self.path) / f"prof.inp.{self.expnr}"
         if path.exists():
-            pr = self.sim.read_matrix(path,2)
+            pr = self.sim.load_prof()
         else:
             raise FileNotFoundError(f"prof.inp file {path} not found for updating from nudge data.")
         
@@ -134,7 +134,7 @@ class ForcingSection(Section):
 
         path = Path(self.path) / f"prof.inp.{self.expnr}"
         if path.exists():
-            pr = self.sim.read_matrix(path,2)
+            pr = self.sim.load_prof()
         else:
             raise FileNotFoundError(f"prof.inp file {path} not found for updating from driver output.")
         

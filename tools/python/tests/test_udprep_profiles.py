@@ -35,6 +35,12 @@ class DummySim:
     def read_matrix(self, path, skiprows=0):
         return np.loadtxt(path, skiprows=skiprows)
 
+    def load_prof(self):
+        fpath = Path(self.path) / f"prof.inp.{self.expnr}"
+        if not fpath.exists():
+            raise FileNotFoundError(f"Profile file not found: {fpath}")
+        return np.loadtxt(fpath, skiprows=2)
+
 
 class TestForcingSection(unittest.TestCase):
     def setUp(self):
