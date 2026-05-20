@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
-
+from scipy.interpolate import CubicSpline
 from .udprep import Section, SectionSpec
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("forcing", {})
@@ -22,12 +22,29 @@ FIELDS: List[str] = list(DEFAULTS.keys())
 class ForcingSection(Section):
     def run_all(self) -> None:
         """Run initial condition and large-scale forcing preprocessing steps."""
-        steps = [
-            ("generate_prof", self.generate_prof),
-            ("write_prof", self.write_prof),
-            ("generate_lscale", self.generate_lscale),
-            ("write_lscale", self.write_lscale),
-        ]
+        if self.idriver == 2:
+            steps = [
+                ("generate_prof", self.generate_prof),
+                ("write_prof", self.write_prof),
+                ("update_prof", self._update_prof_from_driver),
+                ("generate_lscale", self.generate_lscale),
+                ("write_lscale", self.write_lscale),
+            ]
+        elif self.ltimedepnudge:
+            steps = [
+                ("generate_prof", self.generate_prof),
+                ("write_prof", self.write_prof),
+                ("update_prof", self._update_prof_from_nudge_data),
+                ("generate_lscale", self.generate_lscale),
+                ("write_lscale", self.write_lscale),
+            ]
+        else:
+            steps = [
+                ("generate_prof", self.generate_prof),
+                ("write_prof", self.write_prof),
+                ("generate_lscale", self.generate_lscale),
+                ("write_lscale", self.write_lscale),
+            ]
         self.run_steps("forcing", steps)
 
     def generate_prof(self) -> None:
@@ -53,43 +70,118 @@ class ForcingSection(Section):
         pr[:, 3] = float(self.u0)
         pr[:, 4] = float(self.v0)
         pr[:, 5] = float(self.tke)
-
-        if self.idriver == 2:
-            from udbase import UDBase
-
-            path = Path(self.driveroutpath) / f"xytdump.{self.driverjobnr}.nc"
-            if path.exists():
-                simdriver = UDBase(self.driverjobnr, self.driveroutpath, load_geometry=False, suppress_load_warnings=True)
-                u = simdriver.load_stat_xyt('uxyt')
-                v = simdriver.load_stat_xyt('vxyt')
-                thl = simdriver.load_stat_xyt('thlxyt')
-                qt = simdriver.load_stat_xyt('qtxyt')
-                tke = simdriver.load_stat_xyt('tketxyc')
-
-                if self.drivertimeidx is not None and (self.drivertimeidx > 0 and self.drivertimeidx <= u.shape[1]):
-                    warnings.warn(f"Using driver simulation output xytdump.{self.driverjobnr}.nc data for prof.inp generation.", stacklevel=2)
-                    pr[:, 1] = thl[:,self.drivertimeidx-1]
-                    pr[:, 2] = qt[:,self.drivertimeidx-1]
-                    pr[:, 3] = u[:,self.drivertimeidx-1]
-                    pr[:, 4] = v[:,self.drivertimeidx-1]
-                    pr[:, 5] = tke[:,self.drivertimeidx-1]
-                else:
-                    warnings.warn(f"drivertimeidx is not set or out of bounds for driver output; using namoptions initial conditions instead for prof.inp generation.", stacklevel=2)
-            else:
-                warnings.warn(f"Driver output file {path} not found; using namoptions initial conditions instead for prof.inp generation.", stacklevel=2)
-
+        
         self.sim.pr = pr
 
-    def write_prof(self) -> None:
-        """Write prof.inp file."""
+    def _update_prof_from_driver(self) -> None:
+        """Update self.sim.pr with driver simulation output if idriver=2."""
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+        self.update_prof_from_driver(self.driverjobnr, self.driveroutpath, self.drivertimeidx)
+
+    def _update_prof_from_nudge_data(self) -> None:
+        """Update self.sim.pr with nudging data."""
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+        self.update_prof_from_nudge_data(self.profsourcefile)
+
+    def update_prof_from_nudge_data(
+            self,
+            profsourcefile: str) -> None:
+        """Update prof.inp with nudging data."""
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
         
-        if not hasattr(self.sim, "pr"):
-            self.generate_prof()
+        path = Path(self.path) / f"prof.inp.{self.expnr}"
+        if path.exists():
+            pr = self.sim.read_matrix(path,2)
+        else:
+            raise FileNotFoundError(f"prof.inp file {path} not found for updating from nudge data.")
+        
+        path = Path(profsourcefile)
+        if path.exists():
+            warnings.warn(f"Using profile sourcefile {path} for prof.inp generation with time dependent nudging.", stacklevel=2)
+            prdata = self.sim.read_matrix(path,1)
+            if prdata[0, 0] > 0:
+                prdata = np.vstack(([0.0, 0.0, 0.0, 293.0, 0.0], prdata))  # add a surface point if not present in source file
+            pr[:, 1] = CubicSpline(prdata[:, 0], prdata[:, 3])(pr[:, 0])
+            pr[:, 2] = CubicSpline(prdata[:, 0], prdata[:, 4])(pr[:, 0])
+            pr[:, 3] = CubicSpline(prdata[:, 0], prdata[:, 1])(pr[:, 0])
+            pr[:, 4] = CubicSpline(prdata[:, 0], prdata[:, 2])(pr[:, 0])
+        else:
+            warnings.warn(f"profile sourcefile {path} not found in case of time dependent nudging; original prof.inp is kept without updating.", stacklevel=2)
+            return
+
+        self.sim.pr = pr
+        self.write_prof(force=True)  # overwrite prof.inp with updated profiles
+
+    def update_prof_from_driver(
+        self,
+        driverjobnr: str,
+        driveroutpath: str,
+        drivertimeidx: Optional[int]) -> None:
+        """Overwrite prof.inp columns 1-5 with time-averaged driver simulation output.
+
+        Loads xytdump.<driverjobnr>.nc from *driveroutpath* and replaces the thl,
+        qt, u, v, and tke columns of *pr* with the slice at *drivertimeidx*.
+        Issues a warning and leaves *pr* unchanged if the file is missing or the
+        index is out of range.
+        """
+        from udbase import UDBase
+
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
 
         path = Path(self.path) / f"prof.inp.{self.expnr}"
         if path.exists():
+            pr = self.sim.read_matrix(path,2)
+        else:
+            raise FileNotFoundError(f"prof.inp file {path} not found for updating from driver output.")
+        
+        path = Path(driveroutpath) / f"xytdump.{driverjobnr}.nc"
+        if not path.exists():
+            warnings.warn(
+                f"Driver output file {path} not found; original prof.inp is kept without updating.",
+                stacklevel=2,
+            )
+            return
+
+        simdriver = UDBase(driverjobnr, driveroutpath, load_geometry=False, suppress_load_warnings=True)
+        u   = simdriver.load_stat_xyt('uxyt')
+        v   = simdriver.load_stat_xyt('vxyt')
+        thl = simdriver.load_stat_xyt('thlxyt')
+        qt  = simdriver.load_stat_xyt('qtxyt')
+        tke = simdriver.load_stat_xyt('tketxyc')
+
+        if drivertimeidx is not None and 0 < drivertimeidx <= u.shape[1]:
+            warnings.warn(
+                f"Using driver simulation output xytdump.{driverjobnr}.nc data "
+                "for prof.inp generation.",
+                stacklevel=2,
+            )
+            pr[:, 1] = thl[:, drivertimeidx - 1]
+            pr[:, 2] = qt[:,  drivertimeidx - 1]
+            pr[:, 3] = u[:,   drivertimeidx - 1]
+            pr[:, 4] = v[:,   drivertimeidx - 1]
+            pr[:, 5] = tke[:, drivertimeidx - 1]
+        else:
+            warnings.warn(
+                "drivertimeidx is not set or out of bounds for driver output; "
+                "original prof.inp is kept without updating.",
+                stacklevel=2,
+            )
+            return
+
+        self.sim.pr = pr
+        self.write_prof(force=True)  # overwrite prof.inp with updated profiles
+
+    def write_prof(self, force: bool = False) -> None:
+        """Write prof.inp file."""
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+
+        path = Path(self.path) / f"prof.inp.{self.expnr}"
+        if path.exists() and not force:
             warnings.warn(f"{path} already exists; NOT overwriting.", stacklevel=2)
             return
         with path.open("w", encoding="ascii", newline="\n") as f:

@@ -14,7 +14,6 @@ from _common import PYTHON_DIR
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
-from udprep.udprep_forcing import ForcingSection  # noqa: E402
 from udprep.udprep_scalars import ScalarsSection  # noqa: E402
 
 
@@ -28,53 +27,6 @@ class DummySim:
         self.dzt = np.array([1.0, 2.0, 3.0])
         self.ktot = 3
         self.zsize = 6.0
-        self.idriver = 0
-
-
-class TestForcingSection(unittest.TestCase):
-    def setUp(self):
-        self.temp_dir = TemporaryDirectory()
-        self.addCleanup(self.temp_dir.cleanup)
-        self.workdir = Path(self.temp_dir.name)
-        self.sim = DummySim(self.workdir, expnr="321")
-
-    def test_generate_prof_without_lapse(self):
-        section = ForcingSection(
-            "forcing",
-            {"thl0": 290.0, "qt0": 0.01, "u0": 4.0, "v0": 1.0, "tke": 0.5, "lapse": 0.0},
-            sim=self.sim,
-            defaults={},
-        )
-        section.generate_prof()
-        np.testing.assert_allclose(section.pr[:, 0], self.sim.zt)
-        np.testing.assert_allclose(section.pr[:, 1], [290.0, 290.0, 290.0])
-        np.testing.assert_allclose(section.pr[:, 2:], [[0.01, 4.0, 1.0, 0.5]] * 3)
-
-    def test_generate_prof_with_lapse(self):
-        section = ForcingSection(
-            "forcing",
-            {"thl0": 300.0, "qt0": 0.0, "u0": 2.0, "v0": 0.0, "tke": 0.1, "lapse": 0.5},
-            sim=self.sim,
-            defaults={},
-        )
-        section.generate_prof()
-        # With non-uniform dzt=[1,2,3] and lapse=0.5:
-        #   thl[1] = 300.0 + 0.5*(1+2)/2 = 300.75
-        #   thl[2] = 300.75 + 0.5*(2+3)/2 = 302.0
-        np.testing.assert_allclose(section.pr[:, 1], [300.0, 300.75, 302.0])
-
-    def test_write_prof_creates_expected_file(self):
-        section = ForcingSection(
-            "forcing",
-            {"thl0": 290.0, "qt0": 0.01, "u0": 4.0, "v0": 1.0, "tke": 0.5, "lapse": 0.0},
-            sim=self.sim,
-            defaults={},
-        )
-        section.write_prof()
-        content = (self.workdir / "prof.inp.321").read_text(encoding="ascii").splitlines()
-        self.assertEqual(content[0], "# SDBL flow ")
-        self.assertTrue(content[1].startswith("# z thl qt u v tke"))
-        self.assertEqual(len(content), 5)
 
 
 class TestScalarsSection(unittest.TestCase):

@@ -38,7 +38,9 @@
     "idriver": 0,
     "driverjobnr": "",
     "driveroutpath": "",
-    "drivertimeidx": null
+    "drivertimeidx": null,
+    "ltimedepnudge": false,
+    "profsourcefile": ""
   },
   "ibm": {
     "stl_file": "",

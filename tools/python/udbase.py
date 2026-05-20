@@ -15,6 +15,7 @@ Copyright (C) 2016- the uDALES Team.
 
 import numpy as np
 import xarray as xr
+import pandas as pd
 import json
 from pathlib import Path
 from typing import Optional, Union, Dict, Any, List
@@ -247,6 +248,43 @@ class UDBase:
             self.dx = self.xlen / self.itot
         if hasattr(self, 'ylen') and hasattr(self, 'jtot'):
             self.dy = self.ylen / self.jtot
+
+    def read_matrix(filename, skiprows=1):
+        """
+        Python equivalent of MATLAB readmatrix function
+
+        Parameters
+        ----------
+        filename : str or Path
+            Path to the input file.
+        skiprows : int
+            Number of rows to skip at the beginning of the file.
+
+        Returns
+        -------
+        numpy.ndarray
+            Data as a NumPy array.
+        """
+        filename = Path(filename)
+
+        ext = filename.suffix.lower()
+
+        if ext in {'.xlsx', '.xls', '.xlsm'}:
+            return pd.read_excel(filename, skiprows=skiprows, header=None).to_numpy()
+        elif ext in {'.csv'}:
+            return pd.read_csv(filename, skiprows=skiprows, header=None).to_numpy()
+        elif ext in {'.txt', '.dat'}:
+            # Try comma-delimited first, then whitespace-delimited
+            try:
+                return pd.read_csv(filename, skiprows=skiprows, header=None).to_numpy()
+            except Exception:
+                return pd.read_csv(filename, skiprows=skiprows, header=None, delim_whitespace=True).to_numpy()
+        else:
+            try:
+                # df = pd.read_csv(filename, skiprows=skiprows, header=None, sep=r"\s+", engine="python").to_numpy()
+                return np.loadtxt(filename, skiprows=skiprows)
+            except Exception as e:
+                raise ValueError(f"Unsupported file type: {ext}") from e
 
     def _load_namelist_map(self) -> Dict[str, str]:
         """Load variable->namelist mapping from namelists.json."""
