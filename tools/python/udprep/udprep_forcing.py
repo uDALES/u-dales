@@ -100,7 +100,7 @@ class ForcingSection(Section):
         
         path = Path(profsourcefile)
         if path.exists():
-            warnings.warn(f"Using profile sourcefile {path} for prof.inp generation with time dependent nudging.", stacklevel=2)
+            warnings.warn(f"Using profile sourcefile {path} for prof.inp generation with time dependent nudging.", stacklevel=1)
             prdata = self.sim.read_matrix(path,1)
             if prdata[0, 0] > 0:
                 prdata = np.vstack(([0.0, 0.0, 0.0, 293.0, 0.0], prdata))  # add a surface point if not present in source file
@@ -109,7 +109,7 @@ class ForcingSection(Section):
             pr[:, 3] = CubicSpline(prdata[:, 0], prdata[:, 1])(pr[:, 0])
             pr[:, 4] = CubicSpline(prdata[:, 0], prdata[:, 2])(pr[:, 0])
         else:
-            warnings.warn(f"profile sourcefile {path} not found in case of time dependent nudging; original prof.inp is kept without updating.", stacklevel=2)
+            warnings.warn(f"profile sourcefile {path} not found in case of time dependent nudging; original prof.inp is kept without updating.", stacklevel=1)
             return
 
         self.sim.pr = pr
@@ -142,7 +142,7 @@ class ForcingSection(Section):
         if not path.exists():
             warnings.warn(
                 f"Driver output file {path} not found; original prof.inp is kept without updating.",
-                stacklevel=2,
+                stacklevel=1,
             )
             return
 
@@ -157,7 +157,7 @@ class ForcingSection(Section):
             warnings.warn(
                 f"Using driver simulation output xytdump.{driverjobnr}.nc data "
                 "for prof.inp generation.",
-                stacklevel=2,
+                stacklevel=1,
             )
             pr[:, 1] = thl[:, drivertimeidx - 1]
             pr[:, 2] = qt[:,  drivertimeidx - 1]
@@ -168,7 +168,7 @@ class ForcingSection(Section):
             warnings.warn(
                 "drivertimeidx is not set or out of bounds for driver output; "
                 "original prof.inp is kept without updating.",
-                stacklevel=2,
+                stacklevel=1,
             )
             return
 
@@ -182,7 +182,7 @@ class ForcingSection(Section):
 
         path = Path(self.path) / f"prof.inp.{self.expnr}"
         if path.exists() and not force:
-            warnings.warn(f"{path} already exists; NOT overwriting.", stacklevel=2)
+            warnings.warn(f"{path} already exists; NOT overwriting.", stacklevel=1)
             return
         with path.open("w", encoding="ascii", newline="\n") as f:
             f.write("# SDBL flow \n")
@@ -216,7 +216,7 @@ class ForcingSection(Section):
             warnings.warn(
                 "No forcing switch config. setup and not a driven simulation so "
                 "initial velocities and/or pressure gradients applied.",
-                stacklevel=2,
+                stacklevel=1,
             )
 
         forcing_flags = (

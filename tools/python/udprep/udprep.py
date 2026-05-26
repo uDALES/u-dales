@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import inspect
 import json
 import time
+import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple, Type
 
@@ -84,21 +85,26 @@ class Section:
         steps: List[Tuple[str, Callable[[], None]]],
         **kwargs: Any,
     ) -> None:
-        for name, func in steps:
-            start = time.perf_counter()
-            print(f"[{label}] {name}...")
-            if kwargs:
-                sig = inspect.signature(func)
-                params = sig.parameters.values()
-                if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
-                    func(**kwargs)
+        _orig_formatwarning = warnings.formatwarning
+        warnings.formatwarning = lambda msg, cat, *_a, **_kw: f"{cat.__name__}: {msg}\n"
+        try:
+            for name, func in steps:
+                start = time.perf_counter()
+                print(f"[{label}] {name}...")
+                if kwargs:
+                    sig = inspect.signature(func)
+                    params = sig.parameters.values()
+                    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
+                        func(**kwargs)
+                    else:
+                        call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+                        func(**call_kwargs)
                 else:
-                    call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
-                    func(**call_kwargs)
-            else:
-                func()
-            elapsed = time.perf_counter() - start
-            print(f"[{label}] {name} done in {elapsed:.3f} s")
+                    func()
+                elapsed = time.perf_counter() - start
+                print(f"[{label}] {name} done in {elapsed:.3f} s")
+        finally:
+            warnings.formatwarning = _orig_formatwarning
 
     @staticmethod
     def load_defaults_json(path: str | None = None) -> Dict[str, Dict[str, Any]]:
@@ -364,9 +370,8 @@ class UDPrep:
         self.forcing.run_all()
         if self.scalars.nsv > 0:
             self.scalars.run_all()
-        if self.vegetation.ltrees or self.vegetation.ltreesfile:
+        if self.vegetation.ltrees:
             self.vegetation.run_all()
-            self.vegetation.save()
         if self.ibm.libm:
             factypes_path = Path(self.sim.path) / f"factypes.inp.{self.sim.expnr}"
             if not factypes_path.exists():
