@@ -320,12 +320,12 @@ class IBMSection(Section):
             "nfctsecs_c",
         ]
         for name, value in zip(names, info):
-            sim.save_param(name, int(value))
+            self.save_param(name, int(value))
             setattr(sim, name, int(value))
 
     def _update_counts_from_existing_outputs(self) -> None:
         sim = self._require_sim()
-        sim.save_param("nfcts", int(len(sim.geom.stl.faces)))
+        self.save_param("nfcts", int(len(sim.geom.stl.faces)))
         for name in ("solid_u", "solid_v", "solid_w", "solid_c", "fluid_boundary_u", "fluid_boundary_v", "fluid_boundary_w", "fluid_boundary_c", "facet_sections_u", "facet_sections_v", "facet_sections_w", "facet_sections_c"):
             path = Path(sim.path) / f"{name}.txt"
             count = 0
@@ -333,7 +333,7 @@ class IBMSection(Section):
                 with path.open("r", encoding="ascii", errors="ignore") as f:
                     count = sum(1 for line in f if line.strip() and not line.lstrip().startswith("#"))
             target = name.replace("solid_", "nsolpts_").replace("fluid_boundary_", "nbndpts_").replace("facet_sections_", "nfctsecs_")
-            sim.save_param(target, int(count))
+            self.save_param(target, int(count))
             setattr(sim, target, int(count))
 
     def _require_sim(self):

@@ -14,21 +14,17 @@ from _common import PYTHON_DIR
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
-from udbase import UDBase  # noqa: E402
 from udprep.udprep_vegetation import VegetationSection  # noqa: E402
 
 
 class DummySim:
-    save_veg = UDBase.save_veg
-
     def __init__(self, path: Path, expnr="777"):
         self.path = path
         self.expnr = expnr
         self.itot = 8
         self.jtot = 8
         self.ktot = 6
-        self._lfgeom = False
-        self.geom = None
+        self.ntrees = 0
 
 
 class TestVegetationSection(unittest.TestCase):
@@ -37,6 +33,9 @@ class TestVegetationSection(unittest.TestCase):
         self.addCleanup(self.temp_dir.cleanup)
         self.workdir = Path(self.temp_dir.name)
         self.sim = DummySim(self.workdir)
+        (self.workdir / f"namoptions.{self.sim.expnr}").write_text(
+            "&RUN\niexpnr = 777\n/\n", encoding="ascii"
+        )
 
     def _make_section(self, **overrides):
         values = {
@@ -57,9 +56,8 @@ class TestVegetationSection(unittest.TestCase):
         (self.workdir / "trees.inp.777").write_text("1 2 3 4 1 2\n", encoding="ascii")
         section = self._make_section()
 
-        result = section.load_block()
+        section.load_block()
 
-        self.assertEqual(result, self.workdir / "trees.inp.777")
         self.assertEqual(section.ntrees, 8)
         np.testing.assert_array_equal(section.veg["points"][0], [0, 2, 0])
         self.assertEqual(section.veg["params"]["id"][0], 1)

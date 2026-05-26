@@ -173,8 +173,7 @@ class UDBase:
         
         # Read namoptions file
         self._read_namoptions()
-        self._namelist_map = self._load_namelist_map()
-        
+
         # Load grid
         self._load_grid()
         
@@ -285,17 +284,6 @@ class UDBase:
                 return np.loadtxt(filename, skiprows=skiprows)
             except Exception as e:
                 raise ValueError(f"Unsupported file type: {ext}") from e
-
-    def _load_namelist_map(self) -> Dict[str, str]:
-        """Load variable->namelist mapping from namelists.json."""
-        map_path = Path(__file__).resolve().parent / "namelists.json"
-        if not map_path.is_file():
-            return {}
-        try:
-            data = json.loads(map_path.read_text(encoding="ascii"))
-        except json.JSONDecodeError:
-            return {}
-        return {k.lower(): v for k, v in data.get("variables", {}).items()}
 
     def _load_sparse_file(
         self,
@@ -598,180 +586,6 @@ class UDBase:
         except Exception as exc:
             warnings.warn(f"Error loading vegetation data: {exc}")
             self.veg = None
-
-    def save_param(self, varname: str, value: Any) -> Path:
-        """Update a namelist variable in namoptions.<id> using a lookup map."""
-        if not hasattr(self, "_namelist_map") or self._namelist_map is None:
-            self._namelist_map = self._load_namelist_map()
-        namelist = self._namelist_map.get(varname.lower(), "INP")
-
-        def _format_value(val: Any) -> str:
-            if isinstance(val, (list, tuple, np.ndarray)):
-                arr = np.asarray(val)
-                if arr.ndim == 0:
-                    return _format_value(arr.item())
-                return ", ".join(_format_value(v) for v in arr.ravel())
-
-            if isinstance(val, (np.bool_, bool)):
-                return ".true." if bool(val) else ".false."
-            if isinstance(val, (np.integer, int)):
-                return f"{int(val):d}"
-            if isinstance(val, (np.floating, float)):
-                s = f"{float(val):.6g}"
-                if "e" not in s and "E" not in s and "." not in s:
-                    s = f"{s}."
-                return s
-            if isinstance(val, str):
-                trimmed = val
-                if (trimmed.startswith("'") and trimmed.endswith("'")) or (
-                    trimmed.startswith('"') and trimmed.endswith('"')
-                ):
-                    trimmed = trimmed[1:-1]
-                return f"'{trimmed}'"
-            return str(val)
-
-        namelist_path = Path(self.path) / f"namoptions.{self.expnr}"
-        if not namelist_path.is_file():
-            raise FileNotFoundError(f"Missing {namelist_path}")
-
-        lines = namelist_path.read_text(encoding="ascii").splitlines(keepends=True)
-        nml_lower = namelist.strip().lower()
-        var_lower = varname.strip().lower()
-        value_str = _format_value(value)
-
-        start_idx = None
-        end_idx = None
-        for i, line in enumerate(lines):
-            stripped = line.strip()
-            if stripped.lower().startswith("&") and stripped[1:].strip().lower() == nml_lower:
-                start_idx = i
-                break
-
-        if start_idx is not None:
-            for i in range(start_idx + 1, len(lines)):
-                if lines[i].strip().startswith("/"):
-                    end_idx = i
-                    break
-            if end_idx is None:
-                raise ValueError(f"Namelist block '{namelist}' in {namelist_path} has no terminator '/'")
-
-            updated = False
-            for i in range(start_idx + 1, end_idx):
-                line = lines[i]
-                if "=" not in line:
-                    continue
-                left, right = line.split("=", 1)
-                if left.strip().lower() != var_lower:
-                    continue
-                comment = ""
-                if "!" in right:
-                    _, comment = right.split("!", 1)
-                    comment = "!" + comment.rstrip("\n")
-                newline = f"{left.rstrip()} = {value_str}"
-                if comment:
-                    newline = f"{newline} {comment}"
-                lines[i] = newline + ("\n" if line.endswith("\n") else "")
-                updated = True
-                break
-
-            if not updated:
-                indent = "  "
-                insert_line = f"{indent}{varname} = {value_str}\n"
-                lines.insert(end_idx, insert_line)
-        else:
-            block_name = namelist.strip().upper()
-            lines.append(f"&{block_name}\n")
-            lines.append(f"  {varname} = {value_str}\n")
-            lines.append("/\n")
-
-        with namelist_path.open("w", encoding="ascii", newline="\n") as f:
-            f.write("".join(lines))
-        setattr(self, varname.strip(), value)
-        return namelist_path
-
-    def save_veg(
-        self,
-        points: np.ndarray,
-        ids: np.ndarray,
-        lad_values: np.ndarray,
-        cd: float,
-        ud: float,
-        dec: float,
-        lsize: float,
-        r_s: float,
-        *,
-        write_ids: bool = False,
-    ) -> Dict[str, Path]:
-        """Write vegetation sparse inputs (veg.inp, veg_params, optional veg_id)."""
-        if points.ndim != 2 or points.shape[1] < 3:
-            raise ValueError("points must be an (n, 3) array of 1-based indices")
-        if len(points) != len(lad_values) or len(points) != len(ids):
-            raise ValueError("points, ids, and lad_values must be the same length")
-
-        sim_dir = Path(self.path)
-        sim_id = self.expnr
-        out_paths: Dict[str, Path] = {}
-
-        veg_path = sim_dir / f"veg.inp.{sim_id}"
-        with veg_path.open("w", encoding="ascii", newline="\n") as f:
-            f.write("# position (i,j,k)\n")
-            for i, j, k in points:
-                f.write(f"{int(i):7d} {int(j):7d} {int(k):7d}\n")
-        out_paths["veg"] = veg_path
-
-        params_path = sim_dir / f"veg_params.inp.{sim_id}"
-        with params_path.open("w", encoding="ascii", newline="\n") as f:
-            f.write("# id lad cd ud dec lsize r_s\n")
-            for bid, lad_val in zip(ids, lad_values):
-                f.write(
-                    f"{int(bid):7d} {float(lad_val):12.6f} {cd:12.6f} {ud:12.6f} "
-                    f"{dec:12.6f} {lsize:12.6f} {r_s:12.6f}\n"
-                )
-        out_paths["params"] = params_path
-
-        if write_ids:
-            ids_path = sim_dir / f"veg_id.inp.{sim_id}"
-            with ids_path.open("w", encoding="ascii", newline="\n") as f:
-                f.write("# block_id for each point in veg.inp, same order\n")
-                for block_id in ids:
-                    f.write(f"{int(block_id):7d}\n")
-            out_paths["ids"] = ids_path
-
-        points = np.asarray(points)
-        ids = np.asarray(ids)
-        lad_values = np.asarray(lad_values)
-        points_zero = points[:, :3].astype(int, copy=False) - 1
-        self.veg = {
-            "points": points_zero,
-            "params": {
-                "id": ids.astype(int, copy=False),
-                "lad": lad_values.astype(float, copy=False),
-                "cd": np.full(len(ids), cd, dtype=float),
-                "ud": np.full(len(ids), ud, dtype=float),
-                "dec": np.full(len(ids), dec, dtype=float),
-                "lsize": np.full(len(ids), lsize, dtype=float),
-                "r_s": np.full(len(ids), r_s, dtype=float),
-            },
-        }
-        self._lftrees = True
-
-        return out_paths
-
-    def save_trees(
-        self,
-        points: np.ndarray,
-        ids: np.ndarray,
-        lad_values: np.ndarray,
-        cd: float,
-        ud: float,
-        dec: float,
-        lsize: float,
-        r_s: float,
-        *,
-        write_ids: bool = False,
-    ) -> Dict[str, Path]:
-        """Backward-compatible alias for save_veg."""
-        return self.save_veg(points, ids, lad_values, cd, ud, dec, lsize, r_s, write_ids=write_ids)
 
     def load_veg(self, *, zero_based: bool = True, cache: bool = True) -> Dict[str, Any]:
         """Load vegetation sparse points and parameters."""

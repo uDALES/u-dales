@@ -321,7 +321,7 @@ class RadiationSection(Section):
             if not hasattr(vf, "nnz"):
                 raise TypeError("Expected sparse view-factor matrix with 'nnz' attribute")
             nnz = int(vf.nnz)
-            sim.save_param("nnz", nnz)
+            self.save_param("nnz", nnz)
             self._vf_cache = vf
             self._svf_cache = svf
             self._vf_cache_key = cache_key
@@ -348,7 +348,7 @@ class RadiationSection(Section):
         if not hasattr(vf, "nnz"):
             raise TypeError("Expected sparse view-factor matrix with 'nnz' attribute")
         nnz = int(vf.nnz)
-        sim.save_param("nnz", nnz)
+        self.save_param("nnz", nnz)
         self._vf_cache = vf
         self._svf_cache = svf
         self._vf_cache_key = cache_key

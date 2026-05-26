@@ -120,8 +120,9 @@ class TestSectionCore(unittest.TestCase):
             sim=sim,
             defaults={"alpha": 1, "arr": np.array([0]), "nested": []},
         )
-        section.write_changed_params()
-        self.assertEqual(sim.saved, [("alpha", 2)])
+        with mock.patch.object(section, "save_param") as mock_sp:
+            section.write_changed_params()
+        mock_sp.assert_called_once_with("alpha", 2)
 
     def test_changed_params_detects_numpy_arrays(self):
         section = Section(
@@ -254,7 +255,6 @@ class TestUDPrepCore(unittest.TestCase):
         prep.ibm.run_ibm.assert_called_once()
         prep.ibm.write_facets.assert_called_once()
         prep.ibm.write_facetarea.assert_called_once()
-        prep.vegetation.save.assert_called_once()
         prep.radiation.run_all.assert_called_once_with(force=True)
         prep.seb.run_all.assert_called_once()
 

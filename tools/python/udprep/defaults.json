@@ -124,16 +124,15 @@
   },
   "vegetation": {
     "ltrees": false,
-    "ltreesfile": false,
     "treesfile": "",
+    "ntrees" : 0,
     "cd" : 0.2,
-    "dec" : 0.3,
-    "dqdt": 0,
     "lad" : 1.0,
     "lsize" : 0.1,
-    "ntrees" : 0,
-    "qstar" : 400.0,
+    "ud" : 1e-3,
+    "dec" : 0.3,
     "r_s" : 50.0,
-    "ud" : 1e-3
+    "dqdt": 0.0,
+    "qstar" : 400.0
   }
 }

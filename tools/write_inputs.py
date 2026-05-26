@@ -93,17 +93,15 @@ def main(argv: list[str] | None = None) -> int:
     case_dir = Path(args.case_dir).resolve()
 
     print("Initializing UDPrep...")
-    sys.stdout.flush()
     prep = UDPrep(case_dir, load_geometry=True, suppress_load_warnings=True)
+    
+    # Run the configured preprocessing sections.
+    prep.run_all(force=args.force)
+
     print("-------------------------------------------------------------------")
     print("Summary of the derived preprocessing configuration")
     print(prep)
     print("-------------------------------------------------------------------")
-    # Run the configured preprocessing sections.
-    # Namelist writeback (write_changed_params) is intentionally NOT called
-    # here — only sections that derive new values (radiation, vegetation)
-    # call it internally inside their own run_all/save methods.
-    prep.run_all(force=args.force)
     
     ### Optional inspection plots (uncomment to enable)
     # prep.sim.vis.plot_profiles()

@@ -7,22 +7,22 @@ import shutil
 PYTHON_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PYTHON_DIR))
 
-from udbase import UDBase  # noqa: E402
+from udprep.udprep import Section  # noqa: E402
 
 
 class DummySim:
     def __init__(self, expnr: str, path: Path):
         self.expnr = expnr
         self.path = path
-        self._namelist_map = {
+
+
+class DummySection(Section):
+    @staticmethod
+    def _load_namelist_map():
+        return {
             "ntrees": "TREES",
             "newvar": "TREES",
         }
-
-    def _load_namelist_map(self):
-        return self._namelist_map
-
-    save_param = UDBase.save_param
 
 
 def _get_block(lines, name):
@@ -52,13 +52,14 @@ class TestNamelistUpdate(unittest.TestCase):
         self.workdir = Path(self.temp_dir.name)
         source = Path(__file__).resolve().parents[3] / "tests" / "cases" / "525" / "namoptions.525"
         shutil.copyfile(source, self.workdir / "namoptions.525")
-        self.sim = DummySim("525", self.workdir)
+        sim = DummySim("525", self.workdir)
+        self.section = DummySection("test", {}, sim=sim)
 
     def _read_lines(self):
         return (self.workdir / "namoptions.525").read_text(encoding="ascii").splitlines()
 
     def test_update_existing_variable(self):
-        self.sim.save_param("ntrees", 5)
+        self.section.save_param("ntrees", 5)
         lines = self._read_lines()
         block = _get_block(lines, "TREES")
         self.assertIsNotNone(block)
@@ -67,7 +68,7 @@ class TestNamelistUpdate(unittest.TestCase):
         self.assertIn("= 5", matches[0])
 
     def test_add_missing_variable(self):
-        self.sim.save_param("newvar", 123)
+        self.section.save_param("newvar", 123)
         lines = self._read_lines()
         block = _get_block(lines, "TREES")
         self.assertIsNotNone(block)
@@ -76,7 +77,7 @@ class TestNamelistUpdate(unittest.TestCase):
         self.assertIn("= 123", matches[0])
 
     def test_add_missing_namelist(self):
-        self.sim.save_param("foo", 7)
+        self.section.save_param("foo", 7)
         lines = self._read_lines()
         block = _get_block(lines, "INP")
         self.assertIsNotNone(block)
