@@ -40,21 +40,29 @@
     "driveroutpath": "",
     "drivertimeidx": null,
     "ltimedepnudge": false,
-    "profsourcefile": ""
+    "profsourcefile": "",
+    "ltempeq": false,
+    "lmoist": false
+  },
+  "bcs": {
+    "BCxm": 1,
+    "BCym": 1
   },
   "ibm": {
-    "stl_file": "",
+    "libm": true,
     "gen_geom": true,
-    "geom_path": "",
-    "diag_neighbs": true,
+    "stl_file": "",
     "stl_ground": true,
-    "libm": 1,
+    "diag_neighbs": true,
+    "nompthreads": 8,
+    "ibmtol": 5e-4,
+    "read_types": false,
+    "types_path": "",
+    "geom_path": "",
+    "iwallmom": 2,
+    "lwritefac": false,
     "isolid_bound": 1,
     "ifacsec": 1,
-    "read_types": 0,
-    "types_path": 0,
-    "nfcts": 0,
-    "factypes": null,
     "maxlen": 10
   },
   "scalars": {

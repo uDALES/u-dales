@@ -12,6 +12,7 @@ from pathlib import Path
 import shutil
 import subprocess
 from typing import Any, Dict, List
+import warnings
 
 import numpy as np
 
@@ -29,12 +30,9 @@ class IBMSection(Section):
         """Run IBM preprocessing steps in the standard order."""
         sim = self._require_sim()
         steps = []
-        factypes_path = Path(sim.path) / f"factypes.inp.{sim.expnr}"
-        if not factypes_path.exists():
-            steps.extend([("generate_factypes", self.generate_factypes), ("write_factypes", self.write_factypes)])
 
-        if bool(getattr(self, "libm", True)):
-            if bool(getattr(self, "gen_geom", True)):
+        if self.libm:
+            if self.gen_geom:
                 steps.extend(
                     [
                         ("run_ibm", lambda: self.run_ibm(backend=backend)),
@@ -42,12 +40,19 @@ class IBMSection(Section):
                         ("write_facetarea", self.write_facetarea),
                     ]
                 )
+
+                factypes_path = Path(sim.path) / f"factypes.inp.{sim.expnr}"
+                if not factypes_path.exists():
+                    steps.extend([
+                        ("generate_factypes", self.generate_factypes),
+                        ("write_factypes", self.write_factypes),
+                    ])
+                else:
+                    warnings.warn(f"factypes file {factypes_path} already exists; skipping regeneration ...", UserWarning)
             else:
                 steps.extend(
                     [
                         ("copy_geom_outputs", self.copy_geom_outputs),
-                        ("write_facets", self.write_facets),
-                        ("write_facetarea", self.write_facetarea),
                     ]
                 )
         self.run_steps("ibm", steps)
@@ -55,7 +60,7 @@ class IBMSection(Section):
     def generate_factypes(self) -> None:
         """Construct default factypes array (generate_factypes in MATLAB)."""
         sim = self._require_sim()
-        k = int(getattr(sim, "nfaclyrs", 3))
+        k = sim.nfaclyrs
         factypes = []
 
         def add(row_id, lgr, z0, z0h, al, em, d_vals, c_val, l_val, k_val):
@@ -75,14 +80,14 @@ class IBMSection(Section):
         add(4, 0, 0.05, 0.00035, 0.5, 0.85, [0.36 / k] * k, 1e6, 0.1, 0.1e-6)
         add(11, 1, 0.05, 0.00035, 0.25, 0.95, [0.6 / k] * k, 5e6, 2.0, 0.4e-6)
         add(12, 1, 0.05, 0.00035, 0.35, 0.90, [0.6 / k] * k, 2e6, 0.8, 0.4e-6)
-        self.factypes = np.asarray(factypes, dtype=float)
+        sim.factypes = np.asarray(factypes, dtype=float)
 
     def write_factypes(self) -> None:
         """Write factypes.inp file."""
         sim = self._require_sim()
-        if not hasattr(self, "factypes"):
+        if not hasattr(sim, "factypes"):
             self.generate_factypes()
-        k = int(getattr(sim, "nfaclyrs", 3))
+        k = sim.nfaclyrs
         path = Path(sim.path) / f"factypes.inp.{sim.expnr}"
         dheader = "".join(f"  d{idx} [m]" for idx in range(1, k + 1))
         cheader = "".join(f"  C{idx} [J/(K m^3)]" for idx in range(1, k + 1))
@@ -116,8 +121,12 @@ class IBMSection(Section):
         sim = self._require_sim()
         stl = sim.geom.stl
         path = Path(sim.path) / f"facets.inp.{sim.expnr}"
-        if bool(getattr(sim, "read_types", False)):
-            types_path = Path(getattr(sim, "types_path"))
+        if self.read_types:
+            types_path = Path(self.types_path)
+            if not types_path:
+                raise ValueError("types_path must be specified if read_types is true in namoptions")
+            if not types_path.is_file():
+                raise FileNotFoundError(f"Missing types file: {types_path}")
             facet_types = np.loadtxt(types_path, skiprows=1 if types_path.suffix == ".txt" else 0)
             facet_types = np.asarray(facet_types, dtype=int).reshape(-1)
         else:
@@ -127,7 +136,7 @@ class IBMSection(Section):
             for typ, normal in zip(facet_types, np.asarray(stl.face_normals, dtype=float)):
                 f.write(f"{int(typ):-4d} {normal[0]:-4.4f} {normal[1]:-4.4f} {normal[2]:-4.4f}\n")
         sim.nfcts = len(stl.faces)
-        self.facet_types = facet_types
+        sim.facet_types = facet_types
 
     def write_facetarea(self) -> None:
         """Write facetarea.inp file (facet areas)."""
@@ -139,43 +148,54 @@ class IBMSection(Section):
             for area in areas:
                 f.write(f"{area:.6f}\n")
 
-    def compute_boundary_cells(self) -> None:
-        """Compute fluid/solid boundary points (IBM getBoundaryCells)."""
+    # def compute_boundary_cells(self) -> None:
+    #     """Compute fluid/solid boundary points (IBM getBoundaryCells)."""
 
-    def match_facets_to_cells(self) -> None:
-        """Match facets to fluid cells (IBM matchFacetsToCells)."""
+    # def match_facets_to_cells(self) -> None:
+    #     """Match facets to fluid cells (IBM matchFacetsToCells)."""
 
-    def classify_solid_points(self) -> None:
-        """Classify solid points using inpolyhedron/in_mypoly methods."""
+    # def classify_solid_points(self) -> None:
+    #     """Classify solid points using inpolyhedron/in_mypoly methods."""
 
-    def compute_facet_sections(self) -> None:
-        """Compute facet sections for u/v/w/c grids."""
+    # def compute_facet_sections(self) -> None:
+    #     """Compute facet sections for u/v/w/c grids."""
 
-    def compute_fluid_boundary(self) -> None:
-        """Compute fluid boundary locations for IBM grids."""
+    # def compute_fluid_boundary(self) -> None:
+    #     """Compute fluid boundary locations for IBM grids."""
 
     def copy_geom_outputs(self) -> None:
         sim = self._require_sim()
-        geom_value = str(getattr(sim, "geom_path", "")).strip()
-        if not geom_value:
+        if not self.geom_path:
             raise ValueError("Need to specify geom_path when gen_geom is false")
-        geom_path = Path(geom_value)
+        geom_path = Path(self.geom_path)
         if not geom_path.is_absolute():
             geom_path = Path(sim.path) / geom_path
         for pattern in ("solid_*", "fluid_boundary_*"):
-            for source in geom_path.glob(pattern):
+            sources = list(geom_path.glob(pattern))
+            if not sources:
+                raise FileNotFoundError(f"No files matching '{pattern}' found in {geom_path}")
+            for source in sources:
                 shutil.copy2(source, Path(sim.path) / source.name)
-        calculate_facet_sections_uvw = int(getattr(sim, "iwallmom", 0)) > 1
-        calculate_facet_sections_c = bool(getattr(sim, "ltempeq", False)) or bool(
-            getattr(sim, "lmoist", False)
-        ) or bool(getattr(sim, "lwritefac", False))
+        calculate_facet_sections_uvw = self.iwallmom > 1
+        calculate_facet_sections_c = self.ltempeq or self.lmoist or self.lwritefac
         if calculate_facet_sections_uvw:
             for pattern in ("facet_sections_u*", "facet_sections_v*", "facet_sections_w*"):
-                for source in geom_path.glob(pattern):
+                sources = list(geom_path.glob(pattern))
+                if not sources:
+                    raise FileNotFoundError(f"No files matching '{pattern}' found in {geom_path}")
+                for source in sources:
                     shutil.copy2(source, Path(sim.path) / source.name)
         if calculate_facet_sections_c:
-            for source in geom_path.glob("facet_sections_c*"):
+            sources = list(geom_path.glob("facet_sections_c*"))
+            if not sources:
+                raise FileNotFoundError(f"No files matching 'facet_sections_c*' found in {geom_path}")
+            for source in sources:
                 shutil.copy2(source, Path(sim.path) / source.name)
+        for base in ("facetarea.inp", "facets.inp", "factypes.inp"):
+            sources = list(geom_path.glob(f"{base}.*"))
+            if not sources:
+                raise FileNotFoundError(f"No files matching '{base}.*' found in {geom_path}")
+            shutil.copy2(sources[0], Path(sim.path) / f"{base}.{sim.expnr}")
         self._update_counts_from_existing_outputs()
 
     def run_ibm(self, backend: str = "f2py") -> None:
@@ -268,32 +288,28 @@ class IBMSection(Section):
         sim = self._require_sim()
         stl = sim.geom.stl
         path = Path(sim.path)
-        dx = float(sim.dx)
-        dy = float(sim.dy)
-        zf = np.asarray(sim.zt, dtype=float)
-        zh = np.asarray(sim.zm, dtype=float)
         with (path / "inmypoly_inp_info.txt").open("w", encoding="ascii", newline="\n") as f:
-            f.write(f"{dx:15.10f} {dy:15.10f}\n")
-            f.write(f"{int(sim.itot):5d} {int(sim.jtot):5d} {int(sim.ktot):5d}\n")
-            f.write(f"{5e-4:15.10f}\n")
+            f.write(f"{sim.dx:15.10f} {sim.dy:15.10f}\n")
+            f.write(f"{sim.itot:5d} {sim.jtot:5d} {sim.ktot:5d}\n")
+            f.write(f"{self.ibmtol:15.10f}\n")
             for _ in range(4):
-                f.write(f"{0.0:15.10f} {0.0:15.10f} {1.0:15.10f}\n")
+                f.write(f"{0.0:15.10f} {0.0:15.10f} {1.0:15.10f}\n") # always use vertically upward raydirection for solid-fluid classification
             f.write(f"{len(stl.vertices):8d} {len(stl.faces):8d}\n")
-            f.write(f"{8:4d}\n")
+            f.write(f"{self.nompthreads:4d}\n")
             f.write(
-                f"{int(bool(getattr(sim, 'stl_ground', True))):d} "
-                f"{int(bool(getattr(sim, 'diag_neighbs', True))):d} "
-                f"{int(int(getattr(sim, 'BCxm', 1)) == 1):d} "
-                f"{int(int(getattr(sim, 'BCym', 1)) == 1):d}\n"
+                f"{int(self.stl_ground):d} "
+                f"{int(self.diag_neighbs):d} "
+                f"{int(sim.BCxm == 1):d} "
+                f"{int(sim.BCym == 1):d}\n"
             )
-        np.savetxt(path / "zhgrid.txt", zh, fmt="%15.10f")
-        np.savetxt(path / "zfgrid.txt", zf, fmt="%15.10f")
+        np.savetxt(path / "zhgrid.txt", sim.zm, fmt="%15.10f")
+        np.savetxt(path / "zfgrid.txt", sim.zt, fmt="%15.10f")
         np.savetxt(path / "vertices.txt", np.asarray(stl.vertices, dtype=float), fmt="%15.10f %15.10f %15.10f")
-        faces = np.asarray(stl.faces, dtype=int) + 1
-        vertices = np.asarray(stl.vertices, dtype=float)
+        faces = np.asarray(stl.faces, dtype=int) + 1 # convert to 1-based indexing for Fortran
         incenters = np.asarray(sim.geom.face_incenters, dtype=float)
+        facenormals = np.asarray(sim.geom.face_normals, dtype=float)
         face_rows = np.hstack(
-            [faces, incenters, np.asarray(stl.face_normals, dtype=float)]
+            [faces, incenters, facenormals]
         )
         np.savetxt(
             path / "faces.txt",
@@ -339,7 +355,7 @@ class IBMSection(Section):
     def _require_sim(self):
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
-        if getattr(self.sim, "geom", None) is None and bool(getattr(self.sim, "libm", True)):
+        if self.geom is None and self.libm:
             raise ValueError("Geometry must be loaded for IBM preprocessing")
         return self.sim
 

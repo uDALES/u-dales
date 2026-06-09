@@ -332,6 +332,7 @@ class _DefaultContext:
             return getattr(self._sim, name)
         raise AttributeError(name)
 from .udprep_init import validate_expnr
+from .udprep_bcs import SPEC as BCS_SPEC
 from .udprep_grid import SPEC as GRID_SPEC
 from .udprep_forcing import SPEC as FORCING_SPEC
 from .udprep_ibm import SPEC as IBM_SPEC
@@ -349,6 +350,7 @@ class UDPrep:
     SECTION_SPECS = [
         GRID_SPEC,
         FORCING_SPEC,
+        BCS_SPEC,
         SCALARS_SPEC,
         VEGETATION_SPEC,
         IBM_SPEC,
@@ -476,16 +478,7 @@ class UDPrep:
         if self.vegetation.ltrees:
             self.vegetation.run_all()
         if self.ibm.libm:
-            factypes_path = Path(self.sim.path) / f"factypes.inp.{self.sim.expnr}"
-            if not factypes_path.exists():
-                self.ibm.generate_factypes()
-                self.ibm.write_factypes()
-            if self.ibm.gen_geom:
-                self.ibm.run_ibm(backend=ibm_backend)
-            else:
-                self.ibm.copy_geom_outputs()
-            self.ibm.write_facets()
-            self.ibm.write_facetarea()
+            self.ibm.run_all(backend=ibm_backend)
         if getattr(self.sim, "lEB", False):
             run_all = self.radiation.run_all
             sig = inspect.signature(run_all)

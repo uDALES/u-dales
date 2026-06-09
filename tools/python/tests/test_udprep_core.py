@@ -232,29 +232,19 @@ class TestUDPrepCore(unittest.TestCase):
         prep.SECTION_SPECS = specs
 
         prep.sim.lEB = True
-        prep.ibm.generate_factypes = mock.Mock()
-        prep.ibm.write_factypes = mock.Mock()
-        prep.ibm.run_ibm = mock.Mock()
-        prep.ibm.copy_geom_outputs = mock.Mock()
-        prep.ibm.write_facets = mock.Mock()
-        prep.ibm.write_facetarea = mock.Mock()
         prep.vegetation.save = mock.Mock()
         prep.radiation.run_all = mock.Mock()
         prep.seb.run_all = mock.Mock()
         prep.vegetation.ltrees = True
         prep.vegetation.ltreesfile = False
 
-        prep.run_all(force=True)
+        prep.run_all(force=True, ibm_backend="legacy")
 
         self.assertEqual(len(prep.grid.run_all_calls), 1)
         self.assertEqual(len(prep.forcing.run_all_calls), 1)
         self.assertEqual(len(prep.vegetation.run_all_calls), 1)
         self.assertEqual(len(prep.scalars.run_all_calls), 0)
-        prep.ibm.generate_factypes.assert_called_once()
-        prep.ibm.write_factypes.assert_called_once()
-        prep.ibm.run_ibm.assert_called_once()
-        prep.ibm.write_facets.assert_called_once()
-        prep.ibm.write_facetarea.assert_called_once()
+        self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
         prep.radiation.run_all.assert_called_once_with(force=True)
         prep.seb.run_all.assert_called_once()
 
