@@ -86,7 +86,7 @@ if(BUILD_PREPROCESSING_IBM_F2PY)
     "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/boundaryMasking.f90"
     "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/matchFacetsCells.f90"
     "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/IBM_preproc_io.f90"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/IBM_preproc_driver.f90"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/IBM_preproc_module.f90"
   )
 
   add_custom_command(
@@ -101,7 +101,7 @@ if(BUILD_PREPROCESSING_IBM_F2PY)
             "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/boundaryMasking.f90"
             "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/matchFacetsCells.f90"
             "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/IBM_preproc_io.f90"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/IBM_preproc_driver.f90"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/IBM_preproc_module.f90"
             "${_ibm_f2py_wrapper}"
             --build-dir "${_ibm_f2py_build_dir}"
             --f90flags=-O3\ -fopenmp\ -ffree-line-length-none\ -I${_ibm_fortran_module_dir}

@@ -18,7 +18,7 @@ import numpy as np
 
 from .udprep import Section, SectionSpec
 
-IBM_FORTRAN_DIR = Path(__file__).resolve().parents[2] / "IBM" / "IBM_preproc_fortran"
+IBM_FORTRAN_DIR = Path(__file__).resolve().parents[1] / "fortran" / "ibm_preproc"
 PREBUILT_IBM_EXE = Path(__file__).resolve().parents[2] / "preprocessing" / "build" / "bin" / "IBM_preproc"
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("ibm", {})
@@ -258,7 +258,7 @@ class IBMSection(Section):
             "boundaryMasking.f90",
             "matchFacetsCells.f90",
             "IBM_preproc_io.f90",
-            "IBM_preproc_driver.f90",
+            "IBM_preproc_module.f90",
             "IBM_preproc_main.f90",
         ]
         cmd = [compiler, "-O3", "-fopenmp"]
