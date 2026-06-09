@@ -84,19 +84,16 @@ class VegetationSection(Section):
 
     def vegetation_block_to_veg(self, filename: str | Path | None = None):
         """Compatibility entry point: ingest trees.inp and write sparse vegetation files."""
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+        
         self.load_block(filename=filename)
         self.save()
-        sim = self.sim
-        if sim is None:
-            raise ValueError("UDBase instance must be provided")
+        
         return {
-            "veg": Path(sim.path) / f"veg.inp.{sim.expnr}",
-            "params": Path(sim.path) / f"veg_params.inp.{sim.expnr}",
+            "veg": Path(self.path) / f"veg.inp.{self.expnr}",
+            "params": Path(self.path) / f"veg_params.inp.{self.expnr}",
         }
-
-    def block_to_veg(self, filename: str | Path | None = None):
-        """Backward-compatible alias for legacy callers."""
-        return self.vegetation_block_to_veg(filename=filename)
 
     def load_block(self, filename: str | Path | None = None) -> None:
         """Convert trees.inp blocks to veg.inp/veg_params.inp."""
@@ -250,32 +247,24 @@ class VegetationSection(Section):
             raise ValueError("No vegetation points found inside the STL volume.")
 
         points = np.asarray(points_idx, dtype=int)
-        ids = np.ones(len(points), dtype=int)
-        lad_value_resolved = float(self.lad)
-        lad_vals = np.full(len(points), lad_value_resolved, dtype=float)
-        cd = float(self.cd)
-        ud = float(self.ud)
-        dec = float(self.dec)
-        lsize = float(self.lsize)
-        r_s = float(self.r_s)
 
         veg = {
             "points": points - 1,
             "params": {
-                "id": ids,
-                "lad": lad_vals,
-                "cd": np.full(len(points), cd, dtype=float),
-                "ud": np.full(len(points), ud, dtype=float),
-                "dec": np.full(len(points), dec, dtype=float),
-                "lsize": np.full(len(points), lsize, dtype=float),
-                "r_s": np.full(len(points), r_s, dtype=float),
+                "id": np.ones(len(points), dtype=int),
+                "cd": np.full(len(points), self.cd, dtype=float),
+                "lad": np.full(len(points), self.lad, dtype=float),
+                "lsize": np.full(len(points), self.lsize, dtype=float),
+                "ud": np.full(len(points), self.ud, dtype=float),
+                "dec": np.full(len(points), self.dec, dtype=float),
+                "r_s": np.full(len(points), self.r_s, dtype=float),
             },
         }
 
-        self.ltrees = True
-        self.veg = veg
-        if getattr(sim, "veg", None) is not veg:
-            warnings.warn("vegetation data is not saved to disk; call vegetation.save() to persist veg inputs")
+        if self.ntrees != len(points):
+            self.ntrees = len(points)
+        self.sim.veg = veg
+        self.save_param("ntrees", len(points))
 
         fig = sim.vis.plot_veg(veg, show=False)
         return fig

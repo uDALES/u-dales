@@ -17,8 +17,8 @@ def main() -> int:
     parser.add_argument("path")
     args = parser.parse_args()
 
-    prep = UDPrep(expnr=args.expnr, path=args.path, load_geometry=False)
-    out = prep.vegetation.block_to_veg()
+    prep = UDPrep(expnr=args.expnr, path=args.path, load_geometry=False, suppress_load_warnings=True)
+    out = prep.vegetation.vegetation_block_to_veg()
     print(f"Conversion complete: {out}")
     return 0
 
