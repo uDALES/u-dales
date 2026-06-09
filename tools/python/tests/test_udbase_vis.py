@@ -28,16 +28,6 @@ class RecordingVis:
         return "plot_2dmap_result"
 
 
-class AliasTrackingVis(UDVis):
-    def __init__(self):
-        super().__init__(sim=object())
-        self.called = None
-
-    def plot_veg(self, veg=None, show=False):
-        self.called = {"veg": veg, "show": show}
-        return "plot_veg_result"
-
-
 class TestUDBaseVisualizationCompatibility(unittest.TestCase):
     def test_udbase_plot_fac_forwards_to_vis_facade(self):
         sim = UDBase.__new__(UDBase)
@@ -62,14 +52,6 @@ class TestUDBaseVisualizationCompatibility(unittest.TestCase):
             sim.vis.calls,
             [("plot_2dmap", {"val": 1.0, "labels": ["A"], "show": False})],
         )
-
-    def test_plot_trees_remains_alias_for_plot_veg(self):
-        vis = AliasTrackingVis()
-
-        result = vis.plot_trees(show=True)
-
-        self.assertEqual(result, "plot_veg_result")
-        self.assertEqual(vis.called, {"veg": None, "show": True})
 
 
 if __name__ == "__main__":
