@@ -317,9 +317,218 @@ class UDVis:
             fig.show()
         return fig
 
-    def plot_trees(self, show: bool = False):
-        """Backward-compatible alias for plot_veg."""
-        return self.plot_veg(show=show)
+    def plot_solid(
+        self,
+        grid_type: str = "c",
+        show: bool = False,
+        max_points: int = 100_000,
+    ):
+        """Plot IBM solid points for one grid type on top of the geometry.
+
+        Parameters
+        ----------
+        grid_type : {'u', 'v', 'w', 'c'}, default='c'
+            Which staggered grid's solid mask to visualise.
+        show : bool, default=False
+            Call ``fig.show()`` so the figure appears inline in a notebook.
+        max_points : int, default=100_000
+            Cap on rendered points; a random subsample is drawn when exceeded.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or None
+        """
+        grid_type = grid_type.lower()
+        if grid_type not in ("u", "v", "w", "c"):
+            raise ValueError(f"grid_type must be one of 'u', 'v', 'w', 'c'; got {grid_type!r}")
+
+        if not self.sim._lfgeom or self.sim.geom is None:
+            raise ValueError("Geometry (STL) file required for plot_solid()")
+
+        mask = getattr(self.sim, f"S{grid_type}", None)
+        if mask is None:
+            raise ValueError(
+                f"solid_{grid_type}.txt not loaded. "
+                "Ensure the file exists in the case directory and load_geometry=True."
+            )
+
+        # Map 3-D boolean mask → index triples
+        ii, jj, kk = np.where(mask)
+        n_total = len(ii)
+        if n_total == 0:
+            raise ValueError(f"solid_{grid_type}.txt contains no solid points.")
+
+        if n_total > max_points:
+            rng = np.random.default_rng(0)
+            sel = rng.choice(n_total, size=max_points, replace=False)
+            ii, jj, kk = ii[sel], jj[sel], kk[sel]
+            print(f"plot_solid: showing {max_points} of {n_total} {grid_type}-solid points")
+
+        # Map indices to physical coordinates using the appropriate staggered grid
+        x_arr = {"u": self.sim.xm, "v": self.sim.xt, "w": self.sim.xt, "c": self.sim.xt}[grid_type]
+        y_arr = {"u": self.sim.yt, "v": self.sim.ym, "w": self.sim.yt, "c": self.sim.yt}[grid_type]
+        z_arr = {"u": self.sim.zt, "v": self.sim.zt, "w": self.sim.zm, "c": self.sim.zt}[grid_type]
+
+        xs = x_arr[ii]
+        ys = y_arr[jj]
+        zs = z_arr[kk]
+
+        try:
+            import plotly.graph_objects as go
+        except ImportError as exc:
+            raise ImportError(
+                "plotly is required for plot_solid. Install with: pip install plotly"
+            ) from exc
+
+        try:
+            import trimesh  # noqa: F401
+        except ImportError as exc:
+            raise ImportError(
+                "trimesh is required for plot_solid. Install with: pip install trimesh"
+            ) from exc
+
+        base_mesh = self.sim.geom.stl.copy()
+        base_mesh.visual.face_colors = np.tile(
+            np.array([220, 220, 220, 255], dtype=np.uint8), (len(base_mesh.faces), 1)
+        )
+        outline_edges = self._collect_mesh_edges(self.sim.geom.stl.faces)
+
+        fig = self._render_scene(
+            [base_mesh],
+            show_outlines=True,
+            custom_edges=outline_edges,
+            show=False,
+        )
+        if fig is None:
+            return None
+
+        fig.add_trace(
+            go.Scatter3d(
+                x=xs,
+                y=ys,
+                z=zs,
+                mode="markers",
+                marker=dict(size=4, color="rgb(0,0,139)", opacity=0.3),
+                name=f"solid ({grid_type})",
+            )
+        )
+        fig.update_layout(
+            title=f"Solid points — {grid_type}-grid ({len(xs)} of {n_total} shown)"
+        )
+        if show:
+            fig.show()
+        return fig
+
+    def plot_fluid_boundary(
+        self,
+        grid_type: str = "c",
+        show: bool = False,
+        max_points: int = 100_000,
+    ):
+        """Plot fluid-boundary points for one grid type on top of the geometry.
+
+        Fluid-boundary points are the fluid cells adjacent to IBM solid surfaces,
+        read directly from ``fluid_boundary_<grid>.txt``.
+
+        Parameters
+        ----------
+        grid_type : {'u', 'v', 'w', 'c'}, default='c'
+            Which staggered grid's fluid-boundary points to visualise.
+        show : bool, default=False
+            Call ``fig.show()`` so the figure appears inline in a notebook.
+        max_points : int, default=100_000
+            Cap on rendered points; a random subsample is drawn when exceeded.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or None
+        """
+        grid_type = grid_type.lower()
+        if grid_type not in ("u", "v", "w", "c"):
+            raise ValueError(f"grid_type must be one of 'u', 'v', 'w', 'c'; got {grid_type!r}")
+
+        if not self.sim._lfgeom or self.sim.geom is None:
+            raise ValueError("Geometry (STL) file required for plot_fluid_boundary()")
+
+        # Read fluid_boundary_<grid>.txt directly (1-based indices → 0-based)
+        fb_file = self.sim.path / f"fluid_boundary_{grid_type}.txt"
+        if not fb_file.exists():
+            raise ValueError(f"fluid_boundary_{grid_type}.txt not found in {self.sim.path}")
+
+        locs = self.sim._load_sparse_file(
+            fb_file,
+            skiprows=1,
+            dtype=int,
+            min_cols=3,
+            zero_based_cols=[0, 1, 2],
+        )
+
+        if locs.size == 0:
+            raise ValueError(f"fluid_boundary_{grid_type}.txt contains no points.")
+
+        n_total = len(locs)
+        if n_total > max_points:
+            rng = np.random.default_rng(0)
+            sel = rng.choice(n_total, size=max_points, replace=False)
+            locs = locs[sel]
+            print(f"plot_fluid_boundary: showing {max_points} of {n_total} {grid_type}-boundary points")
+
+        ii, jj, kk = locs[:, 0], locs[:, 1], locs[:, 2]
+
+        # Map to physical coordinates on the appropriate staggered grid
+        x_arr = {"u": self.sim.xm, "v": self.sim.xt, "w": self.sim.xt, "c": self.sim.xt}[grid_type]
+        y_arr = {"u": self.sim.yt, "v": self.sim.ym, "w": self.sim.yt, "c": self.sim.yt}[grid_type]
+        z_arr = {"u": self.sim.zt, "v": self.sim.zt, "w": self.sim.zm, "c": self.sim.zt}[grid_type]
+
+        xs = x_arr[ii]
+        ys = y_arr[jj]
+        zs = z_arr[kk]
+
+        try:
+            import plotly.graph_objects as go
+        except ImportError as exc:
+            raise ImportError(
+                "plotly is required for plot_fluid_boundary. Install with: pip install plotly"
+            ) from exc
+
+        try:
+            import trimesh  # noqa: F401
+        except ImportError as exc:
+            raise ImportError(
+                "trimesh is required for plot_fluid_boundary. Install with: pip install trimesh"
+            ) from exc
+
+        base_mesh = self.sim.geom.stl.copy()
+        base_mesh.visual.face_colors = np.tile(
+            np.array([220, 220, 220, 255], dtype=np.uint8), (len(base_mesh.faces), 1)
+        )
+        outline_edges = self._collect_mesh_edges(self.sim.geom.stl.faces)
+
+        fig = self._render_scene(
+            [base_mesh],
+            show_outlines=True,
+            custom_edges=outline_edges,
+            show=False,
+        )
+        if fig is None:
+            return None
+
+        fig.add_trace(
+            go.Scatter3d(
+                x=xs,
+                y=ys,
+                z=zs,
+                mode="markers",
+                marker=dict(size=4, color="rgb(139,0,0)", opacity=0.3),
+                name=f"fluid boundary ({grid_type})",
+            )
+        )
+        fig.update_layout(
+            title=f"Fluid-boundary points — {grid_type}-grid ({len(xs)} of {n_total} shown)"
+        )
+        if show:
+            fig.show()
+        return fig
 
     def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, show: bool = True):
         """Plot facet data as a 3D surface."""
@@ -1007,7 +1216,7 @@ class UDVis:
         pr = self.sim.load_prof()
         zf = pr[:, 0]
 
-        fig, axes = plt.subplots(1, 5, sharey=True, figsize=(15, 5))
+        fig, axes = plt.subplots(1, 4, sharey=True, figsize=(12, 5))
 
         axes[0].plot(pr[:, 1], zf)
         axes[0].set_title("Temperature")
@@ -1027,8 +1236,6 @@ class UDVis:
         axes[3].plot(pr[:, 5], zf)
         axes[3].set_title("TKE")
         axes[3].set_xlabel("e [m\u00b2/s\u00b2]")
-
-        axes[4].axis("off")  # spare panel reserved for future use
 
         fig.tight_layout()
 

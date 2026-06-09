@@ -140,6 +140,7 @@ class UDBase:
         # with the legacy MATLAB udbase defaults.
         self.fnamoptions = "namoptions"
         self.fprof = "prof.inp"
+        self.flscale = "lscale.inp"
         self.fxytdump = "xytdump"
         self.ftdump = "tdump"
         self.ffielddump = "fielddump"
@@ -532,8 +533,8 @@ class UDBase:
                         min_cols=3,
                         zero_based_cols=[0, 1, 2],
                     )
-                    if facsec_data.size == 0 or fluid_boundary.size == 0:
-                        self._lffacet_sections = False
+                    if facsec_data.size == 0:
+                        # Empty file is valid — this grid type has no face intersections.
                         continue
                     
                     # Store in structure
@@ -676,6 +677,8 @@ class UDBase:
                     info.append(f"  {key}: {val}")
                 elif isinstance(val, np.ndarray):
                     info.append(f"  {key}: ndarray[{val.dtype}] shape={val.shape}")
+                elif isinstance(val, Path):
+                    info.append(f"  {key}: {val}")
                 else:
                     info.append(f"  {key}: {type(val).__name__}")
 
@@ -701,15 +704,10 @@ class UDBase:
         --------
         >>> prof_data = sim.load_prof()
         """
-        fname = f"{self.fprof}.{self.expnr}"
-        fpath = self.path / fname
-        
+        fpath = self.path / f"{self.fprof}.{self.expnr}"      
         if not fpath.exists():
-            raise FileNotFoundError(f"Profile file not found: {fpath}")
-        
-        # Read data starting from line 3 (skip 2 header lines)
-        data = np.loadtxt(fpath, skiprows=2)
-        return data
+            raise FileNotFoundError(f"Profile file not found: {fpath}") 
+        return np.loadtxt(fpath, skiprows=2)
     
     def load_lscale(self) -> np.ndarray:
         """
@@ -725,7 +723,7 @@ class UDBase:
         FileNotFoundError
             If lscale.inp file does not exist
         """
-        fpath = self.path / f"lscale.inp.{self.expnr}"
+        fpath = self.path / f"{self.flscale}.{self.expnr}"
         if not fpath.exists():
             raise FileNotFoundError(f"Large-scale forcing file not found: {fpath}")
         return np.loadtxt(fpath, skiprows=2)
