@@ -18,7 +18,9 @@
 # Copyright (C) 2016-2019 the uDALES Team.
 
 # script for setting key namoptions and writing *.inp.* files
-# variables not specified in namoptions can be set here. It updates these in write_inputs.m and then runs the matlab code to produce the required text files.
+# variables not specified in namoptions can be set here. It updates these in
+# write_inputs.m or write_inputs.py and then runs the selected preprocessing
+# route to produce the required text files.
 
 # tg3315 20/07/2017, modified by SO 06/02/20, modified by DM 27/08/24
 
@@ -26,23 +28,46 @@
 # (1) if no forcing found in namoptions then applies the initial velocities and uses the pressure terms
 
 # Assuming running from top-level project directory.
-# u-dales/tools/write_inputs.sh <PATH_TO_CASE>
+# u-dales/tools/write_inputs.sh <-m|-p> <PATH_TO_CASE> [c|l]
 
 set -e
 
-if (( $# < 1 )) 
+usage() {
+	echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/write_inputs.sh <-m|-p> <PATH_TO_CASE> [start]"
+	echo "   -m: run MATLAB preprocessing route"
+	echo "   -p: run Python preprocessing route"
+	echo "   start (optional): (c)ompute node or (l)ogin node; default is (l) which runs on the current node"
+}
+
+if (( $# < 2 ))
 then
-    echo "The path to case/experiment folder must be set."
-	echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/write_inputs.sh <PATH_TO_CASE> (start)"
-	echo "   start (optional): (c)ompute node or (l)ogin node"
+	echo "The preprocessing route and path to case/experiment folder must be set."
+	usage
 	echo "... execution terminated"
     exit 1
 fi
 
-start=${2:-"x"}     # pass 'c' if needs to be run on hpc compute node, or 'l' if to be run on login node
+route_arg=$1
+case_path=$2
+start=${3:-"x"}     # pass 'c' if needs to be run on hpc compute node, or 'l' if to be run on login node
+
+case "$route_arg" in
+	-m)
+		route="matlab"
+		;;
+	-p)
+		route="python"
+		;;
+	*)
+		echo "Unrecognised preprocessing route: $route_arg"
+		usage
+		echo "... execution terminated"
+		exit 1
+		;;
+esac
 
 # go to experiment directory
-pushd $1
+pushd "$case_path"
 	inputdir=$(pwd)
 
 	## set experiment number via path
@@ -57,49 +82,87 @@ pushd $1
 	fi
 
 	## check if required variables are set
-	if [ -z $DA_TOOLSDIR ]; then
+	if [ -z "${DA_TOOLSDIR:-}" ]; then
 	    echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
 	    exit 1
 	fi;
-	if [ -z $DA_EXPDIR ]; then
+	if [ -z "${DA_EXPDIR:-}" ]; then
 		echo "Experiment directory DA_EXPDIR must be set $inputdir/config.sh"
 		exit 1
 	fi;
 
 popd
 
-if [ $start == "c" ]; then
+if [ "$route" == "python" ]; then
+	python_exe="$DA_TOOLSDIR/python/.venv/bin/python"
+	if [ ! -x "$python_exe" ]; then
+		echo "Python virtual environment not found or not executable: $python_exe"
+		echo "Set it up with: $DA_TOOLSDIR/python/setup_venv.sh"
+		echo "... execution terminated"
+		exit 1
+	fi
+	# Keep f2py/Fortran status messages ordered with Python output in redirected logs.
+	export PYTHONUNBUFFERED=1
+	export GFORTRAN_UNBUFFERED_PRECONNECTED=1
+fi
 
-	cd $inputdir
+if [ "$start" == "c" ]; then
 
-###### RUN MATLAB SCRIPT through HPC job script
+	cd "$inputdir"
+
+###### RUN SCRIPT through HPC job script
 cat <<EOF > pre-job.$iexpnr
 #!/bin/bash
 #PBS -l walltime=24:00:00
 #PBS -l select=1:ncpus=8:mem=64gb
 
 module load tools/prod
-module load MATLAB/2024b
 module load GCC/14.2.0
 
-cd $DA_TOOLSDIR
+cd "$DA_TOOLSDIR"
 
-export DA_TOOLSDIR=$DA_TOOLSDIR
-export DA_EXPDIR=$DA_EXPDIR
+export DA_TOOLSDIR="$DA_TOOLSDIR"
+export DA_EXPDIR="$DA_EXPDIR"
 export MATLAB_USE_USERWORK=0
-
-nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 < /dev/null
+export PYTHONUNBUFFERED=1
+export GFORTRAN_UNBUFFERED_PRECONNECTED=1
 
 EOF
+
+	if [ "$route" == "matlab" ]; then
+		cat <<EOF >> pre-job.$iexpnr
+module load MATLAB/2024b
+nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > "$inputdir/write_inputs.$iexpnr.log" 2>&1 < /dev/null
+
+EOF
+	else
+		cat <<EOF >> pre-job.$iexpnr
+if command -v stdbuf >/dev/null 2>&1; then
+	stdbuf_cmd="stdbuf -oL -eL"
+else
+	stdbuf_cmd=""
+fi
+nohup \$stdbuf_cmd "$python_exe" -u "$DA_TOOLSDIR/write_inputs.py" "$inputdir" > "$inputdir/write_inputs.$iexpnr.log" 2>&1 < /dev/null
+
+EOF
+	fi
 
 ## submit job.exp file to queue
 	qsub pre-job.$iexpnr
 	echo "pre-job.$iexpnr submitted."
 else
-	###### RUN MATLAB SCRIPT
-	cd $DA_TOOLSDIR
-	nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 < /dev/null &
-	cd $DA_EXPDIR
+	###### RUN SCRIPT
+	cd "$DA_TOOLSDIR"
+	if [ "$route" == "matlab" ]; then
+		nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > "$inputdir/write_inputs.$iexpnr.log" 2>&1 < /dev/null &
+	else
+		if command -v stdbuf >/dev/null 2>&1; then
+			nohup stdbuf -oL -eL "$python_exe" -u "$DA_TOOLSDIR/write_inputs.py" "$inputdir" > "$inputdir/write_inputs.$iexpnr.log" 2>&1 < /dev/null &
+		else
+			nohup "$python_exe" -u "$DA_TOOLSDIR/write_inputs.py" "$inputdir" > "$inputdir/write_inputs.$iexpnr.log" 2>&1 < /dev/null &
+		fi
+	fi
+	cd "$DA_EXPDIR"
 	cd ..
 fi
 

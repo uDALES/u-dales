@@ -147,7 +147,7 @@ The script exits with code `0` (all passed) or `1` (any failure).
 
 | Phase | What happens |
 |-------|-------------|
-| **1 — Write inputs** | Cleans the experiment directory (keeping geometry, `namoptions`, `config`, `trees.inp`, `heatpump.inp`, and `scalarsource*`), then regenerates all other input files by calling `tools/write_inputs.sh experiments/<case>` |
+| **1 — Write inputs** | Cleans the experiment directory (keeping geometry, `namoptions`, `config`, `trees.inp`, `heatpump.inp`, and `scalarsource*`), then regenerates all other input files by calling `tools/write_inputs.sh -m experiments/<case>` |
 | **2 — Compare inputs** | Calls `tools/ud_compare_inputs.py <case> experiments/ <ref_data_path>`, comparing all generated input files against the reference |
 
 The script exits with code `0` (all passed) or `1` (any failure).

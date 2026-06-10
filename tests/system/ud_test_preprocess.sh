@@ -286,7 +286,7 @@ for case_num in "${TEST_CASES[@]}"; do
     # Step 1: Write inputs
     echo "STEP 1: Write inputs for case $case_num"
     echo "=========================================="
-    WRITE_CMD="cd '$REPO_ROOT' && tools/write_inputs.sh '$SCRIPT_DIR/experiments/$case_num'"
+    WRITE_CMD="cd '$REPO_ROOT' && tools/write_inputs.sh -m '$SCRIPT_DIR/experiments/$case_num'"
     run_with_status_strict "$WRITE_CMD" "Writing inputs for case $case_num" "$LOG_FILE" true
 
     # write_inputs.sh launches MATLAB in the background and exits immediately.
