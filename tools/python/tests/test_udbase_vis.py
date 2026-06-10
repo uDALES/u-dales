@@ -129,6 +129,20 @@ class TestUDBaseVisualizationCompatibility(unittest.TestCase):
             "prof.inp.001 data not found",
         )
 
+    def test_udvis_plot_dz_variation_errors_when_prof_data_missing(self):
+        class DummySim:
+            expnr = "001"
+
+            def load_prof(self):
+                raise FileNotFoundError("missing")
+
+        vis = UDVis(DummySim())
+
+        self._assert_clean_plot_error(
+            lambda: vis.plot_dz_variation(save=False, show=False),
+            "prof.inp.001 data not found",
+        )
+
     def test_udvis_plot_lscale_errors_when_lscale_data_missing(self):
         class DummySim:
             expnr = "001"
@@ -273,6 +287,13 @@ class TestUDVisRenderingHelpers(unittest.TestCase):
 
         self.assertEqual(edges, [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)])
 
+    def test_dz_from_zt_reconstructs_grid_spacing(self):
+        zt = np.array([1.0, 3.0, 6.0, 10.0])
+
+        dz = UDVis._dz_from_zt(zt)
+
+        np.testing.assert_allclose(dz, [2.0, 2.0, 4.0, 4.0])
+
     def test_render_scene_routes_to_plotly_with_custom_edges(self):
         vis, mesh = self._make_vis()
         calls = {}
@@ -329,6 +350,42 @@ class TestUDVisRenderingHelpers(unittest.TestCase):
 
         self.assertEqual(result, "plotly-figure")
         self.assertEqual(calls["outline_edges"], [(1, 3)])
+
+
+@unittest.skipIf(
+    importlib.util.find_spec("matplotlib") is None,
+    "matplotlib is required for dz-variation visualization tests",
+)
+class TestUDVisDzVariation(unittest.TestCase):
+    def test_plot_dz_variation_uses_prof_zt_column(self):
+        import matplotlib.pyplot as plt
+
+        class DummySim:
+            expnr = "001"
+            path = Path(".")
+
+            def load_prof(self):
+                return np.array(
+                    [
+                        [1.0, 300.0],
+                        [3.0, 301.0],
+                        [6.0, 302.0],
+                        [10.0, 303.0],
+                    ]
+                )
+
+        vis = UDVis(DummySim())
+
+        fig = vis.plot_dz_variation(save=False, show=False)
+
+        ax = fig.axes[0]
+        line = ax.lines[0]
+        np.testing.assert_allclose(line.get_xdata(), [1, 2, 3, 4])
+        np.testing.assert_allclose(line.get_ydata(), [2.0, 2.0, 4.0, 4.0])
+        self.assertEqual(ax.get_title(), "dz variation")
+        self.assertEqual(ax.get_xlabel(), "$k$")
+        self.assertEqual(ax.get_ylabel(), "$dz$ [m]")
+        plt.close(fig)
 
 
 @unittest.skipIf(

@@ -9,6 +9,10 @@ from __future__ import annotations
 import sys
 from typing import Any, Dict, List, Optional, Union
 
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Polygon as mplPolygon
 import numpy as np
 
 
@@ -691,11 +695,9 @@ class UDVis:
         if self.geom is None or getattr(self.geom, "stl", None) is None:
             raise ValueError("No geometry loaded. Cannot visualize.")
         try:
-            import matplotlib.cm as cm
-            import matplotlib.pyplot as plt
             import plotly.graph_objects as go
         except ImportError as exc:
-            raise ImportError("matplotlib and plotly are required for plot_independent_surfaces") from exc
+            raise ImportError("plotly is required for plot_independent_surfaces") from exc
 
         result = self.geom.calculate_independent_surfaces()
         fig = self.plot_fac(np.asarray(result["face_surface_ids"], dtype=float), show=show)
@@ -757,9 +759,6 @@ class UDVis:
             import trimesh
         except ImportError as exc:
             raise ImportError("trimesh is required. Install with: pip install trimesh") from exc
-
-        import matplotlib.cm as cm
-        import matplotlib.pyplot as plt
 
         geom = self.geom if self.sim is None else self.sim.geom
         vertices = geom.stl.vertices
@@ -1043,8 +1042,6 @@ class UDVis:
         names = self.sim.factypes["name"]
         unique_ids = np.unique(facids)
 
-        import matplotlib.pyplot as plt
-
         prop_cycle = plt.rcParams["axes.prop_cycle"]
         default_colors = prop_cycle.by_key()["color"]
 
@@ -1204,11 +1201,6 @@ class UDVis:
                 "This method requires a geometry (STL) file. Ensure stl_file is specified in namoptions."
             )
 
-        try:
-            import matplotlib.pyplot as plt
-        except ImportError as exc:
-            raise ImportError("matplotlib is required for visualization. Install with: pip install matplotlib") from exc
-
         outlines = self.sim.geom.calculate_outline2d()
         if not outlines:
             raise ValueError("No buildings found in geometry")
@@ -1232,13 +1224,6 @@ class UDVis:
         """Plot a 2D map of buildings colored by a value per building."""
         if self.sim.geom is None or not hasattr(self.sim.geom, "stl") or self.sim.geom.stl is None:
             raise ValueError("Geometry data not available. Cannot compute outlines.")
-
-        try:
-            import matplotlib.pyplot as plt
-            from matplotlib.collections import PatchCollection
-            from matplotlib.patches import Polygon as mplPolygon
-        except ImportError as exc:
-            raise ImportError("matplotlib is required for visualization. Install with: pip install matplotlib") from exc
 
         outlines = self.sim.geom.calculate_outline2d()
         if not outlines:
@@ -1344,27 +1329,26 @@ class UDVis:
         if pr.shape[1] < 6:
             return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
 
-        import matplotlib.pyplot as plt
-        zf = pr[:, 0]
+        zt = pr[:, 0]
 
         fig, axes = plt.subplots(1, 4, sharey=True, figsize=(12, 5))
 
-        axes[0].plot(pr[:, 1], zf)
+        axes[0].plot(pr[:, 1], zt)
         axes[0].set_title("Temperature")
         axes[0].set_xlabel("thl [K]")
         axes[0].set_ylabel("z [m]")
 
-        axes[1].plot(pr[:, 2], zf)
+        axes[1].plot(pr[:, 2], zt)
         axes[1].set_title("Specific humidity")
         axes[1].set_xlabel("qt [kg/kg]")
 
-        axes[2].plot(pr[:, 3], zf, label="u")
-        axes[2].plot(pr[:, 4], zf, "r--", label="v")
+        axes[2].plot(pr[:, 3], zt, label="u")
+        axes[2].plot(pr[:, 4], zt, "r--", label="v")
         axes[2].set_title("Velocity")
         axes[2].set_xlabel("[m/s]")
         axes[2].legend()
 
-        axes[3].plot(pr[:, 5], zf)
+        axes[3].plot(pr[:, 5], zt)
         axes[3].set_title("TKE")
         axes[3].set_xlabel("e [m\u00b2/s\u00b2]")
 
@@ -1373,6 +1357,75 @@ class UDVis:
         if save:
             from pathlib import Path
             out = Path(self.sim.path) / f"profiles.{self.sim.expnr}.pdf"
+            fig.savefig(out)
+
+        if show:
+            plt.show()
+
+        return fig
+
+    @staticmethod
+    def _dz_from_zt(zt: np.ndarray) -> np.ndarray:
+        zt = np.asarray(zt, dtype=float).reshape(-1)
+        if zt.size == 0 or not np.all(np.isfinite(zt)):
+            raise ValueError("zt data not found")
+
+        z_faces = np.empty(zt.size + 1, dtype=float)
+        z_faces[0] = 0.0
+        for k, center in enumerate(zt):
+            z_faces[k + 1] = 2.0 * center - z_faces[k]
+
+        zm = z_faces[:-1]
+        ztop = z_faces[-1]
+        return np.diff(np.append(zm, ztop))
+
+    def plot_dz_variation(self, save: bool = True, show: bool = False):
+        """Plot vertical grid-spacing variation from prof.inp.<expnr>.
+
+        The first column in ``prof.inp`` is the cell-center grid ``zt``.
+        Cell-face locations are reconstructed from those centers using the
+        same relation as ``GridSection.generate_zgrid`` and ``dzt`` is then
+        calculated as ``diff(append(zm, ztop))``.
+
+        Parameters
+        ----------
+        save : bool, default=True
+            Save ``dz_variation.<expnr>.pdf`` to the case directory.
+        show : bool, default=False
+            Call ``plt.show()`` after plotting.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            pr = self.sim.load_prof()
+        except (OSError, ValueError):
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+        if pr is None or np.asarray(pr).size == 0:
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+
+        pr = np.atleast_2d(np.asarray(pr))
+        if pr.shape[1] < 1:
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+
+        try:
+            dz = self._dz_from_zt(pr[:, 0])
+        except ValueError:
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+
+        k = np.arange(1, len(dz) + 1)
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.plot(k, dz)
+        ax.set_title("dz variation")
+        ax.set_xlabel(r"$k$")
+        ax.set_ylabel(r"$dz$ [m]")
+        ax.axis("tight")
+        fig.tight_layout()
+
+        if save:
+            from pathlib import Path
+            out = Path(self.sim.path) / f"dz_variation.{self.sim.expnr}.pdf"
             fig.savefig(out)
 
         if show:
@@ -1410,39 +1463,38 @@ class UDVis:
         if ls.shape[1] < 10:
             return self._missing_plot_data(f"lscale.inp.{self.sim.expnr} data not found")
 
-        import matplotlib.pyplot as plt
-        zf = ls[:, 0]
+        zt = ls[:, 0]
 
         fig, axes = plt.subplots(1, 6, sharey=True, figsize=(18, 5))
 
-        axes[0].plot(ls[:, 1], zf, label="uq")
-        axes[0].plot(ls[:, 2], zf, "r--", label="vq")
+        axes[0].plot(ls[:, 1], zt, label="uq")
+        axes[0].plot(ls[:, 2], zt, "r--", label="vq")
         axes[0].set_title("Geostrophic velocity")
         axes[0].set_xlabel("[m/s]")
         axes[0].set_ylabel("z [m]")
         axes[0].legend()
 
-        axes[1].plot(ls[:, 3], zf, label="pqx")
-        axes[1].plot(ls[:, 4], zf, "r--", label="pqy")
+        axes[1].plot(ls[:, 3], zt, label="pqx")
+        axes[1].plot(ls[:, 4], zt, "r--", label="pqy")
         axes[1].set_title("Pressure gradient")
         axes[1].set_xlabel("[m/s\u00b2]")
         axes[1].legend()
 
-        axes[2].plot(ls[:, 5], zf)
+        axes[2].plot(ls[:, 5], zt)
         axes[2].set_title("Subsidence")
         axes[2].set_xlabel("wfls [m/s]")
 
-        axes[3].plot(ls[:, 6], zf, label="dqtdxls")
-        axes[3].plot(ls[:, 7], zf, "r--", label="dqtdyls")
+        axes[3].plot(ls[:, 6], zt, label="dqtdxls")
+        axes[3].plot(ls[:, 7], zt, "r--", label="dqtdyls")
         axes[3].set_title("Moisture advection")
         axes[3].set_xlabel("[kg/kg/m]")
         axes[3].legend()
 
-        axes[4].plot(ls[:, 8], zf)
+        axes[4].plot(ls[:, 8], zt)
         axes[4].set_title("Moisture tendency")
         axes[4].set_xlabel("dqtdtls [kg/kg/s]")
 
-        axes[5].plot(ls[:, 9], zf)
+        axes[5].plot(ls[:, 9], zt)
         axes[5].set_title("Radiative forcing")
         axes[5].set_xlabel("dthlrad [K/s]")
 
