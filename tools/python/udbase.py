@@ -211,6 +211,17 @@ class UDBase:
         
         if not filepath.exists():
             raise FileNotFoundError(f"namoptions.{self.expnr} not found in {self.path}")
+
+        scalar_defaults = {
+            "nsv": 0,
+            "lscasrc": False,
+            "lscasrcl": False,
+            "lscasrcr": False,
+            "nscasrc": 0,
+            "nscasrcl": 0,
+        }
+        for key, val in scalar_defaults.items():
+            setattr(self, key, val)
         
         with open(filepath, 'r') as f:
             for line in f:
@@ -650,6 +661,33 @@ class UDBase:
         if cache:
             self.veg = veg
         return veg
+
+    def load_scalar_sources(self) -> Dict[str, Dict[int, np.ndarray]]:
+        """Load scalar point and line source files."""
+        sources: Dict[str, Dict[int, np.ndarray]] = {"point": {}, "line": {}}
+
+        for ii in range(1, self.nsv + 1):
+            if self.lscasrc:
+                path = self.path / f"scalarsourcep.inp.{ii}.{self.expnr}"
+                if path.exists():
+                    try:
+                        sources["point"][ii] = np.atleast_2d(np.loadtxt(path, skiprows=2))
+                    except Exception as e:
+                        warnings.warn(f"Error loading {path.name}: {e}")
+                else:
+                    self._warn_load(f"{path.name} not found.")
+
+            if self.lscasrcl:
+                path = self.path / f"scalarsourcel.inp.{ii}.{self.expnr}"
+                if path.exists():
+                    try:
+                        sources["line"][ii] = np.atleast_2d(np.loadtxt(path, skiprows=2))
+                    except Exception as e:
+                        warnings.warn(f"Error loading {path.name}: {e}")
+                else:
+                    self._warn_load(f"{path.name} not found.")
+
+        return sources
     
     def __repr__(self):
         """String representation of UDBase object."""
@@ -1406,6 +1444,19 @@ class UDBase:
     def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False):
         """Plot vegetation points on top of the geometry using the visualization facade."""
         return self.vis.plot_veg(veg=veg, show=show)
+
+    def plot_scalar_source(
+        self,
+        scalar_sources: Optional[Dict[str, Dict[int, np.ndarray]]] = None,
+        scalar_index: Optional[int] = None,
+        show: bool = False,
+    ):
+        """Plot scalar point and line sources on top of the geometry."""
+        return self.vis.plot_scalar_source(
+            scalar_sources=scalar_sources,
+            scalar_index=scalar_index,
+            show=show,
+        )
 
     def plot_trees(self, show: bool = False):
         """Backward-compatible alias for plot_veg."""

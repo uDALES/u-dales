@@ -165,6 +165,6 @@ class ScalarsSection(Section):
                         for row in self.scasrcl:
                             f.write(" ".join(f"{val:-12.6f}" for val in row) + "\n")
             warnings.warn( "Ensure scalar sources do not intersect any building !! "
-                           "Check by plotting the sources along with the geometry using prep.sim.vis.plot_scalarsources(). ", stacklevel=2 )
+                           "Check by plotting the sources along with the geometry using prep.sim.vis.plot_scalar_source(). ", stacklevel=2 )
 
 SPEC = SectionSpec(name="scalars", fields=FIELDS, defaults=DEFAULTS, section_cls=ScalarsSection)

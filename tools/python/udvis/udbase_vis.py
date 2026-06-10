@@ -53,6 +53,11 @@ class UDVis:
             edges.add(tuple(sorted((tri[2], tri[0]))))
         return sorted(edges)
 
+    @staticmethod
+    def _missing_plot_data(message: str):
+        print(f"ERROR: {message}", file=sys.stderr)
+        return None
+
     def show_geometry(
         self,
         color_buildings: bool = True,
@@ -250,16 +255,19 @@ class UDVis:
     def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False):
         """Plot vegetation points on top of the geometry."""
         if not self.sim._lfgeom or self.sim.geom is None:
-            raise ValueError("Geometry (STL) file required for plot_veg()")
+            return self._missing_plot_data("Geometry data not found for plot_veg")
         if veg is None:
             if not hasattr(self.sim, "veg") or self.sim.veg is None:
-                self.sim.load_veg(cache=True)
+                try:
+                    self.sim.load_veg(cache=True)
+                except (OSError, ValueError):
+                    return self._missing_plot_data(f"veg.inp.{self.sim.expnr} data not found")
             if not hasattr(self.sim, "veg") or self.sim.veg is None:
-                raise ValueError("veg.inp file required for plot_veg()")
+                return self._missing_plot_data(f"veg.inp.{self.sim.expnr} data not found")
             veg = self.sim.veg
         points = np.asarray(veg.get("points", []))
         if points.size == 0:
-            raise ValueError("veg.inp contains no vegetation points")
+            return self._missing_plot_data(f"veg.inp.{self.sim.expnr} contains no vegetation points")
 
         max_points = 50000
         if len(points) > max_points:
@@ -317,6 +325,121 @@ class UDVis:
             fig.show()
         return fig
 
+    @staticmethod
+    def _scalar_source_color(scalar_index: int) -> str:
+        palette = [
+            "rgb(0,0,139)",
+            "rgb(0,100,0)",
+            "rgb(139,0,0)",
+            "rgb(128,0,128)",
+            "rgb(184,134,11)",
+            "rgb(0,139,139)",
+            "rgb(199,21,133)",
+            "rgb(85,85,85)",
+        ]
+        return palette[(scalar_index - 1) % len(palette)]
+
+    def plot_scalar_source(
+        self,
+        scalar_sources: Optional[Dict[str, Dict[int, np.ndarray]]] = None,
+        scalar_index: Optional[int] = None,
+        show: bool = False,
+    ):
+        """Plot scalar point and line sources on top of the geometry."""
+        if not self.sim._lfgeom or self.sim.geom is None:
+            raise ValueError("Geometry (STL) file required for plot_scalar_source()")
+
+        if scalar_sources is None:
+            scalar_sources = self.sim.load_scalar_sources()
+        if scalar_sources is None:
+            return self._missing_plot_data("Scalar source data not found")
+
+        point_sources = scalar_sources.get("point", {})
+        line_sources = scalar_sources.get("line", {})
+        if scalar_index is not None:
+            scalar_index = int(scalar_index)
+            point_sources = {scalar_index: point_sources[scalar_index]} if scalar_index in point_sources else {}
+            line_sources = {scalar_index: line_sources[scalar_index]} if scalar_index in line_sources else {}
+
+        source_indices = sorted(set(point_sources) | set(line_sources))
+        if not source_indices:
+            return self._missing_plot_data("Scalar source data not found")
+
+        try:
+            import plotly.graph_objects as go
+        except ImportError as exc:
+            raise ImportError(
+                "plotly is required for plot_scalar_source. Install with: pip install plotly"
+            ) from exc
+
+        try:
+            import trimesh  # noqa: F401
+        except ImportError as exc:
+            raise ImportError(
+                "trimesh is required for plot_scalar_source. Install with: pip install trimesh"
+            ) from exc
+
+        base_mesh = self.sim.geom.stl.copy()
+        base_mesh.visual.face_colors = np.tile(
+            np.array([220, 220, 220, 255], dtype=np.uint8), (len(base_mesh.faces), 1)
+        )
+        outline_edges = self._collect_mesh_edges(self.sim.geom.stl.faces)
+
+        fig = self._render_scene(
+            [base_mesh],
+            show_outlines=True,
+            custom_edges=outline_edges,
+            show=False,
+        )
+        if fig is None:
+            return None
+
+        n_point = 0
+        n_line = 0
+        for ii in source_indices:
+            color = self._scalar_source_color(int(ii))
+            points = np.asarray(point_sources.get(ii, np.empty((0, 5))), dtype=float)
+            if points.size:
+                points = np.atleast_2d(points)
+                n_point += len(points)
+                fig.add_trace(
+                    go.Scatter3d(
+                        x=points[:, 0],
+                        y=points[:, 1],
+                        z=points[:, 2],
+                        mode="markers",
+                        marker=dict(size=5, color=color, opacity=0.85),
+                        name=f"scalar {ii} point source",
+                    )
+                )
+
+            lines = np.asarray(line_sources.get(ii, np.empty((0, 8))), dtype=float)
+            if lines.size:
+                lines = np.atleast_2d(lines)
+                n_line += len(lines)
+                xs, ys, zs = [], [], []
+                for row in lines:
+                    xs.extend([row[0], row[3], None])
+                    ys.extend([row[1], row[4], None])
+                    zs.extend([row[2], row[5], None])
+                fig.add_trace(
+                    go.Scatter3d(
+                        x=xs,
+                        y=ys,
+                        z=zs,
+                        mode="lines",
+                        line=dict(color=color, width=6),
+                        name=f"scalar {ii} line source",
+                    )
+                )
+
+        fig.update_layout(
+            title=f"Geometry with Scalar Sources ({n_point} points, {n_line} lines)"
+        )
+        if show:
+            fig.show()
+        return fig
+
     def plot_solid(
         self,
         grid_type: str = "c",
@@ -343,20 +466,17 @@ class UDVis:
             raise ValueError(f"grid_type must be one of 'u', 'v', 'w', 'c'; got {grid_type!r}")
 
         if not self.sim._lfgeom or self.sim.geom is None:
-            raise ValueError("Geometry (STL) file required for plot_solid()")
+            return self._missing_plot_data("Geometry data not found for plot_solid")
 
         mask = getattr(self.sim, f"S{grid_type}", None)
         if mask is None:
-            raise ValueError(
-                f"solid_{grid_type}.txt not loaded. "
-                "Ensure the file exists in the case directory and load_geometry=True."
-            )
+            return self._missing_plot_data(f"solid_{grid_type}.txt data not found")
 
         # Map 3-D boolean mask → index triples
         ii, jj, kk = np.where(mask)
         n_total = len(ii)
         if n_total == 0:
-            raise ValueError(f"solid_{grid_type}.txt contains no solid points.")
+            return self._missing_plot_data(f"solid_{grid_type}.txt contains no solid points")
 
         if n_total > max_points:
             rng = np.random.default_rng(0)
@@ -448,23 +568,26 @@ class UDVis:
             raise ValueError(f"grid_type must be one of 'u', 'v', 'w', 'c'; got {grid_type!r}")
 
         if not self.sim._lfgeom or self.sim.geom is None:
-            raise ValueError("Geometry (STL) file required for plot_fluid_boundary()")
+            return self._missing_plot_data("Geometry data not found for plot_fluid_boundary")
 
         # Read fluid_boundary_<grid>.txt directly (1-based indices → 0-based)
         fb_file = self.sim.path / f"fluid_boundary_{grid_type}.txt"
         if not fb_file.exists():
-            raise ValueError(f"fluid_boundary_{grid_type}.txt not found in {self.sim.path}")
+            return self._missing_plot_data(f"fluid_boundary_{grid_type}.txt data not found")
 
-        locs = self.sim._load_sparse_file(
-            fb_file,
-            skiprows=1,
-            dtype=int,
-            min_cols=3,
-            zero_based_cols=[0, 1, 2],
-        )
+        try:
+            locs = self.sim._load_sparse_file(
+                fb_file,
+                skiprows=1,
+                dtype=int,
+                min_cols=3,
+                zero_based_cols=[0, 1, 2],
+            )
+        except (OSError, ValueError) as exc:
+            return self._missing_plot_data(f"fluid_boundary_{grid_type}.txt could not be loaded: {exc}")
 
         if locs.size == 0:
-            raise ValueError(f"fluid_boundary_{grid_type}.txt contains no points.")
+            return self._missing_plot_data(f"fluid_boundary_{grid_type}.txt contains no points")
 
         n_total = len(locs)
         if n_total > max_points:
@@ -1211,9 +1334,17 @@ class UDVis:
         -------
         matplotlib.figure.Figure
         """
-        import matplotlib.pyplot as plt
+        try:
+            pr = self.sim.load_prof()
+        except (OSError, ValueError):
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+        if pr is None or np.asarray(pr).size == 0:
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+        pr = np.atleast_2d(np.asarray(pr))
+        if pr.shape[1] < 6:
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
 
-        pr = self.sim.load_prof()
+        import matplotlib.pyplot as plt
         zf = pr[:, 0]
 
         fig, axes = plt.subplots(1, 4, sharey=True, figsize=(12, 5))
@@ -1269,9 +1400,17 @@ class UDVis:
         -------
         matplotlib.figure.Figure
         """
-        import matplotlib.pyplot as plt
+        try:
+            ls = self.sim.load_lscale()
+        except (OSError, ValueError):
+            return self._missing_plot_data(f"lscale.inp.{self.sim.expnr} data not found")
+        if ls is None or np.asarray(ls).size == 0:
+            return self._missing_plot_data(f"lscale.inp.{self.sim.expnr} data not found")
+        ls = np.atleast_2d(np.asarray(ls))
+        if ls.shape[1] < 10:
+            return self._missing_plot_data(f"lscale.inp.{self.sim.expnr} data not found")
 
-        ls = self.sim.load_lscale()
+        import matplotlib.pyplot as plt
         zf = ls[:, 0]
 
         fig, axes = plt.subplots(1, 6, sharey=True, figsize=(18, 5))
