@@ -9,31 +9,65 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Script usage function
 usage() {
-    echo "Usage: $0 <ref_data_path> [case1 case2 ...] [--tolerance <val>] [--system <common|icl>]"
+    echo "Usage: $0 <-m|-p> <ref_data_path> [case1 case2 ...] [--tolerance <val>] [--system <common|icl>]"
     echo ""
     echo "Arguments:"
     echo "  ref_data_path  : Path to the reference data directory (required)"
+    echo "  -m             : Generate inputs with the MATLAB preprocessing route"
+    echo "  -p             : Generate inputs with the Python preprocessing route"
     echo "  case1 ...      : Optional list of experiment cases (e.g., 100 201 224)"
     echo "                   If not specified, uses default cases: ${DEFAULT_TEST_CASES[*]}"
     echo "  --tolerance    : Max absolute error for numeric files (default: 1e-10)"
     echo "  --system       : Build system type for preprocessing: common or icl (default: common)"
     echo ""
     echo "Phases:"
-    echo "  PHASE 1 : Build preprocessing applications (View3D)"
+    echo "  PHASE 1 : Build preprocessing applications"
     echo "  PHASE 2 : Run write_inputs.sh for each case to (re-)generate input files"
     echo "  PHASE 3 : Compare generated input files against the reference directory"
     echo ""
     echo "Examples:"
-    echo "  $0 ref_data/                             # Run default cases"
-    echo "  $0 ref_data/ 990 991                     # Run specific cases"
-    echo "  $0 ref_data/ 992 --tolerance 1e-8"
-    echo "  $0 ref_data/ 993 --system icl"
+    echo "  $0 -m ref_data/                          # Run default cases with MATLAB route"
+    echo "  $0 -m ref_data/ 990 991                  # Run specific cases with MATLAB route"
+    echo "  $0 -p ref_data/ 995                      # Generate inputs with Python route"
+    echo "  $0 -m ref_data/ 992 --tolerance 1e-8"
+    echo "  $0 -m ref_data/ 993 --system icl"
     exit 1
 }
 
 DEFAULT_TEST_CASES=(990 991 992 993 994 995 997 998 999 807)
+PREPROCESS_ROUTE=""
+PREPROCESS_ROUTE_NAME=""
+PREPROCESS_ROUTE_SET=false
+
+set_preprocess_route() {
+    if [ "$PREPROCESS_ROUTE_SET" = true ]; then
+        echo "[ERROR] Choose only one preprocessing route: -m or -p"
+        usage
+    fi
+
+    if [ "$1" = "-m" ]; then
+        PREPROCESS_ROUTE="-m"
+        PREPROCESS_ROUTE_NAME="MATLAB"
+    else
+        PREPROCESS_ROUTE="-p"
+        PREPROCESS_ROUTE_NAME="Python"
+    fi
+    PREPROCESS_ROUTE_SET=true
+}
 
 # Parse arguments
+if [ $# -eq 0 ]; then
+    usage
+fi
+
+if [ "$1" = "-m" ] || [ "$1" = "-p" ]; then
+    set_preprocess_route "$1"
+    shift
+elif [[ "$1" == -* ]]; then
+    echo "Unknown option: $1"
+    usage
+fi
+
 if [ $# -eq 0 ]; then
     usage
 fi
@@ -47,6 +81,12 @@ SYSTEM="common"
 
 while [ $# -gt 0 ]; do
     case "$1" in
+        -m)
+            set_preprocess_route "$1"
+            ;;
+        -p)
+            set_preprocess_route "$1"
+            ;;
         --tolerance)
             shift
             TOLERANCE="$1"
@@ -65,6 +105,11 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
+
+if [ "$PREPROCESS_ROUTE_SET" = false ]; then
+    echo "[ERROR] Preprocessing route must be set with either -m or -p"
+    usage
+fi
 
 # Validate --system value
 if [ "$SYSTEM" != "common" ] && [ "$SYSTEM" != "icl" ]; then
@@ -128,18 +173,26 @@ run_with_status_strict() {
     fi
 }
 
-# Wait for MATLAB launched by write_inputs.sh to finish.
-# write_inputs.sh backgrounds MATLAB with: nohup matlab ... -r "expnr=N; write_inputs; quit"
-# We detect completion by polling for a running MATLAB process matching that expnr.
-# Usage: wait_for_matlab <case_num>
-wait_for_matlab() {
-    local case_num="$1"
+# Wait for the selected write_inputs.sh route to finish.
+# write_inputs.sh backgrounds MATLAB/Python, so this script must poll before comparing.
+# Usage: wait_for_write_inputs <route> <case_num> <case_dir>
+wait_for_write_inputs() {
+    local route=$1
+    local case_num="$2"
+    local case_dir="${3:-}"
+    local pattern
     local elapsed=0
 
-    # Brief initial pause to allow MATLAB to be spawned
+    if [ "$route" = "-m" ]; then
+        pattern="expnr=$case_num"
+    else
+        pattern="write_inputs.py.*$case_dir"
+    fi
+
+    # Brief initial pause to allow the background preprocessing process to spawn.
     sleep 3
 
-    while pgrep -f "expnr=$case_num" > /dev/null 2>&1; do
+    while pgrep -f "$pattern" > /dev/null 2>&1; do
         elapsed=$((elapsed + 5))
         printf "\r\033[K  write_inputs running (expnr=%s) — elapsed: %ds" "$case_num" "$elapsed"
         sleep 5
@@ -178,6 +231,7 @@ echo "  Reference path       : $SCRIPT_DIR/experiments/" >> "$LOG_FILE"
 echo "  Cases                : ${TEST_CASES[*]}" >> "$LOG_FILE"
 echo "  Tolerance            : $TOLERANCE" >> "$LOG_FILE"
 echo "  System               : $SYSTEM" >> "$LOG_FILE"
+echo "  Preprocessing route  : $PREPROCESS_ROUTE_NAME ($PREPROCESS_ROUTE)" >> "$LOG_FILE"
 echo "========================================" >> "$LOG_FILE"
 
 echo "Starting u-dales input write & comparison..."
@@ -190,6 +244,7 @@ echo "  Reference path       : $SCRIPT_DIR/experiments/"
 echo "  Cases                : ${TEST_CASES[*]}"
 echo "  Tolerance            : $TOLERANCE"
 echo "  System               : $SYSTEM"
+echo "  Preprocessing route  : $PREPROCESS_ROUTE_NAME ($PREPROCESS_ROUTE)"
 echo "  Log file             : $LOG_FILE"
 echo "========================================"
 echo ""
@@ -216,9 +271,14 @@ if [ ! -f "$REPO_ROOT/tools/ud_compare_inputs.py" ]; then
     preflight_ok=false
 fi
 
-if [ ! -d "$REPO_ROOT/tools/.venv_netcdf" ]; then
-    print_red "[MISSING] NetCDF virtual environment not found: $REPO_ROOT/tools/.venv_netcdf"
-    print_red "         Run '$REPO_ROOT/tools/ud_set_nc_venv.sh' to set it up."
+VENV_DIR="$REPO_ROOT/tools/python/.venv"
+
+if [ ! -d "$VENV_DIR" ]; then
+    print_red "[MISSING] Python virtual environment not found: $VENV_DIR"
+    print_red "         Run '$REPO_ROOT/tools/python/setup_venv.sh' to set it up."
+    preflight_ok=false
+elif [ ! -f "$VENV_DIR/bin/python3" ] && [ ! -f "$VENV_DIR/bin/python" ]; then
+    print_red "[MISSING] Python interpreter not found inside virtual environment: $VENV_DIR"
     preflight_ok=false
 fi
 
@@ -240,10 +300,10 @@ if [ "$preflight_ok" = false ]; then
 fi
 
 # Resolve Python interpreter inside the venv
-if [ -f "$REPO_ROOT/tools/.venv_netcdf/bin/python3" ]; then
-    VENV_PYTHON="$REPO_ROOT/tools/.venv_netcdf/bin/python3"
-elif [ -f "$REPO_ROOT/tools/.venv_netcdf/bin/python" ]; then
-    VENV_PYTHON="$REPO_ROOT/tools/.venv_netcdf/bin/python"
+if [ -f "$VENV_DIR/bin/python3" ]; then
+    VENV_PYTHON="$VENV_DIR/bin/python3"
+elif [ -f "$VENV_DIR/bin/python" ]; then
+    VENV_PYTHON="$VENV_DIR/bin/python"
 fi
 
 print_green "  All pre-flight checks passed."
@@ -253,7 +313,12 @@ echo ""
 echo "========================================"
 echo "PHASE 1: Build preprocessing applications"
 echo "========================================" 
-BUILD_PREPROC_CMD="cd '$REPO_ROOT' && tools/build_preprocessing.sh '$SYSTEM'"
+if [ "$PREPROCESS_ROUTE" = "-p" ]; then
+    BUILD_PREPROC_TARGET="preprocessing_tools"
+else
+    BUILD_PREPROC_TARGET="view3d"
+fi
+BUILD_PREPROC_CMD="cd '$REPO_ROOT' && tools/build_preprocessing.sh '$SYSTEM' '$BUILD_PREPROC_TARGET'"
 run_with_status_strict "$BUILD_PREPROC_CMD" "Building preprocessing applications" "$LOG_FILE"
 print_green "[SUCCESS] Preprocessing applications built successfully."
 echo ""
@@ -286,29 +351,30 @@ for case_num in "${TEST_CASES[@]}"; do
     # Step 1: Write inputs
     echo "STEP 1: Write inputs for case $case_num"
     echo "=========================================="
-    WRITE_CMD="cd '$REPO_ROOT' && tools/write_inputs.sh -m '$SCRIPT_DIR/experiments/$case_num'"
+    case_dir="$SCRIPT_DIR/experiments/$case_num"
+    WRITE_CMD="cd '$REPO_ROOT' && tools/write_inputs.sh '$PREPROCESS_ROUTE' '$case_dir'"
     run_with_status_strict "$WRITE_CMD" "Writing inputs for case $case_num" "$LOG_FILE" true
 
-    # write_inputs.sh launches MATLAB in the background and exits immediately.
-    # Poll until the MATLAB process for this case finishes before comparing.
-    wait_for_matlab "$case_num"
+    # write_inputs.sh launches preprocessing in the background and exits immediately.
+    # Poll until the selected route for this case finishes before comparing.
+    wait_for_write_inputs "$PREPROCESS_ROUTE" "$case_num" "$case_dir"
 
-    # Check MATLAB log for errors
-    MATLAB_LOG="$SCRIPT_DIR/experiments/$case_num/write_inputs.$case_num.log"
-    if [ ! -f "$MATLAB_LOG" ]; then
-        print_red "[FAILED] write_inputs log not found: $MATLAB_LOG"
+    # Check write_inputs log for errors
+    WRITE_INPUTS_LOG="$SCRIPT_DIR/experiments/$case_num/write_inputs.$case_num.log"
+    if [ ! -f "$WRITE_INPUTS_LOG" ]; then
+        print_red "[FAILED] write_inputs log not found: $WRITE_INPUTS_LOG"
         print_red "         write_inputs may not have run at all for case $case_num."
         case_results+=("$case_num: FAILED (write_inputs log missing)")
         overall_success=false
         echo ""
         continue
     fi
-    if col -b < "$MATLAB_LOG" | grep -qiE "^Error |^Error:|Undefined function|Undefined variable|not enough input|out of memory"; then
+    if col -b < "$WRITE_INPUTS_LOG" | grep -qiE "^Error |^Error:|Undefined function|Undefined variable|not enough input|out of memory|Traceback|Exception|RuntimeError|ValueError|ModuleNotFoundError"; then
         print_red "[FAILED] write_inputs reported errors for case $case_num:"
-        col -b < "$MATLAB_LOG" | grep -iE "^Error |^Error:|Undefined function|Undefined variable|not enough input|out of memory" | head -10 | while read -r line; do
+        col -b < "$WRITE_INPUTS_LOG" | grep -iE "^Error |^Error:|Undefined function|Undefined variable|not enough input|out of memory|Traceback|Exception|RuntimeError|ValueError|ModuleNotFoundError" | head -10 | while read -r line; do
             print_red "  $line"
         done
-        echo "Full write_inputs log: $MATLAB_LOG"
+        echo "Full write_inputs log: $WRITE_INPUTS_LOG"
         case_results+=("$case_num: FAILED (write_inputs errors)")
         overall_success=false
         echo ""
@@ -360,6 +426,7 @@ echo "  u-dales Input Write & Comparison Summary"
 echo "========================================"
 echo "  Reference path : $REF_DATA_PATH"
 echo "  Cases tested   : ${TEST_CASES[*]}"
+echo "  Preprocess via : $PREPROCESS_ROUTE_NAME ($PREPROCESS_ROUTE)"
 echo ""
 echo "  Individual case results:"
 for result in "${case_results[@]}"; do

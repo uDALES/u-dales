@@ -26,7 +26,8 @@ tests/system/
 │   └── 999/
 
 tools/                        # (repo root)
-├── ud_set_nc_venv.sh         # One-time setup of the Python NetCDF environment
+├── python/
+    ├── setup_venv.sh         # One-time setup of the Python tooling environment
 ├── ud_compare_outputs.py     # Output comparison script (called by ud_test_sim.sh)
 ├── ud_compare_inputs.py      # Input file comparison script (called by ud_test_preprocess.sh)
 ├── ud_compare_multiple_outputs.py
@@ -39,33 +40,33 @@ tools/                        # (repo root)
 
 ### Step 1 — Set up the Python virtual environment (once)
 
-`ud_compare_outputs.py` and `ud_compare_inputs.py` require `netCDF4` and `numpy`. Run `ud_set_nc_venv.sh` once to create an isolated Python virtual environment with all required dependencies.
+`ud_compare_outputs.py` and `ud_compare_inputs.py` require `netCDF4` and `numpy`, and the preprocessing tests use the same Python tooling environment. Run `tools/python/setup_venv.sh` once to create an isolated virtual environment with all required dependencies.
 
 #### Requirements
 
 - Python 3.9 or newer (the script will check and tell you if your version is too old)
 
-#### Setup (run once)
+#### Setup (run once from the repo root)
 
 ```bash
-../../tools/ud_set_nc_venv.sh
+bash tools/python/setup_venv.sh
 ```
 
 The script will:
-1. Can be run from any location with full path.
-2. Create a virtual environment at `tools/.venv_netcdf/` (relative to the repo root).
-3. Install `numpy` and `netCDF4`.
-4. Verify all imports work.
-5. Deactivate the environment.
+1. Run from any location when called with its full path.
+2. Create a virtual environment at `tools/python/.venv/` (relative to the repo root).
+3. Install the Python tooling dependencies, including `numpy` and `netCDF4`.
+4. Verify the runtime imports work.
+5. Build and verify the preprocessing tools requested by the setup target.
 
-If `.venv_netcdf/` already exists, you will be asked whether to recreate it.
-Answering **N** skips installation and runs the import checks on the existing environment instead.
+If `tools/python/.venv/` already exists, you will be asked whether to recreate it.
+Answering **N** skips installation/rebuild and runs validation checks on the existing environment instead.
 
-#### Recreating the NetCDF environment
+#### Recreating the Python environment (run from the repo root)
 
 ```bash
-rm -rf ../../tools/.venv_netcdf
-../../tools/ud_set_nc_venv.sh
+rm -rf tools/python/.venv
+bash tools/python/setup_venv.sh
 ```
 
 #### Notes
@@ -103,7 +104,7 @@ Run from the `tests/system/` directory:
 
 Progress and results are written to `logdir/test_common.log` or `logdir/test_gpu.log`.
 
-`ud_test_sim.sh` detects `tools/.venv_netcdf/` automatically and uses it for comparisons.
+`ud_test_sim.sh` detects `tools/python/.venv/` automatically and uses it for comparisons.
 
 ---
 
@@ -112,14 +113,17 @@ Progress and results are written to `logdir/test_common.log` or `logdir/test_gpu
 `ud_test_preprocess.sh` regenerates input files from scratch and compares them against a reference directory.
 
 ```bash
-# Default cases against ref_data/
-./ud_test_preprocess.sh ref_data/
+# Default cases against ref_data/ with the MATLAB preprocessing route
+./ud_test_preprocess.sh -m ref_data/
+
+# Generate inputs with the Python preprocessing route
+./ud_test_preprocess.sh -p ref_data/
 
 # Specific cases
-./ud_test_preprocess.sh ref_data/ 100 224
+./ud_test_preprocess.sh -m ref_data/ 100 224
 
 # Custom tolerance for numeric files
-./ud_test_preprocess.sh ref_data/ 224 --tolerance 1e-8
+./ud_test_preprocess.sh -m ref_data/ 224 --tolerance 1e-8
 ```
 
 Progress and results are written to `test_inputs.log`.
@@ -147,7 +151,7 @@ The script exits with code `0` (all passed) or `1` (any failure).
 
 | Phase | What happens |
 |-------|-------------|
-| **1 — Write inputs** | Cleans the experiment directory (keeping geometry, `namoptions`, `config`, `trees.inp`, `heatpump.inp`, and `scalarsource*`), then regenerates all other input files by calling `tools/write_inputs.sh -m experiments/<case>` |
+| **1 — Write inputs** | Cleans the experiment directory (keeping geometry, `namoptions`, `config`, `trees.inp`, `heatpump.inp`, and `scalarsource*`), then regenerates all other input files by calling `tools/write_inputs.sh -m experiments/<case>` when `ud_test_preprocess.sh -m ...` is used or `tools/write_inputs.sh -p experiments/<case>` when `ud_test_preprocess.sh -p ...` is used |
 | **2 — Compare inputs** | Calls `tools/ud_compare_inputs.py <case> experiments/ <ref_data_path>`, comparing all generated input files against the reference |
 
 The script exits with code `0` (all passed) or `1` (any failure).
@@ -166,5 +170,5 @@ The script exits with code `0` (all passed) or `1` (any failure).
 4. Pass the case number on the command line:
    ```bash
    ./ud_test_sim.sh ref_data/ <NNN>
-   ./ud_test_preprocess.sh ref_data/ <NNN>
+   ./ud_test_preprocess.sh -m ref_data/ <NNN>
    ```

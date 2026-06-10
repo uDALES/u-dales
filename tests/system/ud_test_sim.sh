@@ -243,10 +243,15 @@ if [ ! -f "$REPO_ROOT/tools/ud_compare_outputs.py" ]; then
     preflight_ok=false
 fi
 
-# NetCDF virtual environment must exist for the comparison phase
-if [ ! -d "$REPO_ROOT/tools/.venv_netcdf" ]; then
-    print_red "[MISSING] NetCDF virtual environment not found: $REPO_ROOT/tools/.venv_netcdf"
-    print_red "         Run '$REPO_ROOT/tools/ud_set_nc_venv.sh' to set it up."
+VENV_DIR="$REPO_ROOT/tools/python/.venv"
+
+# Python virtual environment must exist for the comparison phase
+if [ ! -d "$VENV_DIR" ]; then
+    print_red "[MISSING] Python virtual environment not found: $VENV_DIR"
+    print_red "         Run '$REPO_ROOT/tools/python/setup_venv.sh' to set it up."
+    preflight_ok=false
+elif [ ! -f "$VENV_DIR/bin/python3" ] && [ ! -f "$VENV_DIR/bin/python" ]; then
+    print_red "[MISSING] Python interpreter not found inside virtual environment: $VENV_DIR"
     preflight_ok=false
 fi
 
@@ -270,10 +275,10 @@ if [ "$preflight_ok" = false ]; then
 fi
 
 # Resolve the Python interpreter inside the venv (prefer python3, fall back to python)
-if [ -f "$REPO_ROOT/tools/.venv_netcdf/bin/python3" ]; then
-    VENV_PYTHON="$REPO_ROOT/tools/.venv_netcdf/bin/python3"
-elif [ -f "$REPO_ROOT/tools/.venv_netcdf/bin/python" ]; then
-    VENV_PYTHON="$REPO_ROOT/tools/.venv_netcdf/bin/python"
+if [ -f "$VENV_DIR/bin/python3" ]; then
+    VENV_PYTHON="$VENV_DIR/bin/python3"
+elif [ -f "$VENV_DIR/bin/python" ]; then
+    VENV_PYTHON="$VENV_DIR/bin/python"
 fi
 
 print_green "  All pre-flight checks passed."

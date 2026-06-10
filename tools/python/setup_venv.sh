@@ -35,7 +35,7 @@
 # Virtual environment behaviour:
 #   - If the target venv directory does not exist it is created from scratch.
 #   - If it already exists the script prompts whether to recreate it (default: N).
-#     Answering N exits immediately without reinstalling packages or rebuilding.
+#     Answering N skips installation/rebuild and validates the existing venv.
 #
 # Examples:
 #   # Default local setup
@@ -50,7 +50,140 @@
 #   # Use a specific Python interpreter
 #   PYTHON_BIN=/opt/pbs/python/bin/python3 bash tools/python/setup_venv.sh
 
-set -e  # Exit on error
+set -euo pipefail
+
+if [ -t 1 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    NC='\033[0m'
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    NC=''
+fi
+
+print_green() { echo -e "${GREEN}$1${NC}"; }
+print_red() { echo -e "${RED}$1${NC}"; }
+print_yellow() { echo -e "${YELLOW}$1${NC}"; }
+
+usage() {
+    echo "Usage: bash tools/python/setup_venv.sh [build_system] [build_target]"
+    echo ""
+    echo "  build_system   Build environment to use (default: common)"
+    echo "                   common  - local Linux / WSL system"
+    echo "                   icl     - Imperial College London HPC cluster"
+    echo ""
+    echo "  build_target   CMake target to build (default: preprocessing_tools)"
+    echo "                   view3d               - View3D executable only"
+    echo "                   preprocessing_tools  - View3D + f2py extension modules"
+}
+
+die() {
+    print_red "[ERROR] $1"
+    exit 1
+}
+
+check_python_version() {
+    local python_cmd="$1"
+    if ! "$python_cmd" -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)" >/dev/null 2>&1; then
+        die "Python 3.9 or newer is required (found $("$python_cmd" --version 2>&1))."
+    fi
+}
+
+check_python_headers() {
+    local python_cmd="$1"
+    local python_include
+    python_include="$("$python_cmd" -c 'import sysconfig; print(sysconfig.get_paths().get("include", ""))')"
+    if [ ! -f "$python_include/Python.h" ]; then
+        print_red "[ERROR] Python development headers were not found for $python_cmd"
+        echo "Expected: $python_include/Python.h"
+        echo "The directshortwave f2py wrapper is mandatory."
+        echo "Set PYTHON_BIN to an interpreter with headers, e.g."
+        echo "  PYTHON_BIN=/opt/pbs/python/bin/python3 ./tools/python/setup_venv.sh"
+        exit 1
+    fi
+}
+
+run_import_checks() {
+    print_yellow "Testing Python package imports..."
+    PYTHONPATH="${SCRIPT_DIR}${PYTHONPATH:+:$PYTHONPATH}" python - <<'PY'
+import importlib
+import sys
+
+modules = [
+    ("numpy", "numpy"),
+    ("scipy", "scipy"),
+    ("xarray", "xarray"),
+    ("netCDF4", "netCDF4"),
+    ("h5netcdf", "h5netcdf"),
+    ("trimesh", "trimesh"),
+    ("shapely", "shapely"),
+    ("triangle", "triangle"),
+    ("matplotlib", "matplotlib"),
+    ("f90nml", "f90nml"),
+    ("numba", "numba"),
+    ("pvlib", "pvlib"),
+    ("plotly", "plotly"),
+]
+
+failed = False
+for label, module_name in modules:
+    try:
+        module = importlib.import_module(module_name)
+        version = getattr(module, "__version__", "available")
+        print(f"[OK] {label} {version}")
+    except Exception as exc:
+        print(f"[ERROR] {label} import failed: {exc}")
+        failed = True
+
+sys.exit(1 if failed else 0)
+PY
+}
+
+run_f2py_checks() {
+    if [ "$BUILD_TARGET" != "preprocessing_tools" ]; then
+        return
+    fi
+
+    print_yellow "Testing f2py preprocessing modules..."
+    local missing=0
+    if ! compgen -G "${SCRIPT_DIR}/udprep/directshortwave_f2py"*.so >/dev/null; then
+        print_red "[ERROR] directshortwave_f2py module missing in ${SCRIPT_DIR}/udprep"
+        missing=1
+    fi
+    if ! compgen -G "${SCRIPT_DIR}/udprep/ibm_preproc_f2py"*.so >/dev/null; then
+        print_red "[ERROR] ibm_preproc_f2py module missing in ${SCRIPT_DIR}/udprep"
+        missing=1
+    fi
+    if [ "$missing" -ne 0 ]; then
+        echo "Recreate the virtual environment or run:"
+        echo "  PREPROCESSING_PYTHON_EXECUTABLE=\"$VENV_DIR/bin/python\" tools/build_preprocessing.sh $BUILD_SYSTEM preprocessing_tools"
+        exit 1
+    fi
+
+    PYTHONPATH="${SCRIPT_DIR}${PYTHONPATH:+:$PYTHONPATH}" python - <<'PY'
+import importlib
+import sys
+
+modules = [
+    "udprep.directshortwave_f2py",
+    "udprep.ibm_preproc_f2py",
+]
+
+failed = False
+for module_name in modules:
+    try:
+        importlib.import_module(module_name)
+        print(f"[OK] {module_name} imported successfully")
+    except Exception as exc:
+        print(f"[ERROR] {module_name} import failed: {exc}")
+        failed = True
+
+sys.exit(1 if failed else 0)
+PY
+}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UDALES_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
@@ -59,32 +192,16 @@ BUILD_SYSTEM="${1:-common}"
 BUILD_TARGET="${2:-preprocessing_tools}"
 
 if [[ "$BUILD_SYSTEM" != "common" && "$BUILD_SYSTEM" != "icl" ]]; then
-    echo "Error: invalid build system '${BUILD_SYSTEM}'."
+    print_red "[ERROR] invalid build system '${BUILD_SYSTEM}'."
     echo ""
-    echo "Usage: bash tools/python/setup_venv.sh [build_system] [build_target]"
-    echo ""
-    echo "  build_system   Build environment to use (default: common)"
-    echo "                   common  - local Linux / WSL system"
-    echo "                   icl     - Imperial College London HPC cluster"
-    echo ""
-    echo "  build_target   CMake target to build (default: preprocessing_tools)"
-    echo "                   view3d               - View3D executable only"
-    echo "                   preprocessing_tools  - View3D + f2py extension modules"
+    usage
     exit 1
 fi
 
 if [[ "$BUILD_TARGET" != "view3d" && "$BUILD_TARGET" != "preprocessing_tools" ]]; then
-    echo "Error: invalid build target '${BUILD_TARGET}'."
+    print_red "[ERROR] invalid build target '${BUILD_TARGET}'."
     echo ""
-    echo "Usage: bash tools/python/setup_venv.sh [build_system] [build_target]"
-    echo ""
-    echo "  build_system   Build environment to use (default: common)"
-    echo "                   common  - local Linux / WSL system"
-    echo "                   icl     - Imperial College London HPC cluster"
-    echo ""
-    echo "  build_target   CMake target to build (default: preprocessing_tools)"
-    echo "                   view3d               - View3D executable only"
-    echo "                   preprocessing_tools  - View3D + f2py extension modules"
+    usage
     exit 1
 fi
 
@@ -115,68 +232,81 @@ fi
 echo ""
 
 if ! command -v "$PYTHON_BIN" &> /dev/null; then
-    echo "Error: $PYTHON_BIN is not installed"
-    exit 1
+    die "$PYTHON_BIN is not installed"
 fi
 
 echo "Python version: $($PYTHON_BIN --version)"
-
-PYTHON_INCLUDE="$($PYTHON_BIN -c 'import sysconfig; print(sysconfig.get_paths().get("include", ""))')"
-if [ ! -f "$PYTHON_INCLUDE/Python.h" ]; then
-    echo "Error: Python development headers were not found for $PYTHON_BIN"
-    echo "Expected: $PYTHON_INCLUDE/Python.h"
-    echo "The directshortwave f2py wrapper is mandatory."
-    echo "Set PYTHON_BIN to an interpreter with headers, e.g."
-    echo "  PYTHON_BIN=/opt/pbs/python/bin/python3 ./tools/python/setup_venv.sh"
-    exit 1
-fi
+check_python_version "$PYTHON_BIN"
 
 # Create virtual environment if it doesn't exist
+SKIP_INSTALL=false
 if [ -d "$VENV_DIR" ]; then
-    echo "Virtual environment already exists at: $VENV_DIR"
-    read -p "Do you want to recreate it? (y/N): " -n 1 -r
+    print_yellow "Virtual environment already exists at: $VENV_DIR"
+    if ! read -p "Do you want to recreate it? (y/N): " -n 1 -r; then
+        REPLY=""
+    fi
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo "Removing existing virtual environment..."
+        print_yellow "Removing existing virtual environment..."
         rm -rf "$VENV_DIR"
     else
-        echo "Using existing virtual environment."
-        echo "To activate: source \"$VENV_DIR/bin/activate\""
-        exit 0
+        print_yellow "Using existing virtual environment and running validation checks."
+        SKIP_INSTALL=true
     fi
 fi
 
-echo "Creating virtual environment at: $VENV_DIR"
-"$PYTHON_BIN" -m venv "$VENV_DIR"
+if [ "$SKIP_INSTALL" = false ]; then
+    check_python_headers "$PYTHON_BIN"
+
+    echo "Creating virtual environment at: $VENV_DIR"
+    "$PYTHON_BIN" -m venv "$VENV_DIR"
+fi
+
+if [ ! -f "$VENV_DIR/bin/activate" ]; then
+    die "Virtual environment activation script not found: $VENV_DIR/bin/activate"
+fi
 
 echo "Activating virtual environment..."
 source "$VENV_DIR/bin/activate"
+check_python_version python
 
-echo "Upgrading pip..."
-pip install --upgrade pip
-
-echo "Installing dependencies from requirements.txt..."
-if [ -f "${SCRIPT_DIR}/requirements.txt" ]; then
-    pip install -r "${SCRIPT_DIR}/requirements.txt"
-else
-    echo "Warning: requirements.txt not found at ${SCRIPT_DIR}/requirements.txt"
+if [ -z "${MPLCONFIGDIR:-}" ]; then
+    export MPLCONFIGDIR="${TMPDIR:-/tmp}/u-dales-matplotlib-${USER:-user}"
+    mkdir -p "$MPLCONFIGDIR"
 fi
 
-echo "Installing build dependencies from requirements-build.txt..."
-if [ -f "${SCRIPT_DIR}/requirements-build.txt" ]; then
-    pip install -r "${SCRIPT_DIR}/requirements-build.txt"
+if [ "$SKIP_INSTALL" = false ]; then
+    echo "Upgrading pip..."
+    python -m pip install --upgrade pip
+
+    echo "Installing dependencies from requirements.txt..."
+    if [ -f "${SCRIPT_DIR}/requirements.txt" ]; then
+        python -m pip install -r "${SCRIPT_DIR}/requirements.txt"
+    else
+        print_yellow "[WARN] requirements.txt not found at ${SCRIPT_DIR}/requirements.txt"
+    fi
+
+    echo "Installing build dependencies from requirements-build.txt..."
+    if [ -f "${SCRIPT_DIR}/requirements-build.txt" ]; then
+        python -m pip install -r "${SCRIPT_DIR}/requirements-build.txt"
+    else
+        print_yellow "[WARN] requirements-build.txt not found at ${SCRIPT_DIR}/requirements-build.txt"
+    fi
+
+    echo "Building preprocessing tools..."
+    PREPROCESSING_PYTHON_EXECUTABLE="$(command -v python)" \
+        "${UDALES_ROOT}/tools/build_preprocessing.sh" "${BUILD_SYSTEM}" "${BUILD_TARGET}"
 else
-    echo "Warning: requirements-build.txt not found at ${SCRIPT_DIR}/requirements-build.txt"
+    echo "Installation and build steps skipped."
 fi
 
-echo "Building preprocessing tools..."
-PREPROCESSING_PYTHON_EXECUTABLE="$(command -v python)" \
-    "${UDALES_ROOT}/tools/build_preprocessing.sh" "${BUILD_SYSTEM}" "${BUILD_TARGET}"
+run_import_checks
+run_f2py_checks
 
 echo ""
-echo "=========================================="
-echo "Setup complete!"
-echo "=========================================="
+print_green "=========================================="
+print_green "Setup complete!"
+print_green "=========================================="
 echo ""
 echo "To use the virtual environment:"
 echo "  1. Activate:   source $VENV_DIR/bin/activate"
@@ -188,4 +318,7 @@ echo "  cd $UDALES_ROOT"
 echo "  source $VENV_DIR/bin/activate"
 echo "  python tools/write_inputs.py"
 echo "  deactivate"
+echo ""
+echo "System tests and comparison scripts also use this environment:"
+echo "  $VENV_DIR"
 echo ""
