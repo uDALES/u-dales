@@ -87,18 +87,18 @@ if r.ltrees || r.ltreesfile
     end
 end
 
-if isfile(['factypes.inp.', expnr])
-    r.factypes = dlmread(['factypes.inp.', r.expnr],'',3,0);
-else
-    preprocessing.write_factypes(r)
-    disp(['Written factypes.inp.', r.expnr])
-end
-
 if r.libm
     %% Read the .stl file and write necessary ibm files
     TR = stlread(r.stl_file);
     nfcts = size(TR.ConnectivityList,1);
     preprocessing.set_nfcts(r, nfcts);
+
+    if isfile(['factypes.inp.', expnr])
+        r.factypes = dlmread(['factypes.inp.', r.expnr],'',3,0);
+    else
+        preprocessing.write_factypes(r)
+        disp(['Written factypes.inp.', r.expnr])
+    end
 
     calculate_facet_sections_uvw = r.iwallmom > 1;
     calculate_facet_sections_c = r.ltempeq || r.lmoist || r.lwritefac;
