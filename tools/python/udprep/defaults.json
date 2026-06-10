@@ -60,10 +60,7 @@
     "types_path": "",
     "geom_path": "",
     "iwallmom": 2,
-    "lwritefac": false,
-    "isolid_bound": 1,
-    "ifacsec": 1,
-    "maxlen": 10
+    "lwritefac": false
   },
   "scalars": {
     "nsv": 0,

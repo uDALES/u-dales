@@ -48,7 +48,7 @@ class IBMSection(Section):
                         ("write_factypes", self.write_factypes),
                     ])
                 else:
-                    warnings.warn(f"factypes file {factypes_path} already exists; skipping regeneration ...", UserWarning)
+                    self._warn_not_overwriting(factypes_path)
             else:
                 steps.extend(
                     [
@@ -56,6 +56,15 @@ class IBMSection(Section):
                     ]
                 )
         self.run_steps("ibm", steps)
+
+    @staticmethod
+    def _warn_not_overwriting(path: Path) -> None:
+        _orig_formatwarning = warnings.formatwarning
+        warnings.formatwarning = lambda msg, cat, *_a, **_kw: f"{cat.__name__}: {msg}\n"
+        try:
+            warnings.warn(f"{path} already exists; NOT overwriting.", stacklevel=1)
+        finally:
+            warnings.formatwarning = _orig_formatwarning
 
     def generate_factypes(self) -> None:
         """Construct default factypes array (generate_factypes in MATLAB)."""
