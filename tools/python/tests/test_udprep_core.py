@@ -17,6 +17,8 @@ if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
 from udprep.udprep import Section, SectionSpec, SKIP, UDPrep  # noqa: E402
+from udprep.udprep_bcs import SPEC as BCS_SPEC  # noqa: E402
+from udprep.udprep_ibm import IBMSection  # noqa: E402
 
 
 class DummySection(Section):
@@ -135,6 +137,85 @@ class TestSectionCore(unittest.TestCase):
         self.assertEqual(changed[0][0], "arr")
 
 
+class TestIBMSection(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.workdir = Path(self.temp_dir.name)
+
+    def _make_section(self, **overrides):
+        sim = types.SimpleNamespace(
+            path=self.workdir,
+            expnr="321",
+            geom=object(),
+        )
+        values = {
+            "libm": True,
+            "gen_geom": True,
+            "geom_path": "",
+            "iwallmom": 2,
+            "ltempeq": False,
+            "lmoist": False,
+            "lwritefac": False,
+        }
+        values.update(overrides)
+        return IBMSection("ibm", values, sim=sim, defaults={})
+
+    def _recording_section(self, **overrides):
+        section = self._make_section(**overrides)
+        calls = []
+        section.run_ibm = mock.Mock(side_effect=lambda backend="f2py": calls.append(("run_ibm", backend)))
+        section.write_facets = mock.Mock(side_effect=lambda: calls.append(("write_facets", None)))
+        section.write_facetarea = mock.Mock(side_effect=lambda: calls.append(("write_facetarea", None)))
+        section.generate_factypes = mock.Mock(side_effect=lambda: calls.append(("generate_factypes", None)))
+        section.write_factypes = mock.Mock(side_effect=lambda: calls.append(("write_factypes", None)))
+        section.copy_geom_outputs = mock.Mock(side_effect=lambda: calls.append(("copy_geom_outputs", None)))
+        return section, calls
+
+    def test_run_all_orchestrates_ibm_preprocessing_modes(self):
+        with self.subTest("generate geometry and default factypes"):
+            section, calls = self._recording_section()
+            section.run_all(backend="legacy")
+
+            self.assertEqual(
+                calls,
+                [
+                    ("run_ibm", "legacy"),
+                    ("write_facets", None),
+                    ("write_facetarea", None),
+                    ("generate_factypes", None),
+                    ("write_factypes", None),
+                ],
+            )
+
+        with self.subTest("preserve existing factypes"):
+            (self.workdir / "factypes.inp.321").write_text("existing\n", encoding="ascii")
+            section, calls = self._recording_section()
+            with self.assertWarns(UserWarning):
+                section.run_all()
+
+            self.assertEqual(
+                calls,
+                [
+                    ("run_ibm", "f2py"),
+                    ("write_facets", None),
+                    ("write_facetarea", None),
+                ],
+            )
+
+        with self.subTest("copy existing geometry outputs"):
+            section, calls = self._recording_section(gen_geom=False)
+            section.run_all()
+
+            self.assertEqual(calls, [("copy_geom_outputs", None)])
+
+        with self.subTest("skip when IBM disabled"):
+            section, calls = self._recording_section(libm=False)
+            section.run_all()
+
+            self.assertEqual(calls, [])
+
+
 class TestUDPrepCore(unittest.TestCase):
     def setUp(self):
         self.temp_dir = TemporaryDirectory()
@@ -204,6 +285,35 @@ class TestUDPrepCore(unittest.TestCase):
             prep.addvar("foo", 1, section="missing")
         with self.assertRaises(ValueError):
             prep.addvar("bar", 1, section="alpha")
+
+    def test_bcs_section_uses_defaults_and_preserves_namoptions_overrides(self):
+        fake_module = self._fake_udbase_module()
+        with mock.patch.dict(sys.modules, {"udbase": fake_module}):
+            with mock.patch.object(UDPrep, "SECTION_SPECS", [BCS_SPEC]):
+                prep = UDPrep("123", path=self.workdir, load_geometry=False)
+
+        self.assertIsInstance(prep.bcs, Section)
+        self.assertEqual(prep.bcs.BCxm, 1)
+        self.assertEqual(prep.bcs.BCym, 1)
+        self.assertEqual(prep.sim.BCxm, 1)
+        self.assertEqual(prep.sim.BCym, 1)
+
+        class OverrideUDBase(DummySim):
+            def __init__(self, expnr, path=None, load_geometry=True, suppress_load_warnings=False):
+                super().__init__(expnr=expnr, path=path)
+                self.BCxm = 2
+                self.BCym = 3
+
+        override_module = types.ModuleType("udbase")
+        override_module.UDBase = OverrideUDBase
+        with mock.patch.dict(sys.modules, {"udbase": override_module}):
+            with mock.patch.object(UDPrep, "SECTION_SPECS", [BCS_SPEC]):
+                prep = UDPrep("123", path=self.workdir, load_geometry=False)
+
+        self.assertEqual(prep.bcs.BCxm, 2)
+        self.assertEqual(prep.bcs.BCym, 3)
+        self.assertEqual(prep.sim.BCxm, 2)
+        self.assertEqual(prep.sim.BCym, 3)
 
     def test_run_all_respects_section_gates(self):
         specs = [

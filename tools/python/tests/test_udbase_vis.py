@@ -1,10 +1,12 @@
 import importlib.util
 import io
 import sys
+import types
 import unittest
 from contextlib import redirect_stderr
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 import numpy as np
 
@@ -184,6 +186,201 @@ class TestUDBaseVisualizationCompatibility(unittest.TestCase):
             lambda: vis.plot_veg(show=False),
             "veg.inp.001 data not found",
         )
+
+
+class TestUDVisRenderingHelpers(unittest.TestCase):
+    @staticmethod
+    def _make_mesh_data():
+        vertices = np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 1.0, 0.0],
+            ]
+        )
+        faces = np.array(
+            [
+                [0, 1, 2],
+                [1, 3, 2],
+            ],
+            dtype=int,
+        )
+        return types.SimpleNamespace(vertices=vertices, faces=faces)
+
+    @staticmethod
+    def _fake_trimesh_module():
+        fake_trimesh = types.ModuleType("trimesh")
+
+        class FakeScene:
+            def __init__(self):
+                self.geometry = []
+
+            def add_geometry(self, geometry):
+                self.geometry.append(geometry)
+
+        class FakeLine:
+            def __init__(self, points):
+                self.points = points
+
+        class FakePath3D:
+            def __init__(self, entities, vertices, colors):
+                self.entities = entities
+                self.vertices = vertices
+                self.colors = colors
+
+        fake_trimesh.Scene = FakeScene
+        fake_trimesh.path = types.SimpleNamespace(
+            entities=types.SimpleNamespace(Line=FakeLine),
+            Path3D=FakePath3D,
+        )
+        return fake_trimesh
+
+    @staticmethod
+    def _fake_ipython_modules():
+        fake_ipython = types.ModuleType("IPython")
+        fake_display = types.ModuleType("IPython.display")
+        fake_display.display = lambda *args, **kwargs: None
+        return fake_ipython, fake_display
+
+    def _make_vis(self, face_to_building=None):
+        class DummyGeom:
+            def __init__(self, mesh, building_map):
+                self.stl = mesh
+                self._face_to_building = np.asarray(building_map, dtype=int)
+
+            def get_face_to_building_map(self):
+                return self._face_to_building
+
+            def _calculate_outline_edges(self, angle_threshold=45.0):
+                return [(0, 1), (1, 3)]
+
+        mesh = self._make_mesh_data()
+        building_map = [1, 2] if face_to_building is None else face_to_building
+        geom = DummyGeom(mesh, building_map)
+        return UDVis(geom), mesh
+
+    def test_collect_mesh_edges_returns_unique_sorted_edges(self):
+        faces = np.array(
+            [
+                [0, 1, 2],
+                [2, 1, 3],
+            ],
+            dtype=int,
+        )
+
+        edges = UDVis._collect_mesh_edges(faces)
+
+        self.assertEqual(edges, [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)])
+
+    def test_render_scene_routes_to_plotly_with_custom_edges(self):
+        vis, mesh = self._make_vis()
+        calls = {}
+
+        def render_plotly(meshes, outline_edges, show=True):
+            calls["meshes"] = meshes
+            calls["outline_edges"] = outline_edges
+            calls["show"] = show
+            return "plotly-figure"
+
+        vis._render_plotly = render_plotly
+        fake_ipython, fake_display = self._fake_ipython_modules()
+
+        with patch.dict(
+            sys.modules,
+            {
+                "trimesh": self._fake_trimesh_module(),
+                "IPython": fake_ipython,
+                "IPython.display": fake_display,
+            },
+        ):
+            result = vis._render_scene(mesh, custom_edges=[(0, 1), (1, 2)], show=False)
+
+        self.assertEqual(result, "plotly-figure")
+        self.assertEqual(calls["meshes"], [mesh])
+        self.assertEqual(calls["outline_edges"], [(0, 1), (1, 2)])
+        self.assertFalse(calls["show"])
+
+    def test_render_scene_filters_outline_edges_by_building_id(self):
+        vis, mesh = self._make_vis(face_to_building=[1, 2])
+        calls = {}
+
+        def render_plotly(meshes, outline_edges, show=True):
+            calls["outline_edges"] = outline_edges
+            return "plotly-figure"
+
+        vis._render_plotly = render_plotly
+        fake_ipython, fake_display = self._fake_ipython_modules()
+
+        with patch.dict(
+            sys.modules,
+            {
+                "trimesh": self._fake_trimesh_module(),
+                "IPython": fake_ipython,
+                "IPython.display": fake_display,
+            },
+        ):
+            result = vis._render_scene(
+                mesh,
+                custom_edges=[(0, 1), (1, 3), (0, 3)],
+                building_ids=np.array([2]),
+                show=False,
+            )
+
+        self.assertEqual(result, "plotly-figure")
+        self.assertEqual(calls["outline_edges"], [(1, 3)])
+
+
+@unittest.skipIf(
+    importlib.util.find_spec("matplotlib") is None or importlib.util.find_spec("trimesh") is None,
+    "matplotlib and trimesh are required for mesh rendering helper tests",
+)
+class TestUDVisMeshRendering(unittest.TestCase):
+    @staticmethod
+    def _make_mesh():
+        import trimesh
+
+        vertices = np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 1.0, 0.0],
+            ]
+        )
+        faces = np.array(
+            [
+                [0, 1, 2],
+                [1, 3, 2],
+            ],
+            dtype=int,
+        )
+        return trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+
+    def _make_vis(self, face_to_building=None):
+        class DummyGeom:
+            def __init__(self, mesh, building_map):
+                self.stl = mesh
+                self._face_to_building = np.asarray(building_map, dtype=int)
+
+            def get_face_to_building_map(self):
+                return self._face_to_building
+
+            def _calculate_outline_edges(self, angle_threshold=45.0):
+                return [(0, 1), (1, 3)]
+
+        mesh = self._make_mesh()
+        building_map = [1, 2] if face_to_building is None else face_to_building
+        geom = DummyGeom(mesh, building_map)
+        return UDVis(geom), mesh
+
+    def test_create_colored_mesh_filters_faces_by_building_id(self):
+        vis, _ = self._make_vis()
+
+        mesh = vis._create_colored_mesh(np.array([10.0, 20.0]), building_ids=np.array([2]))
+
+        np.testing.assert_array_equal(mesh.faces, np.array([[1, 3, 2]]))
+        self.assertEqual(mesh.visual.face_colors.shape, (1, 4))
 
 
 @unittest.skipIf(

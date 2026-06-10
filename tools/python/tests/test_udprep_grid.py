@@ -40,6 +40,24 @@ def make_grid_section(**overrides):
 
 
 class TestGridSection(unittest.TestCase):
+    def test_run_all_populates_complete_uniform_grid_state(self):
+        section, sim = make_grid_section()
+
+        section.run_all()
+
+        self.assertEqual(section.dx, 2.0)
+        self.assertEqual(section.dy, 2.0)
+        self.assertEqual(section.dz, 2.0)
+        np.testing.assert_allclose(sim.xt, [1.0, 3.0, 5.0, 7.0])
+        np.testing.assert_allclose(sim.yt, [1.0, 3.0, 5.0])
+        np.testing.assert_allclose(sim.xm, [0.0, 2.0, 4.0, 6.0])
+        np.testing.assert_allclose(sim.ym, [0.0, 2.0, 4.0])
+        np.testing.assert_allclose(sim.zm, [0.0, 2.0, 4.0, 6.0, 8.0])
+        np.testing.assert_allclose(sim.zt, [1.0, 3.0, 5.0, 7.0, 9.0])
+        np.testing.assert_allclose(sim.dzt, [2.0, 2.0, 2.0, 2.0, 2.0])
+        np.testing.assert_allclose(sim.zf, sim.zt)
+        np.testing.assert_allclose(sim.zh, sim.zm)
+
     def test_generate_xygrid_populates_staggered_and_face_grids(self):
         section, sim = make_grid_section()
         section._refresh_derived_grid_params()
@@ -113,6 +131,16 @@ class TestGridSection(unittest.TestCase):
         section, _ = make_grid_section(lzstretch=1)
         section._refresh_derived_grid_params()
         with self.assertRaises(ValueError):
+            section.generate_zgrid()
+
+    def test_multiple_stretch_methods_raise(self):
+        section, _ = make_grid_section(
+            lzstretch=1,
+            lstretchexp=1,
+            lstretchtanh=1,
+        )
+        section._refresh_derived_grid_params()
+        with self.assertRaisesRegex(ValueError, "multiple stretch methods"):
             section.generate_zgrid()
 
     def test_stretch_exp_builds_monotone_face_grid_with_linear_prefix(self):
