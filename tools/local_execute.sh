@@ -72,7 +72,7 @@ cp -r ./* $outdir
 pushd $outdir
 
 ## execute program with mpi
-mpiexec -n $NCPU --oversubscribe $DA_BUILD namoptions.$exp 2>&1 | tee -a run.$exp.log
+mpiexec -n $NCPU --oversubscribe $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp
 
 ## Merge output files across outputs.
 if (($NCPU > 1 )); then
