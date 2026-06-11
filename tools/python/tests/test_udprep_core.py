@@ -166,6 +166,7 @@ class TestIBMSection(unittest.TestCase):
         calls = []
         section.run_ibm = mock.Mock(side_effect=lambda backend="f2py": calls.append(("run_ibm", backend)))
         section.write_facets = mock.Mock(side_effect=lambda: calls.append(("write_facets", None)))
+        section.write_facets_unused = mock.Mock(side_effect=lambda: calls.append(("write_facets_unused", None)))
         section.write_facetarea = mock.Mock(side_effect=lambda: calls.append(("write_facetarea", None)))
         section.generate_factypes = mock.Mock(side_effect=lambda: calls.append(("generate_factypes", None)))
         section.write_factypes = mock.Mock(side_effect=lambda: calls.append(("write_factypes", None)))
@@ -183,6 +184,22 @@ class TestIBMSection(unittest.TestCase):
                     ("run_ibm", "legacy"),
                     ("write_facets", None),
                     ("write_facetarea", None),
+                    ("generate_factypes", None),
+                    ("write_factypes", None),
+                ],
+            )
+
+        with self.subTest("write unused facets when c facet sections are enabled"):
+            section, calls = self._recording_section(ltempeq=True)
+            section.run_all()
+
+            self.assertEqual(
+                calls,
+                [
+                    ("run_ibm", "f2py"),
+                    ("write_facets", None),
+                    ("write_facetarea", None),
+                    ("write_facets_unused", None),
                     ("generate_factypes", None),
                     ("write_factypes", None),
                 ],
@@ -209,11 +226,73 @@ class TestIBMSection(unittest.TestCase):
 
             self.assertEqual(calls, [("copy_geom_outputs", None)])
 
+        with self.subTest("copy existing geometry outputs with c sections"):
+            section, calls = self._recording_section(gen_geom=False, ltempeq=True)
+            section.run_all()
+
+            self.assertEqual(calls, [("copy_geom_outputs", None)])
+
         with self.subTest("skip when IBM disabled"):
             section, calls = self._recording_section(libm=False)
             section.run_all()
 
             self.assertEqual(calls, [])
+
+    def test_write_facets_unused_records_facets_without_c_sections(self):
+        section = self._make_section(ltempeq=True)
+        section.sim.nfcts = 5
+        section.sim.calculate_facet_sections_c = True
+        (self.workdir / "facet_sections_c.txt").write_text(
+            "# facet area flux point distance\n"
+            "1 0.5 10 0.1\n"
+            "3 0.7 11 0.2\n"
+            "3 0.2 12 0.3\n",
+            encoding="ascii",
+        )
+
+        section.write_facets_unused()
+
+        self.assertEqual((self.workdir / "facets_unused.321").read_text(encoding="ascii"), "2,4,5\n")
+
+    def test_write_facets_unused_writes_empty_file_when_all_facets_are_used(self):
+        section = self._make_section(ltempeq=True)
+        section.sim.nfcts = 3
+        section.sim.calculate_facet_sections_c = True
+        (self.workdir / "facet_sections_c.txt").write_text(
+            "# facet area flux point distance\n"
+            "1 0.5 10 0.1\n"
+            "2 0.7 11 0.2\n"
+            "3 0.2 12 0.3\n",
+            encoding="ascii",
+        )
+
+        section.write_facets_unused()
+
+        self.assertEqual((self.workdir / "facets_unused.321").read_text(encoding="ascii"), "")
+
+    def test_copy_geom_outputs_copies_existing_facets_unused(self):
+        geom_path = self.workdir / "geom"
+        geom_path.mkdir()
+        for name in ("solid_c.txt", "fluid_boundary_c.txt", "facet_sections_c.txt"):
+            (geom_path / name).write_text("# header\n1 2 3\n", encoding="ascii")
+        for name in ("facetarea.inp.999", "facets.inp.999", "factypes.inp.999"):
+            (geom_path / name).write_text("# header\n1\n", encoding="ascii")
+        (geom_path / "facets_unused.999").write_text("2,4\n", encoding="ascii")
+
+        section = self._make_section(
+            gen_geom=False,
+            geom_path=str(geom_path),
+            iwallmom=1,
+            ltempeq=True,
+        )
+        section.sim.geom = types.SimpleNamespace(stl=types.SimpleNamespace(faces=[0, 1, 2, 3]))
+        section.sim.calculate_facet_sections_uvw = False
+        section.sim.calculate_facet_sections_c = True
+        section.save_param = mock.Mock()
+
+        section.copy_geom_outputs()
+
+        self.assertEqual((self.workdir / "facets_unused.321").read_text(encoding="ascii"), "2,4\n")
 
 
 class TestUDPrepCore(unittest.TestCase):

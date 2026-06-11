@@ -29,6 +29,8 @@ class IBMSection(Section):
     def run_all(self, backend: str = "f2py") -> None:
         """Run IBM preprocessing steps in the standard order."""
         sim = self._require_sim()
+        self.sim.calculate_facet_sections_uvw = self.iwallmom > 1
+        self.sim.calculate_facet_sections_c = self.ltempeq or self.lmoist or self.lwritefac
         steps = []
 
         if self.libm:
@@ -40,6 +42,10 @@ class IBMSection(Section):
                         ("write_facetarea", self.write_facetarea),
                     ]
                 )
+                if self.calculate_facet_sections_c:
+                    steps.extend([
+                        ("write_facets_unused", self.write_facets_unused),
+                    ])
 
                 factypes_path = Path(sim.path) / f"factypes.inp.{sim.expnr}"
                 if not factypes_path.exists():
@@ -147,6 +153,37 @@ class IBMSection(Section):
         sim.nfcts = len(stl.faces)
         sim.facet_types = facet_types
 
+    def write_facets_unused(self) -> None:
+        """Write facets_unused.<expnr> for facets without c-grid facet sections."""
+        sim = self._require_sim()
+        if not self.calculate_facet_sections_c:
+            return
+
+        facet_sections_path = Path(sim.path) / "facet_sections_c.txt"
+        if not facet_sections_path.is_file():
+            raise FileNotFoundError(f"Missing {facet_sections_path}")
+
+        if self.nfcts < 1:
+            raise ValueError("Cannot write facets_unused without a positive facet count")
+
+        try:
+            facet_sections = np.loadtxt(facet_sections_path, comments="#")
+        except ValueError:
+            facet_sections = np.empty((0, 4), dtype=float)
+
+        if facet_sections.size == 0:
+            facets_used = np.array([], dtype=int)
+        else:
+            facet_sections = np.atleast_2d(facet_sections)
+            facets_used = np.unique(facet_sections[:, 0].astype(int))
+
+        facets_unused = np.setdiff1d(np.arange(1, self.nfcts + 1, dtype=int), facets_used)
+        out_path = Path(sim.path) / f"facets_unused.{sim.expnr}"
+        with out_path.open("w", encoding="ascii", newline="\n") as f:
+            if facets_unused.size:
+                f.write(",".join(str(int(facet)) for facet in facets_unused))
+                f.write("\n")
+
     def write_facetarea(self) -> None:
         """Write facetarea.inp file (facet areas)."""
         sim = self._require_sim()
@@ -185,21 +222,22 @@ class IBMSection(Section):
                 raise FileNotFoundError(f"No files matching '{pattern}' found in {geom_path}")
             for source in sources:
                 shutil.copy2(source, Path(sim.path) / source.name)
-        calculate_facet_sections_uvw = self.iwallmom > 1
-        calculate_facet_sections_c = self.ltempeq or self.lmoist or self.lwritefac
-        if calculate_facet_sections_uvw:
+        if self.calculate_facet_sections_uvw:
             for pattern in ("facet_sections_u*", "facet_sections_v*", "facet_sections_w*"):
                 sources = list(geom_path.glob(pattern))
                 if not sources:
                     raise FileNotFoundError(f"No files matching '{pattern}' found in {geom_path}")
                 for source in sources:
                     shutil.copy2(source, Path(sim.path) / source.name)
-        if calculate_facet_sections_c:
+        if self.calculate_facet_sections_c:
             sources = list(geom_path.glob("facet_sections_c*"))
             if not sources:
                 raise FileNotFoundError(f"No files matching 'facet_sections_c*' found in {geom_path}")
             for source in sources:
                 shutil.copy2(source, Path(sim.path) / source.name)
+            unused_sources = sorted(geom_path.glob("facets_unused.*"))
+            if unused_sources:
+                shutil.copy2(unused_sources[0], Path(sim.path) / f"facets_unused.{sim.expnr}")
         for base in ("facetarea.inp", "facets.inp", "factypes.inp"):
             sources = list(geom_path.glob(f"{base}.*"))
             if not sources:
