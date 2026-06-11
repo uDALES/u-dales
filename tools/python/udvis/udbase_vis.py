@@ -271,7 +271,7 @@ class UDVis:
             veg = self.sim.veg
         points = np.asarray(veg.get("points", []))
         if points.size == 0:
-            return self._missing_plot_data(f"veg.inp.{self.sim.expnr} contains no vegetation points")
+            return self._missing_plot_data(f"veg.inp.{self.sim.expnr} data not found or contains no points")
 
         max_points = 50000
         if len(points) > max_points:

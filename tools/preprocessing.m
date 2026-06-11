@@ -687,22 +687,31 @@ classdef preprocessing < dynamicprops
         function stretch_exp(obj)
             il = round(obj.hlin / obj.dzlin);
             ir  = obj.ktot - il;
+            if il > 0
+                dz0 = obj.hlin / il;
+            else
+                dz0 = obj.dzlin;
+            end
 
             preprocessing.addvar(obj, 'zf', zeros(1, obj.ktot));
             preprocessing.addvar(obj, 'dzf', zeros(1, obj.ktot));
             preprocessing.addvar(obj, 'zh', zeros(1, obj.ktot+1));
 
-            obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.hlin;
-            obj.zh(1:il+1) = 0 : obj.dzlin : obj.hlin;
+            if il > 0
+                obj.zh(1:il+1) = linspace(0, obj.hlin, il+1);
+                obj.zf(1:il) = 0.5 * (obj.zh(1:il) + obj.zh(2:il+1));
+            else
+                obj.zh(1) = 0;
+            end
 
             gf = obj.stretchconst;
 
             while true
                 obj.zh(il + 1:end) = obj.zh(il + 1) + (obj.zsize - obj.zh(il+1)) * (exp(gf * (0:1:ir) / (ir)) - 1)/(exp(gf) - 1); %dh has been replaced by zsize
-                if (obj.zh(il+2) - obj.zh(il + 1)) < obj.dzlin
+                if (obj.zh(il+2) - obj.zh(il + 1)) < dz0
                     gf = gf - 0.01; %make sufficiently small steps to avoid an initial bump in dz
                 else
-                    if (obj.zh(end) - obj.zh(end - 1)) > 3 * obj.dzlin
+                    if (obj.zh(end) - obj.zh(end - 1)) > 3 * dz0
                         disp('Warnning: final grid spacing large - consider reducing domain height')
                     end
                     break
@@ -782,23 +791,32 @@ classdef preprocessing < dynamicprops
         function stretch_tanh(obj)
             il = round(obj.hlin / obj.dzlin);
             ir  = obj.ktot - il;
+            if il > 0
+                dz0 = obj.hlin / il;
+            else
+                dz0 = obj.dzlin;
+            end
 
             preprocessing.addvar(obj, 'zf', zeros(1, obj.ktot));
             preprocessing.addvar(obj, 'dzf', zeros(1, obj.ktot));
             preprocessing.addvar(obj, 'zh', zeros(1, obj.ktot + 1));
 
-            obj.zf(1:il) = 0.5 * obj.dzlin : obj.dzlin : obj.hlin;
-            obj.zh(1:il+1) = 0 : obj.dzlin : obj.hlin;
+            if il > 0
+                obj.zh(1:il+1) = linspace(0, obj.hlin, il+1);
+                obj.zf(1:il) = 0.5 * (obj.zh(1:il) + obj.zh(2:il+1));
+            else
+                obj.zh(1) = 0;
+            end
 
             gf = obj.stretchconst;
 
             while true
                 obj.zh(il + 1:end) = obj.zh(il + 1) + (obj.zsize - obj.zh(il + 1)) * (1 - tanh(gf * (1 - 2 * (0:1:ir) / (2*ir))) / tanh(gf));
 
-            if (obj.zh(il + 2) - obj.zh(il + 1)) < obj.dzlin
+            if (obj.zh(il + 2) - obj.zh(il + 1)) < dz0
                 gf = gf - 0.01; % make sufficiently small steps to avoid an initial bump in dz
             else
-                if (obj.zh(end) - obj.zh(end - 1)) > 3 * obj.dzlin
+                if (obj.zh(end) - obj.zh(end - 1)) > 3 * dz0
                 disp('Warning: final grid spacing large - consider reducing domain height')
                 end
                 break
@@ -815,21 +833,30 @@ classdef preprocessing < dynamicprops
         function stretch_2tanh(obj)
             il = round(obj.hlin / obj.dzlin);
             ir  = obj.ktot - il;
+            if il > 0
+                dz0 = obj.hlin / il;
+            else
+                dz0 = obj.dzlin;
+            end
 
             preprocessing.addvar(obj, 'zf', zeros(1, obj.ktot));
             preprocessing.addvar(obj, 'dzf', zeros(1, obj.ktot));
             preprocessing.addvar(obj, 'zh', zeros(1, obj.ktot+1));
 
-            obj.zf(1:il) = 0.5 * obj.dzlin:obj.dzlin:obj.hlin;
-            obj.zh(1:il+1) = 0:obj.dzlin:obj.hlin;
+            if il > 0
+                obj.zh(1:il+1) = linspace(0, obj.hlin, il+1);
+                obj.zf(1:il) = 0.5 * (obj.zh(1:il) + obj.zh(2:il+1));
+            else
+                obj.zh(1) = 0;
+            end
             gf = obj.stretchconst;
 
             while true
                 obj.zh(il+1:end) = obj.zh(il+1) + (obj.zsize - obj.zh(il+1)) / 2 * (1 - tanh(gf * (1 - 2 * (0:1:ir)/(ir))) / tanh(gf));
-                if (obj.zh(il + 2) - obj.zh(il + 1)) < obj.dzlin
+                if (obj.zh(il + 2) - obj.zh(il + 1)) < dz0
                     gf = gf - 0.01; % make sufficiently small steps to avoid an initial bump in dz
                 else
-                    if (max(diff(obj.zh))) > 3 * obj.dzlin
+                    if (max(diff(obj.zh))) > 3 * dz0
                         disp('Warning: final grid spacing large - consider reducing domain height')
                     end
                     break

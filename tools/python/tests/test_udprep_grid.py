@@ -109,6 +109,26 @@ class TestGridSection(unittest.TestCase):
         np.testing.assert_allclose(section.zt, section.zm + 0.5 * section.dzt)
         np.testing.assert_allclose(section.dzt, np.diff(np.append(section.zm, 12.0)))
 
+    def test_stretch_exp_check_avoids_zero_alpha_root_for_case_993_grid(self):
+        section, _ = make_grid_section(
+            lzstretch=1,
+            lstretchexpcheck=1,
+            zsize=100.0,
+            ktot=128,
+            hlin=25.0,
+            dzlin=0.4,
+        )
+        section._refresh_derived_grid_params()
+        section.generate_zgrid()
+
+        self.assertEqual(len(section.zm), 128)
+        self.assertEqual(len(section.zt), 128)
+        self.assertTrue(np.all(np.isfinite(section.zt)))
+        self.assertTrue(np.all(np.diff(section.zm) > 0.0))
+        np.testing.assert_allclose(section.zt[:63], 0.2 + 0.4 * np.arange(63))
+        self.assertAlmostEqual(float(section.zt[63]), 25.402856293747867)
+        self.assertAlmostEqual(float(section.zm[-1] + section.dzt[-1]), 100.0)
+
     def test_tanh_stretch_uses_computational_mapping_and_keeps_linear_prefix(self):
         # hlin=3.0 / dzlin=1.5 → loop converges to gf≈0.85,
         # last spacing ≈ 2.6 m ≤ 3×dzlin=4.5 m, so no RuntimeWarning fires.
@@ -190,6 +210,31 @@ class TestGridSection(unittest.TestCase):
         self.assertTrue(np.all(np.diff(section.zm) > 0.0))
         # Domain top is respected
         self.assertAlmostEqual(float(section.zm[-1] + section.dzt[-1]), 20.0)
+
+    def test_non_expcheck_stretch_methods_keep_hlin_as_transition_face(self):
+        methods = ("lstretchexp", "lstretchtanh", "lstretch2tanh")
+
+        for method in methods:
+            with self.subTest(method=method):
+                section, _ = make_grid_section(
+                    lzstretch=1,
+                    zsize=100.0,
+                    ktot=128,
+                    hlin=25.0,
+                    dzlin=0.4,
+                    stretchconst=2.0,
+                    **{method: 1},
+                )
+                section._refresh_derived_grid_params()
+                section.generate_zgrid()
+
+                il = GridSection._matlab_round_int(25.0 / 0.4)
+                linear_faces = np.append(section.zm[:il], 25.0)
+                np.testing.assert_allclose(linear_faces, np.linspace(0.0, 25.0, il + 1))
+                self.assertLess(section.zt[il - 1], 25.0)
+                self.assertGreater(section.zt[il], 25.0)
+                self.assertTrue(np.all(np.diff(section.zm) > 0.0))
+                self.assertAlmostEqual(float(section.zm[-1] + section.dzt[-1]), 100.0)
 
     def test_warn_large_top_spacing_emits_runtime_warning(self):
         section, _ = make_grid_section(
