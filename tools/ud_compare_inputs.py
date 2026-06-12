@@ -53,7 +53,7 @@ def try_import_netcdf():
     _setup_script = os.path.join(_tools_dir, 'python', 'setup_venv.sh')
     print("netCDF4 or numpy not available.")
     print("Run the following command to set up the required environment:")
-    print(f"   bash {_setup_script}")
+    print(f"   bash {_setup_script} <common|icl>")
     sys.exit(1)
 
 

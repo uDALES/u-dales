@@ -248,7 +248,7 @@ VENV_DIR="$REPO_ROOT/tools/python/.venv"
 # Python virtual environment must exist for the comparison phase
 if [ ! -d "$VENV_DIR" ]; then
     print_red "[MISSING] Python virtual environment not found: $VENV_DIR"
-    print_red "         Run '$REPO_ROOT/tools/python/setup_venv.sh' to set it up."
+    print_red "         Run 'bash $REPO_ROOT/tools/python/setup_venv.sh common preprocessing_tools' to set it up."
     preflight_ok=false
 elif [ ! -f "$VENV_DIR/bin/python3" ] && [ ! -f "$VENV_DIR/bin/python" ]; then
     print_red "[MISSING] Python interpreter not found inside virtual environment: $VENV_DIR"

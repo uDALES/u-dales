@@ -40,7 +40,8 @@ tools/                        # (repo root)
 
 ### Step 1 — Set up the Python virtual environment (once)
 
-`ud_compare_outputs.py` and `ud_compare_inputs.py` require `netCDF4` and `numpy`, and the preprocessing tests use the same Python tooling environment. Run `tools/python/setup_venv.sh` once to create an isolated virtual environment with all required dependencies.
+`ud_compare_outputs.py` and `ud_compare_inputs.py` require `netCDF4` and `numpy`, and the preprocessing tests use the same Python tooling environment. Run `tools/python/setup_venv.sh common` once to create an isolated virtual environment with all required dependencies.
+Use `icl` instead of `common` on the Imperial HPC cluster.
 
 #### Requirements
 
@@ -49,7 +50,11 @@ tools/                        # (repo root)
 #### Setup (run once from the repo root)
 
 ```bash
-bash tools/python/setup_venv.sh
+# For a local machine
+bash tools/python/setup_venv.sh common
+
+# For the Imperial HPC machine
+bash tools/python/setup_venv.sh icl
 ```
 
 The script will:
@@ -66,7 +71,12 @@ Answering **N** skips installation/rebuild and runs validation checks on the exi
 
 ```bash
 rm -rf tools/python/.venv
-bash tools/python/setup_venv.sh
+
+# For a local machine
+bash tools/python/setup_venv.sh common
+
+# For the Imperial HPC machine
+bash tools/python/setup_venv.sh icl
 ```
 
 #### Notes

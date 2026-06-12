@@ -97,7 +97,7 @@ if [ "$route" == "python" ]; then
 	python_exe="$DA_TOOLSDIR/python/.venv/bin/python"
 	if [ ! -x "$python_exe" ]; then
 		echo "Python virtual environment not found or not executable: $python_exe"
-		echo "Set it up with: $DA_TOOLSDIR/python/setup_venv.sh"
+		echo "Set it up with: bash $DA_TOOLSDIR/python/setup_venv.sh <common|icl>"
 		echo "... execution terminated"
 		exit 1
 	fi
@@ -114,10 +114,11 @@ if [ "$start" == "c" ]; then
 cat <<EOF > pre-job.$iexpnr
 #!/bin/bash
 #PBS -l walltime=24:00:00
-#PBS -l select=1:ncpus=8:mem=64gb
+#PBS -l select=1:ncpus=8:mem=128gb
 
 module load tools/prod
 module load GCC/14.2.0
+module load Python/3.13.1-GCCcore-14.2.0
 
 cd "$DA_TOOLSDIR"
 

@@ -80,7 +80,13 @@ if r.ltrees || r.ltreesfile
     disp(['Written trees.inp.', r.expnr])
     disp('Generating sparse vegetation inputs from trees (python)')
     pyscript = [DA_TOOLSDIR '/python/convert_trees_to_sparse.py'];
-    pycmd = sprintf(['bash -lc "python3 ''%s'' ''%s'' ''%s''"'], pyscript, expnr, fpath);
+    pyexe = [DA_TOOLSDIR '/python/.venv/bin/python'];
+    if ~isfile(pyexe)
+        fprintf('Python executable does not exist: %s\n', pyexe);
+        fprintf(['Please ensure the Python virtual environment is set up correctly by running ' DA_TOOLSDIR '/tools/python/setup_venv.sh\n']);
+        error('Necessary Python executable not found. Cannot convert trees to sparse vegetation inputs.');
+    end
+    pycmd = sprintf('%s %s %s %s', pyexe, pyscript, expnr, fpath);
     [status, cmdout] = system(pycmd);
     if status ~= 0
         error('Veg conversion failed: %s', cmdout);
@@ -140,6 +146,7 @@ if r.libm
         ktot = r.ktot;
         dx = r.dx;
         dy = r.dy;
+        n_threads = r.nompthreads;
 
         if r.isolid_bound == 1     % uses in-house fortran routine
             lmypolyfortran = 1;

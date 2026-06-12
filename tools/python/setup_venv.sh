@@ -5,12 +5,11 @@
 # through the standalone preprocessing CMake entry point.
 #
 # Usage (run from the repository root):
-#   bash tools/python/setup_venv.sh [build_system] [build_target]
+#   bash tools/python/setup_venv.sh <build_system> [build_target]
 #
 # Arguments:
-#   build_system   Build environment to use.
+#   build_system   Build environment to use. Required.
 #                  Allowed values : common | icl
-#                  Default        : common
 #                    common - local Linux / WSL system (no module loading)
 #                    icl    - Imperial College London HPC cluster
 #                             (loads CMake and Python environment modules)
@@ -26,7 +25,7 @@
 #   PYTHON_BIN     Python interpreter to use for creating the venv.
 #                  Default: python3
 #                  Override when the system python3 lacks development headers:
-#                    PYTHON_BIN=/opt/pbs/python/bin/python3 bash tools/python/setup_venv.sh
+#                    PYTHON_BIN=/opt/pbs/python/bin/python3 bash tools/python/setup_venv.sh common
 #
 #   VENV_DIR       Explicit path for the virtual environment directory.
 #                  Default: tools/python/.venv (relative to the repository root)
@@ -38,8 +37,8 @@
 #     Answering N skips installation/rebuild and validates the existing venv.
 #
 # Examples:
-#   # Default local setup
-#   bash tools/python/setup_venv.sh
+#   # Local setup
+#   bash tools/python/setup_venv.sh common
 #
 #   # Local setup, View3D only (no f2py modules)
 #   bash tools/python/setup_venv.sh common view3d
@@ -48,7 +47,7 @@
 #   bash tools/python/setup_venv.sh icl preprocessing_tools
 #
 #   # Use a specific Python interpreter
-#   PYTHON_BIN=/opt/pbs/python/bin/python3 bash tools/python/setup_venv.sh
+#   PYTHON_BIN=/opt/pbs/python/bin/python3 bash tools/python/setup_venv.sh common
 
 set -euo pipefail
 
@@ -69,9 +68,9 @@ print_red() { echo -e "${RED}$1${NC}"; }
 print_yellow() { echo -e "${YELLOW}$1${NC}"; }
 
 usage() {
-    echo "Usage: bash tools/python/setup_venv.sh [build_system] [build_target]"
+    echo "Usage: bash tools/python/setup_venv.sh <build_system> [build_target]"
     echo ""
-    echo "  build_system   Build environment to use (default: common)"
+    echo "  build_system   Build environment to use (required)"
     echo "                   common  - local Linux / WSL system"
     echo "                   icl     - Imperial College London HPC cluster"
     echo ""
@@ -101,8 +100,19 @@ check_python_headers() {
         echo "Expected: $python_include/Python.h"
         echo "The directshortwave f2py wrapper is mandatory."
         echo "Set PYTHON_BIN to an interpreter with headers, e.g."
-        echo "  PYTHON_BIN=/opt/pbs/python/bin/python3 ./tools/python/setup_venv.sh"
+        echo "  PYTHON_BIN=/opt/pbs/python/bin/python3 ./tools/python/setup_venv.sh common"
         exit 1
+    fi
+}
+
+load_build_environment() {
+    if [ "$BUILD_SYSTEM" = "icl" ]; then
+        print_yellow "Loading ICL environment modules..."
+        if ! command -v module >/dev/null 2>&1; then
+            die "Environment modules are not available; cannot use build system 'icl'."
+        fi
+        module load CMake/3.31.3-GCCcore-14.2.0
+        module load Python/3.13.1-GCCcore-14.2.0
     fi
 }
 
@@ -188,8 +198,15 @@ PY
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UDALES_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-BUILD_SYSTEM="${1:-common}"
+BUILD_SYSTEM="${1:-}"
 BUILD_TARGET="${2:-preprocessing_tools}"
+
+if [ -z "$BUILD_SYSTEM" ]; then
+    print_red "[ERROR] missing required build system."
+    echo ""
+    usage
+    exit 1
+fi
 
 if [[ "$BUILD_SYSTEM" != "common" && "$BUILD_SYSTEM" != "icl" ]]; then
     print_red "[ERROR] invalid build system '${BUILD_SYSTEM}'."
@@ -205,15 +222,14 @@ if [[ "$BUILD_TARGET" != "view3d" && "$BUILD_TARGET" != "preprocessing_tools" ]]
     exit 1
 fi
 
+load_build_environment
+
 DEFAULT_VENV_DIR="${UDALES_ROOT}/tools/python/.venv"
-LEGACY_VENV_DIR="${UDALES_ROOT}/.venv"
 
 if [ -n "${VENV_DIR:-}" ]; then
     VENV_DIR="$VENV_DIR"
 elif [ -d "$DEFAULT_VENV_DIR" ]; then
     VENV_DIR="$DEFAULT_VENV_DIR"
-elif [ -d "$LEGACY_VENV_DIR" ]; then
-    VENV_DIR="$LEGACY_VENV_DIR"
 else
     VENV_DIR="$DEFAULT_VENV_DIR"
 fi
@@ -226,9 +242,6 @@ echo "Python interpreter: $PYTHON_BIN"
 echo "Virtual environment: $VENV_DIR"
 echo "Build system:        $BUILD_SYSTEM"
 echo "Build target:        $BUILD_TARGET"
-if [ "$VENV_DIR" = "$LEGACY_VENV_DIR" ]; then
-    echo "Note: using legacy repo-local virtual environment. New setups default to $DEFAULT_VENV_DIR"
-fi
 echo ""
 
 if ! command -v "$PYTHON_BIN" &> /dev/null; then
@@ -292,15 +305,16 @@ if [ "$SKIP_INSTALL" = false ]; then
     else
         print_yellow "[WARN] requirements-build.txt not found at ${SCRIPT_DIR}/requirements-build.txt"
     fi
-
-    echo "Building preprocessing tools..."
-    PREPROCESSING_PYTHON_EXECUTABLE="$(command -v python)" \
-        "${UDALES_ROOT}/tools/build_preprocessing.sh" "${BUILD_SYSTEM}" "${BUILD_TARGET}"
 else
-    echo "Installation and build steps skipped."
+    echo "Installation steps skipped."
 fi
 
 run_import_checks
+
+echo "Building preprocessing tools..."
+PREPROCESSING_PYTHON_EXECUTABLE="$(command -v python)" \
+    "${UDALES_ROOT}/tools/build_preprocessing.sh" "${BUILD_SYSTEM}" "${BUILD_TARGET}"
+
 run_f2py_checks
 
 echo ""

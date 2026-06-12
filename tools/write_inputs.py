@@ -36,7 +36,7 @@ Environment
     tools/python/setup_venv.sh. Following commands can be run
     from the repository root to set up and activate it:
 
-        bash tools/python/setup_venv.sh
+        bash tools/python/setup_venv.sh <common|icl>
         source tools/python/.venv/bin/activate
         python tools/write_inputs.py
 
@@ -77,7 +77,7 @@ except ImportError:
     _setup_script = script_dir / "python" / "setup_venv.sh"
     print("Required Python packages are not available.")
     print("Set up the virtual environment by running:")
-    print(f"   {_setup_script}")
+    print(f"   bash {_setup_script} <common|icl>")
     print("Then activate it and re-run this script as below:")
     print(f"   source {script_dir / 'python' / '.venv' / 'bin' / 'activate'}")
     print(f"   python {script_dir / Path(__file__).name}")

@@ -16,7 +16,11 @@ environment, installs all dependencies, and builds the preprocessing
 tools (View3D and f2py extension modules):
 
 ```bash
-bash tools/python/setup_venv.sh
+# For a local machine
+bash tools/python/setup_venv.sh common
+
+# For the Imperial HPC machine
+bash tools/python/setup_venv.sh icl
 ```
 
 Then activate and use:
@@ -57,14 +61,12 @@ deactivate
 
 ## Setup Script Reference
 
-Both scripts accept the same arguments and behave identically in terms of
-logical steps. On Windows, `tools/build_preprocessing.sh` is bash-only, so
-the PowerShell script drives CMake directly instead.
+Both scripts perform the same logical setup steps. The Linux script requires the build system as its first positional argument; the PowerShell script uses named parameters with Windows/local defaults. On Windows, `tools/build_preprocessing.sh` is bash-only, so the PowerShell script drives CMake directly instead.
 
 ### Linux / WSL
 
-```
-bash tools/python/setup_venv.sh [build_system] [build_target]
+```bash
+bash tools/python/setup_venv.sh <build_system> [build_target]
 ```
 
 ### Windows (PowerShell)
@@ -77,7 +79,7 @@ bash tools/python/setup_venv.sh [build_system] [build_target]
 
 | Argument | Allowed values | Default | Description |
 |---|---|---|---|
-| `build_system` | `common`, `icl` (Linux only) | `common` | `common` — local Linux/WSL/Windows; `icl` — Imperial College London HPC cluster (Linux only, loads environment modules) |
+| `build_system` | `common`, `icl` (Linux only) | Linux: required; Windows: `common` | `common` — local Linux/WSL/Windows; `icl` — Imperial College London HPC cluster (Linux only, loads environment modules) |
 | `build_target` | `view3d`, `preprocessing_tools` | `preprocessing_tools` | `view3d` — View3D executable only; `preprocessing_tools` — View3D + f2py extension modules |
 
 ### Environment variable overrides
@@ -90,8 +92,8 @@ bash tools/python/setup_venv.sh [build_system] [build_target]
 ### Examples (Linux / WSL)
 
 ```bash
-# Default local setup
-bash tools/python/setup_venv.sh
+# Local setup
+bash tools/python/setup_venv.sh common
 
 # View3D only
 bash tools/python/setup_venv.sh common view3d
@@ -100,7 +102,7 @@ bash tools/python/setup_venv.sh common view3d
 bash tools/python/setup_venv.sh icl preprocessing_tools
 
 # Use a specific Python interpreter
-PYTHON_BIN=/opt/pbs/python/bin/python3 bash tools/python/setup_venv.sh
+PYTHON_BIN=/opt/pbs/python/bin/python3 bash tools/python/setup_venv.sh common
 ```
 
 ### Examples (Windows)
@@ -121,7 +123,7 @@ $env:PYTHON_BIN = "C:\Python312\python.exe"
 
 - If the venv directory does not exist it is created from scratch.
 - If it already exists the script prompts whether to recreate it (default: **N**).
-  Answering N exits immediately without reinstalling packages or rebuilding.
+  Answering N skips package installation/rebuild and runs validation checks.
 
 ---
 

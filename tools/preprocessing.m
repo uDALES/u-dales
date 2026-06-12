@@ -251,6 +251,7 @@ classdef preprocessing < dynamicprops
             preprocessing.addvar(obj, 'geom_path', '') % if not generating the geometry, the path to the geometry files
             preprocessing.addvar(obj, 'diag_neighbs', true)
             preprocessing.addvar(obj, 'stl_ground', true) % Does STL include facets at ground
+            preprocessing.addvar(obj, 'nompthreads', 8) % number of threads for parallel processing of solid flid identification fortran code
 
             if obj.lzstretch
                 preprocessing.addvar(obj, 'stretchconst', 0.01)

@@ -35,7 +35,7 @@ disp('Determining both fluid/solid points and facet sections using Fortran.')
 
 %%Compile Fortran script
 
-n_threads = 8;
+% n_threads = 8; % already set in write_inputs.m
 in_mypoly_fortran_path = [folder '/IBM_preproc_fortran/'];
 addpath(in_mypoly_fortran_path)
 cd(in_mypoly_fortran_path);

@@ -23,13 +23,6 @@
 #                                          IBM f2py extension modules
 #                                          (requires numpy and Python headers)
 #
-# Environment variables (optional overrides):
-#   PREPROCESSING_PYTHON_EXECUTABLE
-#                  Python interpreter used for the CMake build and f2py
-#                  compilation. Defaults to the first python or python3 on PATH.
-#                  The f2py targets are silently disabled if numpy or Python.h
-#                  are not available for the chosen interpreter.
-#
 # Output:
 #   tools/preprocessing/build/bin/view3d
 #     View3D executable (also symlinked to tools/View3D/build/src/view3d for
@@ -49,10 +42,6 @@
 #   # Full build on the ICL cluster
 #   tools/build_preprocessing.sh icl preprocessing_tools
 #
-#   # Use a specific Python interpreter for the f2py modules
-#   PREPROCESSING_PYTHON_EXECUTABLE=/opt/pbs/python/bin/python3 \
-#       tools/build_preprocessing.sh common preprocessing_tools
-
 set -euo pipefail
 
 # Usage: ./tools/build_preprocessing.sh [common / icl] [target]
@@ -65,36 +54,76 @@ then
  exit 1
 fi
 
-if [ ! -d tools ]; then
-    echo "Please run this script from being inside the u-dales folder"
-    exit 1
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UDALES_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${UDALES_ROOT}"
 
 system=$1
 target=${2:-view3d}
+python_venv_dir="${UDALES_ROOT}/tools/python/.venv"
 
-if [ $system == "icl" ]
-then
-    module load CMake/3.31.8-GCCcore-14.3.0
-    module load Python/3.9.6-GCCcore-11.2.0
-elif [ $system == "common" ]
-then
-    echo "Building preprocessing target '${target}' on local system."
-else
-    echo "This configuration is not avalable"
+find_python_venv() {
+    if [ -d "${python_venv_dir}" ]; then
+        return 0
+    fi
+
+    return 1
+}
+
+require_python_venv_for_preprocessing_tools() {
+    if [ "$target" != "preprocessing_tools" ]; then
+        return
+    fi
+
+    if find_python_venv; then
+        return
+    fi
+
+    echo "[ERROR] Python virtual environment is required to build target 'preprocessing_tools'."
+    echo "Expected virtual environment: ${UDALES_ROOT}/tools/python/.venv"
+    echo ""
+    echo "Set it up from the repository root with:"
+    echo "  bash ${UDALES_ROOT}/tools/python/setup_venv.sh $system preprocessing_tools"
+    echo ""
+    echo "The setup script creates the virtual environment and internally runs:"
+    echo "  ${UDALES_ROOT}/tools/build_preprocessing.sh $system preprocessing_tools"
+    echo "so you do not need to run build_preprocessing.sh explicitly after setup completes."
+    exit 1
+}
+
+if [[ "$system" != "common" && "$system" != "icl" ]]; then
+    echo "This configuration is not available"
     exit 1
 fi
 
-python_cmd="${PREPROCESSING_PYTHON_EXECUTABLE:-}"
-if [ -z "${python_cmd}" ]; then
-    if command -v python >/dev/null 2>&1; then
-        python_cmd="$(command -v python)"
-    elif command -v python3 >/dev/null 2>&1; then
-        python_cmd="$(command -v python3)"
-    elif [ "${target}" != "view3d" ]; then
-        echo "Neither python nor python3 was found; cannot configure preprocessing build."
-        exit 1
-    fi
+if [[ "$target" != "view3d" && "$target" != "preprocessing_tools" ]]; then
+    echo "Invalid preprocessing target: $target"
+    echo "available targets: view3d, preprocessing_tools (view3d + f2py modules)"
+    exit 1
+fi
+
+require_python_venv_for_preprocessing_tools
+
+if [ "$system" == "icl" ]
+then
+    module load CMake/3.31.3-GCCcore-14.2.0
+    module load Python/3.13.1-GCCcore-14.2.0
+elif [ "$system" == "common" ]
+then
+    echo "Building preprocessing target '${target}' on local system."
+fi
+
+python_cmd=""
+if [ -x "${python_venv_dir}/bin/python" ]; then
+    python_cmd="${python_venv_dir}/bin/python"
+elif [ -x "${python_venv_dir}/bin/python3" ]; then
+    python_cmd="${python_venv_dir}/bin/python3"
+elif [ "${target}" = "preprocessing_tools" ]; then
+    echo "[ERROR] Python executable not found in ${python_venv_dir}/bin"
+    echo "Expected one of:"
+    echo "  ${python_venv_dir}/bin/python"
+    echo "  ${python_venv_dir}/bin/python3"
+    exit 1
 fi
 
 if [ -n "${python_cmd}" ]; then
@@ -138,18 +167,18 @@ if [ -f "${build_dir}/bin/view3d" ]; then
     legacy_view3d_dir="tools/View3D/build/src"
     mkdir -p "${legacy_view3d_dir}"
     ln -sfn "../../../preprocessing/build/bin/view3d" "${legacy_view3d_dir}/view3d"
-    echo "View3D executable available at ${build_dir}/bin/view3d"
-    echo "MATLAB compatibility path available at ${legacy_view3d_dir}/view3d"
+    echo "View3D executable available at ${UDALES_ROOT}/${build_dir}/bin/view3d"
+    echo "MATLAB compatibility path available at ${UDALES_ROOT}/${legacy_view3d_dir}/view3d"
 fi
 if compgen -G "tools/python/udprep/directshortwave_f2py*.so" >/dev/null; then
-    echo "directshortwave f2py module available at tools/python/udprep/"
+    echo "directshortwave f2py module available at ${UDALES_ROOT}/tools/python/udprep/"
 elif [ "${require_f2py}" -eq 1 ]; then
-    echo "WARNING: directshortwave f2py module missing in tools/python/udprep/"
+    echo "WARNING: directshortwave f2py module missing in ${UDALES_ROOT}/tools/python/udprep/"
     echo "         This usually means the preprocessing Python lacks numpy or Python headers."
 fi
 if compgen -G "tools/python/udprep/ibm_preproc_f2py*.so" >/dev/null; then
-    echo "IBM preprocessing f2py module available at tools/python/udprep/"
+    echo "IBM preprocessing f2py module available at ${UDALES_ROOT}/tools/python/udprep/"
 elif [ "${require_f2py}" -eq 1 ]; then
-    echo "WARNING: ibm_preproc f2py module missing in tools/python/udprep/"
+    echo "WARNING: ibm_preproc f2py module missing in ${UDALES_ROOT}/tools/python/udprep/"
     echo "         This usually means the preprocessing Python lacks numpy or Python headers."
 fi
