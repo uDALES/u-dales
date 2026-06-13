@@ -83,7 +83,7 @@ if r.ltrees || r.ltreesfile
     pyexe = [DA_TOOLSDIR '/python/.venv/bin/python'];
     if ~isfile(pyexe)
         fprintf('Python executable does not exist: %s\n', pyexe);
-        fprintf(['Please ensure the Python virtual environment is set up correctly by running ' DA_TOOLSDIR '/tools/python/setup_venv.sh\n']);
+        fprintf(['Please ensure the Python virtual environment is set up correctly by running ' DA_TOOLSDIR '/python/setup_venv.sh\n']);
         error('Necessary Python executable not found. Cannot convert trees to sparse vegetation inputs.');
     end
     pycmd = sprintf('%s %s %s %s', pyexe, pyscript, expnr, fpath);
