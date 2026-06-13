@@ -12,8 +12,8 @@
 #                  Allowed values : common | icl
 #                    common - local Linux / WSL system (no module loading)
 #                    icl    - Imperial College London HPC cluster
-#                             (loads CMake/3.31.8-GCCcore-14.3.0 and
-#                              Python/3.9.6-GCCcore-11.2.0 modules)
+#                             (loads CMake/3.31.3-GCCcore-14.2.0 and
+#                              Python/3.13.1-GCCcore-14.2.0 modules)
 #
 #   build_target   CMake target to build.
 #                  Allowed values : view3d | preprocessing_tools
@@ -22,6 +22,13 @@
 #                    preprocessing_tools  - View3D + directshortwave and
 #                                          IBM f2py extension modules
 #                                          (requires numpy and Python headers)
+#
+# Environment variables (optional overrides):
+#   PREPROCESSING_PYTHON_EXECUTABLE
+#                  Python interpreter used for the CMake build and f2py
+#                  compilation. Use this when dependencies are provided by a
+#                  managed environment, such as GitHub Actions' conda setup.
+#                  If unset, preprocessing_tools requires tools/python/.venv.
 #
 # Output:
 #   tools/preprocessing/build/bin/view3d
@@ -61,9 +68,33 @@ cd "${UDALES_ROOT}"
 system=$1
 target=${2:-view3d}
 python_venv_dir="${UDALES_ROOT}/tools/python/.venv"
+python_cmd=""
 
-find_python_venv() {
-    if [ -d "${python_venv_dir}" ]; then
+resolve_python_cmd() {
+    local requested_python="${PREPROCESSING_PYTHON_EXECUTABLE:-}"
+
+    if [ -n "${requested_python}" ]; then
+        if [ -x "${requested_python}" ]; then
+            python_cmd="${requested_python}"
+            return 0
+        fi
+
+        if command -v "${requested_python}" >/dev/null 2>&1; then
+            python_cmd="$(command -v "${requested_python}")"
+            return 0
+        fi
+
+        echo "[ERROR] PREPROCESSING_PYTHON_EXECUTABLE is not executable: ${requested_python}"
+        exit 1
+    fi
+
+    if [ -x "${python_venv_dir}/bin/python" ]; then
+        python_cmd="${python_venv_dir}/bin/python"
+        return 0
+    fi
+
+    if [ -x "${python_venv_dir}/bin/python3" ]; then
+        python_cmd="${python_venv_dir}/bin/python3"
         return 0
     fi
 
@@ -75,12 +106,13 @@ require_python_venv_for_preprocessing_tools() {
         return
     fi
 
-    if find_python_venv; then
+    if [ -n "${python_cmd}" ]; then
         return
     fi
 
-    echo "[ERROR] Python virtual environment is required to build target 'preprocessing_tools'."
+    echo "[ERROR] Python environment is required to build target 'preprocessing_tools'."
     echo "Expected virtual environment: ${UDALES_ROOT}/tools/python/.venv"
+    echo "or explicit interpreter: PREPROCESSING_PYTHON_EXECUTABLE=/path/to/python"
     echo ""
     echo "Set it up from the repository root with:"
     echo "  bash ${UDALES_ROOT}/tools/python/setup_venv.sh $system preprocessing_tools"
@@ -102,8 +134,6 @@ if [[ "$target" != "view3d" && "$target" != "preprocessing_tools" ]]; then
     exit 1
 fi
 
-require_python_venv_for_preprocessing_tools
-
 if [ "$system" == "icl" ]
 then
     module load CMake/3.31.3-GCCcore-14.2.0
@@ -113,18 +143,10 @@ then
     echo "Building preprocessing target '${target}' on local system."
 fi
 
-python_cmd=""
-if [ -x "${python_venv_dir}/bin/python" ]; then
-    python_cmd="${python_venv_dir}/bin/python"
-elif [ -x "${python_venv_dir}/bin/python3" ]; then
-    python_cmd="${python_venv_dir}/bin/python3"
-elif [ "${target}" = "preprocessing_tools" ]; then
-    echo "[ERROR] Python executable not found in ${python_venv_dir}/bin"
-    echo "Expected one of:"
-    echo "  ${python_venv_dir}/bin/python"
-    echo "  ${python_venv_dir}/bin/python3"
-    exit 1
+if ! resolve_python_cmd; then
+    python_cmd=""
 fi
+require_python_venv_for_preprocessing_tools
 
 if [ -n "${python_cmd}" ]; then
     echo "Using preprocessing Python: ${python_cmd}"
