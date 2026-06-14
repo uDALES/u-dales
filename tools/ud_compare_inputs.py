@@ -265,7 +265,8 @@ def run_comparison(dir1: str, exp_str1: str, dir2: str, exp_str2: str, tolerance
     for tag in (
         "facetarea.inp", "facets.inp", "facets_unused",
         "factypes.inp", "svf.inp", "netsw.inp",
-        "Tfacinit.inp", "heatpump.inp", "trees.inp",
+        "Tfacinit.inp", "heatpump.inp",
+        "trees.inp", "veg.inp", "veg_params.inp",
     ):
         compare_numeric_file(
             f"{tag}.{exp_str1}",

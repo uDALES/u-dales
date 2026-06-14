@@ -339,8 +339,10 @@ class IBMSection(Section):
             f.write(f"{sim.dx:15.10f} {sim.dy:15.10f}\n")
             f.write(f"{sim.itot:5d} {sim.jtot:5d} {sim.ktot:5d}\n")
             f.write(f"{self.ibmtol:15.10f}\n")
-            for _ in range(4):
-                f.write(f"{0.0:15.10f} {0.0:15.10f} {1.0:15.10f}\n") # always use vertically upward raydirection for solid-fluid classification
+            f.write(f"{0.0:15.10f} {0.0:15.10f} {1.0:15.10f}\n") # Ray casting direction for grid u
+            f.write(f"{0.0:15.10f} {0.0:15.10f} {1.0:15.10f}\n") # Ray casting direction for grid v
+            f.write(f"{0.0:15.10f} {0.0:15.10f} {1.0:15.10f}\n") # Ray casting direction for grid w
+            f.write(f"{0.0:15.10f} {0.0:15.10f} {1.0:15.10f}\n") # Ray casting direction for grid c
             f.write(f"{len(stl.vertices):8d} {len(stl.faces):8d}\n")
             f.write(f"{self.nompthreads:4d}\n")
             f.write(
