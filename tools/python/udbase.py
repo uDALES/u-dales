@@ -92,6 +92,7 @@ class UDBase:
             Experiment number. Converted to a zero-padded 3-digit string.
         path : str or Path, optional
             Path to the experiment directory. Defaults to current working directory.
+            A leading "~" is expanded to the user's home directory.
         load_geometry : bool, optional
             If True, load STL geometry when available.
         suppress_load_warnings : bool, optional
@@ -134,7 +135,7 @@ class UDBase:
         self.cpath = Path.cwd()
         if callable(path):
             path = path()
-        self.path = Path(path) if path else self.cpath
+        self.path = Path(path).expanduser() if path else self.cpath
 
         # Standard filenames and prefixes used across loaders, kept aligned
         # with the legacy MATLAB udbase defaults.

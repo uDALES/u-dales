@@ -9,7 +9,6 @@ from __future__ import annotations
 import sys
 from typing import Any, Dict, List, Optional, Union
 
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon as mplPolygon
@@ -704,7 +703,7 @@ class UDVis:
         if fig is not None:
             n_surfaces = max(int(result["n_surfaces"]), 1)
             norm = plt.Normalize(vmin=1, vmax=n_surfaces)
-            cmap = cm.get_cmap("viridis")
+            cmap = plt.get_cmap("viridis")
             centers = np.asarray(self.geom.stl.triangles_center, dtype=float)
 
             for surface in result["surfaces"]:
@@ -791,7 +790,7 @@ class UDVis:
             vmin = np.nanmin(selected_var[valid_mask])
             vmax = np.nanmax(selected_var[valid_mask])
             norm = plt.Normalize(vmin=vmin, vmax=vmax)
-            cmap = cm.get_cmap("viridis")
+            cmap = plt.get_cmap("viridis")
 
             face_colors = np.ones((len(selected_faces), 4))
             face_colors[valid_mask] = cmap(norm(selected_var[valid_mask]))

@@ -1,9 +1,11 @@
 import io
+import os
 import sys
 import unittest
 from contextlib import redirect_stderr
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 import numpy as np
 
@@ -47,6 +49,37 @@ class TestUDBaseCore(unittest.TestCase):
 
         self.assertIsInstance(sim.vis, UDVis)
         self.assertIs(sim.vis.sim, sim)
+
+    def test_constructor_expands_user_home_in_path(self):
+        fake_home = self.workdir / "home"
+        expdir = fake_home / "simulation" / "udtest" / "experiments" / "001"
+        expdir.mkdir(parents=True)
+        (expdir / "namoptions.001").write_text(
+            "\n".join(
+                [
+                    "&DOMAIN",
+                    " itot = 4",
+                    " jtot = 3",
+                    " ktot = 2",
+                    " xlen = 40.0",
+                    " ylen = 30.0",
+                    " zsize = 20.0",
+                    "/",
+                ]
+            )
+            + "\n",
+            encoding="ascii",
+        )
+
+        with patch.dict(os.environ, {"HOME": str(fake_home)}):
+            sim = UDBase(
+                "1",
+                "~/simulation/udtest/experiments/001",
+                load_geometry=False,
+                suppress_load_warnings=True,
+            )
+
+        self.assertEqual(sim.path, expdir)
 
     def test_constructor_sets_scalar_defaults_when_namoptions_omits_scalars(self):
         sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
