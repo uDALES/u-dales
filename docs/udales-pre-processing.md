@@ -17,8 +17,18 @@ export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of the scripts
 export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups
 ```
 
-Before running the preprocessing, one must build the View3D submodule. This is a one time task and should be done as soon as you clone u-dales from GitHub.
+Before running the preprocessing, one must build a virtual python environment as uDALES preprocessing setup is gradually moving towards Python; the MATLAB codes will depricate in near future. Run the virtual environment setup script from the repository root as given below. It creates the virtual environment, installs all dependencies, and builds the preprocessing tools (View3D and f2py extension modules). For more details on virtual environment set up see [here](./../tools/python/README_VENV.md):
 
+```bash
+# For a local machine
+bash tools/python/setup_venv.sh common
+
+# For the Imperial HPC machine
+bash tools/python/setup_venv.sh icl
+```
+This is a one time task and should be done as soon as you clone u-dales from GitHub. **Carry out the Python virtual environment setup irrespective of you use the MATLAB preprocessing route or the Python.**
+
+<!---
 ``` sh
 # We assume you are running the following commands from the u-dales directory.
 
@@ -28,6 +38,7 @@ Before running the preprocessing, one must build the View3D submodule. This is a
 # To build on ICL HPC
 ./tools/build_preprocessing.sh icl
 ```
+--->
 
 Then, to start the pre-processing, run:
 
@@ -56,7 +67,10 @@ For ICL HPC
 ./u-dales/tools/write_inputs.sh -m experiments/001 l
 
 # To run preprocessing on HPC compute node (recomended)
+# For MATLAB
 ./u-dales/tools/write_inputs.sh -m experiments/001 c
+# For Python
+./u-dales/tools/write_inputs.sh -p experiments/001 c
 ```
 
 In above example commands, replace 001 with the number of your example.
