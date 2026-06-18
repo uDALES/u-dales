@@ -20,7 +20,7 @@ clear variables
 close all
 
 % add the uDALES matlab path
-addpath('path_to_udales\tools\matlab')
+addpath(genpath('path_to_udales\tools\matlab'))
 ```
 
 ## The udgeom class
