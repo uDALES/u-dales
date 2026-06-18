@@ -10,9 +10,10 @@ Usage:
   exppathN   Parent outputs directory for case N (the exp_num subdirectory is appended)
   expN       Experiment number for case N (integer 1-999)
   tolerance  Max absolute error for NetCDF comparisons (default: 1e-6)
-             Detected automatically as the last argument if it parses as a float.
+             Detected as the final trailing float when one tolerance is supplied,
+             or as the first of two trailing floats.
   tol_thl    Tolerance for temperature variables (default: same as tolerance)
-             Detected automatically as the second-to-last float argument.
+             Detected as the second of two trailing floats.
 
   At least two cases (4 arguments) are required.
   All pairwise combinations are compared.
@@ -55,9 +56,10 @@ def _usage():
     print("")
     print("  exppathN   Parent outputs directory for case N")
     print("  expN       Experiment number for case N (integer 1-999)")
-    print("  tolerance  Max absolute error (default: 1e-6); detected as last arg if it parses as a float")
+    print("  tolerance  Max absolute error (default: 1e-6); detected as the final trailing float")
+    print("             when one tolerance is supplied, or as the first of two trailing floats")
     print("  tol_thl    Tolerance for temperature variables (default: same as tolerance)")
-    print("             Detected as second-to-last float argument when two trailing floats are given.")
+    print("             Detected as the second of two trailing floats.")
     print("")
     print("  At least two cases (4 arguments) are required.")
 
@@ -70,27 +72,33 @@ def _parse_args(argv):
         _usage()
         sys.exit(1)
 
-    # Detect optional trailing floats: tol_thl then tolerance (rightmost first)
     tolerance = 1e-6
     tol_thl = None  # None means "same as tolerance"
 
-    # Peel off up to two trailing float arguments (only when arg count would be odd after removal)
-    for _ in range(2):
-        if len(args) % 2 == 1:
-            try:
-                val = float(args[-1])
-                if tol_thl is None and _ == 0:
-                    # first peel: this is tolerance
-                    tolerance = val
-                else:
-                    # second peel: this is tol_thl (was to the left of tolerance)
-                    tol_thl = tolerance
-                    tolerance = val
-                args = args[:-1]
-            except ValueError:
-                print(f"[ERROR] Odd number of arguments and last argument '{args[-1]}' is not a float tolerance.")
-                _usage()
-                sys.exit(1)
+    # Optional trailing numeric arguments are interpreted after the required
+    # <exppath> <exp_num> pairs:
+    #   ... <tolerance>
+    #   ... <tolerance> <tol_thl>
+    if len(args) % 2 == 1:
+        try:
+            tolerance = float(args[-1])
+            args = args[:-1]
+        except ValueError:
+            print(f"[ERROR] Odd number of arguments and last argument '{args[-1]}' is not a float tolerance.")
+            _usage()
+            sys.exit(1)
+    elif len(args) >= 6:
+        try:
+            maybe_tolerance = float(args[-2])
+            maybe_tol_thl = float(args[-1])
+        except ValueError:
+            pass
+        else:
+            remaining = args[:-2]
+            if len(remaining) >= 4 and len(remaining) % 2 == 0:
+                tolerance = maybe_tolerance
+                tol_thl = maybe_tol_thl
+                args = remaining
 
     if tol_thl is None:
         tol_thl = tolerance

@@ -92,7 +92,7 @@ bash tools/python/setup_venv.sh icl
 Run from the `tests/system/` directory:
 
 ```bash
-# CPU build — default cases (224)
+# CPU build — default cases (100, 218, 224, 242, 807)
 ./ud_test_sim.sh ref_data/
 
 # CPU build — explicit
@@ -102,15 +102,17 @@ Run from the `tests/system/` directory:
 ./ud_test_sim.sh ref_data/ --system gpu
 
 # Override which cases to test
-./ud_test_sim.sh ref_data/ 100 201
-./ud_test_sim.sh ref_data/ 402 452 --system gpu
+./ud_test_sim.sh 100 201 ref_data/
+./ud_test_sim.sh 402 452 ref_data/ --system gpu
 
 # Custom tolerance
-./ud_test_sim.sh ref_data/ 224 --tolerance 1e-8
+./ud_test_sim.sh 224 ref_data/ --tolerance 1e-8
 
 # Separate tolerances for general and temperature variables
-./ud_test_sim.sh ref_data/ 224 --tolerance 1e-8 --tol-thl 1e-7
+./ud_test_sim.sh 224 ref_data/ --tolerance 1e-8 --tol-thl 1e-7
 ```
+
+When specific cases are supplied, place them before `ref_data/`. The last positional argument is always the reference data path.
 
 Progress and results are written to `logdir/test_common.log` or `logdir/test_gpu.log`.
 
@@ -130,11 +132,13 @@ Progress and results are written to `logdir/test_common.log` or `logdir/test_gpu
 ./ud_test_preprocess.sh -p ref_data/
 
 # Specific cases
-./ud_test_preprocess.sh -m ref_data/ 100 224
+./ud_test_preprocess.sh -m 100 224 ref_data/
 
 # Custom tolerance for numeric files
-./ud_test_preprocess.sh -m ref_data/ 224 --tolerance 1e-8
+./ud_test_preprocess.sh -m 224 ref_data/ --tolerance 1e-8
 ```
+
+When specific cases are supplied, place them before `ref_data/`. The last positional argument is always the reference data path.
 
 Progress and results are written to `test_inputs.log`.
 
@@ -179,6 +183,6 @@ The script exits with code `0` (all passed) or `1` (any failure).
    enable input comparison.
 4. Pass the case number on the command line:
    ```bash
-   ./ud_test_sim.sh ref_data/ <NNN>
-   ./ud_test_preprocess.sh -m ref_data/ <NNN>
+   ./ud_test_sim.sh <NNN> ref_data/
+   ./ud_test_preprocess.sh -m <NNN> ref_data/
    ```

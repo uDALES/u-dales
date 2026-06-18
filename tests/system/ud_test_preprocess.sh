@@ -9,14 +9,14 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Script usage function
 usage() {
-    echo "Usage: $0 <-m|-p> <ref_data_path> [case1 case2 ...] [--tolerance <val>] [--system <common|icl>]"
+    echo "Usage: $0 <-m|-p> [case1 case2 ...] <ref_data_path> [--tolerance <val>] [--system <common|icl>]"
     echo ""
     echo "Arguments:"
-    echo "  ref_data_path  : Path to the reference data directory (required)"
     echo "  -m             : Generate inputs with the MATLAB preprocessing route"
     echo "  -p             : Generate inputs with the Python preprocessing route"
     echo "  case1 ...      : Optional list of experiment cases (e.g., 100 201 224)"
     echo "                   If not specified, uses default cases: ${DEFAULT_TEST_CASES[*]}"
+    echo "  ref_data_path  : Path to the reference data directory (required; last positional argument)"
     echo "  --tolerance    : Max absolute error for numeric files (default: 1e-10)"
     echo "  --system       : Build system type for preprocessing: common or icl (default: common)"
     echo ""
@@ -27,10 +27,10 @@ usage() {
     echo ""
     echo "Examples:"
     echo "  $0 -m ref_data/                          # Run default cases with MATLAB route"
-    echo "  $0 -m ref_data/ 990 991                  # Run specific cases with MATLAB route"
-    echo "  $0 -p ref_data/ 995                      # Generate inputs with Python route"
-    echo "  $0 -m ref_data/ 992 --tolerance 1e-8"
-    echo "  $0 -m ref_data/ 993 --system icl"
+    echo "  $0 -m 990 991 ref_data/                  # Run specific cases with MATLAB route"
+    echo "  $0 -p 995 ref_data/                      # Generate inputs with Python route"
+    echo "  $0 -m 992 ref_data/ --tolerance 1e-8"
+    echo "  $0 -m 993 ref_data/ --system icl"
     exit 1
 }
 
@@ -60,22 +60,8 @@ if [ $# -eq 0 ]; then
     usage
 fi
 
-if [ "$1" = "-m" ] || [ "$1" = "-p" ]; then
-    set_preprocess_route "$1"
-    shift
-elif [[ "$1" == -* ]]; then
-    echo "Unknown option: $1"
-    usage
-fi
-
-if [ $# -eq 0 ]; then
-    usage
-fi
-
-REF_DATA_PATH="$1"
-shift
-
 TEST_CASES=()
+POSITIONAL_ARGS=()
 TOLERANCE="1e-10"
 SYSTEM="common"
 
@@ -89,10 +75,18 @@ while [ $# -gt 0 ]; do
             ;;
         --tolerance)
             shift
+            if [ $# -eq 0 ]; then
+                echo "[ERROR] --tolerance requires a value"
+                usage
+            fi
             TOLERANCE="$1"
             ;;
         --system)
             shift
+            if [ $# -eq 0 ]; then
+                echo "[ERROR] --system requires a value"
+                usage
+            fi
             SYSTEM="$1"
             ;;
         --*)
@@ -100,7 +94,7 @@ while [ $# -gt 0 ]; do
             usage
             ;;
         *)
-            TEST_CASES+=("$1")
+            POSITIONAL_ARGS+=("$1")
             ;;
     esac
     shift
@@ -110,6 +104,15 @@ if [ "$PREPROCESS_ROUTE_SET" = false ]; then
     echo "[ERROR] Preprocessing route must be set with either -m or -p"
     usage
 fi
+
+if [ ${#POSITIONAL_ARGS[@]} -eq 0 ]; then
+    echo "[ERROR] Reference data path is required"
+    usage
+fi
+
+last_positional_index=$((${#POSITIONAL_ARGS[@]} - 1))
+REF_DATA_PATH="${POSITIONAL_ARGS[$last_positional_index]}"
+TEST_CASES=("${POSITIONAL_ARGS[@]:0:$last_positional_index}")
 
 # Validate --system value
 if [ "$SYSTEM" != "common" ] && [ "$SYSTEM" != "icl" ]; then

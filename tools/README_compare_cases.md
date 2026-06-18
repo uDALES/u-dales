@@ -170,8 +170,8 @@ ud_compare_multiple_outputs.py <exppath1> <exp1> <exppath2> <exp2> [exppath3 exp
 |----------|-------------|
 | `exppathN` | Parent outputs directory for case N |
 | `expN` | Experiment number for case N (integer 1–999) |
-| `tolerance` | Max absolute error (default: `1e-6`); detected as the last argument if it parses as a float |
-| `tol_thl` | Tolerance for temperature variables (default: same as `tolerance`); detected as the second-to-last float argument when two trailing floats are given |
+| `tolerance` | Max absolute error (default: `1e-6`); detected as the final trailing float when one tolerance is supplied, or as the first of two trailing floats |
+| `tol_thl` | Tolerance for temperature variables (default: same as `tolerance`); detected as the second of two trailing floats |
 
 At least two cases (4 arguments) are required.
 

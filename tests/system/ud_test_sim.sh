@@ -8,12 +8,12 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Script usage function
 usage() {
-    echo "Usage: $0 <ref_data_path> [case1 case2 ...] [--tolerance <val>] [--tol-thl <val>] [--system <common|gpu>]"
+    echo "Usage: $0 [case1 case2 ...] <ref_data_path> [--tolerance <val>] [--tol-thl <val>] [--system <common|gpu>]"
     echo ""
     echo "Arguments:"
-    echo "  ref_data_path  : Path to the reference data directory (required)"
     echo "  case1 ...      : Optional list of test cases to run (e.g., 100 201 402)"
     echo "                   If not specified, uses default cases for the system"
+    echo "  ref_data_path  : Path to the reference data directory (required; last positional argument)"
     echo "  --tolerance    : Max absolute error for NetCDF output comparisons (default: 1e-6)"
     echo "  --tol-thl      : Tolerance for temperature variables (default: same as --tolerance)"
     echo "  --system       : Build system type: common (CPU) or gpu (default: common)"
@@ -22,10 +22,10 @@ usage() {
     echo "  $0 ref_data/                                    # Run default CPU test cases"
     echo "  $0 ref_data/ --system common                   # Run default CPU test cases"
     echo "  $0 ref_data/ --system gpu                      # Run default GPU test cases"
-    echo "  $0 ref_data/ 100 201                           # Run specific CPU test cases"
-    echo "  $0 ref_data/ 402 502 452 --system gpu          # Run specific GPU test cases"
-    echo "  $0 ref_data/ 224 --tolerance 1e-8"
-    echo "  $0 ref_data/ 224 --tolerance 1e-8 --tol-thl 1e-7"
+    echo "  $0 100 201 ref_data/                           # Run specific CPU test cases"
+    echo "  $0 402 502 452 ref_data/ --system gpu          # Run specific GPU test cases"
+    echo "  $0 224 ref_data/ --tolerance 1e-8"
+    echo "  $0 224 ref_data/ --tolerance 1e-8 --tol-thl 1e-7"
     exit 1
 }
 
@@ -34,11 +34,8 @@ if [ $# -eq 0 ]; then
     usage
 fi
 
-REF_DATA_PATH="$1"
-shift
-
-# Remaining args: test cases and optional flags
 TEST_CASES=()
+POSITIONAL_ARGS=()
 TOLERANCE="1e-6"
 TOL_THL=""
 SYSTEM="common"
@@ -47,14 +44,26 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --tolerance)
             shift
+            if [ $# -eq 0 ]; then
+                echo "[ERROR] --tolerance requires a value"
+                usage
+            fi
             TOLERANCE="$1"
             ;;
         --tol-thl)
             shift
+            if [ $# -eq 0 ]; then
+                echo "[ERROR] --tol-thl requires a value"
+                usage
+            fi
             TOL_THL="$1"
             ;;
         --system)
             shift
+            if [ $# -eq 0 ]; then
+                echo "[ERROR] --system requires a value"
+                usage
+            fi
             SYSTEM="$1"
             ;;
         --*)
@@ -62,11 +71,20 @@ while [ $# -gt 0 ]; do
             usage
             ;;
         *)
-            TEST_CASES+=("$1")
+            POSITIONAL_ARGS+=("$1")
             ;;
     esac
     shift
 done
+
+if [ ${#POSITIONAL_ARGS[@]} -eq 0 ]; then
+    echo "[ERROR] Reference data path is required"
+    usage
+fi
+
+last_positional_index=$((${#POSITIONAL_ARGS[@]} - 1))
+REF_DATA_PATH="${POSITIONAL_ARGS[$last_positional_index]}"
+TEST_CASES=("${POSITIONAL_ARGS[@]:0:$last_positional_index}")
 
 # Default tol_thl to tolerance if not explicitly set
 if [ -z "$TOL_THL" ]; then
