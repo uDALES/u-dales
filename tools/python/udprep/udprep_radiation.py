@@ -780,7 +780,7 @@ class RadiationSection(Section):
         with netsw_path.open("w", encoding="ascii", newline="\n") as f:
             f.write("# net shortwave on facets [W/m2] (including reflections and diffusive)\n")
             np.savetxt(f, knet, fmt="%6.4f")
-        if s_veg is not None:
+        if s_veg is not None and s_veg.size > 0:
             path = out_dir / f"sveg.inp.{expnr}"
             with path.open("w", encoding="ascii", newline="\n") as f:
                 f.write("# vegetation absorption on vegetation cells [W/m3]\n")

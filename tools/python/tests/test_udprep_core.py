@@ -474,6 +474,18 @@ class TestRadiationSection(unittest.TestCase):
 
             self.assertFalse(vf_path.exists())
 
+    def test_write_netsw_only_writes_sveg_when_nonempty(self):
+        with TemporaryDirectory() as temp_dir:
+            case_dir = Path(temp_dir)
+            sim = DummySim(expnr="321", path=case_dir)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+
+            section.write_netsw(np.array([1.0]), s_veg=np.array([]))
+            self.assertFalse((case_dir / "sveg.inp.321").exists())
+
+            section.write_netsw(np.array([1.0]), s_veg=np.array([2.0]))
+            self.assertTrue((case_dir / "sveg.inp.321").exists())
+
     def test_scanline_knet_uses_sdir_file_precision(self):
         section = RadiationSection("radiation", {}, sim=DummySim())
         full_sdir = np.array([1.234, 5.675, 9.999], dtype=float)

@@ -9,7 +9,7 @@ Numerical comparison (max absolute error, # comments skipped):
   prof.inp.<exp>          lscale.inp.<exp>
   facetarea.inp.<exp>     facets.inp.<exp>
   facets_unused.<exp>     factypes.inp.<exp>
-  netsw.inp.<exp>         svf.inp.<exp>
+  netsw.inp.<exp>         sveg.inp.<exp>         svf.inp.<exp>
   heatpump.inp.<exp>      trees.inp.<exp>
   scalar.inp.<exp>        scalarsourcel.inp.N.<exp>  (N = 1, 2, ...)
   Tfacinit.inp.<exp>      Sdir.txt
@@ -264,7 +264,7 @@ def run_comparison(dir1: str, exp_str1: str, dir2: str, exp_str2: str, tolerance
     # Facet-related input files
     for tag in (
         "facetarea.inp", "facets.inp", "facets_unused",
-        "factypes.inp", "svf.inp", "netsw.inp",
+        "factypes.inp", "svf.inp", "netsw.inp", "sveg.inp",
         "Tfacinit.inp", "heatpump.inp",
         "trees.inp", "veg.inp", "veg_params.inp",
     ):
