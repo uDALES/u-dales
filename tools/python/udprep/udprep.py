@@ -479,16 +479,16 @@ class UDPrep:
             self.vegetation.run_all()
         if self.ibm.libm:
             self.ibm.run_all(backend=ibm_backend)
-        if getattr(self.sim, "lEB", False):
-            run_all = self.radiation.run_all
-            sig = inspect.signature(run_all)
-            params = sig.parameters.values()
-            if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
-                run_all(**kwargs)
-            else:
-                call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
-                run_all(**call_kwargs)
-            self.seb.run_all()
+            if self.radiation.lEB:
+                run_all = self.radiation.run_all
+                sig = inspect.signature(run_all)
+                params = sig.parameters.values()
+                if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
+                    run_all(**kwargs)
+                else:
+                    call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+                    run_all(**call_kwargs)
+                self.seb.run_all()
 
     def write_changed_params(self) -> None:
         """Write changed parameters for every section."""

@@ -317,6 +317,38 @@ class TestUDPrepCore(unittest.TestCase):
         module.UDBase = FakeUDBase
         return module
 
+    def _make_run_all_prep(self, *, libm=True, radiation_lEB=True, ltrees=False):
+        specs = [
+            SectionSpec("grid", ["x"], {"x": 1}, FakeSection),
+            SectionSpec("forcing", ["x"], {"x": 1}, FakeSection),
+            SectionSpec("seb", ["x"], {"x": 1}, FakeSection),
+            SectionSpec("ibm", ["libm", "gen_geom"], {"libm": libm, "gen_geom": True}, FakeSection),
+            SectionSpec(
+                "vegetation",
+                ["ltrees", "ltreesfile"],
+                {"ltrees": ltrees, "ltreesfile": False},
+                FakeSection,
+            ),
+            SectionSpec(
+                "scalars",
+                ["nsv", "lscasrc", "lscasrcl"],
+                {"nsv": 0, "lscasrc": False, "lscasrcl": False},
+                FakeSection,
+            ),
+            SectionSpec("radiation", ["lEB"], {"lEB": radiation_lEB}, FakeSection),
+        ]
+        fake_module = self._fake_udbase_module()
+        with mock.patch.dict(sys.modules, {"udbase": fake_module}):
+            with mock.patch.object(UDPrep, "SECTION_SPECS", specs):
+                prep = UDPrep("123", path=self.workdir)
+        prep.SECTION_SPECS = specs
+        prep.ibm.libm = libm
+        prep.radiation.lEB = radiation_lEB
+        prep.vegetation.ltrees = ltrees
+        prep.vegetation.ltreesfile = False
+        prep.scalars.nsv = 0
+        return prep
+
     def test_init_populates_sections_from_defaults_and_sim(self):
         specs = [
             SectionSpec(
@@ -396,37 +428,11 @@ class TestUDPrepCore(unittest.TestCase):
         self.assertEqual(prep.sim.BCym, 3)
 
     def test_run_all_respects_section_gates(self):
-        specs = [
-            SectionSpec("grid", ["x"], {"x": 1}, FakeSection),
-            SectionSpec("forcing", ["x"], {"x": 1}, FakeSection),
-            SectionSpec("seb", ["x"], {"x": 1}, FakeSection),
-            SectionSpec("ibm", ["libm", "gen_geom"], {"libm": True, "gen_geom": True}, FakeSection),
-            SectionSpec(
-                "vegetation",
-                ["ltrees", "ltreesfile"],
-                {"ltrees": True, "ltreesfile": False},
-                FakeSection,
-            ),
-            SectionSpec(
-                "scalars",
-                ["nsv", "lscasrc", "lscasrcl"],
-                {"nsv": 0, "lscasrc": False, "lscasrcl": False},
-                FakeSection,
-            ),
-            SectionSpec("radiation", ["x"], {"x": 1}, FakeSection),
-        ]
-        fake_module = self._fake_udbase_module()
-        with mock.patch.dict(sys.modules, {"udbase": fake_module}):
-            with mock.patch.object(UDPrep, "SECTION_SPECS", specs):
-                prep = UDPrep("123", path=self.workdir)
-        prep.SECTION_SPECS = specs
-
+        prep = self._make_run_all_prep(libm=True, radiation_lEB=True, ltrees=True)
         prep.sim.lEB = True
         prep.vegetation.save = mock.Mock()
         prep.radiation.run_all = mock.Mock()
         prep.seb.run_all = mock.Mock()
-        prep.vegetation.ltrees = True
-        prep.vegetation.ltreesfile = False
 
         prep.run_all(force=True, ibm_backend="legacy")
 
@@ -437,6 +443,41 @@ class TestUDPrepCore(unittest.TestCase):
         self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
         prep.radiation.run_all.assert_called_once_with(force=True)
         prep.seb.run_all.assert_called_once()
+
+    def test_run_all_uses_radiation_lEB_for_current_radiation_gate(self):
+        prep = self._make_run_all_prep(libm=True, radiation_lEB=True)
+        prep.sim.lEB = False
+        prep.radiation.run_all = mock.Mock()
+        prep.seb.run_all = mock.Mock()
+
+        prep.run_all(force=True, ibm_backend="legacy")
+
+        self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
+        prep.radiation.run_all.assert_called_once_with(force=True)
+        prep.seb.run_all.assert_called_once()
+
+    def test_run_all_skips_radiation_and_seb_when_radiation_lEB_is_false(self):
+        prep = self._make_run_all_prep(libm=True, radiation_lEB=False)
+        prep.sim.lEB = True
+        prep.radiation.run_all = mock.Mock()
+        prep.seb.run_all = mock.Mock()
+
+        prep.run_all(force=True, ibm_backend="legacy")
+
+        self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
+        prep.radiation.run_all.assert_not_called()
+        prep.seb.run_all.assert_not_called()
+
+    def test_run_all_skips_radiation_and_seb_when_ibm_is_disabled(self):
+        prep = self._make_run_all_prep(libm=False, radiation_lEB=True)
+        prep.radiation.run_all = mock.Mock()
+        prep.seb.run_all = mock.Mock()
+
+        prep.run_all(force=True, ibm_backend="legacy")
+
+        self.assertEqual(prep.ibm.run_all_calls, [])
+        prep.radiation.run_all.assert_not_called()
+        prep.seb.run_all.assert_not_called()
 
     def test_write_changed_params_and_show_changed_params_visit_all_sections(self):
         specs = [

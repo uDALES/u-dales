@@ -40,7 +40,7 @@ class RadiationSection(Section):
 
     def run_all(self, force: bool = False) -> None:
         """Run radiation preprocessing steps."""
-        if bool(getattr(self, "ltimedepsw", False)):
+        if self.ltimedepsw:
             steps = [("run_short_wave_timedep", self.run_short_wave_timedep)]
         else:
             steps = [("run_short_wave", self.run_short_wave)]
@@ -85,7 +85,7 @@ class RadiationSection(Section):
             The solver is cached; changing any of these options recreates it.
         """
         if method is None:
-            method = getattr(self, "directsw_method", "facsec")
+            method = self.directsw_method
         method_key = method.strip().lower()
         if method_key in ("moller", "raycast", "mt"):
             method_key = "moller"
@@ -99,9 +99,9 @@ class RadiationSection(Section):
             raise ValueError(f"Unknown direct shortwave method: {method}")
 
         veg_data = kwargs.pop("veg_data", self._get_veg_data())
-        ray_density = kwargs.pop("ray_density", getattr(self, "ray_density", 4.0))
-        periodic_xy = kwargs.pop("periodic_xy", getattr(self, "periodic_xy", False))
-        ray_jitter = kwargs.pop("ray_jitter", getattr(self, "ray_jitter", 1.0))
+        ray_density = kwargs.pop("ray_density", self.ray_density)
+        periodic_xy = kwargs.pop("periodic_xy", self.periodic_xy)
+        ray_jitter = kwargs.pop("ray_jitter", self.ray_jitter)
         resolution = kwargs.pop("resolution", None)
         if kwargs:
             raise ValueError(f"Unknown direct shortwave options: {', '.join(sorted(kwargs.keys()))}")
@@ -180,19 +180,19 @@ class RadiationSection(Section):
         """
         if time_of_day is None:
             time_of_day = datetime(
-                int(self.year),
-                int(self.month),
-                int(self.day),
-                int(self.hour),
-                int(self.minute),
-                int(self.second),
+                self.year,
+                self.month,
+                self.day,
+                self.hour,
+                self.minute,
+                self.second,
             )
         return solar_position_python(
             time_of_day,
-            float(self.longitude),
-            float(self.latitude),
-            float(self.timezone),
-            float(self.elevation),
+            self.longitude,
+            self.latitude,
+            self.timezone,
+            self.elevation,
         )
 
     def calc_solar_state(
@@ -217,48 +217,45 @@ class RadiationSection(Section):
         Dsky : float
             Diffuse sky irradiance [W/m^2].
         """
-        isolar = int(getattr(self, "isolar", 1))
-        xazimuth = float(getattr(self, "xazimuth", 0.0))
-
-        if isolar == 1:
-            zenith = float(self.solarzenith)
-            azimuth_local = float(self.solarazimuth) - xazimuth
+        if self.isolar == 1:
+            zenith = self.solarzenith
+            azimuth_local = self.solarazimuth - self.xazimuth
             nsun = nsun_from_angles(zenith, azimuth_local)
-            return nsun, zenith, azimuth_local, float(self.I), float(self.Dsky)
+            return nsun, zenith, azimuth_local, self.I, self.Dsky
 
-        if isolar == 2:
+        if self.isolar == 2:
             if time_of_day is None:
                 time_of_day = datetime(
-                    int(self.year),
-                    int(self.month),
-                    int(self.day),
-                    int(self.hour),
-                    int(self.minute),
-                    int(self.second),
+                    self.year,
+                    self.month,
+                    self.day,
+                    self.hour,
+                    self.minute,
+                    self.second,
                 )
             return solar_state(
                 time_of_day,
-                float(self.longitude),
-                float(self.latitude),
-                float(self.timezone),
-                float(self.elevation),
-                xazimuth=xazimuth,
+                self.longitude,
+                self.latitude,
+                self.timezone,
+                self.elevation,
+                xazimuth=self.xazimuth,
                 backend=backend,
             )
 
-        if isolar == 3:
+        if self.isolar == 3:
             if time_of_day is None:
                 time_of_day = datetime(
-                    int(self.year),
-                    int(self.month),
-                    int(self.day),
-                    int(self.hour),
-                    int(self.minute),
-                    int(self.second),
+                    self.year,
+                    self.month,
+                    self.day,
+                    self.hour,
+                    self.minute,
+                    self.second,
                 )
             return self._solar_state_time(time_of_day)
 
-        raise ValueError(f"Unsupported isolar value: {isolar}")
+        raise ValueError(f"Unsupported isolar value: {self.isolar}")
 
     def calc_view_factors(self, maxD: float = 250.0, force: bool = False):
         """
@@ -277,32 +274,29 @@ class RadiationSection(Section):
         if sim.geom is None or sim.geom.stl is None:
             raise RuntimeError("UDBase geometry not loaded; cannot run View3D")
 
-        expnr = getattr(sim, "expnr", "")
-        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
-        out_dir.mkdir(parents=True, exist_ok=True)
+        out_dir = Path(sim.path) # if getattr(sim, "path", None) is not None else Path.cwd()
+        # out_dir.mkdir(parents=True, exist_ok=True)
 
-        view3d_out = int(self.view3d_out)
-        lvfsparse = bool(getattr(sim, "lvfsparse", False))
-        if view3d_out == 2 and not lvfsparse:
+        if self.view3d_out == 2 and not self.lvfsparse:
             raise ValueError("view3d_out=2 requires lvfsparse=true in the ENERGYBALANCE section")
         maxD = float(maxD)
 
-        vs3_path = out_dir / f"facets.{expnr}.vs3"
-        if view3d_out == 0:
+        vs3_path = out_dir / f"facets.{sim.expnr}.vs3"
+        if self.view3d_out == 0:
             vf_path = out_dir / "vf.txt"
-        elif view3d_out == 1:
+        elif self.view3d_out == 1:
             vf_path = out_dir / "vf.bin"
-        elif view3d_out == 2:
-            vf_path = out_dir / f"vfsparse.inp.{expnr}"
+        elif self.view3d_out == 2:
+            vf_path = out_dir / f"vfsparse.inp.{sim.expnr}"
         else:
-            raise ValueError(f"Unsupported view3d_out: {view3d_out}")
-        svf_path = out_dir / f"svf.inp.{expnr}"
+            raise ValueError(f"Unsupported view3d_out: {self.view3d_out}")
+        svf_path = out_dir / f"svf.inp.{sim.expnr}"
         vfsparse_path = None
         vf_nc_path = None
-        if view3d_out in (0, 1) and lvfsparse:
-            vfsparse_path = out_dir / f"vfsparse.inp.{expnr}"
-        elif view3d_out in (0, 1):
-            vf_nc_path = out_dir / f"vf.nc.inp.{expnr}"
+        if self.view3d_out in (0, 1) and self.lvfsparse:
+            vfsparse_path = out_dir / f"vfsparse.inp.{sim.expnr}"
+        elif self.view3d_out in (0, 1):
+            vf_nc_path = out_dir / f"vf.nc.inp.{sim.expnr}"
 
         paths = {
             "vs3": vs3_path,
@@ -315,12 +309,12 @@ class RadiationSection(Section):
         stl_path = Path(sim.path) / sim.stl_file
         stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
         nfacets = sim.geom.stl.faces.shape[0]
-        cache_key = (str(stl_path), stl_mtime, view3d_out, lvfsparse, maxD, nfacets)
+        cache_key = (str(stl_path), stl_mtime, self.view3d_out, self.lvfsparse, self.maxD, nfacets)
         if self._vf_cache is not None and self._svf_cache is not None and self._vf_cache_key == cache_key:
             return self._vf_cache, self._svf_cache, paths
 
         if not force and vf_path.exists() and svf_path.exists():
-            vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=view3d_out)
+            vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
             svf = np.loadtxt(svf_path)
             if vfsparse_path is not None and not vfsparse_path.exists():
                 write_vfsparse(vfsparse_path, vf, threshold=5e-7)
@@ -331,14 +325,14 @@ class RadiationSection(Section):
             if not hasattr(vf, "nnz"):
                 raise TypeError("Expected sparse view-factor matrix with 'nnz' attribute")
             nnz = int(vf.nnz)
-            if vfsparse_path is not None or view3d_out == 2:
+            if vfsparse_path is not None or self.view3d_out == 2:
                 self.save_param("nnz", nnz)
             self._vf_cache = vf
             self._svf_cache = svf
             self._vf_cache_key = cache_key
             return vf, svf, paths
 
-        stl_to_view3d(stl_path, vs3_path, view3d_out, maxD=maxD, row=0, col=0)
+        stl_to_view3d(stl_path, vs3_path, self.view3d_out, maxD=self.maxD, row=0, col=0)
 
         legacy_vs3_path = out_dir / "facets.vs3"
         if legacy_vs3_path != vs3_path and legacy_vs3_path.exists():
@@ -353,7 +347,7 @@ class RadiationSection(Section):
 
         run_view3d(view3d_exe, vs3_path, vf_path, check=True)
 
-        vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=view3d_out)
+        vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
         svf = compute_svf(vf)
         write_svf(svf_path, svf)
 
@@ -367,7 +361,7 @@ class RadiationSection(Section):
         if not hasattr(vf, "nnz"):
             raise TypeError("Expected sparse view-factor matrix with 'nnz' attribute")
         nnz = int(vf.nnz)
-        if vfsparse_path is not None or view3d_out == 2:
+        if vfsparse_path is not None or self.view3d_out == 2:
             self.save_param("nnz", nnz)
         self._vf_cache = vf
         self._svf_cache = svf
@@ -480,21 +474,19 @@ class RadiationSection(Section):
             Sky view factor per facet (only when return_vf=True).
         """
         sim = self._require_sim()
-        expnr = getattr(sim, "expnr", "")
-        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
-        out_dir.mkdir(parents=True, exist_ok=True)
+        out_dir = Path(sim.path) # if getattr(sim, "path", None) is not None else Path.cwd()
+        # out_dir.mkdir(parents=True, exist_ok=True)
 
         sdir_path = out_dir / "Sdir.txt"
-        netsw_path = out_dir / f"netsw.inp.{expnr}"
-        svf_path = out_dir / f"svf.inp.{expnr}"
+        netsw_path = out_dir / f"netsw.inp.{sim.expnr}"
+        svf_path = out_dir / f"svf.inp.{sim.expnr}"
 
-        view3d_out = int(self.view3d_out)
-        if view3d_out == 0:
+        if self.view3d_out == 0:
             vf_path = out_dir / "vf.txt"
-        elif view3d_out == 1:
+        elif self.view3d_out == 1:
             vf_path = out_dir / "vf.bin"
         else:
-            vf_path = out_dir / f"vfsparse.inp.{expnr}"
+            vf_path = out_dir / f"vfsparse.inp.{sim.expnr}"
 
         sdir = None
         s_veg = None
@@ -507,18 +499,18 @@ class RadiationSection(Section):
         vf = None
         svf = None
         if maxD is None:
-            maxD = float(getattr(self, "maxD", 250.0))
+            maxD = self.maxD
 
         stl_path = Path(sim.path) / sim.stl_file
         stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
         nfacets = sim.geom.stl.faces.shape[0]
-        cache_key = (str(stl_path), stl_mtime, view3d_out, float(maxD), nfacets)
+        cache_key = (str(stl_path), stl_mtime, self.view3d_out, float(maxD), nfacets)
         if not force and self._vf_cache is not None and self._svf_cache is not None and self._vf_cache_key == cache_key:
             vf = self._vf_cache
             svf = self._svf_cache
         if vf is None or svf is None:
             if not force and vf_path.exists() and svf_path.exists():
-                vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=view3d_out)
+                vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
                 svf = np.loadtxt(svf_path)
             if vf is None or svf is None:
                 vf, svf, _ = self.calc_view_factors(maxD=maxD)
@@ -527,7 +519,7 @@ class RadiationSection(Section):
             self._vf_cache_key = cache_key
 
         if dsky is None:
-            dsky = float(self.Dsky)
+            dsky = self.Dsky
         albedo = sim.assign_prop_to_fac("al")
 
         k_star = None
@@ -548,37 +540,33 @@ class RadiationSection(Section):
         Compute and write single-step shortwave (Sdir + netsw) like MATLAB.
         """
         sim = self._require_sim()
-        expnr = getattr(sim, "expnr", "")
-        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
-        out_dir.mkdir(parents=True, exist_ok=True)
+        out_dir = Path(sim.path)
+        # out_dir.mkdir(parents=True, exist_ok=True)
 
         sdir_path = out_dir / "Sdir.txt"
-        netsw_path = out_dir / f"netsw.inp.{expnr}"
-        sveg_path = out_dir / f"sveg.inp.{expnr}"
+        netsw_path = out_dir / f"netsw.inp.{sim.expnr}"
         if not force and sdir_path.exists() and netsw_path.exists():
             legacy_vs3_path = out_dir / "facets.vs3"
-            if legacy_vs3_path.exists() and (out_dir / f"facets.{expnr}.vs3").exists():
+            if legacy_vs3_path.exists() and (out_dir / f"facets.{sim.expnr}.vs3").exists():
                 legacy_vs3_path.unlink()
-            view3d_out = int(getattr(self, "view3d_out", 0))
-            lvfsparse = bool(getattr(sim, "lvfsparse", False))
-            if view3d_out in (0, 1) and not lvfsparse:
-                vf_path = out_dir / ("vf.txt" if view3d_out == 0 else "vf.bin")
-                vf_nc_path = out_dir / f"vf.nc.inp.{expnr}"
+            if self.view3d_out in (0, 1) and not self.lvfsparse:
+                vf_path = out_dir / ("vf.txt" if self.view3d_out == 0 else "vf.bin")
+                vf_nc_path = out_dir / f"vf.nc.inp.{sim.expnr}"
                 if vf_nc_path.exists() and vf_path.exists():
                     vf_path.unlink()
             return
 
         start = datetime(
-            int(self.year),
-            int(self.month),
-            int(self.day),
-            int(self.hour),
-            int(self.minute),
-            int(self.second),
+            self.year,
+            self.month,
+            self.day,
+            self.hour,
+            self.minute,
+            self.second,
         )
         nsun, _, _, irradiance, dsky = self._solar_state_time(start)
 
-        lscatter = bool(getattr(sim, "lEB", False))
+        lscatter = self.lEB
         albedo = sim.assign_prop_to_fac("al")
         face_normals = sim.geom.stl.face_normals
         fss = (1.0 + face_normals[:, 2]) * 0.5 if not lscatter else None
@@ -587,7 +575,7 @@ class RadiationSection(Section):
         vf = None
         svf = None
         if lscatter:
-            vf, svf, _ = self.calc_view_factors(maxD=float(self.maxD))
+            vf, svf, _ = self.calc_view_factors(maxD=self.maxD)
 
         sdir, knet, s_veg = self._compute_knet(
             nsun,
@@ -608,31 +596,28 @@ class RadiationSection(Section):
         """
         Compute and write time-dependent shortwave (timedepsw + Sdir.nc).
         """
-        if not bool(getattr(self, "ltimedepsw", False)):
+        if not self.ltimedepsw:
             return
 
         sim = self._require_sim()
-        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
-        out_dir.mkdir(parents=True, exist_ok=True)
+        out_dir = Path(sim.path) # if getattr(sim, "path", None) is not None else Path.cwd()
+        # out_dir.mkdir(parents=True, exist_ok=True)
 
-        expnr = getattr(sim, "expnr", "")
         sdir_nc_path = out_dir / "Sdir.nc"
-        timedepsw_path = out_dir / f"timedepsw.inp.{expnr}"
-        timedepsveg_path = out_dir / f"timedepsveg.inp.{expnr}"
+        timedepsw_path = out_dir / f"timedepsw.inp.{sim.expnr}"
+        timedepsveg_path = out_dir / f"timedepsveg.inp.{sim.expnr}"
         if (
             not force
             and sdir_nc_path.exists()
             and timedepsw_path.exists()
         ):
-            if timedepsveg_path.exists() or not bool(getattr(sim, "ltrees", False)):
+            if timedepsveg_path.exists() or not sim.ltrees:
                 return
 
-        runtime = float(self.runtime)
-        dtSP = float(self.dtSP)
-        tSP = np.arange(0.0, runtime + 0.5 * dtSP, dtSP, dtype=float)
+        tSP = np.arange(0.0, self.runtime + 0.5 * self.dtSP, self.dtSP, dtype=float)
         nt = tSP.size
 
-        lscatter = bool(getattr(sim, "lEB", False))
+        lscatter = self.lEB
         albedo = sim.assign_prop_to_fac("al")
         face_normals = sim.geom.stl.face_normals
         fss = (1.0 + face_normals[:, 2]) * 0.5 if not lscatter else None
@@ -650,15 +635,15 @@ class RadiationSection(Section):
         has_sveg = False
 
         start = datetime(
-            int(self.year),
-            int(self.month),
-            int(self.day),
-            int(self.hour),
-            int(self.minute),
-            int(self.second),
+            self.year,
+            self.month,
+            self.day,
+            self.hour,
+            self.minute,
+            self.second,
         )
 
-        if int(getattr(self, "isolar", 1)) == 3:
+        if self.isolar == 3:
             weather = self._read_weather_table(Path(self.weatherfname))
             date_val = int(start.strftime("%d%m%y"))
             rows = weather["date"] == date_val
@@ -687,7 +672,7 @@ class RadiationSection(Section):
                 solarzenith = float(zenith_interp[n])
                 irradiance = float(I_interp[n])
                 if solarzenith < 90.0 and irradiance > 0.0:
-                    azimuth = float(azimuth_interp[n]) - float(self.xazimuth)
+                    azimuth = float(azimuth_interp[n]) - self.xazimuth
                     nsun = nsun_from_angles(solarzenith, azimuth)
                     dsky = float(Dsky_interp[n])
                     sdir, knet, s_veg = self._compute_knet(
@@ -738,11 +723,10 @@ class RadiationSection(Section):
     def write_timedepsw(self, tSP: np.ndarray, knet: np.ndarray) -> None:
         """Write time-dependent net shortwave (timedepsw.inp.<expnr>)."""
         sim = self._require_sim()
-        expnr = getattr(sim, "expnr", "")
-        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
-        out_dir.mkdir(parents=True, exist_ok=True)
+        out_dir = Path(sim.path) # if getattr(sim, "path", None) is not None else Path.cwd()
+        # out_dir.mkdir(parents=True, exist_ok=True)
 
-        timedepsw_path = out_dir / f"timedepsw.inp.{expnr}"
+        timedepsw_path = out_dir / f"timedepsw.inp.{sim.expnr}"
         with timedepsw_path.open("w", encoding="ascii", newline="\n") as f:
             f.write(
                 "# time-dependent net shortwave on facets [W/m2]. "
@@ -755,11 +739,8 @@ class RadiationSection(Section):
     def write_timedepsveg(self, tSP: np.ndarray, s_veg: np.ndarray) -> None:
         """Write time-dependent vegetation absorption per vegetation cell (timedepsveg.inp.<expnr>)."""
         sim = self._require_sim()
-        expnr = getattr(sim, "expnr", "")
-        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
-        out_dir.mkdir(parents=True, exist_ok=True)
 
-        path = out_dir / f"timedepsveg.inp.{expnr}"
+        path = Path(sim.path) / f"timedepsveg.inp.{sim.expnr}"
         with path.open("w", encoding="ascii", newline="\n") as f:
             f.write(
                 "# time-dependent vegetation absorption on vegetation cells [W/m3]. "
@@ -772,16 +753,13 @@ class RadiationSection(Section):
     def write_netsw(self, knet: np.ndarray, s_veg: np.ndarray | None = None) -> None:
         """Write net shortwave on facets (netsw.inp.<expnr>)."""
         sim = self._require_sim()
-        expnr = getattr(sim, "expnr", "")
-        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
-        out_dir.mkdir(parents=True, exist_ok=True)
 
-        netsw_path = out_dir / f"netsw.inp.{expnr}"
+        netsw_path = Path(sim.path) / f"netsw.inp.{sim.expnr}"
         with netsw_path.open("w", encoding="ascii", newline="\n") as f:
             f.write("# net shortwave on facets [W/m2] (including reflections and diffusive)\n")
             np.savetxt(f, knet, fmt="%6.4f")
         if s_veg is not None and s_veg.size > 0:
-            path = out_dir / f"sveg.inp.{expnr}"
+            path = Path(sim.path) / f"sveg.inp.{sim.expnr}"
             with path.open("w", encoding="ascii", newline="\n") as f:
                 f.write("# vegetation absorption on vegetation cells [W/m3]\n")
                 np.savetxt(f, s_veg, fmt="%6.4f")
@@ -793,7 +771,7 @@ class RadiationSection(Section):
 
     def _get_veg_data(self) -> Dict[str, Any] | None:
         sim = self._require_sim()
-        ltree = bool(getattr(sim, "ltrees", False))
+        ltree = sim.ltrees
         if not ltree:
             return None
         if hasattr(sim, "veg") and sim.veg is not None:
@@ -803,39 +781,35 @@ class RadiationSection(Section):
         return sim.load_veg(zero_based=True, cache=True)
 
     def _shortwave_method(self) -> Tuple[str, float | None]:
-        ishortwave = int(getattr(self, "ishortwave", 1))
-        if ishortwave == 1:
-            return "scanline", float(self.psc_res)
-        return getattr(self, "directsw_method", "facsec"), None
+        if self.ishortwave == 1:
+            return "scanline", self.psc_res
+        return self.directsw_method, None
 
     def _solar_state_time(
         self,
         time_of_day: datetime,
     ) -> Tuple[np.ndarray, float, float, float, float]:
-        isolar = int(getattr(self, "isolar", 1))
-        xazimuth = float(getattr(self, "xazimuth", 0.0))
-
-        if isolar == 1:
-            zenith = float(self.solarzenith)
-            azimuth = float(self.solarazimuth) - xazimuth
+        if self.isolar == 1:
+            zenith = self.solarzenith
+            azimuth = self.solarazimuth - self.xazimuth
             nsun = nsun_from_angles(zenith, azimuth)
-            return nsun, zenith, azimuth, float(self.I), float(self.Dsky)
+            return nsun, zenith, azimuth, self.I, self.Dsky
 
-        if isolar == 2:
+        if self.isolar == 2:
             sp = solar_position_python(
                 time_of_day,
-                float(self.longitude),
-                float(self.latitude),
-                float(self.timezone),
-                float(self.elevation),
+                self.longitude,
+                self.latitude,
+                self.timezone,
+                self.elevation,
             )
             zenith = float(sp["zenith"])
-            azimuth = float(sp["azimuth"]) - xazimuth
+            azimuth = float(sp["azimuth"]) - self.xazimuth
             nsun = nsun_from_angles(zenith, azimuth)
             irradiance, dsky = solar_strength_ashrae(time_of_day.month, zenith)
             return nsun, zenith, azimuth, float(irradiance), float(dsky)
 
-        if isolar == 3:
+        if self.isolar == 3:
             weather = self._read_weather_table(Path(self.weatherfname))
             date_val = int(time_of_day.strftime("%d%m%y"))
             time_val = int(time_of_day.hour * 3600)
@@ -848,11 +822,11 @@ class RadiationSection(Section):
             solarazimuth = float(weather["SOLAR_1"][rows][0]) + 90.0
             irradiance = float(weather["HELIOM"][rows][0])
             dsky = float(weather["DIFSOLAR"][rows][0])
-            azimuth = solarazimuth - xazimuth
+            azimuth = solarazimuth - self.xazimuth
             nsun = nsun_from_angles(solarzenith, azimuth)
             return nsun, solarzenith, azimuth, irradiance, dsky
 
-        raise ValueError(f"Unsupported isolar value: {isolar}")
+        raise ValueError(f"Unsupported isolar value: {self.isolar}")
 
     def _compute_knet(
         self,

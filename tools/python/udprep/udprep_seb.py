@@ -22,10 +22,11 @@ class SEBSection(Section):
         if sim is None:
             raise ValueError("UDBase instance must be provided")
 
-        if not (bool(getattr(self, "lEB", False)) or getattr(sim, "iwallmom", 0) == 2 or getattr(sim, "iwalltemp", 0) == 2):
+        needs_facet_temperature = (sim.lEB or sim.iwallmom == 2 or sim.iwalltemp == 2 or sim.iwallmoist == 2)
+        if not needs_facet_temperature:
             return
 
-        if bool(getattr(self, "lfacTlyrs", False)):
+        if self.lfacTlyrs:
             steps = [("write_Tfacinit_layers", self.write_Tfacinit_layers)]
         else:
             steps = [("write_Tfacinit", self.write_Tfacinit)]
@@ -37,17 +38,12 @@ class SEBSection(Section):
         if sim is None:
             raise ValueError("UDBase instance must be provided")
 
-        nfcts = int(getattr(sim, "nfcts", 0))
-        if nfcts <= 0:
+        if sim.nfcts <= 0:
             raise ValueError("nfcts must be positive to write Tfacinit")
 
-        facT = float(getattr(self, "facT", 288.0))
-        Tfacinit = np.full(nfcts, facT, dtype=float)
+        Tfacinit = np.full(sim.nfcts, self.facT, dtype=float)
 
-        expnr = getattr(sim, "expnr", "")
-        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
-        out_dir.mkdir(parents=True, exist_ok=True)
-        path = out_dir / f"Tfacinit.inp.{expnr}"
+        path = Path(sim.path) / f"Tfacinit.inp.{sim.expnr}"
         with path.open("w", encoding="ascii", newline="\n") as f:
             f.write("# Initial facet tempereatures in radiative equilibrium\n")
         with path.open("a", encoding="ascii", newline="\n") as f:
@@ -59,7 +55,7 @@ class SEBSection(Section):
         if sim is None:
             raise ValueError("UDBase instance must be provided")
 
-        facT_file = str(getattr(self, "facT_file", ""))
+        facT_file = self.facT_file
         if not facT_file:
             raise ValueError("facT_file is required for layered facet temperatures")
 
@@ -84,10 +80,7 @@ class SEBSection(Section):
 
         Tfacinit_layers = np.asarray(Tfac[:, :, -1], dtype=float)
 
-        expnr = getattr(sim, "expnr", "")
-        out_dir = Path(sim.path) if getattr(sim, "path", None) is not None else Path.cwd()
-        out_dir.mkdir(parents=True, exist_ok=True)
-        path = out_dir / f"Tfacinit_layers.inp.{expnr}"
+        path = Path(sim.path) / f"Tfacinit_layers.inp.{sim.expnr}"
         with path.open("w", encoding="ascii", newline="\n") as f:
             f.write("# Initial facet tempereatures in radiative equilibrium\n")
         with path.open("a", encoding="ascii", newline="\n") as f:
