@@ -347,7 +347,7 @@ classdef preprocessing < dynamicprops
                    preprocessing.addvar(obj, 'solarazimuth', 135); % solar azimuth angle
                    preprocessing.addvar(obj, 'solarzenith', 28.4066); % zenith angle
                    preprocessing.addvar(obj, 'I', 800); % Direct normal irradiance [W/m2]
-                   preprocessing.addvar(obj, 'Dsky', 418.8041); % Diffuse incoming radiation [W/m2]
+                   preprocessing.addvar(obj, 'Dsky', 250.0); % Diffuse incoming radiation [W/m2]
                elseif obj.isolar == 2
                    preprocessing.addvar(obj, 'longitude', -0.13) % longitude
                    preprocessing.addvar(obj, 'latitude', 51.5) % latitude

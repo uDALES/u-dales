@@ -19,6 +19,7 @@ if str(PYTHON_DIR) not in sys.path:
 from udprep.udprep import Section, SectionSpec, SKIP, UDPrep  # noqa: E402
 from udprep.udprep_bcs import SPEC as BCS_SPEC  # noqa: E402
 from udprep.udprep_ibm import IBMSection  # noqa: E402
+from udprep.udprep_radiation import RadiationSection  # noqa: E402
 
 
 class DummySection(Section):
@@ -453,6 +454,60 @@ class TestUDPrepCore(unittest.TestCase):
         self.assertEqual(prep.beta.write_changed_params_calls, 1)
         self.assertEqual(prep.alpha.show_changed_params_calls, 1)
         self.assertEqual(prep.beta.show_changed_params_calls, 1)
+
+
+class TestRadiationSection(unittest.TestCase):
+    def test_run_short_wave_skip_removes_full_vf_text_intermediate(self):
+        with TemporaryDirectory() as temp_dir:
+            case_dir = Path(temp_dir)
+            sim = DummySim(expnr="321", path=case_dir)
+            sim.lvfsparse = False
+            section = RadiationSection("radiation", {"view3d_out": 0}, sim=sim, defaults={})
+
+            (case_dir / "Sdir.txt").write_text("1.0\n", encoding="ascii")
+            (case_dir / "netsw.inp.321").write_text("1.0\n", encoding="ascii")
+            (case_dir / "vf.nc.inp.321").write_bytes(b"netcdf placeholder")
+            vf_path = case_dir / "vf.txt"
+            vf_path.write_text("stale view3d text output\n", encoding="ascii")
+
+            section.run_short_wave()
+
+            self.assertFalse(vf_path.exists())
+
+    def test_scanline_knet_uses_sdir_file_precision(self):
+        section = RadiationSection("radiation", {}, sim=DummySim())
+        full_sdir = np.array([1.234, 5.675, 9.999], dtype=float)
+
+        def fake_calc_direct_sw(*_args, **_kwargs):
+            return full_sdir.copy(), None, {}
+
+        seen = {}
+
+        def fake_calc_reflections_sw(sdir, *_args, **_kwargs):
+            seen["sdir"] = sdir.copy()
+            return sdir + 1.0
+
+        section.calc_direct_sw = fake_calc_direct_sw
+        section.calc_reflections_sw = fake_calc_reflections_sw
+
+        sdir, knet, s_veg = section._compute_knet(
+            np.array([0.0, 0.0, 1.0]),
+            800.0,
+            250.0,
+            "scanline",
+            0.1,
+            True,
+            np.zeros(3),
+            object(),
+            np.ones(3),
+            None,
+        )
+
+        expected = np.round(full_sdir, 2)
+        np.testing.assert_allclose(seen["sdir"], expected)
+        np.testing.assert_allclose(sdir, expected)
+        np.testing.assert_allclose(knet, expected + 1.0)
+        self.assertIsNone(s_veg)
 
 
 if __name__ == "__main__":

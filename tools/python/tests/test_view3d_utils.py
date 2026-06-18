@@ -18,7 +18,7 @@ from _common import PYTHON_DIR  # noqa: E402
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
-from udgeom.view3d import compute_svf, read_view3d_output, stl_to_view3d, write_vfsparse  # noqa: E402
+from udgeom.view3d import compute_svf, read_view3d_output, stl_to_view3d, write_vf, write_vfsparse  # noqa: E402
 
 
 class TestView3DUtils(unittest.TestCase):
@@ -61,6 +61,21 @@ class TestView3DUtils(unittest.TestCase):
         lines = out_path.read_text(encoding="ascii").splitlines()
         self.assertEqual(lines, ["1 2 0.500000", "2 1 0.200000", "3 2 0.400000"])
 
+    def test_write_vf_uses_matlab_compatible_orientation(self) -> None:
+        try:
+            import netCDF4
+        except ImportError:
+            self.skipTest("netCDF4 not available")
+
+        vf = np.array([[0.0, 0.25, 0.5], [0.75, 0.0, 1.0], [0.125, 0.375, 0.0]], dtype=float)
+        out_path = self.workdir / "vf.nc.inp.101"
+
+        write_vf(out_path, vf)
+
+        with netCDF4.Dataset(out_path) as ds:
+            stored = np.asarray(ds.variables["view factor"][:])
+        np.testing.assert_allclose(stored, vf.T)
+
     def test_read_view3d_output_sparse_text_converts_one_based_indices(self) -> None:
         out_path = self.workdir / "vf_sparse.txt"
         out_path.write_text("1 2 0.5\n3 1 0.25\n", encoding="ascii")
@@ -76,6 +91,26 @@ class TestView3DUtils(unittest.TestCase):
             dtype=float,
         )
         np.testing.assert_allclose(vf.toarray(), expected)
+
+    def test_read_view3d_binary_matches_matlab_reshape_transpose(self) -> None:
+        out_path = self.workdir / "vf.bin"
+        expected = np.array(
+            [
+                [0.0, 0.12, 0.34],
+                [0.56, 0.0, 0.78],
+                [0.91, 0.23, 0.0],
+            ],
+            dtype=np.float32,
+        )
+        header_and_area = np.zeros(8 + expected.shape[0], dtype=np.float32)
+        with out_path.open("wb") as f:
+            header_and_area.tofile(f)
+            expected.ravel(order="C").tofile(f)
+
+        vf = read_view3d_output(out_path, nfacets=expected.shape[0], outformat=1)
+
+        np.testing.assert_allclose(vf.toarray(), expected)
+        self.assertEqual(vf.dtype, np.dtype(float))
 
     def test_stl_to_view3d_writes_expected_header_and_surface_records(self) -> None:
         mesh = trimesh.Trimesh(

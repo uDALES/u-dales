@@ -256,8 +256,12 @@ if r.libm
             %vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
             if r.calc_vf % run view3d
                 % Write STL in View3D input format
-                fpath_facets_view3d = [fpath 'facets.vs3'];
+                fpath_facets_view3d = [fpath 'facets.' r.expnr '.vs3'];
                 STLtoView3D(r.stl_file, fpath_facets_view3d, r.view3d_out, r.maxD, 0, 0);
+                fpath_facets_view3d_legacy = [fpath 'facets.vs3'];
+                if exist(fpath_facets_view3d_legacy, 'file') && ~strcmp(fpath_facets_view3d_legacy, fpath_facets_view3d)
+                    delete(fpath_facets_view3d_legacy)
+                end
 
                 if r.view3d_out == 0 % text
                     fpath_vf = [fpath 'vf.txt'];

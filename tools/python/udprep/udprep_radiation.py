@@ -16,6 +16,7 @@ from udgeom.view3d import (
     run_view3d,
     stl_to_view3d,
     write_svf,
+    write_vf,
     write_vfsparse,
 )
 
@@ -270,7 +271,7 @@ class RadiationSection(Section):
         svf : np.ndarray
             Sky view factor per facet.
         paths : dict
-            Paths for the generated files (vs3, vf, svf, vfsparse).
+            Paths for the generated files (vs3, vf, vf_nc, svf, vfsparse).
         """
         sim = self._require_sim()
         if sim.geom is None or sim.geom.stl is None:
@@ -281,7 +282,8 @@ class RadiationSection(Section):
         out_dir.mkdir(parents=True, exist_ok=True)
 
         view3d_out = int(self.view3d_out)
-        if view3d_out == 2 and not bool(getattr(sim, "lvfsparse", False)):
+        lvfsparse = bool(getattr(sim, "lvfsparse", False))
+        if view3d_out == 2 and not lvfsparse:
             raise ValueError("view3d_out=2 requires lvfsparse=true in the ENERGYBALANCE section")
         maxD = float(maxD)
 
@@ -296,12 +298,16 @@ class RadiationSection(Section):
             raise ValueError(f"Unsupported view3d_out: {view3d_out}")
         svf_path = out_dir / f"svf.inp.{expnr}"
         vfsparse_path = None
-        if view3d_out in (0, 1) and bool(getattr(sim, "lvfsparse", False)):
+        vf_nc_path = None
+        if view3d_out in (0, 1) and lvfsparse:
             vfsparse_path = out_dir / f"vfsparse.inp.{expnr}"
+        elif view3d_out in (0, 1):
+            vf_nc_path = out_dir / f"vf.nc.inp.{expnr}"
 
         paths = {
             "vs3": vs3_path,
             "vf": vf_path,
+            "vf_nc": vf_nc_path,
             "svf": svf_path,
             "vfsparse": vfsparse_path,
         }
@@ -309,7 +315,7 @@ class RadiationSection(Section):
         stl_path = Path(sim.path) / sim.stl_file
         stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
         nfacets = sim.geom.stl.faces.shape[0]
-        cache_key = (str(stl_path), stl_mtime, view3d_out, maxD, nfacets)
+        cache_key = (str(stl_path), stl_mtime, view3d_out, lvfsparse, maxD, nfacets)
         if self._vf_cache is not None and self._svf_cache is not None and self._vf_cache_key == cache_key:
             return self._vf_cache, self._svf_cache, paths
 
@@ -318,16 +324,25 @@ class RadiationSection(Section):
             svf = np.loadtxt(svf_path)
             if vfsparse_path is not None and not vfsparse_path.exists():
                 write_vfsparse(vfsparse_path, vf, threshold=5e-7)
+            if vf_nc_path is not None and not vf_nc_path.exists():
+                write_vf(vf_nc_path, vf.toarray())
+            if vf_nc_path is not None and vf_path.exists():
+                vf_path.unlink()
             if not hasattr(vf, "nnz"):
                 raise TypeError("Expected sparse view-factor matrix with 'nnz' attribute")
             nnz = int(vf.nnz)
-            self.save_param("nnz", nnz)
+            if vfsparse_path is not None or view3d_out == 2:
+                self.save_param("nnz", nnz)
             self._vf_cache = vf
             self._svf_cache = svf
             self._vf_cache_key = cache_key
             return vf, svf, paths
 
         stl_to_view3d(stl_path, vs3_path, view3d_out, maxD=maxD, row=0, col=0)
+
+        legacy_vs3_path = out_dir / "facets.vs3"
+        if legacy_vs3_path != vs3_path and legacy_vs3_path.exists():
+            legacy_vs3_path.unlink()
 
         view3d_exe = resolve_view3d_exe()
         if not view3d_exe.exists():
@@ -344,11 +359,16 @@ class RadiationSection(Section):
 
         if vfsparse_path is not None:
             write_vfsparse(vfsparse_path, vf, threshold=5e-7)
+        if vf_nc_path is not None:
+            write_vf(vf_nc_path, vf.toarray())
+            if vf_path.exists():
+                vf_path.unlink()
 
         if not hasattr(vf, "nnz"):
             raise TypeError("Expected sparse view-factor matrix with 'nnz' attribute")
         nnz = int(vf.nnz)
-        self.save_param("nnz", nnz)
+        if vfsparse_path is not None or view3d_out == 2:
+            self.save_param("nnz", nnz)
         self._vf_cache = vf
         self._svf_cache = svf
         self._vf_cache_key = cache_key
@@ -536,6 +556,16 @@ class RadiationSection(Section):
         netsw_path = out_dir / f"netsw.inp.{expnr}"
         sveg_path = out_dir / f"sveg.inp.{expnr}"
         if not force and sdir_path.exists() and netsw_path.exists():
+            legacy_vs3_path = out_dir / "facets.vs3"
+            if legacy_vs3_path.exists() and (out_dir / f"facets.{expnr}.vs3").exists():
+                legacy_vs3_path.unlink()
+            view3d_out = int(getattr(self, "view3d_out", 0))
+            lvfsparse = bool(getattr(sim, "lvfsparse", False))
+            if view3d_out in (0, 1) and not lvfsparse:
+                vf_path = out_dir / ("vf.txt" if view3d_out == 0 else "vf.bin")
+                vf_nc_path = out_dir / f"vf.nc.inp.{expnr}"
+                if vf_nc_path.exists() and vf_path.exists():
+                    vf_path.unlink()
             return
 
         start = datetime(
@@ -843,6 +873,10 @@ class RadiationSection(Section):
             method=method,
             resolution=resolution,
         )
+        if method == "scanline":
+            # MATLAB's Fortran route writes Sdir.txt with f8.2 and reads it
+            # back before computing Knet, so use the same precision here.
+            sdir = np.round(sdir, 2)
         if lscatter:
             if vf is None or svf is None:
                 raise ValueError("View factors are required for shortwave reflections")
