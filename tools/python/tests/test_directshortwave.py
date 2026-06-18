@@ -40,7 +40,7 @@ def _build_flat_terrain_fixture():
         xlen=1.0,
         ylen=1.0,
         zsize=2.0,
-        zf=np.array([0.0, 1.0], dtype=float),
+        zm=np.array([0.0, 1.0], dtype=float),
         Sc=np.array([[[True, False]]], dtype=bool),
         facsec={
             "c": {

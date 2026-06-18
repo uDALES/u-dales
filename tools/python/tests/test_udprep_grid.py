@@ -55,8 +55,6 @@ class TestGridSection(unittest.TestCase):
         np.testing.assert_allclose(sim.zm, [0.0, 2.0, 4.0, 6.0, 8.0])
         np.testing.assert_allclose(sim.zt, [1.0, 3.0, 5.0, 7.0, 9.0])
         np.testing.assert_allclose(sim.dzt, [2.0, 2.0, 2.0, 2.0, 2.0])
-        np.testing.assert_allclose(sim.zf, sim.zt)
-        np.testing.assert_allclose(sim.zh, sim.zm)
 
     def test_generate_xygrid_populates_staggered_and_face_grids(self):
         section, sim = make_grid_section()

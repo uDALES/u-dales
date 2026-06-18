@@ -24,7 +24,6 @@ class DummySim:
         self.expnr = expnr
         # Non-uniform grid: faces at [0, 1, 3, 6] → centres at [0.5, 2.0, 4.5], widths [1, 2, 3]
         self.zt = np.array([0.5, 2.0, 4.5])
-        self.zf = self.zt  # legacy alias, set by GridSection
         self.dzt = np.array([1.0, 2.0, 3.0])
         self.ktot = 3
         self.zsize = 6.0
