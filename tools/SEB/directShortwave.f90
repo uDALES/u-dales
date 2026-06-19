@@ -340,7 +340,6 @@ contains
    subroutine writeDirectShortwave(Sdir, nFaces)
       integer, intent(in) :: nFaces
       real   , intent(in), dimension(nFaces) :: Sdir
-      !character(25), intent(in) :: fname_Sdir
       integer :: n
 
       open (unit=10,file='Sdir.txt',action="write")
@@ -709,7 +708,6 @@ contains
         if (dx >= dy) then
             m = (y2 - y1) / (x2 - x1)
             if (x2 > x1) then
-                !do xVal = x1, x2
                 do xit = int(x1), int(x2)
                     xVal = xit + x1-int(x1)
                     yVal = nint(y1 + m * (xVal - x1))
@@ -718,7 +716,6 @@ contains
                     borderPosition = borderPosition + 1
                 end do
             else
-                !do xVal = x1, x2, -1
                 do xit = int(x1), int(x2), -1
                     xVal = xit + x1-int(x1)
                     yVal = nint(y1 + m * (xVal - x1))
@@ -730,7 +727,6 @@ contains
         else
             m = (x2 - x1) / (y2 - y1)
             if (y2 > y1) then
-                !do yVal = y1, y2
                 do yit = int(y1), int(y2)
                     yVal = yit + y1-int(y1)
                     xVal = nint(x1 + m * (yVal - y1))
@@ -739,7 +735,6 @@ contains
                     borderPosition = borderPosition + 1
                 end do
             else
-               !do yVal = y1, y2, -1
                do yit = int(y1), int(y2), -1
                     yVal = yit + y1-int(y1)
                     xVal = nint(x1 + m * (yVal - y1))
