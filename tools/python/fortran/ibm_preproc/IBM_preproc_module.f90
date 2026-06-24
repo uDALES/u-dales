@@ -121,12 +121,16 @@ module ibm_preproc_mod
         ! zt(1:ktot) = [((i-1)*dz+(dz/2.0), i=1,ktot)]
         ! zm(1:ktot) = [((i-1)*dz, i=1,ktot)]
 
+        !$ call OMP_SET_NUM_THREADS(n_threads)
+        !$OMP parallel do default(shared) private(i) schedule(static)
         do i = 1, n_vert
             vertices_flat(3*i-2) = vertices(i,1)
             vertices_flat(3*i-1) = vertices(i,2)
             vertices_flat(3*i)   = vertices(i,3)
         end do
+        !$OMP end parallel do
 
+        !$OMP parallel do default(shared) private(i) schedule(static)
         do i = 1, n_fcts
             facets_flat(3*i-2)      = facets(i,1)
             facets_flat(3*i-1)      = facets(i,2)
@@ -138,12 +142,13 @@ module ibm_preproc_mod
             faceNormals_flat(3*i-1) = faceNormals(i,2)
             faceNormals_flat(3*i)   = faceNormals(i,3)
         end do
+        !$OMP end parallel do
 
 
         !!!!!!! Solid-Fluid identification !!!!!!
 
         max_height = MAXVAL(vertices_flat(3:n_vert*3:3)) + tol
-        L_char = max_facet_side(n_vert,vertices_flat,n_fcts,facets_flat) + tol
+        L_char = max_facet_side(n_vert,vertices_flat,n_fcts,facets_flat,n_threads) + tol
 
         ! u-grid
         solid_u = is_grid_in_mypoly_func(n_vert,vertices_flat,n_fcts,facets_flat,incenters_flat,faceNormals_flat, &

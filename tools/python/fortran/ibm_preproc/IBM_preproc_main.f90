@@ -23,6 +23,7 @@
 !
 
 program IBM_preproc
+    use omp_lib
     use ibm_preproc_mod
     implicit none
 
@@ -71,12 +72,16 @@ program IBM_preproc
     call read_data('vertices.txt', n_vert, 'faces.txt', n_fcts, 'zfgrid.txt', 'zhgrid.txt', ktot, &
                     vertices_flat, facets_flat, incenters_flat, faceNormals_flat, zt, zm)
 
+    !$ call OMP_SET_NUM_THREADS(n_threads)
+    !$OMP parallel do default(shared) private(i) schedule(static)
     do i = 1, n_vert
         vertices(i,1) = vertices_flat(3*i-2)
         vertices(i,2) = vertices_flat(3*i-1)
         vertices(i,3) = vertices_flat(3*i)
     end do
+    !$OMP end parallel do
 
+    !$OMP parallel do default(shared) private(i) schedule(static)
     do i = 1, n_fcts
         facets(i,1) = facets_flat(3*i-2)
         facets(i,2) = facets_flat(3*i-1)
@@ -88,6 +93,7 @@ program IBM_preproc
         faceNormals(i,2) = faceNormals_flat(3*i-1)
         faceNormals(i,3) = faceNormals_flat(3*i)
     end do
+    !$OMP end parallel do
 
     call run_ibm_preproc_core(n_vert, n_fcts, vertices, facets, incenters, faceNormals, &
                                   dx, dy, itot, jtot, ktot, zt, zm, &
