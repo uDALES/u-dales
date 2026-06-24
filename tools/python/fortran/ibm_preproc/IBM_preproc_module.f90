@@ -30,94 +30,10 @@ module ibm_preproc_mod
     use IBM_preproc_io
     implicit none
 
-contains
-
-    subroutine run_ibm_preproc()
-        implicit none
-
-        integer                              :: n_threads
-        real                                 :: tol
-        real                                 :: dx, dy
-        real   , allocatable, dimension(:)   :: zf, zh
-        real   , allocatable, dimension(:)   :: vertices_flat, faceNormals_flat, incenters_flat
-        integer, allocatable, dimension(:)   :: facets_flat
-        real   , allocatable, dimension(:,:) :: vertices, faceNormals, incenters
-        integer, allocatable, dimension(:,:) :: facets
-        integer                              :: n_vert, n_fcts
-        integer                              :: stl_ground_i
-        real   ,              dimension(3)   :: Ray_dir_u, Ray_dir_v, Ray_dir_w, Ray_dir_c
-        integer                              :: diag_neighbs_i, periodic_x_i, periodic_y_i
-        integer                              :: i, itot, jtot, ktot
-        integer,              dimension(13)  :: counts
-        logical :: stl_ground, diag_neighbs, periodic_x, periodic_y
-
-        open(unit=50,file='inmypoly_inp_info.txt')
-            read(unit=50,fmt='(f15.10,x,f15.10)') dx, dy
-            read(unit=50,fmt='(i5,x,i5,x,i5)') itot, jtot, ktot
-            read(unit=50,fmt='(f15.10)') tol
-            read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_u(1), Ray_dir_u(2), Ray_dir_u(3)
-            read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_v(1), Ray_dir_v(2), Ray_dir_v(3)
-            read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_w(1), Ray_dir_w(2), Ray_dir_w(3)
-            read(unit=50,fmt='(f15.10,x,f15.10,x,f15.10)') Ray_dir_c(1), Ray_dir_c(2), Ray_dir_c(3)
-            read(unit=50,fmt='(i8,x,i8)') n_vert, n_fcts
-            read(unit=50,fmt='(i4)') n_threads
-            read(unit=50,fmt='(i1,x,i1,x,i1,x,i1)') stl_ground_i, diag_neighbs_i, periodic_x_i, periodic_y_i
-        close(unit=50)
-
-        call num2logical(stl_ground  , stl_ground_i  , 'stl_ground'  )
-        call num2logical(diag_neighbs, diag_neighbs_i, 'diag_neighbs')
-        call num2logical(periodic_x  , periodic_x_i  , 'periodic_x'  )
-        call num2logical(periodic_y  , periodic_y_i  , 'periodic_y'  )
-
-        allocate(zf(ktot), zh(ktot))
-        allocate(vertices_flat(n_vert*3), facets_flat(n_fcts*3), &
-                incenters_flat(n_fcts*3), faceNormals_flat(n_fcts*3))
-        allocate(vertices(n_vert,3), facets(n_fcts,3), &
-                incenters(n_fcts,3), faceNormals(n_fcts,3))
-
-        call read_data('vertices.txt', n_vert, 'faces.txt', n_fcts, 'zfgrid.txt', 'zhgrid.txt', ktot, &
-                    vertices_flat, facets_flat, incenters_flat, faceNormals_flat, zf, zh)
-
-        do i = 1, n_vert
-            vertices(i,1) = vertices_flat(3*i-2)
-            vertices(i,2) = vertices_flat(3*i-1)
-            vertices(i,3) = vertices_flat(3*i)
-        end do
-
-        do i = 1, n_fcts
-            facets(i,1) = facets_flat(3*i-2)
-            facets(i,2) = facets_flat(3*i-1)
-            facets(i,3) = facets_flat(3*i)
-            incenters(i,1) = incenters_flat(3*i-2)
-            incenters(i,2) = incenters_flat(3*i-1)
-            incenters(i,3) = incenters_flat(3*i)
-            faceNormals(i,1) = faceNormals_flat(3*i-2)
-            faceNormals(i,2) = faceNormals_flat(3*i-1)
-            faceNormals(i,3) = faceNormals_flat(3*i)
-        end do
-
-        call run_ibm_preproc_core(n_vert, n_fcts, vertices, facets, incenters, faceNormals, &
-                                  dx, dy, itot, jtot, ktot, zf, zh, &
-                                  Ray_dir_u, Ray_dir_v, Ray_dir_w, Ray_dir_c, &
-                                  stl_ground, diag_neighbs, periodic_x, periodic_y, &
-                                  n_threads, tol, counts)
-
-        open(unit=100,file='info_fort.txt')
-        write(unit=100,fmt='(A)') 'nfcts  nsolpts_u  nsolpts_v  nsolpts_w  nsolpts_c  ' // &
-                                'nbndpts_u  nbndpts_v  nbndpts_w  nbndpts_c  ' // &
-                                'nfctsecs_u  nfctsecs_v  nfctsecs_w  nfctsecs_c'
-        write(unit=100,fmt='(i12,x,i12,x,i12,x,i12,x,i12,x,i12,x,i12,x,i12,x,i12,x,i12,x,i12,x,i12,x,i12)') counts
-        close(unit=100)
-
-        deallocate(zf, zh)
-        deallocate(vertices_flat, facets_flat, incenters_flat, faceNormals_flat)
-        deallocate(vertices, facets, incenters, faceNormals)
-
-    end subroutine run_ibm_preproc
-
+    contains
 
     subroutine run_ibm_preproc_core(n_vert, n_fcts, vertices, facets, incenters, faceNormals, &
-                                    dx, dy, itot, jtot, ktot, zf, zh, &
+                                    dx, dy, itot, jtot, ktot, zt, zm, &
                                     Ray_dir_u, Ray_dir_v, Ray_dir_w, Ray_dir_c, &
                                     stl_ground, diag_neighbs, periodic_x, periodic_y, &
                                     n_threads, tol, counts)
@@ -129,7 +45,7 @@ contains
         real   , intent(in), dimension(n_fcts,3) :: incenters, faceNormals
         real   , intent(in)                      :: dx, dy
         integer, intent(in)                      :: itot, jtot, ktot
-        real   , intent(in), dimension(ktot)     :: zf, zh
+        real   , intent(in), dimension(ktot)     :: zt, zm
         real   , intent(in), dimension(3)        :: Ray_dir_u, Ray_dir_v, Ray_dir_w, Ray_dir_c
         logical, intent(in)                      :: stl_ground, diag_neighbs, periodic_x, periodic_y
         integer, intent(in)                      :: n_threads
@@ -138,7 +54,7 @@ contains
         integer, intent(out), dimension(13)      :: counts
     
 
-        real   , allocatable, dimension(:)       :: xf, xh, yf, yh
+        real   , allocatable, dimension(:)       :: xt, xm, yt, ym
         real   , allocatable, dimension(:)       :: vertices_flat, faceNormals_flat, incenters_flat
         integer, allocatable, dimension(:)       :: facets_flat
 
@@ -167,10 +83,10 @@ contains
         !!!!!!! Memory acclocation !!!!!!
 
         ! Mesh coordinates
-        allocate(xf(itot))
-        allocate(xh(itot))
-        allocate(yf(jtot))
-        allocate(yh(jtot))
+        allocate(xt(itot))
+        allocate(xm(itot))
+        allocate(yt(jtot))
+        allocate(ym(jtot))
 
         ! STL geometry information expected by in_mypoly
         allocate(vertices_flat(n_vert*3))
@@ -192,18 +108,18 @@ contains
 
 
         !!!!!!! Cartesian fluid mesh generation and geometry information preparation !!!!!!
-        !! xf, yf, zf are the cell center coordinates equivalent to xt, yt, zt in uDALES
-        !! xh, yh, zh are the cell face coordinates equivalent to xm, ym, zm in uDALES
-        !! zf, zh are passed as the input, as they can be non-uniform in the vertical direction in uDALES 
+        !! xt, yt, zt are the cell center coordinates
+        !! xm, ym, zm are the cell face coordinates
+        !! zt, zm are passed as the input, as they can be non-uniform in the vertical direction in uDALES
 
-        xf(1:itot) = [((i-1)*dx+(dx/2.0), i=1,itot)]
-        xh(1:itot) = [((i-1)*dx, i=1,itot)]
+        xt(1:itot) = [((i-1)*dx+(dx/2.0), i=1,itot)]
+        xm(1:itot) = [((i-1)*dx, i=1,itot)]
 
-        yf(1:jtot) = [((i-1)*dy+(dy/2.0), i=1,jtot)]
-        yh(1:jtot) = [((i-1)*dy, i=1,jtot)]
+        yt(1:jtot) = [((i-1)*dy+(dy/2.0), i=1,jtot)]
+        ym(1:jtot) = [((i-1)*dy, i=1,jtot)]
 
-        ! zf(1:ktot) = [((i-1)*dz+(dz/2.0), i=1,ktot)]
-        ! zh(1:ktot) = [((i-1)*dz, i=1,ktot)]
+        ! zt(1:ktot) = [((i-1)*dz+(dz/2.0), i=1,ktot)]
+        ! zm(1:ktot) = [((i-1)*dz, i=1,ktot)]
 
         do i = 1, n_vert
             vertices_flat(3*i-2) = vertices(i,1)
@@ -231,22 +147,22 @@ contains
 
         ! u-grid
         solid_u = is_grid_in_mypoly_func(n_vert,vertices_flat,n_fcts,facets_flat,incenters_flat,faceNormals_flat, &
-                                        itot,xh,jtot,yf,ktot,zf,Ray_dir_u,L_char,max_height,tol,n_threads)
+                                        itot,xm,jtot,yt,ktot,zt,Ray_dir_u,L_char,max_height,tol,n_threads)
         write(*,*) 'Determined solid points for u-grid.'
 
         ! v-grid
         solid_v = is_grid_in_mypoly_func(n_vert,vertices_flat,n_fcts,facets_flat,incenters_flat,faceNormals_flat, &
-                                        itot,xf,jtot,yh,ktot,zf,Ray_dir_v,L_char,max_height,tol,n_threads)
+                                        itot,xt,jtot,ym,ktot,zt,Ray_dir_v,L_char,max_height,tol,n_threads)
         write(*,*) 'Determined solid points for v-grid.'
 
         ! w-grid
         solid_w = is_grid_in_mypoly_func(n_vert,vertices_flat,n_fcts,facets_flat,incenters_flat,faceNormals_flat, &
-                                        itot,xf,jtot,yf,ktot,zh,Ray_dir_w,L_char,max_height,tol,n_threads)
+                                        itot,xt,jtot,yt,ktot,zm,Ray_dir_w,L_char,max_height,tol,n_threads)
         write(*,*) 'Determined solid points for w-grid.'
 
         ! c-grid
         solid_c = is_grid_in_mypoly_func(n_vert,vertices_flat,n_fcts,facets_flat,incenters_flat,faceNormals_flat, &
-                                        itot,xf,jtot,yf,ktot,zf,Ray_dir_c,L_char,max_height,tol,n_threads)
+                                        itot,xt,jtot,yt,ktot,zt,Ray_dir_c,L_char,max_height,tol,n_threads)
         write(*,*) 'Determined solid points for c-grid.'
 
         !! Write solid_ files
@@ -259,22 +175,22 @@ contains
 
         ! u-grid
         call boundaryMasks(fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, &
-                        'u', itot, jtot, ktot, xh, yf, zf, &
+                        'u', itot, jtot, ktot, xm, yt, zt, &
                         solid_u, diag_neighbs, stl_ground, n_threads)
 
         ! v-grid
         call boundaryMasks(fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, &
-                        'v', itot, jtot, ktot, xf, yh, zf, &
+                        'v', itot, jtot, ktot, xt, ym, zt, &
                         solid_v, diag_neighbs, stl_ground, n_threads)
 
         ! w-grid
         call boundaryMasks(fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, &
-                        'w', itot, jtot, ktot, xf, yf, zh, &
+                        'w', itot, jtot, ktot, xt, yt, zm, &
                         solid_w, diag_neighbs, stl_ground, n_threads)
 
         ! c-grid
         call boundaryMasks(fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, &
-                        'c', itot, jtot, ktot, xf, yf, zf, &
+                        'c', itot, jtot, ktot, xt, yt, zt, &
                         solid_c, diag_neighbs, stl_ground, n_threads)
 
         !! Write fluid_boundary_ files
@@ -289,28 +205,28 @@ contains
         !! Computation of facet sections for each grid type
         ! u-grid
         call matchFacetsToCells(facets, faceNormals, n_fcts, vertices, n_vert, &
-            fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, xh, yf, zf, itot, jtot, ktot, &
+            fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, xm, yt, zt, itot, jtot, ktot, &
             diag_neighbs, periodic_x, periodic_y,  n_threads, &
             secfacids_u, secbndptids_u, secareas_u, bnddst_u, nfacsecs_u)
         write(*,*) 'Computation of facet_sections_u done.'
 
         ! v-grid
         call matchFacetsToCells(facets, faceNormals, n_fcts, vertices, n_vert, &
-            fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, xf, yh, zf, itot, jtot, ktot, &
+            fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, xt, ym, zt, itot, jtot, ktot, &
             diag_neighbs, periodic_x, periodic_y,  n_threads, &
             secfacids_v, secbndptids_v, secareas_v, bnddst_v, nfacsecs_v)
         write(*,*) 'Computation of facet_sections_v done.'
 
         ! w-grid
         call matchFacetsToCells(facets, faceNormals, n_fcts, vertices, n_vert, &
-            fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, xf, yf, zh, itot, jtot, ktot, &
+            fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, xt, yt, zm, itot, jtot, ktot, &
             diag_neighbs, periodic_x, periodic_y, n_threads, &
             secfacids_w, secbndptids_w, secareas_w, bnddst_w, nfacsecs_w)
         write(*,*) 'Computation of facet_sections_w done.'
 
         ! c-grid
         call matchFacetsToCells(facets, faceNormals, n_fcts, vertices, n_vert, &
-            fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, xf, yf, zf, itot, jtot, ktot, &
+            fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, xt, yt, zt, itot, jtot, ktot, &
             diag_neighbs, periodic_x, periodic_y, n_threads, &
             secfacids_c, secbndptids_c, secareas_c, bnddst_c, nfacsecs_c)
         write(*,*) 'Computation of facet_sections_c done.'
@@ -345,7 +261,7 @@ contains
 
         !!!!!!! Memory clean up !!!!!!
 
-        deallocate(xf,xh,yf,yh)
+        deallocate(xt,xm,yt,ym)
         deallocate(vertices_flat,facets_flat,incenters_flat,faceNormals_flat)
         deallocate(solid_u,solid_v,solid_w,solid_c)
         deallocate(fluid_IB_u, fluid_IB_v, fluid_IB_w, fluid_IB_c, &
