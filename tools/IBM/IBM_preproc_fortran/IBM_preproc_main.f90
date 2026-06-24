@@ -32,7 +32,7 @@ program IBM_preproc
 
     integer                                :: n_threads
     real                                   :: tol
-    
+
     real                                   :: dx, dy  !, dz
     real   , allocatable, dimension(:)     :: xf, xh, yf, yh, zf, zh
 
@@ -45,7 +45,7 @@ program IBM_preproc
 
     real   ,              dimension(3)     :: Ray_dir_u, Ray_dir_v, Ray_dir_w, Ray_dir_c
     integer                                :: diag_neighbs_i, periodic_x_i, periodic_y_i
-    
+
     logical, allocatable, dimension(:,:,:) :: solid_u, solid_v, solid_w, solid_c
 
     logical, allocatable, dimension(:,:,:) :: fluid_IB_u, fluid_IB_v, fluid_IB_w, fluid_IB_c, &
@@ -103,7 +103,7 @@ program IBM_preproc
     allocate(verts(n_vert, 3))
     allocate(faces(n_fcts, 3))
     allocate(faceNormal(n_fcts, 3))
-    
+
     ! solid points flag
     allocate(solid_u(itot,jtot,ktot))
     allocate(solid_v(itot,jtot,ktot))
@@ -133,7 +133,7 @@ program IBM_preproc
 
 
     !!!!!!! Solid-Fluid identification !!!!!!
-    
+
     max_height = MAXVAL(vertices(3:n_vert*3:3)) + tol
     L_char = max_facet_side(n_vert,vertices,n_fcts,facets) + tol
 
@@ -184,7 +184,7 @@ program IBM_preproc
     call boundaryMasks(fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, &
                        'c', itot, jtot, ktot, xf, yf, zf, &
                        solid_c, diag_neighbs, stl_ground, n_threads)
-    
+
     !! Write fluid_boundary_ files
     call print_IB_index(itot, jtot, ktot, fluid_IB_u, fluid_IB_v, fluid_IB_w, fluid_IB_c, &
                         'fluid_boundary_u.txt', 'fluid_boundary_v.txt', &

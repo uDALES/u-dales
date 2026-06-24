@@ -247,21 +247,22 @@ class IBMSection(Section):
 
     def run_ibm(self, backend: str = "f2py") -> None:
         sim = self._require_sim()
-        self._write_ibm_input_files()
         backend_key = backend.strip().lower()
         if backend_key == "f2py":
-            self._run_ibm_via_f2py()
+            counts = self._run_ibm_via_f2py()
+            self._update_counts(counts)
         elif backend_key in {"legacy", "exe", "fortran_exe"}:
+            self._write_ibm_input_files()
             self._run_ibm_via_legacy()
+            self._update_counts_from_info_fort()
         else:
             raise ValueError(f"Unknown IBM backend: {backend}")
-        self._update_counts_from_info_fort()
         for name in ("inmypoly_inp_info.txt", "faces.txt", "vertices.txt", "zfgrid.txt", "zhgrid.txt", "info_fort.txt"):
             path = Path(sim.path) / name
             if path.exists():
                 path.unlink()
 
-    def _run_ibm_via_f2py(self) -> None:
+    def _run_ibm_via_f2py(self) -> np.ndarray:
         try:
             from . import ibm_preproc_f2py as _ibm_mod
         except ImportError as exc:
@@ -271,8 +272,48 @@ class IBMSection(Section):
             ) from exc
 
         sim = self._require_sim()
+        stl = sim.geom.stl
+        vertices = self._as_fortran_real_input(stl.vertices)
+        facets = np.asfortranarray(np.asarray(stl.faces, dtype=np.int32) + 1)
+        incenters = self._as_fortran_real_input(sim.geom.face_incenters)
+        facenormals = self._as_fortran_real_input(sim.geom.face_normals)
+        zf = self._as_fortran_real_input(np.asarray(sim.zt).reshape(-1)[: int(sim.ktot)])
+        zh = self._as_fortran_real_input(np.asarray(sim.zm).reshape(-1)[: int(sim.ktot)])
+        ray_dir = np.asfortranarray(np.array([0.0, 0.0, 1.0], dtype=np.float32))
+
         with self._pushd(Path(sim.path)):
-            _ibm_mod.run_ibm_preproc_f2py()
+            counts = _ibm_mod.run_ibm_preproc_f2py(
+                vertices,
+                facets,
+                incenters,
+                facenormals,
+                zf,
+                zh,
+                self._as_fortran_real_scalar(sim.dx),
+                self._as_fortran_real_scalar(sim.dy),
+                int(sim.itot),
+                int(sim.jtot),
+                self._as_fortran_real_scalar(self.ibmtol),
+                ray_dir,
+                ray_dir,
+                ray_dir,
+                ray_dir,
+                int(self.nompthreads),
+                int(self.stl_ground),
+                int(self.diag_neighbs),
+                int(sim.BCxm == 1),
+                int(sim.BCym == 1),
+            )
+        return np.asarray(counts, dtype=int).reshape(-1)
+
+    @staticmethod
+    def _as_fortran_real_input(values: Any) -> np.ndarray:
+        # Match the old text-file path: Python wrote %.10f, then Fortran read default real.
+        return np.asfortranarray(np.round(np.asarray(values, dtype=np.float64), 10).astype(np.float32))
+
+    @staticmethod
+    def _as_fortran_real_scalar(value: Any) -> float:
+        return float(np.float32(round(float(value), 10)))
 
     def _run_ibm_via_legacy(self) -> None:
         sim = self._require_sim()
@@ -369,6 +410,11 @@ class IBMSection(Section):
     def _update_counts_from_info_fort(self) -> None:
         sim = self._require_sim()
         info = np.loadtxt(Path(sim.path) / "info_fort.txt", skiprows=1, dtype=int).reshape(-1)
+        self._update_counts(info)
+
+    def _update_counts(self, counts: np.ndarray) -> None:
+        sim = self._require_sim()
+        info = np.asarray(counts, dtype=int).reshape(-1)
         names = [
             "nfcts",
             "nsolpts_u",
@@ -384,6 +430,8 @@ class IBMSection(Section):
             "nfctsecs_w",
             "nfctsecs_c",
         ]
+        if info.size != len(names):
+            raise ValueError(f"Expected {len(names)} IBM counts, got {info.size}")
         for name, value in zip(names, info):
             self.save_param(name, int(value))
             setattr(sim, name, int(value))
