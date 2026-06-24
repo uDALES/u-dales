@@ -277,9 +277,12 @@ class IBMSection(Section):
         facets = np.asfortranarray(np.asarray(stl.faces, dtype=np.int32) + 1)
         incenters = self._as_fortran_real_input(sim.geom.face_incenters)
         facenormals = self._as_fortran_real_input(sim.geom.face_normals)
-        zf = self._as_fortran_real_input(np.asarray(sim.zt).reshape(-1)[: int(sim.ktot)])
-        zh = self._as_fortran_real_input(np.asarray(sim.zm).reshape(-1)[: int(sim.ktot)])
-        ray_dir = np.asfortranarray(np.array([0.0, 0.0, 1.0], dtype=np.float32))
+        zt = self._as_fortran_real_input(np.asarray(sim.zt).reshape(-1)[: int(sim.ktot)])
+        zm = self._as_fortran_real_input(np.asarray(sim.zm).reshape(-1)[: int(sim.ktot)])
+        ray_dir_u = np.asfortranarray(np.array([0.0, 0.0, 1.0], dtype=np.float32))
+        ray_dir_v = np.asfortranarray(np.array([0.0, 0.0, 1.0], dtype=np.float32))
+        ray_dir_w = np.asfortranarray(np.array([0.0, 0.0, 1.0], dtype=np.float32))
+        ray_dir_c = np.asfortranarray(np.array([0.0, 0.0, 1.0], dtype=np.float32))
 
         with self._pushd(Path(sim.path)):
             counts = _ibm_mod.run_ibm_preproc_f2py(
@@ -287,22 +290,22 @@ class IBMSection(Section):
                 facets,
                 incenters,
                 facenormals,
-                zf,
-                zh,
                 self._as_fortran_real_scalar(sim.dx),
                 self._as_fortran_real_scalar(sim.dy),
-                int(sim.itot),
-                int(sim.jtot),
+                sim.itot,
+                sim.jtot,
+                zt,
+                zm,
+                ray_dir_u,
+                ray_dir_v,
+                ray_dir_w,
+                ray_dir_c,
+                self.stl_ground,
+                self.diag_neighbs,
+                sim.BCxm == 1,
+                sim.BCym == 1,
+                self.nompthreads,
                 self._as_fortran_real_scalar(self.ibmtol),
-                ray_dir,
-                ray_dir,
-                ray_dir,
-                ray_dir,
-                int(self.nompthreads),
-                int(self.stl_ground),
-                int(self.diag_neighbs),
-                int(sim.BCxm == 1),
-                int(sim.BCym == 1),
             )
         return np.asarray(counts, dtype=int).reshape(-1)
 

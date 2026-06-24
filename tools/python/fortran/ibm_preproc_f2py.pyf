@@ -1,32 +1,23 @@
 python module ibm_preproc_f2py
     interface
-        subroutine run_ibm_preproc_f2py(vertices,facets,incenters,facenormals,zf,zh,dx,dy,itot,jtot,ktot, &
-                                        tol,ray_dir_u,ray_dir_v,ray_dir_w,ray_dir_c,n_threads,stl_ground_i, &
-                                        diag_neighbs_i,periodic_x_i,periodic_y_i,n_vert,n_fcts,counts)
-            integer intent(in) :: n_vert
-            integer intent(in) :: n_fcts
-            integer intent(in) :: itot
-            integer intent(in) :: jtot
-            integer intent(in) :: ktot
-            integer intent(in) :: n_threads
-            integer intent(in) :: stl_ground_i
-            integer intent(in) :: diag_neighbs_i
-            integer intent(in) :: periodic_x_i
-            integer intent(in) :: periodic_y_i
-            real intent(in) :: dx
-            real intent(in) :: dy
-            real intent(in) :: tol
-            real intent(in), dimension(3) :: ray_dir_u
-            real intent(in), dimension(3) :: ray_dir_v
-            real intent(in), dimension(3) :: ray_dir_w
-            real intent(in), dimension(3) :: ray_dir_c
-            real intent(in), dimension(n_vert,3) :: vertices
-            integer intent(in), dimension(n_fcts,3) :: facets
-            real intent(in), dimension(n_fcts,3) :: incenters
-            real intent(in), dimension(n_fcts,3) :: facenormals
-            real intent(in), dimension(ktot) :: zf
-            real intent(in), dimension(ktot) :: zh
-            integer intent(out), dimension(13) :: counts
+        subroutine run_ibm_preproc_f2py(n_vert, n_fcts, vertices, facets, incenters, faceNormals, &
+                                        dx, dy, itot, jtot, ktot, zt, zm, &
+                                        Ray_dir_u, Ray_dir_v, Ray_dir_w, Ray_dir_c, &
+                                        stl_ground, diag_neighbs, periodic_x, periodic_y, &
+                                        n_threads, tol, counts)
+            integer, intent(in)                      :: n_vert, n_fcts
+            real   , intent(in), dimension(n_vert,3) :: vertices
+            integer, intent(in), dimension(n_fcts,3) :: facets
+            real   , intent(in), dimension(n_fcts,3) :: incenters, faceNormals
+            real   , intent(in)                      :: dx, dy
+            integer, intent(in)                      :: itot, jtot, ktot
+            real   , intent(in), dimension(ktot)     :: zt, zm
+            real   , intent(in), dimension(3)        :: Ray_dir_u, Ray_dir_v, Ray_dir_w, Ray_dir_c
+            logical, intent(in)                      :: stl_ground, diag_neighbs, periodic_x, periodic_y
+            integer, intent(in)                      :: n_threads
+            real   , intent(in)                      :: tol
+
+            integer, intent(out), dimension(13)      :: counts
         end subroutine run_ibm_preproc_f2py
     end interface
 end python module ibm_preproc_f2py
