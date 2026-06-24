@@ -143,10 +143,6 @@ clean_previous_outputs() {
         fi
     done
 
-    if [ "${target}" != "preprocessing_tools" ]; then
-        return
-    fi
-
     shopt -s nullglob
     local f2py_outputs=(
         "${udprep_dir}"/directshortwave_f2py*.so

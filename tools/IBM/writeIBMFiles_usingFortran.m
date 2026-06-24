@@ -39,7 +39,7 @@ disp('Determining both fluid/solid points and facet sections using Fortran.')
 in_mypoly_fortran_path = [folder '/IBM_preproc_fortran/'];
 addpath(in_mypoly_fortran_path)
 cd(in_mypoly_fortran_path);
-system('gfortran -O3 -fopenmp in_mypoly_functions.f90 boundaryMasking.f90 matchFacetsCells.f90 IBM_preproc_io.f90 IBM_preproc_main.f90 -o IBM_preproc.exe');
+system('gfortran -O3 -fopenmp in_mypoly_functions.f90 boundaryMasking.f90 matchFacetsCells.f90 IBM_preproc_io.f90 IBM_preproc_module.f90 IBM_preproc_main.f90 -o IBM_preproc.exe');
 copyfile('IBM_preproc.exe', fpath)
 delete IBM_preproc.exe *.mod
 
