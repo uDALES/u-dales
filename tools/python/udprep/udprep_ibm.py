@@ -279,10 +279,10 @@ class IBMSection(Section):
         facenormals = self._as_fortran_real_input(sim.geom.face_normals)
         zt = self._as_fortran_real_input(np.asarray(sim.zt).reshape(-1)[: int(sim.ktot)])
         zm = self._as_fortran_real_input(np.asarray(sim.zm).reshape(-1)[: int(sim.ktot)])
-        ray_dir_u = np.asfortranarray(np.array([0.0, 0.0, 1.0], dtype=np.float32))
-        ray_dir_v = np.asfortranarray(np.array([0.0, 0.0, 1.0], dtype=np.float32))
-        ray_dir_w = np.asfortranarray(np.array([0.0, 0.0, 1.0], dtype=np.float32))
-        ray_dir_c = np.asfortranarray(np.array([0.0, 0.0, 1.0], dtype=np.float32))
+        ray_dir_u = self._as_fortran_real_input(self._ray_direction("ray_dir_u"))
+        ray_dir_v = self._as_fortran_real_input(self._ray_direction("ray_dir_v"))
+        ray_dir_w = self._as_fortran_real_input(self._ray_direction("ray_dir_w"))
+        ray_dir_c = self._as_fortran_real_input(self._ray_direction("ray_dir_c"))
 
         with self._pushd(Path(sim.path)):
             counts = _ibm_mod.run_ibm_preproc_f2py(
@@ -317,6 +317,28 @@ class IBMSection(Section):
     @staticmethod
     def _as_fortran_real_scalar(value: Any) -> float:
         return float(np.float32(round(float(value), 10)))
+
+    def _ray_direction(self, name: str) -> np.ndarray:
+        value = getattr(self, name)
+        if isinstance(value, str):
+            text = value.strip().strip("[]()")
+            parts = [part.strip() for part in text.split(",") if part.strip()]
+            if len(parts) == 1:
+                parts = [part for part in text.split() if part]
+            try:
+                ray = np.asarray([float(part) for part in parts], dtype=np.float64)
+            except ValueError as exc:
+                raise ValueError(f"{name} must contain three numeric values") from exc
+        else:
+            ray = np.asarray(value, dtype=np.float64).reshape(-1)
+
+        if ray.size != 3:
+            raise ValueError(f"{name} must contain exactly three values, got {ray.size}")
+        if not np.all(np.isfinite(ray)):
+            raise ValueError(f"{name} must contain finite numeric values")
+        if np.linalg.norm(ray) == 0.0:
+            raise ValueError(f"{name} must be a non-zero vector")
+        return ray
 
     def _run_ibm_via_legacy(self) -> None:
         sim = self._require_sim()
@@ -383,10 +405,9 @@ class IBMSection(Section):
             f.write(f"{sim.dx:15.10f} {sim.dy:15.10f}\n")
             f.write(f"{sim.itot:5d} {sim.jtot:5d} {sim.ktot:5d}\n")
             f.write(f"{self.ibmtol:15.10f}\n")
-            f.write(f"{0.0:15.10f} {0.0:15.10f} {1.0:15.10f}\n") # Ray casting direction for grid u
-            f.write(f"{0.0:15.10f} {0.0:15.10f} {1.0:15.10f}\n") # Ray casting direction for grid v
-            f.write(f"{0.0:15.10f} {0.0:15.10f} {1.0:15.10f}\n") # Ray casting direction for grid w
-            f.write(f"{0.0:15.10f} {0.0:15.10f} {1.0:15.10f}\n") # Ray casting direction for grid c
+            for name in ("ray_dir_u", "ray_dir_v", "ray_dir_w", "ray_dir_c"):
+                ray = self._ray_direction(name)
+                f.write(f"{ray[0]:15.10f} {ray[1]:15.10f} {ray[2]:15.10f}\n")
             f.write(f"{len(stl.vertices):8d} {len(stl.faces):8d}\n")
             f.write(f"{self.nompthreads:4d}\n")
             f.write(

@@ -158,6 +158,14 @@ class TestIBMSection(unittest.TestCase):
             "ltempeq": False,
             "lmoist": False,
             "lwritefac": False,
+            "stl_ground": True,
+            "diag_neighbs": True,
+            "nompthreads": 8,
+            "ibmtol": 5e-4,
+            "ray_dir_u": [0.0, 0.0, 1.0],
+            "ray_dir_v": [0.0, 0.0, 1.0],
+            "ray_dir_w": [0.0, 0.0, 1.0],
+            "ray_dir_c": [0.0, 0.0, 1.0],
         }
         values.update(overrides)
         return IBMSection("ibm", values, sim=sim, defaults={})
@@ -294,6 +302,81 @@ class TestIBMSection(unittest.TestCase):
         section.copy_geom_outputs()
 
         self.assertEqual((self.workdir / "facets_unused.321").read_text(encoding="ascii"), "2,4\n")
+
+    def test_ray_direction_parses_lists_and_namoptions_strings(self):
+        section = self._make_section(
+            ray_dir_u=[1.0, 0.0, 0.0],
+            ray_dir_v="0.0, 1.0, 0.0",
+            ray_dir_w="0.0 0.0 -1.0",
+            ray_dir_c=np.array([1.0, 1.0, 1.0]),
+        )
+
+        np.testing.assert_allclose(section._ray_direction("ray_dir_u"), [1.0, 0.0, 0.0])
+        np.testing.assert_allclose(section._ray_direction("ray_dir_v"), [0.0, 1.0, 0.0])
+        np.testing.assert_allclose(section._ray_direction("ray_dir_w"), [0.0, 0.0, -1.0])
+        np.testing.assert_allclose(section._ray_direction("ray_dir_c"), [1.0, 1.0, 1.0])
+
+    def test_ray_direction_rejects_invalid_values(self):
+        section = self._make_section(ray_dir_u="1.0, 2.0")
+        with self.assertRaisesRegex(ValueError, "exactly three"):
+            section._ray_direction("ray_dir_u")
+
+        section = self._make_section(ray_dir_u="0.0, 0.0, 0.0")
+        with self.assertRaisesRegex(ValueError, "non-zero"):
+            section._ray_direction("ray_dir_u")
+
+        section = self._make_section(ray_dir_u="1.0, nope, 0.0")
+        with self.assertRaisesRegex(ValueError, "numeric"):
+            section._ray_direction("ray_dir_u")
+
+    def test_write_ibm_input_files_uses_configured_ray_directions(self):
+        section = self._make_section(
+            ibmtol=1e-4,
+            nompthreads=3,
+            diag_neighbs=False,
+            ray_dir_u="1.0, 0.0, 0.0",
+            ray_dir_v=[0.0, 1.0, 0.0],
+            ray_dir_w=[0.0, 0.0, -1.0],
+            ray_dir_c=[1.0, 1.0, 1.0],
+        )
+        stl = types.SimpleNamespace(
+            vertices=np.array(
+                [
+                    [0.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                ]
+            ),
+            faces=np.array([[0, 1, 2]], dtype=int),
+        )
+        section.sim.geom = types.SimpleNamespace(
+            stl=stl,
+            face_incenters=np.array([[0.25, 0.25, 0.0]]),
+            face_normals=np.array([[0.0, 0.0, 1.0]]),
+        )
+        section.sim.dx = 2.0
+        section.sim.dy = 3.0
+        section.sim.itot = 4
+        section.sim.jtot = 5
+        section.sim.ktot = 2
+        section.sim.zt = np.array([0.5, 1.5])
+        section.sim.zm = np.array([0.0, 1.0])
+        section.sim.BCxm = 1
+        section.sim.BCym = 2
+
+        section._write_ibm_input_files()
+
+        lines = (self.workdir / "inmypoly_inp_info.txt").read_text(encoding="ascii").splitlines()
+        rays = [[float(part) for part in lines[idx].split()] for idx in range(3, 7)]
+        self.assertEqual(
+            rays,
+            [
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [1.0, 1.0, 1.0],
+            ],
+        )
 
 
 class TestUDPrepCore(unittest.TestCase):
