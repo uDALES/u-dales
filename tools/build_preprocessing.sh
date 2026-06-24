@@ -31,6 +31,7 @@
 #                  If unset, preprocessing_tools requires tools/python/.venv.
 #
 # Output:
+#   Existing outputs for the requested target are removed before building.
 #   tools/preprocessing/build/bin/view3d
 #     View3D executable (also symlinked to tools/View3D/build/src/view3d for
 #     MATLAB compatibility).
@@ -69,6 +70,9 @@ system=$1
 target=${2:-view3d}
 python_venv_dir="${UDALES_ROOT}/tools/python/.venv"
 python_cmd=""
+build_dir="tools/preprocessing/build"
+legacy_view3d_build_dir="tools/View3D/build"
+udprep_dir="tools/python/udprep"
 
 resolve_python_cmd() {
     local requested_python="${PREPROCESSING_PYTHON_EXECUTABLE:-}"
@@ -101,6 +105,17 @@ resolve_python_cmd() {
     return 1
 }
 
+print_python_env_setup_hint() {
+    echo ""
+    echo "Set up the Python virtual environment appropriately by running:"
+    echo "  bash ${UDALES_ROOT}/tools/python/setup_venv.sh ${system} preprocessing_tools"
+    echo ""
+    echo "The setup script creates the virtual environment and internally runs:"
+    echo "  ${UDALES_ROOT}/tools/build_preprocessing.sh ${system} preprocessing_tools"
+    echo "so you do not need to run build_preprocessing.sh explicitly after setup completes."
+    echo ""
+}
+
 require_python_venv_for_preprocessing_tools() {
     if [ "$target" != "preprocessing_tools" ]; then
         return
@@ -113,14 +128,38 @@ require_python_venv_for_preprocessing_tools() {
     echo "[ERROR] Python environment is required to build target 'preprocessing_tools'."
     echo "Expected virtual environment: ${UDALES_ROOT}/tools/python/.venv"
     echo "or explicit interpreter: PREPROCESSING_PYTHON_EXECUTABLE=/path/to/python"
-    echo ""
-    echo "Set it up from the repository root with:"
-    echo "  bash ${UDALES_ROOT}/tools/python/setup_venv.sh $system preprocessing_tools"
-    echo ""
-    echo "The setup script creates the virtual environment and internally runs:"
-    echo "  ${UDALES_ROOT}/tools/build_preprocessing.sh $system preprocessing_tools"
-    echo "so you do not need to run build_preprocessing.sh explicitly after setup completes."
+    print_python_env_setup_hint
     exit 1
+}
+
+clean_previous_outputs() {
+    local output_path
+
+    echo "Cleaning previous preprocessing build outputs."
+    for output_path in "${legacy_view3d_build_dir}" "${build_dir}"; do
+        if [ -e "${output_path}" ] || [ -L "${output_path}" ]; then
+            echo "Removing ${UDALES_ROOT}/${output_path}"
+            rm -rf -- "${output_path}"
+        fi
+    done
+
+    if [ "${target}" != "preprocessing_tools" ]; then
+        return
+    fi
+
+    shopt -s nullglob
+    local f2py_outputs=(
+        "${udprep_dir}"/directshortwave_f2py*.so
+        "${udprep_dir}"/ibm_preproc_f2py*.so
+    )
+    shopt -u nullglob
+
+    if ((${#f2py_outputs[@]} == 0)); then
+        return
+    fi
+
+    echo "Removing stale f2py modules from ${UDALES_ROOT}/${udprep_dir}"
+    rm -f -- "${f2py_outputs[@]}"
 }
 
 if [[ "$system" != "common" && "$system" != "icl" ]]; then
@@ -149,6 +188,7 @@ fi
 require_python_venv_for_preprocessing_tools
 
 if [ -n "${python_cmd}" ]; then
+    export PATH="$(cd "$(dirname "${python_cmd}")" && pwd):${PATH}"
     echo "Using preprocessing Python: ${python_cmd}"
     "${python_cmd}" --version 2>&1 || true
 fi
@@ -158,7 +198,8 @@ if ! command -v cmake >/dev/null 2>&1; then
     exit 1
 fi
 
-build_dir="tools/preprocessing/build"
+clean_previous_outputs
+
 cmake_args=(
     -S tools/preprocessing
     -B "${build_dir}"
@@ -166,24 +207,21 @@ cmake_args=(
 )
 if [ -n "${python_cmd}" ]; then
     cmake_args+=(-DPREPROCESSING_PYTHON_EXECUTABLE="${python_cmd}")
-    missing_f2py_deps=0
-    if ! "${python_cmd}" -c "import numpy" >/dev/null 2>&1; then
-        echo "WARNING: numpy not available for ${python_cmd}; disabling f2py targets."
-        missing_f2py_deps=1
-    fi
-    if ! "${python_cmd}" -c "import pathlib, sysconfig; header = pathlib.Path(sysconfig.get_paths().get('include','')) / 'Python.h'; raise SystemExit(0 if header.is_file() else 1)" >/dev/null 2>&1; then
-        echo "WARNING: Python.h not found for ${python_cmd}; disabling f2py targets."
-        missing_f2py_deps=1
-    fi
-    if [ "${missing_f2py_deps}" -eq 0 ] && [ "${target}" = "preprocessing_tools" ]; then
+    if [ "${target}" = "preprocessing_tools" ]; then
         cmake_args+=(-DBUILD_PREPROCESSING_DIRECTSHORTWAVE_F2PY=ON)
         cmake_args+=(-DBUILD_PREPROCESSING_IBM_F2PY=ON)
     fi
 fi
-cmake "${cmake_args[@]}"
-cmake --build "${build_dir}" --target "${target}"
-
-require_f2py=1
+if ! cmake "${cmake_args[@]}"; then
+    echo "[ERROR] Preprocessing CMake configuration failed due to missing dependencies."
+    print_python_env_setup_hint
+    exit 1
+fi
+if ! cmake --build "${build_dir}" --target "${target}"; then
+    echo "[ERROR] Preprocessing build failed due to missing dependencies."
+    print_python_env_setup_hint
+    exit 1
+fi
 
 if [ -f "${build_dir}/bin/view3d" ]; then
     legacy_view3d_dir="tools/View3D/build/src"
@@ -192,15 +230,18 @@ if [ -f "${build_dir}/bin/view3d" ]; then
     echo "View3D executable available at ${UDALES_ROOT}/${build_dir}/bin/view3d"
     echo "MATLAB compatibility path available at ${UDALES_ROOT}/${legacy_view3d_dir}/view3d"
 fi
-if compgen -G "tools/python/udprep/directshortwave_f2py*.so" >/dev/null; then
+if [ "${target}" != "preprocessing_tools" ]; then
+    exit 0
+fi
+if compgen -G "${udprep_dir}/directshortwave_f2py*.so" >/dev/null; then
     echo "directshortwave f2py module available at ${UDALES_ROOT}/tools/python/udprep/"
-elif [ "${require_f2py}" -eq 1 ]; then
+else
     echo "WARNING: directshortwave f2py module missing in ${UDALES_ROOT}/tools/python/udprep/"
     echo "         This usually means the preprocessing Python lacks numpy or Python headers."
 fi
-if compgen -G "tools/python/udprep/ibm_preproc_f2py*.so" >/dev/null; then
+if compgen -G "${udprep_dir}/ibm_preproc_f2py*.so" >/dev/null; then
     echo "IBM preprocessing f2py module available at ${UDALES_ROOT}/tools/python/udprep/"
-elif [ "${require_f2py}" -eq 1 ]; then
+else
     echo "WARNING: ibm_preproc f2py module missing in ${UDALES_ROOT}/tools/python/udprep/"
     echo "         This usually means the preprocessing Python lacks numpy or Python headers."
 fi

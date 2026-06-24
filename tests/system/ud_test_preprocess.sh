@@ -162,8 +162,16 @@ run_with_status_strict() {
     bash -c "$cmd" >> "$log_file" 2>&1 &
     local pid=$!
     show_spinner $pid "$description"
+    local errexit_was_set=false
+    case $- in
+        *e*) errexit_was_set=true ;;
+    esac
+    set +e
     wait $pid
     local exit_code=$?
+    if [ "$errexit_was_set" = true ]; then
+        set -e
+    fi
 
     if [ $exit_code -eq 0 ]; then
         [ "$suppress_ok" != "true" ] && printf "[OK] %s - Done\n" "$description"
@@ -216,8 +224,16 @@ run_with_status() {
     bash -c "$cmd" >> "$log_file" 2>&1 &
     local pid=$!
     show_spinner $pid "$description"
+    local errexit_was_set=false
+    case $- in
+        *e*) errexit_was_set=true ;;
+    esac
+    set +e
     wait $pid
     local exit_code=$?
+    if [ "$errexit_was_set" = true ]; then
+        set -e
+    fi
 
     printf "[OK] %s - Done\n" "$description"
     return $exit_code
