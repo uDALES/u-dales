@@ -240,7 +240,6 @@ program run
    integer :: fluid_IB_read, solid_IB_read, i, j, k, n
    character(80) :: chmess
    integer, parameter :: ifinput = 1
-   integer :: count
 
    fluid_IB = .false.
    solid_IB = .false.
@@ -305,7 +304,7 @@ program run
     allocate(secbndptids(0))
     allocate(bnddst(0))
 
-    actual_threads = 1
+    !$ actual_threads = 1
     ! Get actual number of threads that will be used
     !$ call OMP_SET_NUM_THREADS(n_threads)
     !$OMP parallel
@@ -313,13 +312,13 @@ program run
     !$OMP end parallel
 
     ! Initialize thread-local data arrays
-    allocate(thread_data(actual_threads))
-    do i = 1, actual_threads
-        allocate(thread_data(i)%areas(0))
-        allocate(thread_data(i)%facet_ids(0))
-        allocate(thread_data(i)%bnd_pts(0))
-        allocate(thread_data(i)%distances(0))
-    end do
+    !$ allocate(thread_data(actual_threads))
+    !$ do i = 1, actual_threads
+    !$     allocate(thread_data(i)%areas(0))
+    !$     allocate(thread_data(i)%facet_ids(0))
+    !$     allocate(thread_data(i)%bnd_pts(0))
+    !$     allocate(thread_data(i)%distances(0))
+    !$ end do
 
     dx = xgrid(2)-xgrid(1)
     dy = ygrid(2)-ygrid(1)
@@ -931,11 +930,12 @@ program run
 
                end if !(solid_IB(i,j,k) .or. search_adj)
 
-               if (isnan(dist) .or. abs(dist)<tol) dist = 0.1 ! 0.1 m minimum distance to avoid singularities
+               if (isnan(dist) .or. abs(dist)<1e-4) dist = 0.1 ! 0.1 m minimum distance to avoid singularities
                if (isnan(area)) area = 0.0
 
                loc = findloc(ismember_rows(fluid_IB_xyz, xyz), .true., 1)
 
+               !! For serial run version: Append to global arrays
                ! !$ OMP critical
                ! call appendToArray1D_real(secareas, area)
                ! call appendToArray1D_integer(secfacids, n)
@@ -943,7 +943,7 @@ program run
                ! call appendToArray1D_real(bnddst, abs(dist))
                ! !$ OMP end critical
                
-               ! Alternatively Append to thread-specific arrays
+               ! Alternatively for OpenMP run: Append to thread-specific arrays
                !$ call appendToThreadResults(thread_data(thread_id), area, n, loc, abs(dist))
 
                deallocate(clipFaces)
@@ -955,7 +955,9 @@ program run
     !$OMP end parallel do
 
     ! Merge and sort results from all threads
-    call mergeAndSortThreadResults(thread_data, actual_threads, secfacids, secareas, secbndptids, bnddst)
+    !$ call mergeAndSortThreadResults(thread_data, actual_threads, secfacids, secareas, secbndptids, bnddst)
+
+    nfacsecs = size(secfacids,1)
 
    write(*,*) "Total area missing flux: ", area_miss, " m^2"
 
@@ -1098,7 +1100,7 @@ subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs
    open (unit=fid,file=fname_facet_sections,action="write")
    write(fid,*) "# facet      area flux point distance"
    do n=1,nfacsecs
-      !write (fid,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
+      ! write (fid,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
       ! Formatting assumes: #facets < 10 million, #fluid boundary points < 1 billion,
       ! section area < 1000 m^2 (rounded to cm^2), and distance < 1000m
       ! if (bnddst(n) < 0.05*exp(1.)) then
@@ -1108,6 +1110,46 @@ subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs
    end do
    close (fid)
 end subroutine writeFacetSections
+
+
+subroutine print_facet_sections(nfacsecs_u, nfacsecs_v, nfacsecs_w, nfacsecs_c, &
+                                secfacids_u, secareas_u, secbndptids_u, bnddst_u, &
+                                secfacids_v, secareas_v, secbndptids_v, bnddst_v, &
+                                secfacids_w, secareas_w, secbndptids_w, bnddst_w, &
+                                secfacids_c, secareas_c, secbndptids_c, bnddst_c, &
+                                filename_u, filename_v, filename_w, filename_c)
+   implicit none
+   integer,                        intent(in) :: nfacsecs_u, nfacsecs_v, nfacsecs_w, nfacsecs_c
+   integer, dimension(nfacsecs_u), intent(in) :: secfacids_u, secbndptids_u
+   integer, dimension(nfacsecs_v), intent(in) :: secfacids_v, secbndptids_v
+   integer, dimension(nfacsecs_w), intent(in) :: secfacids_w, secbndptids_w
+   integer, dimension(nfacsecs_c), intent(in) :: secfacids_c, secbndptids_c
+   real   , dimension(nfacsecs_u), intent(in) :: secareas_u, bnddst_u
+   real   , dimension(nfacsecs_v), intent(in) :: secareas_v, bnddst_v
+   real   , dimension(nfacsecs_w), intent(in) :: secareas_w, bnddst_w
+   real   , dimension(nfacsecs_c), intent(in) :: secareas_c, bnddst_c
+   character(len=*),               intent(in) :: filename_u, filename_v, filename_w, filename_c
+
+   !$ call OMP_SET_NUM_THREADS(4)
+   !$OMP parallel default(shared)
+      !$OMP sections
+
+         !$OMP section
+         call writeFacetSections(secfacids_u, secareas_u, secbndptids_u, bnddst_u, nfacsecs_u, filename_u, 10)
+
+         !$OMP section
+         call writeFacetSections(secfacids_v, secareas_v, secbndptids_v, bnddst_v, nfacsecs_v, filename_v, 20)
+
+         !$OMP section
+         call writeFacetSections(secfacids_w, secareas_w, secbndptids_w, bnddst_w, nfacsecs_w, filename_w , 30)
+
+         !$OMP section
+         call writeFacetSections(secfacids_c, secareas_c, secbndptids_c, bnddst_c, nfacsecs_c, filename_c, 40)
+
+      !$OMP end sections
+   !$OMP end parallel
+
+end subroutine print_facet_sections
 
 
 subroutine fastPoint2TriMesh(connectivityList, faceNormal, nFaces, vertices, nVertices, &

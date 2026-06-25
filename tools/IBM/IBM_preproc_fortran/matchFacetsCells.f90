@@ -82,6 +82,9 @@ module matchFacets2Cells
    character(80) :: chmess
    integer, parameter :: ifinput = 1
 
+   fluid_IB = .false.
+   solid_IB = .false.
+
    allocate(fluid_IB_ijk(nfluid_IB,3), solid_IB_ijk(nsolid_IB,3), fluid_IB_xyz(nfluid_IB,3))
 
    open (ifinput, file=fname_fluid_boundary)
@@ -775,10 +778,12 @@ module matchFacets2Cells
                loc = findloc(ismember_rows(fluid_IB_xyz, xyz), .true., 1)
 
                !! For serial run version: Append to global arrays
+               ! !$ OMP critical
                ! call appendToArray1D_real(secareas, area)
                ! call appendToArray1D_integer(secfacids, n)
                ! call appendToArray1D_integer(secbndptids, loc)
                ! call appendToArray1D_real(bnddst, abs(dist))
+               ! !$ OMP end critical
                
                ! Alternatively for OpenMP run: Append to thread-specific arrays
                !$ call appendToThreadResults(thread_data(thread_id), area, n, loc, abs(dist))
@@ -937,6 +942,7 @@ subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs
    open (unit=fid,file=fname_facet_sections,action="write")
    write(fid,*) "# facet      area flux point distance"
    do n=1,nfacsecs
+      ! write (fid,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
       ! Formatting assumes: #facets < 10 million, #fluid boundary points < 1 billion,
       ! section area < 1000 m^2 (rounded to cm^2), and distance < 1000m
       ! if (bnddst(n) < 0.05*exp(1.)) then
