@@ -14,8 +14,9 @@ usage() {
     echo "  case1 ...      : Optional list of test cases to run (e.g., 100 201 402)"
     echo "                   If not specified, uses default cases for the system"
     echo "  ref_data_path  : Path to the reference data directory (required; last positional argument)"
-    echo "  --tolerance    : Max absolute error for NetCDF output comparisons (default: 1e-6)"
-    echo "  --tol-thl      : Tolerance for temperature variables (default: same as --tolerance)"
+    echo "  --tolerance    : Max absolute error for non-temperature NetCDF output variables"
+    echo "                   (default: 1e-6; also used for temperature variables unless --tol-thl is set)"
+    echo "  --tol-thl      : Max absolute error for temperature variables (default: same as --tolerance)"
     echo "  --system       : Build system type: common (CPU) or gpu (default: common)"
     echo ""
     echo "Examples:"
@@ -86,7 +87,7 @@ last_positional_index=$((${#POSITIONAL_ARGS[@]} - 1))
 REF_DATA_PATH="${POSITIONAL_ARGS[$last_positional_index]}"
 TEST_CASES=("${POSITIONAL_ARGS[@]:0:$last_positional_index}")
 
-# Default tol_thl to tolerance if not explicitly set
+# Default tol_thl to tolerance if not explicitly set.
 if [ -z "$TOL_THL" ]; then
     TOL_THL="$TOLERANCE"
 fi
@@ -232,7 +233,9 @@ echo "========================================"
 echo "  Experiments path : $SCRIPT_DIR/experiments/"
 echo "  Reference path   : $REF_DATA_PATH"
 echo "  Cases            : ${TEST_CASES[*]}"
-echo "  Tolerance        : $TOLERANCE"echo "  Tol THL          : $TOL_THL"echo "  System           : $SYSTEM"
+echo "  Tolerance        : $TOLERANCE"
+echo "  Tol THL          : $TOL_THL"
+echo "  System           : $SYSTEM"
 echo "  Log file         : $LOG_FILE"
 echo "========================================"
 echo ""
