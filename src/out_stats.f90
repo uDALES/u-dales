@@ -480,6 +480,12 @@ module stats
       if (.not. rk3step==3)  return
       if(.not.(lstatsdump .or. ltreedump)) return
 
+      ! For one-timestep diagnostics with dump intervals no larger than dt,
+      ! treat the just-completed step as a valid first sample immediately
+      ! instead of waiting for a second call to statsdump.
+      if (tsamplep == 0. .and. tsample <= dt) tsamplep = dt
+      if (tstatsdumpp == 0. .and. tsample <= dt) tstatsdumpp = dt
+
       if (tsamplep >= tsample) then        ! at every stats sampling instance
         tstatsdumppi = 1./tstatsdumpp
 
