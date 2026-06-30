@@ -79,8 +79,8 @@ ud_compare_outputs.py <exp_num> <exppath> <ref_data_path> [tolerance] [tol_thl]
 | `exp_num` | Experiment number, 1–999 (e.g. `224`) |
 | `exppath` | Parent outputs directory; the `<exp_num>` subdirectory is appended automatically |
 | `ref_data_path` | Parent directory containing reference output cases |
-| `tolerance` | Max absolute error (default: `1e-6`) |
-| `tol_thl` | Tolerance for temperature variables (default: `1e-6`) |
+| `tolerance` | Max absolute error for non-temperature variables (default: `1e-6`; also used for temperature variables when `tol_thl` is omitted) |
+| `tol_thl` | Max absolute error for temperature variables (default: same as `tolerance`) |
 
 ### What it checks
 
@@ -91,7 +91,7 @@ ud_compare_outputs.py <exp_num> <exppath> <ref_data_path> [tolerance] [tol_thl]
 | `fielddump.<case>.nc` | Full 3-D instantaneous fields: u, v, w, thl, qt, sca1 |
 | `treedump.<case>.nc` | Tree-resolved fields: tr_u, tr_v, tr_w, tr_thl, tr_qt, tr_qtR, tr_qtA, tr_sv1, tr_sv2, tr_omega |
 
-For each variable the maximum absolute difference between the two files is computed. A test **passes** if that value is ≤ the tolerance. Temperature-related variables (names containing `thl`) use `tol_thl`; all other variables use `tolerance`.
+For each variable the maximum absolute difference between the two files is computed. A test **passes** if that value is <= the applicable tolerance. Temperature-related variables (names containing `thl`) use `tol_thl`; all other variables use `tolerance`.
 
 - If a dump file is absent from **both** directories it is skipped with `[SKIP]`.
 - If a dump file is present in one directory only it is reported as `[FAIL]`.
@@ -102,10 +102,10 @@ For each variable the maximum absolute difference between the two files is compu
 ```bash
 VENV_PYTHON=tools/python/.venv/bin/python3
 
-# Default tolerance (1e-6)
+# Default tolerance (1e-6 for all variables)
 $VENV_PYTHON tools/ud_compare_outputs.py 224 tests/system/outputs/ tests/system/ref_data/
 
-# Custom tolerance
+# Custom tolerance for all variables
 $VENV_PYTHON tools/ud_compare_outputs.py 224 tests/system/outputs/ tests/system/ref_data/ 1e-8
 
 # Separate tolerances for general and temperature variables
@@ -170,8 +170,8 @@ ud_compare_multiple_outputs.py <exppath1> <exp1> <exppath2> <exp2> [exppath3 exp
 |----------|-------------|
 | `exppathN` | Parent outputs directory for case N |
 | `expN` | Experiment number for case N (integer 1–999) |
-| `tolerance` | Max absolute error (default: `1e-6`); detected as the final trailing float when one tolerance is supplied, or as the first of two trailing floats |
-| `tol_thl` | Tolerance for temperature variables (default: same as `tolerance`); detected as the second of two trailing floats |
+| `tolerance` | Max absolute error for non-temperature variables (default: `1e-6`; also used for temperature variables when `tol_thl` is omitted); detected as the final trailing float when one tolerance is supplied, or as the first of two trailing floats |
+| `tol_thl` | Max absolute error for temperature variables (default: same as `tolerance`); detected as the second of two trailing floats |
 
 At least two cases (4 arguments) are required.
 
@@ -186,7 +186,7 @@ $VENV_PYTHON tools/ud_compare_multiple_outputs.py tests/system/outputs/ 224 test
 # Compare three directories (three pairs)
 $VENV_PYTHON tools/ud_compare_multiple_outputs.py path_a/outputs/ 100 path_b/outputs/ 100 path_c/outputs/ 100
 
-# Custom tolerance
+# Custom tolerance for all variables
 $VENV_PYTHON tools/ud_compare_multiple_outputs.py tests/system/outputs/ 224 tests/system/ref_data/ 224 1e-8
 
 # Separate tolerances for general and temperature variables

@@ -6,13 +6,13 @@ Requires netCDF4 and numpy.
 
 import os
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 nc = None
 np = None
 
 DEFAULT_TOLERANCE = 1e-6
-DEFAULT_TOL_THL = 1e-6
+DEFAULT_TOL_THL = None  # Use tolerance when the temperature tolerance is omitted.
 
 def try_import_netcdf():
     global nc, np
@@ -32,12 +32,12 @@ def try_import_netcdf():
         sys.exit(1)
 
 class SimulationComparison:
-    def __init__(self, output_dirs: List[str], exp_num: int, tolerance: float = DEFAULT_TOLERANCE, tol_thl: float = DEFAULT_TOL_THL):
+    def __init__(self, output_dirs: List[str], exp_num: int, tolerance: float = DEFAULT_TOLERANCE, tol_thl: Optional[float] = DEFAULT_TOL_THL):
         self.output_dirs = output_dirs
         self.exp_num = exp_num
         self.exp_str = f"{exp_num:03d}"
         self.tolerance = tolerance
-        self.tol_thl = tol_thl
+        self.tol_thl = tolerance if tol_thl is None else tol_thl
         self.result_count = 0
         self.test_count = 0
         self.skip_count = 0
@@ -381,8 +381,9 @@ def main():
         print("  exp_num        Experiment number (e.g. 100)")
         print("  exppath        Path to the outputs directory (e.g. tests/system/outputs/); the case subdirectory <exp_str> is appended automatically")
         print("  ref_data_path  Parent directory containing reference output cases (e.g. /path/to/ref_data)")
-        print("  tolerance      Max absolute error tolerance (default: 1e-6)")
-        print("  tol_thl        Tolerance for temperature variables (default: 1e-6)")
+        print("  tolerance      Max absolute error for non-temperature variables (default: 1e-6)")
+        print("                 Also used for temperature variables when tol_thl is omitted")
+        print("  tol_thl        Max absolute error for temperature variables (default: same as tolerance)")
         sys.exit(1)
 
     try:

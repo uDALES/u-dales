@@ -105,7 +105,7 @@ Run from the `tests/system/` directory:
 ./ud_test_sim.sh 100 201 ref_data/
 ./ud_test_sim.sh 402 452 ref_data/ --system gpu
 
-# Custom tolerance
+# Custom tolerance for all variables
 ./ud_test_sim.sh 224 ref_data/ --tolerance 1e-8
 
 # Separate tolerances for general and temperature variables
@@ -152,7 +152,7 @@ Progress and results are written to `test_inputs.log`.
 |-------|-------------|
 | **1 — Build** | Deletes `build/` and rebuilds u-dales (`tools/build_executable.sh common release` for `--system common`; loads `nvhpc/24.11` and uses `tools/build_executable.sh gpu release` for `--system gpu`) |
 | **2 — Simulate** | For each case, deletes any previous `outputs/<case>/` directory then runs the simulation via `tools/local_execute.sh tests/system/experiments/<case>` |
-| **3 — Compare outputs** | Calls `tools/ud_compare_outputs.py <case> outputs/ <ref_data_path> <tolerance> <tol_thl>`, comparing freshly produced NetCDF files in `outputs/<case>/` against `<ref_data_path>/<case>/`. `--tolerance` applies to all variables; `--tol-thl` applies to temperature variables (defaults to `--tolerance` if not set) |
+| **3 — Compare outputs** | Calls `tools/ud_compare_outputs.py <case> outputs/ <ref_data_path> <tolerance> <tol_thl>`, comparing freshly produced NetCDF files in `outputs/<case>/` against `<ref_data_path>/<case>/`. `--tolerance` applies to non-temperature variables and defaults to `1e-6`; `--tol-thl` applies to temperature variables and defaults to `--tolerance` if not set |
 | **4 — Compare inputs** *(optional)* | Runs automatically if Phase 3 fails. Calls `tools/ud_compare_inputs.py <case> experiments/ <ref_data_path>` to check whether input files differ from the reference, helping diagnose the root cause |
 
 The script exits with code `0` (all passed) or `1` (any failure).

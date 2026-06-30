@@ -9,10 +9,11 @@ Usage:
 
   exppathN   Parent outputs directory for case N (the exp_num subdirectory is appended)
   expN       Experiment number for case N (integer 1-999)
-  tolerance  Max absolute error for NetCDF comparisons (default: 1e-6)
+  tolerance  Max absolute error for non-temperature variables (default: 1e-6)
              Detected as the final trailing float when one tolerance is supplied,
-             or as the first of two trailing floats.
-  tol_thl    Tolerance for temperature variables (default: same as tolerance)
+             or as the first of two trailing floats. Also used for temperature
+             variables when tol_thl is omitted.
+  tol_thl    Max absolute error for temperature variables (default: same as tolerance)
              Detected as the second of two trailing floats.
 
   At least two cases (4 arguments) are required.
@@ -56,9 +57,11 @@ def _usage():
     print("")
     print("  exppathN   Parent outputs directory for case N")
     print("  expN       Experiment number for case N (integer 1-999)")
-    print("  tolerance  Max absolute error (default: 1e-6); detected as the final trailing float")
-    print("             when one tolerance is supplied, or as the first of two trailing floats")
-    print("  tol_thl    Tolerance for temperature variables (default: same as tolerance)")
+    print("  tolerance  Max absolute error for non-temperature variables (default: 1e-6);")
+    print("             detected as the final trailing float when one tolerance is supplied,")
+    print("             or as the first of two trailing floats. Also used for temperature")
+    print("             variables when tol_thl is omitted.")
+    print("  tol_thl    Max absolute error for temperature variables (default: same as tolerance)")
     print("             Detected as the second of two trailing floats.")
     print("")
     print("  At least two cases (4 arguments) are required.")
