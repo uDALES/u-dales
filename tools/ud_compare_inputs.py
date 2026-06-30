@@ -10,8 +10,9 @@ Numerical comparison (max absolute error, # comments skipped):
   facetarea.inp.<exp>     facets.inp.<exp>
   facets_unused.<exp>     factypes.inp.<exp>
   netsw.inp.<exp>         sveg.inp.<exp>         svf.inp.<exp>
-  heatpump.inp.<exp>      trees.inp.<exp>
-  scalar.inp.<exp>        scalarsourcel.inp.N.<exp>  (N = 1, 2, ...)
+  heatpump.inp.<exp>
+  trees.inp.<exp>         veg.inp.<exp>         veg_params.inp.<exp>
+  scalar.inp.<exp>        scalarsourcep.inp.N.<exp>  scalarsourcel.inp.N.<exp>  (N = 1, 2, ...)
   Tfacinit.inp.<exp>      Sdir.txt
   facet_sections_c/u/v/w.txt
   fluid_boundary_c/u/v/w.txt
@@ -253,13 +254,14 @@ def run_comparison(dir1: str, exp_str1: str, dir2: str, exp_str2: str, tolerance
             pp(f"{tag}.{exp_str1}", f"{tag}.{exp_str2}"),
             tolerance, counters)
 
-    # Scalar source files: scalarsourcel.inp.N.exp (probe for N = 1..9)
-    for n in range(1, 10):
-        b1 = f"scalarsourcel.inp.{n}.{exp_str1}"
-        b2 = f"scalarsourcel.inp.{n}.{exp_str2}"
-        paths_n = pp(b1, b2)
-        if any(os.path.exists(p) for p in paths_n):
-            compare_numeric_file(b1, paths_n, tolerance, counters)
+    # Scalar source files: scalarsourcep/scalarsourcel.inp.N.exp (probe for N = 1..9)
+    for source_kind in ("scalarsourcep", "scalarsourcel"):
+        for n in range(1, 10):
+            b1 = f"{source_kind}.inp.{n}.{exp_str1}"
+            b2 = f"{source_kind}.inp.{n}.{exp_str2}"
+            paths_n = pp(b1, b2)
+            if any(os.path.exists(p) for p in paths_n):
+                compare_numeric_file(b1, paths_n, tolerance, counters)
 
     # Facet-related input files
     for tag in (
