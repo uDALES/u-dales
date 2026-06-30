@@ -24,10 +24,11 @@ def try_import_netcdf():
         nc = nc_module
         return
     except ImportError:
-        _setup_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ud_set_nc_venv.sh')
+        _tools_dir = os.path.dirname(os.path.abspath(__file__))
+        _setup_script = os.path.join(_tools_dir, 'python', 'setup_venv.sh')
         print("netCDF4 or numpy not available.")
         print("Run the following command to set up the required environment:")
-        print(f"   {_setup_script}")
+        print(f"   bash {_setup_script} <common|icl>")
         sys.exit(1)
 
 class SimulationComparison:

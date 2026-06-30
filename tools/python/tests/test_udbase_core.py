@@ -1,7 +1,11 @@
+import io
+import os
 import sys
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 import numpy as np
 
@@ -45,6 +49,180 @@ class TestUDBaseCore(unittest.TestCase):
 
         self.assertIsInstance(sim.vis, UDVis)
         self.assertIs(sim.vis.sim, sim)
+
+    def test_constructor_expands_user_home_in_path(self):
+        fake_home = self.workdir / "home"
+        expdir = fake_home / "simulation" / "udtest" / "experiments" / "001"
+        expdir.mkdir(parents=True)
+        (expdir / "namoptions.001").write_text(
+            "\n".join(
+                [
+                    "&DOMAIN",
+                    " itot = 4",
+                    " jtot = 3",
+                    " ktot = 2",
+                    " xlen = 40.0",
+                    " ylen = 30.0",
+                    " zsize = 20.0",
+                    "/",
+                ]
+            )
+            + "\n",
+            encoding="ascii",
+        )
+
+        with patch.dict(os.environ, {"HOME": str(fake_home)}):
+            sim = UDBase(
+                "1",
+                "~/simulation/udtest/experiments/001",
+                load_geometry=False,
+                suppress_load_warnings=True,
+            )
+
+        self.assertEqual(sim.path, expdir)
+
+    def test_constructor_sets_scalar_defaults_when_namoptions_omits_scalars(self):
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        self.assertEqual(sim.nsv, 0)
+        self.assertFalse(sim.lscasrc)
+        self.assertFalse(sim.lscasrcl)
+        self.assertEqual(sim.nscasrc, 0)
+        self.assertEqual(sim.nscasrcl, 0)
+
+    def test_load_scalar_sources_reads_point_and_line_sources_by_scalar_index(self):
+        (self.workdir / "namoptions.001").write_text(
+            "\n".join(
+                [
+                    "&DOMAIN",
+                    " itot = 4",
+                    " jtot = 3",
+                    " ktot = 2",
+                    " xlen = 40.0",
+                    " ylen = 30.0",
+                    " zsize = 20.0",
+                    "/",
+                    "&SCALARS",
+                    " nsv = 2",
+                    " lscasrc = .true.",
+                    " lscasrcl = .true.",
+                    " nscasrc = 2",
+                    " nscasrcl = 1",
+                    "/",
+                ]
+            )
+            + "\n",
+            encoding="ascii",
+        )
+        (self.workdir / "scalarsourcep.inp.1.001").write_text(
+            "# Scalar point source data\n"
+            "#xS yS zS SS sigS\n"
+            "1 2 3 4 5\n"
+            "6 7 8 9 10\n",
+            encoding="ascii",
+        )
+        (self.workdir / "scalarsourcep.inp.2.001").write_text(
+            "# Scalar point source data\n"
+            "#xS yS zS SS sigS\n"
+            "11 12 13 14 15\n"
+            "16 17 18 19 20\n",
+            encoding="ascii",
+        )
+        (self.workdir / "scalarsourcel.inp.1.001").write_text(
+            "# Scalar line source data\n"
+            "#xSb ySb zSb xSe ySe zSe SS sigS\n"
+            "1 2 3 4 5 6 7 8\n",
+            encoding="ascii",
+        )
+        (self.workdir / "scalarsourcel.inp.2.001").write_text(
+            "# Scalar line source data\n"
+            "#xSb ySb zSb xSe ySe zSe SS sigS\n"
+            "9 10 11 12 13 14 15 16\n",
+            encoding="ascii",
+        )
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        sources = sim.load_scalar_sources()
+
+        self.assertEqual(sorted(sources["point"]), [1, 2])
+        self.assertEqual(sorted(sources["line"]), [1, 2])
+        np.testing.assert_allclose(
+            sources["point"][1],
+            np.array([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]], dtype=float),
+        )
+        np.testing.assert_allclose(
+            sources["line"][2],
+            np.array([[9, 10, 11, 12, 13, 14, 15, 16]], dtype=float),
+        )
+
+    def test_load_scalar_sources_warns_on_missing_file_name(self):
+        (self.workdir / "namoptions.001").write_text(
+            "\n".join(
+                [
+                    "&DOMAIN",
+                    " itot = 4",
+                    " jtot = 3",
+                    " ktot = 2",
+                    " xlen = 40.0",
+                    " ylen = 30.0",
+                    " zsize = 20.0",
+                    "/",
+                    "&SCALARS",
+                    " nsv = 1",
+                    " lscasrc = .true.",
+                    " nscasrc = 1",
+                    "/",
+                ]
+            )
+            + "\n",
+            encoding="ascii",
+        )
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=False)
+
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            sources = sim.load_scalar_sources()
+
+        self.assertEqual(sources, {"point": {}, "line": {}})
+        self.assertIn(
+            "scalarsourcep.inp.1.001 not found.",
+            stderr.getvalue(),
+        )
+
+    def test_load_scalar_sources_warns_on_load_error(self):
+        (self.workdir / "namoptions.001").write_text(
+            "\n".join(
+                [
+                    "&DOMAIN",
+                    " itot = 4",
+                    " jtot = 3",
+                    " ktot = 2",
+                    " xlen = 40.0",
+                    " ylen = 30.0",
+                    " zsize = 20.0",
+                    "/",
+                    "&SCALARS",
+                    " nsv = 1",
+                    " lscasrc = .true.",
+                    " nscasrc = 1",
+                    "/",
+                ]
+            )
+            + "\n",
+            encoding="ascii",
+        )
+        (self.workdir / "scalarsourcep.inp.1.001").write_text(
+            "# Scalar point source data\n"
+            "#xS yS zS SS sigS\n"
+            "not-a-number\n",
+            encoding="ascii",
+        )
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        with self.assertWarnsRegex(UserWarning, "Error loading scalarsourcep.inp.1.001"):
+            sources = sim.load_scalar_sources()
+
+        self.assertEqual(sources, {"point": {}, "line": {}})
 
     def test_load_facsec_applies_one_based_to_zero_based_mapping(self):
         sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)

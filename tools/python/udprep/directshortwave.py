@@ -99,9 +99,7 @@ def _compute_ktot_and_z_edges(
     kmax_veg = int(np.max(veg_points[:, 2])) if veg_points is not None and veg_points.size else -1
     kmax = max(0, min(grid.ktot - 1, max(kmax_solid, kmax_veg)))
     ktot = min(grid.ktot, kmax + 2)
-    z_base = getattr(grid, "zf", None)
-    if z_base is None or len(z_base) == 0:
-        z_base = grid.zm
+    z_base = grid.zm
     z_edges_full = np.concatenate([z_base, [grid.zsize]])
     z_edges = z_edges_full[: ktot + 1]
     z_max = float(z_edges[-1])
@@ -1015,7 +1013,7 @@ class DirectShortwaveSolver:
     Constructor options
     -------------------
     sim : UDBase-like
-        Provides grid geometry (dx, dy, dzt, itot, jtot, ktot, zf/zm, xlen, ylen, zsize)
+        Provides grid geometry (dx, dy, dzt, itot, jtot, ktot, zm, xlen, ylen, zsize)
         and optional fields (Sc, facsec, facs["area"]).
     surface_mesh : trimesh-like, optional
         Triangle mesh with vertices/faces/face_normals. Defaults to sim.geom.stl.

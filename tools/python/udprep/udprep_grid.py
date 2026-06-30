@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 import numpy as np
-from scipy.optimize import fsolve
+from scipy.optimize import brentq
 import warnings
 
 from .udprep import Section, SectionSpec
@@ -29,6 +29,9 @@ class GridSection(Section):
 
     def _refresh_derived_grid_params(self) -> None:
         """Recompute grid-derived quantities from the active case settings."""
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+        
         self.sim.dx = float(self.xlen / self.itot)
         self.sim.dy = float(self.ylen / self.jtot)
         self.sim.dz = float(self.zsize / self.ktot)
@@ -46,6 +49,9 @@ class GridSection(Section):
         Generates cell-centered (xt, yt) and cell-face (xm, ym) grids
         based on domain size and grid spacing.
         """
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+
         self.sim.xt = np.arange(0.5 * self.dx, self.xlen, self.dx)
         self.sim.yt = np.arange(0.5 * self.dy, self.ylen, self.dy)
         self.sim.xm = np.arange(0.0, self.xlen, self.dx)
@@ -58,6 +64,9 @@ class GridSection(Section):
         along with cell spacing (dzt). Uses uniform or stretched grids
         depending on configuration flags.
         """
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+        
         if not self.lzstretch:
             self.sim.zt = np.arange(0.5 * self.dz, self.zsize, self.dz)
             self.sim.zm = np.arange(0.0, self.zsize, self.dz)
@@ -92,8 +101,6 @@ class GridSection(Section):
 
         # Add derived z quantities
         self.sim.dzt = np.diff(np.append(self.zm, self.zsize))
-        self.sim.zf = self.sim.zt.copy()
-        self.sim.zh = self.sim.zm.copy()
 
     def _set_vertical_grid_from_faces(self, zm: np.ndarray) -> None:
         """Store vertical face/center coordinates from a face grid in real space.
@@ -101,21 +108,61 @@ class GridSection(Section):
         zm must have ktot+1 elements (cell faces including top boundary).
         Produces ktot-length zm (bottom face of each cell), zt, and dzt.
         """
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+        
         zm = np.asarray(zm, dtype=float)
         self.sim.zm = zm[:-1]
         self.sim.zt = 0.5 * (zm[:-1] + zm[1:])
 
+    @staticmethod
+    def _matlab_round_int(value: float) -> int:
+        """Round halves away from zero, matching MATLAB's round for grid counts."""
+        return int(np.sign(value) * np.floor(abs(value) + 0.5))
+
     def _linear_prefix_faces(self) -> tuple[int, int, np.ndarray]:
         """Return the linear near-wall prefix of the vertical face grid (ktot+1 elements)."""
-        il = int(round(self.hlin / self.dzlin))
+        il = self._matlab_round_int(self.hlin / self.dzlin)
         ir = self.ktot - il
         zm = np.zeros(self.ktot + 1, dtype=float)
-        zm[: il + 1] = np.arange(0.0, self.hlin + self.dzlin, self.dzlin)
+        zm[: il + 1] = np.linspace(0.0, self.hlin, il + 1)
         return il, ir, zm
 
-    def _warn_large_top_spacing(self, dz: np.ndarray) -> None:
-        if dz[-1] > 3 * self.dzlin:
+    def _warn_large_top_spacing(self, dz: np.ndarray, reference_dz: float | None = None) -> None:
+        if reference_dz is None:
+            reference_dz = self.dzlin
+        if dz[-1] > 3 * reference_dz:
             warnings.warn("Final grid spacing large; consider reducing domain height", RuntimeWarning)
+
+    @staticmethod
+    def _solve_exponential_alpha(ratio: float) -> float:
+        """Solve alpha/(exp(alpha)-1)=ratio without converging to the zero root."""
+        if not np.isfinite(ratio) or ratio <= 0.0:
+            raise ValueError(f"Invalid exponential stretch ratio: {ratio}")
+
+        if np.isclose(ratio, 1.0, rtol=1e-12, atol=1e-12):
+            return 0.0
+
+        def func(alpha: float) -> float:
+            return alpha - ratio * np.expm1(alpha)
+
+        eps = 1e-12
+        if ratio < 1.0:
+            lower = eps
+            upper = 1.0
+            while func(upper) > 0.0:
+                upper *= 2.0
+                if upper > 700.0:
+                    raise ValueError(f"Unable to bracket exponential stretch alpha for ratio={ratio}")
+        else:
+            lower = -1.0
+            upper = -eps
+            while func(lower) > 0.0:
+                lower *= 2.0
+                if lower < -1.0e6:
+                    raise ValueError(f"Unable to bracket exponential stretch alpha for ratio={ratio}")
+
+        return float(brentq(func, lower, upper))
 
     def _stretch_from_computational_coordinate(self, transform) -> None:
         """Map a uniform computational coordinate to a stretched real-space z-grid."""
@@ -125,15 +172,16 @@ class GridSection(Section):
             return
 
         gf = float(self.stretchconst)
+        linear_dz = self.hlin / il if il > 0 else self.dzlin
         xi = np.arange(0, ir + 1, dtype=float) / ir
 
         while True:
             stretched = zm[il] + (self.zsize - zm[il]) * transform(gf, xi)
             zm[il:] = stretched
-            if (zm[il + 1] - zm[il]) < self.dzlin:
+            if (zm[il + 1] - zm[il]) < linear_dz:
                 gf -= 0.01
                 continue
-            self._warn_large_top_spacing(np.diff(zm))
+            self._warn_large_top_spacing(np.diff(zm), linear_dz)
             break
 
         self._set_vertical_grid_from_faces(zm)
@@ -154,28 +202,27 @@ class GridSection(Section):
         Creates a vertical grid with exponential stretching using a root-finding
         procedure to ensure smooth grid transition and quality checks.
         """
-        il = round(self.hlin / self.dzlin)
+        il = self._matlab_round_int(self.hlin / self.dzlin)
         ir = self.ktot - il
         z0 = il * self.dzlin  # hlin will be modified as z0
         
         L = self.zsize - z0
-        dxi = 1 / ir
-        xi = np.arange(0, 1 + dxi, dxi)
+        xi = np.linspace(0.0, 1.0, ir + 1)
         
         # Determine alpha using root finding
         # alpha / (exp(alpha)-1) = (dzlin*ir)/L
-        def func(alpha):
-            return alpha - (self.dzlin * ir) / L * (np.exp(alpha) - 1)
-        
-        alpha = fsolve(func, 1.0)[0]
-        A = 1 / (np.exp(alpha) - 1)
+        ratio = (self.dzlin * ir) / L
+        alpha = self._solve_exponential_alpha(ratio)
         
         # Define grid functions
-        zhat = A * (np.exp(alpha * xi) - 1)
+        if alpha == 0.0:
+            zhat = xi
+        else:
+            zhat = np.expm1(alpha * xi) / np.expm1(alpha)
         z = z0 + zhat * L
         
         zm = np.zeros(self.ktot + 1, dtype=float)
-        zm[:il + 1] = np.arange(0, z0 + self.dzlin, self.dzlin)
+        zm[:il + 1] = np.linspace(0.0, z0, il + 1)
         zm[il:] = z
         
         # Perform grid quality checks

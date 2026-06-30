@@ -22,17 +22,17 @@ FIELDS: List[str] = list(DEFAULTS.keys())
 class VegetationSection(Section):
     def run_all(self) -> None:
         """Run vegetation preprocessing steps."""
-        treefile = str(getattr(self, "treesfile", ""))
-        use_stl = treefile.lower().endswith(".stl") if treefile else False
-        steps = [("load_stl", self.load_stl) if use_stl else ("load_block", self.load_block)]
+        use_stl = self.treesfile.lower().endswith(".stl") if self.treesfile else False
+        steps = [("load_trees_stl", self.load_stl) if use_stl else ("load_trees_block", self.load_block)]
         self.run_steps("vegetation", steps)
+        self.save()
 
     def save(self) -> None:
         """Write veg_* to file."""
-        sim = self.sim
-        if sim is None:
+        if self.sim is None:
             raise ValueError("UDBase instance must be provided")
-        if not hasattr(self, "veg") or self.veg is None:
+        
+        if not hasattr(self.sim, "veg") or self.veg is None:
             raise ValueError("No vegetation data available; run load_block/load_stl first")
 
         veg = self.veg
@@ -64,48 +64,52 @@ class VegetationSection(Section):
         lsize = _coerce_scalar("lsize")
         r_s = _coerce_scalar("r_s")
 
-        sim.save_veg(points + 1, ids, lad_values, cd, ud, dec, lsize, r_s)
-        self.write_changed_params()
+        # Write veg.inp.<expnr> (1-based indices)
+        points_1based = points + 1
+
+        veg_path = Path(self.path) / f"veg.inp.{self.expnr}"
+        with veg_path.open("w", encoding="ascii", newline="\n") as f:
+            f.write("# position (i,j,k)\n")
+            for i, j, k in points_1based:
+                f.write(f"{int(i):7d} {int(j):7d} {int(k):7d}\n")
+
+        params_path = Path(self.path) / f"veg_params.inp.{self.expnr}"
+        with params_path.open("w", encoding="ascii", newline="\n") as f:
+            f.write("# id lad cd ud dec lsize r_s\n")
+            for bid, lad_val in zip(ids, lad_values):
+                f.write(
+                    f"{int(bid):7d} {float(lad_val):12.6f} {cd:12.6f} {ud:12.6f} "
+                    f"{dec:12.6f} {lsize:12.6f} {r_s:12.6f}\n"
+                )
 
     def vegetation_block_to_veg(self, filename: str | Path | None = None):
         """Compatibility entry point: ingest trees.inp and write sparse vegetation files."""
+        if self.sim is None:
+            raise ValueError("UDBase instance must be provided")
+        
         self.load_block(filename=filename)
         self.save()
-        sim = self.sim
-        if sim is None:
-            raise ValueError("UDBase instance must be provided")
+        
         return {
-            "veg": Path(sim.path) / f"veg.inp.{sim.expnr}",
-            "params": Path(sim.path) / f"veg_params.inp.{sim.expnr}",
+            "veg": Path(self.path) / f"veg.inp.{self.expnr}",
+            "params": Path(self.path) / f"veg_params.inp.{self.expnr}",
         }
 
-    def block_to_veg(self, filename: str | Path | None = None):
-        """Backward-compatible alias for legacy callers."""
-        return self.vegetation_block_to_veg(filename=filename)
-
-    def load_block(self, filename: str | Path | None = None) -> Path:
+    def load_block(self, filename: str | Path | None = None) -> None:
         """Convert trees.inp blocks to veg.inp/veg_params.inp."""
-        sim = self.sim
-        if sim is None:
+        if self.sim is None:
             raise ValueError("UDBase instance must be provided")
 
-        if filename is not None:
-            self.treesfile = str(filename)
-        treefile_name = getattr(self, "treesfile", "")
-
         # Parse tree blocks (1-based indices) from the input file.
-        sim_dir = Path(sim.path)
-        sim_id = sim.expnr
-        itot = int(sim.itot)
-        jtot = int(sim.jtot)
-        ktot = int(sim.ktot)
-        if not treefile_name:
-            warnings.warn("vegetation.treesfile is empty; using default trees.inp.<expnr>")
-            tree_file = sim_dir / f"trees.inp.{sim_id}"
+        resolved_filename = filename or self.treesfile
+        if not resolved_filename:
+            warnings.warn("treesfile is not defined in the namoptions; using default naming convention: trees.inp.<expnr>")
+            tree_file = self.path / f"trees.inp.{self.expnr}"
         else:
-            tree_file = Path(treefile_name)
+            tree_file = Path(resolved_filename)
             if not tree_file.is_absolute():
-                tree_file = sim_dir / tree_file
+                tree_file = self.path / tree_file
+        
         if not tree_file.is_file():
             raise FileNotFoundError(f"Missing trees file: {tree_file}")
 
@@ -122,7 +126,7 @@ class VegetationSection(Section):
                 elif len(values) == 7:
                     _, il, iu, jl, ju, kl, ku = values
                 else:
-                    raise ValueError(f"Expected 6 or 7 integers, got {len(values)}")
+                    raise ValueError(f"Expected 6 or 7 integers, got {len(values)} in {tree_file}")
 
                 if il > iu:
                     il, iu = iu, il
@@ -131,10 +135,10 @@ class VegetationSection(Section):
                 if kl > ku:
                     kl, ku = ku, kl
 
-                if il < 1 or iu > itot or jl < 1 or ju > jtot or kl < 1 or ku > ktot:
+                if il < 1 or iu > self.itot or jl < 1 or ju > self.jtot or kl < 1 or ku > self.ktot:
                     raise ValueError(
                         f"Tree block ({il}, {iu}, {jl}, {ju}, {kl}, {ku}) is outside "
-                        f"the simulation grid 1..{itot}, 1..{jtot}, 1..{ktot}"
+                        f"the simulation grid 1..{self.itot}, 1..{self.jtot}, 1..{self.ktot}"
                     )
 
                 block_id = next_id
@@ -154,41 +158,26 @@ class VegetationSection(Section):
                         points.append((i, j, k))
                         point_ids.append(block_id)
 
-        # Resolve vegetation parameters from section defaults (loaded via defaults.json).
-        lad_value_resolved = float(self.lad)
-        lad_source = "Vegetation section"
-        cd = float(self.cd)
-        ud = float(self.ud)
-        dec = float(self.dec)
-        lsize = float(self.lsize)
-        r_s = float(self.r_s)
-
         # Build UDBase-style veg structure (0-based points) before writing.
         points_arr = np.asarray(points, dtype=int)
         ids_arr = np.asarray(point_ids, dtype=int)
-        lad_vals = np.full(len(points), lad_value_resolved, dtype=float)
         veg = {
             "points": points_arr - 1,
             "params": {
                 "id": ids_arr,
-                "lad": lad_vals,
-                "cd": np.full(len(points), cd, dtype=float),
-                "ud": np.full(len(points), ud, dtype=float),
-                "dec": np.full(len(points), dec, dtype=float),
-                "lsize": np.full(len(points), lsize, dtype=float),
-                "r_s": np.full(len(points), r_s, dtype=float),
+                "cd": np.full(len(points), self.cd, dtype=float),
+                "lad": np.full(len(points), self.lad, dtype=float),
+                "lsize": np.full(len(points), self.lsize, dtype=float),
+                "ud": np.full(len(points), self.ud, dtype=float),
+                "dec": np.full(len(points), self.dec, dtype=float),
+                "r_s": np.full(len(points), self.r_s, dtype=float),
             },
         }
-
-        self.ntrees = len(points)
-        self.ltrees = True
-        self.veg = veg
-        if getattr(sim, "veg", None) is not veg:
-            warnings.warn("vegetation data is not saved to disk; call the save() method to persist veg inputs")
-
-        if getattr(sim, "_lfgeom", False) and getattr(sim, "geom", None) is not None:
-            return sim.vis.plot_veg(veg, show=False)
-        return tree_file
+ 
+        if self.ntrees != len(points):
+            self.ntrees = len(points)
+        self.sim.veg = veg
+        self.save_param("ntrees", len(points))
 
     def load_stl(self, filename: str | Path | None = None) -> Dict[str, np.ndarray]:
         """Convert a closed STL volume to sparse vegetation points."""
@@ -258,32 +247,24 @@ class VegetationSection(Section):
             raise ValueError("No vegetation points found inside the STL volume.")
 
         points = np.asarray(points_idx, dtype=int)
-        ids = np.ones(len(points), dtype=int)
-        lad_value_resolved = float(self.lad)
-        lad_vals = np.full(len(points), lad_value_resolved, dtype=float)
-        cd = float(self.cd)
-        ud = float(self.ud)
-        dec = float(self.dec)
-        lsize = float(self.lsize)
-        r_s = float(self.r_s)
 
         veg = {
             "points": points - 1,
             "params": {
-                "id": ids,
-                "lad": lad_vals,
-                "cd": np.full(len(points), cd, dtype=float),
-                "ud": np.full(len(points), ud, dtype=float),
-                "dec": np.full(len(points), dec, dtype=float),
-                "lsize": np.full(len(points), lsize, dtype=float),
-                "r_s": np.full(len(points), r_s, dtype=float),
+                "id": np.ones(len(points), dtype=int),
+                "cd": np.full(len(points), self.cd, dtype=float),
+                "lad": np.full(len(points), self.lad, dtype=float),
+                "lsize": np.full(len(points), self.lsize, dtype=float),
+                "ud": np.full(len(points), self.ud, dtype=float),
+                "dec": np.full(len(points), self.dec, dtype=float),
+                "r_s": np.full(len(points), self.r_s, dtype=float),
             },
         }
 
-        self.ltrees = True
-        self.veg = veg
-        if getattr(sim, "veg", None) is not veg:
-            warnings.warn("vegetation data is not saved to disk; call vegetation.save() to persist veg inputs")
+        if self.ntrees != len(points):
+            self.ntrees = len(points)
+        self.sim.veg = veg
+        self.save_param("ntrees", len(points))
 
         fig = sim.vis.plot_veg(veg, show=False)
         return fig

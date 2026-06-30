@@ -10,7 +10,8 @@ For documentation on running the automated test suite, see [`tests/system/README
 
 ```
 tools/
-├── ud_set_nc_venv.sh              # One-time setup of the Python NetCDF environment
+├── python/
+│   └── setup_venv.sh              # One-time setup of the Python tooling environment
 ├── ud_compare_inputs.py           # Compare input files for a single case pair
 ├── ud_compare_outputs.py          # Compare NetCDF output files for a single case pair
 ├── ud_compare_multiple_inputs.py  # Compare input files across N cases (all pairs)
@@ -22,33 +23,43 @@ tools/
 ## Setting up the Python environment
 
 `ud_compare_inputs.py` and `ud_compare_outputs.py` require `netCDF4` and `numpy`.
-Run `ud_set_nc_venv.sh` once to create an isolated virtual environment with all required dependencies.
+Run `tools/python/setup_venv.sh common` once to create an isolated virtual environment with all required dependencies.
+Use `icl` instead of `common` on the Imperial HPC cluster.
 
 ### Requirements
 
 - Python 3.9 or newer (the script checks and reports if your version is too old)
 
-### Setup (run once)
+### Setup (run once from the repo root)
 
 ```bash
-./ud_set_nc_venv.sh
+# For a local machine
+bash tools/python/setup_venv.sh common
+
+# For the Imperial HPC machine
+bash tools/python/setup_venv.sh icl
 ```
 
 The script will:
-1. Can be run from any location with its full path.
-2. Create a virtual environment at `tools/.venv_netcdf/` (always next to the script).
-3. Install `numpy` and `netCDF4`.
-4. Verify all imports work.
-5. Deactivate the environment.
+1. Run from any location when called with its full path.
+2. Create a virtual environment at `tools/python/.venv/`.
+3. Install the Python tooling dependencies, including `numpy` and `netCDF4`.
+4. Verify the runtime imports work.
+5. Build and verify the preprocessing tools requested by the setup target.
 
-If `.venv_netcdf/` already exists, you will be asked whether to recreate it.
-Answering **N** skips installation and runs the import checks on the existing environment instead.
+If `tools/python/.venv/` already exists, you will be asked whether to recreate it.
+Answering **N** skips installation/rebuild and runs validation checks on the existing environment instead.
 
-### Recreating the environment
+### Recreating the environment (run from the repo root)
 
 ```bash
-rm -rf .venv_netcdf
-./ud_set_nc_venv.sh
+rm -rf tools/python/.venv
+
+# For a local machine
+bash tools/python/setup_venv.sh common
+
+# For the Imperial HPC machine
+bash tools/python/setup_venv.sh icl
 ```
 
 ---
@@ -86,19 +97,19 @@ For each variable the maximum absolute difference between the two files is compu
 - If a dump file is present in one directory only it is reported as `[FAIL]`.
 - The same three-way logic applies at the variable level within each file.
 
-### Examples
+### Examples (from the repo root)
 
 ```bash
-VENV_PYTHON=.venv_netcdf/bin/python3
+VENV_PYTHON=tools/python/.venv/bin/python3
 
 # Default tolerance (1e-6)
-$VENV_PYTHON ud_compare_outputs.py 224 tests/system/outputs/ tests/system/ref_data/
+$VENV_PYTHON tools/ud_compare_outputs.py 224 tests/system/outputs/ tests/system/ref_data/
 
 # Custom tolerance
-$VENV_PYTHON ud_compare_outputs.py 224 tests/system/outputs/ tests/system/ref_data/ 1e-8
+$VENV_PYTHON tools/ud_compare_outputs.py 224 tests/system/outputs/ tests/system/ref_data/ 1e-8
 
 # Separate tolerances for general and temperature variables
-$VENV_PYTHON ud_compare_outputs.py 224 tests/system/outputs/ tests/system/ref_data/ 1e-8 1e-7
+$VENV_PYTHON tools/ud_compare_outputs.py 224 tests/system/outputs/ tests/system/ref_data/ 1e-8 1e-7
 ```
 
 ---
@@ -125,22 +136,22 @@ ud_compare_inputs.py <exp_num> <exppath> <ref_path> [tolerance]
 | Method | Files |
 |--------|-------|
 | **Exact text** | `namoptions.<case>` |
-| **Numeric** (max absolute error, `#` comments skipped) | `prof.inp`, `lscale.inp`, `scalar.inp`, `scalarsourcel.inp.N`, `facetarea.inp`, `facets.inp`, `facets_unused`, `factypes.inp`, `svf.inp`, `netsw.inp`, `Tfacinit.inp`, `heatpump.inp`, `trees.inp`, `Sdir.txt`, `facet_sections_*.txt`, `fluid_boundary_*.txt`, `solid_*.txt` |
+| **Numeric** (max absolute error, `#` comments skipped) | `prof.inp`, `lscale.inp`, `scalar.inp`, `scalarsourcep.inp.N`, `scalarsourcel.inp.N`, `facetarea.inp`, `facets.inp`, `facets_unused`, `factypes.inp`, `svf.inp`, `netsw.inp`, `Tfacinit.inp`, `heatpump.inp`, `trees.inp`, `Sdir.txt`, `facet_sections_*.txt`, `fluid_boundary_*.txt`, `solid_*.txt` |
 | **NetCDF** (all numeric variables, max absolute error) | `vf.nc.inp.<case>` |
 
 - If a file is absent from **both** directories it is skipped with `[SKIP]`.
 - If a file is present in one directory but not the other it is reported as `[FAIL]`.
 
-### Examples
+### Examples (from the repo root)
 
 ```bash
-VENV_PYTHON=.venv_netcdf/bin/python3
+VENV_PYTHON=tools/python/.venv/bin/python3
 
 # Default tolerance (1e-10)
-$VENV_PYTHON ud_compare_inputs.py 224 tests/system/experiments/ tests/system/ref_data/
+$VENV_PYTHON tools/ud_compare_inputs.py 224 tests/system/experiments/ tests/system/ref_data/
 
 # Custom tolerance
-$VENV_PYTHON ud_compare_inputs.py 224 tests/system/experiments/ tests/system/ref_data/ 1e-8
+$VENV_PYTHON tools/ud_compare_inputs.py 224 tests/system/experiments/ tests/system/ref_data/ 1e-8
 ```
 
 ---
@@ -159,27 +170,27 @@ ud_compare_multiple_outputs.py <exppath1> <exp1> <exppath2> <exp2> [exppath3 exp
 |----------|-------------|
 | `exppathN` | Parent outputs directory for case N |
 | `expN` | Experiment number for case N (integer 1–999) |
-| `tolerance` | Max absolute error (default: `1e-6`); detected as the last argument if it parses as a float |
-| `tol_thl` | Tolerance for temperature variables (default: same as `tolerance`); detected as the second-to-last float argument when two trailing floats are given |
+| `tolerance` | Max absolute error (default: `1e-6`); detected as the final trailing float when one tolerance is supplied, or as the first of two trailing floats |
+| `tol_thl` | Tolerance for temperature variables (default: same as `tolerance`); detected as the second of two trailing floats |
 
 At least two cases (4 arguments) are required.
 
-### Examples
+### Examples (from the repo root)
 
 ```bash
-VENV_PYTHON=.venv_netcdf/bin/python3
+VENV_PYTHON=tools/python/.venv/bin/python3
 
 # Compare two output directories for exp 224
-$VENV_PYTHON ud_compare_multiple_outputs.py tests/system/outputs/ 224 tests/system/ref_data/ 224
+$VENV_PYTHON tools/ud_compare_multiple_outputs.py tests/system/outputs/ 224 tests/system/ref_data/ 224
 
 # Compare three directories (three pairs)
-$VENV_PYTHON ud_compare_multiple_outputs.py path_a/outputs/ 100 path_b/outputs/ 100 path_c/outputs/ 100
+$VENV_PYTHON tools/ud_compare_multiple_outputs.py path_a/outputs/ 100 path_b/outputs/ 100 path_c/outputs/ 100
 
 # Custom tolerance
-$VENV_PYTHON ud_compare_multiple_outputs.py tests/system/outputs/ 224 tests/system/ref_data/ 224 1e-8
+$VENV_PYTHON tools/ud_compare_multiple_outputs.py tests/system/outputs/ 224 tests/system/ref_data/ 224 1e-8
 
 # Separate tolerances for general and temperature variables
-$VENV_PYTHON ud_compare_multiple_outputs.py tests/system/outputs/ 224 tests/system/ref_data/ 224 1e-8 1e-7
+$VENV_PYTHON tools/ud_compare_multiple_outputs.py tests/system/outputs/ 224 tests/system/ref_data/ 224 1e-8 1e-7
 ```
 
 The log file `ud_compare_multiple_outputs_YYYYMMDD_HHMMSS.log` is written to the current working directory.
@@ -204,19 +215,19 @@ ud_compare_multiple_inputs.py <exppath1> <exp1> <exppath2> <exp2> [exppath3 exp3
 
 At least two cases (4 arguments) are required.
 
-### Examples
+### Examples (from the repo root)
 
 ```bash
-VENV_PYTHON=.venv_netcdf/bin/python3
+VENV_PYTHON=tools/python/.venv/bin/python3
 
 # Compare two input directories for exp 224
-$VENV_PYTHON ud_compare_multiple_inputs.py tests/system/experiments/ 224 tests/system/ref_data/ 224
+$VENV_PYTHON tools/ud_compare_multiple_inputs.py tests/system/experiments/ 224 tests/system/ref_data/ 224
 
 # Compare three directories (three pairs)
-$VENV_PYTHON ud_compare_multiple_inputs.py path_a/experiments/ 100 path_b/experiments/ 100 path_c/ 100
+$VENV_PYTHON tools/ud_compare_multiple_inputs.py path_a/experiments/ 100 path_b/experiments/ 100 path_c/ 100
 
 # Custom tolerance
-$VENV_PYTHON ud_compare_multiple_inputs.py tests/system/experiments/ 224 tests/system/ref_data/ 224 1e-8
+$VENV_PYTHON tools/ud_compare_multiple_inputs.py tests/system/experiments/ 224 tests/system/ref_data/ 224 1e-8
 ```
 
 The log file `ud_compare_multiple_inputs_YYYYMMDD_HHMMSS.log` is written to the current working directory.

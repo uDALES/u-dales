@@ -29,20 +29,25 @@ module in_mypoly_functions
 
     contains
 
-    real function max_facet_side(n_vert,vertices,n_fcts,facets)
+    real function max_facet_side(n_vert,vertices,n_fcts,facets,n_threads)
         implicit none
 
         integer, intent(in) :: n_vert, n_fcts
+        integer, intent(in), optional ::  n_threads
         integer, dimension(n_fcts*3), intent(in) :: facets
         real, dimension(n_vert*3), intent(in) :: vertices
 
         integer :: i, j, p, q, r
-        real :: distance
+        real :: distance, facet_max
         real, dimension(3) :: side
 
-        max_facet_side = 0;
+        max_facet_side = 0.0
 
-        do i = 1,n_fcts
+        !$ call OMP_SET_NUM_THREADS(n_threads)
+        !$OMP parallel do default(none) shared(n_fcts, facets, vertices) &
+        !$OMP& private(i, j, p, q, r, distance, side, facet_max) &
+        !$OMP& reduction(max:max_facet_side) schedule(static)
+        do i = 1, n_fcts
 
             p = facets(3*(i-1)+1)
             q = facets(3*(i-1)+2)
@@ -65,12 +70,12 @@ module in_mypoly_functions
             distance = distance + ( vertices(3*(r-1)+j) - vertices(3*(p-1)+j) )**2
             end do
             side(3) = SQRT(distance)
-    
-            if (max_facet_side<MAXVAL(side)) then
-                max_facet_side = MAXVAL(side)
-            end if
+
+            facet_max = MAXVAL(side)
+            max_facet_side = MAX(max_facet_side, facet_max)
 
         end do
+        !$OMP end parallel do
 
     end function max_facet_side
 

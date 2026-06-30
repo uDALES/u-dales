@@ -17,6 +17,9 @@ if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
 from udprep.udprep import Section, SectionSpec, SKIP, UDPrep  # noqa: E402
+from udprep.udprep_bcs import SPEC as BCS_SPEC  # noqa: E402
+from udprep.udprep_ibm import IBMSection  # noqa: E402
+from udprep.udprep_radiation import RadiationSection  # noqa: E402
 
 
 class DummySection(Section):
@@ -120,8 +123,9 @@ class TestSectionCore(unittest.TestCase):
             sim=sim,
             defaults={"alpha": 1, "arr": np.array([0]), "nested": []},
         )
-        section.write_changed_params()
-        self.assertEqual(sim.saved, [("alpha", 2)])
+        with mock.patch.object(section, "save_param") as mock_sp:
+            section.write_changed_params()
+        mock_sp.assert_called_once_with("alpha", 2)
 
     def test_changed_params_detects_numpy_arrays(self):
         section = Section(
@@ -132,6 +136,247 @@ class TestSectionCore(unittest.TestCase):
         changed = section._changed_params()
         self.assertEqual(len(changed), 1)
         self.assertEqual(changed[0][0], "arr")
+
+
+class TestIBMSection(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.workdir = Path(self.temp_dir.name)
+
+    def _make_section(self, **overrides):
+        sim = types.SimpleNamespace(
+            path=self.workdir,
+            expnr="321",
+            geom=object(),
+        )
+        values = {
+            "libm": True,
+            "gen_geom": True,
+            "geom_path": "",
+            "iwallmom": 2,
+            "ltempeq": False,
+            "lmoist": False,
+            "lwritefac": False,
+            "stl_ground": True,
+            "diag_neighbs": True,
+            "nompthreads": 8,
+            "ibmtol": 5e-4,
+            "ray_dir_u": [0.0, 0.0, 1.0],
+            "ray_dir_v": [0.0, 0.0, 1.0],
+            "ray_dir_w": [0.0, 0.0, 1.0],
+            "ray_dir_c": [0.0, 0.0, 1.0],
+        }
+        values.update(overrides)
+        return IBMSection("ibm", values, sim=sim, defaults={})
+
+    def _recording_section(self, **overrides):
+        section = self._make_section(**overrides)
+        calls = []
+        section.run_ibm = mock.Mock(side_effect=lambda backend="f2py": calls.append(("run_ibm", backend)))
+        section.write_facets = mock.Mock(side_effect=lambda: calls.append(("write_facets", None)))
+        section.write_facets_unused = mock.Mock(side_effect=lambda: calls.append(("write_facets_unused", None)))
+        section.write_facetarea = mock.Mock(side_effect=lambda: calls.append(("write_facetarea", None)))
+        section.generate_factypes = mock.Mock(side_effect=lambda: calls.append(("generate_factypes", None)))
+        section.write_factypes = mock.Mock(side_effect=lambda: calls.append(("write_factypes", None)))
+        section.copy_geom_outputs = mock.Mock(side_effect=lambda: calls.append(("copy_geom_outputs", None)))
+        return section, calls
+
+    def test_run_all_orchestrates_ibm_preprocessing_modes(self):
+        with self.subTest("generate geometry and default factypes"):
+            section, calls = self._recording_section()
+            section.run_all(backend="legacy")
+
+            self.assertEqual(
+                calls,
+                [
+                    ("run_ibm", "legacy"),
+                    ("write_facets", None),
+                    ("write_facetarea", None),
+                    ("generate_factypes", None),
+                    ("write_factypes", None),
+                ],
+            )
+
+        with self.subTest("write unused facets when c facet sections are enabled"):
+            section, calls = self._recording_section(ltempeq=True)
+            section.run_all()
+
+            self.assertEqual(
+                calls,
+                [
+                    ("run_ibm", "f2py"),
+                    ("write_facets", None),
+                    ("write_facetarea", None),
+                    ("write_facets_unused", None),
+                    ("generate_factypes", None),
+                    ("write_factypes", None),
+                ],
+            )
+
+        with self.subTest("preserve existing factypes"):
+            (self.workdir / "factypes.inp.321").write_text("existing\n", encoding="ascii")
+            section, calls = self._recording_section()
+            with self.assertWarns(UserWarning):
+                section.run_all()
+
+            self.assertEqual(
+                calls,
+                [
+                    ("run_ibm", "f2py"),
+                    ("write_facets", None),
+                    ("write_facetarea", None),
+                ],
+            )
+
+        with self.subTest("copy existing geometry outputs"):
+            section, calls = self._recording_section(gen_geom=False)
+            section.run_all()
+
+            self.assertEqual(calls, [("copy_geom_outputs", None)])
+
+        with self.subTest("copy existing geometry outputs with c sections"):
+            section, calls = self._recording_section(gen_geom=False, ltempeq=True)
+            section.run_all()
+
+            self.assertEqual(calls, [("copy_geom_outputs", None)])
+
+        with self.subTest("skip when IBM disabled"):
+            section, calls = self._recording_section(libm=False)
+            section.run_all()
+
+            self.assertEqual(calls, [])
+
+    def test_write_facets_unused_records_facets_without_c_sections(self):
+        section = self._make_section(ltempeq=True)
+        section.sim.nfcts = 5
+        section.sim.calculate_facet_sections_c = True
+        (self.workdir / "facet_sections_c.txt").write_text(
+            "# facet area flux point distance\n"
+            "1 0.5 10 0.1\n"
+            "3 0.7 11 0.2\n"
+            "3 0.2 12 0.3\n",
+            encoding="ascii",
+        )
+
+        section.write_facets_unused()
+
+        self.assertEqual((self.workdir / "facets_unused.321").read_text(encoding="ascii"), "2,4,5\n")
+
+    def test_write_facets_unused_writes_empty_file_when_all_facets_are_used(self):
+        section = self._make_section(ltempeq=True)
+        section.sim.nfcts = 3
+        section.sim.calculate_facet_sections_c = True
+        (self.workdir / "facet_sections_c.txt").write_text(
+            "# facet area flux point distance\n"
+            "1 0.5 10 0.1\n"
+            "2 0.7 11 0.2\n"
+            "3 0.2 12 0.3\n",
+            encoding="ascii",
+        )
+
+        section.write_facets_unused()
+
+        self.assertEqual((self.workdir / "facets_unused.321").read_text(encoding="ascii"), "")
+
+    def test_copy_geom_outputs_copies_existing_facets_unused(self):
+        geom_path = self.workdir / "geom"
+        geom_path.mkdir()
+        for name in ("solid_c.txt", "fluid_boundary_c.txt", "facet_sections_c.txt"):
+            (geom_path / name).write_text("# header\n1 2 3\n", encoding="ascii")
+        for name in ("facetarea.inp.999", "facets.inp.999", "factypes.inp.999"):
+            (geom_path / name).write_text("# header\n1\n", encoding="ascii")
+        (geom_path / "facets_unused.999").write_text("2,4\n", encoding="ascii")
+
+        section = self._make_section(
+            gen_geom=False,
+            geom_path=str(geom_path),
+            iwallmom=1,
+            ltempeq=True,
+        )
+        section.sim.geom = types.SimpleNamespace(stl=types.SimpleNamespace(faces=[0, 1, 2, 3]))
+        section.sim.calculate_facet_sections_uvw = False
+        section.sim.calculate_facet_sections_c = True
+        section.save_param = mock.Mock()
+
+        section.copy_geom_outputs()
+
+        self.assertEqual((self.workdir / "facets_unused.321").read_text(encoding="ascii"), "2,4\n")
+
+    def test_ray_direction_parses_lists_and_namoptions_strings(self):
+        section = self._make_section(
+            ray_dir_u=[1.0, 0.0, 0.0],
+            ray_dir_v="0.0, 1.0, 0.0",
+            ray_dir_w="0.0 0.0 -1.0",
+            ray_dir_c=np.array([1.0, 1.0, 1.0]),
+        )
+
+        np.testing.assert_allclose(section._ray_direction("ray_dir_u"), [1.0, 0.0, 0.0])
+        np.testing.assert_allclose(section._ray_direction("ray_dir_v"), [0.0, 1.0, 0.0])
+        np.testing.assert_allclose(section._ray_direction("ray_dir_w"), [0.0, 0.0, -1.0])
+        np.testing.assert_allclose(section._ray_direction("ray_dir_c"), [1.0, 1.0, 1.0])
+
+    def test_ray_direction_rejects_invalid_values(self):
+        section = self._make_section(ray_dir_u="1.0, 2.0")
+        with self.assertRaisesRegex(ValueError, "exactly three"):
+            section._ray_direction("ray_dir_u")
+
+        section = self._make_section(ray_dir_u="0.0, 0.0, 0.0")
+        with self.assertRaisesRegex(ValueError, "non-zero"):
+            section._ray_direction("ray_dir_u")
+
+        section = self._make_section(ray_dir_u="1.0, nope, 0.0")
+        with self.assertRaisesRegex(ValueError, "numeric"):
+            section._ray_direction("ray_dir_u")
+
+    def test_write_ibm_input_files_uses_configured_ray_directions(self):
+        section = self._make_section(
+            ibmtol=1e-4,
+            nompthreads=3,
+            diag_neighbs=False,
+            ray_dir_u="1.0, 0.0, 0.0",
+            ray_dir_v=[0.0, 1.0, 0.0],
+            ray_dir_w=[0.0, 0.0, -1.0],
+            ray_dir_c=[1.0, 1.0, 1.0],
+        )
+        stl = types.SimpleNamespace(
+            vertices=np.array(
+                [
+                    [0.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                ]
+            ),
+            faces=np.array([[0, 1, 2]], dtype=int),
+        )
+        section.sim.geom = types.SimpleNamespace(
+            stl=stl,
+            face_incenters=np.array([[0.25, 0.25, 0.0]]),
+            face_normals=np.array([[0.0, 0.0, 1.0]]),
+        )
+        section.sim.dx = 2.0
+        section.sim.dy = 3.0
+        section.sim.itot = 4
+        section.sim.jtot = 5
+        section.sim.ktot = 2
+        section.sim.zt = np.array([0.5, 1.5])
+        section.sim.zm = np.array([0.0, 1.0])
+        section.sim.BCxm = 1
+        section.sim.BCym = 2
+
+        section._write_ibm_input_files()
+
+        lines = (self.workdir / "inmypoly_inp_info.txt").read_text(encoding="ascii").splitlines()
+        rays = [[float(part) for part in lines[idx].split()] for idx in range(3, 7)]
+        self.assertEqual(
+            rays,
+            [
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [1.0, 1.0, 1.0],
+            ],
+        )
 
 
 class TestUDPrepCore(unittest.TestCase):
@@ -154,6 +399,38 @@ class TestUDPrepCore(unittest.TestCase):
 
         module.UDBase = FakeUDBase
         return module
+
+    def _make_run_all_prep(self, *, libm=True, radiation_lEB=True, ltrees=False):
+        specs = [
+            SectionSpec("grid", ["x"], {"x": 1}, FakeSection),
+            SectionSpec("forcing", ["x"], {"x": 1}, FakeSection),
+            SectionSpec("seb", ["x"], {"x": 1}, FakeSection),
+            SectionSpec("ibm", ["libm", "gen_geom"], {"libm": libm, "gen_geom": True}, FakeSection),
+            SectionSpec(
+                "vegetation",
+                ["ltrees", "ltreesfile"],
+                {"ltrees": ltrees, "ltreesfile": False},
+                FakeSection,
+            ),
+            SectionSpec(
+                "scalars",
+                ["nsv", "lscasrc", "lscasrcl"],
+                {"nsv": 0, "lscasrc": False, "lscasrcl": False},
+                FakeSection,
+            ),
+            SectionSpec("radiation", ["lEB"], {"lEB": radiation_lEB}, FakeSection),
+        ]
+        fake_module = self._fake_udbase_module()
+        with mock.patch.dict(sys.modules, {"udbase": fake_module}):
+            with mock.patch.object(UDPrep, "SECTION_SPECS", specs):
+                prep = UDPrep("123", path=self.workdir)
+        prep.SECTION_SPECS = specs
+        prep.ibm.libm = libm
+        prep.radiation.lEB = radiation_lEB
+        prep.vegetation.ltrees = ltrees
+        prep.vegetation.ltreesfile = False
+        prep.scalars.nsv = 0
+        return prep
 
     def test_init_populates_sections_from_defaults_and_sim(self):
         specs = [
@@ -204,59 +481,86 @@ class TestUDPrepCore(unittest.TestCase):
         with self.assertRaises(ValueError):
             prep.addvar("bar", 1, section="alpha")
 
-    def test_run_all_respects_section_gates(self):
-        specs = [
-            SectionSpec("grid", ["x"], {"x": 1}, FakeSection),
-            SectionSpec("forcing", ["x"], {"x": 1}, FakeSection),
-            SectionSpec("seb", ["x"], {"x": 1}, FakeSection),
-            SectionSpec("ibm", ["libm", "gen_geom"], {"libm": True, "gen_geom": True}, FakeSection),
-            SectionSpec(
-                "vegetation",
-                ["ltrees", "ltreesfile"],
-                {"ltrees": True, "ltreesfile": False},
-                FakeSection,
-            ),
-            SectionSpec(
-                "scalars",
-                ["nsv", "lscasrc", "lscasrcl"],
-                {"nsv": 0, "lscasrc": False, "lscasrcl": False},
-                FakeSection,
-            ),
-            SectionSpec("radiation", ["x"], {"x": 1}, FakeSection),
-        ]
+    def test_bcs_section_uses_defaults_and_preserves_namoptions_overrides(self):
         fake_module = self._fake_udbase_module()
         with mock.patch.dict(sys.modules, {"udbase": fake_module}):
-            with mock.patch.object(UDPrep, "SECTION_SPECS", specs):
-                prep = UDPrep("123", path=self.workdir)
-        prep.SECTION_SPECS = specs
+            with mock.patch.object(UDPrep, "SECTION_SPECS", [BCS_SPEC]):
+                prep = UDPrep("123", path=self.workdir, load_geometry=False)
 
+        self.assertIsInstance(prep.bcs, Section)
+        self.assertEqual(prep.bcs.BCxm, 1)
+        self.assertEqual(prep.bcs.BCym, 1)
+        self.assertEqual(prep.sim.BCxm, 1)
+        self.assertEqual(prep.sim.BCym, 1)
+
+        class OverrideUDBase(DummySim):
+            def __init__(self, expnr, path=None, load_geometry=True, suppress_load_warnings=False):
+                super().__init__(expnr=expnr, path=path)
+                self.BCxm = 2
+                self.BCym = 3
+
+        override_module = types.ModuleType("udbase")
+        override_module.UDBase = OverrideUDBase
+        with mock.patch.dict(sys.modules, {"udbase": override_module}):
+            with mock.patch.object(UDPrep, "SECTION_SPECS", [BCS_SPEC]):
+                prep = UDPrep("123", path=self.workdir, load_geometry=False)
+
+        self.assertEqual(prep.bcs.BCxm, 2)
+        self.assertEqual(prep.bcs.BCym, 3)
+        self.assertEqual(prep.sim.BCxm, 2)
+        self.assertEqual(prep.sim.BCym, 3)
+
+    def test_run_all_respects_section_gates(self):
+        prep = self._make_run_all_prep(libm=True, radiation_lEB=True, ltrees=True)
         prep.sim.lEB = True
-        prep.ibm.generate_factypes = mock.Mock()
-        prep.ibm.write_factypes = mock.Mock()
-        prep.ibm.run_ibm = mock.Mock()
-        prep.ibm.copy_geom_outputs = mock.Mock()
-        prep.ibm.write_facets = mock.Mock()
-        prep.ibm.write_facetarea = mock.Mock()
         prep.vegetation.save = mock.Mock()
         prep.radiation.run_all = mock.Mock()
         prep.seb.run_all = mock.Mock()
-        prep.vegetation.ltrees = True
-        prep.vegetation.ltreesfile = False
 
-        prep.run_all(force=True)
+        prep.run_all(force=True, ibm_backend="legacy")
 
         self.assertEqual(len(prep.grid.run_all_calls), 1)
         self.assertEqual(len(prep.forcing.run_all_calls), 1)
         self.assertEqual(len(prep.vegetation.run_all_calls), 1)
         self.assertEqual(len(prep.scalars.run_all_calls), 0)
-        prep.ibm.generate_factypes.assert_called_once()
-        prep.ibm.write_factypes.assert_called_once()
-        prep.ibm.run_ibm.assert_called_once()
-        prep.ibm.write_facets.assert_called_once()
-        prep.ibm.write_facetarea.assert_called_once()
-        prep.vegetation.save.assert_called_once()
+        self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
         prep.radiation.run_all.assert_called_once_with(force=True)
         prep.seb.run_all.assert_called_once()
+
+    def test_run_all_uses_radiation_lEB_for_current_radiation_gate(self):
+        prep = self._make_run_all_prep(libm=True, radiation_lEB=True)
+        prep.sim.lEB = False
+        prep.radiation.run_all = mock.Mock()
+        prep.seb.run_all = mock.Mock()
+
+        prep.run_all(force=True, ibm_backend="legacy")
+
+        self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
+        prep.radiation.run_all.assert_called_once_with(force=True)
+        prep.seb.run_all.assert_called_once()
+
+    def test_run_all_skips_radiation_and_seb_when_radiation_lEB_is_false(self):
+        prep = self._make_run_all_prep(libm=True, radiation_lEB=False)
+        prep.sim.lEB = True
+        prep.radiation.run_all = mock.Mock()
+        prep.seb.run_all = mock.Mock()
+
+        prep.run_all(force=True, ibm_backend="legacy")
+
+        self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
+        prep.radiation.run_all.assert_not_called()
+        prep.seb.run_all.assert_not_called()
+
+    def test_run_all_skips_radiation_and_seb_when_ibm_is_disabled(self):
+        prep = self._make_run_all_prep(libm=False, radiation_lEB=True)
+        prep.radiation.run_all = mock.Mock()
+        prep.seb.run_all = mock.Mock()
+
+        prep.run_all(force=True, ibm_backend="legacy")
+
+        self.assertEqual(prep.ibm.run_all_calls, [])
+        prep.radiation.run_all.assert_not_called()
+        prep.seb.run_all.assert_not_called()
 
     def test_write_changed_params_and_show_changed_params_visit_all_sections(self):
         specs = [
@@ -274,6 +578,72 @@ class TestUDPrepCore(unittest.TestCase):
         self.assertEqual(prep.beta.write_changed_params_calls, 1)
         self.assertEqual(prep.alpha.show_changed_params_calls, 1)
         self.assertEqual(prep.beta.show_changed_params_calls, 1)
+
+
+class TestRadiationSection(unittest.TestCase):
+    def test_run_short_wave_skip_removes_full_vf_text_intermediate(self):
+        with TemporaryDirectory() as temp_dir:
+            case_dir = Path(temp_dir)
+            sim = DummySim(expnr="321", path=case_dir)
+            sim.lvfsparse = False
+            section = RadiationSection("radiation", {"view3d_out": 0}, sim=sim, defaults={})
+
+            (case_dir / "Sdir.txt").write_text("1.0\n", encoding="ascii")
+            (case_dir / "netsw.inp.321").write_text("1.0\n", encoding="ascii")
+            (case_dir / "vf.nc.inp.321").write_bytes(b"netcdf placeholder")
+            vf_path = case_dir / "vf.txt"
+            vf_path.write_text("stale view3d text output\n", encoding="ascii")
+
+            section.run_short_wave()
+
+            self.assertFalse(vf_path.exists())
+
+    def test_write_netsw_only_writes_sveg_when_nonempty(self):
+        with TemporaryDirectory() as temp_dir:
+            case_dir = Path(temp_dir)
+            sim = DummySim(expnr="321", path=case_dir)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+
+            section.write_netsw(np.array([1.0]), s_veg=np.array([]))
+            self.assertFalse((case_dir / "sveg.inp.321").exists())
+
+            section.write_netsw(np.array([1.0]), s_veg=np.array([2.0]))
+            self.assertTrue((case_dir / "sveg.inp.321").exists())
+
+    def test_scanline_knet_uses_sdir_file_precision(self):
+        section = RadiationSection("radiation", {}, sim=DummySim())
+        full_sdir = np.array([1.234, 5.675, 9.999], dtype=float)
+
+        def fake_calc_direct_sw(*_args, **_kwargs):
+            return full_sdir.copy(), None, {}
+
+        seen = {}
+
+        def fake_calc_reflections_sw(sdir, *_args, **_kwargs):
+            seen["sdir"] = sdir.copy()
+            return sdir + 1.0
+
+        section.calc_direct_sw = fake_calc_direct_sw
+        section.calc_reflections_sw = fake_calc_reflections_sw
+
+        sdir, knet, s_veg = section._compute_knet(
+            np.array([0.0, 0.0, 1.0]),
+            800.0,
+            250.0,
+            "scanline",
+            0.1,
+            True,
+            np.zeros(3),
+            object(),
+            np.ones(3),
+            None,
+        )
+
+        expected = np.round(full_sdir, 2)
+        np.testing.assert_allclose(seen["sdir"], expected)
+        np.testing.assert_allclose(sdir, expected)
+        np.testing.assert_allclose(knet, expected + 1.0)
+        self.assertIsNone(s_veg)
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ Environment
     tools/python/setup_venv.sh. Following commands can be run
     from the repository root to set up and activate it:
 
-        bash tools/python/setup_venv.sh
+        bash tools/python/setup_venv.sh <common|icl>
         source tools/python/.venv/bin/activate
         python tools/write_inputs.py
 
@@ -77,7 +77,7 @@ except ImportError:
     _setup_script = script_dir / "python" / "setup_venv.sh"
     print("Required Python packages are not available.")
     print("Set up the virtual environment by running:")
-    print(f"   {_setup_script}")
+    print(f"   bash {_setup_script} <common|icl>")
     print("Then activate it and re-run this script as below:")
     print(f"   source {script_dir / 'python' / '.venv' / 'bin' / 'activate'}")
     print(f"   python {script_dir / Path(__file__).name}")
@@ -93,21 +93,15 @@ def main(argv: list[str] | None = None) -> int:
     case_dir = Path(args.case_dir).resolve()
 
     print("Initializing UDPrep...")
-    sys.stdout.flush()
     prep = UDPrep(case_dir, load_geometry=True, suppress_load_warnings=True)
+    
+    # Run the configured preprocessing sections.
+    prep.run_all(force=args.force)
+
     print("-------------------------------------------------------------------")
     print("Summary of the derived preprocessing configuration")
     print(prep)
     print("-------------------------------------------------------------------")
-    # Run the configured preprocessing sections.
-    # Namelist writeback (write_changed_params) is intentionally NOT called
-    # here — only sections that derive new values (radiation, vegetation)
-    # call it internally inside their own run_all/save methods.
-    prep.run_all(force=args.force)
-    
-    ### Optional inspection plots (uncomment to enable)
-    # prep.sim.vis.plot_profiles()
-    # prep.sim.vis.plot_lscale()
     
     return 0
 

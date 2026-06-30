@@ -80,18 +80,17 @@ if r.ltrees || r.ltreesfile
     disp(['Written trees.inp.', r.expnr])
     disp('Generating sparse vegetation inputs from trees (python)')
     pyscript = [DA_TOOLSDIR '/python/convert_trees_to_sparse.py'];
-    pycmd = sprintf(['bash -lc "python3 ''%s'' ''%s'' ''%s''"'], pyscript, expnr, fpath);
+    pyexe = [DA_TOOLSDIR '/python/.venv/bin/python'];
+    if ~isfile(pyexe)
+        fprintf('Python executable does not exist: %s\n', pyexe);
+        fprintf(['Please ensure the Python virtual environment is set up correctly by running ' DA_TOOLSDIR '/python/setup_venv.sh\n']);
+        error('Necessary Python executable not found. Cannot convert trees to sparse vegetation inputs.');
+    end
+    pycmd = sprintf('%s %s %s %s', pyexe, pyscript, expnr, fpath);
     [status, cmdout] = system(pycmd);
     if status ~= 0
         error('Veg conversion failed: %s', cmdout);
     end
-end
-
-if isfile(['factypes.inp.', expnr])
-    r.factypes = dlmread(['factypes.inp.', r.expnr],'',3,0);
-else
-    preprocessing.write_factypes(r)
-    disp(['Written factypes.inp.', r.expnr])
 end
 
 if r.libm
@@ -99,6 +98,13 @@ if r.libm
     TR = stlread(r.stl_file);
     nfcts = size(TR.ConnectivityList,1);
     preprocessing.set_nfcts(r, nfcts);
+
+    if isfile(['factypes.inp.', expnr])
+        r.factypes = dlmread(['factypes.inp.', r.expnr],'',3,0);
+    else
+        preprocessing.write_factypes(r)
+        disp(['Written factypes.inp.', r.expnr])
+    end
 
     calculate_facet_sections_uvw = r.iwallmom > 1;
     calculate_facet_sections_c = r.ltempeq || r.lmoist || r.lwritefac;
@@ -140,6 +146,7 @@ if r.libm
         ktot = r.ktot;
         dx = r.dx;
         dy = r.dy;
+        n_threads = r.nompthreads;
 
         if r.isolid_bound == 1     % uses in-house fortran routine
             lmypolyfortran = 1;
@@ -249,8 +256,12 @@ if r.libm
             %vf = view3d(view3d_exe, fpath_facets_view3d, fpath_vf);
             if r.calc_vf % run view3d
                 % Write STL in View3D input format
-                fpath_facets_view3d = [fpath 'facets.vs3'];
+                fpath_facets_view3d = [fpath 'facets.' r.expnr '.vs3'];
                 STLtoView3D(r.stl_file, fpath_facets_view3d, r.view3d_out, r.maxD, 0, 0);
+                fpath_facets_view3d_legacy = [fpath 'facets.vs3'];
+                if exist(fpath_facets_view3d_legacy, 'file') && ~strcmp(fpath_facets_view3d_legacy, fpath_facets_view3d)
+                    delete(fpath_facets_view3d_legacy)
+                end
 
                 if r.view3d_out == 0 % text
                     fpath_vf = [fpath 'vf.txt'];

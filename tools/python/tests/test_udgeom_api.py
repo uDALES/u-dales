@@ -1,7 +1,9 @@
 import sys
+import struct
 import unittest
 import warnings
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 import trimesh
@@ -541,6 +543,33 @@ class TestUDGeomApi(unittest.TestCase):
 
         self.assertEqual(geom.n_faces, len(box_a.faces) + len(box_b.faces))
         self.assertEqual(geom.n_vertices, len(box_a.vertices) + len(box_b.vertices))
+
+    def test_load_stl_honors_stored_normal_when_winding_disagrees(self):
+        with TemporaryDirectory() as tmpdir:
+            case_dir = Path(tmpdir)
+            stl_path = case_dir / "stored_normal.stl"
+            vertices = [
+                (0.0, 0.0, 0.0),
+                (0.0, 1.0, 0.0),
+                (1.0, 0.0, 0.0),
+            ]
+
+            with stl_path.open("wb") as f:
+                f.write(b"test stored normals".ljust(80, b" "))
+                f.write(struct.pack("<I", 1))
+                f.write(struct.pack("<3f", 0.0, 0.0, 1.0))
+                for vertex in vertices:
+                    f.write(struct.pack("<3f", *vertex))
+                f.write(struct.pack("<H", 0))
+
+            geom = UDGeom(case_dir)
+            geom.load("stored_normal.stl")
+
+            np.testing.assert_allclose(
+                geom.face_normals,
+                np.array([[0.0, 0.0, 1.0]]),
+                atol=1e-12,
+            )
 
     def test_load_missing_file_raises(self):
         geom = UDGeom(DATA_DIR)

@@ -305,7 +305,32 @@ contains
    end subroutine writeDirectShortwave
 
 
+   ! logical function isInsideTriangle(A, B, C, P)
+   !    real, intent(in), dimension(2) :: A, B, C, P
+   !    real, dimension(2) :: v0, v1, v2
+   !    real :: u, v, dot00, dot01, dot02, dot11, dot12, invDenom
+   !
+   !    v0 = C - A
+   !    v1 = B - A
+   !    v2 = P - A
+   !
+   !    dot00 = dot_product(v0, v0)
+   !    dot01 = dot_product(v0, v1)
+   !    dot02 = dot_product(v0, v2)
+   !    dot11 = dot_product(v1, v1)
+   !    dot12 = dot_product(v1, v2)
+   !
+   !    invDenom = 1. / (dot00 * dot11 - dot01 * dot01)
+   !    u = (dot11 * dot02 - dot01 * dot12) * invDenom
+   !    v = (dot00 * dot12 - dot01 * dot02) * invDenom
+   !    isInsideTriangle = .false.
+   !    if ((u >= 0) .and. (v >= 0) .and. (u + v < 1)) isInsideTriangle = .true.
+   !
+   ! end function isInsideTriangle
+
+
    function cross_product(a,b)
+     ! Calculate the cross product (a x b)
      implicit none
      real, dimension(3) :: cross_product
      real, dimension(3), intent(in) :: a, b
@@ -318,14 +343,17 @@ contains
 
 
    function matinv3(A) result(B)
-     real, intent(in) :: A(3, 3)
-     real             :: B(3, 3)
+     !! calculates the inverse of a 3×3 matrix.
+     real, intent(in) :: A(3, 3) !! matrix
+     real             :: B(3, 3) !! inverse matrix
      real             :: detinv
 
+     !inverse determinant of the matrix
      detinv = 1/(A(1, 1)*A(2, 2)*A(3, 3) - A(1, 1)*A(2, 3)*A(3, 2) &
      - A(1, 2)*A(2, 1)*A(3, 3) + A(1, 2)*A(2, 3)*A(3, 1) &
      + A(1, 3)*A(2, 1)*A(3, 2) - A(1, 3)*A(2, 2)*A(3, 1))
 
+     !inverse of the matrix
      B(1, 1) = +detinv*(A(2, 2)*A(3, 3) - A(2, 3)*A(3, 2))
      B(2, 1) = -detinv*(A(2, 1)*A(3, 3) - A(2, 3)*A(3, 1))
      B(3, 1) = +detinv*(A(2, 1)*A(3, 2) - A(2, 2)*A(3, 1))
@@ -338,19 +366,100 @@ contains
    end function
 
 
+  !  subroutine poly2mask(x, y, M, N, BW)
+  ! implicit none
+  ! integer, intent(in) :: M, N
+  ! real(8), intent(in) :: x(:), y(:)
+  ! logical, intent(out) :: BW(M, N)
+  ! integer :: edgeRows, edgeColumns, newLength, i
+  ! real(8) :: xNew(:), yNew(:)
+  ! real(8) :: xpt(:), ypt(:)
+  ! integer :: scale
+  ! integer :: sizeX
+  ! real(8), dimension(:), allocatable :: xLinePts, yLinePts
+  ! integer :: borderSize
+  ! integer :: xLength
+  ! integer, dimension(N) :: minY, maxY
+  ! integer :: xUse, yUse
+  ! integer :: pt, diff
+  !
+  ! ! Check that the number of inputs is 4
+  ! if (size(x) /= size(y)) then
+  !   write(*,*) "Error: x and y vectors must have the same size."
+  !   return
+  ! end if
+  !
+  ! ! Initialize xNew and yNew
+  ! edgeRows = size(x)
+  ! edgeColumns = size(y)
+  ! newLength = edgeRows + 1
+  ! allocate(xNew(newLength))
+  ! allocate(yNew(newLength))
+  !
+  ! ! Check if the last point is different from the first
+  ! if (x(edgeRows) /= x(1) .or. y(edgeRows) /= y(1)) then
+  !   xNew(1:edgeRows) = x(1:edgeRows)
+  !   xNew(edgeRows + 1) = x(1)
+  !   yNew(1:edgeRows) = y(1:edgeRows)
+  !   yNew(edgeRows + 1) = y(1)
+  !   call poly2MaskFromIntegralImagePortable(xNew, yNew, M, N, BW)
+  ! else
+  !   call poly2MaskFromIntegralImagePortable(x, y, M, N, BW)
+  ! end if
+  !
+  ! ! Deallocate arrays
+  ! deallocate(xNew)
+  ! deallocate(yNew)
+  !
+  ! end subroutine poly2mask
+
+  ! subroutine poly2maskIDs(xpt, ypt, M, N, out, outIDs, id)
+  !     real  , intent(in) :: xpt(:), ypt(:) ! assumes x(end) == x(1)
+  !     real, allocatable, dimension(:) :: x, y
+  !     integer, intent(in) :: M, N, id
+  !     logical, intent(out) :: out(M, N)
+  !     integer, intent(out) :: outIDs(M, N)
+  !     integer :: sizeX
+  !     real    :: scale = 5.0
+  !     integer :: minY(N), maxY(N)
+  !
+  !     ! Initialize minY and maxY arrays
+  !     minY = 0
+  !     maxY = 0
+  !     sizeX = size(xpt,1) ! number of vertices
+  !     allocate(x(sizeX), y(sizeX))
+  !     x = xpt
+  !     y = ypt
+  !     ! x(1:sizeX-1) = xpt
+  !     ! y(1:sizeX-1) = ypt
+  !     ! x(sizeX) = xpt(1)
+  !     ! y(sizeX) = ypt(1)
+  !
+  !     ! Create edges in mask to be used during parity scan
+  !     call poly2edgelist(x, y, sizeX, scale, M, N, out, minY, maxY)
+  !     ! Perform the parity scan over the output mask 'out'
+  !     call parityScan(out, N, minY, maxY, outIDs, id)
+  !
+  !     deallocate(x, y)
+  !
+  ! end subroutine poly2maskIDs
+
+    !subroutine poly2maskIDs(xpt, ypt, M, N, out, outIDs, id)
     subroutine poly2maskIDs(xpt, ypt, M, N, outIDs, id)
         real  , intent(in) :: xpt(:), ypt(:) ! assumes x(end) != x(1)
         real, allocatable, dimension(:) :: x, y
         integer, intent(in) :: M, N, id
+        !logical, intent(out) :: out(M, N)
         logical :: out(M, N)
-        integer, intent(out) :: outIDs(M, N)
+        integer, intent(inout) :: outIDs(M, N)
         integer :: sizeX
         real    :: scale = 5.0
         integer :: minY(N), maxY(N)
 
+        ! Initialize
+        out = .false.
         minY = 0
         maxY = 0
-        out = .false.
         sizeX = size(xpt,1)+1 ! number of vertices
         allocate(x(sizeX), y(sizeX))
         x(1:sizeX-1) = xpt
@@ -358,20 +467,21 @@ contains
         x(sizeX) = xpt(1)
         y(sizeX) = ypt(1)
 
+        ! Create edges in mask to be used during parity scan
         call poly2edgelist(x, y, sizeX, scale, M, N, out, minY, maxY)
+        ! Perform the parity scan over the output mask 'out'
         call parityScan(out, N, minY, maxY, outIDs, id)
 
         deallocate(x, y)
 
     end subroutine poly2maskIDs
 
-
     subroutine poly2edgelist(x, y, xLength, scale, M, N, out, minY, maxY)
         real  , intent(inout) :: x(:), y(:)
         integer, intent(in) :: xLength, M, N
         real   , intent(in) :: scale
-        logical, intent(out) :: out(M, N)
-        integer, intent(out) :: minY(N), maxY(N)
+        logical, intent(inout) :: out(M, N)
+        integer, intent(inout) :: minY(N), maxY(N)
         real, allocatable, dimension(:) :: xLinePts, yLinePts
         integer :: borderSize
         integer :: i, pt, xUse, yUse
@@ -393,10 +503,12 @@ contains
            end if
         end do
 
+        ! Fill xLinePts and yLinePts with border information
         allocate(xLinePts(borderSize), yLinePts(borderSize))
         call makeBorder(x, y, xLength, borderSize, xLinePts, yLinePts)
 
          do pt = 1, borderSize - 1
+           ! Check if x changes
            diff = xLinePts(pt + 1) - xLinePts(pt)
            if (abs(diff) >= 1.0) then
              yLinePts(pt) = min(yLinePts(pt), yLinePts(pt + 1))
@@ -407,6 +519,7 @@ contains
              if (abs(scaledDown - dble(floor(scaledDown))) < 1.0 / (scale * 50.0)) then
                 xLinePts(pt) = scaledDown
                 yLinePts(pt) = ceiling((yLinePts(pt) + (scale - 1.0) / 2.0) / scale)
+                ! Set xUse and yUse to these scaled down x and y values for indexing into the boolean array.
                 xUse = nint(xLinePts(pt)) + 1
                 yUse = nint(yLinePts(pt)) + 1
                if (.not. (xUse < 2 .or. xUse > N + 1)) then
@@ -451,12 +564,77 @@ contains
         real, intent(out) :: xLinePts(borderSize), yLinePts(borderSize)
         integer :: borderPosition
         integer :: i
+        integer :: dx, dy
+        real    :: m
+        integer :: xit, yit
+        real :: xVal, yVal
+        real :: x1, y1, x2, y2
 
         borderPosition = 1
 
         do i = 2, xLength
            call intLine(x(i-1),y(i-1),x(i),y(i), xLinePts, yLinePts, borderPosition)
         end do
+        !
+        !    x1 = x(i-1)
+        !    y1 = y(i-1)
+        !    x2 = x(i)
+        !    y2 = y(i)
+        !     !call intLine(x(i-1), y(i-1), x(i), y(i), xLinePts, yLinePts, borderPosition)
+        !     dx = nint(abs(x2 - x1))
+        !     dy = nint(abs(y2 - y1))
+        !
+        !     if (dx == 0 .and. dy == 0) then
+        !         xLinePts(borderPosition) = x1
+        !         yLinePts(borderPosition) = y1
+        !         borderPosition = borderPosition + 1
+        !         cycle
+        !     end if
+        !
+        !     if (dx >= dy) then
+        !         m = (y2 - y1) / (x2 - x1)
+        !         if (x2 > x1) then
+        !             !do xVal = x1, x2
+        !             do xit = int(x1), int(x2)
+        !                 xVal = xit + x1-int(x1)
+        !                 yVal = nint(y1 + m * (xVal - x1))
+        !                 xLinePts(borderPosition) = xVal
+        !                 yLinePts(borderPosition) = yVal
+        !                 borderPosition = borderPosition + 1
+        !             end do
+        !         else
+        !             !do xVal = x1, x2, -1
+        !             do xit = int(x1), int(x2), -1
+        !                 xVal = xit + x1-int(x1)
+        !                 yVal = nint(y1 + m * (xVal - x1))
+        !                 xLinePts(borderPosition) = xVal
+        !                 yLinePts(borderPosition) = yVal
+        !                 borderPosition = borderPosition + 1
+        !             end do
+        !         end if
+        !     else
+        !         m = (x2 - x1) / (y2 - y1)
+        !         if (y2 > y1) then
+        !             !do yVal = y1, y2
+        !             do yit = int(y1), int(y2)
+        !                 yVal = yit + y1-int(y1)
+        !                 xVal = nint(x1 + m * (yVal - y1))
+        !                 xLinePts(borderPosition) = xVal
+        !                 yLinePts(borderPosition) = yVal
+        !                 borderPosition = borderPosition + 1
+        !             end do
+        !         else
+        !            !do yVal = y1, y2, -1
+        !            do yit = int(y1), int(y2), -1
+        !                 yVal = yit + y1-int(y1)
+        !                 xVal = nint(x1 + m * (yVal - y1))
+        !                 xLinePts(borderPosition) = xVal
+        !                 yLinePts(borderPosition) = yVal
+        !                 borderPosition = borderPosition + 1
+        !             end do
+        !         end if
+        !     end if
+        ! end do
 
     end subroutine makeBorder
 
@@ -522,11 +700,11 @@ contains
 
     subroutine parityScan(out, N, minY, maxY, outIDs, id)
         logical, intent(inout) :: out(:,:)
-        integer, intent(out) :: outIDs(:,:)
+        integer, intent(inout) :: outIDs(:,:)
         integer, intent(in) :: N, id
         integer, intent(in) :: minY(N), maxY(N)
         logical :: pixel
-        integer :: c, r
+        integer :: c, r!, id_first, id_last
 
         do c = 1, N
             pixel = .false.
@@ -535,6 +713,14 @@ contains
                 out(r, c) = pixel
                 if (out(r,c)) outIDs(r, c) = id
             end do
+            ! if (maxY(c) > 0) then
+            !    id_first = findloc(out(minY(c):maxY(c)-1,c), .true., 1) + minY(c) - 1
+            !    id_last  = findloc(out(minY(c):maxY(c)-1,c), .true., 1, back=.true.) + minY(c) - 1
+            !    out(id_last, c) = .false.
+            !    if (id_first+1 <= id_last-1) then
+            !       out(id_first+1:id_last-1, c) = .true.
+            !    end if
+            ! end if
         end do
     end subroutine parityScan
 

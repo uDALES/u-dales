@@ -9,6 +9,9 @@ from __future__ import annotations
 import sys
 from typing import Any, Dict, List, Optional, Union
 
+import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Polygon as mplPolygon
 import numpy as np
 
 
@@ -52,6 +55,11 @@ class UDVis:
             edges.add(tuple(sorted((tri[1], tri[2]))))
             edges.add(tuple(sorted((tri[2], tri[0]))))
         return sorted(edges)
+
+    @staticmethod
+    def _missing_plot_data(message: str):
+        print(f"ERROR: {message}", file=sys.stderr)
+        return None
 
     def show_geometry(
         self,
@@ -250,16 +258,19 @@ class UDVis:
     def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False):
         """Plot vegetation points on top of the geometry."""
         if not self.sim._lfgeom or self.sim.geom is None:
-            raise ValueError("Geometry (STL) file required for plot_veg()")
+            return self._missing_plot_data("Geometry data not found for plot_veg")
         if veg is None:
             if not hasattr(self.sim, "veg") or self.sim.veg is None:
-                self.sim.load_veg(cache=True)
+                try:
+                    self.sim.load_veg(cache=True)
+                except (OSError, ValueError):
+                    return self._missing_plot_data(f"veg.inp.{self.sim.expnr} data not found")
             if not hasattr(self.sim, "veg") or self.sim.veg is None:
-                raise ValueError("veg.inp file required for plot_veg()")
+                return self._missing_plot_data(f"veg.inp.{self.sim.expnr} data not found")
             veg = self.sim.veg
         points = np.asarray(veg.get("points", []))
         if points.size == 0:
-            raise ValueError("veg.inp contains no vegetation points")
+            return self._missing_plot_data(f"veg.inp.{self.sim.expnr} data not found or contains no points")
 
         max_points = 50000
         if len(points) > max_points:
@@ -317,9 +328,333 @@ class UDVis:
             fig.show()
         return fig
 
-    def plot_trees(self, show: bool = False):
-        """Backward-compatible alias for plot_veg."""
-        return self.plot_veg(show=show)
+    @staticmethod
+    def _scalar_source_color(scalar_index: int) -> str:
+        palette = [
+            "rgb(0,0,139)",
+            "rgb(0,100,0)",
+            "rgb(139,0,0)",
+            "rgb(128,0,128)",
+            "rgb(184,134,11)",
+            "rgb(0,139,139)",
+            "rgb(199,21,133)",
+            "rgb(85,85,85)",
+        ]
+        return palette[(scalar_index - 1) % len(palette)]
+
+    def plot_scalar_source(
+        self,
+        scalar_sources: Optional[Dict[str, Dict[int, np.ndarray]]] = None,
+        scalar_index: Optional[int] = None,
+        show: bool = False,
+    ):
+        """Plot scalar point and line sources on top of the geometry."""
+        if not self.sim._lfgeom or self.sim.geom is None:
+            raise ValueError("Geometry (STL) file required for plot_scalar_source()")
+
+        if scalar_sources is None:
+            scalar_sources = self.sim.load_scalar_sources()
+        if scalar_sources is None:
+            return self._missing_plot_data("Scalar source data not found")
+
+        point_sources = scalar_sources.get("point", {})
+        line_sources = scalar_sources.get("line", {})
+        if scalar_index is not None:
+            scalar_index = int(scalar_index)
+            point_sources = {scalar_index: point_sources[scalar_index]} if scalar_index in point_sources else {}
+            line_sources = {scalar_index: line_sources[scalar_index]} if scalar_index in line_sources else {}
+
+        source_indices = sorted(set(point_sources) | set(line_sources))
+        if not source_indices:
+            return self._missing_plot_data("Scalar source data not found")
+
+        try:
+            import plotly.graph_objects as go
+        except ImportError as exc:
+            raise ImportError(
+                "plotly is required for plot_scalar_source. Install with: pip install plotly"
+            ) from exc
+
+        try:
+            import trimesh  # noqa: F401
+        except ImportError as exc:
+            raise ImportError(
+                "trimesh is required for plot_scalar_source. Install with: pip install trimesh"
+            ) from exc
+
+        base_mesh = self.sim.geom.stl.copy()
+        base_mesh.visual.face_colors = np.tile(
+            np.array([220, 220, 220, 255], dtype=np.uint8), (len(base_mesh.faces), 1)
+        )
+        outline_edges = self._collect_mesh_edges(self.sim.geom.stl.faces)
+
+        fig = self._render_scene(
+            [base_mesh],
+            show_outlines=True,
+            custom_edges=outline_edges,
+            show=False,
+        )
+        if fig is None:
+            return None
+
+        n_point = 0
+        n_line = 0
+        for ii in source_indices:
+            color = self._scalar_source_color(int(ii))
+            points = np.asarray(point_sources.get(ii, np.empty((0, 5))), dtype=float)
+            if points.size:
+                points = np.atleast_2d(points)
+                n_point += len(points)
+                fig.add_trace(
+                    go.Scatter3d(
+                        x=points[:, 0],
+                        y=points[:, 1],
+                        z=points[:, 2],
+                        mode="markers",
+                        marker=dict(size=5, color=color, opacity=0.85),
+                        name=f"scalar {ii} point source",
+                    )
+                )
+
+            lines = np.asarray(line_sources.get(ii, np.empty((0, 8))), dtype=float)
+            if lines.size:
+                lines = np.atleast_2d(lines)
+                n_line += len(lines)
+                xs, ys, zs = [], [], []
+                for row in lines:
+                    xs.extend([row[0], row[3], None])
+                    ys.extend([row[1], row[4], None])
+                    zs.extend([row[2], row[5], None])
+                fig.add_trace(
+                    go.Scatter3d(
+                        x=xs,
+                        y=ys,
+                        z=zs,
+                        mode="lines",
+                        line=dict(color=color, width=6),
+                        name=f"scalar {ii} line source",
+                    )
+                )
+
+        fig.update_layout(
+            title=f"Geometry with Scalar Sources ({n_point} points, {n_line} lines)"
+        )
+        if show:
+            fig.show()
+        return fig
+
+    def plot_solid(
+        self,
+        grid_type: str = "c",
+        show: bool = False,
+        max_points: int = 100_000,
+    ):
+        """Plot IBM solid points for one grid type on top of the geometry.
+
+        Parameters
+        ----------
+        grid_type : {'u', 'v', 'w', 'c'}, default='c'
+            Which staggered grid's solid mask to visualise.
+        show : bool, default=False
+            Call ``fig.show()`` so the figure appears inline in a notebook.
+        max_points : int, default=100_000
+            Cap on rendered points; a random subsample is drawn when exceeded.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or None
+        """
+        grid_type = grid_type.lower()
+        if grid_type not in ("u", "v", "w", "c"):
+            raise ValueError(f"grid_type must be one of 'u', 'v', 'w', 'c'; got {grid_type!r}")
+
+        if not self.sim._lfgeom or self.sim.geom is None:
+            return self._missing_plot_data("Geometry data not found for plot_solid")
+
+        mask = getattr(self.sim, f"S{grid_type}", None)
+        if mask is None:
+            return self._missing_plot_data(f"solid_{grid_type}.txt data not found")
+
+        # Map 3-D boolean mask → index triples
+        ii, jj, kk = np.where(mask)
+        n_total = len(ii)
+        if n_total == 0:
+            return self._missing_plot_data(f"solid_{grid_type}.txt contains no solid points")
+
+        if n_total > max_points:
+            rng = np.random.default_rng(0)
+            sel = rng.choice(n_total, size=max_points, replace=False)
+            ii, jj, kk = ii[sel], jj[sel], kk[sel]
+            print(f"plot_solid: showing {max_points} of {n_total} {grid_type}-solid points")
+
+        # Map indices to physical coordinates using the appropriate staggered grid
+        x_arr = {"u": self.sim.xm, "v": self.sim.xt, "w": self.sim.xt, "c": self.sim.xt}[grid_type]
+        y_arr = {"u": self.sim.yt, "v": self.sim.ym, "w": self.sim.yt, "c": self.sim.yt}[grid_type]
+        z_arr = {"u": self.sim.zt, "v": self.sim.zt, "w": self.sim.zm, "c": self.sim.zt}[grid_type]
+
+        xs = x_arr[ii]
+        ys = y_arr[jj]
+        zs = z_arr[kk]
+
+        try:
+            import plotly.graph_objects as go
+        except ImportError as exc:
+            raise ImportError(
+                "plotly is required for plot_solid. Install with: pip install plotly"
+            ) from exc
+
+        try:
+            import trimesh  # noqa: F401
+        except ImportError as exc:
+            raise ImportError(
+                "trimesh is required for plot_solid. Install with: pip install trimesh"
+            ) from exc
+
+        base_mesh = self.sim.geom.stl.copy()
+        base_mesh.visual.face_colors = np.tile(
+            np.array([220, 220, 220, 255], dtype=np.uint8), (len(base_mesh.faces), 1)
+        )
+        outline_edges = self._collect_mesh_edges(self.sim.geom.stl.faces)
+
+        fig = self._render_scene(
+            [base_mesh],
+            show_outlines=True,
+            custom_edges=outline_edges,
+            show=False,
+        )
+        if fig is None:
+            return None
+
+        fig.add_trace(
+            go.Scatter3d(
+                x=xs,
+                y=ys,
+                z=zs,
+                mode="markers",
+                marker=dict(size=4, color="rgb(0,0,139)", opacity=0.3),
+                name=f"solid ({grid_type})",
+            )
+        )
+        fig.update_layout(
+            title=f"Solid points — {grid_type}-grid ({len(xs)} of {n_total} shown)"
+        )
+        if show:
+            fig.show()
+        return fig
+
+    def plot_fluid_boundary(
+        self,
+        grid_type: str = "c",
+        show: bool = False,
+        max_points: int = 100_000,
+    ):
+        """Plot fluid-boundary points for one grid type on top of the geometry.
+
+        Fluid-boundary points are the fluid cells adjacent to IBM solid surfaces,
+        read directly from ``fluid_boundary_<grid>.txt``.
+
+        Parameters
+        ----------
+        grid_type : {'u', 'v', 'w', 'c'}, default='c'
+            Which staggered grid's fluid-boundary points to visualise.
+        show : bool, default=False
+            Call ``fig.show()`` so the figure appears inline in a notebook.
+        max_points : int, default=100_000
+            Cap on rendered points; a random subsample is drawn when exceeded.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or None
+        """
+        grid_type = grid_type.lower()
+        if grid_type not in ("u", "v", "w", "c"):
+            raise ValueError(f"grid_type must be one of 'u', 'v', 'w', 'c'; got {grid_type!r}")
+
+        if not self.sim._lfgeom or self.sim.geom is None:
+            return self._missing_plot_data("Geometry data not found for plot_fluid_boundary")
+
+        # Read fluid_boundary_<grid>.txt directly (1-based indices → 0-based)
+        fb_file = self.sim.path / f"fluid_boundary_{grid_type}.txt"
+        if not fb_file.exists():
+            return self._missing_plot_data(f"fluid_boundary_{grid_type}.txt data not found")
+
+        try:
+            locs = self.sim._load_sparse_file(
+                fb_file,
+                skiprows=1,
+                dtype=int,
+                min_cols=3,
+                zero_based_cols=[0, 1, 2],
+            )
+        except (OSError, ValueError) as exc:
+            return self._missing_plot_data(f"fluid_boundary_{grid_type}.txt could not be loaded: {exc}")
+
+        if locs.size == 0:
+            return self._missing_plot_data(f"fluid_boundary_{grid_type}.txt contains no points")
+
+        n_total = len(locs)
+        if n_total > max_points:
+            rng = np.random.default_rng(0)
+            sel = rng.choice(n_total, size=max_points, replace=False)
+            locs = locs[sel]
+            print(f"plot_fluid_boundary: showing {max_points} of {n_total} {grid_type}-boundary points")
+
+        ii, jj, kk = locs[:, 0], locs[:, 1], locs[:, 2]
+
+        # Map to physical coordinates on the appropriate staggered grid
+        x_arr = {"u": self.sim.xm, "v": self.sim.xt, "w": self.sim.xt, "c": self.sim.xt}[grid_type]
+        y_arr = {"u": self.sim.yt, "v": self.sim.ym, "w": self.sim.yt, "c": self.sim.yt}[grid_type]
+        z_arr = {"u": self.sim.zt, "v": self.sim.zt, "w": self.sim.zm, "c": self.sim.zt}[grid_type]
+
+        xs = x_arr[ii]
+        ys = y_arr[jj]
+        zs = z_arr[kk]
+
+        try:
+            import plotly.graph_objects as go
+        except ImportError as exc:
+            raise ImportError(
+                "plotly is required for plot_fluid_boundary. Install with: pip install plotly"
+            ) from exc
+
+        try:
+            import trimesh  # noqa: F401
+        except ImportError as exc:
+            raise ImportError(
+                "trimesh is required for plot_fluid_boundary. Install with: pip install trimesh"
+            ) from exc
+
+        base_mesh = self.sim.geom.stl.copy()
+        base_mesh.visual.face_colors = np.tile(
+            np.array([220, 220, 220, 255], dtype=np.uint8), (len(base_mesh.faces), 1)
+        )
+        outline_edges = self._collect_mesh_edges(self.sim.geom.stl.faces)
+
+        fig = self._render_scene(
+            [base_mesh],
+            show_outlines=True,
+            custom_edges=outline_edges,
+            show=False,
+        )
+        if fig is None:
+            return None
+
+        fig.add_trace(
+            go.Scatter3d(
+                x=xs,
+                y=ys,
+                z=zs,
+                mode="markers",
+                marker=dict(size=4, color="rgb(139,0,0)", opacity=0.3),
+                name=f"fluid boundary ({grid_type})",
+            )
+        )
+        fig.update_layout(
+            title=f"Fluid-boundary points — {grid_type}-grid ({len(xs)} of {n_total} shown)"
+        )
+        if show:
+            fig.show()
+        return fig
 
     def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, show: bool = True):
         """Plot facet data as a 3D surface."""
@@ -359,18 +694,16 @@ class UDVis:
         if self.geom is None or getattr(self.geom, "stl", None) is None:
             raise ValueError("No geometry loaded. Cannot visualize.")
         try:
-            import matplotlib.cm as cm
-            import matplotlib.pyplot as plt
             import plotly.graph_objects as go
         except ImportError as exc:
-            raise ImportError("matplotlib and plotly are required for plot_independent_surfaces") from exc
+            raise ImportError("plotly is required for plot_independent_surfaces") from exc
 
         result = self.geom.calculate_independent_surfaces()
         fig = self.plot_fac(np.asarray(result["face_surface_ids"], dtype=float), show=show)
         if fig is not None:
             n_surfaces = max(int(result["n_surfaces"]), 1)
             norm = plt.Normalize(vmin=1, vmax=n_surfaces)
-            cmap = cm.get_cmap("viridis")
+            cmap = plt.get_cmap("viridis")
             centers = np.asarray(self.geom.stl.triangles_center, dtype=float)
 
             for surface in result["surfaces"]:
@@ -426,9 +759,6 @@ class UDVis:
         except ImportError as exc:
             raise ImportError("trimesh is required. Install with: pip install trimesh") from exc
 
-        import matplotlib.cm as cm
-        import matplotlib.pyplot as plt
-
         geom = self.geom if self.sim is None else self.sim.geom
         vertices = geom.stl.vertices
         faces = geom.stl.faces
@@ -460,7 +790,7 @@ class UDVis:
             vmin = np.nanmin(selected_var[valid_mask])
             vmax = np.nanmax(selected_var[valid_mask])
             norm = plt.Normalize(vmin=vmin, vmax=vmax)
-            cmap = cm.get_cmap("viridis")
+            cmap = plt.get_cmap("viridis")
 
             face_colors = np.ones((len(selected_faces), 4))
             face_colors[valid_mask] = cmap(norm(selected_var[valid_mask]))
@@ -711,8 +1041,6 @@ class UDVis:
         names = self.sim.factypes["name"]
         unique_ids = np.unique(facids)
 
-        import matplotlib.pyplot as plt
-
         prop_cycle = plt.rcParams["axes.prop_cycle"]
         default_colors = prop_cycle.by_key()["color"]
 
@@ -872,11 +1200,6 @@ class UDVis:
                 "This method requires a geometry (STL) file. Ensure stl_file is specified in namoptions."
             )
 
-        try:
-            import matplotlib.pyplot as plt
-        except ImportError as exc:
-            raise ImportError("matplotlib is required for visualization. Install with: pip install matplotlib") from exc
-
         outlines = self.sim.geom.calculate_outline2d()
         if not outlines:
             raise ValueError("No buildings found in geometry")
@@ -900,13 +1223,6 @@ class UDVis:
         """Plot a 2D map of buildings colored by a value per building."""
         if self.sim.geom is None or not hasattr(self.sim.geom, "stl") or self.sim.geom.stl is None:
             raise ValueError("Geometry data not available. Cannot compute outlines.")
-
-        try:
-            import matplotlib.pyplot as plt
-            from matplotlib.collections import PatchCollection
-            from matplotlib.patches import Polygon as mplPolygon
-        except ImportError as exc:
-            raise ImportError("matplotlib is required for visualization. Install with: pip install matplotlib") from exc
 
         outlines = self.sim.geom.calculate_outline2d()
         if not outlines:
@@ -1002,39 +1318,113 @@ class UDVis:
         -------
         matplotlib.figure.Figure
         """
-        import matplotlib.pyplot as plt
+        try:
+            pr = self.sim.load_prof()
+        except (OSError, ValueError):
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+        if pr is None or np.asarray(pr).size == 0:
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+        pr = np.atleast_2d(np.asarray(pr))
+        if pr.shape[1] < 6:
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
 
-        pr = self.sim.load_prof()
-        zf = pr[:, 0]
+        zt = pr[:, 0]
 
-        fig, axes = plt.subplots(1, 5, sharey=True, figsize=(15, 5))
+        fig, axes = plt.subplots(1, 4, sharey=True, figsize=(12, 5))
 
-        axes[0].plot(pr[:, 1], zf)
+        axes[0].plot(pr[:, 1], zt)
         axes[0].set_title("Temperature")
         axes[0].set_xlabel("thl [K]")
         axes[0].set_ylabel("z [m]")
 
-        axes[1].plot(pr[:, 2], zf)
+        axes[1].plot(pr[:, 2], zt)
         axes[1].set_title("Specific humidity")
         axes[1].set_xlabel("qt [kg/kg]")
 
-        axes[2].plot(pr[:, 3], zf, label="u")
-        axes[2].plot(pr[:, 4], zf, "r--", label="v")
+        axes[2].plot(pr[:, 3], zt, label="u")
+        axes[2].plot(pr[:, 4], zt, "r--", label="v")
         axes[2].set_title("Velocity")
         axes[2].set_xlabel("[m/s]")
         axes[2].legend()
 
-        axes[3].plot(pr[:, 5], zf)
+        axes[3].plot(pr[:, 5], zt)
         axes[3].set_title("TKE")
         axes[3].set_xlabel("e [m\u00b2/s\u00b2]")
-
-        axes[4].axis("off")  # spare panel reserved for future use
 
         fig.tight_layout()
 
         if save:
             from pathlib import Path
             out = Path(self.sim.path) / f"profiles.{self.sim.expnr}.pdf"
+            fig.savefig(out)
+
+        if show:
+            plt.show()
+
+        return fig
+
+    @staticmethod
+    def _dz_from_zt(zt: np.ndarray) -> np.ndarray:
+        zt = np.asarray(zt, dtype=float).reshape(-1)
+        if zt.size == 0 or not np.all(np.isfinite(zt)):
+            raise ValueError("zt data not found")
+
+        z_faces = np.empty(zt.size + 1, dtype=float)
+        z_faces[0] = 0.0
+        for k, center in enumerate(zt):
+            z_faces[k + 1] = 2.0 * center - z_faces[k]
+
+        zm = z_faces[:-1]
+        ztop = z_faces[-1]
+        return np.diff(np.append(zm, ztop))
+
+    def plot_dz_variation(self, save: bool = True, show: bool = False):
+        """Plot vertical grid-spacing variation from prof.inp.<expnr>.
+
+        The first column in ``prof.inp`` is the cell-center grid ``zt``.
+        Cell-face locations are reconstructed from those centers using the
+        same relation as ``GridSection.generate_zgrid`` and ``dzt`` is then
+        calculated as ``diff(append(zm, ztop))``.
+
+        Parameters
+        ----------
+        save : bool, default=True
+            Save ``dz_variation.<expnr>.pdf`` to the case directory.
+        show : bool, default=False
+            Call ``plt.show()`` after plotting.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            pr = self.sim.load_prof()
+        except (OSError, ValueError):
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+        if pr is None or np.asarray(pr).size == 0:
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+
+        pr = np.atleast_2d(np.asarray(pr))
+        if pr.shape[1] < 1:
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+
+        try:
+            dz = self._dz_from_zt(pr[:, 0])
+        except ValueError:
+            return self._missing_plot_data(f"prof.inp.{self.sim.expnr} data not found")
+
+        k = np.arange(1, len(dz) + 1)
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.plot(k, dz)
+        ax.set_title("dz variation")
+        ax.set_xlabel(r"$k$")
+        ax.set_ylabel(r"$dz$ [m]")
+        ax.axis("tight")
+        fig.tight_layout()
+
+        if save:
+            from pathlib import Path
+            out = Path(self.sim.path) / f"dz_variation.{self.sim.expnr}.pdf"
             fig.savefig(out)
 
         if show:
@@ -1062,41 +1452,48 @@ class UDVis:
         -------
         matplotlib.figure.Figure
         """
-        import matplotlib.pyplot as plt
+        try:
+            ls = self.sim.load_lscale()
+        except (OSError, ValueError):
+            return self._missing_plot_data(f"lscale.inp.{self.sim.expnr} data not found")
+        if ls is None or np.asarray(ls).size == 0:
+            return self._missing_plot_data(f"lscale.inp.{self.sim.expnr} data not found")
+        ls = np.atleast_2d(np.asarray(ls))
+        if ls.shape[1] < 10:
+            return self._missing_plot_data(f"lscale.inp.{self.sim.expnr} data not found")
 
-        ls = self.sim.load_lscale()
-        zf = ls[:, 0]
+        zt = ls[:, 0]
 
         fig, axes = plt.subplots(1, 6, sharey=True, figsize=(18, 5))
 
-        axes[0].plot(ls[:, 1], zf, label="uq")
-        axes[0].plot(ls[:, 2], zf, "r--", label="vq")
+        axes[0].plot(ls[:, 1], zt, label="uq")
+        axes[0].plot(ls[:, 2], zt, "r--", label="vq")
         axes[0].set_title("Geostrophic velocity")
         axes[0].set_xlabel("[m/s]")
         axes[0].set_ylabel("z [m]")
         axes[0].legend()
 
-        axes[1].plot(ls[:, 3], zf, label="pqx")
-        axes[1].plot(ls[:, 4], zf, "r--", label="pqy")
+        axes[1].plot(ls[:, 3], zt, label="pqx")
+        axes[1].plot(ls[:, 4], zt, "r--", label="pqy")
         axes[1].set_title("Pressure gradient")
         axes[1].set_xlabel("[m/s\u00b2]")
         axes[1].legend()
 
-        axes[2].plot(ls[:, 5], zf)
+        axes[2].plot(ls[:, 5], zt)
         axes[2].set_title("Subsidence")
         axes[2].set_xlabel("wfls [m/s]")
 
-        axes[3].plot(ls[:, 6], zf, label="dqtdxls")
-        axes[3].plot(ls[:, 7], zf, "r--", label="dqtdyls")
+        axes[3].plot(ls[:, 6], zt, label="dqtdxls")
+        axes[3].plot(ls[:, 7], zt, "r--", label="dqtdyls")
         axes[3].set_title("Moisture advection")
         axes[3].set_xlabel("[kg/kg/m]")
         axes[3].legend()
 
-        axes[4].plot(ls[:, 8], zf)
+        axes[4].plot(ls[:, 8], zt)
         axes[4].set_title("Moisture tendency")
         axes[4].set_xlabel("dqtdtls [kg/kg/s]")
 
-        axes[5].plot(ls[:, 9], zf)
+        axes[5].plot(ls[:, 9], zt)
         axes[5].set_title("Radiative forcing")
         axes[5].set_xlabel("dthlrad [K/s]")
 

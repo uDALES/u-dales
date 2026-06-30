@@ -174,7 +174,8 @@ groups:
           - "unittest"
           - "tools.python.tests.test_udprep_core"
           - "tools.python.tests.test_udprep_grid"
-          - "tools.python.tests.test_udprep_profiles_and_scalars"
+          - "tools.python.tests.test_udprep_profiles"
+          - "tools.python.tests.test_udprep_scalars"
           - "tools.python.tests.test_udprep_vegetation"
       - label: "supported: python udgeom unit"
         class: supported
@@ -361,7 +362,8 @@ groups:
           - "unittest"
           - "tools.python.tests.test_udprep_core"
           - "tools.python.tests.test_udprep_grid"
-          - "tools.python.tests.test_udprep_profiles_and_scalars"
+          - "tools.python.tests.test_udprep_profiles"
+          - "tools.python.tests.test_udprep_scalars"
           - "tools.python.tests.test_udprep_vegetation"
       - label: "supported: python udgeom unit"
         class: supported

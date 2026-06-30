@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import inspect
 import json
 import time
+import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple, Type
 
@@ -24,6 +25,7 @@ SKIP = object()
 class Section:
     # Internal attributes always stored on the instance itself, never proxied to sim.
     _MANAGED_INTERNALS: frozenset = frozenset({"_name", "_defaults", "_fields", "sim"})
+    _namelist_map_cache: Dict[str, str] | None = None  # per-instance lazy cache
 
     def __init__(
         self,
@@ -84,21 +86,26 @@ class Section:
         steps: List[Tuple[str, Callable[[], None]]],
         **kwargs: Any,
     ) -> None:
-        for name, func in steps:
-            start = time.perf_counter()
-            print(f"[{label}] {name}...")
-            if kwargs:
-                sig = inspect.signature(func)
-                params = sig.parameters.values()
-                if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
-                    func(**kwargs)
+        _orig_formatwarning = warnings.formatwarning
+        warnings.formatwarning = lambda msg, cat, *_a, **_kw: f"{cat.__name__}: {msg}\n"
+        try:
+            for name, func in steps:
+                start = time.perf_counter()
+                print(f"[{label}] {name}...")
+                if kwargs:
+                    sig = inspect.signature(func)
+                    params = sig.parameters.values()
+                    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
+                        func(**kwargs)
+                    else:
+                        call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+                        func(**call_kwargs)
                 else:
-                    call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
-                    func(**call_kwargs)
-            else:
-                func()
-            elapsed = time.perf_counter() - start
-            print(f"[{label}] {name} done in {elapsed:.3f} s")
+                    func()
+                elapsed = time.perf_counter() - start
+                print(f"[{label}] {name} done in {elapsed:.3f} s")
+        finally:
+            warnings.formatwarning = _orig_formatwarning
 
     @staticmethod
     def load_defaults_json(path: str | None = None) -> Dict[str, Dict[str, Any]]:
@@ -129,6 +136,108 @@ class Section:
         default = fallback.get(key, SKIP)
         return default(ctx) if callable(default) else default
 
+    @staticmethod
+    def _load_namelist_map() -> Dict[str, str]:
+        """Load variable -> namelist block mapping from namelists.json."""
+        map_path = Path(__file__).resolve().parent.parent / "namelists.json"
+        if not map_path.is_file():
+            return {}
+        try:
+            data = json.loads(map_path.read_text(encoding="ascii"))
+        except json.JSONDecodeError:
+            return {}
+        return {k.lower(): v for k, v in data.get("variables", {}).items()}
+
+    def save_param(self, varname: str, value: Any) -> Path:
+        """Update a namelist variable in namoptions.<expnr> and sync sim in memory."""
+        if self._namelist_map_cache is None:
+            self._namelist_map_cache = type(self)._load_namelist_map()
+        namelist = self._namelist_map_cache.get(varname.lower(), "INP")
+
+        def _format_value(val: Any) -> str:
+            if isinstance(val, (list, tuple, np.ndarray)):
+                arr = np.asarray(val)
+                if arr.ndim == 0:
+                    return _format_value(arr.item())
+                return ", ".join(_format_value(v) for v in arr.ravel())
+            if isinstance(val, (np.bool_, bool)):
+                return ".true." if bool(val) else ".false."
+            if isinstance(val, (np.integer, int)):
+                return f"{int(val):d}"
+            if isinstance(val, (np.floating, float)):
+                s = f"{float(val):.6g}"
+                if "e" not in s and "E" not in s and "." not in s:
+                    s = f"{s}."
+                return s
+            if isinstance(val, str):
+                trimmed = val
+                if (trimmed.startswith("'") and trimmed.endswith("'")) or (
+                    trimmed.startswith('"') and trimmed.endswith('"')
+                ):
+                    trimmed = trimmed[1:-1]
+                return f"'{trimmed}'"
+            return str(val)
+
+        namelist_path = Path(self.path) / f"namoptions.{self.expnr}"
+        if not namelist_path.is_file():
+            raise FileNotFoundError(f"Missing {namelist_path}")
+
+        lines = namelist_path.read_text(encoding="ascii").splitlines(keepends=True)
+        nml_lower = namelist.strip().lower()
+        var_lower = varname.strip().lower()
+        value_str = _format_value(value)
+
+        start_idx = None
+        end_idx = None
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.lower().startswith("&") and stripped[1:].strip().lower() == nml_lower:
+                start_idx = i
+                break
+
+        if start_idx is not None:
+            for i in range(start_idx + 1, len(lines)):
+                if lines[i].strip().startswith("/"):
+                    end_idx = i
+                    break
+            if end_idx is None:
+                raise ValueError(
+                    f"Namelist block '{namelist}' in {namelist_path} has no terminator '/'"
+                )
+
+            updated = False
+            for i in range(start_idx + 1, end_idx):
+                line = lines[i]
+                if "=" not in line:
+                    continue
+                left, right = line.split("=", 1)
+                if left.strip().lower() != var_lower:
+                    continue
+                comment = ""
+                if "!" in right:
+                    _, comment = right.split("!", 1)
+                    comment = "!" + comment.rstrip("\n")
+                newline = f"{left.rstrip()} = {value_str}"
+                if comment:
+                    newline = f"{newline} {comment}"
+                lines[i] = newline + ("\n" if line.endswith("\n") else "")
+                updated = True
+                break
+
+            if not updated:
+                indent = "  "
+                insert_line = f"{indent}{varname} = {value_str}\n"
+                lines.insert(end_idx, insert_line)
+        else:
+            block_name = namelist.strip().upper()
+            lines.append(f"&{block_name}\n")
+            lines.append(f"  {varname} = {value_str}\n")
+            lines.append("/\n")
+
+        with namelist_path.open("w", encoding="ascii", newline="\n") as f:
+            f.write("".join(lines))
+        return namelist_path
+
     def write_changed_params(self) -> None:
         """
         Compare current values against defaults and write only changed parameters.
@@ -144,7 +253,7 @@ class Section:
             ):
                 continue
             try:
-                self.sim.save_param(key, value)
+                self.save_param(key, value)
             except Exception:
                 print(f"[{self._name}] skipping writeback for {key} = {value!r}")
 
@@ -223,6 +332,7 @@ class _DefaultContext:
             return getattr(self._sim, name)
         raise AttributeError(name)
 from .udprep_init import validate_expnr
+from .udprep_bcs import SPEC as BCS_SPEC
 from .udprep_grid import SPEC as GRID_SPEC
 from .udprep_forcing import SPEC as FORCING_SPEC
 from .udprep_ibm import SPEC as IBM_SPEC
@@ -240,6 +350,7 @@ class UDPrep:
     SECTION_SPECS = [
         GRID_SPEC,
         FORCING_SPEC,
+        BCS_SPEC,
         SCALARS_SPEC,
         VEGETATION_SPEC,
         IBM_SPEC,
@@ -364,30 +475,20 @@ class UDPrep:
         self.forcing.run_all()
         if self.scalars.nsv > 0:
             self.scalars.run_all()
-        if self.vegetation.ltrees or self.vegetation.ltreesfile:
+        if self.vegetation.ltrees:
             self.vegetation.run_all()
-            self.vegetation.save()
         if self.ibm.libm:
-            factypes_path = Path(self.sim.path) / f"factypes.inp.{self.sim.expnr}"
-            if not factypes_path.exists():
-                self.ibm.generate_factypes()
-                self.ibm.write_factypes()
-            if self.ibm.gen_geom:
-                self.ibm.run_ibm(backend=ibm_backend)
-            else:
-                self.ibm.copy_geom_outputs()
-            self.ibm.write_facets()
-            self.ibm.write_facetarea()
-        if getattr(self.sim, "lEB", False):
-            run_all = self.radiation.run_all
-            sig = inspect.signature(run_all)
-            params = sig.parameters.values()
-            if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
-                run_all(**kwargs)
-            else:
-                call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
-                run_all(**call_kwargs)
-            self.seb.run_all()
+            self.ibm.run_all(backend=ibm_backend)
+            if self.radiation.lEB:
+                run_all = self.radiation.run_all
+                sig = inspect.signature(run_all)
+                params = sig.parameters.values()
+                if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
+                    run_all(**kwargs)
+                else:
+                    call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+                    run_all(**call_kwargs)
+                self.seb.run_all()
 
     def write_changed_params(self) -> None:
         """Write changed parameters for every section."""

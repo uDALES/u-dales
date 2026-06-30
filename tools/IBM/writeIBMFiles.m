@@ -46,7 +46,7 @@ facet_sections_format = '%8d %9.4f %10d %8.4f\n';
 if lmypolyfortran
     disp('Determining fluid/solid points using Fortran.')
     % Compile
-    n_threads = 8;
+    % n_threads = 8; % already set in write_inputs.m
     in_mypoly_fortran_path = [folder '/IBM_preproc_fortran/'];
     addpath(in_mypoly_fortran_path)
     cd(in_mypoly_fortran_path);

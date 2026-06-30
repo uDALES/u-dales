@@ -14,6 +14,7 @@ Licensed under GNU General Public License v3.0
 from __future__ import annotations
 
 from pathlib import Path
+import struct
 from typing import List, Optional, Union
 import numpy as np
 import warnings
@@ -160,6 +161,8 @@ class UDGeom:
                     tuple(trimesh.Trimesh(vertices=g.vertices, faces=g.faces)
                           for g in self.stl.geometry.values())
                 )
+
+            self._align_loaded_stl_to_file_normals(filepath)
             
             print(f"Loaded geometry: {len(self.stl.faces)} faces, {len(self.stl.vertices)} vertices")
             
@@ -171,6 +174,68 @@ class UDGeom:
             
         except Exception as e:
             raise ValueError(f"Error loading STL file {filepath}: {e}")
+
+    @staticmethod
+    def _read_stl_file_normals(filepath: Path) -> Optional[np.ndarray]:
+        """Read facet normals stored in an STL file, if available."""
+        if filepath.suffix.lower() != ".stl":
+            return None
+
+        try:
+            file_size = filepath.stat().st_size
+            with filepath.open("rb") as f:
+                header = f.read(84)
+                if len(header) == 84:
+                    n_faces = struct.unpack("<I", header[80:84])[0]
+                    if file_size == 84 + 50 * n_faces:
+                        record_dtype = np.dtype(
+                            [
+                                ("normal", "<f4", (3,)),
+                                ("vertices", "<f4", (3, 3)),
+                                ("attribute", "<u2"),
+                            ]
+                        )
+                        records = np.fromfile(f, dtype=record_dtype, count=n_faces)
+                        if len(records) == n_faces:
+                            return np.asarray(records["normal"], dtype=float)
+
+            normals = []
+            with filepath.open("r", encoding="ascii", errors="ignore") as f:
+                for line in f:
+                    parts = line.strip().split()
+                    if len(parts) >= 5 and parts[0].lower() == "facet" and parts[1].lower() == "normal":
+                        normals.append([float(parts[2]), float(parts[3]), float(parts[4])])
+            if normals:
+                return np.asarray(normals, dtype=float)
+        except (OSError, UnicodeError, ValueError, struct.error):
+            return None
+        return None
+
+    def _align_loaded_stl_to_file_normals(self, filepath: Path) -> None:
+        """Match in-memory STL face winding to normals stored in the STL file."""
+        if self.stl is None:
+            return
+
+        file_normals = self._read_stl_file_normals(filepath)
+        if file_normals is None or len(file_normals) != len(self.stl.faces):
+            return
+
+        lengths = np.linalg.norm(file_normals, axis=1)
+        valid = np.isfinite(file_normals).all(axis=1) & (lengths > 0.0)
+        if not np.any(valid):
+            return
+
+        normalized_file_normals = np.zeros_like(file_normals, dtype=float)
+        normalized_file_normals[valid] = file_normals[valid] / lengths[valid, None]
+        loaded_normals = np.asarray(self.stl.face_normals, dtype=float)
+        dots = np.einsum("ij,ij->i", loaded_normals, normalized_file_normals)
+        flip = valid & np.isfinite(dots) & (dots < 0.0)
+        if not np.any(flip):
+            return
+
+        faces = np.asarray(self.stl.faces, dtype=int).copy()
+        faces[flip, 1], faces[flip, 2] = faces[flip, 2].copy(), faces[flip, 1].copy()
+        self.stl.faces = faces
     
     def save(self, filename: str):
         """

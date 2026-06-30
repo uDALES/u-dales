@@ -8,12 +8,12 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Script usage function
 usage() {
-    echo "Usage: $0 <ref_data_path> [case1 case2 ...] [--tolerance <val>] [--tol-thl <val>] [--system <common|gpu>]"
+    echo "Usage: $0 [case1 case2 ...] <ref_data_path> [--tolerance <val>] [--tol-thl <val>] [--system <common|gpu>]"
     echo ""
     echo "Arguments:"
-    echo "  ref_data_path  : Path to the reference data directory (required)"
     echo "  case1 ...      : Optional list of test cases to run (e.g., 100 201 402)"
     echo "                   If not specified, uses default cases for the system"
+    echo "  ref_data_path  : Path to the reference data directory (required; last positional argument)"
     echo "  --tolerance    : Max absolute error for NetCDF output comparisons (default: 1e-6)"
     echo "  --tol-thl      : Tolerance for temperature variables (default: same as --tolerance)"
     echo "  --system       : Build system type: common (CPU) or gpu (default: common)"
@@ -22,10 +22,10 @@ usage() {
     echo "  $0 ref_data/                                    # Run default CPU test cases"
     echo "  $0 ref_data/ --system common                   # Run default CPU test cases"
     echo "  $0 ref_data/ --system gpu                      # Run default GPU test cases"
-    echo "  $0 ref_data/ 100 201                           # Run specific CPU test cases"
-    echo "  $0 ref_data/ 402 502 452 --system gpu          # Run specific GPU test cases"
-    echo "  $0 ref_data/ 224 --tolerance 1e-8"
-    echo "  $0 ref_data/ 224 --tolerance 1e-8 --tol-thl 1e-7"
+    echo "  $0 100 201 ref_data/                           # Run specific CPU test cases"
+    echo "  $0 402 502 452 ref_data/ --system gpu          # Run specific GPU test cases"
+    echo "  $0 224 ref_data/ --tolerance 1e-8"
+    echo "  $0 224 ref_data/ --tolerance 1e-8 --tol-thl 1e-7"
     exit 1
 }
 
@@ -34,11 +34,8 @@ if [ $# -eq 0 ]; then
     usage
 fi
 
-REF_DATA_PATH="$1"
-shift
-
-# Remaining args: test cases and optional flags
 TEST_CASES=()
+POSITIONAL_ARGS=()
 TOLERANCE="1e-6"
 TOL_THL=""
 SYSTEM="common"
@@ -47,14 +44,26 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --tolerance)
             shift
+            if [ $# -eq 0 ]; then
+                echo "[ERROR] --tolerance requires a value"
+                usage
+            fi
             TOLERANCE="$1"
             ;;
         --tol-thl)
             shift
+            if [ $# -eq 0 ]; then
+                echo "[ERROR] --tol-thl requires a value"
+                usage
+            fi
             TOL_THL="$1"
             ;;
         --system)
             shift
+            if [ $# -eq 0 ]; then
+                echo "[ERROR] --system requires a value"
+                usage
+            fi
             SYSTEM="$1"
             ;;
         --*)
@@ -62,11 +71,20 @@ while [ $# -gt 0 ]; do
             usage
             ;;
         *)
-            TEST_CASES+=("$1")
+            POSITIONAL_ARGS+=("$1")
             ;;
     esac
     shift
 done
+
+if [ ${#POSITIONAL_ARGS[@]} -eq 0 ]; then
+    echo "[ERROR] Reference data path is required"
+    usage
+fi
+
+last_positional_index=$((${#POSITIONAL_ARGS[@]} - 1))
+REF_DATA_PATH="${POSITIONAL_ARGS[$last_positional_index]}"
+TEST_CASES=("${POSITIONAL_ARGS[@]:0:$last_positional_index}")
 
 # Default tol_thl to tolerance if not explicitly set
 if [ -z "$TOL_THL" ]; then
@@ -243,10 +261,15 @@ if [ ! -f "$REPO_ROOT/tools/ud_compare_outputs.py" ]; then
     preflight_ok=false
 fi
 
-# NetCDF virtual environment must exist for the comparison phase
-if [ ! -d "$REPO_ROOT/tools/.venv_netcdf" ]; then
-    print_red "[MISSING] NetCDF virtual environment not found: $REPO_ROOT/tools/.venv_netcdf"
-    print_red "         Run '$REPO_ROOT/tools/ud_set_nc_venv.sh' to set it up."
+VENV_DIR="$REPO_ROOT/tools/python/.venv"
+
+# Python virtual environment must exist for the comparison phase
+if [ ! -d "$VENV_DIR" ]; then
+    print_red "[MISSING] Python virtual environment not found: $VENV_DIR"
+    print_red "         Run 'bash $REPO_ROOT/tools/python/setup_venv.sh common preprocessing_tools' to set it up."
+    preflight_ok=false
+elif [ ! -f "$VENV_DIR/bin/python3" ] && [ ! -f "$VENV_DIR/bin/python" ]; then
+    print_red "[MISSING] Python interpreter not found inside virtual environment: $VENV_DIR"
     preflight_ok=false
 fi
 
@@ -270,10 +293,10 @@ if [ "$preflight_ok" = false ]; then
 fi
 
 # Resolve the Python interpreter inside the venv (prefer python3, fall back to python)
-if [ -f "$REPO_ROOT/tools/.venv_netcdf/bin/python3" ]; then
-    VENV_PYTHON="$REPO_ROOT/tools/.venv_netcdf/bin/python3"
-elif [ -f "$REPO_ROOT/tools/.venv_netcdf/bin/python" ]; then
-    VENV_PYTHON="$REPO_ROOT/tools/.venv_netcdf/bin/python"
+if [ -f "$VENV_DIR/bin/python3" ]; then
+    VENV_PYTHON="$VENV_DIR/bin/python3"
+elif [ -f "$VENV_DIR/bin/python" ]; then
+    VENV_PYTHON="$VENV_DIR/bin/python"
 fi
 
 print_green "  All pre-flight checks passed."

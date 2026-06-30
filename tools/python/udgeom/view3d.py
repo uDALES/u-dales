@@ -144,7 +144,12 @@ def read_view3d_output(
         with out_path.open("rb") as f:
             _ = np.fromfile(f, dtype=np.float32, count=8 + nfacets)
             raw = np.fromfile(f, dtype=np.float32, count=nfacets * nfacets)
-        vf = raw.reshape((nfacets, nfacets)).T
+        # MATLAB reads this as reshape(raw, [n, n])' after fread. Since
+        # MATLAB reshape is column-major, NumPy's default row-major reshape
+        # is already the equivalent final orientation. fread(..., 'single')
+        # returns doubles by default, so promote the decoded single-precision
+        # bytes before downstream sums/reflections.
+        vf = raw.reshape((nfacets, nfacets)).astype(float)
         return sparse.csr_matrix(vf)
 
     if outformat == 2:
@@ -210,6 +215,11 @@ def write_vfsparse(path: str | Path, vf: sparse.spmatrix, threshold: float = 5e-
 def write_vf(path: str | Path, vf: np.ndarray) -> Path:
     """
     Write full view factor matrix to NetCDF (vf.nc.inp.*).
+
+    MATLAB's low-level netcdf.putVar writes the in-memory matrix with the
+    opposite dimension order as seen by Python netCDF readers, so store the
+    transpose here to keep the generated file byte-contract compatible with
+    the MATLAB preprocessing route.
     """
     if netCDF4 is None:
         raise ImportError("netCDF4 is required to write full view factor matrices")
@@ -220,5 +230,5 @@ def write_vf(path: str | Path, vf: np.ndarray) -> Path:
         ds.createDimension("rows", n)
         ds.createDimension("columns", n)
         var = ds.createVariable("view factor", "f4", ("rows", "columns"))
-        var[:, :] = vf
+        var[:, :] = np.asarray(vf).T
     return path

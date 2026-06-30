@@ -76,7 +76,7 @@ program IBM_flagging
                     vertices,facets,incenters,faceNormals,zf,zh)
 
     max_height = MAXVAL(vertices(3:n_vert*3:3)) + tol
-    L_char = max_facet_side(n_vert,vertices,n_fcts,facets) + tol
+    L_char = max_facet_side(n_vert,vertices,n_fcts,facets,n_threads) + tol
 
 
     solid_u = is_grid_in_mypoly_func(n_vert,vertices,n_fcts,facets,incenters,faceNormals, &

@@ -87,7 +87,7 @@ module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023
 mkdir -p $outdir
 cp -r $inputdir/* $outdir
 pushd $outdir
-mpiexec -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
+mpirun -v6 -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
 EOF
 
 ## submit job.exp file to queue

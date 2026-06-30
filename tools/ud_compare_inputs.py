@@ -9,9 +9,10 @@ Numerical comparison (max absolute error, # comments skipped):
   prof.inp.<exp>          lscale.inp.<exp>
   facetarea.inp.<exp>     facets.inp.<exp>
   facets_unused.<exp>     factypes.inp.<exp>
-  netsw.inp.<exp>         svf.inp.<exp>
-  heatpump.inp.<exp>      trees.inp.<exp>
-  scalar.inp.<exp>        scalarsourcel.inp.N.<exp>  (N = 1, 2, ...)
+  netsw.inp.<exp>         sveg.inp.<exp>         svf.inp.<exp>
+  heatpump.inp.<exp>
+  trees.inp.<exp>         veg.inp.<exp>         veg_params.inp.<exp>
+  scalar.inp.<exp>        scalarsourcep.inp.N.<exp>  scalarsourcel.inp.N.<exp>  (N = 1, 2, ...)
   Tfacinit.inp.<exp>      Sdir.txt
   facet_sections_c/u/v/w.txt
   fluid_boundary_c/u/v/w.txt
@@ -49,10 +50,11 @@ def try_import_netcdf():
     except ImportError:
         pass
 
-    _setup_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ud_set_nc_venv.sh')
+    _tools_dir = os.path.dirname(os.path.abspath(__file__))
+    _setup_script = os.path.join(_tools_dir, 'python', 'setup_venv.sh')
     print("netCDF4 or numpy not available.")
     print("Run the following command to set up the required environment:")
-    print(f"   {_setup_script}")
+    print(f"   bash {_setup_script} <common|icl>")
     sys.exit(1)
 
 
@@ -252,19 +254,21 @@ def run_comparison(dir1: str, exp_str1: str, dir2: str, exp_str2: str, tolerance
             pp(f"{tag}.{exp_str1}", f"{tag}.{exp_str2}"),
             tolerance, counters)
 
-    # Scalar source files: scalarsourcel.inp.N.exp (probe for N = 1..9)
-    for n in range(1, 10):
-        b1 = f"scalarsourcel.inp.{n}.{exp_str1}"
-        b2 = f"scalarsourcel.inp.{n}.{exp_str2}"
-        paths_n = pp(b1, b2)
-        if any(os.path.exists(p) for p in paths_n):
-            compare_numeric_file(b1, paths_n, tolerance, counters)
+    # Scalar source files: scalarsourcep/scalarsourcel.inp.N.exp (probe for N = 1..9)
+    for source_kind in ("scalarsourcep", "scalarsourcel"):
+        for n in range(1, 10):
+            b1 = f"{source_kind}.inp.{n}.{exp_str1}"
+            b2 = f"{source_kind}.inp.{n}.{exp_str2}"
+            paths_n = pp(b1, b2)
+            if any(os.path.exists(p) for p in paths_n):
+                compare_numeric_file(b1, paths_n, tolerance, counters)
 
     # Facet-related input files
     for tag in (
         "facetarea.inp", "facets.inp", "facets_unused",
-        "factypes.inp", "svf.inp", "netsw.inp",
-        "Tfacinit.inp", "heatpump.inp", "trees.inp",
+        "factypes.inp", "svf.inp", "netsw.inp", "sveg.inp",
+        "Tfacinit.inp", "heatpump.inp",
+        "trees.inp", "veg.inp", "veg_params.inp",
     ):
         compare_numeric_file(
             f"{tag}.{exp_str1}",
