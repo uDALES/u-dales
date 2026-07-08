@@ -452,39 +452,77 @@ subroutine buildBoundaryIndex(fluid_IB, solid_IB, itot, jtot, ktot, diag_neighbs
    logical, intent(in) :: diag_neighbs
    type(boundary_index_type), intent(out) :: bidx
 
-   integer, allocatable :: ij_count(:,:), ij_next(:,:)
-   integer :: i, j, k, idx, pos, nBoundary, nFluid, fid
-   integer :: totalCand, cand_count
+   integer, allocatable :: ij_count(:,:), jk_fluid_count(:,:), fluid_start(:,:), cand_counts(:)
+   integer :: i, j, k, idx, pos, nBoundary, nFluid
+   integer :: totalCand, cand_count, boundary_count, fluid_count
 
    allocate(ij_count(itot,jtot))
    ij_count = 0
    nBoundary = 0
    nFluid = 0
 
-   do j=1,jtot
-      do k=1,ktot
-         do i=1,itot
-            if (fluid_IB(i,j,k)) nFluid = nFluid + 1
+   !$OMP parallel do default(none) collapse(2) &
+   !$OMP shared(fluid_IB, solid_IB, itot, jtot, ktot, ij_count) &
+   !$OMP private(i, j, k, boundary_count, fluid_count) &
+   !$OMP reduction(+:nBoundary, nFluid) schedule(static)
+   do i=1,itot
+      do j=1,jtot
+         boundary_count = 0
+         fluid_count = 0
+         do k=1,ktot
+            if (fluid_IB(i,j,k)) fluid_count = fluid_count + 1
             if (fluid_IB(i,j,k) .or. solid_IB(i,j,k)) then
-               ij_count(i,j) = ij_count(i,j) + 1
-               nBoundary = nBoundary + 1
+               boundary_count = boundary_count + 1
             end if
          end do
+         ij_count(i,j) = boundary_count
+         nBoundary = nBoundary + boundary_count
+         nFluid = nFluid + fluid_count
+      end do
+   end do
+   !$OMP end parallel do
+
+   allocate(jk_fluid_count(jtot,ktot), fluid_start(jtot,ktot))
+   jk_fluid_count = 0
+
+   !$OMP parallel do default(none) collapse(2) &
+   !$OMP shared(fluid_IB, itot, jtot, ktot, jk_fluid_count) &
+   !$OMP private(i, j, k, fluid_count) schedule(static)
+   do j=1,jtot
+      do k=1,ktot
+         fluid_count = 0
+         do i=1,itot
+            if (fluid_IB(i,j,k)) fluid_count = fluid_count + 1
+         end do
+         jk_fluid_count(j,k) = fluid_count
+      end do
+   end do
+   !$OMP end parallel do
+
+   allocate(bidx%fluid_keys(nFluid))
+   pos = 1
+   do j=1,jtot
+      do k=1,ktot
+         fluid_start(j,k) = pos
+         pos = pos + jk_fluid_count(j,k)
       end do
    end do
 
-   allocate(bidx%fluid_keys(nFluid))
-   fid = 0
+   !$OMP parallel do default(none) collapse(2) &
+   !$OMP shared(fluid_IB, itot, jtot, ktot, fluid_start, bidx) &
+   !$OMP private(i, j, k, pos) schedule(static)
    do j=1,jtot
       do k=1,ktot
+         pos = fluid_start(j,k)
          do i=1,itot
             if (fluid_IB(i,j,k)) then
-               fid = fid + 1
-               bidx%fluid_keys(fid) = cellKey(i, j, k, itot, ktot)
+               bidx%fluid_keys(pos) = cellKey(i, j, k, itot, ktot)
+               pos = pos + 1
             end if
          end do
       end do
    end do
+   !$OMP end parallel do
 
    allocate(bidx%ij_start(itot,jtot+1))
    pos = 1
@@ -498,14 +536,15 @@ subroutine buildBoundaryIndex(fluid_IB, solid_IB, itot, jtot, ktot, diag_neighbs
 
    allocate(bidx%k(nBoundary), bidx%is_fluid(nBoundary), bidx%is_solid(nBoundary))
    allocate(bidx%fluid_id(nBoundary))
-   allocate(ij_next(itot,jtot))
-   ij_next = bidx%ij_start(:,1:jtot)
 
+   !$OMP parallel do default(none) collapse(2) &
+   !$OMP shared(fluid_IB, solid_IB, itot, jtot, ktot, bidx) &
+   !$OMP private(i, j, k, idx) schedule(static)
    do i=1,itot
       do j=1,jtot
+         idx = bidx%ij_start(i,j)
          do k=1,ktot
             if (fluid_IB(i,j,k) .or. solid_IB(i,j,k)) then
-               idx = ij_next(i,j)
                bidx%k(idx) = k
                bidx%is_fluid(idx) = fluid_IB(i,j,k)
                bidx%is_solid(idx) = solid_IB(i,j,k)
@@ -515,41 +554,58 @@ subroutine buildBoundaryIndex(fluid_IB, solid_IB, itot, jtot, ktot, diag_neighbs
                else
                   bidx%fluid_id(idx) = 0
                end if
-               ij_next(i,j) = idx + 1
+               idx = idx + 1
             end if
          end do
       end do
    end do
+   !$OMP end parallel do
 
-   allocate(bidx%cand_start(nBoundary+1))
-   totalCand = 0
+   allocate(cand_counts(nBoundary))
+   cand_counts = 0
+
+   !$OMP parallel do default(none) collapse(2) &
+   !$OMP shared(fluid_IB, itot, jtot, ktot, diag_neighbs, bidx, cand_counts) &
+   !$OMP private(i, j, idx, cand_count) schedule(static)
    do i=1,itot
       do j=1,jtot
          do idx=bidx%ij_start(i,j), bidx%ij_start(i,j+1)-1
-            bidx%cand_start(idx) = totalCand + 1
             cand_count = 0
             call addReceiverCandidatesForCell(fluid_IB, itot, jtot, ktot, i, j, bidx%k(idx), &
                diag_neighbs, bidx%fluid_keys, cand_count)
-            totalCand = totalCand + cand_count
+            cand_counts(idx) = cand_count
          end do
       end do
+   end do
+   !$OMP end parallel do
+
+   allocate(bidx%cand_start(nBoundary+1))
+   totalCand = 0
+   do idx=1,nBoundary
+      bidx%cand_start(idx) = totalCand + 1
+      totalCand = totalCand + cand_counts(idx)
    end do
    bidx%cand_start(nBoundary+1) = totalCand + 1
 
    allocate(bidx%cand_code(totalCand), bidx%cand_i(totalCand), bidx%cand_j(totalCand))
    allocate(bidx%cand_k(totalCand), bidx%cand_fluid_id(totalCand))
-   totalCand = 0
+
+   !$OMP parallel do default(none) collapse(2) &
+   !$OMP shared(fluid_IB, itot, jtot, ktot, diag_neighbs, bidx) &
+   !$OMP private(i, j, idx, cand_count) schedule(static)
    do i=1,itot
       do j=1,jtot
          do idx=bidx%ij_start(i,j), bidx%ij_start(i,j+1)-1
+            cand_count = bidx%cand_start(idx) - 1
             call addReceiverCandidatesForCell(fluid_IB, itot, jtot, ktot, i, j, bidx%k(idx), &
-               diag_neighbs, bidx%fluid_keys, totalCand, bidx%cand_code, bidx%cand_i, &
+               diag_neighbs, bidx%fluid_keys, cand_count, bidx%cand_code, bidx%cand_i, &
                bidx%cand_j, bidx%cand_k, bidx%cand_fluid_id)
          end do
       end do
    end do
+   !$OMP end parallel do
 
-   deallocate(ij_count, ij_next)
+   deallocate(ij_count, jk_fluid_count, fluid_start, cand_counts)
 end subroutine buildBoundaryIndex
 
 
