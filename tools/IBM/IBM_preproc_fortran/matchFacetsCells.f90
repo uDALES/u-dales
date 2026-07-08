@@ -146,14 +146,13 @@ module matchFacets2Cells
     type(boundary_index_type) :: bidx
     !$ type(thread_results_type), dimension(:), allocatable :: thread_data
     !$ integer :: actual_threads
-    integer, dimension(:,:), allocatable :: clipFaces
-    real, dimension(:,:), allocatable :: clipVertices, projVert, clipFaceNormal
+    real, dimension(:,:), allocatable :: clipVertices
     real, dimension(:), allocatable :: x_edges, y_edges, z_edges
     logical :: search_adj
-    integer :: il, iu, jl, ju, kl, ku, nClipFaces, nClipVertices, id, loc
+    integer :: il, iu, jl, ju, kl, ku, nClipVertices, id, loc
     integer :: bnd_first, bnd_last, bnd_idx, cand_pos, cand_code, candidate_ids(27)
     real :: dx, dy, dz, xmin, xmax, ymin, ymax, zmin, zmax, xl, xu, yl, yu, zl, zu, tol, &
-            planes(6,4), area, area_miss, planeNormal(3), xproj, yproj, zproj, proj, projVec(3), projArea, &
+            planes(6,4), area, area_miss, xproj, yproj, zproj, proj, projVec(3), projArea, &
             dist, dists(27), angle, angles(27), BI(3), BIs(27,3)
     real, dimension(3) :: xyz, xyz1
     integer :: n, m, i, j, k, p, dir, ids(2), thread_id
@@ -205,8 +204,8 @@ module matchFacets2Cells
     !$OMP        x_edges, y_edges, z_edges, bidx, thread_data, actual_threads) &
     !$OMP private(xmin, xmax, ymin, ymax, zmin, zmax, &
     !$OMP         il, iu, jl, ju, kl, ku, xl, xu, yl, yu, zl, zu, planes, &
-    !$OMP         clipVertices, clipFaces, clipFaceNormal, nClipFaces, nClipVertices, &
-    !$OMP         projVert, planeNormal, xproj, yproj, zproj, proj, projVec, projArea, &
+    !$OMP         clipVertices, nClipVertices, &
+    !$OMP         xproj, yproj, zproj, proj, projVec, projArea, &
     !$OMP         area, dist, dists, angle, angles, BI, BIs, &
     !$OMP         xyz, xyz1, search_adj, id, loc, candidate_ids, &
     !$OMP         bnd_first, bnd_last, bnd_idx, cand_pos, cand_code, &
@@ -304,8 +303,6 @@ module matchFacets2Cells
                nClipVertices = size(clipVertices, 1)
 
                if (nClipVertices < 3) then
-                  !nClipFaces = 0
-                  !allocate(clipFaces(nClipFaces,3))
                   deallocate(clipVertices)
                   cycle
                elseif (nClipVertices == 3) then
@@ -316,10 +313,6 @@ module matchFacets2Cells
                      deallocate(clipVertices)
                      cycle
                   end if
-
-                  nClipFaces = 1
-                  allocate(clipFaces(nClipFaces,3))
-                  clipFaces(1,:) = (/1, 2, 3/)
 
                elseif (nClipVertices > 3) then
                   xproj = dot_product(faceNormal(n,:), (/1., 0., 0./))
@@ -332,25 +325,14 @@ module matchFacets2Cells
                   if (dir==0) then
                      write(*,*) "something wrong with finding direction to project in"
                   elseif (dir==1) then
-                     planeNormal = (/1., 0., 0./)
                      ids = (/2, 3/)
                   elseif (dir==2) then
-                     planeNormal = (/0., 1., 0./)
                      ids = (/1, 3/)
                   elseif (dir==3) then
-                     planeNormal = (/0., 0., 1./)
                      ids = (/1, 2/)
                   end if
 
-                  allocate(projVert(nClipVertices,3))
-                  do m = 1,nClipVertices
-                     projVert(m, :) = clipVertices(m, :) - &
-                        dot_product(clipVertices(m, :), planeNormal) * planeNormal
-                  end do
-
-                  projArea = abs(polyarea(projVert(:,ids(1)), projVert(:,ids(2)), nClipVertices))
-
-                  deallocate(projVert)
+                  projArea = abs(polyarea(clipVertices(:,ids(1)), clipVertices(:,ids(2)), nClipVertices))
 
                   area = projArea / proj
 
@@ -358,12 +340,6 @@ module matchFacets2Cells
                      deallocate(clipVertices)
                      cycle
                   end if
-
-                  nClipFaces = nClipVertices - 2
-                  allocate(clipFaces(nClipFaces,3))
-                  do m=1,nClipFaces
-                     clipFaces(m,:) = (/1, m+1, m+2/)
-                  end do
 
                else
                  write(*,*) "something wrong with clipped polygon"
@@ -379,15 +355,10 @@ module matchFacets2Cells
                candidate_ids = 0
                search_adj = .false.
 
-               allocate(clipFaceNormal(nClipFaces,3))
-               do m=1,nClipFaces
-                  clipFaceNormal(m, :) = faceNormal(n, :)
-               end do
-
                if (bidx%is_fluid(bnd_idx)) then
                   xyz1 = (/xgrid(i), ygrid(j), zgrid(k)/)
                   loc = bidx%fluid_id(bnd_idx)
-                  call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
+                  call fastPoint2ClippedFacet(faceNormal(n,:), clipVertices, nClipVertices, &
                      xyz1, dist, BI)
                   angle = dot_product(faceNormal(n,:), (xyz1 - BI)/norm2(xyz1 - BI))
 
@@ -417,7 +388,7 @@ module matchFacets2Cells
                      xyz = (/xgrid(bidx%cand_i(cand_pos)), &
                              ygrid(bidx%cand_j(cand_pos)), &
                              zgrid(bidx%cand_k(cand_pos))/)
-                     call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
+                     call fastPoint2ClippedFacet(faceNormal(n,:), clipVertices, nClipVertices, &
                         xyz, dist, BI)
                      dists(cand_code) = dist
                      angles(cand_code) = dot_product(faceNormal(n,:), (xyz - BI)/norm2(xyz - BI))
@@ -438,8 +409,6 @@ module matchFacets2Cells
                      !write(*,*) "facet ", n, " in cell ", i, j, k, " could not find a cell to give flux to"
                      area_miss = area_miss + area
                      deallocate(clipVertices)
-                     deallocate(clipFaces)
-                     deallocate(clipFaceNormal)
                      cycle
                   end if
 
@@ -460,8 +429,6 @@ module matchFacets2Cells
                !$ call appendToThreadResults(thread_data(thread_id), area, n, loc, abs(dist))
 
                deallocate(clipVertices)
-               deallocate(clipFaces)
-               deallocate(clipFaceNormal)
             end do
          end do
       end do
@@ -1067,6 +1034,71 @@ subroutine fastPoint2TriMesh(connectivityList, faceNormal, nFaces, vertices, nVe
 end subroutine fastPoint2TriMesh
 
 
+subroutine fastPoint2ClippedFacet(facetNormal, vertices, nVertices, queryPoint, minDistance, interceptPoint)
+   ! Same triangle-fan search as fastPoint2TriMesh for a clipped facet whose
+   ! fan connectivity is (1,2,3), (1,3,4), ...
+   use, intrinsic :: ieee_arithmetic
+   integer, intent(in) :: nVertices
+   real, intent(in) :: facetNormal(3), vertices(nVertices, 3), queryPoint(3)
+   real, intent(out) :: minDistance, interceptPoint(3)
+   real :: perpDist, distances(max(1, nVertices-2)), projectedPoints(max(1, nVertices-2), 3), &
+      cor1(3), cor2(3), cor3(3), cor4(3), distCornersToEdges(3), edgePoints(3, 3)
+   integer :: n, nFaces, loc
+   logical :: check, any_valid
+
+   nFaces = nVertices - 2
+   if (nFaces < 1) then
+      minDistance = ieee_value(minDistance, ieee_quiet_nan)
+      interceptPoint = 0.0
+      return
+   end if
+
+   do n = 1,nFaces
+      perpDist = dot_product(queryPoint - vertices(1, :), facetNormal)
+      if (perpDist > 0) then ! the point is 'outside' the triangle
+         cor1 = vertices(1, :)
+         cor2 = vertices(n+1, :)
+         cor3 = vertices(n+2, :)
+         cor4 = queryPoint - (perpDist * facetNormal)
+         projectedPoints(n, :) = cor4
+
+         ! check if the point is within the triangle using the barycenter
+         check = isInsideTriangle(cor1, cor2, cor3, cor4)
+
+         if (check .eqv. .false.) then
+            ! The projected point is not within the triangle so the nearest point will lie on the nearest line segment.
+            ! Check nearest point to each line segment/edge of face and use minimum distance as the correct projection point
+            call projectPointToLineSegment(cor1, cor2, cor4, distCornersToEdges(1), edgePoints(1, :))
+            call projectPointToLineSegment(cor2, cor3, cor4, distCornersToEdges(2), edgePoints(2, :))
+            call projectPointToLineSegment(cor1, cor3, cor4, distCornersToEdges(3), edgePoints(3, :))
+            loc = minloc(distCornersToEdges, 1)
+            projectedPoints(n, :) = edgePoints(loc, :)
+         end if
+
+         distances(n) = norm2(queryPoint - projectedPoints(n, :))
+      else
+         distances(n) = ieee_value(distances(n), ieee_quiet_nan)
+      end if
+   end do
+
+   any_valid = any(.not. ieee_is_nan(distances(1:nFaces)))
+   if (any_valid) then
+      loc = minloc(distances(1:nFaces), dim=1, mask=.not.ieee_is_nan(distances(1:nFaces)))
+   else
+      loc = -1
+   end if
+
+   if (loc > 0) then
+      minDistance = distances(loc)
+      interceptPoint = projectedPoints(loc, :)
+   else
+      minDistance = ieee_value(minDistance, ieee_quiet_nan)
+      interceptPoint = 0.0
+   end if
+
+end subroutine fastPoint2ClippedFacet
+
+
 logical function isInsideTriangle(A, B, C, P)
    real, intent(in), dimension(3) :: A, B, C, P
    real, dimension(3) :: v0, v1, v2
@@ -1123,94 +1155,79 @@ end subroutine projectPointToLineSegment
 subroutine sutherlandHodgman3D(subjectPolygon, nVertices, clipPlanes, nPlanes, clippedPolygon)
     ! subjectPolygon: nVertices x 3
     ! clipPlanes: nPlanes x 4, where columns are n1, n2, n3, d (where (n1,n2,n3) dot (x,y,z) = d is the plane equation)
+   implicit none
    integer, intent(in) :: nVertices, nPlanes
    real, intent(in) :: subjectPolygon(nVertices, 3), clipPlanes(nPlanes, 4)
    real, allocatable, intent(out) :: clippedPolygon(:,:)
-   real, allocatable :: inputList(:,:), tempPolygon(:,:), catPolygon(:,:)
+   real :: inputList(max(1, nVertices + 2*nPlanes + 2), 3)
+   real :: tempPolygon(max(1, nVertices + 2*nPlanes + 2), 3)
    real :: previousVertex(3), intersection(3)
-   integer :: i, j, sizeCatPolygon
+   integer :: i, j, inputCount, tempCount
 
-   ! nVertices = size(subjectPolygon, 1)
-   ! nPlanes = size(clipPlanes, 1)
-
-   allocate(tempPolygon(size(subjectPolygon, 1), 3))
-   tempPolygon = subjectPolygon
+   tempPolygon(1:nVertices, :) = subjectPolygon
+   tempCount = nVertices
 
     do i = 1, nPlanes
       !write(*,*) "i", i
-        allocate(inputList(size(tempPolygon, 1), 3))
-        inputList = tempPolygon
-
-        deallocate(tempPolygon)
-        allocate(tempPolygon(0, 3))
-        if (size(inputList, 1) > 0) then
-            previousVertex = inputList(size(inputList, 1), :)
+        inputCount = tempCount
+        if (inputCount > 0) then
+            inputList(1:inputCount, :) = tempPolygon(1:inputCount, :)
+            previousVertex = inputList(inputCount, :)
         end if
+        tempCount = 0
 
         !write(*,*) "inputList", inputList
         !write(*,*) "previousVertex", previousVertex
-        do j = 1, size(inputList, 1)
+        do j = 1, inputCount
             if (inside(inputList(j, :), clipPlanes(i, :))) then
                !write(*,*) "a"
                 if (.not. inside(previousVertex, clipPlanes(i, :))) then
                    !write(*,*) "b"
                     intersection = computeIntersection(clipPlanes(i, :), previousVertex, inputList(j, :))
                     !write(*,*) "intersection", intersection
-                    if (.not.(any(ismember_rows(tempPolygon, intersection)))) then
-                       call appendToArray2D(tempPolygon, intersection)
-                    end if
-                    ! sizeCatPolygon = size(tempPolygon, 1)
-                    ! allocate(catPolygon(sizeCatPolygon, 3))
-                    ! catPolygon = tempPolygon
-                    ! deallocate(tempPolygon)
-                    ! allocate(tempPolygon(sizeCatPolygon+1, 3))
-                    ! tempPolygon(1:sizeCatPolygon, :) = catPolygon
-                    ! tempPolygon(sizeCatPolygon+1, :) = intersection
-                    ! write(*,*) tempPolygon
-                    ! deallocate(catPolygon)
+                    call appendUniqueRow3(tempPolygon, tempCount, intersection)
                 end if
 
-                if (.not.(any(ismember_rows(tempPolygon, inputList(j, :))))) then
-                   call appendToArray2D(tempPolygon, inputList(j, :))
-                end if
-                ! sizeCatPolygon = size(tempPolygon, 1)
-                ! allocate(catPolygon(sizeCatPolygon, 3))
-                ! catPolygon = tempPolygon
-                ! deallocate(tempPolygon)
-                ! allocate(tempPolygon(sizeCatPolygon+1, 3))
-                ! tempPolygon(1:sizeCatPolygon, :) = catPolygon
-                ! tempPolygon(sizeCatPolygon+1, :) = inputList(j, :)
-                ! write(*,*) tempPolygon
-                ! deallocate(catPolygon)
+                call appendUniqueRow3(tempPolygon, tempCount, inputList(j, :))
 
             elseif (inside(previousVertex, clipPlanes(i, :))) then
                !write(*,*) "c"
                 intersection = computeIntersection(clipPlanes(i, :), previousVertex, inputList(j, :))
-                if (.not.(any(ismember_rows(tempPolygon, intersection)))) then
-                   !write(*,*) "intersection", intersection
-                   call appendToArray2D(tempPolygon, intersection)
-                end if
-                ! sizeCatPolygon = size(tempPolygon, 1)
-                ! allocate(catPolygon(sizeCatPolygon, 3))
-                ! catPolygon = tempPolygon
-                ! deallocate(tempPolygon)
-                ! allocate(tempPolygon(sizeCatPolygon+1, 3))
-                ! tempPolygon(1:sizeCatPolygon, :) = catPolygon
-                ! tempPolygon(sizeCatPolygon+1, :) = intersection
-                ! write(*,*) tempPolygon
-                ! deallocate(catPolygon)
+                !write(*,*) "intersection", intersection
+                call appendUniqueRow3(tempPolygon, tempCount, intersection)
 
             end if
             !rite(*,*) "tempPolygon", tempPolygon
             previousVertex = inputList(j, :)
         end do
-        deallocate(inputList)
     end do
 
-    allocate(clippedPolygon(size(tempPolygon, 1), 3))
-    clippedPolygon = tempPolygon
+    allocate(clippedPolygon(tempCount, 3))
+    if (tempCount > 0) clippedPolygon = tempPolygon(1:tempCount, :)
 
 end subroutine sutherlandHodgman3D
+
+
+subroutine appendUniqueRow3(array, nRows, item)
+   implicit none
+   real, intent(inout) :: array(:,:)
+   integer, intent(inout) :: nRows
+   real, intent(in) :: item(3)
+   integer :: row
+
+   do row = 1,nRows
+      if (array(row,1) == item(1) .and. array(row,2) == item(2) .and. array(row,3) == item(3)) return
+   end do
+
+   if (nRows >= size(array, 1)) then
+      write(*,*) "sutherlandHodgman3D output exceeds local buffer"
+      stop
+   end if
+
+   nRows = nRows + 1
+   array(nRows, :) = item
+
+end subroutine appendUniqueRow3
 
 
 subroutine appendToArray1D_real(array, item)
