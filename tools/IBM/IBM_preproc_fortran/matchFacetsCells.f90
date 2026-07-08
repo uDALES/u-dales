@@ -25,6 +25,7 @@
 !
 
 module matchFacets2Cells
+   use iso_fortran_env, only: int64
    use omp_lib
    implicit none
 
@@ -34,7 +35,26 @@ module matchFacets2Cells
       integer, dimension(:), allocatable :: facet_ids
       integer, dimension(:), allocatable :: bnd_pts
       real, dimension(:), allocatable :: distances
+      integer :: nused = 0
+      integer :: capacity = 0
    end type thread_results_type
+
+   ! Sparse boundary-cell index. Records are ordered as the original
+   ! matchFacetsToCells cell loop: i outer, j middle, k inner.
+   type :: boundary_index_type
+      integer, dimension(:,:), allocatable :: ij_start
+      integer, dimension(:), allocatable :: k
+      logical, dimension(:), allocatable :: is_fluid
+      logical, dimension(:), allocatable :: is_solid
+      integer, dimension(:), allocatable :: fluid_id
+      integer, dimension(:), allocatable :: cand_start
+      integer, dimension(:), allocatable :: cand_code
+      integer, dimension(:), allocatable :: cand_i
+      integer, dimension(:), allocatable :: cand_j
+      integer, dimension(:), allocatable :: cand_k
+      integer, dimension(:), allocatable :: cand_fluid_id
+      integer(int64), dimension(:), allocatable :: fluid_keys
+   end type boundary_index_type
 
    contains
 
@@ -82,9 +102,6 @@ module matchFacets2Cells
    character(80) :: chmess
    integer, parameter :: ifinput = 1
 
-   fluid_IB = .false.
-   solid_IB = .false.
-
    allocate(fluid_IB_ijk(nfluid_IB,3), solid_IB_ijk(nsolid_IB,3), fluid_IB_xyz(nfluid_IB,3))
 
    open (ifinput, file=fname_fluid_boundary)
@@ -126,19 +143,19 @@ module matchFacets2Cells
     integer, dimension(:), allocatable, intent(out) :: secfacids, secbndptids
     real, dimension(:), allocatable, intent(out) :: secareas, bnddst
     integer, intent(out) :: nfacsecs
+    type(boundary_index_type) :: bidx
     !$ type(thread_results_type), dimension(:), allocatable :: thread_data
     !$ integer :: actual_threads
     integer, dimension(:,:), allocatable :: clipFaces
     real, dimension(:,:), allocatable :: clipVertices, projVert, clipFaceNormal
-    logical :: il_comp(itot+1), iu_comp(itot+1), jl_comp(jtot+1), ju_comp(jtot+1), kl_comp(ktot+1), ku_comp(ktot+1)
+    real, dimension(:), allocatable :: x_edges, y_edges, z_edges
     logical :: search_adj
     integer :: il, iu, jl, ju, kl, ku, nClipFaces, nClipVertices, id, loc
+    integer :: bnd_first, bnd_last, bnd_idx, cand_pos, cand_code, candidate_ids(27)
     real :: dx, dy, dz, xmin, xmax, ymin, ymax, zmin, zmax, xl, xu, yl, yu, zl, zu, tol, &
             planes(6,4), area, area_miss, planeNormal(3), xproj, yproj, zproj, proj, projVec(3), projArea, &
             dist, dists(27), angle, angles(27), BI(3), BIs(27,3)
-    real, dimension(3) :: xyz, xyz1, xyz2, xyz3, xyz4, xyz5, xyz6, xyz7, xyz8, xyz9, &
-                          xyz10, xyz11, xyz12, xyz13, xyz14, xyz15, xyz16, xyz17, xyz18, &
-                          xyz19, xyz20, xyz21, xyz22, xyz23, xyz24, xyz25, xyz26, xyz27
+    real, dimension(3) :: xyz, xyz1
     integer :: n, m, i, j, k, p, dir, ids(2), thread_id
 
     allocate(secareas(0))
@@ -156,6 +173,8 @@ module matchFacets2Cells
     ! Initialize thread-local data arrays
     !$ allocate(thread_data(actual_threads))
     !$ do i = 1, actual_threads
+    !$     thread_data(i)%nused = 0
+    !$     thread_data(i)%capacity = 0
     !$     allocate(thread_data(i)%areas(0))
     !$     allocate(thread_data(i)%facet_ids(0))
     !$     allocate(thread_data(i)%bnd_pts(0))
@@ -169,21 +188,29 @@ module matchFacets2Cells
     tol = 1e-8 ! machine precision errors
     area_miss = 0.0 ! Initialize for OpenMP reduction
 
+    allocate(x_edges(itot+1), y_edges(jtot+1), z_edges(ktot+1))
+    x_edges(1:itot) = xgrid - dx/2.
+    x_edges(itot+1) = xgrid(itot) + dx/2.
+    y_edges(1:jtot) = ygrid - dy/2.
+    y_edges(jtot+1) = ygrid(jtot) + dy/2.
+    z_edges(1:ktot) = zgrid - dz/2.
+    z_edges(ktot+1) = zgrid(ktot) + dz/2.
+
+    call buildBoundaryIndex(fluid_IB, solid_IB, itot, jtot, ktot, diag_neighbs, bidx)
+
     !$OMP parallel do default(none) &
     !$OMP shared(nFaces, connectivityList, faceNormal, vertices, xgrid, ygrid, zgrid, tol, &
-    !$OMP        fluid_IB, solid_IB, fluid_IB_xyz, nfluid_IB, itot, jtot, ktot, &
+    !$OMP        fluid_IB, solid_IB, itot, jtot, ktot, &
     !$OMP        diag_neighbs, periodic_x, periodic_y, dx, dy, dz, &
-    !$OMP        thread_data, actual_threads) &
+    !$OMP        x_edges, y_edges, z_edges, bidx, thread_data, actual_threads) &
     !$OMP private(xmin, xmax, ymin, ymax, zmin, zmax, &
-    !$OMP         il_comp, iu_comp, jl_comp, ju_comp, kl_comp, ku_comp, &
     !$OMP         il, iu, jl, ju, kl, ku, xl, xu, yl, yu, zl, zu, planes, &
     !$OMP         clipVertices, clipFaces, clipFaceNormal, nClipFaces, nClipVertices, &
     !$OMP         projVert, planeNormal, xproj, yproj, zproj, proj, projVec, projArea, &
     !$OMP         area, dist, dists, angle, angles, BI, BIs, &
-    !$OMP         xyz, xyz1, xyz2, xyz3, xyz4, xyz5, xyz6, xyz7, xyz8, xyz9, &
-    !$OMP         xyz10, xyz11, xyz12, xyz13, xyz14, xyz15, xyz16, xyz17, xyz18, &
-    !$OMP         xyz19, xyz20, xyz21, xyz22, xyz23, xyz24, xyz25, xyz26, xyz27, &
-    !$OMP         search_adj, id, loc, i, j, k, m, p, dir, ids, thread_id) &
+    !$OMP         xyz, xyz1, search_adj, id, loc, candidate_ids, &
+    !$OMP         bnd_first, bnd_last, bnd_idx, cand_pos, cand_code, &
+    !$OMP         i, j, k, m, p, dir, ids, thread_id) &
     !$OMP reduction(+:area_miss) schedule(dynamic)
     do n=1,nFaces
       ! Get thread ID (1-based)
@@ -205,43 +232,12 @@ module matchFacets2Cells
       if ((abs(zmin) < epsilon(zmin) .and. abs(zmax) < epsilon(zmax)) .and. &
        all(abs(faceNormal(n, :) - (/0.,0.,-1./)) < epsilon(faceNormal(n, 1)))) cycle
 
-      where (xmin >= (/xgrid   -dx/2., xgrid(itot)+dx/2./)-tol)
-         il_comp = .true.
-      elsewhere
-         il_comp = .false.
-      end where
-      where (xmax <= (/xgrid(1)-dx/2., xgrid      +dx/2./)+tol)
-         iu_comp = .true.
-      elsewhere
-         iu_comp = .false.
-      end where
-      where (ymin >= (/ygrid   -dy/2., ygrid(jtot)+dy/2./)-tol)
-         jl_comp = .true.
-      elsewhere
-         jl_comp = .false.
-      end where
-      where (ymax <= (/ygrid(1)-dy/2., ygrid      +dy/2./)+tol)
-         ju_comp = .true.
-      elsewhere
-         ju_comp = .false.
-      end where
-      where (zmin >= (/zgrid   -dz/2., zgrid(ktot)+dz/2./)-tol)
-         kl_comp = .true.
-      elsewhere
-         kl_comp = .false.
-      end where
-      where (zmax <= (/zgrid(1)-dz/2., zgrid      +dz/2./)+tol)
-         ku_comp = .true.
-      elsewhere
-         ku_comp = .false.
-      end where
-
-      il = findloc(il_comp, .true., 1, back=.true.)
-      iu = findloc(iu_comp, .true., 1)
-      jl = findloc(jl_comp, .true., 1, back=.true.)
-      ju = findloc(ju_comp, .true., 1)
-      kl = findloc(kl_comp, .true., 1, back=.true.)
-      ku = findloc(ku_comp, .true., 1)
+      il = lastEdgeLeq(x_edges, xmin + tol)
+      iu = firstEdgeGeq(x_edges, xmax - tol)
+      jl = lastEdgeLeq(y_edges, ymin + tol)
+      ju = firstEdgeGeq(y_edges, ymax - tol)
+      kl = lastEdgeLeq(z_edges, zmin + tol)
+      ku = firstEdgeGeq(z_edges, zmax - tol)
 
       ! Not sure these are needed?
       if (xmax > xgrid(itot) + dx/2) iu = itot
@@ -281,8 +277,13 @@ module matchFacets2Cells
 
       do i=il,iu
          do j=jl,ju
-            do k=kl,ku
-               if (.not.(fluid_IB(i,j,k) .or. solid_IB(i,j,k))) cycle
+            bnd_first = lowerBoundInt(bidx%k, bidx%ij_start(i,j), &
+                                      bidx%ij_start(i,j+1)-1, kl)
+            bnd_last = upperBoundInt(bidx%k, bidx%ij_start(i,j), &
+                                     bidx%ij_start(i,j+1)-1, ku) - 1
+
+            do bnd_idx=bnd_first,bnd_last
+               k = bidx%k(bnd_idx)
                ! Define corners of cube
                xl = xgrid(i) - dx/2. - tol
                xu = xgrid(i) + dx/2. + tol
@@ -305,13 +306,16 @@ module matchFacets2Cells
                if (nClipVertices < 3) then
                   !nClipFaces = 0
                   !allocate(clipFaces(nClipFaces,3))
-                  !deallocate(clipVertices)
+                  deallocate(clipVertices)
                   cycle
                elseif (nClipVertices == 3) then
                   area = 0.5*norm2(cross_product(clipVertices(2,:) - clipVertices(1,:), &
                      clipVertices(3,:) - clipVertices(1,:)))
                   ! remove anything below 1 square centimetre, as we only write to this precision.
-                  if (area < 1e-5) cycle
+                  if (area < 1e-5) then
+                     deallocate(clipVertices)
+                     cycle
+                  end if
 
                   nClipFaces = 1
                   allocate(clipFaces(nClipFaces,3))
@@ -350,7 +354,10 @@ module matchFacets2Cells
 
                   area = projArea / proj
 
-                  if (area < 1e-5) cycle
+                  if (area < 1e-5) then
+                     deallocate(clipVertices)
+                     cycle
+                  end if
 
                   nClipFaces = nClipVertices - 2
                   allocate(clipFaces(nClipFaces,3))
@@ -369,6 +376,7 @@ module matchFacets2Cells
                dists = ieee_value(dists, ieee_quiet_nan)
                angles = ieee_value(angles, ieee_quiet_nan)
                BIs = ieee_value(BIs, ieee_quiet_nan)
+               candidate_ids = 0
                search_adj = .false.
 
                allocate(clipFaceNormal(nClipFaces,3))
@@ -376,10 +384,9 @@ module matchFacets2Cells
                   clipFaceNormal(m, :) = faceNormal(n, :)
                end do
 
-               if (fluid_IB(i,j,k)) then
+               if (bidx%is_fluid(bnd_idx)) then
                   xyz1 = (/xgrid(i), ygrid(j), zgrid(k)/)
-                  loc = findloc(ismember_rows(fluid_IB_xyz, xyz1), .true., 1)
-                  !facet_section(3) = loc;
+                  loc = bidx%fluid_id(bnd_idx)
                   call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
                      xyz1, dist, BI)
                   angle = dot_product(faceNormal(n,:), (xyz1 - BI)/norm2(xyz1 - BI))
@@ -387,7 +394,6 @@ module matchFacets2Cells
                   if (abs(angle - 1.) < epsilon(angle)) then ! Wall-normal defined, use this cell
                   !if (abs(angle - 1.) < epsilon(angle) .and. dist > 0.05*exp(1.)) then ! Wall-normal defined, use this cell
                      id = 1 ! not necessary?
-                     xyz = xyz1
                      !write(*,*) "normal found"
                   else
                      !write(*,*) "normal not found, searching adjacent cells"
@@ -399,301 +405,25 @@ module matchFacets2Cells
                         dists(1) = dist
                         angles(1) = angle
                         BIs(1,:) = BI
+                        candidate_ids(1) = loc
                      end if
                   end if
                end if
 
-               if (solid_IB(i,j,k) .or. search_adj) then
+               if (bidx%is_solid(bnd_idx) .or. search_adj) then
 
-                   if (i /= 1) then
-                      if (fluid_IB(i-1,j,k)) then
-                        xyz2 = (/xgrid(i-1), ygrid(j), zgrid(k)/)
-                        call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                           xyz2, dist, BI)
-                        dists(2) = dist
-                        angles(2) = dot_product(faceNormal(n,:), (xyz2 - BI)/norm2(xyz2 - BI))
-                        BIs(2,:) = BI
-                     end if !(fluid_IB(i-1,j,k))
-                  end if !(i /= 1)
-
-                  if (i /= itot) then
-                     if (fluid_IB(i+1,j,k)) then
-                        xyz3 = (/xgrid(i+1), ygrid(j), zgrid(k)/)
-                        call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                           xyz3, dist, BI)
-                        dists(3) = dist
-                        angles(3) = dot_product(faceNormal(n,:), (xyz3 - BI)/norm2(xyz3 - BI))
-                        BIs(3,:) = BI
-                     end if
-                  end if
-
-                  if (j /= 1) then
-                     if (fluid_IB(i,j-1,k)) then
-                        xyz4 = (/xgrid(i), ygrid(j-1), zgrid(k)/)
-                        call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                           xyz4, dist, BI)
-                        dists(4) = dist
-                        angles(4) = dot_product(faceNormal(n,:), (xyz4 - BI)/norm2(xyz4 - BI))
-                        BIs(4,:) = BI
-                     end if
-                  end if
-
-                  if (j /= jtot) then
-                     if (fluid_IB(i,j+1,k)) then
-                        xyz5 = (/xgrid(i), ygrid(j+1), zgrid(k)/)
-                        call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                           xyz5, dist, BI)
-                        dists(5) = dist
-                        angles(5) = dot_product(faceNormal(n,:), (xyz5 - BI)/norm2(xyz5 - BI))
-                        BIs(5,:) = BI
-                     end if
-                  end if
-
-                  if (k /= 1) then
-                     if (fluid_IB(i,j,k-1)) then
-                        xyz6 = (/xgrid(i), ygrid(j), zgrid(k-1)/)
-                        call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                           xyz6, dist, BI)
-                        dists(6) = dist
-                        angles(6) = dot_product(faceNormal(n,:), (xyz6 - BI)/norm2(xyz6 - BI))
-                        BIs(6,:) = BI
-                     end if
-                  end if
-
-                  if (k /= ktot) then
-                     if (fluid_IB(i,j,k+1)) then
-                        xyz7 = (/xgrid(i), ygrid(j), zgrid(k+1)/)
-                        call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                           xyz7, dist, BI)
-                        dists(7) = dist
-                        angles(7) = dot_product(faceNormal(n,:), (xyz7 - BI)/norm2(xyz7 - BI))
-                        BIs(7,:) = BI
-                     end if
-                  end if
-
-                  if (diag_neighbs) then
-                     if (i/=1 .and. j/=1) then
-                        if (fluid_IB(i-1,j-1,k)) then
-                           xyz8 = (/xgrid(i-1), ygrid(j-1), zgrid(k)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz8, dist, BI)
-                           dists(8) = dist
-                           angles(8) = dot_product(faceNormal(n,:), (xyz8 - BI)/norm2(xyz8 - BI))
-                           BIs(8,:) = BI
-                        end if
-                     end if
-
-                     if (i/=1 .and. j/=jtot) then
-                        if (fluid_IB(i-1,j+1,k)) then
-                           xyz9 = (/xgrid(i-1), ygrid(j+1), zgrid(k)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz9, dist, BI)
-                           dists(9) = dist
-                           angles(9) = dot_product(faceNormal(n,:), (xyz9 - BI)/norm2(xyz9 - BI))
-                           BIs(9,:) = BI
-                        end if
-                     end if
-
-                     if (i/=itot .and. j/=1) then
-                        if (fluid_IB(i+1,j-1,k)) then
-                           xyz10 = (/xgrid(i+1), ygrid(j-1), zgrid(k)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz10, dist, BI)
-                           dists(10) = dist
-                           angles(10) = dot_product(faceNormal(n,:), (xyz10 - BI)/norm2(xyz10 - BI))
-                           BIs(10,:) = BI
-                        end if
-                     end if
-
-                     if (i/=itot .and. j/=jtot) then
-                        if (fluid_IB(i+1,j+1,k)) then
-                           xyz11 = (/xgrid(i+1), ygrid(j+1), zgrid(k)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz11, dist, BI)
-                           dists(11) = dist
-                           angles(11) = dot_product(faceNormal(n,:), (xyz11 - BI)/norm2(xyz11 - BI))
-                           BIs(11,:) = BI
-                        end if
-                     end if
-
-                     if (i/=1 .and. k/=1) then
-                        if (fluid_IB(i-1,j,k-1)) then
-                           xyz12 = (/xgrid(i-1), ygrid(j), zgrid(k-1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz12, dist, BI)
-                           dists(12) = dist
-                           angles(12) = dot_product(faceNormal(n,:), (xyz12 - BI)/norm2(xyz12 - BI))
-                           BIs(12,:) = BI
-                        end if
-                     end if
-
-                     if (i/=1 .and. k/=ktot) then
-                        if (fluid_IB(i-1,j,k+1)) then
-                           xyz13 = (/xgrid(i-1), ygrid(j), zgrid(k+1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz13, dist, BI)
-                           dists(13) = dist
-                           angles(13) = dot_product(faceNormal(n,:), (xyz13 - BI)/norm2(xyz13 - BI))
-                           BIs(13,:) = BI
-                        end if
-                     end if
-
-                     if (i/=itot .and. k/=1) then
-                        if (fluid_IB(i+1,j,k-1)) then
-                           xyz14 = (/xgrid(i+1), ygrid(j), zgrid(k-1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz14, dist, BI)
-                           dists(14) = dist
-                           angles(14) = dot_product(faceNormal(n,:), (xyz14 - BI)/norm2(xyz14 - BI))
-                           BIs(14,:) = BI
-                        end if
-                     end if
-
-                     if (i/=itot .and. k/=ktot) then
-                        if (fluid_IB(i+1,j,k+1)) then
-                           xyz15 = (/xgrid(i+1), ygrid(j), zgrid(k+1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz15, dist, BI)
-                           dists(15) = dist
-                           angles(15) = dot_product(faceNormal(n,:), (xyz15 - BI)/norm2(xyz15 - BI))
-                           BIs(15,:) = BI
-                        end if
-                     end if
-
-                     if (j/=1 .and. k/=1) then
-                        if (fluid_IB(i,j-1,k-1)) then
-                           xyz16 = (/xgrid(i), ygrid(j-1), zgrid(k-1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz16, dist, BI)
-                           dists(16) = dist
-                           angles(16) = dot_product(faceNormal(n,:), (xyz16 - BI)/norm2(xyz16 - BI))
-                           BIs(16,:) = BI
-                        end if
-                     end if
-
-                     if (j/=1 .and. k/=ktot) then
-                        if (fluid_IB(i,j-1,k+1)) then
-                           xyz17 = (/xgrid(i), ygrid(j-1), zgrid(k+1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz17, dist, BI)
-                           dists(17) = dist
-                           angles(17) = dot_product(faceNormal(n,:), (xyz17 - BI)/norm2(xyz17 - BI))
-                           BIs(17,:) = BI
-                        end if
-                     end if
-
-                     if (j/=jtot .and. k/=1) then
-                        if (fluid_IB(i,j+1,k-1)) then
-                           xyz18 = (/xgrid(i), ygrid(j+1), zgrid(k-1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz18, dist, BI)
-                           dists(18) = dist
-                           angles(18) = dot_product(faceNormal(n,:), (xyz18 - BI)/norm2(xyz18 - BI))
-                           BIs(18,:) = BI
-                        end if
-                     end if
-
-                     if (j/=jtot .and. k/=ktot) then
-                        if (fluid_IB(i,j+1,k+1)) then
-                           xyz19 = (/xgrid(i), ygrid(j+1), zgrid(k+1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz19, dist, BI)
-                           dists(19) = dist
-                           angles(19) = dot_product(faceNormal(n,:), (xyz19 - BI)/norm2(xyz19 - BI))
-                           BIs(19,:) = BI
-                        end if
-                     end if
-
-                     if (i/=1 .and. j/=1 .and. k/=1) then
-                        if (fluid_IB(i-1,j-1,k-1)) then
-                           xyz20 = (/xgrid(i-1), ygrid(j-1), zgrid(k-1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz20, dist, BI)
-                           dists(20) = dist
-                           angles(20) = dot_product(faceNormal(n,:), (xyz20 - BI)/norm2(xyz20 - BI))
-                           BIs(20,:) = BI
-                        end if
-                     end if
-
-                     if (i/=itot .and. j/=1 .and. k/=1) then
-                        if (fluid_IB(i+1,j-1,k-1)) then
-                           xyz21 = (/xgrid(i+1), ygrid(j-1), zgrid(k-1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz21, dist, BI)
-                           dists(21) = dist
-                           angles(21) = dot_product(faceNormal(n,:), (xyz21 - BI)/norm2(xyz21 - BI))
-                           BIs(21,:) = BI
-                        end if
-                     end if
-
-                     if (i/=1 .and. j/=jtot .and. k/=1) then
-                        if (fluid_IB(i-1,j+1,k-1)) then
-                           xyz22 = (/xgrid(i-1), ygrid(j+1), zgrid(k-1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz22, dist, BI)
-                           dists(22) = dist
-                           angles(22) = dot_product(faceNormal(n,:), (xyz22 - BI)/norm2(xyz22 - BI))
-                           BIs(22,:) = BI
-                        end if
-                     end if
-
-                     if (i/=itot .and. j/=jtot .and. k/=1) then
-                        if (fluid_IB(i+1,j+1,k-1)) then
-                           xyz23 = (/xgrid(i+1), ygrid(j+1), zgrid(k-1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz23, dist, BI)
-                           dists(23) = dist
-                           angles(23) = dot_product(faceNormal(n,:), (xyz23 - BI)/norm2(xyz23 - BI))
-                           BIs(23,:) = BI
-                        end if
-                     end if
-
-                     if (i/=1 .and. j/=1 .and. k/=ktot) then
-                        if (fluid_IB(i-1,j-1,k+1)) then
-                           xyz24 = (/xgrid(i-1), ygrid(j-1), zgrid(k+1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz24, dist, BI)
-                           dists(24) = dist
-                           angles(24) = dot_product(faceNormal(n,:), (xyz24 - BI)/norm2(xyz24 - BI))
-                           BIs(24,:) = BI
-                        end if
-                     end if
-
-                     if (i/=itot .and. j/=1 .and. k/=ktot) then
-                        if (fluid_IB(i+1,j-1,k+1)) then
-                           xyz25 = (/xgrid(i+1), ygrid(j-1), zgrid(k+1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz25, dist, BI)
-                           dists(25) = dist
-                           angles(25) = dot_product(faceNormal(n,:), (xyz25 - BI)/norm2(xyz25 - BI))
-                           BIs(25,:) = BI
-                        end if
-                     end if
-
-                     if (i/=1 .and. j/=jtot .and. k/=ktot) then
-                        if (fluid_IB(i-1,j+1,k+1)) then
-                           xyz26 = (/xgrid(i-1), ygrid(j+1), zgrid(k+1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz26, dist, BI)
-                           dists(26) = dist
-                           angles(26) = dot_product(faceNormal(n,:), (xyz26 - BI)/norm2(xyz26 - BI))
-                           BIs(26,:) = BI
-                        end if
-                     end if
-
-                     if (i/=itot .and. j/=jtot .and. k/=ktot) then
-                        if (fluid_IB(i+1,j+1,k+1)) then
-                           xyz27 = (/xgrid(i+1), ygrid(j+1), zgrid(k+1)/)
-                           call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
-                              xyz27, dist, BI)
-                           dists(27) = dist
-                           angles(27) = dot_product(faceNormal(n,:), (xyz27 - BI)/norm2(xyz27 - BI))
-                           BIs(27,:) = BI
-                        end if
-                     end if
-
-                  end if ! diag_neighbs
-
+                  do cand_pos=bidx%cand_start(bnd_idx), bidx%cand_start(bnd_idx+1)-1
+                     cand_code = bidx%cand_code(cand_pos)
+                     xyz = (/xgrid(bidx%cand_i(cand_pos)), &
+                             ygrid(bidx%cand_j(cand_pos)), &
+                             zgrid(bidx%cand_k(cand_pos))/)
+                     call fastPoint2TriMesh(clipFaces, clipFaceNormal, nClipFaces, clipVertices, nClipVertices, &
+                        xyz, dist, BI)
+                     dists(cand_code) = dist
+                     angles(cand_code) = dot_product(faceNormal(n,:), (xyz - BI)/norm2(xyz - BI))
+                     BIs(cand_code,:) = BI
+                     candidate_ids(cand_code) = bidx%cand_fluid_id(cand_pos)
+                  end do
                   ! do p = 1,27
                   !   if (dists(p) < 0.05*exp(1.)) then
                   !       dists(p) = ieee_value(dists(p), ieee_quiet_nan)
@@ -707,87 +437,29 @@ module matchFacets2Cells
                   if (isnan(dist)) then
                      !write(*,*) "facet ", n, " in cell ", i, j, k, " could not find a cell to give flux to"
                      area_miss = area_miss + area
+                     deallocate(clipVertices)
                      deallocate(clipFaces)
                      deallocate(clipFaceNormal)
                      cycle
                   end if
 
-                  select case (id)
-                  case(1)
-                     xyz = xyz1
-                  case(2)
-                     xyz = xyz2
-                  case(3)
-                     xyz = xyz3
-                  case(4)
-                     xyz = xyz4
-                  case(5)
-                     xyz = xyz5
-                  case(6)
-                     xyz = xyz6
-                  case(7)
-                     xyz = xyz7
-                  case(8)
-                     xyz = xyz8
-                  case(9)
-                     xyz = xyz9
-                  case(10)
-                     xyz = xyz10
-                  case(11)
-                     xyz = xyz11
-                  case(12)
-                     xyz = xyz12
-                  case(13)
-                     xyz = xyz13
-                  case(14)
-                     xyz = xyz14
-                  case(15)
-                     xyz = xyz15
-                  case(16)
-                     xyz = xyz16
-                  case(17)
-                     xyz = xyz17
-                  case(18)
-                     xyz = xyz18
-                  case(19)
-                     xyz = xyz19
-                  case(20)
-                     xyz = xyz20
-                  case(21)
-                     xyz = xyz21
-                  case(22)
-                     xyz = xyz22
-                  case(23)
-                     xyz = xyz23
-                  case(24)
-                     xyz = xyz24
-                  case(25)
-                     xyz = xyz25
-                  case(26)
-                     xyz = xyz26
-                  case(27)
-                     xyz = xyz27
-
-                  end select
+                  loc = candidate_ids(id)
 
                end if !(solid_IB(i,j,k) .or. search_adj)
 
                if (isnan(dist) .or. abs(dist)<1e-4) dist = 0.1 ! 0.1 m minimum distance to avoid singularities
                if (isnan(area)) area = 0.0
 
-               loc = findloc(ismember_rows(fluid_IB_xyz, xyz), .true., 1)
-
                !! For serial run version: Append to global arrays
-               ! !$ OMP critical
                ! call appendToArray1D_real(secareas, area)
                ! call appendToArray1D_integer(secfacids, n)
                ! call appendToArray1D_integer(secbndptids, loc)
                ! call appendToArray1D_real(bnddst, abs(dist))
-               ! !$ OMP end critical
                
                ! Alternatively for OpenMP run: Append to thread-specific arrays
                !$ call appendToThreadResults(thread_data(thread_id), area, n, loc, abs(dist))
 
+               deallocate(clipVertices)
                deallocate(clipFaces)
                deallocate(clipFaceNormal)
             end do
@@ -806,45 +478,375 @@ module matchFacets2Cells
 end subroutine matchFacetsToCells
 
 
+subroutine buildBoundaryIndex(fluid_IB, solid_IB, itot, jtot, ktot, diag_neighbs, bidx)
+   implicit none
+   integer, intent(in) :: itot, jtot, ktot
+   logical, intent(in), dimension(itot,jtot,ktot) :: fluid_IB, solid_IB
+   logical, intent(in) :: diag_neighbs
+   type(boundary_index_type), intent(out) :: bidx
+
+   integer, allocatable :: ij_count(:,:), ij_next(:,:)
+   integer :: i, j, k, idx, pos, nBoundary, nFluid, fid
+   integer :: totalCand, cand_count
+
+   allocate(ij_count(itot,jtot))
+   ij_count = 0
+   nBoundary = 0
+   nFluid = 0
+
+   do j=1,jtot
+      do k=1,ktot
+         do i=1,itot
+            if (fluid_IB(i,j,k)) nFluid = nFluid + 1
+            if (fluid_IB(i,j,k) .or. solid_IB(i,j,k)) then
+               ij_count(i,j) = ij_count(i,j) + 1
+               nBoundary = nBoundary + 1
+            end if
+         end do
+      end do
+   end do
+
+   allocate(bidx%fluid_keys(nFluid))
+   fid = 0
+   do j=1,jtot
+      do k=1,ktot
+         do i=1,itot
+            if (fluid_IB(i,j,k)) then
+               fid = fid + 1
+               bidx%fluid_keys(fid) = cellKey(i, j, k, itot, ktot)
+            end if
+         end do
+      end do
+   end do
+
+   allocate(bidx%ij_start(itot,jtot+1))
+   pos = 1
+   do i=1,itot
+      do j=1,jtot
+         bidx%ij_start(i,j) = pos
+         pos = pos + ij_count(i,j)
+      end do
+      bidx%ij_start(i,jtot+1) = pos
+   end do
+
+   allocate(bidx%k(nBoundary), bidx%is_fluid(nBoundary), bidx%is_solid(nBoundary))
+   allocate(bidx%fluid_id(nBoundary))
+   allocate(ij_next(itot,jtot))
+   ij_next = bidx%ij_start(:,1:jtot)
+
+   do i=1,itot
+      do j=1,jtot
+         do k=1,ktot
+            if (fluid_IB(i,j,k) .or. solid_IB(i,j,k)) then
+               idx = ij_next(i,j)
+               bidx%k(idx) = k
+               bidx%is_fluid(idx) = fluid_IB(i,j,k)
+               bidx%is_solid(idx) = solid_IB(i,j,k)
+               if (fluid_IB(i,j,k)) then
+                  bidx%fluid_id(idx) = fluidIdFromKey(bidx%fluid_keys, &
+                     cellKey(i, j, k, itot, ktot))
+               else
+                  bidx%fluid_id(idx) = 0
+               end if
+               ij_next(i,j) = idx + 1
+            end if
+         end do
+      end do
+   end do
+
+   allocate(bidx%cand_start(nBoundary+1))
+   totalCand = 0
+   do i=1,itot
+      do j=1,jtot
+         do idx=bidx%ij_start(i,j), bidx%ij_start(i,j+1)-1
+            bidx%cand_start(idx) = totalCand + 1
+            cand_count = 0
+            call addReceiverCandidatesForCell(fluid_IB, itot, jtot, ktot, i, j, bidx%k(idx), &
+               diag_neighbs, bidx%fluid_keys, cand_count)
+            totalCand = totalCand + cand_count
+         end do
+      end do
+   end do
+   bidx%cand_start(nBoundary+1) = totalCand + 1
+
+   allocate(bidx%cand_code(totalCand), bidx%cand_i(totalCand), bidx%cand_j(totalCand))
+   allocate(bidx%cand_k(totalCand), bidx%cand_fluid_id(totalCand))
+   totalCand = 0
+   do i=1,itot
+      do j=1,jtot
+         do idx=bidx%ij_start(i,j), bidx%ij_start(i,j+1)-1
+            call addReceiverCandidatesForCell(fluid_IB, itot, jtot, ktot, i, j, bidx%k(idx), &
+               diag_neighbs, bidx%fluid_keys, totalCand, bidx%cand_code, bidx%cand_i, &
+               bidx%cand_j, bidx%cand_k, bidx%cand_fluid_id)
+         end do
+      end do
+   end do
+
+   deallocate(ij_count, ij_next)
+end subroutine buildBoundaryIndex
+
+
+subroutine addReceiverCandidatesForCell(fluid_IB, itot, jtot, ktot, i, j, k, diag_neighbs, &
+   fluid_keys, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+   implicit none
+   integer, intent(in) :: itot, jtot, ktot, i, j, k
+   logical, intent(in), dimension(itot,jtot,ktot) :: fluid_IB
+   logical, intent(in) :: diag_neighbs
+   integer(int64), intent(in), dimension(:) :: fluid_keys
+   integer, intent(inout) :: cand_count
+   integer, intent(inout), optional, dimension(:) :: cand_code, cand_i, cand_j, cand_k, cand_fluid_id
+
+   call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j, k, 2, fluid_keys, &
+      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+   call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j, k, 3, fluid_keys, &
+      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+   call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j-1, k, 4, fluid_keys, &
+      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+   call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j+1, k, 5, fluid_keys, &
+      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+   call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j, k-1, 6, fluid_keys, &
+      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+   call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j, k+1, 7, fluid_keys, &
+      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+
+   if (diag_neighbs) then
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j-1, k, 8, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j+1, k, 9, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j-1, k, 10, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j+1, k, 11, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j, k-1, 12, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j, k+1, 13, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j, k-1, 14, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j, k+1, 15, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j-1, k-1, 16, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j-1, k+1, 17, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j+1, k-1, 18, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j+1, k+1, 19, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j-1, k-1, 20, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j-1, k-1, 21, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j+1, k-1, 22, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j+1, k-1, 23, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j-1, k+1, 24, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j-1, k+1, 25, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j+1, k+1, 26, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j+1, k+1, 27, fluid_keys, &
+         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+   end if
+end subroutine addReceiverCandidatesForCell
+
+
+subroutine addCandidateIfFluid(fluid_IB, itot, jtot, ktot, ci, cj, ck, code, fluid_keys, &
+   cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+   implicit none
+   integer, intent(in) :: itot, jtot, ktot, ci, cj, ck, code
+   logical, intent(in), dimension(itot,jtot,ktot) :: fluid_IB
+   integer(int64), intent(in), dimension(:) :: fluid_keys
+   integer, intent(inout) :: cand_count
+   integer, intent(inout), optional, dimension(:) :: cand_code, cand_i, cand_j, cand_k, cand_fluid_id
+
+   if (ci < 1 .or. ci > itot) return
+   if (cj < 1 .or. cj > jtot) return
+   if (ck < 1 .or. ck > ktot) return
+   if (.not. fluid_IB(ci,cj,ck)) return
+
+   cand_count = cand_count + 1
+   if (present(cand_code)) then
+      cand_code(cand_count) = code
+      cand_i(cand_count) = ci
+      cand_j(cand_count) = cj
+      cand_k(cand_count) = ck
+      cand_fluid_id(cand_count) = fluidIdFromKey(fluid_keys, cellKey(ci, cj, ck, itot, ktot))
+   end if
+end subroutine addCandidateIfFluid
+
+
+integer(int64) function cellKey(i, j, k, itot, ktot)
+   implicit none
+   integer, intent(in) :: i, j, k, itot, ktot
+
+   cellKey = int(i, int64) + int(k-1, int64) * int(itot, int64) + &
+             int(j-1, int64) * int(itot, int64) * int(ktot, int64)
+end function cellKey
+
+
+integer function fluidIdFromKey(fluid_keys, key)
+   implicit none
+   integer(int64), intent(in), dimension(:) :: fluid_keys
+   integer(int64), intent(in) :: key
+   integer :: lo, hi, mid
+
+   lo = 1
+   hi = size(fluid_keys)
+   fluidIdFromKey = 0
+   do while (lo <= hi)
+      mid = (lo + hi) / 2
+      if (fluid_keys(mid) == key) then
+         fluidIdFromKey = mid
+         return
+      elseif (fluid_keys(mid) < key) then
+         lo = mid + 1
+      else
+         hi = mid - 1
+      end if
+   end do
+end function fluidIdFromKey
+
+
+integer function lowerBoundInt(values, first, last, target)
+   implicit none
+   integer, intent(in), dimension(:) :: values
+   integer, intent(in) :: first, last, target
+   integer :: lo, hi, mid
+
+   lo = first
+   hi = last + 1
+   do while (lo < hi)
+      mid = (lo + hi) / 2
+      if (values(mid) < target) then
+         lo = mid + 1
+      else
+         hi = mid
+      end if
+   end do
+   lowerBoundInt = lo
+end function lowerBoundInt
+
+
+integer function upperBoundInt(values, first, last, target)
+   implicit none
+   integer, intent(in), dimension(:) :: values
+   integer, intent(in) :: first, last, target
+   integer :: lo, hi, mid
+
+   lo = first
+   hi = last + 1
+   do while (lo < hi)
+      mid = (lo + hi) / 2
+      if (values(mid) <= target) then
+         lo = mid + 1
+      else
+         hi = mid
+      end if
+   end do
+   upperBoundInt = lo
+end function upperBoundInt
+
+
+integer function lastEdgeLeq(edges, value)
+   implicit none
+   real, intent(in), dimension(:) :: edges
+   real, intent(in) :: value
+   integer :: lo, hi, mid
+
+   lo = 1
+   hi = size(edges) + 1
+   do while (lo < hi)
+      mid = (lo + hi) / 2
+      if (edges(mid) <= value) then
+         lo = mid + 1
+      else
+         hi = mid
+      end if
+   end do
+   lastEdgeLeq = lo - 1
+end function lastEdgeLeq
+
+
+integer function firstEdgeGeq(edges, value)
+   implicit none
+   real, intent(in), dimension(:) :: edges
+   real, intent(in) :: value
+   integer :: lo, hi, mid
+
+   lo = 1
+   hi = size(edges) + 1
+   do while (lo < hi)
+      mid = (lo + hi) / 2
+      if (edges(mid) < value) then
+         lo = mid + 1
+      else
+         hi = mid
+      end if
+   end do
+   if (lo > size(edges)) then
+      firstEdgeGeq = 0
+   else
+      firstEdgeGeq = lo
+   end if
+end function firstEdgeGeq
+
+
 subroutine appendToThreadResults(thread_data, area, facet_id, bnd_pt, distance)
-   ! Append results to thread's local arrays efficiently
    implicit none
    type(thread_results_type), intent(inout) :: thread_data
    real, intent(in) :: area, distance
    integer, intent(in) :: facet_id, bnd_pt
-   
+
+   integer :: n
+
+   if (thread_data%nused >= thread_data%capacity) then
+      call reserveThreadResults(thread_data, max(1024, max(1, 2*thread_data%capacity)))
+   end if
+
+   n = thread_data%nused + 1
+   thread_data%areas(n) = area
+   thread_data%facet_ids(n) = facet_id
+   thread_data%bnd_pts(n) = bnd_pt
+   thread_data%distances(n) = distance
+   thread_data%nused = n
+end subroutine appendToThreadResults
+
+
+subroutine reserveThreadResults(thread_data, new_capacity)
+   implicit none
+   type(thread_results_type), intent(inout) :: thread_data
+   integer, intent(in) :: new_capacity
+
    real, dimension(:), allocatable :: temp_real
    integer, dimension(:), allocatable :: temp_int
    integer :: n
-   
-   ! Get current size
-   n = size(thread_data%areas)
-   
-   ! Expand areas array
-   allocate(temp_real(n+1))
-   if (n > 0) temp_real(1:n) = thread_data%areas
-   temp_real(n+1) = area
+
+   if (new_capacity <= thread_data%capacity) return
+
+   n = thread_data%nused
+
+   allocate(temp_real(new_capacity))
+   if (n > 0) temp_real(1:n) = thread_data%areas(1:n)
    call move_alloc(temp_real, thread_data%areas)
-   
-   ! Expand facet_ids array
-   allocate(temp_int(n+1))
-   if (n > 0) temp_int(1:n) = thread_data%facet_ids
-   temp_int(n+1) = facet_id
+
+   allocate(temp_int(new_capacity))
+   if (n > 0) temp_int(1:n) = thread_data%facet_ids(1:n)
    call move_alloc(temp_int, thread_data%facet_ids)
-   
-   ! Expand bnd_pts array
-   allocate(temp_int(n+1))
-   if (n > 0) temp_int(1:n) = thread_data%bnd_pts
-   temp_int(n+1) = bnd_pt
+
+   allocate(temp_int(new_capacity))
+   if (n > 0) temp_int(1:n) = thread_data%bnd_pts(1:n)
    call move_alloc(temp_int, thread_data%bnd_pts)
-   
-   ! Expand distances array
-   allocate(temp_real(n+1))
-   if (n > 0) temp_real(1:n) = thread_data%distances
-   temp_real(n+1) = distance
+
+   allocate(temp_real(new_capacity))
+   if (n > 0) temp_real(1:n) = thread_data%distances(1:n)
    call move_alloc(temp_real, thread_data%distances)
-   
-end subroutine appendToThreadResults
+
+   thread_data%capacity = new_capacity
+end subroutine reserveThreadResults
 
 
 subroutine mergeAndSortThreadResults(thread_data, num_threads, merged_facet_ids, merged_areas, merged_bnd_pts, merged_distances)
@@ -859,7 +861,7 @@ subroutine mergeAndSortThreadResults(thread_data, num_threads, merged_facet_ids,
    ! Count total elements efficiently
    total_results = 0
    do thread_id = 1, num_threads
-      total_results = total_results + size(thread_data(thread_id)%areas)
+      total_results = total_results + thread_data(thread_id)%nused
    end do
    
    if (total_results == 0) then
@@ -876,12 +878,12 @@ subroutine mergeAndSortThreadResults(thread_data, num_threads, merged_facet_ids,
    ! Efficiently concatenate thread arrays
    current_pos = 1
    do thread_id = 1, num_threads
-      thread_size = size(thread_data(thread_id)%areas)
+      thread_size = thread_data(thread_id)%nused
       if (thread_size > 0) then
-         merged_facet_ids(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%facet_ids
-         merged_areas(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%areas
-         merged_bnd_pts(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%bnd_pts
-         merged_distances(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%distances
+         merged_facet_ids(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%facet_ids(1:thread_size)
+         merged_areas(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%areas(1:thread_size)
+         merged_bnd_pts(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%bnd_pts(1:thread_size)
+         merged_distances(current_pos:current_pos+thread_size-1) = thread_data(thread_id)%distances(1:thread_size)
          current_pos = current_pos + thread_size
       end if
    end do
@@ -897,36 +899,41 @@ subroutine sortArraysByFacetId(facet_ids, areas, bnd_pts, distances)
    implicit none
    integer, dimension(:), allocatable, intent(inout) :: facet_ids, bnd_pts
    real, dimension(:), allocatable, intent(inout) :: areas, distances
-   integer :: n, i, j, temp_facet_id, temp_bnd_pt
-   real :: temp_area, temp_dist
+   integer, dimension(:), allocatable :: counts, next_pos, sorted_facet_ids, sorted_bnd_pts
+   real, dimension(:), allocatable :: sorted_areas, sorted_distances
+   integer :: n, i, facet_id, pos, max_facet_id
    
    n = size(facet_ids)
-   
-   ! Insertion sort based on facet_ids
-   do i = 2, n
-      ! Store current element values
-      temp_facet_id = facet_ids(i)
-      temp_area = areas(i)
-      temp_bnd_pt = bnd_pts(i)
-      temp_dist = distances(i)
-      
-      j = i - 1
-      
-      ! Shift elements that are greater than temp_facet_id
-      do while (j >= 1 .and. facet_ids(j) > temp_facet_id)
-         facet_ids(j + 1) = facet_ids(j)
-         areas(j + 1) = areas(j)
-         bnd_pts(j + 1) = bnd_pts(j)
-         distances(j + 1) = distances(j)
-         j = j - 1
-      end do
-      
-      ! Insert the stored elements at correct position
-      facet_ids(j + 1) = temp_facet_id
-      areas(j + 1) = temp_area
-      bnd_pts(j + 1) = temp_bnd_pt
-      distances(j + 1) = temp_dist
+   if (n <= 1) return
+
+   max_facet_id = maxval(facet_ids)
+   allocate(counts(max_facet_id), next_pos(max_facet_id))
+   counts = 0
+   do i = 1, n
+      counts(facet_ids(i)) = counts(facet_ids(i)) + 1
    end do
+
+   pos = 1
+   do i = 1, max_facet_id
+      next_pos(i) = pos
+      pos = pos + counts(i)
+   end do
+
+   allocate(sorted_facet_ids(n), sorted_bnd_pts(n), sorted_areas(n), sorted_distances(n))
+   do i = 1, n
+      facet_id = facet_ids(i)
+      pos = next_pos(facet_id)
+      sorted_facet_ids(pos) = facet_ids(i)
+      sorted_areas(pos) = areas(i)
+      sorted_bnd_pts(pos) = bnd_pts(i)
+      sorted_distances(pos) = distances(i)
+      next_pos(facet_id) = pos + 1
+   end do
+
+   call move_alloc(sorted_facet_ids, facet_ids)
+   call move_alloc(sorted_areas, areas)
+   call move_alloc(sorted_bnd_pts, bnd_pts)
+   call move_alloc(sorted_distances, distances)
    
 end subroutine sortArraysByFacetId
 
@@ -942,7 +949,6 @@ subroutine writeFacetSections(secfacids, secareas, secbndptids, bnddst, nfacsecs
    open (unit=fid,file=fname_facet_sections,action="write")
    write(fid,*) "# facet      area flux point distance"
    do n=1,nfacsecs
-      ! write (fid,*) secfacids(n), secareas(n), secbndptids(n), bnddst(n)
       ! Formatting assumes: #facets < 10 million, #fluid boundary points < 1 billion,
       ! section area < 1000 m^2 (rounded to cm^2), and distance < 1000m
       ! if (bnddst(n) < 0.05*exp(1.)) then
