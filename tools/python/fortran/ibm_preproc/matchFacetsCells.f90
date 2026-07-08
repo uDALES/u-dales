@@ -538,7 +538,7 @@ subroutine buildBoundaryIndex(fluid_IB, solid_IB, itot, jtot, ktot, diag_neighbs
    allocate(bidx%fluid_id(nBoundary))
 
    !$OMP parallel do default(none) collapse(2) &
-   !$OMP shared(fluid_IB, solid_IB, itot, jtot, ktot, bidx) &
+   !$OMP shared(fluid_IB, solid_IB, itot, jtot, ktot, bidx, fluid_start, jk_fluid_count) &
    !$OMP private(i, j, k, idx) schedule(static)
    do i=1,itot
       do j=1,jtot
@@ -549,8 +549,8 @@ subroutine buildBoundaryIndex(fluid_IB, solid_IB, itot, jtot, ktot, diag_neighbs
                bidx%is_fluid(idx) = fluid_IB(i,j,k)
                bidx%is_solid(idx) = solid_IB(i,j,k)
                if (fluid_IB(i,j,k)) then
-                  bidx%fluid_id(idx) = fluidIdFromKey(bidx%fluid_keys, &
-                     cellKey(i, j, k, itot, ktot))
+                  bidx%fluid_id(idx) = fluidIdFromCell(bidx%fluid_keys, fluid_start, &
+                     jk_fluid_count, i, j, k, itot, ktot)
                else
                   bidx%fluid_id(idx) = 0
                end if
@@ -565,14 +565,14 @@ subroutine buildBoundaryIndex(fluid_IB, solid_IB, itot, jtot, ktot, diag_neighbs
    cand_counts = 0
 
    !$OMP parallel do default(none) collapse(2) &
-   !$OMP shared(fluid_IB, itot, jtot, ktot, diag_neighbs, bidx, cand_counts) &
+   !$OMP shared(fluid_IB, itot, jtot, ktot, diag_neighbs, bidx, fluid_start, jk_fluid_count, cand_counts) &
    !$OMP private(i, j, idx, cand_count) schedule(static)
    do i=1,itot
       do j=1,jtot
          do idx=bidx%ij_start(i,j), bidx%ij_start(i,j+1)-1
             cand_count = 0
             call addReceiverCandidatesForCell(fluid_IB, itot, jtot, ktot, i, j, bidx%k(idx), &
-               diag_neighbs, bidx%fluid_keys, cand_count)
+               diag_neighbs, bidx%fluid_keys, fluid_start, jk_fluid_count, cand_count)
             cand_counts(idx) = cand_count
          end do
       end do
@@ -591,15 +591,15 @@ subroutine buildBoundaryIndex(fluid_IB, solid_IB, itot, jtot, ktot, diag_neighbs
    allocate(bidx%cand_k(totalCand), bidx%cand_fluid_id(totalCand))
 
    !$OMP parallel do default(none) collapse(2) &
-   !$OMP shared(fluid_IB, itot, jtot, ktot, diag_neighbs, bidx) &
+   !$OMP shared(fluid_IB, itot, jtot, ktot, diag_neighbs, bidx, fluid_start, jk_fluid_count) &
    !$OMP private(i, j, idx, cand_count) schedule(static)
    do i=1,itot
       do j=1,jtot
          do idx=bidx%ij_start(i,j), bidx%ij_start(i,j+1)-1
             cand_count = bidx%cand_start(idx) - 1
             call addReceiverCandidatesForCell(fluid_IB, itot, jtot, ktot, i, j, bidx%k(idx), &
-               diag_neighbs, bidx%fluid_keys, cand_count, bidx%cand_code, bidx%cand_i, &
-               bidx%cand_j, bidx%cand_k, bidx%cand_fluid_id)
+               diag_neighbs, bidx%fluid_keys, fluid_start, jk_fluid_count, cand_count, &
+               bidx%cand_code, bidx%cand_i, bidx%cand_j, bidx%cand_k, bidx%cand_fluid_id)
          end do
       end do
    end do
@@ -610,79 +610,81 @@ end subroutine buildBoundaryIndex
 
 
 subroutine addReceiverCandidatesForCell(fluid_IB, itot, jtot, ktot, i, j, k, diag_neighbs, &
-   fluid_keys, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+   fluid_keys, fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
    implicit none
    integer, intent(in) :: itot, jtot, ktot, i, j, k
    logical, intent(in), dimension(itot,jtot,ktot) :: fluid_IB
    logical, intent(in) :: diag_neighbs
    integer(int64), intent(in), dimension(:) :: fluid_keys
+   integer, intent(in), dimension(:,:) :: fluid_start, fluid_count
    integer, intent(inout) :: cand_count
    integer, intent(inout), optional, dimension(:) :: cand_code, cand_i, cand_j, cand_k, cand_fluid_id
 
    call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j, k, 2, fluid_keys, &
-      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
    call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j, k, 3, fluid_keys, &
-      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
    call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j-1, k, 4, fluid_keys, &
-      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
    call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j+1, k, 5, fluid_keys, &
-      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
    call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j, k-1, 6, fluid_keys, &
-      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
    call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j, k+1, 7, fluid_keys, &
-      cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+      fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
 
    if (diag_neighbs) then
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j-1, k, 8, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j+1, k, 9, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j-1, k, 10, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j+1, k, 11, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j, k-1, 12, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j, k+1, 13, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j, k-1, 14, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j, k+1, 15, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j-1, k-1, 16, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j-1, k+1, 17, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j+1, k-1, 18, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i, j+1, k+1, 19, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j-1, k-1, 20, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j-1, k-1, 21, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j+1, k-1, 22, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j+1, k-1, 23, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j-1, k+1, 24, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j-1, k+1, 25, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i-1, j+1, k+1, 26, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
       call addCandidateIfFluid(fluid_IB, itot, jtot, ktot, i+1, j+1, k+1, 27, fluid_keys, &
-         cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+         fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
    end if
 end subroutine addReceiverCandidatesForCell
 
 
 subroutine addCandidateIfFluid(fluid_IB, itot, jtot, ktot, ci, cj, ck, code, fluid_keys, &
-   cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
+   fluid_start, fluid_count, cand_count, cand_code, cand_i, cand_j, cand_k, cand_fluid_id)
    implicit none
    integer, intent(in) :: itot, jtot, ktot, ci, cj, ck, code
    logical, intent(in), dimension(itot,jtot,ktot) :: fluid_IB
    integer(int64), intent(in), dimension(:) :: fluid_keys
+   integer, intent(in), dimension(:,:) :: fluid_start, fluid_count
    integer, intent(inout) :: cand_count
    integer, intent(inout), optional, dimension(:) :: cand_code, cand_i, cand_j, cand_k, cand_fluid_id
 
@@ -697,7 +699,8 @@ subroutine addCandidateIfFluid(fluid_IB, itot, jtot, ktot, ci, cj, ck, code, flu
       cand_i(cand_count) = ci
       cand_j(cand_count) = cj
       cand_k(cand_count) = ck
-      cand_fluid_id(cand_count) = fluidIdFromKey(fluid_keys, cellKey(ci, cj, ck, itot, ktot))
+      cand_fluid_id(cand_count) = fluidIdFromCell(fluid_keys, fluid_start, fluid_count, &
+         ci, cj, ck, itot, ktot)
    end if
 end subroutine addCandidateIfFluid
 
@@ -711,19 +714,38 @@ integer(int64) function cellKey(i, j, k, itot, ktot)
 end function cellKey
 
 
-integer function fluidIdFromKey(fluid_keys, key)
+integer function fluidIdFromCell(fluid_keys, fluid_start, fluid_count, i, j, k, itot, ktot)
+   implicit none
+   integer(int64), intent(in), dimension(:) :: fluid_keys
+   integer, intent(in), dimension(:,:) :: fluid_start, fluid_count
+   integer, intent(in) :: i, j, k, itot, ktot
+   integer :: first, last
+
+   if (fluid_count(j,k) <= 0) then
+      fluidIdFromCell = 0
+      return
+   end if
+
+   first = fluid_start(j,k)
+   last = first + fluid_count(j,k) - 1
+   fluidIdFromCell = fluidIdFromKeyRange(fluid_keys, cellKey(i, j, k, itot, ktot), first, last)
+end function fluidIdFromCell
+
+
+integer function fluidIdFromKeyRange(fluid_keys, key, first, last)
    implicit none
    integer(int64), intent(in), dimension(:) :: fluid_keys
    integer(int64), intent(in) :: key
+   integer, intent(in) :: first, last
    integer :: lo, hi, mid
 
-   lo = 1
-   hi = size(fluid_keys)
-   fluidIdFromKey = 0
+   lo = first
+   hi = last
+   fluidIdFromKeyRange = 0
    do while (lo <= hi)
       mid = (lo + hi) / 2
       if (fluid_keys(mid) == key) then
-         fluidIdFromKey = mid
+         fluidIdFromKeyRange = mid
          return
       elseif (fluid_keys(mid) < key) then
          lo = mid + 1
@@ -731,7 +753,7 @@ integer function fluidIdFromKey(fluid_keys, key)
          hi = mid - 1
       end if
    end do
-end function fluidIdFromKey
+end function fluidIdFromKeyRange
 
 
 integer function lowerBoundInt(values, first, last, target)
