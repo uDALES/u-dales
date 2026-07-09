@@ -91,6 +91,13 @@ class ForcingSection(Section):
         """Update prof.inp with nudging data."""
         if self.sim is None:
             raise ValueError("UDBase instance must be provided")
+
+        def _warn_keep_original(reason: str) -> None:
+            warnings.warn(
+                f"Profile sourcefile {profsourcefile!r} is {reason}; "
+                "original prof.inp is kept without updating although time dependent nudging is true.",
+                stacklevel=1,
+            )
         
         path = Path(self.path) / f"prof.inp.{self.expnr}"
         if path.exists():
@@ -98,20 +105,49 @@ class ForcingSection(Section):
         else:
             raise FileNotFoundError(f"prof.inp file {path} not found for updating from nudge data.")
         
+        if profsourcefile is None or not str(profsourcefile).strip():
+            _warn_keep_original("empty or not set")
+            return
+
         path = Path(profsourcefile)
-        if path.exists():
-            warnings.warn(f"Using profile sourcefile {path} for prof.inp generation with time dependent nudging.", stacklevel=1)
-            prdata = self.sim.read_matrix(path,1)
-            if prdata[0, 0] > 0:
-                prdata = np.vstack(([0.0, 0.0, 0.0, 293.0, 0.0], prdata))  # add a surface point if not present in source file
+        if not path.is_absolute():
+            path = Path(self.path) / path
+        if not path.is_file():
+            _warn_keep_original(f"not a valid file at {path}")
+            return
+
+        try:
+            prdata = self.sim.read_matrix(path, 1)
+        except Exception as exc:
+            _warn_keep_original(f"invalid ({exc})")
+            return
+
+        prdata = np.asarray(prdata, dtype=float)
+        if prdata.size == 0:
+            _warn_keep_original("empty")
+            return
+        prdata = np.atleast_2d(prdata)
+        if prdata.shape[1] < 5:
+            _warn_keep_original(f"invalid; expected at least 5 columns, found {prdata.shape[1]}")
+            return
+        prdata = prdata[:, :5]
+
+        if prdata[0, 0] > 0:
+            prdata = np.vstack(([0.0, 0.0, 0.0, 293.0, 0.0], prdata))  # add a surface point if not present in source file
+        if prdata.shape[0] < 2 or np.any(np.diff(prdata[:, 0]) <= 0):
+            _warn_keep_original("invalid; height column must contain at least two strictly increasing values")
+            return
+
+        try:
             pr[:, 1] = CubicSpline(prdata[:, 0], prdata[:, 3])(pr[:, 0])
             pr[:, 2] = CubicSpline(prdata[:, 0], prdata[:, 4])(pr[:, 0])
             pr[:, 3] = CubicSpline(prdata[:, 0], prdata[:, 1])(pr[:, 0])
             pr[:, 4] = CubicSpline(prdata[:, 0], prdata[:, 2])(pr[:, 0])
-        else:
-            warnings.warn(f"profile sourcefile {path} not found in case of time dependent nudging; original prof.inp is kept without updating.", stacklevel=1)
+        except Exception as exc:
+            _warn_keep_original(f"invalid ({exc})")
             return
 
+        warnings.warn(f"Using profile sourcefile {path} for prof.inp generation with time dependent nudging.", stacklevel=1)
         self.sim.pr = pr
         self.write_prof(force=True)  # overwrite prof.inp with updated profiles
 

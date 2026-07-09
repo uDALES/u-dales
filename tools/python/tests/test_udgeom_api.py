@@ -632,6 +632,29 @@ class TestUDGeomApi(unittest.TestCase):
             np.testing.assert_array_equal(geom.get_outline(), np.empty((0, 2), dtype=int))
             self.assertEqual(len(caught), 1)
 
+    def test_face_incenters_fall_back_to_centroids_for_collapsed_faces(self):
+        vertices = np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [2.0, 2.0, 3.0],
+                [2.0, 2.0, 3.0],
+                [2.0, 2.0, 3.0],
+            ],
+            dtype=float,
+        )
+        faces = np.array([[0, 1, 2], [3, 4, 5]], dtype=int)
+        geom = UDGeom(stl=trimesh.Trimesh(vertices=vertices, faces=faces, process=False))
+
+        with self.assertWarnsRegex(UserWarning, "fully collapsed"):
+            incenters = geom.face_incenters
+
+        expected_valid = np.array([1.0, 1.0, 0.0]) / (np.sqrt(2.0) + 2.0)
+        np.testing.assert_allclose(incenters[0], expected_valid)
+        np.testing.assert_allclose(incenters[1], [2.0, 2.0, 3.0])
+        self.assertTrue(np.isfinite(incenters).all())
+
     def test_check_accepts_valid_box_mesh(self):
         geom = UDGeom(stl=trimesh.creation.box(extents=(1.0, 1.0, 1.0)))
         report = check(geom)

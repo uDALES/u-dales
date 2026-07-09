@@ -246,6 +246,64 @@ class TestForcingSection(unittest.TestCase):
         data = np.loadtxt(self.workdir / "prof.inp.321", skiprows=2)
         np.testing.assert_allclose(data[:, 1], 295.0, rtol=1e-5)
 
+    def test_update_prof_from_nudge_data_invalid_sourcefile_warns_and_returns(self):
+        section = ForcingSection(
+            "forcing",
+            {"thl0": 295.0, "qt0": 0.005, "u0": 3.0, "v0": 0.0, "tke": 0.2, "lapse": 0.0},
+            sim=self.sim,
+            defaults={},
+        )
+        section.generate_prof()
+        section.write_prof()
+        original = (self.workdir / "prof.inp.321").read_text(encoding="ascii")
+        malformed = self.workdir / "malformed_prdata.dat"
+        malformed.write_text("z u v\n1.0 2.0 3.0\n", encoding="ascii")
+
+        with _warnings.catch_warnings(record=True) as caught:
+            _warnings.simplefilter("always")
+            section.update_prof_from_nudge_data(str(malformed))
+
+        self.assertTrue(any("original prof.inp is kept" in str(w.message) for w in caught))
+        self.assertEqual((self.workdir / "prof.inp.321").read_text(encoding="ascii"), original)
+
+    def test_update_prof_from_nudge_data_empty_sourcefile_warns_and_returns(self):
+        section = ForcingSection(
+            "forcing",
+            {"thl0": 295.0, "qt0": 0.005, "u0": 3.0, "v0": 0.0, "tke": 0.2, "lapse": 0.0},
+            sim=self.sim,
+            defaults={},
+        )
+        section.generate_prof()
+        section.write_prof()
+        original = (self.workdir / "prof.inp.321").read_text(encoding="ascii")
+        empty = self.workdir / "empty_prdata.dat"
+        empty.write_text("", encoding="ascii")
+
+        with _warnings.catch_warnings(record=True) as caught:
+            _warnings.simplefilter("always")
+            section.update_prof_from_nudge_data(str(empty))
+
+        self.assertTrue(any("original prof.inp is kept" in str(w.message) for w in caught))
+        self.assertEqual((self.workdir / "prof.inp.321").read_text(encoding="ascii"), original)
+
+    def test_update_prof_from_nudge_data_blank_sourcefile_warns_and_returns(self):
+        section = ForcingSection(
+            "forcing",
+            {"thl0": 295.0, "qt0": 0.005, "u0": 3.0, "v0": 0.0, "tke": 0.2, "lapse": 0.0},
+            sim=self.sim,
+            defaults={},
+        )
+        section.generate_prof()
+        section.write_prof()
+        original = (self.workdir / "prof.inp.321").read_text(encoding="ascii")
+
+        with _warnings.catch_warnings(record=True) as caught:
+            _warnings.simplefilter("always")
+            section.update_prof_from_nudge_data("")
+
+        self.assertTrue(any("original prof.inp is kept" in str(w.message) for w in caught))
+        self.assertEqual((self.workdir / "prof.inp.321").read_text(encoding="ascii"), original)
+
     def test_update_prof_from_nudge_data_applies_interpolation(self):
         from scipy.interpolate import CubicSpline
         section = ForcingSection(
