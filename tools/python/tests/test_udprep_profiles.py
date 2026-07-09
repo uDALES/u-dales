@@ -113,7 +113,7 @@ class TestForcingSection(unittest.TestCase):
         base = {
             "w_s": 0.0, "dqtdxls": 0.0, "dqtdyls": 0.0, "dqtdtls": 0.0, "R": 0.0,
             "luoutflowr": 0, "lvoutflowr": 0, "luvolflowr": 0, "lvvolflowr": 0,
-            "lprofforc": 0, "lcoriol": 0,
+            "lprofforc": 0, "lcoriol": 0, "lnudge": 0,
         }
         base.update(overrides)
         return base

@@ -209,7 +209,7 @@ class ForcingSection(Section):
 
         idriver = int(self.idriver)
         no_forcing = not any([self.luoutflowr, self.lvoutflowr, self.luvolflowr,
-                               self.lvvolflowr, self.lprofforc, self.lcoriol])
+                               self.lvvolflowr, self.lprofforc, self.lcoriol, self.lnudge])
         
         ldp = no_forcing and (idriver != 2)
         if ldp:
