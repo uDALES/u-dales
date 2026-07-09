@@ -9,11 +9,11 @@ Numerical comparison (max absolute error, # comments skipped):
   prof.inp.<exp>          lscale.inp.<exp>
   facetarea.inp.<exp>     facets.inp.<exp>
   facets_unused.<exp>     factypes.inp.<exp>
-  netsw.inp.<exp>         sveg.inp.<exp>         svf.inp.<exp>
+  netsw.inp.<exp>         sveg.inp.<exp>         svf.inp.<exp>      vfsparse.inp.<exp>
   heatpump.inp.<exp>
   trees.inp.<exp>         veg.inp.<exp>         veg_params.inp.<exp>
   scalar.inp.<exp>        scalarsourcep.inp.N.<exp>  scalarsourcel.inp.N.<exp>  (N = 1, 2, ...)
-  Tfacinit.inp.<exp>      Sdir.txt
+  Tfacinit.inp.<exp>      timedeplw.inp.<exp>      timedepsw.inp.<exp>      Sdir.txt
   facet_sections_c/u/v/w.txt
   fluid_boundary_c/u/v/w.txt
   solid_c/u/v/w.txt
@@ -95,9 +95,15 @@ def compare_text_file(filename: str, paths: list, counters: dict) -> None:
             print(line, end='')
 
 
-def compare_numeric_file(filename: str, paths: list, tolerance: float, counters: dict) -> None:
+def compare_numeric_file(
+    filename: str,
+    paths: list,
+    tolerance: float,
+    counters: dict,
+    skiprows: int = 0,
+) -> None:
     """Numerical comparison using numpy; comment lines starting with # are skipped.
-    Files that are empty (or contain only comments) are treated as identical if both are empty."""
+    Files that are empty (or contain only comments/header rows) are treated as identical if both are empty."""
     if np is None:
         print(f"[ERROR] numpy is required for numeric comparison of {filename}")
         sys.exit(1)
@@ -123,7 +129,7 @@ def compare_numeric_file(filename: str, paths: list, tolerance: float, counters:
             import warnings
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                data = np.loadtxt(path, comments='#')
+                data = np.loadtxt(path, comments='#', skiprows=skiprows)
             arrays.append(data)
         except Exception as e:
             print(f"[ERROR] {filename}: Failed to read {path}: {e}")
@@ -266,7 +272,7 @@ def run_comparison(dir1: str, exp_str1: str, dir2: str, exp_str2: str, tolerance
     # Facet-related input files
     for tag in (
         "facetarea.inp", "facets.inp", "facets_unused",
-        "factypes.inp", "svf.inp", "netsw.inp", "sveg.inp",
+        "factypes.inp", "svf.inp", "vfsparse.inp", "netsw.inp", "sveg.inp",
         "Tfacinit.inp", "heatpump.inp",
         "trees.inp", "veg.inp", "veg_params.inp",
     ):
@@ -274,6 +280,18 @@ def run_comparison(dir1: str, exp_str1: str, dir2: str, exp_str2: str, tolerance
             f"{tag}.{exp_str1}",
             pp(f"{tag}.{exp_str1}", f"{tag}.{exp_str2}"),
             tolerance, counters)
+
+    # timedeplw.inp has two text header rows followed by numeric data.
+    compare_numeric_file(
+        f"timedeplw.inp.{exp_str1}",
+        pp(f"timedeplw.inp.{exp_str1}", f"timedeplw.inp.{exp_str2}"),
+        tolerance, counters, skiprows=2)
+
+    # timedepsw.inp has one text header row followed by numeric time and facet data rows.
+    compare_numeric_file(
+        f"timedepsw.inp.{exp_str1}",
+        pp(f"timedepsw.inp.{exp_str1}", f"timedepsw.inp.{exp_str2}"),
+        tolerance, counters, skiprows=1)
 
     # vf.nc.inp: binary NetCDF file
     compare_netcdf_file(
