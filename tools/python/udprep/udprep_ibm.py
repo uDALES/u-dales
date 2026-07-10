@@ -137,13 +137,14 @@ class IBMSection(Section):
         stl = sim.geom.stl
         path = Path(sim.path) / f"facets.inp.{sim.expnr}"
         if self.read_types:
-            types_path = Path(self.types_path)
-            if not types_path:
+            if not str(self.types_path).strip():
                 raise ValueError("types_path must be specified if read_types is true in namoptions")
+            types_path = Path(self.types_path)
+            if not types_path.is_absolute():
+                types_path = Path(sim.path) / types_path
             if not types_path.is_file():
                 raise FileNotFoundError(f"Missing types file: {types_path}")
-            facet_types = np.loadtxt(types_path, skiprows=1 if types_path.suffix == ".txt" else 0)
-            facet_types = np.asarray(facet_types, dtype=int).reshape(-1)
+            facet_types = self._load_facet_types(types_path, len(stl.faces))
         else:
             facet_types = np.ones(len(stl.faces), dtype=int)
         with path.open("w", encoding="ascii", newline="\n") as f:
@@ -152,6 +153,25 @@ class IBMSection(Section):
                 f.write(f"{int(typ):-4d} {normal[0]:-4.4f} {normal[1]:-4.4f} {normal[2]:-4.4f}\n")
         sim.nfcts = len(stl.faces)
         sim.facet_types = facet_types
+
+    @staticmethod
+    def _load_facet_types(types_path: Path, expected_count: int) -> np.ndarray:
+        attempts: list[str] = []
+        for skiprows in (0, 1):
+            try:
+                loaded = np.loadtxt(types_path, skiprows=skiprows)
+            except ValueError as exc:
+                attempts.append(f"skiprows={skiprows}: {exc}")
+                continue
+            values = np.atleast_1d(np.asarray(loaded, dtype=int)).reshape(-1)
+            if len(values) == expected_count:
+                return values
+            attempts.append(f"skiprows={skiprows}: found {len(values)} value(s)")
+        detail = "; ".join(attempts)
+        raise ValueError(
+            f"Facet type file {types_path} does not contain the expected "
+            f"{expected_count} facet type value(s). Tried headerless and one-line-header reads: {detail}"
+        )
 
     def write_facets_unused(self) -> None:
         """Write facets_unused.<expnr> for facets without c-grid facet sections."""

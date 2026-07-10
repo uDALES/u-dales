@@ -98,7 +98,7 @@ if [ ! -d $DA_EXPDIR/$src ]; then
 fi
 
 # list of files to copy
-declare -a tocopy=("/namoptions." "/lscale.inp." "/prof.inp." "/probe.inp." "/scalar.inp." "/purifs.inp." "/trees.inp." "/veg.inp." "/veg_params.inp." "/sveg.inp." "/heatpump.inp." "/scals.inp." "/lad.inp." "/facetarea.inp." "/facets.inp." "/facets_unused." "/netsw.inp." "/svf.inp." "/Tfacinit.inp." "/vf.nc.inp." "/factypes.inp." "/timedepsw.inp." "/timedeplw.inp." "/timedepnudge.inp." "/vfsparse.inp.")
+declare -a tocopy=("/namoptions." "/facetarea.inp." "/facets.inp." "/facets_unused." "/factypes.inp." "/heatpump.inp." "/lad.inp." "/lscale.inp." "/netsw.inp." "/probe.inp." "/prof.inp." "/purifs.inp." "/scalar.inp." "/scals.inp." "/sveg.inp." "/svf.inp." "/Tfacinit.inp." "/timedeplw.inp." "/timedepnudge.inp." "/timedepsw.inp." "/trees.inp." "/veg.inp." "/veg_params.inp." "/vf.nc.inp." "/vfsparse.inp.")
 
 # copy and rename files
 case $case in
@@ -230,6 +230,7 @@ copy_files "solid_"
 copy_files "facet_sections_"
 copy_files "fluid_boundary_"
 copy_files "info"
+copy_files "info_fort"
 
 # copy any available scalar source files
 scalarsourcefiles=$DA_EXPDIR/$src/"scalarsource"*

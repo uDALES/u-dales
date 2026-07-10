@@ -303,6 +303,46 @@ class TestIBMSection(unittest.TestCase):
 
         self.assertEqual((self.workdir / "facets_unused.321").read_text(encoding="ascii"), "2,4\n")
 
+    def test_write_facets_reads_case_relative_headerless_type_file(self):
+        section = self._make_section(read_types=True, types_path="geom_facet_types.txt")
+        section.sim.geom = types.SimpleNamespace(
+            stl=types.SimpleNamespace(
+                faces=np.array([[0, 1, 2], [2, 3, 0], [0, 3, 4]], dtype=int),
+                face_normals=np.array(
+                    [
+                        [0.0, 0.0, 1.0],
+                        [0.0, 1.0, 0.0],
+                        [1.0, 0.0, 0.0],
+                    ],
+                    dtype=float,
+                ),
+            )
+        )
+        (self.workdir / "geom_facet_types.txt").write_text("1\n2\n4\n", encoding="ascii")
+
+        section.write_facets()
+
+        self.assertEqual(section.sim.facet_types.tolist(), [1, 2, 4])
+        lines = (self.workdir / "facets.inp.321").read_text(encoding="ascii").splitlines()
+        self.assertEqual(len(lines), 4)
+        self.assertTrue(lines[1].startswith("   1"))
+        self.assertTrue(lines[3].startswith("   4"))
+
+    def test_load_facet_types_accepts_one_line_header(self):
+        types_path = self.workdir / "types.txt"
+        types_path.write_text("type\n1\n2\n4\n", encoding="ascii")
+
+        values = IBMSection._load_facet_types(types_path, 3)
+
+        self.assertEqual(values.tolist(), [1, 2, 4])
+
+    def test_load_facet_types_rejects_wrong_count(self):
+        types_path = self.workdir / "types.txt"
+        types_path.write_text("1\n2\n", encoding="ascii")
+
+        with self.assertRaisesRegex(ValueError, "expected 3"):
+            IBMSection._load_facet_types(types_path, 3)
+
     def test_ray_direction_parses_lists_and_namoptions_strings(self):
         section = self._make_section(
             ray_dir_u=[1.0, 0.0, 0.0],

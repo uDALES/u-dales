@@ -378,14 +378,24 @@ class UDGeom:
         edge_b = np.linalg.norm(triangles[:, 0] - triangles[:, 2], axis=1)
         edge_c = np.linalg.norm(triangles[:, 0] - triangles[:, 1], axis=1)
         perimeter = edge_a + edge_b + edge_c
-        if np.any(perimeter <= 0.0):
-            raise ValueError("Degenerate triangle encountered while computing face incenters")
 
-        return (
+        incenters = (
             edge_a[:, None] * triangles[:, 0]
             + edge_b[:, None] * triangles[:, 1]
             + edge_c[:, None] * triangles[:, 2]
-        ) / perimeter[:, None]
+        )
+        valid = perimeter > 0.0
+        if np.any(valid):
+            incenters[valid] = incenters[valid] / perimeter[valid, None]
+        if np.any(~valid):
+            count = int(np.count_nonzero(~valid))
+            warnings.warn(
+                f"{count} fully collapsed triangle(s) encountered while computing face incenters; "
+                "using triangle centroids for those faces.",
+                stacklevel=2,
+            )
+            incenters[~valid] = np.mean(triangles[~valid], axis=1)
+        return incenters
 
     def get_buildings(self) -> List[trimesh.Trimesh]:
         """
