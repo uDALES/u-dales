@@ -135,14 +135,17 @@ contains
     ! Thijs Heus, Chiel van Heerwaarden, 15 June 2007
 
     use modglobal, only : ih,jh,kh,nsv, lmoist,lles, ib,ie,jb,je,kb,ke,imax,jmax,kmax,&
-         ihc,jhc,khc,ltempeq
+         ihc,jhc,khc,ltempeq, BCtopT, BCtopT_flux
     use modfields, only : up,vp,wp,e12p,thl0,thlp,qt0,qtp,sv0,svp,shear
-    use modsurfdata,only : ustar,thlflux,qtflux,svflux
+    use modsurfdata,only : ustar,thlflux,qtflux,svflux, wttop
+    use modboundary, only : fluxtop
     use modmpi, only : myid, comm3d, mpierr, my_real,nprocs
     implicit none
     integer n, proces
 
     call closure
+    if (ltempeq .and. BCtopT == BCtopT_flux) &
+        call fluxtop(thl0, ekh, wttop)
     call diffu(up)
     call diffv(vp)
     call diffw(wp)
