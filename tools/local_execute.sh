@@ -42,21 +42,22 @@ if [ -f config.sh ]; then
 fi
 
 ## check if required variables are set
-## or set default if not
-if [ -z $NCPU ]; then
-    NCPU=1
-fi;
 if [ -z $DA_WORKDIR ]; then
-    echo "Output top-level directory DA_WORKDIR must be set"
+    echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit
 fi;
 if [ -z $DA_BUILD ]; then
-    echo "Executable DA_BUILD must be set"
+    echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
     exit
 fi;
 if [ -z $DA_TOOLSDIR ]; then
-    echo "Script directory DA_TOOLSDIR must be set"
+    echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit
+fi;
+if [ -z $NCPU ]; then
+    echo "Number of CPU cores NCPU must be set inside $inputdir/config.sh"
+    echo "NCPU must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
+    exit 1
 fi;
 
 ## set the experiment output directory
