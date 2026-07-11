@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import os
 import sys
 import unittest
 from pathlib import Path
+import shutil
 from tempfile import TemporaryDirectory
+from unittest import mock
 
 import numpy as np
 from scipy import sparse
@@ -18,7 +21,15 @@ from _common import PYTHON_DIR  # noqa: E402
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
-from udgeom.view3d import compute_svf, read_view3d_output, stl_to_view3d, write_vf, write_vfsparse  # noqa: E402
+from udgeom.view3d import (  # noqa: E402
+    compute_svf,
+    load_view3d_runtime_env,
+    read_view3d_output,
+    resolve_view3d_exe,
+    stl_to_view3d,
+    write_vf,
+    write_vfsparse,
+)
 
 
 class TestView3DUtils(unittest.TestCase):
@@ -138,6 +149,41 @@ class TestView3DUtils(unittest.TestCase):
         self.assertIn("V    1 0.000000 0.000000 0.000000\r\n", content)
         self.assertIn("S    1      1      2      3      0      0      0      0      1f\r\n", content)
         self.assertTrue(content.endswith("End of Data\r\n"))
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_load_view3d_runtime_env_sources_shell_config(self) -> None:
+        config = self.workdir / "view3d_config.sh"
+        config.write_text(
+            "\n".join(
+                [
+                    "export VIEW3D_NUM_THREADS=7",
+                    "OMP_NUM_THREADS=7",
+                    'export VIEW3D_MAX_DENSE_MATRIX_GIB="${VIEW3D_MAX_DENSE_MATRIX_GIB:-112}"',
+                    "echo ignored stdout",
+                ]
+            )
+            + "\n",
+            encoding="ascii",
+        )
+
+        env, path = load_view3d_runtime_env(
+            base_env={"PATH": os.environ.get("PATH", ""), "VIEW3D_MAX_DENSE_MATRIX_GIB": "128"},
+            config_path=config,
+        )
+
+        self.assertEqual(path, config.resolve())
+        self.assertEqual(env["VIEW3D_NUM_THREADS"], "7")
+        self.assertEqual(env["OMP_NUM_THREADS"], "7")
+        self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "128")
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_resolve_view3d_exe_uses_configured_executable(self) -> None:
+        config = self.workdir / "view3d_config.sh"
+        custom_exe = self.workdir / "custom-view3d"
+        config.write_text(f'export VIEW3D_EXE="{custom_exe}"\n', encoding="ascii")
+
+        with mock.patch.dict(os.environ, {"VIEW3D_CONFIG": str(config)}):
+            self.assertEqual(resolve_view3d_exe(), custom_exe.resolve())
 
 
 if __name__ == "__main__":

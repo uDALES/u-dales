@@ -68,30 +68,54 @@ esac
 
 # go to experiment directory
 pushd "$case_path"
-	inputdir=$(pwd)
+inputdir=$(pwd)
 
-	## set experiment number via path
-	iexpnr="${inputdir: -3}"
+## set experiment number via path
+iexpnr="${inputdir: -3}"
 
-	## read in additional variables
-	if [ -f config.sh ]; then
-   	 source config.sh
-	else
-	 echo "config.sh must be set inside $inputdir"
-     exit 1
-	fi
+## read in additional variables
+if [ -f config.sh ]; then
+  source config.sh
+else
+  echo "config.sh must be set inside $inputdir"
+  exit 1
+fi
 
+## check if required variables are set
+if [ -z "${DA_TOOLSDIR:-}" ]; then
+  echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
+  exit 1
+fi;
+if [ -z "${DA_EXPDIR:-}" ]; then
+	echo "Experiment directory DA_EXPDIR must be set inside $inputdir/config.sh"
+	exit 1
+fi;
+if [ -z "${PREPROC_NCPU:-}" ]; then
+	echo "Number of CPU cores on each node PREPROC_NCPU must be set inside $inputdir/config.sh"
+	echo "PREPROC_NCPU must be equal to nompthreads set under &INPS in $inputdir/namoptions.$iexpnr"
+	exit 1
+fi;
+
+if [ "$start" == "c" ]; then
 	## check if required variables are set
-	if [ -z "${DA_TOOLSDIR:-}" ]; then
-	    echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
-	    exit 1
-	fi;
-	if [ -z "${DA_EXPDIR:-}" ]; then
-		echo "Experiment directory DA_EXPDIR must be set $inputdir/config.sh"
+	if [ -z "${PREPROC_WALLTIME:-}" ]; then
+		echo "Wall clock time PREPROC_WALLTIME must be set inside $inputdir/config.sh"
 		exit 1
 	fi;
+	if [ -z "${PREPROC_MEM:-}" ]; then
+		echo "Memory requirement PREPROC_MEM must be set inside $inputdir/config.sh"
+		exit 1
+	fi;
+fi
 
 popd
+
+export VIEW3D_CONFIG="${VIEW3D_CONFIG:-$DA_TOOLSDIR/view3d_config.sh}"
+if [ -f "$VIEW3D_CONFIG" ]; then
+	set -a
+	source "$VIEW3D_CONFIG"
+	set +a
+fi
 
 if [ "$route" == "python" ]; then
 	python_exe="$DA_TOOLSDIR/python/.venv/bin/python"
@@ -113,8 +137,8 @@ if [ "$start" == "c" ]; then
 ###### RUN SCRIPT through HPC job script
 cat <<EOF > pre-job.$iexpnr
 #!/bin/bash
-#PBS -l walltime=24:00:00
-#PBS -l select=1:ncpus=8:mem=128gb
+#PBS -l walltime=$PREPROC_WALLTIME
+#PBS -l select=1:ncpus=$PREPROC_NCPU:mem=${PREPROC_MEM}
 
 module load tools/prod
 module load GCC/14.2.0
@@ -127,6 +151,13 @@ export DA_EXPDIR="$DA_EXPDIR"
 export MATLAB_USE_USERWORK=0
 export PYTHONUNBUFFERED=1
 export GFORTRAN_UNBUFFERED_PRECONNECTED=1
+export PREPROC_NCPU="$PREPROC_NCPU"
+export VIEW3D_CONFIG="$VIEW3D_CONFIG"
+if [ -f "$VIEW3D_CONFIG" ]; then
+	set -a
+	source "$VIEW3D_CONFIG"
+	set +a
+fi
 
 EOF
 
