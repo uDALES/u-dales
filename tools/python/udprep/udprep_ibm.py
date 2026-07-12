@@ -201,8 +201,8 @@ class IBMSection(Section):
         out_path = Path(sim.path) / f"facets_unused.{sim.expnr}"
         with out_path.open("w", encoding="ascii", newline="\n") as f:
             if facets_unused.size:
-                f.write(",".join(str(int(facet)) for facet in facets_unused))
-                f.write("\n")
+                for facet in facets_unused:
+                    f.write(f"{int(facet)}\n")
 
     def write_facetarea(self) -> None:
         """Write facetarea.inp file (facet areas)."""
