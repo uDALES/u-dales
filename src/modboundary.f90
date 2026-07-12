@@ -27,8 +27,7 @@ module modboundary
    save
    private
    public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, bcp, bcpup, closurebc, &
-             xm_periodic, xT_periodic, xq_periodic, xs_periodic, ym_periodic, yT_periodic, yq_periodic, ys_periodic, &
-             fluxtop
+             xm_periodic, xT_periodic, xq_periodic, xs_periodic, ym_periodic, yT_periodic, yq_periodic, ys_periodic
    integer :: ksp = -1 !<    lowest level of sponge layer
    real, allocatable :: tsc(:) !<   damping coefficients to be used in grwdamp.
    real :: rnu0 = 2.75e-3
@@ -391,6 +390,48 @@ contains
    end subroutine boundary
 
 
+   subroutine reassure_fluxtop_boundary
+    use modglobal,      only : ltempeq, lmoist, nsv, &
+                               BCtopm, BCtopT, BCtopq, BCtops, &
+                               BCtopm_freeslip, BCtopm_pressure, &
+                               BCtopT_flux, BCtopq_flux, BCtops_flux
+    use modfields,      only : u0, v0, um, vm, thl0, thlm, qt0, qtm
+    use modsubgriddata, only : ekh, ekm
+    use modsurfdata,    only : wttop, wqtop, wsvtop
+    implicit none
+
+    select case(BCtopm)
+      case(BCtopm_freeslip)
+        !free-slip = zero-flux
+        call fluxtop(um, ekm, 0.0)
+        call fluxtop(u0, ekm, 0.0)
+        call fluxtop(vm, ekm, 0.0)
+        call fluxtop(v0, ekm, 0.0)
+      case(BCtopm_pressure)
+        call fluxtop(um, ekm, 0.0)
+        call fluxtop(u0, ekm, 0.0)
+        call fluxtop(vm, ekm, 0.0)
+        call fluxtop(v0, ekm, 0.0)
+      case default
+    end select
+
+    if (ltempeq .and. (BCtopT .eq. BCtopT_flux)) then
+      call fluxtop(thlm, ekh, wttop)
+      call fluxtop(thl0, ekh, wttop)
+    end if
+
+    if (lmoist .and. (BCtopq .eq. BCtopq_flux)) then
+      call fluxtop(qtm, ekh, wqtop)
+      call fluxtop(qt0, ekh, wqtop)
+    end if
+
+    if (nsv > 0 .and. (BCtops .eq. BCtops_flux)) then
+      call fluxtopscal(wsvtop)
+      call fluxtopscal(wsvtop)
+    end if
+   end subroutine reassure_fluxtop_boundary
+
+
    subroutine closurebc
      use modsubgriddata, only : ekm, ekh
      use modglobal,      only : ib, ie, jb, je, kb, ke, ih, jh, kh, numol, prandtlmoli, &
@@ -459,6 +500,8 @@ contains
          ekh(:, je + 1, :) = ekh(:, jb, :)
        end if
      end if
+
+     call reassure_fluxtop_boundary
 
    end subroutine closurebc
 
