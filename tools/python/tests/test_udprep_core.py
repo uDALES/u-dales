@@ -261,7 +261,7 @@ class TestIBMSection(unittest.TestCase):
 
         section.write_facets_unused()
 
-        self.assertEqual((self.workdir / "facets_unused.321").read_text(encoding="ascii"), "2,4,5\n")
+        self.assertEqual((self.workdir / "facets_unused.321").read_text(encoding="ascii"), "2\n4\n5\n")
 
     def test_write_facets_unused_writes_empty_file_when_all_facets_are_used(self):
         section = self._make_section(ltempeq=True)
