@@ -1235,7 +1235,7 @@ class TestUDGeomApi(unittest.TestCase):
                     "show_edges": False,
                     "show_ground": True,
                     "show": True,
-                    "backend": "plotly",
+                    "backend": None,
                 }
             ],
         )
@@ -1258,7 +1258,7 @@ class TestUDGeomApi(unittest.TestCase):
         self.assertEqual(
             geom.vis.calls,
             [{"angle_threshold": 30.0, "show_ground": False, "color_buildings": False,
-              "show": True, "backend": "plotly"}],
+              "show": True, "backend": None}],
         )
 
     def test_show_outline_forwards_show_flag_to_vis_facade(self):
@@ -1279,7 +1279,7 @@ class TestUDGeomApi(unittest.TestCase):
         self.assertEqual(
             geom.vis.calls,
             [{"angle_threshold": 45.0, "show_ground": True, "color_buildings": False,
-              "show": False, "backend": "plotly"}],
+              "show": False, "backend": None}],
         )
 
     def test_show_forwards_show_flag_to_vis_facade(self):
@@ -1307,7 +1307,7 @@ class TestUDGeomApi(unittest.TestCase):
                 "show_edges": False,
                 "show_ground": True,
                 "show": False,
-                "backend": "plotly",
+                "backend": None,
             }],
         )
 
@@ -1324,9 +1324,9 @@ class TestUDGeomApi(unittest.TestCase):
             False,
         )
 
-    def test_show_routes_to_pyvista_backend(self):
-        # pyvista=True is a back-compat alias that must route to the single
-        # show_geometry method with backend="pyvista" (no parallel *_pyvista).
+    def test_show_routes_backend_to_vis_facade(self):
+        # backend= selects the renderer via the single show_geometry method
+        # (no parallel *_pyvista methods, no pyvista= alias).
         class RecordingVis:
             def __init__(self):
                 self.calls = []
@@ -1338,7 +1338,7 @@ class TestUDGeomApi(unittest.TestCase):
         geom = UDGeom.__new__(UDGeom)
         geom.vis = RecordingVis()
 
-        result = UDGeom.show(geom, pyvista=True, show=False)
+        result = UDGeom.show(geom, backend="pyvista", show=False)
 
         self.assertEqual(result, "backend_result")
         self.assertEqual(len(geom.vis.calls), 1)

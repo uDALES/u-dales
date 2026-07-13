@@ -89,17 +89,21 @@ class UDGeom:
     >>> geom.save('box.stl')
     """
     
-    def __init__(self, path: Optional[Union[str, Path]] = None, 
-                 stl: Optional['trimesh.Trimesh'] = None):
+    def __init__(self, path: Optional[Union[str, Path]] = None,
+                 stl: Optional['trimesh.Trimesh'] = None,
+                 backend: str = "plotly"):
         """
         Initialize UDGeom object.
-        
+
         Parameters
         ----------
         path : str or Path, optional
             Path to geometry directory. If None, uses current directory.
         stl : trimesh.Trimesh, optional
             Pre-existing trimesh object.
+        backend : {"plotly", "pyvista"}, default="plotly"
+            Default rendering backend for the 3-D geometry plots
+            (overridable per call via ``backend=``).
         """
         if not TRIMESH_AVAILABLE:
             raise ImportError("trimesh is required for UDGeom. Install with: pip install trimesh")
@@ -123,7 +127,7 @@ class UDGeom:
         self._outline3d = None
         self._buildings = None
         self._face_to_building_map = None
-        self.vis = UDVis(self)
+        self.vis = UDVis(self, backend=backend)
     
     def load(self, filename: str):
         """
@@ -269,7 +273,7 @@ class UDGeom:
     def show(self, color_buildings: bool = True, plot_quiver: bool = False,
              normal_scale: float = 0.2,
              show_edges: bool = True, show_ground: bool = True, show: bool = True,
-             backend: str = "plotly", pyvista: bool = False):
+             backend: Optional[str] = None):
         """
         Visualize the geometry.
 
@@ -296,10 +300,9 @@ class UDGeom:
         show : bool, default=True
             If True, display the figure immediately. If False, only return the
             figure object.
-        backend : {"plotly", "pyvista"}, default="plotly"
-            Rendering backend.
-        pyvista : bool, default=False
-            Deprecated alias for ``backend="pyvista"``.
+        backend : {"plotly", "pyvista"}, optional
+            Rendering backend; defaults to the backend chosen when this UDGeom
+            was constructed (``UDGeom(..., backend=...)``).
 
         Returns
         -------
@@ -318,13 +321,11 @@ class UDGeom:
 
         Examples
         --------
-        >>> geom.show()  # Default: Plotly backend
-        >>> geom.show(backend="pyvista")  # PyVista backend
+        >>> geom.show()  # uses the geometry's default backend
+        >>> geom.show(backend="pyvista")  # override for this call
         >>> geom.show(color_buildings=False)  # Faster for large meshes
         >>> fig = geom.show(show=False)  # Build the figure without displaying it
         """
-        if pyvista:
-            backend = "pyvista"
         return self.vis.show_geometry(
             color_buildings=color_buildings,
             plot_quiver=plot_quiver,
@@ -791,8 +792,7 @@ class UDGeom:
         show_ground: bool = True,
         color_buildings: bool = False,
         show: bool = True,
-        backend: str = "plotly",
-        pyvista: bool = False,
+        backend: Optional[str] = None,
     ):
         """
         Plot the geometry with outline edges highlighted.
@@ -815,10 +815,9 @@ class UDGeom:
         show : bool, default=True
             If True, display the figure immediately. If False, only return the
             figure object.
-        backend : {"plotly", "pyvista"}, default="plotly"
-            Rendering backend.
-        pyvista : bool, default=False
-            Deprecated alias for ``backend="pyvista"``.
+        backend : {"plotly", "pyvista"}, optional
+            Rendering backend; defaults to the backend chosen when this UDGeom
+            was constructed (``UDGeom(..., backend=...)``).
 
         Raises
         ------
@@ -830,12 +829,10 @@ class UDGeom:
 
         Examples
         --------
-        >>> geom.show_outline()  # Default: Plotly backend
-        >>> geom.show_outline(backend="pyvista")  # PyVista backend
+        >>> geom.show_outline()  # uses the geometry's default backend
+        >>> geom.show_outline(backend="pyvista")  # override for this call
         >>> geom.show_outline(angle_threshold=30)  # More sensitive
         """
-        if pyvista:
-            backend = "pyvista"
         return self.vis.show_geometry_outline(
             angle_threshold=angle_threshold,
             show_ground=show_ground,

@@ -52,12 +52,15 @@ class MeshPrimitive:
     def resolved_face_colors(self) -> np.ndarray:
         """Return an (M, 4) float RGBA array in 0..1 for every face.
 
-        Resolves whichever colouring mode is set into explicit per-face colours
-        so both backends share identical scalar-to-colour mapping.
+        Resolves whichever colouring mode is set into explicit per-face colours.
+        This is the Plotly path; PyVista maps scalars through VTK instead, so the
+        two backends produce visually equivalent (not bit-identical) colours.
         """
         import matplotlib.pyplot as plt
 
         n = len(np.asarray(self.faces))
+        if n == 0:
+            return np.empty((0, 4), dtype=float)
         if self.scalars is not None:
             scal = np.asarray(self.scalars, dtype=float)
             valid = ~np.isnan(scal)
@@ -72,7 +75,7 @@ class MeshPrimitive:
             return out
         if self.face_colors is not None:
             fc = np.asarray(self.face_colors, dtype=float)
-            if fc.max() > 1.0:
+            if fc.size and fc.max() > 1.0:
                 fc = fc / 255.0
             if fc.shape[1] == 3:
                 fc = np.hstack([fc, np.ones((len(fc), 1))])
@@ -189,19 +192,25 @@ def render_scene(scene: Scene, backend: str = "plotly", show: bool = True):
 # --------------------------------------------------------------------------
 
 
+_PLOTLY_COLORSCALE = {"viridis": "Viridis", "greys": "Greys", "greys_r": "Greys_r"}
+
+
 def _render_plotly(scene: Scene, show: bool = True):
     try:
         import plotly.graph_objects as go
-        import plotly.io as pio
     except ImportError as exc:
         raise ImportError("plotly is required for the plotly backend. Install with: pip install plotly") from exc
 
-    pio.renderers.default = "notebook"
+    # NB: do not mutate pio.renderers.default here — that is process-global and
+    # would override a renderer the user configured for scripts/CLI. fig.show()
+    # uses Plotly's own configured default (auto-detects notebooks).
     fig = go.Figure()
 
     for mesh in scene.meshes:
-        verts = np.asarray(mesh.vertices, dtype=float)
         faces = np.asarray(mesh.faces, dtype=int)
+        if len(faces) == 0:
+            continue
+        verts = np.asarray(mesh.vertices, dtype=float)
         rgba = mesh.resolved_face_colors()
         opacity = float(mesh.opacity)
         trace = go.Mesh3d(
@@ -241,11 +250,44 @@ def _render_plotly(scene: Scene, show: bool = True):
 
     for ps in scene.points:
         pts = np.asarray(ps.points, dtype=float)
+        if pts.size == 0:
+            continue
         fig.add_trace(go.Scatter3d(
             x=pts[:, 0], y=pts[:, 1], z=pts[:, 2], mode="markers",
             marker=dict(size=ps.size, color=ps.color, opacity=ps.opacity),
             name=ps.name,
         ))
+
+    # Colour bar for scalar meshes (attached via an invisible marker trace so it
+    # coexists with the per-face colouring). Rendered by both backends now.
+    if scene.colorbar is not None:
+        scalar_meshes = [m for m in scene.meshes
+                         if m.scalars is not None and len(np.asarray(m.faces))]
+        if scalar_meshes:
+            m0 = scalar_meshes[0]
+            sc = np.asarray(m0.scalars, dtype=float)
+            valid = ~np.isnan(sc)
+            if m0.clim is not None:
+                cmin, cmax = m0.clim
+            elif np.any(valid):
+                cmin, cmax = float(np.nanmin(sc[valid])), float(np.nanmax(sc[valid]))
+            else:
+                cmin, cmax = 0.0, 1.0
+            fig.add_trace(go.Scatter3d(
+                x=[float(scene.compute_bounds()[0][0])],
+                y=[float(scene.compute_bounds()[0][1])],
+                z=[float(scene.compute_bounds()[0][2])],
+                mode="markers",
+                marker=dict(
+                    size=0.1, opacity=0.0,
+                    color=[cmin], cmin=cmin, cmax=cmax, showscale=True,
+                    colorscale=_PLOTLY_COLORSCALE.get(m0.cmap.lower(), "Viridis"),
+                    colorbar=dict(title=scene.colorbar.title,
+                                  tickformat=scene.colorbar.fmt.lstrip("%"),
+                                  len=0.7),
+                ),
+                hoverinfo="skip", showlegend=False,
+            ))
 
     for g in scene.glyphs:
         base = np.asarray(g.points, dtype=float)
@@ -264,15 +306,17 @@ def _render_plotly(scene: Scene, show: bool = True):
     mins, maxs = scene.compute_bounds()
     az, el, dist = np.deg2rad(225.0), np.deg2rad(20.0), 1.75
     lx, ly, lz = scene.axis_labels
+    # visible=False hides the axis line, ticks, labels and title together.
+    _axis_extra = {} if scene.show_axes else dict(visible=False)
     fig.update_layout(
         title=scene.title,
         showlegend=False,
         margin=dict(l=0, r=0, b=0, t=40, pad=0),
         scene=dict(
             aspectmode="data",
-            xaxis=dict(title=lx, range=[float(mins[0]), float(maxs[0])], showgrid=False, showbackground=False),
-            yaxis=dict(title=ly, range=[float(mins[1]), float(maxs[1])], showgrid=False, showbackground=False),
-            zaxis=dict(title=lz, range=[float(mins[2]), float(maxs[2])], showgrid=False, showbackground=False),
+            xaxis=dict(title=lx, range=[float(mins[0]), float(maxs[0])], showgrid=False, showbackground=False, **_axis_extra),
+            yaxis=dict(title=ly, range=[float(mins[1]), float(maxs[1])], showgrid=False, showbackground=False, **_axis_extra),
+            zaxis=dict(title=lz, range=[float(mins[2]), float(maxs[2])], showgrid=False, showbackground=False, **_axis_extra),
             camera=dict(
                 projection=dict(type="orthographic"),
                 eye=dict(
@@ -313,8 +357,10 @@ def _render_pyvista(scene: Scene, show: bool = True):
     plotter.enable_parallel_projection()
 
     for mesh in scene.meshes:
-        verts = np.asarray(mesh.vertices, dtype=float)
         faces = np.asarray(mesh.faces, dtype=np.int64)
+        if len(faces) == 0:
+            continue
+        verts = np.asarray(mesh.vertices, dtype=float)
         poly = pv.PolyData(verts, _faces_to_pyvista(faces))
         common = dict(show_edges=mesh.show_edges, name=mesh.name or None)
         if mesh.show_edges:
@@ -330,7 +376,7 @@ def _render_pyvista(scene: Scene, show: bool = True):
                              nan_color=mesh.nan_color, show_scalar_bar=False, **common)
         elif mesh.face_colors is not None:
             fc = np.asarray(mesh.face_colors, dtype=float)
-            if fc.max() > 1.0:
+            if fc.size and fc.max() > 1.0:
                 fc = fc / 255.0
             poly.cell_data["rgb"] = fc[:, :3]
             plotter.add_mesh(poly, scalars="rgb", rgb=True, show_scalar_bar=False, **common)
@@ -338,8 +384,10 @@ def _render_pyvista(scene: Scene, show: bool = True):
             plotter.add_mesh(poly, color=mesh.solid_color or GROUND_RGB, **common)
 
     for ln in scene.lines:
-        verts = np.asarray(ln.vertices, dtype=float)
         segs = np.asarray(ln.segments, dtype=np.int64)
+        if len(segs) == 0:
+            continue
+        verts = np.asarray(ln.vertices, dtype=float)
         cells = np.empty((len(segs), 3), dtype=np.int64)
         cells[:, 0] = 2
         cells[:, 1:] = segs
@@ -349,12 +397,18 @@ def _render_pyvista(scene: Scene, show: bool = True):
         plotter.add_mesh(line_poly, color=ln.color, line_width=ln.width, name=ln.name or None)
 
     for ps in scene.points:
-        plotter.add_mesh(pv.PolyData(np.asarray(ps.points, dtype=float)),
+        pts = np.asarray(ps.points, dtype=float)
+        if pts.size == 0:
+            continue
+        plotter.add_mesh(pv.PolyData(pts),
                          color=ps.color, point_size=ps.size, opacity=ps.opacity,
                          render_points_as_spheres=True, name=ps.name or None)
 
     for g in scene.glyphs:
-        arrows = pv.PolyData(np.asarray(g.points, dtype=float))
+        gpts = np.asarray(g.points, dtype=float)
+        if gpts.size == 0:
+            continue
+        arrows = pv.PolyData(gpts)
         arrows["vectors"] = np.asarray(g.vectors, dtype=float)
         glyphs = arrows.glyph(orient="vectors", scale=False, factor=g.scale)
         plotter.add_mesh(glyphs, color=g.color, name=g.name or None)

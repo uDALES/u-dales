@@ -82,6 +82,7 @@ class UDBase:
         path: Optional[Union[str, Path]] = None,
         load_geometry: bool = True,
         suppress_load_warnings: bool = False,
+        backend: str = "plotly",
     ):
         """
         Initialize a UDBase instance.
@@ -197,7 +198,7 @@ class UDBase:
 
         # Visualization facade. `UDBase` owns the simulation state; `self.vis`
         # provides plotting methods on top of that state.
-        self.vis = UDVis(self)
+        self.vis = UDVis(self, backend=backend)
     
     def _read_namoptions(self):
         """
@@ -1464,18 +1465,15 @@ class UDBase:
         return self.vis.plot_trees(show=show)
     
     def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None,
-                 show: bool = True, backend: str = "plotly", pyvista: bool = False):
+                 show: bool = True, backend: Optional[str] = None):
         """Plot facet data as a 3D surface.
 
         Parameters
         ----------
-        backend : {"plotly", "pyvista"}, default="plotly"
-            Rendering backend.
-        pyvista : bool, default=False
-            Deprecated alias for ``backend="pyvista"``.
+        backend : {"plotly", "pyvista"}, optional
+            Rendering backend; defaults to the backend chosen when this UDBase
+            was constructed (``UDBase(..., backend=...)``).
         """
-        if pyvista:
-            backend = "pyvista"
         return self.vis.plot_fac(var=var, building_ids=building_ids, show=show, backend=backend)
     
     def _create_colored_mesh(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):

@@ -41,9 +41,16 @@ class UDVis:
     API churn in calling code.
     """
 
-    def __init__(self, sim: Any):
+    def __init__(self, sim: Any, backend: str = "plotly"):
         self.sim = None if hasattr(sim, "stl") else sim
         self.geom = sim if hasattr(sim, "stl") else getattr(sim, "geom", None)
+        # Default rendering backend for the 3-D scene plots; set once here so it
+        # need not be passed to every call. Individual calls may still override
+        # it with a ``backend=`` argument.
+        self.backend = backend
+
+    def _resolve_backend(self, backend: Optional[str]) -> str:
+        return backend if backend is not None else self.backend
 
     @staticmethod
     def _set_equal_axes_matplotlib(ax, vertices: np.ndarray) -> None:
@@ -80,7 +87,7 @@ class UDVis:
         show_edges: bool = True,
         show_ground: bool = True,
         show: bool = True,
-        backend: str = "plotly",
+        backend: Optional[str] = None,
     ):
         """
         Visualize a geometry mesh.
@@ -100,8 +107,9 @@ class UDVis:
         show : bool, default=True
             If True, display immediately and return ``None``; otherwise return
             the backend figure/plotter object.
-        backend : {"plotly", "pyvista"}, default="plotly"
-            Rendering backend.
+        backend : {"plotly", "pyvista"}, optional
+            Rendering backend; defaults to the backend set on this UDVis
+            instance (``sim.vis.backend``, itself set from the constructor).
 
         Returns
         -------
@@ -146,7 +154,7 @@ class UDVis:
             scene.glyphs.append(GlyphSet(points=face_centers, vectors=face_normals,
                                          scale=normal_scale, color="red", name="normals"))
 
-        return render_scene(scene, backend=backend, show=show)
+        return render_scene(scene, backend=self._resolve_backend(backend), show=show)
 
     def show_geometry_outline(
         self,
@@ -154,7 +162,7 @@ class UDVis:
         show_ground: bool = True,
         color_buildings: bool = False,
         show: bool = True,
-        backend: str = "plotly",
+        backend: Optional[str] = None,
     ):
         """
         Plot a geometry mesh with detected outline edges highlighted.
@@ -172,8 +180,9 @@ class UDVis:
         show : bool, default=True
             If True, display immediately and return ``None``; otherwise return
             the backend figure/plotter object.
-        backend : {"plotly", "pyvista"}, default="plotly"
-            Rendering backend.
+        backend : {"plotly", "pyvista"}, optional
+            Rendering backend; defaults to the backend set on this UDVis
+            instance (``sim.vis.backend``, itself set from the constructor).
 
         Returns
         -------
@@ -220,7 +229,7 @@ class UDVis:
             title=f"Geometry Outline ({len(outline_edges)} edges)",
             bounds=(vertices.min(axis=0), vertices.max(axis=0)),
         )
-        return render_scene(scene, backend=backend, show=show)
+        return render_scene(scene, backend=self._resolve_backend(backend), show=show)
 
     def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False):
         """Plot vegetation points on top of the geometry.
@@ -660,7 +669,7 @@ class UDVis:
         return np.asarray(outline_edges, dtype=int).reshape(-1, 2)
 
     def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None,
-                 show: bool = True, backend: str = "plotly"):
+                 show: bool = True, backend: Optional[str] = None):
         """Plot facet data as a 3D surface.
 
         Parameters
@@ -672,8 +681,9 @@ class UDVis:
         show : bool, default=True
             If True, display immediately and return ``None``; otherwise only
             build and return the figure/plotter.
-        backend : {"plotly", "pyvista"}, default="plotly"
-            Rendering backend.
+        backend : {"plotly", "pyvista"}, optional
+            Rendering backend; defaults to the backend set on this UDVis
+            instance (``sim.vis.backend``, itself set from the constructor).
 
         Returns
         -------
@@ -720,7 +730,7 @@ class UDVis:
         if len(segments):
             scene.lines.append(LineSet(vertices, segments, color="black", width=2, lift_ground=True))
 
-        return render_scene(scene, backend=backend, show=show)
+        return render_scene(scene, backend=self._resolve_backend(backend), show=show)
 
     def plot_independent_surfaces(self, show: bool = True, return_result: bool = False):
         """

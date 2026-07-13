@@ -60,7 +60,7 @@ class TestUDBaseVisualizationCompatibility(unittest.TestCase):
         self.assertEqual(result, "plot_fac_result")
         self.assertEqual(
             sim.vis.calls,
-            [("plot_fac", {"var": "dummy_var", "building_ids": [1, 2], "show": False, "backend": "plotly"})],
+            [("plot_fac", {"var": "dummy_var", "building_ids": [1, 2], "show": False, "backend": None})],
         )
 
     def test_udbase_plot_2dmap_forwards_to_vis_facade(self):
@@ -612,6 +612,49 @@ class TestBackendSelection(unittest.TestCase):
         # The refactor collapses the parallel *_pyvista methods into a backend arg.
         for name in ("show_geometry_pyvista", "show_geometry_outline_pyvista", "plot_fac_pyvista"):
             self.assertFalse(hasattr(UDVis, name), f"{name} should have been removed")
+
+    def test_constructor_backend_is_the_default_and_overridable(self):
+        import trimesh
+
+        from udgeom import UDGeom
+
+        geom = UDGeom(stl=trimesh.creation.box(extents=(1.0, 1.0, 1.0)), backend="pyvista")
+        self.assertEqual(geom.vis.backend, "pyvista")
+        # backend=None on a call resolves to the instance default...
+        self.assertEqual(geom.vis._resolve_backend(None), "pyvista")
+        # ...but an explicit per-call backend overrides it.
+        self.assertEqual(geom.vis._resolve_backend("plotly"), "plotly")
+        # default when unspecified is plotly
+        self.assertEqual(UDVis(sim=geom).backend, "plotly")
+
+    def test_pyvista_default_backend_routes_without_per_call_arg(self):
+        import trimesh
+
+        from udgeom import UDGeom
+
+        geom = UDGeom(stl=trimesh.creation.box(extents=(1.0, 1.0, 1.0)), backend="pyvista")
+        calls = {}
+        geom.vis.__dict__  # ensure real instance
+        import udvis.scene as scene_mod
+
+        orig = scene_mod.render_scene
+
+        def spy(scene, backend="plotly", show=True):
+            calls["backend"] = backend
+            return "sentinel"
+
+        scene_mod.render_scene = spy
+        # udbase_vis imported render_scene by name, patch there too
+        import udvis.udbase_vis as vis_mod
+        orig_vis = vis_mod.render_scene
+        vis_mod.render_scene = spy
+        try:
+            result = geom.vis.show_geometry(show=False)  # no backend= passed
+        finally:
+            scene_mod.render_scene = orig
+            vis_mod.render_scene = orig_vis
+        self.assertEqual(result, "sentinel")
+        self.assertEqual(calls["backend"], "pyvista")
 
     @unittest.skipUnless(
         importlib.util.find_spec("pyvista")
