@@ -17,6 +17,10 @@ description: Run curated test selections by support level from tests/test_suites
 # - `kind` is about technical scope, not CI policy
 # - `supported-macos` is a temporary compatibility group, not the long-term
 #   preferred schema shape
+# - `python-library` is the single source of truth for the tools/python test
+#   inventory. It uses `unittest discover`, so new test_*.py files are picked up
+#   automatically. `supported`/`supported-macos` include it rather than
+#   re-enumerating modules, so no test file can be silently dropped from the gate.
 
 groups:
   python-library:
@@ -80,141 +84,9 @@ groups:
           - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
 
   supported:
+    includes:
+      - python-library
     suites:
-      - label: "supported: python namelist unit"
-        class: supported
-        kind: unit
-        component: python
-        platform: linux
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "discover"
-          - "-s"
-          - "{repo_root}/tools/python/tests"
-          - "-p"
-          - "test_namelist.py"
-      - label: "supported: python solar unit"
-        class: supported
-        kind: unit
-        component: python
-        platform: linux
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "discover"
-          - "-s"
-          - "{repo_root}/tools/python/tests"
-          - "-p"
-          - "test_solar.py"
-      - label: "supported: python udbase unit"
-        class: supported
-        kind: unit
-        component: udbase
-        platform: linux
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "tools.python.tests.test_udbase_core"
-          - "tools.python.tests.test_udbase_vis"
-      - label: "supported: python directshortwave unit"
-        class: supported
-        kind: unit
-        component: directshortwave
-        platform: linux
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "discover"
-          - "-s"
-          - "{repo_root}/tools/python/tests"
-          - "-p"
-          - "test_directshortwave.py"
-      - label: "supported: python directshortwave periodic unit"
-        class: supported
-        kind: unit
-        component: directshortwave
-        platform: linux
-        cost: medium
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "discover"
-          - "-s"
-          - "{repo_root}/tools/python/tests"
-          - "-p"
-          - "test_directshortwave_periodic.py"
-      - label: "supported: directshortwave integration"
-        class: supported
-        kind: integration
-        component: directshortwave
-        platform: linux
-        cost: medium
-        command:
-          - "{python}"
-          - "{tests_dir}/integration/directshortwave/test_directshortwave.py"
-      - label: "supported: python udprep unit"
-        class: supported
-        kind: unit
-        component: udprep
-        platform: linux
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "tools.python.tests.test_udprep_core"
-          - "tools.python.tests.test_udprep_grid"
-          - "tools.python.tests.test_udprep_profiles"
-          - "tools.python.tests.test_udprep_scalars"
-          - "tools.python.tests.test_udprep_vegetation"
-      - label: "supported: python udgeom unit"
-        class: supported
-        kind: unit
-        component: udgeom
-        platform: linux
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "tools.python.tests.test_udgeom_against_matlab"
-          - "tools.python.tests.test_udgeom_api"
-          - "tools.python.tests.test_udgeom_outline_loops"
-          - "tools.python.tests.test_view3d_utils"
-      - label: "supported: udprep integration"
-        class: supported
-        kind: integration
-        component: udprep
-        platform: linux
-        cost: medium
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "discover"
-          - "-s"
-          - "{tests_dir}/integration/udprep"
-          - "-p"
-          - "test_*.py"
-      - label: "supported: udbase matlab integration"
-        class: supported
-        kind: reference
-        component: udbase
-        platform: linux
-        cost: medium
-        command:
-          - "{python}"
-          - "{tests_dir}/integration/udbase_against_matlab/test_udbase_against_matlab.py"
       - label: "supported: regression"
         class: supported
         kind: regression
@@ -257,152 +129,11 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
-      - label: "supported: python preprocessing reference integration"
-        class: supported
-        kind: reference
-        component: udprep
-        platform: linux
-        cost: medium
-        command:
-          - "{python}"
-          - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
 
   supported-macos:
+    includes:
+      - python-library
     suites:
-      - label: "supported: python namelist unit"
-        class: supported
-        kind: unit
-        component: python
-        platform: macos
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "discover"
-          - "-s"
-          - "{repo_root}/tools/python/tests"
-          - "-p"
-          - "test_namelist.py"
-      - label: "supported: python solar unit"
-        class: supported
-        kind: unit
-        component: python
-        platform: macos
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "discover"
-          - "-s"
-          - "{repo_root}/tools/python/tests"
-          - "-p"
-          - "test_solar.py"
-      - label: "supported: python udbase unit"
-        class: supported
-        kind: unit
-        component: udbase
-        platform: macos
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "tools.python.tests.test_udbase_core"
-          - "tools.python.tests.test_udbase_vis"
-      - label: "supported: python directshortwave unit"
-        class: supported
-        kind: unit
-        component: directshortwave
-        platform: macos
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "discover"
-          - "-s"
-          - "{repo_root}/tools/python/tests"
-          - "-p"
-          - "test_directshortwave.py"
-      - label: "supported: python directshortwave periodic unit"
-        class: supported
-        kind: unit
-        component: directshortwave
-        platform: macos
-        cost: medium
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "discover"
-          - "-s"
-          - "{repo_root}/tools/python/tests"
-          - "-p"
-          - "test_directshortwave_periodic.py"
-      - label: "supported: directshortwave integration"
-        class: supported
-        kind: integration
-        component: directshortwave
-        platform: macos
-        cost: medium
-        command:
-          - "{python}"
-          - "{tests_dir}/integration/directshortwave/test_directshortwave.py"
-      - label: "supported: python udprep unit"
-        class: supported
-        kind: unit
-        component: udprep
-        platform: macos
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "tools.python.tests.test_udprep_core"
-          - "tools.python.tests.test_udprep_grid"
-          - "tools.python.tests.test_udprep_profiles"
-          - "tools.python.tests.test_udprep_scalars"
-          - "tools.python.tests.test_udprep_vegetation"
-      - label: "supported: python udgeom unit"
-        class: supported
-        kind: unit
-        component: udgeom
-        platform: macos
-        cost: fast
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "tools.python.tests.test_udgeom_against_matlab"
-          - "tools.python.tests.test_udgeom_api"
-          - "tools.python.tests.test_udgeom_outline_loops"
-          - "tools.python.tests.test_view3d_utils"
-      - label: "supported: udprep integration"
-        class: supported
-        kind: integration
-        component: udprep
-        platform: macos
-        cost: medium
-        command:
-          - "{python}"
-          - "-m"
-          - "unittest"
-          - "discover"
-          - "-s"
-          - "{tests_dir}/integration/udprep"
-          - "-p"
-          - "test_*.py"
-      - label: "supported: udbase matlab integration"
-        class: supported
-        kind: reference
-        component: udbase
-        platform: macos
-        cost: medium
-        command:
-          - "{python}"
-          - "{tests_dir}/integration/udbase_against_matlab/test_udbase_against_matlab.py"
       - label: "supported: ibm sparse input integration"
         class: supported
         kind: integration
@@ -413,15 +144,6 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
-      - label: "supported: python preprocessing reference integration"
-        class: supported
-        kind: reference
-        component: udprep
-        platform: macos
-        cost: medium
-        command:
-          - "{python}"
-          - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
 
   experimental:
     suites:
