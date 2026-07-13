@@ -54,8 +54,7 @@ subroutine tstep_update
                         dzh2i
   use modfields, only : um,vm,wm
   use modsubgriddata, only : ekm,ekh
-  use mpi
-  use modmpi,    only : comm3d,mpierr,my_real
+  use modmpi,    only : comm3d,mpierr,my_real,mpi_max
   implicit none
 
   integer       :: i, j, k

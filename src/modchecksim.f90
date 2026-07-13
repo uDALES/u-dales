@@ -28,7 +28,6 @@
 !
 !
 module modchecksim
-  use mpi
   use modglobal, only : longint
 
   implicit none

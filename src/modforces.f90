@@ -35,7 +35,6 @@
 
 module modforces
   !Calculates additional forces and large scale tendencies
-  use mpi
   implicit none
   save
   private
