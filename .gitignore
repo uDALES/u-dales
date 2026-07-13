@@ -40,5 +40,6 @@ tmp/*
 **/__pycache__/
 *.pyc
 **/*.pyd
+tools/python/tests/.tmp/
 facets*.vs3
 tests/cases/**/*.fig

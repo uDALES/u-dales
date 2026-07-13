@@ -1,0 +1,7 @@
+# Optional PyVista/VTK visualization backend for uDALES Python tools.
+# Install alongside the core requirements when using the PyVista-backed plots
+# (e.g. geom.show(pyvista=True), sim.plot_fac(..., pyvista=True)):
+#     pip install -r requirements.txt -r requirements-pyvista.txt
+# Kept separate because it pulls in VTK, which is large and not needed for the
+# default Plotly/trimesh backend.
+pyvista>=0.32.0
