@@ -24,7 +24,7 @@ program uDALES
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : initmpi,exitmpi,myid,starttimer
+  use modmpi,            only : initmpi,exitmpi,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules

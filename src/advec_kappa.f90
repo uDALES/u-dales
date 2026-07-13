@@ -38,9 +38,7 @@
   subroutine advecc_kappa(hi, hj, hk, var, varp)
 
 !  use modglobal, only : i1,i2,ih,j1,j2,jh,k1,kmax,dxi,dyi,dzi
-     use modglobal, only:ib, ie, ihc, jb, je, jhc, kb, ke, khc, dxhci, dyi, dzhci, dxfc, dzfc, dxfci, dzfci, libm
-     use modibmdata, only:nxwallsnorm, nywallsnorm, nzwallsnorm, xwallsnorm, &
-        ywallsnorm, zwallsnorm, nywallsp, nywallsm, ywallsp, ywallsm
+     use modglobal, only:ib, ie, jb, je, kb, ke, dxhci, dyi, dzhci, dxfc, dzfc, dxfci, dzfci
      use modfields, only:u0, v0, w0
      implicit none
      real, external :: rlim
@@ -52,7 +50,7 @@
      real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)      ::  duml ! 3d dummy variable: lower cell side
      real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)      ::  dumu ! 3d dummy variable: upper cell side
 
-     integer i, j, k, il, iu, jl, ju, kl, ku, n
+     integer i, j, k
      real :: cf, d1, d2
 
      dumu(:, :, :) = 0.

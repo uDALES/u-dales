@@ -53,8 +53,7 @@ contains
     use modibm,       only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c
     use modibm,       only : nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c
     use initfac,      only : readfacetfiles
-    use decomp_2d,    only : zstart, zend, xstart, xend, ystart, yend
-    
+
     implicit none
     
     integer :: npts_loc_new
@@ -138,8 +137,7 @@ contains
   function compare_solid(solid_info, npts_loc_new, ids_loc_new, pts_loc_new, label) result(passed)
     use modmpi, only : myid
     use modibm, only : solid_info_type
-    use decomp_2d, only : zstart, zend
-    
+
     type(solid_info_type), intent(in) :: solid_info
     integer, intent(in) :: npts_loc_new
     integer, intent(in) :: ids_loc_new(:), pts_loc_new(:,:)
@@ -177,8 +175,7 @@ contains
   function compare_boundary(bound_info, npts_loc_new, ids_loc_new, pts_loc_new, label) result(passed)
     use modmpi, only : myid
     use modibm, only : bound_info_type
-    use decomp_2d, only : zstart, zend
-    
+
     type(bound_info_type), intent(in) :: bound_info
     integer, intent(in) :: npts_loc_new
     integer, intent(in) :: ids_loc_new(:), pts_loc_new(:,:)
@@ -293,7 +290,7 @@ contains
       end do
 
       got = 0.
-      call avexy_ibm(got, var_clean, ib, ie, jb, je, kb, ke, 0, 0, khc, mask_3d(ib:ie,jb:je,kb:ke+khc), mask_1d, .true.)
+      call avexy_ibm(got, var_clean, ib, ie, jb, je, kb, ke, khc, mask_3d(ib:ie,jb:je,kb:ke+khc), mask_1d, .true.)
 
       do k = kb, ke + khc
         sum_local(k) = sum(var_clean(ib:ie,jb:je,k) * real(mask_3d(ib:ie,jb:je,k)))
