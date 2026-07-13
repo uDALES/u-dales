@@ -1217,7 +1217,8 @@ class UDGeom:
             return (self.stl, report) if return_trimesh else (self, report)
         return (cleaned_geom.stl, report) if return_trimesh else (cleaned_geom, report)
 
-    def plot_independent_surfaces(self, show: bool = True, return_result: bool = False):
+    def plot_independent_surfaces(self, show: bool = True, return_result: bool = False,
+                                  backend: Optional[str] = None):
         """
         Visualize face-connected independent surfaces using face ids as colors.
 
@@ -1227,16 +1228,19 @@ class UDGeom:
             If True, display the figure immediately.
         return_result : bool, default=False
             If True, also return the independent-surface partition result.
+        backend : {"plotly", "pyvista"}, optional
+            Rendering backend; defaults to the backend chosen when this UDGeom
+            was constructed (``UDGeom(..., backend=...)``).
 
         Returns
         -------
         fig or (fig, result)
-            The decorated Plotly figure when ``show=False``; ``None`` when
-            ``show=True`` (the figure is displayed instead). When
-            ``return_result=True``, the surface partition result is returned
-            alongside, i.e. ``(fig, result)`` or ``(None, result)``.
+            The figure/plotter when ``show=False``; ``None`` when ``show=True``
+            (displayed instead). When ``return_result=True``, the surface
+            partition result is returned alongside, i.e. ``(fig, result)`` or
+            ``(None, result)``.
         """
-        return self.vis.plot_independent_surfaces(show=show, return_result=return_result)
+        return self.vis.plot_independent_surfaces(show=show, return_result=return_result, backend=backend)
     
     def _calculate_outline_edges(self, angle_threshold: float = 45.0) -> List[tuple]:
         """

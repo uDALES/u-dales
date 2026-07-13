@@ -1362,7 +1362,7 @@ class TestUDGeomApi(unittest.TestCase):
         fig = UDGeom.plot_independent_surfaces(geom, show=False)
 
         self.assertEqual(fig, "surface-figure")
-        self.assertEqual(geom.vis.calls, [{"show": False, "return_result": False}])
+        self.assertEqual(geom.vis.calls, [{"show": False, "return_result": False, "backend": None}])
 
     def test_plot_independent_surfaces_can_return_partition_result(self):
         class RecordingVis:
@@ -1380,7 +1380,7 @@ class TestUDGeomApi(unittest.TestCase):
 
         self.assertEqual(fig, "surface-figure")
         self.assertEqual(result["n_surfaces"], 2)
-        self.assertEqual(geom.vis.calls, [{"show": False, "return_result": True}])
+        self.assertEqual(geom.vis.calls, [{"show": False, "return_result": True, "backend": None}])
 
     def test_add_ground_respects_building_footprint_constraints(self):
         building_mesh = self._open_bottom_box_mesh()

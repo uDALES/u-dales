@@ -1443,21 +1443,24 @@ class UDBase:
 
         return out
     
-    def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False):
+    def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False,
+                 backend: Optional[str] = None):
         """Plot vegetation points on top of the geometry using the visualization facade."""
-        return self.vis.plot_veg(veg=veg, show=show)
+        return self.vis.plot_veg(veg=veg, show=show, backend=backend)
 
     def plot_scalar_source(
         self,
         scalar_sources: Optional[Dict[str, Dict[int, np.ndarray]]] = None,
         scalar_index: Optional[int] = None,
         show: bool = False,
+        backend: Optional[str] = None,
     ):
         """Plot scalar point and line sources on top of the geometry."""
         return self.vis.plot_scalar_source(
             scalar_sources=scalar_sources,
             scalar_index=scalar_index,
             show=show,
+            backend=backend,
         )
 
     def plot_trees(self, show: bool = False):
@@ -1511,14 +1514,16 @@ class UDBase:
             angle_threshold=angle_threshold,
         )
     
-    def plot_fac_type(self, building_ids: Optional[np.ndarray] = None, 
-                      show_outlines: bool = True, angle_threshold: float = 45.0, show: bool = True):
+    def plot_fac_type(self, building_ids: Optional[np.ndarray] = None,
+                      show_outlines: bool = True, angle_threshold: float = 45.0, show: bool = True,
+                      backend: Optional[str] = None):
         """Plot the different surface types in the geometry using the visualization facade."""
         return self.vis.plot_fac_type(
             building_ids=building_ids,
             show_outlines=show_outlines,
             angle_threshold=angle_threshold,
             show=show,
+            backend=backend,
         )
     
     def convert_fac_to_field(self, var: np.ndarray, facsec: Optional[Dict] = None,

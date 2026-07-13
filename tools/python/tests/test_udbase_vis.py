@@ -95,6 +95,7 @@ class TestUDBaseVisualizationCompatibility(unittest.TestCase):
                         "scalar_sources": {"point": {}, "line": {}},
                         "scalar_index": 2,
                         "show": False,
+                        "backend": None,
                     },
                 )
             ],
@@ -691,6 +692,64 @@ class TestBackendSelection(unittest.TestCase):
         self.assertIn("Independent Surfaces", fig.layout.title.text)
         self.assertTrue(fig.layout.showlegend)
         self.assertTrue(any(getattr(t, "mode", "") == "markers+text" for t in fig.data))
+
+    @staticmethod
+    def _vis_with_stub_sim(tmp_path):
+        """A UDVis whose sim exposes the minimal data the overlay plots need."""
+        import numpy as _np
+        import trimesh
+        from types import SimpleNamespace
+        from pathlib import Path
+
+        from udgeom import UDGeom
+
+        geom = UDGeom(stl=trimesh.creation.box(extents=(2.0, 2.0, 2.0)))
+        nf = geom.n_faces
+        grid = _np.linspace(0.0, 2.0, 6)
+        (Path(tmp_path) / "fluid_boundary_c.txt").write_text("1\n")
+        sim = SimpleNamespace(
+            _lfgeom=True, geom=geom, expnr="001", path=Path(tmp_path),
+            xt=grid, yt=grid, zt=grid, xm=grid, ym=grid, zm=grid,
+            ffacets="facets", ffactypes="factypes",
+            veg={"points": _np.array([[1, 1, 1], [2, 2, 2], [3, 3, 3]])},
+            Sc=_np.zeros((6, 6, 6), dtype=bool),
+            facs={"typeid": _np.array([1] * (nf // 2) + [2] * (nf - nf // 2))},
+            factypes={"id": _np.array([1, 2]), "name": _np.array(["wall", "roof"])},
+            load_scalar_sources=lambda: {
+                "point": {1: _np.array([[1, 1, 1, 1, 0.5]], dtype=float)},
+                "line": {1: _np.array([[0, 0, 0, 2, 2, 2, 1, 0.5]], dtype=float)},
+            },
+            _load_sparse_file=lambda *a, **k: _np.array([[0, 0, 0], [1, 1, 1]]),
+        )
+        sim.Sc[1, 1, 1] = True
+        sim.Sc[2, 2, 2] = True
+        return UDVis(sim, backend="pyvista")
+
+    @unittest.skipUnless(
+        importlib.util.find_spec("pyvista")
+        and importlib.util.find_spec("trimesh"),
+        "pyvista backend deps required",
+    )
+    def test_pyvista_backend_builds_all_overlay_plots(self):
+        import tempfile
+
+        import pyvista as pv
+
+        pv.OFF_SCREEN = True
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        vis = self._vis_with_stub_sim(tmp.name)
+        # These default to the instance backend ("pyvista"); no per-call backend.
+        for label, plotter in [
+            ("plot_veg", vis.plot_veg(show=False)),
+            ("plot_scalar_source", vis.plot_scalar_source(show=False)),
+            ("plot_solid", vis.plot_solid("c", show=False)),
+            ("plot_fluid_boundary", vis.plot_fluid_boundary("c", show=False)),
+            ("plot_fac_type", vis.plot_fac_type(show=False)),
+        ]:
+            self.assertIsInstance(plotter, pv.Plotter, label)
+            self.assertGreater(len(plotter.renderer.actors), 0, label)
+            plotter.close()
 
 
 if __name__ == "__main__":
