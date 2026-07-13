@@ -158,9 +158,13 @@ mtime-keyed view-factor caching.
       `show_geometry`, `show_geometry_outline`, and `plot_fac` now build one `Scene` and dispatch by
       `backend=`; the three parallel `*_pyvista` methods are deleted and `pyvista=True` is a
       back-compat alias. `udbase_vis.py` 2063→1574 lines. Verified: 235 tests (incl. an off-screen
-      PyVista build test) — only the 2 pre-existing env failures. *Remaining:* migrate the
-      Plotly-only overlays (`plot_veg`, `plot_scalar_source`, `plot_solid`, `plot_fluid_boundary`,
-      `plot_fac_type`) onto `Scene` too, and retire `_render_scene`/`_render_plotly` once they do.
+      PyVista build test) — only the 2 pre-existing env failures. **Update:** all 3-D plots now
+      build a `Scene` and support `backend=` — the overlays (`plot_veg`, `plot_scalar_source`,
+      `plot_solid`, `plot_fluid_boundary`, `plot_fac_type`, `plot_independent_surfaces`) too; the
+      backend is set once on the `UDVis`/`UDGeom`/`UDBase` constructor (`pyvista=True` alias removed).
+      `Scene` grew colour-bar, legend and point-label support consumed by both renderers. A Linux CI
+      job exercises the PyVista backend off-screen. *Remaining:* retire the legacy
+      `_render_scene`/`_render_plotly` helpers (kept only for a couple of tests now).
 
 ### Tier 2 — Decompose & consolidate
 
