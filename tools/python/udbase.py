@@ -1463,8 +1463,16 @@ class UDBase:
         """Backward-compatible alias for plot_veg."""
         return self.vis.plot_trees(show=show)
     
-    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, show: bool = True):
-        """Plot facet data as a 3D surface."""
+    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, show: bool = True, pyvista: bool = False):
+        """Plot facet data as a 3D surface.
+
+        Parameters
+        ----------
+        pyvista : bool, default=False
+            If True, use the PyVista/VTK backend instead of Plotly.
+        """
+        if pyvista:
+            return self.vis.plot_fac_pyvista(var=var, building_ids=building_ids, show=show)
         return self.vis.plot_fac(var=var, building_ids=building_ids, show=show)
     
     def _create_colored_mesh(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):

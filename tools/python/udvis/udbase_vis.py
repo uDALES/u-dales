@@ -64,7 +64,7 @@ class UDVis:
     def show_geometry(
         self,
         color_buildings: bool = True,
-        plot_quiver: bool = True,
+        plot_quiver: bool = False,
         normal_scale: float = 0.2,
         show_edges: bool = True,
         show_ground: bool = True,
@@ -77,7 +77,7 @@ class UDVis:
         ----------
         color_buildings : bool, default=True
             If True, color buildings and ground differently.
-        plot_quiver : bool, default=True
+        plot_quiver : bool, default=False
             If True, overlay face-normal vectors.
         normal_scale : float, default=0.2
             Scale factor for normal vectors.
@@ -186,6 +186,9 @@ class UDVis:
                     zaxis=dict(range=[float(mins[2]), float(maxs[2])], title="z (m)"),
                 ),
             )
+            if show:
+                fig.show()
+                return None
         return fig
 
     def show_geometry_outline(
@@ -253,10 +256,27 @@ class UDVis:
                     zaxis=dict(range=[float(mins[2]), float(maxs[2])], title="z (m)"),
                 ),
             )
+            if show:
+                fig.show()
+                return None
         return fig
 
     def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False):
-        """Plot vegetation points on top of the geometry."""
+        """Plot vegetation points on top of the geometry.
+
+        Parameters
+        ----------
+        veg : dict, optional
+            Vegetation data; loaded from the case when omitted.
+        show : bool, default=False
+            If True, display the figure immediately and return None. If False
+            (default, unlike sibling methods), return the Plotly figure.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or None
+            The figure when ``show=False``; ``None`` when ``show=True``.
+        """
         if not self.sim._lfgeom or self.sim.geom is None:
             return self._missing_plot_data("Geometry data not found for plot_veg")
         if veg is None:
@@ -326,6 +346,7 @@ class UDVis:
         fig.update_layout(title=f"Geometry with Vegetation ({len(points)} points)")
         if show:
             fig.show()
+            return None
         return fig
 
     @staticmethod
@@ -657,7 +678,24 @@ class UDVis:
         return fig
 
     def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, show: bool = True):
-        """Plot facet data as a 3D surface."""
+        """Plot facet data as a 3D surface.
+
+        Parameters
+        ----------
+        var : ndarray
+            One value per facet (length must equal the number of faces).
+        building_ids : ndarray, optional
+            Restrict the plot to these building ids.
+        show : bool, default=True
+            If True, display the figure immediately. If False, only build and
+            return it.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or None
+            The figure when ``show=False``; ``None`` when ``show=True`` (the
+            figure is displayed instead) or when no Plotly figure was built.
+        """
         geom = self.geom if self.sim is None else self.sim.geom
         if geom is None:
             raise ValueError("This method requires a geometry (STL) file.")
@@ -672,6 +710,9 @@ class UDVis:
             fig.update_layout(scene=dict(aspectmode="data"))
 
         self._add_building_outlines_to_scene(building_ids)
+        if show and fig is not None:
+            fig.show()
+            return None
         return fig
 
     def plot_independent_surfaces(self, show: bool = True, return_result: bool = False):
@@ -688,8 +729,10 @@ class UDVis:
         Returns
         -------
         fig or (fig, result)
-            Figure from ``plot_fac``. When ``return_result=True``, also return
-            the independent-surface partition.
+            The decorated Plotly figure when ``show=False``; ``None`` when
+            ``show=True`` (the figure is displayed instead). When
+            ``return_result=True``, the independent-surface partition is
+            returned alongside, i.e. ``(fig, result)`` or ``(None, result)``.
         """
         if self.geom is None or getattr(self.geom, "stl", None) is None:
             raise ValueError("No geometry loaded. Cannot visualize.")
@@ -699,7 +742,9 @@ class UDVis:
             raise ImportError("plotly is required for plot_independent_surfaces") from exc
 
         result = self.geom.calculate_independent_surfaces()
-        fig = self.plot_fac(np.asarray(result["face_surface_ids"], dtype=float), show=show)
+        # Build without displaying so the surface-ID decoration below is part of
+        # the single figure the user sees.
+        fig = self.plot_fac(np.asarray(result["face_surface_ids"], dtype=float), show=False)
         if fig is not None:
             n_surfaces = max(int(result["n_surfaces"]), 1)
             norm = plt.Normalize(vmin=1, vmax=n_surfaces)
@@ -748,6 +793,14 @@ class UDVis:
                 showlegend=True,
                 legend=dict(title="Surface IDs", itemsizing="constant"),
             )
+        if show:
+            if fig is not None:
+                fig.show()
+                fig = None
+            else:
+                # Non-notebook backend: no plotly figure was built; display via
+                # the native viewer instead (undecorated, as before).
+                self.plot_fac(np.asarray(result["face_surface_ids"], dtype=float), show=True)
         if return_result:
             return fig, result
         return fig
@@ -861,7 +914,10 @@ class UDVis:
             in_notebook = False
 
         if in_notebook:
-            return self._render_plotly(meshes, outline_edges, show=show)
+            # Never display here: callers keep composing the figure (quiver,
+            # title, layout) after this returns, so an early fig.show() would
+            # render a half-built duplicate. Callers handle display themselves.
+            return self._render_plotly(meshes, outline_edges, show=False)
         if show:
             self._render_trimesh(scene, len(outline_edges))
         return None
@@ -1157,6 +1213,7 @@ class UDVis:
 
                 if show:
                     fig.show()
+                    return None
                 return fig
 
             except ImportError:
@@ -1508,3 +1565,499 @@ class UDVis:
             plt.show()
 
         return fig
+
+    # ------------------------------------------------------------------
+    # PyVista-backed test variants
+    #
+    # These are experimental counterparts to ``show_geometry``,
+    # ``show_geometry_outline`` and ``plot_fac`` that use PyVista as the
+    # rendering backend instead of Plotly/trimesh. They are intentionally
+    # kept independent of the existing rendering pipeline so the two
+    # implementations can be compared directly.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _faces_to_pyvista(faces: np.ndarray) -> np.ndarray:
+        """Convert (N, 3) triangle connectivity to PyVista's flat ``[3, i, j, k, ...]`` format."""
+        faces = np.asarray(faces, dtype=np.int64)
+        n = len(faces)
+        out = np.empty((n, 4), dtype=np.int64)
+        out[:, 0] = 3
+        out[:, 1:] = faces
+        return out.ravel()
+
+    def _make_pyvista_polydata(self, vertices: np.ndarray, faces: np.ndarray):
+        import pyvista as pv
+
+        return pv.PolyData(np.asarray(vertices, dtype=float), self._faces_to_pyvista(faces))
+
+    def show_geometry_pyvista(
+        self,
+        color_buildings: bool = True,
+        plot_quiver: bool = False,
+        normal_scale: float = 0.2,
+        show_edges: bool = True,
+        show_ground: bool = True,
+        show: bool = True,
+    ):
+        """PyVista-backed counterpart to :meth:`show_geometry`."""
+        if self.geom is None or getattr(self.geom, "stl", None) is None:
+            raise ValueError("No geometry loaded. Cannot visualize.")
+
+        try:
+            import pyvista as pv
+        except ImportError as exc:
+            raise ImportError(
+                "pyvista is required for show_pyvista. Install with: pip install pyvista"
+            ) from exc
+
+        stl = self.geom.stl
+        vertices = np.asarray(stl.vertices, dtype=float)
+        faces = np.asarray(stl.faces, dtype=np.int64)
+        face_centers = np.asarray(stl.triangles_center, dtype=float)
+        face_normals = np.asarray(stl.face_normals, dtype=float)
+        is_building = face_centers[:, 2] > 0
+
+        plotter = pv.Plotter(image_scale=4)
+        plotter.set_background("white")
+        plotter.enable_parallel_projection()
+
+        ground_rgb = (217 / 255, 217 / 255, 217 / 255)
+        building_rgb = (186 / 255, 212 / 255, 245 / 255)
+
+        if color_buildings:
+            if show_ground and np.any(~is_building):
+                ground = self._make_pyvista_polydata(vertices, faces[~is_building])
+                plotter.add_mesh(
+                    ground,
+                    color=ground_rgb,
+                    show_edges=show_edges,
+                    edge_color="black",
+                    line_width=0.5,
+                    name="ground",
+                )
+            if np.any(is_building):
+                buildings = self._make_pyvista_polydata(vertices, faces[is_building])
+                plotter.add_mesh(
+                    buildings,
+                    color=building_rgb,
+                    show_edges=show_edges,
+                    edge_color="black",
+                    line_width=0.5,
+                    name="buildings",
+                )
+        else:
+            selected_faces = faces if show_ground else faces[is_building]
+            mesh = self._make_pyvista_polydata(vertices, selected_faces)
+            plotter.add_mesh(
+                mesh,
+                color=ground_rgb,
+                show_edges=show_edges,
+                edge_color="black",
+                line_width=0.5,
+                name="geometry",
+            )
+
+        if plot_quiver:
+            arrows = pv.PolyData(face_centers)
+            arrows["normals"] = face_normals
+            glyphs = arrows.glyph(orient="normals", scale=False, factor=normal_scale)
+            plotter.add_mesh(glyphs, color="red", name="normals")
+
+        mins = vertices.min(axis=0)
+        maxs = vertices.max(axis=0)
+        plotter.add_text(
+            f"Geometry: {len(faces)} facets",
+            position="upper_edge",
+            font_size=10,
+            color="black",
+        )
+        # Draw all axes manually to avoid VTK StaticTriad z-axis bug.
+        xmin_f, ymin_f, zmin_f = float(mins[0]), float(mins[1]), float(mins[2])
+        xmax_f, ymax_f, zmax_f = float(maxs[0]), float(maxs[1]), float(maxs[2])
+        z_range = zmax_f - zmin_f
+
+        def _draw_axis(plotter, p0, p1, ticks, label, tick_dir, font_size=14):
+            """Draw an axis line with ticks and labels."""
+            plotter.add_mesh(pv.Line(p0, p1), color="black", line_width=3)
+            tick_len = 0.02 * float((maxs - mins)[:2].max())
+            label_offset = 4.0 * tick_len
+            pts, labels = [], []
+            for val, pos in ticks:
+                t_end = [pos[j] + tick_dir[j] * tick_len for j in range(3)]
+                plotter.add_mesh(pv.Line(pos, t_end), color="black", line_width=2)
+                lbl_pos = [pos[j] + tick_dir[j] * label_offset for j in range(3)]
+                pts.append(lbl_pos)
+                labels.append(f"{val:.0f}")
+            if pts:
+                plotter.add_point_labels(
+                    np.array(pts), labels,
+                    point_size=0, render_points_as_spheres=False,
+                    font_size=font_size, text_color="black",
+                    font_family="times",
+                    shape=None, fill_shape=False, show_points=False,
+                    margin=3, always_visible=True,
+                )
+            # Axis title at the end
+            mid = [0.5 * (p0[j] + p1[j]) for j in range(3)]
+            title_offset = [tick_dir[j] * tick_len * 8 for j in range(3)]
+            title_pos = [mid[j] + title_offset[j] for j in range(3)]
+            plotter.add_point_labels(
+                np.array([title_pos]), [label],
+                point_size=0, render_points_as_spheres=False, show_points=False,
+                font_size=font_size + 2, text_color="black",
+                font_family="times",
+                shape=None, fill_shape=False, bold=True,
+                margin=3, always_visible=True,
+            )
+
+        # X-axis: along bottom-right edge (y=ymin, z=zmin)
+        x_ticks = [(v, (v, ymin_f, zmin_f)) for v in np.linspace(xmin_f, xmax_f, 9)]
+        _draw_axis(plotter,
+                   (xmin_f, ymin_f, zmin_f), (xmax_f, ymin_f, zmin_f),
+                   x_ticks, "x (m)", (0, -1, 0))
+
+        # Y-axis: along bottom-left edge (x=xmin, z=zmin)
+        y_ticks = [(v, (xmin_f, v, zmin_f)) for v in np.linspace(ymin_f, ymax_f, 9)]
+        _draw_axis(plotter,
+                   (xmin_f, ymin_f, zmin_f), (xmin_f, ymax_f, zmin_f),
+                   y_ticks, "y (m)", (-1, 0, 0))
+
+        # Z-axis: at far-left corner (xmin, ymax)
+        z_ticks = [(v, (xmin_f, ymax_f, v)) for v in [zmin_f, zmax_f]]
+        _draw_axis(plotter,
+                   (xmin_f, ymax_f, zmin_f), (xmin_f, ymax_f, zmax_f),
+                   z_ticks, "z (m)", (-1, 0, 0))
+        plotter.view_isometric()
+        plotter.camera.azimuth = 180
+        plotter.camera.elevation = -10
+
+
+        if show:
+            plotter.show()
+            return None
+        return plotter
+
+    def show_geometry_outline_pyvista(
+        self,
+        angle_threshold: float = 45.0,
+        show_ground: bool = True,
+        color_buildings: bool = True,
+        show: bool = True,
+    ):
+        """PyVista-backed counterpart to :meth:`show_geometry_outline`."""
+        if self.geom is None or getattr(self.geom, "stl", None) is None:
+            raise ValueError("No geometry loaded. Cannot visualize.")
+
+        try:
+            import pyvista as pv
+        except ImportError as exc:
+            raise ImportError(
+                "pyvista is required for show_outline_pyvista. Install with: pip install pyvista"
+            ) from exc
+
+        outline_edges = self.geom._calculate_outline_edges(angle_threshold)
+        if len(outline_edges) == 0:
+            import warnings
+            warnings.warn("No outline edges found.")
+            return None
+
+        stl = self.geom.stl
+        vertices = np.asarray(stl.vertices, dtype=float)
+        faces = np.asarray(stl.faces, dtype=np.int64)
+        face_centers = np.asarray(stl.triangles_center, dtype=float)
+        face_normals = np.asarray(stl.face_normals, dtype=float)
+        is_building = face_centers[:, 2] > 0
+
+        plotter = pv.Plotter(image_scale=4)
+        plotter.set_background("white")
+        plotter.enable_parallel_projection()
+
+        if color_buildings:
+            # Ground + building rendered as separate solid-color meshes, matching
+            # the Plotly show() convention: ground = light grey, buildings = blue.
+            if show_ground and np.any(~is_building):
+                ground_mesh = self._make_pyvista_polydata(vertices, faces[~is_building])
+                plotter.add_mesh(
+                    ground_mesh,
+                    color=(217.0 / 255.0, 217.0 / 255.0, 217.0 / 255.0),
+                    show_edges=False,
+                    name="ground",
+                )
+            if np.any(is_building):
+                building_mesh = self._make_pyvista_polydata(vertices, faces[is_building])
+                plotter.add_mesh(
+                    building_mesh,
+                    color=(186.0 / 255.0, 212.0 / 255.0, 245.0 / 255.0),
+                    show_edges=False,
+                    name="buildings",
+                )
+        else:
+            selected_faces = faces if show_ground else faces[is_building]
+            selected_normals = face_normals if show_ground else face_normals[is_building]
+            mesh = self._make_pyvista_polydata(vertices, selected_faces)
+
+            # Two-tone shading: lighter for horizontal faces, darker for vertical.
+            horizontal_mask = np.abs(selected_normals[:, 2]) >= np.cos(np.deg2rad(15.0))
+            gray = np.full(len(selected_faces), 150.0 / 255.0)
+            gray[horizontal_mask] = 217.0 / 255.0
+            mesh.cell_data["shade"] = gray
+
+            plotter.add_mesh(
+                mesh,
+                scalars="shade",
+                cmap="Greys_r",
+                clim=(0.0, 1.0),
+                show_scalar_bar=False,
+                show_edges=False,
+                name="geometry",
+            )
+
+        # Build line cells for outline edges.
+        edges_arr = np.asarray(outline_edges, dtype=np.int64)
+        n_edges = len(edges_arr)
+        lines = np.empty((n_edges, 3), dtype=np.int64)
+        lines[:, 0] = 2
+        lines[:, 1:] = edges_arr
+        line_poly = pv.PolyData()
+        line_poly.points = vertices
+        line_poly.lines = lines.ravel()
+        plotter.add_mesh(line_poly, color="black", line_width=2, name="outline")
+
+        mins = vertices.min(axis=0)
+        maxs = vertices.max(axis=0)
+        plotter.add_text(
+            f"Geometry Outline ({n_edges} edges)",
+            position="upper_edge",
+            font_size=10,
+            color="black",
+        )
+        # Draw all axes manually to avoid VTK StaticTriad z-axis bug.
+        xmin_f, ymin_f, zmin_f = float(mins[0]), float(mins[1]), float(mins[2])
+        xmax_f, ymax_f, zmax_f = float(maxs[0]), float(maxs[1]), float(maxs[2])
+        z_range = zmax_f - zmin_f
+
+        def _draw_axis(plotter, p0, p1, ticks, label, tick_dir, font_size=14):
+            """Draw an axis line with ticks and labels."""
+            plotter.add_mesh(pv.Line(p0, p1), color="black", line_width=3)
+            tick_len = 0.02 * float((maxs - mins)[:2].max())
+            label_offset = 4.0 * tick_len
+            pts, labels = [], []
+            for val, pos in ticks:
+                t_end = [pos[j] + tick_dir[j] * tick_len for j in range(3)]
+                plotter.add_mesh(pv.Line(pos, t_end), color="black", line_width=2)
+                lbl_pos = [pos[j] + tick_dir[j] * label_offset for j in range(3)]
+                pts.append(lbl_pos)
+                labels.append(f"{val:.0f}")
+            if pts:
+                plotter.add_point_labels(
+                    np.array(pts), labels,
+                    point_size=0, render_points_as_spheres=False,
+                    font_size=font_size, text_color="black",
+                    font_family="times",
+                    shape=None, fill_shape=False, show_points=False,
+                    margin=3, always_visible=True,
+                )
+            # Axis title at the end
+            mid = [0.5 * (p0[j] + p1[j]) for j in range(3)]
+            title_offset = [tick_dir[j] * tick_len * 8 for j in range(3)]
+            title_pos = [mid[j] + title_offset[j] for j in range(3)]
+            plotter.add_point_labels(
+                np.array([title_pos]), [label],
+                point_size=0, render_points_as_spheres=False, show_points=False,
+                font_size=font_size + 2, text_color="black",
+                font_family="times",
+                shape=None, fill_shape=False, bold=True,
+                margin=3, always_visible=True,
+            )
+
+        # X-axis: along bottom-right edge (y=ymin, z=zmin)
+        x_ticks = [(v, (v, ymin_f, zmin_f)) for v in np.linspace(xmin_f, xmax_f, 9)]
+        _draw_axis(plotter,
+                   (xmin_f, ymin_f, zmin_f), (xmax_f, ymin_f, zmin_f),
+                   x_ticks, "x (m)", (0, -1, 0))
+
+        # Y-axis: along bottom-left edge (x=xmin, z=zmin)
+        y_ticks = [(v, (xmin_f, v, zmin_f)) for v in np.linspace(ymin_f, ymax_f, 9)]
+        _draw_axis(plotter,
+                   (xmin_f, ymin_f, zmin_f), (xmin_f, ymax_f, zmin_f),
+                   y_ticks, "y (m)", (-1, 0, 0))
+
+        # Z-axis: at far-left corner (xmin, ymax)
+        z_ticks = [(v, (xmin_f, ymax_f, v)) for v in [zmin_f, zmax_f]]
+        _draw_axis(plotter,
+                   (xmin_f, ymax_f, zmin_f), (xmin_f, ymax_f, zmax_f),
+                   z_ticks, "z (m)", (-1, 0, 0))
+        plotter.view_isometric()
+        plotter.camera.azimuth = 180
+        plotter.camera.elevation = -10
+
+        if show:
+            plotter.show()
+            return None
+        return plotter
+
+    def plot_fac_pyvista(
+        self,
+        var: np.ndarray,
+        building_ids: Optional[np.ndarray] = None,
+        show: bool = True,
+    ):
+        """PyVista-backed counterpart to :meth:`plot_fac`."""
+        geom = self.geom if self.sim is None else self.sim.geom
+        if geom is None or getattr(geom, "stl", None) is None:
+            raise ValueError("This method requires a geometry (STL) file.")
+
+        var = np.asarray(var, dtype=float)
+        if len(var) != geom.n_faces:
+            raise ValueError(
+                f"Variable length ({len(var)}) must match number of facets ({geom.n_faces})"
+            )
+
+        try:
+            import pyvista as pv
+        except ImportError as exc:
+            raise ImportError(
+                "pyvista is required for plot_fac_pyvista. Install with: pip install pyvista"
+            ) from exc
+
+        stl = geom.stl
+        vertices = np.asarray(stl.vertices, dtype=float)
+        faces = np.asarray(stl.faces, dtype=np.int64)
+
+        if building_ids is not None:
+            face_to_building = geom.get_face_to_building_map()
+            building_ids = np.asarray(building_ids)
+            face_mask = np.isin(face_to_building, building_ids)
+            if np.any(face_mask):
+                selected_faces = faces[face_mask]
+                selected_var = var[face_mask]
+            else:
+                print(
+                    "WARNING: No valid faces found for the specified building IDs",
+                    file=sys.stderr,
+                )
+                selected_faces = faces
+                selected_var = var
+        else:
+            selected_faces = faces
+            selected_var = var
+
+        mesh = self._make_pyvista_polydata(vertices, selected_faces)
+        mesh.cell_data["var"] = selected_var
+
+        valid_mask = ~np.isnan(selected_var)
+        if np.any(valid_mask):
+            vmin = float(np.nanmin(selected_var[valid_mask]))
+            vmax = float(np.nanmax(selected_var[valid_mask]))
+        else:
+            vmin, vmax = 0.0, 1.0
+
+        plotter = pv.Plotter(image_scale=4)
+        plotter.set_background("white")
+        plotter.enable_parallel_projection()
+        plotter.add_mesh(
+            mesh,
+            scalars="var",
+            cmap="viridis",
+            clim=(vmin, vmax),
+            nan_color=(1.0, 1.0, 1.0),
+            show_edges=False,
+            show_scalar_bar=False,
+            name="facets",
+        )
+        plotter.add_scalar_bar(
+            title="",
+            color="black",
+            vertical=True,
+            position_x=0.92,
+            position_y=0.15,
+            width=0.04,
+            height=0.7,
+            title_font_size=16,
+            label_font_size=14,
+            font_family="times",
+            fmt="%.1f",
+        )
+
+        # Outline edges overlay (matches plot_fac behaviour).
+        try:
+            outline_edges = geom._calculate_outline_edges(45.0)
+            if len(outline_edges) > 0:
+                edges_arr = np.asarray(outline_edges, dtype=np.int64)
+                lines = np.empty((len(edges_arr), 3), dtype=np.int64)
+                lines[:, 0] = 2
+                lines[:, 1:] = edges_arr
+                line_poly = pv.PolyData()
+                line_poly.points = vertices
+                line_poly.lines = lines.ravel()
+                plotter.add_mesh(line_poly, color="black", line_width=1.5, name="outline")
+        except Exception:
+            pass
+
+        mins = vertices.min(axis=0)
+        maxs = vertices.max(axis=0)
+        # Draw all axes manually to avoid VTK StaticTriad z-axis bug.
+        xmin_f, ymin_f, zmin_f = float(mins[0]), float(mins[1]), float(mins[2])
+        xmax_f, ymax_f, zmax_f = float(maxs[0]), float(maxs[1]), float(maxs[2])
+        z_range = zmax_f - zmin_f
+
+        def _draw_axis(plotter, p0, p1, ticks, label, tick_dir, font_size=14):
+            """Draw an axis line with ticks and labels."""
+            plotter.add_mesh(pv.Line(p0, p1), color="black", line_width=3)
+            tick_len = 0.02 * float((maxs - mins)[:2].max())
+            label_offset = 4.0 * tick_len
+            pts, labels = [], []
+            for val, pos in ticks:
+                t_end = [pos[j] + tick_dir[j] * tick_len for j in range(3)]
+                plotter.add_mesh(pv.Line(pos, t_end), color="black", line_width=2)
+                lbl_pos = [pos[j] + tick_dir[j] * label_offset for j in range(3)]
+                pts.append(lbl_pos)
+                labels.append(f"{val:.0f}")
+            if pts:
+                plotter.add_point_labels(
+                    np.array(pts), labels,
+                    point_size=0, render_points_as_spheres=False,
+                    font_size=font_size, text_color="black",
+                    font_family="times",
+                    shape=None, fill_shape=False, show_points=False,
+                    margin=3, always_visible=True,
+                )
+            # Axis title at the end
+            mid = [0.5 * (p0[j] + p1[j]) for j in range(3)]
+            title_offset = [tick_dir[j] * tick_len * 8 for j in range(3)]
+            title_pos = [mid[j] + title_offset[j] for j in range(3)]
+            plotter.add_point_labels(
+                np.array([title_pos]), [label],
+                point_size=0, render_points_as_spheres=False, show_points=False,
+                font_size=font_size + 2, text_color="black",
+                font_family="times",
+                shape=None, fill_shape=False, bold=True,
+                margin=3, always_visible=True,
+            )
+
+        # X-axis: along bottom-right edge (y=ymin, z=zmin)
+        x_ticks = [(v, (v, ymin_f, zmin_f)) for v in np.linspace(xmin_f, xmax_f, 9)]
+        _draw_axis(plotter,
+                   (xmin_f, ymin_f, zmin_f), (xmax_f, ymin_f, zmin_f),
+                   x_ticks, "x (m)", (0, -1, 0))
+
+        # Y-axis: along bottom-left edge (x=xmin, z=zmin)
+        y_ticks = [(v, (xmin_f, v, zmin_f)) for v in np.linspace(ymin_f, ymax_f, 9)]
+        _draw_axis(plotter,
+                   (xmin_f, ymin_f, zmin_f), (xmin_f, ymax_f, zmin_f),
+                   y_ticks, "y (m)", (-1, 0, 0))
+
+        # Z-axis: at far-left corner (xmin, ymax)
+        z_ticks = [(v, (xmin_f, ymax_f, v)) for v in [zmin_f, zmax_f]]
+        _draw_axis(plotter,
+                   (xmin_f, ymax_f, zmin_f), (xmin_f, ymax_f, zmax_f),
+                   z_ticks, "z (m)", (-1, 0, 0))
+        plotter.view_isometric()
+        plotter.camera.azimuth = 180
+        plotter.camera.elevation = -10
+
+        if show:
+            plotter.show()
+            return None
+        return plotter

@@ -503,5 +503,92 @@ class TestUDVisScalarSources(unittest.TestCase):
         )
 
 
+@unittest.skipUnless(
+    importlib.util.find_spec("IPython")
+    and importlib.util.find_spec("plotly")
+    and importlib.util.find_spec("trimesh"),
+    "notebook backend deps required",
+)
+class TestDisplayOnceSemantics(unittest.TestCase):
+    """The plotting entry points must build the COMPLETE figure, display it at
+    most once, and return None when they displayed it (so a bare notebook call
+    cannot auto-display a duplicate)."""
+
+    @staticmethod
+    def _vis_with_box():
+        import trimesh
+
+        from udgeom import UDGeom
+
+        geom = UDGeom(stl=trimesh.creation.box(extents=(1.0, 1.0, 1.0)))
+        return UDVis(sim=geom)
+
+    def test_show_geometry_show_true_displays_once_and_returns_none(self):
+        import plotly.graph_objects as go
+
+        vis = self._vis_with_box()
+        with patch.object(go.Figure, "show", autospec=True) as mock_show:
+            result = vis.show_geometry(show=True)
+        self.assertIsNone(result)
+        self.assertEqual(mock_show.call_count, 1)
+
+    def test_show_geometry_show_false_returns_complete_figure_without_display(self):
+        import plotly.graph_objects as go
+
+        vis = self._vis_with_box()
+        with patch.object(go.Figure, "show", autospec=True) as mock_show:
+            fig = vis.show_geometry(show=False, plot_quiver=True)
+        self.assertEqual(mock_show.call_count, 0)
+        self.assertIsNotNone(fig)
+        # Composition must be finished before return: title + quiver present.
+        self.assertIn("Geometry:", fig.layout.title.text)
+        self.assertIn("normals", [getattr(t, "name", None) for t in fig.data])
+
+    def test_plot_fac_show_true_displays_once_and_returns_none(self):
+        import plotly.graph_objects as go
+
+        vis = self._vis_with_box()
+        var = np.arange(vis.geom.n_faces, dtype=float)
+        with patch.object(go.Figure, "show", autospec=True) as mock_show:
+            result = vis.plot_fac(var, show=True)
+        self.assertIsNone(result)
+        self.assertEqual(mock_show.call_count, 1)
+
+        with patch.object(go.Figure, "show", autospec=True) as mock_show:
+            fig = vis.plot_fac(var, show=False)
+        self.assertEqual(mock_show.call_count, 0)
+        self.assertIsNotNone(fig)
+
+    def test_plot_independent_surfaces_show_true_displays_decorated_figure(self):
+        import plotly.graph_objects as go
+
+        vis = self._vis_with_box()
+        shown = []
+        with patch.object(
+            go.Figure, "show", autospec=True,
+            side_effect=lambda self_fig, *a, **k: shown.append(self_fig),
+        ):
+            result = vis.plot_independent_surfaces(show=True)
+        self.assertIsNone(result)
+        self.assertEqual(len(shown), 1)
+        # The DISPLAYED figure must carry the decoration (regression guard:
+        # plot_fac(show=True) returning None used to skip it entirely).
+        self.assertIn("Independent Surfaces", shown[0].layout.title.text)
+        self.assertTrue(
+            any(getattr(t, "mode", "") == "markers+text" for t in shown[0].data)
+        )
+
+    def test_plot_independent_surfaces_show_false_returns_decorated_figure(self):
+        import plotly.graph_objects as go
+
+        vis = self._vis_with_box()
+        with patch.object(go.Figure, "show", autospec=True) as mock_show:
+            fig, result = vis.plot_independent_surfaces(show=False, return_result=True)
+        self.assertEqual(mock_show.call_count, 0)
+        self.assertIsNotNone(fig)
+        self.assertIn("Independent Surfaces", fig.layout.title.text)
+        self.assertIn("n_surfaces", result)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -266,24 +266,27 @@ class UDGeom:
         except Exception as e:
             raise ValueError(f"Error saving STL file {filepath}: {e}")
     
-    def show(self, color_buildings: bool = True, plot_quiver: bool = True, 
+    def show(self, color_buildings: bool = True, plot_quiver: bool = False,
              normal_scale: float = 0.2,
-             show_edges: bool = True, show_ground: bool = True, show: bool = True):
+             show_edges: bool = True, show_ground: bool = True, show: bool = True,
+             pyvista: bool = False):
         """
         Visualize the geometry.
-        
+
         Creates a 3D plot of the triangulated surface. Ground facets (z <= 0) are
         shown in light gray, while building facets (z > 0) can be colored blue.
         Normal vectors can be displayed as arrows.
-        
+
         Parameters
         ----------
         color_buildings : bool, default=True
             If True, color building facets (z > 0) blue. Ground remains gray.
             Set to False for very large geometries to improve performance.
-        plot_quiver : bool, default=True
+        plot_quiver : bool, default=False
             If True, display normal vectors as arrows from face centers.
-            (Renamed from show_normals to match MATLAB interface)
+            (Renamed from show_normals to match the MATLAB interface; note the
+            MATLAB toolbox defaults this to true, whereas Python defaults to
+            False to avoid cluttering large meshes.)
         normal_scale : float, default=0.2
             Scaling factor for normal vector arrow lengths.
         show_edges : bool, default=True
@@ -293,21 +296,39 @@ class UDGeom:
         show : bool, default=True
             If True, display the figure immediately. If False, only return the
             figure object.
-            
+        pyvista : bool, default=False
+            If True, use the PyVista/VTK backend instead of Plotly.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or None
+            The figure when ``show=False``; ``None`` when ``show=True`` (the
+            figure is displayed instead).
+
         Raises
         ------
         ValueError
             If no geometry is loaded
         ImportError
-            If matplotlib is not installed
-            
+            If trimesh (Plotly backend) or pyvista (``pyvista=True``) is not
+            installed
+
         Examples
         --------
-        >>> geom.show()  # Default: color buildings, show normals
+        >>> geom.show()  # Default: Plotly backend
+        >>> geom.show(pyvista=True)  # PyVista backend
         >>> geom.show(color_buildings=False)  # Faster for large meshes
-        >>> geom.show(True, False)  # Color buildings but don't show normals
         >>> fig = geom.show(show=False)  # Build the figure without displaying it
         """
+        if pyvista:
+            return self.vis.show_geometry_pyvista(
+                color_buildings=color_buildings,
+                plot_quiver=plot_quiver,
+                normal_scale=normal_scale,
+                show_edges=show_edges,
+                show_ground=show_ground,
+                show=show,
+            )
         return self.vis.show_geometry(
             color_buildings=color_buildings,
             plot_quiver=plot_quiver,
@@ -771,14 +792,16 @@ class UDGeom:
         self,
         angle_threshold: float = 45.0,
         show_ground: bool = True,
+        color_buildings: bool = True,
         show: bool = True,
+        pyvista: bool = False,
     ):
         """
         Plot the geometry with outline edges highlighted.
-        
+
         Displays the mesh in gray with black outline edges overlaid.
         Outline edges are detected based on the angle between adjacent faces.
-        
+
         Parameters
         ----------
         angle_threshold : float, default=45.0
@@ -787,22 +810,37 @@ class UDGeom:
             threshold are considered outline edges.
         show_ground : bool, default=True
             If True, include ground faces in the visualization.
+        color_buildings : bool, default=True
+            If True, colour building facets (z > 0) blue and ground grey.
+            Only used when ``pyvista=True``; the Plotly backend uses its own
+            two-tone grey shading.
         show : bool, default=True
             If True, display the figure immediately. If False, only return the
             figure object.
-            
+        pyvista : bool, default=False
+            If True, use the PyVista/VTK backend instead of Plotly.
+
         Raises
         ------
         ValueError
             If no geometry is loaded
         ImportError
-            If matplotlib is not installed
-            
+            If trimesh (Plotly backend) or pyvista (``pyvista=True``) is not
+            installed
+
         Examples
         --------
-        >>> geom.show_outline()  # Default 45° threshold
+        >>> geom.show_outline()  # Default: Plotly backend
+        >>> geom.show_outline(pyvista=True)  # PyVista backend
         >>> geom.show_outline(angle_threshold=30)  # More sensitive
         """
+        if pyvista:
+            return self.vis.show_geometry_outline_pyvista(
+                angle_threshold=angle_threshold,
+                show_ground=show_ground,
+                color_buildings=color_buildings,
+                show=show,
+            )
         return self.vis.show_geometry_outline(
             angle_threshold=angle_threshold,
             show_ground=show_ground,
@@ -1199,8 +1237,10 @@ class UDGeom:
         Returns
         -------
         fig or (fig, result)
-            Plotly figure from ``plot_fac``. When ``return_result=True``, also
-            return the surface partition result.
+            The decorated Plotly figure when ``show=False``; ``None`` when
+            ``show=True`` (the figure is displayed instead). When
+            ``return_result=True``, the surface partition result is returned
+            alongside, i.e. ``(fig, result)`` or ``(None, result)``.
         """
         return self.vis.plot_independent_surfaces(show=show, return_result=return_result)
     

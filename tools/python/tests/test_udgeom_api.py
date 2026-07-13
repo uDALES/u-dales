@@ -1291,7 +1291,8 @@ class TestUDGeomApi(unittest.TestCase):
         geom = UDGeom.__new__(UDGeom)
         geom.vis = RecordingVis()
 
-        result = UDGeom.show(geom, show=False, plot_quiver=False, show_edges=False)
+        # plot_quiver deliberately NOT passed: this pins the default (False).
+        result = UDGeom.show(geom, show=False, show_edges=False)
 
         self.assertEqual(result, "show_geometry_result")
         self.assertEqual(
@@ -1305,6 +1306,41 @@ class TestUDGeomApi(unittest.TestCase):
                 "show": False,
             }],
         )
+
+    def test_show_plot_quiver_defaults_false_in_all_signatures(self):
+        import inspect
+
+        from udvis.udbase_vis import UDVis
+
+        self.assertIs(
+            inspect.signature(UDGeom.show).parameters["plot_quiver"].default, False
+        )
+        self.assertIs(
+            inspect.signature(UDVis.show_geometry).parameters["plot_quiver"].default,
+            False,
+        )
+        self.assertIs(
+            inspect.signature(UDVis.show_geometry_pyvista).parameters["plot_quiver"].default,
+            False,
+        )
+
+    def test_show_routes_to_pyvista_backend(self):
+        class RecordingVis:
+            def __init__(self):
+                self.calls = []
+
+            def show_geometry_pyvista(self, **kwargs):
+                self.calls.append(kwargs)
+                return "pyvista_result"
+
+        geom = UDGeom.__new__(UDGeom)
+        geom.vis = RecordingVis()
+
+        result = UDGeom.show(geom, pyvista=True, show=False)
+
+        self.assertEqual(result, "pyvista_result")
+        self.assertEqual(len(geom.vis.calls), 1)
+        self.assertEqual(geom.vis.calls[0]["show"], False)
 
     def test_plot_independent_surfaces_forwards_to_plot_fac(self):
         class RecordingVis:
