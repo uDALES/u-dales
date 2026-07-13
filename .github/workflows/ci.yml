@@ -89,6 +89,43 @@ jobs:
         fi
         python3 -u tests/run_tests.py "$selection" --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type }}
 
+  python-viz-pyvista:
+    # The 'supported' gate installs environment.yml, which excludes PyVista, so
+    # the PyVista visualization tests skip there. This Linux-only job installs
+    # the optional PyVista backend and runs the visualization tests off-screen so
+    # the backend is actually exercised by the merge gate.
+    if: >
+      github.event_name != 'push' ||
+      !contains(github.event.head_commit.message, '[skip ci]')
+    name: python-viz (pyvista)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check-out project
+      uses: actions/checkout@v6
+
+    - name: Install headless OpenGL/xvfb for VTK
+      run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-glx libxrender1
+
+    - name: Install python dependencies
+      uses: conda-incubator/setup-miniconda@9b650ee299f7fe47ab3a9688166e64e965c83272 # main (node24)
+      with:
+        miniconda-version: "latest"
+        auto-update-conda: true
+        activate-environment: udales
+        environment-file: environment.yml
+        channel-priority: strict
+
+    - name: Install optional PyVista backend
+      shell: bash -l {0}
+      run: python -m pip install -r tools/python/requirements-pyvista.txt
+
+    - name: Run visualization tests (PyVista off-screen)
+      shell: bash -l {0}
+      env:
+        PYVISTA_OFF_SCREEN: "true"
+      run: xvfb-run -a python -m unittest discover -s tools/python/tests -p "test_udbase_vis.py"
+
   docs:
     if: >
       github.event_name != 'push' ||
