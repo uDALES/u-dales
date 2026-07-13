@@ -276,6 +276,7 @@
 
 subroutine createscals
 
+  use mpi
   use modglobal,  only : nsv,cexpnr,ifinput,lscasrc,nscasrc,scasrcp,lscasrcl,nscasrcl,scasrcl,lscasrcr
   use modmpi,     only : myid,MY_REAL,comm3d,mpierr
   implicit none

@@ -534,6 +534,7 @@ contains
    !!
    !! Set courant number, calculate the grid sizes (both computational and physical), and set the coriolis parameter
    subroutine initglobal
+      use mpi
       use modmpi,   only : myid, comm3d, my_real, mpierr
       use decomp_2d
       implicit none
