@@ -105,7 +105,10 @@ jobs:
       uses: actions/checkout@v6
 
     - name: Install headless OpenGL/xvfb for VTK
-      run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-glx libxrender1
+      # Ubuntu 24.04 (noble) dropped the transitional libgl1-mesa-glx package;
+      # libgl1 + libglx-mesa0 provide libGL/GLX and libgl1-mesa-dri provides the
+      # software (llvmpipe) renderer needed for off-screen rendering under xvfb.
+      run: sudo apt-get update && sudo apt-get install -y xvfb libgl1 libglx-mesa0 libgl1-mesa-dri libxrender1
 
     - name: Install python dependencies
       uses: conda-incubator/setup-miniconda@9b650ee299f7fe47ab3a9688166e64e965c83272 # main (node24)
