@@ -105,6 +105,8 @@ class PointSet:
     size: float = 4.0
     opacity: float = 1.0
     name: Optional[str] = None
+    # Optional per-point text labels (e.g. surface ids), drawn beside the marker.
+    labels: Optional[List[str]] = None
 
 
 @dataclass
@@ -135,6 +137,9 @@ class Scene:
     axis_labels: Tuple[str, str, str] = ("x (m)", "y (m)", "z (m)")
     show_axes: bool = True
     bounds: Optional[Tuple[np.ndarray, np.ndarray]] = None  # (mins, maxs)
+    # Optional legend as (label, colour-spec) entries, rendered by both backends.
+    legend: Optional[List[Tuple[str, str]]] = None
+    legend_title: Optional[str] = None
 
     def compute_bounds(self) -> Tuple[np.ndarray, np.ndarray]:
         if self.bounds is not None:
@@ -252,11 +257,26 @@ def _render_plotly(scene: Scene, show: bool = True):
         pts = np.asarray(ps.points, dtype=float)
         if pts.size == 0:
             continue
-        fig.add_trace(go.Scatter3d(
-            x=pts[:, 0], y=pts[:, 1], z=pts[:, 2], mode="markers",
+        trace = go.Scatter3d(
+            x=pts[:, 0], y=pts[:, 1], z=pts[:, 2],
+            mode="markers+text" if ps.labels else "markers",
             marker=dict(size=ps.size, color=ps.color, opacity=ps.opacity),
-            name=ps.name,
-        ))
+            name=ps.name, showlegend=False,
+        )
+        if ps.labels:
+            trace.update(text=list(ps.labels), textposition="top center",
+                         textfont=dict(size=12, color=ps.color))
+        fig.add_trace(trace)
+
+    # Legend entries (label, colour), drawn as invisible marker traces so they
+    # appear in the Plotly legend; PyVista draws them via add_legend.
+    if scene.legend:
+        for label, color in scene.legend:
+            fig.add_trace(go.Scatter3d(
+                x=[None], y=[None], z=[None], mode="markers",
+                marker=dict(size=8, color=color),
+                name=label, showlegend=True, hoverinfo="skip",
+            ))
 
     # Colour bar for scalar meshes (attached via an invisible marker trace so it
     # coexists with the per-face colouring). Rendered by both backends now.
@@ -308,9 +328,11 @@ def _render_plotly(scene: Scene, show: bool = True):
     lx, ly, lz = scene.axis_labels
     # visible=False hides the axis line, ticks, labels and title together.
     _axis_extra = {} if scene.show_axes else dict(visible=False)
+    _legend = dict(title=scene.legend_title, itemsizing="constant") if scene.legend else {}
     fig.update_layout(
         title=scene.title,
-        showlegend=False,
+        showlegend=bool(scene.legend),
+        legend=_legend,
         margin=dict(l=0, r=0, b=0, t=40, pad=0),
         scene=dict(
             aspectmode="data",
@@ -416,6 +438,13 @@ def _render_pyvista(scene: Scene, show: bool = True):
         plotter.add_mesh(pv.PolyData(pts),
                          color=_pyvista_color(ps.color), point_size=ps.size, opacity=ps.opacity,
                          render_points_as_spheres=True, name=ps.name or None)
+        if ps.labels:
+            plotter.add_point_labels(
+                pts, list(ps.labels), font_size=12, text_color="black",
+                font_family="times", shape=None, fill_shape=False,
+                show_points=False, always_visible=True,
+                name=(ps.name or "labels") + "-labels",
+            )
 
     for g in scene.glyphs:
         gpts = np.asarray(g.points, dtype=float)
@@ -428,6 +457,12 @@ def _render_pyvista(scene: Scene, show: bool = True):
 
     if scene.title:
         plotter.add_text(scene.title, position="upper_edge", font_size=10, color="black")
+
+    if scene.legend:
+        plotter.add_legend(
+            [[label, _pyvista_color(color)] for label, color in scene.legend],
+            bcolor="white", face=None,
+        )
 
     if scene.colorbar is not None:
         plotter.add_scalar_bar(

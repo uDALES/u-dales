@@ -675,10 +675,22 @@ class TestBackendSelection(unittest.TestCase):
             ("show_geometry", vis.show_geometry(show=False, plot_quiver=True, backend="pyvista")),
             ("show_geometry_outline", vis.show_geometry_outline(show=False, backend="pyvista")),
             ("plot_fac", vis.plot_fac(var, show=False, backend="pyvista")),
+            ("plot_independent_surfaces", vis.plot_independent_surfaces(show=False, backend="pyvista")),
         ]:
             self.assertIsInstance(plotter, pv.Plotter, label)
             self.assertGreater(len(plotter.renderer.actors), 0, label)
             plotter.close()
+
+    def test_independent_surfaces_plotly_has_labels_and_legend(self):
+        import trimesh
+
+        from udgeom import UDGeom
+
+        geom = UDGeom(stl=trimesh.creation.box(extents=(2.0, 2.0, 2.0)))
+        fig = geom.vis.plot_independent_surfaces(show=False, backend="plotly")
+        self.assertIn("Independent Surfaces", fig.layout.title.text)
+        self.assertTrue(fig.layout.showlegend)
+        self.assertTrue(any(getattr(t, "mode", "") == "markers+text" for t in fig.data))
 
 
 if __name__ == "__main__":
