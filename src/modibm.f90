@@ -1998,6 +1998,7 @@ module modibm
      ! By Ivo Suter.
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
+      use modwallfunctions, only:wfuno, wfmneutral
       use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, numol, prandtlmol, nsv, &
          dzf, dzfi, numoli, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i
       use modfields, only : u0,v0,e120,e12m,thl0,qt0,sv0,up,vp,wp,thlp,qtp,svp,momfluxb,tfluxb,tau_x,tau_y,tau_z,thl_flux

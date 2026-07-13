@@ -1,17 +1,13 @@
 
-!> \file advec_2nd.f90
-!!  Does advection with a 2nd order central differencing scheme.
+!> \file advection.f90
+!!  Advection management
+
+!>
+!!  Advection management
 !! \par Revision list
+!! variable x-grid now possible
+!! Thijs Heus, Chiel van Heerwaarden, 15 June 2007
 !! \par Authors
-!! Second order central differencing can be used for variables where neither very
-!! high accuracy nor strict monotonicity is necessary.
-!! \latexonly
-!!\begin{eqnarray}
-!! F_{i-\frac{1}{2}}^{2nd} &=&
-!!\fav{u}_{i-\frac{1}{2}}\frac{\phi_{i}+\phi_{i-1}}{2},
-!!\end{eqnarray}
-!! \endlatexonly
-!!
 !  This file is part of DALES.
 !
 ! DALES is free software; you can redistribute it and/or modify
@@ -30,7 +26,81 @@
 !  Copyright 1993-2009 Delft University of Technology, Wageningen University, Utrecht University, KNMI
 !
 
-!> Advection at cell center
+!> Advection redirection function
+module modadvection
+
+   implicit none
+
+contains
+
+subroutine advection
+
+   use modglobal, only:lmoist, nsv, iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv, &
+      iadv_cd2, iadv_kappa, iadv_upw, &
+      ltempeq, ih, jh, kh, ihc, jhc, khc, kb, ke, ib, ie, jb, je
+   use modfields, only:u0, up, v0, vp, w0, wp, e120, e12p, thl0, thl0c, thlp, thlpc, qt0, qtp, sv0, svp
+   use modsubgriddata, only:loneeqn
+   use decomp_2d
+   implicit none
+   integer :: n
+
+   select case (iadv_mom)
+   case (iadv_cd2)
+     call advecu_2nd(u0,up)
+     call advecv_2nd(v0,vp)
+     call advecw_2nd(w0,wp)
+   case default
+      write(0, *) "ERROR: Unknown advection scheme"
+      stop 1
+   end select
+
+   if (loneeqn) then
+      select case (iadv_tke)
+      case (iadv_cd2)
+         call advecc_2nd(ih, jh, kh, e120, e12p)
+      case default
+         write(0, *) "ERROR: Unknown advection scheme"
+         stop 1
+      end select
+   end if
+
+   select case (iadv_thl)
+   case (iadv_cd2)
+      if (ltempeq) call advecc_2nd(ih, jh, kh, thl0, thlp)
+   case (iadv_kappa)
+      thlpc(ib:ie,jb:je,kb:ke) = thlp(ib:ie,jb:je,kb:ke)
+      if (ltempeq) call advecc_kappa(ihc, jhc, khc, thl0c, thlpc)
+      thlp(ib:ie,jb:je,kb:ke) = thlpc(ib:ie,jb:je,kb:ke)
+   case default
+      write(0, *) "ERROR: Unknown advection scheme"
+      stop 1
+   end select
+
+   if (lmoist) then
+      select case (iadv_qt)
+      case (iadv_cd2)
+         call advecc_2nd(ih, jh, kh, qt0, qtp)
+      case default
+         write(0, *) "ERROR: Unknown advection scheme"
+         stop 1
+      end select
+   end if
+   do n = 1, nsv
+      select case (iadv_sv (n))
+      case (iadv_cd2)
+         call advecc_2nd(ihc, jhc, khc, sv0(:, :, :, n), svp(:, :, :, n))
+      case (iadv_kappa)
+         call advecc_kappa(ihc, jhc, khc, sv0(:, :, :, n), svp(:, :, :, n))
+      case (iadv_upw)
+         call advecc_upw(ihc, jhc, khc, sv0(:, :, :, n), svp(:, :, :, n))
+      case default
+         write(0, *) "ERROR: Unknown advection scheme"
+         stop 1
+      end select
+   end do
+
+end subroutine advection
+
 subroutine advecc_2nd(hi, hj, hk, putin, putout)
 
    use modglobal, only:kb, ke, ib, ie, jb, je, dxi5, dyi5, dzf, dzhi, dzfi5
@@ -244,3 +314,194 @@ subroutine advecw_2nd(putin, putout)
       end do
    end do
 end subroutine advecw_2nd
+
+  subroutine advecc_kappa(hi, hj, hk, var, varp)
+
+!  use modglobal, only : i1,i2,ih,j1,j2,jh,k1,kmax,dxi,dyi,dzi
+     use modglobal, only:ib, ie, jb, je, kb, ke, dxhci, dyi, dzhci, dxfc, dzfc, dxfci, dzfci
+     use modfields, only:u0, v0, w0
+     implicit none
+     integer, intent(in) :: hi !< size of halo in i
+     integer, intent(in) :: hj !< size of halo in j
+     integer, intent(in) :: hk !< size of halo in k
+     real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk), intent(in)  :: var !< Input: the cell centered field
+     real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk), intent(inout) :: varp !< Output: the tendency
+     real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)      ::  duml ! 3d dummy variable: lower cell side
+     real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk)      ::  dumu ! 3d dummy variable: upper cell side
+
+     integer i, j, k
+     real :: cf, d1, d2
+
+     dumu(:, :, :) = 0.
+     duml(:, :, :) = 0.
+! -d(uc)/dx (stretched grid)
+     do k = kb, ke
+        do j = jb, je
+           do i = ib, ie + 1
+              if (u0(i, j, k) > 0) then
+                 d1 = (var(i - 1, j, k) - var(i - 2, j, k))*dxhci(i - 1)
+                 d2 = (var(i, j, k) - var(i - 1, j, k))*dxhci(i)
+                 cf = var(i - 1, j, k)
+              else
+                 d1 = (var(i, j, k) - var(i + 1, j, k))*dxhci(i + 1)
+                 d2 = (var(i - 1, j, k) - var(i, j, k))*dxhci(i)
+                 cf = var(i, j, k)
+              end if
+              cf = cf + dxfc(i)*rlim(d1, d2)
+              dumu(i - 1, j, k) = -cf*u0(i, j, k)*dxfci(i - 1) !swapped the -1s here !tg3315 !now also swapped the signs...
+              duml(i, j, k) = cf*u0(i, j, k)*dxfci(i)
+           end do
+        end do
+     end do
+
+  varp(:,:,:) = varp(:,:,:) + dumu(:,:,:)+duml(:,:,:)
+
+  dumu(:,:,:) = 0.
+  duml(:,:,:) = 0.
+! -d(vc)/dy (no stretched grid)
+     do k = kb, ke
+        do j = jb, je + 1
+           do i = ib, ie
+              if (v0(i, j, k) > 0) then
+                 d1 = var(i, j - 1, k) - var(i, j - 2, k)
+                 d2 = var(i, j, k) - var(i, j - 1, k)
+                 cf = var(i, j - 1, k)
+              else
+                 d1 = var(i, j, k) - var(i, j + 1, k)
+                 d2 = var(i, j - 1, k) - var(i, j, k)
+                 cf = var(i, j, k)
+              end if
+              cf = cf + rlim(d1, d2)
+              duml(i, j, k) = cf*v0(i, j, k)*dyi !tg3315
+              dumu(i, j - 1, k) = -cf*v0(i, j, k)*dyi
+           end do
+        end do
+     end do
+
+  varp(:,:,:) = varp(:,:,:) + dumu(:,:,:)+duml(:,:,:)
+
+  dumu(:,:,:) = 0.
+  duml(:,:,:) = 0.
+! -d(wc)/dz (stretched grid)
+!  do k=kb,ke+1
+     do k = kb + 1, ke + 1
+        do j = jb, je
+           do i = ib, ie
+              if (w0(i, j, k) > 0) then
+                 d1 = (var(i, j, k - 1) - var(i, j, k - 2))*dzhci(k - 1)
+                 d2 = (var(i, j, k) - var(i, j, k - 1))*dzhci(k)
+                 cf = var(i, j, k - 1)
+              else
+                 d1 = (var(i, j, k) - var(i, j, k + 1))*dzhci(k + 1)
+                 d2 = (var(i, j, k - 1) - var(i, j, k))*dzhci(k)
+                 cf = var(i, j, k)
+              end if
+              cf = cf + dzfc(k)*rlim(d1, d2)
+              duml(i, j, k) = cf*w0(i, j, k)*dzfci(k) !tg3315 swapped
+              dumu(i, j, k - 1) = -cf*w0(i, j, k)*dzfci(k - 1)
+           end do
+        end do
+     end do
+
+     varp(:,:,:) = varp(:,:,:) + dumu(:,:,:)+duml(:,:,:)
+
+     return
+  end subroutine advecc_kappa
+
+!> Determination of the limiter function
+  real function rlim(d1, d2)
+     use modglobal, only:eps1
+     implicit none
+     real, intent(in) :: d1 !< Scalar flux at 1.5 cells upwind
+     real, intent(in) :: d2 !< Scalar flux at 0.5 cells upwind
+
+     real ri, phir
+
+     ri = (d2 + eps1)/(d1 + eps1)
+     phir = max(0., min(2.*ri, min(1./3.+2./3.*ri, 2.)))
+     rlim = 0.5*phir*d1
+  end function rlim
+
+subroutine advecc_upw(hi, hj, hk, putin, putout)
+
+   use modglobal, only:ib, ie, jb, je, kb, ke, dyi, dxfci, dzfci
+   use modfields, only:u0, v0, w0
+   implicit none
+
+   integer, intent(in) :: hi !< size of halo in i
+   integer, intent(in) :: hj !< size of halo in j
+   integer, intent(in) :: hk !< size of halo in k
+   real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk), intent(in)  :: putin !< Input: the cell centered field
+   real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk), intent(inout) :: putout !< Output: the tendency
+
+   real, allocatable, dimension(:, :, :) :: put
+   integer :: i, j, k
+
+   allocate (put(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk))
+
+   do k = kb, ke
+      do j = jb, je
+         do i = ib, ie + 1
+            if (u0(i, j, k) > 0) then
+               put(i, j, k) = putin(i - 1, j, k)
+            else
+               put(i, j, k) = putin(i, j, k)
+            endif
+         enddo
+      enddo
+   enddo
+
+   do k = kb, ke
+      do j = jb, je
+         do i = ib, ie
+            putout(i, j, k) = putout(i, j, k) - &
+                              (u0(i + 1, j, k)*put(i + 1, j, k) - u0(i, j, k)*put(i, j, k))*dxfci(i)
+         enddo
+      enddo
+   enddo
+
+   do k = kb, ke
+      do j = jb, je + 1
+         do i = ib, ie
+            if (v0(i, j, k) > 0) then
+               put(i, j, k) = putin(i, j - 1, k)
+            else
+               put(i, j, k) = putin(i, j, k)
+            endif
+         enddo
+      enddo
+   enddo
+   do k = kb, ke
+      do j = jb, je
+         do i = ib, ie
+            putout(i, j, k) = putout(i, j, k) - &
+                              (v0(i, j + 1, k)*put(i, j + 1, k) - v0(i, j, k)*put(i, j, k))*dyi
+         enddo
+      enddo
+   enddo
+
+   do k = kb, ke + 1
+      do j = jb, je
+         do i = ib, ie
+            if (w0(i, j, k) > 0) then
+               put(i, j, k) = putin(i, j, k - 1)
+            else
+               put(i, j, k) = putin(i, j, k)
+            endif
+         enddo
+      enddo
+   enddo
+   do k = kb, ke
+      do j = jb, je
+         do i = ib, ie
+            putout(i, j, k) = putout(i, j, k) - &
+                              (w0(i, j, k + 1)*put(i, j, k + 1) - w0(i, j, k)*put(i, j, k))*dzfci(k)
+         enddo
+      enddo
+   enddo
+
+   deallocate (put)
+
+end subroutine advecc_upw
+
+end module modadvection

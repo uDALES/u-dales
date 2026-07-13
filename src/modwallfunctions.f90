@@ -15,6 +15,12 @@
 !
 !  Copyright 2006-2021 the uDALES Team.
 !
+module modwallfunctions
+
+   implicit none
+
+contains
+
 SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,obcTfluxA,utang1,utang2,Tcell,Twall,z0,z0h,wforient)
    !wfuno
    !calculating wall function for momentum and scalars following Cai2012&Uno1995, extension of Louis 1979 method to rough walls
@@ -22,7 +28,6 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,obcTfluxA,utang1,uta
    USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dxf,dxhi,ib,ie,jb,je,kb,ke,fkar,grav
    USE modsubgriddata, ONLY:ekh, ekm
    USE modibmdata
-   REAL, EXTERNAL :: unom
    INTEGER i, j, k, jl, ju, ku, il, iu, km
    REAL :: Ribl0 = 0. !initial guess of Ribl based on Ts
 
@@ -253,3 +258,97 @@ REAL FUNCTION unom(logdz, logzh, sqdz, Ribl0, fkar2) !for momentum, this bit is 
    Ctm = fkar2/(logdz**2)*Fm !Eq. 7
    unom = Ctm !Eq. 2, Eq. 8
 END FUNCTION unom
+
+SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,wforient)
+   !wfmneutral
+   !wf for momentum under neutral conditions
+   !calculating wall function for momentum assuming neutral conditions
+   !follow approach in wfuno
+   !fluxes in m2/s2
+   USE modglobal, ONLY : dzf,dzfi,dzhi,dzhiq,dxf,dxhi,ib,ie,jb,je,kb,ke,fkar
+   USE modsubgriddata, ONLY:ekm
+   USE modibmdata
+   IMPLICIT NONE
+   INTEGER i, j, k, jl, ju, il, iu, km
+
+   REAL :: bcmomflux = 0. !temp storage for momentum flux
+   REAL :: ctm = 0. !momentum transfer coefficient
+   REAL :: dummy = 0. !for debugging
+   REAL :: delta = 0. !distance from wall
+   REAL :: logdz2 = 0. !log(delta/z0)**2
+   REAL :: utang1Int !Interpolated 1st tangential velocity component needed for stability calculation (to T location)
+   REAL :: utang2Int !Interpolated 2nd tangential velocity component needed for stability calculation (to T location)
+   REAL :: utangInt !Interpolated total tangential velocity magnitude used for stability calculation
+   REAL :: fkar2 !fkar^2, von Karman constant squared
+   REAL :: emom = 0., eomm = 0.
+   REAL :: umin = 0.0001 !m^2/s^2
+
+   INTEGER, INTENT(in) :: hi !<size of halo in i
+   INTEGER, INTENT(in) :: hj !<size of halo in j
+   INTEGER, INTENT(in) :: hk !<size of halo in k
+   REAL, INTENT(inout) :: iout1(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk) !updated prognostic tangential velocity (component1)
+   REAL, INTENT(inout) :: iout2(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk) !updated prognostic tangential velocity (component2)
+   REAL, INTENT(inout) :: iomomflux(ib - hi:ie + hi, jb - hj:je + hj, kb-hk:ke + hk) !a field to save the momentum flux
+   REAL, INTENT(in)    :: z0
+   REAL, INTENT(in)    :: utang1(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk) !tangential velocity field
+   REAL, INTENT(in)    :: utang2(ib - hi:ie + hi, jb - hj:je + hj, kb - hk:ke + hk) !second tangential velocity field
+   INTEGER, INTENT(in) :: wforient !orientation of the facet see below:
+   !frist digit, orientation of wall, determines iteration indices
+   !second digit, if for momentum or for scalar (necessary because of staggered grid -> which variable to interpolate)
+   !xlow=1,xup=2,yup=3,ylow=4,z=5
+   !momentum=1
+   fkar2 = fkar**2
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES FOR MOMENTUM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   SELECT CASE (wforient)
+   !!!!!!!!!!!!!!!SPECIAL CASES FOR THE SURFACE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !can actually be made redundant and just be replaced by standard horizontal case (doesn't really matter though)
+   ! SO: This code is essentially unchanged from uDALES v1, and should probably be moved out of this file in a later release.
+   CASE (91) !surface momentum flux
+
+      k = kb !
+      km = k - 1 !
+      il = ib
+      iu = ie
+      jl = jb
+      ju = je
+
+      delta = 0.5*dzf(k) !might need attention on streched grids! as well as the dzfi when updating up
+      logdz2 = LOG(delta/z0)**2
+
+      DO j = jl, ju !u component
+         DO i = il, iu
+            utang1Int = utang1(i, j, k)
+            utang2Int = (utang2(i, j, k) + utang2(i - 1, j, k) + utang2(i, j + 1, k) + utang2(i - 1, j + 1, k))*0.25
+            utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+            ctm = fkar2/(logdz2)
+            !dummy = (utang1Int**2)*ctm
+            dummy = abs(utang1Int)*sqrt(utangInt)*ctm
+            bcmomflux = SIGN(dummy, utang1Int)
+            iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+            emom = (dzf(km)*(ekm(i, j, k)*dxf(i - 1) + ekm(i - 1, j, k)*dxf(i)) + & ! dx is non-equidistant
+                    dzf(k)*(ekm(i, j, km)*dxf(i - 1) + ekm(i - 1, j, km)*dxf(i)))*dxhi(i)*dzhiq(k)
+            iout1(i, j, k) = iout1(i, j, k) + (utang1(i, j, k) - utang1(i, j, km))*emom*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+         END DO
+      END DO
+
+      DO j = jl, ju !v component
+         DO i = il, iu
+            utang1Int = (utang1(i, j, k) + utang1(i, j - 1, k) + utang1(i + 1, j - 1, k) + utang1(i + 1, j, k))*0.25
+            utang2Int = utang2(i, j, k)
+            utangInt = max(umin, (utang1Int**2 + utang2Int**2))
+            ctm = fkar2/(logdz2)
+            !dummy = (utang2Int**2)*ctm
+            dummy = abs(utang2Int)*sqrt(utangInt)*ctm
+            bcmomflux = SIGN(dummy, utang2Int)
+            iomomflux(i, j, k) = iomomflux(i, j, k) + bcmomflux*dzfi(k)
+            eomm = (dzf(km)*(ekm(i, j, k) + ekm(i, j - 1, k)) + dzf(k)*(ekm(i, j, km) + ekm(i, j - 1, km)))*dzhiq(k)
+            iout2(i, j, k) = iout2(i, j, k) + (utang2(i, j, k) - utang2(i, j, km))*eomm*dzhi(k)*dzfi(k) - bcmomflux*dzfi(k) !
+         END DO
+      END DO
+
+   END SELECT
+
+END SUBROUTINE wfmneutral
+
+end module modwallfunctions

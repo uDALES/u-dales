@@ -33,6 +33,10 @@ implicit none
 
 include "fftw3.f"
 
+! FFTW's legacy interface (fftw3.f) declares no explicit interfaces for these
+! routines, so declare them EXTERNAL to satisfy -warn all (Intel #8889).
+external :: dfftw_plan_dft_r2c_1d, dfftw_plan_dft_c2r_1d, dfftw_plan_r2r_1d, dfftw_execute
+
 private
 public :: initpois,poisson,exitpois,p,pup,pvp,pwp,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,dpdztop,pij
 save

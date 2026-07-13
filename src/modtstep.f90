@@ -40,6 +40,12 @@
 !! \end{equation}
 !! and the diffusion number $d$. The timestep is further limited by the needs of other modules, e.g. the statistics.
 !! \endlatexonly
+module modtstep
+
+  implicit none
+
+contains
+
 subroutine tstep_update
 
 
@@ -331,3 +337,5 @@ subroutine tstep_integrate
   end if
 
 end subroutine tstep_integrate
+
+end module modtstep

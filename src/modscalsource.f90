@@ -274,6 +274,12 @@
 
 !! ############  Updated scalar source modelling. DMajumdar  ############
 
+module modscalsource
+
+  implicit none
+
+contains
+
 subroutine createscals
 
   use mpi
@@ -475,3 +481,5 @@ subroutine scalsource
   end if !lscasrcl
 
 end subroutine scalsource
+
+end module modscalsource

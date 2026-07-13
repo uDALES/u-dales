@@ -42,6 +42,9 @@ program uDALES
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
   use moddriver,         only : initdriver
+  use modadvection,      only : advection
+  use modtstep,          only : tstep_update,tstep_integrate
+  use modscalsource,     only : createscals,scalsource
 
 !----------------------------------------------------------------
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
