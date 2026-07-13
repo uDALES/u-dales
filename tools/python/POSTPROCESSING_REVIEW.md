@@ -62,38 +62,42 @@ claims in the first draft of this document. The corrected facts:
 Ordered; the first item is the true prerequisite. All use the repo's existing `unittest` +
 `run_tests.py` machinery — **no new runner, no packaging churn.**
 
-- [ ] **1. Unify environment selection.** Three conventions currently contradict each other:
+- [ ] **1. Unify environment selection.** *(NOT done — deliberately deferred: Maarten asked not to
+      change the venv strategy in this branch.)* Three conventions still contradict each other:
       `run_tests.py` hardcodes `../.venv` (`tests/run_tests.py:16`) and prefers it over the active
       interpreter; `setup_venv.sh` creates `tools/python/.venv` (`:227`); `AGENTS.md` calls `../.venv`
-      canonical (`:139`). During review the dispatcher selected a stale shared env missing `shapely`.
-      Fix: prefer the **active `sys.executable`** with an explicit override flag, and align the setup
-      scripts, docs, `run_tests.py`, the f2py output location, and cluster guidance on one story.
-- [ ] **2. Close the CI coverage gap without duplicating inventories.** Make the merge gate use the
-      **discovery** suite already defined by `python-library`, or have `supported` and `python-library`
-      both `include` a shared discovery group — so new/omitted test files (like `test_udprep_init.py`)
-      can't silently escape the gate. Avoid maintaining two hand-written lists.
+      canonical (`:139`). Recommended fix: prefer the **active `sys.executable`** with an explicit
+      override flag, and align the setup scripts, docs, `run_tests.py`, the f2py output location, and
+      cluster guidance on one story.
+- [x] **2. Close the CI coverage gap without duplicating inventories.** *(Done — `supported`/
+      `supported-macos` now `include: python-library`, the single `unittest discover` inventory.)*
 - [x] **3. Fix the Python-3.9 incompatibility** in `test_udprep_init.py` (add
-      `from __future__ import annotations`). *(Done on this branch.)*
-- [ ] **4. Declare actual dependencies (classify by real import boundaries).** Add **`pandas`** (a
-      *hard*, currently undeclared dep) to `requirements.txt` + `environment.yml`. `pyvista` is
-      optional **and** must not pollute the default install — put it in its own
-      `requirements-pyvista.txt` and add it **with the backend PR, not the foundation branch**
-      (uncommenting it in `requirements.txt` would wrongly make it a default install). Also note in
-      the dep docs: **Plotly is feature-optional** and **numba is method-dependent** (both currently
-      declared as if mandatory); `pvlib` is backend-optional; `trimesh` is effectively required. Do
-      **not** add `pytest`.
+      `from __future__ import annotations`). *(Done.)*
+- [x] **4. Declare actual dependencies (classify by real import boundaries).** *(Done — `pandas`
+      added to `requirements.txt` + `environment.yml`; `pyvista` in its own `requirements-pyvista.txt`
+      installed only by the PyVista CI job; `plotly`/`numba`/`pvlib` annotated as feature/method
+      -optional; no `pytest` added.)*
 - [ ] **5. Decide the import model** (explicit choice, not "no packaging"): either (a) an
       internal/editable package (`pip install -e`, optionally a `pyproject.toml` — no wheel publish),
       or (b) a launcher-managed convention enforced by *every* entry point and test env. Note entry
       points like `tools/write_inputs.py` already self-insert the path; `setup_venv.sh` does **not**
-      permanently arrange it. Pick one and apply it uniformly. (Lower urgency than 1–4.)
-- [ ] **6. Delete dead/committed artefacts.** Remove `udgeom/geometry_generation_backup_pre_triangle.py`
-      (1040 lines, ~90% identical to the live file, imported nowhere — git history is the backup).
-      `.gitignore` **already** covers `**/__pycache__/` and `*.pyc` (`.gitignore:40-41`) — only add the
-      specific `tools/python/tests/.tmp/` rule.
-- [ ] **7. Decide PR #324's fate** (see "PR #324"): salvage the Plotly display-once fixes separately;
-      return PyVista behind a small, tested backend seam (with `requirements-pyvista.txt`); separately
-      justify the `plot_quiver` default change bundled into it.
+      permanently arrange it. Pick one and apply it uniformly. *(Open; lower urgency.)*
+- [x] **6. Delete dead/committed artefacts.** *(Done — removed the 1040-line
+      `geometry_generation_backup_pre_triangle.py`; added the `tools/python/tests/.tmp/` ignore.)*
+- [x] **7. PR #324 reworked.** *(Done — #324 closed; the PyVista support was rebuilt behind the
+      `Scene`/`backend=` seam and consolidated with the foundation work on this branch, now on
+      `origin`. Still **open for the author's call**: separately justify the `plot_quiver` default
+      flip (`True`→`False`) that #324 introduced.)*
+
+### Intentional compatibility changes (record)
+
+- The `pyvista=True` argument was introduced and removed within this branch; it never reached master,
+  so it is not a public break. Use `backend="pyvista"` (or the constructor default).
+- `plot_scalar_source`, `plot_solid`, `plot_fluid_boundary` previously **returned the Plotly figure
+  even when `show=True`**; they now return **`None` on `show=True`** (and the figure/plotter on
+  `show=False`), matching every other plot method. Deliberate consistency change — noted here so it
+  isn't mistaken for a regression.
+- `plot_quiver` default changed `True`→`False` (from #324) — pending separate justification.
 
 ---
 
@@ -154,16 +158,15 @@ mtime-keyed view-factor caching.
       incrementally. *Recommendation: replace, but staged.*
 - [x] **Backend-neutral 3D scene description + `backend="plotly" | "pyvista"`** — **DONE on this
       branch.** New `udvis/scene.py` defines `Scene` (meshes/lines/points/glyphs + title, colour bar,
-      axis labels, bounds) and `render_scene(scene, backend, show)` with Plotly and PyVista renderers.
-      `show_geometry`, `show_geometry_outline`, and `plot_fac` now build one `Scene` and dispatch by
-      `backend=`; the three parallel `*_pyvista` methods are deleted and `pyvista=True` is a
-      back-compat alias. `udbase_vis.py` 2063→1574 lines. Verified: 235 tests (incl. an off-screen
-      PyVista build test) — only the 2 pre-existing env failures. **Update:** all 3-D plots now
-      build a `Scene` and support `backend=` — the overlays (`plot_veg`, `plot_scalar_source`,
-      `plot_solid`, `plot_fluid_boundary`, `plot_fac_type`, `plot_independent_surfaces`) too; the
-      backend is set once on the `UDVis`/`UDGeom`/`UDBase` constructor (`pyvista=True` alias removed).
-      `Scene` grew colour-bar, legend and point-label support consumed by both renderers. A Linux CI
-      job exercises the PyVista backend off-screen. *Remaining:* retire the legacy
+      legend, point labels, axis labels, bounds) and `render_scene(scene, backend, show)` with Plotly
+      and PyVista renderers. **All nine 3-D plots** (`show_geometry`, `show_geometry_outline`,
+      `plot_fac`, `plot_veg`, `plot_scalar_source`, `plot_solid`, `plot_fluid_boundary`,
+      `plot_fac_type`, `plot_independent_surfaces`) build one `Scene` and dispatch by `backend=`; the
+      three parallel `*_pyvista` methods are **deleted** and the short-lived `pyvista=True` alias is
+      **removed** (never reached master). The backend is set once on the `UDVis`/`UDGeom`/`UDBase`
+      constructor, with an optional per-call override forwarded through the convenience wrappers. A
+      Linux CI job exercises the PyVista backend off-screen for every 3-D entry point. Verified: 239
+      tests, only the 2 pre-existing env failures. *Remaining:* retire the legacy
       `_render_scene`/`_render_plotly` helpers (kept only for a couple of tests now).
 
 ### Tier 2 — Decompose & consolidate
