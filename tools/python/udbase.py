@@ -1463,17 +1463,20 @@ class UDBase:
         """Backward-compatible alias for plot_veg."""
         return self.vis.plot_trees(show=show)
     
-    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, show: bool = True, pyvista: bool = False):
+    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None,
+                 show: bool = True, backend: str = "plotly", pyvista: bool = False):
         """Plot facet data as a 3D surface.
 
         Parameters
         ----------
+        backend : {"plotly", "pyvista"}, default="plotly"
+            Rendering backend.
         pyvista : bool, default=False
-            If True, use the PyVista/VTK backend instead of Plotly.
+            Deprecated alias for ``backend="pyvista"``.
         """
         if pyvista:
-            return self.vis.plot_fac_pyvista(var=var, building_ids=building_ids, show=show)
-        return self.vis.plot_fac(var=var, building_ids=building_ids, show=show)
+            backend = "pyvista"
+        return self.vis.plot_fac(var=var, building_ids=building_ids, show=show, backend=backend)
     
     def _create_colored_mesh(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
         """Create a colored trimesh object from facet data, optionally filtered by building IDs."""

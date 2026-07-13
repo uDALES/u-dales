@@ -60,7 +60,7 @@ class TestUDBaseVisualizationCompatibility(unittest.TestCase):
         self.assertEqual(result, "plot_fac_result")
         self.assertEqual(
             sim.vis.calls,
-            [("plot_fac", {"var": "dummy_var", "building_ids": [1, 2], "show": False})],
+            [("plot_fac", {"var": "dummy_var", "building_ids": [1, 2], "show": False, "backend": "plotly"})],
         )
 
     def test_udbase_plot_2dmap_forwards_to_vis_facade(self):
@@ -588,6 +588,54 @@ class TestDisplayOnceSemantics(unittest.TestCase):
         self.assertIsNotNone(fig)
         self.assertIn("Independent Surfaces", fig.layout.title.text)
         self.assertIn("n_surfaces", result)
+
+
+class TestBackendSelection(unittest.TestCase):
+    """The geometry views expose a single method per view with a ``backend``
+    selector, rather than parallel ``*_pyvista`` methods."""
+
+    @staticmethod
+    def _vis_with_box():
+        import trimesh
+
+        from udgeom import UDGeom
+
+        return UDVis(sim=UDGeom(stl=trimesh.creation.box(extents=(2.0, 2.0, 1.0))))
+
+    def test_render_scene_rejects_unknown_backend(self):
+        from udvis.scene import Scene, render_scene
+
+        with self.assertRaises(ValueError):
+            render_scene(Scene(), backend="opengl")
+
+    def test_no_parallel_pyvista_methods_remain(self):
+        # The refactor collapses the parallel *_pyvista methods into a backend arg.
+        for name in ("show_geometry_pyvista", "show_geometry_outline_pyvista", "plot_fac_pyvista"):
+            self.assertFalse(hasattr(UDVis, name), f"{name} should have been removed")
+
+    @unittest.skipUnless(
+        importlib.util.find_spec("pyvista")
+        and importlib.util.find_spec("trimesh"),
+        "pyvista backend deps required",
+    )
+    def test_pyvista_backend_builds_plotters_for_all_views(self):
+        import numpy as _np
+        import pyvista as pv
+
+        pv.OFF_SCREEN = True
+        vis = self._vis_with_box()
+        var = _np.arange(vis.geom.n_faces, dtype=float)
+        # show=False returns the backend-native object; building it exercises the
+        # whole PyVista render path (meshes, glyphs, outline lines, axes, colorbar)
+        # short of the GL rasterization that a headless CI cannot do.
+        for label, plotter in [
+            ("show_geometry", vis.show_geometry(show=False, plot_quiver=True, backend="pyvista")),
+            ("show_geometry_outline", vis.show_geometry_outline(show=False, backend="pyvista")),
+            ("plot_fac", vis.plot_fac(var, show=False, backend="pyvista")),
+        ]:
+            self.assertIsInstance(plotter, pv.Plotter, label)
+            self.assertGreater(len(plotter.renderer.actors), 0, label)
+            plotter.close()
 
 
 if __name__ == "__main__":

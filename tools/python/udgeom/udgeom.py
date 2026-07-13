@@ -269,7 +269,7 @@ class UDGeom:
     def show(self, color_buildings: bool = True, plot_quiver: bool = False,
              normal_scale: float = 0.2,
              show_edges: bool = True, show_ground: bool = True, show: bool = True,
-             pyvista: bool = False):
+             backend: str = "plotly", pyvista: bool = False):
         """
         Visualize the geometry.
 
@@ -296,39 +296,35 @@ class UDGeom:
         show : bool, default=True
             If True, display the figure immediately. If False, only return the
             figure object.
+        backend : {"plotly", "pyvista"}, default="plotly"
+            Rendering backend.
         pyvista : bool, default=False
-            If True, use the PyVista/VTK backend instead of Plotly.
+            Deprecated alias for ``backend="pyvista"``.
 
         Returns
         -------
-        plotly.graph_objects.Figure or None
-            The figure when ``show=False``; ``None`` when ``show=True`` (the
-            figure is displayed instead).
+        plotly.graph_objects.Figure or pyvista.Plotter or None
+            When ``show=False``, the Plotly ``Figure`` or the PyVista
+            ``Plotter`` depending on ``backend``; ``None`` when ``show=True``
+            (the figure/window is displayed instead).
 
         Raises
         ------
         ValueError
             If no geometry is loaded
         ImportError
-            If trimesh (Plotly backend) or pyvista (``pyvista=True``) is not
+            If trimesh (plotly backend) or pyvista (pyvista backend) is not
             installed
 
         Examples
         --------
         >>> geom.show()  # Default: Plotly backend
-        >>> geom.show(pyvista=True)  # PyVista backend
+        >>> geom.show(backend="pyvista")  # PyVista backend
         >>> geom.show(color_buildings=False)  # Faster for large meshes
         >>> fig = geom.show(show=False)  # Build the figure without displaying it
         """
         if pyvista:
-            return self.vis.show_geometry_pyvista(
-                color_buildings=color_buildings,
-                plot_quiver=plot_quiver,
-                normal_scale=normal_scale,
-                show_edges=show_edges,
-                show_ground=show_ground,
-                show=show,
-            )
+            backend = "pyvista"
         return self.vis.show_geometry(
             color_buildings=color_buildings,
             plot_quiver=plot_quiver,
@@ -336,6 +332,7 @@ class UDGeom:
             show_edges=show_edges,
             show_ground=show_ground,
             show=show,
+            backend=backend,
         )
     
     @property
@@ -792,8 +789,9 @@ class UDGeom:
         self,
         angle_threshold: float = 45.0,
         show_ground: bool = True,
-        color_buildings: bool = True,
+        color_buildings: bool = False,
         show: bool = True,
+        backend: str = "plotly",
         pyvista: bool = False,
     ):
         """
@@ -810,41 +808,40 @@ class UDGeom:
             threshold are considered outline edges.
         show_ground : bool, default=True
             If True, include ground faces in the visualization.
-        color_buildings : bool, default=True
-            If True, colour building facets (z > 0) blue and ground grey.
-            Only used when ``pyvista=True``; the Plotly backend uses its own
-            two-tone grey shading.
+        color_buildings : bool, default=False
+            If True, colour buildings blue and ground grey. If False (default),
+            use two-tone grey shading that makes the outline edges stand out.
+            Honoured by both backends.
         show : bool, default=True
             If True, display the figure immediately. If False, only return the
             figure object.
+        backend : {"plotly", "pyvista"}, default="plotly"
+            Rendering backend.
         pyvista : bool, default=False
-            If True, use the PyVista/VTK backend instead of Plotly.
+            Deprecated alias for ``backend="pyvista"``.
 
         Raises
         ------
         ValueError
             If no geometry is loaded
         ImportError
-            If trimesh (Plotly backend) or pyvista (``pyvista=True``) is not
+            If trimesh (plotly backend) or pyvista (pyvista backend) is not
             installed
 
         Examples
         --------
         >>> geom.show_outline()  # Default: Plotly backend
-        >>> geom.show_outline(pyvista=True)  # PyVista backend
+        >>> geom.show_outline(backend="pyvista")  # PyVista backend
         >>> geom.show_outline(angle_threshold=30)  # More sensitive
         """
         if pyvista:
-            return self.vis.show_geometry_outline_pyvista(
-                angle_threshold=angle_threshold,
-                show_ground=show_ground,
-                color_buildings=color_buildings,
-                show=show,
-            )
+            backend = "pyvista"
         return self.vis.show_geometry_outline(
             angle_threshold=angle_threshold,
             show_ground=show_ground,
+            color_buildings=color_buildings,
             show=show,
+            backend=backend,
         )
 
     def check(self, require_single_component: bool = True):

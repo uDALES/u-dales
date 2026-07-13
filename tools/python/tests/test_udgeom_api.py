@@ -1235,6 +1235,7 @@ class TestUDGeomApi(unittest.TestCase):
                     "show_edges": False,
                     "show_ground": True,
                     "show": True,
+                    "backend": "plotly",
                 }
             ],
         )
@@ -1256,7 +1257,8 @@ class TestUDGeomApi(unittest.TestCase):
         self.assertEqual(result, "show_geometry_outline_result")
         self.assertEqual(
             geom.vis.calls,
-            [{"angle_threshold": 30.0, "show_ground": False, "show": True}],
+            [{"angle_threshold": 30.0, "show_ground": False, "color_buildings": False,
+              "show": True, "backend": "plotly"}],
         )
 
     def test_show_outline_forwards_show_flag_to_vis_facade(self):
@@ -1276,7 +1278,8 @@ class TestUDGeomApi(unittest.TestCase):
         self.assertEqual(result, "show_geometry_outline_result")
         self.assertEqual(
             geom.vis.calls,
-            [{"angle_threshold": 45.0, "show_ground": True, "show": False}],
+            [{"angle_threshold": 45.0, "show_ground": True, "color_buildings": False,
+              "show": False, "backend": "plotly"}],
         )
 
     def test_show_forwards_show_flag_to_vis_facade(self):
@@ -1304,6 +1307,7 @@ class TestUDGeomApi(unittest.TestCase):
                 "show_edges": False,
                 "show_ground": True,
                 "show": False,
+                "backend": "plotly",
             }],
         )
 
@@ -1319,28 +1323,27 @@ class TestUDGeomApi(unittest.TestCase):
             inspect.signature(UDVis.show_geometry).parameters["plot_quiver"].default,
             False,
         )
-        self.assertIs(
-            inspect.signature(UDVis.show_geometry_pyvista).parameters["plot_quiver"].default,
-            False,
-        )
 
     def test_show_routes_to_pyvista_backend(self):
+        # pyvista=True is a back-compat alias that must route to the single
+        # show_geometry method with backend="pyvista" (no parallel *_pyvista).
         class RecordingVis:
             def __init__(self):
                 self.calls = []
 
-            def show_geometry_pyvista(self, **kwargs):
+            def show_geometry(self, **kwargs):
                 self.calls.append(kwargs)
-                return "pyvista_result"
+                return "backend_result"
 
         geom = UDGeom.__new__(UDGeom)
         geom.vis = RecordingVis()
 
         result = UDGeom.show(geom, pyvista=True, show=False)
 
-        self.assertEqual(result, "pyvista_result")
+        self.assertEqual(result, "backend_result")
         self.assertEqual(len(geom.vis.calls), 1)
         self.assertEqual(geom.vis.calls[0]["show"], False)
+        self.assertEqual(geom.vis.calls[0]["backend"], "pyvista")
 
     def test_plot_independent_surfaces_forwards_to_plot_fac(self):
         class RecordingVis:
