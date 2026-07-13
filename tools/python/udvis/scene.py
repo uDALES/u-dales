@@ -346,6 +346,19 @@ def _faces_to_pyvista(faces: np.ndarray) -> np.ndarray:
     return out.ravel()
 
 
+def _pyvista_color(c):
+    """Normalise a colour spec for PyVista.
+
+    Plotly-style ``"rgb(r,g,b)"`` strings (used throughout the plot code) are
+    converted to a 0..1 tuple; hex, named colours and tuples pass through, since
+    PyVista accepts those directly.
+    """
+    if isinstance(c, str) and c.startswith("rgb(") and c.endswith(")"):
+        r, g, b = (float(v) for v in c[4:-1].split(","))
+        return (r / 255.0, g / 255.0, b / 255.0)
+    return c
+
+
 def _render_pyvista(scene: Scene, show: bool = True):
     try:
         import pyvista as pv
@@ -381,7 +394,7 @@ def _render_pyvista(scene: Scene, show: bool = True):
             poly.cell_data["rgb"] = fc[:, :3]
             plotter.add_mesh(poly, scalars="rgb", rgb=True, show_scalar_bar=False, **common)
         else:
-            plotter.add_mesh(poly, color=mesh.solid_color or GROUND_RGB, **common)
+            plotter.add_mesh(poly, color=_pyvista_color(mesh.solid_color or GROUND_RGB), **common)
 
     for ln in scene.lines:
         segs = np.asarray(ln.segments, dtype=np.int64)
@@ -394,14 +407,14 @@ def _render_pyvista(scene: Scene, show: bool = True):
         line_poly = pv.PolyData()
         line_poly.points = verts
         line_poly.lines = cells.ravel()
-        plotter.add_mesh(line_poly, color=ln.color, line_width=ln.width, name=ln.name or None)
+        plotter.add_mesh(line_poly, color=_pyvista_color(ln.color), line_width=ln.width, name=ln.name or None)
 
     for ps in scene.points:
         pts = np.asarray(ps.points, dtype=float)
         if pts.size == 0:
             continue
         plotter.add_mesh(pv.PolyData(pts),
-                         color=ps.color, point_size=ps.size, opacity=ps.opacity,
+                         color=_pyvista_color(ps.color), point_size=ps.size, opacity=ps.opacity,
                          render_points_as_spheres=True, name=ps.name or None)
 
     for g in scene.glyphs:
@@ -411,7 +424,7 @@ def _render_pyvista(scene: Scene, show: bool = True):
         arrows = pv.PolyData(gpts)
         arrows["vectors"] = np.asarray(g.vectors, dtype=float)
         glyphs = arrows.glyph(orient="vectors", scale=False, factor=g.scale)
-        plotter.add_mesh(glyphs, color=g.color, name=g.name or None)
+        plotter.add_mesh(glyphs, color=_pyvista_color(g.color), name=g.name or None)
 
     if scene.title:
         plotter.add_text(scene.title, position="upper_edge", font_size=10, color="black")
