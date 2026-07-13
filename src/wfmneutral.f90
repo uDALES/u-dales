@@ -25,7 +25,8 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    USE modsubgriddata, ONLY:ekh, ekm
    USE modmpi, ONLY:myid
    USE modibmdata
-   INTEGER i, j, k, jl, ju, kl, ku, il, iu, km, im, jm, ip, jp, kp
+   IMPLICIT NONE
+   INTEGER i, j, k, jl, ju, il, iu, km
 
    REAL :: bcmomflux = 0. !temp storage for momentum flux
    REAL :: ctm = 0. !momentum transfer coefficient
@@ -34,6 +35,7 @@ SUBROUTINE wfmneutral(hi,hj,hk,iout1,iout2,iomomflux,utang1,utang2,z0,n,ind,wfor
    REAL :: logdz2 = 0. !log(delta/z0)**2
    REAL :: utang1Int !Interpolated 1st tangential velocity component needed for stability calculation (to T location)
    REAL :: utang2Int !Interpolated 2nd tangential velocity component needed for stability calculation (to T location)
+   REAL :: utangInt !Interpolated total tangential velocity magnitude used for stability calculation
    REAL :: fkar2 !fkar^2, von Karman constant squared
    REAL :: emmo = 0., epmo = 0., epom = 0., emom = 0., eopm = 0., eomm = 0., empo = 0.
    REAL :: umin = 0.0001 !m^2/s^2
