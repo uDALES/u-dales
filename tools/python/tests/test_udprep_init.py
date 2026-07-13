@@ -41,7 +41,10 @@ class TestShellConfigParsing(unittest.TestCase):
     def setUp(self):
         self.temp_dir = TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
-        self.workdir = Path(self.temp_dir.name)
+        # Resolve symlinks in the temp path: on macOS $TMPDIR is /var -> /private/var
+        # (and some clusters symlink it too). The config.sh below uses $(pwd), which
+        # bash reports resolved, so the expected path must be resolved to match.
+        self.workdir = Path(self.temp_dir.name).resolve()
 
     @unittest.skipIf(shutil.which("bash") is None, "bash is required for shell config sourcing")
     def test_parse_shell_config_sources_shell_and_filters_da_variables(self):
