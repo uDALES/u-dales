@@ -40,7 +40,6 @@ subroutine advection
       ltempeq, ih, jh, kh, ihc, jhc, khc, kb, ke, ib, ie, jb, je
    use modfields, only:u0, up, v0, vp, w0, wp, e120, e12p, thl0, thl0c, thlp, thlpc, qt0, qtp, sv0, svp
    use modsubgriddata, only:loneeqn
-   use decomp_2d
    implicit none
    integer :: n
 
@@ -160,7 +159,6 @@ subroutine advecu_2nd(putin, putout)
 
    use modglobal, only:ih, ib, ie, jb, je, jh, kb, ke, kh, dxi, dxiq, dyiq, dzf, dzfi5, dzhi
    use modfields, only:u0, v0, w0, pres0
-   use decomp_2d
    implicit none
 
    real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(in)  :: putin !< Input: the u-field
