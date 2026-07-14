@@ -6,6 +6,7 @@ plotting methods backed by matplotlib and pyvista.
 """
 from __future__ import annotations
 
+import logging
 import warnings
 from typing import Any, Dict, List, Optional, Union
 
@@ -27,6 +28,8 @@ from .scene import (
     normalize_backend,
     render_scene,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class UDVis:
@@ -304,7 +307,7 @@ class UDVis:
         if len(points) > max_points:
             rng = np.random.default_rng(0)
             points = points[rng.choice(len(points), size=max_points, replace=False)]
-            print(f"plot_veg: showing {max_points} of {len(veg['points'])} points")
+            logger.info("plot_veg: showing %d of %d points", max_points, len(veg['points']))
 
         xs = self.sim.xt[points[:, 0].astype(int)]
         ys = self.sim.yt[points[:, 1].astype(int)]
@@ -438,7 +441,7 @@ class UDVis:
             rng = np.random.default_rng(0)
             sel = rng.choice(n_total, size=max_points, replace=False)
             ii, jj, kk = ii[sel], jj[sel], kk[sel]
-            print(f"plot_solid: showing {max_points} of {n_total} {grid_type}-solid points")
+            logger.info("plot_solid: showing %d of %d %s-solid points", max_points, n_total, grid_type)
 
         # Map indices to physical coordinates using the appropriate staggered grid
         x_arr = {"u": self.sim.xm, "v": self.sim.xt, "w": self.sim.xt, "c": self.sim.xt}[grid_type]
@@ -514,7 +517,7 @@ class UDVis:
             rng = np.random.default_rng(0)
             sel = rng.choice(n_total, size=max_points, replace=False)
             locs = locs[sel]
-            print(f"plot_fluid_boundary: showing {max_points} of {n_total} {grid_type}-boundary points")
+            logger.info("plot_fluid_boundary: showing %d of %d %s-boundary points", max_points, n_total, grid_type)
 
         ii, jj, kk = locs[:, 0], locs[:, 1], locs[:, 2]
 
