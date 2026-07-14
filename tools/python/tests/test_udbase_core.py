@@ -71,7 +71,9 @@ class TestUDBaseCore(unittest.TestCase):
             encoding="ascii",
         )
 
-        with patch.dict(os.environ, {"HOME": str(fake_home)}):
+        # Path.expanduser() reads HOME on POSIX but USERPROFILE on Windows, so
+        # patch both to make the test platform-neutral.
+        with patch.dict(os.environ, {"HOME": str(fake_home), "USERPROFILE": str(fake_home)}):
             sim = UDBase(
                 "1",
                 "~/simulation/udtest/experiments/001",
