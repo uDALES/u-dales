@@ -18,6 +18,7 @@ except ImportError:
     TRIMESH_AVAILABLE = False
 
 from .delete_ground import delete_ground
+from ._meshgraph import connected_components
 
 
 def split_buildings(mesh: 'trimesh.Trimesh', remove_ground: bool = True) -> Tuple[List['trimesh.Trimesh'], np.ndarray]:
@@ -134,23 +135,8 @@ def split_buildings(mesh: 'trimesh.Trimesh', remove_ground: bool = True) -> Tupl
                     adjacency[face_list[i]].add(face_list[j])
                     adjacency[face_list[j]].add(face_list[i])
     
-    # Step 4: Find connected components using depth-first search
-    visited = set()
-    components = []
-    
-    for i in range(n_building_faces):
-        if i not in visited:
-            component = []
-            stack = [i]
-            visited.add(i)
-            while stack:
-                node = stack.pop()
-                component.append(node)
-                for neighbor in adjacency[node]:
-                    if neighbor not in visited:
-                        visited.add(neighbor)
-                        stack.append(neighbor)
-            components.append(component)
+    # Step 4: Find connected components (depth-first over the shared-edge graph)
+    components = connected_components(adjacency)
     
     # Step 5: Create triangulation objects for each component
     building_components = []

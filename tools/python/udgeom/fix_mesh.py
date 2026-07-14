@@ -29,6 +29,7 @@ from .check_mesh import (
     identify_ground_faces,
 )
 from .delete_ground import delete_ground
+from ._meshgraph import build_face_adjacency, connected_components
 
 from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
 from shapely.ops import triangulate, unary_union
@@ -44,33 +45,9 @@ def _copy_mesh(mesh: "trimesh.Trimesh") -> "trimesh.Trimesh":
 
 
 def _face_components(mesh: "trimesh.Trimesh") -> list[np.ndarray]:
-    faces = np.asarray(mesh.faces, dtype=int)
-    n_faces = len(faces)
-    if n_faces == 0:
+    if len(mesh.faces) == 0:
         return []
-
-    adjacency = {i: set() for i in range(n_faces)}
-    for face_a, face_b in np.asarray(mesh.face_adjacency, dtype=int):
-        adjacency[int(face_a)].add(int(face_b))
-        adjacency[int(face_b)].add(int(face_a))
-
-    visited = set()
-    components: list[np.ndarray] = []
-    for face_id in range(n_faces):
-        if face_id in visited:
-            continue
-        stack = [face_id]
-        visited.add(face_id)
-        component = []
-        while stack:
-            current = stack.pop()
-            component.append(current)
-            for nb in adjacency[current]:
-                if nb not in visited:
-                    visited.add(nb)
-                    stack.append(nb)
-        components.append(np.asarray(component, dtype=int))
-    return components
+    return connected_components(build_face_adjacency(mesh))
 
 
 def _iter_polygons(geom):
