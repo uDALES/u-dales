@@ -11,7 +11,7 @@ import numpy as np
 from scipy.optimize import brentq
 import warnings
 
-from .udprep import Section, SectionSpec
+from ._section import Section, SectionSpec
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("grid", {})
 FIELDS: List[str] = list(DEFAULTS.keys())

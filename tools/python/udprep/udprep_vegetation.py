@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 import warnings
 
-from .udprep import Section, SectionSpec
+from ._section import Section, SectionSpec
 
 if TYPE_CHECKING:
     from udbase import UDBase

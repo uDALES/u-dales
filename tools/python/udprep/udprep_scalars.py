@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 
 import numpy as np
 
-from .udprep import Section, SectionSpec
+from ._section import Section, SectionSpec
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("scalars", {})
 FIELDS: List[str] = list(DEFAULTS.keys())

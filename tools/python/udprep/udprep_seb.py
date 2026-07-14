@@ -10,7 +10,7 @@ from typing import Any, Dict, List
 from pathlib import Path
 import numpy as np
 
-from .udprep import Section, SectionSpec
+from ._section import Section, SectionSpec
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("seb", {})
 FIELDS: List[str] = list(DEFAULTS.keys())

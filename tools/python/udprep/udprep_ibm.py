@@ -16,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from .udprep import Section, SectionSpec
+from ._section import Section, SectionSpec
 
 IBM_FORTRAN_DIR = Path(__file__).resolve().parents[1] / "fortran" / "ibm_preproc"
 PREBUILT_IBM_EXE = Path(__file__).resolve().parents[2] / "preprocessing" / "build" / "bin" / "IBM_preproc"

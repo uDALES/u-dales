@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from pathlib import Path
 
 import numpy as np
 from . import _radiation_compute
-from .udprep import Section, SectionSpec
-from .directshortwave import DirectShortwaveSolver
+from ._section import Section, SectionSpec
+
+if TYPE_CHECKING:
+    # Only for annotations; the real import is lazy (numba JIT kernels) so this
+    # module can be imported without triggering compilation.
+    from .directshortwave import DirectShortwaveSolver
 from .solar import nsun_from_angles, solar_position_python, solar_state, solar_strength_ashrae
 from udgeom.view3d import (
     compute_svf,
@@ -115,6 +119,10 @@ class RadiationSection(Section):
         }
         if self._direct_sw_solver is None or self._direct_sw_solver_cfg != cfg:
             sim = self._require_sim()
+            # Imported lazily: DirectShortwaveSolver pulls in the numba JIT
+            # kernels, which must not be triggered merely by importing this
+            # module (e.g. to reach the pure helpers or RadiationSection config).
+            from .directshortwave import DirectShortwaveSolver
             self._direct_sw_solver = DirectShortwaveSolver(
                 sim,
                 method_key,
