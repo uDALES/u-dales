@@ -18,6 +18,11 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 
 def calculate_outline(mesh: 'trimesh.Trimesh', angle_threshold: float = 45.0) -> Tuple[np.ndarray, Dict]:
     """
@@ -72,7 +77,7 @@ def calculate_outline(mesh: 'trimesh.Trimesh', angle_threshold: float = 45.0) ->
     split_buildings : Separate individual buildings from mesh
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
     
     # Extract mesh data
     vertices = mesh.vertices

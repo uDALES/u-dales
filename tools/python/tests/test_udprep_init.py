@@ -49,6 +49,12 @@ class TestShellConfigParsing(unittest.TestCase):
         self.workdir = Path(self.temp_dir.name).resolve()
 
     @unittest.skipIf(shutil.which("bash") is None, "bash is required for shell config sourcing")
+    @unittest.skipIf(
+        sys.platform == "win32",
+        "sources config through bash, whose $(pwd) reports a POSIX mount path "
+        "that cannot equal Python's Windows temp path; this shell-sourcing path "
+        "is a Linux/macOS production feature.",
+    )
     def test_parse_shell_config_sources_shell_and_filters_da_variables(self):
         config = self.workdir / "config.sh"
         config.write_text(

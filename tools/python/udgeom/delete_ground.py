@@ -17,6 +17,11 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 
 def delete_ground(mesh: "trimesh.Trimesh") -> Tuple["trimesh.Trimesh", np.ndarray]:
     """
@@ -35,7 +40,7 @@ def delete_ground(mesh: "trimesh.Trimesh") -> Tuple["trimesh.Trimesh", np.ndarra
         Mapping from filtered face indices back to the original face indices.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     vertices = np.asarray(mesh.vertices, dtype=float)
     faces = np.asarray(mesh.faces, dtype=int)

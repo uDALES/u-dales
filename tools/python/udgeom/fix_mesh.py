@@ -21,6 +21,11 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 from .check_mesh import (
     _as_trimesh,
     _boundary_edge_face_map,
@@ -413,7 +418,7 @@ def fix(
         checks.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     original = _as_trimesh(mesh_or_geom)
     mesh = _copy_mesh(original)
@@ -523,7 +528,7 @@ def resolve_vertical_coplanar_overlaps(
     boundary T-junctions created by that repair.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     mesh = _copy_mesh(_as_trimesh(mesh_or_geom))
     before = check(mesh, require_single_component=False)
@@ -555,7 +560,7 @@ def weld_touching_boundaries(
     vertices and rebuilding the affected triangles.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     mesh = _copy_mesh(_as_trimesh(mesh_or_geom))
     before = check(mesh, require_single_component=False)
@@ -613,7 +618,7 @@ def repair_adjacent_buildings(
         summary.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     mesh = _copy_mesh(_as_trimesh(mesh_or_geom))
     ground_mask = identify_ground_faces(mesh)

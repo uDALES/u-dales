@@ -23,6 +23,11 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 
 def _copy_mesh(mesh: "trimesh.Trimesh") -> "trimesh.Trimesh":
     return trimesh.Trimesh(
@@ -248,7 +253,7 @@ def truncate_below_ground(
         Summary of the truncation and local ground restitching operation.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     mesh = _copy_mesh(_as_trimesh(mesh_or_geom))
     if len(mesh.faces) == 0:

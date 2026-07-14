@@ -24,6 +24,11 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
 from shapely.ops import unary_union
 
@@ -32,7 +37,7 @@ from ._meshgraph import build_face_adjacency, connected_components
 
 def _as_trimesh(mesh_or_geom) -> "trimesh.Trimesh":
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     if isinstance(mesh_or_geom, trimesh.Trimesh):
         return mesh_or_geom

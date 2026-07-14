@@ -10,6 +10,11 @@ from typing import Any, Dict, List
 from pathlib import Path
 import numpy as np
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 from ._section import Section, SectionSpec
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("seb", {})
@@ -68,7 +73,7 @@ class SEBSection(Section):
         try:
             from netCDF4 import Dataset
         except ImportError as exc:
-            raise ImportError("netCDF4 is required to read facT_file") from exc
+            raise DependencyError("netCDF4 is required to read facT_file") from exc
 
         with Dataset(facT_path, "r") as ds:
             if "T" not in ds.variables:

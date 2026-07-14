@@ -707,10 +707,12 @@ class TestOptionalBackendDependencyErrors(unittest.TestCase):
 
     def _render_with_missing(self, backend, missing_modules):
         from udvis.scene import Scene, render_scene
+        from exceptions import DependencyError
 
         blocked = {name: None for name in missing_modules}
         with patch.dict(sys.modules, blocked):
-            with self.assertRaises(ImportError) as ctx:
+            # DependencyError so callers can catch it typed; also an ImportError.
+            with self.assertRaises(DependencyError) as ctx:
                 render_scene(Scene(), backend=backend, show=False)
         return str(ctx.exception)
 

@@ -27,6 +27,11 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 
 def extrude_to_ground(
     mesh_or_geom,
@@ -72,7 +77,7 @@ def extrude_to_ground(
         describing the moved vertices and local ground restitching.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     mesh = _copy_mesh(_as_trimesh(mesh_or_geom))
     if len(mesh.faces) == 0:

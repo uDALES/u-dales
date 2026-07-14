@@ -32,6 +32,11 @@ try:
 except ImportError:
     SCIPY_AVAILABLE = False
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 # Import package functions
 from .calculate_outline import calculate_outline
 from .check_mesh import (
@@ -111,7 +116,7 @@ class UDGeom:
             per instance via ``geom.backend`` or per call via ``backend=``.
         """
         if not TRIMESH_AVAILABLE:
-            raise ImportError("trimesh is required for UDGeom. Install with: pip install trimesh")
+            raise DependencyError("trimesh is required for UDGeom. Install with: pip install trimesh")
         
         # Set path
         if path is not None:

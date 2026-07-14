@@ -16,6 +16,11 @@ if TYPE_CHECKING:
     from udbase import UDBase
 import numpy as np
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("vegetation", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
 
@@ -200,7 +205,7 @@ class VegetationSection(Section):
         try:
             import trimesh
         except ImportError as exc:
-            raise ImportError("trimesh is required for load_stl") from exc
+            raise DependencyError("trimesh is required for load_stl") from exc
 
         if not stl_path.is_file():
             raise FileNotFoundError(f"Missing STL file: {stl_path}")

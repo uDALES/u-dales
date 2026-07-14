@@ -24,8 +24,12 @@ class DataFormatError(UDALESError):
     """An input/data file does not match the expected format."""
 
 
-class DependencyError(UDALESError):
-    """A required optional dependency is not installed."""
+class DependencyError(UDALESError, ImportError):
+    """A required optional dependency is not installed.
+
+    Also an ``ImportError`` so that existing ``except ImportError`` guards around
+    optional-dependency use keep working after the conversion.
+    """
 
 
 class GeometryError(UDALESError):

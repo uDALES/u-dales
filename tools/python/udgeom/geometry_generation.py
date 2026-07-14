@@ -16,9 +16,14 @@ import warnings
 import numpy as np
 
 try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
+try:
     import trimesh
 except ImportError as exc:
-    raise ImportError("trimesh is required for geometry generation; install with `pip install trimesh`.") from exc
+    raise DependencyError("trimesh is required for geometry generation; install with `pip install trimesh`.") from exc
 
 try:
     from scipy.spatial import Delaunay
@@ -1720,7 +1725,7 @@ def plot_ground_generation_step1(debug: Dict[str, Any], show: bool = True):
     try:
         import plotly.graph_objects as go
     except ImportError as exc:
-        raise ImportError("plotly is required for this visualization. Install with: pip install plotly") from exc
+        raise DependencyError("plotly is required for this visualization. Install with: pip install plotly") from exc
 
     def _iter_polygons(geom):
         if geom is None or getattr(geom, "is_empty", True):

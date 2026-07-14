@@ -14,6 +14,11 @@ from typing import Any, Dict, Tuple
 
 import numpy as np
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 
 # -----------------------------------------------------------------------------
 # ASHRAE coefficients (tools/SEB/ASHRAE.m)
@@ -1162,7 +1167,7 @@ def solar_state_pvlib(
         import pandas as pd
         import pvlib
     except ImportError as exc:
-        raise ImportError(
+        raise DependencyError(
             "The pvlib solar-position backend requires pvlib. Install it with: pip install pvlib"
         ) from exc
 

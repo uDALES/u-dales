@@ -17,6 +17,11 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 from .delete_ground import delete_ground
 from ._meshgraph import build_edge_face_adjacency, connected_components
 
@@ -89,7 +94,7 @@ def split_buildings(mesh: 'trimesh.Trimesh', remove_ground: bool = True) -> Tupl
     UDGeom.get_buildings : Cached building access method
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
     
     vertices = mesh.vertices
     faces = mesh.faces

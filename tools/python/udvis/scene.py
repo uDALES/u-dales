@@ -4,8 +4,8 @@ A :class:`Scene` is a plain description of *what* to draw (meshes, lines,
 points, glyphs, a title, an optional colour bar and axis labels). Rendering is
 delegated to a backend selected by name via :func:`render_scene`:
 
-* ``"plotly"`` — interactive HTML figure (default; notebook-friendly),
-* ``"pyvista"`` — PyVista/VTK window or off-screen ``Plotter``.
+* ``"pyvista"`` — PyVista/VTK window or off-screen ``Plotter`` (default),
+* ``"plotly"`` — interactive HTML figure (optional backend, notebook-friendly).
 
 Plot methods build one ``Scene`` and hand it to whichever backend the caller
 asked for, so a new backend is a new renderer here rather than a parallel set of
@@ -21,6 +21,11 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 import numpy as np
+
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
 
 RGB = Tuple[float, float, float]
 
@@ -227,7 +232,7 @@ def _render_plotly(scene: Scene, show: bool = True):
     try:
         import plotly.graph_objects as go
     except ImportError as exc:
-        raise ImportError(
+        raise DependencyError(
             "The 'plotly' backend requires plotly. Install the optional backend with: "
             "pip install -r tools/python/requirements-plotly.txt"
         ) from exc
@@ -426,7 +431,7 @@ def _render_pyvista(scene: Scene, show: bool = True):
     try:
         import pyvista as pv
     except ImportError as exc:
-        raise ImportError(
+        raise DependencyError(
             "The 'pyvista' backend requires pyvista (a core dependency). Install it with: "
             "pip install 'pyvista[jupyter]'"
         ) from exc

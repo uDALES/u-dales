@@ -6,6 +6,12 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 from pathlib import Path
 
 import numpy as np
+
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from ..exceptions import DependencyError
+
 from . import _radiation_compute
 from ._section import Section, SectionSpec
 
@@ -874,7 +880,7 @@ class RadiationSection(Section):
         try:
             from netCDF4 import Dataset
         except ImportError as exc:
-            raise ImportError("netCDF4 is required to write Sdir.nc") from exc
+            raise DependencyError("netCDF4 is required to write Sdir.nc") from exc
 
         with Dataset(path, "w", format="NETCDF4") as ds:
             ds.createDimension("rows", sdir.shape[0])

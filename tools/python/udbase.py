@@ -47,6 +47,11 @@ try:
 except ImportError:
     from .udvis import UDVis, DEFAULT_BACKEND
 
+try:
+    from exceptions import DependencyError
+except ImportError:
+    from .exceptions import DependencyError
+
 
 def _file_has_data(path: Path, skiprows: int = 0) -> bool:
     try:
@@ -143,7 +148,7 @@ class UDBase:
         """
 
         if importlib.util.find_spec("trimesh") is None:
-            raise ImportError("trimesh is required for UDBase. Install with: pip install trimesh")
+            raise DependencyError("trimesh is required for UDBase. Install with: pip install trimesh")
 
         # Store experiment number
         self.expnr = f"{int(expnr):03d}"
