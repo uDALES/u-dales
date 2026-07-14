@@ -15,6 +15,7 @@ if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
 from udprep.udprep_grid import GridSection  # noqa: E402
+from exceptions import ConfigurationError  # noqa: E402
 
 
 def make_grid_section(**overrides):
@@ -233,6 +234,28 @@ class TestGridSection(unittest.TestCase):
                 self.assertGreater(section.zt[il], 25.0)
                 self.assertTrue(np.all(np.diff(section.zm) > 0.0))
                 self.assertAlmostEqual(float(section.zm[-1] + section.dzt[-1]), 100.0)
+
+    def test_stretch_fit_raises_instead_of_writing_nan_grid(self):
+        # Regression (P9): with the shipped default stretchconst=0.01 and a
+        # domain too shallow for the linear region, the fitting loop decremented
+        # gf to exactly 0.0, making the transform 0/0 -> NaN. The NaN < linear_dz
+        # comparison was False, the loop broke, and NaN face heights were written
+        # into prof.inp/lscale.inp with no error. Params below satisfy
+        # (zsize - hlin)/ir < linear_dz, forcing the first decrement to zero.
+        for method in ("lstretchexp", "lstretchtanh", "lstretch2tanh"):
+            with self.subTest(method=method):
+                section, _ = make_grid_section(
+                    lzstretch=1,
+                    zsize=9.0,
+                    ktot=10,
+                    hlin=2.0,
+                    dzlin=1.0,
+                    stretchconst=0.01,
+                    **{method: 1},
+                )
+                section._refresh_derived_grid_params()
+                with self.assertRaises(ConfigurationError):
+                    section.generate_zgrid()
 
     def test_warn_large_top_spacing_emits_runtime_warning(self):
         section, _ = make_grid_section(

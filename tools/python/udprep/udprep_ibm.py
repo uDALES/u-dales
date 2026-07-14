@@ -297,6 +297,23 @@ class IBMSection(Section):
             path = Path(sim.path) / name
             if path.exists():
                 path.unlink()
+        self._reload_ibm_outputs()
+
+    def _reload_ibm_outputs(self) -> None:
+        """Reload the solid masks and facet sections just written by ``run_ibm``.
+
+        ``UDBase`` loads ``S{u,v,w,c}`` and ``facsec`` once at construction. On a
+        first-ever preprocessing run those files do not yet exist, so ``sim``
+        holds empty masks/sections. ``run_ibm`` writes the real ``solid_*.txt``
+        and ``facet_sections_*.txt`` files but does not refresh ``sim``; the
+        downstream radiation step would then trace an empty solid volume or raise
+        "Facet sections not available". Re-invoke the existing UDBase loaders so
+        the fresh outputs are in memory, for both backends and for callers that
+        invoke ``prep.ibm.run_ibm()`` directly.
+        """
+        sim = self._require_sim()
+        sim._load_solid_masks()
+        sim._load_facet_sections()
 
     def _run_ibm_via_f2py(self) -> np.ndarray:
         try:

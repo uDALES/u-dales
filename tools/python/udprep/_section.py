@@ -258,8 +258,18 @@ class Section:
                 continue
             try:
                 self.save_param(key, value)
-            except Exception:
-                logger.info("[%s] skipping writeback for %s = %r", self._name, key, value)
+            except FileNotFoundError as exc:
+                # Benign: the case's namoptions.<expnr> is not on disk (e.g.
+                # writeback invoked for a section whose namelist was never
+                # written). Surface it visibly instead of hiding it at INFO, but
+                # do not abort the rest of the writeback. Any other failure
+                # (PermissionError, a malformed namelist raising ValueError, or a
+                # genuine bug such as a TypeError) is a real problem that would
+                # otherwise leave namoptions silently un-updated, so it
+                # propagates.
+                warnings.warn(
+                    f"[{self._name}] skipping writeback for {key} = {value!r}: {exc}"
+                )
 
     def show_changed_params(self) -> None:
         """
