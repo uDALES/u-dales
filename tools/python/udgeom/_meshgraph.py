@@ -22,6 +22,32 @@ def build_face_adjacency(mesh) -> Dict[int, Set[int]]:
     return adjacency
 
 
+def build_edge_face_adjacency(faces) -> Dict[int, Set[int]]:
+    """Face adjacency from shared triangle edges (non-manifold tolerant).
+
+    Unlike :func:`build_face_adjacency`, which relies on trimesh's *manifold*
+    ``face_adjacency`` (edges shared by exactly two faces), this connects every
+    pair of faces sharing an edge — including edges shared by three or more
+    faces. Faces are indexed by their row position in ``faces``. Used by the
+    building splitter, which operates on a ground-stripped face subset whose
+    rows no longer line up with the original mesh's ``face_adjacency``.
+    """
+    faces = np.asarray(faces, dtype=int)
+    edge_to_faces: Dict[tuple, List[int]] = {}
+    for idx, face in enumerate(faces):
+        for a, b in ((face[0], face[1]), (face[1], face[2]), (face[2], face[0])):
+            edge = (a, b) if a < b else (b, a)
+            edge_to_faces.setdefault(edge, []).append(idx)
+
+    adjacency: Dict[int, Set[int]] = {i: set() for i in range(len(faces))}
+    for face_list in edge_to_faces.values():
+        for i in range(len(face_list)):
+            for j in range(i + 1, len(face_list)):
+                adjacency[face_list[i]].add(face_list[j])
+                adjacency[face_list[j]].add(face_list[i])
+    return adjacency
+
+
 def connected_components(
     adjacency: Dict[int, Set[int]],
     *,

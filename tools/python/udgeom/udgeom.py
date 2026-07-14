@@ -49,6 +49,7 @@ from .fix_mesh import (
     weld_touching_boundaries as weld_touching_boundaries_impl,
 )
 from .split_buildings import split_buildings
+from ._meshgraph import build_face_adjacency, connected_components
 
 import logging
 
@@ -513,39 +514,24 @@ class UDGeom:
             self._face_to_building_map = np.zeros(len(self.stl.faces), dtype=int)
             return
         
-        # Build adjacency graph restricted to building faces
-        face_adj = self.stl.face_adjacency
-        # Keep only adjacency where both faces are buildings
-        mask = np.isin(face_adj, building_faces).all(axis=1)
-        face_adj = face_adj[mask]
-        
-        # Connected components over building faces
-        component_labels = -np.ones(len(self.stl.faces), dtype=int)
-        current_label = 0
-        
-        for f in building_faces:
-            if component_labels[f] != -1:
-                continue
-            stack = [f]
-            component_labels[f] = current_label
-            while stack:
-                face_idx = stack.pop()
-                # neighbors where face_idx participates
-                neighbors = face_adj[(face_adj[:, 0] == face_idx) | (face_adj[:, 1] == face_idx)].ravel()
-                for nb in neighbors:
-                    if component_labels[nb] == -1 and nb in building_faces:
-                        component_labels[nb] = current_label
-                        stack.append(nb)
-            current_label += 1
-        
+        # Connected components over building faces only, seeded in ascending
+        # face order so the component numbering matches the historical labelling.
+        is_building = np.zeros(len(self.stl.faces), dtype=bool)
+        is_building[building_faces] = True
+        adjacency = build_face_adjacency(self.stl)
+        components = connected_components(
+            adjacency, seeds=building_faces, keep=is_building
+        )
+
         # Extract individual building meshes with component labels
         buildings_with_labels = []
-        
-        for comp in range(current_label):
-            face_idxs = np.where(component_labels == comp)[0]
+
+        for comp, component in enumerate(components):
+            # Ascending face order (matches the previous np.where labelling).
+            face_idxs = np.sort(component)
             if face_idxs.size == 0:
                 continue
-            
+
             # Extract submesh for this building
             try:
                 building_mesh = self.stl.submesh([face_idxs], append=True)
