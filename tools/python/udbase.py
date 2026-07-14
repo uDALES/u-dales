@@ -26,9 +26,11 @@ import sys
 try:
     import udstats
     import udnetcdf
+    import udfacet
 except ImportError:
     from . import udstats
     from . import udnetcdf
+    from . import udfacet
 
 # Import UDGeom from the udgeom package
 try:
@@ -1338,35 +1340,15 @@ class UDBase:
                 f"{self.ffluid_boundary}_(u,v,w,c).{self.expnr} files exist."
             )
         
-        # Use defaults if not provided
+        # Gather case state and delegate the maths to the pure helper.
         if facsec is None:
             facsec = self.facsec['c']
-        
         if dz is None:
             dz = self.dzt
-        
-        # Initialize field
-        fld = np.zeros((self.itot, self.jtot, self.ktot), dtype=np.float32)
-        
-        # Get facet section data
-        facids = facsec['facid']
-        areas = facsec['area']
-        locs = facsec['locs']  # (i, j, k) locations (0-based)
-        
-        i_idx = locs[:, 0].astype(int)
-        j_idx = locs[:, 1].astype(int)
-        k_idx = locs[:, 2].astype(int)
-        
-        # Loop over all facet sections and create density field
-        for m in range(len(areas)):
-            facid = facids[m]
-            i, j, k = i_idx[m], j_idx[m], k_idx[m]
-            
-            # Add contribution to cell
-            cell_volume = self.dx * self.dy * dz[k]
-            fld[i, j, k] += var[facid] * areas[m] / cell_volume
-        
-        return fld
+
+        return udfacet.facsec_to_field(
+            var, facsec, dz, (self.itot, self.jtot, self.ktot), self.dx, self.dy
+        )
     
     def convert_facvar_to_field(self, var: np.ndarray, facsec: Dict,
                                 building_ids: Optional[np.ndarray] = None) -> np.ndarray:
