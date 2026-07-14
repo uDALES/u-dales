@@ -697,5 +697,29 @@ class TestBackendSelection(unittest.TestCase):
             plotter.close()
 
 
+class TestOptionalBackendDependencyErrors(unittest.TestCase):
+    """A missing backend dependency must fail with an actionable message naming
+    the feature and the install command (not a bare ImportError)."""
+
+    def _render_with_missing(self, backend, missing_modules):
+        from udvis.scene import Scene, render_scene
+
+        blocked = {name: None for name in missing_modules}
+        with patch.dict(sys.modules, blocked):
+            with self.assertRaises(ImportError) as ctx:
+                render_scene(Scene(), backend=backend, show=False)
+        return str(ctx.exception)
+
+    def test_plotly_backend_missing_points_at_requirements_file(self):
+        msg = self._render_with_missing("plotly", ["plotly", "plotly.graph_objects"])
+        self.assertIn("plotly", msg.lower())
+        self.assertIn("requirements-plotly.txt", msg)
+
+    def test_pyvista_backend_missing_names_install_command(self):
+        msg = self._render_with_missing("pyvista", ["pyvista"])
+        self.assertIn("pyvista", msg.lower())
+        self.assertIn("pip install", msg)
+
+
 if __name__ == "__main__":
     unittest.main()
