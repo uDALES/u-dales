@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import shutil
 import sys
-import uuid
+import tempfile
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PYTHON_DIR = REPO_ROOT / "tools" / "python"
-TEST_TMP_DIR = REPO_ROOT / "tools" / "python" / "tests" / ".tmp"
+
+# Base directory for test scratch space. Defaults to the OS temp dir (robust on
+# read-only or OneDrive-synced checkouts, where an in-tree .tmp can't be
+# created); override with UDALES_TEST_TMPDIR to place it elsewhere.
+TEST_TMP_DIR = Path(os.environ.get("UDALES_TEST_TMPDIR") or tempfile.gettempdir())
 
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
@@ -24,8 +29,7 @@ class _CaseDir:
 
 def copy_case(source: Path) -> tuple[_CaseDir, Path]:
     TEST_TMP_DIR.mkdir(parents=True, exist_ok=True)
-    root = TEST_TMP_DIR / f"case_{uuid.uuid4().hex}"
-    root.mkdir(parents=True, exist_ok=False)
+    root = Path(tempfile.mkdtemp(prefix="udales_case_", dir=TEST_TMP_DIR))
     temp_dir = _CaseDir(root)
     case_dir = root / source.name
     shutil.copytree(source, case_dir)
