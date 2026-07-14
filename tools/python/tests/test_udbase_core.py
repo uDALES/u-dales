@@ -347,6 +347,37 @@ class TestReadMatrix(unittest.TestCase):
         np.testing.assert_array_equal(arr, [[1, 2, 3], [4, 5, 6]])
 
 
+class TestNamoptionsParsing(unittest.TestCase):
+    """Pure namelist parsing (udconfig)."""
+
+    def test_parse_value_types(self):
+        import udconfig
+
+        self.assertIs(udconfig.parse_value(".true."), True)
+        self.assertIs(udconfig.parse_value(".FALSE."), False)
+        self.assertEqual(udconfig.parse_value("42"), 42)
+        self.assertEqual(udconfig.parse_value("1.5"), 1.5)
+        self.assertEqual(udconfig.parse_value("1e3"), 1000.0)
+        self.assertEqual(udconfig.parse_value("'geom.stl'"), "geom.stl")
+
+    def test_parse_namoptions_skips_headers_and_comments_and_applies_defaults(self):
+        import udconfig
+
+        with TemporaryDirectory() as d:
+            p = Path(d) / "namoptions.001"
+            p.write_text(
+                "&RUN\n! a comment\n itot = 4\n xlen = 40.0  ! inline\n"
+                " ltest = .true.\n stl_file = 'geom.stl'\n/\n",
+                encoding="ascii",
+            )
+            vals = udconfig.parse_namoptions(p)
+        self.assertEqual(vals["itot"], 4)
+        self.assertEqual(vals["xlen"], 40.0)
+        self.assertIs(vals["ltest"], True)
+        self.assertEqual(vals["stl_file"], "geom.stl")
+        self.assertEqual(vals["nsv"], 0)  # scalar default present
+
+
 class TestNcDataHandle(unittest.TestCase):
     """_load_ncdata must release the NetCDF file handle: load-and-close for a
     requested variable, load-into-memory for browse. On Windows an open handle

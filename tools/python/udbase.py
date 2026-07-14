@@ -27,10 +27,12 @@ try:
     import udstats
     import udnetcdf
     import udfacet
+    import udconfig
 except ImportError:
     from . import udstats
     from . import udnetcdf
     from . import udfacet
+    from . import udconfig
 
 # Import UDGeom from the udgeom package
 try:
@@ -231,52 +233,14 @@ class UDBase:
         - Strings -> str (with quotes removed)
         """
         filepath = self.path / f"namoptions.{self.expnr}"
-        
+
         if not filepath.exists():
             raise FileNotFoundError(f"namoptions.{self.expnr} not found in {self.path}")
 
-        scalar_defaults = {
-            "nsv": 0,
-            "lscasrc": False,
-            "lscasrcl": False,
-            "lscasrcr": False,
-            "nscasrc": 0,
-            "nscasrcl": 0,
-        }
-        for key, val in scalar_defaults.items():
+        # Pure parsing lives in udconfig; UDBase just applies the mapping.
+        for key, val in udconfig.parse_namoptions(filepath).items():
             setattr(self, key, val)
-        
-        with open(filepath, 'r') as f:
-            for line in f:
-                # Skip comments and namelist headers
-                if line.strip().startswith('&') or line.strip().startswith('!') or '=' not in line:
-                    continue
-                
-                # Parse key=value pairs
-                if '=' in line:
-                    parts = line.split('=', 1)
-                    key = parts[0].strip()
-                    val = parts[1].split('!')[0].strip()  # Remove inline comments
-                    
-                    # Convert value types
-                    if val.lower() == '.true.':
-                        val = True
-                    elif val.lower() == '.false.':
-                        val = False
-                    else:
-                        # Try to parse as number
-                        try:
-                            if '.' in val or 'e' in val.lower():
-                                val = float(val)
-                            else:
-                                val = int(val)
-                        except ValueError:
-                            # String value - remove quotes
-                            val = val.strip("'\"")
-                    
-                    # Store as attribute
-                    setattr(self, key, val)
-        
+
         # Compute derived values
         if hasattr(self, 'xlen') and hasattr(self, 'itot'):
             self.dx = self.xlen / self.itot
