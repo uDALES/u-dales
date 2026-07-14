@@ -181,9 +181,9 @@ def extrude_to_ground(
     if return_trimesh:
         return cleaned, report
 
-    from .udgeom import UDGeom
+    from .udgeom import UDGeom, DEFAULT_BACKEND
 
-    return UDGeom(stl=cleaned), report
+    return UDGeom(stl=cleaned, backend=getattr(mesh_or_geom, "backend", DEFAULT_BACKEND)), report
 
 
 __all__ = ["extrude_to_ground"]

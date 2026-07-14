@@ -22,7 +22,9 @@ from .scene import (
     LineSet,
     MeshPrimitive,
     PointSet,
+    DEFAULT_BACKEND,
     Scene,
+    normalize_backend,
     render_scene,
 )
 
@@ -42,13 +44,22 @@ class UDVis:
     API churn in calling code.
     """
 
-    def __init__(self, sim: Any, backend: str = "plotly"):
+    def __init__(self, sim: Any, backend: str = DEFAULT_BACKEND):
         self.sim = None if hasattr(sim, "stl") else sim
         self.geom = sim if hasattr(sim, "stl") else getattr(sim, "geom", None)
         # Default rendering backend for the 3-D scene plots; set once here so it
         # need not be passed to every call. Individual calls may still override
         # it with a ``backend=`` argument.
         self.backend = backend
+
+    @property
+    def backend(self) -> str:
+        """Default rendering backend for 3-D plots (``"plotly"`` or ``"pyvista"``)."""
+        return self._backend
+
+    @backend.setter
+    def backend(self, value: str) -> None:
+        self._backend = normalize_backend(value)
 
     def _resolve_backend(self, backend: Optional[str]) -> str:
         return backend if backend is not None else self.backend

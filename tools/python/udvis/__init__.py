@@ -7,5 +7,6 @@ backend choice as an internal implementation detail that can change over time.
 """
 
 from .udbase_vis import UDVis
+from .scene import DEFAULT_BACKEND
 
-__all__ = ["UDVis"]
+__all__ = ["UDVis", "DEFAULT_BACKEND"]

@@ -164,17 +164,37 @@ class Scene:
 # Dispatch
 # --------------------------------------------------------------------------
 
-_BACKENDS = ("plotly", "pyvista")
+BACKENDS = ("plotly", "pyvista")
+_BACKENDS = BACKENDS  # internal alias retained for existing references
+
+# Single default 3-D rendering backend for the whole package. The constructors
+# (UDGeom, UDBase, UDVis) default their ``backend`` argument to this value, so
+# changing this one line switches the default everywhere. Individual objects
+# (``obj.backend = ...``) and calls (``backend=``) still override it.
+DEFAULT_BACKEND = "plotly"
 
 
-def render_scene(scene: Scene, backend: str = "plotly", show: bool = True):
+def normalize_backend(backend: Optional[str]) -> str:
+    """Return the lower-cased backend name, validating it is supported.
+
+    ``None`` maps to :data:`DEFAULT_BACKEND`. Raises ``ValueError`` for any name
+    outside :data:`BACKENDS`, so a bad choice fails at assignment time rather
+    than deep inside a renderer.
+    """
+    name = (backend or DEFAULT_BACKEND).lower()
+    if name not in BACKENDS:
+        raise ValueError(f"backend must be one of {BACKENDS}; got {backend!r}")
+    return name
+
+
+def render_scene(scene: Scene, backend: str = DEFAULT_BACKEND, show: bool = True):
     """Render ``scene`` with the requested backend.
 
     Parameters
     ----------
     scene : Scene
         Backend-neutral description of the drawing.
-    backend : {"plotly", "pyvista"}, default "plotly"
+    backend : {"plotly", "pyvista"}, default :data:`DEFAULT_BACKEND`
         Rendering backend.
     show : bool, default True
         Display immediately and return ``None``; otherwise return the
@@ -184,9 +204,7 @@ def render_scene(scene: Scene, backend: str = "plotly", show: bool = True):
     -------
     plotly.graph_objects.Figure or pyvista.Plotter or None
     """
-    backend = (backend or "plotly").lower()
-    if backend not in _BACKENDS:
-        raise ValueError(f"backend must be one of {_BACKENDS}; got {backend!r}")
+    backend = normalize_backend(backend)
     if backend == "pyvista":
         return _render_pyvista(scene, show=show)
     return _render_plotly(scene, show=show)

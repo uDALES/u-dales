@@ -50,7 +50,7 @@ from .fix_mesh import (
 )
 from .split_buildings import split_buildings
 
-from udvis import UDVis
+from udvis import UDVis, DEFAULT_BACKEND
 
 
 class UDGeom:
@@ -91,7 +91,7 @@ class UDGeom:
     
     def __init__(self, path: Optional[Union[str, Path]] = None,
                  stl: Optional['trimesh.Trimesh'] = None,
-                 backend: str = "plotly"):
+                 backend: str = DEFAULT_BACKEND):
         """
         Initialize UDGeom object.
 
@@ -101,9 +101,9 @@ class UDGeom:
             Path to geometry directory. If None, uses current directory.
         stl : trimesh.Trimesh, optional
             Pre-existing trimesh object.
-        backend : {"plotly", "pyvista"}, default="plotly"
-            Default rendering backend for the 3-D geometry plots
-            (overridable per call via ``backend=``).
+        backend : {"plotly", "pyvista"}, default ``udvis.DEFAULT_BACKEND``
+            Default rendering backend for the 3-D geometry plots. Overridable
+            per instance via ``geom.backend`` or per call via ``backend=``.
         """
         if not TRIMESH_AVAILABLE:
             raise ImportError("trimesh is required for UDGeom. Install with: pip install trimesh")
@@ -128,7 +128,25 @@ class UDGeom:
         self._buildings = None
         self._face_to_building_map = None
         self.vis = UDVis(self, backend=backend)
-    
+
+    @property
+    def backend(self) -> str:
+        """Default rendering backend for 3-D plots (``"plotly"`` or ``"pyvista"``).
+
+        Settable on an existing geometry, so a geometry produced by a factory
+        (``create_cubes`` ...) or a repair step can be switched without passing
+        ``backend=`` to every ``show``/``plot`` call::
+
+            geom = create_cubes(...)
+            geom.backend = "pyvista"
+            geom.show()
+        """
+        return self.vis.backend
+
+    @backend.setter
+    def backend(self, value: str) -> None:
+        self.vis.backend = value
+
     def load(self, filename: str):
         """
         Load geometry from an STL file.

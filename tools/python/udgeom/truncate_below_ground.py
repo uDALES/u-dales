@@ -261,8 +261,8 @@ def truncate_below_ground(
         }
         if return_trimesh:
             return mesh, report
-        from .udgeom import UDGeom
-        return UDGeom(stl=mesh), report
+        from .udgeom import UDGeom, DEFAULT_BACKEND
+        return UDGeom(stl=mesh, backend=getattr(mesh_or_geom, "backend", DEFAULT_BACKEND)), report
 
     ground_mask = identify_ground_faces(mesh)
     ground_face_count = int(np.count_nonzero(ground_mask))
@@ -327,9 +327,9 @@ def truncate_below_ground(
     if return_trimesh:
         return cleaned, report
 
-    from .udgeom import UDGeom
+    from .udgeom import UDGeom, DEFAULT_BACKEND
 
-    return UDGeom(stl=cleaned), report
+    return UDGeom(stl=cleaned, backend=getattr(mesh_or_geom, "backend", DEFAULT_BACKEND)), report
 
 
 __all__ = ["truncate_below_ground"]

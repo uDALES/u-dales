@@ -30,9 +30,9 @@ except ImportError:
     from .udgeom import UDGeom
 
 try:
-    from udvis import UDVis
+    from udvis import UDVis, DEFAULT_BACKEND
 except ImportError:
-    from .udvis import UDVis
+    from .udvis import UDVis, DEFAULT_BACKEND
 
 
 def _file_has_data(path: Path, skiprows: int = 0) -> bool:
@@ -82,7 +82,7 @@ class UDBase:
         path: Optional[Union[str, Path]] = None,
         load_geometry: bool = True,
         suppress_load_warnings: bool = False,
-        backend: str = "plotly",
+        backend: str = DEFAULT_BACKEND,
     ):
         """
         Initialize a UDBase instance.
@@ -98,6 +98,9 @@ class UDBase:
             If True, load STL geometry when available.
         suppress_load_warnings : bool, optional
             If True, suppress missing-file warnings during constructor loading.
+        backend : {"plotly", "pyvista"}, default ``udvis.DEFAULT_BACKEND``
+            Default rendering backend for the 3-D plots. Overridable per instance
+            via ``sim.backend`` or per call via ``backend=``.
 
         Attributes
         ----------
@@ -182,7 +185,7 @@ class UDBase:
         
         # Load geometry if present (can be disabled for faster startup)
         if load_geometry:
-            self._load_geometry()
+            self._load_geometry(backend)
         
         # Load solid masks if present
         self._load_solid_masks()
@@ -199,7 +202,23 @@ class UDBase:
         # Visualization facade. `UDBase` owns the simulation state; `self.vis`
         # provides plotting methods on top of that state.
         self.vis = UDVis(self, backend=backend)
-    
+
+    @property
+    def backend(self) -> str:
+        """Default rendering backend for 3-D plots (``"plotly"`` or ``"pyvista"``).
+
+        Settable after construction; changing it switches every subsequent
+        ``sim.plot_*`` / ``sim.vis.*`` 3-D call without a per-call ``backend=``.
+        """
+        return self.vis.backend
+
+    @backend.setter
+    def backend(self, value: str) -> None:
+        self.vis.backend = value
+        # Keep the owned geometry's backend in sync so sim.geom.show() matches.
+        if getattr(self, "geom", None) is not None:
+            self.geom.backend = value
+
     def _read_namoptions(self):
         """
         Read namoptions file and store all parameters as attributes.
@@ -395,13 +414,13 @@ class UDBase:
         print(f"WARNING: {message}", file=sys.stderr)
         print("=" * 67, file=sys.stderr)
     
-    def _load_geometry(self):
-        """Load STL geometry file if present."""
+    def _load_geometry(self, backend: str = DEFAULT_BACKEND):
+        """Load STL geometry file if present, on the given rendering backend."""
         if hasattr(self, 'stl_file'):
             stl_path = self.path / self.stl_file
             if stl_path.exists():
                 try:
-                    self.geom = UDGeom(self.path)
+                    self.geom = UDGeom(self.path, backend=backend)
                     self.geom.load(self.stl_file)
                 except Exception as e:
                     raise RuntimeError(f"Error loading geometry from {stl_path}: {e}") from e

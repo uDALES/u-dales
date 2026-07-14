@@ -672,9 +672,9 @@ def repair_adjacent_buildings(
     if return_trimesh:
         return cleaned, report
 
-    from .udgeom import UDGeom
+    from .udgeom import UDGeom, DEFAULT_BACKEND
 
-    return UDGeom(stl=cleaned), report
+    return UDGeom(stl=cleaned, backend=getattr(mesh_or_geom, "backend", DEFAULT_BACKEND)), report
 
 
 __all__ = ["fix", "resolve_vertical_coplanar_overlaps", "weld_touching_boundaries", "repair_adjacent_buildings"]

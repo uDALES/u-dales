@@ -219,6 +219,12 @@ mtime-keyed view-factor caching.
       shortwave/SEB behavioural** assertions (not just orchestration), and broaden `solar.py`
       (currently one loose pvlib check) and the `udbase` loaders. Batch `save_param` writes (currently
       O(vars × filesize) — 13 full parse+rewrite cycles in `IBMSection._update_counts`).
+- [ ] **Fix broken tree/vegetation loading (data-format drift).** `_load_tree_data`
+      (`udbase.py:~587`) parses `trees.inp.<expnr>` with `np.loadtxt(..., skiprows=2)`, which no
+      longer matches the **current `trees.inp` format** — so tree loading (and `plot_veg` / the
+      fields-tutorial tree cell `sim_tree.plot_veg()`) fails. This is data drift, **not** a
+      rendering/logic bug: reconcile the parser (`skiprows`, columns, 0- vs 1-based indexing) with the
+      new format, ideally with a golden-file test pinning the layout.
 - [ ] **Smaller cleanups:** **fix** `read_matrix` (`udbase.py:264`) — it is *not* dead (called by
       `udprep_forcing.py:120`) but *broken*: defined without `self`/`@staticmethod`, so
       `self.sim.read_matrix(path, 1)` mis-binds args. Add `@staticmethod` (or `self`) — do not delete.

@@ -1,6 +1,7 @@
 import sys
 import types
 import unittest
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
@@ -327,6 +328,38 @@ class TestIBMSection(unittest.TestCase):
         self.assertEqual(len(lines), 4)
         self.assertTrue(lines[1].startswith("   1"))
         self.assertTrue(lines[3].startswith("   4"))
+
+    def test_write_facets_does_not_overwrite_existing_file(self):
+        # Regression: an existing facets.inp is authored input. A re-run must not
+        # clobber hand-assigned materials (previously it overwrote unconditionally,
+        # destroying e.g. green-roof/asphalt-floor types with all-concrete).
+        section = self._make_section()
+        section.sim.geom = types.SimpleNamespace(
+            stl=types.SimpleNamespace(
+                faces=np.array([[0, 1, 2], [2, 3, 0], [0, 3, 4]], dtype=int),
+                face_normals=np.array(
+                    [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], dtype=float
+                ),
+            )
+        )
+        existing = (
+            "# type, normal\n"
+            "  -1 0.0000 0.0000 1.0000\n"
+            "   1 0.0000 1.0000 0.0000\n"
+            "  12 1.0000 0.0000 0.0000\n"
+        )
+        facets_path = self.workdir / "facets.inp.321"
+        facets_path.write_text(existing, encoding="ascii")
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            section.write_facets()
+
+        # File is left untouched, and its types are loaded into state.
+        self.assertEqual(facets_path.read_text(encoding="ascii"), existing)
+        self.assertEqual(section.sim.facet_types.tolist(), [-1, 1, 12])
+        self.assertEqual(section.sim.nfcts, 3)
+        self.assertTrue(any("NOT overwriting" in str(w.message) for w in caught))
 
     def test_load_facet_types_accepts_one_line_header(self):
         types_path = self.workdir / "types.txt"

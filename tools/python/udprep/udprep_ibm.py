@@ -132,10 +132,26 @@ class IBMSection(Section):
                 f.write("  ".join(fields) + "\n")
 
     def write_facets(self) -> None:
-        """Write facets.inp file from STL and facet types."""
+        """Write facets.inp from the STL and facet types.
+
+        An existing facets.inp is treated as authored input and is NOT
+        overwritten (mirrors the factypes.inp protection), so hand-assigned
+        materials are never destroyed by a re-run. Its facet types are loaded so
+        downstream steps still see the correct state. Delete facets.inp to force
+        regeneration.
+        """
         sim = self._require_sim()
         stl = sim.geom.stl
         path = Path(sim.path) / f"facets.inp.{sim.expnr}"
+
+        if path.exists():
+            self._warn_not_overwriting(path)
+            sim.facet_types = np.atleast_1d(
+                np.loadtxt(path, skiprows=1, usecols=0, dtype=int)
+            ).reshape(-1)
+            sim.nfcts = len(stl.faces)
+            return
+
         if self.read_types:
             if not str(self.types_path).strip():
                 raise ValueError("types_path must be specified if read_types is true in namoptions")
