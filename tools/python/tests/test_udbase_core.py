@@ -331,3 +331,17 @@ class TestTreeLoading(unittest.TestCase):
         sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
         self.assertFalse(sim._lftrees)
         self.assertIsNone(sim.trees)
+
+
+class TestReadMatrix(unittest.TestCase):
+    """`read_matrix` is a @staticmethod, so `sim.read_matrix(path, n)` must not
+    pass the instance as the filename (regression: it lacked @staticmethod)."""
+
+    def test_read_matrix_called_on_instance_skips_header(self):
+        with TemporaryDirectory() as d:
+            p = Path(d) / "data.txt"
+            p.write_text("header row\n1 2 3\n4 5 6\n", encoding="ascii")
+            # Access through an instance, exactly as udprep_forcing does.
+            sim = UDBase.__new__(UDBase)
+            arr = sim.read_matrix(p, 1)
+        np.testing.assert_array_equal(arr, [[1, 2, 3], [4, 5, 6]])

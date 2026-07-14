@@ -146,12 +146,6 @@ class UDBase:
         self.fnamoptions = "namoptions"
         self.fprof = "prof.inp"
         self.flscale = "lscale.inp"
-        self.fxytdump = "xytdump"
-        self.ftdump = "tdump"
-        self.ffielddump = "fielddump"
-        self.fislicedump = "islicedump"
-        self.fjslicedump = "jslicedump"
-        self.fkslicedump = "kslicedump"
         self.fsolid = "solid"
         self.ffacEB = "facEB"
         self.ffacT = "facT"
@@ -161,7 +155,6 @@ class UDBase:
         self.ffacetarea = "facetarea.inp"
         self.ffluid_boundary = "fluid_boundary"
         self.ffacet_sections = "facet_sections"
-        self.ftreedump = "treedump"
         self.ftrees = "trees.inp"
 
         # Load-time warning control
@@ -281,6 +274,7 @@ class UDBase:
         if hasattr(self, 'ylen') and hasattr(self, 'jtot'):
             self.dy = self.ylen / self.jtot
 
+    @staticmethod
     def read_matrix(filename, skiprows=1):
         """
         Python equivalent of MATLAB readmatrix function
@@ -306,11 +300,10 @@ class UDBase:
         elif ext in {'.csv'}:
             return pd.read_csv(filename, skiprows=skiprows, header=None).to_numpy()
         elif ext in {'.txt', '.dat'}:
-            # Try comma-delimited first, then whitespace-delimited
-            try:
-                return pd.read_csv(filename, skiprows=skiprows, header=None).to_numpy()
-            except Exception:
-                return pd.read_csv(filename, skiprows=skiprows, header=None, delim_whitespace=True).to_numpy()
+            # uDALES text matrices are whitespace-delimited. (Comma-first parsing
+            # silently mis-read these as a single string column, because a
+            # whitespace row has no commas and so raises no error to fall back on.)
+            return pd.read_csv(filename, skiprows=skiprows, header=None, sep=r"\s+").to_numpy()
         else:
             try:
                 # df = pd.read_csv(filename, skiprows=skiprows, header=None, sep=r"\s+", engine="python").to_numpy()
