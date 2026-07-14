@@ -1513,41 +1513,6 @@ class UDBase:
         """
         return self.vis.plot_fac(var=var, building_ids=building_ids, show=show, backend=backend)
     
-    def _create_colored_mesh(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
-        """Create a colored trimesh object from facet data, optionally filtered by building IDs."""
-        return self.vis._create_colored_mesh(var=var, building_ids=building_ids)
-    
-    def _render_scene(self, mesh, show_outlines: bool = True, angle_threshold: float = 45.0, building_ids: Optional[np.ndarray] = None, custom_edges: Optional[List[tuple]] = None, show: bool = True):
-        """Render the mesh scene using trimesh/plotly. Returns figure handle if available."""
-        return self.vis._render_scene(
-            mesh=mesh,
-            show_outlines=show_outlines,
-            angle_threshold=angle_threshold,
-            building_ids=building_ids,
-            custom_edges=custom_edges,
-            show=show,
-        )
-    
-    def _render_plotly(self, meshes, outline_edges, show: bool = True):
-        """Render using plotly for notebook display. Returns the figure object."""
-        return self.vis._render_plotly(meshes=meshes, outline_edges=outline_edges, show=show)
-    
-    def _render_trimesh(self, scene, num_outline_edges, show: bool = True):
-        """Render using trimesh viewer."""
-        return self.vis._render_trimesh(scene=scene, num_outline_edges=num_outline_edges, show=show)
-    
-    def _add_building_outlines_to_scene(self, building_ids=None):
-        """Add building outlines to the current scene (placeholder for future implementation)."""
-        return self.vis._add_building_outlines_to_scene(building_ids=building_ids)
-    
-    def _add_building_outlines(self, ax, building_ids=None, angle_threshold: float = 45.0):
-        """Helper method to add building outline edges to current 3D matplotlib plot."""
-        return self.vis._add_building_outlines(
-            ax=ax,
-            building_ids=building_ids,
-            angle_threshold=angle_threshold,
-        )
-    
     def plot_fac_type(self, building_ids: Optional[np.ndarray] = None,
                       show_outlines: bool = True, angle_threshold: float = 45.0, show: bool = True,
                       backend: Optional[str] = None):

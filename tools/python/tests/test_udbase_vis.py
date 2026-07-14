@@ -307,64 +307,6 @@ class TestUDVisRenderingHelpers(unittest.TestCase):
 
         np.testing.assert_allclose(dz, [2.0, 2.0, 4.0, 4.0])
 
-    def test_render_scene_routes_to_plotly_with_custom_edges(self):
-        vis, mesh = self._make_vis()
-        calls = {}
-
-        def render_plotly(meshes, outline_edges, show=True):
-            calls["meshes"] = meshes
-            calls["outline_edges"] = outline_edges
-            calls["show"] = show
-            return "plotly-figure"
-
-        vis._render_plotly = render_plotly
-        fake_ipython, fake_display = self._fake_ipython_modules()
-
-        with patch.dict(
-            sys.modules,
-            {
-                "trimesh": self._fake_trimesh_module(),
-                "IPython": fake_ipython,
-                "IPython.display": fake_display,
-            },
-        ):
-            result = vis._render_scene(mesh, custom_edges=[(0, 1), (1, 2)], show=False)
-
-        self.assertEqual(result, "plotly-figure")
-        self.assertEqual(calls["meshes"], [mesh])
-        self.assertEqual(calls["outline_edges"], [(0, 1), (1, 2)])
-        self.assertFalse(calls["show"])
-
-    def test_render_scene_filters_outline_edges_by_building_id(self):
-        vis, mesh = self._make_vis(face_to_building=[1, 2])
-        calls = {}
-
-        def render_plotly(meshes, outline_edges, show=True):
-            calls["outline_edges"] = outline_edges
-            return "plotly-figure"
-
-        vis._render_plotly = render_plotly
-        fake_ipython, fake_display = self._fake_ipython_modules()
-
-        with patch.dict(
-            sys.modules,
-            {
-                "trimesh": self._fake_trimesh_module(),
-                "IPython": fake_ipython,
-                "IPython.display": fake_display,
-            },
-        ):
-            result = vis._render_scene(
-                mesh,
-                custom_edges=[(0, 1), (1, 3), (0, 3)],
-                building_ids=np.array([2]),
-                show=False,
-            )
-
-        self.assertEqual(result, "plotly-figure")
-        self.assertEqual(calls["outline_edges"], [(1, 3)])
-
-
 @unittest.skipIf(
     importlib.util.find_spec("matplotlib") is None,
     "matplotlib is required for dz-variation visualization tests",
@@ -444,14 +386,6 @@ class TestUDVisMeshRendering(unittest.TestCase):
         geom = DummyGeom(mesh, building_map)
         return UDVis(geom), mesh
 
-    def test_create_colored_mesh_filters_faces_by_building_id(self):
-        vis, _ = self._make_vis()
-
-        mesh = vis._create_colored_mesh(np.array([10.0, 20.0]), building_ids=np.array([2]))
-
-        np.testing.assert_array_equal(mesh.faces, np.array([[1, 3, 2]]))
-        self.assertEqual(mesh.visual.face_colors.shape, (1, 4))
-
 
 @unittest.skipIf(
     importlib.util.find_spec("plotly") is None or importlib.util.find_spec("trimesh") is None,
@@ -497,7 +431,6 @@ class TestUDVisScalarSources(unittest.TestCase):
         sim = DummySim()
         sim.geom = geom
         vis = UDVis(sim, backend="plotly")  # asserts on Plotly traces
-        vis._render_scene = lambda *args, **kwargs: go.Figure()
 
         fig = vis.plot_scalar_source(show=False)
 
