@@ -19,6 +19,7 @@ from _common import PYTHON_DIR, REPO_ROOT, copy_case
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
+import udgeom
 from udgeom import (
     UDGeom,
     add_ground,
@@ -1135,6 +1136,63 @@ class TestUDGeomApi(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             extrude_to_ground(mesh, surface_id=999, return_trimesh=True)
+
+    def _above_ground_building_surface_id(self, mesh):
+        surface_result = calculate_independent_surfaces(mesh)
+        centers = np.asarray(mesh.triangles_center, dtype=float)
+        for surface in surface_result["surfaces"]:
+            face_ids = np.asarray(surface["face_ids"], dtype=int)
+            if float(np.min(centers[face_ids, 2])) > 0.0:
+                return int(surface["surface_id"])
+        return None
+
+    def test_package_truncate_below_ground_survives_repeated_calls(self):
+        # Regression for G1: the module-level lazy wrapper rebinds the package
+        # attribute to the submodule on first use, so a second call used to raise
+        # ``TypeError: 'module' object is not callable``.
+        mesh = self._mesh_with_flat_ground_and_subground_building()
+
+        first, first_report = udgeom.truncate_below_ground(mesh, return_trimesh=True)
+        self.assertTrue(callable(udgeom.truncate_below_ground))
+
+        second, second_report = udgeom.truncate_below_ground(mesh, return_trimesh=True)
+        self.assertTrue(callable(udgeom.truncate_below_ground))
+
+        self.assertEqual(len(first.faces), len(second.faces))
+        np.testing.assert_allclose(
+            np.asarray(first.vertices, dtype=float),
+            np.asarray(second.vertices, dtype=float),
+        )
+        self.assertEqual(first_report, second_report)
+
+    def test_package_extrude_then_truncate_survives(self):
+        # Regression for G1: ``extrude_to_ground`` imports ``truncate_below_ground``
+        # at module top level, so using it clobbered the ``truncate_below_ground``
+        # package attribute too.
+        extrude_mesh = self._mesh_with_flat_ground_and_above_ground_building()
+        surface_id = self._above_ground_building_surface_id(extrude_mesh)
+        self.assertIsNotNone(surface_id)
+
+        udgeom.extrude_to_ground(extrude_mesh, surface_id, return_trimesh=True)
+        self.assertTrue(callable(udgeom.extrude_to_ground))
+        self.assertTrue(callable(udgeom.truncate_below_ground))
+
+        truncate_mesh = self._mesh_with_flat_ground_and_subground_building()
+        udgeom.truncate_below_ground(truncate_mesh, return_trimesh=True)
+        self.assertTrue(callable(udgeom.truncate_below_ground))
+
+    def test_package_wrappers_stay_callable_after_use(self):
+        # Regression for G1: both public names must remain callable attributes of
+        # the package after being invoked.
+        truncate_mesh = self._mesh_with_flat_ground_and_subground_building()
+        udgeom.truncate_below_ground(truncate_mesh, return_trimesh=True)
+
+        extrude_mesh = self._mesh_with_flat_ground_and_above_ground_building()
+        surface_id = self._above_ground_building_surface_id(extrude_mesh)
+        udgeom.extrude_to_ground(extrude_mesh, surface_id, return_trimesh=True)
+
+        self.assertTrue(callable(udgeom.truncate_below_ground))
+        self.assertTrue(callable(udgeom.extrude_to_ground))
 
     def test_volume_warns_for_non_watertight_mesh(self):
         geom = UDGeom(DATA_DIR)
