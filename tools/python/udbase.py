@@ -585,24 +585,46 @@ class UDBase:
                 self._lffacet_sections = False
     
     def _load_tree_data(self):
-        """Load tree bounding box information if present."""
+        """Load tree bounding-box indices from ``trees.inp.<expnr>`` if present.
+
+        Format: one or more ``#`` comment/header lines, then one integer row per
+        tree. Each data row is the bounding box ``il iu jl ju kl ku`` in 1-based
+        grid indices; an optional leading ``tree_n`` column (as in the header) is
+        dropped. Stored 0-based in ``self.trees`` with shape ``(n_trees, 6)`` (an
+        empty ``(0, 6)`` array when the file has no tree rows).
+        """
         trees_file = self.path / f"trees.inp.{self.expnr}"
-        
-        if trees_file.exists():
-            try:
-                # Load tree data (skip first 2 header lines)
-                self.trees = np.loadtxt(trees_file, skiprows=2, dtype=int)
-                if self.trees.ndim == 1:
-                    self.trees = self.trees.reshape(1, -1)
-                self.trees = self.trees.astype(int) - 1
-            except Exception as e:
-                warnings.warn(f"Error loading trees.inp.{self.expnr}: {e}")
-                self._lftrees = False
-                self.trees = None
-        else:
+
+        if not trees_file.exists():
             self._warn_load(f"trees.inp.{self.expnr} not found.")
             self._lftrees = False
             self.trees = None
+            return
+
+        try:
+            # comments="#" skips any number of header lines, so the loader does
+            # not depend on a fixed header row count. A header-only file is a
+            # valid "no trees" case, so silence numpy's empty-input warning.
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="loadtxt: input contained no data")
+                raw = np.loadtxt(trees_file, comments="#", dtype=int, ndmin=2)
+        except ValueError as e:
+            warnings.warn(f"Error loading trees.inp.{self.expnr}: {e}")
+            self._lftrees = False
+            self.trees = None
+            return
+
+        if raw.size == 0:
+            self.trees = np.empty((0, 6), dtype=int)
+            self._lftrees = True
+            return
+
+        # The header names 7 columns (tree_n + 6 box indices) but the tree index
+        # is redundant; accept files with or without it.
+        if raw.shape[1] == 7:
+            raw = raw[:, 1:]
+        self.trees = raw - 1  # file is 1-based; store 0-based
+        self._lftrees = True
 
     def _load_veg_data(self):
         """Load vegetation sparse data if present."""

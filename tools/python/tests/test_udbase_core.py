@@ -273,3 +273,61 @@ class TestUDBaseCore(unittest.TestCase):
         self.assertAlmostEqual(field[0, 0, 0], 0.05)
         self.assertAlmostEqual(field[0, 0, 1], 0.02)
         self.assertTrue(np.all(field[1:, :, :] == 0.0))
+
+
+class TestTreeLoading(unittest.TestCase):
+    """Golden-file coverage for ``UDBase._load_tree_data`` / ``trees.inp.<expnr>``.
+
+    Pins the current format so future format drift is caught here rather than in
+    the tutorials: ``#`` header line(s), then rows of 1-based ``il iu jl ju kl ku``
+    bounding-box indices, stored 0-based as ``(n_trees, 6)``.
+    """
+
+    def setUp(self):
+        self.temp_dir = TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.workdir = Path(self.temp_dir.name)
+        (self.workdir / "namoptions.001").write_text(
+            "&DOMAIN\n itot = 4\n jtot = 3\n ktot = 2\n"
+            " xlen = 40.0\n ylen = 30.0\n zsize = 20.0\n/\n",
+            encoding="ascii",
+        )
+
+    def _sim_with_trees(self, text):
+        (self.workdir / "trees.inp.001").write_text(text, encoding="ascii")
+        return UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+    def test_current_format_two_headers_six_columns_stored_zero_based(self):
+        sim = self._sim_with_trees(
+            "# Trees data\n"
+            "# tree_n\t il\t iu\t jl\t ju\t kl\t ku\n"
+            " 129\t 173\t 106\t 150\t   5\t  17\n"
+        )
+        self.assertTrue(sim._lftrees)
+        self.assertEqual(sim.trees.shape, (1, 6))
+        np.testing.assert_array_equal(sim.trees, [[128, 172, 105, 149, 4, 16]])
+
+    def test_multiple_trees(self):
+        sim = self._sim_with_trees("#h\n#h\n1 2 3 4 5 6\n7 8 9 10 11 12\n")
+        np.testing.assert_array_equal(
+            sim.trees, [[0, 1, 2, 3, 4, 5], [6, 7, 8, 9, 10, 11]]
+        )
+
+    def test_optional_leading_tree_n_column_is_dropped(self):
+        sim = self._sim_with_trees("#h\n#h\n1 129 173 106 150 5 17\n")
+        np.testing.assert_array_equal(sim.trees, [[128, 172, 105, 149, 4, 16]])
+
+    def test_robust_to_header_row_count(self):
+        # comment-based skipping, not a fixed skiprows=2.
+        sim = self._sim_with_trees("# one header line only\n 129 173 106 150 5 17\n")
+        np.testing.assert_array_equal(sim.trees, [[128, 172, 105, 149, 4, 16]])
+
+    def test_empty_or_header_only_file_gives_empty_array(self):
+        sim = self._sim_with_trees("# Trees data\n# header only, no trees\n")
+        self.assertTrue(sim._lftrees)
+        self.assertEqual(sim.trees.shape, (0, 6))
+
+    def test_missing_file_sets_flag_false_and_trees_none(self):
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+        self.assertFalse(sim._lftrees)
+        self.assertIsNone(sim.trees)
