@@ -381,6 +381,21 @@ def _pyvista_color(c):
     return c
 
 
+def _offset_surface_behind_lines(actor) -> None:
+    """Apply a VTK polygon offset so a surface mesh renders *behind* coincident
+    lines. Outline segments sit exactly on the facet faces; without this they
+    lose the depth test and building edges vanish (the Plotly backend renders
+    them fine, so this keeps the two backends consistent)."""
+    mapper = getattr(actor, "mapper", None)
+    if mapper is None:
+        return
+    try:
+        mapper.SetResolveCoincidentTopologyToPolygonOffset()
+        mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(2.0, 2.0)
+    except AttributeError:
+        pass
+
+
 def _render_pyvista(scene: Scene, show: bool = True):
     try:
         import pyvista as pv
@@ -407,16 +422,20 @@ def _render_pyvista(scene: Scene, show: bool = True):
                 sc = np.asarray(mesh.scalars, dtype=float)
                 valid = ~np.isnan(sc)
                 clim = (float(np.nanmin(sc[valid])), float(np.nanmax(sc[valid]))) if np.any(valid) else (0.0, 1.0)
-            plotter.add_mesh(poly, scalars="scalars", cmap=mesh.cmap, clim=clim,
-                             nan_color=mesh.nan_color, show_scalar_bar=False, **common)
+            actor = plotter.add_mesh(poly, scalars="scalars", cmap=mesh.cmap, clim=clim,
+                                     nan_color=mesh.nan_color, show_scalar_bar=False, **common)
         elif mesh.face_colors is not None:
             fc = np.asarray(mesh.face_colors, dtype=float)
             if fc.size and fc.max() > 1.0:
                 fc = fc / 255.0
             poly.cell_data["rgb"] = fc[:, :3]
-            plotter.add_mesh(poly, scalars="rgb", rgb=True, show_scalar_bar=False, **common)
+            actor = plotter.add_mesh(poly, scalars="rgb", rgb=True, show_scalar_bar=False, **common)
         else:
-            plotter.add_mesh(poly, color=_pyvista_color(mesh.solid_color or GROUND_RGB), **common)
+            actor = plotter.add_mesh(poly, color=_pyvista_color(mesh.solid_color or GROUND_RGB), **common)
+        # Push surface polygons back in the depth buffer so the outline lines
+        # (which lie exactly on the faces) win the depth test and stay visible,
+        # matching the Plotly backend. Without this, building edges are occluded.
+        _offset_surface_behind_lines(actor)
 
     for ln in scene.lines:
         segs = np.asarray(ln.segments, dtype=np.int64)
