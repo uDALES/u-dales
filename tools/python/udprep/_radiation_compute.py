@@ -54,3 +54,64 @@ def interp_makima(x: np.ndarray, y: np.ndarray, x_new: np.ndarray) -> np.ndarray
 
     return h00 * y0 + h10 * h * d0 + h01 * y1 + h11 * h * d1
 
+def net_shortwave_reflections(
+    sdir: np.ndarray,
+    dsky: float,
+    vf,
+    svf: np.ndarray,
+    albedo: np.ndarray,
+    tol: float = 0.01,
+    max_iter: int = 1000,
+) -> np.ndarray:
+    """
+    Compute net shortwave including reflections (tools/SEB/netShortwave.m); pure compute..
+
+    Parameters
+    ----------
+    sdir : np.ndarray
+        Direct shortwave on facets [W/m^2].
+    dsky : float
+        Diffuse sky irradiance [W/m^2].
+    vf : array-like or sparse matrix
+        View factor matrix between facets.
+    svf : np.ndarray
+        Sky view factor per facet.
+    albedo : np.ndarray
+        Facet albedo (0-1).
+    tol : float
+        Convergence threshold for additional absorbed energy.
+    max_iter : int
+        Safety cap on the iteration count.
+    """
+    sdir = np.asarray(sdir, dtype=float)
+    svf = np.asarray(svf, dtype=float)
+    albedo = np.asarray(albedo, dtype=float)
+    if sdir.shape != svf.shape or sdir.shape != albedo.shape:
+        raise ValueError("sdir, svf, and albedo must have matching shapes")
+    if tol <= 0.0:
+        raise ValueError("tol must be > 0")
+    if max_iter <= 0:
+        raise ValueError("max_iter must be > 0")
+
+    kin0 = sdir + dsky * svf
+    knet = (1.0 - albedo) * kin0
+    kout = albedo * kin0
+
+    for _ in range(max_iter):
+        vf_kout = vf @ kout
+        kadd = (1.0 - albedo) * vf_kout
+        kout = albedo * vf_kout
+        knet = knet + kadd
+
+        denom = np.maximum(knet - kadd, 1.0e-12)
+        if np.max(kadd / denom) < tol:
+            break
+
+    return knet
+
+
+def net_shortwave_nonscattering(
+    sdir: np.ndarray, dsky: float, fss: np.ndarray, albedo: np.ndarray
+) -> np.ndarray:
+    """Net shortwave without reflections: ``(1 - albedo) * (sdir + dsky*fss)``."""
+    return (1.0 - np.asarray(albedo)) * (np.asarray(sdir) + dsky * np.asarray(fss))

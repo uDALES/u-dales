@@ -105,6 +105,26 @@ class TestNetShortwaveReflections(unittest.TestCase):
             self._reflect(np.array([1.0]), 0.0, np.zeros((1, 1)),
                           np.array([1.0]), np.array([0.5]), tol=0.0)
 
+    def test_section_wrapper_delegates_to_pure_function(self):
+        from udprep import _radiation_compute as rc
+
+        args = (np.array([100.0, 0.0]), 0.0, np.array([[0.0, 0.5], [0.5, 0.0]]),
+                np.array([0.5, 0.5]), np.array([0.5, 0.5]))
+        np.testing.assert_allclose(
+            self._reflect(*args), rc.net_shortwave_reflections(*args)
+        )
+
+
+class TestNonScatteringShortwave(unittest.TestCase):
+    def test_absorbed_direct_plus_diffuse(self):
+        from udprep import _radiation_compute as rc
+
+        knet = rc.net_shortwave_nonscattering(
+            np.array([100.0, 200.0]), 50.0, np.array([0.5, 1.0]), np.array([0.2, 0.4])
+        )
+        # (1-albedo) * (sdir + dsky*fss)
+        np.testing.assert_allclose(knet, [0.8 * (100 + 25), 0.6 * (200 + 50)])
+
 
 if __name__ == "__main__":
     unittest.main()
