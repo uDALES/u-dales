@@ -42,10 +42,6 @@ fi
 # protects fallback/diagnostic runs.
 export VIEW3D_MAX_DENSE_MATRIX_GIB="${VIEW3D_MAX_DENSE_MATRIX_GIB:-112}"
 
-# Same guard as an absolute byte limit. If both byte and GiB limits are set, the
-# byte value is used by View3D.
-# export VIEW3D_MAX_DENSE_MATRIX_BYTES=
-
 # Debug/comparison controls. Leave these unset for normal optimized runs.
 #
 # Force serial View3D execution even when OpenMP is available.
