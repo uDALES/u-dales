@@ -272,9 +272,17 @@ class RadiationSection(Section):
 
         raise ValueError(f"Unsupported isolar value: {self.isolar}")
 
-    def calc_view_factors(self, maxD: float = 250.0, force: bool = False):
+    def calc_view_factors(self, maxD: float | None = None, force: bool = False):
         """
         Export geometry, run View3D, and load view factors + sky view factors.
+
+        Parameters
+        ----------
+        maxD : float, optional
+            Max ray distance passed to View3D. Defaults to None, meaning use
+            radiation.maxD (the section default).
+        force : bool
+            If True, recompute and overwrite existing outputs.
 
         Returns
         -------
@@ -294,6 +302,8 @@ class RadiationSection(Section):
 
         if self.view3d_out == 2 and not self.lvfsparse:
             raise ValueError("view3d_out=2 requires lvfsparse=true in the ENERGYBALANCE section")
+        if maxD is None:
+            maxD = self.maxD
         maxD = float(maxD)
 
         vs3_path = out_dir / f"facets.{sim.expnr}.vs3"
@@ -324,7 +334,10 @@ class RadiationSection(Section):
         stl_path = Path(sim.path) / sim.stl_file
         stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
         nfacets = sim.geom.stl.faces.shape[0]
-        cache_key = (str(stl_path), stl_mtime, self.view3d_out, self.lvfsparse, self.maxD, nfacets)
+        # Shared with calc_short_wave (same self._vf_cache storage): both cache
+        # the identical (vf, svf) View3D result, so keep the key format identical
+        # to let the two methods share entries. maxD is the validated per-call value.
+        cache_key = (str(stl_path), stl_mtime, self.view3d_out, self.lvfsparse, maxD, nfacets)
         if self._vf_cache is not None and self._svf_cache is not None and self._vf_cache_key == cache_key:
             return self._vf_cache, self._svf_cache, paths
 
@@ -347,7 +360,7 @@ class RadiationSection(Section):
             self._vf_cache_key = cache_key
             return vf, svf, paths
 
-        stl_to_view3d(stl_path, vs3_path, self.view3d_out, maxD=self.maxD, row=0, col=0)
+        stl_to_view3d(stl_path, vs3_path, self.view3d_out, maxD=maxD, row=0, col=0)
 
         legacy_vs3_path = out_dir / "facets.vs3"
         if legacy_vs3_path != vs3_path and legacy_vs3_path.exists():
@@ -478,7 +491,9 @@ class RadiationSection(Section):
         stl_path = Path(sim.path) / sim.stl_file
         stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
         nfacets = sim.geom.stl.faces.shape[0]
-        cache_key = (str(stl_path), stl_mtime, self.view3d_out, float(maxD), nfacets)
+        # Keep this key format identical to calc_view_factors: both share
+        # self._vf_cache and cache the same (vf, svf), so a match must be comparable.
+        cache_key = (str(stl_path), stl_mtime, self.view3d_out, self.lvfsparse, float(maxD), nfacets)
         if not force and self._vf_cache is not None and self._svf_cache is not None and self._vf_cache_key == cache_key:
             vf = self._vf_cache
             svf = self._svf_cache
@@ -605,8 +620,12 @@ class RadiationSection(Section):
 
         sdir_all = np.zeros((albedo.size, nt), dtype=float)
         knet_all = np.zeros((albedo.size, nt), dtype=float)
-        s_veg_all = np.zeros((albedo.size, nt), dtype=float)
-        has_sveg = False
+        # The solver returns s_veg (veg_absorb) as an array of length nveg
+        # (empty for no-veg / scanline runs), never None. nveg is generally
+        # != nfcts, so s_veg_all is allocated lazily as (nveg, nt) on the first
+        # daytime step that carries vegetation absorption. Left None when no
+        # step has any vegetation, in which case no timedepsveg file is written.
+        s_veg_all: np.ndarray | None = None
 
         start = datetime(
             self.year,
@@ -663,9 +682,10 @@ class RadiationSection(Section):
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
-                    if s_veg is not None:
+                    if s_veg is not None and s_veg.size > 0:
+                        if s_veg_all is None:
+                            s_veg_all = np.zeros((s_veg.size, nt), dtype=float)
                         s_veg_all[:, n] = s_veg
-                        has_sveg = True
         else:
             for n, t_val in enumerate(tSP):
                 time_of_day = start + timedelta(seconds=float(t_val))
@@ -685,13 +705,14 @@ class RadiationSection(Section):
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
-                    if s_veg is not None:
+                    if s_veg is not None and s_veg.size > 0:
+                        if s_veg_all is None:
+                            s_veg_all = np.zeros((s_veg.size, nt), dtype=float)
                         s_veg_all[:, n] = s_veg
-                        has_sveg = True
 
         self._write_sdir_nc(sdir_nc_path, tSP, sdir_all)
         self.write_timedepsw(tSP, knet_all)
-        if has_sveg:
+        if s_veg_all is not None:
             self.write_timedepsveg(tSP, s_veg_all)
 
     def write_timedepsw(self, tSP: np.ndarray, knet: np.ndarray) -> None:

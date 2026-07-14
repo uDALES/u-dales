@@ -1,3 +1,4 @@
+import contextlib
 import sys
 import types
 import unittest
@@ -688,7 +689,9 @@ class TestRadiationSection(unittest.TestCase):
         full_sdir = np.array([1.234, 5.675, 9.999], dtype=float)
 
         def fake_calc_direct_sw(*_args, **_kwargs):
-            return full_sdir.copy(), None, {}
+            # Mirror the REAL solver contract: scanline returns an empty
+            # veg-absorption array (np.zeros(0)), never None.
+            return full_sdir.copy(), np.zeros(0, dtype=float), {}
 
         seen = {}
 
@@ -716,7 +719,139 @@ class TestRadiationSection(unittest.TestCase):
         np.testing.assert_allclose(seen["sdir"], expected)
         np.testing.assert_allclose(sdir, expected)
         np.testing.assert_allclose(knet, expected + 1.0)
-        self.assertIsNone(s_veg)
+        self.assertIsInstance(s_veg, np.ndarray)
+        self.assertEqual(s_veg.size, 0)
+
+    # ------------------------------------------------------------------
+    # Item 1 (P1): run_short_wave_timedep vegetation array-shape contract
+    # ------------------------------------------------------------------
+    def _run_timedep(self, tmp, nfcts, ltrees, s_veg_value):
+        """Drive run_short_wave_timedep with the solver mocked to honour the
+        REAL contract: _compute_knet returns an s_veg array (never None)."""
+        sim = types.SimpleNamespace(
+            path=Path(tmp),
+            expnr="001",
+            ltrees=ltrees,
+            geom=types.SimpleNamespace(
+                stl=types.SimpleNamespace(face_normals=np.zeros((nfcts, 3)))
+            ),
+        )
+        sim.assign_prop_to_fac = lambda _prop: np.ones(nfcts)
+
+        section = RadiationSection("radiation", {}, sim=sim, defaults={})
+        section.ltimedepsw = True
+        section.lEB = False
+        section.isolar = 2
+        section.ishortwave = 2
+        section.directsw_method = "moller"
+        section.runtime = 20.0
+        section.dtSP = 10.0
+        section.year = 2020
+        section.month = 6
+        section.day = 21
+        section.hour = 12
+        section.minute = 0
+        section.second = 0
+
+        section._solar_state_time = mock.Mock(
+            return_value=(np.array([0.0, 0.0, 1.0]), 30.0, 0.0, 800.0, 100.0)
+        )
+        section._compute_knet = mock.Mock(
+            return_value=(np.ones(nfcts), np.ones(nfcts), s_veg_value)
+        )
+        section._write_sdir_nc = mock.Mock()
+        section.write_timedepsw = mock.Mock()
+        section.write_timedepsveg = mock.Mock()
+
+        section.run_short_wave_timedep()
+        return section
+
+    def test_timedep_no_veg_completes_without_valueerror(self):
+        with TemporaryDirectory() as tmp:
+            section = self._run_timedep(
+                tmp, nfcts=4, ltrees=False, s_veg_value=np.zeros(0, dtype=float)
+            )
+        section.write_timedepsw.assert_called_once()
+        _tSP, knet = section.write_timedepsw.call_args.args
+        self.assertEqual(knet.shape, (4, 3))
+        section._write_sdir_nc.assert_called_once()
+        section.write_timedepsveg.assert_not_called()
+
+    def test_timedep_veg_stores_nveg_rows(self):
+        nfcts, nveg = 4, 7
+        with TemporaryDirectory() as tmp:
+            section = self._run_timedep(
+                tmp, nfcts=nfcts, ltrees=True, s_veg_value=np.arange(nveg, dtype=float)
+            )
+        section.write_timedepsveg.assert_called_once()
+        _tSP, sveg = section.write_timedepsveg.call_args.args
+        self.assertEqual(sveg.shape, (nveg, 3))
+        np.testing.assert_allclose(sveg[:, 0], np.arange(nveg))
+
+    # ------------------------------------------------------------------
+    # Item 2 (P3): calc_view_factors honours the per-call maxD argument
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _vf_section(tmp):
+        sim = types.SimpleNamespace(
+            path=Path(tmp),
+            expnr="001",
+            stl_file="geom.stl",
+            geom=types.SimpleNamespace(
+                stl=types.SimpleNamespace(faces=np.zeros((3, 3), dtype=int))
+            ),
+        )
+        section = RadiationSection("radiation", {}, sim=sim, defaults={})
+        section.view3d_out = 0
+        section.lvfsparse = False
+        section.maxD = 1000.0
+        return section
+
+    @staticmethod
+    def _enter_view3d_mocks(stack):
+        fake_vf = mock.MagicMock()
+        fake_vf.nnz = 5
+        fake_vf.toarray.return_value = np.zeros((3, 3))
+        mocks = stack.enter_context(
+            mock.patch.multiple(
+                "udprep.udprep_radiation",
+                stl_to_view3d=mock.DEFAULT,
+                resolve_view3d_exe=mock.DEFAULT,
+                run_view3d=mock.DEFAULT,
+                read_view3d_output=mock.DEFAULT,
+                compute_svf=mock.DEFAULT,
+                write_svf=mock.DEFAULT,
+                write_vf=mock.DEFAULT,
+                write_vfsparse=mock.DEFAULT,
+            )
+        )
+        mocks["read_view3d_output"].return_value = fake_vf
+        mocks["compute_svf"].return_value = np.zeros(3)
+        return mocks
+
+    def test_calc_view_factors_uses_per_call_maxD(self):
+        with TemporaryDirectory() as tmp, contextlib.ExitStack() as stack:
+            mocks = self._enter_view3d_mocks(stack)
+            section = self._vf_section(tmp)
+            section.calc_view_factors(maxD=123.0)
+            self.assertEqual(mocks["stl_to_view3d"].call_args.kwargs["maxD"], 123.0)
+
+    def test_calc_view_factors_maxD_none_uses_self_maxD(self):
+        with TemporaryDirectory() as tmp, contextlib.ExitStack() as stack:
+            mocks = self._enter_view3d_mocks(stack)
+            section = self._vf_section(tmp)
+            section.calc_view_factors(maxD=None)
+            self.assertEqual(mocks["stl_to_view3d"].call_args.kwargs["maxD"], 1000.0)
+
+    def test_calc_view_factors_maxD_participates_in_cache_key(self):
+        with TemporaryDirectory() as tmp, contextlib.ExitStack() as stack:
+            mocks = self._enter_view3d_mocks(stack)
+            section = self._vf_section(tmp)
+            section.calc_view_factors(maxD=123.0)
+            section.calc_view_factors(maxD=123.0)  # same maxD -> memory cache hit
+            self.assertEqual(mocks["stl_to_view3d"].call_count, 1)
+            section.calc_view_factors(maxD=456.0)  # different maxD -> recompute
+            self.assertEqual(mocks["stl_to_view3d"].call_count, 2)
 
 
 if __name__ == "__main__":
