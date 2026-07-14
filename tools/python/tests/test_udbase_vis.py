@@ -1,10 +1,9 @@
 import importlib.util
-import io
 import os
 import sys
 import types
 import unittest
-from contextlib import redirect_stderr
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -54,14 +53,14 @@ class RecordingVis:
 
 class TestUDBaseVisualizationCompatibility(unittest.TestCase):
     def _assert_clean_plot_error(self, call, message):
-        stderr = io.StringIO()
-        with redirect_stderr(stderr):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
             result = call()
 
-        text = stderr.getvalue().strip()
         self.assertIsNone(result)
-        self.assertEqual(text, f"ERROR: {message}")
-        self.assertEqual(len(text.splitlines()), 1)
+        messages = [str(w.message) for w in caught]
+        self.assertEqual(messages, [message])  # exactly one, matching diagnostic
+        self.assertEqual(len(messages[0].splitlines()), 1)
 
     def test_udbase_plot_fac_forwards_to_vis_facade(self):
         sim = UDBase.__new__(UDBase)

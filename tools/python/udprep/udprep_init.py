@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Tuple
 import subprocess
 import re
-import sys
 import warnings
 
 from exceptions import ConfigurationError
@@ -94,11 +93,11 @@ def _validate_config_paths(expdir: Path) -> None:
     
     # Check config.sh exists
     if not config_file.exists():
-        print("="*67, file=sys.stderr)
-        print(f"WARNING: Config file not found: {config_file}", file=sys.stderr)
-        print(f"  config.sh is optional for preprocessing but required for uDALES simulation execution.", file=sys.stderr)
-        print(f"  Expected variables: DA_EXPDIR, DA_TOOLSDIR, DA_WORKDIR, DA_BUILD", file=sys.stderr)
-        print("="*67, file=sys.stderr)
+        warnings.warn(
+            f"Config file not found: {config_file}. config.sh is optional for "
+            "preprocessing but required for uDALES simulation execution "
+            "(expected variables: DA_EXPDIR, DA_TOOLSDIR, DA_WORKDIR, DA_BUILD)."
+        )
         return
     
     # Parse config.sh
@@ -107,10 +106,10 @@ def _validate_config_paths(expdir: Path) -> None:
     # Check required variables
     missing = [var for var in ["DA_EXPDIR", "DA_TOOLSDIR"] if var not in config]
     if missing:
-        print("="*67, file=sys.stderr)
-        print(f"WARNING: Missing variables in config.sh: {', '.join(missing)}", file=sys.stderr)
-        print(f"  These are required for uDALES simulation execution but optional for preprocessing.", file=sys.stderr)
-        print("="*67, file=sys.stderr)
+        warnings.warn(
+            f"Missing variables in config.sh: {', '.join(missing)}. These are "
+            "required for uDALES simulation execution but optional for preprocessing."
+        )
         return
     
     # Validate DA_EXPDIR matches the experiment directory
@@ -118,24 +117,22 @@ def _validate_config_paths(expdir: Path) -> None:
     expected_expdir = expdir.parent.resolve()
     
     if config_expdir != expected_expdir:
-        print("="*67, file=sys.stderr)
-        print(f"WARNING: DA_EXPDIR mismatch in {config_file}", file=sys.stderr)
-        print(f"  Expected: {expected_expdir}", file=sys.stderr)
-        print(f"  Current: {config_expdir}", file=sys.stderr)
-        print(f"  DA_EXPDIR should point to the experiments directory.", file=sys.stderr)
-        print("="*67, file=sys.stderr)
+        warnings.warn(
+            f"DA_EXPDIR mismatch in {config_file}: expected {expected_expdir}, "
+            f"current {config_expdir}. DA_EXPDIR should point to the experiments "
+            "directory."
+        )
     
     # Validate DA_TOOLSDIR matches script location
     expected_tools = Path(__file__).resolve().parent.parent
     config_tools = (Path(config["DA_TOOLSDIR"]) / "python").resolve()
     
     if expected_tools != config_tools:
-        print("="*67, file=sys.stderr)
-        print(f"WARNING: DA_TOOLSDIR mismatch in {config_file}", file=sys.stderr)
-        print(f"  Expected: {expected_tools}", file=sys.stderr)
-        print(f"  Current: {config_tools}", file=sys.stderr)
-        print(f"  DA_TOOLSDIR should point to u-dales/tools directory.", file=sys.stderr)
-        print("="*67, file=sys.stderr)
+        warnings.warn(
+            f"DA_TOOLSDIR mismatch in {config_file}: expected {expected_tools}, "
+            f"current {config_tools}. DA_TOOLSDIR should point to the u-dales/tools "
+            "directory."
+        )
 
 
 def _read_iexpnr_from_namoptions(namoptions_path: Path) -> str:

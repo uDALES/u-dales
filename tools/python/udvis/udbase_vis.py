@@ -6,7 +6,7 @@ plotting methods backed by matplotlib and pyvista.
 """
 from __future__ import annotations
 
-import sys
+import warnings
 from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
@@ -88,7 +88,13 @@ class UDVis:
 
     @staticmethod
     def _missing_plot_data(message: str):
-        print(f"ERROR: {message}", file=sys.stderr)
+        """Warn that required plot data is unavailable and return ``None``.
+
+        Uses ``warnings.warn`` (not a bare stderr print) so notebooks/scripts can
+        capture or silence the diagnostic; the ``None`` return lets plot methods
+        bail out gracefully when their inputs are missing.
+        """
+        warnings.warn(message, stacklevel=2)
         return None
 
     def show_geometry(
@@ -205,8 +211,6 @@ class UDVis:
 
         outline_edges = self.geom._calculate_outline_edges(angle_threshold)
         if len(outline_edges) == 0:
-            import warnings
-
             warnings.warn("No outline edges found.")
             return None
 
@@ -594,9 +598,7 @@ class UDVis:
                 selected_faces = faces[face_mask]
                 selected_var = var[face_mask]
             else:
-                print("=" * 67, file=sys.stderr)
-                print("WARNING: No valid faces found for the specified building IDs", file=sys.stderr)
-                print("=" * 67, file=sys.stderr)
+                warnings.warn("No valid faces found for the specified building IDs")
                 building_ids = None
 
         valid = ~np.isnan(selected_var)

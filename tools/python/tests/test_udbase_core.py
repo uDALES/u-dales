@@ -2,7 +2,6 @@ import io
 import os
 import sys
 import unittest
-from contextlib import redirect_stderr
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -181,15 +180,10 @@ class TestUDBaseCore(unittest.TestCase):
         )
         sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=False)
 
-        stderr = io.StringIO()
-        with redirect_stderr(stderr):
+        with self.assertWarnsRegex(UserWarning, "scalarsourcep.inp.1.001 not found."):
             sources = sim.load_scalar_sources()
 
         self.assertEqual(sources, {"point": {}, "line": {}})
-        self.assertIn(
-            "scalarsourcep.inp.1.001 not found.",
-            stderr.getvalue(),
-        )
 
     def test_load_scalar_sources_warns_on_load_error(self):
         (self.workdir / "namoptions.001").write_text(

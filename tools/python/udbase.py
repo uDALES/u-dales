@@ -21,7 +21,6 @@ from pathlib import Path
 from typing import Optional, Union, Dict, Any, List
 import importlib.util
 import warnings
-import sys
 
 try:
     import udstats
@@ -366,11 +365,15 @@ class UDBase:
             self._warn_load("Cannot generate z-grid: zsize or ktot not found in namoptions")
 
     def _warn_load(self, message: str) -> None:
+        """Emit a non-fatal load diagnostic (a missing optional input file).
+
+        Routed through ``warnings.warn`` so callers can capture or filter it,
+        rather than printing to stderr. Honoured only when load warnings are not
+        suppressed for this instance.
+        """
         if self._suppress_load_warnings:
             return
-        print("=" * 67, file=sys.stderr)
-        print(f"WARNING: {message}", file=sys.stderr)
-        print("=" * 67, file=sys.stderr)
+        warnings.warn(message, stacklevel=2)
     
     def _load_geometry(self, backend: str = DEFAULT_BACKEND):
         """Load STL geometry file if present, on the given rendering backend."""

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import io
 import shutil
 import subprocess
 import sys
 import unittest
-from contextlib import redirect_stderr
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
@@ -110,33 +109,33 @@ class TestValidateConfigPaths(unittest.TestCase):
     def test_validate_config_paths_warns_for_missing_required_variables(self):
         (self.expdir / "config.sh").write_text("", encoding="ascii")
 
-        stderr = io.StringIO()
         with mock.patch(
             "udprep.udprep_init._parse_shell_config",
             return_value={"DA_EXPDIR": str(self.expbase)},
-        ), redirect_stderr(stderr):
+        ), warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
             _validate_config_paths(self.expdir)
 
-        text = stderr.getvalue()
-        self.assertIn("WARNING: Missing variables in config.sh: DA_TOOLSDIR", text)
-        self.assertIn("optional for preprocessing", text)
+        messages = " ".join(str(w.message) for w in caught)
+        self.assertIn("Missing variables in config.sh: DA_TOOLSDIR", messages)
+        self.assertIn("optional for preprocessing", messages)
 
     def test_validate_config_paths_warns_for_mismatched_paths(self):
         (self.expdir / "config.sh").write_text("", encoding="ascii")
 
-        stderr = io.StringIO()
         with mock.patch(
             "udprep.udprep_init._parse_shell_config",
             return_value={
                 "DA_EXPDIR": "/tmp/wrong-experiments",
                 "DA_TOOLSDIR": "/tmp/wrong-tools",
             },
-        ), redirect_stderr(stderr):
+        ), warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
             _validate_config_paths(self.expdir)
 
-        text = stderr.getvalue()
-        self.assertIn("WARNING: DA_EXPDIR mismatch", text)
-        self.assertIn("WARNING: DA_TOOLSDIR mismatch", text)
+        messages = " ".join(str(w.message) for w in caught)
+        self.assertIn("DA_EXPDIR mismatch", messages)
+        self.assertIn("DA_TOOLSDIR mismatch", messages)
 
 
 class TestReadIexpnrFromNameoptions(unittest.TestCase):
