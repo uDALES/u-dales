@@ -628,6 +628,10 @@ class TestBackendSelection(unittest.TestCase):
             self.assertGreater(len(plotter.renderer.actors), 0, label)
             plotter.close()
 
+    @unittest.skipUnless(
+        importlib.util.find_spec("plotly") and importlib.util.find_spec("trimesh"),
+        "plotly backend is optional and not installed",
+    )
     def test_independent_surfaces_plotly_has_labels_and_legend(self):
         import trimesh
 
