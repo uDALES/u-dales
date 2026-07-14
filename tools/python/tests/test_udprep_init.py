@@ -37,6 +37,8 @@ def _write_namoptions(path: Path, expnr: str, iexpnr_line: str | None = None) ->
     )
 
 
+from exceptions import ConfigurationError  # noqa: E402
+
 class TestShellConfigParsing(unittest.TestCase):
     def setUp(self):
         self.temp_dir = TemporaryDirectory()
@@ -155,19 +157,19 @@ class TestReadIexpnrFromNameoptions(unittest.TestCase):
     def test_exits_on_missing_iexpnr(self):
         f = self.workdir / "namoptions.001"
         f.write_text("&RUN\n lbuoyancy = .true.\n/\n", encoding="ascii")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             _read_iexpnr_from_namoptions(f)
 
     def test_exits_on_non_three_digit_iexpnr(self):
         f = self.workdir / "namoptions.001"
         f.write_text("&RUN\n iexpnr = 1,\n/\n", encoding="ascii")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             _read_iexpnr_from_namoptions(f)
 
     def test_exits_on_four_digit_iexpnr(self):
         f = self.workdir / "namoptions.001"
         f.write_text("&RUN\n iexpnr = 1000,\n/\n", encoding="ascii")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             _read_iexpnr_from_namoptions(f)
 
     def test_skips_comment_lines(self):
@@ -198,26 +200,26 @@ class TestValidateExpnr(unittest.TestCase):
         self.assertEqual(validate_expnr(expdir), "042")
 
     def test_exits_if_directory_does_not_exist(self):
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(self.expbase / "999")
 
     def test_exits_if_no_namoptions_file(self):
         expdir = self.expbase / "001"
         expdir.mkdir()
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
 
     def test_exits_if_namoptions_suffix_not_three_digits(self):
         expdir = self.expbase / "abc"
         expdir.mkdir()
         (expdir / "namoptions.abc").write_text("&RUN\n iexpnr = abc,\n/\n", encoding="ascii")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
 
     def test_exits_if_multiple_namoptions_files(self):
         expdir = self._make_case("010")
         (expdir / "namoptions.011").write_text("&RUN\n iexpnr = 011,\n/\n", encoding="ascii")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
 
     def test_exits_if_dirname_mismatches_filename_suffix(self):
@@ -225,7 +227,7 @@ class TestValidateExpnr(unittest.TestCase):
         expdir = self.expbase / "050"
         expdir.mkdir()
         _write_namoptions(expdir / "namoptions.051", "051")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
 
     def test_exits_if_iexpnr_mismatches_filename_suffix(self):
@@ -233,14 +235,14 @@ class TestValidateExpnr(unittest.TestCase):
         expdir = self.expbase / "050"
         expdir.mkdir()
         _write_namoptions(expdir / "namoptions.050", "099")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
 
     def test_exits_if_all_three_mismatch(self):
         expdir = self.expbase / "001"
         expdir.mkdir()
         _write_namoptions(expdir / "namoptions.002", "003")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
 
 

@@ -14,6 +14,8 @@ import re
 import sys
 import warnings
 
+from exceptions import ConfigurationError
+
 
 def _parse_shell_config(config_path: Path) -> dict:
     """
@@ -164,14 +166,14 @@ def _read_iexpnr_from_namoptions(namoptions_path: Path) -> str:
                 
                 # Validate 3-digit format
                 if not re.match(r'^\d{3}$', value):
-                    print(f"ERROR: iexpnr must be 3-digit format (001, 056, 999)", file=sys.stderr)
-                    print(f"Found: '{value}' in {namoptions_path}", file=sys.stderr)
-                    sys.exit(1)
+                    raise ConfigurationError(
+                        "iexpnr must be 3-digit format (001, 056, 999); "
+                        f"found '{value}' in {namoptions_path}"
+                    )
                 
                 return value
     
-    print(f"ERROR: iexpnr not found in {namoptions_path}", file=sys.stderr)
-    sys.exit(1)
+    raise ConfigurationError(f"iexpnr not found in {namoptions_path}")
 
 
 def validate_expnr(expdir: Path) -> str:
@@ -192,27 +194,29 @@ def validate_expnr(expdir: Path) -> str:
     -------
     str
         3-digit experiment number
-        
+
     Raises
     ------
-    SystemExit
-        If directory doesn't exist, namoptions not found, or inconsistent numbering
+    ConfigurationError
+        If the directory doesn't exist, namoptions is not found, or the
+        directory / filename-suffix / iexpnr numbering is inconsistent.
     """
     # Check experiment directory exists
     if not expdir.exists():
-        print(f"ERROR: Experiment directory does not exist: {expdir}", file=sys.stderr)
-        print(f"  Expected a directory named with a 3-digit experiment number (e.g. '001', '101', '999')", file=sys.stderr)
-        print(f"  containing a namoptions file with matching suffix (e.g. namoptions.001).", file=sys.stderr)
-        sys.exit(1)
+        raise ConfigurationError(
+            f"Experiment directory does not exist: {expdir}. Expected a directory "
+            "named with a 3-digit experiment number (e.g. '001') containing a "
+            "namoptions file with matching suffix (e.g. namoptions.001)."
+        )
     
     # Find and validate namoptions file
     namoptions_files = list(expdir.glob("namoptions.*"))
     
     if not namoptions_files:
-        print(f"ERROR: No namoptions file in {expdir}", file=sys.stderr)
-        print(f"  Expected a directory named with a 3-digit experiment number (e.g. '001', '101', '999')", file=sys.stderr)
-        print(f"  containing a namoptions.xxx file with matching suffix (e.g. namoptions.001).", file=sys.stderr)
-        sys.exit(1)
+        raise ConfigurationError(
+            f"No namoptions file in {expdir}. Expected a namoptions.XXX file whose "
+            "3-digit suffix matches the experiment directory name (e.g. namoptions.001)."
+        )
     
     # Validate filename pattern (namoptions.XXX where XXX is 3 digits)
     valid_files = [(f, f.name.split('.', 1)[1]) for f in namoptions_files 
@@ -220,15 +224,14 @@ def validate_expnr(expdir: Path) -> str:
     
     if not valid_files:
         found = ', '.join(f.name for f in namoptions_files)
-        print(f"ERROR: Invalid namoptions filename in {expdir}", file=sys.stderr)
-        print(f"Found: {found}", file=sys.stderr)
-        print(f"Expected: namoptions.XXX (e.g., namoptions.001)", file=sys.stderr)
-        sys.exit(1)
+        raise ConfigurationError(
+            f"Invalid namoptions filename in {expdir}. Found: {found}. "
+            "Expected: namoptions.XXX (e.g. namoptions.001)."
+        )
       
     if len(valid_files) > 1:
         found = ', '.join(f[0].name for f in valid_files)
-        print(f"ERROR: Multiple namoptions files: {found}", file=sys.stderr)
-        sys.exit(1)
+        raise ConfigurationError(f"Multiple namoptions files: {found}")
     
     namoptions_file, namoptions_suffix = valid_files[0]
     
@@ -237,12 +240,12 @@ def validate_expnr(expdir: Path) -> str:
     
     # Validate consistency: directory name, filename suffix, and iexpnr must all match
     if not (namoptions_suffix == expdir.name == expnr):
-        print(f"ERROR: Experiment number mismatch", file=sys.stderr)
-        print(f"  Directory name: {expdir.name}", file=sys.stderr)
-        print(f"  Filename: {namoptions_file.name} → {namoptions_suffix}", file=sys.stderr)
-        print(f"  iexpnr in namoptions: {expnr}", file=sys.stderr)
-        print(f"  All three must match. Set iexpnr under &RUN in namoptions to match the experiment case directory name and namoptions filename suffix.", file=sys.stderr)
-        sys.exit(1)
+        raise ConfigurationError(
+            "Experiment number mismatch: directory name "
+            f"'{expdir.name}', filename '{namoptions_file.name}' -> "
+            f"'{namoptions_suffix}', iexpnr in namoptions '{expnr}'. All three must "
+            "match; set iexpnr under &RUN to match the case directory and namoptions suffix."
+        )
     
     # Optional: validate config.sh paths (warnings only, non-blocking)
     _validate_config_paths(expdir)
