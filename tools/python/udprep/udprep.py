@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import inspect
 import json
+import logging
 import time
 import warnings
 from pathlib import Path
@@ -20,6 +21,9 @@ import numpy as np
 
 # Shared base utilities for preprocessing sections.
 SKIP = object()
+
+
+logger = logging.getLogger(__name__)
 
 
 class Section:
@@ -91,7 +95,7 @@ class Section:
         try:
             for name, func in steps:
                 start = time.perf_counter()
-                print(f"[{label}] {name}...")
+                logger.info("[%s] %s...", label, name)
                 if kwargs:
                     sig = inspect.signature(func)
                     params = sig.parameters.values()
@@ -103,7 +107,7 @@ class Section:
                 else:
                     func()
                 elapsed = time.perf_counter() - start
-                print(f"[{label}] {name} done in {elapsed:.3f} s")
+                logger.info("[%s] %s done in %.3f s", label, name, elapsed)
         finally:
             warnings.formatwarning = _orig_formatwarning
 
@@ -255,7 +259,7 @@ class Section:
             try:
                 self.save_param(key, value)
             except Exception:
-                print(f"[{self._name}] skipping writeback for {key} = {value!r}")
+                logger.info("[%s] skipping writeback for %s = %r", self._name, key, value)
 
     def show_changed_params(self) -> None:
         """
@@ -266,10 +270,10 @@ class Section:
         """
         changed = self._changed_params()
         if not changed:
-            print(f"[{self._name}] no changes")
+            logger.info("[%s] no changes", self._name)
             return
         for key, value, default in changed:
-            print(f"[{self._name}] {key}: {value} (default: {default})")
+            logger.info("[%s] %s: %s (default: %s)", self._name, key, value, default)
 
     def _changed_params(self) -> List[Tuple[str, Any, Any]]:
         changed = []

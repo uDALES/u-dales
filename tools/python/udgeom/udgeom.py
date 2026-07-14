@@ -50,7 +50,11 @@ from .fix_mesh import (
 )
 from .split_buildings import split_buildings
 
+import logging
+
 from udvis import UDVis, DEFAULT_BACKEND
+
+logger = logging.getLogger(__name__)
 
 
 class UDGeom:
@@ -191,7 +195,7 @@ class UDGeom:
 
             self._align_loaded_stl_to_file_normals(filepath)
             
-            print(f"Loaded geometry: {len(self.stl.faces)} faces, {len(self.stl.vertices)} vertices")
+            logger.info("Loaded geometry: %d faces, %d vertices", len(self.stl.faces), len(self.stl.vertices))
             
             # Invalidate cached properties
             self._invalidate_cache()
@@ -286,7 +290,7 @@ class UDGeom:
         
         try:
             self.stl.export(str(filepath))
-            print(f"Saved geometry to: {filepath}")
+            logger.info("Saved geometry to: %s", filepath)
         except Exception as e:
             raise ValueError(f"Error saving STL file {filepath}: {e}")
     
