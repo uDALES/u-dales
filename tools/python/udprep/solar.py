@@ -1162,7 +1162,9 @@ def solar_state_pvlib(
         import pandas as pd
         import pvlib
     except ImportError as exc:
-        raise ImportError("pvlib backend requested but pvlib is not installed") from exc
+        raise ImportError(
+            "The pvlib solar-position backend requires pvlib. Install it with: pip install pvlib"
+        ) from exc
 
     tzinfo = dt_timezone(timedelta(hours=timezone))
     if time_of_day.tzinfo is None:

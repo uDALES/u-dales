@@ -227,7 +227,10 @@ def _render_plotly(scene: Scene, show: bool = True):
     try:
         import plotly.graph_objects as go
     except ImportError as exc:
-        raise ImportError("plotly is required for the plotly backend. Install with: pip install plotly") from exc
+        raise ImportError(
+            "The 'plotly' backend requires plotly. Install the optional backend with: "
+            "pip install -r tools/python/requirements-plotly.txt"
+        ) from exc
 
     # NB: do not mutate pio.renderers.default here — that is process-global and
     # would override a renderer the user configured for scripts/CLI. fig.show()
@@ -423,7 +426,10 @@ def _render_pyvista(scene: Scene, show: bool = True):
     try:
         import pyvista as pv
     except ImportError as exc:
-        raise ImportError("pyvista is required for the pyvista backend. Install with: pip install pyvista") from exc
+        raise ImportError(
+            "The 'pyvista' backend requires pyvista (a core dependency). Install it with: "
+            "pip install 'pyvista[jupyter]'"
+        ) from exc
 
     plotter = pv.Plotter(image_scale=4)
     plotter.set_background("white")

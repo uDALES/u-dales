@@ -175,7 +175,7 @@ def _build_cell_facet_lookup(
 
 def _require_numba() -> None:
     if nb is None:
-        raise ImportError("numba is required for directshortwave")
+        raise ImportError("The numba-accelerated direct-shortwave kernels require numba. Install it with: pip install numba")
 
 
 if nb is not None:
@@ -1060,7 +1060,7 @@ class DirectShortwaveSolver:
 
         if self.method in ("moller", "facsec"):
             if nb is None:
-                raise ImportError("numba is required for direct shortwave (moller/facsec)")
+                raise ImportError("The moller/facsec direct-shortwave methods require numba. Install it with: pip install numba")
         elif self.method == "scanline":
             try:
                 import udprep.directshortwave_f2py as _dsroot
@@ -1579,7 +1579,7 @@ class DirectShortwaveSolver:
     ) -> np.ndarray:
         """Trace a single ray through the DDA and return segment diagnostics."""
         if nb is None:
-            raise ImportError("numba is required for trace_ray_segments")
+            raise ImportError("trace_ray_segments requires numba. Install it with: pip install numba")
         ktot, z_edges, z_max, dz = _compute_ktot_and_z_edges(self.sim, None)
         max_ray_length = 10.0 * max(self.sim.xlen, self.sim.ylen)
         buf, count = _trace_ray_segments_numba(
