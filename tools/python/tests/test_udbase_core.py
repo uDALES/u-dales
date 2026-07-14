@@ -345,3 +345,42 @@ class TestReadMatrix(unittest.TestCase):
             sim = UDBase.__new__(UDBase)
             arr = sim.read_matrix(p, 1)
         np.testing.assert_array_equal(arr, [[1, 2, 3], [4, 5, 6]])
+
+
+class TestNcDataHandle(unittest.TestCase):
+    """_load_ncdata must release the NetCDF file handle: load-and-close for a
+    requested variable, load-into-memory for browse. On Windows an open handle
+    blocks os.remove, so deleting the file afterwards catches a leak."""
+
+    @staticmethod
+    def _make_nc(path):
+        import xarray as xr
+
+        ds = xr.Dataset(
+            {"a": (("time", "x"), np.arange(6.0).reshape(3, 2))},
+            coords={"time": [0, 1, 2], "x": [0, 1]},
+        )
+        ds.to_netcdf(path)
+        ds.close()
+
+    def test_requested_variable_releases_handle(self):
+        with TemporaryDirectory() as d:
+            p = Path(d) / "f.nc"
+            self._make_nc(p)
+            sim = UDBase.__new__(UDBase)
+            arr = sim._load_ncdata(p, "a")
+            self.assertEqual(arr.shape, (2, 3))  # transposed (time, x) -> (x, time)
+            os.remove(p)  # PermissionError on Windows if the handle leaked
+
+    def test_browse_releases_handle(self):
+        import io
+        from contextlib import redirect_stdout
+
+        with TemporaryDirectory() as d:
+            p = Path(d) / "f.nc"
+            self._make_nc(p)
+            sim = UDBase.__new__(UDBase)
+            with redirect_stdout(io.StringIO()):
+                ds = sim._load_ncdata(p, None)
+            self.assertIn("a", ds)
+            os.remove(p)  # deletable => no lingering handle

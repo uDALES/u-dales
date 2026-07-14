@@ -953,31 +953,33 @@ class UDBase:
         """
         if not filename.exists():
             raise FileNotFoundError(f"File not found: {filename}")
-        
-        ds = xr.open_dataset(filename)
-        
-        # Transpose all data variables to match MATLAB's column-major convention
-        # Reverse dimension order for all variables with 2+ dimensions
-        transposed_vars = {}
-        for var_name in ds.data_vars:
-            data_var = ds[var_name]
-            if len(data_var.dims) >= 2:
-                transposed_vars[var_name] = data_var.transpose(*reversed(data_var.dims))
-            else:
-                transposed_vars[var_name] = data_var
-        
-        # Create new dataset with transposed variables
-        ds_transposed = xr.Dataset(transposed_vars, coords=ds.coords, attrs=ds.attrs)
-        
-        if var is None:
-            # Display file contents
-            self._display_ncinfo(ds_transposed, filename.name)
-            return ds_transposed
-        else:
+
+        # Open inside a context manager so the file handle is always released,
+        # rather than kept alive implicitly by the returned object.
+        with xr.open_dataset(filename) as ds:
+            # Transpose all data variables to match MATLAB's column-major
+            # convention (reverse dimension order for variables with 2+ dims).
+            transposed_vars = {}
+            for var_name in ds.data_vars:
+                data_var = ds[var_name]
+                if len(data_var.dims) >= 2:
+                    transposed_vars[var_name] = data_var.transpose(*reversed(data_var.dims))
+                else:
+                    transposed_vars[var_name] = data_var
+
+            ds_transposed = xr.Dataset(transposed_vars, coords=ds.coords, attrs=ds.attrs)
+
+            if var is None:
+                # Browse mode: read into memory so the returned dataset owns no
+                # open file handle (the whole file is loaded — intended for
+                # interactive inspection, not bulk field reads).
+                self._display_ncinfo(ds_transposed, filename.name)
+                return ds_transposed.load()
+
             if var not in ds_transposed:
                 raise KeyError(f"Variable '{var}' not found in {filename.name}")
-            
-            # Return as numpy array for consistency with MATLAB and memory efficiency
+            # Load-and-close: materialise the one requested array before the file
+            # handle is closed on exit from the with-block.
             return ds_transposed[var].values
     
     def _display_ncinfo(self, ds: xr.Dataset, filename: str):
