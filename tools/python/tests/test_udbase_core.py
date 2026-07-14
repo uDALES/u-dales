@@ -21,6 +21,33 @@ if str(PYTHON_DIR) not in sys.path:
 from udbase import UDBase  # noqa: E402
 from udvis import UDVis  # noqa: E402
 
+from exceptions import DataFormatError  # noqa: E402
+
+
+_DOMAIN_NAMOPTIONS = "\n".join(
+    [
+        "&DOMAIN",
+        " itot = 4",
+        " jtot = 3",
+        " ktot = 2",
+        " xlen = 40.0",
+        " ylen = 30.0",
+        " zsize = 20.0",
+        "/",
+    ]
+)
+
+
+def _factypes_row(nfaclyrs, wallid=1):
+    """Build one valid factypes data row: 6 header + d(k) + C(k) + l(k) + k(k+1)."""
+    k = nfaclyrs
+    fields = [str(wallid), "0", "0.1", "0.01", "0.2", "0.9"]
+    fields += ["0.1"] * k          # d: layer thicknesses
+    fields += ["1000"] * k         # C: heat capacity
+    fields += ["1.0"] * k          # l: conductivity
+    fields += ["0.4"] * (k + 1)    # k: conductivity (k+1 columns)
+    return " ".join(fields)
+
 
 class TestUDBaseCore(unittest.TestCase):
     def setUp(self):
@@ -289,9 +316,12 @@ class TestUDBaseCore(unittest.TestCase):
         (self.workdir / "facets.inp.001").write_text(
             "# typeid nx ny nz\n1 0.0 0.0 1.0\n", encoding="ascii"
         )
+        # A valid 3-layer factypes row: 6 + 4*3 + 1 = 19 columns
+        # (6 header + d(3) + C(3) + l(3) + k(4)).
         (self.workdir / "factypes.inp.001").write_text(
             "# header line 1\n# header line 2\n# header line 3\n"
-            "1 0 0.1 0.01 0.2 0.9 0.1 0.1 0.1 1000 1000 1000 1.0 1.0 1.0 1.0\n",
+            + _factypes_row(3)
+            + "\n",
             encoding="ascii",
         )
 
@@ -304,6 +334,98 @@ class TestUDBaseCore(unittest.TestCase):
         self.assertEqual(sim.facs["typeid"].shape, (1,))
         self.assertEqual(sim.facs["normals"].shape, (1, 3))
         self.assertEqual(sim.factypes["id"].shape, (1,))
+
+    # ----- C2: factypes column-width validation -----
+
+    def _write_namoptions(self, extra_lines=()):
+        text = _DOMAIN_NAMOPTIONS
+        if extra_lines:
+            text += "\n" + "\n".join(extra_lines)
+        (self.workdir / "namoptions.001").write_text(text + "\n", encoding="ascii")
+
+    def _write_factypes(self, rows):
+        (self.workdir / "factypes.inp.001").write_text(
+            "# header line 1\n# header line 2\n# header line 3\n"
+            + "\n".join(rows)
+            + "\n",
+            encoding="ascii",
+        )
+
+    def test_factypes_non_default_nfaclyrs_parses_end_to_end(self):
+        # (a) A consistent file with a non-default layer count (5) parses, and the
+        # property blocks are sliced to the right widths.
+        self._write_namoptions(["&WALLS", " nfaclyrs = 5", "/"])
+        self._write_factypes([_factypes_row(5, wallid=1), _factypes_row(5, wallid=2)])
+
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        self.assertEqual(sim.nfaclyrs, 5)
+        self.assertEqual(sim.factypes["d"].shape, (2, 5))
+        self.assertEqual(sim.factypes["C"].shape, (2, 5))
+        self.assertEqual(sim.factypes["lam"].shape, (2, 6))  # k + 1 columns
+
+    def test_factypes_width_mismatch_raises_dataformaterror(self):
+        # (b) nfaclyrs says 5 but the file is a 3-layer (19-col) file: the layer
+        # count disagrees, so material properties would be mis-sliced -> raise.
+        self._write_namoptions(["&WALLS", " nfaclyrs = 5", "/"])
+        self._write_factypes([_factypes_row(3)])  # 19 columns, not 27
+
+        with self.assertRaises(DataFormatError) as ctx:
+            UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        msg = str(ctx.exception)
+        self.assertIn("factypes.inp.001", msg)
+        self.assertIn("nfaclyrs=5", msg)
+        self.assertIn("27", msg)  # expected column count
+        self.assertIn("19", msg)  # actual column count
+
+    def test_factypes_default_guess_with_matching_three_layer_file(self):
+        # (c) nfaclyrs absent from namoptions -> guessed 3; a matching 19-col file
+        # still loads.
+        self._write_namoptions()  # no nfaclyrs
+        self._write_factypes([_factypes_row(3)])  # 19 columns
+
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        self.assertEqual(sim.nfaclyrs, 3)
+        self.assertEqual(sim.factypes["d"].shape, (1, 3))
+        self.assertEqual(sim.factypes["lam"].shape, (1, 4))
+
+    # ----- C3: prof.inp grid parse errors must not silently degrade -----
+
+    def test_missing_prof_inp_warns_and_uses_uniform_grid(self):
+        # (a) No prof.inp present: warn, fall back to a uniform grid, stay usable.
+        with self.assertWarnsRegex(UserWarning, r"prof\.inp\.001 not found"):
+            sim = UDBase("1", self.workdir, load_geometry=False)
+
+        self.assertFalse(sim._lfprof)
+        # uniform z-grid for ktot=2, zsize=20 -> centres at 5, 15
+        np.testing.assert_allclose(sim.zt, [5.0, 15.0])
+
+    def test_corrupt_prof_inp_raises_dataformaterror(self):
+        # (b) prof.inp present but unparseable: raise, do not silently substitute
+        # a uniform grid.
+        (self.workdir / "prof.inp.001").write_text(
+            "# z thl qt u v tke\nnot a number here\n", encoding="ascii"
+        )
+
+        with self.assertRaises(DataFormatError) as ctx:
+            UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        self.assertIn("prof.inp.001", str(ctx.exception))
+
+    def test_valid_stretched_prof_inp_loads(self):
+        # (c) a valid stretched prof.inp is read and used verbatim.
+        (self.workdir / "prof.inp.001").write_text(
+            "# stretched profile\n# z thl qt u v tke\n"
+            "2.0 288 0 1 0 0\n14.0 288 0 1 0 0\n",
+            encoding="ascii",
+        )
+
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        self.assertTrue(sim._lfprof)
+        np.testing.assert_allclose(sim.zt, [2.0, 14.0])
 
     def test_convert_fac_to_field_accumulates_cell_density(self):
         sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)

@@ -47,9 +47,9 @@ except ImportError:
     from .udvis import UDVis, DEFAULT_BACKEND
 
 try:
-    from exceptions import DependencyError
+    from exceptions import DependencyError, DataFormatError
 except ImportError:
-    from .exceptions import DependencyError
+    from .exceptions import DependencyError, DataFormatError
 
 
 def _file_has_data(path: Path, skiprows: int = 0) -> bool:
@@ -341,19 +341,25 @@ class UDBase:
         prof_file = self.path / f"prof.inp.{self.expnr}"
         
         if prof_file.exists():
+            # The file exists, so it is meant to define the grid. A parse or
+            # grid-construction failure here would make every z-coordinate wrong;
+            # raise instead of silently substituting a uniform grid. A genuinely
+            # *missing* prof.inp (legitimate before preprocessing) is handled in
+            # the else branch below and keeps the warn-and-continue fallback.
             try:
                 # Load prof.inp - skip header lines
                 data = np.loadtxt(prof_file, skiprows=1)
-                
+
                 self.zt = data[:, 0]  # cell centres
                 self.zm, self.dzt = udgrid.z_grid_from_profile(self.zt, self.zsize)
 
-            except Exception as e:
-                warnings.warn(
-                    f"Error loading prof.inp.{self.expnr}: {e}. Using uniform grid."
-                )
-                self._lfprof = False
-                self._generate_uniform_zgrid()
+            except (ValueError, IndexError, AttributeError) as e:
+                # ValueError: non-numeric content; IndexError: wrong shape (e.g. a
+                # single column/row); AttributeError: missing zsize on self.
+                raise DataFormatError(
+                    f"Error loading prof.inp.{self.expnr}: {e}. The file is present "
+                    f"but could not be parsed into a valid stretched z-grid."
+                ) from e
         else:
             self._warn_load(f"prof.inp.{self.expnr} not found. Assuming equidistant grid.")
             self._lfprof = False
@@ -473,10 +479,33 @@ class UDBase:
                 # ndmin=2 keeps a single-walltype file a (1, ncols) matrix so the
                 # column indexing below works instead of raising IndexError.
                 data = np.loadtxt(factypes_file, skiprows=3, ndmin=2)
-
-                if not hasattr(self, 'nfaclyrs'):
+            except Exception as e:
+                warnings.warn(f"Error loading factypes.inp.{self.expnr}: {e}")
+                self._lffactypes = False
+            else:
+                if hasattr(self, 'nfaclyrs'):
+                    nfaclyrs_source = "read from namoptions"
+                else:
                     self.nfaclyrs = 3  # Default
-                
+                    nfaclyrs_source = "guessed default; not in namoptions"
+
+                # The factypes row layout is: 6 leading columns (wallid, lGR, z0,
+                # z0h, al, em), then per-layer blocks d(k), C(k), l(k) and k(k+1),
+                # i.e. 6 + 4*nfaclyrs + 1 columns. numpy slicing silently returns
+                # the wrong physical columns when the file's layer count differs
+                # from nfaclyrs, so validate the width and raise on mismatch
+                # rather than corrupting the material properties fed to load_seb.
+                expected_cols = 6 + 4 * self.nfaclyrs + 1
+                actual_cols = data.shape[1]
+                if actual_cols != expected_cols:
+                    raise DataFormatError(
+                        f"factypes.inp.{self.expnr} has {actual_cols} columns but "
+                        f"{expected_cols} were expected for nfaclyrs={self.nfaclyrs} "
+                        f"({nfaclyrs_source}); expected width = 6 + 4*nfaclyrs + 1. "
+                        f"The file's layer count does not match nfaclyrs, so the "
+                        f"material properties would be mis-sliced."
+                    )
+
                 self.factypes['id'] = data[:, 0].astype(int)
                 self.factypes['lGR'] = data[:, 1].astype(bool)
                 self.factypes['z0'] = data[:, 2]
@@ -504,10 +533,6 @@ class UDBase:
                     wall_names.get(int(id_), f"Custom walltype {int(id_)}")
                     for id_ in self.factypes['id']
                 ]
-                
-            except Exception as e:
-                warnings.warn(f"Error loading factypes.inp.{self.expnr}: {e}")
-                self._lffactypes = False
         else:
             self._warn_load(f"factypes.inp.{self.expnr} not found.")
             self._lffactypes = False
