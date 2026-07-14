@@ -19,6 +19,7 @@ Notes
 """
 
 from pathlib import Path
+import os
 import sys
 import time
 
@@ -33,7 +34,22 @@ if str(PYTOOLS) not in sys.path:
     sys.path.insert(0, str(PYTOOLS))
 
 from udprep import UDPrep  # noqa: E402
-import plotly.graph_objects as go  # noqa: E402
+
+# This tutorial draws its facet plots with the optional Plotly backend, which
+# lets us overlay a units colour bar and vegetation markers on plot_fac's figure.
+# Plotly is an optional extra (tools/python/requirements-plotly.txt); the compute
+# steps below work without it, so we degrade gracefully to "compute, don't plot".
+try:
+    import plotly.graph_objects as go  # noqa: E402
+
+    HAVE_PLOTLY = True
+except ImportError:
+    go = None
+    HAVE_PLOTLY = False
+
+# Open interactive 3-D windows for the plots. Defaults to True for users; set the
+# environment variable UDALES_SHOW=0 to run headless (e.g. in CI/verification).
+SHOW = os.environ.get("UDALES_SHOW", "1") != "0"
 
 # -----------------------------------------------------------------------------
 # Method overview
@@ -91,8 +107,21 @@ def plot_shortwave(
     view_azimuth_deg: float,
     veg_data: dict[str, np.ndarray] | None = None,
 ) -> None:
-    """Plot facet field with an explicit colorbar range and fixed view azimuth."""
-    fig = sim.plot_fac(sdir, show=False)
+    """Plot facet field with an explicit colorbar range and fixed view azimuth.
+
+    Uses the Plotly backend so the units colour bar and vegetation markers below
+    can be overlaid on plot_fac's figure. If Plotly is not installed we skip the
+    plot (the compute above still runs) with an actionable message.
+    """
+    if not SHOW:
+        return
+    if not HAVE_PLOTLY:
+        print(
+            "  (skipping plot: Plotly not installed. Install the optional backend "
+            "with: pip install -r tools/python/requirements-plotly.txt)"
+        )
+        return
+    fig = sim.plot_fac(sdir, show=False, backend="plotly")
     vmin = float(np.nanmin(sdir))
     vmax = float(np.nanmax(sdir))
     fig.add_trace(
@@ -160,7 +189,6 @@ expdir = udales_path.parents[0] / "experiments" / expnr
 prep = UDPrep(expnr, expdir, load_geometry=True)
 sim = prep.sim
 prep.run_all(force=True)
-exit()
 print("Compute shortwave (facsec, no vegetation)...")
 S_dir_facsec, K_star_facsec, S_veg_facsec = prep.radiation.calc_short_wave(
     nsun=nsun,
