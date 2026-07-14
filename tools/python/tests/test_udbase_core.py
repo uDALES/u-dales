@@ -347,6 +347,35 @@ class TestReadMatrix(unittest.TestCase):
         np.testing.assert_array_equal(arr, [[1, 2, 3], [4, 5, 6]])
 
 
+class TestGridHelpers(unittest.TestCase):
+    """Pure grid-coordinate maths (udgrid)."""
+
+    def test_horizontal_grid_edges_and_centres(self):
+        import udgrid
+
+        xm, xt, ym, yt = udgrid.horizontal_grid(3, 2.0, 2, 5.0)
+        np.testing.assert_allclose(xm, [0, 2, 4])
+        np.testing.assert_allclose(xt, [1, 3, 5])
+        np.testing.assert_allclose(ym, [0, 5])
+        np.testing.assert_allclose(yt, [2.5, 7.5])
+
+    def test_uniform_z_grid(self):
+        import udgrid
+
+        zm, zt, dzt = udgrid.uniform_z_grid(20.0, 4)
+        np.testing.assert_allclose(zm, [0, 5, 10, 15])
+        np.testing.assert_allclose(zt, [2.5, 7.5, 12.5, 17.5])
+        np.testing.assert_allclose(dzt, [5, 5, 5, 5])
+
+    def test_z_grid_from_profile_matches_centres(self):
+        import udgrid
+
+        zt = np.array([2.5, 7.5, 12.5, 17.5])
+        zm, dzt = udgrid.z_grid_from_profile(zt, 20.0)
+        np.testing.assert_allclose(zm, [0, 5, 10, 15])
+        np.testing.assert_allclose(dzt, [5, 5, 5, 5])
+
+
 class TestNamoptionsParsing(unittest.TestCase):
     """Pure namelist parsing (udconfig)."""
 

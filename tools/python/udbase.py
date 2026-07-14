@@ -28,11 +28,13 @@ try:
     import udnetcdf
     import udfacet
     import udconfig
+    import udgrid
 except ImportError:
     from . import udstats
     from . import udnetcdf
     from . import udfacet
     from . import udconfig
+    from . import udgrid
 
 # Import UDGeom from the udgeom package
 try:
@@ -333,16 +335,9 @@ class UDBase:
                 # Load prof.inp - skip header lines
                 data = np.loadtxt(prof_file, skiprows=1)
                 
-                # Cell centers (zt)
-                self.zt = data[:, 0]
-                
-                # Cell edges (zm)
-                zm_full = np.concatenate([[0], 0.5 * (self.zt[:-1] + self.zt[1:]), [self.zsize]])
-                self.zm = zm_full[:-1]  # Match dimensions
-                
-                # Grid spacing
-                self.dzt = np.diff(np.append(self.zm, self.zsize))
-                
+                self.zt = data[:, 0]  # cell centres
+                self.zm, self.dzt = udgrid.z_grid_from_profile(self.zt, self.zsize)
+
             except Exception as e:
                 warnings.warn(
                     f"Error loading prof.inp.{self.expnr}: {e}. Using uniform grid."
@@ -354,22 +349,14 @@ class UDBase:
             self._lfprof = False
             self._generate_uniform_zgrid()
         
-        # Generate x and y grids
-        self.xm = np.arange(self.itot) * self.dx
-        self.xt = self.xm + 0.5 * self.dx
-        
-        self.ym = np.arange(self.jtot) * self.dy
-        self.yt = self.ym + 0.5 * self.dy
-    
+        self.xm, self.xt, self.ym, self.yt = udgrid.horizontal_grid(
+            self.itot, self.dx, self.jtot, self.dy
+        )
+
     def _generate_uniform_zgrid(self):
         """Generate uniform z-grid when prof.inp is not available."""
         if hasattr(self, 'zsize') and hasattr(self, 'ktot'):
-            dz = self.zsize / self.ktot
-            
-            self.zm = np.arange(self.ktot) * dz
-            self.zt = self.zm + 0.5 * dz
-            
-            self.dzt = np.full(self.ktot, dz)
+            self.zm, self.zt, self.dzt = udgrid.uniform_z_grid(self.zsize, self.ktot)
         else:
             self._warn_load("Cannot generate z-grid: zsize or ktot not found in namoptions")
 
