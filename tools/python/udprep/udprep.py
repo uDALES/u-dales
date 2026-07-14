@@ -488,7 +488,7 @@ class UDPrep:
                 else:
                     call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
                     run_all(**call_kwargs)
-                self.seb.run_all()
+            self.seb.run_all()
 
     def write_changed_params(self) -> None:
         """Write changed parameters for every section."""
