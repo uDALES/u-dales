@@ -51,5 +51,60 @@ class TestInterpMakima(unittest.TestCase):
             self.interp(np.array([0.0, 0.0]), np.array([1.0, 2.0]), np.array([0.0]))
 
 
+class TestNetShortwaveReflections(unittest.TestCase):
+    """Iterative multi-bounce net-shortwave physics (calc_reflections_sw).
+
+    Ground-truth values captured from the current implementation; also checks the
+    physical invariants (no-reflection limit, energy split) so the numerics are
+    pinned before the compute is separated from the section's IO (task 7).
+    """
+
+    @staticmethod
+    def _reflect(*args, **kwargs):
+        # self is unused by calc_reflections_sw; a bare instance is enough.
+        section = object.__new__(RadiationSection)
+        return section.calc_reflections_sw(*args, **kwargs)
+
+    def test_no_view_factors_reduces_to_absorbed_direct_plus_diffuse(self):
+        # With vf=0 there are no reflections: knet = (1-albedo)*(sdir + dsky*svf).
+        knet = self._reflect(
+            np.array([100.0, 200.0]), 0.0, np.zeros((2, 2)),
+            np.array([1.0, 1.0]), np.array([0.5, 0.5]),
+        )
+        np.testing.assert_allclose(knet, [50.0, 100.0])
+
+    def test_mutual_reflection_between_two_facets(self):
+        vf = np.array([[0.0, 0.5], [0.5, 0.0]])
+        knet = self._reflect(
+            np.array([100.0, 0.0]), 0.0, vf,
+            np.array([0.5, 0.5]), np.array([0.5, 0.5]),
+        )
+        np.testing.assert_allclose(knet, [53.320312, 13.28125], rtol=1e-6)
+
+    def test_diffuse_sky_contribution(self):
+        vf = np.array([[0.0, 0.5], [0.5, 0.0]])
+        knet = self._reflect(
+            np.array([50.0, 50.0]), 100.0, vf,
+            np.array([0.3, 0.7]), np.array([0.2, 0.2]),
+        )
+        np.testing.assert_allclose(knet, [74.24, 103.36], rtol=1e-6)
+
+    def test_zero_albedo_absorbs_all_incoming(self):
+        # albedo=0 -> nothing reflected -> knet == sdir + dsky*svf, one iteration.
+        knet = self._reflect(
+            np.array([80.0, 120.0]), 50.0, np.array([[0.0, 1.0], [1.0, 0.0]]),
+            np.array([0.5, 0.5]), np.array([0.0, 0.0]),
+        )
+        np.testing.assert_allclose(knet, [80.0 + 50.0 * 0.5, 120.0 + 50.0 * 0.5])
+
+    def test_validation(self):
+        with self.assertRaises(ValueError):
+            self._reflect(np.array([1.0, 2.0]), 0.0, np.zeros((2, 2)),
+                          np.array([1.0]), np.array([0.5, 0.5]))  # shape mismatch
+        with self.assertRaises(ValueError):
+            self._reflect(np.array([1.0]), 0.0, np.zeros((1, 1)),
+                          np.array([1.0]), np.array([0.5]), tol=0.0)
+
+
 if __name__ == "__main__":
     unittest.main()
