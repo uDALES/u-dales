@@ -7,9 +7,9 @@ import numpy as np
 import trimesh
 
 try:
-    from _common import REPO_ROOT
+    from _common import REPO_ROOT, requires_slow_tests
 except ModuleNotFoundError:
-    from tools.python.tests._common import REPO_ROOT
+    from tools.python.tests._common import REPO_ROOT, requires_slow_tests
 
 from udgeom import UDGeom
 from udprep.directshortwave import DirectShortwaveSolver
@@ -55,6 +55,7 @@ def _build_flat_terrain_fixture():
     return sim, mesh
 
 
+@requires_slow_tests
 class TestDirectShortwaveFlatTerrain(unittest.TestCase):
     def setUp(self):
         self.sim, self.mesh = _build_flat_terrain_fixture()

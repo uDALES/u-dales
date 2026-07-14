@@ -4,11 +4,12 @@ import unittest
 
 import numpy as np
 
-from _common import REPO_ROOT
+from _common import REPO_ROOT, requires_slow_tests
 from udbase import UDBase
 from udprep.directshortwave import DirectShortwaveSolver
 
 
+@requires_slow_tests
 class TestDirectShortwavePeriodic(unittest.TestCase):
     def setUp(self):
         self.sim = UDBase("101", REPO_ROOT / "examples" / "101", load_geometry=True)
