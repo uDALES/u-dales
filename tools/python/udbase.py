@@ -177,6 +177,11 @@ class UDBase:
         # Load-time warning control
         self._suppress_load_warnings = suppress_load_warnings
 
+        # Geometry is optional (load_geometry=False, or no STL present). Initialize
+        # it unconditionally so __repr__ and the udvis methods can rely on the
+        # attribute existing regardless of the loading path taken below.
+        self.geom = None
+
         # File presence flags
         self._lfprof = True
         self._lfsolid = True
@@ -226,7 +231,8 @@ class UDBase:
     def backend(self, value: str) -> None:
         self.vis.backend = value
         # Keep the owned geometry's backend in sync so sim.geom.show() matches.
-        if getattr(self, "geom", None) is not None:
+        # self.geom is always initialized in __init__ (None when not loaded).
+        if self.geom is not None:
             self.geom.backend = value
 
     def _read_namoptions(self):
@@ -434,7 +440,9 @@ class UDBase:
         facetarea_file = self.path / f"facetarea.inp.{self.expnr}"
         if facetarea_file.exists():
             try:
-                self.facs['area'] = np.loadtxt(facetarea_file, skiprows=1)
+                # ndmin=1 keeps a single-facet file a 1-D (n_facets,) vector
+                # rather than a 0-D scalar (which breaks len()/indexing).
+                self.facs['area'] = np.loadtxt(facetarea_file, skiprows=1, ndmin=1)
             except Exception as e:
                 warnings.warn(f"Error loading facetarea.inp.{self.expnr}: {e}")
                 self._lffacetarea = False
@@ -446,7 +454,9 @@ class UDBase:
         facets_file = self.path / f"facets.inp.{self.expnr}"
         if facets_file.exists():
             try:
-                data = np.loadtxt(facets_file, skiprows=1)
+                # ndmin=2 keeps a single-facet file a (1, ncols) matrix so the
+                # column indexing below works instead of raising IndexError.
+                data = np.loadtxt(facets_file, skiprows=1, ndmin=2)
                 self.facs['typeid'] = data[:, 0].astype(int)
                 self.facs['normals'] = data[:, 1:4]  # Surface normals
             except Exception as e:
@@ -460,8 +470,10 @@ class UDBase:
         factypes_file = self.path / f"factypes.inp.{self.expnr}"
         if factypes_file.exists():
             try:
-                data = np.loadtxt(factypes_file, skiprows=3)
-                
+                # ndmin=2 keeps a single-walltype file a (1, ncols) matrix so the
+                # column indexing below works instead of raising IndexError.
+                data = np.loadtxt(factypes_file, skiprows=3, ndmin=2)
+
                 if not hasattr(self, 'nfaclyrs'):
                     self.nfaclyrs = 3  # Default
                 
@@ -605,7 +617,14 @@ class UDBase:
 
     def load_veg(self, *, zero_based: bool = True, cache: bool = True) -> Dict[str, Any]:
         """Load vegetation sparse points and parameters."""
-        if cache and hasattr(self, "veg") and self.veg is not None:
+        # The cache stores a single variant keyed by the indexing convention it
+        # was loaded with; a request for the other convention must not return
+        # the cached one.
+        if (
+            cache
+            and getattr(self, "veg", None) is not None
+            and getattr(self, "_veg_zero_based", None) == zero_based
+        ):
             return self.veg
 
         points_path = self.path / f"veg.inp.{self.expnr}"
@@ -638,6 +657,7 @@ class UDBase:
             }
             if cache:
                 self.veg = veg
+                self._veg_zero_based = zero_based
             return veg
 
         if points.size == 0 or params.size == 0:
@@ -664,6 +684,7 @@ class UDBase:
         }
         if cache:
             self.veg = veg
+            self._veg_zero_based = zero_based
         return veg
 
     def load_scalar_sources(self) -> Dict[str, Dict[int, np.ndarray]]:
@@ -1218,8 +1239,13 @@ class UDBase:
         )
 
     def plot_trees(self, show: bool = False):
-        """Backward-compatible alias for plot_veg."""
-        return self.vis.plot_trees(show=show)
+        """Backward-compatible alias for :meth:`plot_veg`.
+
+        ``UDVis`` exposes only ``plot_veg`` (vegetation is the current name for
+        what legacy cases called "trees"), so forward there rather than to a
+        nonexistent ``UDVis.plot_trees``.
+        """
+        return self.vis.plot_veg(show=show)
     
     def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None,
                  show: bool = True, backend: Optional[str] = None):

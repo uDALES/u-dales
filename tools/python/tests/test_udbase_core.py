@@ -2,6 +2,7 @@ import io
 import os
 import sys
 import unittest
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -253,6 +254,56 @@ class TestUDBaseCore(unittest.TestCase):
         np.testing.assert_allclose(facsec["area"], np.array([2.5, 1.0]))
         np.testing.assert_array_equal(facsec["locs"], np.array([[3, 2, 1], [0, 1, 0]]))
         np.testing.assert_allclose(facsec["distance"], np.array([0.10, 0.20]))
+
+    def test_repr_does_not_crash_when_geometry_not_loaded(self):
+        # C1: with load_geometry=False, self.geom must still be initialized so
+        # repr(sim) (which reads self.geom) does not raise AttributeError.
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        self.assertIsNone(sim.geom)
+        text = repr(sim)  # must not raise
+        self.assertIn("UDBase(expnr='001')", text)
+
+    def test_load_veg_cache_respects_zero_based_flag(self):
+        # C4: the cache must not return 0-based data for a zero_based=False call.
+        (self.workdir / "veg.inp.001").write_text(
+            "# i j k\n2 3 4\n", encoding="ascii"
+        )
+        (self.workdir / "veg_params.inp.001").write_text(
+            "# id lad cd ud dec lsize r_s\n1 0.1 0.2 0.3 0.4 0.5 0.6\n",
+            encoding="ascii",
+        )
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        veg0 = sim.load_veg(zero_based=True)
+        veg1 = sim.load_veg(zero_based=False)
+
+        np.testing.assert_array_equal(veg1["points"] - veg0["points"], 1)
+
+    def test_single_row_facet_files_load_with_correct_shapes(self):
+        # C7: one-facet files must not collapse to 1-D/0-D and raise IndexError
+        # (which was swallowed into a spurious "missing facet data" warning).
+        (self.workdir / "facetarea.inp.001").write_text(
+            "# area\n2.5\n", encoding="ascii"
+        )
+        (self.workdir / "facets.inp.001").write_text(
+            "# typeid nx ny nz\n1 0.0 0.0 1.0\n", encoding="ascii"
+        )
+        (self.workdir / "factypes.inp.001").write_text(
+            "# header line 1\n# header line 2\n# header line 3\n"
+            "1 0 0.1 0.01 0.2 0.9 0.1 0.1 0.1 1000 1000 1000 1.0 1.0 1.0 1.0\n",
+            encoding="ascii",
+        )
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        self.assertEqual([str(w.message) for w in caught], [])
+        self.assertEqual(sim.facs["area"].shape, (1,))
+        self.assertEqual(sim.facs["typeid"].shape, (1,))
+        self.assertEqual(sim.facs["normals"].shape, (1, 3))
+        self.assertEqual(sim.factypes["id"].shape, (1,))
 
     def test_convert_fac_to_field_accumulates_cell_density(self):
         sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)

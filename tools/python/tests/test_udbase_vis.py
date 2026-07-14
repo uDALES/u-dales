@@ -74,6 +74,25 @@ class TestUDBaseVisualizationCompatibility(unittest.TestCase):
             [("plot_fac", {"var": "dummy_var", "building_ids": [1, 2], "show": False, "backend": None})],
         )
 
+    def test_udbase_plot_trees_forwards_to_plot_veg(self):
+        # V1: plot_trees is a backward-compatible alias for plot_veg; it must
+        # forward to the (existing) vis.plot_veg, not a nonexistent plot_trees.
+        class RecordingVegVis:
+            def __init__(self):
+                self.calls = []
+
+            def plot_veg(self, **kwargs):
+                self.calls.append(("plot_veg", kwargs))
+                return "plot_veg_result"
+
+        sim = UDBase.__new__(UDBase)
+        sim.vis = RecordingVegVis()
+
+        result = sim.plot_trees(show=False)
+
+        self.assertEqual(result, "plot_veg_result")
+        self.assertEqual(sim.vis.calls, [("plot_veg", {"show": False})])
+
     def test_udbase_plot_2dmap_forwards_to_vis_facade(self):
         sim = UDBase.__new__(UDBase)
         sim.vis = RecordingVis()
