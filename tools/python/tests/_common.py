@@ -17,8 +17,10 @@ TEST_TMP_DIR = Path(os.environ.get("UDALES_TEST_TMPDIR") or tempfile.gettempdir(
 
 # The numba-JIT direct-shortwave ray tracers are slow (compilation + tracing)
 # and blow past the normal per-module timeout in `unittest discover`. Gate them
-# so ordinary discovery stays bounded; set UDALES_RUN_SLOW_TESTS=1 (as CI does)
-# to include them.
+# so ordinary discovery stays bounded. They run in CI only via the
+# `experimental` suites in tests/test_suites.yml, which set
+# UDALES_RUN_SLOW_TESTS=1; the default `supported` PR gate leaves it unset and
+# skips them. Set UDALES_RUN_SLOW_TESTS=1 to include them locally.
 RUN_SLOW_TESTS = os.environ.get("UDALES_RUN_SLOW_TESTS", "").strip().lower() not in (
     "",
     "0",

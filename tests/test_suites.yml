@@ -153,6 +153,7 @@ groups:
         component: directshortwave
         platform: linux
         cost: fast
+        env_UDALES_RUN_SLOW_TESTS: "1"
         command:
           - "{python}"
           - "-m"
@@ -168,6 +169,7 @@ groups:
         component: directshortwave
         platform: linux
         cost: medium
+        env_UDALES_RUN_SLOW_TESTS: "1"
         command:
           - "{python}"
           - "-m"
