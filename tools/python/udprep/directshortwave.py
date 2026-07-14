@@ -618,6 +618,7 @@ if nb is not None:
                 ds += 1.0e-6
 
             hit_facet = False
+            hit_fid_cell = -1
             if geom_inside and cell_has_facets[ii, jj, k] and ds > 0.0:
                 cell_idx = ii + itot * (jj + jtot * k)
                 ox = x + dir_x * t
@@ -646,10 +647,11 @@ if nb is not None:
                     debug_test_count,
                 )
                 if t_hit >= 0.0:
+                    # Limit the segment to the hit point; the facet is credited
+                    # only AFTER the vegetation in this cell attenuates the beam
+                    # over this shortened segment (see below).
                     ds = max(0.0, t_hit)
-                    if hit_fid >= 0:
-                        if base_inside:
-                            facet_hit_energy[hit_fid] += r_in * ray_area * irradiance
+                    hit_fid_cell = hit_fid
                     hit_facet = True
 
             if base_inside:
@@ -666,7 +668,12 @@ if nb is not None:
                     r_in = r_out
 
             if hit_facet:
+                # Book the facet with the post-attenuation beam so vegetation
+                # sharing this cell is not double-counted (the facsec kernel
+                # attenuates before the hit for the same reason).
                 if base_inside:
+                    if hit_fid_cell >= 0:
+                        facet_hit_energy[hit_fid_cell] += r_in * ray_area * irradiance
                     solid_hit_energy[ii, jj, k] += r_in * ray_area * irradiance
                     return 0.0
                 return r_in * ray_area * irradiance
@@ -1143,6 +1150,23 @@ class DirectShortwaveSolver:
         periodic_xy: bool = False,
         resolution: float | None = None,
     ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
+        """
+        Compute direct shortwave irradiance on facets and vegetation.
+
+        Returns
+        -------
+        sdir : np.ndarray, shape (nfaces,)
+            Direct shortwave irradiance on each facet [W/m^2].
+        s_veg : np.ndarray, shape (nveg,)
+            Physical vegetation absorption power density [W/m^3], already scaled
+            by ``irradiance`` (empty array for no-vegetation / scanline runs).
+            The radiation writer stores this value verbatim under its "[W/m3]"
+            header, so the scaling is applied here and nowhere else.
+        bud : dict
+            Energy budget in Watts. ``bud["veg"]`` is derived from the scaled
+            ``s_veg`` (never double-scaled) and closes as
+            ``bud["in"] ~= bud["veg"] + bud["fac"] + bud["out"]``.
+        """
         nsun = np.asarray(nsun, dtype=float)
         norm = np.linalg.norm(nsun)
         if norm <= 0.0:
@@ -1309,16 +1333,36 @@ class DirectShortwaveSolver:
 
         bud["fac"] = float(np.sum(sdir * self.face_areas))
         bud["sol"] = float(np.sum(solid_hit_energy))
-        if veg_absorb.size:
-            k_idx = self.veg.points[:, 2].astype(int)
-            cell_vol = self.sim.dx * self.sim.dy * self.dz[k_idx]
-            bud["veg"] = float(np.sum(veg_absorb * cell_vol) * irradiance)
+        s_veg = self._scale_veg_absorption(veg_absorb, irradiance, bud)
         # Any solid energy not mapped to facets is treated as escaping the domain.
         unmapped = bud["sol"] - bud["fac"]
         if unmapped > 0.0:
             bud["out"] += unmapped
             bud["sol"] = bud["fac"]
-        return sdir, veg_absorb, bud
+        return sdir, s_veg, bud
+
+    def _scale_veg_absorption(
+        self,
+        veg_absorb: np.ndarray,
+        irradiance: float,
+        bud: Dict[str, float],
+    ) -> np.ndarray:
+        """Convert the raw kernel accumulator to physical absorbed power density.
+
+        The ray tracers accumulate ``veg_absorb`` as a transmittance-weighted,
+        cell-volume-normalised intercepted area with units [1/m] (``r_in``
+        starts at 1.0, so it carries no irradiance factor). This is the single
+        place the beam ``irradiance`` [W/m^2] is applied to obtain the physical
+        vegetation absorption ``s_veg`` [W/m^3] that ``compute`` returns and the
+        radiation writer stores verbatim. ``bud["veg"]`` is set from the scaled
+        values so it is never double-scaled.
+        """
+        s_veg = veg_absorb * irradiance
+        if s_veg.size:
+            k_idx = self.veg.points[:, 2].astype(int)
+            cell_vol = self.sim.dx * self.sim.dy * self.dz[k_idx]
+            bud["veg"] = float(np.sum(s_veg * cell_vol))
+        return s_veg
 
     def _compute_facsec(
         self,
@@ -1442,15 +1486,12 @@ class DirectShortwaveSolver:
 
         bud["fac"] = float(np.sum(sdir * self.face_areas))
         bud["sol"] = float(np.sum(solid_hit_energy))
-        if veg_absorb.size:
-            k_idx = self.veg.points[:, 2].astype(int)
-            cell_vol = self.sim.dx * self.sim.dy * self.dz[k_idx]
-            bud["veg"] = float(np.sum(veg_absorb * cell_vol) * irradiance)
+        s_veg = self._scale_veg_absorption(veg_absorb, irradiance, bud)
         unmapped = bud["sol"] - bud["fac"]
         if unmapped > 0.0:
             bud["out"] += unmapped
             bud["sol"] = bud["fac"]
-        return sdir, veg_absorb, bud
+        return sdir, s_veg, bud
 
     def _compute_scanline(
         self,

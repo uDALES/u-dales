@@ -684,6 +684,44 @@ class TestRadiationSection(unittest.TestCase):
             section.write_netsw(np.array([1.0]), s_veg=np.array([2.0]))
             self.assertTrue((case_dir / "sveg.inp.321").exists())
 
+    def test_write_netsw_sveg_written_verbatim_under_wm3_header(self):
+        # The solver scales s_veg to physical W/m3; the writer must store those
+        # values verbatim under a truthful [W/m3] header (no re-scaling here, so
+        # the solver is the single owner of the irradiance factor).
+        with TemporaryDirectory() as temp_dir:
+            case_dir = Path(temp_dir)
+            sim = DummySim(expnr="321", path=case_dir)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+
+            s_veg = np.array([314.7755, 12.5, 0.25], dtype=float)
+            section.write_netsw(np.array([1.0, 2.0]), s_veg=s_veg)
+
+            sveg_path = case_dir / "sveg.inp.321"
+            header = sveg_path.read_text(encoding="ascii").splitlines()[0]
+            self.assertIn("[W/m3]", header)
+            values = np.loadtxt(sveg_path)
+            np.testing.assert_allclose(values, s_veg, atol=1.0e-4)
+
+    def test_write_timedepsveg_written_verbatim_under_wm3_header(self):
+        # Per-step physical W/m3 values (already scaled by each step's
+        # irradiance in the solver) must be stored verbatim, times first.
+        with TemporaryDirectory() as temp_dir:
+            case_dir = Path(temp_dir)
+            sim = DummySim(expnr="321", path=case_dir)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+
+            tSP = np.array([0.0, 100.0, 200.0], dtype=float)
+            # (nveg=2, nt=3): distinct per-step values to catch any re-scaling.
+            s_veg = np.array([[1.0, 2.0, 3.0], [10.0, 20.0, 30.0]], dtype=float)
+            section.write_timedepsveg(tSP, s_veg)
+
+            path = case_dir / "timedepsveg.inp.321"
+            header = path.read_text(encoding="ascii").splitlines()[0]
+            self.assertIn("[W/m3]", header)
+            data = np.loadtxt(path)
+            np.testing.assert_allclose(data[0], tSP, atol=1.0e-4)
+            np.testing.assert_allclose(data[1:], s_veg, atol=1.0e-4)
+
     def test_scanline_knet_uses_sdir_file_precision(self):
         section = RadiationSection("radiation", {}, sim=DummySim())
         full_sdir = np.array([1.234, 5.675, 9.999], dtype=float)
