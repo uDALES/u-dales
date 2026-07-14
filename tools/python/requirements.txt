@@ -16,12 +16,16 @@ f90nml>=1.4.4
 numba>=0.60.0
 # pvlib is only needed for the pvlib solar-position backend
 pvlib>=0.13.0
-# plotly is only needed for the interactive plotting backend
-plotly>=5.0.0
 
-# Notebook support (optional)
+# PyVista/VTK is the default 3-D visualization backend. The [jupyter] extra pulls
+# in the trame stack so plots are interactive in notebooks and can be exported to
+# self-contained HTML. VTK is large but is a core dependency because PyVista's
+# server/remote-rendering backend is what scales to uDALES-sized geometries.
+pyvista[jupyter]>=0.43.0
+
+# Notebook support
 ipykernel>=6.0.0
 nbformat>=4.2.0
 
-# Optional PyVista/VTK visualization backend: see requirements-pyvista.txt
-# (kept separate so the heavy VTK dependency is opt-in).
+# The Plotly backend is an optional lightweight alternative (backend="plotly");
+# see requirements-plotly.txt.

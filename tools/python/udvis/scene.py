@@ -171,7 +171,12 @@ _BACKENDS = BACKENDS  # internal alias retained for existing references
 # (UDGeom, UDBase, UDVis) default their ``backend`` argument to this value, so
 # changing this one line switches the default everywhere. Individual objects
 # (``obj.backend = ...``) and calls (``backend=``) still override it.
-DEFAULT_BACKEND = "plotly"
+#
+# PyVista is the default: its server/remote-rendering backend scales to the large
+# facet counts uDALES produces (geometry stays server-side, only images stream),
+# where Plotly's in-browser Mesh3d struggles. Plotly remains available as an
+# optional lightweight backend (``backend="plotly"``).
+DEFAULT_BACKEND = "pyvista"
 
 
 def normalize_backend(backend: Optional[str]) -> str:

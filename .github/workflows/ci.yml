@@ -89,15 +89,16 @@ jobs:
         fi
         python3 -u tests/run_tests.py "$selection" --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type }}
 
-  python-viz-pyvista:
-    # The 'supported' gate installs environment.yml, which excludes PyVista, so
-    # the PyVista visualization tests skip there. This Linux-only job installs
-    # the optional PyVista backend and runs the visualization tests off-screen so
-    # the backend is actually exercised by the merge gate.
+  python-viz:
+    # environment.yml installs PyVista (the default backend), but the GL-free
+    # matrix gate skips the PyVista *rendering* tests because they require
+    # PYVISTA_OFF_SCREEN. This Linux job adds headless GL and the optional Plotly
+    # backend, then runs the visualization tests off-screen so BOTH backends are
+    # exercised by the merge gate.
     if: >
       github.event_name != 'push' ||
       !contains(github.event.head_commit.message, '[skip ci]')
-    name: python-viz (pyvista)
+    name: python-viz (both backends)
     runs-on: ubuntu-latest
 
     steps:
@@ -119,11 +120,11 @@ jobs:
         environment-file: environment.yml
         channel-priority: strict
 
-    - name: Install optional PyVista backend
+    - name: Install optional Plotly backend
       shell: bash -l {0}
-      run: python -m pip install -r tools/python/requirements-pyvista.txt
+      run: python -m pip install -r tools/python/requirements-plotly.txt
 
-    - name: Run visualization tests (PyVista off-screen)
+    - name: Run visualization tests (both backends, off-screen)
       shell: bash -l {0}
       env:
         PYVISTA_OFF_SCREEN: "true"

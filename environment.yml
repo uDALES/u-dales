@@ -15,7 +15,6 @@ dependencies:
   - trimesh
   - shapely
   - matplotlib
-  - plotly
   - f90nml
   - numba
   - pvlib
@@ -29,3 +28,7 @@ dependencies:
     - triangle
     - mkdocs-bibtex
     - ford
+    # PyVista is the default (core) 3-D backend; the [jupyter] extra adds the
+    # trame stack for interactive notebook rendering and self-contained HTML.
+    # The optional Plotly backend is installed separately in its own CI job.
+    - pyvista[jupyter]>=0.43.0

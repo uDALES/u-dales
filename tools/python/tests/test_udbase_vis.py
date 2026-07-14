@@ -1,5 +1,6 @@
 import importlib.util
 import io
+import os
 import sys
 import types
 import unittest
@@ -9,6 +10,17 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import numpy as np
+
+# PyVista *rendering* needs a GL context. It is exercised only when off-screen
+# rendering is explicitly enabled (PYVISTA_OFF_SCREEN=1), i.e. in the dedicated
+# GL-equipped CI job, so the GL-free matrix gate can install PyVista (the default
+# backend) without needing xvfb/mesa. find_spec keeps it skipping when the
+# backend isn't installed at all.
+_PYVISTA_RENDER_OK = bool(
+    importlib.util.find_spec("pyvista")
+    and importlib.util.find_spec("trimesh")
+    and os.environ.get("PYVISTA_OFF_SCREEN")
+)
 
 TESTS_DIR = Path(__file__).resolve().parent
 if str(TESTS_DIR) not in sys.path:
@@ -484,7 +496,7 @@ class TestUDVisScalarSources(unittest.TestCase):
         )
         sim = DummySim()
         sim.geom = geom
-        vis = UDVis(sim)
+        vis = UDVis(sim, backend="plotly")  # asserts on Plotly traces
         vis._render_scene = lambda *args, **kwargs: go.Figure()
 
         fig = vis.plot_scalar_source(show=False)
@@ -521,8 +533,10 @@ class TestDisplayOnceSemantics(unittest.TestCase):
 
         from udgeom import UDGeom
 
+        # These assert Plotly display-once semantics, so pin the Plotly backend
+        # (the module default is now pyvista).
         geom = UDGeom(stl=trimesh.creation.box(extents=(1.0, 1.0, 1.0)))
-        return UDVis(sim=geom)
+        return UDVis(sim=geom, backend="plotly")
 
     def test_show_geometry_show_true_displays_once_and_returns_none(self):
         import plotly.graph_objects as go
@@ -625,8 +639,8 @@ class TestBackendSelection(unittest.TestCase):
         self.assertEqual(geom.vis._resolve_backend(None), "pyvista")
         # ...but an explicit per-call backend overrides it.
         self.assertEqual(geom.vis._resolve_backend("plotly"), "plotly")
-        # default when unspecified is plotly
-        self.assertEqual(UDVis(sim=geom).backend, "plotly")
+        # default when unspecified is the module default (pyvista)
+        self.assertEqual(UDVis(sim=geom).backend, "pyvista")
 
     def test_pyvista_default_backend_routes_without_per_call_arg(self):
         import trimesh
@@ -658,9 +672,8 @@ class TestBackendSelection(unittest.TestCase):
         self.assertEqual(calls["backend"], "pyvista")
 
     @unittest.skipUnless(
-        importlib.util.find_spec("pyvista")
-        and importlib.util.find_spec("trimesh"),
-        "pyvista backend deps required",
+        _PYVISTA_RENDER_OK,
+        "pyvista backend + PYVISTA_OFF_SCREEN required for GL rendering tests",
     )
     def test_pyvista_backend_builds_plotters_for_all_views(self):
         import numpy as _np
@@ -726,9 +739,8 @@ class TestBackendSelection(unittest.TestCase):
         return UDVis(sim, backend="pyvista")
 
     @unittest.skipUnless(
-        importlib.util.find_spec("pyvista")
-        and importlib.util.find_spec("trimesh"),
-        "pyvista backend deps required",
+        _PYVISTA_RENDER_OK,
+        "pyvista backend + PYVISTA_OFF_SCREEN required for GL rendering tests",
     )
     def test_pyvista_backend_builds_all_overlay_plots(self):
         import tempfile
