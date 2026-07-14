@@ -44,6 +44,15 @@ class TestInterpMakima(unittest.TestCase):
             self.interp(x, y, np.array([0.5, 2.5])), [0.3125, 6.239583], rtol=1e-6
         )
 
+    def test_two_points_falls_back_to_linear(self):
+        # Regression: two points used to IndexError on m[1]. Now linear.
+        x = np.array([0.0, 1.0])
+        y = np.array([0.0, 2.0])
+        np.testing.assert_allclose(
+            self.interp(x, y, np.array([0.0, 0.5, 1.0, 2.0])),  # incl. extrapolation
+            [0.0, 1.0, 2.0, 4.0],
+        )
+
     def test_rejects_degenerate_input(self):
         with self.assertRaises(ValueError):
             self.interp(np.array([0.0]), np.array([0.0]), np.array([0.0]))

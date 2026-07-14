@@ -18,6 +18,12 @@ def interp_makima(x: np.ndarray, y: np.ndarray, x_new: np.ndarray) -> np.ndarray
     if np.any(np.diff(x) <= 0):
         raise ValueError("x must be strictly increasing for interpolation")
 
+    if x.size == 2:
+        # Modified Akima needs >=3 points for its slope estimates; with exactly
+        # two it degenerates to linear interpolation (extrapolated on both sides).
+        slope = (y[1] - y[0]) / (x[1] - x[0])
+        return y[0] + slope * (x_new - x[0])
+
     m = np.diff(y) / np.diff(x)
     m1 = 2.0 * m[0] - m[1]
     m2 = 2.0 * m1 - m[0]
