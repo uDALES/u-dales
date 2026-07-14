@@ -122,12 +122,17 @@ class UDGeom:
         else:
             self.stl = None
         
-        # Cached properties for lazy loading
+        # Cached lazy-loaded properties (see _invalidate_cache).
+        self._invalidate_cache()
+        self.vis = UDVis(self, backend=backend)
+
+    def _invalidate_cache(self) -> None:
+        """Reset all lazily-computed geometry caches (outlines, buildings,
+        face->building map). Call after any mutation of ``self.stl``."""
         self._outline2d = None
         self._outline3d = None
         self._buildings = None
         self._face_to_building_map = None
-        self.vis = UDVis(self, backend=backend)
 
     @property
     def backend(self) -> str:
@@ -189,10 +194,7 @@ class UDGeom:
             print(f"Loaded geometry: {len(self.stl.faces)} faces, {len(self.stl.vertices)} vertices")
             
             # Invalidate cached properties
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
             
         except Exception as e:
             raise ValueError(f"Error loading STL file {filepath}: {e}")
@@ -919,10 +921,7 @@ class UDGeom:
         geom = result
         if inplace:
             self.stl = geom.stl
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
         return geom
 
     def calculate_independent_surfaces(self):
@@ -1049,10 +1048,7 @@ class UDGeom:
         )
         if inplace:
             self.stl = fixed_mesh
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
         return fixed_mesh, report
 
     def resolve_vertical_coplanar_overlaps(
@@ -1074,10 +1070,7 @@ class UDGeom:
         )
         if inplace:
             self.stl = fixed_mesh
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
         return fixed_mesh, report
 
     def weld_touching_boundaries(
@@ -1094,10 +1087,7 @@ class UDGeom:
         fixed_mesh, report = weld_touching_boundaries_impl(self)
         if inplace:
             self.stl = fixed_mesh
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
         return fixed_mesh, report
 
     def repair_adjacent_buildings(
@@ -1125,10 +1115,7 @@ class UDGeom:
         )
         if inplace:
             self.stl = cleaned_geom.stl
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
             return (self.stl, report) if return_trimesh else (self, report)
         return (cleaned_geom.stl, report) if return_trimesh else (cleaned_geom, report)
 
@@ -1175,10 +1162,7 @@ class UDGeom:
         )
         if inplace:
             self.stl = cleaned_geom.stl
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
             return (self.stl, report) if return_trimesh else (self, report)
         return (cleaned_geom.stl, report) if return_trimesh else (cleaned_geom, report)
 
@@ -1228,10 +1212,7 @@ class UDGeom:
         )
         if inplace:
             self.stl = cleaned_geom.stl
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
             return (self.stl, report) if return_trimesh else (self, report)
         return (cleaned_geom.stl, report) if return_trimesh else (cleaned_geom, report)
 
