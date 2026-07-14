@@ -43,7 +43,7 @@ Architecturally sound: clean section/orchestrator split in `udprep`, check/repai
 ### Critical
 
 - **C1. `udbase.py:197, 391, 709` — `UDBase(load_geometry=False)` produces an object that crashes on display.** `self.geom` is only assigned inside `_load_geometry()`; with `load_geometry=False` the attribute never exists. Plain `repr(sim)` and all `udvis` plot methods (`udbase_vis.py:291, 351, 427, 493`) hit unguarded `self.sim.geom` → `AttributeError`. Fix: set `self.geom = None` unconditionally in `__init__`.
-- **C2. `udbase.py:465-476` — silent guess of `nfaclyrs = 3` mis-slices `factypes` columns.** If the actual file has a different layer count, `data[:, 6:9]` etc. return the wrong physical columns without error; `load_seb` then computes G = −λ·dT/dz with the wrong conductivity. Validate `data.shape[1] == 6 + 3*nfaclyrs + 1` and raise on mismatch.
+- **C2. `udbase.py:465-476` — silent guess of `nfaclyrs = 3` mis-slices `factypes` columns.** If the actual file has a different layer count, `data[:, 6:9]` etc. return the wrong physical columns without error; `load_seb` then computes G = −λ·dT/dz with the wrong conductivity. Validate the width and raise on mismatch. *(Correction during fixing: the true width is `6 + 4*nfaclyrs + 1` — four per-layer blocks d, C, l, k with k having nfaclyrs+1 entries — verified against the udprep writer and example files; fixed on this branch.)*
 - **C3. `udbase.py:345-354` — any parse error in `prof.inp` silently degrades a stretched grid to uniform.** Bare `except Exception` around `_load_grid` substitutes a uniform z-grid with only a warning. Every z-coordinate, `dzt`, flux normalisation and frontal-area result becomes silently wrong. Should raise `DataFormatError`.
 
 ### Major
