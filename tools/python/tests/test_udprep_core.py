@@ -700,6 +700,29 @@ class TestUDPrepCore(unittest.TestCase):
 
 
 class TestRadiationSection(unittest.TestCase):
+    def test_shortwave_method_maps_ishortwave_to_backend(self):
+        section = RadiationSection(
+            "radiation",
+            {"ishortwave": 1, "psc_res": 0.25},
+            sim=DummySim(),
+            defaults={},
+        )
+
+        expected = {
+            0: ("scanline_legacy", 0.25),
+            1: ("scanline", 0.25),
+            2: ("facsec", None),
+            3: ("moller", None),
+        }
+        for ishortwave, backend in expected.items():
+            with self.subTest(ishortwave=ishortwave):
+                section.ishortwave = ishortwave
+                self.assertEqual(section._shortwave_method(), backend)
+
+        section.ishortwave = 4
+        with self.assertRaisesRegex(ValueError, "Unsupported ishortwave value"):
+            section._shortwave_method()
+
     def test_run_short_wave_skip_removes_full_vf_text_intermediate(self):
         with TemporaryDirectory() as temp_dir:
             case_dir = Path(temp_dir)

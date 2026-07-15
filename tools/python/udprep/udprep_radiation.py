@@ -71,10 +71,12 @@ class RadiationSection(Section):
         irradiance : float
             Direct normal irradiance [W/m^2].
         method : {"moller", "facsec", "scanline"}, optional
-            Dispatches to the corresponding implementation. Defaults to radiation.directsw_method.
-            - "moller": ray casting with Moller-Trumbore triangle hits (most accurate, most expensive)
-            - "facsec": ray casting with solid mask + facet-section reconstruction (accurate, cheaper)
-            - "scanline": f2py scanline rasterization (no vegetation, fastest)
+            Dispatches to the corresponding implementation. Defaults to the
+            backend selected by radiation.ishortwave.
+            - ishortwave == 0 : "scanline_legacy" - compiles/runs the old standalone Fortran executable (no vegetation).
+            - ishortwave == 1 : "scanline" - f2py scanline rasterization (no vegetation, fastest)
+            - ishortwave == 2 : "facsec" - ray casting with solid mask + facet-section reconstruction (accurate, cheaper)
+            - ishortwave == 3 : "moller" - ray casting with Moller-Trumbore triangle hits (most accurate, most expensive)
         kwargs : dict
             Optional arguments that define the solver configuration:
             - ray_density (float): ray grid density (default radiation.ray_density)
@@ -84,8 +86,9 @@ class RadiationSection(Section):
             - resolution (float): scanline resolution override (scanline only)
             The solver is cached; changing any of these options recreates it.
         """
+        default_resolution = None
         if method is None:
-            method = self.directsw_method
+            method, default_resolution = self._shortwave_method()
         method_key = method.strip().lower()
         if method_key in ("moller", "raycast", "mt"):
             method_key = "moller"
@@ -102,7 +105,7 @@ class RadiationSection(Section):
         ray_density = kwargs.pop("ray_density", self.ray_density)
         periodic_xy = kwargs.pop("periodic_xy", self.periodic_xy)
         ray_jitter = kwargs.pop("ray_jitter", self.ray_jitter)
-        resolution = kwargs.pop("resolution", None)
+        resolution = kwargs.pop("resolution", default_resolution)
         if kwargs:
             raise ValueError(f"Unknown direct shortwave options: {', '.join(sorted(kwargs.keys()))}")
 
@@ -447,7 +450,8 @@ class RadiationSection(Section):
         irradiance : float
             Direct normal irradiance [W/m^2].
         method : {"moller", "facsec", "scanline"}, optional
-            Direct shortwave method to use. Defaults to radiation.directsw_method.
+            Direct shortwave method to use. Defaults to the backend selected
+            by radiation.ishortwave.
         maxD : float, optional
             Max distance for View3D view factors. Defaults to radiation.maxD.
         dsky : float, optional
@@ -781,9 +785,20 @@ class RadiationSection(Section):
         return sim.load_veg(zero_based=True, cache=True)
 
     def _shortwave_method(self) -> Tuple[str, float | None]:
-        if self.ishortwave == 1:
-            return "scanline", self.psc_res
-        return self.directsw_method, None
+        methods = {
+            0: ("scanline_legacy", self.psc_res),
+            1: ("scanline", self.psc_res),
+            2: ("facsec", None),
+            3: ("moller", None),
+        }
+        try:
+            return methods[self.ishortwave]
+        except KeyError as exc:
+            raise ValueError(
+                f"Unsupported ishortwave value: {self.ishortwave}. "
+                "Expected 0 (legacy scanline, no vegetation), 1 (f2py scanline, no vegetation), "
+                "2 (facsec), or 3 (moller)."
+            ) from exc
 
     def _solar_state_time(
         self,

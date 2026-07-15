@@ -89,6 +89,7 @@ def _veg_from_data(veg_data: Dict[str, Any] | None) -> VegData:
 def _compute_ktot_and_z_edges(
     grid,
     veg_points: np.ndarray | None = None,
+    facsec_locs: np.ndarray | None = None,
 ) -> Tuple[int, np.ndarray, float, np.ndarray]:
     solid_full = getattr(grid, "Sc", None)
     kmax_solid = -1
@@ -97,7 +98,8 @@ def _compute_ktot_and_z_edges(
         if np.any(solid_any):
             kmax_solid = int(np.max(np.where(solid_any)[0]))
     kmax_veg = int(np.max(veg_points[:, 2])) if veg_points is not None and veg_points.size else -1
-    kmax = max(0, min(grid.ktot - 1, max(kmax_solid, kmax_veg)))
+    kmax_facsec = int(np.max(facsec_locs[:, 2])) if facsec_locs is not None and facsec_locs.size else -1
+    kmax = max(0, min(grid.ktot - 1, max(kmax_solid, kmax_veg, kmax_facsec)))
     ktot = min(grid.ktot, kmax + 2)
     z_base = grid.zm
     z_edges_full = np.concatenate([z_base, [grid.zsize]])
@@ -1084,8 +1086,18 @@ class DirectShortwaveSolver:
         else:
             raise ValueError(f"Unknown direct shortwave method: {method}")
 
+        facsec = None
+        facsec_locs = None
+        if self.method == "facsec":
+            if not hasattr(sim, "facsec") or sim.facsec is None or "c" not in sim.facsec:
+                raise ValueError("Facet sections not available; sim.facsec['c'] is required.")
+            facsec = sim.facsec["c"]
+            facsec_locs = facsec["locs"].astype(int)
+
         self.ktot, self.z_edges, self.z_max, self.dz = _compute_ktot_and_z_edges(
-            sim, self.veg.points if self.veg.points.size else None
+            sim,
+            self.veg.points if self.veg.points.size else None,
+            facsec_locs,
         )
         self.lad_3d, self.dec_3d, self.veg_index = _build_veg_fields(
             sim, self.veg, self.ktot
@@ -1123,12 +1135,11 @@ class DirectShortwaveSolver:
             self.has_solid = solid_full is not None
             self.solid = solid_full[:, :, : self.ktot] if self.has_solid else np.zeros((1, 1, 1), dtype=bool)
 
-            if not hasattr(sim, "facsec") or sim.facsec is None or "c" not in sim.facsec:
+            if facsec is None or facsec_locs is None:
                 raise ValueError("Facet sections not available; sim.facsec['c'] is required.")
-            facsec = sim.facsec["c"]
             self.facsec_facids = facsec["facid"].astype(int)
             self.facsec_areas = facsec["area"]
-            self.facsec_locs = facsec["locs"].astype(int)
+            self.facsec_locs = facsec_locs
 
     def compute(
         self,

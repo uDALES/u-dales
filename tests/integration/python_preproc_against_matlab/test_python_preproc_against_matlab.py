@@ -35,6 +35,9 @@ CASE_SPECS = [
     },
     {
         "case_dir": REPO_ROOT / "tests" / "cases" / "064",
+        "namoptions_overrides": {
+            "ishortwave": 1,
+        },
         "outputs": [
             "lscale.inp.064",
             "prof.inp.064",
@@ -73,6 +76,48 @@ def _atol_for_output(relpath: str) -> float:
     return 1.0e-10
 
 
+def _set_namoption(path, key, value, block="INP"):
+    def _format(val):
+        if isinstance(val, bool):
+            return ".true." if val else ".false."
+        if isinstance(val, str):
+            return f"'{val}'"
+        return str(val)
+
+    lines = path.read_text(encoding="ascii").splitlines(keepends=True)
+    block_lower = block.lower()
+    key_lower = key.lower()
+    start_idx = None
+    end_idx = None
+
+    for idx, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.lower().startswith("&") and stripped[1:].strip().lower() == block_lower:
+            start_idx = idx
+            break
+
+    if start_idx is None:
+        lines.extend([f"&{block}\n", f"{key} = {_format(value)}\n", "/\n"])
+        path.write_text("".join(lines), encoding="ascii")
+        return
+
+    for idx in range(start_idx + 1, len(lines)):
+        if lines[idx].strip().startswith("/"):
+            end_idx = idx
+            break
+    if end_idx is None:
+        raise ValueError(f"Namelist block {block!r} has no terminator in {path}")
+
+    for idx in range(start_idx + 1, end_idx):
+        if "=" in lines[idx] and lines[idx].split("=", 1)[0].strip().lower() == key_lower:
+            lines[idx] = f"{key} = {_format(value)}\n"
+            break
+    else:
+        lines.insert(end_idx, f"{key} = {_format(value)}\n")
+
+    path.write_text("".join(lines), encoding="ascii")
+
+
 class TestPythonPreprocAgainstMatlab(unittest.TestCase):
     """Compare Python preprocessing against committed MATLAB reference outputs."""
 
@@ -97,6 +142,8 @@ class TestPythonPreprocAgainstMatlab(unittest.TestCase):
                     temp_root = Path(temp_root)
                     temp_case = temp_root / case_source.name
                     shutil.copytree(case_source, temp_case)
+                    for key, value in spec.get("namoptions_overrides", {}).items():
+                        _set_namoption(temp_case / f"namoptions.{case_source.name}", key, value)
 
                     clean = subprocess.run(
                         ["bash", str(CLEANSIM), str(temp_case), "--preprocess-only", "--delete"],

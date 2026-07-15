@@ -365,8 +365,20 @@ if r.libm
             ldirectShortwaveFortran = 1;
         elseif r.ishortwave == 2
             ldirectShortwaveFortran = 0;
+            disp('On MATLAB write_inputs path, ishortwave == 2 runs ...'
+                 'the MATLAB version of the scanline rasterization ...'
+                 'algorithm for shortwave radiation calculation. This ...'
+                 'is not recommended for large cases, as it is slow and ...'
+                 'memory intensive. It is recommended to use the Fortran ...'
+                 'version (ishortwave == 1) for scanline rasterization. ...'
+                 'Neither of above considers vegetation for radiation calculation. Vegetation is only ...'
+                 'included in write_inputs python suite for (ishortwave == 2 or ishortwave == 3).')
         else
-            error('Unrecognised option for shortwave calculation')
+            warning(['Unrecognised option for shortwave calculation. ' ...
+                     'ishortwave has been set back to 1 and shortwave will be ' ...
+                     'calculated via Fortran scanline rasterization (no vegetation).'])
+            r.ishortwave = 1;
+            ldirectShortwaveFortran = 1;
         end
 
         shortwave;

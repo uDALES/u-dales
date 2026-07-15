@@ -80,6 +80,26 @@ class TestDirectShortwaveFlatTerrain(unittest.TestCase):
         self.assertTrue(np.allclose(sdir, self.expected_flux, rtol=0.0, atol=1.0e-9))
         self.assertAlmostEqual(bud["fac"], self.expected_flux, delta=1.0e-9)
 
+    def test_facsec_ktot_includes_facet_section_locations(self):
+        self.sim.ktot = 6
+        self.sim.dzt = np.ones(6, dtype=float)
+        self.sim.zm = np.arange(6, dtype=float)
+        self.sim.zsize = 6.0
+        self.sim.Sc = np.zeros((1, 1, 6), dtype=bool)
+        self.sim.Sc[0, 0, 0] = True
+        self.sim.facsec["c"]["locs"] = np.array([[0, 0, 3], [0, 0, 3]], dtype=int)
+
+        solver = DirectShortwaveSolver(
+            self.sim,
+            method="facsec",
+            surface_mesh=self.mesh,
+            ray_density=4.0,
+            ray_jitter=0.0,
+        )
+
+        self.assertGreaterEqual(solver.ktot, 5)
+        self.assertGreaterEqual(solver.solid.shape[2], 5)
+
     def test_moller_matches_analytic_total_flux_on_flat_terrain(self):
         solver = DirectShortwaveSolver(
             self.sim,
