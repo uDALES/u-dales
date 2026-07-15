@@ -30,6 +30,47 @@ from udgeom.view3d import (
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("radiation", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
 
+
+# ---------------------------------------------------------------------------
+# Output-staleness signatures (P5)
+#
+# Shortwave outputs (Sdir.txt, netsw.inp) are cached on disk and reused when
+# force=False. Without a signature, a sun-position sweep or a namelist change
+# would silently return the FIRST run's results because the file simply exists.
+# We store a tiny sidecar (`<file>.sig`) describing the inputs that produced the
+# file, and only reuse the file when the signature still matches.
+# ---------------------------------------------------------------------------
+
+
+def _shortwave_signature(**inputs: Any) -> str:
+    import json
+
+    def _norm(v: Any) -> Any:
+        if isinstance(v, (list, tuple, np.ndarray)):
+            return [round(float(x), 8) for x in np.asarray(v, dtype=float).ravel()]
+        if isinstance(v, float):
+            return round(v, 8)
+        return v
+
+    return json.dumps({k: _norm(v) for k, v in inputs.items()}, sort_keys=True, default=str)
+
+
+def _sig_path(data_path: Path) -> Path:
+    p = Path(data_path)
+    return p.with_name(p.name + ".sig")
+
+
+def _read_sig(data_path: Path) -> str | None:
+    try:
+        return _sig_path(data_path).read_text(encoding="ascii")
+    except OSError:
+        return None
+
+
+def _write_sig(data_path: Path, sig: str) -> None:
+    _sig_path(data_path).write_text(sig, encoding="ascii")
+
+
 class RadiationSection(Section):
     def __init__(
         self,
@@ -473,21 +514,30 @@ class RadiationSection(Section):
         else:
             vf_path = out_dir / f"vfsparse.inp.{sim.expnr}"
 
+        if maxD is None:
+            maxD = self.maxD
+        dsky_sig = dsky if dsky is not None else self.Dsky
+        stl_path = Path(sim.path) / sim.stl_file
+        stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
+        # Signature of the inputs that determine Sdir/netsw; the cached files are
+        # reused only while it matches (P5: a sun-position sweep must not keep
+        # returning the first run's Sdir/netsw just because the files exist).
+        sw_sig = _shortwave_signature(
+            nsun=nsun, irradiance=irradiance, method=method,
+            dsky=dsky_sig, maxD=maxD, stl_mtime=stl_mtime,
+        )
+
         sdir = None
         s_veg = None
-        if not force and sdir_path.exists():
+        if not force and sdir_path.exists() and _read_sig(sdir_path) == sw_sig:
             sdir = np.loadtxt(sdir_path)
         if sdir is None:
             sdir, s_veg, _ = self.calc_direct_sw(nsun, irradiance, method=method, **kwargs)
             np.savetxt(sdir_path, sdir, fmt="%8.2f")
+            _write_sig(sdir_path, sw_sig)
 
         vf = None
         svf = None
-        if maxD is None:
-            maxD = self.maxD
-
-        stl_path = Path(sim.path) / sim.stl_file
-        stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
         nfacets = sim.geom.stl.faces.shape[0]
         # Keep this key format identical to calc_view_factors: both share
         # self._vf_cache and cache the same (vf, svf), so a match must be comparable.
@@ -510,13 +560,14 @@ class RadiationSection(Section):
         albedo = sim.assign_prop_to_fac("al")
 
         k_star = None
-        if not force and netsw_path.exists():
+        if not force and netsw_path.exists() and _read_sig(netsw_path) == sw_sig:
             k_star = np.loadtxt(netsw_path)
         if k_star is None:
             k_star = self.calc_reflections_sw(sdir, dsky, vf, svf, albedo)
             with netsw_path.open("w", encoding="ascii", newline="\n") as f:
                 f.write("# net shortwave on facets [W/m2] (including reflections and diffusive)\n")
                 np.savetxt(f, k_star, fmt="%6.4f")
+            _write_sig(netsw_path, sw_sig)
 
         if return_vf:
             return sdir, k_star, s_veg, vf, svf
@@ -532,6 +583,11 @@ class RadiationSection(Section):
 
         sdir_path = out_dir / "Sdir.txt"
         netsw_path = out_dir / f"netsw.inp.{sim.expnr}"
+        # NOTE: unlike calc_short_wave (P5-fixed), this file-existence skip does
+        # not yet validate that the existing outputs match the current solar
+        # time / namelist. Use force=True after changing those. Signing this
+        # early-return is a deferred follow-up (needs the section fully
+        # populated before the check, which minimal callers may not have).
         if not force and sdir_path.exists() and netsw_path.exists():
             legacy_vs3_path = out_dir / "facets.vs3"
             if legacy_vs3_path.exists() and (out_dir / f"facets.{sim.expnr}.vs3").exists():

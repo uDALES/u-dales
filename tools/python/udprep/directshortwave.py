@@ -24,7 +24,7 @@ try:
 except ImportError:  # pragma: no cover - runtime dependent
     nb = None
 
-from exceptions import DependencyError
+from exceptions import DependencyError, RadiationError
 @dataclass
 class VegData:
     points: np.ndarray  # (n, 3) 0-based (i, j, k)
@@ -89,7 +89,11 @@ def _veg_from_data(veg_data: Dict[str, Any] | None) -> VegData:
 def _compute_ktot_and_z_edges(
     grid,
     veg_points: np.ndarray | None = None,
+    mesh=None,
 ) -> Tuple[int, np.ndarray, float, np.ndarray]:
+    z_base = grid.zm
+    z_edges_full = np.concatenate([z_base, [grid.zsize]])
+
     solid_full = getattr(grid, "Sc", None)
     kmax_solid = -1
     if solid_full is not None:
@@ -97,10 +101,18 @@ def _compute_ktot_and_z_edges(
         if np.any(solid_any):
             kmax_solid = int(np.max(np.where(solid_any)[0]))
     kmax_veg = int(np.max(veg_points[:, 2])) if veg_points is not None and veg_points.size else -1
-    kmax = max(0, min(grid.ktot - 1, max(kmax_solid, kmax_veg)))
+    # Include the geometry's vertical extent (P4): when the IBM solid mask (Sc)
+    # is absent, kmax_solid is -1, and without this the traced volume collapses
+    # to ktot=2 so no direct shortwave is computed above the bottom two layers.
+    # The mesh top always bounds the geometry that can cast/receive shadows.
+    kmax_mesh = -1
+    if mesh is not None:
+        verts = np.asarray(getattr(mesh, "vertices", np.empty((0, 3))), dtype=float)
+        if verts.size:
+            z_top = float(verts[:, 2].max())
+            kmax_mesh = int(np.searchsorted(z_edges_full, z_top, side="right") - 1)
+    kmax = max(0, min(grid.ktot - 1, max(kmax_solid, kmax_veg, kmax_mesh)))
     ktot = min(grid.ktot, kmax + 2)
-    z_base = grid.zm
-    z_edges_full = np.concatenate([z_base, [grid.zsize]])
     z_edges = z_edges_full[: ktot + 1]
     z_max = float(z_edges[-1])
     dz = grid.dzt[:ktot]
@@ -1092,7 +1104,7 @@ class DirectShortwaveSolver:
             raise ValueError(f"Unknown direct shortwave method: {method}")
 
         self.ktot, self.z_edges, self.z_max, self.dz = _compute_ktot_and_z_edges(
-            sim, self.veg.points if self.veg.points.size else None
+            sim, self.veg.points if self.veg.points.size else None, mesh=surface_mesh
         )
         self.lad_3d, self.dec_3d, self.veg_index = _build_veg_fields(
             sim, self.veg, self.ktot
@@ -1127,8 +1139,17 @@ class DirectShortwaveSolver:
 
         if self.method == "facsec":
             solid_full = getattr(sim, "Sc", None)
-            self.has_solid = solid_full is not None
-            self.solid = solid_full[:, :, : self.ktot] if self.has_solid else np.zeros((1, 1, 1), dtype=bool)
+            if solid_full is None:
+                # Without the solid mask the facsec kernel never blocks a ray, so
+                # every facet sees the sun and sdir is ~0 everywhere with no
+                # warning (P4). Fail loud instead of silently mis-computing.
+                raise RadiationError(
+                    "facsec direct shortwave requires the IBM solid mask (sim.Sc), "
+                    "which is not loaded. Run the IBM preprocessing step (or load "
+                    "solid_*.txt) before computing shortwave, or use method='moller'."
+                )
+            self.has_solid = True
+            self.solid = solid_full[:, :, : self.ktot]
 
             if not hasattr(sim, "facsec") or sim.facsec is None or "c" not in sim.facsec:
                 raise ValueError("Facet sections not available; sim.facsec['c'] is required.")

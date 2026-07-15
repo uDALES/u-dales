@@ -7,6 +7,7 @@ results (task 7 prerequisite).
 import sys
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 
@@ -123,6 +124,110 @@ class TestNonScatteringShortwave(unittest.TestCase):
         )
         # (1-albedo) * (sdir + dsky*fss)
         np.testing.assert_allclose(knet, [0.8 * (100 + 25), 0.6 * (200 + 50)])
+
+
+class TestSolverSolidMaskHandling(unittest.TestCase):
+    """P4: the solver must not silently mis-compute when the IBM solid mask is
+    absent (Moller truncated the traced volume; facsec produced sdir~0)."""
+
+    @staticmethod
+    def _grid(ktot=10):
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            Sc=None, ktot=ktot, zm=np.arange(float(ktot)),
+            zsize=float(ktot), dzt=np.ones(ktot),
+        )
+
+    def test_ktot_covers_mesh_extent_when_solid_absent(self):
+        from types import SimpleNamespace
+
+        from udprep.directshortwave import _compute_ktot_and_z_edges
+
+        grid = self._grid()
+        # Without any hint, no-solid + no-veg collapses to ktot=2 (the old bug).
+        ktot_bare, *_ = _compute_ktot_and_z_edges(grid, None)
+        self.assertEqual(ktot_bare, 2)
+        # With a mesh whose top is at z=5.5, the traced volume now reaches it.
+        mesh = SimpleNamespace(vertices=np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 5.5]]))
+        ktot, z_edges, z_max, _ = _compute_ktot_and_z_edges(grid, None, mesh=mesh)
+        self.assertGreater(ktot, ktot_bare)
+        self.assertGreaterEqual(float(z_edges[-1]), 5.5)
+
+    def test_facsec_raises_without_solid_mask(self):
+        import trimesh
+        from types import SimpleNamespace
+
+        from exceptions import RadiationError
+        from udprep.directshortwave import DirectShortwaveSolver
+
+        box = trimesh.creation.box(extents=(2.0, 2.0, 2.0))
+        sim = SimpleNamespace(
+            geom=SimpleNamespace(stl=box),
+            Sc=None, dx=1.0, dy=1.0, itot=4, jtot=4, ktot=6,
+            zm=np.arange(6.0), zsize=6.0, dzt=np.ones(6),
+        )
+        with self.assertRaises(RadiationError):
+            DirectShortwaveSolver(sim, method="facsec")
+
+
+class TestShortwaveStaleness(unittest.TestCase):
+    """P5: cached Sdir/netsw must be re-derived when the inputs change, so a
+    sun-position sweep does not keep returning the first run's result."""
+
+    def _section(self, tmp, nfcts=3):
+        from types import SimpleNamespace
+
+        from udprep.udprep_radiation import RadiationSection
+
+        sim = SimpleNamespace(
+            path=Path(tmp), expnr="001", stl_file="geom.stl",
+            geom=SimpleNamespace(stl=SimpleNamespace(
+                faces=np.zeros((nfcts, 3), dtype=int),
+                face_normals=np.zeros((nfcts, 3)),
+            )),
+        )
+        sim.assign_prop_to_fac = lambda _p: np.zeros(nfcts)
+        section = RadiationSection("radiation", {}, sim=sim, defaults={})
+        section.view3d_out = 0
+        section.lvfsparse = False
+        section.maxD = 100.0
+        section.Dsky = 50.0
+        # Isolate the file-cache logic from the numba solver / View3D.
+        section.calc_view_factors = lambda **kw: (object(), np.zeros(nfcts), {})
+        section.calc_reflections_sw = lambda sdir, *a, **k: sdir * 2.0
+        return section
+
+    def test_recomputes_when_sun_changes(self):
+        with TemporaryDirectory() as tmp:
+            section = self._section(tmp)
+            calls = []
+
+            def fake_direct(nsun, irr, method=None, **kw):
+                calls.append(np.asarray(nsun, float).copy())
+                return np.full(3, float(nsun[2]) * irr), np.zeros(0), {}
+
+            section.calc_direct_sw = fake_direct
+            sdir1, k1, _ = section.calc_short_wave(np.array([0.0, 0.0, 1.0]), 100.0)
+            sdir2, k2, _ = section.calc_short_wave(np.array([0.0, 1.0, 0.5]), 100.0)
+            self.assertEqual(len(calls), 2)               # recomputed, not cached-stale
+            self.assertFalse(np.allclose(sdir1, sdir2))   # reflects the new sun
+            np.testing.assert_allclose(k2, sdir2 * 2.0)   # netsw re-derived too
+
+    def test_reuses_when_inputs_identical(self):
+        with TemporaryDirectory() as tmp:
+            section = self._section(tmp)
+            calls = []
+
+            def fake_direct(nsun, irr, method=None, **kw):
+                calls.append(1)
+                return np.full(3, 42.0), np.zeros(0), {}
+
+            section.calc_direct_sw = fake_direct
+            section.calc_short_wave(np.array([0.0, 0.0, 1.0]), 100.0)
+            section.calc_short_wave(np.array([0.0, 0.0, 1.0]), 100.0)
+            self.assertEqual(len(calls), 1)               # identical inputs -> reuse Sdir.txt
+
 
 if __name__ == "__main__":
     unittest.main()
