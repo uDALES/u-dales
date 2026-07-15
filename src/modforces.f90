@@ -64,15 +64,11 @@ module modforces
     !-----------------------------------------------------------------|
 
     !  use modglobal, only : i1,j1,kmax,dzh,dzf,grav
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzhi,dzf,grav,lbuoyancy
-    use modfields, only : u0,v0,w0,up,vp,wp,thv0h,dpdxl,dpdyl,thlp,thlpcar,thvh
-    use modibmdata, only : nxwallsnorm, xwallsnorm
-    use modsurfdata,only : thvs
-    use modmpi, only : myid
+    use modglobal, only : ib,ie,jb,je,kb,ke,grav,lbuoyancy
+    use modfields, only : up,vp,wp,thv0h,dpdxl,dpdyl,thlp,thlpcar,thvh
     implicit none
 
-    real thvsi
-    integer i, j, k, n, jm, jp, km, kp
+    integer i, j, k, jm, jp
 
 
     if (lbuoyancy ) then
@@ -137,15 +133,12 @@ module modforces
   end subroutine forces
 
   subroutine detfreestream(freestream)
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf,Vinf,lvinf,dy
-    use modfields, only : u0,dpdxl,dgdt,dpdx,v0,u0av,v0av
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
+    use modglobal, only : ke,&
+                          lvinf
+    use modfields, only : u0av,v0av
+    use modmpi, only    : mpi_sum
     implicit none
     real, intent(out) :: freestream
-
-    real  utop,vtop,dum
-    integer i,j
 
     if (lvinf) then
         freestream = v0av(ke)
@@ -156,10 +149,9 @@ module modforces
   end subroutine detfreestream
 
   subroutine detfreestrtmp(freestrtmp)
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf
-    use modfields, only : thl0,dpdxl,dgdt,dpdx
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
+    use modglobal, only : ib,ie,jb,je,ke,dxf,xh
+    use modfields, only : thl0
+    use modmpi, only    : comm3d,mpierr,mpi_sum,my_real,nprocs
     implicit none
 
     real, intent(out) :: freestrtmp
@@ -181,16 +173,14 @@ module modforces
   end subroutine detfreestrtmp
 
   subroutine fixuinf2
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf,ifixuinf,tscale,timee,rk3step,inletav,&
-                          freestreamav,freestrtmpav,ltempeq
-    use modsurfdata,only: thl_top
-    use modfields, only : u0,thl0,dpdxl,dgdt,dpdx,thlsrcdt
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
+    use modglobal, only : dt,&
+                          Uinf,ifixuinf,tscale,rk3step,inletav,&
+                          freestreamav
+    use modfields, only : dgdt
+    use modmpi, only    : mpi_sum
     implicit none
 
-    real  utop,freestream,freestrtmp,rk3coef
-    integer i,j
+    real  utop,freestream
 
     utop = 0.
 
@@ -230,14 +220,14 @@ module modforces
   end subroutine fixuinf2
 
   subroutine fixuinf1
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf,Vinf,ifixuinf,tscale,timee,rk3step,inletav,&
-                          freestreamav,lvinf
-    use modfields, only : u0,dpdxl,dgdt,dpdx,up,vp,u0av,v0av
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
+    use modglobal, only : ib,ie,jb,je,kb,ke,dt,&
+                          Uinf,Vinf,ifixuinf,rk3step,&
+                          lvinf
+    use modfields, only : up,vp,u0av,v0av
+    use modmpi, only    : mpi_sum
     implicit none
 
-    real  utop,freestream,rk3coef
+    real  utop
     integer i,j,k
 
     utop = 0.
@@ -301,16 +291,10 @@ module modforces
   end subroutine fixuinf1
 
   subroutine fixthetainf
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf,ifixuinf,tscale,timee,rk3step,inletav,&
-                          freestreamav,thlsrc,ltempeq
-    use modfields, only : thl0
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
-    use modsurfdata, only: thl_top
+    use modmpi, only    : mpi_sum
     implicit none
 
-    real  ttop,freestreamtheta,rk3coef
-    integer i,j
+    real  ttop
 
     ttop = 0.
 
@@ -348,12 +332,12 @@ module modforces
   subroutine masscorr
     !> correct the velocities to get prescribed flow rate
 
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,dzf,dxf,dy,zh,dt,rk3step,&
+    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzf,dxf,dy,zh,dt,rk3step,&
                           uflowrate,vflowrate,linoutflow,&
                           luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
-    use modfields, only : um,up,vm,vp,uouttot,udef,vouttot,vdef,&
-                          uoutarea,voutarea,fluidvol,IIu,IIv,IIus,IIvs
-    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm,sumx_ibm,avexy_ibm
+    use modfields, only : um,up,vm,vp,uouttot,udef,vdef,&
+                          uoutarea,voutarea,IIu,IIv,IIus,IIvs
+    use modmpi,    only : sumy_ibm,sumx_ibm,avexy_ibm
 
     real, dimension(kb:ke+kh)     :: uvol
     real, dimension(kb:ke+kh)     :: vvol
@@ -421,8 +405,8 @@ module modforces
       uvolold = 0.
 
       ! Assumes equidistant grid
-      call avexy_ibm(uvol(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-      call avexy_ibm(uvolold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call avexy_ibm(uvol(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call avexy_ibm(uvolold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
 
       ! average over fluid volume
       uoutflow = rk3coef*sum(uvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
@@ -495,8 +479,8 @@ module modforces
       vvolold = 0.
 
       ! Assumes equidistant grid
-      call avexy_ibm(vvol(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-      call avexy_ibm(vvolold(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call avexy_ibm(vvol(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call avexy_ibm(vvolold(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
 
       ! average over fluid volume
       voutflow = rk3coef*sum(vvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
@@ -519,7 +503,7 @@ module modforces
   subroutine uoutletarea(area)
     ! calculates outlet area of domain for u-velocity excluding blocks
 
-    use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dzf,ierank
+    use modglobal, only   : ie,jb,je,kb,ke,dy,dzf
     use modfields, only   : IIc
     use modmpi, only      : sumy_ibm
 
@@ -544,7 +528,7 @@ module modforces
   subroutine voutletarea(area)
     ! calculates outlet area of domain for v-velocity excluding blocks
 
-    use modglobal, only : ib,ie,jb,je,kb,ke,dxf,dzf,jerank
+    use modglobal, only : ib,ie,je,kb,ke,dxf,dzf
     use modfields, only : IIc
     use modmpi,    only : sumx_ibm
 
@@ -569,7 +553,7 @@ module modforces
   subroutine fluidvolume(volume)
     ! calculates fluid volume of domain excluding blocks
 
-    use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,dy,dxf,dzf
+    use modglobal, only   : ib,ie,jb,je,kb,ke,kh,dy,dxf,dzf
     use modfields, only   : IIc, IIcs
     use modmpi, only      : sumy_ibm, avexy_ibm
 
@@ -577,7 +561,6 @@ module modforces
     real, intent(out)             :: volume
     real, dimension(ib:ie,kb:ke)  :: sumy
     real, dimension(kb:ke+kh)        :: sumxy
-    integer                          k
 
     sumy = 0.
     sumxy = 0.
@@ -591,7 +574,7 @@ module modforces
     ! end do
 
     ! Equidistant x
-    call avexy_ibm(sumxy(kb:ke+kh),IIc(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+    call avexy_ibm(sumxy(kb:ke+kh),IIc(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
     ! integrate fluid area in z
     volume = sum(sumxy(kb:ke)*dzf(kb:ke))
@@ -637,9 +620,8 @@ module modforces
     !-----------------------------------------------------------------|
 
     ! use modglobal, only : i1,j1,kmax,dzh,dzf,om22,om23
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzh,dzf,om22,om23,lcoriol,lprofforc,timee
-    use modfields, only : u0,v0,w0,up,vp,wp,ug,vg
-    use modmpi, only : myid
+    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzh,dzf,om22,om23,lcoriol,lprofforc
+    use modfields, only : u0,v0,w0,up,vp,wp,ug
     implicit none
 
     integer i, j, k, jm, jp, km, kp
@@ -759,11 +741,10 @@ module modforces
     !                                                                 |
     !-----------------------------------------------------------------|
 
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzh,nsv,lmomsubs
+    use modglobal, only : ib,ie,jb,je,kb,ke,dzh,nsv,lmomsubs
     use modfields, only : up,vp,thlp,qtp,svp,&
                           whls, u0av,v0av,thl0av,qt0av,sv0av,&
                           dudxls,dudyls,dvdxls,dvdyls,dthldxls,dthldyls,dqtdxls,dqtdyls,dqtdtls
-    use modmpi, only: myid
     implicit none
 
     integer k,n
@@ -849,7 +830,6 @@ module modforces
   subroutine nudge
     use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,lnudgevel,tnudge,nnudge,numol,nsv
     use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av,up,vp,u0av,v0av,uprof,vprof,thlprof,qtprof,svprof
-    use modmpi,     only : myid
     implicit none
     integer :: k, n
 
@@ -890,13 +870,13 @@ module modforces
   ! use initfac, only :  max_height_index
   use modfields, only : thlp, qtp
   !use modglobal, only: ltempeq, lperiodicEBcorr, ib, ie, jb, je, kb, ke, imax, jtot
-  use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, kb, ke,&
+  use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, ke,&
                           itot, jtot, totheatflux,sinkbase, totqflux, &
-                          zh, dx, dy ,dzh, fraction,xlen,ylen,zf,dzf
-  use modmpi, only : comm3d, mpierr, MY_REAL, myid, MPI_SUM
+                          zh, fraction,xlen,ylen,dzf
+  use modmpi, only : comm3d, mpierr, MY_REAL, MPI_SUM
   !
-  integer :: i, j, k, n, M
-  real :: tot_Tflux, tot_qflux, sensible_heat_out, latent_heat_out,R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t  !, !tot_qflux !, sink_points
+  integer :: i, j, k, M
+  real :: tot_Tflux, tot_qflux, latent_heat_out,R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t  !, !tot_qflux !, sink_points
   !
   !write(*,*) 'lperiodicEBcorr ', lperiodicEBcorr
   !write(*,*) 'fraction', fraction
@@ -977,11 +957,11 @@ module modforces
   subroutine shiftedPBCs
       ! Nudge the flow in a region near the outlet
       use modglobal, only : ib, itot, ie, jb, je, kb, ke, xh, ds, dyi, xlen, rk3step, dt, pi
-      use modfields, only : u0, v0, w0, u0av, up, vp, wp, vm
+      use modfields, only : u0, v0, w0, u0av, up, vp, wp
       use decomp_2d, only : zstart
 
       integer :: i, j, k, ig
-      real :: vs, RHS, rk3coef
+      real :: vs, rk3coef
 
       if (ds > 0) then
       rk3coef = dt / (4. - dble(rk3step))
