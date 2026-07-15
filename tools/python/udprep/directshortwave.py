@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 """
-Direct shortwave solvers (facsec, moller, scanline) with shared helpers.
+Direct shortwave solvers (facsec, moller, scanline_f2py, scanline_legacy) with shared helpers.
 
 This module consolidates the implementations that previously lived in
 directshortwave_facsec.py and directshortwave_moller.py so it can be used
@@ -1003,12 +1003,12 @@ class DirectShortwaveSolver:
 
     Models
     ------
-    method : {"moller", "facsec", "scanline", "scanline_legacy"}
+    method : {"moller", "facsec", "scanline_f2py", "scanline_legacy"}
         - "moller": DDA ray casting with Moller-Trumbore triangle hits
           (most accurate, most expensive; supports vegetation + periodic_xy).
         - "facsec": DDA ray casting with solid mask + facet-section reconstruction
           (accurate, faster; supports vegetation + periodic_xy).
-        - "scanline": f2py scanline rasterization on the surface mesh
+        - "scanline_f2py": f2py scanline rasterization on the surface mesh
         - "scanline_legacy": standalone Fortran scanline executable
           (fastest; no vegetation support, no periodicity).
 
@@ -1032,7 +1032,7 @@ class DirectShortwaveSolver:
         - nsun: unit or non-unit sun vector.
         - irradiance: direct normal irradiance [W/m^2].
         - periodic_xy: wrap rays in x/y to mimic infinite tiling.
-        - resolution: scanline pixel size override (scanline only).
+        - resolution: scanline pixel size override (scanline backends only).
     """
 
     def __init__(
@@ -1046,7 +1046,7 @@ class DirectShortwaveSolver:
         veg_data: Dict[str, Any] | None = None,
     ) -> None:
         self.sim = sim
-        self.method = method.strip().lower()
+        self.method = method
         self.ray_density = float(ray_density)
         self.ray_jitter = float(ray_jitter)
         self.veg = _veg_from_data(veg_data)
@@ -1063,7 +1063,7 @@ class DirectShortwaveSolver:
         if self.method in ("moller", "facsec"):
             if nb is None:
                 raise ImportError("numba is required for direct shortwave (moller/facsec)")
-        elif self.method == "scanline":
+        elif self.method == "scanline_f2py":
             try:
                 import udprep.directshortwave_f2py as _dsroot
             except ImportError as exc:
@@ -1074,7 +1074,7 @@ class DirectShortwaveSolver:
             self._dsmod = getattr(_dsroot, "directshortwave_mod", _dsroot)
             if self.veg.points.size:
                 raise ValueError(
-                    "Scanline (f2py) direct shortwave does not support vegetation; "
+                    "scanline_f2py direct shortwave does not support vegetation; "
                     "use facsec or moller for tree cases."
                 )
         elif self.method == "scanline_legacy":
@@ -1084,7 +1084,10 @@ class DirectShortwaveSolver:
                     "use facsec or moller for tree cases."
                 )
         else:
-            raise ValueError(f"Unknown direct shortwave method: {method}")
+            raise ValueError(
+                f"Unknown direct shortwave method: {method}. "
+                "Expected one of: facsec, moller, scanline_f2py, scanline_legacy."
+            )
 
         facsec = None
         facsec_locs = None
@@ -1158,7 +1161,7 @@ class DirectShortwaveSolver:
         if abs(direction[2]) < 1.0e-2:
             raise ValueError("direct shortwave requires a non-zero vertical sun component")
 
-        if self.method == "scanline":
+        if self.method == "scanline_f2py":
             return self._compute_scanline(nsun_unit, irradiance, resolution=resolution)
         if self.method == "scanline_legacy":
             return self._compute_scanline_legacy(nsun_unit, irradiance, resolution=resolution)

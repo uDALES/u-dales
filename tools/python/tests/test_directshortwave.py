@@ -118,7 +118,7 @@ class TestDirectShortwaveFlatTerrain(unittest.TestCase):
     def test_scanline_matches_analytic_total_flux_on_flat_terrain(self):
         solver = DirectShortwaveSolver(
             self.sim,
-            method="scanline",
+            method="scanline_f2py",
             surface_mesh=self.mesh,
             ray_density=64.0,
             ray_jitter=0.0,

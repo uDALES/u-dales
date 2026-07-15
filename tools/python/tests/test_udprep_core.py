@@ -712,7 +712,7 @@ class TestRadiationSection(unittest.TestCase):
 
         expected = {
             0: ("scanline_legacy", 0.25),
-            1: ("scanline", 0.25),
+            1: ("scanline_f2py", 0.25),
             2: ("facsec", None),
             3: ("moller", None),
         }
@@ -749,15 +749,14 @@ class TestRadiationSection(unittest.TestCase):
 
         section._direct_sw_solver = FakeSolver()
         section._direct_sw_solver_cfg = {
-            "method": "scanline",
+            "method": "scanline_f2py",
             "ray_density": 4.0,
             "ray_jitter": 0.0,
             "veg_key": None,
         }
 
-        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline")
-        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="f2py")
-        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline", resolution=0.1)
+        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline_f2py")
+        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline_f2py", resolution=0.1)
 
         section._direct_sw_solver_cfg = {
             "method": "scanline_legacy",
@@ -767,7 +766,15 @@ class TestRadiationSection(unittest.TestCase):
         }
         section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline_legacy")
 
-        self.assertEqual(seen, [0.25, 0.25, 0.1, 0.25])
+        self.assertEqual(seen, [0.25, 0.1, 0.25])
+
+    def test_direct_shortwave_method_aliases_are_rejected(self):
+        section = RadiationSection("radiation", {}, sim=DummySim(), defaults={})
+        old_names = ("scanline", "f2py", "legacy_fortran", "raycast", "mt", "section")
+        for method in old_names:
+            with self.subTest(method=method):
+                with self.assertRaisesRegex(ValueError, "Unknown direct shortwave method"):
+                    section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method=method)
 
     def test_run_short_wave_skip_removes_full_vf_text_intermediate(self):
         with TemporaryDirectory() as temp_dir:
@@ -818,7 +825,7 @@ class TestRadiationSection(unittest.TestCase):
             np.array([0.0, 0.0, 1.0]),
             800.0,
             250.0,
-            "scanline",
+            "scanline_f2py",
             0.1,
             True,
             np.zeros(3),

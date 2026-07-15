@@ -70,11 +70,11 @@ class RadiationSection(Section):
             Vector pointing toward the sun.
         irradiance : float
             Direct normal irradiance [W/m^2].
-        method : {"moller", "facsec", "scanline"}, optional
+        method : {"moller", "facsec", "scanline_f2py", "scanline_legacy"}, optional
             Dispatches to the corresponding implementation. Defaults to the
             backend selected by radiation.ishortwave.
             - ishortwave == 0 : "scanline_legacy" - compiles/runs the old standalone Fortran executable (no vegetation).
-            - ishortwave == 1 : "scanline" - f2py scanline rasterization (no vegetation, fastest)
+            - ishortwave == 1 : "scanline_f2py" - f2py scanline rasterization (no vegetation, fastest)
             - ishortwave == 2 : "facsec" - ray casting with solid mask + facet-section reconstruction (accurate, cheaper)
             - ishortwave == 3 : "moller" - ray casting with Moller-Trumbore triangle hits (most accurate, most expensive)
         kwargs : dict
@@ -83,30 +83,26 @@ class RadiationSection(Section):
             - periodic_xy (bool): periodic boundaries in x/y (default radiation.periodic_xy)
             - ray_jitter (float): jitter factor for ray positions (default radiation.ray_jitter)
             - veg_data (dict): vegetation data (default: loaded from sim)
-            - resolution (float): scanline resolution override (scanline only)
+            - resolution (float): scanline resolution override (scanline backends only)
             The solver is cached; changing any of these options recreates it.
         """
         default_resolution = None
         if method is None:
             method, default_resolution = self._shortwave_method()
-        method_key = method.strip().lower()
-        if method_key in ("moller", "raycast", "mt"):
-            method_key = "moller"
-        elif method_key in ("facsec", "section"):
-            method_key = "facsec"
-        elif method_key in ("scanline", "f2py"):
-            method_key = "scanline"
-        elif method_key in ("scanline_legacy", "legacy_fortran"):
-            method_key = "scanline_legacy"
-        else:
-            raise ValueError(f"Unknown direct shortwave method: {method}")
+        method_key = method
+        allowed_methods = {"moller", "facsec", "scanline_f2py", "scanline_legacy"}
+        if method_key not in allowed_methods:
+            raise ValueError(
+                f"Unknown direct shortwave method: {method}. "
+                "Expected one of: facsec, moller, scanline_f2py, scanline_legacy."
+            )
 
         veg_data = kwargs.pop("veg_data", self._get_veg_data())
         ray_density = kwargs.pop("ray_density", self.ray_density)
         periodic_xy = kwargs.pop("periodic_xy", self.periodic_xy)
         ray_jitter = kwargs.pop("ray_jitter", self.ray_jitter)
         resolution = kwargs.pop("resolution", default_resolution)
-        if resolution is None and method_key in ("scanline", "scanline_legacy"):
+        if resolution is None and method_key in ("scanline_f2py", "scanline_legacy"):
             resolution = self.psc_res
         if kwargs:
             raise ValueError(f"Unknown direct shortwave options: {', '.join(sorted(kwargs.keys()))}")
@@ -166,7 +162,7 @@ class RadiationSection(Section):
         return self.calc_direct_sw(
             nsun,
             irradiance,
-            method="scanline",
+            method="scanline_f2py",
             ray_density=ray_density,
             resolution=resolution,
         )
@@ -451,7 +447,7 @@ class RadiationSection(Section):
             Vector pointing toward the sun.
         irradiance : float
             Direct normal irradiance [W/m^2].
-        method : {"moller", "facsec", "scanline"}, optional
+        method : {"moller", "facsec", "scanline_f2py", "scanline_legacy"}, optional
             Direct shortwave method to use. Defaults to the backend selected
             by radiation.ishortwave.
         maxD : float, optional
@@ -789,7 +785,7 @@ class RadiationSection(Section):
     def _shortwave_method(self) -> Tuple[str, float | None]:
         methods = {
             0: ("scanline_legacy", self.psc_res),
-            1: ("scanline", self.psc_res),
+            1: ("scanline_f2py", self.psc_res),
             2: ("facsec", None),
             3: ("moller", None),
         }
@@ -864,7 +860,7 @@ class RadiationSection(Section):
             method=method,
             resolution=resolution,
         )
-        if method == "scanline":
+        if method == "scanline_f2py":
             # MATLAB's Fortran route writes Sdir.txt with f8.2 and reads it
             # back before computing Knet, so use the same precision here.
             sdir = np.round(sdir, 2)
