@@ -759,7 +759,7 @@ class TestRadiationSection(unittest.TestCase):
             "veg_key": None,
         }
 
-        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline_f2py")
+        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method=" Scanline_F2PY ")
         section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline_f2py", resolution=0.1)
 
         section._direct_sw_solver_cfg = {
@@ -768,13 +768,16 @@ class TestRadiationSection(unittest.TestCase):
             "ray_jitter": 0.0,
             "veg_key": None,
         }
-        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline_legacy")
+        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method=" SCANLINE_LEGACY ")
 
         self.assertEqual(seen, [0.25, 0.1, 0.25])
 
     def test_direct_shortwave_method_aliases_are_rejected(self):
         section = RadiationSection("radiation", {}, sim=DummySim(), defaults={})
-        old_names = ("scanline", "f2py", "legacy_fortran", "raycast", "mt", "section")
+        with self.assertRaisesRegex(ValueError, "Use scanline_f2py"):
+            section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method=" scanline ")
+
+        old_names = ("f2py", "legacy_fortran", "raycast", "mt", "section")
         for method in old_names:
             with self.subTest(method=method):
                 with self.assertRaisesRegex(ValueError, "Unknown direct shortwave method"):

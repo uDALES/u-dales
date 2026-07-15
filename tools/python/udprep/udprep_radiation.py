@@ -90,11 +90,12 @@ class RadiationSection(Section):
         default_resolution = None
         if method is None:
             method, default_resolution = self._shortwave_method()
-        method_key = method
+        method_key = method.strip().lower()
         allowed_methods = {"moller", "facsec", "scanline_f2py", "scanline_legacy"}
         if method_key not in allowed_methods:
+            hint = " Use scanline_f2py for the f2py scanline backend." if method_key == "scanline" else ""
             raise ValueError(
-                f"Unknown direct shortwave method: {method}. "
+                f"Unknown direct shortwave method: {method}.{hint} "
                 "Expected one of: facsec, moller, scanline_f2py, scanline_legacy."
             )
 

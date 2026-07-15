@@ -1046,7 +1046,7 @@ class DirectShortwaveSolver:
         veg_data: Dict[str, Any] | None = None,
     ) -> None:
         self.sim = sim
-        self.method = method
+        self.method = method.strip().lower()
         self.ray_density = float(ray_density)
         self.ray_jitter = float(ray_jitter)
         self.veg = _veg_from_data(veg_data)
@@ -1084,8 +1084,9 @@ class DirectShortwaveSolver:
                     "use facsec or moller for tree cases."
                 )
         else:
+            hint = " Use scanline_f2py for the f2py scanline backend." if self.method == "scanline" else ""
             raise ValueError(
-                f"Unknown direct shortwave method: {method}. "
+                f"Unknown direct shortwave method: {method}.{hint} "
                 "Expected one of: facsec, moller, scanline_f2py, scanline_legacy."
             )
 
