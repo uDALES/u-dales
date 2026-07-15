@@ -13,6 +13,30 @@
 
 ---
 
+## Status — updated 2026-07-15
+
+The "same day" and "this week" priority tiers were implemented on this branch (commits `d279ebf`..`9d9908d`), each fix TDD-first and independently reviewed, with a final whole-branch review. Full unit suite green (317 tests).
+
+**Fixed (closed):**
+
+| Finding | Fix commit | Notes |
+| --- | --- | --- |
+| T1 (slow-test CI gate) | `d279ebf` | Gated direct-shortwave tests now run in the experimental suites — and pass |
+| G1 (self-destructing lazy wrappers) | `386968c` | Eager imports + 3 regression tests |
+| C1, V1, C4, C7 | `79a440f` | geom=None init; plot_trees→plot_veg; veg cache keyed on zero_based; ndmin on facet loaders |
+| C2, C3 | `313a705` | DataFormatError on corrupt factypes width / prof.inp; missing-file fallback preserved. Width formula corrected (`cb699a2`) |
+| P1, P3 | `3484b6a` | s_veg array contract (no-veg timedep no longer crashes); per-call maxD honoured; caches unified |
+| P2a, P2b | `1f36b23` | sveg files now true W/m3 (single scaling owner); Möller attenuates before crediting facets. Budget closes ~1e-12; Möller == facsec. **Regenerated cases will see a step-change in sveg values — intended** |
+| P6, P8, P9 | `a3f24f1` | IBM outputs reload into sim; writeback errors propagate; grid stretch-fit raises instead of NaN |
+| E1, E2 | `2c9d791` | Radiation tutorial exit()/backend fixed; vegetation tutorial rewritten to current API |
+| Final-review regression + P28 annotation | `9d9908d` | Veg sections set cache-provenance flag; S_veg/load_stl docstrings honest; empty-factypes message |
+
+**Still open:** everything else in this document, notably the structural tier (S1 packaging, udgeom consolidation G-theme, T2/T3 test coverage for the `load_*`/SEB surfaces) and all unmarked minors. Highest-value next fixes: **P5** (stale `calc_short_wave`/`run_short_wave` early-returns — now *more* visible since maxD varies per call), **D2** (`setup_venv.sh` plotly check breaks fresh installs), **P4** (silent solver truncation on missing `Sc`).
+
+**Newly discovered during fixing:** the committed `ibm_preproc_f2py` binary can drift from the caller signature (confirmed on one Windows machine: zero-arg extension vs ~20-arg call → `run_all` cannot complete until rebuilt). The unit tests mock one level above the f2py call, so this drift is invisible to CI — worth a smoke test that imports the extension and checks its signature, and a rebuild note in `fortran/README.md` (extends S2).
+
+---
+
 ## Verdict
 
 Architecturally sound: clean section/orchestrator split in `udprep`, check/repair design in `udgeom`, Scene abstraction in `udvis`, extracted stateless helper modules, and an unusually strong test suite (MATLAB golden files at 1e-12, analytic physics checks, disciplined negative-path coverage). The verified problems cluster in four places: (1) correctness bugs that silently corrupt science, mostly in vegetation/radiation coupling and `udbase` loaders; (2) an error-handling philosophy of broad `except` + warnings that converts corrupt inputs into plausible-but-wrong results; (3) internal duplication that lets paired implementations drift apart; (4) packaging debt whose symptoms appear in every layer.
@@ -20,6 +44,8 @@ Architecturally sound: clean section/orchestrator split in `udprep`, check/repai
 ---
 
 ## Priority actions
+
+*(The "same day" and "this week" tiers below are **done** — see Status above. The "structural" tier remains open.)*
 
 **Same day (small, high impact):**
 - Enable `UDALES_RUN_SLOW_TESTS` in CI (one line of YAML) — see T1.
