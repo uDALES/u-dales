@@ -70,39 +70,42 @@ class RadiationSection(Section):
             Vector pointing toward the sun.
         irradiance : float
             Direct normal irradiance [W/m^2].
-        method : {"moller", "facsec", "scanline"}, optional
-            Dispatches to the corresponding implementation. Defaults to radiation.directsw_method.
-            - "moller": ray casting with Moller-Trumbore triangle hits (most accurate, most expensive)
-            - "facsec": ray casting with solid mask + facet-section reconstruction (accurate, cheaper)
-            - "scanline": f2py scanline rasterization (no vegetation, fastest)
+        method : {"moller", "facsec", "scanline_f2py", "scanline_legacy"}, optional
+            Dispatches to the corresponding implementation. Defaults to the
+            backend selected by radiation.ishortwave.
+            - ishortwave == 0 : "scanline_legacy" - compiles/runs the old standalone Fortran executable (no vegetation).
+            - ishortwave == 1 : "scanline_f2py" - f2py scanline rasterization (no vegetation, fastest)
+            - ishortwave == 2 : MATLAB-only scanline debug implementation; raises in Python.
+            - ishortwave == 3 : "facsec" - ray casting with solid mask + facet-section reconstruction (accurate, cheaper)
+            - ishortwave == 4 : "moller" - ray casting with Moller-Trumbore triangle hits (most accurate, most expensive)
         kwargs : dict
             Optional arguments that define the solver configuration:
             - ray_density (float): ray grid density (default radiation.ray_density)
             - periodic_xy (bool): periodic boundaries in x/y (default radiation.periodic_xy)
             - ray_jitter (float): jitter factor for ray positions (default radiation.ray_jitter)
             - veg_data (dict): vegetation data (default: loaded from sim)
-            - resolution (float): scanline resolution override (scanline only)
+            - resolution (float): scanline resolution override (scanline backends only)
             The solver is cached; changing any of these options recreates it.
         """
+        default_resolution = None
         if method is None:
-            method = self.directsw_method
+            method, default_resolution = self._shortwave_method()
         method_key = method.strip().lower()
-        if method_key in ("moller", "raycast", "mt"):
-            method_key = "moller"
-        elif method_key in ("facsec", "section"):
-            method_key = "facsec"
-        elif method_key in ("scanline", "f2py"):
-            method_key = "scanline"
-        elif method_key in ("scanline_legacy", "legacy_fortran"):
-            method_key = "scanline_legacy"
-        else:
-            raise ValueError(f"Unknown direct shortwave method: {method}")
+        allowed_methods = {"moller", "facsec", "scanline_f2py", "scanline_legacy"}
+        if method_key not in allowed_methods:
+            hint = " Use scanline_f2py for the f2py scanline backend." if method_key == "scanline" else ""
+            raise ValueError(
+                f"Unknown direct shortwave method: {method}.{hint} "
+                "Expected one of: facsec, moller, scanline_f2py, scanline_legacy."
+            )
 
         veg_data = kwargs.pop("veg_data", self._get_veg_data())
         ray_density = kwargs.pop("ray_density", self.ray_density)
         periodic_xy = kwargs.pop("periodic_xy", self.periodic_xy)
         ray_jitter = kwargs.pop("ray_jitter", self.ray_jitter)
-        resolution = kwargs.pop("resolution", None)
+        resolution = kwargs.pop("resolution", default_resolution)
+        if resolution is None and method_key in ("scanline_f2py", "scanline_legacy"):
+            resolution = self.psc_res
         if kwargs:
             raise ValueError(f"Unknown direct shortwave options: {', '.join(sorted(kwargs.keys()))}")
 
@@ -161,7 +164,7 @@ class RadiationSection(Section):
         return self.calc_direct_sw(
             nsun,
             irradiance,
-            method="scanline",
+            method="scanline_f2py",
             ray_density=ray_density,
             resolution=resolution,
         )
@@ -446,8 +449,9 @@ class RadiationSection(Section):
             Vector pointing toward the sun.
         irradiance : float
             Direct normal irradiance [W/m^2].
-        method : {"moller", "facsec", "scanline"}, optional
-            Direct shortwave method to use. Defaults to radiation.directsw_method.
+        method : {"moller", "facsec", "scanline_f2py", "scanline_legacy"}, optional
+            Direct shortwave method to use. Defaults to the backend selected
+            by radiation.ishortwave.
         maxD : float, optional
             Max distance for View3D view factors. Defaults to radiation.maxD.
         dsky : float, optional
@@ -781,9 +785,25 @@ class RadiationSection(Section):
         return sim.load_veg(zero_based=True, cache=True)
 
     def _shortwave_method(self) -> Tuple[str, float | None]:
-        if self.ishortwave == 1:
-            return "scanline", self.psc_res
-        return self.directsw_method, None
+        if self.ishortwave == 2:
+            raise ValueError(
+                "ishortwave=2 is the MATLAB-only scanline debug implementation; "
+                "use 1, 3, or 4 in Python."
+            )
+        methods = {
+            0: ("scanline_legacy", self.psc_res),
+            1: ("scanline_f2py", self.psc_res),
+            3: ("facsec", None),
+            4: ("moller", None),
+        }
+        try:
+            return methods[self.ishortwave]
+        except KeyError as exc:
+            raise ValueError(
+                f"Unsupported ishortwave value: {self.ishortwave}. "
+                "Valid Python namelist values are 1 (scanline_f2py), "
+                "3 (facsec), or 4 (moller)."
+            ) from exc
 
     def _solar_state_time(
         self,
@@ -847,7 +867,7 @@ class RadiationSection(Section):
             method=method,
             resolution=resolution,
         )
-        if method == "scanline":
+        if method == "scanline_f2py":
             # MATLAB's Fortran route writes Sdir.txt with f8.2 and reads it
             # back before computing Knet, so use the same precision here.
             sdir = np.round(sdir, 2)
