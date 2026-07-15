@@ -2,7 +2,8 @@
 
 Provides the :class:`UDVis` class attached to each :class:`udbase.UDBase`
 instance as ``sim.vis``, offering geometry, field, and statistics
-plotting methods backed by matplotlib and pyvista.
+plotting methods backed by matplotlib (2-D plots) and plotly or pyvista
+(3-D scene plots).
 """
 from __future__ import annotations
 

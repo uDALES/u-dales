@@ -342,7 +342,7 @@ class UDGeom:
         ValueError
             If no geometry is loaded
         ImportError
-            If trimesh (plotly backend) or pyvista (pyvista backend) is not
+            If plotly (plotly backend) or pyvista (pyvista backend) is not
             installed
 
         Examples
@@ -835,7 +835,7 @@ class UDGeom:
         ValueError
             If no geometry is loaded
         ImportError
-            If trimesh (plotly backend) or pyvista (pyvista backend) is not
+            If plotly (plotly backend) or pyvista (pyvista backend) is not
             installed
 
         Examples

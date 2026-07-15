@@ -1,7 +1,6 @@
 import importlib.util
 import os
 import sys
-import types
 import unittest
 import warnings
 from pathlib import Path
@@ -224,77 +223,6 @@ class TestUDBaseVisualizationCompatibility(unittest.TestCase):
         )
 
 class TestUDVisRenderingHelpers(unittest.TestCase):
-    @staticmethod
-    def _make_mesh_data():
-        vertices = np.array(
-            [
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [1.0, 1.0, 0.0],
-            ]
-        )
-        faces = np.array(
-            [
-                [0, 1, 2],
-                [1, 3, 2],
-            ],
-            dtype=int,
-        )
-        return types.SimpleNamespace(vertices=vertices, faces=faces)
-
-    @staticmethod
-    def _fake_trimesh_module():
-        fake_trimesh = types.ModuleType("trimesh")
-
-        class FakeScene:
-            def __init__(self):
-                self.geometry = []
-
-            def add_geometry(self, geometry):
-                self.geometry.append(geometry)
-
-        class FakeLine:
-            def __init__(self, points):
-                self.points = points
-
-        class FakePath3D:
-            def __init__(self, entities, vertices, colors):
-                self.entities = entities
-                self.vertices = vertices
-                self.colors = colors
-
-        fake_trimesh.Scene = FakeScene
-        fake_trimesh.path = types.SimpleNamespace(
-            entities=types.SimpleNamespace(Line=FakeLine),
-            Path3D=FakePath3D,
-        )
-        return fake_trimesh
-
-    @staticmethod
-    def _fake_ipython_modules():
-        fake_ipython = types.ModuleType("IPython")
-        fake_display = types.ModuleType("IPython.display")
-        fake_display.display = lambda *args, **kwargs: None
-        return fake_ipython, fake_display
-
-    def _make_vis(self, face_to_building=None):
-        class DummyGeom:
-            def __init__(self, mesh, building_map):
-                self.stl = mesh
-                self._face_to_building = np.asarray(building_map, dtype=int)
-
-            def get_face_to_building_map(self):
-                return self._face_to_building
-
-            def _calculate_outline_edges(self, angle_threshold=45.0):
-                return [(0, 1), (1, 3)]
-
-        mesh = self._make_mesh_data()
-        building_map = [1, 2] if face_to_building is None else face_to_building
-        geom = DummyGeom(mesh, building_map)
-        return UDVis(geom), mesh
-
     def test_collect_mesh_edges_returns_unique_sorted_edges(self):
         faces = np.array(
             [
@@ -349,49 +277,6 @@ class TestUDVisDzVariation(unittest.TestCase):
         self.assertEqual(ax.get_xlabel(), "$k$")
         self.assertEqual(ax.get_ylabel(), "$dz$ [m]")
         plt.close(fig)
-
-@unittest.skipIf(
-    importlib.util.find_spec("matplotlib") is None or importlib.util.find_spec("trimesh") is None,
-    "matplotlib and trimesh are required for mesh rendering helper tests",
-)
-class TestUDVisMeshRendering(unittest.TestCase):
-    @staticmethod
-    def _make_mesh():
-        import trimesh
-
-        vertices = np.array(
-            [
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [1.0, 1.0, 0.0],
-            ]
-        )
-        faces = np.array(
-            [
-                [0, 1, 2],
-                [1, 3, 2],
-            ],
-            dtype=int,
-        )
-        return trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
-
-    def _make_vis(self, face_to_building=None):
-        class DummyGeom:
-            def __init__(self, mesh, building_map):
-                self.stl = mesh
-                self._face_to_building = np.asarray(building_map, dtype=int)
-
-            def get_face_to_building_map(self):
-                return self._face_to_building
-
-            def _calculate_outline_edges(self, angle_threshold=45.0):
-                return [(0, 1), (1, 3)]
-
-        mesh = self._make_mesh()
-        building_map = [1, 2] if face_to_building is None else face_to_building
-        geom = DummyGeom(mesh, building_map)
-        return UDVis(geom), mesh
 
 @unittest.skipIf(
     importlib.util.find_spec("plotly") is None or importlib.util.find_spec("trimesh") is None,
