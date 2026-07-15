@@ -288,6 +288,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | lstretchtanh   | false   | true or false   | Switch for z grid stretched using tanh function.                                          | -           |
 | lstretch2tanh  | false   | true or false   | Switch for z grid stretched using 2tanh function.                                         | -           |
 | stretchconst   | 0.01    | -               | Stretch constant.                                                                         | -           |
+| nompthreads    | 8       | `INTEGER` > 0   | Number of OpenMP threads used by preprocessing routines that support OpenMP. Set `PREPROC_NCPU` in `config.sh` to the same value. | - |
 | u0             | 0       | -               | Initial u-velocity. Also applied as geostrophic term where applicable.                    | [m/s]         |
 | v0             | 0       | -               | Initial v-velocity. Also applied as geostrophic term where applicable.                    | [m/s]         |
 | dpdx           | 0       | -               | Pressure gradient in x direction.                                                         | [Pa/m]        |

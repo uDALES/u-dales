@@ -24,6 +24,7 @@ if str(PYTHON_DIR) not in sys.path:
 from udgeom.view3d import (  # noqa: E402
     compute_svf,
     count_sparse_entries,
+    default_view3d_config_path,
     load_view3d_runtime_env,
     read_view3d_output,
     resolve_view3d_exe,
@@ -201,6 +202,38 @@ class TestView3DUtils(unittest.TestCase):
         self.assertEqual(env["VIEW3D_NUM_THREADS"], "7")
         self.assertEqual(env["OMP_NUM_THREADS"], "7")
         self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "128")
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_derives_dense_limit_from_preproc_mem(self) -> None:
+        env, path = load_view3d_runtime_env(
+            base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_MEM": "128gb"},
+            config_path=default_view3d_config_path(),
+        )
+
+        self.assertEqual(path, default_view3d_config_path().resolve())
+        self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "112")
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_accepts_plain_preproc_mem_gib(self) -> None:
+        env, _ = load_view3d_runtime_env(
+            base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_MEM": "64"},
+            config_path=default_view3d_config_path(),
+        )
+
+        self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "48")
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_preserves_explicit_dense_limit(self) -> None:
+        env, _ = load_view3d_runtime_env(
+            base_env={
+                "PATH": os.environ.get("PATH", ""),
+                "PREPROC_MEM": "128gb",
+                "VIEW3D_MAX_DENSE_MATRIX_GIB": "96",
+            },
+            config_path=default_view3d_config_path(),
+        )
+
+        self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "96")
 
     @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
     def test_resolve_view3d_exe_uses_configured_executable(self) -> None:

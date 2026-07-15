@@ -27,6 +27,25 @@ Build View3D and related preprocessing binaries with:
 
 This is the cluster-side source of truth for preprocessing build setup.
 
+## Preprocessing Runs
+
+Each case `config.sh` must export `PREPROC_NCPU` before running
+`tools/write_inputs.sh`. Set `PREPROC_NCPU` to the same value as
+`nompthreads` under `&INPS` in `namoptions.###`; if `nompthreads` is omitted,
+the preprocessing default is `8`. The default View3D configuration also uses
+`PREPROC_NCPU` to choose the View3D OpenMP thread count unless
+`VIEW3D_NUM_THREADS` is set explicitly.
+
+When submitting preprocessing to an Imperial HPC compute node with
+`tools/write_inputs.sh <route> <case-directory> c`, `config.sh` must also
+export `PREPROC_WALLTIME` and `PREPROC_MEM`, for example
+`PREPROC_WALLTIME="48:00:00"` and `PREPROC_MEM="128gb"`. These control the
+preprocessing PBS job only and are separate from the solver job `WALLTIME` and
+`MEM` settings used by `tools/hpc_execute.sh`. Unless
+`VIEW3D_MAX_DENSE_MATRIX_GIB` is set explicitly, `tools/view3d_config.sh`
+derives the View3D dense-matrix guard from the preprocessing memory request as
+`PREPROC_MEM - 16 GiB`.
+
 ## Batch Execution
 
 Use the execution wrapper rather than writing a new launcher command from

@@ -15,7 +15,16 @@ Below is an example setup for copying and pasting. You need to specify these par
 
 export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of the scripts
 export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups
+export PREPROC_NCPU=8 # Number of CPU cores to use for preprocessing
+
+# Required only when submitting preprocessing to an Imperial HPC compute node
+export PREPROC_WALLTIME="48:00:00" # Preprocessing PBS walltime
+export PREPROC_MEM="128gb" # Preprocessing PBS memory request
 ```
+
+`PREPROC_NCPU` is required by `write_inputs.sh` for preprocessing. Set it to the same value as `nompthreads` under the `&INPS` section of `namoptions.###`. If `nompthreads` is not specified in `namoptions.###`, the preprocessing default is `8`, so use `export PREPROC_NCPU=8`. This value is also used by the default View3D runtime configuration to choose the number of View3D OpenMP threads, unless `VIEW3D_NUM_THREADS` is explicitly overridden.
+
+When running preprocessing on an Imperial HPC compute node with `write_inputs.sh ... c`, `config.sh` must also define `PREPROC_WALLTIME` and `PREPROC_MEM`. These size the preprocessing PBS job only; they are separate from the solver job variables `WALLTIME` and `MEM` used by `hpc_execute.sh`. Unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is explicitly set, the default View3D configuration sets it to `PREPROC_MEM - 16 GiB`; for example, `PREPROC_MEM="128gb"` gives `VIEW3D_MAX_DENSE_MATRIX_GIB=112`.
 
 Before running the preprocessing, one must build a virtual python environment as uDALES preprocessing setup is gradually moving towards Python; the MATLAB codes will depricate in near future. Run the virtual environment setup script from the repository root as given below. It creates the virtual environment, installs all dependencies, and builds the preprocessing tools (View3D and f2py extension modules). For more details on virtual environment set up see [here](./../tools/python/README_VENV.md):
 
@@ -121,7 +130,7 @@ The `u-dales/tools/preprocessing.m` matlab class contains the functionality for 
 
 The `u-dales/tools/write_inputs.m` matlab script calls member functions of `preprocessing.m` in order to write the basic input files (those not relating to the IBM or SEB), followed by routines located in the `IBM` and `SEB` directories within the uDALES tools directory. It is intended to be as short and readable as possible, with the goal being that a developer can edit for a particular purpose. It will work simply as a normal script using the matlab IDE, but when doing this, ensure that `DA_EXPDIR = <top level directory>/experiments/` and `DA_TOOLSDIR = <top level directory>/u-dales/tools/` are defined.
 
-The `u-dales/tools/write_inputs.sh` shell script acts as a wrapper around either `write_inputs.m` or `write_inputs.py`. Before running the selected route, it will run the shell script `config.sh` located in the experiment directory, which defines environmental variables `DA_EXPDIR` and `DA_TOOLSDIR`. The first argument must be either `-m` for MATLAB or `-p` for Python. It is intended to be run from the top level project directory.
+The `u-dales/tools/write_inputs.sh` shell script acts as a wrapper around either `write_inputs.m` or `write_inputs.py`. Before running the selected route, it will run the shell script `config.sh` located in the experiment directory, which defines environmental variables `DA_EXPDIR`, `DA_TOOLSDIR`, and `PREPROC_NCPU`. The first argument must be either `-m` for MATLAB or `-p` for Python. It is intended to be run from the top level project directory.
 
 Some parameters used by uDALES are used in the pre-processing. They are the following:
 
@@ -197,6 +206,7 @@ The parameters under the `&INPS` header are used only in the pre-processing.
 - `lstretchtanh`: switch for z grid stretched using tanh function. Default: false.
 - `lstretch2tanh`: switch for z grid stretched using 2tanh function. Default: false.
 - `stretchconst`: stretch constant. Default: 0.01.
+- `nompthreads`: number of OpenMP threads used by preprocessing routines that support OpenMP, including IBM preprocessing. Default: 8. Set `PREPROC_NCPU` in `config.sh` to the same value.
 - `u0`: initial u-velocity (m/s). Also applied as geostrophic term where applicable. Default: 0.
 - `v0`: initial v-velocity (m/s). Also applied as geostrophic term where applicable. Default: 0.
 - `dpdx`: pressure gradient in x direction (Pa/m). Default: 0.

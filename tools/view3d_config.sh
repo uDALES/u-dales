@@ -40,7 +40,53 @@ fi
 # Dense-matrix safety guard for the legacy dense View3D path, in GiB. The direct
 # sparse path normally avoids this dense allocation, but keeping the guard active
 # protects fallback/diagnostic runs.
-export VIEW3D_MAX_DENSE_MATRIX_GIB="${VIEW3D_MAX_DENSE_MATRIX_GIB:-112}"
+#
+# On Imperial HPC preprocessing jobs, derive the guard from PREPROC_MEM while
+# leaving 16 GiB for Python, View3D metadata, OpenMP worker state, and system
+# overhead. For example, PREPROC_MEM=128gb gives
+# VIEW3D_MAX_DENSE_MATRIX_GIB=112. Set VIEW3D_MAX_DENSE_MATRIX_GIB explicitly
+# before sourcing this file if you need a different limit.
+_view3d_set_dense_limit_from_preproc_mem() {
+	_mem="${PREPROC_MEM//[[:space:]]/}"
+	case "$_mem" in
+		*[gG][iI][bB])
+			_mem_gib="${_mem%???}"
+			;;
+		*[gG][bB])
+			_mem_gib="${_mem%??}"
+			;;
+		*[gG])
+			_mem_gib="${_mem%?}"
+			;;
+		*[0-9])
+			_mem_gib="$_mem"
+			;;
+		*)
+			return 1
+			;;
+	esac
+	case "$_mem_gib" in
+		""|*[!0-9]*)
+			return 1
+			;;
+	esac
+	if [ "$_mem_gib" -gt 16 ]; then
+		export VIEW3D_MAX_DENSE_MATRIX_GIB="$((_mem_gib - 16))"
+	else
+		export VIEW3D_MAX_DENSE_MATRIX_GIB=1
+	fi
+	return 0
+}
+
+if [ -z "${VIEW3D_MAX_DENSE_MATRIX_GIB:-}" ]; then
+	if [ -n "${PREPROC_MEM:-}" ] && _view3d_set_dense_limit_from_preproc_mem; then
+		:
+	else
+		export VIEW3D_MAX_DENSE_MATRIX_GIB=112
+	fi
+fi
+unset -f _view3d_set_dense_limit_from_preproc_mem
+unset _mem _mem_gib
 
 # Debug/comparison controls. Leave these unset for normal optimized runs.
 #
