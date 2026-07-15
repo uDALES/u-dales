@@ -23,6 +23,7 @@ if str(PYTHON_DIR) not in sys.path:
 
 from udgeom.view3d import (  # noqa: E402
     compute_svf,
+    count_sparse_entries,
     load_view3d_runtime_env,
     read_view3d_output,
     resolve_view3d_exe,
@@ -72,6 +73,15 @@ class TestView3DUtils(unittest.TestCase):
         lines = out_path.read_text(encoding="ascii").splitlines()
         self.assertEqual(lines, ["1 2 0.500000", "2 1 0.200000", "3 2 0.400000"])
 
+    def test_count_sparse_entries_ignores_blank_lines(self) -> None:
+        out_path = self.workdir / "vfsparse.inp.101"
+        out_path.write_text(
+            "1 2 0.500000\n\n  \n2 1 0.200000\n",
+            encoding="ascii",
+        )
+
+        self.assertEqual(count_sparse_entries(out_path), 2)
+
     def test_write_vf_uses_matlab_compatible_orientation(self) -> None:
         try:
             import netCDF4
@@ -98,6 +108,22 @@ class TestView3DUtils(unittest.TestCase):
                 [0.0, 0.5, 0.0],
                 [0.0, 0.0, 0.0],
                 [0.25, 0.0, 0.0],
+            ],
+            dtype=float,
+        )
+        np.testing.assert_allclose(vf.toarray(), expected)
+
+    def test_read_view3d_output_sparse_text_accepts_single_zero_based_entry(self) -> None:
+        out_path = self.workdir / "vf_sparse_zero_based.txt"
+        out_path.write_text("0 2 0.75\n", encoding="ascii")
+
+        vf = read_view3d_output(out_path, nfacets=3, outformat=2, one_based=False)
+
+        expected = np.array(
+            [
+                [0.0, 0.0, 0.75],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
             ],
             dtype=float,
         )
