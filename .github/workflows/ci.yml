@@ -55,6 +55,13 @@ jobs:
         PREPROCESSING_PYTHON_EXECUTABLE="$(command -v python)" \
           bash tools/build_preprocessing.sh common preprocessing_tools
 
+    - name: Install uDALES Python tools (editable)
+      shell: bash -l {0}
+      # Registers tools/python on the path so the test suite imports udbase/
+      # udgeom/udprep/udvis without sys.path edits. --no-deps: deps come from
+      # environment.yml.
+      run: python -m pip install -e tools/python --no-deps
+
     - name: Build current branch for integration tests
       shell: bash -l {0}
       run: |
@@ -123,6 +130,10 @@ jobs:
     - name: Install optional Plotly backend
       shell: bash -l {0}
       run: python -m pip install -r tools/python/requirements-plotly.txt
+
+    - name: Install uDALES Python tools (editable)
+      shell: bash -l {0}
+      run: python -m pip install -e tools/python --no-deps
 
     - name: Run visualization tests (both backends, off-screen)
       shell: bash -l {0}
