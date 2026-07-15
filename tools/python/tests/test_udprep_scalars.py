@@ -246,5 +246,29 @@ class TestScalarsSection(unittest.TestCase):
         # File should be unchanged (not overwritten)
         self.assertEqual(existing.read_text(encoding="ascii"), "existing content")
 
+    def test_write_scalarsources_existing_file_skips_only_that_scalar(self):
+        # Regression (P25): an existing scalarsourcep.inp.1 must NOT abort the
+        # loop and leave scalars 2..nsv unwritten. Each file is skipped
+        # independently.
+        section = ScalarsSection(
+            "scalars",
+            {
+                "nsv": 2, "lscasrc": 1, "lscasrcl": 0, "lscasrcr": 0,
+                "nscasrc": 1,
+                "xS": 1.0, "yS": 2.0, "zS": 3.0, "SSp": 4.0, "sigSp": 5.0,
+                "sv10": 0.0, "sv20": 0.0, "sv30": 0.0, "sv40": 0.0, "sv50": 0.0,
+            },
+            sim=self.sim,
+            defaults={},
+        )
+        section.generate_scalarsources()
+        existing = self.workdir / "scalarsourcep.inp.1.654"
+        existing.write_text("existing content", encoding="ascii")
+        with self.assertWarns(UserWarning):
+            section.write_scalarsources()
+        # scalar 1 left intact (skipped), scalar 2 still written.
+        self.assertEqual(existing.read_text(encoding="ascii"), "existing content")
+        self.assertTrue((self.workdir / "scalarsourcep.inp.2.654").exists())
+
 if __name__ == "__main__":
     unittest.main()

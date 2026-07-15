@@ -51,8 +51,10 @@ def _parse_shell_config(config_path: Path) -> dict:
         
         return variables
         
-    except subprocess.CalledProcessError:
-        # Fallback: simple text parsing (won't handle command substitutions)
+    except (OSError, subprocess.CalledProcessError):
+        # OSError (e.g. FileNotFoundError when bash is absent, as on stock
+        # Windows) or a non-zero bash exit -> fall back to simple text parsing
+        # (won't handle command substitutions).
         with config_path.open("r") as f:
             for line in f:
                 line = line.strip()

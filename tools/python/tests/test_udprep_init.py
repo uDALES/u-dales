@@ -87,6 +87,21 @@ class TestShellConfigParsing(unittest.TestCase):
 
         self.assertEqual(variables, {"DA_EXPDIR": "/tmp/experiments", "DA_TOOLSDIR": "/tmp/tools"})
 
+    def test_parse_shell_config_falls_back_when_bash_missing(self):
+        # Regression (P12): on stock Windows there is no bash, so subprocess.run
+        # raises FileNotFoundError (an OSError) rather than CalledProcessError.
+        # The text-parsing fallback must still be reached.
+        config = self.workdir / "config.sh"
+        config.write_text("export DA_EXPDIR='/tmp/experiments'\n", encoding="ascii")
+
+        with mock.patch(
+            "udprep.udprep_init.subprocess.run",
+            side_effect=FileNotFoundError("bash not found"),
+        ):
+            variables = _parse_shell_config(config)
+
+        self.assertEqual(variables, {"DA_EXPDIR": "/tmp/experiments"})
+
 class TestValidateConfigPaths(unittest.TestCase):
     def setUp(self):
         self.temp_dir = TemporaryDirectory()

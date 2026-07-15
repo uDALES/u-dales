@@ -147,23 +147,24 @@ class ScalarsSection(Section):
                 if self.lscasrc:
                     path = Path(self.path) / f"scalarsourcep.inp.{ii}.{self.expnr}"
                     if path.exists():
+                        # Skip only this file; keep writing the remaining scalars.
                         warnings.warn(f"{path} already exists; NOT overwriting.", stacklevel=2)
-                        return
-                    with path.open("w", encoding="ascii", newline="\n") as f:
-                        f.write("# Scalar point source data\n")
-                        f.write("#xS yS zS SS sigS\n")
-                        for row in self.scasrcp:
-                            f.write(" ".join(f"{val:-12.6f}" for val in row) + "\n")
+                    else:
+                        with path.open("w", encoding="ascii", newline="\n") as f:
+                            f.write("# Scalar point source data\n")
+                            f.write("#xS yS zS SS sigS\n")
+                            for row in self.scasrcp:
+                                f.write(" ".join(f"{val:-12.6f}" for val in row) + "\n")
                 if self.lscasrcl:
                     path = Path(self.path) / f"scalarsourcel.inp.{ii}.{self.expnr}"
                     if path.exists():
                         warnings.warn(f"{path} already exists; NOT overwriting.", stacklevel=2)
-                        return
-                    with path.open("w", encoding="ascii", newline="\n") as f:
-                        f.write("# Scalar line source data\n")
-                        f.write("#xSb ySb zSb xSe ySe zSe SS sigS\n")
-                        for row in self.scasrcl:
-                            f.write(" ".join(f"{val:-12.6f}" for val in row) + "\n")
+                    else:
+                        with path.open("w", encoding="ascii", newline="\n") as f:
+                            f.write("# Scalar line source data\n")
+                            f.write("#xSb ySb zSb xSe ySe zSe SS sigS\n")
+                            for row in self.scasrcl:
+                                f.write(" ".join(f"{val:-12.6f}" for val in row) + "\n")
             warnings.warn( "Ensure scalar sources do not intersect any building !! "
                            "Check by plotting the sources along with the geometry using prep.sim.vis.plot_scalar_source(). ", stacklevel=2 )
 
