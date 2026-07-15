@@ -106,6 +106,8 @@ class RadiationSection(Section):
         periodic_xy = kwargs.pop("periodic_xy", self.periodic_xy)
         ray_jitter = kwargs.pop("ray_jitter", self.ray_jitter)
         resolution = kwargs.pop("resolution", default_resolution)
+        if resolution is None and method_key in ("scanline", "scanline_legacy"):
+            resolution = self.psc_res
         if kwargs:
             raise ValueError(f"Unknown direct shortwave options: {', '.join(sorted(kwargs.keys()))}")
 

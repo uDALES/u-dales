@@ -701,10 +701,12 @@ class TestUDPrepCore(unittest.TestCase):
 
 class TestRadiationSection(unittest.TestCase):
     def test_shortwave_method_maps_ishortwave_to_backend(self):
+        sim = DummySim()
+        sim.ltrees = False
         section = RadiationSection(
             "radiation",
             {"ishortwave": 1, "psc_res": 0.25},
-            sim=DummySim(),
+            sim=sim,
             defaults={},
         )
 
@@ -722,6 +724,50 @@ class TestRadiationSection(unittest.TestCase):
         section.ishortwave = 4
         with self.assertRaisesRegex(ValueError, "Unsupported ishortwave value"):
             section._shortwave_method()
+
+    def test_explicit_scanline_methods_default_to_psc_res(self):
+        sim = DummySim()
+        sim.ltrees = False
+        section = RadiationSection(
+            "radiation",
+            {
+                "ishortwave": 2,
+                "psc_res": 0.25,
+                "ray_density": 4.0,
+                "ray_jitter": 0.0,
+                "periodic_xy": False,
+            },
+            sim=sim,
+            defaults={},
+        )
+        seen = []
+
+        class FakeSolver:
+            def compute(self, *_args, **kwargs):
+                seen.append(kwargs["resolution"])
+                return np.array([1.0]), np.array([]), {}
+
+        section._direct_sw_solver = FakeSolver()
+        section._direct_sw_solver_cfg = {
+            "method": "scanline",
+            "ray_density": 4.0,
+            "ray_jitter": 0.0,
+            "veg_key": None,
+        }
+
+        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline")
+        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="f2py")
+        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline", resolution=0.1)
+
+        section._direct_sw_solver_cfg = {
+            "method": "scanline_legacy",
+            "ray_density": 4.0,
+            "ray_jitter": 0.0,
+            "veg_key": None,
+        }
+        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline_legacy")
+
+        self.assertEqual(seen, [0.25, 0.25, 0.1, 0.25])
 
     def test_run_short_wave_skip_removes_full_vf_text_intermediate(self):
         with TemporaryDirectory() as temp_dir:
