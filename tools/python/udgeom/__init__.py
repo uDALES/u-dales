@@ -29,6 +29,16 @@ from .geometry_generation import (
     create_cubes,
     plot_ground_generation_step1,
 )
+from .view3d import (
+    compute_svf,
+    read_view3d_output,
+    resolve_view3d_exe,
+    run_view3d,
+    stl_to_view3d,
+    write_svf,
+    write_vf,
+    write_vfsparse,
+)
 
 __all__ = [
     'UDGeom',
@@ -52,4 +62,12 @@ __all__ = [
     'create_canyons',
     'create_cubes',
     'plot_ground_generation_step1',
+    'compute_svf',
+    'read_view3d_output',
+    'resolve_view3d_exe',
+    'run_view3d',
+    'stl_to_view3d',
+    'write_svf',
+    'write_vf',
+    'write_vfsparse',
 ]

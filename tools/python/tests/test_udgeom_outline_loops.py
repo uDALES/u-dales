@@ -8,6 +8,7 @@ import trimesh
 from _common import PYTHON_DIR
 
 from udgeom import UDGeom
+from udgeom.calculate_outline import calculate_outline
 
 def _ring_prism_mesh():
     outer_bottom = np.array(
@@ -63,6 +64,17 @@ class TestUDGeomOutlineLoops(unittest.TestCase):
 
         self.assertEqual(observed_vertices, expected_vertices)
         np.testing.assert_allclose(outline["centroid"][:2], np.array([2.0, 2.0]), atol=1e-12)
+
+    def test_calculate_outline_empty_result_has_documented_shape(self):
+        # A mesh with no faces yields no outline edges; the result must still be
+        # the documented (K, 2) shape rather than a bare (0,) array.
+        empty_mesh = trimesh.Trimesh(
+            vertices=np.zeros((0, 3)), faces=np.zeros((0, 3), dtype=int), process=False
+        )
+
+        edges, _ = calculate_outline(empty_mesh)
+
+        self.assertEqual(edges.shape, (0, 2))
 
 if __name__ == "__main__":
     unittest.main()

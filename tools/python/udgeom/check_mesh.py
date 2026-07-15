@@ -676,11 +676,12 @@ def check(mesh_or_geom, require_single_component: bool = True) -> Dict[str, Unio
         report["issues"].append(f"mesh has {n_duplicate_faces} duplicate faces")
 
     # Degenerate faces / zero-area faces
-    n_degenerate_faces = int(np.count_nonzero(np.array([len(np.unique(face)) < 3 for face in faces], dtype=bool)))
+    degenerate_mask = np.array([len(np.unique(face)) < 3 for face in faces], dtype=bool)
+    n_degenerate_faces = int(np.count_nonzero(degenerate_mask))
     report["n_degenerate_faces"] = n_degenerate_faces
     if n_degenerate_faces > 0:
         report["details"]["degenerate_face_ids"] = np.flatnonzero(
-            np.array([len(np.unique(face)) < 3 for face in faces], dtype=bool)
+            degenerate_mask
         ).astype(int).tolist()
         report["valid"] = False
         report["issues"].append(f"mesh has {n_degenerate_faces} degenerate faces")

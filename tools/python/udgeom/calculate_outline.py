@@ -132,8 +132,8 @@ def calculate_outline(mesh: 'trimesh.Trimesh', angle_threshold: float = 45.0) ->
             if max_angle > angle_threshold:
                 boundary_edges.append(edge)
     
-    # Convert to numpy array
-    boundary_edges = np.array(boundary_edges, dtype=int)
+    # Convert to numpy array with the documented (K, 2) shape, even when empty.
+    boundary_edges = np.array(boundary_edges, dtype=int).reshape(-1, 2)
     
     # Package mesh data for output
     mesh_data = {

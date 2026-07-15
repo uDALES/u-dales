@@ -227,9 +227,14 @@ def truncate_below_ground(
     clip_tolerance : float, default=1e-9
         Numerical tolerance for triangle-plane clipping.
     edgelength : float, optional
-        Optional reference spacing stored in the report. The current
+        Accepted for API compatibility but not used to remesh: the current
         implementation preserves and locally restitches the existing ground
-        mesh rather than remeshing the whole domain.
+        mesh rather than remeshing the whole domain, so no target spacing is
+        needed. The ``edgelength`` field of the returned report reports the
+        ground spacing *estimated* from the existing mesh, not this argument
+        (except for an empty input mesh, where the provided value is echoed
+        back). To honour a requested spacing the whole-domain remesh path would
+        have to be reinstated, which would change existing results.
     return_trimesh : bool, default=False
         If True, return the repaired ``trimesh.Trimesh`` directly. Otherwise
         return a ``UDGeom`` object.

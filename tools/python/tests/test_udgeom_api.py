@@ -36,6 +36,23 @@ from udgeom.split_buildings import split_buildings as geom_split_buildings
 DATA_DIR = REPO_ROOT / "tools" / "python" / "tests" / "data" / "udgeom_matlab"
 EXAMPLES_DIR = REPO_ROOT / "tools" / "python" / "examples"
 
+class TestUDGeomExports(unittest.TestCase):
+    def test_view3d_helpers_are_exported_by_the_package(self):
+        expected = {
+            "compute_svf",
+            "read_view3d_output",
+            "resolve_view3d_exe",
+            "run_view3d",
+            "stl_to_view3d",
+            "write_svf",
+            "write_vf",
+            "write_vfsparse",
+        }
+        for name in expected:
+            self.assertIn(name, udgeom.__all__)
+            self.assertTrue(hasattr(udgeom, name), f"udgeom.{name} not exported")
+
+
 class TestUDGeomApi(unittest.TestCase):
     @staticmethod
     def _wedge_mesh():
@@ -596,10 +613,14 @@ class TestUDGeomApi(unittest.TestCase):
         self.assertEqual(geom.n_faces, 0)
         self.assertEqual(geom.n_vertices, 0)
         np.testing.assert_array_equal(geom.bounds, np.array([[0, 0, 0], [0, 0, 0]]))
-        np.testing.assert_array_equal(geom.face_centers, np.array([]))
-        np.testing.assert_array_equal(geom.face_incenters, np.array([]))
-        np.testing.assert_array_equal(geom.face_normals, np.array([]))
+        np.testing.assert_array_equal(geom.face_centers, np.empty((0, 3)))
+        self.assertEqual(geom.face_centers.shape, (0, 3))
+        np.testing.assert_array_equal(geom.face_incenters, np.empty((0, 3)))
+        self.assertEqual(geom.face_incenters.shape, (0, 3))
+        np.testing.assert_array_equal(geom.face_normals, np.empty((0, 3)))
+        self.assertEqual(geom.face_normals.shape, (0, 3))
         np.testing.assert_array_equal(geom.face_areas, np.array([]))
+        self.assertEqual(geom.face_areas.shape, (0,))
         self.assertEqual(geom.total_area, 0.0)
         self.assertEqual(geom.volume, 0.0)
         self.assertFalse(geom.is_watertight)

@@ -26,12 +26,6 @@ except ImportError:
     TRIMESH_AVAILABLE = False
     warnings.warn("trimesh not installed. Geometry functionality will be limited.")
 
-try:
-    from scipy.spatial import ConvexHull
-    SCIPY_AVAILABLE = True
-except ImportError:
-    SCIPY_AVAILABLE = False
-
 from exceptions import DependencyError
 # Import package functions
 from .calculate_outline import calculate_outline
@@ -49,7 +43,6 @@ from .fix_mesh import (
     resolve_vertical_coplanar_overlaps as resolve_vertical_coplanar_overlaps_impl,
     weld_touching_boundaries as weld_touching_boundaries_impl,
 )
-from .split_buildings import split_buildings
 from ._meshgraph import build_face_adjacency, connected_components
 
 import logging
@@ -177,7 +170,7 @@ class UDGeom:
         Examples
         --------
         >>> geom = UDGeom('experiments/001')
-        >>> geom.load('geometry.001')
+        >>> geom.load('geometry.stl')
         """
         filepath = self.path / filename
         
@@ -203,7 +196,7 @@ class UDGeom:
             self._invalidate_cache()
             
         except Exception as e:
-            raise ValueError(f"Error loading STL file {filepath}: {e}")
+            raise ValueError(f"Error loading STL file {filepath}: {e}") from e
 
     @staticmethod
     def _read_stl_file_normals(filepath: Path) -> Optional[np.ndarray]:
@@ -294,7 +287,7 @@ class UDGeom:
             self.stl.export(str(filepath))
             logger.info("Saved geometry to: %s", filepath)
         except Exception as e:
-            raise ValueError(f"Error saving STL file {filepath}: {e}")
+            raise ValueError(f"Error saving STL file {filepath}: {e}") from e
     
     def show(self, color_buildings: bool = True, plot_quiver: bool = False,
              normal_scale: float = 0.2,
@@ -397,7 +390,7 @@ class UDGeom:
             (x, y, z) coordinates of face centers
         """
         if self.stl is None:
-            return np.array([])
+            return np.empty((0, 3), dtype=float)
         return self.stl.triangles_center
 
     @property
@@ -411,7 +404,7 @@ class UDGeom:
             Incenter coordinates for each triangular face.
         """
         if self.stl is None:
-            return np.array([])
+            return np.empty((0, 3), dtype=float)
 
         vertices = np.asarray(self.stl.vertices, dtype=float)
         faces = np.asarray(self.stl.faces, dtype=int)
@@ -581,7 +574,7 @@ class UDGeom:
         -------
         outlines : list of dict
             Each item contains:
-            - 'polygon': ndarray, shape (n_vertices, 3) ordered convex hull in x-y
+            - 'polygon': ndarray, shape (n_vertices, 3) ordered free-boundary loop in x-y
             - 'centroid': ndarray, shape (3,) centroid of the polygon (z=0)
             
         Examples
@@ -707,18 +700,21 @@ class UDGeom:
             warnings.warn('No STL geometry loaded. Load geometry first.')
             return []
 
+        cache_key = float(angle_threshold)
+        if self._outline3d is not None and cache_key in self._outline3d:
+            return self._outline3d[cache_key]
+
+        outlines: List[np.ndarray] = []
+        for building in self.get_buildings():
+            edges, _ = calculate_outline(building, angle_threshold)
+            outlines.append(edges)
+
+        # ``get_buildings()`` can invalidate the cache while it runs (resetting
+        # ``self._outline3d`` to None), so (re)create the dict only after the
+        # per-building outlines have been resolved.
         if self._outline3d is None:
             self._outline3d = {}
-
-        cache_key = float(angle_threshold)
-        if cache_key not in self._outline3d:
-            outlines: List[np.ndarray] = []
-            for building in self.get_buildings():
-                edges, _ = calculate_outline(building, angle_threshold)
-                outlines.append(edges)
-            if self._outline3d is None:
-                self._outline3d = {}
-            self._outline3d[cache_key] = outlines
+        self._outline3d[cache_key] = outlines
         return self._outline3d[cache_key]
 
     def get_outline(self, angle_threshold: float = 45.0) -> np.ndarray:
@@ -753,7 +749,7 @@ class UDGeom:
             Unit normal vectors for each face
         """
         if self.stl is None:
-            return np.array([])
+            return np.empty((0, 3), dtype=float)
         return self.stl.face_normals
     
     @property
@@ -903,10 +899,7 @@ class UDGeom:
             geom, debug = result
             if inplace:
                 self.stl = geom.stl
-                self._outline2d = None
-                self._outline3d = None
-                self._buildings = None
-                self._face_to_building_map = None
+                self._invalidate_cache()
             return geom, debug
 
         geom = result
@@ -1255,7 +1248,6 @@ class UDGeom:
         
         # Process the entire geometry (including ground faces) to match MATLAB get_outline()
         # MATLAB only filters ground when splitting buildings, not when computing overall outline
-        vertices = self.stl.vertices
         faces = self.stl.faces
         
         # Get face adjacency info
@@ -1302,18 +1294,12 @@ class UDGeom:
                 edge_counts[edge] = edge_counts.get(edge, 0) + 1
         
         # Boundary edges appear only once (not shared between faces)
-        boundary_edges_added = 0
-        ground_boundary_edges = 0
         for edge, count in edge_counts.items():
             if count == 1:  # Boundary edge
                 if edge not in outline_edge_set:
                     outline_edge_set.add(edge)
                     outline_edges.append(edge)
-                    boundary_edges_added += 1
-                    # Check if this is a ground-level edge
-                    if vertices[edge[0]][2] == 0 and vertices[edge[1]][2] == 0:
-                        ground_boundary_edges += 1
-        
+
         return outline_edges
     
     def __repr__(self) -> str:
