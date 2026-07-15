@@ -437,7 +437,7 @@ contains
   !! sets up its own decomposition and finalizes MPI itself in exit_tests.
   subroutine init_tests
     use mpi
-    use modglobal,  only : nprocx, nprocy
+    use modmpi,     only : nprocx, nprocy
     use modstartup, only : init2decomp
     implicit none
 
@@ -471,7 +471,7 @@ contains
   !! state so it can be compared against the input namelists with f90nml.
   subroutine tests_roundtrip
     use mpi
-    use modglobal,      only : nprocx, nprocy
+    use modmpi,         only : nprocx, nprocy
     use readparameters, only : writenamelists
     implicit none
 
