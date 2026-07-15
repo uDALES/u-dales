@@ -22,15 +22,16 @@ The Python postprocessing tools should be usable as a stable internal product:
 
 ## Open tasks
 
-### 1. Settle the environment and import model
+### 1. Settle the environment and import model — DONE (residual: notebooks)
 
-- Choose one virtual-environment convention and apply it consistently across setup scripts, CI, docs, examples, and local developer guidance.
-- Make the test runner prefer the active interpreter (`sys.executable`) unless an explicit override is provided.
-- Decide whether `tools/python` should be an internal editable package.
-- If using an editable package, add the minimum package metadata needed for `pip install -e tools/python`.
-- If not using packaging, enforce one launcher/path convention across every entry point.
-- Remove contradictory environment guidance from docs.
-- Ensure notebooks and scripts can import the library without ad-hoc `sys.path` edits.
+Resolved on this branch (commits `e2c5ebf`, `3c1d049`):
+
+- **Decision: `tools/python` is an internal editable package.** `pyproject.toml` added; `setup_venv.sh` runs `pip install -e tools/python --no-deps`. The in-place f2py extensions are unaffected (editable install builds/copies nothing).
+- **One venv convention:** `tools/python/.venv` (created by `setup_venv.sh`), documented in `AGENTS.md`; the contradictory `../.venv` guidance is removed. `README_VENV.md` was already consistent.
+- **Test runner prefers the active interpreter** (`sys.executable`), with `--python` / `UDALES_TEST_PYTHON` override; the hard-coded `../.venv` path is gone.
+- **No ad-hoc `sys.path` edits:** the 21 per-test preambles and the 21 internal `try/except` dual-import fallbacks are deleted; the library imports from any cwd via the editable install. CI installs the editable package in its test jobs.
+
+**Residual (small):** the tutorial **notebooks** still contain `sys.path.insert` cells (now redundant with the editable install) and `examples/udprep_tutorial.py` has its own path variant — remove these when the notebooks are next touched. Optional-dependency import guards are intentionally kept.
 
 ### 2. Finish dependency-boundary cleanup
 
