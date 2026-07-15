@@ -30,8 +30,13 @@ The "same day" and "this week" priority tiers were implemented on this branch (c
 | P6, P8, P9 | `a3f24f1` | IBM outputs reload into sim; writeback errors propagate; grid stretch-fit raises instead of NaN |
 | E1, E2 | `2c9d791` | Radiation tutorial exit()/backend fixed; vegetation tutorial rewritten to current API |
 | Final-review regression + P28 annotation | `9d9908d` | Veg sections set cache-provenance flag; S_veg/load_stl docstrings honest; empty-factypes message |
+| S1 packaging + env/import model | `e2c5ebf`, `3c1d049` | `tools/python` is an editable package (`pyproject.toml`); one venv convention (`tools/python/.venv`); runner uses active interpreter; per-test `sys.path` hacks + internal dual-import fallbacks deleted (see POSTPROCESSING_REVIEW #1) |
+| D2 | (prior branch) | `setup_venv` import check requires core `pyvista`, not the now-optional `plotly` |
+| P12, P25 | `909915f` | `_parse_shell_config` catches `OSError` (Windows no-bash fallback reachable); `write_scalarsources` skips only the existing file, not the whole loop |
+| P4, P5 | `c3bd49c` | facsec raises `RadiationError` on missing `Sc`; Moller `ktot` includes the mesh z-extent; `calc_short_wave` keys Sdir/netsw reuse on an input signature so a sun sweep recomputes |
+| T2, T3 (partial) | `c9e9d76` | Characterization tests added for the `load_*`/analysis API and `udprep_seb` (safety net for the remaining refactors) |
 
-**Still open:** everything else in this document, notably the structural tier (S1 packaging, udgeom consolidation G-theme, T2/T3 test coverage for the `load_*`/SEB surfaces) and all unmarked minors. Highest-value next fixes: **P5** (stale `calc_short_wave`/`run_short_wave` early-returns — now *more* visible since maxD varies per call), **D2** (`setup_venv.sh` plotly check breaks fresh installs), **P4** (silent solver truncation on missing `Sc`).
+**Still open:** the large structural refactors — udgeom consolidation (G-theme), reduce-`UDBase` and separate-numerics-from-IO (POSTPROCESSING_REVIEW #4/#6/#7) — plus the unmarked minors. Deferred sub-items noted in code: `run_short_wave`/`run_short_wave_timedep` file-existence skips are not yet signature-validated (use `force=True` after namelist/time changes); the P7 SEB gate discrepancy (characterized, not resolved).
 
 **Newly discovered during fixing:** the committed `ibm_preproc_f2py` binary can drift from the caller signature (confirmed on one Windows machine: zero-arg extension vs ~20-arg call → `run_all` cannot complete until rebuilt). The unit tests mock one level above the f2py call, so this drift is invisible to CI — worth a smoke test that imports the extension and checks its signature, and a rebuild note in `fortran/README.md` (extends S2).
 
