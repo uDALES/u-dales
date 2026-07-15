@@ -208,6 +208,58 @@ def _build_veg_over_ground_block_fixture():
     )
     return sim, mesh
 
+def _build_veg_against_wall_fixture():
+    """2x1x1 domain: solid wall block at i=1, a vegetation cell at i=0 directly
+    to its west, and a VERTICAL wall facet at x=1 (the west face of the block,
+    normal -x) that shares grid cell (0,0,0) with the vegetation.
+
+    A near-horizontal ray from a low western sun enters the vegetation cell
+    (r_in = 1), attenuates over the segment up to the wall, then strikes the
+    vertical facet, which the AABB overlap maps into the SAME (i,j,k) cell as
+    the vegetation. This is the moller double-counting scenario for a hedge
+    planted against a wall, and the horizontal-ray / vertical-facet counterpart
+    of _build_veg_over_ground_block_fixture (vertical ray, horizontal facet).
+    Because the sun faces the wall head-on the incidence is near-normal, so the
+    scene is numerically well-conditioned despite the grazing angle to ground.
+    """
+    # Vertical quad at x=1 (west face of the block); winding gives normal -x
+    # (pointing west, toward the sun) so the facet is lit.
+    vertices = np.array(
+        [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0], [1.0, 0.0, 1.0]],
+        dtype=float,
+    )
+    faces = np.array([[0, 2, 1], [0, 3, 2]], dtype=int)
+    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+    geom = UDGeom(stl=mesh)
+
+    solid = np.zeros((2, 1, 1), dtype=bool)
+    solid[1, 0, 0] = True  # wall block occupies i=1
+
+    sim = SimpleNamespace(
+        dx=1.0,
+        dy=1.0,
+        dzt=np.array([1.0], dtype=float),
+        itot=2,
+        jtot=1,
+        ktot=1,
+        xlen=2.0,
+        ylen=1.0,
+        zsize=1.0,
+        zm=np.array([0.0], dtype=float),
+        Sc=solid,
+        facsec={
+            "c": {
+                # Wall sections mapped to the fluid cell west of the block.
+                "facid": np.array([0, 1], dtype=int),
+                "area": np.array([0.5, 0.5], dtype=float),
+                "locs": np.array([[0, 0, 0], [0, 0, 0]], dtype=int),
+            }
+        },
+        facs={"area": mesh.area_faces},
+        geom=geom,
+    )
+    return sim, mesh
+
 @requires_slow_tests
 class TestDirectShortwaveVegetation(unittest.TestCase):
     """Characterization + regression tests for vegetation radiation physics.
@@ -361,6 +413,59 @@ class TestDirectShortwaveVegetation(unittest.TestCase):
         self.assertAlmostEqual(bud_m["fac"], bud_f["fac"], delta=0.02 * bud_f["fac"])
         self.assertAlmostEqual(
             float(sveg_m[0]), float(sveg_f[0]), delta=0.02 * float(sveg_f[0])
+        )
+
+    # -- P2b: near-horizontal ray hitting a VERTICAL wall through a hedge --
+    def test_moller_matches_facsec_hedge_against_wall(self):
+        """A hedge in the cell west of a wall, lit by a near-horizontal ray, is
+        the vertical-facet counterpart of the veg-over-ground double-count test.
+        moller must credit the wall with the POST-attenuation beam (after the
+        hedge in the same cell has absorbed its share); before the P2b fix it
+        credits the pre-attenuation beam and over-lights the wall. The fix is
+        orientation-independent, so moller and facsec must agree here exactly as
+        they do for the horizontal ground facet.
+
+        Invariant asserted is kernel AGREEMENT (moller == facsec), not budget
+        closure: this scene is deliberately open (a full-height wall whose top
+        is exposed to the top-down ray seeding), so a fraction of the beam
+        leaves the domain uncounted — but identically for both kernels, so their
+        facet/vegetation totals still match. Agreement is the stronger check for
+        the P2b regression, since the bug makes moller's wall credit exceed
+        facsec's.
+        """
+        # Low western sun: near-horizontal ray (elevation ~5.7 deg, safely above
+        # the |dir_z| < 1e-2 near-horizon guard) travelling east into the
+        # west-facing wall at near-normal incidence.
+        nsun = np.array([-1.0, 0.0, 0.1], dtype=float)
+        veg = self._veg_data(0, 0, 0)
+
+        sim_m, mesh_m = _build_veg_against_wall_fixture()
+        moller = DirectShortwaveSolver(
+            sim_m, method="moller", surface_mesh=mesh_m,
+            ray_density=16.0, ray_jitter=0.0, veg_data=veg,
+        )
+        _sdm, sveg_m, bud_m = moller.compute(
+            nsun=nsun, irradiance=self.IRRADIANCE, periodic_xy=False
+        )
+
+        sim_f, mesh_f = _build_veg_against_wall_fixture()
+        facsec = DirectShortwaveSolver(
+            sim_f, method="facsec", surface_mesh=mesh_f,
+            ray_density=16.0, ray_jitter=0.0, veg_data=veg,
+        )
+        _sdf, sveg_f, bud_f = facsec.compute(
+            nsun=nsun, irradiance=self.IRRADIANCE, periodic_xy=False
+        )
+
+        # Non-trivial scene: the vertical wall is lit through the hedge.
+        self.assertGreater(bud_m["fac"], 0.0)
+        self.assertGreater(bud_m["veg"], 0.0)
+        # moller must not over-credit the wall vs facsec (the pre-fix symptom),
+        # and the two kernels must agree on facet and vegetation absorption.
+        self.assertAlmostEqual(bud_m["veg"], bud_f["veg"], delta=1.0e-3 * bud_f["veg"])
+        self.assertAlmostEqual(bud_m["fac"], bud_f["fac"], delta=1.0e-3 * bud_f["fac"])
+        self.assertAlmostEqual(
+            float(sveg_m[0]), float(sveg_f[0]), delta=1.0e-3 * float(sveg_f[0])
         )
 
 if __name__ == "__main__":
