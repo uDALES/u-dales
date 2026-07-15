@@ -713,16 +713,20 @@ class TestRadiationSection(unittest.TestCase):
         expected = {
             0: ("scanline_legacy", 0.25),
             1: ("scanline_f2py", 0.25),
-            2: ("facsec", None),
-            3: ("moller", None),
+            3: ("facsec", None),
+            4: ("moller", None),
         }
         for ishortwave, backend in expected.items():
             with self.subTest(ishortwave=ishortwave):
                 section.ishortwave = ishortwave
                 self.assertEqual(section._shortwave_method(), backend)
 
-        section.ishortwave = 4
-        with self.assertRaisesRegex(ValueError, "Unsupported ishortwave value"):
+        section.ishortwave = 2
+        with self.assertRaisesRegex(ValueError, "use 1, 3, or 4 in Python"):
+            section._shortwave_method()
+
+        section.ishortwave = 5
+        with self.assertRaisesRegex(ValueError, "Valid Python namelist values are 1 .*3 .*4"):
             section._shortwave_method()
 
     def test_explicit_scanline_methods_default_to_psc_res(self):
@@ -731,7 +735,7 @@ class TestRadiationSection(unittest.TestCase):
         section = RadiationSection(
             "radiation",
             {
-                "ishortwave": 2,
+                "ishortwave": 3,
                 "psc_res": 0.25,
                 "ray_density": 4.0,
                 "ray_jitter": 0.0,

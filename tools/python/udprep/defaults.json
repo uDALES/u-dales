@@ -117,7 +117,7 @@
     "timezone": 0.0,
     "elevation": 0.0,
     "weatherfname": "",
-    "ishortwave": 2,
+    "ishortwave": 3,
     "psc_res": 0.1,
     "maxD": 1.0e3,
     "ray_density": 4.0,

@@ -75,8 +75,9 @@ class RadiationSection(Section):
             backend selected by radiation.ishortwave.
             - ishortwave == 0 : "scanline_legacy" - compiles/runs the old standalone Fortran executable (no vegetation).
             - ishortwave == 1 : "scanline_f2py" - f2py scanline rasterization (no vegetation, fastest)
-            - ishortwave == 2 : "facsec" - ray casting with solid mask + facet-section reconstruction (accurate, cheaper)
-            - ishortwave == 3 : "moller" - ray casting with Moller-Trumbore triangle hits (most accurate, most expensive)
+            - ishortwave == 2 : MATLAB-only scanline debug implementation; raises in Python.
+            - ishortwave == 3 : "facsec" - ray casting with solid mask + facet-section reconstruction (accurate, cheaper)
+            - ishortwave == 4 : "moller" - ray casting with Moller-Trumbore triangle hits (most accurate, most expensive)
         kwargs : dict
             Optional arguments that define the solver configuration:
             - ray_density (float): ray grid density (default radiation.ray_density)
@@ -783,19 +784,24 @@ class RadiationSection(Section):
         return sim.load_veg(zero_based=True, cache=True)
 
     def _shortwave_method(self) -> Tuple[str, float | None]:
+        if self.ishortwave == 2:
+            raise ValueError(
+                "ishortwave=2 is the MATLAB-only scanline debug implementation; "
+                "use 1, 3, or 4 in Python."
+            )
         methods = {
             0: ("scanline_legacy", self.psc_res),
             1: ("scanline_f2py", self.psc_res),
-            2: ("facsec", None),
-            3: ("moller", None),
+            3: ("facsec", None),
+            4: ("moller", None),
         }
         try:
             return methods[self.ishortwave]
         except KeyError as exc:
             raise ValueError(
                 f"Unsupported ishortwave value: {self.ishortwave}. "
-                "Expected 0 (legacy scanline, no vegetation), 1 (f2py scanline, no vegetation), "
-                "2 (facsec), or 3 (moller)."
+                "Valid Python namelist values are 1 (scanline_f2py), "
+                "3 (facsec), or 4 (moller)."
             ) from exc
 
     def _solar_state_time(
