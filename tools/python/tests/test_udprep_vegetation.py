@@ -17,9 +17,15 @@ if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
 from udprep.udprep_vegetation import VegetationSection, vegetation_block_to_veg as module_veg_fn  # noqa: E402
+from udbase import UDBase  # noqa: E402
 
 
 class DummySim:
+    # Reuse the real vegetation loader/cache so the provenance-flag regression
+    # test exercises UDBase.load_veg's actual cache condition.
+    load_veg = UDBase.load_veg
+    _load_sparse_file = UDBase._load_sparse_file
+
     def __init__(self, path: Path, expnr="777"):
         self.path = path
         self.expnr = expnr
@@ -79,6 +85,22 @@ class TestVegetationSection(unittest.TestCase):
         np.testing.assert_array_equal(section.veg["points"][0], [0, 2, 0])
         self.assertEqual(section.veg["params"]["id"][0], 1)
         self.assertTrue(np.all(section.veg["params"]["lad"] == 1.0))
+
+    def test_section_built_veg_survives_cached_load_veg(self):
+        """load_block must set the veg provenance flag so a cached load_veg
+        before save() returns the section-built veg (cache hit) rather than
+        re-reading a nonexistent veg.inp and replacing it with an empty dict."""
+        (self.workdir / "trees.inp.777").write_text("1 2 3 4 1 2\n", encoding="ascii")
+        section = self._make_section()
+
+        section.load_block()  # no save() -> veg.inp.777 is not on disk
+        self.assertGreater(len(self.sim.veg["points"]), 0)
+
+        veg = self.sim.load_veg(zero_based=True, cache=True)
+
+        # Cache hit: the populated section-built veg must be returned intact.
+        self.assertGreater(len(veg["points"]), 0)
+        self.assertGreater(len(self.sim.veg["points"]), 0)
 
     def test_vegetation_block_to_veg_writes_sparse_files(self):
         (self.workdir / "trees.inp.777").write_text("1 2 1 1 1 1\n", encoding="ascii")

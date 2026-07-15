@@ -182,10 +182,23 @@ class VegetationSection(Section):
         if self.ntrees != len(points):
             self.ntrees = len(points)
         self.sim.veg = veg
+        # Mark the veg cache provenance (0-based points) so a subsequent
+        # sim.load_veg(zero_based=True, cache=True) hits the cache instead of
+        # re-reading a not-yet-written veg.inp and overwriting sim.veg.
+        self.sim._veg_zero_based = True
         self.save_param("ntrees", len(points))
 
-    def load_stl(self, filename: str | Path | None = None) -> Dict[str, np.ndarray]:
-        """Convert a closed STL volume to sparse vegetation points."""
+    def load_stl(self, filename: str | Path | None = None) -> Any:
+        """Convert a closed STL volume to sparse vegetation points.
+
+        Returns
+        -------
+        Any
+            The backend-dependent visualization object from
+            ``sim.vis.plot_veg(veg, show=False)`` (e.g. a
+            ``plotly.graph_objects.Figure`` or ``pyvista.Plotter``), or
+            ``None`` when no plot could be produced.
+        """
         sim = self.sim
         if sim is None:
             raise ValueError("UDBase instance must be provided")
@@ -269,6 +282,10 @@ class VegetationSection(Section):
         if self.ntrees != len(points):
             self.ntrees = len(points)
         self.sim.veg = veg
+        # Mark the veg cache provenance (0-based points) so a subsequent
+        # sim.load_veg(zero_based=True, cache=True) hits the cache instead of
+        # re-reading a not-yet-written veg.inp and overwriting sim.veg.
+        self.sim._veg_zero_based = True
         self.save_param("ntrees", len(points))
 
         fig = sim.vis.plot_veg(veg, show=False)

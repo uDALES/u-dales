@@ -379,6 +379,23 @@ class TestUDBaseCore(unittest.TestCase):
         self.assertIn("27", msg)  # expected column count
         self.assertIn("19", msg)  # actual column count
 
+    def test_factypes_empty_file_raises_dataformaterror(self):
+        # A header-only factypes file has no data rows; np.loadtxt returns an
+        # empty array whose "width" is meaningless. Raise a clear "no data rows"
+        # error instead of a misleading width-mismatch message.
+        self._write_namoptions(["&WALLS", " nfaclyrs = 3", "/"])
+        (self.workdir / "factypes.inp.001").write_text(
+            "# header line 1\n# header line 2\n# header line 3\n",
+            encoding="ascii",
+        )
+
+        with self.assertRaises(DataFormatError) as ctx:
+            UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        msg = str(ctx.exception)
+        self.assertIn("factypes.inp.001", msg)
+        self.assertIn("no data rows", msg)
+
     def test_factypes_default_guess_with_matching_three_layer_file(self):
         # (c) nfaclyrs absent from namoptions -> guessed 3; a matching 19-col file
         # still loads.

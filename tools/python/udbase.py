@@ -495,6 +495,15 @@ class UDBase:
                 # the wrong physical columns when the file's layer count differs
                 # from nfaclyrs, so validate the width and raise on mismatch
                 # rather than corrupting the material properties fed to load_seb.
+                if data.size == 0:
+                    # A header-only file yields an empty array (e.g. shape
+                    # (0, 1)) whose column count is meaningless; report the
+                    # real problem rather than a spurious width mismatch.
+                    raise DataFormatError(
+                        f"factypes.inp.{self.expnr} contains no data rows; "
+                        f"expected at least one wall-type definition."
+                    )
+
                 expected_cols = 6 + 4 * self.nfaclyrs + 1
                 actual_cols = data.shape[1]
                 if actual_cols != expected_cols:

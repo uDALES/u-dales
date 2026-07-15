@@ -453,7 +453,7 @@ class RadiationSection(Section):
             Direct shortwave on facets [W/m^2].
         K_star : np.ndarray
             Net shortwave on facets including reflections [W/m^2].
-        S_veg : np.ndarray
+        S_veg : np.ndarray or None
             Physical vegetation absorption power density per vegetation cell
             [W/m^3] (empty array for no-vegetation / scanline runs, or None on
             the cached-Sdir path where the solver is not re-run).
