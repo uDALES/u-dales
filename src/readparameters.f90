@@ -108,7 +108,7 @@ use mpi
       driverstore, iplane, iangledeg, &
       lchunkread, chunkread_size
    namelist/WALLS/ &
-      nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
+      nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
       nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
       nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
       nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, lnorec, &
@@ -122,12 +122,13 @@ use mpi
    namelist/CHEMISTRY/ &
       lchem, k1, JNO2
    namelist/OUTPUT/ &
-      lfielddump, tfielddump, fieldvars, &
+      lfielddump, fieldvars, &
       ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, ltkedump, &
-      slicevars, lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, &
-      tstatsdump, tsample, tstatstart, tcheck
+      slicevars, lkslicedump, kslice, nkslice, lislicedump, islice, nislice, ljslicedump, jslice, njslice, &
+      probevars, lprobedump, nprobe, &
+      tinstantstart, tinstantdump, tstatsdump, tsample, tstatstart, tstatsgap, tcheck
    namelist/TREES/ &
-      ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
+      ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump, itree_mode
    namelist/PURIFS/ &
       lpurif, npurif, Qpu, epu
    namelist/HEATPUMP/ &
@@ -620,16 +621,24 @@ contains
       ! Broadcast OUTPUT namelist parameters to all processes
       !-----------------------------------------------------------------|
       call MPI_BCAST(lfielddump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-      call MPI_BCAST(tfielddump, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(fieldvars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(tinstantstart, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(tinstantdump, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tsample, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tstatsdump, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tstatstart, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(tstatsgap, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tcheck, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(islice, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(jslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(kslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nislice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(islice, nislice, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(njslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(jslice, njslice, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nkslice, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(kslice, nkslice, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(slicevars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(probevars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(lprobedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nprobe, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lislicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ljslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lkslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -677,6 +686,7 @@ contains
       call MPI_BCAST(ltrees, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ltreedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ntrees, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(itree_mode, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(cd, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(dec, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(dqdt, 1, MY_REAL, 0, comm3d, mpierr)
@@ -699,7 +709,6 @@ contains
       call MPI_BCAST(lbottom, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lnorec, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lwritefac, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-      call MPI_BCAST(nblocks, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nbndpts_c, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nbndpts_u, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nbndpts_v, 1, MPI_INTEGER, 0, comm3d, mpierr)

@@ -27,15 +27,15 @@ module modfields
   ! Prognostic variables
 
   real, allocatable :: worksave(:)      !<   Used in POISR!
-  real, allocatable :: um(:,:,:)        !<   x-component of velocity at time step t-1
-  real, allocatable :: vm(:,:,:)        !<   y-component of velocity at time step t-1
-  real, allocatable :: wm(:,:,:)        !<   z-component of velocity at time step t-1
-  real, allocatable :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
+  real, allocatable, target :: um(:,:,:)        !<   x-component of velocity at time step t-1
+  real, allocatable, target :: vm(:,:,:)        !<   y-component of velocity at time step t-1
+  real, allocatable, target :: wm(:,:,:)        !<   z-component of velocity at time step t-1
+  real, allocatable, target :: thlm(:,:,:)      !<   liq. water pot. temperature at time step t-1
   real, allocatable :: e12m(:,:,:)      !<   turb. kin. energy at time step t-1
-  real, allocatable :: qtm(:,:,:)       !<   total specific humidity at time step t
-  real, allocatable, target :: u0(:,:,:)        !<   x-component of velocity at time step t
-  real, allocatable, target :: v0(:,:,:)        !<   y-component of velocity at time step t
-  real, allocatable, target :: w0(:,:,:)        !<   z-component of velocity at time step t
+  real, allocatable, target :: qtm(:,:,:)       !<   total specific humidity at time step t
+  real, allocatable :: u0(:,:,:)        !<   x-component of velocity at time step t
+  real, allocatable :: v0(:,:,:)        !<   y-component of velocity at time step t
+  real, allocatable :: w0(:,:,:)        !<   z-component of velocity at time step t
   real, allocatable, target :: pres0(:,:,:)     !<   pressure at time step t
   real, allocatable, target :: div(:,:,:)
   real, allocatable, target :: dudx(:,:,:)
@@ -52,30 +52,24 @@ module modfields
   real, allocatable :: wh(:,:,:)
   real, allocatable :: pres0h(:,:,:)
 
-  real, allocatable, target :: u01(:,:,:)        !<   x-component of velocity at time step t-1
-  real, allocatable, target :: u02(:,:,:)        !<   x-component of velocity at time step t-1
-
-  real, allocatable, target :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
+  real, allocatable :: thl0(:,:,:)      !<   liq. water pot. temperature at time step t
   real, allocatable :: thl0c(:,:,:)      !<   liq. water pot. temperature at time step t
   real, allocatable :: thl0h(:,:,:)     !<   3d-field of theta_l at half levels for kappa scheme
 
   real, allocatable :: qt0h(:,:,:)      !<  3d-field of q_tot   at half levels for kappa scheme
   real, allocatable :: e120(:,:,:)      !<   turb. kin. energy at time step t
-  real, allocatable, target :: qt0(:,:,:)       !<   total specific humidity at time step t
+  real, allocatable :: qt0(:,:,:)       !<   total specific humidity at time step t
 
   real, allocatable :: up(:,:,:)        !<   tendency of um
   real, allocatable :: vp(:,:,:)        !<   tendency of vm
   real, allocatable :: wp(:,:,:)        !<   tendency of wm
-  real, allocatable, target :: ru(:,:,:)        !<   tendency of um
-  real, allocatable, target :: rv(:,:,:)        !<   tendency of vm
-  real, allocatable, target :: rw(:,:,:)        !<   tendency of wm
   real, allocatable :: thlp(:,:,:)      !<   tendency of thlm
   real, allocatable :: thlpc(:,:,:)      !<   tendency of thlm
   real, allocatable :: e12p(:,:,:)      !<   tendency of e12m
   real, allocatable :: qtp(:,:,:)       !<   tendency of qtm
 
-  real, allocatable :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
-  real, allocatable, target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
+  real, allocatable, target :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
+  real, allocatable :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
   real, allocatable :: svp(:,:,:,:)     !<  tendency of sv(n)
   real, allocatable :: svpp(:,:,:,:)
 
@@ -111,23 +105,6 @@ module modfields
   integer, allocatable :: IIuws(:)          !< 1-D Masking matrix for blocks at x- and z-direction half cells that span ib:ie and 1:jtot
   integer, allocatable :: IIvws(:)          !< 1-D Masking matrix for blocks at y- and z-direction half cells that span ib:ie and 1:jtot
   integer, allocatable :: IIuvs(:)          !< 1-D Masking matrix for blocks at x- and y-direction half cells that span ib:ie and 1:jtot
-
-  real, allocatable :: Rn(:)
-  real, allocatable :: clai(:)
-  real, allocatable :: qc(:)
-  real, allocatable :: qa(:)
-  real, allocatable :: ladzf(:)
-  real, allocatable :: ladzh(:)
-
-  real, allocatable :: tr_u(:,:,:)          !< volumetric drag acting on trees along x
-  real, allocatable :: tr_v(:,:,:)          !< volumetric drag acting on trees along y
-  real, allocatable :: tr_w(:,:,:)          !< volumetric drag acting on trees along z
-  real, allocatable :: tr_qt(:,:,:)
-  real, allocatable :: tr_qtR(:,:,:)
-  real, allocatable :: tr_qtA(:,:,:)
-  real, allocatable :: tr_thl(:,:,:)
-  real, allocatable :: tr_sv(:,:,:,:)       !< tree deposition (scalar sink)
-  real, allocatable :: tr_omega(:,:,:)
 
 !  integer              :: IIbl = 1          !< Switch for if layer at kb is all blocks
 
@@ -311,7 +288,7 @@ contains
   subroutine initfields
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jtot,nsv,&
-         ihc,jhc,khc,lmintdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump!, iadv_kappa,iadv_sv
+         ihc,jhc,khc,lmintdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump
     use decomp_2d, only : alloc_z
     ! Allocation of prognostic variables
     implicit none
@@ -329,9 +306,6 @@ contains
     allocate(up(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; up=0.
     allocate(vp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; vp = 0.
     allocate(wp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; wp = 0.
-    allocate(ru(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; ru=0.
-    allocate(rv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; rv = 0.
-    allocate(rw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; rw = 0.
     ! allocate(pres0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); pres0 = 0.
     !
     ! ! Always have to allocate these, even if they are constant
@@ -481,28 +455,6 @@ contains
     allocate(IIuvs(kb:ke+khc))
     IIc=1;IIu=1;IIv=1;IIct=1;IIw=1;IIuw=1;IIvw=1;IIuwt=1;IIut=1;IIvt=1;IIwt=1;IIcs=1;IIus=1;IIvs=1;IIws=1;IIuws=1;IIvws=1;IIuw=1;IIuvs=1
 
-    if (ltreedump) then
-      allocate(qc(kb:ke))
-      allocate(qa(kb:ke))
-      allocate(ladzf(kb:ke))
-      allocate(ladzh(kb:ke))
-      allocate(Rn(kb:ke))
-      allocate(clai(kb:ke))
-
-      allocate(tr_u(ib:ie,jb:je,kb:ke))
-      allocate(tr_v(ib:ie,jb:je,kb:ke))
-      allocate(tr_w(ib:ie,jb:je,kb:ke))
-      allocate(tr_qt(ib:ie,jb:je,kb:ke))
-      allocate(tr_qtR(ib:ie,jb:je,kb:ke))
-      allocate(tr_qtA(ib:ie,jb:je,kb:ke))
-      allocate(tr_thl(ib:ie,jb:je,kb:ke))
-      allocate(tr_sv(ib:ie,jb:je,kb:ke,1:nsv)) 
-      allocate(tr_omega(ib:ie,jb:je,kb:ke))
-      
-      clai=0.;Rn=0.;qc=0.;qa=0.;ladzf=0.;ladzh=0.;tr_u=0.;tr_v=0.;tr_w=0.;tr_thl=0.;tr_qt=0.;tr_qtR=0.;tr_qtA=0.;tr_sv=0.
-      tr_omega=0.
-    end if
-
     if (lmintdump) then
       allocate(umt(ib:ie,jb:je,kb:ke+kh)); umt = 0;
       allocate(vmt(ib:ie,jb:je,kb:ke+kh)); vmt = 0;
@@ -516,7 +468,6 @@ contains
       !if (lmoist) then
         allocate(qtt(ib:ie,jb:je,kb:ke+kh)); qtt = 0;
       !end if
-
     end if
 
     if (lscasrcr .and. nsv>0) then

@@ -132,7 +132,13 @@ module modstatsdump
 
     if (.not. rk3step==3)  return
 
-    if (tsamplep > tsample) then
+  ! For one-timestep diagnostics with dump intervals no larger than dt,
+  ! treat the just-completed step as a valid first sample immediately
+  ! instead of waiting for a second call to statsdump.
+  if (tsamplep == 0. .and. tsample <= dt) tsamplep = dt
+  if (tstatsdumpp == 0. .and. tsample <= dt) tstatsdumpp = dt
+
+    if (tsamplep >= tsample) then
 
       if (lmintdump) then
 
@@ -156,13 +162,13 @@ module modstatsdump
       end if ! lmintdump
 
       tsamplep = dt
-    else !timestatsdumpp < tsample
+    else !tsamplep < tsample
 
       tsamplep = tsamplep + dt
 
     endif
 
-    if (tstatsdumpp > tstatsdump) then
+  if (tstatsdumpp >= tstatsdump) then
 
       ! Write t-averaged statistics every tsample
       if (lmintdump) then

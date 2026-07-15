@@ -2,17 +2,21 @@
 build/
 temp/
 tmp/
+tests/outputs/
+tests/system/experiments/
+tests/system/outputs/
 .vscode/
+.codex
 *.o
 *.mod
 image.sif
 *.log
+logdir/
 *.nc
 monitor*.txt
 outputs/
 
 # markdown files for testing
-tests/outputs/
 test_sourcecode_full.md
 test_sourcecode_status.md
 tests/integration/input/test_sourcecode_full.md
@@ -20,6 +24,10 @@ tests/integration/input/test_sourcecode_status.md
 tests/integration/input/test_roundtrip_default.md
 tests/integration/input/test_roundtrip_random.md
 
+examples/*/blocks.*.png
+tmp/*
+bin/
+tools/python/examples/*.stl
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*
@@ -35,6 +43,16 @@ bin/u-dales
 # Matlab artifacts
 *.m~
 
+# virtual environments
+venv/
+env/
+.venv/
+tmp/*
+.venv_netcdf/
+
 # Python
 **/__pycache__/
 *.pyc
+**/*.pyd
+facets*.vs3
+tests/cases/**/*.fig

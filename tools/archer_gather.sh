@@ -29,20 +29,12 @@ if [ -z $DA_TOOLSDIR ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $outdir/config.sh"
     exit 1
 fi;
-if [ -z $NNODE ]; then
-    echo "Script directory NNODE must be set inside $inputdir/config.sh"
-    exit 1
-fi;
-if [ -z $NCPU ]; then
-    echo "Script directory NCPU must be set inside $inputdir/config.sh"
-    exit 1
-fi;
 if [ -z $WALLTIME ]; then
-    echo "Script directory WALLTIME must be set inside $inputdir/config.sh"
+    echo "Wall clock time WALLTIME must be set inside $outdir/config.sh"
     exit 1
 fi;
 if [ -z $QOS ]; then
-    echo "Script directory QOS must be set inside $inputdir/config.sh"
+    echo "Job quota QOS must be set inside $outdir/config.sh"
     exit 1
 fi;
 
@@ -59,7 +51,7 @@ cat <<EOF > post-job.$exp.slurm
 #SBATCH --partition=standard
 #SBATCH --qos=${QOS}
 
-module load nco gsl
+module load cray-hdf5 cray-netcdf nco gsl
 $DA_TOOLSDIR/gather_outputs.sh $outdir
 EOF
 

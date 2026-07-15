@@ -316,6 +316,10 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | qt0            | 0       | -               | Specific humidity at z = 0.                                                               | -           |
 | lapse          | 0       | -               | Lapse rate.                                                                               | [K/m]         |
 | w_s            | 0       | -               | Subsidence.                                                                               | -           |
+| dqtdxls        | 0       | -               | Large-scale advective tendency of specific humidity in x direction.                       | [kg/kg/s]   |
+| dqtdyls        | 0       | -               | Large-scale advective tendency of specific humidity in y direction.                       | [kg/kg/s]   |
+| dqtdtls        | 0       | -               | Large-scale advective tendency of specific humidity in time.                              | [kg/kg/s]   |
+| tke            | 0       | -               | Initial turbulence kinetic energy.                                                        | [m^2/s^2]   |
 | R              | 0       | -               | Radiative forcing.                                                                        | [W/m^2]       |
 | xS | 0 | `REAL` | Position of scalar point source in x. | [m] |
 | yS | 0 | `REAL` | Position of scalar point source in y. | [m] |

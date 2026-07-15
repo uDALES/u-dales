@@ -22,7 +22,6 @@ SUBROUTINE wfuno(hi,hj,hk,iout1,iout2,iot,iomomflux,iotflux,iocth,obcTfluxA,utan
    USE modglobal, ONLY : dzf,dzfi,dzh2i,dzhi,dzhiq,dy,dyi,dy2i,dyi5,dxf,dxh,dxfi,dxhi,dxh2i,ib,ie,jb,je,kb,ke,fkar,grav,jmax,rk3step,kmax,jge,jgb
    USE modsubgriddata, ONLY:ekh, ekm
    USE modmpi, ONLY:myid
-   USE initfac, ONLY:block
    USE modibmdata
    REAL, EXTERNAL :: unom
    INTEGER i, j, k, jl, ju, kl, ku, il, iu, km, im, jm, ip, jp, kp

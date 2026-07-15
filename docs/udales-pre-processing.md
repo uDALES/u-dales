@@ -1,7 +1,7 @@
 # uDALES preprocessing
 
 In order to perform a simulation with uDALES, the input data needs to be processed, which creates a number of [input files](#input-files) that will be read by the uDALES simulation.
-This can be done from the command line using the shell script `write_inputs.sh`, which is a wrapper around the MATLAB script `write_inputs.m`. For more info about the functions see the [Developer's guide](#developers-guide). The script requires several variables in order to be execute without errors. Three main files required inside the experiment case directory are
+This can be done from the command line using the shell script `write_inputs.sh`, which is a wrapper around either the MATLAB script `write_inputs.m` or the Python script `write_inputs.py`. For more info about the functions see the [Developer's guide](#developers-guide). The script requires several variables in order to be execute without errors. Three main files required inside the experiment case directory are
 
 1. an appropriately set namoptions.001 (assumming 001 is the case directory name) file,
 2. an STL file of the  building geometry (except for few special cases)
@@ -17,8 +17,18 @@ export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of the scripts
 export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups
 ```
 
-Before running the preprocessing, one must build the View3D submodule. This is a one time task and should be done as soon as you clone u-dales from GitHub.
+Before running the preprocessing, one must build a virtual python environment as uDALES preprocessing setup is gradually moving towards Python; the MATLAB codes will depricate in near future. Run the virtual environment setup script from the repository root as given below. It creates the virtual environment, installs all dependencies, and builds the preprocessing tools (View3D and f2py extension modules). For more details on virtual environment set up see [here](./../tools/python/README_VENV.md):
 
+```bash
+# For a local machine
+bash tools/python/setup_venv.sh common
+
+# For the Imperial HPC machine
+bash tools/python/setup_venv.sh icl
+```
+This is a one time task and should be done as soon as you clone u-dales from GitHub. **Carry out the Python virtual environment setup irrespective of you use the MATLAB preprocessing route or the Python.**
+
+<!---
 ``` sh
 # We assume you are running the following commands from the u-dales directory.
 
@@ -28,6 +38,7 @@ Before running the preprocessing, one must build the View3D submodule. This is a
 # To build on ICL HPC
 ./tools/build_preprocessing.sh icl
 ```
+--->
 
 Then, to start the pre-processing, run:
 
@@ -37,8 +48,11 @@ For local ubuntu or mac
 # We assume you are running the following commands from your
 # top-level project directory.
 
-# General syntax: write_inputs.sh exp_id
-./u-dales/tools/write_inputs.sh experiments/001
+# General syntax: write_inputs.sh <-m|-p> exp_id
+./u-dales/tools/write_inputs.sh -m experiments/001
+
+# Or run the Python preprocessing route
+./u-dales/tools/write_inputs.sh -p experiments/001
 ```
 
 For ICL HPC
@@ -47,13 +61,16 @@ For ICL HPC
 # We assume you are running the following commands from your
 # top-level project directory.
 
-# General syntax: write_inputs.sh esperiments/exp_id run_node_type
+# General syntax: write_inputs.sh <-m|-p> experiments/exp_id run_node_type
 
 # To run preprocessing on HPC log in node (not recomended)
-./u-dales/tools/write_inputs.sh experiments/001 l
+./u-dales/tools/write_inputs.sh -m experiments/001 l
 
 # To run preprocessing on HPC compute node (recomended)
-./u-dales/tools/write_inputs.sh experiments/001 c
+# For MATLAB
+./u-dales/tools/write_inputs.sh -m experiments/001 c
+# For Python
+./u-dales/tools/write_inputs.sh -p experiments/001 c
 ```
 
 In above example commands, replace 001 with the number of your example.
@@ -104,7 +121,7 @@ The `u-dales/tools/preprocessing.m` matlab class contains the functionality for 
 
 The `u-dales/tools/write_inputs.m` matlab script calls member functions of `preprocessing.m` in order to write the basic input files (those not relating to the IBM or SEB), followed by routines located in the `IBM` and `SEB` directories within the uDALES tools directory. It is intended to be as short and readable as possible, with the goal being that a developer can edit for a particular purpose. It will work simply as a normal script using the matlab IDE, but when doing this, ensure that `DA_EXPDIR = <top level directory>/experiments/` and `DA_TOOLSDIR = <top level directory>/u-dales/tools/` are defined.
 
-The `u-dales/tools/write_inputs.sh` shell script acts as a wrapper around `write_inputs.m`. Before running the matlab script, it will run the shell script `config.sh` located in the experiment directory, which defines environmental variables `DA_EXPDIR` and `DA_TOOLSDIR`. After running the script, it will also write the correct number of facets to `namoptions`. It is intended to be run from the top level project directory.
+The `u-dales/tools/write_inputs.sh` shell script acts as a wrapper around either `write_inputs.m` or `write_inputs.py`. Before running the selected route, it will run the shell script `config.sh` located in the experiment directory, which defines environmental variables `DA_EXPDIR` and `DA_TOOLSDIR`. The first argument must be either `-m` for MATLAB or `-p` for Python. It is intended to be run from the top level project directory.
 
 Some parameters used by uDALES are used in the pre-processing. They are the following:
 
@@ -188,6 +205,10 @@ The parameters under the `&INPS` header are used only in the pre-processing.
 - `qt0`: specific humidity at z = 0. Default: 0.
 - `lapse`: lapse rate (K/m). Default: 0.
 - `w_s`: subsidence. Default: 0.
+- `dqtdxls`: large-scale advective tendency of specific humidity in x direction (kg/kg/s). Default: 0.
+- `dqtdyls`: large-scale advective tendency of specific humidity in y direction (kg/kg/s). Default: 0.
+- `dqtdtls`: large-scale advective tendency of specific humidity in time (kg/kg/s). Default: 0.
+- `tke`: initial turbulence kinetic energy (m^2/s^2). Default: 0.
 - `R`: radiative forcing (W/m^2). Default: 0.
 - `NOb`: initial concentration of NO. Default: 0.
 - `NO2b`: initial concentration of NO2b. Default: 0.

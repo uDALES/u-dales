@@ -98,7 +98,7 @@ contains
       real   , dimension(:), allocatable :: locCoord1, locCoord2
       integer, dimension(:), allocatable :: counts
       real :: xmin, xmax, xrange, ymin, ymax, yrange, temp
-      real, dimension(3) :: p0, u1, u2
+      real, dimension(3) :: p0, u1, u2, up
       real, dimension(2) :: cor1, cor2, cor3, cor4
       real, dimension(3,3) :: matrix, invMatrix
       integer :: i, j, n, m, id_temp, size_xi, size_eta
@@ -116,7 +116,16 @@ contains
       ! write(*,*) "p0", p0
 
       ! define orthonormal basis on the plane
-      u1 = -(/nsun(2), -nsun(1), 0./)
+      ! When the sun is close to vertical, the historical basis
+      ! u1 = -(/nsun(2), -nsun(1), 0./) becomes singular because its norm
+      ! collapses to zero. Use an alternate up vector in that case so the
+      ! scanline projection remains well-defined for solarzenith = 0 cases
+      ! such as experiment 064.
+      up = (/0., 0., 1./)
+      if (abs(dot_product(up, nsun)) > 0.95) then
+         up = (/0., 1., 0./)
+      end if
+      u1 = cross_product(up, nsun)
       u1 = u1 / norm2(u1)
       u2 = cross_product(u1, nsun)
 
@@ -153,6 +162,7 @@ contains
       do n=1,nFaces
          areas(n) = 0.5*norm2(cross_product(vertices(connectivityList(n,2),:) - vertices(connectivityList(n,1),:), &
                                             vertices(connectivityList(n,3),:) - vertices(connectivityList(n,1),:)))
+         visibility(n) = 0
          if (dot_product(faceNormal(n,:), nsun) > 0)  visibility(n) = 1
          planeIncenter(n,:) = matmul(invMatrix, incenter(n,:) - p0)
          distIncenter(n) = planeIncenter(n,3)
@@ -209,6 +219,7 @@ contains
       !write(*,*) "sizeMask1, sizeMask2", sizeMask1, sizeMask2
       !allocate(mask(size_eta, size_xi))
       allocate(maskIDs(size_eta, size_xi))
+      maskIDs = 0
 
       ! allocate(locCoord1(sizeMask1))
       ! allocate(locCoord2(sizeMask2))
@@ -329,7 +340,6 @@ contains
    subroutine writeDirectShortwave(Sdir, nFaces)
       integer, intent(in) :: nFaces
       real   , intent(in), dimension(nFaces) :: Sdir
-      !character(25), intent(in) :: fname_Sdir
       integer :: n
 
       open (unit=10,file='Sdir.txt',action="write")
@@ -489,12 +499,13 @@ contains
         integer, intent(in) :: M, N, id
         !logical, intent(out) :: out(M, N)
         logical :: out(M, N)
-        integer, intent(out) :: outIDs(M, N)
+        integer, intent(inout) :: outIDs(M, N)
         integer :: sizeX
         real    :: scale = 5.0
         integer :: minY(N), maxY(N)
 
-        ! Initialize minY and maxY arrays
+        ! Initialize
+        out = .false.
         minY = 0
         maxY = 0
         sizeX = size(xpt,1)+1 ! number of vertices
@@ -517,8 +528,8 @@ contains
         real  , intent(inout) :: x(:), y(:)
         integer, intent(in) :: xLength, M, N
         real   , intent(in) :: scale
-        logical, intent(out) :: out(M, N)
-        integer, intent(out) :: minY(N), maxY(N)
+        logical, intent(inout) :: out(M, N)
+        integer, intent(inout) :: minY(N), maxY(N)
         real, allocatable, dimension(:) :: xLinePts, yLinePts
         integer :: borderSize
         integer :: i, pt, xUse, yUse
@@ -697,7 +708,6 @@ contains
         if (dx >= dy) then
             m = (y2 - y1) / (x2 - x1)
             if (x2 > x1) then
-                !do xVal = x1, x2
                 do xit = int(x1), int(x2)
                     xVal = xit + x1-int(x1)
                     yVal = nint(y1 + m * (xVal - x1))
@@ -706,7 +716,6 @@ contains
                     borderPosition = borderPosition + 1
                 end do
             else
-                !do xVal = x1, x2, -1
                 do xit = int(x1), int(x2), -1
                     xVal = xit + x1-int(x1)
                     yVal = nint(y1 + m * (xVal - x1))
@@ -718,7 +727,6 @@ contains
         else
             m = (x2 - x1) / (y2 - y1)
             if (y2 > y1) then
-                !do yVal = y1, y2
                 do yit = int(y1), int(y2)
                     yVal = yit + y1-int(y1)
                     xVal = nint(x1 + m * (yVal - y1))
@@ -727,7 +735,6 @@ contains
                     borderPosition = borderPosition + 1
                 end do
             else
-               !do yVal = y1, y2, -1
                do yit = int(y1), int(y2), -1
                     yVal = yit + y1-int(y1)
                     xVal = nint(x1 + m * (yVal - y1))
@@ -741,7 +748,7 @@ contains
 
     subroutine parityScan(out, N, minY, maxY, outIDs, id)
         logical, intent(inout) :: out(:,:)
-        integer, intent(out) :: outIDs(:,:)
+        integer, intent(inout) :: outIDs(:,:)
         integer, intent(in) :: N, id
         integer, intent(in) :: minY(N), maxY(N)
         logical :: pixel

@@ -17,6 +17,8 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
+from .delete_ground import delete_ground
+
 
 def split_buildings(mesh: 'trimesh.Trimesh', remove_ground: bool = True) -> Tuple[List['trimesh.Trimesh'], np.ndarray]:
     """
@@ -93,12 +95,8 @@ def split_buildings(mesh: 'trimesh.Trimesh', remove_ground: bool = True) -> Tupl
     
     # Step 1: Optional ground removal
     if remove_ground:
-        # Identify faces with all vertices at ground level (Z == 0)
-        # This matches MATLAB's deleteGround implementation
-        face_z_values = vertices[faces, 2]  # Shape: (n_faces, 3)
-        ground_mask = np.all(face_z_values == 0, axis=1)
-        building_faces = faces[~ground_mask]
-        building_face_indices = np.where(~ground_mask)[0]
+        filtered_mesh, building_face_indices = delete_ground(mesh)
+        building_faces = np.asarray(filtered_mesh.faces, dtype=int)
     else:
         building_faces = faces
         building_face_indices = np.arange(len(faces))
@@ -140,18 +138,18 @@ def split_buildings(mesh: 'trimesh.Trimesh', remove_ground: bool = True) -> Tupl
     visited = set()
     components = []
     
-    def dfs(node, component):
-        """Depth-first search to find connected component"""
-        visited.add(node)
-        component.append(node)
-        for neighbor in adjacency[node]:
-            if neighbor not in visited:
-                dfs(neighbor, component)
-    
     for i in range(n_building_faces):
         if i not in visited:
             component = []
-            dfs(i, component)
+            stack = [i]
+            visited.add(i)
+            while stack:
+                node = stack.pop()
+                component.append(node)
+                for neighbor in adjacency[node]:
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        stack.append(neighbor)
             components.append(component)
     
     # Step 5: Create triangulation objects for each component

@@ -30,9 +30,9 @@ module modglobal
 
    integer :: poisrcheck = 0 ! switch to check if it is the first (RK) time step
    ! Simulation dimensions (parconst.f90)
-   integer :: itot = 96 ! Used to be called imax
+   integer :: itot = 96
    integer :: jtot = 96
-   integer :: ktot = 96 ! Rename to ktot?
+   integer :: ktot = 96
    integer :: imax
    integer :: imax1
    integer :: imax2
@@ -55,8 +55,6 @@ module modglobal
    integer ::  ke
    integer ::  nsv = 0 !< Number of additional scalar fields
    integer ::  nvar = 0
-   character(50) :: fieldvars = ''
-   character(50) :: slicevars = ''
 
    integer ::  ih = 3
    integer ::  jh = 3
@@ -65,21 +63,27 @@ module modglobal
    integer ::  jhc = 2 ! used in k-scheme
    integer ::  khc = 2 ! used in k-scheme
 
-   integer :: nblocks = 0 ! no. of blocks in IBM
-   integer, allocatable :: block(:,:)
    integer :: nfcts = -1 ! no. of wall facets
    integer ::  iplane ! ib+iplane is the plane that is stored when lstoreplane=.true.
    integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
    character(90) :: fname_options = 'namoptions'
    integer, parameter :: longint = 8
 
-   integer, parameter :: RUN_SIMULATION = 1
+   ! Run mode constants and variable
+   integer, parameter :: RUN_COLDSTART = 1
+   integer, parameter :: RUN_WARMSTART = 2
+   integer, parameter :: RUN_DRIVER = 3
+   integer, parameter :: RUN_STRATSTART = 4
+
    integer, parameter :: TEST_ROUNDTRIP = 1001
    integer, parameter :: TEST_IO = 1002
-   integer :: runmode = RUN_SIMULATION
+   integer, parameter :: TEST_2DCOMP_INIT_EXIT = 1003
+   integer, parameter :: TEST_SPARSE_IJK = 1004
+   integer, parameter :: TEST_MPI_OPERATORS = 1005
+   integer :: runmode = RUN_COLDSTART
+
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
-   logical :: lfielddump = .false. !< switch to enable the fielddump
    logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
 
    !Switches for boundary conditions
@@ -191,22 +195,13 @@ module modglobal
    logical :: lfixutauin = .false. !<  switch that determines whether the utau is kept fixed at the inlet (only used when iinletgen=1,2)
    logical :: lscasrc = .false. !
    logical :: lscasrcl = .false. !tg3315
-   logical :: lydump = .false.  !<  switch to output y-averaged statistics every tsample
-   logical :: lytdump = .false.  !<  switch to output y- and time- averaged statistics every tstatsdump
-   logical :: lxydump    = .false.  !<  switch to output x- and y-avewraged statistics every tsample
-   logical :: lxytdump   = .false.  !<  switch to output x-, y- and time-averaged statistics every tstatsdump
    logical :: lscasrcr  = .false.  !<  switch for network of point sources at lowest level
-   logical :: ltkedump = .false. !tg3315
-   logical :: lkslicedump= .false.  !<  switch to output slices in the xy-plane every tsample
-   logical :: lislicedump= .false.  !<  switch to output slices in the yz-plane every tsample
-   logical :: ljslicedump= .false.  !<  switch to output slices in the xz-plane every tsample
-   integer :: kslice    = 1! k at which to output slice in xy-plane
-   integer :: islice    = 1! i at which to output slice in yz-plane
-   integer :: jslice    = 1! j at which to output slice in xz-plane
-   logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
-   logical :: lmintdump    = .false.      !<  switch to output prognostic statistics every tstatsdump
 
+   integer, parameter :: TREE_MODE_DRAG_ONLY = 1
+   integer, parameter :: TREE_MODE_SVEG = 2
+   integer, parameter :: TREE_MODE_LEGACY_SEB = 99
    logical :: ltrees = .false.         !<  switch to turn on trees module
+   integer :: itree_mode = TREE_MODE_DRAG_ONLY !< tree mode: 1 drag only, 2 sveg, 99 legacy SEB
    logical :: lpurif = .false.         !<  switch to turn on purifiers module
    logical :: ltreedump = .false.   !<  switch to output tree results time-averaged statistics every tstatsdump
 
@@ -238,6 +233,47 @@ module modglobal
    integer :: ifixuinf = 0
    logical :: lvinf = .false. !use Vinf instead of Uinf for the fixed velocity at infinity
    logical :: lrandomize = .true.
+
+   ! Outputting statistics
+   logical :: lydump       = .false.  !<  switch to output y-averaged statistics every tsample
+   logical :: lytdump      = .false.  !<  switch to output y- and time- averaged statistics every tstatsdump
+   logical :: lxydump      = .false.  !<  switch to output x- and y-avewraged statistics every tsample
+   logical :: lxytdump     = .false.  !<  switch to output x-, y- and time-averaged statistics every tstatsdump
+   logical :: ltdump       = .false.  !<  switch to output time-averaged statistics every tstatsdump
+   logical :: lmintdump    = .false.  !<  switch to output prognostic statistics every tstatsdump
+   logical :: ltkedump     = .false.  !tg3315
+   
+   real    :: tstatstart   = 0.       !< Starting time of statistic computation
+   real    :: tstatsdump   = 10000.   !< Time step for statistics outputs
+   real    :: tstatsgap    = 0.       !< Time gap between two consecutive statistics dumps (used in conjunction with tstatstart)
+   real    :: tsample      = 5.       !<    Sample time steps for statistics
+   
+   ! Outputting instantaneous slices sampled at every tsample
+   logical :: lkslicedump  = .false.  !<  switch to output slices in the xy-plane every tsample
+   integer :: kslice(1000) = 0        !<  k levels at which to output slices in xy-plane
+   integer :: nkslice      = 0        !<  number of k-slices
+   logical :: lislicedump  = .false.  !<  switch to output slices in the yz-plane every tsample
+   integer :: islice(1000) = 0        !<  i levels at which to output slices in yz-plane
+   integer :: nislice      = 0        !<  number of i-slices
+   logical :: ljslicedump  = .false.  !<  switch to output slices in the xz-plane every tsample
+   integer :: jslice(1000) = 0        !<  j levels at which to output slices in xz-plane
+   integer :: njslice      = 0        !<  number of j-slices
+   character(50) :: slicevars = ''    !<  list of variables to be output in slices
+
+   ! Outputting instantaneous probes sampled at every tsample
+   logical :: lprobedump   = .false.  !<  switch to output probe (point) time series every tsample
+   integer :: iprobe(1000) = 0        !<  i indices of probe points
+   integer :: jprobe(1000) = 0        !<  j indices of probe points
+   integer :: kprobe(1000) = 0        !<  k indices of probe points
+   integer :: nprobe       = 0        !<  number of probe points
+   character(50) :: probevars = ''    !<  list of variables to be output at probe points
+
+   ! Outputting instantaneous 3D fields
+   logical :: lfielddump   = .false.  !< switch to enable the fielddump
+   character(50) :: fieldvars = ''    !< list of variables to be output in fielddump
+
+   real    :: tinstantstart  = 0.     !< Starting time of writing instantaneous fields
+   real    :: tinstantdump   = 10000. !< Time step for instantaneous field outputs
 
    logical :: ibrank
    logical :: ierank
@@ -394,13 +430,8 @@ module modglobal
 
    real    :: tcheck = 1. !<    Time interval for basic logging to screen
    real    :: trestart = 10000. !<     * each trestart sec. a restart file is written to disk. bss116: per default do not write restart files
-   real    :: tfielddump = 10000. !< Time step for field outputs
-   real    :: tsample = 5. !<    Sample time steps for statistics
-   real    :: tstatsdump = 10000. !< Time step for statistics outputs tg3315
-   real    :: tstatstart = 0.      !< Starting time of statistic computation
    real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
    real    :: tscale !       timescale: domain height*Uinf/utau**2
-   real    :: tnextfielddump !<
    character(90) :: startfile = '' !<    * name of the restart file
 
    real :: totavtime = 0. !<    * the total time over which the values are averaged in meansXXX.XXX
@@ -854,8 +885,6 @@ contains
       end if
 
       tnextrestart = trestart
-      tnextfielddump = tfielddump
-!    tnextstatsdump = tstatsdump
       timeleft = runtime ! tg3315 previously btime + runtime
 
    end subroutine initglobal

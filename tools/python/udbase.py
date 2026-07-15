@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 uDALES Post-Processing Module
 
@@ -13,16 +15,24 @@ Copyright (C) 2016- the uDALES Team.
 
 import numpy as np
 import xarray as xr
+import pandas as pd
+import json
 from pathlib import Path
 from typing import Optional, Union, Dict, Any, List
 import importlib.util
 import warnings
+import sys
 
 # Import UDGeom from the udgeom package
 try:
     from udgeom import UDGeom
 except ImportError:
     from .udgeom import UDGeom
+
+try:
+    from udvis import UDVis
+except ImportError:
+    from .udvis import UDVis
 
 
 def _file_has_data(path: Path, skiprows: int = 0) -> bool:
@@ -37,6 +47,10 @@ def _file_has_data(path: Path, skiprows: int = 0) -> bool:
     except OSError:
         return False
     return False
+
+
+def _empty_2d(dtype: np.dtype) -> np.ndarray:
+    return np.empty((0, 0), dtype=dtype)
 
 
 class UDBase:
@@ -62,7 +76,13 @@ class UDBase:
     >>> stats = sim.load_stat_xyt('u')
     """
     
-    def __init__(self, expnr: Union[int, str], path: Optional[Union[str, Path]] = None, load_geometry: bool = True):
+    def __init__(
+        self,
+        expnr: Union[int, str],
+        path: Optional[Union[str, Path]] = None,
+        load_geometry: bool = True,
+        suppress_load_warnings: bool = False,
+    ):
         """
         Initialize a UDBase instance.
 
@@ -72,8 +92,11 @@ class UDBase:
             Experiment number. Converted to a zero-padded 3-digit string.
         path : str or Path, optional
             Path to the experiment directory. Defaults to current working directory.
+            A leading "~" is expanded to the user's home directory.
         load_geometry : bool, optional
             If True, load STL geometry when available.
+        suppress_load_warnings : bool, optional
+            If True, suppress missing-file warnings during constructor loading.
 
         Attributes
         ----------
@@ -112,8 +135,34 @@ class UDBase:
         self.cpath = Path.cwd()
         if callable(path):
             path = path()
-        self.path = Path(path) if path else self.cpath
-        
+        self.path = Path(path).expanduser() if path else self.cpath
+
+        # Standard filenames and prefixes used across loaders, kept aligned
+        # with the legacy MATLAB udbase defaults.
+        self.fnamoptions = "namoptions"
+        self.fprof = "prof.inp"
+        self.flscale = "lscale.inp"
+        self.fxytdump = "xytdump"
+        self.ftdump = "tdump"
+        self.ffielddump = "fielddump"
+        self.fislicedump = "islicedump"
+        self.fjslicedump = "jslicedump"
+        self.fkslicedump = "kslicedump"
+        self.fsolid = "solid"
+        self.ffacEB = "facEB"
+        self.ffacT = "facT"
+        self.ffac = "fac"
+        self.ffacets = "facets.inp"
+        self.ffactypes = "factypes.inp"
+        self.ffacetarea = "facetarea.inp"
+        self.ffluid_boundary = "fluid_boundary"
+        self.ffacet_sections = "facet_sections"
+        self.ftreedump = "treedump"
+        self.ftrees = "trees.inp"
+
+        # Load-time warning control
+        self._suppress_load_warnings = suppress_load_warnings
+
         # File presence flags
         self._lfprof = True
         self._lfsolid = True
@@ -126,7 +175,7 @@ class UDBase:
         
         # Read namoptions file
         self._read_namoptions()
-        
+
         # Load grid
         self._load_grid()
         
@@ -142,6 +191,13 @@ class UDBase:
         
         # Load tree data if present
         self._load_tree_data()
+
+        # Load vegetation data if present
+        self._load_veg_data()
+
+        # Visualization facade. `UDBase` owns the simulation state; `self.vis`
+        # provides plotting methods on top of that state.
+        self.vis = UDVis(self)
     
     def _read_namoptions(self):
         """
@@ -156,6 +212,17 @@ class UDBase:
         
         if not filepath.exists():
             raise FileNotFoundError(f"namoptions.{self.expnr} not found in {self.path}")
+
+        scalar_defaults = {
+            "nsv": 0,
+            "lscasrc": False,
+            "lscasrcl": False,
+            "lscasrcr": False,
+            "nscasrc": 0,
+            "nscasrcl": 0,
+        }
+        for key, val in scalar_defaults.items():
+            setattr(self, key, val)
         
         with open(filepath, 'r') as f:
             for line in f:
@@ -193,6 +260,78 @@ class UDBase:
             self.dx = self.xlen / self.itot
         if hasattr(self, 'ylen') and hasattr(self, 'jtot'):
             self.dy = self.ylen / self.jtot
+
+    def read_matrix(filename, skiprows=1):
+        """
+        Python equivalent of MATLAB readmatrix function
+
+        Parameters
+        ----------
+        filename : str or Path
+            Path to the input file.
+        skiprows : int
+            Number of rows to skip at the beginning of the file.
+
+        Returns
+        -------
+        numpy.ndarray
+            Data as a NumPy array.
+        """
+        filename = Path(filename)
+
+        ext = filename.suffix.lower()
+
+        if ext in {'.xlsx', '.xls', '.xlsm'}:
+            return pd.read_excel(filename, skiprows=skiprows, header=None).to_numpy()
+        elif ext in {'.csv'}:
+            return pd.read_csv(filename, skiprows=skiprows, header=None).to_numpy()
+        elif ext in {'.txt', '.dat'}:
+            # Try comma-delimited first, then whitespace-delimited
+            try:
+                return pd.read_csv(filename, skiprows=skiprows, header=None).to_numpy()
+            except Exception:
+                return pd.read_csv(filename, skiprows=skiprows, header=None, delim_whitespace=True).to_numpy()
+        else:
+            try:
+                # df = pd.read_csv(filename, skiprows=skiprows, header=None, sep=r"\s+", engine="python").to_numpy()
+                return np.loadtxt(filename, skiprows=skiprows)
+            except Exception as e:
+                raise ValueError(f"Unsupported file type: {ext}") from e
+
+    def _load_sparse_file(
+        self,
+        path: Path,
+        *,
+        skiprows: int = 0,
+        dtype: np.dtype = float,
+        min_cols: int | None = None,
+        zero_based_cols: list[int] | None = None,
+    ) -> np.ndarray:
+        """Load a sparse text file with comments, returning a 2D array."""
+        if not path.exists():
+            return _empty_2d(dtype)
+        rows = []
+        with path.open("r", encoding="ascii", errors="ignore") as f:
+            for _ in range(skiprows):
+                next(f, None)
+            for line in f:
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#"):
+                    continue
+                parts = stripped.split()
+                if min_cols is not None and len(parts) < min_cols:
+                    raise ValueError(f"Expected at least {min_cols} columns in {path}")
+                rows.append(parts)
+        if not rows:
+            return _empty_2d(dtype)
+        arr = np.asarray(rows, dtype=dtype)
+        if arr.ndim == 1:
+            arr = arr.reshape(1, -1)
+        if min_cols is not None and arr.shape[1] < min_cols:
+            raise ValueError(f"Expected at least {min_cols} columns in {path}")
+        if zero_based_cols:
+            arr[:, zero_based_cols] -= 1
+        return arr
     
     def _load_grid(self):
         """
@@ -216,15 +355,16 @@ class UDBase:
                 self.zm = zm_full[:-1]  # Match dimensions
                 
                 # Grid spacing
-                self.dzt = np.diff(np.concatenate([self.zm, [self.zsize]]))
-                self.dzm = np.concatenate([[2 * self.zt[0]], np.diff(self.zt)])
+                self.dzt = np.diff(np.append(self.zm, self.zsize))
                 
             except Exception as e:
-                warnings.warn(f"Error loading prof.inp.{self.expnr}: {e}. Using uniform grid.")
+                warnings.warn(
+                    f"Error loading prof.inp.{self.expnr}: {e}. Using uniform grid."
+                )
                 self._lfprof = False
                 self._generate_uniform_zgrid()
         else:
-            warnings.warn(f"prof.inp.{self.expnr} not found. Assuming equidistant grid.")
+            self._warn_load(f"prof.inp.{self.expnr} not found. Assuming equidistant grid.")
             self._lfprof = False
             self._generate_uniform_zgrid()
         
@@ -243,10 +383,16 @@ class UDBase:
             self.zm = np.arange(self.ktot) * dz
             self.zt = self.zm + 0.5 * dz
             
-            self.dzm = np.full(self.ktot, dz)
             self.dzt = np.full(self.ktot, dz)
         else:
-            warnings.warn("Cannot generate z-grid: zsize or ktot not found in namoptions")
+            self._warn_load("Cannot generate z-grid: zsize or ktot not found in namoptions")
+
+    def _warn_load(self, message: str) -> None:
+        if self._suppress_load_warnings:
+            return
+        print("=" * 67, file=sys.stderr)
+        print(f"WARNING: {message}", file=sys.stderr)
+        print("=" * 67, file=sys.stderr)
     
     def _load_geometry(self):
         """Load STL geometry file if present."""
@@ -270,25 +416,17 @@ class UDBase:
             
             if solid_file.exists():
                 try:
-                    if not _file_has_data(solid_file, skiprows=1):
-                        mask = np.zeros((self.itot, self.jtot, self.ktot), dtype=bool)
-                        setattr(self, f'S{grid_type}', mask)
-                        continue
-                    # Read indices (1-based from Fortran)
-                    indices = np.loadtxt(solid_file, skiprows=1, dtype=int)
-                    if indices.size == 0:
-                        mask = np.zeros((self.itot, self.jtot, self.ktot), dtype=bool)
-                        setattr(self, f'S{grid_type}', mask)
-                        continue
+                    indices = self._load_sparse_file(
+                        solid_file,
+                        skiprows=1,
+                        dtype=int,
+                        min_cols=3,
+                        zero_based_cols=[0, 1, 2],
+                    )
 
-                    # Create boolean mask
                     mask = np.zeros((self.itot, self.jtot, self.ktot), dtype=bool)
-                    
-                    if indices.ndim == 1:
-                        indices = indices.reshape(1, -1)
-                    
-                    # Convert to 0-based indexing
-                    mask[indices[:, 0] - 1, indices[:, 1] - 1, indices[:, 2] - 1] = True
+                    if indices.size:
+                        mask[indices[:, 0], indices[:, 1], indices[:, 2]] = True
                     
                     # Store as attribute (Su, Sv, Sw, Sc)
                     setattr(self, f'S{grid_type}', mask)
@@ -298,12 +436,18 @@ class UDBase:
                     setattr(self, f'S{grid_type}', None)
                     self._lfsolid = False
             else:
+                self._warn_load(f"solid_{grid_type}.txt not found. IBM solid mask not loaded.")
                 setattr(self, f'S{grid_type}', None)
+                self._lfsolid = False
     
     def _load_facet_data(self):
         """Load facet information if present."""
         self.facs = {}
         self.factypes = {}
+        self._lffacetarea = True
+        self._lffacets = True
+        self._lffactypes = True
+        self._lffacet_sections = True
         
         # Load facet areas
         facetarea_file = self.path / f"facetarea.inp.{self.expnr}"
@@ -314,6 +458,7 @@ class UDBase:
                 warnings.warn(f"Error loading facetarea.inp.{self.expnr}: {e}")
                 self._lffacetarea = False
         else:
+            self._warn_load(f"facetarea.inp.{self.expnr} not found.")
             self._lffacetarea = False
         
         # Load facet types
@@ -327,6 +472,7 @@ class UDBase:
                 warnings.warn(f"Error loading facets.inp.{self.expnr}: {e}")
                 self._lffacets = False
         else:
+            self._warn_load(f"facets.inp.{self.expnr} not found.")
             self._lffacets = False
         
         # Load facet type properties
@@ -370,6 +516,7 @@ class UDBase:
                 warnings.warn(f"Error loading factypes.inp.{self.expnr}: {e}")
                 self._lffactypes = False
         else:
+            self._warn_load(f"factypes.inp.{self.expnr} not found.")
             self._lffactypes = False
         
         # Load facet sections
@@ -378,35 +525,35 @@ class UDBase:
     def _load_facet_sections(self):
         """Load facet section information for u, v, w, c grids."""
         self.facsec = {}
-        
+
         for grid_type in ['u', 'v', 'w', 'c']:
             facsec_file = self.path / f"facet_sections_{grid_type}.txt"
             fluid_boundary_file = self.path / f"fluid_boundary_{grid_type}.txt"
             
             if facsec_file.exists() and fluid_boundary_file.exists():
                 try:
-                    if not _file_has_data(facsec_file, skiprows=1) or not _file_has_data(fluid_boundary_file, skiprows=1):
-                        self._lffacet_sections = False
+                    facsec_data = self._load_sparse_file(
+                        facsec_file,
+                        skiprows=1,
+                        dtype=float,
+                        min_cols=4,
+                    )
+                    fluid_boundary = self._load_sparse_file(
+                        fluid_boundary_file,
+                        skiprows=1,
+                        dtype=int,
+                        min_cols=3,
+                        zero_based_cols=[0, 1, 2],
+                    )
+                    if facsec_data.size == 0:
+                        # Empty file is valid — this grid type has no face intersections.
                         continue
-                    # Load facet section data
-                    facsec_data = np.loadtxt(facsec_file, skiprows=1)
-                    
-                    # Load fluid boundary locations
-                    fluid_boundary = np.loadtxt(fluid_boundary_file, skiprows=1, dtype=int)
-                    if facsec_data.size == 0 or fluid_boundary.size == 0:
-                        self._lffacet_sections = False
-                        continue
-
-                    if facsec_data.ndim == 1:
-                        facsec_data = facsec_data.reshape(1, -1)
-                    if fluid_boundary.ndim == 1:
-                        fluid_boundary = fluid_boundary.reshape(1, -1)
                     
                     # Store in structure
                     self.facsec[grid_type] = {
                         'facid': facsec_data[:, 0].astype(int) - 1,
                         'area': facsec_data[:, 1],
-                        'locs': fluid_boundary[facsec_data[:, 2].astype(int) - 1, :].astype(int) - 1,
+                        'locs': fluid_boundary[facsec_data[:, 2].astype(int) - 1, :].astype(int),
                         'distance': facsec_data[:, 3]
                     }
                     
@@ -414,6 +561,7 @@ class UDBase:
                     warnings.warn(f"Error loading facet_sections_{grid_type}.txt: {e}")
                     self._lffacet_sections = False
             else:
+                self._warn_load(f"facet_sections_{grid_type}.txt or fluid_boundary_{grid_type}.txt not found.")
                 self._lffacet_sections = False
     
     def _load_tree_data(self):
@@ -432,8 +580,115 @@ class UDBase:
                 self._lftrees = False
                 self.trees = None
         else:
+            self._warn_load(f"trees.inp.{self.expnr} not found.")
             self._lftrees = False
             self.trees = None
+
+    def _load_veg_data(self):
+        """Load vegetation sparse data if present."""
+        points_path = self.path / f"veg.inp.{self.expnr}"
+        params_path = self.path / f"veg_params.inp.{self.expnr}"
+
+        if not points_path.exists() or not params_path.exists():
+            self._warn_load(f"veg.inp.{self.expnr} or veg_params.inp.{self.expnr} not found. Vegetation not loaded.")
+            self.veg = None
+            return
+
+        try:
+            self.load_veg(zero_based=True, cache=True)
+        except Exception as exc:
+            warnings.warn(f"Error loading vegetation data: {exc}")
+            self.veg = None
+
+    def load_veg(self, *, zero_based: bool = True, cache: bool = True) -> Dict[str, Any]:
+        """Load vegetation sparse points and parameters."""
+        if cache and hasattr(self, "veg") and self.veg is not None:
+            return self.veg
+
+        points_path = self.path / f"veg.inp.{self.expnr}"
+        params_path = self.path / f"veg_params.inp.{self.expnr}"
+        point_cols = [0, 1, 2] if zero_based else None
+        points = self._load_sparse_file(
+            points_path,
+            dtype=int,
+            min_cols=3,
+            zero_based_cols=point_cols,
+        )
+        params = self._load_sparse_file(
+            params_path,
+            dtype=float,
+            min_cols=7,
+        )
+
+        if points.size == 0 and params.size == 0:
+            veg = {
+                "points": np.empty((0, 3), dtype=int),
+                "params": {
+                    "id": np.empty((0,), dtype=int),
+                    "lad": np.empty((0,), dtype=float),
+                    "cd": np.empty((0,), dtype=float),
+                    "ud": np.empty((0,), dtype=float),
+                    "dec": np.empty((0,), dtype=float),
+                    "lsize": np.empty((0,), dtype=float),
+                    "r_s": np.empty((0,), dtype=float),
+                },
+            }
+            if cache:
+                self.veg = veg
+            return veg
+
+        if points.size == 0 or params.size == 0:
+            raise ValueError("veg.inp and veg_params.inp must both be present and non-empty")
+
+        points = points[:, :3].astype(int, copy=False)
+        params = params[:, :7]
+        if len(points) != len(params):
+            raise ValueError(
+                f"veg.inp.{self.expnr} has {len(points)} points but veg_params has {len(params)} rows"
+            )
+
+        veg = {
+            "points": points,
+            "params": {
+                "id": params[:, 0].astype(int),
+                "lad": params[:, 1],
+                "cd": params[:, 2],
+                "ud": params[:, 3],
+                "dec": params[:, 4],
+                "lsize": params[:, 5],
+                "r_s": params[:, 6],
+            },
+        }
+        if cache:
+            self.veg = veg
+        return veg
+
+    def load_scalar_sources(self) -> Dict[str, Dict[int, np.ndarray]]:
+        """Load scalar point and line source files."""
+        sources: Dict[str, Dict[int, np.ndarray]] = {"point": {}, "line": {}}
+
+        for ii in range(1, self.nsv + 1):
+            if self.lscasrc:
+                path = self.path / f"scalarsourcep.inp.{ii}.{self.expnr}"
+                if path.exists():
+                    try:
+                        sources["point"][ii] = np.atleast_2d(np.loadtxt(path, skiprows=2))
+                    except Exception as e:
+                        warnings.warn(f"Error loading {path.name}: {e}")
+                else:
+                    self._warn_load(f"{path.name} not found.")
+
+            if self.lscasrcl:
+                path = self.path / f"scalarsourcel.inp.{ii}.{self.expnr}"
+                if path.exists():
+                    try:
+                        sources["line"][ii] = np.atleast_2d(np.loadtxt(path, skiprows=2))
+                    except Exception as e:
+                        warnings.warn(f"Error loading {path.name}: {e}")
+                else:
+                    self._warn_load(f"{path.name} not found.")
+
+        return sources
     
     def __repr__(self):
         """String representation of UDBase object."""
@@ -461,12 +716,56 @@ class UDBase:
                     info.append(f"  {key}: {val}")
                 elif isinstance(val, np.ndarray):
                     info.append(f"  {key}: ndarray[{val.dtype}] shape={val.shape}")
+                elif isinstance(val, Path):
+                    info.append(f"  {key}: {val}")
                 else:
                     info.append(f"  {key}: {type(val).__name__}")
 
         return "\n".join(info)
     
     # ===== Data Loading Methods =====
+
+    def load_prof(self) -> np.ndarray:
+        """
+        Load information from prof.inp file.
+        
+        Returns
+        -------
+        ndarray
+            Profile data from prof.inp file
+            
+        Raises
+        ------
+        FileNotFoundError
+            If prof.inp file does not exist
+            
+        Examples
+        --------
+        >>> prof_data = sim.load_prof()
+        """
+        fpath = self.path / f"{self.fprof}.{self.expnr}"      
+        if not fpath.exists():
+            raise FileNotFoundError(f"Profile file not found: {fpath}") 
+        return np.loadtxt(fpath, skiprows=2)
+    
+    def load_lscale(self) -> np.ndarray:
+        """
+        Load information from lscale.inp file.
+
+        Returns
+        -------
+        ndarray, shape (ktot, 10)
+            Columns: z, uq, vq, pqx, pqy, wfls, dqtdxls, dqtdyls, dqtdtls, dthlrad
+
+        Raises
+        ------
+        FileNotFoundError
+            If lscale.inp file does not exist
+        """
+        fpath = self.path / f"{self.flscale}.{self.expnr}"
+        if not fpath.exists():
+            raise FileNotFoundError(f"Large-scale forcing file not found: {fpath}")
+        return np.loadtxt(fpath, skiprows=2)
     
     def load_field(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
@@ -812,6 +1111,12 @@ class UDBase:
         >>> albedo = sim.assign_prop_to_fac('al')
         >>> emissivity = sim.assign_prop_to_fac('em')
         """
+        if not self._lffactypes or not self._lffacets:
+            # Preprocessing may have generated facet metadata after UDBase was
+            # initialized. Only fall back to re-reading from disk when the
+            # required data is currently missing in memory.
+            self._load_facet_data()
+
         if not self._lffactypes:
             raise ValueError(f"factypes.inp.{self.expnr} required for this method")
         
@@ -1137,616 +1442,75 @@ class UDBase:
 
         return out
     
-    def plot_trees(self, show: bool = True):
-        """
-        Plot tree volumetric regions on top of the geometry using trimesh/plotly,
-        matching the rendering pipeline used by plot_fac.
-        
-        Parameters
-        ----------
-        show : bool, default=True
-            Display the plot immediately. If False, return the figure without showing.
-        """
-        if not self._lfgeom or self.geom is None:
-            raise ValueError("Geometry (STL) file required for plot_trees()")
-        if not self._lftrees or self.trees is None:
-            raise ValueError("trees.inp file required for plot_trees()")
-        
-        try:
-            import trimesh
-        except ImportError:
-            raise ImportError("trimesh is required for visualization. Install with: pip install trimesh")
-        
-        # Base geometry mesh (light gray)
-        base_mesh = self.geom.stl.copy()
-        base_color = np.array([220, 220, 220, 255], dtype=np.uint8)
-        base_mesh.visual.face_colors = np.tile(base_color, (len(base_mesh.faces), 1))
-        
-        tree_meshes = []
-        tree_color = np.array([34, 139, 34, 140], dtype=np.uint8)  # forest green, semi-transparent
-        
-        for i in range(self.trees.shape[0]):
-            il, iu, jl, ju, kl, ku = self.trees[i, :]
-            # Convert 1-based to 0-based
-            il, iu, jl, ju, kl, ku = il - 1, iu - 1, jl - 1, ju - 1, kl - 1, ku - 1
-            
-            xmin, xmax = self.xm[il], self.xm[iu] + self.dx
-            ymin, ymax = self.ym[jl], self.ym[ju] + self.dy
-            zmin, zmax = self.zm[kl], self.zm[ku] + self.dzm[ku]
-            
-            extents = np.array([xmax - xmin, ymax - ymin, zmax - zmin])
-            center = np.array([xmin + extents[0] / 2, ymin + extents[1] / 2, zmin + extents[2] / 2])
-            
-            box = trimesh.creation.box(extents=extents, transform=trimesh.transformations.translation_matrix(center))
-            box.visual.face_colors = np.tile(tree_color, (len(box.faces), 1))
-            tree_meshes.append(box)
-        
-        meshes = [base_mesh] + tree_meshes if tree_meshes else [base_mesh]
-        
-        # Build full edge list so all facet edges (front and back) are shown
-        faces = self.geom.stl.faces
-        edges = set()
-        for tri in faces:
-            e0 = tuple(sorted((tri[0], tri[1])))
-            e1 = tuple(sorted((tri[1], tri[2])))
-            e2 = tuple(sorted((tri[2], tri[0])))
-            edges.update([e0, e1, e2])
-        outline_edges = list(edges)
-        
-        fig = self._render_scene(meshes, show_outlines=True, custom_edges=outline_edges, show=show)
-        if fig is not None:
-            fig.update_layout(title=f'Geometry with Trees ({len(tree_meshes)} regions)')
-        return fig
+    def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False):
+        """Plot vegetation points on top of the geometry using the visualization facade."""
+        return self.vis.plot_veg(veg=veg, show=show)
+
+    def plot_scalar_source(
+        self,
+        scalar_sources: Optional[Dict[str, Dict[int, np.ndarray]]] = None,
+        scalar_index: Optional[int] = None,
+        show: bool = False,
+    ):
+        """Plot scalar point and line sources on top of the geometry."""
+        return self.vis.plot_scalar_source(
+            scalar_sources=scalar_sources,
+            scalar_index=scalar_index,
+            show=show,
+        )
+
+    def plot_trees(self, show: bool = False):
+        """Backward-compatible alias for plot_veg."""
+        return self.vis.plot_trees(show=show)
     
     def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, show: bool = True):
-        """
-        Plot facet data as a 3D surface.
-        
-        Parameters
-        ----------
-        var : ndarray, shape (n_faces,)
-            Facet variable to plot (one value per facet)
-        building_ids : array-like, optional
-            Building IDs to plot. If None, plots all buildings.
-        show : bool, default=True
-            Display the plot immediately. If False, return the figure without showing.
-        
-        Returns
-        -------
-        fig : plotly.graph_objects.Figure or None
-            Plotly figure object (if in notebook), None otherwise.
-            Can be used to further customize the plot.
-            
-        Examples
-        --------
-        >>> # Plot net shortwave radiation for all buildings
-        >>> fig = sim.plot_fac(K)
-        >>> 
-        >>> # Customize the returned figure
-        >>> fig = sim.plot_fac(K)
-        >>> fig.update_layout(title='Custom Title')
-        >>> fig.show()
-        >>> 
-        >>> # Plot only for specific buildings
-        >>> sim.plot_fac(K, building_ids=[1, 5, 10])
-        """
-        # Function only works when required data has been loaded
-        if self.geom is None:
-            raise ValueError("This method requires a geometry (STL) file.")
-        
-        # Validate input
-        if len(var) != self.geom.n_faces:
-            raise ValueError(f"Variable length ({len(var)}) must match number of facets ({self.geom.n_faces})")
-        
-        # Create colored mesh and render
-        mesh = self._create_colored_mesh(var, building_ids)
-        fig = self._render_scene(mesh, building_ids=building_ids, show=show)
-        
-        # Add building outlines
-        self._add_building_outlines_to_scene(building_ids)
-        
-        return fig
+        """Plot facet data as a 3D surface."""
+        return self.vis.plot_fac(var=var, building_ids=building_ids, show=show)
     
     def _create_colored_mesh(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
         """Create a colored trimesh object from facet data, optionally filtered by building IDs."""
-        try:
-            import trimesh
-        except ImportError:
-            raise ImportError("trimesh is required. Install with: pip install trimesh")
-        
-        import matplotlib.pyplot as plt
-        import matplotlib.cm as cm
-        
-        # Get geometry data
-        vertices = self.geom.stl.vertices
-        faces = self.geom.stl.faces
-        
-        # Filter faces by building IDs if specified
-        face_mask = None
-        if building_ids is not None:
-            # Get face to building mapping
-            face_to_building = self.geom.get_face_to_building_map()
-            building_ids = np.asarray(building_ids)
-            
-            # Create face mask for requested building IDs
-            face_mask = np.isin(face_to_building, building_ids)
-            
-            # Apply face mask to select only specified buildings
-            if np.any(face_mask):
-                selected_faces = faces[face_mask]
-                selected_var = var[face_mask]
-            else:
-                # No valid faces found - show warning and use all
-                print('Warning: No valid faces found for the specified building IDs')
-                selected_faces = faces
-                selected_var = var
-                face_mask = None
-        else:
-            selected_faces = faces
-            selected_var = var
-        
-        # Create trimesh object with selected faces
-        # Keep all original vertices but only include selected faces
-        mesh = trimesh.Trimesh(vertices=vertices, faces=selected_faces, process=False)
-        
-        # Map variable values to face colors using colormap
-        valid_mask = ~np.isnan(selected_var)
-        if np.any(valid_mask):
-            vmin = np.nanmin(selected_var[valid_mask])
-            vmax = np.nanmax(selected_var[valid_mask])
-            norm = plt.Normalize(vmin=vmin, vmax=vmax)
-            cmap = cm.get_cmap('viridis')
-            
-            # Create face colors (RGBA)
-            face_colors = np.ones((len(selected_faces), 4))  # Default white
-            face_colors[valid_mask] = cmap(norm(selected_var[valid_mask]))
-            mesh.visual.face_colors = face_colors
-        
-        return mesh
+        return self.vis._create_colored_mesh(var=var, building_ids=building_ids)
     
     def _render_scene(self, mesh, show_outlines: bool = True, angle_threshold: float = 45.0, building_ids: Optional[np.ndarray] = None, custom_edges: Optional[List[tuple]] = None, show: bool = True):
         """Render the mesh scene using trimesh/plotly. Returns figure handle if available."""
-        try:
-            import trimesh
-        except ImportError:
-            raise ImportError("trimesh is required. Install with: pip install trimesh")
-        
-        # Normalize mesh input to a list
-        meshes = mesh if isinstance(mesh, (list, tuple)) else [mesh]
-        
-        # Create scene
-        scene = trimesh.Scene()
-        for m in meshes:
-            scene.add_geometry(m)
-        
-        # Add outline edges using udgeom's outline calculation
-        outline_edges = []
-        if show_outlines:
-            if custom_edges is not None:
-                outline_edges = custom_edges
-            else:
-                outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
-
-            # Filter outline edges by building IDs if specified
-            if building_ids is not None and len(outline_edges) > 0:
-                face_to_building = self.geom.get_face_to_building_map()
-                building_ids = np.asarray(building_ids)
-
-                # Filter edges: keep only edges where both vertices belong to faces in selected buildings
-                filtered_edges = []
-                vertices = self.geom.stl.vertices
-                faces = self.geom.stl.faces
-
-                for edge in outline_edges:
-                    # Find faces that use these vertices
-                    v0, v1 = edge
-                    # Check if any selected building's faces use this edge
-                    faces_with_edge = np.where(
-                        ((faces[:, 0] == v0) | (faces[:, 1] == v0) | (faces[:, 2] == v0)) &
-                        ((faces[:, 0] == v1) | (faces[:, 1] == v1) | (faces[:, 2] == v1))
-                    )[0]
-
-                    # Keep edge if any of these faces belong to selected buildings
-                    if len(faces_with_edge) > 0:
-                        if np.any(np.isin(face_to_building[faces_with_edge], building_ids)):
-                            filtered_edges.append(edge)
-
-                outline_edges = filtered_edges
-
-            if len(outline_edges) > 0:
-                vertices = self.geom.stl.vertices
-                entities = [trimesh.path.entities.Line([edge[0], edge[1]]) for edge in outline_edges]
-                entity_colors = np.tile([0, 0, 0, 255], (len(entities), 1))
-                path = trimesh.path.Path3D(entities=entities, vertices=vertices, colors=entity_colors)
-                scene.add_geometry(path)
-        
-        # Check if running in Jupyter notebook
-        try:
-            from IPython.display import display
-            in_notebook = True
-        except ImportError:
-            in_notebook = False
-        
-        if in_notebook:
-            return self._render_plotly(meshes, outline_edges, show=show)
-        else:
-            if show:
-                self._render_trimesh(scene, len(outline_edges))
-            return None
+        return self.vis._render_scene(
+            mesh=mesh,
+            show_outlines=show_outlines,
+            angle_threshold=angle_threshold,
+            building_ids=building_ids,
+            custom_edges=custom_edges,
+            show=show,
+        )
     
     def _render_plotly(self, meshes, outline_edges, show: bool = True):
         """Render using plotly for notebook display. Returns the figure object."""
-        try:
-            import plotly.graph_objects as go
-            import plotly.io as pio
-            
-            pio.renderers.default = 'notebook'
-            traces = []
-            for m in meshes:
-                vertices = m.vertices
-                faces = m.faces
-                colors = m.visual.face_colors
-                
-                # Derive opacity from alpha channel if present; default to 1.0
-                opacity = 1.0
-                if colors.shape[1] == 4:
-                    # Use mean alpha normalized to [0,1]
-                    opacity = np.clip(np.mean(colors[:, 3]) / 255.0, 0.0, 1.0)
-                
-                traces.append(
-                    go.Mesh3d(
-                        x=vertices[:, 0], y=vertices[:, 1], z=vertices[:, 2],
-                        i=faces[:, 0], j=faces[:, 1], k=faces[:, 2],
-                        facecolor=[f'rgb({c[0]},{c[1]},{c[2]})' for c in colors[:, :3]],
-                        opacity=opacity,
-                        flatshading=True
-                    )
-                )
-            
-            fig = go.Figure(data=traces)
-            
-            # Add outline edges
-            if len(outline_edges) > 0:
-                edge_x, edge_y, edge_z = [], [], []
-                z_offset = 0.1
-                # Use vertices from the first mesh for outlines
-                base_vertices = meshes[0].vertices
-                for edge in outline_edges:
-                    p0 = base_vertices[edge[0]]
-                    p1 = base_vertices[edge[1]]
-                    z0 = p0[2] + z_offset if abs(p0[2]) < 0.01 else p0[2]
-                    z1 = p1[2] + z_offset if abs(p1[2]) < 0.01 else p1[2]
-                    edge_x.extend([p0[0], p1[0], None])
-                    edge_y.extend([p0[1], p1[1], None])
-                    edge_z.extend([z0, z1, None])
-                
-                fig.add_trace(go.Scatter3d(
-                    x=edge_x, y=edge_y, z=edge_z,
-                    mode='lines', line=dict(color='black', width=2),
-                    showlegend=False, hoverinfo='skip'
-                ))
-            
-            fig.update_layout(
-                scene=dict(
-                    aspectmode='data',
-                    xaxis_title='x (m)', yaxis_title='y (m)', zaxis_title='z (m)',
-                    xaxis=dict(showgrid=False, showbackground=False),
-                    yaxis=dict(showgrid=False, showbackground=False),
-                    zaxis=dict(showgrid=False, showbackground=False),
-                    camera=dict(
-                        projection=dict(type='orthographic'),
-                        eye=dict(x=-1.25, y=-1.25, z=1.25)
-                    )
-                ),
-                showlegend=False
-            )
-            
-            if show:
-                fig.show()
-            return fig
-            
-        except ImportError:
-            print("Plotly not available. Install with: pip install plotly")
-            return None
+        return self.vis._render_plotly(meshes=meshes, outline_edges=outline_edges, show=show)
     
     def _render_trimesh(self, scene, num_outline_edges, show: bool = True):
         """Render using trimesh viewer."""
-        if not show:
-            return
-        try:
-            scene.show()
-        except Exception as e:
-            print(f"Could not open trimesh viewer: {e}")
-            print("Install pyglet or pyrender: pip install pyglet")
+        return self.vis._render_trimesh(scene=scene, num_outline_edges=num_outline_edges, show=show)
     
     def _add_building_outlines_to_scene(self, building_ids=None):
         """Add building outlines to the current scene (placeholder for future implementation)."""
-        # This method matches MATLAB's add_building_outlines() call structure
-        # Currently handled within _render_scene via udgeom's _calculate_outline_edges
-        pass
+        return self.vis._add_building_outlines_to_scene(building_ids=building_ids)
     
     def _add_building_outlines(self, ax, building_ids=None, angle_threshold: float = 45.0):
-        """
-        Helper method to add building outline edges to current 3D matplotlib plot.
-        
-        Used by matplotlib-based plotting methods like plot_fac_type.
-        
-        Parameters
-        ----------
-        ax : matplotlib Axes3D
-            The 3D axes to add outlines to
-        building_ids : list of int, optional
-            Building IDs to outline. If None or empty, outline all buildings.
-        angle_threshold : float, default=45.0
-            Angle threshold in degrees for edge detection
-        """
-        if self.geom is None or not hasattr(self.geom, 'stl') or self.geom.stl is None:
-            return
-        
-        # Use the geometry's built-in outline edge calculation method
-        outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
-        
-        if len(outline_edges) == 0:
-            return
-        
-        # Get vertices
-        vertices = self.geom.stl.vertices
-        
-        # Plot outline edges (including ground facet edges)
-        z_offset = 0.1  # Offset to prevent z-fighting with ground plane
-        for edge in outline_edges:
-            p0 = vertices[edge[0]]
-            p1 = vertices[edge[1]]
-            
-            # Add z-offset for edges at ground level to make them visible
-            z0 = p0[2] + z_offset if abs(p0[2]) < 0.01 else p0[2]
-            z1 = p1[2] + z_offset if abs(p1[2]) < 0.01 else p1[2]
-            
-            ax.plot([p0[0], p1[0]], 
-                   [p0[1], p1[1]], 
-                   [z0, z1], 
-                   'k-', linewidth=2, alpha=1.0, zorder=10)
+        """Helper method to add building outline edges to current 3D matplotlib plot."""
+        return self.vis._add_building_outlines(
+            ax=ax,
+            building_ids=building_ids,
+            angle_threshold=angle_threshold,
+        )
     
     def plot_fac_type(self, building_ids: Optional[np.ndarray] = None, 
                       show_outlines: bool = True, angle_threshold: float = 45.0, show: bool = True):
-        """
-        Plot the different surface types in the geometry using trimesh/Plotly.
-        
-        Parameters
-        ----------
-        building_ids : array-like, optional
-            Building IDs to plot. If None, plots all buildings.
-        show_outlines : bool, default=True
-            Whether to show building outline edges
-        angle_threshold : float, default=45.0
-            Angle threshold in degrees for outline edge detection
-        show : bool, default=True
-            Display the plot immediately. If False, return the figure without showing.
-            
-        Returns
-        -------
-        fig : plotly.graph_objects.Figure or None
-            Plotly figure object (if in notebook), None otherwise.
-            Can be used to further customize the plot.
-            
-        Raises
-        ------
-        ValueError
-            If required data (geometry, facets, factypes) is not loaded
-        ImportError
-            If trimesh is not installed
-            
-        Examples
-        --------
-        >>> sim = UDBase(101, 'experiments/101')
-        >>> fig = sim.plot_fac_type()
-        >>> 
-        >>> # Customize the returned figure
-        >>> fig = sim.plot_fac_type()
-        >>> fig.update_layout(title='My Custom Title')
-        >>> fig.show()
-        """
-        # Check required data
-        if self.geom is None:
-            raise ValueError("This method requires a geometry (STL) file. "
-                           "Ensure stl_file is specified in namoptions.")
-        
-        if not hasattr(self, 'facs') or self.facs is None:
-            raise ValueError("This method requires facet data. "
-                           f"Ensure {self.ffacets}.{self.expnr} exists.")
-        
-        if not hasattr(self, 'factypes') or self.factypes is None:
-            raise ValueError("This method requires facet type data. "
-                           f"Ensure {self.ffactypes}.{self.expnr} exists.")
-        
-        try:
-            import trimesh
-        except ImportError:
-            raise ImportError("trimesh is required for this visualization. "
-                            "Install with: pip install trimesh")
-        
-        # Get data
-        facids = self.facs['typeid']
-        typeids = self.factypes['id']
-        names = self.factypes['name']
-        unique_ids = np.unique(facids)
-        
-        # Get default matplotlib color cycle for consistency
-        import matplotlib.pyplot as plt
-        prop_cycle = plt.rcParams['axes.prop_cycle']
-        default_colors = prop_cycle.by_key()['color']
-        
-        # Get geometry data
-        vertices = self.geom.stl.vertices
-        faces = self.geom.stl.faces
-        
-        # Create face colors array (RGBA)
-        face_colors = np.ones((len(faces), 4)) * 255  # Default white
-        
-        # Map each type to a color
-        type_labels = []
-        type_colors = []
-        for idx, type_id in enumerate(unique_ids):
-            type_mask = (facids == type_id)
-            
-            # Get matplotlib color (hex) and convert to RGB
-            hex_color = default_colors[idx % len(default_colors)]
-            # Convert hex to RGB (0-255)
-            hex_color = hex_color.lstrip('#')
-            rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-            
-            # Set face colors for this type
-            face_colors[type_mask, :3] = rgb
-            face_colors[type_mask, 3] = 230  # Alpha
-            
-            # Get label
-            name_idx = np.where(typeids == type_id)[0]
-            if len(name_idx) > 0:
-                label = names[name_idx[0]]
-            else:
-                label = f"Type {type_id}"
-            
-            type_labels.append(label)
-            type_colors.append(rgb)
-        
-        # Create trimesh object
-        mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
-        mesh.visual.face_colors = face_colors
-        
-        # Check if running in Jupyter notebook
-        try:
-            from IPython.display import display
-            in_notebook = True
-        except ImportError:
-            in_notebook = False
-        
-        if in_notebook:
-            print(f"Rendering {len(mesh.faces)} faces for notebook display...")
-            
-            try:
-                import plotly.graph_objects as go
-                import plotly.io as pio
-                
-                # Configure plotly for notebook display
-                pio.renderers.default = 'notebook'
-                
-                # Create figure with separate mesh traces for each type (for legend)
-                fig = go.Figure()
-                
-                for idx, type_id in enumerate(unique_ids):
-                    type_mask = (facids == type_id)
-                    type_face_indices = np.where(type_mask)[0]
-                    
-                    if len(type_face_indices) == 0:
-                        continue
-                    
-                    # Get color
-                    rgb = type_colors[idx]
-                    color_str = f'rgb({rgb[0]},{rgb[1]},{rgb[2]})'
-                    
-                    # Get faces for this type
-                    type_faces = faces[type_face_indices]
-                    
-                    # Add mesh trace for this type
-                    fig.add_trace(go.Mesh3d(
-                        x=vertices[:, 0],
-                        y=vertices[:, 1],
-                        z=vertices[:, 2],
-                        i=type_faces[:, 0],
-                        j=type_faces[:, 1],
-                        k=type_faces[:, 2],
-                        color=color_str,
-                        opacity=1.0,
-                        flatshading=True,
-                        name=type_labels[idx],
-                        showlegend=True
-                    ))
-                
-                # Add outline edges if requested
-                if show_outlines:
-                    outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
-                    if len(outline_edges) > 0:
-                        print(f"Added {len(outline_edges)} outline edges")
-                        edge_x = []
-                        edge_y = []
-                        edge_z = []
-                        z_offset = 0.1  # Offset to prevent z-fighting with ground plane
-                        for edge in outline_edges:
-                            p0 = vertices[edge[0]]
-                            p1 = vertices[edge[1]]
-                            # Add z-offset for edges at ground level
-                            z0 = p0[2] + z_offset if abs(p0[2]) < 0.01 else p0[2]
-                            z1 = p1[2] + z_offset if abs(p1[2]) < 0.01 else p1[2]
-                            edge_x.extend([p0[0], p1[0], None])
-                            edge_y.extend([p0[1], p1[1], None])
-                            edge_z.extend([z0, z1, None])
-                        
-                        fig.add_trace(go.Scatter3d(
-                            x=edge_x, y=edge_y, z=edge_z,
-                            mode='lines',
-                            line=dict(color='black', width=2),
-                            name='Outlines',
-                            showlegend=False,
-                            hoverinfo='skip'
-                        ))
-                
-                fig.update_layout(
-                    scene=dict(
-                        aspectmode='data',
-                        xaxis_title='x (m)',
-                        yaxis_title='y (m)',
-                        zaxis_title='z (m)',
-                        xaxis=dict(showgrid=False, showbackground=False),
-                        yaxis=dict(showgrid=False, showbackground=False),
-                        zaxis=dict(showgrid=False, showbackground=False),
-                        camera=dict(
-                            projection=dict(type='orthographic'),
-                            eye=dict(x=-1.25, y=-1.25, z=1.25)
-                        )
-                    ),
-                    title='Surface Types',
-                    showlegend=True
-                )
-                
-                if show:
-                    fig.show()
-                return fig
-                
-            except ImportError:
-                print("Plotly not available. Falling back to static rendering.")
-                print("Install plotly for interactive 3D: pip install plotly")
-                # Fall back to showing in external window
-                scene = trimesh.Scene(mesh)
-                if show_outlines:
-                    outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
-                    if len(outline_edges) > 0:
-                        entities = [trimesh.path.entities.Line([edge[0], edge[1]]) for edge in outline_edges]
-                        entity_colors = np.tile([0, 0, 0, 255], (len(entities), 1))
-                        path = trimesh.path.Path3D(entities=entities, vertices=vertices, colors=entity_colors)
-                        scene.add_geometry(path)
-                if show:
-                    try:
-                        scene.show()
-                    except:
-                        print("Could not display. Try installing: pip install plotly or pyglet")
-        else:
-            # Show in external window
-            print(f"Opening trimesh viewer with {len(mesh.faces)} faces...")
-            scene = trimesh.Scene(mesh)
-            if show_outlines:
-                outline_edges = self.geom._calculate_outline_edges(angle_threshold=angle_threshold)
-                if len(outline_edges) > 0:
-                    print(f"Added {len(outline_edges)} outline edges")
-                    entities = [trimesh.path.entities.Line([edge[0], edge[1]]) for edge in outline_edges]
-                    entity_colors = np.tile([0, 0, 0, 255], (len(entities), 1))
-                    path = trimesh.path.Path3D(entities=entities, vertices=vertices, colors=entity_colors)
-                    scene.add_geometry(path)
-            if show:
-                try:
-                    scene.show()
-                except Exception as e:
-                    print(f"Could not open trimesh viewer: {e}")
-                    print("You may need to install pyglet or pyrender: pip install pyglet")
+        """Plot the different surface types in the geometry using the visualization facade."""
+        return self.vis.plot_fac_type(
+            building_ids=building_ids,
+            show_outlines=show_outlines,
+            angle_threshold=angle_threshold,
+            show=show,
+        )
     
     def convert_fac_to_field(self, var: np.ndarray, facsec: Optional[Dict] = None,
                             dz: Optional[np.ndarray] = None) -> np.ndarray:
@@ -1942,36 +1706,6 @@ class UDBase:
         
         return fld
     
-    def load_prof(self) -> np.ndarray:
-        """
-        Load information from prof.inp file.
-        
-        Matches MATLAB implementation: load_prof(obj)
-        
-        Returns
-        -------
-        ndarray
-            Profile data from prof.inp file
-            
-        Raises
-        ------
-        FileNotFoundError
-            If prof.inp file does not exist
-            
-        Examples
-        --------
-        >>> prof_data = sim.load_prof()
-        """
-        fname = f"{self.fprof}.{self.expnr}"
-        fpath = self.path / fname
-        
-        if not fpath.exists():
-            raise FileNotFoundError(f"Profile file not found: {fpath}")
-        
-        # Read data starting from line 3 (skip 2 header lines)
-        data = np.loadtxt(fpath, skiprows=2)
-        return data
-    
     def load_facsec(self, var: str) -> Dict[str, np.ndarray]:
         """
         Load facet section information for a specific variable.
@@ -2007,20 +1741,26 @@ class UDBase:
         if not fname_sec.exists():
             raise FileNotFoundError(f"Facet section file not found: {fname_sec}")
         
-        facsecs = np.loadtxt(fname_sec, skiprows=1)
+        facsecs = self._load_sparse_file(fname_sec, skiprows=1, dtype=float, min_cols=4)
         
         # Load fluid boundary points
         fname_fluid = self.path / f"{self.ffluid_boundary}_{var}.txt"
         if not fname_fluid.exists():
             raise FileNotFoundError(f"Fluid boundary file not found: {fname_fluid}")
         
-        fluid_boundary = np.loadtxt(fname_fluid, skiprows=1)
-        
+        fluid_boundary = self._load_sparse_file(
+            fname_fluid,
+            skiprows=1,
+            dtype=int,
+            min_cols=3,
+            zero_based_cols=[0, 1, 2],
+        )
+
         # Create structure matching MATLAB
         data = {
             'facid': facsecs[:, 0].astype(int) - 1,
             'area': facsecs[:, 1],
-            'locs': fluid_boundary[facsecs[:, 2].astype(int) - 1, :].astype(int) - 1,
+            'locs': fluid_boundary[facsecs[:, 2].astype(int) - 1, :].astype(int),
             'distance': facsecs[:, 3]
         }
         
@@ -2145,217 +1885,14 @@ class UDBase:
         }
     
     def plot_building_ids(self, show: bool = True):
-        """
-        Plot building IDs from above (x,y view) with distinct colors.
-        
-        Matches MATLAB implementation: plot_building_ids(obj)
-        
-        Creates a top-view plot showing buildings in different colors with
-        building IDs displayed at the center of gravity of each building.
-        Buildings are numbered from left-bottom to right-top based on their
-        centroid positions.
-
-        Parameters
-        ----------
-        show : bool, default=True
-            Display the plot immediately. If False, return the figure without showing.
-            
-        Raises
-        ------
-        ValueError
-            If geometry is not loaded or has no buildings
-        ImportError
-            If matplotlib is not installed
-        show : bool, default=True
-            Display the plot immediately. If False, return the figure without showing.
-            
-        Examples
-        --------
-        Plot building IDs with default settings:
-        >>> sim.plot_building_ids()
-        
-        See Also
-        --------
-        plot_2dmap : Plot 2D map with custom values and labels
-        """
-        if self.geom is None:
-            raise ValueError("This method requires a geometry (STL) file. "
-                           "Ensure stl_file is specified in namoptions.")
-        
-        try:
-            import matplotlib.pyplot as plt
-        except ImportError:
-            raise ImportError("matplotlib is required for visualization. "
-                            "Install with: pip install matplotlib")
-        
-        # Get building outlines
-        outlines = self.geom.calculate_outline2d()
-        if not outlines:
-            raise ValueError("No buildings found in geometry")
-        
-        num_buildings = len(outlines)
-        
-        # Create values (building indices) and labels
-        values = np.arange(1, num_buildings + 1)
-        labels = [str(i) for i in range(1, num_buildings + 1)]
-        
-        # Randomize colors to avoid adjacent buildings having similar colors
-        color_order = np.random.permutation(num_buildings)
-        color_values = color_order.copy()
-        
-        # Use plot_2dmap to create the visualization
-        fig, ax = self.plot_2dmap(color_values, labels, show=show)
-        pc = ax.collections[0]  # the PatchCollection from plot_2dmap
-        fig.colorbar(pc, ax=ax, cmap='hsv')
-        ax.set_title(f'Building Layout with IDs (Total: {num_buildings})')
-        ax.set_xlabel('x [m]')
-        ax.set_ylabel('y [m]')
-        ax.set_aspect('equal')
-        if show:
-            plt.show()
-        return fig, ax
+        """Plot building IDs from above (x,y view) with distinct colors."""
+        return self.vis.plot_building_ids(show=show)
     
     def plot_2dmap(self, val: Union[float, np.ndarray], 
                    labels: Optional[Union[str, list]] = None,
                    show: bool = True):
-        """
-        Plot a 2D map of buildings colored by a value per building.
-        
-        Matches MATLAB implementation: plot_2dmap(obj, val, labels)
-        
-        Creates a top-down view showing building outlines colored according
-        to specified values, with optional text labels at building centroids.
-        
-        Parameters
-        ----------
-        val : float or ndarray
-            Scalar value (applied to all buildings) or vector with one value
-            per building. If vector, length must match number of buildings.
-        labels : str, list of str, or None, optional
-            Text labels to display at the centroid of each building.
-            - If str: same label for all buildings
-            - If list: must have length equal to number of buildings
-            - If None: no labels displayed
-        show : bool, default=True
-            Display the plot immediately. If False, return the figure without showing.
-            
-        Raises
-        ------
-        ValueError
-            If val length doesn't match number of buildings
-            If labels length doesn't match number of buildings
-            If geometry is not loaded
-        ImportError
-            If matplotlib is not installed
-            
-        Examples
-        --------
-        Plot all buildings with same color:
-        >>> sim.plot_2dmap(1.0)
-        
-        Plot building heights with labels:
-        >>> buildings = sim.geom.get_buildings()
-        >>> heights = [max(b['triangulation'].Points[:, 2]) for b in buildings]
-        >>> labels = [f"{i+1}" for i in range(len(buildings))]
-        >>> sim.plot_2dmap(heights, labels)
-        >>> plt.title('Maximum Building Height')
-        
-        See Also
-        --------
-        plot_building_ids : Plot buildings with ID labels
-        """
-        if self.geom is None or not hasattr(self.geom, 'stl') or self.geom.stl is None:
-            raise ValueError("Geometry data not available. Cannot compute outlines.")
-        
-        try:
-            import matplotlib.pyplot as plt
-            from matplotlib.patches import Polygon as mplPolygon
-            from matplotlib.collections import PatchCollection
-        except ImportError:
-            raise ImportError("matplotlib is required for visualization. "
-                            "Install with: pip install matplotlib")
-        
-        # Get building outlines
-        outlines = self.geom.calculate_outline2d()
-        if not outlines:
-            raise ValueError("No building outlines found in geometry")
-        
-        num_buildings = len(outlines)
-        
-        # Normalize values to per-building vector
-        if np.isscalar(val):
-            values = np.full(num_buildings, float(val))
-        else:
-            val_array = np.asarray(val)
-            if len(val_array) != num_buildings:
-                raise ValueError(f"Length of val ({len(val_array)}) must match "
-                               f"number of buildings ({num_buildings})")
-            values = val_array.astype(float)
-        
-        # Handle labels
-        if labels is not None:
-            if isinstance(labels, str):
-                label_array = [labels] * num_buildings
-            else:
-                label_array = list(labels)
-                if len(label_array) != num_buildings:
-                    raise ValueError(f"Number of labels ({len(label_array)}) must match "
-                                   f"number of buildings ({num_buildings})")
-        else:
-            label_array = None
-        
-        # Create figure and plot
-        fig, ax = plt.subplots(figsize=(10, 8))
-        
-        patches = []
-        colors = []
-        
-        for i, outline in enumerate(outlines):
-            if np.isnan(values[i]):
-                continue
-            
-            polygon = outline.get('polygon', None)
-            centroid = outline.get('centroid', None)
-            
-            if polygon is None or len(polygon) == 0:
-                continue
-            
-            # Create polygon patch (project to x-y plane)
-            xy = polygon[:, :2]  # Take only x, y coordinates
-            patch = mplPolygon(xy, closed=True)
-            patches.append(patch)
-            colors.append(values[i])
-            
-            # Add text label if provided
-            if label_array is not None and centroid is not None:
-                if not np.any(np.isnan(centroid[:2])):
-                    ax.text(centroid[0], centroid[1], label_array[i],
-                           ha='center', va='center',
-                           fontsize=10, fontweight='bold',
-                           color='black',
-                           bbox=dict(boxstyle='round,pad=0.3',
-                                   facecolor='white',
-                                   edgecolor='none',
-                                   alpha=0.7))
-        
-        # Create patch collection
-        if patches:
-            pc = PatchCollection(patches, cmap='viridis', edgecolor='black', linewidth=0.5)
-            pc.set_array(np.array(colors))
-            ax.add_collection(pc)
-            plt.colorbar(pc, ax=ax)
-        
-        # Set axis properties
-        ax.set_aspect('equal')
-        ax.set_xlabel('x [m]')
-        ax.set_ylabel('y [m]')
-        ax.set_xlim(0, self.xlen)
-        ax.set_ylim(0, self.ylen)
-        ax.grid(True, alpha=0.3)
-        
-        if show:
-            plt.show()
-        return fig, ax
+        """Plot a 2D map of buildings colored by a value per building."""
+        return self.vis.plot_2dmap(val=val, labels=labels, show=show)
     
     def __str__(self):
         """User-friendly string representation."""

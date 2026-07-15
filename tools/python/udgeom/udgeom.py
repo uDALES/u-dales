@@ -11,7 +11,10 @@ Copyright (C) 2016-2024 the uDALES Team.
 Licensed under GNU General Public License v3.0
 """
 
+from __future__ import annotations
+
 from pathlib import Path
+import struct
 from typing import List, Optional, Union
 import numpy as np
 import warnings
@@ -24,14 +27,6 @@ except ImportError:
     warnings.warn("trimesh not installed. Geometry functionality will be limited.")
 
 try:
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-    MATPLOTLIB_AVAILABLE = True
-except ImportError:
-    MATPLOTLIB_AVAILABLE = False
-    warnings.warn("matplotlib not installed. Visualization functionality will be limited.")
-
-try:
     from scipy.spatial import ConvexHull
     SCIPY_AVAILABLE = True
 except ImportError:
@@ -39,7 +34,23 @@ except ImportError:
 
 # Import package functions
 from .calculate_outline import calculate_outline
+from .check_mesh import (
+    calculate_independent_surfaces as calculate_independent_surfaces_impl,
+    check as check_mesh,
+    find_internal_touching_wall_regions as find_internal_touching_wall_regions_impl,
+    find_nonmanifold_regions as find_nonmanifold_regions_impl,
+    find_unstitched_touching_regions as find_unstitched_touching_regions_impl,
+    identify_ground_faces as identify_ground_faces_impl,
+)
+from .fix_mesh import (
+    fix as fix_mesh,
+    repair_adjacent_buildings as repair_adjacent_buildings_impl,
+    resolve_vertical_coplanar_overlaps as resolve_vertical_coplanar_overlaps_impl,
+    weld_touching_boundaries as weld_touching_boundaries_impl,
+)
 from .split_buildings import split_buildings
+
+from udvis import UDVis
 
 
 class UDGeom:
@@ -112,6 +123,7 @@ class UDGeom:
         self._outline3d = None
         self._buildings = None
         self._face_to_building_map = None
+        self.vis = UDVis(self)
     
     def load(self, filename: str):
         """
@@ -149,6 +161,8 @@ class UDGeom:
                     tuple(trimesh.Trimesh(vertices=g.vertices, faces=g.faces)
                           for g in self.stl.geometry.values())
                 )
+
+            self._align_loaded_stl_to_file_normals(filepath)
             
             print(f"Loaded geometry: {len(self.stl.faces)} faces, {len(self.stl.vertices)} vertices")
             
@@ -160,6 +174,68 @@ class UDGeom:
             
         except Exception as e:
             raise ValueError(f"Error loading STL file {filepath}: {e}")
+
+    @staticmethod
+    def _read_stl_file_normals(filepath: Path) -> Optional[np.ndarray]:
+        """Read facet normals stored in an STL file, if available."""
+        if filepath.suffix.lower() != ".stl":
+            return None
+
+        try:
+            file_size = filepath.stat().st_size
+            with filepath.open("rb") as f:
+                header = f.read(84)
+                if len(header) == 84:
+                    n_faces = struct.unpack("<I", header[80:84])[0]
+                    if file_size == 84 + 50 * n_faces:
+                        record_dtype = np.dtype(
+                            [
+                                ("normal", "<f4", (3,)),
+                                ("vertices", "<f4", (3, 3)),
+                                ("attribute", "<u2"),
+                            ]
+                        )
+                        records = np.fromfile(f, dtype=record_dtype, count=n_faces)
+                        if len(records) == n_faces:
+                            return np.asarray(records["normal"], dtype=float)
+
+            normals = []
+            with filepath.open("r", encoding="ascii", errors="ignore") as f:
+                for line in f:
+                    parts = line.strip().split()
+                    if len(parts) >= 5 and parts[0].lower() == "facet" and parts[1].lower() == "normal":
+                        normals.append([float(parts[2]), float(parts[3]), float(parts[4])])
+            if normals:
+                return np.asarray(normals, dtype=float)
+        except (OSError, UnicodeError, ValueError, struct.error):
+            return None
+        return None
+
+    def _align_loaded_stl_to_file_normals(self, filepath: Path) -> None:
+        """Match in-memory STL face winding to normals stored in the STL file."""
+        if self.stl is None:
+            return
+
+        file_normals = self._read_stl_file_normals(filepath)
+        if file_normals is None or len(file_normals) != len(self.stl.faces):
+            return
+
+        lengths = np.linalg.norm(file_normals, axis=1)
+        valid = np.isfinite(file_normals).all(axis=1) & (lengths > 0.0)
+        if not np.any(valid):
+            return
+
+        normalized_file_normals = np.zeros_like(file_normals, dtype=float)
+        normalized_file_normals[valid] = file_normals[valid] / lengths[valid, None]
+        loaded_normals = np.asarray(self.stl.face_normals, dtype=float)
+        dots = np.einsum("ij,ij->i", loaded_normals, normalized_file_normals)
+        flip = valid & np.isfinite(dots) & (dots < 0.0)
+        if not np.any(flip):
+            return
+
+        faces = np.asarray(self.stl.faces, dtype=int).copy()
+        faces[flip, 1], faces[flip, 2] = faces[flip, 2].copy(), faces[flip, 1].copy()
+        self.stl.faces = faces
     
     def save(self, filename: str):
         """
@@ -191,8 +267,8 @@ class UDGeom:
             raise ValueError(f"Error saving STL file {filepath}: {e}")
     
     def show(self, color_buildings: bool = True, plot_quiver: bool = True, 
-             normal_scale: float = 0.2, figsize: tuple = (10, 8),
-             show_edges: bool = True):
+             normal_scale: float = 0.2,
+             show_edges: bool = True, show_ground: bool = True, show: bool = True):
         """
         Visualize the geometry.
         
@@ -210,10 +286,13 @@ class UDGeom:
             (Renamed from show_normals to match MATLAB interface)
         normal_scale : float, default=0.2
             Scaling factor for normal vector arrow lengths.
-        figsize : tuple, default=(10, 8)
-            Figure size in inches (width, height).
         show_edges : bool, default=True
             If True, draw facet edges; set False for cleaner surfaces.
+        show_ground : bool, default=True
+            If True, include z=0 ground facets in the geometry view.
+        show : bool, default=True
+            If True, display the figure immediately. If False, only return the
+            figure object.
             
         Raises
         ------
@@ -227,113 +306,16 @@ class UDGeom:
         >>> geom.show()  # Default: color buildings, show normals
         >>> geom.show(color_buildings=False)  # Faster for large meshes
         >>> geom.show(True, False)  # Color buildings but don't show normals
+        >>> fig = geom.show(show=False)  # Build the figure without displaying it
         """
-        if self.stl is None:
-            raise ValueError("No geometry loaded. Cannot visualize.")
-        
-        if not MATPLOTLIB_AVAILABLE:
-            raise ImportError("matplotlib is required for visualization. Install with: pip install matplotlib")
-        
-        fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(111, projection='3d')
-        
-        # Get face centers and normals
-        face_centers = self.stl.triangles_center
-        face_normals = self.stl.face_normals
-        
-        # Separate ground and building facets
-        is_building = face_centers[:, 2] > 0
-
-        edge_color = 'k' if show_edges else 'none'
-        edge_width = 0.2 if show_edges else 0.0
-        
-        if color_buildings:
-            # Plot ground facets (light gray)
-            if np.any(~is_building):
-                ground_faces = self.stl.faces[~is_building]
-                ground_verts = self.stl.vertices
-                ground_triangles = ground_verts[ground_faces]
-                
-                ground_collection = Poly3DCollection(
-                    ground_triangles,
-                    facecolors=[0.85, 0.85, 0.85],  # opaque ground
-                    edgecolors=edge_color,
-                    linewidths=edge_width,
-                    alpha=1.0,
-                    zsort='average',
-                )
-                ax.add_collection3d(ground_collection)
-            
-            # Plot building facets (blue)
-            if np.any(is_building):
-                building_faces = self.stl.faces[is_building]
-                building_verts = self.stl.vertices
-                building_triangles = building_verts[building_faces]
-                
-                building_collection = Poly3DCollection(
-                    building_triangles,
-                    facecolors=[0.73, 0.83, 0.96],
-                    edgecolors=edge_color,
-                    linewidths=edge_width,
-                    alpha=1.0,
-                    zsort='average',
-                )
-                ax.add_collection3d(building_collection)
-        else:
-            # Plot all facets in single color (faster for large geometries)
-            all_triangles = self.stl.vertices[self.stl.faces]
-            
-            collection = Poly3DCollection(
-                all_triangles,
-                facecolors=[0.85, 0.85, 0.85],
-                edgecolors=edge_color,
-                linewidths=edge_width,
-                alpha=1.0,
-                zsort='average',
-            )
-            ax.add_collection3d(collection)
-        
-        # Plot normal vectors
-        if plot_quiver:
-            ax.quiver(
-                face_centers[:, 0], face_centers[:, 1], face_centers[:, 2],
-                face_normals[:, 0], face_normals[:, 1], face_normals[:, 2],
-                length=normal_scale,
-                normalize=True,
-                color='red',
-                arrow_length_ratio=0.3,
-                linewidth=0.5
-            )
-        
-        # Set axis properties
-        ax.set_xlabel('X (m)')
-        ax.set_ylabel('Y (m)')
-        ax.set_zlabel('Z (m)')
-        ax.set_title(f'Geometry: {len(self.stl.faces)} facets')
-        
-        # Equal aspect ratio
-        vertices = self.stl.vertices
-        max_range = np.array([
-            vertices[:, 0].max() - vertices[:, 0].min(),
-            vertices[:, 1].max() - vertices[:, 1].min(),
-            vertices[:, 2].max() - vertices[:, 2].min()
-        ]).max() / 2.0
-        
-        mid_x = (vertices[:, 0].max() + vertices[:, 0].min()) * 0.5
-        mid_y = (vertices[:, 1].max() + vertices[:, 1].min()) * 0.5
-        mid_z = (vertices[:, 2].max() + vertices[:, 2].min()) * 0.5
-        
-        ax.set_xlim(mid_x - max_range, mid_x + max_range)
-        ax.set_ylim(mid_y - max_range, mid_y + max_range)
-        ax.set_zlim(mid_z - max_range, mid_z + max_range)
-        
-        # Set viewing angle
-        ax.view_init(elev=30, azim=45)
-        
-        plt.tight_layout()
-        plt.xlabel('x [m]')
-        plt.ylabel('y [m]')
-        plt.show()
+        return self.vis.show_geometry(
+            color_buildings=color_buildings,
+            plot_quiver=plot_quiver,
+            normal_scale=normal_scale,
+            show_edges=show_edges,
+            show_ground=show_ground,
+            show=show,
+        )
     
     @property
     def n_faces(self) -> int:
@@ -372,6 +354,48 @@ class UDGeom:
         if self.stl is None:
             return np.array([])
         return self.stl.triangles_center
+
+    @property
+    def face_incenters(self) -> np.ndarray:
+        """
+        Incenters of all triangular faces.
+
+        Returns
+        -------
+        incenters : ndarray, shape (n_faces, 3)
+            Incenter coordinates for each triangular face.
+        """
+        if self.stl is None:
+            return np.array([])
+
+        vertices = np.asarray(self.stl.vertices, dtype=float)
+        faces = np.asarray(self.stl.faces, dtype=int)
+        if faces.size == 0:
+            return np.empty((0, 3), dtype=float)
+
+        triangles = vertices[faces]
+        edge_a = np.linalg.norm(triangles[:, 1] - triangles[:, 2], axis=1)
+        edge_b = np.linalg.norm(triangles[:, 0] - triangles[:, 2], axis=1)
+        edge_c = np.linalg.norm(triangles[:, 0] - triangles[:, 1], axis=1)
+        perimeter = edge_a + edge_b + edge_c
+
+        incenters = (
+            edge_a[:, None] * triangles[:, 0]
+            + edge_b[:, None] * triangles[:, 1]
+            + edge_c[:, None] * triangles[:, 2]
+        )
+        valid = perimeter > 0.0
+        if np.any(valid):
+            incenters[valid] = incenters[valid] / perimeter[valid, None]
+        if np.any(~valid):
+            count = int(np.count_nonzero(~valid))
+            warnings.warn(
+                f"{count} fully collapsed triangle(s) encountered while computing face incenters; "
+                "using triangle centroids for those faces.",
+                stacklevel=2,
+            )
+            incenters[~valid] = np.mean(triangles[~valid], axis=1)
+        return incenters
 
     def get_buildings(self) -> List[trimesh.Trimesh]:
         """
@@ -492,7 +516,9 @@ class UDGeom:
         if buildings_with_labels:
             centroids = np.array([bld[0].vertices[:, :2].mean(axis=0) for bld in buildings_with_labels])
             proj = centroids[:, 0] + centroids[:, 1]  # x + y projection
-            order = np.argsort(proj)
+            # Match MATLAB's ascending sort on x+y while preserving the
+            # original connected-component order for ties.
+            order = np.argsort(proj, kind="stable")
             
             # Reorder buildings
             buildings_with_labels = [buildings_with_labels[i] for i in order]
@@ -540,9 +566,6 @@ class UDGeom:
         
         if self.stl is None:
             return []
-        if not SCIPY_AVAILABLE:
-            warnings.warn("scipy is required for calculate_outline2d; install scipy to enable building outlines.")
-            return []
         
         # Get individual buildings
         buildings = self.get_buildings()
@@ -551,50 +574,143 @@ class UDGeom:
         
         outlines: List[dict] = []
         for building in buildings:
-            verts = building.vertices
-            if len(verts) < 3:
+            verts = np.asarray(building.vertices, dtype=float)
+            faces = np.asarray(building.faces, dtype=int)
+            if len(verts) < 3 or len(faces) == 0:
                 outlines.append({'polygon': np.array([]), 'centroid': np.array([np.nan, np.nan, 0.0])})
                 continue
-            
-            verts_xy = np.unique(verts[:, :2], axis=0)
-            if len(verts_xy) < 3:
+
+            pts2 = verts[:, :2]
+            if len(pts2) < 3:
                 centroid = np.array([verts[:, 0].mean(), verts[:, 1].mean(), 0.0])
                 outlines.append({'polygon': np.array([]), 'centroid': centroid})
                 continue
 
             try:
-                hull = ConvexHull(verts_xy)
-                polygon_xy = verts_xy[hull.vertices]
+                edge_counts = {}
+                directed_boundary_edges = []
+                for face in faces:
+                    directed_edges = (
+                        (int(face[0]), int(face[1])),
+                        (int(face[1]), int(face[2])),
+                        (int(face[2]), int(face[0])),
+                    )
+                    for start, end in directed_edges:
+                        edge = tuple(sorted((start, end)))
+                        edge_counts[edge] = edge_counts.get(edge, 0) + 1
+                    directed_boundary_edges.extend(directed_edges)
+
+                boundary_directed = [
+                    edge for edge in directed_boundary_edges
+                    if edge_counts[tuple(sorted(edge))] == 1
+                ]
+
+                if boundary_directed:
+                    next_vertices = {}
+                    for start, end in boundary_directed:
+                        next_vertices.setdefault(start, []).append(end)
+
+                    polygon_indices = []
+                    remaining = {start: list(ends) for start, ends in next_vertices.items()}
+
+                    while remaining:
+                        start = min(remaining)
+                        current = start
+
+                        while True:
+                            polygon_indices.append(current)
+                            ends = remaining.get(current)
+                            if not ends:
+                                break
+
+                            next_vertex = ends.pop(0)
+                            if not ends:
+                                remaining.pop(current, None)
+
+                            current = next_vertex
+                            if current == start:
+                                break
+
+                    # Match MATLAB's `tri2.Points(boundary_edges(:,1), :)` by
+                    # preserving one ordered start vertex per boundary edge over
+                    # every loop in the projected free boundary.
+                    polygon = pts2[np.asarray(polygon_indices, dtype=int)]
+                    centroid_xy = polygon.mean(axis=0)
+                else:
+                    polygon = np.array([])
+                    centroid_xy = pts2.mean(axis=0)
             except Exception:
-                # Degenerate (nearly colinear); fallback to all points
-                polygon_xy = verts_xy
+                polygon = np.array([])
+                centroid_xy = pts2.mean(axis=0)
 
-            # Ensure closed polygon ordering
-            polygon_xy = np.vstack([polygon_xy, polygon_xy[0]])
-            polygon = np.column_stack([polygon_xy[:, 0], polygon_xy[:, 1], np.zeros(len(polygon_xy))])
-
-            # Polygon centroid in 2D using shoelace; fallback to mean if degenerate
-            x = polygon_xy[:, 0]
-            y = polygon_xy[:, 1]
-            cross = x[:-1] * y[1:] - x[1:] * y[:-1]
-            area = 0.5 * np.sum(cross)
-            if np.isclose(area, 0):
-                centroid_xy = polygon_xy.mean(axis=0)
+            if polygon.size == 0:
+                polygon3d = np.array([])
             else:
-                cx = np.sum((x[:-1] + x[1:]) * cross) / (6 * area)
-                cy = np.sum((y[:-1] + y[1:]) * cross) / (6 * area)
-                centroid_xy = np.array([cx, cy])
+                polygon3d = np.column_stack(
+                    [polygon[:, 0], polygon[:, 1], np.zeros(len(polygon))]
+                )
 
             centroid = np.array([centroid_xy[0], centroid_xy[1], 0.0])
-            outlines.append({'polygon': polygon, 'centroid': centroid})
+            outlines.append({'polygon': polygon3d, 'centroid': centroid})
 
-        # Sort outlines by y then x (bottom-left to top-right) for consistent IDs
-        outlines.sort(key=lambda o: (o['centroid'][1], o['centroid'][0]))
-        
         # Cache the result
         self._outline2d = outlines
         
         return outlines
+
+    def get_building_outlines(self, angle_threshold: float = 45.0) -> List[np.ndarray]:
+        """
+        Get 3D outline edges for each disconnected building component.
+
+        Parameters
+        ----------
+        angle_threshold : float, default=45.0
+            Angle threshold in degrees for edge detection.
+
+        Returns
+        -------
+        outlines : list of ndarray
+            Per-building edge arrays with shape (n_edges, 2). Edge indices refer
+            to each building submesh, matching the MATLAB method contract.
+        """
+        if self.stl is None:
+            warnings.warn('No STL geometry loaded. Load geometry first.')
+            return []
+
+        if self._outline3d is None:
+            self._outline3d = {}
+
+        cache_key = float(angle_threshold)
+        if cache_key not in self._outline3d:
+            outlines: List[np.ndarray] = []
+            for building in self.get_buildings():
+                edges, _ = calculate_outline(building, angle_threshold)
+                outlines.append(edges)
+            if self._outline3d is None:
+                self._outline3d = {}
+            self._outline3d[cache_key] = outlines
+        return self._outline3d[cache_key]
+
+    def get_outline(self, angle_threshold: float = 45.0) -> np.ndarray:
+        """
+        Get 3D outline edges for the entire geometry.
+
+        Parameters
+        ----------
+        angle_threshold : float, default=45.0
+            Angle threshold in degrees for edge detection.
+
+        Returns
+        -------
+        outline_edges : ndarray, shape (n_edges, 2)
+            Edge vertex pairs referring to ``self.stl.vertices``.
+        """
+        if self.stl is None:
+            warnings.warn('No STL geometry loaded. Load geometry first.')
+            return np.empty((0, 2), dtype=int)
+
+        edges, _ = calculate_outline(self.stl, angle_threshold)
+        return edges
     
     @property
     def face_normals(self) -> np.ndarray:
@@ -651,7 +767,12 @@ class UDGeom:
             return False
         return self.stl.is_watertight
     
-    def show_outline(self, angle_threshold: float = 45.0, figsize: tuple = (10, 8)):
+    def show_outline(
+        self,
+        angle_threshold: float = 45.0,
+        show_ground: bool = True,
+        show: bool = True,
+    ):
         """
         Plot the geometry with outline edges highlighted.
         
@@ -664,8 +785,11 @@ class UDGeom:
             Angle threshold in degrees for edge detection.
             Edges where adjacent faces meet at angles greater than this
             threshold are considered outline edges.
-        figsize : tuple, default=(10, 8)
-            Figure size in inches (width, height).
+        show_ground : bool, default=True
+            If True, include ground faces in the visualization.
+        show : bool, default=True
+            If True, display the figure immediately. If False, only return the
+            figure object.
             
         Raises
         ------
@@ -679,66 +803,406 @@ class UDGeom:
         >>> geom.show_outline()  # Default 45° threshold
         >>> geom.show_outline(angle_threshold=30)  # More sensitive
         """
-        if self.stl is None:
-            raise ValueError("No geometry loaded. Cannot visualize.")
-        
-        if not MATPLOTLIB_AVAILABLE:
-            raise ImportError("matplotlib is required for visualization. Install with: pip install matplotlib")
-        
-        # Get outline edges
-        outline_edges = self._calculate_outline_edges(angle_threshold)
-        
-        if len(outline_edges) == 0:
-            warnings.warn('No outline edges found.')
-            return
-        
-        fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(111, projection='3d')
-        
-        # Plot mesh without edges
-        all_triangles = self.stl.vertices[self.stl.faces]
-        collection = Poly3DCollection(
-            all_triangles,
-            facecolors=[0.85, 0.85, 0.85],
-            edgecolors='none',
-            alpha=0.8
+        return self.vis.show_geometry_outline(
+            angle_threshold=angle_threshold,
+            show_ground=show_ground,
+            show=show,
         )
-        ax.add_collection3d(collection)
-        
-        # Plot outline edges (including ground facet edges)
-        for edge in outline_edges:
-            v1 = self.stl.vertices[edge[0]]
-            v2 = self.stl.vertices[edge[1]]
-            ax.plot([v1[0], v2[0]], [v1[1], v2[1]], [v1[2], v2[2]], 'k-', linewidth=1)
-        
-        # Set axis properties
-        ax.set_xlabel('X (m)')
-        ax.set_ylabel('Y (m)')
-        ax.set_zlabel('Z (m)')
-        ax.set_title(f'Geometry Outline ({len(outline_edges)} edges)')
-        
-        # Equal aspect ratio
-        vertices = self.stl.vertices
-        max_range = np.array([
-            vertices[:, 0].max() - vertices[:, 0].min(),
-            vertices[:, 1].max() - vertices[:, 1].min(),
-            vertices[:, 2].max() - vertices[:, 2].min()
-        ]).max() / 2.0
-        
-        mid_x = (vertices[:, 0].max() + vertices[:, 0].min()) * 0.5
-        mid_y = (vertices[:, 1].max() + vertices[:, 1].min()) * 0.5
-        mid_z = (vertices[:, 2].max() + vertices[:, 2].min()) * 0.5
-        
-        ax.set_xlim(mid_x - max_range, mid_x + max_range)
-        ax.set_ylim(mid_y - max_range, mid_y + max_range)
-        ax.set_zlim(mid_z - max_range, mid_z + max_range)
-        
-        ax.set_box_aspect([1, 1, 1])
-        ax.grid(True)
-        ax.view_init(elev=30, azim=45)
-        
-        plt.tight_layout()
-        plt.show()
+
+    def check(self, require_single_component: bool = True):
+        """
+        Validate the current mesh for common udgeom mesh-quality issues.
+
+        Use this as the first step in a repair workflow. The returned report
+        contains both summary counts and detailed defect locations.
+
+        Parameters
+        ----------
+        require_single_component : bool, default=True
+            If True, the mesh must form a single face-connected component.
+
+        Returns
+        -------
+        report : dict
+            Validation report from `udgeom.check`.
+        """
+        return check_mesh(self, require_single_component=require_single_component)
+
+    def add_ground(
+        self,
+        xsize: float,
+        ysize: float,
+        edgelength: float,
+        *,
+        shift: tuple[float, float, float] = (0.0, 0.0, 0.0),
+        preserve_existing_edges: bool = True,
+        return_debug: bool = False,
+        inplace: bool = False,
+    ):
+        """
+        Add a flat ground surface around the current geometry.
+
+        This is the public wrapper for stitching a flat ground mesh around an
+        existing building shell or imported STL geometry.
+        """
+        from .geometry_generation import add_ground as add_ground_impl
+
+        result = add_ground_impl(
+            self,
+            xsize,
+            ysize,
+            shift=shift,
+            edgelength=edgelength,
+            return_debug=return_debug,
+            preserve_existing_edges=preserve_existing_edges,
+        )
+        if return_debug:
+            geom, debug = result
+            if inplace:
+                self.stl = geom.stl
+                self._outline2d = None
+                self._outline3d = None
+                self._buildings = None
+                self._face_to_building_map = None
+            return geom, debug
+
+        geom = result
+        if inplace:
+            self.stl = geom.stl
+            self._outline2d = None
+            self._outline3d = None
+            self._buildings = None
+            self._face_to_building_map = None
+        return geom
+
+    def calculate_independent_surfaces(self):
+        """
+        Partition the mesh into face-connected independent surfaces.
+
+        This is useful for diagnosing disconnected geometry and for selecting
+        one surface id for a targeted repair such as `extrude_to_ground(...)`.
+
+        Returns
+        -------
+        result : dict
+            Surface partition with ``n_surfaces``, ``face_surface_ids``, and
+            per-surface face-id lists.
+        """
+        return calculate_independent_surfaces_impl(self)
+
+    def identify_ground_faces(
+        self,
+        max_slope_deg: float = 20.0,
+        min_component_area_fraction: float = 0.05,
+    ) -> np.ndarray:
+        """
+        Identify likely ground faces without assuming a fixed absolute z level.
+
+        Parameters
+        ----------
+        max_slope_deg : float, default=20.0
+            Maximum slope from horizontal for ground candidates.
+        min_component_area_fraction : float, default=0.05
+            Minimum area fraction for a horizontal component to be considered.
+
+        Returns
+        -------
+        mask : ndarray of bool
+            Boolean mask over faces identifying likely ground facets.
+        """
+        return identify_ground_faces_impl(
+            self,
+            max_slope_deg=max_slope_deg,
+            min_component_area_fraction=min_component_area_fraction,
+        )
+
+    def find_nonmanifold_regions(self):
+        """
+        Locate clustered non-manifold defect regions.
+
+        Returns
+        -------
+        regions : list of dict
+            Clustered non-manifold regions with edge ids, face ids, and bounding boxes.
+        """
+        return find_nonmanifold_regions_impl(self)
+
+    def find_internal_touching_wall_regions(self):
+        """
+        Locate coplanar opposite-facing internal wall overlaps.
+
+        Returns
+        -------
+        regions : list of dict
+            Overlap regions with face ids, plane location, overlap area, and bounding boxes.
+        """
+        return find_internal_touching_wall_regions_impl(self)
+
+    def find_unstitched_touching_regions(self):
+        """
+        Locate touching seams that are geometrically coincident but not stitched.
+
+        Returns
+        -------
+        regions : list of dict
+            Seam regions with edge ids, face ids, and bounding boxes.
+        """
+        return find_unstitched_touching_regions_impl(self)
+
+    def fix(
+        self,
+        *,
+        merge_tolerance: float | None = None,
+        remove_small_components: bool = False,
+        min_component_faces: int = 0,
+        min_component_area_fraction: float = 0.0,
+        resolve_vertical_coplanar_overlaps: bool = False,
+        inplace: bool = False,
+    ):
+        """
+        Apply conservative small-scale mesh cleanup.
+
+        This method is intended for low-risk housekeeping operations such as
+        removing duplicate faces, zero-area triangles, unused vertices, and
+        optionally tiny disconnected fragments. For larger geometric edits, use
+        the dedicated repair helpers.
+
+        Parameters
+        ----------
+        merge_tolerance : float, optional
+            Merge nearby vertices after rounding to this tolerance.
+        remove_small_components : bool, default=False
+            Remove tiny disconnected components.
+        min_component_faces : int, default=0
+            Minimum face count to keep when removing small components.
+        min_component_area_fraction : float, default=0.0
+            Minimum component area fraction to keep when removing small components.
+        resolve_vertical_coplanar_overlaps : bool, default=False
+            Also resolve opposite-facing coplanar vertical wall overlaps.
+            Supported here for convenience; the dedicated
+            ``resolve_vertical_coplanar_overlaps()`` method is usually clearer.
+        inplace : bool, default=False
+            If True, replace ``self.stl`` with the fixed mesh.
+
+        Returns
+        -------
+        fixed_mesh, report
+            The cleaned mesh plus a change report.
+        """
+        fixed_mesh, report = fix_mesh(
+            self,
+            merge_tolerance=merge_tolerance,
+            remove_small_components=remove_small_components,
+            min_component_faces=min_component_faces,
+            min_component_area_fraction=min_component_area_fraction,
+            resolve_vertical_coplanar_overlaps=resolve_vertical_coplanar_overlaps,
+        )
+        if inplace:
+            self.stl = fixed_mesh
+            self._outline2d = None
+            self._outline3d = None
+            self._buildings = None
+            self._face_to_building_map = None
+        return fixed_mesh, report
+
+    def resolve_vertical_coplanar_overlaps(
+        self,
+        *,
+        weld_touching_boundaries: bool = True,
+        inplace: bool = False,
+    ):
+        """
+        Resolve adjacent-building overlap defects on vertical shared planes.
+
+        This helper removes internal shared wall patches where two shells both
+        contain faces on the same vertical plane, then optionally welds any new
+        touching boundary seams created by the repair.
+        """
+        fixed_mesh, report = resolve_vertical_coplanar_overlaps_impl(
+            self,
+            weld_touching_boundaries=weld_touching_boundaries,
+        )
+        if inplace:
+            self.stl = fixed_mesh
+            self._outline2d = None
+            self._outline3d = None
+            self._buildings = None
+            self._face_to_building_map = None
+        return fixed_mesh, report
+
+    def weld_touching_boundaries(
+        self,
+        *,
+        inplace: bool = False,
+    ):
+        """
+        Weld touching but unstitched mesh boundaries.
+
+        This helper targets adjacency defects where two surfaces touch
+        geometrically but do not yet share the same boundary discretization.
+        """
+        fixed_mesh, report = weld_touching_boundaries_impl(self)
+        if inplace:
+            self.stl = fixed_mesh
+            self._outline2d = None
+            self._outline3d = None
+            self._buildings = None
+            self._face_to_building_map = None
+        return fixed_mesh, report
+
+    def repair_adjacent_buildings(
+        self,
+        *,
+        merge_digits_vertex: int = 8,
+        plane_tolerance: float = 1.0e-8,
+        point_tolerance: float = 1.0e-8,
+        return_trimesh: bool = False,
+        inplace: bool = False,
+    ):
+        """
+        Repair adjacent-building shared-wall defects while preserving original ground.
+
+        This helper keeps the current ground mesh, repairs the non-ground shell
+        for vertical coplanar overlap defects, then rejoins and welds the full
+        geometry.
+        """
+        cleaned_geom, report = repair_adjacent_buildings_impl(
+            self,
+            merge_digits_vertex=merge_digits_vertex,
+            plane_tolerance=plane_tolerance,
+            point_tolerance=point_tolerance,
+            return_trimesh=False,
+        )
+        if inplace:
+            self.stl = cleaned_geom.stl
+            self._outline2d = None
+            self._outline3d = None
+            self._buildings = None
+            self._face_to_building_map = None
+            return (self.stl, report) if return_trimesh else (self, report)
+        return (cleaned_geom.stl, report) if return_trimesh else (cleaned_geom, report)
+
+    def truncate_below_ground(
+        self,
+        *,
+        ground_planarity_tolerance: float = 1.0e-6,
+        clip_tolerance: float = 1.0e-9,
+        edgelength: float | None = None,
+        return_trimesh: bool = False,
+        inplace: bool = False,
+    ):
+        """
+        Remove below-ground geometry for planar-ground cases and restitch the ground locally.
+
+        Parameters
+        ----------
+        ground_planarity_tolerance : float, default=1e-6
+            Maximum allowed deviation from a single ground plane.
+        clip_tolerance : float, default=1e-9
+            Numerical tolerance for triangle-plane clipping.
+        edgelength : float, optional
+            Optional reference spacing stored in the report. The routine
+            preserves the current ground mesh and restitches it locally.
+        return_trimesh : bool, default=False
+            If True, return the repaired ``trimesh.Trimesh``. Otherwise return
+            ``UDGeom``.
+        inplace : bool, default=False
+            If True, replace ``self.stl`` with the cleaned mesh.
+
+        Returns
+        -------
+        cleaned_geom, report
+            The cleaned geometry plus a truncation report.
+        """
+        from .truncate_below_ground import truncate_below_ground as truncate_below_ground_impl
+
+        cleaned_geom, report = truncate_below_ground_impl(
+            self,
+            ground_planarity_tolerance=ground_planarity_tolerance,
+            clip_tolerance=clip_tolerance,
+            edgelength=edgelength,
+            return_trimesh=False,
+        )
+        if inplace:
+            self.stl = cleaned_geom.stl
+            self._outline2d = None
+            self._outline3d = None
+            self._buildings = None
+            self._face_to_building_map = None
+            return (self.stl, report) if return_trimesh else (self, report)
+        return (cleaned_geom.stl, report) if return_trimesh else (cleaned_geom, report)
+
+    def extrude_to_ground(
+        self,
+        surface_id: int,
+        *,
+        ground_planarity_tolerance: float = 1.0e-6,
+        bottom_vertex_tolerance: float = 1.0e-8,
+        return_trimesh: bool = False,
+        inplace: bool = False,
+    ):
+        """
+        Drop one independent surface vertically to the identified planar ground.
+
+        This is intended for simple floating-surface cases, such as a building
+        shell that is disconnected from the ground and should be extended
+        downward to meet it.
+
+        Parameters
+        ----------
+        surface_id : int
+            Independent-surface id from ``calculate_independent_surfaces``.
+        ground_planarity_tolerance : float, default=1e-6
+            Maximum allowed deviation from a single ground plane.
+        bottom_vertex_tolerance : float, default=1e-8
+            Tolerance used to identify the selected surface's bottom vertices.
+        return_trimesh : bool, default=False
+            If True, return the repaired ``trimesh.Trimesh``. Otherwise return
+            ``UDGeom``.
+        inplace : bool, default=False
+            If True, replace ``self.stl`` with the cleaned mesh.
+
+        Returns
+        -------
+        cleaned_geom, report
+            Extruded geometry plus a repair report.
+        """
+        from .extrude_to_ground import extrude_to_ground as extrude_to_ground_impl
+
+        cleaned_geom, report = extrude_to_ground_impl(
+            self,
+            surface_id=surface_id,
+            ground_planarity_tolerance=ground_planarity_tolerance,
+            bottom_vertex_tolerance=bottom_vertex_tolerance,
+            return_trimesh=False,
+        )
+        if inplace:
+            self.stl = cleaned_geom.stl
+            self._outline2d = None
+            self._outline3d = None
+            self._buildings = None
+            self._face_to_building_map = None
+            return (self.stl, report) if return_trimesh else (self, report)
+        return (cleaned_geom.stl, report) if return_trimesh else (cleaned_geom, report)
+
+    def plot_independent_surfaces(self, show: bool = True, return_result: bool = False):
+        """
+        Visualize face-connected independent surfaces using face ids as colors.
+
+        Parameters
+        ----------
+        show : bool, default=True
+            If True, display the figure immediately.
+        return_result : bool, default=False
+            If True, also return the independent-surface partition result.
+
+        Returns
+        -------
+        fig or (fig, result)
+            Plotly figure from ``plot_fac``. When ``return_result=True``, also
+            return the surface partition result.
+        """
+        return self.vis.plot_independent_surfaces(show=show, return_result=return_result)
     
     def _calculate_outline_edges(self, angle_threshold: float = 45.0) -> List[tuple]:
         """
