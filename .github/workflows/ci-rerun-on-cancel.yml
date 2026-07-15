@@ -1,0 +1,30 @@
+name: Re-run CI on infra cancellation
+
+# Recovers from GitHub-side cancellations (runner loss, infra hiccups) that
+# cancel a CI run through no fault of the pipeline. It re-runs ONLY runs whose
+# conclusion was `cancelled` — genuine build/test `failure`s are left alone so
+# real problems still surface. A run_attempt cap prevents infinite retry loops.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  actions: write
+
+jobs:
+  rerun:
+    if: >
+      github.event.workflow_run.conclusion == 'cancelled' &&
+      github.event.workflow_run.run_attempt < 3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-run cancelled jobs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "CI run ${{ github.event.workflow_run.id }} was cancelled" \
+               "(attempt ${{ github.event.workflow_run.run_attempt }}); re-running all jobs."
+          gh api --method POST \
+            "repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/rerun"
