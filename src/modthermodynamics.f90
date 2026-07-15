@@ -508,7 +508,6 @@ contains
   subroutine calc_halflev
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzf,dzh,iadv_kappa
     use modfields, only : thl0,thl0h,qt0,qt0h
-    use modsurfdata,only: qts,thls
     implicit none
 
     integer :: i,j,k
@@ -523,7 +522,8 @@ contains
        end do
 
     end do
-        thl0h(ib:ie,jb:je,kb) = thls
+        ! one-sided: the IBM owns the bottom interface; kb may lie inside solid (#299)
+        thl0h(ib:ie,jb:je,kb) = thl0(ib:ie,jb:je,kb)
 
     !      do  k=kb+1,ke+kh
     do  k=kb,ke+kh
@@ -533,7 +533,7 @@ contains
           end do
        end do
     end do
-          qt0h(ib:ie,jb:je,kb)  = qts
+          qt0h(ib:ie,jb:je,kb)  = qt0(ib:ie,jb:je,kb)
 
   end subroutine calc_halflev
 

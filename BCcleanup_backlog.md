@@ -248,9 +248,9 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
 
 ### Phase 0 — fix #299/#302 (thermodynamics + base-state decoupling)
 
-- [ ] Remove `thl0h(ib:ie,jb:je,kb)=thls` and `qt0h(ib:ie,jb:je,kb)=qts`
+- [x] Remove `thl0h(ib:ie,jb:je,kb)=thls` and `qt0h(ib:ie,jb:je,kb)=qts`
       (modthermodynamics.f90:526,536).
-- [ ] Decide the replacement value at `kb`. Bare deletion leaves `calc_halflev` interpolating
+- [x] Decide the replacement value at `kb`. Bare deletion leaves `calc_halflev` interpolating
       against the ghost `thl0(kb-1)`, which is set **once at startup** (modstartup.f90:1209) and
       never refreshed — that staleness is why the override exists. Options: one-sided
       `thl0h(kb)=thl0(kb)`, or refresh the scalar ghost at `kb-1` in `modboundary` alongside the
