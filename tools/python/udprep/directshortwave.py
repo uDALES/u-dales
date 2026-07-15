@@ -1139,8 +1139,6 @@ class DirectShortwaveSolver:
             self.has_solid = solid_full is not None
             self.solid = solid_full[:, :, : self.ktot] if self.has_solid else np.zeros((1, 1, 1), dtype=bool)
 
-            if facsec is None or facsec_locs is None:
-                raise ValueError("Facet sections not available; sim.facsec['c'] is required.")
             self.facsec_facids = facsec["facid"].astype(int)
             self.facsec_areas = facsec["area"]
             self.facsec_locs = facsec_locs
