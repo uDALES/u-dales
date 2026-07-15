@@ -28,6 +28,8 @@ from exceptions import DependencyError
 from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
 from shapely.ops import unary_union
 
+from ._meshutil import _iter_polygons, _project_vertical_face
+
 from ._meshgraph import build_face_adjacency, connected_components
 
 
@@ -139,32 +141,6 @@ def identify_ground_faces(
     for comp in ground_components:
         mask[comp] = True
     return mask
-
-
-def _iter_polygons(geom):
-    if geom.is_empty:
-        return
-    if isinstance(geom, Polygon):
-        yield geom
-    elif isinstance(geom, MultiPolygon):
-        for poly in geom.geoms:
-            yield from _iter_polygons(poly)
-    elif isinstance(geom, GeometryCollection):
-        for item in geom.geoms:
-            yield from _iter_polygons(item)
-
-
-def _project_vertical_face(vertices: np.ndarray, axis: int) -> Polygon | None:
-    if axis == 0:
-        coords = vertices[:, [1, 2]]
-    else:
-        coords = vertices[:, [0, 2]]
-    poly = Polygon(coords)
-    if not poly.is_valid:
-        poly = poly.buffer(0)
-    if poly.is_empty or poly.area <= 1.0e-12:
-        return None
-    return poly
 
 
 def find_internal_touching_wall_regions(

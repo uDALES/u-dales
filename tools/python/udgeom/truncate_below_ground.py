@@ -24,12 +24,7 @@ except ImportError:
     TRIMESH_AVAILABLE = False
 
 from exceptions import DependencyError
-def _copy_mesh(mesh: "trimesh.Trimesh") -> "trimesh.Trimesh":
-    return trimesh.Trimesh(
-        vertices=np.asarray(mesh.vertices, dtype=float).copy(),
-        faces=np.asarray(mesh.faces, dtype=int).copy(),
-        process=False,
-    )
+from ._meshutil import _copy_mesh
 
 
 def _estimate_planar_ground_level(mesh: "trimesh.Trimesh", ground_mask: np.ndarray, tolerance: float) -> float:
