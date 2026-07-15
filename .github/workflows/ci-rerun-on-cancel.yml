@@ -25,6 +25,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "CI run ${{ github.event.workflow_run.id }} was cancelled" \
-               "(attempt ${{ github.event.workflow_run.run_attempt }}); re-running failed/cancelled jobs."
+               "(attempt ${{ github.event.workflow_run.run_attempt }}); re-running all jobs."
           gh api --method POST \
-            "repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/rerun-failed-jobs"
+            "repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/rerun"
