@@ -40,7 +40,10 @@ use mpi
    use modpois
    use modboundary
    use modthermodynamics
-   use modsubgrid
+   ! modsubgrid re-exports modsubgriddata; rename its cs here as well so the
+   ! only module-scope 'cs' is modsurfdata's Cs (Fortran names are
+   ! case-insensitive, and an ambiguous pair fails on newer gfortran).
+   use modsubgrid, sg_cs => cs
    use modmpi
    use modinlet
    use modinletdata
@@ -741,9 +744,6 @@ contains
       !-----------------------------------------------------------------|
       ! Broadcast NAMSUBGRID namelist parameters to all processes
       !-----------------------------------------------------------------|
-      use modsubgrid, only: ldelta, lmason, cf, cn, Rigc, Prandtl, lsmagorinsky, &
-                                lvreman, loneeqn, c_vreman, cs, nmason, lbuoycorr
-      
       call MPI_BCAST(ldelta, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lmason, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(cf, 1, MY_REAL, 0, comm3d, mpierr)
@@ -754,7 +754,7 @@ contains
       call MPI_BCAST(lvreman, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(loneeqn, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(c_vreman, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(cs, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(sg_cs, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nmason, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lbuoycorr, 1, MPI_LOGICAL, 0, comm3d, mpierr)
    end subroutine broadcast_namsubgrid_parameters
