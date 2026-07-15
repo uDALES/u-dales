@@ -15,7 +15,7 @@
 
 ## Status — updated 2026-07-15
 
-The "same day" and "this week" priority tiers were implemented on this branch (commits `d279ebf`..`9d9908d`), each fix TDD-first and independently reviewed, with a final whole-branch review. Full unit suite green (317 tests).
+The "same day" and "this week" priority tiers were implemented on this branch (commits `d279ebf`..`9d9908d`), each fix TDD-first and independently reviewed, with a final whole-branch review. A subsequent minors sweep across the three packages (`a262c08`, `806e2a9`, `ea72d61`) closed the C/G/P-list items below. Full unit suite green: **386 tests** (only `test_scanline_*` errors locally, because the `directshortwave_f2py` extension is not built in this environment — an env gap, not a regression).
 
 **Fixed (closed):**
 
@@ -38,8 +38,12 @@ The "same day" and "this week" priority tiers were implemented on this branch (c
 | #5 viz cleanup, V9 | `98d0abe` | Legacy render shims already gone with the Scene refactor; removed orphaned test scaffolding; fixed stale plotly/trimesh backend docstrings |
 | C23, C13 | `9de8584` | `udfacet.facsec_to_field` vectorised (`np.add.at`) + shared by `convert_facflx_to_field`; dead `_file_has_data` removed |
 | G25, G26, G27 | `9e8f4cd` | 443 lines of dead `geometry_generation.py` code removed; byte-identical mesh utils extracted to `udgeom/_meshutil.py`; `ndarray.ptp()`→`np.ptp()` (NumPy-2.0) |
+| D4, S2, E3 | `2233779` | Stale install/dep docs corrected (Python 3.6→3.9); f2py platform/rebuild note; personal notebook paths anonymised |
+| C12, C14, C17, C19, C20, C21, C22, C24, C25, C27, C28, C29 | `a262c08` | udbase/udconfig/udstats minors; each behaviour-preserving with a characterization/regression test (94 tests) |
+| G12, G14, G15, G16, G17, G18, G19, G23, G29 | `806e2a9` | udgeom minors; golden byte-contracts (view3d/svf) verified and left unchanged (88 tests) |
+| P7, P5 (remainder), P10, P11, P12b, P14, P17, P20, P22, P23, P24, P26, P27, P28, P30 | `ea72d61` | udprep minors; **P7 SEB gate now resolved** (SEB runs independently of the radiation gate); **shortwave skips now signature-validated** so `force=True` is no longer required after a namelist/time change (150 tests) |
 
-**Still open:** the two biggest structural refactors — reduce-`UDBase` further and fully separate-numerics-from-IO in radiation (POSTPROCESSING_REVIEW #4/#7; note udstats/udgrid/udfacet/udconfig/udnetcdf/_radiation_compute are already extracted, so this is now incremental) — plus the remaining unmarked minors (C-list/G-list/P-list). Deferred sub-items noted in code: `run_short_wave`/`run_short_wave_timedep` file-existence skips are not yet signature-validated (use `force=True` after namelist/time changes); the P7 SEB gate discrepancy (characterized, not resolved).
+**Still open:** the two biggest structural refactors — reduce-`UDBase` further and fully separate-numerics-from-IO in radiation (POSTPROCESSING_REVIEW #4/#7; note udstats/udgrid/udfacet/udconfig/udnetcdf/_radiation_compute are already extracted, so this is now incremental). Remaining unmarked findings are the ones explicitly reviewed-and-deferred as architectural or physics-behavioural (not safe local fixes): C10 (namelist-schema validation), C11 (namoptions `setattr` clobbering), C18, C15/C16; G3/G6/G7/G13/G20/G21/G22/G24/G28/G30 (mesh-repair internals without a protecting fixture); P16 (shared-sim namespace coupling), P18 (process-global `warnings.formatwarning` monkeypatch), P21 (isolar=3 sub-hourly assumption), P29 (scanline `surface_mesh` override), and the write-only `energy_in` numba-kernel arg. Each is annotated in place or in the finding text above with why it was not attempted here.
 
 **Newly discovered during fixing:** the committed `ibm_preproc_f2py` binary can drift from the caller signature (confirmed on one Windows machine: zero-arg extension vs ~20-arg call → `run_all` cannot complete until rebuilt). The unit tests mock one level above the f2py call, so this drift is invisible to CI — worth a smoke test that imports the extension and checks its signature, and a rebuild note in `fortran/README.md` (extends S2).
 
