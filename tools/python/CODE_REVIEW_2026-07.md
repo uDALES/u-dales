@@ -24,7 +24,7 @@ The "same day" and "this week" priority tiers were implemented on this branch (c
 | T1 (slow-test CI gate) | `d279ebf` + follow-up | Gated direct-shortwave tests now run in the experimental suites — and pass. Follow-up (post-review): the skip is now raised at module level BEFORE importing the solver, since the numba import cost hit ordinary discovery even when the class decorator skipped the tests |
 | G1 (self-destructing lazy wrappers) | `386968c` | Eager imports + 3 regression tests |
 | C1, V1, C4, C7 | `79a440f` | geom=None init; plot_trees→plot_veg; veg cache keyed on zero_based; ndmin on facet loaders |
-| C2, C3 | `313a705` | DataFormatError on corrupt factypes width / prof.inp; missing-file fallback preserved. Width formula corrected (`cb699a2`) |
+| C2, C3 | `313a705` | DataFormatError on corrupt factypes width / prof.inp; missing-file fallback preserved. The code uses the correct width `6 + 4*nfaclyrs + 1`; `cb699a2` only corrected the formula in this document's C2 text (docs-only) |
 | P1, P3 | `3484b6a` | s_veg array contract (no-veg timedep no longer crashes); per-call maxD honoured; caches unified |
 | P2a, P2b | `1f36b23` | sveg files now true W/m3 (single scaling owner); Möller attenuates before crediting facets. Budget closes ~1e-12; Möller == facsec. **Regenerated cases will see a step-change in sveg values — intended** |
 | P6, P8, P9 | `a3f24f1` | IBM outputs reload into sim; writeback errors propagate; grid stretch-fit raises instead of NaN |
