@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Direct shortwave solvers (facsec, moller, scanline) with shared helpers.
 
@@ -7,6 +5,7 @@ This module consolidates the implementations that previously lived in
 directshortwave_facsec.py and directshortwave_moller.py so it can be used
 standalone.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Dict, Tuple
@@ -17,7 +16,6 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
-import warnings
 
 try:
     import numba as nb
@@ -1082,7 +1080,7 @@ class DirectShortwaveSolver:
                 raise DependencyError("The moller/facsec direct-shortwave methods require numba. Install it with: pip install numba")
         elif self.method == "scanline":
             try:
-                import udprep.directshortwave_f2py as _dsroot
+                from . import directshortwave_f2py as _dsroot
             except ImportError as exc:
                 raise RuntimeError(
                     "directshortwave_f2py module not available; "
@@ -1462,38 +1460,33 @@ class DirectShortwaveSolver:
         j_idx = locs[:, 1]
         k_idx = locs[:, 2]
 
+        # P10: the per-section redistribution below was two pure-Python loops
+        # over all facet sections (dominant preprocessing cost for 1e5-1e7
+        # sections). Vectorised with np.add.at, which accumulates in index
+        # order — identical to the original loop order — so results are
+        # bit-for-bit unchanged.
+        cos_inc_sec = cos_inc_all[facids]          # cos incidence per section
+        proj_area_sec = areas * cos_inc_sec        # projected area per section
+
         # Precompute projected face area per cell for facsec energy redistribution.
         cell_proj_area = np.zeros((self.sim.itot, self.sim.jtot, self.ktot), dtype=float)
+        pos = cos_inc_sec > 0.0
+        np.add.at(
+            cell_proj_area,
+            (i_idx[pos], j_idx[pos], k_idx[pos]),
+            proj_area_sec[pos],
+        )
+
         # Redistribute cell energy to facets proportionally by projected area.
-        for idx in range(len(facids)):
-            fid = facids[idx]
-            cos_inc = cos_inc_all[fid]
-            if cos_inc <= 0.0:
-                continue
-            i = i_idx[idx]
-            j = j_idx[idx]
-            k = k_idx[idx]
-            cell_proj_area[i, j, k] += areas[idx] * cos_inc
+        cpa_sec = cell_proj_area[i_idx, j_idx, k_idx]
+        cell_energy_sec = solid_hit_energy[i_idx, j_idx, k_idx]
+        valid = pos & (cpa_sec > 0.0) & (cell_energy_sec > 0.0)
+        sect_energy = cell_energy_sec[valid] * (proj_area_sec[valid] / cpa_sec[valid])
 
         sdir_accum = np.zeros(self.nfaces, dtype=float)
         area_accum = np.zeros(self.nfaces, dtype=float)
-        for idx in range(len(facids)):
-            fid = facids[idx]
-            cos_inc = cos_inc_all[fid]
-            if cos_inc <= 0.0:
-                continue
-            i = i_idx[idx]
-            j = j_idx[idx]
-            k = k_idx[idx]
-            if cell_proj_area[i, j, k] <= 0.0:
-                continue
-            cell_energy = solid_hit_energy[i, j, k]
-            if cell_energy <= 0.0:
-                continue
-            proj_area = areas[idx] * cos_inc
-            sect_energy = cell_energy * (proj_area / cell_proj_area[i, j, k])
-            sdir_accum[fid] += sect_energy
-            area_accum[fid] += areas[idx]
+        np.add.at(sdir_accum, facids[valid], sect_energy)
+        np.add.at(area_accum, facids[valid], areas[valid])
 
         sdir = np.zeros(self.nfaces, dtype=float)
         mask = area_accum > 0.0

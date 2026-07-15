@@ -315,7 +315,9 @@ class TestForcingSection(unittest.TestCase):
         np.savetxt(prdata_path, prdata_raw, header="z u v thl qt")
         with self.assertWarns(UserWarning):
             section.update_prof_from_nudge_data(str(prdata_path))
-        full_data = np.vstack(([0.0, 0.0, 0.0, 293.0, 0.0], prdata_raw))
+        # P26: the prepended surface anchor uses thl0 (290.0 here), not a
+        # hardcoded 293 K.
+        full_data = np.vstack(([0.0, 0.0, 0.0, 290.0, 0.0], prdata_raw))
         zt = self.sim.zt
         np.testing.assert_allclose(section.sim.pr[:, 1],
                                     CubicSpline(full_data[:, 0], full_data[:, 3])(zt), rtol=1e-5)
@@ -325,6 +327,34 @@ class TestForcingSection(unittest.TestCase):
                                     CubicSpline(full_data[:, 0], full_data[:, 1])(zt), rtol=1e-5)
         np.testing.assert_allclose(section.sim.pr[:, 4],
                                     CubicSpline(full_data[:, 0], full_data[:, 2])(zt), rtol=1e-5)
+
+    def test_update_prof_from_nudge_data_surface_anchor_tracks_thl0(self):
+        # P26: the prepended surface point must use the case's thl0, not a
+        # hardcoded 293 K. Use a distinctive thl0 so a stale 293 would fail.
+        from scipy.interpolate import CubicSpline
+        section = ForcingSection(
+            "forcing",
+            {"thl0": 275.0, "qt0": 0.0, "u0": 0.0, "v0": 0.0, "tke": 0.0, "lapse": 0.0},
+            sim=self.sim,
+            defaults={},
+        )
+        section.generate_prof()
+        section.write_prof()
+        prdata_raw = np.array([
+            [1.0, 2.0, 0.5, 300.0, 0.010],
+            [3.0, 4.0, 1.0, 302.0, 0.009],
+            [6.0, 6.0, 1.5, 306.0, 0.008],
+        ])
+        prdata_path = self.workdir / "prdata_thl0.dat"
+        np.savetxt(prdata_path, prdata_raw, header="z u v thl qt")
+        with self.assertWarns(UserWarning):
+            section.update_prof_from_nudge_data(str(prdata_path))
+        full_data = np.vstack(([0.0, 0.0, 0.0, 275.0, 0.0], prdata_raw))
+        np.testing.assert_allclose(
+            section.sim.pr[:, 1],
+            CubicSpline(full_data[:, 0], full_data[:, 3])(self.sim.zt),
+            rtol=1e-5,
+        )
 
     def test_update_prof_from_nudge_data_skips_surface_point_when_z_starts_at_zero(self):
         from scipy.interpolate import CubicSpline

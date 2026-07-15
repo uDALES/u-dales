@@ -134,7 +134,17 @@ class Section:
                 num, den = value.split("/", 1)
                 num = num.strip()
                 den = den.strip()
-                if num.isidentifier() and den.isidentifier():
+                # P17: treat "a / b" as a division of two context attributes only
+                # when both sides are identifiers that actually exist on ctx.
+                # Otherwise an ordinary default containing a slash (a path like
+                # "some/path", a units label like "W/m2") would be split and crash
+                # on getattr — so return such strings verbatim.
+                if (
+                    num.isidentifier()
+                    and den.isidentifier()
+                    and hasattr(ctx, num)
+                    and hasattr(ctx, den)
+                ):
                     return getattr(ctx, num) / getattr(ctx, den)
             return value
         default = fallback.get(key, SKIP)

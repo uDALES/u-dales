@@ -8,20 +8,14 @@ and can be overridden per-case via namoptions or keyword arguments.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 import inspect
-import json
 import logging
-import time
-import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple, Type
-
-import numpy as np
+from typing import Any, Dict
 
 # Section base classes live in _section (imported here for backward
 # compatibility and to break the section<->orchestrator import cycle).
-from ._section import SKIP, Section, SectionSpec
+from ._section import SKIP, Section, SectionSpec  # noqa: F401  (re-exported)
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +188,27 @@ class UDPrep:
                 else:
                     call_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
                     run_all(**call_kwargs)
+            # P7: SEB is gated independently of radiation EB. SEBSection.run_all
+            # writes Tfacinit whenever lEB OR any of iwallmom/iwalltemp/
+            # iwallmoist == 2, so the orchestrator must call it under the same
+            # condition — otherwise a non-EB case with e.g. iwalltemp=2 never
+            # gets Tfacinit.inp from the pipeline.
+            if self._seb_needs_run():
                 self.seb.run_all()
+
+    def _seb_needs_run(self) -> bool:
+        """Whether SEBSection.run_all would do work for the current case.
+
+        Mirrors the gate inside :meth:`SEBSection.run_all` (reads the same
+        sim-owned fields), so the orchestrator and the section stay aligned.
+        """
+        sim = self.sim
+        return bool(
+            getattr(sim, "lEB", False)
+            or getattr(sim, "iwallmom", 1) == 2
+            or getattr(sim, "iwalltemp", 1) == 2
+            or getattr(sim, "iwallmoist", 1) == 2
+        )
 
     def write_changed_params(self) -> None:
         """Write changed parameters for every section."""

@@ -275,7 +275,9 @@ class IBMSection(Section):
             if unused_sources:
                 shutil.copy2(unused_sources[0], Path(sim.path) / f"facets_unused.{sim.expnr}")
         for base in ("facetarea.inp", "facets.inp", "factypes.inp"):
-            sources = list(geom_path.glob(f"{base}.*"))
+            # Sort so that, with several matching variants, the copied file is
+            # deterministic rather than filesystem-glob order (P24).
+            sources = sorted(geom_path.glob(f"{base}.*"))
             if not sources:
                 raise FileNotFoundError(f"No files matching '{base}.*' found in {geom_path}")
             shutil.copy2(sources[0], Path(sim.path) / f"{base}.{sim.expnr}")
@@ -291,12 +293,24 @@ class IBMSection(Section):
             self._write_ibm_input_files()
             self._run_ibm_via_legacy()
             self._update_counts_from_info_fort()
+            # These generically-named intermediates are produced only by the
+            # legacy path (_write_ibm_input_files / the legacy executable), so
+            # only clean them up there. Deleting them unconditionally would
+            # clobber unrelated user files of the same name on the f2py path,
+            # which never creates them (P23).
+            for name in (
+                "inmypoly_inp_info.txt",
+                "faces.txt",
+                "vertices.txt",
+                "zfgrid.txt",
+                "zhgrid.txt",
+                "info_fort.txt",
+            ):
+                path = Path(sim.path) / name
+                if path.exists():
+                    path.unlink()
         else:
             raise ValueError(f"Unknown IBM backend: {backend}")
-        for name in ("inmypoly_inp_info.txt", "faces.txt", "vertices.txt", "zfgrid.txt", "zhgrid.txt", "info_fort.txt"):
-            path = Path(sim.path) / name
-            if path.exists():
-                path.unlink()
         self._reload_ibm_outputs()
 
     def _reload_ibm_outputs(self) -> None:

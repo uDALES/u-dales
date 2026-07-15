@@ -184,14 +184,25 @@ class VegetationSection(Section):
         self.sim._veg_zero_based = True
         self.save_param("ntrees", len(points))
 
-    def load_stl(self, filename: str | Path | None = None) -> Any:
+    def load_stl(self, filename: str | Path | None = None, plot: bool = True) -> Any:
         """Convert a closed STL volume to sparse vegetation points.
+
+        Parameters
+        ----------
+        filename : str or Path, optional
+            STL file to voxelise. Defaults to ``vegetation.treesfile``.
+        plot : bool
+            Whether to build and return a visualisation of the result (P28). The
+            loader populates ``sim.veg`` regardless; the plot is a side effect.
+            Pass ``plot=False`` for a headless, side-effect-free load (e.g. in
+            CI or batch preprocessing) — no rendering backend is touched.
 
         Returns
         -------
-        Any
-            The backend-dependent visualization object from
-            ``sim.vis.plot_veg(veg, show=False)`` (e.g. a
+        dict or Any
+            When ``plot=False``, the vegetation dict written to ``sim.veg``.
+            When ``plot=True`` (default), the backend-dependent visualisation
+            object from ``sim.vis.plot_veg(veg, show=False)`` (e.g. a
             ``plotly.graph_objects.Figure`` or ``pyvista.Plotter``), or
             ``None`` when no plot could be produced.
         """
@@ -284,6 +295,8 @@ class VegetationSection(Section):
         self.sim._veg_zero_based = True
         self.save_param("ntrees", len(points))
 
+        if not plot:
+            return veg
         fig = sim.vis.plot_veg(veg, show=False)
         return fig
 

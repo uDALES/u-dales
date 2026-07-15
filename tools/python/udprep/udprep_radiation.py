@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
@@ -29,6 +30,13 @@ from udgeom.view3d import (
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("radiation", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
+
+# P11: the direct-shortwave solver (DirectShortwaveSolver.compute) raises when
+# the sun's vertical component |cos(zenith)| falls below this floor (rays become
+# near-horizontal). The timedep loops must therefore treat such steps as night
+# (skip them) rather than let one sunrise/sunset step abort the whole run. Kept
+# in sync with the ``abs(direction[2]) < 1e-2`` guard in directshortwave.py.
+_MIN_SUN_VERTICAL = 1.0e-2
 
 
 # ---------------------------------------------------------------------------
@@ -85,6 +93,10 @@ class RadiationSection(Section):
         self._vf_cache: Any | None = None
         self._svf_cache: np.ndarray | None = None
         self._vf_cache_key: tuple | None = None
+        # (veg_data object, content token). The strong reference to the last
+        # veg_data keeps its address alive so it cannot be recycled into a stale
+        # solver key (P20: id() reuse after GC could silently reuse the solver).
+        self._veg_key_cache: Tuple[Any, str] | None = None
 
     def run_all(self, force: bool = False) -> None:
         """Run radiation preprocessing steps."""
@@ -158,7 +170,7 @@ class RadiationSection(Section):
             "method": method_key,
             "ray_density": float(ray_density),
             "ray_jitter": float(ray_jitter),
-            "veg_key": id(veg_data) if veg_data is not None else None,
+            "veg_key": self._veg_data_key(veg_data),
         }
         if self._direct_sw_solver is None or self._direct_sw_solver_cfg != cfg:
             sim = self._require_sim()
@@ -583,12 +595,18 @@ class RadiationSection(Section):
 
         sdir_path = out_dir / "Sdir.txt"
         netsw_path = out_dir / f"netsw.inp.{sim.expnr}"
-        # NOTE: unlike calc_short_wave (P5-fixed), this file-existence skip does
-        # not yet validate that the existing outputs match the current solar
-        # time / namelist. Use force=True after changing those. Signing this
-        # early-return is a deferred follow-up (needs the section fully
-        # populated before the check, which minimal callers may not have).
-        if not force and sdir_path.exists() and netsw_path.exists():
+        # P5 remainder: validate that existing outputs still match the current
+        # inputs before skipping. The signature is computed defensively so a
+        # minimal sim never crashes here; a MISSING sidecar counts as valid
+        # (backward compatible), only a genuine MISMATCH forces a recompute.
+        sw_sig = self._shortwave_output_signature(timedep=False)
+        stored_sig = _read_sig(sdir_path)
+        if (
+            not force
+            and sdir_path.exists()
+            and netsw_path.exists()
+            and (stored_sig is None or stored_sig == sw_sig)
+        ):
             legacy_vs3_path = out_dir / "facets.vs3"
             if legacy_vs3_path.exists() and (out_dir / f"facets.{sim.expnr}.vs3").exists():
                 legacy_vs3_path.unlink()
@@ -634,6 +652,7 @@ class RadiationSection(Section):
         )
         self.write_netsw(knet, s_veg=s_veg)
         np.savetxt(sdir_path, sdir, fmt="%8.2f")
+        _write_sig(sdir_path, sw_sig)
 
     def run_short_wave_timedep(self, force: bool = False) -> None:
         """
@@ -649,10 +668,15 @@ class RadiationSection(Section):
         sdir_nc_path = out_dir / "Sdir.nc"
         timedepsw_path = out_dir / f"timedepsw.inp.{sim.expnr}"
         timedepsveg_path = out_dir / f"timedepsveg.inp.{sim.expnr}"
+        # P5 remainder: validate the cached outputs against the current inputs
+        # (defensive signature; missing sidecar = valid, mismatch = recompute).
+        sw_sig = self._shortwave_output_signature(timedep=True)
+        stored_sig = _read_sig(timedepsw_path)
         if (
             not force
             and sdir_nc_path.exists()
             and timedepsw_path.exists()
+            and (stored_sig is None or stored_sig == sw_sig)
         ):
             if timedepsveg_path.exists() or not sim.ltrees:
                 return
@@ -718,7 +742,11 @@ class RadiationSection(Section):
             for n, t_val in enumerate(tSP):
                 solarzenith = float(zenith_interp[n])
                 irradiance = float(I_interp[n])
-                if solarzenith < 90.0 and irradiance > 0.0:
+                if (
+                    solarzenith < 90.0
+                    and irradiance > 0.0
+                    and abs(np.cos(np.radians(solarzenith))) >= _MIN_SUN_VERTICAL
+                ):
                     azimuth = float(azimuth_interp[n]) - self.xazimuth
                     nsun = nsun_from_angles(solarzenith, azimuth)
                     dsky = float(Dsky_interp[n])
@@ -744,7 +772,11 @@ class RadiationSection(Section):
             for n, t_val in enumerate(tSP):
                 time_of_day = start + timedelta(seconds=float(t_val))
                 nsun, solarzenith, _, irradiance, dsky = self._solar_state_time(time_of_day)
-                if solarzenith < 90.0 and irradiance > 0.0:
+                if (
+                    solarzenith < 90.0
+                    and irradiance > 0.0
+                    and abs(np.cos(np.radians(solarzenith))) >= _MIN_SUN_VERTICAL
+                ):
                     sdir, knet, s_veg = self._compute_knet(
                         nsun,
                         irradiance,
@@ -768,6 +800,7 @@ class RadiationSection(Section):
         self.write_timedepsw(tSP, knet_all)
         if s_veg_all is not None:
             self.write_timedepsveg(tSP, s_veg_all)
+        _write_sig(timedepsw_path, sw_sig)
 
     def write_timedepsw(self, tSP: np.ndarray, knet: np.ndarray) -> None:
         """Write time-dependent net shortwave (timedepsw.inp.<expnr>)."""
@@ -818,6 +851,46 @@ class RadiationSection(Section):
             raise ValueError("RadiationSection requires a UDBase instance (sim).")
         return self.sim
 
+    def _veg_data_key(self, veg_data: Dict[str, Any] | None) -> str | None:
+        """Stable content token for the solver cache (P20).
+
+        Keyed on the vegetation content, not ``id(veg_data)``: a recreated dict
+        at a recycled address must not silently reuse a stale solver. The last
+        token is memoised by object identity — and a strong reference to that
+        object is retained — so the address cannot be recycled while cached and
+        the (potentially large) hash is computed at most once per object.
+        """
+        if veg_data is None:
+            return None
+        cache = self._veg_key_cache
+        if cache is not None and cache[0] is veg_data:
+            return cache[1]
+        token = self._hash_veg_data(veg_data)
+        self._veg_key_cache = (veg_data, token)
+        return token
+
+    @staticmethod
+    def _hash_veg_data(veg_data: Dict[str, Any]) -> str:
+        import hashlib
+
+        h = hashlib.blake2b(digest_size=16)
+        try:
+            points = np.ascontiguousarray(veg_data.get("points", []))
+            h.update(str((points.shape, points.dtype.str)).encode("ascii"))
+            h.update(points.tobytes())
+            params = veg_data.get("params", {}) or {}
+            for name in sorted(params):
+                arr = np.ascontiguousarray(params[name])
+                h.update(name.encode("ascii"))
+                h.update(str((arr.shape, arr.dtype.str)).encode("ascii"))
+                h.update(arr.tobytes())
+        except Exception:
+            # Unexpected veg_data shape: fall back to a per-object token so the
+            # cache decision never crashes (still not raw id() reuse, since the
+            # object is held strongly by the caller's memo entry).
+            return f"unhashable-{id(veg_data):x}"
+        return h.hexdigest()
+
     def _get_veg_data(self) -> Dict[str, Any] | None:
         sim = self._require_sim()
         ltree = sim.ltrees
@@ -833,6 +906,51 @@ class RadiationSection(Section):
         if self.ishortwave == 1:
             return "scanline", self.psc_res
         return self.directsw_method, None
+
+    def _shortwave_output_signature(self, *, timedep: bool) -> str:
+        """Signature of the inputs that determine run_short_wave[_timedep]'s
+        outputs (Sdir/netsw or Sdir.nc/timedepsw).
+
+        Computed DEFENSIVELY: every field is read via getattr with a fallback
+        and the stl mtime / solver method lookups are wrapped, so signing never
+        crashes on a minimal sim that lacks e.g. ``stl_file`` or ``ishortwave``.
+        A MISSING sidecar is always treated as valid (backward compatible); only
+        a genuine MISMATCH forces a recompute.
+        """
+        sim = self.sim
+
+        def g(name: str, default: Any = None) -> Any:
+            return getattr(self, name, default)
+
+        stl_mtime = None
+        try:
+            stl_file = getattr(sim, "stl_file", None)
+            if stl_file:
+                stl_path = Path(sim.path) / stl_file
+                if stl_path.exists():
+                    stl_mtime = stl_path.stat().st_mtime
+        except Exception:
+            stl_mtime = None
+
+        try:
+            method, resolution = self._shortwave_method()
+        except Exception:
+            method, resolution = None, None
+
+        return _shortwave_signature(
+            kind="timedep" if timedep else "single",
+            year=g("year"), month=g("month"), day=g("day"),
+            hour=g("hour"), minute=g("minute"), second=g("second"),
+            isolar=g("isolar"),
+            solarzenith=g("solarzenith"), solarazimuth=g("solarazimuth"),
+            xazimuth=g("xazimuth"), I=g("I"), Dsky=g("Dsky"),
+            longitude=g("longitude"), latitude=g("latitude"),
+            timezone=g("timezone"), elevation=g("elevation"),
+            weatherfname=g("weatherfname"),
+            lEB=g("lEB"), method=method, resolution=resolution,
+            maxD=g("maxD"), stl_mtime=stl_mtime,
+            runtime=g("runtime"), dtSP=g("dtSP"),
+        )
 
     def _solar_state_time(
         self,
@@ -929,13 +1047,21 @@ class RadiationSection(Section):
             names = [n.strip() for n in names]
 
             rows = []
+            dropped = 0
             for line in f:
                 if not line.strip() or line.strip().startswith("#"):
                     continue
                 parts = line.split(",") if delimiter == "," else line.split()
                 if len(parts) != len(names):
+                    dropped += 1
                     continue
                 rows.append([float(p) for p in parts])
+
+        if dropped:
+            warnings.warn(
+                f"Weather file {path}: dropped {dropped} malformed row(s) "
+                f"(column count != {len(names)} header fields)."
+            )
 
         if not rows:
             raise ValueError(f"Weather file contains no data rows: {path}")

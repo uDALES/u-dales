@@ -243,6 +243,19 @@ class TestWriteTfacinitLayers(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "3D"):
                 section.write_Tfacinit_layers()
 
+    def test_T_variable_more_than_3d_raises(self):
+        # P27: an explicit dimension check rejects >3D arrays that would
+        # otherwise be silently mis-sliced by Tfac[:, :, -1].
+        facT_path = self.workdir / "facT.nc"
+        facT_path.write_bytes(b"placeholder")
+        section, _ = make_seb_section(
+            self.workdir, lfacTlyrs=True, facT_file="facT.nc"
+        )
+        fake = fake_netcdf_module({"T": np.zeros((2, 3, 4, 5))})
+        with mock.patch.dict(sys.modules, {"netCDF4": fake}):
+            with self.assertRaisesRegex(ValueError, "3D"):
+                section.write_Tfacinit_layers()
+
     def test_missing_netcdf4_dependency_raises_dependency_error(self):
         facT_path = self.workdir / "facT.nc"
         facT_path.write_bytes(b"placeholder")

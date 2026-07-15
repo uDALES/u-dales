@@ -185,6 +185,39 @@ class TestVegetationSection(unittest.TestCase):
         self.assertAlmostEqual(cd_row1, 0.3)   # first value used
         self.assertAlmostEqual(cd_row2, 0.3)   # same scalar written for both rows
 
+    def test_load_stl_plot_false_is_side_effect_free(self):
+        # P28: load_stl(plot=False) must load vegetation without touching a
+        # rendering backend, returning the veg dict; plot=True keeps the
+        # opt-in visualisation.
+        try:
+            import trimesh
+        except ImportError:
+            self.skipTest("trimesh not available")
+        from unittest.mock import MagicMock
+
+        mesh = trimesh.creation.box(extents=(4.0, 4.0, 4.0))  # watertight, [-2,2]^3
+        mesh.export(str(self.workdir / "cube.stl"))
+
+        self.sim.dx = 1.0
+        self.sim.dy = 1.0
+        self.sim.dzt = np.array([1.0, 1.0, 1.0])
+        self.sim.xt = np.array([-1.0, 0.0, 1.0])
+        self.sim.yt = np.array([-1.0, 0.0, 1.0])
+        self.sim.zt = np.array([-1.0, 0.0, 1.0])
+        self.sim.vis = MagicMock()
+
+        section = self._make_section(treesfile="cube.stl")
+
+        veg = section.load_stl(plot=False)
+        self.assertIsInstance(veg, dict)
+        self.assertIn("points", veg)
+        self.assertGreater(len(veg["points"]), 0)
+        self.sim.vis.plot_veg.assert_not_called()
+
+        fig = section.load_stl(plot=True)
+        self.sim.vis.plot_veg.assert_called_once()
+        self.assertIs(fig, self.sim.vis.plot_veg.return_value)
+
     def test_save_raises_on_missing_param(self):
         """Omitting a required param key must raise ValueError."""
         section = self._make_section()

@@ -73,6 +73,22 @@ class TestSectionCore(unittest.TestCase):
         )
         self.assertEqual(value, 4.0)
 
+    def test_resolve_default_does_not_split_non_identifier_slash_string(self):
+        # P17: a string default containing "/" that is not an identifier/identifier
+        # fraction (e.g. a path or a units label) must be returned verbatim, not
+        # interpreted as a division of two ctx attributes.
+        ctx = types.SimpleNamespace()
+        for literal in ("some/path", "W/m2", "1/foo", "foo/2"):
+            with self.subTest(literal=literal):
+                value = Section.resolve_default(
+                    "grid",
+                    "label",
+                    ctx,
+                    {"grid": {"label": literal}},
+                    {},
+                )
+                self.assertEqual(value, literal)
+
     def test_resolve_default_falls_back_to_callable(self):
         ctx = types.SimpleNamespace(foo=8)
         value = Section.resolve_default(
@@ -598,9 +614,16 @@ class TestUDPrepCore(unittest.TestCase):
 
         self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
         prep.radiation.run_all.assert_called_once_with(force=True)
-        prep.seb.run_all.assert_called_once()
+        # P7: SEB is now decoupled from the radiation gate. With sim.lEB=False
+        # and no iwall*==2 boundary condition, SEBSection.run_all would be a
+        # no-op, so the orchestrator does not call it (even though radiation
+        # runs on its own lEB field).
+        prep.seb.run_all.assert_not_called()
 
-    def test_run_all_skips_radiation_and_seb_when_radiation_lEB_is_false(self):
+    def test_run_all_runs_seb_on_sim_lEB_even_when_radiation_gate_is_off(self):
+        # P7: SEB must run whenever SEBSection.run_all would do work. sim.lEB is
+        # True here (so the section writes Tfacinit), while the radiation section
+        # is disabled — the two gates are independent.
         prep = self._make_run_all_prep(libm=True, radiation_lEB=False)
         prep.sim.lEB = True
         prep.radiation.run_all = mock.Mock()
@@ -610,7 +633,22 @@ class TestUDPrepCore(unittest.TestCase):
 
         self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
         prep.radiation.run_all.assert_not_called()
-        prep.seb.run_all.assert_not_called()
+        prep.seb.run_all.assert_called_once()
+
+    def test_run_all_runs_seb_for_wall_temperature_bc_without_lEB(self):
+        # P7: a non-EB case with iwalltemp=2 must still get Tfacinit from the
+        # pipeline. Radiation stays off (radiation_lEB=False); SEB runs because
+        # SEBSection gates on iwalltemp==2.
+        prep = self._make_run_all_prep(libm=True, radiation_lEB=False)
+        prep.sim.lEB = False
+        prep.sim.iwalltemp = 2
+        prep.radiation.run_all = mock.Mock()
+        prep.seb.run_all = mock.Mock()
+
+        prep.run_all(force=True, ibm_backend="legacy")
+
+        prep.radiation.run_all.assert_not_called()
+        prep.seb.run_all.assert_called_once()
 
     def test_run_all_skips_radiation_and_seb_when_ibm_is_disabled(self):
         prep = self._make_run_all_prep(libm=False, radiation_lEB=True)
@@ -657,6 +695,53 @@ class TestRadiationSection(unittest.TestCase):
             section.run_short_wave()
 
             self.assertFalse(vf_path.exists())
+
+    def test_run_short_wave_recomputes_on_signature_mismatch(self):
+        # P5 remainder: outputs that exist with a STALE signature sidecar must
+        # not be reused — the section must fall through and recompute.
+        with TemporaryDirectory() as temp_dir:
+            case_dir = Path(temp_dir)
+            sim = DummySim(expnr="321", path=case_dir)
+            sim.ltrees = False
+            sim.assign_prop_to_fac = lambda _prop: np.ones(3)
+            sim.geom = types.SimpleNamespace(
+                stl=types.SimpleNamespace(face_normals=np.tile([0.0, 0.0, 1.0], (3, 1)))
+            )
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+            section.lEB = False
+            section.isolar = 1
+            section.ishortwave = 2
+            section.directsw_method = "moller"
+            section.psc_res = None
+            section.solarzenith = 45.0
+            section.solarazimuth = 180.0
+            section.xazimuth = 0.0
+            section.I = 800.0
+            section.Dsky = 100.0
+            section.maxD = 1000.0
+            section.year, section.month, section.day = 2020, 6, 21
+            section.hour, section.minute, section.second = 12, 0, 0
+
+            (case_dir / "Sdir.txt").write_text("1.0\n", encoding="ascii")
+            (case_dir / "netsw.inp.321").write_text("1.0\n", encoding="ascii")
+            # A stale sidecar that cannot match the current inputs.
+            (case_dir / "Sdir.txt.sig").write_text("STALE-DOES-NOT-MATCH", encoding="ascii")
+
+            called = {}
+
+            def fake_compute_knet(*_a, **_k):
+                called["hit"] = True
+                return np.zeros(3), np.zeros(3), None
+
+            section._compute_knet = fake_compute_knet
+            section.run_short_wave()
+
+            self.assertTrue(called.get("hit"), "stale signature must force a recompute")
+            # The recompute must refresh the sidecar so the next run can skip.
+            self.assertNotEqual(
+                (case_dir / "Sdir.txt.sig").read_text(encoding="ascii"),
+                "STALE-DOES-NOT-MATCH",
+            )
 
     def test_write_netsw_only_writes_sveg_when_nonempty(self):
         with TemporaryDirectory() as temp_dir:
@@ -811,6 +896,47 @@ class TestRadiationSection(unittest.TestCase):
         _tSP, sveg = section.write_timedepsveg.call_args.args
         self.assertEqual(sveg.shape, (nveg, 3))
         np.testing.assert_allclose(sveg[:, 0], np.arange(nveg))
+
+    def test_timedep_skips_near_horizon_step_without_crashing(self):
+        # P11: a near-horizon step (|cos(zenith)| < 1e-2, where the solver would
+        # raise) must be skipped, not abort the whole multi-step run.
+        with TemporaryDirectory() as tmp:
+            nfcts = 4
+            sim = types.SimpleNamespace(
+                path=Path(tmp),
+                expnr="001",
+                ltrees=False,
+                geom=types.SimpleNamespace(
+                    stl=types.SimpleNamespace(face_normals=np.zeros((nfcts, 3)))
+                ),
+            )
+            sim.assign_prop_to_fac = lambda _prop: np.ones(nfcts)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+            section.ltimedepsw = True
+            section.lEB = False
+            section.isolar = 2
+            section.ishortwave = 2
+            section.directsw_method = "moller"
+            section.runtime = 20.0
+            section.dtSP = 10.0
+            section.year, section.month, section.day = 2020, 6, 21
+            section.hour = section.minute = section.second = 0
+            # step 0: sun at 89.9 deg (cos < 1e-2) -> skip; steps 1,2: high sun.
+            near = (np.array([1.0, 0.0, 1.0e-3]), 89.9, 0.0, 500.0, 80.0)
+            high = (np.array([0.0, 0.0, 1.0]), 30.0, 0.0, 800.0, 100.0)
+            section._solar_state_time = mock.Mock(side_effect=[near, high, high])
+            section._compute_knet = mock.Mock(
+                return_value=(np.ones(nfcts), np.ones(nfcts), np.zeros(0, dtype=float))
+            )
+            section._write_sdir_nc = mock.Mock()
+            section.write_timedepsw = mock.Mock()
+            section.write_timedepsveg = mock.Mock()
+
+            section.run_short_wave_timedep()  # must not raise
+
+            # Only the two high-sun steps reached the solver.
+            self.assertEqual(section._compute_knet.call_count, 2)
+            section.write_timedepsw.assert_called_once()
 
     # ------------------------------------------------------------------
     # Item 2 (P3): calc_view_factors honours the per-call maxD argument
