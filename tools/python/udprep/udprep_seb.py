@@ -1,7 +1,8 @@
-"""Surface energy balance (SEB) preprocessing for uDALES.
+"""Facet surface-temperature preprocessing for uDALES.
 
 Writes initial facet-temperature files (Tfacinit, Tfacinit_layers)
-used by the energy balance solver at startup.
+used by the energy balance and fixed-temperature/stability wall routines
+at startup.
 """
 from __future__ import annotations
 
@@ -9,6 +10,7 @@ from typing import Any, Dict, List
 
 from pathlib import Path
 import numpy as np
+import warnings
 
 from exceptions import DependencyError
 from ._section import Section, SectionSpec
@@ -17,14 +19,31 @@ DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("seb", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
 
 class SEBSection(Section):
-    def run_all(self) -> None:
-        """Run SEB preprocessing steps."""
+    def _needs_facet_temperature_file(self) -> bool:
+        """Return whether readfacetfiles will read Tfacinit for this setup."""
         sim = self.sim
         if sim is None:
             raise ValueError("UDBase instance must be provided")
 
-        needs_facet_temperature = (sim.lEB or sim.iwallmom == 2 or sim.iwalltemp == 2 or sim.iwallmoist == 2)
-        if not needs_facet_temperature:
+        if sim.iwallmom == 2 and ((not sim.ltempeq) or sim.iwalltemp == 1):
+            warnings.warn(
+                "Changing to neutral wall function: iwallmom=2 requires an "
+                "evolved air temperature and a facet wall temperature, but current "
+                f"namoptions has ltempeq={sim.ltempeq} and iwalltemp={sim.iwalltemp}. "
+                "Setting iwallmom=3 for preprocessing.",
+                stacklevel=2,
+            )
+            sim.iwallmom = 3
+
+        return sim.lEB or sim.iwallmom == 2 or sim.iwalltemp == 2 or sim.iwallmoist == 2
+
+    def run_all(self) -> None:
+        """Write facet-temperature initialization files when needed."""
+        sim = self.sim
+        if sim is None:
+            raise ValueError("UDBase instance must be provided")
+
+        if not self._needs_facet_temperature_file():
             return
 
         if self.lfacTlyrs:

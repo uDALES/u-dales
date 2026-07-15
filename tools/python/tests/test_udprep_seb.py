@@ -22,12 +22,14 @@ from exceptions import DependencyError  # noqa: E402
 
 
 def make_seb_section(workdir, *, expnr="777", nfcts=3, lEB=False,
-                     iwallmom=1, iwalltemp=1, iwallmoist=1, **field_overrides):
+                     iwallmom=1, iwalltemp=1, iwallmoist=1, ltempeq=True,
+                     **field_overrides):
     """Build a SEBSection over a minimal stub sim.
 
     The SEB fields come from DEFAULTS (overridable); the run-condition gates
-    (lEB / iwallmom / iwalltemp / iwallmoist) and nfcts live on the stub sim,
-    mirroring how other sections populate them.
+    (lEB / iwallmom / iwalltemp / iwallmoist / ltempeq) and nfcts live on the
+    stub sim, mirroring how other sections populate them. ``ltempeq`` is read
+    only for the iwallmom==2 neutral-wall fallback (issue #316).
     """
     sim = SimpleNamespace(
         path=Path(workdir),
@@ -37,6 +39,7 @@ def make_seb_section(workdir, *, expnr="777", nfcts=3, lEB=False,
         iwallmom=iwallmom,
         iwalltemp=iwalltemp,
         iwallmoist=iwallmoist,
+        ltempeq=ltempeq,
     )
     values = {
         "facT": field_overrides.pop("facT", 288.0),
@@ -147,9 +150,14 @@ class TestRunAllGating(unittest.TestCase):
         self.assertTrue(self._tfacinit().exists())
 
     def test_runs_when_iwallmom_is_2(self):
-        # P7: SEBSection.run_all also gates on iwallmom/iwalltemp/iwallmoist==2,
-        # unlike UDPrep.run_all which only gates SEB on (libm and lEB).
-        section, _ = make_seb_section(self.workdir, lEB=False, iwallmom=2)
+        # #316: iwallmom==2 needs a facet temperature only for a *valid* combo
+        # (ltempeq and iwalltemp != 1); otherwise the section falls back to a
+        # neutral wall (iwallmom=3) and writes nothing. Use the valid
+        # stability-wall config here; the fallback path is covered in
+        # test_udprep_core.TestSEBSection.
+        section, _ = make_seb_section(
+            self.workdir, lEB=False, iwallmom=2, iwalltemp=3, ltempeq=True
+        )
         section.run_all()
         self.assertTrue(self._tfacinit().exists())
 

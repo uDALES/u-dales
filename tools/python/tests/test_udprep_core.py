@@ -15,6 +15,7 @@ from udprep.udprep import Section, SectionSpec, SKIP, UDPrep  # noqa: E402
 from udprep.udprep_bcs import SPEC as BCS_SPEC  # noqa: E402
 from udprep.udprep_ibm import IBMSection  # noqa: E402
 from udprep.udprep_radiation import RadiationSection  # noqa: E402
+from udprep.udprep_seb import SEBSection  # noqa: E402
 
 class DummySection(Section):
     def ping(self):
@@ -456,6 +457,83 @@ class TestIBMSection(unittest.TestCase):
             ],
         )
 
+
+class TestSEBSection(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.workdir = Path(self.temp_dir.name)
+
+    def _make_section(self, **overrides):
+        sim_values = {
+            "path": self.workdir,
+            "expnr": "321",
+            "nfcts": 3,
+            "lEB": False,
+            "iwallmom": 3,
+            "iwalltemp": 1,
+            "iwallmoist": 1,
+            "ltempeq": True,
+        }
+        sim_values.update({key: overrides.pop(key) for key in list(overrides) if key in sim_values})
+        sim = types.SimpleNamespace(**sim_values)
+        values = {
+            "facT": 295.0,
+            "lfacTlyrs": False,
+            "nfaclyrs": 10,
+            "facT_file": "",
+            "dtEB": 10.0,
+        }
+        values.update(overrides)
+        return SEBSection("seb", values, sim=sim, defaults={})
+
+    def test_writes_tfacinit_for_all_solver_read_conditions(self):
+        triggers = [
+            ("energy_balance", {"lEB": True}),
+            ("fixed_wall_temperature", {"iwalltemp": 2}),
+            ("stability_wall_momentum", {"iwallmom": 2, "iwalltemp": 3, "ltempeq": True}),
+            ("fixed_wall_moisture", {"iwallmoist": 2}),
+        ]
+        for name, overrides in triggers:
+            with self.subTest(name=name):
+                path = self.workdir / "Tfacinit.inp.321"
+                if path.exists():
+                    path.unlink()
+                section = self._make_section(**overrides)
+
+                section.run_all()
+
+                self.assertTrue(path.is_file())
+                values = np.loadtxt(path, comments="#")
+                np.testing.assert_allclose(values, np.full(3, 295.0))
+
+    def test_switches_invalid_iwallmom_temperature_combinations_to_neutral(self):
+        cases = [
+            ("fixed_flux_temperature", {"iwallmom": 2, "iwalltemp": 1, "ltempeq": True}),
+            ("temperature_not_evolved", {"iwallmom": 2, "iwalltemp": 3, "ltempeq": False}),
+        ]
+        for name, overrides in cases:
+            with self.subTest(name=name):
+                path = self.workdir / "Tfacinit.inp.321"
+                if path.exists():
+                    path.unlink()
+                section = self._make_section(**overrides)
+
+                with self.assertWarnsRegex(UserWarning, "Changing to neutral wall function"):
+                    section.run_all()
+
+                self.assertEqual(section.sim.iwallmom, 3)
+                self.assertFalse(path.exists())
+
+    def test_uses_layered_facet_temperature_file_when_configured(self):
+        section = self._make_section(iwalltemp=2, lfacTlyrs=True)
+        section.write_Tfacinit_layers = mock.Mock()
+
+        section.run_all()
+
+        section.write_Tfacinit_layers.assert_called_once_with()
+
+
 class TestUDPrepCore(unittest.TestCase):
     def setUp(self):
         self.temp_dir = TemporaryDirectory()
@@ -567,8 +645,10 @@ class TestUDPrepCore(unittest.TestCase):
         self.assertIsInstance(prep.bcs, Section)
         self.assertEqual(prep.bcs.BCxm, 1)
         self.assertEqual(prep.bcs.BCym, 1)
+        self.assertEqual(prep.bcs.iwallmom, 2)
         self.assertEqual(prep.sim.BCxm, 1)
         self.assertEqual(prep.sim.BCym, 1)
+        self.assertEqual(prep.sim.iwallmom, 2)
 
         class OverrideUDBase(DummySim):
             def __init__(self, expnr, path=None, load_geometry=True, suppress_load_warnings=False):
@@ -614,16 +694,16 @@ class TestUDPrepCore(unittest.TestCase):
 
         self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
         prep.radiation.run_all.assert_called_once_with(force=True)
-        # P7: SEB is now decoupled from the radiation gate. With sim.lEB=False
-        # and no iwall*==2 boundary condition, SEBSection.run_all would be a
-        # no-op, so the orchestrator does not call it (even though radiation
-        # runs on its own lEB field).
-        prep.seb.run_all.assert_not_called()
+        # P7 / #316: SEB is decoupled from the radiation gate. The orchestrator
+        # always delegates to SEBSection when libm is set; the section itself
+        # decides whether to write Tfacinit (a no-op here, since sim.lEB=False
+        # and no iwall*==2). Section-level gating is covered by TestSEBSection.
+        prep.seb.run_all.assert_called_once()
 
-    def test_run_all_runs_seb_on_sim_lEB_even_when_radiation_gate_is_off(self):
-        # P7: SEB must run whenever SEBSection.run_all would do work. sim.lEB is
-        # True here (so the section writes Tfacinit), while the radiation section
-        # is disabled — the two gates are independent.
+    def test_run_all_skips_radiation_but_still_runs_facet_temperature_gate_when_lEB_is_false(self):
+        # P7 / #316: SEB is decoupled from the radiation gate. Radiation is
+        # disabled here while the facet-temperature step still runs; the two
+        # gates are independent.
         prep = self._make_run_all_prep(libm=True, radiation_lEB=False)
         prep.sim.lEB = True
         prep.radiation.run_all = mock.Mock()
@@ -636,9 +716,9 @@ class TestUDPrepCore(unittest.TestCase):
         prep.seb.run_all.assert_called_once()
 
     def test_run_all_runs_seb_for_wall_temperature_bc_without_lEB(self):
-        # P7: a non-EB case with iwalltemp=2 must still get Tfacinit from the
-        # pipeline. Radiation stays off (radiation_lEB=False); SEB runs because
-        # SEBSection gates on iwalltemp==2.
+        # P7 / #316: a non-EB case with iwalltemp=2 must still get Tfacinit from
+        # the pipeline. Radiation stays off (radiation_lEB=False); the
+        # orchestrator delegates to SEBSection, which gates on iwalltemp==2.
         prep = self._make_run_all_prep(libm=True, radiation_lEB=False)
         prep.sim.lEB = False
         prep.sim.iwalltemp = 2
