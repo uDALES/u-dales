@@ -61,6 +61,14 @@ class TestUDBaseCore(unittest.TestCase):
             encoding="ascii",
         )
 
+    def test_module_docstring_is_real_docstring(self):
+        # C12: the module docstring must precede `from __future__ import ...`
+        # so it becomes the actual __doc__ instead of a discarded expression.
+        import udbase
+
+        self.assertIsNotNone(udbase.__doc__)
+        self.assertIn("Post-Processing", udbase.__doc__)
+
     def test_constructor_initializes_visualization_facade(self):
         sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
 
@@ -280,6 +288,46 @@ class TestUDBaseCore(unittest.TestCase):
         self.assertIsNone(sim.geom)
         text = repr(sim)  # must not raise
         self.assertIn("UDBase(expnr='001')", text)
+
+    def test_repr_is_concise_and_describe_holds_full_dump(self):
+        # C24: __repr__ is a short summary that points to describe(); the full
+        # per-attribute dump (private flags, every scalar/array) lives in
+        # describe().
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+
+        r = repr(sim)
+        self.assertIn("UDBase(expnr='001')", r)
+        self.assertIn("describe()", r)
+        self.assertNotIn("_lfprof", r)  # private flags not dumped in repr
+
+        d = sim.describe()
+        self.assertIn("UDBase(expnr='001')", d)
+        self.assertIn("_lfprof", d)  # full dump includes private flags
+        self.assertIn("itot", d)
+        # describe() is strictly the longer of the two
+        self.assertGreater(len(d.splitlines()), len(r.splitlines()))
+
+    def test_load_facsec_rejects_invalid_var(self):
+        # C29: load_facsec validates its grid designator like load_slice does,
+        # instead of raising an obscure FileNotFoundError for an impossible path.
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+        with self.assertRaises(ValueError):
+            sim.load_facsec("x")
+
+    def test_facsec_missing_error_message_names_real_files(self):
+        # C22: the "requires facet section data" message must reference the real
+        # filenames (facet_sections_(u,v,w,c).txt), not the nonexistent
+        # facet_sections_(u,v,w,c).001.
+        sim = UDBase("1", self.workdir, load_geometry=False, suppress_load_warnings=True)
+        del sim.facsec  # force the missing-facsec branch (facsec is normally {})
+
+        with self.assertRaises(ValueError) as ctx:
+            sim.convert_fac_to_field(np.array([1.0]))
+
+        msg = str(ctx.exception)
+        self.assertIn("facet_sections_(u,v,w,c).txt", msg)
+        self.assertIn("fluid_boundary_(u,v,w,c).txt", msg)
+        self.assertNotIn(".001", msg)
 
     def test_load_veg_cache_respects_zero_based_flag(self):
         # C4: the cache must not return 0-based data for a zero_based=False call.

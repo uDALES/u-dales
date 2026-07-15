@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 uDALES Post-Processing Module
 
@@ -12,6 +10,7 @@ Oct 2025, Maarten van Reeuwijk, Jingzi Huang, Dipanjan Majumdar. Major upgrade o
 
 Copyright (C) 2016- the uDALES Team.
 """
+from __future__ import annotations
 
 import numpy as np
 import xarray as xr
@@ -119,25 +118,25 @@ class UDBase:
         
         # Set paths
         self.cpath = Path.cwd()
+        # Tolerate a zero-arg callable passed as ``path``: one tutorial notebook
+        # passes a bound ``.resolve`` method without parentheses (review finding
+        # E3). The proper fix is in the notebooks; this guard only avoids a
+        # crash and is kept until E3 lands.
         if callable(path):
             path = path()
         self.path = Path(path).expanduser() if path else self.cpath
 
-        # Standard filenames and prefixes used across loaders, kept aligned
-        # with the legacy MATLAB udbase defaults.
-        self.fnamoptions = "namoptions"
-        self.fprof = "prof.inp"
-        self.flscale = "lscale.inp"
-        self.fsolid = "solid"
-        self.ffacEB = "facEB"
-        self.ffacT = "facT"
-        self.ffac = "fac"
-        self.ffacets = "facets.inp"
-        self.ffactypes = "factypes.inp"
-        self.ffacetarea = "facetarea.inp"
-        self.ffluid_boundary = "fluid_boundary"
-        self.ffacet_sections = "facet_sections"
-        self.ftrees = "trees.inp"
+        # Configurable filenames/prefixes that are ACTUALLY consumed to build
+        # paths (by loaders here or by the udvis facade). The other "configurable
+        # filename" attributes were removed as dead code (C14): loaders such as
+        # load_field / load_fac_* / _load_solid_masks / _load_tree_data hardcode
+        # their filenames, so those attributes were never read.
+        self.fprof = "prof.inp"                    # load_prof
+        self.flscale = "lscale.inp"                # load_lscale
+        self.ffacets = "facets.inp"                # udvis error messages
+        self.ffactypes = "factypes.inp"            # udvis error messages
+        self.ffluid_boundary = "fluid_boundary"    # facsec loaders + error messages
+        self.ffacet_sections = "facet_sections"    # facsec loaders + error messages
 
         # Load-time warning control
         self._suppress_load_warnings = suppress_load_warnings
@@ -713,24 +712,49 @@ class UDBase:
 
         return sources
     
-    def __repr__(self):
-        """String representation of UDBase object."""
+    def _summary_lines(self):
+        """Concise header lines shared by ``__repr__`` and :meth:`describe`."""
         info = [
             f"UDBase(expnr='{self.expnr}')",
             f"  path: {self.path}",
         ]
-        
+
         if hasattr(self, 'itot'):
             info.append(f"  grid: {self.itot} x {self.jtot} x {self.ktot}")
-        
+
         if hasattr(self, 'xlen'):
             info.append(f"  domain: {self.xlen} x {self.ylen} x {self.zsize}")
-        
+
         if self.geom is not None:
             info.append(f"  geometry: loaded")
-        
+
         if hasattr(self, 'nfcts'):
             info.append(f"  facets: {self.nfcts}")
+
+        return info
+
+    def __repr__(self):
+        """Concise one-block summary (grid, domain, geometry, facets).
+
+        The full per-attribute dump — every scalar namoptions parameter and
+        array — was hundreds of lines in a notebook cell; it now lives in
+        :meth:`describe`.
+        """
+        info = self._summary_lines()
+        info.append("  (call .describe() for the full attribute listing)")
+        return "\n".join(info)
+
+    def describe(self) -> str:
+        """Full attribute listing: the concise summary plus every scalar
+        namoptions parameter, array shape, and path stored on the instance.
+
+        Returns
+        -------
+        str
+            Multi-line description. This is the verbose dump that ``__repr__``
+            used to produce; use it explicitly when you want everything.
+        """
+        info = self._summary_lines()
 
         scalar_types = (int, float, bool, str, np.integer, np.floating)
         if self.__dict__:
@@ -911,6 +935,30 @@ class UDBase:
     def _load_ncdata(self, filename: Path, var: Optional[str]) -> Union[xr.Dataset, np.ndarray]:
         """Load NetCDF data (thin wrapper over :func:`udnetcdf.load_ncdata`)."""
         return udnetcdf.load_ncdata(filename, var)
+
+    def _load_nc_vars(self, filename: Path, names: List[str]) -> Dict[str, np.ndarray]:
+        """Load several variables from one NetCDF file in a single open.
+
+        Each variable is returned as a numpy array reversed to the MATLAB
+        (column-major) dimension convention — identical to what
+        :func:`udnetcdf.load_ncdata` returns per variable — but the file is
+        opened only once instead of once per variable. Used by
+        :meth:`load_seb`, which otherwise re-opened ``facEB``/``facT`` for every
+        term.
+        """
+        if not filename.exists():
+            raise FileNotFoundError(f"File not found: {filename}")
+
+        out: Dict[str, np.ndarray] = {}
+        with xr.open_dataset(filename) as ds:
+            for name in names:
+                if name not in ds.data_vars:
+                    raise KeyError(f"Variable '{name}' not found in {filename.name}")
+                data_var = ds[name]
+                if len(data_var.dims) >= 2:
+                    data_var = data_var.transpose(*reversed(data_var.dims))
+                out[name] = data_var.values
+        return out
     
     # ===== Facet Data Loading Methods =====
     
@@ -1006,24 +1054,30 @@ class UDBase:
         >>> print(seb['Kstar'].shape)
         >>> seb_avg = sim.area_average_seb(seb)
         """
-        # Load energy balance terms
+        # Read every energy-balance term in a single open of facEB (previously
+        # this file was opened once per term); likewise facT in a single open.
         try:
-            t = self.load_fac_eb('t')
+            eb = self._load_nc_vars(
+                self.path / f"facEB.{self.expnr}.nc",
+                ['t', 'netsw', 'LWin', 'LWout', 'hf', 'ef'],
+            )
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"Surface energy balance file facEB.{self.expnr}.nc not found in {self.path}"
             )
-        K = self.load_fac_eb('netsw')
-        Lin = self.load_fac_eb('LWin')
-        Lout = self.load_fac_eb('LWout')
-        H = self.load_fac_eb('hf')
-        E = self.load_fac_eb('ef')
-        
-        # Load temperature data for ground heat flux calculation
-        T = self.load_fac_temperature('T')
-        dTdz = self.load_fac_temperature('dTdz')
+        t = eb['t']
+        K = eb['netsw']
+        Lin = eb['LWin']
+        Lout = eb['LWout']
+        H = eb['hf']
+        E = eb['ef']
+
+        # Load temperature data for ground heat flux calculation (one open).
+        temp = self._load_nc_vars(self.path / f"facT.{self.expnr}.nc", ['T', 'dTdz'])
+        T = temp['T']
+        dTdz = temp['dTdz']
         lam = self.assign_prop_to_fac('lam')
-        
+
         # Calculate derived quantities
         L = Lin - Lout
         # Data now comes as (fct, lyr, time) from _load_ncdata, transposed to match MATLAB
@@ -1081,23 +1135,43 @@ class UDBase:
         if prop not in self.factypes:
             raise KeyError(f"Property '{prop}' not found in factypes")
         
-        # Get property values and type IDs
-        prop_vals = self.factypes[prop]
+        # Get property values and type IDs. ``np.asarray`` so a non-array
+        # property such as ``factypes['name']`` (a Python list of strings) also
+        # has ``.ndim``/``.shape`` and does not crash with an AttributeError.
+        prop_vals = np.asarray(self.factypes[prop])
         type_ids = self.factypes['id']
         facet_types = self.facs['typeid']
-        
-        # Map type IDs to property values
+
+        # Warn (rather than silently return NaN) when some facets reference a
+        # walltype id that is absent from factypes: those entries stay unfilled.
+        unmatched = ~np.isin(facet_types, type_ids)
+        n_unmatched = int(np.count_nonzero(unmatched))
+        if n_unmatched:
+            missing = np.unique(facet_types[unmatched])
+            warnings.warn(
+                f"assign_prop_to_fac('{prop}'): {n_unmatched} facet(s) reference "
+                f"typeid(s) {missing.tolist()} not present in factypes; their "
+                f"values are left unassigned."
+            )
+
+        # Map type IDs to property values. Non-numeric properties (e.g. names)
+        # use an object fill so string values survive; numeric ones use NaN.
+        if np.issubdtype(prop_vals.dtype, np.number):
+            fill, out_dtype = np.nan, float
+        else:
+            fill, out_dtype = None, object
+
         if prop_vals.ndim == 1:
-            # 1D property (e.g., albedo)
-            result = np.full_like(facet_types, np.nan, dtype=float)
+            # 1D property (e.g., albedo, or name strings)
+            result = np.full(len(facet_types), fill, dtype=out_dtype)
             for i, tid in enumerate(type_ids):
                 result[facet_types == tid] = prop_vals[i]
         else:
             # 2D property (e.g., layer thicknesses)
-            result = np.full((len(facet_types), prop_vals.shape[1]), np.nan)
+            result = np.full((len(facet_types), prop_vals.shape[1]), fill, dtype=out_dtype)
             for i, tid in enumerate(type_ids):
                 result[facet_types == tid, :] = prop_vals[i, :]
-        
+
         return result
     
     def area_average_fac(self, var: np.ndarray, sel: Optional[np.ndarray] = None) -> np.ndarray:
@@ -1145,7 +1219,15 @@ class UDBase:
             total_area = np.sum(sel_areas)
             return total_var / total_area
         elif var.ndim == 2:
-            # Determine which axis is facets
+            # Determine which axis is facets. When BOTH axes equal n_facets the
+            # auto-detection is ambiguous; warn and fall through to the axis-0
+            # (facets-first) interpretation so the choice is at least visible.
+            if var.shape[0] == n_facets and var.shape[1] == n_facets:
+                warnings.warn(
+                    f"area_average_fac: var shape {var.shape} is square and both "
+                    f"axes match n_facets={n_facets}; assuming facets are axis 0. "
+                    f"Pass a non-square array or pre-select to disambiguate."
+                )
             if var.shape[0] == n_facets:
                 # Shape (n_facets, n_other) - facets in first dimension
                 if isinstance(sel, slice):
@@ -1187,17 +1269,23 @@ class UDBase:
         >>> seb_avg = sim.area_average_seb(seb)
         >>> import matplotlib.pyplot as plt
         >>> plt.plot(seb_avg['t'], seb_avg['Kstar'])
+
+        Notes
+        -----
+        Every SEB term present in ``seb`` is area-averaged, including the
+        surface temperature ``Tsurf`` returned by :meth:`load_seb` (previously
+        dropped despite the "all surface energy balance terms" contract). ``t``
+        is passed through unchanged. Terms absent from ``seb`` are skipped, so a
+        partial input dict maps to a partial output dict.
         """
-        return {
-            'Kstar': self.area_average_fac(seb['Kstar']),
-            'Lstar': self.area_average_fac(seb['Lstar']),
-            'Lin': self.area_average_fac(seb['Lin']),
-            'Lout': self.area_average_fac(seb['Lout']),
-            'H': self.area_average_fac(seb['H']),
-            'E': self.area_average_fac(seb['E']),
-            'G': self.area_average_fac(seb['G']),
-            't': seb['t']
-        }
+        # Area-average every facet-valued term; pass the time axis through.
+        out: Dict[str, np.ndarray] = {}
+        for key, val in seb.items():
+            if key == 't':
+                out['t'] = val
+            else:
+                out[key] = self.area_average_fac(val)
+        return out
     
     @staticmethod
     def time_average(var: np.ndarray, other: Optional[np.ndarray] = None):
@@ -1219,7 +1307,12 @@ class UDBase:
     
     def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False,
                  backend: Optional[str] = None):
-        """Plot vegetation points on top of the geometry using the visualization facade."""
+        """Plot vegetation points on top of the geometry using the visualization facade.
+
+        ``show`` defaults to ``False`` (returns the figure/plotter without
+        displaying it), consistent with the other overlay plots
+        (``plot_scalar_source``, ``plot_trees``).
+        """
         return self.vis.plot_veg(veg=veg, show=show, backend=backend)
 
     def plot_scalar_source(
@@ -1229,7 +1322,11 @@ class UDBase:
         show: bool = False,
         backend: Optional[str] = None,
     ):
-        """Plot scalar point and line sources on top of the geometry."""
+        """Plot scalar point and line sources on top of the geometry.
+
+        ``show`` defaults to ``False`` (returns the figure/plotter without
+        displaying it), like the other overlay plots.
+        """
         return self.vis.plot_scalar_source(
             scalar_sources=scalar_sources,
             scalar_index=scalar_index,
@@ -1242,7 +1339,7 @@ class UDBase:
 
         ``UDVis`` exposes only ``plot_veg`` (vegetation is the current name for
         what legacy cases called "trees"), so forward there rather than to a
-        nonexistent ``UDVis.plot_trees``.
+        nonexistent ``UDVis.plot_trees``. ``show`` defaults to ``False``.
         """
         return self.vis.plot_veg(show=show)
     
@@ -1252,6 +1349,11 @@ class UDBase:
 
         Parameters
         ----------
+        show : bool, default True
+            Display the plot immediately. Unlike the overlay plots
+            (``plot_veg``/``plot_scalar_source``/``plot_trees``, which default
+            to ``False``), the standalone facet/building plots default to
+            ``True``.
         backend : {"plotly", "pyvista"}, optional
             Rendering backend; defaults to the backend chosen when this UDBase
             was constructed (``UDBase(..., backend=...)``).
@@ -1261,7 +1363,11 @@ class UDBase:
     def plot_fac_type(self, building_ids: Optional[np.ndarray] = None,
                       show_outlines: bool = True, angle_threshold: float = 45.0, show: bool = True,
                       backend: Optional[str] = None):
-        """Plot the different surface types in the geometry using the visualization facade."""
+        """Plot the different surface types in the geometry using the visualization facade.
+
+        ``show`` defaults to ``True`` (displays immediately), like the other
+        standalone facet/building plots.
+        """
         return self.vis.plot_fac_type(
             building_ids=building_ids,
             show_outlines=show_outlines,
@@ -1320,8 +1426,8 @@ class UDBase:
         if not hasattr(self, 'facsec') or self.facsec is None:
             raise ValueError(
                 "This method requires facet section data. "
-                f"Ensure {self.ffacet_sections}_(u,v,w,c).{self.expnr} and "
-                f"{self.ffluid_boundary}_(u,v,w,c).{self.expnr} files exist."
+                f"Ensure {self.ffacet_sections}_(u,v,w,c).txt and "
+                f"{self.ffluid_boundary}_(u,v,w,c).txt files exist."
             )
         
         # Gather case state and delegate the maths to the pure helper.
@@ -1457,6 +1563,12 @@ class UDBase:
         >>> facsec_u = sim.load_facsec('u')
         >>> print(facsec_u.keys())
         """
+        # Validate the grid designator up front (like load_slice validates its
+        # plane), so an invalid name fails clearly instead of raising an obscure
+        # FileNotFoundError for a path that could never exist.
+        if var not in ('u', 'v', 'w', 'c'):
+            raise ValueError("var must be 'u', 'v', 'w', or 'c'")
+
         # Load facet section data
         fname_sec = self.path / f"{self.ffacet_sections}_{var}.txt"
         if not fname_sec.exists():
@@ -1550,8 +1662,8 @@ class UDBase:
         if not hasattr(self, 'facsec') or self.facsec is None:
             raise ValueError(
                 "This method requires facet section data. "
-                f"Ensure {self.ffacet_sections}_(u,v,w,c).{self.expnr} and "
-                f"{self.ffluid_boundary}_(u,v,w,c).{self.expnr} files exist."
+                f"Ensure {self.ffacet_sections}_(u,v,w,c).txt and "
+                f"{self.ffluid_boundary}_(u,v,w,c).txt files exist."
             )
         
         # Get face normals
@@ -1604,13 +1716,19 @@ class UDBase:
         }
     
     def plot_building_ids(self, show: bool = True):
-        """Plot building IDs from above (x,y view) with distinct colors."""
+        """Plot building IDs from above (x,y view) with distinct colors.
+
+        ``show`` defaults to ``True`` (displays immediately).
+        """
         return self.vis.plot_building_ids(show=show)
     
     def plot_2dmap(self, val: Union[float, np.ndarray], 
                    labels: Optional[Union[str, list]] = None,
                    show: bool = True):
-        """Plot a 2D map of buildings colored by a value per building."""
+        """Plot a 2D map of buildings colored by a value per building.
+
+        ``show`` defaults to ``True`` (displays immediately).
+        """
         return self.vis.plot_2dmap(val=val, labels=labels, show=show)
     
     def __str__(self):

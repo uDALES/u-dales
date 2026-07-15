@@ -19,10 +19,12 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 import xarray as xr
 
+import udbase as udbase_mod
 from udbase import UDBase  # noqa: E402
 
 
@@ -257,6 +259,26 @@ class TestLoadSeb(_CaseBase):
         with self.assertRaises(FileNotFoundError):
             self._sim().load_seb()
 
+    def test_load_seb_opens_each_netcdf_once(self):
+        # C28: load_seb must open facEB and facT once each (previously facEB was
+        # re-opened per term). Correctness is pinned by the test above; this
+        # locks the open-count reduction.
+        self._write_seb_inputs(n_facets=2, n_time=2, lam=0.4)
+        sim = self._sim()
+
+        real_open = udbase_mod.xr.open_dataset
+        opened = []
+
+        def counting_open(path, *args, **kwargs):
+            opened.append(str(path))
+            return real_open(path, *args, **kwargs)
+
+        with patch.object(udbase_mod.xr, "open_dataset", side_effect=counting_open):
+            sim.load_seb()
+
+        self.assertEqual(sum("facEB" in p for p in opened), 1)
+        self.assertEqual(sum("facT" in p for p in opened), 1)
+
 
 class TestAreaAverage(_CaseBase):
     """Area-weighted facet averaging, hand-checkable on a 2-facet case."""
@@ -296,6 +318,31 @@ class TestAreaAverage(_CaseBase):
         with self.assertRaises(ValueError):
             sim.area_average_fac(np.array([1.0, 2.0]))
 
+    def test_area_average_fac_warns_on_square_ambiguous_var(self):
+        # C20: when both axes equal n_facets the facet axis is ambiguous; warn
+        # and fall through to the facets-first (axis 0) interpretation.
+        sim = self._sim_with_areas([1.0, 3.0])  # n_facets == 2
+        var = np.array([[10.0, 20.0], [10.0, 20.0]])  # 2x2, ambiguous
+        with self.assertWarnsRegex(UserWarning, "square"):
+            out = sim.area_average_fac(var)
+        # axis-0 facets: col0 (10*1+10*3)/4=10 ; col1 (20*1+20*3)/4=20
+        np.testing.assert_allclose(out, [10.0, 20.0])
+
+    def test_area_average_seb_includes_tsurf_when_present(self):
+        # C19: area_average_seb area-averages every term including Tsurf
+        # (previously dropped despite the "all SEB terms" docstring).
+        sim = self._sim_with_areas([1.0, 3.0])
+        seb = {
+            "Kstar": np.array([[10.0, 10.0, 10.0], [20.0, 20.0, 20.0]]),
+            "Tsurf": np.array([[300.0, 300.0, 300.0], [310.0, 310.0, 310.0]]),
+            "t": np.array([0.0, 1.0, 2.0]),
+        }
+        out = sim.area_average_seb(seb)
+        self.assertIn("Tsurf", out)
+        np.testing.assert_allclose(out["Kstar"], 17.5)
+        np.testing.assert_allclose(out["Tsurf"], (300.0 * 1 + 310.0 * 3) / 4)  # 307.5
+        np.testing.assert_allclose(out["t"], [0.0, 1.0, 2.0])
+
     def test_area_average_seb_hand_values(self):
         sim = self._sim_with_areas([1.0, 3.0])
         base = np.array([[10.0, 10.0, 10.0], [20.0, 20.0, 20.0]])  # -> avg 17.5
@@ -319,6 +366,43 @@ class TestAreaAverage(_CaseBase):
         np.testing.assert_allclose(out["E"], 6.0)
         np.testing.assert_allclose(out["G"], 7.0)
         np.testing.assert_allclose(out["t"], [0.0, 1.0, 2.0])  # passed through unchanged
+
+
+class TestAssignPropToFac(_CaseBase):
+    """assign_prop_to_fac maps a factypes property onto individual facets."""
+
+    def _write_facets(self, typeids, lam=0.4):
+        rows = "\n".join(f"{t} 0.0 0.0 1.0" for t in typeids)
+        (self.workdir / "facets.inp.001").write_text(
+            "# typeid nx ny nz\n" + rows + "\n", encoding="ascii"
+        )
+        areas = "\n".join("1.0" for _ in typeids)
+        (self.workdir / "facetarea.inp.001").write_text(
+            "# area\n" + areas + "\n", encoding="ascii"
+        )
+        # Only walltype id 1 is defined.
+        (self.workdir / "factypes.inp.001").write_text(
+            "# h1\n# h2\n# h3\n" + _factypes_row(3, wallid=1, lam=lam) + "\n",
+            encoding="ascii",
+        )
+
+    def test_assign_name_property_does_not_crash(self):
+        # C21: factypes['name'] is a Python list of strings (no .ndim);
+        # assign_prop_to_fac('name') must return per-facet names, not crash.
+        self._write_facets([1, 1])
+        names = self._sim().assign_prop_to_fac("name")
+        self.assertEqual(len(names), 2)
+        self.assertEqual(list(names), ["Concrete", "Concrete"])
+
+    def test_assign_prop_warns_on_unmatched_typeid(self):
+        # C21: a facet referencing a typeid absent from factypes must warn and
+        # leave that entry NaN, instead of silently returning NaN.
+        self._write_facets([1, 99])  # 99 is not in factypes
+        sim = self._sim()
+        with self.assertWarnsRegex(UserWarning, "not present in factypes"):
+            al = sim.assign_prop_to_fac("al")
+        self.assertAlmostEqual(al[0], 0.2)   # matched -> albedo column
+        self.assertTrue(np.isnan(al[1]))     # unmatched -> NaN
 
 
 class TestConvertFacetToField(_CaseBase):

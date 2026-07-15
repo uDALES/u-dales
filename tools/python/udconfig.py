@@ -40,7 +40,9 @@ def parse_namoptions(filepath: Union[str, Path]) -> Dict[str, Any]:
     :data:`NAMOPTIONS_SCALAR_DEFAULTS` are included unless overridden by the file.
     """
     values: Dict[str, Any] = dict(NAMOPTIONS_SCALAR_DEFAULTS)
-    with open(filepath, "r") as f:
+    # Force UTF-8 so parsing is deterministic across platforms (Windows would
+    # otherwise default to cp1252 and could mis-read non-ASCII bytes).
+    with open(filepath, "r", encoding="utf-8") as f:
         for line in f:
             stripped = line.strip()
             if stripped.startswith("&") or stripped.startswith("!") or "=" not in line:

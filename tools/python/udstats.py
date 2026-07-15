@@ -27,11 +27,17 @@ def time_average(var: np.ndarray, other: Optional[np.ndarray] = None):
     tuple
         - (mean, variance) when only ``var`` is provided
         - (x_mean, y_mean, covariance) when ``other`` is provided
-    
+
     Notes
     -----
     Variance/covariance are computed by delegating to ``merge_stat`` with
     zero instantaneous contributions.
+
+    The whole record is averaged into a single window (``n == var.shape[-1]``),
+    so every returned array keeps a **trailing singleton window dimension** of
+    size 1 in place of the time axis (e.g. a ``(nfacets, ntime)`` input yields
+    ``(nfacets, 1)`` outputs). Squeeze the last axis if you want the time axis
+    fully collapsed.
     """
     X = np.asarray(var)
     n = X.shape[-1]
@@ -83,6 +89,13 @@ def merge_stat(X: np.ndarray, *args, Y: Optional[np.ndarray] = None,
     most recent data is retained. Variance/covariance combine the mean of
     short-window contributions with the variance/covariance of the short
     means inside each merged window.
+
+    **Two-positional ambiguity:** a ``merge_stat(X, a, b)`` call (two positional
+    arguments after ``X``, with no ``Y=``) is interpreted as the MATLAB-style
+    ``merge_stat(X, XpXp, n)`` — i.e. ``a`` is the variance contribution
+    ``XpXp`` and ``b`` is the window length ``n``. It is **not** treated as
+    ``(X, Y, n)``. To merge two variables, pass ``Y`` (as ``merge_stat(X, Y,
+    XpYp, n)`` or ``merge_stat(X, n, Y=..., XpYp=...)``).
     """
     # Parse positional arguments to support both MATLAB and Python styles
     n = None
