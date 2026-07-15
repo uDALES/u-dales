@@ -31,20 +31,6 @@ import udgrid
 from udgeom import UDGeom
 from udvis import UDVis, DEFAULT_BACKEND
 from exceptions import DependencyError, DataFormatError
-def _file_has_data(path: Path, skiprows: int = 0) -> bool:
-    try:
-        with path.open("r", encoding="ascii", errors="ignore") as f:
-            for _ in range(skiprows):
-                next(f, None)
-            for line in f:
-                stripped = line.strip()
-                if stripped and not stripped.startswith("#"):
-                    return True
-    except OSError:
-        return False
-    return False
-
-
 def _empty_2d(dtype: np.dtype) -> np.ndarray:
     return np.empty((0, 0), dtype=dtype)
 
@@ -1423,40 +1409,23 @@ class UDBase:
             raise ValueError("This method requires facet section data. "
                            "Ensure facet_sections_*.txt and fluid_boundary_*.txt files exist.")
         
-        # Initialize output field
-        fld = np.zeros((self.itot, self.jtot, self.ktot), dtype=np.float32)
-        
-        # Get facet section data
-        facids = facsec['facid']
-        areas = facsec['area']
-        locs = facsec['locs']  # (i, j, k) locations (0-based)
-        
-        # If building IDs specified, get face mask for filtering
-        face_mask = None
+        # Optional building-id filtering -> per-facet inclusion mask.
+        include_mask = None
         if building_ids is not None:
-            # Get face to building mapping
             face_to_building = self.geom.get_face_to_building_map()
-            building_ids = np.asarray(building_ids)
-            
-            # Create face mask for requested building IDs
-            face_mask = np.isin(face_to_building, building_ids)
-        
-        # Loop over all facet sections and create density field
-        for m in range(len(facids)):
-            facid = int(facids[m])
-            
-            # If building filtering is active, check if this face should be included
-            if face_mask is not None and not face_mask[facid]:
-                continue
-            
-            # Get grid location (convert from 1-indexed to 0-indexed)
-            i, j, k = int(locs[m, 0]), int(locs[m, 1]), int(locs[m, 2])
-            
-            # Add contribution to cell
-            cell_volume = self.dx * self.dy * dz[k]
-            fld[i, j, k] += var[facid] * areas[m] / cell_volume
-        
-        return fld
+            include_mask = np.isin(face_to_building, np.asarray(building_ids))
+
+        # Delegate to the shared, vectorised scatter (udfacet.facsec_to_field);
+        # this used to be a per-section Python loop duplicated from that helper.
+        return udfacet.facsec_to_field(
+            var,
+            facsec,
+            dz,
+            (self.itot, self.jtot, self.ktot),
+            self.dx,
+            self.dy,
+            include_mask=include_mask,
+        )
     
     def load_facsec(self, var: str) -> Dict[str, np.ndarray]:
         """

@@ -18,11 +18,14 @@ def facsec_to_field(
     shape: Tuple[int, int, int],
     dx: float,
     dy: float,
+    include_mask: np.ndarray | None = None,
 ) -> np.ndarray:
     """Distribute a per-facet variable into a 3-D density field.
 
     Each facet section contributes ``var[facid] * area / (dx*dy*dz[k])`` to the
-    grid cell it sits in, giving a density ``[var_units / m]``.
+    grid cell it sits in, giving a density ``[var_units / m]``. Vectorised with
+    ``np.add.at`` and accumulated in float64 (returned as float32), replacing the
+    former per-section Python loop.
 
     Parameters
     ----------
@@ -32,26 +35,29 @@ def facsec_to_field(
     dz : ndarray, vertical grid spacing per k.
     shape : (itot, jtot, ktot).
     dx, dy : horizontal grid spacings.
+    include_mask : ndarray of bool, shape (n_facets,), optional
+        Per-facet inclusion mask; sections whose ``facid`` is masked out are
+        skipped (used for building-id filtering).
 
     Returns
     -------
     ndarray, shape ``shape`` (float32).
     """
     itot, jtot, ktot = shape
-    fld = np.zeros((itot, jtot, ktot), dtype=np.float32)
 
-    facids = facsec["facid"]
-    areas = facsec["area"]
-    locs = facsec["locs"]  # (i, j, k) locations (0-based)
-
+    facids = np.asarray(facsec["facid"]).astype(int)
+    areas = np.asarray(facsec["area"], dtype=float)
+    locs = np.asarray(facsec["locs"])
     i_idx = locs[:, 0].astype(int)
     j_idx = locs[:, 1].astype(int)
     k_idx = locs[:, 2].astype(int)
 
-    for m in range(len(areas)):
-        facid = facids[m]
-        i, j, k = i_idx[m], j_idx[m], k_idx[m]
-        cell_volume = dx * dy * dz[k]
-        fld[i, j, k] += var[facid] * areas[m] / cell_volume
+    contrib = np.asarray(var, dtype=float)[facids] * areas / (dx * dy * np.asarray(dz, dtype=float)[k_idx])
 
-    return fld
+    if include_mask is not None:
+        keep = np.asarray(include_mask, dtype=bool)[facids]
+        i_idx, j_idx, k_idx, contrib = i_idx[keep], j_idx[keep], k_idx[keep], contrib[keep]
+
+    fld = np.zeros((itot, jtot, ktot), dtype=np.float64)
+    np.add.at(fld, (i_idx, j_idx, k_idx), contrib)
+    return fld.astype(np.float32)

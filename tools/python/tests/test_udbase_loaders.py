@@ -359,6 +359,30 @@ class TestConvertFacetToField(_CaseBase):
         # empty cells normalised to 0 (norm forced to 1 where flux is 0)
         self.assertAlmostEqual(fld[2, 2, 0], 0.0, places=6)
 
+    def test_facsec_to_field_helper_accumulates_and_masks(self):
+        # Directly exercise the vectorised udfacet.facsec_to_field (np.add.at):
+        # two facets in the same cell must accumulate, and include_mask filters.
+        from udfacet import facsec_to_field
+
+        facsec = {
+            "facid": np.array([0, 1, 2]),
+            "area": np.array([1.0, 1.0, 1.0]),
+            "locs": np.array([[0, 0, 0], [0, 0, 0], [1, 0, 0]]),  # facids 0,1 share a cell
+        }
+        var = np.array([10.0, 20.0, 5.0])
+        dz = np.array([2.0])
+        fld = facsec_to_field(var, facsec, dz, (2, 1, 1), dx=1.0, dy=1.0)
+        self.assertEqual(fld.dtype, np.float32)
+        np.testing.assert_allclose(fld[0, 0, 0], (10.0 + 20.0) / 2.0)  # accumulated
+        np.testing.assert_allclose(fld[1, 0, 0], 5.0 / 2.0)
+        # Mask out facid 1 -> only facid 0 contributes to the shared cell.
+        fld2 = facsec_to_field(
+            var, facsec, dz, (2, 1, 1), 1.0, 1.0,
+            include_mask=np.array([True, False, True]),
+        )
+        np.testing.assert_allclose(fld2[0, 0, 0], 10.0 / 2.0)
+        np.testing.assert_allclose(fld2[1, 0, 0], 5.0 / 2.0)
+
 
 class TestFrontalProperties(_CaseBase):
     """calculate_frontal_properties over a single -x-facing facet."""
