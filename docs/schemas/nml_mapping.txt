@@ -1,0 +1,11 @@
+# Namelist mapping rules (source -> destination)
+#
+# Format:
+# - SECTION            NEWSECTION
+# - SECTION.key        NEWSECTION.newkey
+#
+# Used by ud_nml2v3 and tests that validate mapping behavior.
+
+NAMSUBGRID               SUBGRID
+NAMCHECKSIM.tcheck       OUTPUT.tcheck
+SUBGRID.sg_cs            SUBGRID.cs

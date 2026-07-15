@@ -75,7 +75,7 @@ module modglobal
    integer, parameter :: RUN_DRIVER = 3
    integer, parameter :: RUN_STRATSTART = 4
 
-   integer, parameter :: TEST_NAMELISTS = 1001
+   integer, parameter :: TEST_ROUNDTRIP = 1001
    integer, parameter :: TEST_IO = 1002
    integer, parameter :: TEST_2DCOMP_INIT_EXIT = 1003
    integer, parameter :: TEST_SPARSE_IJK = 1004
@@ -428,6 +428,7 @@ module modglobal
    real :: runtime = 300. !<     * simulation time in secs
    real :: dtmax = 20. !<     * maximum time integration interval
 
+   real    :: tcheck = 1. !<    Time interval for basic logging to screen
    real    :: trestart = 10000. !<     * each trestart sec. a restart file is written to disk. bss116: per default do not write restart files
    real    :: tnextrestart !<     * each trestart sec. a restart file is written to disk
    real    :: tscale !       timescale: domain height*Uinf/utau**2

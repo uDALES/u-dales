@@ -8,5 +8,9 @@ This is the documentation for uDALES, an open-source multi-physics microscale ur
 
 For a quick introduction and instructions on installing and running uDALES, see the "Installation and First Run" page: [Installation and First Run](./udales-installation.md).
 
+For details on running cases with the wrapper scripts, see [Running uDALES](./udales-simulation-setup.md).
+
+For the current test layout, see [`tests/README.md`](../tests/README.md).
+
 For contributor guidance on using agents in this repo, see:
 [Using Agents](./udales-agents.md).

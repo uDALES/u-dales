@@ -26,8 +26,8 @@ program uDALES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,myid,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
-  use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_ROUNDTRIP,TEST_IO,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
+  use modstartup,        only : readconfig,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
   use modboundary,       only : initboundary,boundary,grwdamp,halos
@@ -56,6 +56,7 @@ program uDALES
 !     0.2     USE STATEMENTS FOR TESTS
 !------------------------------------------------------------------------------
   use tests,             only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators
+  use tests,             only : init_tests,tests_roundtrip,exit_tests
 
   implicit none
 
@@ -65,7 +66,11 @@ program uDALES
   call initmpi
 
   !call startup
-  call readnamelists
+  call readconfig
+
+  ! TEST_ROUNDTRIP is dispatched before init2decomp because it manages its
+  ! own decomposition setup and teardown in init_tests/exit_tests.
+  call execute_early_runmode_actions
 
   call init2decomp
 
@@ -231,10 +236,21 @@ program uDALES
   call stats_exit
   call instant_exit
   !call exitmodules
-  !call exittest
   call exitmpi
 
 contains
+  subroutine execute_early_runmode_actions
+    select case (runmode)
+      case (TEST_ROUNDTRIP)
+        call init_tests
+        call tests_roundtrip
+        call exit_tests
+        stop
+      case default
+        return
+    end select
+  end subroutine execute_early_runmode_actions
+
   subroutine execute_runmode_actions
     logical :: test_failed
     logical :: invalid_runmode
@@ -252,6 +268,9 @@ contains
         test_failed = .not. tests_mpi_operators()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
+      case (TEST_IO)
+        write(*,*) 'TEST_IO mode not yet implemented'
+        invalid_runmode = .true.
       case default
         write(*,*) 'Unknown runmode:', runmode
         invalid_runmode = .true.
