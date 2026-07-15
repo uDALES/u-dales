@@ -144,14 +144,18 @@ Where the `thls`-derived reference actually enters the dynamics today (post-`ILS
 
 | Consumer | Formula | Sensitivity to a 10 K error |
 |---|---|---|
-| Exner slope | `exnf = 1−g·zf/(cp·thls)` (modthermodynamics.f90:291-292) | δT ≈ (g·z/cp)·(δθ/θ) ≈ **0.07 K at z = 200 m** |
+| Exner first guess | `exnf = 1−g·zf/(cp·thls)` (modthermodynamics.f90:291-292); refined from `ps`-anchored pressure before any use (312, 329-334) | ≈ zero (enters only via `ql0av/exnf` in the first-guess `th0av`, then twice refined; *exactly* zero for dry runs) |
 | Hydrostatic anchor | `thvh(kb)=thvs` → `presf(kb)` over half a cell (modthermodynamics.f90:395-398) | parts in 10⁵ of pressure |
 | SGS length scale / TKE buoyancy | `grav/thvs` (modsubgrid.f90:388,488) | ~3% of a modelled term |
 | Resolved buoyancy | none — anomaly vs evolving `thvh(k)` (modforces.f90:83); loop `kb+1..ke` never reads `thvh(kb)` | zero |
 
 Any value within tens of K of the near-surface air temperature is dynamically indistinguishable;
-only the unset `-1.` sentinel is catastrophic (`exnf = 1+g·z/cp ≈ 2` at z ≈ 100 m → unphysical T
-in `thermo` → the X. Long clamp). An input whose *value* carries no information but whose
+only the unset `-1.` sentinel is catastrophic: it reaches `thermo` through the Path A overwrite
+(`thl0h(kb)=−1` → the X. Long clamp), corrupts the `presf(kb)` anchor by ~4–5% via `thvs<0`, and
+flips/NaNs the SGS buoyancy via `grav/thvs` (note `sqrt(grav/thvs·|dthvdz|)` in `zlt`). Worse, the
+sentinel is **partially live in the current test suite**: dry cases that set `thls` but leave
+`qts` unset (e.g. tests/cases/101) run with `thvs = thls·(1+0.61·(−1)) ≈ 0.39·thls ≈ 116 K`, so
+their SGS buoyancy terms are ~2.5× too strong — a real bug the derived `thv_b` fixes. An input whose *value* carries no information but whose
 *absence* is fatal should not be an input. A startup-time constant is also sufficient: all
 first-order time dependence rides on the evolving slab means (`th0av/qt0av/ql0av`, `thvh/thvf`);
 the reference only linearises. Even a 15 K canopy-air drift over an EB run leaves the
@@ -160,10 +164,12 @@ linearisation error at the 0.1 K / few-% level.
 **Decision (2026-07-15): derive the base state, don't ask for it.** At cold start, from
 `prof.inp` + validated `ps`: `thl_b(k)=thlprof(k)`, `qt_b(k)=qtprof(k)` → `thv_b(k)`; hydrostatic
 `p_b(k)` integrated upward from `p_b(z=0)=ps`; `exn_b(k)=(p_b/pref0)**(rd/cp)`. Fixed for the
-run, logged at startup, written to restart files (warm starts must *not* recompute it from the
-evolving fields, or restart continuity breaks). No `thlref` namelist key exists to forget or to
-set inconsistently with the profiles. `ps` stays a required input — it genuinely sets absolute
-pressure/saturation and cannot be derived.
+run and logged at startup. No restart-format change is needed: `prof.inp` is read on warm starts
+too (modstartup.f90:1103 cold, 1624 warm, 1006 stratstart), so the base state is recomputed
+*identically* at every start — never from the evolving fields, which would break restart
+continuity. No `thlref` namelist key exists to forget or to set inconsistently with the profiles.
+`ps` stays a required input — it genuinely sets absolute pressure/saturation and cannot be
+derived.
 
 **IBM base height, and the profiles below the ground surface.** The base state is a property of
 the full domain column `kb..ke+kh`, not of the fluid: `prof.inp` defines values at every level
@@ -188,12 +194,14 @@ garbage-dependent bias in `presf` at *all* levels above, of order the buried lay
 garbage. Phase 0 fixes this with the base-profile fallback (`IIcs(k)==0 → thl_b/qt_b`, `ql=0`)
 and deletes the `kb` hack.
 
-**Exner anchoring inconsistency (fixed by the same construction).** `exnf = 1−g·zf/(cp·thls)`
-implies π(0)=1, i.e. surface pressure `pref0` — it never sees `ps` — while `presf/presh` *are*
-anchored on `ps` (modthermodynamics.f90:396,413). `thermo` mixes the two (T from π at lines
-458/484, qsat pressure from `presf` at line 494): ≈1 K T bias and ≈6–7% qsat bias per 1000 Pa of
-`ps−pref0`, an order of magnitude larger than any reference-value effect. `exn_b` from the
-`ps`-anchored `p_b` removes the inconsistency by construction. Inherited verbatim from DALES.
+**Correction (2026-07-16): there is no Exner anchoring inconsistency.** An earlier note here
+claimed `thermo` mixes a `pref0`-anchored π with `ps`-anchored pressure. That was wrong:
+`diagfld` refines the linear first guess through two `fromztop` passes and **recomputes**
+`exnf/exnh` from the `ps`-anchored pressure (modthermodynamics.f90:312,318,329-334 — DALES-4.0
+machinery) before `thermo` consumes them. The remaining Phase 0 action is hygiene only: seed the
+iteration with `exn_b` instead of the `thls` formula, which removes the last `thls` read in
+`modthermodynamics` and is bitwise-neutral for dry runs (the first guess enters `th0av` only
+through the `ql0av/exnf` term).
 
 ---
 
@@ -248,13 +256,16 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
       `thl0h(kb)=thl0(kb)`, or refresh the scalar ghost at `kb-1` in `modboundary` alongside the
       existing `ekm/ekh` ghosts (modboundary.f90:452-453). Either is fine for prognostics (§1.3);
       pick the one that keeps dumps/FP-trap builds clean.
-- [ ] **Derive the base state** (decision: §1.5 — no new namelist input): at cold start build
-      `thl_b/qt_b/thv_b/p_b/exn_b(kb:ke+kh)` from `prof.inp` + `ps`; persist in restart files;
+- [ ] **Derive the base state** (decision: §1.5 — no new namelist input): at every start (cold,
+      warm, stratstart — `prof.inp` is read on all three, modstartup.f90:1103/1624/1006) build
+      `thl_b/qt_b/thv_b/p_b/exn_b(kb:ke+kh)` from the profiles + `ps`; no restart-format change;
       log at startup. Re-point the consumers: `exnf/exnh → exn_b`
       (modthermodynamics.f90:291-292), `thvh(kb) → thv_b(kb)` (modthermodynamics.f90:395); delete
       `thvs = thls·(…)` (modstartup.f90:523).
-- [ ] **Anchor Exner on `ps`** — done for free by the `exn_b` construction; closes the
-      π(0)=1-vs-`ps` inconsistency in `thermo` (§1.5).
+- [ ] **Re-seed the Exner first guess with `exn_b`** — hygiene, not a bug fix (see the §1.5
+      correction: the final Exner is already `ps`-anchored by the two-pass recompute,
+      modthermodynamics.f90:312,329-334); removes the last `thls` read in `modthermodynamics`;
+      bitwise-neutral when dry.
 - [ ] **Re-point the SGS buoyancy terms** `grav/thvs → grav/thvf(k)`
       (modsubgrid.f90:388,488), completing the `ILS13` modernisation (Appendix B) and matching
       DALES ≥ 4.0.
@@ -262,9 +273,11 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
       `IIcs(k)==0` use `thl_b/qt_b` (and `ql=0`) instead of `avexy_ibm`'s `-999.`; delete the
       `kb` hack (modmpi.f90:644-650). Fixes the hydrostatic march below the ground surface
       (§1.5).
-- [ ] **Validate `ps`** at startup (required; cannot be derived). `thls`/`qts` leave the
-      namelist — an old namoptions then fails loudly on the unknown key, which is the intended
-      migration signal (release-note it).
+- [ ] **Validate `ps`** at startup (required whenever thermodynamics is active; cannot be
+      derived). `thls`/`qts` stay in the namelist for now — they are still consumed by the
+      `lbottom` wall function (modibm.f90:2023,2046) — but are removed from the base-state path,
+      and `lbottom=.true.` gains validation that `thls` is set. Full namelist removal (with the
+      loud unknown-key migration signal) moves to **Phase 1**, when `lbottom` is retired.
 - [ ] Remove the `tl<100` clamp (modthermodynamics.f90:486-491) once the root cause is gone and
       the new tests pass.
 - [ ] **Staging for regression:** land as two commits — (1) the `kb`-overwrite deletion, compared
@@ -454,9 +467,10 @@ New coverage to add:
       to the pre-migration `lbottom` result (regime and tolerance stated in the suite entry).
 - [ ] **§6.3 Base-state invariance + validation (Phase 0).** Assert that Exner / hydrostatic
       pressure / buoyancy depend only on the derived base state (initial profiles + `ps`); assert
-      startup **fails loudly** when `ps` is unset with active thermodynamics, and that a legacy
-      namoptions still containing `thls`/`qts` is rejected (unknown-key namelist error) — a guard
-      against both the #302 coupling and the `-1`-sentinel failure mode re-appearing.
+      startup **fails loudly** when `ps` is unset with active thermodynamics, and when
+      `lbottom=.true.` without `thls` — a guard against the #302 coupling and the `-1`-sentinel
+      failure mode re-appearing. (Rejection of `thls`/`qts` as unknown namelist keys lands with
+      their Phase 1 removal.)
 - [ ] **§6.4 modinlet removal (Phase 3a).** Build + full supported suite unchanged with
       `modinlet` gone. Cheap by construction: the generator is unreachable and no case sets
       `iinletgen ≠ 0`.
