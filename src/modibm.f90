@@ -129,8 +129,8 @@ module modibm
    contains
 
    subroutine initibm
-     use modglobal, only : libm, xh, xf, yh, yf, zh, zf, xhat, yhat, zhat, vec0, &
-                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, &
+     use modglobal, only : libm, xhat, yhat, zhat, vec0, &
+                           ib, ie, ih, jb, je, jh, kb, ke, kh, nsv, &
                            iwallmom, lmoist, ltempeq, cexpnr, nfcts, lwritefac
      use decomp_2d, only : exchange_halo_z
      use modmpi,    only : myid
@@ -251,14 +251,12 @@ module modibm
 
    subroutine initibmnorm(fname, solid_info)
      use readinput, only : read_sparse_ijk
-     use decomp_2d, only : zstart, zend
 
      character(11), intent(in) :: fname
 
      type(solid_info_type), intent(inout) :: solid_info
 
      integer, allocatable :: ids_loc(:), pts_loc(:,:)
-     integer :: m
 
      ! Use generic read_sparse_ijk to read and distribute solid points
      call read_sparse_ijk(fname, solid_info%nsolpts, solid_info%nsolptsrank, ids_loc, pts_loc)
@@ -273,8 +271,8 @@ module modibm
 
 
    subroutine initibmwallfun(fname_bnd, fname_sec, dir, bound_info)
-     use modglobal, only : ifinput, ib, ie, itot, ih, jb, je, jtot, jh, kb, ke, ktot, kh, &
-                           xf, yf, zf, xh, yh, zh, dx, dy, dzh, dzf, xhat, yhat, zhat, eps1
+     use modglobal, only : ifinput, ib, itot, ih, jb, jtot, jh, kb, ke, ktot, kh, &
+                           xf, yf, zf, xh, yh, zh, dx, dy, dzf, xhat, yhat, zhat, eps1
      use modmpi,    only : myid, comm3d, MY_REAL, mpierr
      use initfac,   only : facnorm, facz0
      use decomp_2d, only : zstart, zend
@@ -293,9 +291,8 @@ module modibm
      integer, dimension(1) :: pos_min_dist
      real, dimension(6,3) :: inter
      real, dimension(6) :: inter_dists
-     real :: xc, yc, zc, xl, yl, zl, xu, yu, zu, checkxl, checkxu, checkyl, checkyu, checkzl, checkzu, inter_dist
-     integer i, j, k, n, m, norm_align, dir_align, pos, p
-     real dst
+     real :: xc, yc, zc, xl, yl, zl, xu, yu, zu
+     integer n, m, norm_align, dir_align, pos, p
      character(80) :: chmess
 
      integer, dimension(:), allocatable :: ids_loc
@@ -701,10 +698,8 @@ module modibm
      use modglobal,   only : ih, jh, kh, ihc, jhc, khc, nsv, dzf, zh, kb, ke, kh, nsv, libm, ltempeq, lmoist, iadv_sv, iadv_cd2, iadv_thl, lconservativeibm
      use modfields,   only : um, vm, wm, thlm, qtm, svm, up, vp, wp, thlp, qtp, svp, thl0, qt0, sv0, thl0av
      use modboundary, only : halos
-     use decomp_2d,   only : zstart, zend
-     use modmpi, only : myid
 
-     integer i, j, k, n, m
+     integer n
 
      if (.not. libm) return
 
@@ -752,7 +747,6 @@ module modibm
 
    subroutine solid(solid_info, var, rhs, val, hi, hj, hk, mask)
      use modglobal, only : ib, ie, jb, je, kb, ke, ih, jh, kh, eps1
-     use decomp_2d, only : zstart
 
      type(solid_info_type), intent(in) :: solid_info
      integer, intent(in) :: hi, hj, hk
@@ -761,7 +755,7 @@ module modibm
      real, intent(in) :: val
      real, intent(in), optional :: mask(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
      real :: count
-     integer :: i, j, k, n, m
+     integer :: i, j, k, n
 
      if (present(mask) .eqv. .false.) then
         do n=1,solid_info%nsolptsrank
@@ -898,12 +892,11 @@ module modibm
      ! Has a fairly drastic effect on the initial flow, but the scalar is
      ! conserved throughout the simulation.
      use modglobal,      only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh, &
-                                dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5
+                                dxi5, dyi5, dzf, dzhi, dzfi5
      use modfields,      only : u0, v0, w0
-     use modsubgriddata, only : ekh
      real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
-     integer :: i, j, k, n, m
+     integer :: i, j, k, n
 
      do n = 1,bound_info_c%nbndptsrank
       !n = bound_info_c%bndptsrank(m)
@@ -948,12 +941,11 @@ module modibm
      ! Due to potentially nonzero solid velocities due to the pressure correction,
      ! the IBM will not be conservative.
      use modglobal,      only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh, &
-                                dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5
+                                dxi5, dyi5, dzf, dzhi, dzfi5
      use modfields,      only : u0, v0, w0
-     use modsubgriddata, only : ekh
      real, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
-     integer :: i, j, k, n, m
+     integer :: i, j, k, n
 
      do n = 1,bound_info_c%nbndptsrank
       !n = bound_info_c%bndptsrank(m)
@@ -997,12 +989,12 @@ module modibm
 
    subroutine diffu_corr
      ! Negate subgrid rhs contributions from solid points (added by diffu in modsubgrid)
-     use modglobal,      only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh, &
-                                dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5, dzhiq
+     use modglobal,      only : eps1, &
+                                dy2i, dzf, dzfi, dzhi, dzhiq
      use modfields,      only : u0, up
      use modsubgriddata, only : ekm
      real :: empo, emmo, emop, emom
-     integer :: i, j, k, n, m
+     integer :: i, j, k, n
 
      do n = 1,bound_info_u%nbndptsrank
       !n = bound_info_u%bndptsrank(m)
@@ -1040,12 +1032,12 @@ module modibm
 
    subroutine diffv_corr
      ! Negate subgrid rhs contributions from solid points (added by diffv in modsubgrid)
-     use modglobal,      only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh, &
-                                dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5, dzhiq
+     use modglobal,      only : eps1, &
+                                dx2i, dzf, dzfi, dzhi, dzhiq
      use modfields,      only : v0, vp
      use modsubgriddata, only : ekm
      real :: epmo, emmo, eomp, eomm
-     integer :: i, j, k, n, m
+     integer :: i, j, k, n
 
      do n = 1,bound_info_v%nbndptsrank
       !n = bound_info_v%bndptsrank(m)
@@ -1082,12 +1074,12 @@ module modibm
 
    subroutine diffw_corr
      ! Negate subgrid rhs contributions from solid points (added by diffw in modsubgrid)
-     use modglobal,      only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh, &
-                                dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5, dzhiq
+     use modglobal,      only : eps1, &
+                                dx2i, dy2i, dzf, dzhiq
      use modfields,      only : w0, wp
      use modsubgriddata, only : ekm
      real :: epom, emom, eopm, eomm
-     integer :: i, j, k, n, m
+     integer :: i, j, k, n
 
      do n = 1,bound_info_w%nbndptsrank
       !n = bound_info_w%bndptsrank(m)
@@ -1127,13 +1119,13 @@ module modibm
 
    subroutine diffc_corr(var, rhs, hi, hj, hk)
      ! Negate subgrid rhs contributions from solid points (added by diffc in modsubgrid)
-     use modglobal,      only : eps1, ib, ie, jb, je, kb, ke, kh, &
-                                dx2i, dxi5, dy2i, dyi5, dzf, dzh2i, dzfi, dzhi, dzfi5
+     use modglobal,      only : eps1, ib, ie, jb, je, kb, ke, &
+                                dx2i, dy2i, dzf, dzh2i, dzfi
      use modsubgriddata, only : ekh
      integer, intent(in) :: hi, hj, hk
      real, intent(in)    :: var(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)
      real, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
-     integer :: i, j, k, n, m
+     integer :: i, j, k, n
 
      do n = 1,bound_info_c%nbndptsrank
       !n = bound_info_c%bndptsrank(m)
@@ -1173,18 +1165,15 @@ module modibm
 
 
    subroutine ibmwallfun
-     use modglobal, only : libm, iwallmom, iwalltemp, xhat, yhat, zhat, ltempeq, lmoist, &
+     use modglobal, only : libm, iwallmom, xhat, yhat, zhat, ltempeq, lmoist, &
                            ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, nfcts, lwritefac, dt, dtfac, tfac, tnextfac
-     use modfields, only : u0, v0, w0, thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
+     use modfields, only : thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
                            tau_x, tau_y, tau_z, thl_flux
-     use modsubgriddata, only : ekm, ekh
-     use modmpi, only : myid, comm3d, MPI_SUM, mpierr, MY_REAL
+     use modmpi, only : myid, MPI_SUM
      use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
 
      real, allocatable :: rhs(:,:,:)
      integer n
-     real :: thl_flux_sum, thl_flux_tot, mom_flux_sum, mom_flux_tot
-     logical thl_flux_file_exists, mom_flux_file_exists
 
       if (.not. libm) return
 
@@ -1296,8 +1285,8 @@ module modibm
 
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
-                           eps1, fkar, dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
-     use modfields, only : u0, v0, w0, thl0, tau_x, tau_y, tau_z
+                           eps1, dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
+     use modfields, only : u0, v0, w0, thl0
      use initfac,   only : facT, facz0, facz0h, facnorm, faca
      use decomp_2d, only : zstart
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
@@ -1306,9 +1295,9 @@ module modibm
      real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
      type(bound_info_type) :: bound_info
 
-     integer i, j, k, n, m, sec, pt, fac
-     real dist, stress, stress_dir, stress_aligned, area, vol, momvol, Tair, Tsurf, x, y, z, &
-          utan, udir, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
+     integer i, j, k, sec, fac
+     real dist, stress, stress_dir, area, vol, momvol, Tair, &
+          utan, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, strm, span, stressvec
      logical :: valid
      real, dimension(1:nfcts) :: fac_tau_loc, fac_tau
@@ -1445,17 +1434,16 @@ module modibm
 
 
    subroutine wallfunheat
-     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
-                           xhat, yhat, zhat, vec0, fkar, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
+     use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
+                           xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
-     use modsurfdata, only : z0, z0h
-     use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
+     use modibmdata, only : bctfxm, bctfxp, bctfyp, bctfz
      use decomp_2d, only : zstart
 
-     integer i, j, k, n, m, sec, fac
-     real :: dist, flux, area, vol, tempvol, Tair, Tsurf, utan, cth, htc, cveg, hurel, qtair, qwall, resa, resc, ress, xrec, yrec, zrec
+     integer i, j, k, sec, fac
+     real :: dist, flux, area, Tair, utan, cth, htc, cveg, hurel, qtair, qwall, resa, resc, ress, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, span, strm
      real, dimension(1:nfcts) :: fac_htc_loc, fac_cth_loc, fac_pres_loc, fac_pres2_loc
      logical :: valid
@@ -1877,7 +1865,7 @@ module modibm
       real, parameter :: b2 = 4.7
       real, parameter :: dm = 7.4
       real, parameter :: dh = 5.3
-      real :: dT, Ribl0, logdz, logdzh, logzh, sqdz, fkar2, Ribl1, Fm, Fh, cm, ch, Ctm, M
+      real :: dT, Ribl0, logdz, logdzh, logzh, sqdz, fkar2, Ribl1, Fm, Fh, cm, ch, M
 
       dT = Tair - Tsurf
       Ribl0 = grav * dist * dT / (Tsurf * utan**2) !Eq. 6, guess initial Ri
@@ -2010,14 +1998,14 @@ module modibm
      ! By Ivo Suter.
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
-      use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, numol, prandtlmol, dzh, nsv, &
-         dxf, dxhi, dzf, dzfi, numoli, ltempeq, khc, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i, libm
-      use modfields, only : u0,v0,e120,um,vm,w0,wm,e12m,thl0,qt0,sv0,thlm,qtm,svm,up,vp,wp,thlp,qtp,svp,shear,momfluxb,tfluxb,cth,tau_x,tau_y,tau_z,thl_flux
-      use modsurfdata, only:thlflux, qtflux, svflux, ustar, thvs, wtsurf, wqsurf, thls, z0, z0h
-      use modsubgriddata, only:ekm, ekh
-      use modmpi, only:myid
+      use modwallfunctions, only:wfuno, wfmneutral
+      use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, numol, prandtlmol, nsv, &
+         dzf, dzfi, numoli, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i
+      use modfields, only : u0,v0,e120,e12m,thl0,qt0,sv0,up,vp,wp,thlp,qtp,svp,momfluxb,tfluxb,tau_x,tau_y,tau_z,thl_flux
+      use modsurfdata, only:wtsurf, wqsurf, thls, z0, z0h
+      use modsubgriddata, only:ekh
       implicit none
-      integer :: i, j, jp, jm, m
+      integer :: i, j, m
 
       e120(:, :, kb - 1) = e120(:, :, kb)
       e12m(:, :, kb - 1) = e12m(:, :, kb)
@@ -2032,9 +2020,9 @@ module modibm
       if (lbottom) then
       !momentum
       if (BCbotm.eq.2) then
-      call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 91)
+      call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 91)
       elseif (BCbotm.eq.3) then
-      call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 0, 1, 91)
+      call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 91)
       else
       write(0, *) "ERROR: bottom boundary type for momentum undefined"
       stop 1
@@ -2055,7 +2043,7 @@ module modibm
                end do
             end do
          else if (BCbotT.eq.2) then !wall function bc for temperature (fixed temperature)
-            call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, cth, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 0, 1, 92)
+            call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 92)
          else
          write(0, *) "ERROR: bottom boundary type for temperature undefined"
          stop 1
@@ -2112,11 +2100,11 @@ module modibm
 
 
    subroutine createmasks
-      use modglobal, only : libm, ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, itot, jtot, rslabs
+      use modglobal, only : libm, ib, ie, jb, je, kb, ke, khc, jtot, rslabs
       use modfields, only : IIc,  IIu,  IIv,  IIw,  IIuw,  IIvw,  IIuv,  &
                             IIcs, IIus, IIvs, IIws, IIuws, IIvws, IIuvs, &
-                            IIct, IIut, IIvt, IIwt, IIuwt, um, u0, vm, v0, wm, w0
-      use modmpi,    only : myid, comm3d, mpierr, MY_REAL, nprocs
+                            IIct, IIut, IIvt, IIwt, IIuwt
+      use modmpi,    only : comm3d, mpierr
       ! use decomp_2d, only : exchange_halo_z
 
       integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
@@ -2125,7 +2113,7 @@ module modibm
       integer :: IIuwd(ib:ie, kb:ke)
       integer :: IIud(ib:ie, kb:ke)
       integer :: IIvd(ib:ie, kb:ke)
-      integer :: i, j, k, n, m
+      integer :: i, j, k, n
 
       ! II*l needn't be defined up to ke_khc, but for now would require large scale changes in modstatsdump so if works leave as is ! tg3315 04/07/18
 

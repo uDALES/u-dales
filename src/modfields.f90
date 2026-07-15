@@ -422,7 +422,7 @@ contains
   subroutine initfields
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jtot,nsv,&
-         ihc,jhc,khc,ltdump,lmintdump,lytdump,lxytdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump
+         ihc,jhc,khc,ltdump,lmintdump,lytdump,lxytdump,ltkedump,lscasrcr,ltreedump
     use decomp_2d, only : alloc_z
     ! Allocation of prognostic variables
     implicit none

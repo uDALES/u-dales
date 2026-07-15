@@ -9,6 +9,8 @@ tests/system/outputs/
 .codex
 *.o
 *.mod
+# Intel Fortran auto-generated interface stubs (emitted under -warn all)
+*__genmod.f90
 image.sif
 *.log
 logdir/
