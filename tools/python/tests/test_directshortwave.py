@@ -7,9 +7,18 @@ import numpy as np
 import trimesh
 
 try:
-    from _common import REPO_ROOT, requires_slow_tests
+    from _common import REPO_ROOT, RUN_SLOW_TESTS, requires_slow_tests
 except ModuleNotFoundError:
-    from tools.python.tests._common import REPO_ROOT, requires_slow_tests
+    from tools.python.tests._common import REPO_ROOT, RUN_SLOW_TESTS, requires_slow_tests
+
+# Gate BEFORE importing the solver: importing udprep.directshortwave triggers
+# numba compilation, so even a skipped test class would pay minutes of import
+# cost during ordinary discovery. Raising SkipTest at module level makes
+# unittest discovery report the whole module as skipped without importing it.
+if not RUN_SLOW_TESTS:
+    raise unittest.SkipTest(
+        "slow numba direct-shortwave tests; set UDALES_RUN_SLOW_TESTS=1 to run"
+    )
 
 from udgeom import UDGeom
 from udprep.directshortwave import DirectShortwaveSolver

@@ -21,7 +21,7 @@ The "same day" and "this week" priority tiers were implemented on this branch (c
 
 | Finding | Fix commit | Notes |
 | --- | --- | --- |
-| T1 (slow-test CI gate) | `d279ebf` | Gated direct-shortwave tests now run in the experimental suites — and pass |
+| T1 (slow-test CI gate) | `d279ebf` + follow-up | Gated direct-shortwave tests now run in the experimental suites — and pass. Follow-up (post-review): the skip is now raised at module level BEFORE importing the solver, since the numba import cost hit ordinary discovery even when the class decorator skipped the tests |
 | G1 (self-destructing lazy wrappers) | `386968c` | Eager imports + 3 regression tests |
 | C1, V1, C4, C7 | `79a440f` | geom=None init; plot_trees→plot_veg; veg cache keyed on zero_based; ndmin on facet loaders |
 | C2, C3 | `313a705` | DataFormatError on corrupt factypes width / prof.inp; missing-file fallback preserved. Width formula corrected (`cb699a2`) |
