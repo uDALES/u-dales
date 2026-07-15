@@ -5,14 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR  # noqa: E402
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 from udgeom._meshgraph import (  # noqa: E402
     build_edge_face_adjacency,
@@ -25,7 +18,6 @@ try:
     HAVE_TRIMESH = True
 except ImportError:
     HAVE_TRIMESH = False
-
 
 class TestConnectedComponents(unittest.TestCase):
     @staticmethod
@@ -60,7 +52,6 @@ class TestConnectedComponents(unittest.TestCase):
         comps = connected_components(adj, seeds=[0], keep=keep)
         self.assertEqual(sorted(comps[0].tolist()), [0, 1])  # 2 (and thus 3) not reached
 
-
 class TestBuildEdgeFaceAdjacency(unittest.TestCase):
     def test_two_triangles_sharing_an_edge_are_adjacent(self):
         # Faces 0 and 1 share edge (1,2); faces 1 and 2 share edge (2,3).
@@ -90,7 +81,6 @@ class TestBuildEdgeFaceAdjacency(unittest.TestCase):
         self.assertEqual(
             sorted(sorted(c.tolist()) for c in comps), [[0, 1], [2, 3]]
         )
-
 
 @unittest.skipUnless(HAVE_TRIMESH, "trimesh not installed")
 class TestSplitBuildingsConsolidation(unittest.TestCase):
@@ -130,7 +120,6 @@ class TestSplitBuildingsConsolidation(unittest.TestCase):
         c1 = geom._buildings[0].vertices[:, :2].mean(axis=0).sum()
         c2 = geom._buildings[1].vertices[:, :2].mean(axis=0).sum()
         self.assertLess(c1, c2)
-
 
 if __name__ == "__main__":
     unittest.main()

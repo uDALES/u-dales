@@ -10,17 +10,9 @@ from pathlib import Path
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR  # noqa: E402
 
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
-
 from udprep.udprep_radiation import RadiationSection  # noqa: E402
-
 
 class TestInterpMakima(unittest.TestCase):
     """Modified-Akima interpolation (RadiationSection._interp_makima)."""
@@ -58,7 +50,6 @@ class TestInterpMakima(unittest.TestCase):
             self.interp(np.array([0.0]), np.array([0.0]), np.array([0.0]))
         with self.assertRaises(ValueError):
             self.interp(np.array([0.0, 0.0]), np.array([1.0, 2.0]), np.array([0.0]))
-
 
 class TestNetShortwaveReflections(unittest.TestCase):
     """Iterative multi-bounce net-shortwave physics (calc_reflections_sw).
@@ -123,7 +114,6 @@ class TestNetShortwaveReflections(unittest.TestCase):
             self._reflect(*args), rc.net_shortwave_reflections(*args)
         )
 
-
 class TestNonScatteringShortwave(unittest.TestCase):
     def test_absorbed_direct_plus_diffuse(self):
         from udprep import _radiation_compute as rc
@@ -133,7 +123,6 @@ class TestNonScatteringShortwave(unittest.TestCase):
         )
         # (1-albedo) * (sdir + dsky*fss)
         np.testing.assert_allclose(knet, [0.8 * (100 + 25), 0.6 * (200 + 50)])
-
 
 if __name__ == "__main__":
     unittest.main()

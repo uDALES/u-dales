@@ -32,11 +32,7 @@ try:
 except ImportError:
     SCIPY_AVAILABLE = False
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
+from exceptions import DependencyError
 # Import package functions
 from .calculate_outline import calculate_outline
 from .check_mesh import (

@@ -5,18 +5,10 @@ from types import SimpleNamespace
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 from udprep.udprep_grid import GridSection  # noqa: E402
 from exceptions import ConfigurationError  # noqa: E402
-
 
 def make_grid_section(**overrides):
     values = {
@@ -38,7 +30,6 @@ def make_grid_section(**overrides):
     values.update(overrides)
     sim = SimpleNamespace()
     return GridSection("grid", values, sim=sim, defaults={}), sim
-
 
 class TestGridSection(unittest.TestCase):
     def test_run_all_populates_complete_uniform_grid_state(self):
@@ -271,7 +262,6 @@ class TestGridSection(unittest.TestCase):
         section._refresh_derived_grid_params()
         with self.assertWarns(RuntimeWarning):
             section.generate_zgrid()
-
 
 if __name__ == "__main__":
     unittest.main()

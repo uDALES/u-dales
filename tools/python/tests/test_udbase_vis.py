@@ -21,18 +21,10 @@ _PYVISTA_RENDER_OK = bool(
     and os.environ.get("PYVISTA_OFF_SCREEN")
 )
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 from udbase import UDBase  # noqa: E402
 from udvis import UDVis  # noqa: E402
-
 
 class RecordingVis:
     def __init__(self):
@@ -49,7 +41,6 @@ class RecordingVis:
     def plot_scalar_source(self, **kwargs):
         self.calls.append(("plot_scalar_source", kwargs))
         return "plot_scalar_source_result"
-
 
 class TestUDBaseVisualizationCompatibility(unittest.TestCase):
     def _assert_clean_plot_error(self, call, message):
@@ -232,7 +223,6 @@ class TestUDBaseVisualizationCompatibility(unittest.TestCase):
             "veg.inp.001 data not found",
         )
 
-
 class TestUDVisRenderingHelpers(unittest.TestCase):
     @staticmethod
     def _make_mesh_data():
@@ -360,7 +350,6 @@ class TestUDVisDzVariation(unittest.TestCase):
         self.assertEqual(ax.get_ylabel(), "$dz$ [m]")
         plt.close(fig)
 
-
 @unittest.skipIf(
     importlib.util.find_spec("matplotlib") is None or importlib.util.find_spec("trimesh") is None,
     "matplotlib and trimesh are required for mesh rendering helper tests",
@@ -403,7 +392,6 @@ class TestUDVisMeshRendering(unittest.TestCase):
         building_map = [1, 2] if face_to_building is None else face_to_building
         geom = DummyGeom(mesh, building_map)
         return UDVis(geom), mesh
-
 
 @unittest.skipIf(
     importlib.util.find_spec("plotly") is None or importlib.util.find_spec("trimesh") is None,
@@ -465,7 +453,6 @@ class TestUDVisScalarSources(unittest.TestCase):
             traces["scalar 1 point source"].marker.color,
             traces["scalar 2 point source"].marker.color,
         )
-
 
 @unittest.skipUnless(
     importlib.util.find_spec("IPython")
@@ -554,7 +541,6 @@ class TestDisplayOnceSemantics(unittest.TestCase):
         self.assertIsNotNone(fig)
         self.assertIn("Independent Surfaces", fig.layout.title.text)
         self.assertIn("n_surfaces", result)
-
 
 class TestBackendSelection(unittest.TestCase):
     """The geometry views expose a single method per view with a ``backend``
@@ -718,7 +704,6 @@ class TestBackendSelection(unittest.TestCase):
             self.assertGreater(len(plotter.renderer.actors), 0, label)
             plotter.close()
 
-
 class TestOptionalBackendDependencyErrors(unittest.TestCase):
     """A missing backend dependency must fail with an actionable message naming
     the feature and the install command (not a bare ImportError)."""
@@ -743,7 +728,6 @@ class TestOptionalBackendDependencyErrors(unittest.TestCase):
         msg = self._render_with_missing("pyvista", ["pyvista"])
         self.assertIn("pyvista", msg.lower())
         self.assertIn("pip install", msg)
-
 
 if __name__ == "__main__":
     unittest.main()

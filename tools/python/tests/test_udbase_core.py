@@ -9,20 +9,12 @@ from unittest.mock import patch
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 from udbase import UDBase  # noqa: E402
 from udvis import UDVis  # noqa: E402
 
 from exceptions import DataFormatError  # noqa: E402
-
 
 _DOMAIN_NAMOPTIONS = "\n".join(
     [
@@ -37,7 +29,6 @@ _DOMAIN_NAMOPTIONS = "\n".join(
     ]
 )
 
-
 def _factypes_row(nfaclyrs, wallid=1):
     """Build one valid factypes data row: 6 header + d(k) + C(k) + l(k) + k(k+1)."""
     k = nfaclyrs
@@ -47,7 +38,6 @@ def _factypes_row(nfaclyrs, wallid=1):
     fields += ["1.0"] * k          # l: conductivity
     fields += ["0.4"] * (k + 1)    # k: conductivity (k+1 columns)
     return " ".join(fields)
-
 
 class TestUDBaseCore(unittest.TestCase):
     def setUp(self):
@@ -460,7 +450,6 @@ class TestUDBaseCore(unittest.TestCase):
         self.assertAlmostEqual(field[0, 0, 1], 0.02)
         self.assertTrue(np.all(field[1:, :, :] == 0.0))
 
-
 class TestTreeLoading(unittest.TestCase):
     """Golden-file coverage for ``UDBase._load_tree_data`` / ``trees.inp.<expnr>``.
 
@@ -518,7 +507,6 @@ class TestTreeLoading(unittest.TestCase):
         self.assertFalse(sim._lftrees)
         self.assertIsNone(sim.trees)
 
-
 class TestReadMatrix(unittest.TestCase):
     """`read_matrix` is a @staticmethod, so `sim.read_matrix(path, n)` must not
     pass the instance as the filename (regression: it lacked @staticmethod)."""
@@ -531,7 +519,6 @@ class TestReadMatrix(unittest.TestCase):
             sim = UDBase.__new__(UDBase)
             arr = sim.read_matrix(p, 1)
         np.testing.assert_array_equal(arr, [[1, 2, 3], [4, 5, 6]])
-
 
 class TestGridHelpers(unittest.TestCase):
     """Pure grid-coordinate maths (udgrid)."""
@@ -560,7 +547,6 @@ class TestGridHelpers(unittest.TestCase):
         zm, dzt = udgrid.z_grid_from_profile(zt, 20.0)
         np.testing.assert_allclose(zm, [0, 5, 10, 15])
         np.testing.assert_allclose(dzt, [5, 5, 5, 5])
-
 
 class TestNamoptionsParsing(unittest.TestCase):
     """Pure namelist parsing (udconfig)."""
@@ -591,7 +577,6 @@ class TestNamoptionsParsing(unittest.TestCase):
         self.assertIs(vals["ltest"], True)
         self.assertEqual(vals["stl_file"], "geom.stl")
         self.assertEqual(vals["nsv"], 0)  # scalar default present
-
 
 class TestNcDataHandle(unittest.TestCase):
     """_load_ncdata must release the NetCDF file handle: load-and-close for a

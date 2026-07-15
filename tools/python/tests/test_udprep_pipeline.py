@@ -16,19 +16,11 @@ from unittest import mock
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR  # noqa: E402
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 from udbase import UDBase  # noqa: E402
 from udprep.udprep_ibm import IBMSection  # noqa: E402
 from udprep._section import Section  # noqa: E402
-
 
 _DOMAIN_NAMOPTIONS = "\n".join(
     [
@@ -42,7 +34,6 @@ _DOMAIN_NAMOPTIONS = "\n".join(
         "/",
     ]
 ) + "\n"
-
 
 class TestRunIbmReloadsOutputs(unittest.TestCase):
     """P6: run_ibm reloads solid masks and facet sections into sim."""
@@ -139,7 +130,6 @@ class TestRunIbmReloadsOutputs(unittest.TestCase):
         self.assertIsNotNone(sim.Sc)
         self.assertTrue(sim.Sc.any())
 
-
 class TestWriteChangedParamsErrorHandling(unittest.TestCase):
     """P8: write_changed_params only swallows the benign missing-file case."""
 
@@ -179,7 +169,6 @@ class TestWriteChangedParamsErrorHandling(unittest.TestCase):
         with mock.patch.object(section, "save_param", side_effect=PermissionError("denied")):
             with self.assertRaises(PermissionError):
                 section.write_changed_params()
-
 
 if __name__ == "__main__":
     unittest.main()

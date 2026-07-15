@@ -22,36 +22,15 @@ from typing import Optional, Union, Dict, Any, List
 import importlib.util
 import warnings
 
-try:
-    import udstats
-    import udnetcdf
-    import udfacet
-    import udconfig
-    import udgrid
-except ImportError:
-    from . import udstats
-    from . import udnetcdf
-    from . import udfacet
-    from . import udconfig
-    from . import udgrid
-
+import udstats
+import udnetcdf
+import udfacet
+import udconfig
+import udgrid
 # Import UDGeom from the udgeom package
-try:
-    from udgeom import UDGeom
-except ImportError:
-    from .udgeom import UDGeom
-
-try:
-    from udvis import UDVis, DEFAULT_BACKEND
-except ImportError:
-    from .udvis import UDVis, DEFAULT_BACKEND
-
-try:
-    from exceptions import DependencyError, DataFormatError
-except ImportError:
-    from .exceptions import DependencyError, DataFormatError
-
-
+from udgeom import UDGeom
+from udvis import UDVis, DEFAULT_BACKEND
+from exceptions import DependencyError, DataFormatError
 def _file_has_data(path: Path, skiprows: int = 0) -> bool:
     try:
         with path.open("r", encoding="ascii", errors="ignore") as f:
@@ -1643,11 +1622,9 @@ class UDBase:
         # Normalize blockage ratios by total cross-sectional area
         brx /= (self.ylen * self.zsize)
         bry /= (self.xlen * self.zsize)
-        
-        # Print results
-        print(f"x-direction: frontal area = {Afx:8.1f} m², blockage ratio = {brx:8.3f}")
-        print(f"y-direction: frontal area = {Afy:8.1f} m², blockage ratio = {bry:8.3f}")
-        
+
+        # Frontal areas and blockage ratios are returned below; callers that want
+        # to display them can format the returned dict (no stdout side effects).
         return {
             'skylinex': Ibx,
             'skyliney': Iby,

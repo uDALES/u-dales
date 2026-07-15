@@ -21,11 +21,7 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
+from exceptions import DependencyError
 from .check_mesh import (
     _as_trimesh,
     _boundary_edge_face_map,

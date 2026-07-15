@@ -17,11 +17,7 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
+from exceptions import DependencyError
 from .delete_ground import delete_ground
 from ._meshgraph import build_edge_face_adjacency, connected_components
 

@@ -24,12 +24,7 @@ try:
 except ImportError:  # pragma: no cover - runtime dependent
     nb = None
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
-
+from exceptions import DependencyError
 @dataclass
 class VegData:
     points: np.ndarray  # (n, 3) 0-based (i, j, k)

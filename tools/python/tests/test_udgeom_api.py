@@ -10,14 +10,7 @@ import trimesh
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR, REPO_ROOT, copy_case
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 import udgeom
 from udgeom import (
@@ -40,10 +33,8 @@ from udgeom import (
 from udgeom.geometry_generation import _ground_footprint_union
 from udgeom.split_buildings import split_buildings as geom_split_buildings
 
-
 DATA_DIR = REPO_ROOT / "tools" / "python" / "tests" / "data" / "udgeom_matlab"
 EXAMPLES_DIR = REPO_ROOT / "tools" / "python" / "examples"
-
 
 class TestUDGeomApi(unittest.TestCase):
     @staticmethod
@@ -1734,7 +1725,6 @@ class TestUDGeomApi(unittest.TestCase):
         np.testing.assert_array_equal(face_map[:2], np.array([0, 0], dtype=int))
         self.assertTrue(np.all(face_map[2:4] == 1))
         self.assertTrue(np.all(face_map[6:8] == 2))
-
 
 if __name__ == "__main__":
     unittest.main()

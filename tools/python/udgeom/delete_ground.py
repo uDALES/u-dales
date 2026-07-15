@@ -17,12 +17,7 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
-
+from exceptions import DependencyError
 def delete_ground(mesh: "trimesh.Trimesh") -> Tuple["trimesh.Trimesh", np.ndarray]:
     """
     Remove likely ground faces and compact the mesh.

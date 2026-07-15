@@ -22,11 +22,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
+from exceptions import DependencyError
 RGB = Tuple[float, float, float]
 
 # Shared colour constants (0..1) used by the uDALES geometry views.

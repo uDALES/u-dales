@@ -23,12 +23,7 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
-
+from exceptions import DependencyError
 def _copy_mesh(mesh: "trimesh.Trimesh") -> "trimesh.Trimesh":
     return trimesh.Trimesh(
         vertices=np.asarray(mesh.vertices, dtype=float).copy(),

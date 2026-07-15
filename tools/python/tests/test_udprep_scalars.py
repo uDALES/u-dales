@@ -5,17 +5,9 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR
 
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
-
 from udprep.udprep_scalars import ScalarsSection  # noqa: E402
-
 
 class DummySim:
     def __init__(self, path: Path, expnr="100"):
@@ -26,7 +18,6 @@ class DummySim:
         self.dzt = np.array([1.0, 2.0, 3.0])
         self.ktot = 3
         self.zsize = 6.0
-
 
 class TestScalarsSection(unittest.TestCase):
     def setUp(self):
@@ -254,7 +245,6 @@ class TestScalarsSection(unittest.TestCase):
             section.write_scalarsources()
         # File should be unchanged (not overwritten)
         self.assertEqual(existing.read_text(encoding="ascii"), "existing content")
-
 
 if __name__ == "__main__":
     unittest.main()

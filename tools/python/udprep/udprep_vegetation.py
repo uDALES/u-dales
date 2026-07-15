@@ -16,11 +16,7 @@ if TYPE_CHECKING:
     from udbase import UDBase
 import numpy as np
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
+from exceptions import DependencyError
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("vegetation", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
 

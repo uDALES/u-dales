@@ -7,18 +7,10 @@ from unittest.mock import patch
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 from udprep.udprep_vegetation import VegetationSection, vegetation_block_to_veg as module_veg_fn  # noqa: E402
 from udbase import UDBase  # noqa: E402
-
 
 class DummySim:
     # Reuse the real vegetation loader/cache so the provenance-flag regression
@@ -33,7 +25,6 @@ class DummySim:
         self.jtot = 8
         self.ktot = 6
         self.ntrees = 0
-
 
 class TestVegetationSection(unittest.TestCase):
     def setUp(self):
@@ -204,7 +195,6 @@ class TestVegetationSection(unittest.TestCase):
         with self.assertRaises(ValueError):
             section.save()
 
-
 class TestModuleLevelVegetationBlockToVeg(unittest.TestCase):
     """Tests for the module-level vegetation_block_to_veg shim function."""
 
@@ -255,7 +245,6 @@ class TestModuleLevelVegetationBlockToVeg(unittest.TestCase):
             new_construction_calls, [],
             "UDPrep must not be re-constructed when an existing UDPrep instance is passed",
         )
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -23,7 +23,6 @@ if not RUN_SLOW_TESTS:
 from udgeom import UDGeom
 from udprep.directshortwave import DirectShortwaveSolver
 
-
 def _build_flat_terrain_fixture():
     """Create a minimal flat terrain with a single 1x1 ground cell."""
     vertices = np.array(
@@ -62,7 +61,6 @@ def _build_flat_terrain_fixture():
         geom=geom,
     )
     return sim, mesh
-
 
 @requires_slow_tests
 class TestDirectShortwaveFlatTerrain(unittest.TestCase):
@@ -120,7 +118,6 @@ class TestDirectShortwaveFlatTerrain(unittest.TestCase):
         self.assertAlmostEqual(bud["fac"], self.expected_flux, delta=0.5)
         self.assertAlmostEqual(float(np.sum(sdir * self.mesh.area_faces)), self.expected_flux, delta=0.5)
 
-
 def _build_veg_column_fixture():
     """Single 1x1 column, no solid; one vegetation cell at k=0.
 
@@ -161,7 +158,6 @@ def _build_veg_column_fixture():
         geom=geom,
     )
     return sim, mesh
-
 
 def _build_veg_over_ground_block_fixture():
     """Single 1x1 column: solid ground block at k=0, vegetation cell at k=1
@@ -211,7 +207,6 @@ def _build_veg_over_ground_block_fixture():
         geom=geom,
     )
     return sim, mesh
-
 
 @requires_slow_tests
 class TestDirectShortwaveVegetation(unittest.TestCase):
@@ -367,7 +362,6 @@ class TestDirectShortwaveVegetation(unittest.TestCase):
         self.assertAlmostEqual(
             float(sveg_m[0]), float(sveg_f[0]), delta=0.02 * float(sveg_f[0])
         )
-
 
 if __name__ == "__main__":
     unittest.main()

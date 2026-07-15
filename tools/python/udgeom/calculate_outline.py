@@ -18,12 +18,7 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
-
+from exceptions import DependencyError
 def calculate_outline(mesh: 'trimesh.Trimesh', angle_threshold: float = 45.0) -> Tuple[np.ndarray, Dict]:
     """
     Calculate boundary and sharp edges for mesh outlining.

@@ -7,11 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
+from exceptions import DependencyError
 from . import _radiation_compute
 from ._section import Section, SectionSpec
 

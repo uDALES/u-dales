@@ -27,12 +27,7 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
-
+from exceptions import DependencyError
 def extrude_to_ground(
     mesh_or_geom,
     surface_id: int,

@@ -17,7 +17,6 @@ if not RUN_SLOW_TESTS:
 from udbase import UDBase
 from udprep.directshortwave import DirectShortwaveSolver
 
-
 @requires_slow_tests
 class TestDirectShortwavePeriodic(unittest.TestCase):
     def setUp(self):
@@ -49,7 +48,6 @@ class TestDirectShortwavePeriodic(unittest.TestCase):
         self.assertGreater(bud_periodic["fac"], 0.0)
         self.assertGreater(np.count_nonzero(sdir_periodic > 0.0), 0)
         self.assertFalse(np.allclose(sdir_nonperiodic, sdir_periodic))
-
 
 if __name__ == "__main__":
     unittest.main()

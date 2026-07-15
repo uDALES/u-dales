@@ -10,18 +10,10 @@ from pathlib import Path
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR  # noqa: E402
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 import udstats  # noqa: E402
 from udbase import UDBase  # noqa: E402
-
 
 class TestMergeStat(unittest.TestCase):
     def test_mean_only_windows_the_last_axis(self):
@@ -50,7 +42,6 @@ class TestMergeStat(unittest.TestCase):
         with self.assertRaises(ValueError):
             udstats.merge_stat(np.array([1.0]), 2)  # too few samples
 
-
 class TestTimeAverage(unittest.TestCase):
     def test_mean_and_variance(self):
         mean, var = udstats.time_average(np.array([1.0, 2, 3, 4]))
@@ -60,7 +51,6 @@ class TestTimeAverage(unittest.TestCase):
     def test_cross_covariance(self):
         xm, ym, cov = udstats.time_average(np.array([1.0, 2, 3, 4]), np.array([2.0, 4, 6, 8]))
         np.testing.assert_allclose((xm, ym, cov), ([2.5], [5.0], [2.5]))
-
 
 class TestCoarsegrainField(unittest.TestCase):
     def test_shape_and_mass_conservation(self):
@@ -74,7 +64,6 @@ class TestCoarsegrainField(unittest.TestCase):
         with self.assertRaises(ValueError):
             udstats.coarsegrain_field(np.zeros((4, 4)), [2.0], np.arange(4.0), np.arange(4.0))
 
-
 class TestUDBaseWrappersDelegate(unittest.TestCase):
     def test_wrappers_match_module_functions(self):
         x = np.array([1.0, 2, 3, 4, 5, 6])
@@ -82,7 +71,6 @@ class TestUDBaseWrappersDelegate(unittest.TestCase):
         np.testing.assert_allclose(
             UDBase.time_average(x)[0], udstats.time_average(x)[0]
         )
-
 
 if __name__ == "__main__":
     unittest.main()

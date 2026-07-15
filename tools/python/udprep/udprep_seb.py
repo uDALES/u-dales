@@ -10,11 +10,7 @@ from typing import Any, Dict, List
 from pathlib import Path
 import numpy as np
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
+from exceptions import DependencyError
 from ._section import Section, SectionSpec
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("seb", {})

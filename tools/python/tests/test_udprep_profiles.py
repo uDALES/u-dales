@@ -6,17 +6,9 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR
 
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
-
 from udprep.udprep_forcing import ForcingSection  # noqa: E402
-
 
 class DummySim:
     def __init__(self, path: Path, expnr="100"):
@@ -39,7 +31,6 @@ class DummySim:
         if not fpath.exists():
             raise FileNotFoundError(f"Profile file not found: {fpath}")
         return np.loadtxt(fpath, skiprows=2)
-
 
 class TestForcingSection(unittest.TestCase):
     def setUp(self):
@@ -374,7 +365,6 @@ class TestForcingSection(unittest.TestCase):
         # prof.inp must remain unchanged — u column still 5.0
         data = np.loadtxt(self.workdir / "prof.inp.321", skiprows=2)
         np.testing.assert_allclose(data[:, 3], 5.0, rtol=1e-5)
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,20 +9,12 @@ from unittest import mock
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 from udprep.udprep import Section, SectionSpec, SKIP, UDPrep  # noqa: E402
 from udprep.udprep_bcs import SPEC as BCS_SPEC  # noqa: E402
 from udprep.udprep_ibm import IBMSection  # noqa: E402
 from udprep.udprep_radiation import RadiationSection  # noqa: E402
-
 
 class DummySection(Section):
     def ping(self):
@@ -34,7 +26,6 @@ class DummySection(Section):
     def accept_kwargs(self, **kwargs):
         self.kwargs_seen = kwargs
 
-
 class DummySim:
     def __init__(self, expnr="999", path=None):
         self.expnr = expnr
@@ -45,7 +36,6 @@ class DummySim:
 
     def save_param(self, key, value):
         self.saved.append((key, value))
-
 
 class FakeSection:
     def __init__(self, name, values, sim=None, defaults=None):
@@ -70,7 +60,6 @@ class FakeSection:
 
     def __repr__(self):
         return f"{self._name}:"
-
 
 class TestSectionCore(unittest.TestCase):
     def test_resolve_default_supports_fraction_reference(self):
@@ -138,7 +127,6 @@ class TestSectionCore(unittest.TestCase):
         changed = section._changed_params()
         self.assertEqual(len(changed), 1)
         self.assertEqual(changed[0][0], "arr")
-
 
 class TestIBMSection(unittest.TestCase):
     def setUp(self):
@@ -452,7 +440,6 @@ class TestIBMSection(unittest.TestCase):
             ],
         )
 
-
 class TestUDPrepCore(unittest.TestCase):
     def setUp(self):
         self.temp_dir = TemporaryDirectory()
@@ -652,7 +639,6 @@ class TestUDPrepCore(unittest.TestCase):
         self.assertEqual(prep.beta.write_changed_params_calls, 1)
         self.assertEqual(prep.alpha.show_changed_params_calls, 1)
         self.assertEqual(prep.beta.show_changed_params_calls, 1)
-
 
 class TestRadiationSection(unittest.TestCase):
     def test_run_short_wave_skip_removes_full_vf_text_intermediate(self):
@@ -890,7 +876,6 @@ class TestRadiationSection(unittest.TestCase):
             self.assertEqual(mocks["stl_to_view3d"].call_count, 1)
             section.calc_view_factors(maxD=456.0)  # different maxD -> recompute
             self.assertEqual(mocks["stl_to_view3d"].call_count, 2)
-
 
 if __name__ == "__main__":
     unittest.main()

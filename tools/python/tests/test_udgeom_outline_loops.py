@@ -5,17 +5,9 @@ from pathlib import Path
 import numpy as np
 import trimesh
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR
 
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
-
 from udgeom import UDGeom
-
 
 def _ring_prism_mesh():
     outer_bottom = np.array(
@@ -53,7 +45,6 @@ def _ring_prism_mesh():
 
     return trimesh.Trimesh(vertices=vertices, faces=np.asarray(faces, dtype=int), process=False)
 
-
 class TestUDGeomOutlineLoops(unittest.TestCase):
     def test_calculate_outline2d_keeps_multiple_boundary_loops(self):
         geom = UDGeom(stl=_ring_prism_mesh())
@@ -72,7 +63,6 @@ class TestUDGeomOutlineLoops(unittest.TestCase):
 
         self.assertEqual(observed_vertices, expected_vertices)
         np.testing.assert_allclose(outline["centroid"][:2], np.array([2.0, 2.0]), atol=1e-12)
-
 
 if __name__ == "__main__":
     unittest.main()

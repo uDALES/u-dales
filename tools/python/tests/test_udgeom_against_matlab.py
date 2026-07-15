@@ -6,24 +6,14 @@ from typing import Dict, List
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR, REPO_ROOT
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 from udgeom import UDGeom
 
-
 DATA_DIR = REPO_ROOT / "tools" / "python" / "tests" / "data" / "udgeom_matlab"
-
 
 def _load_reference(name: str) -> Dict:
     return json.loads((DATA_DIR / f"{name}.json").read_text())
-
 
 def _normalize_polygon(polygon: np.ndarray) -> np.ndarray:
     polygon = np.asarray(polygon, dtype=float)
@@ -34,7 +24,6 @@ def _normalize_polygon(polygon: np.ndarray) -> np.ndarray:
         polygon = polygon[:-1]
     order = np.lexsort((polygon[:, 1], polygon[:, 0]))
     return polygon[order]
-
 
 def _building_summary(geom: UDGeom, face_map: np.ndarray) -> List[Dict]:
     buildings = geom.get_buildings()
@@ -50,7 +39,6 @@ def _building_summary(geom: UDGeom, face_map: np.ndarray) -> List[Dict]:
             }
         )
     return summaries
-
 
 class TestUDGeomAgainstMatlab(unittest.TestCase):
     fixtures = ("flat_ground", "single_box", "two_boxes_with_ground", "xie_castro_2008")
@@ -143,7 +131,6 @@ class TestUDGeomAgainstMatlab(unittest.TestCase):
                     outline_edges = np.asarray(sorted(map(tuple, outline)), dtype=int)
                     ref_edges = np.asarray(sorted(map(tuple, ref_outline)), dtype=int) - 1
                     np.testing.assert_array_equal(outline_edges, ref_edges)
-
 
 if __name__ == "__main__":
     unittest.main()

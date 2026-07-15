@@ -19,11 +19,7 @@ try:
 except ImportError:  # pragma: no cover - optional runtime dependency
     netCDF4 = None
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
+from exceptions import DependencyError
 try:
     import trimesh
 except ImportError as exc:  # pragma: no cover - required for STL conversion

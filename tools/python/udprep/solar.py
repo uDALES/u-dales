@@ -14,12 +14,7 @@ from typing import Any, Dict, Tuple
 
 import numpy as np
 
-try:
-    from exceptions import DependencyError
-except ImportError:
-    from ..exceptions import DependencyError
-
-
+from exceptions import DependencyError
 # -----------------------------------------------------------------------------
 # ASHRAE coefficients (tools/SEB/ASHRAE.m)
 # -----------------------------------------------------------------------------

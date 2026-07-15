@@ -32,10 +32,6 @@ requires_slow_tests = unittest.skipUnless(
     "slow numba direct-shortwave integration test; set UDALES_RUN_SLOW_TESTS=1 to run",
 )
 
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
-
-
 class _CaseDir:
     def __init__(self, path: Path):
         self.name = str(path)
@@ -43,7 +39,6 @@ class _CaseDir:
 
     def cleanup(self) -> None:
         shutil.rmtree(self._path, ignore_errors=True)
-
 
 def copy_case(source: Path) -> tuple[_CaseDir, Path]:
     TEST_TMP_DIR.mkdir(parents=True, exist_ok=True)

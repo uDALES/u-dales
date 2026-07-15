@@ -13,11 +13,7 @@ import warnings
 
 from ._section import Section, SectionSpec
 
-try:
-    from exceptions import ConfigurationError
-except ImportError:  # pragma: no cover - packaged relative import fallback
-    from ..exceptions import ConfigurationError
-
+from exceptions import ConfigurationError
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("grid", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
 

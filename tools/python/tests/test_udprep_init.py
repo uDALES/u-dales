@@ -9,14 +9,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 from udprep.udprep_init import (  # noqa: E402
     _parse_shell_config,
@@ -24,7 +17,6 @@ from udprep.udprep_init import (  # noqa: E402
     _validate_config_paths,
     validate_expnr,
 )
-
 
 def _write_namoptions(path: Path, expnr: str, iexpnr_line: str | None = None) -> None:
     """Write a minimal namoptions file to *path*."""
@@ -34,7 +26,6 @@ def _write_namoptions(path: Path, expnr: str, iexpnr_line: str | None = None) ->
         f"&RUN\n{iexpnr_line}\n/\n",
         encoding="ascii",
     )
-
 
 from exceptions import ConfigurationError  # noqa: E402
 
@@ -96,7 +87,6 @@ class TestShellConfigParsing(unittest.TestCase):
 
         self.assertEqual(variables, {"DA_EXPDIR": "/tmp/experiments", "DA_TOOLSDIR": "/tmp/tools"})
 
-
 class TestValidateConfigPaths(unittest.TestCase):
     def setUp(self):
         self.temp_dir = TemporaryDirectory()
@@ -136,7 +126,6 @@ class TestValidateConfigPaths(unittest.TestCase):
         messages = " ".join(str(w.message) for w in caught)
         self.assertIn("DA_EXPDIR mismatch", messages)
         self.assertIn("DA_TOOLSDIR mismatch", messages)
-
 
 class TestReadIexpnrFromNameoptions(unittest.TestCase):
     def setUp(self):
@@ -183,7 +172,6 @@ class TestReadIexpnrFromNameoptions(unittest.TestCase):
             "! iexpnr = 999\n&RUN\n iexpnr = 007,\n/\n", encoding="ascii"
         )
         self.assertEqual(_read_iexpnr_from_namoptions(f), "007")
-
 
 class TestValidateExpnr(unittest.TestCase):
     def setUp(self):
@@ -249,7 +237,6 @@ class TestValidateExpnr(unittest.TestCase):
         _write_namoptions(expdir / "namoptions.002", "003")
         with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
-
 
 if __name__ == "__main__":
     unittest.main()

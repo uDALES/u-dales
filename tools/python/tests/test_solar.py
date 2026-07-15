@@ -8,11 +8,9 @@ import numpy as np
 from _common import PYTHON_DIR
 from udprep import solar
 
-
 def _angle_diff_deg(a: float, b: float) -> float:
     diff = (a - b + 180.0) % 360.0 - 180.0
     return abs(diff)
-
 
 class TestSolar(unittest.TestCase):
     def test_python_backend_tracks_pvlib(self):
@@ -58,7 +56,6 @@ class TestSolar(unittest.TestCase):
         self.assertLess(max(az_diff), 2.0)
         self.assertLess(max(i_diff), 100.0)
         self.assertLess(max(dsky_diff), 100.0)
-
 
 if __name__ == "__main__":
     unittest.main()
