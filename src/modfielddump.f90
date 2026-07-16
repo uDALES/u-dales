@@ -61,7 +61,7 @@ contains
     use modmpi,   only   :mpierr,comm3d,mpi_logical,mpi_integer,cmyidx,cmyidy,mpi_character
     use modglobal,only   :cexpnr,ifnamopt,kb,ke,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,kh
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,tau_x, tau_y, tau_z, thl_flux
+    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div
     use modibm, only : mask_u, mask_v, mask_w, mask_c
     implicit none
     integer :: ierr, n
@@ -226,18 +226,6 @@ contains
         case('p0')
           call ncinfo(ncname( n,:),'pres','pressure field','M','tttt')
           pfields(n)%point => pres0(ib:ie,jb:je,kb:ke)
-        case('tx')
-          call ncinfo(ncname( n,:),'tau_x','stress x','M','mttt')
-          pfields(n)%point => tau_x(ib:ie,jb:je,kb:ke)
-        case('ty')
-          call ncinfo(ncname( n,:),'tau_y','stress y','M','tmtt')
-          pfields(n)%point => tau_y(ib:ie,jb:je,kb:ke)
-        case('tz')
-          call ncinfo(ncname( n,:),'tau_z','stress z','M','ttmt')
-          pfields(n)%point => tau_z(ib:ie,jb:je,kb:ke)
-        case('hf')
-          call ncinfo(ncname( n,:),'thl_flux','heat flux','M','tttt')
-          pfields(n)%point => thl_flux(ib:ie,jb:je,kb:ke)
         case('mu')
           call ncinfo(ncname( n,:),'mask_u','mask u','M','mttt')
           pfields(n)%point => mask_u(ib:ie,jb:je,kb:ke)

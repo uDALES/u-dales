@@ -290,13 +290,17 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
 
 - [ ] **Migrate the cases that use `lbottom`** (§4) to ground facets, then retire the `lbottom`
       namelist switch (modibm.f90:49; modstartup.f90:153,445).
-- [ ] **Relocate the unconditional code first** (it runs on every run regardless of `lbottom`):
-  - [ ] `e120/e12m` ghost at `kb-1` (modibm.f90:2010-2011) → `modboundary`, next to the `ekm/ekh`
+- [x] **Relocate the unconditional code first** (it runs on every run regardless of `lbottom`):
+  - [x] `e120/e12m` ghost at `kb-1` (modibm.f90:2010-2011) → `modboundary`, next to the `ekm/ekh`
         ghosts. Nothing else sets it; the subgrid model reads it at `kb`.
-  - [ ] Decide fate of `tau_x/tau_y/tau_z/thl_flux` (modibm.f90:2014-2017,2093-2096): they only
+  - [x] Decide fate of `tau_x/tau_y/tau_z/thl_flux` (modibm.f90:2014-2017,2093-2096): they only
         ever capture `bottom`'s tendency contribution, so after removal they dump zeros. Either
         retire the fielddump fields (modfielddump.f90:230-240, modfields.f90:82,476-479) or
         re-point them at the IBM wall-function contributions.
+        **Decision: retire.** Note: these fields also accumulated a real (non-zero)
+        contribution from `ibmwallfun` (modibm.f90:1167-1231, guarded by `libm` not `lbottom`)
+        that this table entry did not account for; that write path was removed too so the
+        module still compiles (see Task 1 commit).
 - [ ] Delete `subroutine bottom` (modibm.f90:1997-2099), its call site (program.f90:153) and
       import (program.f90:38).
 - [ ] Delete `CASE(91)/(92)` surface blocks in `wfuno`/`wfmneutral`

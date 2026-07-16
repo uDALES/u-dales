@@ -433,6 +433,7 @@ contains
 
    subroutine closurebc
      use modsubgriddata, only : ekm, ekh
+     use modfields,      only : e120, e12m
      use modglobal,      only : ib, ie, jb, je, kb, ke, numol, prandtlmoli, &
                                 ibrank, ierank, jbrank, jerank, BCtopm, BCxm, BCym, &
                                 BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
@@ -463,6 +464,13 @@ contains
          end do
        end do
      end if
+
+     ! e12 ghost at kb-1: zero-gradient mirror for the TKE diffusion stencil at kb.
+     ! Relocated from the retired flat-surface scheme; setting it here makes the
+     ! value current within the same subgrid evaluation (previously one step stale,
+     ! set in subroutine bottom after diffe had already consumed it).
+     e120(:, :, kb - 1) = e120(:, :, kb)
+     e12m(:, :, kb - 1) = e12m(:, :, kb)
 
      if (BCxm .ne. BCxm_periodic) then ! inflow/outflow
        if (ibrank) then

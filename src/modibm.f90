@@ -1167,8 +1167,7 @@ module modibm
    subroutine ibmwallfun
      use modglobal, only : libm, iwallmom, xhat, yhat, zhat, ltempeq, lmoist, &
                            ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, nfcts, lwritefac, dt, dtfac, tfac, tnextfac
-     use modfields, only : thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
-                           tau_x, tau_y, tau_z, thl_flux
+     use modfields, only : thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp
      use modmpi, only : myid, MPI_SUM
      use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
 
@@ -1182,15 +1181,12 @@ module modibm
       if (iwallmom > 1) then
         rhs = up
         call wallfunmom(xhat, up, bound_info_u)
-        tau_x(:,:,kb:ke+kh) = tau_x(:,:,kb:ke+kh) + (up - rhs)
 
         rhs = vp
         call wallfunmom(yhat, vp, bound_info_v)
-        tau_y(:,:,kb:ke+kh) = tau_y(:,:,kb:ke+kh) + (vp - rhs)
 
         rhs = wp
         call wallfunmom(zhat, wp, bound_info_w)
-        tau_z(:,:,kb:ke+kh) = tau_z(:,:,kb:ke+kh) + (wp - rhs)
 
         ! mom_flux_sum = sum(tau_x(ib:ie,jb:je,kb+1:ke) + tau_y(ib:ie,jb:je,kb+1:ke) + tau_z(ib:ie,jb:je,kb+1:ke))
         ! call MPI_ALLREDUCE(mom_flux_sum, mom_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
@@ -1217,7 +1213,6 @@ module modibm
         totheatflux = 0 ! Reset total heat flux to zero so we only account for that in this step.
         totqflux = 0
         call wallfunheat
-        thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
         if (ltempeq) call diffc_corr(thl0, thlp, ih, jh, kh)
         if (lmoist)  call diffc_corr(qt0, qtp, ih, jh, kh)
 
@@ -2001,20 +1996,14 @@ module modibm
       use modwallfunctions, only:wfuno, wfmneutral
       use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, numol, prandtlmol, nsv, &
          dzf, dzfi, numoli, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i
-      use modfields, only : u0,v0,e120,e12m,thl0,qt0,sv0,up,vp,wp,thlp,qtp,svp,momfluxb,tfluxb,tau_x,tau_y,tau_z,thl_flux
+      use modfields, only : u0,v0,thl0,qt0,sv0,up,vp,wp,thlp,qtp,svp,momfluxb,tfluxb
       use modsurfdata, only:wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekh
       implicit none
       integer :: i, j, m
 
-      e120(:, :, kb - 1) = e120(:, :, kb)
-      e12m(:, :, kb - 1) = e12m(:, :, kb)
       ! wm(:, :, kb) = 0. ! SO moved to modboundary
       ! w0(:, :, kb) = 0.
-      tau_x(:,:,kb:ke+kh) = up
-      tau_y(:,:,kb:ke+kh) = vp
-      tau_z(:,:,kb:ke+kh) = wp
-      thl_flux(:,:,kb:ke+kh) = thlp
 
       !if (.not.(libm)) then
       if (lbottom) then
@@ -2089,11 +2078,6 @@ module modibm
       end if
 
       end if
-
-      tau_x(:,:,kb:ke+kh) = up - tau_x(:,:,kb:ke+kh)
-      tau_y(:,:,kb:ke+kh) = vp - tau_y(:,:,kb:ke+kh)
-      tau_z(:,:,kb:ke+kh) = wp - tau_z(:,:,kb:ke+kh)
-      thl_flux(:,:,kb:ke+kh) = thlp - thl_flux(:,:,kb:ke+kh)
 
       return
    end subroutine bottom
