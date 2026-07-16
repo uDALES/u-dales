@@ -290,7 +290,7 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
 
 - [x] **Retire the `lbottom` namelist switch** (modibm.f90:49; modstartup.f90:153,445) — done via
       wholesale deletion of the flat-surface scheme (Task 2) rather than migrate-then-retire.
-- [ ] **Migrate the cases that use `lbottom`** (§4) to ground facets. `examples/999/namoptions.999`
+- [x] **Migrate the cases that use `lbottom`** (§4) to ground facets. `examples/999/namoptions.999`
       and `tests/regression/david_tests/cases/103/namoptions.103` set `lbottom=.true.` and were
       deliberately left broken-parse (unknown namelist key) — Tasks 4-5 rewrite them wholesale as
       facet migrations. **Case 103 done (Task 4, 2026-07-16):** flat 8x8 ground generated via
@@ -298,9 +298,22 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
       facets cover the full footprint, `solid_c/u/v` are empty everywhere (no solid volume
       introduced — `kb` stays fluid), `factypes.inp.103` carries `z0=0.01`/`z0h=0.000067`,
       `Tfacinit.inp.103` is 288 K on all facets, `namoptions.103` sets `libm=.true.`,
-      `iwallmom=2`/`iwalltemp=2`. Also fixed `&DOMAIN xsize/ysize` (not valid Fortran namelist
-      keys — replaced with `xlen`/`ylen`) since the file wouldn't have parsed otherwise; grid
-      *values* are unchanged. Still open: `examples/024/namoptions.024:48`
+      `iwallmom=2`/`iwalltemp=2`. **Case 999 done (Task 5, 2026-07-16):** flat 64x64 ground
+      generated as a *minimal 2-triangle* STL (`udgeom.create_flat_surface(64, 64, edgelength=64)`)
+      rather than per-cell facets — this case's 128x128 floor would otherwise mean 32768 facets;
+      the IBM f2py backend maps all 128x128 boundary cells to the 2 facets regardless (confirmed:
+      `nbndpts_c`/`nsolpts_w` = 16384, full floor coverage, `solid_c/u/v` empty). This case is
+      neutral (`ltempeq`/`lmoist` both off, unset in the file), so `namoptions.999` sets
+      `iwallmom=3` (the neutral wall function the solver would force anyway per
+      `modstartup.f90:803-805` when `ltempeq=.false.`) rather than `iwallmom=2`; no `Tfacinit`
+      file is needed since `initfac.f90:297`'s read guard
+      (`lEB .or. iwalltemp==2 .or. iwallmom==2 .or. iwallmoist==2`) is false throughout.
+      `factypes.inp.999`'s existing wallid=1 row already carried the old `&BC` roughness
+      (`z0=0.05`, `z0h=0.00035` — the generic-concrete default), so no factypes edit was needed.
+      Both migrations fixed `&DOMAIN xsize/ysize` where present (not valid Fortran namelist
+      keys — replaced with `xlen`/`ylen`; `examples/999` already used `xlen`/`ylen`, no fix
+      needed there) since the files wouldn't have parsed otherwise; grid *values* are unchanged
+      throughout. Still open: `examples/024/namoptions.024:48`
       (which set the now-deleted `BCbotT = 2`, dead even pre-refactor since it defaults
       `lbottom=.false.`) has been cleaned as part of Task 3's sweep, along with every other
       namoptions file under `tests/` and `examples/` that set a pruned key (except the two above).
@@ -424,18 +437,26 @@ scope here. (Fallback: keep `modinlet` to avoid renaming call sites.)
 
 ## 4. Cases in the repo that flag `lbottom` (must be migrated in Phase 1)
 
-`lbottom = .true.` is currently live — this is **not** a bare delete:
+**Both cases migrated (Tasks 4-5, 2026-07-16)** — `lbottom = .true.` no longer appears anywhere
+in the repo:
 
-- examples/999/namoptions.999:43
-- tests/regression/david_tests/cases/103/namoptions.103:68
+- ~~examples/999/namoptions.999:43~~ → `namoptions.999` now sets `libm=.true.` with a 2-facet
+  ground STL (`geom.999.STL`) and generated `&WALLS` counts (Task 5).
+- ~~tests/regression/david_tests/cases/103/namoptions.103:68~~ → `namoptions.103` now sets
+  `libm=.true.` with a 128-facet ground STL (`geom.103.STL`) and generated `&WALLS` counts
+  (Task 4).
 - Documented in docs/udales-example-simulations.md:198 and docs/udales-namoptions-overview.md
-  (which states `lbottom` is *"Used only if no ground facets"*, row 200).
-- Pre-processing surfaces: tools/preprocessing.m:224, tools/python/namelists.json:282,393.
+  (which states `lbottom` is *"Used only if no ground facets"*, row 200) — these docs describe
+  the retired scheme; not updated as part of this migration (tracked separately if still needed).
+- Pre-processing surfaces: tools/preprocessing.m:224, tools/python/namelists.json:282,393 — already
+  cleaned (Phase 1, `[x]` above).
 
-These represent flat-floor setups with no ground facets. Migration = generate floor facets for
-them (the conceptual replacement the docs already imply) and confirm results are statistically
-equivalent (§6.2 — the facet wall function is not the CASE(91/92) one, so bitwise identity is not
-the criterion here).
+These represented flat-floor setups with no ground facets. Migration = generate floor facets for
+them (the conceptual replacement the docs already imply). Solver-run confirmation that results are
+statistically equivalent to the pre-migration `lbottom` behaviour (§6.2 — the facet wall function
+is not the CASE(91/92) one, so bitwise identity is not the criterion here) is **deferred** to a
+Linux session with a full build toolchain; only static input-generation verification has been done
+in this environment (see §6.2 below).
 
 ---
 
@@ -504,6 +525,14 @@ New coverage to add:
       103, slab-averaged profiles over an averaging window) is deferred to a Linux session with a
       full build — the facet wall-function formulation legitimately differs from the old
       `BCbotT=2` flat-surface one, so the acceptance criterion is statistical, not bitwise.
+      **Deferred (2026-07-16, Task 5):** case 999's inputs were likewise generated and statically
+      verified only (2-facet minimal ground STL; full 128x128 floor coverage confirmed on
+      `solid_w`/`fluid_boundary_c` — see `.superpowers/sdd/phase1-task-5-report.md`); same
+      toolchain gap. This case is neutral (`ltempeq=.false.`), so the old-vs-new comparison is
+      against the old `z0=0.05`/`z0h=0.00035` flat-surface neutral wall function rather than a
+      `BCbotT`-driven one — still a statistical (not bitwise) criterion, since the new facet
+      wall function (`iwallmom=3`, `mom_transfer_coef_neutral`) is a different formulation from
+      the old flat-surface one even in the neutral limit.
 - [ ] **§6.3 Base-state invariance + validation (Phase 0).** Assert that Exner / hydrostatic
       pressure / buoyancy depend only on the derived base state (initial profiles + `ps`); assert
       startup **fails loudly** when `ps` is unset with active thermodynamics, and when
