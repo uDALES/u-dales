@@ -4,7 +4,8 @@
 module modbasestate
    implicit none
    save
-   public :: initbasestate, exitbasestate
+   public :: initbasestate, exitbasestate, ps
+   real              :: ps = 101325.  !<  Surface pressure [Pa]
    real, allocatable :: thl_b(:)  !< base-state liquid water potential temperature [K]
    real, allocatable :: qt_b(:)   !< base-state total specific humidity [kg/kg]
    real, allocatable :: thv_b(:)  !< base-state virtual potential temperature [K]
@@ -17,7 +18,6 @@ contains
 
    subroutine initbasestate(thlprof, qtprof)
       use modglobal,   only : kb, ke, kh, zf, dzf, dzh, grav, cp, rd, rv, pref0
-      use modsurfdata, only : ps
       use modmpi,      only : myid
       real, intent(in) :: thlprof(kb:ke), qtprof(kb:ke)
       real :: rdocp, thvh_b

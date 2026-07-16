@@ -78,10 +78,10 @@ module modstartup
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
-      use modsurfdata,       only : wttop, wqtop, wsvtop, wsvtopdum, ps, thl_top, qt_top
+      use modbasestate,      only : ps
       use modfields,         only : initfields, dpdx
       use modpois,           only : initpois
-      use modboundary,       only : initboundary, ksp
+      use modboundary,       only : initboundary, ksp, wttop, wqtop, wsvtop, wsvtopdum, thl_top, qt_top
       use modthermodynamics, only : initthermodynamics, lqlnr
       use modsubgrid,        only : initsubgrid
       use modmpi,            only : comm3d, myid, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy
@@ -682,7 +682,7 @@ module modstartup
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only : ps
+      use modbasestate, only : ps
       use modglobal,   only : itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
                               startfile,lwarmstart,lstratstart,lmoist, nsv, &
                               BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCtopm, &
@@ -936,9 +936,7 @@ module modstartup
          idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,BCxm_driver,&
          tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
-      use modsurfdata, only:thvs, sv_top
-      ! use modsurface,        only : surface,dthldz
-      use modboundary, only:boundary, tqaver, halos
+      use modboundary, only:boundary, tqaver, halos, sv_top
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
       use modbasestate, only:initbasestate, thv_b
@@ -1013,7 +1011,6 @@ module modstartup
          call MPI_BCAST(qtprof, kmax, MY_REAL, 0, comm3d, mpierr)
 
          call initbasestate(thlprof(kb:ke), qtprof(kb:ke))
-         thvs = thv_b(kb) ! kept defined until modsurfdata is dissolved (Phase 2); no live readers on this branch
 
          do k = kb, ke
             do j = jb - 1, je + 1
@@ -1134,7 +1131,6 @@ module modstartup
             call MPI_BCAST(e12prof, kmax, MY_REAL, 0, comm3d, mpierr)
 
             call initbasestate(thlprof(kb:ke), qtprof(kb:ke))
-            thvs = thv_b(kb) ! kept defined until modsurfdata is dissolved (Phase 2); no live readers on this branch
 
             do k = kb, ke
             do j = jb - 1, je + 1
@@ -1549,7 +1545,6 @@ module modstartup
             call MPI_BCAST(e12prof, kmax, MY_REAL, 0, comm3d, mpierr)
 
             call initbasestate(thlprof(kb:ke), qtprof(kb:ke))
-            thvs = thv_b(kb) ! kept defined until modsurfdata is dissolved (Phase 2); no live readers on this branch
 
             btime = timee
             um = u0

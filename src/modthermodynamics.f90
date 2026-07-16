@@ -260,8 +260,7 @@ contains
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,khc,nsv,zh,zf,grav,rlv,cp,rd,rv,pref0
     use modfields, only : u0,v0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
          presf,presh,exnf,exnh,rhof,thvf,IIc,IIcs,IIu,IIus,IIv,IIvs
-    use modsurfdata,only : ps
-    use modbasestate, only : exnf_b, exnh_b, thl_b, qt_b
+    use modbasestate, only : exnf_b, exnh_b, thl_b, qt_b, ps
     use modmpi,    only : slabsum,avexy_ibm
     implicit none
 
@@ -394,8 +393,7 @@ contains
 
     use modglobal, only : kb,ke,kh,dzf,dzh,rv,rd,cp,tmelt,zf,grav,pref0
     use modfields, only : qt0av,ql0av,presf,presh,thvh,thvf
-    use modsurfdata,only : ps
-    use modbasestate, only : thv_b
+    use modbasestate, only : thv_b, ps
     implicit none
 
     integer   k

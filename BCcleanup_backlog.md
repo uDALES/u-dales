@@ -347,18 +347,18 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
 
 ### Phase 2 — dissolve `modsurfdata`
 
-- [ ] Remove the (A) `modsurfdata` scalar **declarations**: `thls, qts, z0, z0h, wtsurf, wqsurf,
+- [x] Remove the (A) `modsurfdata` scalar **declarations**: `thls, qts, z0, z0h, wtsurf, wqsurf,
       wsvsurf`. Task 2 already dropped their namelist membership, reads, and broadcasts
       (modstartup.f90 &BC + `use modsurfdata` lists) — the declarations were kept deliberately
       because the unreachable `iinletgen` branches in `readinitfiles`/`readrestartfiles`
       (modstartup.f90 ~1380,1827,2349) still dereference `thls`. Precondition: the consumer
       table in §1.1 is empty apart from the re-point targets — i.e. Phases 0, 1 and 3a have
       landed.
-- [ ] Delete the (C) dead `modsurfdata` members.
+- [x] Delete the (C) dead `modsurfdata` members.
 - [x] Re-point `modstatsdump`'s buoyancy-flux diagnostic (`tkestatsdump`, modstatsdump.f90:2126)
       from `grav/thls` to `grav/thv_b(kb)` — pulled forward into Task 2 (Step 1) to unblock the
       `thls` namelist prune below; `modbasestate` already existed pre-Phase-2.
-- [ ] Move survivors `ps` and the derived base-state profiles (`thl_b/qt_b/thv_b/p_b/exn_b`,
+- [x] Move survivors `ps` and the derived base-state profiles (`thl_b/qt_b/thv_b/p_b/exn_b`,
       §1.5) into a new `modbasestate`; then remove `modsurfdata` entirely.
 - [x] Update docs: `docs/udales-namoptions-overview.md` (rows 139-152, 200) and
       `docs/udales-example-simulations.md` (lbottom section, line 198). Done in Task 3, ahead

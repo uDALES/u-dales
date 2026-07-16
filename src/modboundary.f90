@@ -27,10 +27,20 @@ module modboundary
    save
    private
    public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, bcp, bcpup, closurebc, &
-             xm_periodic, xT_periodic, xq_periodic, xs_periodic, ym_periodic, yT_periodic, yq_periodic, ys_periodic
+             xm_periodic, xT_periodic, xq_periodic, xs_periodic, ym_periodic, yT_periodic, yq_periodic, ys_periodic, &
+             thl_top, qt_top, wttop, wqtop, sv_top, wsvtop, wsvtopdum
    integer :: ksp = -1 !<    lowest level of sponge layer
    real, allocatable :: tsc(:) !<   damping coefficients to be used in grwdamp.
    real :: rnu0 = 2.75e-3
+
+   ! Top-boundary prescribed conditions (previous isurf 2, 3 and 4)
+   real              :: thl_top  = -1.    !<  Liquid water potential temperature [K] at top wall
+   real              :: qt_top   = -1.    !<  Specific humidity [kg/kg] at top wall
+   real              :: wttop    = 0.     !<  Kinematic temperature flux at top wall [K m/s]
+   real              :: wqtop    = 0.     !<  Kinematic moisture flux at top wall [kg/kg m/s]
+   real, allocatable :: sv_top (:)        !<  Top scalar concentrations
+   real, allocatable :: wsvtop (:)        !<  Kinematic scalar flux at top wall [- m/s]
+   real :: wsvtopdum(1:99) = 0. !<  Dummy variable as nsv allocated variable
 contains
    !>
    !! Initializing Boundary; specifically the sponge layer
@@ -129,7 +139,6 @@ contains
                                  rk3step, lchunkread
       use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, u0av, v0av, uouttot, vouttot, thl0c
       use modsubgriddata, only : ekh, ekm, loneeqn
-      use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
       use modmpi,         only : slabsum, avey_ibm
       use moddriver,      only : drivergen, driverchunkread
       use modinletdata,   only : ubulk, vbulk
@@ -396,7 +405,6 @@ contains
                                BCtopT_flux, BCtopq_flux, BCtops_flux
     use modfields,      only : u0, v0, um, vm, thl0, thlm, qt0, qtm
     use modsubgriddata, only : ekh, ekm
-    use modsurfdata,    only : wttop, wqtop, wsvtop
     implicit none
 
     select case(BCtopm)
