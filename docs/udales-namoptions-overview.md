@@ -310,7 +310,7 @@ The legacy flat-surface bottom BC keys (`BCbotm`, `BCbotT`, `BCbotq`, `BCbots`, 
 | types_path | - | `STRING` | Name of types file. | - |
 | facT | 288 | `REAL` > 0 | If `iwallmom = 2` or  `iwalltemp = 2` then this sets the facet temperature, or if `lEB = .true.` it is the initial facet temperature | [K] |
 | ifacsec | 1 | 1 or 2 | Option for facet section calculation. 1: Fortran (default, fast), 2: MATLAB (useful for debugging | - |
-| ishortwave   | 1        | 1  or 2 | Option for shortwave radiation calculation,  1  uses Fortran and is faster, 2 uses MATLAB and useful for debugging. | -  |
+| ishortwave   | MATLAB: 1; Python: 3 | 1, 2, 3, or 4 | Option for shortwave radiation calculation. 1: scanline rasterization in both toolchains (MATLAB standalone Fortran executable; Python f2py wrapper). 2: MATLAB-only scanline debug implementation. 3: Python-only facsec method. 4: Python-only moller method. MATLAB errors on 3/4; Python errors on 2. | -  |
 | isolar       | 1        | 1 , 2, 3| Option for solar radiation, 1 uses custom values, 2 uses lattitude and lonigtude, 3 uses weather file.             | -  |
 | view3d_out   | 0        | 0 , 1 , 2                    | Output format for View3D, 0 is text, 2 is binary, 2 is sparse.                   | - |
 | maxD         | Inf      |   `REAL` > 0   | Maximum distance to check view factors, otherwise they are zero.    | - |
