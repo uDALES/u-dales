@@ -1169,7 +1169,7 @@ module modibm
                            ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, nfcts, lwritefac, dt, dtfac, tfac, tnextfac
      use modfields, only : thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
                            tau_x, tau_y, tau_z, thl_flux
-     use modmpi, only : myid, MPI_SUM
+     use modmpi, only : myid
      use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
 
      real, allocatable :: rhs(:,:,:)
@@ -1285,7 +1285,7 @@ module modibm
 
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
-                           eps1, dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
+                           dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
      use modfields, only : u0, v0, w0, thl0
      use initfac,   only : facT, facz0, facz0h, facnorm, faca
      use decomp_2d, only : zstart
@@ -1434,7 +1434,7 @@ module modibm
 
 
    subroutine wallfunheat
-     use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzh, eps1, &
+     use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzh, &
                            xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
@@ -1999,8 +1999,8 @@ module modibm
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
       use modwallfunctions, only:wfuno, wfmneutral
-      use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, numol, prandtlmol, nsv, &
-         dzf, dzfi, numoli, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i
+      use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, nsv, &
+         dzf, dzfi, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i
       use modfields, only : u0,v0,e120,e12m,thl0,qt0,sv0,up,vp,wp,thlp,qtp,svp,momfluxb,tfluxb,tau_x,tau_y,tau_z,thl_flux
       use modsurfdata, only:wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekh

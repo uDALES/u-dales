@@ -30,7 +30,7 @@ module modstatistics
   save
 
   !NetCDF variables
-  integer :: klow,khigh,i,j,k
+  integer :: i,j,k
 !  real    :: tsamplep,tstatsdumpp,tsample,tstatsdump
 
 contains
@@ -45,7 +45,6 @@ contains
                                upupav,vpvpav,wpwpav,upvpav,upwpav,vpwpav,thlpwpav
   use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,&
                                ltempeq,dzf,dzhi
-  use modmpi,           only : mpi_sum
   implicit none
 
   real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: umint

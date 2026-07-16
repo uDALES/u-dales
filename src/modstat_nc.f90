@@ -45,8 +45,6 @@ contains
 
 
   subroutine initstat_nc
-    use modglobal, only : ifnamopt
-    use modmpi,    only : mpi_logical
     implicit none
 
   end subroutine initstat_nc
@@ -344,14 +342,12 @@ contains
    if (status /= nf90_noerr) call nchandle_error(status)
  end subroutine exitstat_nc
   subroutine writestat_dims_nc(ncid)
-    use modglobal, only : xf,xh,yf,yh,zf,zh,jmax,imax,dxh
+    use modglobal, only : xf,xh,yf,yh,zf,zh,jmax,imax
     use modmpi, only : myidx, myidy
     implicit none
     integer, intent(in) :: ncid
     integer             :: i=0,iret,length,varid
-    integer :: dx
 
-    dx = dxh(1) ! Assume equidistant grid
     !write(*,*) 'writestat_dims_nc'
     iret = nf90_inq_varid(ncid, 'xt', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, xtID, len=length)

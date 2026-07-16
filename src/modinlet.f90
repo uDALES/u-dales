@@ -263,7 +263,7 @@ contains
    ddispdxold   = ddispdx
 
    ! compute time-average velocities
-    rk3coef = dt / (4. - dble(rk3step))
+    rk3coef = dt / (4. - real(rk3step))
     if (rk3step==1) then
       deltat = rk3coef
     elseif (rk3step==2) then
@@ -862,7 +862,7 @@ contains
       t0inletbcold = t0inletbc
 
   ! determine time step interval in simulation
-      rk3coef   = dt / (4. - dble(rk3step))
+      rk3coef   = dt / (4. - real(rk3step))
       if (rk3step==1) then
         deltat = rk3coef
       elseif (rk3step==2) then
@@ -871,7 +871,7 @@ contains
         deltat = rk3coef - (dt/2.)
       end if
   ! determine time step interval in inlet data
-      rk3coefin = dtin / (4. - dble(rk3stepin))
+      rk3coefin = dtin / (4. - real(rk3stepin))
       if (rk3stepin==1) then
         dtinrk = rk3coefin
       elseif (rk3stepin==2) then
@@ -886,7 +886,7 @@ contains
         nstepread = nstepread +1
         elapstep = mod(elapstep,dtinrk)
         rk3stepin = mod(rk3stepin,3) + 1
-        rk3coefin = dtin / (4. - dble(rk3stepin))
+        rk3coefin = dtin / (4. - real(rk3stepin))
         if (rk3stepin==1) then
           dtinrk = rk3coefin
         elseif (rk3stepin==2) then
@@ -994,7 +994,7 @@ contains
    ddispdxold   = ddispdx
 
    ! compute time-average velocities
-    rk3coef = dt / (4. - dble(rk3step))
+    rk3coef = dt / (4. - real(rk3step))
     if (rk3step==1) then
       deltat = rk3coef
     elseif (rk3step==2) then
@@ -1383,7 +1383,7 @@ contains
       w0inletbcold = w0inletbc
 
   ! determine time step interval in simulation
-      rk3coef   = dt / (4. - dble(rk3step))
+      rk3coef   = dt / (4. - real(rk3step))
       if (rk3step==1) then
         deltat = rk3coef
       elseif (rk3step==2) then
@@ -1392,7 +1392,7 @@ contains
         deltat = rk3coef - (dt/2.)
       end if
   ! determine time step interval in inlet data
-      rk3coefin = dtin / (4. - dble(rk3stepin))
+      rk3coefin = dtin / (4. - real(rk3stepin))
       if (rk3stepin==1) then
         dtinrk = rk3coefin
       elseif (rk3stepin==2) then
@@ -1407,7 +1407,7 @@ contains
         nstepread = nstepread +1
         elapstep = mod(elapstep,dtinrk)
         rk3stepin = mod(rk3stepin,3) + 1
-        rk3coefin = dtin / (4. - dble(rk3stepin))
+        rk3coefin = dtin / (4. - real(rk3stepin))
         if (rk3stepin==1) then
           dtinrk = rk3coefin
         elseif (rk3stepin==2) then
@@ -1537,6 +1537,13 @@ contains
        real thlsdummy
        integer :: k
 
+       ! An isothermal inlet top (tinput(ke) exactly == thls) makes the enthalpy
+       ! -thickness denominator below exactly zero, which -ffpe-trap=zero turns
+       ! into a crash. Offsetting thls avoids that. The exact-equality test is
+       ! deliberate and must stay: a tolerance test would also capture merely
+       ! near-equal values, and clamping those to -0.000001 would flip the sign
+       ! of the denominator (and so of ethick) rather than just regularise it.
+       ! gfortran's -Wcompare-reals flags this; it is a false positive here.
        thlsdummy = thls
        if (tinput(ke) == thls) then
          thlsdummy = thls -0.000001
@@ -1547,6 +1554,10 @@ contains
 
        end do
        output   = sum(ethick)  ! enthalpy thickness
+       ! Callers divide by the enthalpy thickness, so an exactly-zero sum (an inlet
+       ! with no temperature deficit) is regularised rather than allowed to trap.
+       ! As above, the exact comparison is intended: only the exactly-zero case is
+       ! degenerate, and a small non-zero thickness is physically meaningful.
        if (output==0.) then
          output= 0.000001
        end if

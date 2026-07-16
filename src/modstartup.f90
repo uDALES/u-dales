@@ -72,7 +72,6 @@ module modstartup
                                     lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,flrT, lperiodicEBcorr, fraction,sinkbase,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lvfsparse,nnz,lfacTlyrs, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
-                                    BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
@@ -468,8 +467,8 @@ module modstartup
       call MPI_BCAST(lmintdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(ltkedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing tke budget files
       call MPI_BCAST(iplane, 1, MPI_INTEGER, 0, comm3d, mpierr) ! J.Tomas: ib+iplane is the i-plane that is stored if lstoreplane is .true.
-      call MPI_BCAST(startfile, 50, MPI_CHARACTER, 0, comm3d, mpierr)
-      call MPI_BCAST(author, 80, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(startfile, len(startfile), MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(author, len(author), MPI_CHARACTER, 0, comm3d, mpierr)
       call MPI_BCAST(runtime, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(trestart, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tfielddump, 1, MY_REAL, 0, comm3d, mpierr)
@@ -483,7 +482,7 @@ module modstartup
       call MPI_BCAST(nsv, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nscasrc,1,MPI_INTEGER,0,comm3d,mpierr)
       call MPI_BCAST(nscasrcl,1,MPI_INTEGER,0,comm3d,mpierr)
-      call MPI_BCAST(fieldvars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(fieldvars, len(fieldvars), MPI_CHARACTER, 0, comm3d, mpierr)
       !call MPI_BCAST(nstat      ,1,MPI_INTEGER,0,comm3d,mpierr) !tg3315
       !call MPI_BCAST(ncstat     ,80,MPI_CHARACTER,0,comm3d,mpierr) !tg3315
       call MPI_BCAST(ifixuinf, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -720,7 +719,7 @@ module modstartup
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
                               linoutflow,ltempeq,iwalltemp,iwallmom,&
-                              ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,&
+                              ipoiss,POISS_FFT2D,&
                               lydump,lytdump,luoutflowr,lvoutflowr,&
                               lhdriver,lqdriver,lsdriver,ltrees,lEB,itree_mode,&
                               TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
@@ -949,12 +948,12 @@ module modstartup
          v0av, u0av, qt0av, thl0av, qt0av, sv0av, &
          thlpcar, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, thl0c
             use modglobal,         only : ib,ie,ih,ihc,jb,je,jh,jhc,kb,ke,kh,khc,kmax,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
-         zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, &
+         zh, dzf, dzh, rv, rd, cp, rlv, om23_gs, jgb, jge, Uinf, &
          e12min, dzh, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, linoutflow, lper2inout, iinletgen, lreadminl, &
          ltempeq, prandtlmoli, &
          tnextfielddump, tfielddump, startfile, lprofforc,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,BCxm_driver,&
+         idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,&
          tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:thls, sv_top
@@ -1507,9 +1506,7 @@ module modstartup
                if (runtime < tdriverstart) then
                   if (myid==0) write(*,*) 'Warning! No driver files will be written as runtime < tdriverstart.'
                else
-                  if (trestart /= (tdriverstart + (driverstore-1)*dtdriver)) then
-                     trestart = (tdriverstart + (driverstore-1)*dtdriver)
-                  end if
+                  trestart = (tdriverstart + (driverstore-1)*dtdriver)
                   if (myid==0) then
                      write(*,'(A,F15.5)') 'Warning! for driver simulation, trestart gets set as &
                                            (tdriverstart + (driverstore-1)*dtdriver), ignoring the &
@@ -1698,9 +1695,7 @@ module modstartup
 
                   tdriverstart_cold = tdriverstart
                   tdriverstart = timee
-                  if (trestart /= (driverstore-1)*dtdriver) then
-                     trestart = (driverstore-1)*dtdriver
-                  end if
+                  trestart = (driverstore-1)*dtdriver
 
                   if (myid==0) then
                      write(*,'(A,F15.5)') "Warning! during warmstart of driver simulat ion, tdriverstart &
@@ -1716,9 +1711,7 @@ module modstartup
                   end if
 
                else ! if (timee<tdriverstart)
-                  if (trestart /= (tdriverstart + (driverstore-1)*dtdriver - btime)) then
-                     trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
-                  end if
+                  trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
                   if (myid==0) then
                      write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart gets set as &
                                            (tdriverstart + (driverstore-1)*dtdriver - btime), ignoring the &
@@ -2185,7 +2178,8 @@ module modstartup
       real, dimension(kbin:kein)          ::  Tinlin
       real, dimension(kbin:kein)          ::  Trecin
       real, dimension(kbin:kein + 1)        ::  Wrecin
-      character(50) :: name, name2, name4
+      character(len(startfile)) :: name
+      character(50) :: name2, name4
       real dummy
       integer i, j, k, n
       !********************************************************************

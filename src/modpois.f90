@@ -50,9 +50,8 @@ save
   real, allocatable, target :: Fxy(:,:,:), Fxyz(:,:,:)
   real, allocatable :: xrt(:), yrt(:), zrt(:)
   real, allocatable, target :: xyzrt(:,:,:), bxyzrt(:,:,:)
-  real, allocatable :: a(:), b(:), c(:), ax(:), bx(:), cx(:) ! coefficients for tridiagonal matrix
-  real, allocatable :: pz_top(:,:,:), py_top(:,:,:), px_top(:,:,:)
-  integer :: ibc1, ibc2, kbc1, kbc2
+  real, allocatable :: a(:), b(:), c(:) ! coefficients for tridiagonal matrix
+  integer :: kbc1, kbc2
 
   integer(kind=selected_int_kind(18)) :: plan_r2fc_x, plan_r2fc_y, plan_fc2r_x, plan_fc2r_y
   integer(kind=selected_int_kind(18)) :: plan_r2fr_x, plan_r2fr_y, plan_fr2r_x, plan_fr2r_y
@@ -60,7 +59,6 @@ save
   real, allocatable :: Sxr(:), Sxfr(:), Syr(:), Syfr(:), Szr(:), Szfr(:)
   complex, allocatable :: Sxfc(:), Syfc(:)
   type(DECOMP_INFO) :: sp
-  type(DECOMP_INFO) :: decomp_top
   real, allocatable :: dpdztop(:,:)
   real, allocatable :: pij(:)
 
@@ -69,7 +67,7 @@ contains
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot, &
                           dxi,dzh,dzf,dyi,dzfi,ipoiss,pi,&
                           POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,&
-                          BCxm,BCym,BCzp,BCtopm_pressure
+                          BCxm,BCym,BCzp
     use modfields, only : rhobf, rhobh
 
     implicit none
@@ -419,7 +417,7 @@ contains
   end subroutine initpois
 
   subroutine poisson
-    use modglobal, only : ib,ie,jb,je,kb,ke,itot,jtot,ktot,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,imax,jmax,eps1,BCxm,BCym,BCzp
+    use modglobal, only : ib,ie,jb,je,kb,ke,itot,jtot,ktot,ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,imax,jmax,BCxm,BCym,BCzp
     use modmpi, only : barrou
     implicit none
     complex, allocatable, dimension(:,:,:) :: Fx, Fy, Fz
@@ -917,8 +915,7 @@ contains
 
 
     use modfields, only : up, vp, wp, um, vm, wm
-    use modglobal, only : rk3step, ib,ie,jb,je,kb,ke,dxi,dyi,dzfi,dt,&
-                          pi
+    use modglobal, only : rk3step, ib,ie,jb,je,kb,ke,dxi,dyi,dzfi,dt
     use modmpi,    only : excjs, avexy_ibm
     use modboundary, only: bcpup
 !    use modibm,    only : ibmnorm
@@ -935,7 +932,7 @@ contains
     if (rk3step == 0) then ! dt not defined yet
       rk3coef = 1.
     else
-      rk3coef = dt / (4. - dble(rk3step))
+      rk3coef = dt / (4. - real(rk3step))
     end if
     rk3coefi = 1. / rk3coef
 
@@ -1109,7 +1106,7 @@ contains
 
   subroutine solmpj(x)
     use modmpi,    only : barrou
-    use modglobal, only : imax,jmax,ktot,pi
+    use modglobal, only : imax,jmax,ktot
 
     implicit none
 
