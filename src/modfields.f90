@@ -84,11 +84,6 @@ module modfields
 
   real, allocatable :: shear(:,:,:,:)   !<   wall shear (last rank indicates the type of shear componenten (uym, uyp, etc.)
 
-   real, allocatable :: momfluxb(:,:,:) !< fields for the wallfluxes of total momentum
-   real, allocatable :: tfluxb(:,:,:)  !< heat
-   real, allocatable :: qfluxb(:,:,:)  !< and moisture
-   real, allocatable :: cth(:,:,:)     !< heat transfer coefficient
-
   !tg3315 added variables (statistics, masking and others)
   integer, allocatable :: IIc(:,:,:)        !< Masking matrix for blocks at cell centres
   integer, allocatable :: IIu(:,:,:)        !< Masking matrix for blocks at x-direction half cells
@@ -846,12 +841,7 @@ contains
 
     ! allocate wall shear-stress terms (immersed boundaries)
     allocate(shear(ib-1:ie+1,jb-1:je+1,kb-1:ke+1,0:12))    ! halo is set to 1
-    allocate(momfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(tfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(qfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(cth(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(wall(ib:ie,jb:je,kb:ke,5))
-    momfluxb=0.;tfluxb=0.;qfluxb=0.;cth=0.
     shear=0.
 
     ! domain fluid volume and area calculations
@@ -869,7 +859,6 @@ contains
     deallocate(ug,vg,pgx,pgy,dpdxl,dpdyl,dthldxls,dthldyls,dqtdxls,dqtdyls,dqtdtls,dudxls,dudyls,dvdxls,dvdyls,wfls)
     deallocate(thlprof,qtprof,uprof,vprof,e12prof,sv0av,svprof)
     deallocate(thlpcar)
-    deallocate(momfluxb,tfluxb,qfluxb,cth)
     deallocate(SW_up_TOA,SW_dn_TOA,LW_up_TOA,LW_dn_TOA)
 
   end subroutine exitfields

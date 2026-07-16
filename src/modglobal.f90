@@ -65,7 +65,7 @@ module modglobal
    integer ::  khc = 2 ! used in k-scheme
 
    integer :: nfcts = -1 ! no. of wall facets
-   integer ::  iplane ! ib+iplane is the plane that is stored when lstoreplane=.true.
+   integer ::  iplane ! ib+iplane is the i-plane written to/read from driver files (idriver)
    character(90) :: fname_options = 'namoptions'
    integer, parameter :: longint = 8
 
@@ -201,12 +201,10 @@ module modglobal
    logical :: lpurif = .false.         !<  switch to turn on purifiers module
    logical :: ltreedump = .false.   !<  switch to output tree results time-averaged statistics every tstatsdump
 
-   logical :: lwallfunc = .true. !<  switch that determines whether wall functions are used to compute the wall-shear stress
    logical :: luoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
    logical :: lvoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
    logical :: luvolflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed volume flow rate
    logical :: lvvolflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed volume flow rate
-   logical :: lstoreplane = .false. !<  switch that determines whether i-plane data is stored.
    logical :: lstorexy = .false. !xy files stored
    logical :: lreadmean = .false. !<  switch that determines whether mean variables should be read from means#myid#.#expnr#
    logical :: lstat = .false.

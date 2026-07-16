@@ -46,8 +46,7 @@ contains
    !! Initializing Boundary; specifically the sponge layer
    !>
    subroutine initboundary
-      use modglobal,    only : ib, kb, ke, kh, kmax, pi, zf, iplane
-      use modinletdata, only : irecy
+      use modglobal,    only : kb, ke, kh, kmax, pi, zf
       implicit none
 
       real    :: zspb, zspt
@@ -67,7 +66,6 @@ contains
          tsc(k) = rnu0*sin(0.5*pi*(zf(k) - zspb)/(zspt - zspb))**2
       end do
       tsc(ke + 1) = tsc(ke)
-      irecy = ib + iplane
 
    end subroutine initboundary
 

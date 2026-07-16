@@ -29,8 +29,6 @@ module modinletdata
     real :: iangle    !< inflow angle in radians (change with respect to inlet velocity that is read in)
     real :: iangledeg=0. !< inflow angle in degrees (change with respect to inlet velocity that is read in)
 
-    integer :: irecy  !< ib + irecy is the i-index of recycle station
-
 ! Inlet driver simulation variables - idriver - ae1212
 
     real, allocatable :: storeu0driver(:,:,:)

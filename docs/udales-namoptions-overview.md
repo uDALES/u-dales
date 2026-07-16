@@ -352,11 +352,17 @@ The legacy flat-surface bottom BC keys (`BCbotm`, `BCbotT`, `BCbotq`, `BCbots`, 
 | Q_dot_hp | 0. | `REAL` | Total volume flux emission from the heat pump in vertical direction. | [m^3/s] |
 | QH_dot_hp | 0. | `REAL` | Rate of total heat extracted from the ambient air by the heat pump. | [W] |
 
-<!---
 ## Namelist INLET
+
+The recycling/rescaling inlet generator (Lund et al. 1998) has been removed; it was unreachable
+dead code (no case in `tests/` or `examples/` enabled it). Turbulent inflow is instead supplied by
+the precursor/driver method (`idriver`, see Namelist DRIVER) or synthetic inflow generation. The
+switches that existed solely to serve the removed generator (`di`, `dti`, `lfixinlet`,
+`lfixutauin`, `linletRA`, `lreadminl`, `lstoreplane`, `lwallfunc`) have been deleted from this
+namelist.
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | Uinf | 0. | `REAL` | Fixed velocity at domain top (x-direction). | m/s |
 | Vinf | 0. | `REAL` | Fixed velocity at domain top (y-direction). | m/s |
--->
+| inletav | 0. | `REAL` | Averaging time window used by the `ifixuinf = 2` free-stream forcing. | s |

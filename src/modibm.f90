@@ -1169,21 +1169,15 @@ module modibm
      use modmpi, only : myid, MPI_SUM
      use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
 
-     real, allocatable :: rhs(:,:,:)
      integer n
 
       if (.not. libm) return
 
-      allocate(rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-
       if (iwallmom > 1) then
-        rhs = up
         call wallfunmom(xhat, up, bound_info_u)
 
-        rhs = vp
         call wallfunmom(yhat, vp, bound_info_v)
 
-        rhs = wp
         call wallfunmom(zhat, wp, bound_info_w)
 
         ! mom_flux_sum = sum(tau_x(ib:ie,jb:je,kb+1:ke) + tau_y(ib:ie,jb:je,kb+1:ke) + tau_z(ib:ie,jb:je,kb+1:ke))
@@ -1207,7 +1201,6 @@ module modibm
       call diffw_corr
 
       if (ltempeq .or. lmoist .or. lwritefac) then
-        rhs = thlp
         totheatflux = 0 ! Reset total heat flux to zero so we only account for that in this step.
         totqflux = 0
         call wallfunheat
@@ -1233,8 +1226,6 @@ module modibm
       do n = 1,nsv
         call diffc_corr(sv0(:,:,:,n), svp(:,:,:,n), ihc, jhc, khc)
       end do
-
-      deallocate(rhs)
 
       if (lwritefac .and. rk3step==3) then
         if (myid == 0) then

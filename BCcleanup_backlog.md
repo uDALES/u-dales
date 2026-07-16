@@ -392,9 +392,13 @@ in `modinletdata` but are consumed by kept subsystems — relocate, don't delete
       §3c): recycle/inlet-station scaling arrays (`Uinl/Urec`, `zir*/zii*/zor*/zoi*`, `heavi*`,
       `loc*`), thicknesses (`di/dr/dti/dtr/theta*`), friction scales (`utaui/utaur/ttaui/ttaur`),
       `irecy`, and the y-interpolation block for reading inlet files. **Done:** module trimmed to
-      `ubulk, vbulk, iangle, iangledeg, irecy` + the driver block (`storeu0driver…chunkread_e`);
+      `ubulk, vbulk, iangle, iangledeg` + the driver block (`storeu0driver…chunkread_e`);
       every surviving symbol has a live consumer in modboundary/moddriver/modtstep (verified by
-      grepping every `use modinletdata` site in `src/`).
+      grepping every `use modinletdata` site in `src/`). `irecy` itself was initially kept (its
+      one write, `irecy = ib + iplane` in `modboundary.f90`, looked live) but turned out to be
+      write-only — no read anywhere in `src/`; deleted in Task 3 along with the write and the
+      `use modinletdata, only : irecy` import (`irecydriver`, a different variable consumed by
+      the driver path, is unaffected).
 - [x] Switches owned only by the generator: `iinletgen`, `lfixinlet`, `lfixutauin`, `linletRA`
       (modglobal.f90:179,195-197), and namelist params `di`, `dti` (read modstartup.f90:142,
       broadcast 544-545); `totinletav` reads used only by inlet-gen. **Done**, plus two
@@ -405,10 +409,14 @@ in `modinletdata` but are consumed by kept subsystems — relocate, don't delete
       modsave.f90's restart-trigger condition — `nstore` was "number of rk steps in inletfile",
       referenced live only there; the disjunct was always `.false.` (nstepread stuck at its old
       default 1, nstore defaulting to 1002, never namelist-configurable), so dropping it is
-      bitwise-neutral. `lstoreplane`/`lwallfunc` were considered and deliberately **kept** in
-      `&INLET` — they are equally unreachable post-deletion (only consumer was `modinlet.f90`)
-      but outside this task's itemised scope; flagged for a follow-up cleanup rather than cut
-      here.
+      bitwise-neutral. `lstoreplane`/`lwallfunc` were considered and initially **kept** in
+      `&INLET` — they were equally unreachable post-deletion (only consumer was `modinlet.f90`)
+      but outside that task's itemised scope; flagged as a follow-up. **Done (Task 3):** both
+      removed end-to-end — modglobal.f90 declarations, `&INLET` namelist membership, and their
+      `MPI_BCAST` calls in modstartup.f90; zero references left in `src/` bar a dead comment
+      (`moddriver.f90:1194`, inside an already-commented-out block) and a stale-but-harmless
+      mention in another broadcast's inline comment (fixed). `&INLET` now carries only
+      `Uinf, Vinf, inletav` — matching this plan's original intent.
 - [x] The inlet-gen `thls` branches in modstartup.f90 (1383, 1826, 2348). **Done** — removed along
       with the arms that contained them; `use modsurfdata, only:thls` dropped from both
       `readinitfiles` and `readrestartfiles` (no longer referenced in either).
@@ -484,9 +492,12 @@ in this environment (see §6.2 below).
 `src/modinlet.f90` deleted; `modinletdata.f90`, `modstartup.f90`, `modglobal.f90`, `modsave.f90`,
 `modtstep.f90` trimmed of every generator-only symbol (`iinletgen`, `lfixinlet`, `lfixutauin`,
 `linletRA`, `lreadminl`, `di`, `dti`, `totinletav`, `nstore`, and the full recycling half of
-`modinletdata`); `&INLET` namelist keeps only `Uinf, Vinf, inletav, lstoreplane, lwallfunc`. Zero
-matches for the deleted names across `src/` bar deliberate comment survivors (see
-`.superpowers/sdd/phase2-task-1-report.md`). §3b (repurpose into `modinflow`, fold in `moddriver`)
+`modinletdata`); `&INLET` namelist originally kept `Uinf, Vinf, inletav, lstoreplane, lwallfunc` —
+**Task 3 (2026-07-16)** finished the sweep by removing `irecy` (write-only after Task 1) and
+`lstoreplane`/`lwallfunc` (dead post-Task-1, deferred there as out-of-scope), so `&INLET` now
+carries only `Uinf, Vinf, inletav`. Zero matches for the deleted names across `src/` bar deliberate
+comment survivors (see `.superpowers/sdd/phase2-task-1-report.md` and
+`.superpowers/sdd/phase2-task-3-report.md`). §3b (repurpose into `modinflow`, fold in `moddriver`)
 is not started.
 
 Issue #68 ("Restructure and retest modinlet and moddriver. Improved modboundary.") is a broad
@@ -513,6 +524,12 @@ here.
   coordinate if both land close together.
 - ~~`scalSIRANE` rename/removal; `iosi`/`iohi`/`ioqi`~~ — already absent from `src/`; report on
   #68 as done rather than tracking here.
+- `wqtop` is broadcast (modstartup.f90:512) but absent from the `namelist/BC/` list
+  (modstartup.f90:131-138, which carries `wttop` but not `wqtop`) — pre-existing (predates this
+  branch), found during Phase 2 review (Task 3). The moist top-flux BC has therefore never been
+  settable from `namoptions`; it silently rides the `real :: wqtop = 0.` default
+  (modboundary.f90:40) on every run. Not fixed here — out of scope for this cleanup pass; track as
+  a follow-up (add `wqtop` to `namelist/BC/`, decide/validate a sensible default).
 
 Rationale for the split: the out-of-scope items are about *lateral / inflow-outflow* boundary
 conditions and momentum forcing — orthogonal to the *surface* (bottom) and *base-state* concerns

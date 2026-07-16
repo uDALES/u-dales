@@ -62,14 +62,14 @@ module modstartup
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
                                     nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
                                     lper2inout, libm, lconservativeibm, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
-                                    uflowrate, vflowrate, lstoreplane, iplane, &
+                                    uflowrate, vflowrate, iplane, &
                                     lreadmean, inletav, Uinf, Vinf, &
                                     lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,&
                                     lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice,&
                                     lbuoyancy, ltempeq, &
                                     pi, &
                                     thlsrc, ifixuinf, lvinf, tscale,  &
-                                    lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,flrT, lperiodicEBcorr, fraction,sinkbase,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lvfsparse,nnz,lfacTlyrs, &
+                                    lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,flrT, lperiodicEBcorr, fraction,sinkbase,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lvfsparse,nnz,lfacTlyrs, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops, &
                                     BCxm_periodic, BCym_periodic, &
@@ -137,8 +137,7 @@ module modstartup
          wttop, thl_top, qt_top, wsvtopdum, &
          BCzp, ds
       namelist/INLET/ &
-         Uinf, Vinf, inletav, lstoreplane, &
-         lwallfunc
+         Uinf, Vinf, inletav
       namelist/DRIVER/ &
          idriver, tdriverstart, driverjobnr, dtdriver, &
          driverstore, iplane, iangledeg, &
@@ -414,7 +413,6 @@ module modstartup
       call MPI_BCAST(BCtopq, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCtops, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ds, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(lwallfunc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! switch that determines whether wall functions are used to compute the wall-shear stress
       call MPI_BCAST(iwalltemp, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for temperature (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallmoist, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallscal, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -440,7 +438,6 @@ module modstartup
       call MPI_BCAST(lvoutflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315: added switch for turning on/off v-velocity correction for fixed mass outflow rate
       call MPI_BCAST(luvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss166: added switch for turning on/off u-velocity correction for fixed volume flow rate
       call MPI_BCAST(lvvolflowr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! bss116: added switch for turning on/off v-velocity correction for fixed volume flow rate
-      call MPI_BCAST(lstoreplane, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off for storing i-plane data to serve as inlet for future sim.
       call MPI_BCAST(lreadmean, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean variables from means#MYID#.#EXPNR#
       call MPI_BCAST(lydump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(lytdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
@@ -455,7 +452,7 @@ module modstartup
       call MPI_BCAST(ltdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(lmintdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(ltkedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing tke budget files
-      call MPI_BCAST(iplane, 1, MPI_INTEGER, 0, comm3d, mpierr) ! J.Tomas: ib+iplane is the i-plane that is stored if lstoreplane is .true.
+      call MPI_BCAST(iplane, 1, MPI_INTEGER, 0, comm3d, mpierr) ! J.Tomas: ib+iplane is the i-plane written to/read from driver files (idriver)
       call MPI_BCAST(startfile, 50, MPI_CHARACTER, 0, comm3d, mpierr)
       call MPI_BCAST(author, 80, MPI_CHARACTER, 0, comm3d, mpierr)
       call MPI_BCAST(runtime, 1, MY_REAL, 0, comm3d, mpierr)
