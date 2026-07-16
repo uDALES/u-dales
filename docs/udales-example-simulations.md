@@ -448,7 +448,6 @@ The temperature is determined by a constant thermal flux from the roads, buildin
 
 ```fortran
 &BC
-wtsurf       = 0.01
 wttop        = -0.01
 bctfz        = 0.01
 ```
