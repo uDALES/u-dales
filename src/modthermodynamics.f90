@@ -58,6 +58,7 @@ contains
     use modglobal, only : lmoist, timee, kb, ke, kh, ib, ie, jb, je,rlv, cp, rd, rv, eps1
     use modfields, only : thl0,thl0h,qt0,qt0h,ql0,ql0h,presf,presh,exnf,exnh,thvh,thv0h,qt0av,ql0av,thvf,IIc,IIw,IIcs,IIws
     use modmpi,    only : slabsum,avexy_ibm
+    use modbasestate, only : thv_b
 !ILS13 added variables behind "exnh"
     implicit none
     integer :: k
@@ -78,6 +79,14 @@ contains
 !    call slabsum(thvh,kb,ke+kh,thv0h(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh) !redefine halflevel thv using calculated thv
 !    thvh = thvh/rslabs
     call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+
+    ! avexy_ibm returns -999. where no fluid cells populate the slab; fall back to
+    ! the base state (reference-column continuation) so thvh stays finite there
+    do k=kb,ke+kh
+       if (IIws(k) == 0) then
+          thvh(k) = thv_b(k)
+       end if
+    end do
 
 !    if (libm) then
 !      call avexy_ibm(thvh(kb:ke),thv0h(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIws(kb:ke))    
@@ -105,6 +114,14 @@ contains
 !    call slabsum(thvf,kb,ke+kh,thv0,ib,ie+ih,jb,je+jh,kb,ke+kh,ib+ih,ie,jb+ih,je,kb,ke+kh)
 !    call slabsum(thvf,kb,ke+kh,thv0,ib,ie,jb,je,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
     call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+
+    ! avexy_ibm returns -999. where no fluid cells populate the slab; fall back to
+    ! the base state (reference-column continuation) so thvf stays finite there
+    do k=kb,ke+kh
+       if (IIcs(k) == 0) then
+          thvf(k) = thv_b(k)
+       end if
+    end do
 !    write(*,*) 'IIc(2,2,:), myid' , IIc(12,2,:), myid
 
 !    where (thvf==0) !override slabs completely covered by blocks
