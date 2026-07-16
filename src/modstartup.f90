@@ -63,11 +63,11 @@ module modstartup
                                     nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
                                     lper2inout, libm, lconservativeibm, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                                     uflowrate, vflowrate, lstoreplane, iplane, &
-                                    lreadmean, inletav, lreadminl, Uinf, Vinf, linletRA, &
+                                    lreadmean, inletav, Uinf, Vinf, &
                                     lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,&
                                     lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice,&
                                     lbuoyancy, ltempeq, &
-                                    lfixinlet, lfixutauin, pi, &
+                                    pi, &
                                     thlsrc, ifixuinf, lvinf, tscale,  &
                                     lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,flrT, lperiodicEBcorr, fraction,sinkbase,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lvfsparse,nnz,lfacTlyrs, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
@@ -85,8 +85,7 @@ module modstartup
       use modthermodynamics, only : initthermodynamics, lqlnr
       use modsubgrid,        only : initsubgrid
       use modmpi,            only : comm3d, myid, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy
-      use modinlet,          only : initinlet
-      use modinletdata,      only : di, dr, di_test, dti, iangledeg, iangle
+      use modinletdata,      only : iangledeg, iangle
       use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
       use modforces,         only : calcfluidvolumes
       use moddriver,         only : initdriver
@@ -138,8 +137,7 @@ module modstartup
          wttop, thl_top, qt_top, wsvtopdum, &
          BCzp, ds
       namelist/INLET/ &
-         Uinf, Vinf, di, dti, inletav, linletRA, &
-         lstoreplane, lreadminl, lfixinlet, lfixutauin, &
+         Uinf, Vinf, inletav, lstoreplane, &
          lwallfunc
       namelist/DRIVER/ &
          idriver, tdriverstart, driverjobnr, dtdriver, &
@@ -391,9 +389,6 @@ module modstartup
       call MPI_BCAST(ntimedepsw, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lwalldist, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for computing wall distances
       call MPI_BCAST(lles, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off LES functionality (subgrid model)
-      call MPI_BCAST(linletRA, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for turning on/off Running Average in inletgenerator
-      call MPI_BCAST(lfixinlet, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for keeping average inlet velocit and temp fixed at inlet (iinletgen=1,2)
-      call MPI_BCAST(lfixutauin, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for keeping utau fixed at inlet (iinletgen=1,2)
       !call MPI_BCAST(xS, 1, MY_REAL, 0, comm3d, mpierr)
       !call MPI_BCAST(yS, 1, MY_REAL, 0, comm3d, mpierr)
       !call MPI_BCAST(zS, 1, MY_REAL, 0, comm3d, mpierr)
@@ -419,8 +414,7 @@ module modstartup
       call MPI_BCAST(BCtopq, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCtops, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ds, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(lwallfunc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
-      call MPI_BCAST(lreadminl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
+      call MPI_BCAST(lwallfunc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! switch that determines whether wall functions are used to compute the wall-shear stress
       call MPI_BCAST(iwalltemp, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for temperature (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallmoist, 1, MPI_INTEGER, 0, comm3d, mpierr) ! case (integer) for wall treatment for moisture (1=no wall function/fixed flux, 2=no wall function/fixed value, 3=uno)
       call MPI_BCAST(iwallscal, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -524,10 +518,6 @@ module modstartup
       call MPI_BCAST(vflowrate, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Uinf, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(Vinf, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(di, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(dti, 1, MY_REAL, 0, comm3d, mpierr)
-      dr = di ! initial value is needed
-      di_test = di ! initial value is needed
       call MPI_BCAST(iangledeg, 1, MY_REAL, 0, comm3d, mpierr)
       iangle = iangledeg*pi/180.
       call MPI_BCAST(inletav, 1, MY_REAL, 0, comm3d, mpierr)
@@ -940,23 +930,19 @@ module modstartup
             use modglobal,         only : ib,ie,ih,ihc,jb,je,jh,jhc,kb,ke,kh,khc,kmax,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
          zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, &
          e12min, dzh, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
-         ladaptive, tnextrestart, linoutflow, lper2inout, iinletgen, lreadminl, &
+         ladaptive, tnextrestart, linoutflow, lper2inout, &
          ltempeq, prandtlmoli, &
          tnextfielddump, tfielddump, startfile, lprofforc,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,BCxm_driver,&
          tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
-      use modsurfdata, only:thls, thvs, sv_top
+      use modsurfdata, only:thvs, sv_top
       ! use modsurface,        only : surface,dthldz
       use modboundary, only:boundary, tqaver, halos
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
       use modbasestate, only:initbasestate, thv_b
-      use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
-         uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
-         storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
-         Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui
-      use modinlet, only:readinletfile
+      use modinletdata, only:ubulk, vbulk
       use moddriver, only: readdriverfile,initdriver,drivergen,readdriverfile_chunk
       use decomp_2d, only : exchange_halo_z, update_halo
 
@@ -1345,119 +1331,7 @@ module modstartup
             end do
             vbulk = sum(vaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! averaged u-velocity inflow profile
 
-            ! Set average inlet profile to initial inlet profile in case of inletgenerator mode
-            if (iinletgen == 1) then
-
-               uaverage = 0.
-               call slabsum(uaverage, kb, ke, um, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
-               do k = kb, ke
-                  uaverage(k) = uprof(k)*dzf(k)
-               end do
-               ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
-               write (6, *) 'Modstartup: ubulk=', ubulk
-               Utav(ib:ie, kb:ke) = um(ib:ie, jb, kb:ke)
-               Uinl = um(ib, jb, kb:ke) ! set the initial time-averaged inlet profile equal to um
-               Urec = um(ib, jb, kb:ke) ! set the initial time-averaged inlet profile equal to um
-               Wrec(kb:ke + 1) = wm(ib, jb, kb:ke + 1) ! set the initial time-averaged inlet profile equal to mean w-profile
-               u0inletbcold(jb:je, kb:ke) = um(ib, jb:je, kb:ke)
-               v0inletbcold(jb:je, kb:ke) = vm(ib - 1, jb:je, kb:ke)
-               w0inletbcold(jb:je, kb:ke + 1) = wm(ib - 1, jb:je, kb:ke + 1)
-               uminletbc(jb:je, kb:ke) = um(ib, jb:je, kb:ke)
-               vminletbc(jb:je, kb:ke) = vm(ib - 1, jb:je, kb:ke)
-               wminletbc(jb:je, kb:ke) = wm(ib - 1, jb:je, kb:ke)
-               u0inletbc(jb:je, kb:ke) = um(ib, jb:je, kb:ke)
-               v0inletbc(jb:je, kb:ke) = vm(ib - 1, jb:je, kb:ke)
-               w0inletbc(jb:je, kb:ke + 1) = wm(ib - 1, jb:je, kb:ke + 1)
-               utaui = sqrt(abs(2*numol*Uinl(kb)/dzf(kb))) ! average streamwise friction at inlet (need for first time step)
-
-               if (ltempeq) then
-                  Ttav(ib:ie, kb:ke) = thlm(ib:ie, jb, kb:ke) ! set the initial time-averaged inlet profile equal to thlm
-                  Tinl = thlm(ib, jb, kb:ke) ! set the initial time-averaged inlet profile equal to thlm
-                  Trec = thlm(ib, jb, kb:ke) ! set the initial time-averaged inlet profile equal to thlm
-                  t0inletbcold(jb:je, kb:ke) = thlm(ib - 1, jb:je, kb:ke)
-                  t0inletbc(jb:je, kb:ke) = thl0(ib - 1, jb:je, kb:ke)
-                  tminletbc(jb:je, kb:ke) = thlm(ib - 1, jb:je, kb:ke)
-                  ttaui = numol*prandtlmoli*2.*(Tinl(kb) - thls)/(dzf(kb)*utaui) ! average friction temp. at inlet (need for first time step)
-               end if
-
-               ! add random perturbations
-               if (myid == 0) then
-                  call random_number(ran)
-                  ran1 = -1.+2.*ran
-                  write (6, *) 'random=', ran, ran1
-                  call random_number(ran)
-                  ran1 = -1.+2.*ran
-                  write (6, *) 'random=', ran, ran1
-                  call random_number(ran)
-                  ran1 = -1.+2.*ran
-                  write (6, *) 'random=', ran, ran1
-                  call random_number(ran)
-                  ran1 = -1.+2.*ran
-                  write (6, *) 'random=', ran, ran1
-                  call random_number(ran)
-                  ran1 = -1.+2.*ran
-                  write (6, *) 'random=', ran, ran1
-                  call random_number(ran)
-                  ran1 = -1.+2.*ran
-                  write (6, *) 'random=', ran, ran1
-               end if
-
-               do k = kb + 1, kb + 48
-               do j = jb, je
-               do i = ib + 1, ie - 1
-                  call random_number(ran)
-                  ran1 = -1.+2.*ran
-                  wm(i, j, k) = wm(i, j, k) + 0.1*Uinf*ran1
-               end do
-               end do
-               end do
-
-               !       do k=kb+1,ke-1
-               do k = kb + 1, kb + 48
-               do j = jb, je
-               do i = ib + 2, ie - 1
-                  call random_number(ran)
-                  ran1 = -1.+2.*ran
-                  um(i, j, k) = um(i, j, k) + 0.1*Uinf*ran1
-               end do
-               end do
-               end do
-
-               !       do k=kb+1,ke-1
-               do k = kb + 1, kb + 48
-               do j = jb, je
-               do i = ib + 1, ie - 1
-                  call random_number(ran)
-                  ran1 = -1.+2.*ran
-                  vm(i, j, k) = vm(i, j, k) + 0.1*Uinf*ran1
-               end do
-               end do
-               end do
-
-               u0 = um
-               v0 = vm
-               w0 = wm
-
-            else if (iinletgen == 2) then
-
-               nfile = nfile + 1
-               call readinletfile
-               u0inletbc(:, :) = storeu0inletbc(:, :, nstepread)
-               v0inletbc(:, :) = storev0inletbc(:, :, nstepread)
-               w0inletbc(:, :) = storew0inletbc(:, :, nstepread)
-               uminletbc(:, :) = storeu0inletbc(:, :, nstepread)
-               vminletbc(:, :) = storev0inletbc(:, :, nstepread)
-               wminletbc(:, :) = storew0inletbc(:, :, nstepread)
-               ! determine bulk velocity
-               call slabsum(uaverage, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
-               uaverage = uaverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
-               do k = kb, ke
-                  uaverage(k) = uaverage(k)*dzf(k)
-               end do
-               ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
-               write (6, *) 'Modstartup: ubulk=', ubulk
-
-            elseif (idriver==2) then ! idriver
+            if (idriver==2) then ! idriver
 
                if (ibrank) then
                   if (lchunkread) then
@@ -1780,122 +1654,7 @@ module modstartup
             waverage = 0.
             taveragei = 0.
             taverager = 0.
-            if (iinletgen == 1) then
-               call slabsum(uaveragei, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ib, jb, je, kb, ke)
-               call slabsum(uaverager, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, irecy, irecy, jb, je, kb, ke)
-               call slabsum(waverage, kb, ke + 1, w0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke + 1)
-               call slabsum(uaverage, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
-               uaverage = uaverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
-               uaveragei = uaveragei/(jge - jgb + 1) ! this gives the j-averaged u-velocity at the inlet
-               uaverager = uaverager/(jge - jgb + 1) ! this gives the j-averaged u-velocity at the recycle plane
-               waverage = waverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged w-velocity (only correct for equidistant grid?)
-               if (ltempeq) then
-                  call slabsum(taveragei, kb, ke, thl0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
-                  call slabsum(taverager, kb, ke, thl0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, irecy - 1, irecy - 1, jb, je, kb, ke)
-                  taveragei = taveragei/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the j-averaged temperature at the inlet
-                  taverager = taverager/(jge - jgb + 1) ! this gives the j-averaged temperature at the recycle plane
-               end if
-               if (.not. lreadminl) then
-                  if (myid == 0) then
-                     write (6, *) 'uaverage(kb)=', uaverage(kb)
-                     write (6, *) 'uaverage(ke)=', uaverage(ke)
-                     write (6, *) 'waverage(ke)=', waverage(ke)
-                     write (6, *) 'waverage(ke-20)=', waverage(ke - 20)
-                     write (6, *) 'taveragei(kb)=', taveragei(kb)
-                     write (6, *) 'taveragei(ke)=', taveragei(ke)
-                  end if
-
-                  Utav = 0.
-                  do i = ib, ie
-                     Utav(i, :) = uaverage
-                  end do
-
-                  Uinl = uaverage ! set the initial time-averaged inlet profile equal to mean u-profile read from means
-                  write (6, *) 'Uinl(kb+10)=', Uinl(kb + 10)
-                  utaui = sqrt(abs(2*numol*Uinl(kb)/dzf(kb))) ! average streamwise friction at inlet (need for first time step)
-                  Urec = uaverage ! set the initial time-averaged inlet profile equal to mean u-profile
-
-                  Wrec(kb:ke + 1) = waverage(kb:ke + 1) ! set the initial time-averaged inlet profile equal to mean w-profile
-                  Wrec(kb) = 0. ! set the initial time-averaged inlet profile equal to zero
-                  if (ltempeq) then
-                     Ttav = 0.
-                     do i = ib, ie
-                        Ttav(i, :) = taveragei(:)
-                     end do
-                     Tinl = taveragei
-                     Trec = taveragei
-                     ttaui = numol*prandtlmoli*2.*(Tinl(kb) - thls)/(dzf(kb)*utaui) ! friction temp. at inlet (need at first time step)
-                  end if
-               else ! -> lreadminl -> Uinl, Urec, Wrec already read
-                  call slabsum(uaverage, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
-                  uaverage = uaverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
-               end if
-
-               ! determine bulk velocity
-               do k = kb, ke
-                  uaverage(k) = uaverage(k)*dzf(k)
-               end do
-               ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
-               write (6, *) 'Modstartup: ubulk=', ubulk
-
-               do k = kb, ke
-               do j = jb, je
-                  uminletbc(j, k) = um(ib, j, k)
-                  vminletbc(j, k) = vm(ib - 1, j, k)
-                  u0inletbcold(j, k) = um(ib, j, k)
-                  v0inletbcold(j, k) = vm(ib - 1, j, k)
-                  u0inletbc(j, k) = um(ib, j, k)
-                  v0inletbc(j, k) = vm(ib - 1, j, k)
-               end do
-               end do
-
-               do k = kb, ke + 1
-               do j = jb, je
-                  wminletbc(j, k) = wm(ib - 1, j, k)
-                  w0inletbcold(j, k) = wm(ib - 1, j, k)
-                  w0inletbc(j, k) = wm(ib - 1, j, k)
-               end do
-               end do
-
-               if (ltempeq) then
-                  do k = kb, ke
-                  do j = jb, je
-                     tminletbc(j, k) = thlm(ib - 1, j, k)
-                     t0inletbcold(j, k) = thlm(ib - 1, j, k)
-                     t0inletbc(j, k) = thlm(ib - 1, j, k)
-                  end do
-                  end do
-               end if
-
-               write (6, *) 'uminletbc(jb,kb),um(ib,jb,kb)=', uminletbc(jb, kb), um(ib, jb, kb)
-               write (6, *) 'uminletbc(jb+1,kb+10),um(ib,jb+1,kb+10)=', uminletbc(jb + 1, kb + 10), um(ib, jb + 1, kb + 10)
-               write (6, *) 'uminletbc(je,kb+10),um(ib,je,kb+10)=', uminletbc(je, kb + 10), um(ib, je, kb + 10)
-
-            else if (iinletgen == 2) then
-
-               nfile = nfile + 1
-               write (6, *) 'Loading inletfile'
-               call readinletfile
-               u0inletbc(:, :) = storeu0inletbc(:, :, nstepread)
-               v0inletbc(:, :) = storev0inletbc(:, :, nstepread)
-               w0inletbc(:, :) = storew0inletbc(:, :, nstepread)
-               uminletbc(:, :) = storeu0inletbc(:, :, nstepread)
-               vminletbc(:, :) = storev0inletbc(:, :, nstepread)
-               wminletbc(:, :) = storew0inletbc(:, :, nstepread)
-               if (ltempeq) then
-                  t0inletbc(:, :) = storet0inletbc(:, :, nstepread)
-                  tminletbc(:, :) = storet0inletbc(:, :, nstepread)
-               end if
-               ! determine bulk velocity
-               call slabsum(uaverage, kb, ke, u0, ib - 1, ie + 1, jb - 1, je + 1, kb - 1, ke + 1, ib, ie, jb, je, kb, ke)
-               uaverage = uaverage/((ie - ib + 1)*(jge - jgb + 1)) ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
-               do k = kb, ke
-                  uaverage(k) = uaverage(k)*dzf(k)
-               end do
-               ubulk = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb)) ! volume-averaged u-velocity
-               write (6, *) 'Modstartup: ubulk=', ubulk
-
-            elseif (idriver==2) then ! idriver
+            if (idriver==2) then ! idriver
 
                if (ibrank) then
                   if (lchunkread) then
@@ -1917,7 +1676,7 @@ module modstartup
               !    write(6,*) 'Modstartup: ubulk=',ubulk
               ! end if
 
-            end if ! iinletgen/idriver
+            end if ! idriver
 
             if (lper2inout) then ! if the restart starts from a periodic simulation to in/outflow, lper2inout should be set to .true.
                if (myid == 0) then
@@ -2163,30 +1922,19 @@ module modstartup
 
    subroutine readrestartfiles
 
-      use modsurfdata, only:thls
       use modfields, only:u0, v0, w0, thl0, qt0, ql0, ql0h, qtav, qlav, e120, sv0, mindist, wall, &
          uav, vav, wav, uuav, vvav, wwav, uvav, uwav, vwav, svav, thlav, thl2av, sv2av, pres0, &
          svprof, viscratioav, thluav, thlvav, thlwav, svuav, svvav, svwav, presav, &
          uusgsav, vvsgsav, wwsgsav, uwsgsav, thlusgsav, thlwsgsav, svusgsav, svwsgsav, tkesgsav, &
          strain2av, nusgsav
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, startfile, timee, totavtime, &
-         ifinput, nsv, dt, cexpnr, lreadmean, lreadminl, &
-         totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli
+         ifinput, nsv, dt, cexpnr, lreadmean, &
+         lreadscal, ltempeq
       use modmpi, only:cmyid, cmyidx, cmyidy, myid
       use modsubgriddata, only:ekm
-      use modinlet, only:zinterpolate1d, zinterpolatet1d, zinterpolatew1d, zinterpolate2d, &
-         Uinl, Urec, Wrec, Utav, Tinl, Trec, &
-         kbin, kein, lzinzsim, utaui, Ttav, ttaui
 
       real, dimension(ib:ie, jb:je, kb:ke)  ::  dummy3d
-      real, dimension(ib:ie, kbin:kein)    ::  Utavin
-      real, dimension(ib:ie, kbin:kein)    ::  Ttavin
-      real, dimension(kbin:kein)          ::  Uinlin
-      real, dimension(kbin:kein)          ::  Urecin
-      real, dimension(kbin:kein)          ::  Tinlin
-      real, dimension(kbin:kein)          ::  Trecin
-      real, dimension(kbin:kein + 1)        ::  Wrecin
-      character(50) :: name, name2, name4
+      character(50) :: name, name2
       real dummy
       integer i, j, k, n
       !********************************************************************
@@ -2286,69 +2034,6 @@ module modstartup
 
       end if
 
-      ! read mean profiles for inlet generator
-      if (lreadminl) then
-         if (.not. lzinzsim) then
-            name4 = 'meaninlet.   '
-            name4(11:13) = cexpnr
-            open (unit=ifinput, file=name4, form='unformatted')
-            read (ifinput) totinletav ! interval of time-average
-            read (ifinput) (Uinlin(k), k=kbin, kein)
-            read (ifinput) (Urecin(k), k=kbin, kein)
-            read (ifinput) (Wrecin(k), k=kbin, kein + 1)
-            read (ifinput) ((Utavin(i, k), i=ib, ie), k=kbin, kein)
-            close (ifinput)
-
-            call zinterpolate1d(Uinlin, Uinl) ! interpolate inlet profile to zgrid
-            call zinterpolate1d(Urecin, Urec)
-            call zinterpolatew1d(Wrecin, Wrec)
-            call zinterpolate2d(Utavin, Utav)
-
-            if (ltempeq) then
-               name4 = 'tempinlet.   '
-               name4(11:13) = cexpnr
-               open (unit=ifinput, file=name4, form='unformatted')
-               read (ifinput) totinletav ! interval of time-average
-               read (ifinput) (Tinlin(k), k=kbin, kein)
-               read (ifinput) (Trecin(k), k=kbin, kein)
-               read (ifinput) ((Ttavin(i, k), i=ib, ie), k=kbin, kein)
-               close (ifinput)
-
-               call zinterpolatet1d(Tinlin, Tinl)
-               call zinterpolatet1d(Trecin, Trec)
-               call zinterpolate2d(Ttavin, Ttav)
-            end if ! ltempeq
-
-         else !lzinzsim=.true. -> inlet grid equals sim grid
-            name4 = 'meaninlet.   '
-            name4(11:13) = cexpnr
-            open (unit=ifinput, file=name4, form='unformatted')
-            read (ifinput) totinletav ! interval of time-average
-            read (ifinput) (Uinl(k), k=kb, ke)
-            read (ifinput) (Urec(k), k=kb, ke)
-            read (ifinput) (Wrec(k), k=kb, ke + 1)
-            read (ifinput) ((Utav(i, k), i=ib, ie), k=kb, ke)
-
-            close (ifinput)
-
-            if (ltempeq) then
-               name4 = 'tempinlet.   '
-               name4(11:13) = cexpnr
-               open (unit=ifinput, file=name4, form='unformatted')
-               read (ifinput) totinletav ! interval of time-average
-               read (ifinput) (Tinl(k), k=kb, ke)
-               read (ifinput) (Trec(k), k=kb, ke)
-               read (ifinput) ((Ttav(i, k), i=ib, ie), k=kb, ke)
-
-               close (ifinput)
-            end if ! ltempeq
-         end if ! lzinzsim
-
-         utaui = sqrt(abs(2*numol*Uinl(kb)/dzf(kb))) ! average streamwise friction at inlet (need for first time step)
-         if (ltempeq) then
-            ttaui = numol*prandtlmoli*2.*(Tinl(kb) - thls)/(dzf(kb)*utaui)
-         end if
-      end if !(lreadminl)
 
    end subroutine readrestartfiles
 
@@ -2359,7 +2044,6 @@ module modstartup
       use modpois, only:exitpois
       use modsubgrid, only:exitsubgrid
       use modthermodynamics, only:exitthermodynamics
-      use modinlet, only:exitinlet
       use modbasestate, only:exitbasestate
 
       call exitthermodynamics
@@ -2368,7 +2052,6 @@ module modstartup
       call exitpois
       call exitfields
       call exitglobal
-      call exitinlet
       call exitmpi
 
    end subroutine exitmodules

@@ -172,7 +172,7 @@ subroutine tstep_integrate
 
 
   use modglobal, only : ib,ie,jb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,&
-                        iinletgen,ltempeq,idriver,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic, &
+                        ltempeq,idriver,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic, &
                         ifixuinf,thlsrc,lchem,ierank,jerank,BCxm,BCym
   use modmpi, only    : cmyid,myid
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
@@ -286,9 +286,7 @@ subroutine tstep_integrate
 !  Write some statistics to monitoring file
       if ((myid==0) .and. (rk3step==3)) then
         open(unit=11,file='monitor'//cmyid//'.txt',position='append')
-        if (iinletgen == 1) then
-          write(11,3001) timee
-        elseif (idriver == 1) then
+        if (idriver == 1) then
           write(11, '(I4)') nstepreaddriver
           write(11, 3001) timee, u0(irecydriver,1,32)
         ! elseif (idriver == 2) then

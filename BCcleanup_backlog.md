@@ -381,19 +381,37 @@ The trap is a set of **false-friend** parameters that carry "inlet" in their nam
 in `modinletdata` but are consumed by kept subsystems — relocate, don't delete (§3c).
 
 #### 3a. Remove (pure recycling/rescaling — nothing else uses it)
-- [ ] `modinlet.f90` in full (all of `inletgen`, `blthickness`, `dispthickness`,
+- [x] `modinlet.f90` in full (all of `inletgen`, `blthickness`, `dispthickness`,
       `momentumthickness`, `enthalpythickness`, `writeinletfile`/`readinletfile`, `wallawinlet`,
       z-interpolators), plus the remaining live call sites: `readinletfile`
       (modstartup.f90:1447,1877), `exitinlet` (modstartup.f90:2368), `zinterpolate*` uses
-      (modstartup.f90:2176 ff.), and the commented `initinlet` stubs.
-- [ ] The recycling half of `modinletdata.f90` (lines 27-129, 132-190 except the shared vars in
+      (modstartup.f90:2176 ff.), and the commented `initinlet` stubs. **Done (Task 1,
+      2026-07-16):** `git rm src/modinlet.f90`; all call sites/imports removed from
+      modstartup.f90 (build globs `src/*.f90`, no CMake edit needed).
+- [x] The recycling half of `modinletdata.f90` (lines 27-129, 132-190 except the shared vars in
       §3c): recycle/inlet-station scaling arrays (`Uinl/Urec`, `zir*/zii*/zor*/zoi*`, `heavi*`,
       `loc*`), thicknesses (`di/dr/dti/dtr/theta*`), friction scales (`utaui/utaur/ttaui/ttaur`),
-      `irecy`, and the y-interpolation block for reading inlet files.
-- [ ] Switches owned only by the generator: `iinletgen`, `lfixinlet`, `lfixutauin`, `linletRA`
+      `irecy`, and the y-interpolation block for reading inlet files. **Done:** module trimmed to
+      `ubulk, vbulk, iangle, iangledeg, irecy` + the driver block (`storeu0driver…chunkread_e`);
+      every surviving symbol has a live consumer in modboundary/moddriver/modtstep (verified by
+      grepping every `use modinletdata` site in `src/`).
+- [x] Switches owned only by the generator: `iinletgen`, `lfixinlet`, `lfixutauin`, `linletRA`
       (modglobal.f90:179,195-197), and namelist params `di`, `dti` (read modstartup.f90:142,
-      broadcast 544-545); `totinletav` reads used only by inlet-gen.
-- [ ] The inlet-gen `thls` branches in modstartup.f90 (1383, 1826, 2348).
+      broadcast 544-545); `totinletav` reads used only by inlet-gen. **Done**, plus two
+      scout-drift extras discovered during the cut (not in the original itemised list, but
+      unreachable once the above landed): `lreadminl`'s modglobal.f90 declaration (its namelist
+      entry/broadcast/`use` sites were already slated for removal, but the declaration itself was
+      missed), and `nstore` (modglobal.f90) + the `nstepread==nstore+1` disjunct in
+      modsave.f90's restart-trigger condition — `nstore` was "number of rk steps in inletfile",
+      referenced live only there; the disjunct was always `.false.` (nstepread stuck at its old
+      default 1, nstore defaulting to 1002, never namelist-configurable), so dropping it is
+      bitwise-neutral. `lstoreplane`/`lwallfunc` were considered and deliberately **kept** in
+      `&INLET` — they are equally unreachable post-deletion (only consumer was `modinlet.f90`)
+      but outside this task's itemised scope; flagged for a follow-up cleanup rather than cut
+      here.
+- [x] The inlet-gen `thls` branches in modstartup.f90 (1383, 1826, 2348). **Done** — removed along
+      with the arms that contained them; `use modsurfdata, only:thls` dropped from both
+      `readinitfiles` and `readrestartfiles` (no longer referenced in either).
 - [ ] Tests: §6.4.
 
 #### 3b. Repurpose the module as *the inflow-generation module* (data + functionality together)
@@ -462,12 +480,21 @@ in this environment (see §6.2 below).
 
 ## 5. Scope of #68: what is in vs out
 
+**§3a done (Task 1, 2026-07-16):** the recycling/rescaling inlet generator is removed —
+`src/modinlet.f90` deleted; `modinletdata.f90`, `modstartup.f90`, `modglobal.f90`, `modsave.f90`,
+`modtstep.f90` trimmed of every generator-only symbol (`iinletgen`, `lfixinlet`, `lfixutauin`,
+`linletRA`, `lreadminl`, `di`, `dti`, `totinletav`, `nstore`, and the full recycling half of
+`modinletdata`); `&INLET` namelist keeps only `Uinf, Vinf, inletav, lstoreplane, lwallfunc`. Zero
+matches for the deleted names across `src/` bar deliberate comment survivors (see
+`.superpowers/sdd/phase2-task-1-report.md`). §3b (repurpose into `modinflow`, fold in `moddriver`)
+is not started.
+
 Issue #68 ("Restructure and retest modinlet and moddriver. Improved modboundary.") is a broad
 BC-subsystem cleanup. Only the part that directly couples to this surface-BC work is pulled in
 here.
 
 **In scope (Phase 3):**
-- Remove the recycling/rescaling inlet generator (`modinlet` + generator-only params, §3a).
+- Remove the recycling/rescaling inlet generator (`modinlet` + generator-only params, §3a). Done.
   Unreachable dead code (§3 Phase 3), recommended for removal in #68, and the last `thls` consumer
   outside the base state once Phases 0-1 land — removing it makes the `modsurfdata` dissolution
   clean.

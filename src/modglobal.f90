@@ -66,7 +66,6 @@ module modglobal
 
    integer :: nfcts = -1 ! no. of wall facets
    integer ::  iplane ! ib+iplane is the plane that is stored when lstoreplane=.true.
-   integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
    character(90) :: fname_options = 'namoptions'
    integer, parameter :: longint = 8
 
@@ -158,10 +157,9 @@ module modglobal
    integer :: BCzp = 1 ! 1: solve poisson equation using GE. 2: solve using cosine transform
    real :: ds = 0 ! Shifted boundary conditions
 
-   integer :: iinletgen = 0 !<  0: no inletgen, 1: turb. inlet generator (Lund (1998)), 2: read inlet from file
    integer :: idriver = 0 !<  0: no inlet driver store, 1: Save inlet driver data, 2: read inlet driver data from file
    logical :: linoutflow = .false. !<  switch for periodic BC in both horizontal directions (false) or inflow/outflow in i and periodic in j.
-   logical :: lzerogradtop = .false. !<  switch for zero gradient BC's at top wall (iinletgen 1 and 2 are seperate).
+   logical :: lzerogradtop = .false. !<  switch for zero gradient BC's at top wall.
    logical :: lzerogradtopscal = .false. !
    logical :: lbuoyancy = .false. !<  switch for buoyancy force in modforces
    logical :: ltempeq = .false. !<  switch for solving temperature equation (either with or without buoyancy term)
@@ -174,9 +172,6 @@ module modglobal
    logical :: lconservativeibm = .false. !<  switch that determines whether the conservative immersed boundary method is used (if libm is true) for temperature, moisture and scalars
    logical :: lwalldist = .false. !<  switch that determines whether the wall distances should be computed
    logical :: lles = .true. !<  switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS)
-   logical :: linletRA = .false. !<  switch that determines whether a Running Average should be used (.true.) in inlet generator
-   logical :: lfixinlet = .false. !<  switch that determines whether the average inlet profiles can evolve or not (only used when iinletgen=1,2)
-   logical :: lfixutauin = .false. !<  switch that determines whether the utau is kept fixed at the inlet (only used when iinletgen=1,2)
    logical :: lscasrc = .false. !
    logical :: lscasrcl = .false. !tg3315
    logical :: lydump = .false.  !<  switch to output y-averaged statistics every tsample
@@ -206,7 +201,6 @@ module modglobal
    logical :: lpurif = .false.         !<  switch to turn on purifiers module
    logical :: ltreedump = .false.   !<  switch to output tree results time-averaged statistics every tstatsdump
 
-   logical :: lreadminl = .false. !<  switch for reading mean inlet/recycle plane profiles (used in inletgenerator)
    logical :: lwallfunc = .true. !<  switch that determines whether wall functions are used to compute the wall-shear stress
    logical :: luoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
    logical :: lvoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
@@ -314,8 +308,7 @@ module modglobal
    real    :: vflowrate = 1. !< fixed flow rate used for v-velocity correction
    real    :: Uinf = 0. !< fixed U_inf (used in inlet generator), also in conjunction with ifixuinf
    real    :: Vinf = 0. !fixed V_inf
-   real    :: inletav = 0. !< averaging interval for inlet generator
-   real    :: totinletav = 0. !< averaging interval for inlet generator (used in Running Average)
+   real    :: inletav = 0. !< running-average window for the free-stream forcing (ifixuinf==2)
    real    :: om22 !<    *2.*omega_earth*cos(lat)
    real    :: om23 !<    *2.*omega_earth*sin(lat)
    real    :: om22_gs !<    *2.*omega_earth*cos(lat)
