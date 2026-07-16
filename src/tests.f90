@@ -19,7 +19,7 @@ module tests
 
   implicit none
   save
-  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators
+  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_basestate
 
 contains
 
@@ -427,5 +427,162 @@ contains
     end function compare_real_2d_jk
 
   end function tests_mpi_operators
+
+  !> Check the derived hydrostatic base state (modbasestate, issue #302) against
+  !! closed-form results.
+  !!
+  !! The profiles are built here rather than read from a case, so this checks the
+  !! arithmetic itself and not merely that a run reproduces its own previous
+  !! output. It runs at the runmode dispatch point, after initglobal has set up
+  !! the vertical grid but before readinitfiles would call initbasestate.
+  !!
+  !! For a column of uniform thv the discrete integration in initbasestate
+  !! telescopes, because dzh(k) = zf(k)-zf(k-1) and dzf(k) = zh(k+1)-zh(k), and
+  !! every level then has a closed form:
+  !!
+  !!   p(z)**(Rd/cp) = ps**(Rd/cp) - g*pref0**(Rd/cp)*z/(cp*thv)
+  !!
+  !! evaluated at zf for full levels and zh for half levels. That is an
+  !! independent expectation, so a wrong hydrostatic scheme fails here even
+  !! though it would reproduce itself perfectly in a regression comparison.
+  logical function tests_basestate()
+    use modglobal,    only : kb, ke, kh, zf, zh, grav, cp, rd, rv, pref0
+    use modbasestate, only : initbasestate, exitbasestate, ps, thv_b, pf_b, ph_b, &
+                             exnf_b, exnh_b
+
+    implicit none
+
+    real, allocatable :: thlprof(:), qtprof(:)
+    real    :: rdocp, thv0, qt0, expect, tol
+    integer :: k
+    logical :: ok
+
+    ok    = .true.
+    tol   = 1.e-10   ! relative; the closed form differs from the discrete
+                     ! integration only by roundoff, not by truncation
+    rdocp = rd/cp
+    thv0  = 290.
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A)') 'tests_basestate: hydrostatic base state (#302)'
+      write(*, '(A)') '================================================'
+    end if
+
+    allocate(thlprof(kb:ke), qtprof(kb:ke))
+
+    ! initbasestate integrates upward from ps at z = 0, so the closed form below
+    ! is only the expected answer if the domain bottom really is at z = 0.
+    if (abs(zh(kb)) > 1.e-12) then
+      if (myid == 0) write(*, '(A,E12.4)') '  FAIL: zh(kb) is not 0:', zh(kb)
+      ok = .false.
+    end if
+
+    ! ---- dry column, uniform thv -------------------------------------------
+    thlprof = thv0
+    qtprof  = 0.
+    call initbasestate(thlprof, qtprof)
+
+    ! thv_b(kb) is the value the retired thls sentinel used to supply. The bug
+    ! #302 fixes gave thvs = thls*(1+(rv/rd-1)*qts) with qts unset (-1), i.e.
+    ! ~0.39*thls; anything but thl(kb) here means that class of error is back.
+    if (.not. close_rel(thv_b(kb), thv0, tol)) then
+      if (myid == 0) write(*, '(A,F12.5,A,F12.5)') '  FAIL: thv_b(kb) =', thv_b(kb), ' expected', thv0
+      ok = .false.
+    end if
+
+    do k = kb, ke + kh
+      if (.not. close_rel(thv_b(k), thv0, tol)) then
+        if (myid == 0) write(*, '(A,I4,A,F12.5)') '  FAIL: dry thv_b(', k, ') =', thv_b(k)
+        ok = .false.
+      end if
+    end do
+
+    ! ph_b(kb) is the anchor and must be ps to the bit.
+    if (ph_b(kb) /= ps) then
+      if (myid == 0) write(*, '(A,F12.3,A,F12.3)') '  FAIL: ph_b(kb) =', ph_b(kb), ' expected ps =', ps
+      ok = .false.
+    end if
+
+    do k = kb, ke + kh
+      expect = (ps**rdocp - grav*(pref0**rdocp)*zf(k)/(cp*thv0))**(1./rdocp)
+      if (.not. close_rel(pf_b(k), expect, tol)) then
+        if (myid == 0) write(*, '(A,I4,A,F14.4,A,F14.4)') '  FAIL: pf_b(', k, ') =', pf_b(k), ' expected', expect
+        ok = .false.
+      end if
+
+      expect = (ps**rdocp - grav*(pref0**rdocp)*zh(k)/(cp*thv0))**(1./rdocp)
+      if (.not. close_rel(ph_b(k), expect, tol)) then
+        if (myid == 0) write(*, '(A,I4,A,F14.4,A,F14.4)') '  FAIL: ph_b(', k, ') =', ph_b(k), ' expected', expect
+        ok = .false.
+      end if
+
+      ! Exner must stay consistent with the pressure it was built from.
+      if (.not. close_rel(exnf_b(k), (pf_b(k)/pref0)**rdocp, tol)) then
+        if (myid == 0) write(*, '(A,I4)') '  FAIL: exnf_b inconsistent with pf_b at k =', k
+        ok = .false.
+      end if
+      if (.not. close_rel(exnh_b(k), (ph_b(k)/pref0)**rdocp, tol)) then
+        if (myid == 0) write(*, '(A,I4)') '  FAIL: exnh_b inconsistent with ph_b at k =', k
+        ok = .false.
+      end if
+    end do
+
+    ! Pressure must fall with height; catches a sign or ordering slip that the
+    ! closed form alone might share.
+    do k = kb + 1, ke + kh
+      if (pf_b(k) >= pf_b(k-1)) then
+        if (myid == 0) write(*, '(A,I4)') '  FAIL: pf_b not decreasing at k =', k
+        ok = .false.
+      end if
+    end do
+
+    call exitbasestate
+
+    ! ---- moist column ------------------------------------------------------
+    ! thv = thl*(1 + (rv/rd - 1)*qt) with ql = 0. A dry case that leaves qt
+    ! unset must not end up here by accident: that was the #302 failure.
+    qt0     = 5.e-3
+    thlprof = thv0
+    qtprof  = qt0
+    call initbasestate(thlprof, qtprof)
+
+    expect = thv0*(1. + (rv/rd - 1.)*qt0)
+    do k = kb, ke + kh
+      if (.not. close_rel(thv_b(k), expect, tol)) then
+        if (myid == 0) write(*, '(A,I4,A,F12.5,A,F12.5)') '  FAIL: moist thv_b(', k, ') =', thv_b(k), ' expected', expect
+        ok = .false.
+      end if
+    end do
+
+    ! Uniform thv again, so the same closed form applies with the moist thv.
+    do k = kb, ke + kh
+      if (.not. close_rel(pf_b(k), (ps**rdocp - grav*(pref0**rdocp)*zf(k)/(cp*expect))**(1./rdocp), tol)) then
+        if (myid == 0) write(*, '(A,I4)') '  FAIL: moist pf_b at k =', k
+        ok = .false.
+      end if
+    end do
+
+    call exitbasestate
+    deallocate(thlprof, qtprof)
+
+    if (myid == 0) then
+      if (ok) then
+        write(*, '(A)') 'tests_basestate: PASS'
+      else
+        write(*, '(A)') 'tests_basestate: FAIL'
+      end if
+    end if
+
+    tests_basestate = ok
+
+  contains
+
+    logical function close_rel(got, want, rtol)
+      real, intent(in) :: got, want, rtol
+      close_rel = abs(got - want) <= rtol*max(abs(want), tiny(want))
+    end function close_rel
+
+  end function tests_basestate
 
 end module tests

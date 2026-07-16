@@ -247,6 +247,16 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/mpi_operators/run_test.sh"
+      - label: "supported: basestate unit"
+        class: supported
+        kind: unit
+        component: solver
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/basestate/run_test.sh"
       - label: "supported: driver inflow integration"
         class: supported
         kind: integration
