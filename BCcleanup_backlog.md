@@ -256,24 +256,24 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
       `thl0h(kb)=thl0(kb)`, or refresh the scalar ghost at `kb-1` in `modboundary` alongside the
       existing `ekm/ekh` ghosts (modboundary.f90:452-453). Either is fine for prognostics (§1.3);
       pick the one that keeps dumps/FP-trap builds clean.
-- [ ] **Derive the base state** (decision: §1.5 — no new namelist input): at every start (cold,
+- [x] **Derive the base state** (decision: §1.5 — no new namelist input): at every start (cold,
       warm, stratstart — `prof.inp` is read on all three, modstartup.f90:1103/1624/1006) build
       `thl_b/qt_b/thv_b/p_b/exn_b(kb:ke+kh)` from the profiles + `ps`; no restart-format change;
       log at startup. Re-point the consumers: `exnf/exnh → exn_b`
       (modthermodynamics.f90:291-292), `thvh(kb) → thv_b(kb)` (modthermodynamics.f90:395); delete
       `thvs = thls·(…)` (modstartup.f90:523).
-- [ ] **Re-seed the Exner first guess with `exn_b`** — hygiene, not a bug fix (see the §1.5
+- [x] **Re-seed the Exner first guess with `exn_b`** — hygiene, not a bug fix (see the §1.5
       correction: the final Exner is already `ps`-anchored by the two-pass recompute,
       modthermodynamics.f90:312,329-334); removes the last `thls` read in `modthermodynamics`;
       bitwise-neutral when dry.
 - [ ] **Re-point the SGS buoyancy terms** `grav/thvs → grav/thvf(k)`
       (modsubgrid.f90:388,488), completing the `ILS13` modernisation (Appendix B) and matching
       DALES ≥ 4.0.
-- [ ] **Base-profile fallback for solid slabs**: in the thermo-facing slab averages, where
+- [x] **Base-profile fallback for solid slabs**: in the thermo-facing slab averages, where
       `IIcs(k)==0` use `thl_b/qt_b` (and `ql=0`) instead of `avexy_ibm`'s `-999.`; delete the
       `kb` hack (modmpi.f90:644-650). Fixes the hydrostatic march below the ground surface
       (§1.5).
-- [ ] **Validate `ps`** at startup (required whenever thermodynamics is active; cannot be
+- [x] **Validate `ps`** at startup (required whenever thermodynamics is active; cannot be
       derived). `thls`/`qts` stay in the namelist for now — they are still consumed by the
       `lbottom` wall function (modibm.f90:2023,2046) — but are removed from the base-state path,
       and `lbottom=.true.` gains validation that `thls` is set. Full namelist removal (with the

@@ -32,6 +32,7 @@ program uDALES
   use modsave,           only : writerestartfiles
   use modboundary,       only : initboundary,boundary,grwdamp,halos
   use modthermodynamics, only : initthermodynamics,thermodynamics
+  use modbasestate,      only : exitbasestate
   use modsubgrid,        only : initsubgrid,subgrid
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
@@ -231,6 +232,7 @@ program uDALES
   call exitfielddump
   call exitstatsdump     !tg3315
   call exit_heatpump
+  call exitbasestate
   !call exitmodules
   !call exittest
   call exitmpi

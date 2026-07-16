@@ -243,7 +243,8 @@ contains
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,khc,nsv,zh,zf,grav,rlv,cp,rd,rv,pref0
     use modfields, only : u0,v0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
          presf,presh,exnf,exnh,rhof,thvf,IIc,IIcs,IIu,IIus,IIv,IIvs
-    use modsurfdata,only : thls,ps
+    use modsurfdata,only : ps
+    use modbasestate, only : exnf_b, exnh_b, thl_b, qt_b
     use modmpi,    only : slabsum,avexy_ibm
     implicit none
 
@@ -288,8 +289,19 @@ contains
 !    call slabsum(ql0av ,kb,ke+kh,ql0 ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
     call avexy_ibm(ql0av(kb:ke+kh),ql0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
-    exnf   = 1-grav*zf/(cp*thls)
-    exnh  = 1-grav*zh/(cp*thls)
+    ! slabs without fluid cells: avexy_ibm returns -999.; use the base state
+    ! (reference-column continuation) so the hydrostatic march stays sane
+    do k=kb,ke+kh
+       if (IIcs(k) == 0) then
+          thl0av(k) = thl_b(k)
+          qt0av(k)  = qt_b(k)
+          ql0av(k)  = 0.
+       end if
+    end do
+
+    ! base-state seed; refined below from the ps-anchored pressure
+    exnf = exnf_b
+    exnh = exnh_b
     th0av  = thl0av + (rlv/cp)*ql0av/exnf
 
     !write(*,*) 'thl0av',thl0av
@@ -365,7 +377,8 @@ contains
 
     use modglobal, only : kb,ke,kh,dzf,dzh,rv,rd,cp,tmelt,zf,grav,pref0
     use modfields, only : qt0av,ql0av,presf,presh,thvh,thvf
-    use modsurfdata,only : ps,thvs
+    use modsurfdata,only : ps
+    use modbasestate, only : thv_b
     implicit none
 
     integer   k
@@ -390,9 +403,9 @@ contains
     !          assuming hydrostatic equilibrium       *
     !**************************************************
 
-    !     1: lowest level: use thvs
+    !     1: lowest level: use thv_b (base state, #302)
 
-    thvh(kb) = thvs
+    thvh(kb) = thv_b(kb)
     presf(kb) = ps**rdocp - &
          grav*(pref0**rdocp)*zf(kb) /(cp*thvh(kb))
     presf(kb) = presf(kb)**(1./rdocp)

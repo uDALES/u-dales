@@ -78,7 +78,7 @@ module modstartup
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
-      use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
+      use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx
       use modpois,           only : initpois
       use modboundary,       only : initboundary, ksp
@@ -520,8 +520,6 @@ module modstartup
       wsvtop = wsvtopdum(1:nsv)
       if(nsv>0) call MPI_BCAST(wsvtop(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ps, 1, MY_REAL, 0, comm3d, mpierr)
-      thvs = thls*(1.+(rv/rd - 1.)*qts)
-      call MPI_BCAST(thvs, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thls, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thl_top, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(qt_top, 1, MY_REAL, 0, comm3d, mpierr)
@@ -709,7 +707,8 @@ module modstartup
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only : ps
+      use modsurfdata, only : ps, thls
+      use modibm,      only : lbottom
       use modglobal,   only : itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
                               startfile,lwarmstart,lstratstart,lmoist, nsv, &
                               BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCtopm, BCbotm, &
@@ -763,6 +762,19 @@ module modstartup
       !Check Namoptions
       if (runtime < 0) then
          write(0, *) 'ERROR: runtime out of range/not set'
+         stop 1
+      end if
+      if ((ltempeq .or. lmoist) .and. ps < 0.) then
+         if (myid == 0) then
+            write (0, *) 'ERROR: ps must be set in &PHYSICS when ltempeq or lmoist is enabled.'
+            write (0, *) 'The base state is derived from prof.inp and ps (issue #302). ps = ', ps
+         end if
+         stop 1
+      end if
+      if (lbottom .and. thls < 0.) then
+         if (myid == 0) then
+            write (0, *) 'ERROR: lbottom=.true. requires thls in &BC (legacy scheme, see #302).'
+         end if
          stop 1
       end if
       if (dtmax < 0) then
@@ -957,11 +969,12 @@ module modstartup
          idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,BCxm_driver,&
          tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
-      use modsurfdata, only:thls, sv_top
+      use modsurfdata, only:thls, thvs, sv_top
       ! use modsurface,        only : surface,dthldz
       use modboundary, only:boundary, tqaver, halos
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
+      use modbasestate, only:initbasestate, thv_b
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
@@ -1035,6 +1048,9 @@ module modstartup
          ! MPI broadcast thl and qt
          call MPI_BCAST(thlprof, kmax, MY_REAL, 0, comm3d, mpierr)
          call MPI_BCAST(qtprof, kmax, MY_REAL, 0, comm3d, mpierr)
+
+         call initbasestate(thlprof(kb:ke), qtprof(kb:ke))
+         thvs = thv_b(kb) ! bridge for remaining modsurfdata readers; removed in Phase 2
 
          do k = kb, ke
             do j = jb - 1, je + 1
@@ -1153,6 +1169,10 @@ module modstartup
             call MPI_BCAST(uprof, kmax, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(vprof, kmax, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(e12prof, kmax, MY_REAL, 0, comm3d, mpierr)
+
+            call initbasestate(thlprof(kb:ke), qtprof(kb:ke))
+            thvs = thv_b(kb) ! bridge for remaining modsurfdata readers; removed in Phase 2
+
             do k = kb, ke
             do j = jb - 1, je + 1
             do i = ib - 1, ie + 1
@@ -1676,6 +1696,10 @@ module modstartup
             call MPI_BCAST(uprof, kmax, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(vprof, kmax, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(e12prof, kmax, MY_REAL, 0, comm3d, mpierr)
+
+            call initbasestate(thlprof(kb:ke), qtprof(kb:ke))
+            thvs = thv_b(kb) ! bridge for remaining modsurfdata readers; removed in Phase 2
+
             btime = timee
             um = u0
             vm = v0
@@ -2359,8 +2383,10 @@ module modstartup
       use modsubgrid, only:exitsubgrid
       use modthermodynamics, only:exitthermodynamics
       use modinlet, only:exitinlet
+      use modbasestate, only:exitbasestate
 
       call exitthermodynamics
+      call exitbasestate
       call exitsubgrid
       call exitpois
       call exitfields
