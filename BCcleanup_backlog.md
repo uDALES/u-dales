@@ -293,14 +293,15 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
 - [x] **Relocate the unconditional code first** (it runs on every run regardless of `lbottom`):
   - [x] `e120/e12m` ghost at `kb-1` (modibm.f90:2010-2011) → `modboundary`, next to the `ekm/ekh`
         ghosts. Nothing else sets it; the subgrid model reads it at `kb`.
-  - [x] Decide fate of `tau_x/tau_y/tau_z/thl_flux` (modibm.f90:2014-2017,2093-2096): they only
-        ever capture `bottom`'s tendency contribution, so after removal they dump zeros. Either
-        retire the fielddump fields (modfielddump.f90:230-240, modfields.f90:82,476-479) or
-        re-point them at the IBM wall-function contributions.
-        **Decision: retire.** Note: these fields also accumulated a real (non-zero)
-        contribution from `ibmwallfun` (modibm.f90:1167-1231, guarded by `libm` not `lbottom`)
-        that this table entry did not account for; that write path was removed too so the
-        module still compiles (see Task 1 commit).
+  - [x] Decide fate of `tau_x/tau_y/tau_z/thl_flux`. **Corrected picture (2026-07-16):** the
+        original claim that they only captured `bottom`'s contribution was wrong — `ibmwallfun`
+        (guarded by `libm`, not `lbottom`) accumulated real IBM wall-function tendencies into
+        them, with `bottom`'s overwrite doubling as the per-step reset; they were a live but
+        undocumented, in-repo-unexercised per-cell diagnostic whose reset semantics were
+        entangled with the scheme being deleted. **Decision: retire** (fields, allocations,
+        `ibmwallfun` writes, fielddump 'tx'/'ty'/'tz'/'hf' cases). The per-facet `fac_tau_*`
+        statistics remain; reinstating a per-cell version cleanly needs its own reset in
+        `ibmwallfun` (one-commit revert + small fix if ever wanted).
 - [ ] Delete `subroutine bottom` (modibm.f90:1997-2099), its call site (program.f90:153) and
       import (program.f90:38).
 - [ ] Delete `CASE(91)/(92)` surface blocks in `wfuno`/`wfmneutral`
