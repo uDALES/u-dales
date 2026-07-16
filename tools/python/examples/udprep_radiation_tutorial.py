@@ -15,7 +15,7 @@ Notes
 -----
 - All geometry/vegetation I/O happens inside UDBase.
 - The direct shortwave solvers do not read files directly.
-- The scanline method requires a compiled f2py module.
+- The scanline_f2py method requires a compiled f2py module.
 """
 
 from pathlib import Path
@@ -60,7 +60,7 @@ SHOW = os.environ.get("UDALES_SHOW", "1") != "0"
 # - Reflections to get net shortwave K_star (includes diffuse sky shortwave via Dsky).
 #
 # Direct shortwave methods are available via prep.radiation.calc_short_wave:
-# 1) "scanline"  : f2py Fortran scanline rasterization (fastest, no vegetation)
+# 1) "scanline_f2py" : f2py Fortran scanline rasterization (fastest, no vegetation)
 # 2) "facsec"    : ray-casting with solid mask + facet-section reconstruction
 #                  (default; supports vegetation, supports periodic_xy)
 # 3) "moller"    : ray-casting with Moller-Trumbore triangle hits

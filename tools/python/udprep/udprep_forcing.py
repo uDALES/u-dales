@@ -133,9 +133,6 @@ class ForcingSection(Section):
         prdata = prdata[:, :5]
 
         if prdata[0, 0] > 0:
-            # Add a surface point if not present in the source file. The surface
-            # temperature anchor is the case's thl0 rather than a hardcoded 293 K
-            # (P26), so the prepended point is consistent with the run's setup.
             surface_thl = float(self.thl0)
             prdata = np.vstack(([0.0, 0.0, 0.0, surface_thl, 0.0], prdata))
         if prdata.shape[0] < 2 or np.any(np.diff(prdata[:, 0]) <= 0):
