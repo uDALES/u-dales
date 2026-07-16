@@ -541,14 +541,14 @@ contains
          vm(ie + m, :, :) = vm(ib - 1 + m, :, :)
          wm(ib - m, :, :) = wm(ie + 1 - m, :, :)
          wm(ie + m, :, :) = wm(ib - 1 + m, :, :)
-      end do
 
-      if (loneeqn) then
-         e120(ib - m, :, :) = e120(ie + 1 - m, :, :)
-         e120(ie + m, :, :) = e120(ib - 1 + m, :, :)
-         e12m(ib - m, :, :) = e12m(ie + 1 - m, :, :)
-         e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
-      end if
+         if (loneeqn) then
+            e120(ib - m, :, :) = e120(ie + 1 - m, :, :)
+            e120(ie + m, :, :) = e120(ib - 1 + m, :, :)
+            e12m(ib - m, :, :) = e12m(ie + 1 - m, :, :)
+            e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
+         end if
+      end do
 
       return
    end subroutine xm_periodic
@@ -629,14 +629,14 @@ contains
          vm(:, je + m, :) = vm(:, jb - 1 + m, :)
          wm(:, jb - m, :) = wm(:, je + 1 - m, :)
          wm(:, je + m, :) = wm(:, jb - 1 + m, :)
-      end do
 
-      if (loneeqn) then
-        e120(:, jb - m, :) = e120(:, je + 1 - m, :)
-        e120(:, je + m, :) = e120(:, jb - 1 + m, :)
-        e12m(:, jb - m, :) = e12m(:, je + 1 - m, :)
-        e12m(:, je + m, :) = e12m(:, jb - 1 + m, :)
-      end if
+         if (loneeqn) then
+           e120(:, jb - m, :) = e120(:, je + 1 - m, :)
+           e120(:, je + m, :) = e120(:, jb - 1 + m, :)
+           e12m(:, jb - m, :) = e12m(:, je + 1 - m, :)
+           e12m(:, je + m, :) = e12m(:, jb - 1 + m, :)
+         end if
+      end do
 
       return
    end subroutine ym_periodic

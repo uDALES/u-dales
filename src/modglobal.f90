@@ -414,7 +414,11 @@ module modglobal
    !      integer(kind=longint) :: timee             !<     * elapsed time since the "cold" start
    real :: timee !<     * elapsed time since the "cold" start
    !      integer(kind=longint) :: btime             !<     * time of (re)start
-   real :: btime !<     * time of (re)start
+   !< Initialised here because readinitfiles calls drivergen (idriver == 2),
+   !< which reads runtime+btime, before either `btime = timee` assignment later
+   !< in that same routine. Release builds happened to read the zero that static
+   !< storage gave them; a Debug build (-init=snan -fpe0) trapped instead.
+   real :: btime = 0. !<     * time of (re)start
    real :: runavtime !<     * time of starting running average
    integer :: ntimee !<     * number of timesteps since the cold start
    integer :: ntrun !<     * number of timesteps since the start of the run
