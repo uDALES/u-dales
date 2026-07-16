@@ -34,7 +34,14 @@
 
 ---
 
-### Task 2: `iinflow` selector + `&INFLOW` group + carry-overs
+### Task 2: internal carry-overs only — REVISED 2026-07-16 per user decision
+
+> **User decision:** NO renaming of `idriver` or `&DRIVER` — "no changes for the user at this
+> stage"; the selector consolidation (`iinflow`) is DEFERRED to a future dedicated task. Steps
+> 1-4 below are superseded; only Step 5's carry-overs plus the orphaned-INFO-group cleanup in
+> namelists.json (tooling-internal, describes a namelist that no longer exists) remain in scope.
+
+### ~~Task 2 (superseded): `iinflow` selector + `&INFLOW` group + carry-overs~~
 
 **Files:** Modify: `src/modglobal.f90`, `src/modstartup.f90`, `src/inflow.f90`, `src/modboundary.f90`, `src/modtstep.f90`, `src/modsave.f90`, 9 namoptions files, `tools/python/namelists.json`, `tools/preprocessing.m`, `docs/udales-driver-simulations.md`, `docs/udales-namoptions-overview.md`, `BCcleanup_backlog.md`.
 

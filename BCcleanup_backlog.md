@@ -431,6 +431,15 @@ maps — described modinlet's inlet-metadata namelist); write-only locals
 only-imports `Uinf, jgb, jge` in `readinitfiles`' modglobal list (verify `jgb/jge` strat-start use
 first); duplicate `timee` in modsave.f90's only-list (pre-existing); comment fossils referencing
 modinlet/lstoreplane in moddriver.f90:7,1194.
+**Done (Task 2, revised scope, 2026-07-16):** orphaned `INFO` group and its 6 reverse-map entries
+removed from `tools/python/namelists.json`; the 5 write-only locals (declarations + zero-assignment
+block) removed from `modstartup.f90`; dead `Uinf` only-import removed from `readinitfiles`'
+modglobal list (`jgb, jge` confirmed live at ~:1734 and kept); duplicate `timee` removed from
+modsave.f90's only-list. The `moddriver.f90:7,1194` comment fossils no longer apply — that file
+was deleted in Task 1.
+**User decision (2026-07-16):** the selector consolidation (`iinletgen`/`idriver` → `iinflow`,
+next bullet) is explicitly deferred to a future dedicated task — `idriver` and `&DRIVER` are
+unchanged and there are zero user-facing changes in this revised Task 2.
 
 Rather than delete the file, turn it into the single, self-contained home for inflow generation:
 the precursor/driver method moves in now, and a planned **synthetic turbulence generator** lands
@@ -471,7 +480,9 @@ modsave, only: writerestartfiles` in `drivergen`).
 - [x] Delete `modinletdata.f90` once emptied. **Done (Task 1, 2026-07-16):** `git rm`, alongside
       `moddriver.f90`.
 - [ ] Consolidate the method selector: replace `iinletgen` (0/1/2) + `idriver` (0/1/2) with one
-      switch `iinflow` (0=none, 1=driver, 2=synthetic). Deferred to Task 2 (selector rename).
+      switch `iinflow` (0=none, 1=driver, 2=synthetic). **Deferred (user decision, 2026-07-16) to
+      a future dedicated task** — out of scope for Task 2's revised (internal-carry-overs-only)
+      cut.
 - Sequencing: §3a is well-bounded and low-risk (dead code) and lands first; the
   `moddriver`→`modinflow` consolidation in §3b is a larger refactor — separate commit/PR.
 

@@ -924,7 +924,7 @@ module modstartup
          v0av, u0av, qt0av, thl0av, qt0av, sv0av, &
          thlpcar, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, thl0c
             use modglobal,         only : ib,ie,ih,ihc,jb,je,jh,jhc,kb,ke,kh,khc,kmax,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
-         zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, &
+         zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, &
          e12min, dzh, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, linoutflow, lper2inout, &
          ltempeq, prandtlmoli, &
@@ -945,11 +945,6 @@ module modstartup
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh) :: thv0
       real, dimension(kb:ke) :: uaverage ! volume averaged u-velocity
       real, dimension(kb:ke) :: vaverage ! volume averaged v-velocity
-      real, dimension(kb:ke) :: uaverager ! recycle plane
-      real, dimension(kb:ke) :: uaveragei ! inlet plane
-      real, dimension(kb:ke) :: taverager ! recycle plane
-      real, dimension(kb:ke) :: taveragei ! inlet plane
-      real, dimension(kb:ke + 1) :: waverage
       real, dimension(kb:ke+kh)  :: u_init, v_init, thl_init, qt_init
       real ran, ran1
 
@@ -1639,11 +1634,6 @@ module modstartup
 
             ! Set average inlet profile to initial inlet profile in case of inletgenerator mode
             uaverage = 0.
-            uaveragei = 0.
-            uaverager = 0.
-            waverage = 0.
-            taveragei = 0.
-            taverager = 0.
             if (idriver==2) then ! idriver
 
                if (ibrank) then
