@@ -1804,7 +1804,7 @@ contains
   use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,&
                                dzfi,dzhi,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
   use modmpi,           only : mpi_sum,avey_ibm,excjs,avexy_ibm
-  use modsurfdata,      only : thls
+  use modbasestate,     only : thv_b
   use decomp_2d,        only : exchange_halo_z
   implicit none
 
@@ -2123,7 +2123,7 @@ contains
                               - 0.5*(ttmy(i,j,k) + ttmy(i,jp,k))        &
                               - 0.5*(ttmz(i,j,k) + ttmz(i,j,kp))
 
-             p_bav(i,j,k)   = (grav/thls)*0.5*(thlpwpav(i,j,k)+thlpwpav(i,j,kp)) !use of thls here...????
+             p_bav(i,j,k)   = (grav/thv_b(kb))*0.5*(thlpwpav(i,j,k)+thlpwpav(i,j,kp))
 
           end do
         end do

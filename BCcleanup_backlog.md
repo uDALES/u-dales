@@ -288,8 +288,13 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
 
 ### Phase 1 — retire `lbottom` and the flat-wall scheme
 
-- [ ] **Migrate the cases that use `lbottom`** (§4) to ground facets, then retire the `lbottom`
-      namelist switch (modibm.f90:49; modstartup.f90:153,445).
+- [x] **Retire the `lbottom` namelist switch** (modibm.f90:49; modstartup.f90:153,445) — done via
+      wholesale deletion of the flat-surface scheme (Task 2) rather than migrate-then-retire.
+- [ ] **Migrate the cases that use `lbottom`** (§4) to ground facets. Still open:
+      `examples/999/namoptions.999` and `tests/regression/david_tests/cases/103/namoptions.103`
+      set `lbottom=.true.` and will now fail to parse (unknown namelist key) until migrated;
+      update those namoptions files, `tools/preprocessing.m:224`, `tools/python/namelists.json:282,393`,
+      and the docs (§4) in a follow-up.
 - [x] **Relocate the unconditional code first** (it runs on every run regardless of `lbottom`):
   - [x] `e120/e12m` ghost at `kb-1` (modibm.f90:2010-2011) → `modboundary`, next to the `ekm/ekh`
         ghosts. Nothing else sets it; the subgrid model reads it at `kb`.
@@ -302,11 +307,11 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
         `ibmwallfun` writes, fielddump 'tx'/'ty'/'tz'/'hf' cases). The per-facet `fac_tau_*`
         statistics remain; reinstating a per-cell version cleanly needs its own reset in
         `ibmwallfun` (one-commit revert + small fix if ever wanted).
-- [ ] Delete `subroutine bottom` (modibm.f90:1997-2099), its call site (program.f90:153) and
+- [x] Delete `subroutine bottom` (modibm.f90:1997-2099), its call site (program.f90:153) and
       import (program.f90:38).
-- [ ] Delete `CASE(91)/(92)` surface blocks in `wfuno`/`wfmneutral`
+- [x] Delete `CASE(91)/(92)` surface blocks in `wfuno`/`wfmneutral`
       (modwallfunctions.f90:81-164, 307-350).
-- [ ] Remove `BCbot*` end-to-end: declarations (modglobal.f90:160-174), namelist read/broadcast
+- [x] Remove `BCbot*` end-to-end: declarations (modglobal.f90:160-174), namelist read/broadcast
       (modstartup.f90:136,422-425), and the `BCbotm` write (modstartup.f90:816).
 - [ ] Update the pre-processing surfaces: `tools/preprocessing.m:224` (`addvar 'lbottom'`) and
       `tools/python/namelists.json:282,393`.
@@ -314,13 +319,19 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
 
 ### Phase 2 — dissolve `modsurfdata`
 
-- [ ] Remove the (A) `modsurfdata` scalars: `thls, qts, z0, z0h, wtsurf, wqsurf, wsvsurf`.
-      Precondition: the consumer table in §1.1 is empty apart from the re-point targets —
-      i.e. Phases 0, 1 and 3a have landed.
+- [ ] Remove the (A) `modsurfdata` scalar **declarations**: `thls, qts, z0, z0h, wtsurf, wqsurf,
+      wsvsurf`. Task 2 already dropped their namelist membership, reads, and broadcasts
+      (modstartup.f90 &BC + `use modsurfdata` lists) — the declarations were kept deliberately
+      because the unreachable `iinletgen` branches in `readinitfiles`/`readrestartfiles`
+      (modstartup.f90 ~1380,1827,2349) still dereference `thls`. Precondition: the consumer
+      table in §1.1 is empty apart from the re-point targets — i.e. Phases 0, 1 and 3a have
+      landed.
 - [ ] Delete the (C) dead `modsurfdata` members.
+- [x] Re-point `modstatsdump`'s buoyancy-flux diagnostic (`tkestatsdump`, modstatsdump.f90:2126)
+      from `grav/thls` to `grav/thv_b(kb)` — pulled forward into Task 2 (Step 1) to unblock the
+      `thls` namelist prune below; `modbasestate` already existed pre-Phase-2.
 - [ ] Move survivors `ps` and the derived base-state profiles (`thl_b/qt_b/thv_b/p_b/exn_b`,
-      §1.5) into a new `modbasestate`; re-point `modstatsdump` (buoyancy-flux diagnostic,
-      modstatsdump.f90:2126) at `thv_b`; then remove `modsurfdata` entirely.
+      §1.5) into a new `modbasestate`; then remove `modsurfdata` entirely.
 - [ ] Update docs: `docs/udales-namoptions-overview.md` (rows 139-152, 200) and
       `docs/udales-example-simulations.md` (lbottom section, line 198).
 

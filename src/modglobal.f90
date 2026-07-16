@@ -155,24 +155,6 @@ module modglobal
    integer :: BCtopq = BCtopq_flux
    integer :: BCtops = BCtops_flux
 
-   !> bottom
-   ! tangential velocities (vertical is always impermeable)
-   integer, parameter :: BCbotm_freeslip = 1  ! do nothing
-   integer, parameter :: BCbotm_wf = 2        ! wall function
-   integer, parameter :: BCbotm_wfneutral = 3 ! neutral wall function
-   ! temperature
-   integer, parameter :: BCbotT_flux = 1       ! determined by wtsurf
-   integer, parameter :: BCbotT_wf = 2         ! wall function
-   ! moisture
-   integer, parameter :: BCbotq_flux = 1       ! determined by wtsurf
-   ! scalars
-   integer, parameter :: BCbots_flux = 1       ! zero flux
-   ! set defaults
-   integer :: BCbotm = BCbotm_wf
-   integer :: BCbotT = BCbotT_flux
-   integer :: BCbotq = BCbotq_flux
-   integer :: BCbots = BCbots_flux
-
    integer :: BCzp = 1 ! 1: solve poisson equation using GE. 2: solve using cosine transform
    real :: ds = 0 ! Shifted boundary conditions
 

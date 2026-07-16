@@ -27,7 +27,7 @@ module modibm
    !use wf_uno
    implicit none
    save
-   public :: initibm, ibmnorm, ibmwallfun, bottom, lbottom, createmasks, &
+   public :: initibm, ibmnorm, ibmwallfun, createmasks, &
              nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
              nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
              nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
@@ -46,7 +46,6 @@ module modibm
       end function interp_temperature
     end interface
 
-   logical :: lbottom = .false.
    logical :: lnorec = .false.
 
    ! read from namoptions
@@ -1987,100 +1986,6 @@ module modibm
                      (1 - cveg)* (qtair - qwall * hurel) / (resa + ress))
 
    end function moist_flux
-
-
-   subroutine bottom
-     ! By Ivo Suter.
-      !kind of obsolete when road facets are being used
-      !vegetated floor not added (could simply be copied from vegetated horizontal facets)
-      use modwallfunctions, only:wfuno, wfmneutral
-      use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, numol, prandtlmol, nsv, &
-         dzf, dzfi, numoli, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i
-      use modfields, only : u0,v0,thl0,qt0,sv0,up,vp,wp,thlp,qtp,svp,momfluxb,tfluxb
-      use modsurfdata, only:wtsurf, wqsurf, thls, z0, z0h
-      use modsubgriddata, only:ekh
-      implicit none
-      integer :: i, j, m
-
-      ! wm(:, :, kb) = 0. ! SO moved to modboundary
-      ! w0(:, :, kb) = 0.
-
-      !if (.not.(libm)) then
-      if (lbottom) then
-      !momentum
-      if (BCbotm.eq.2) then
-      call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 91)
-      elseif (BCbotm.eq.3) then
-      call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 91)
-      else
-      write(0, *) "ERROR: bottom boundary type for momentum undefined"
-      stop 1
-      end if
-
-
-      if (ltempeq) then
-         if (BCbotT.eq.1) then !neumann/fixed flux bc for temperature
-            do j = jb, je
-               do i = ib, ie
-                  thlp(i, j, kb) = thlp(i, j, kb) &
-                                   + ( &
-                                   0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
-                                   *(thl0(i, j, kb) - thl0(i, j, kb - 1)) &
-                                   *dzh2i(kb) &
-                                   - wtsurf &
-                                   )*dzfi(kb)
-               end do
-            end do
-         else if (BCbotT.eq.2) then !wall function bc for temperature (fixed temperature)
-            call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 92)
-         else
-         write(0, *) "ERROR: bottom boundary type for temperature undefined"
-         stop 1
-         end if
-      end if ! ltempeq
-
-      if (lmoist) then
-         if (BCbotq.eq.1) then !neumann/fixed flux bc for moisture
-            do j = jb, je
-               do i = ib, ie
-                  qtp(i, j, kb) = qtp(i, j, kb) + ( &
-                                  0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
-                                  *(qt0(i, j, kb) - qt0(i, j, kb - 1)) &
-                                  *dzh2i(kb) &
-                                  + wqsurf &
-                                  )*dzfi(kb)
-               end do
-            end do
-         else
-          write(0, *) "ERROR: bottom boundary type for moisture undefined"
-          stop 1
-         end if !
-      end if !lmoist
-
-      if (nsv>0) then
-         if (BCbots.eq.1) then !neumann/fixed flux bc for moisture
-            do j = jb, je
-               do i = ib, ie
-                  do m = 1, nsv
-                      svp(i, j, kb, m) = svp(i, j, kb, m) + ( &
-                                      0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
-                                     *(sv0(i, j, kb, m) - sv0(i, j, kb - 1, m)) &
-                                     *dzh2i(kb) &
-                                     + 0. &
-                                     )*dzfi(kb)
-                  end do
-               end do
-            end do
-         else
-          write(0, *) "ERROR: bottom boundary type for scalars undefined"
-          stop 1
-         end if !
-      end if
-
-      end if
-
-      return
-   end subroutine bottom
 
 
    subroutine createmasks

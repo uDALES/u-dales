@@ -71,14 +71,14 @@ module modstartup
                                     thlsrc, ifixuinf, lvinf, tscale,  &
                                     lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,flrT, lperiodicEBcorr, fraction,sinkbase,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lvfsparse,nnz,lfacTlyrs, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
-                                    BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
+                                    BCtopm,BCtopT,BCtopq,BCtops, &
                                     BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
-      use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thls, thl_top, qt_top, qts
+      use modsurfdata,       only : wttop, wqtop, wsvtop, wsvtopdum, ps, thl_top, qt_top
       use modfields,         only : initfields, dpdx
       use modpois,           only : initpois
       use modboundary,       only : initboundary, ksp
@@ -95,7 +95,7 @@ module modstartup
       use modibm,            only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
                                     nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
                                     nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
-                                    createmasks, lbottom, lnorec
+                                    createmasks, lnorec
       use decomp_2d
 
       implicit none
@@ -133,11 +133,10 @@ module modstartup
          BCxm, BCxT, BCxq, BCxs, &
          BCym, BCyT, BCyq, BCys, &
          BCtopm, BCtopT, BCtopq, BCtops, &
-         BCbotm, BCbotT, BCbotq, BCbots, &
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
          bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz, &
-         wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
-         wtsurf, wqsurf, thls, z0, z0h, BCzp, ds
+         wttop, thl_top, qt_top, wsvtopdum, &
+         BCzp, ds
       namelist/INLET/ &
          Uinf, Vinf, di, dti, inletav, linletRA, &
          lstoreplane, lreadminl, lfixinlet, lfixutauin, &
@@ -150,7 +149,7 @@ module modstartup
          nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
          nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
          nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
-         nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, lnorec, &
+         nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lnorec, &
          prandtlturb, fkar, lwritefac, dtfac
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lperiodicEBcorr, sinkbase, lconstW, dtEB, bldT, flrT, wsoil, wgrmax, wwilt, wfc, &
@@ -419,10 +418,6 @@ module modstartup
       call MPI_BCAST(BCtopT, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCtopq, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(BCtops, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(BCbotm, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(BCbotT, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(BCbotq, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(BCbots, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ds, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lwallfunc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
       call MPI_BCAST(lreadminl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch for reading mean inlet/recycle plane profiles (Uinl,Urec,Wrec)
@@ -442,7 +437,6 @@ module modstartup
       call MPI_BCAST(nfctsecs_v, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nfctsecs_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nfctsecs_c, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(lbottom, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lnorec, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lwritefac, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(tfac, 1, MY_REAL, 0, comm3d, mpierr)
@@ -499,8 +493,6 @@ module modstartup
       call MPI_BCAST(xlon, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(xday, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(xtime, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(z0, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(z0h, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfxm, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfxp, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfym, 1, MY_REAL, 0, comm3d, mpierr)
@@ -511,19 +503,12 @@ module modstartup
       call MPI_BCAST(bcqfym, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bcqfyp, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bcqfz, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(wtsurf, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(wqsurf, 1, MY_REAL, 0, comm3d, mpierr)
-      allocate (wsvsurf(1:nsv))
-      wsvsurf = wsvsurfdum(1:nsv)
-      if(nsv>0) call MPI_BCAST(wsvsurf(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       allocate (wsvtop(1:nsv))
       wsvtop = wsvtopdum(1:nsv)
       if(nsv>0) call MPI_BCAST(wsvtop(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ps, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(thls, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(thl_top, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(qt_top, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(qts, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lmoist, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lcoriol, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lprofforc, 1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -707,12 +692,11 @@ module modstartup
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only : ps, thls
-      use modibm,      only : lbottom
+      use modsurfdata, only : ps
       use modglobal,   only : itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
                               startfile,lwarmstart,lstratstart,lmoist, nsv, &
-                              BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCtopm, BCbotm, &
-                              BCbotm_wfneutral, BCtopm_pressure, &
+                              BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCtopm, &
+                              BCtopm_pressure, &
                               BCxm_periodic, BCxT_periodic, BCxq_periodic, &
                               BCxm_profile, BCxT_profile, BCxq_profile, &
                               BCxm_driver, BCxT_driver, BCxq_driver, BCxs_driver, &
@@ -771,12 +755,6 @@ module modstartup
          end if
          stop 1
       end if
-      if (lbottom .and. thls < 0.) then
-         if (myid == 0) then
-            write (0, *) 'ERROR: lbottom=.true. requires thls in &BC (legacy scheme, see #302).'
-         end if
-         stop 1
-      end if
       if (dtmax < 0) then
          write(0, *) 'ERROR: dtmax out of range/not set'
          stop 1
@@ -825,7 +803,6 @@ module modstartup
       if (((ltempeq .eqv. .false.) .or. (iwalltemp==1)) .and. (iwallmom==2)) then
         if (myid==0) write(*,*) "Changing to neutral wall function"
          iwallmom = 3
-         BCbotm = BCbotm_wfneutral
       end if
 
       select case(BCxm)

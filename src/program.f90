@@ -36,7 +36,7 @@ program uDALES
   use modsubgrid,        only : initsubgrid,subgrid
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
-  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
+  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm
   use vegetation,        only : init_vegetation, vegetation_forcing
   use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
@@ -146,12 +146,6 @@ program uDALES
     call shiftedPBCs
 
     call subgrid
-
-!-----------------------------------------------------
-!   3.3   THE SURFACE LAYER
-!-----------------------------------------------------
-
-    call bottom
 
 !-----------------------------------------------------
 !   3.4   REMAINING TERMS
