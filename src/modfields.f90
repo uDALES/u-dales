@@ -338,7 +338,7 @@ module modfields
   real, allocatable :: exnf(:)          !<   hydrostatic exner function at full level
   real, allocatable :: exnh(:)          !<   hydrostatic exner function at half level
   real, allocatable :: thvf(:)          !<   slab-averaged virtual potential temperature at full level (final value each step set in modthermodynamics)
-  real, allocatable :: thvh(:)          !<   hydrostatic exner function at half level
+  real, allocatable :: thvh(:)          !<   slab-averaged virtual potential temperature at half level (final value each step set in modthermodynamics)
   real, allocatable :: rhof(:)          !<   slab averaged density at full level
   real, allocatable :: qt0av(:)         !<   slab averaged q_tot
   real, allocatable :: ql0av(:)         !<   slab averaged q_liq
