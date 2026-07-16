@@ -8,7 +8,7 @@ randqt       = 2.5e-5
 randthl      = 0.001
 randu        = 0.01
 ladaptive    = .true.
-libm         = .false.
+libm         = .true.
 nprocx       = 1
 nprocy       = 2
 /
@@ -30,8 +30,8 @@ tsample      = 5.
 itot         = 8
 jtot         = 8
 ktot         = 8
-xsize        = 8
-ysize        = 8
+xlen         = 8
+ylen         = 8
 /
 
 &PHYSICS
@@ -53,23 +53,31 @@ lvreman      = .true.
 /
 
 &BC
-wtsurf       = 0.
-wqsurf       = 0.
-thls         = 288.
-z0           = 0.01
-z0h          = 0.000067
 thl_top      = 288.
 qt_top       = 0.0
-qts          = 0.0
-BCbotT       = 2
 /
 
 &WALLS
-lbottom      = .true.
+nfcts        = 128
+nsolpts_u    = 0
+nsolpts_v    = 0
+nsolpts_w    = 64
+nsolpts_c    = 0
+nbndpts_u    = 64
+nbndpts_v    = 64
+nbndpts_w    = 64
+nbndpts_c    = 64
+nfctsecs_u   = 240
+nfctsecs_v   = 240
+nfctsecs_w   = 0
+nfctsecs_c   = 128
+iwallmom     = 2
+iwalltemp    = 2
 /
 
 &INPS
 zsize        = 8
 u0           = 2
 dpdx         = 0.0001
+stl_file     = 'geom.103.STL'
 /

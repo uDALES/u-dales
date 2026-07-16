@@ -290,10 +290,17 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
 
 - [x] **Retire the `lbottom` namelist switch** (modibm.f90:49; modstartup.f90:153,445) — done via
       wholesale deletion of the flat-surface scheme (Task 2) rather than migrate-then-retire.
-- [ ] **Migrate the cases that use `lbottom`** (§4) to ground facets. Still open:
-      `examples/999/namoptions.999` and `tests/regression/david_tests/cases/103/namoptions.103`
-      set `lbottom=.true.` and are deliberately left broken-parse (unknown namelist key) —
-      Tasks 4-5 rewrite them wholesale as facet migrations. `examples/024/namoptions.024:48`
+- [ ] **Migrate the cases that use `lbottom`** (§4) to ground facets. `examples/999/namoptions.999`
+      and `tests/regression/david_tests/cases/103/namoptions.103` set `lbottom=.true.` and were
+      deliberately left broken-parse (unknown namelist key) — Tasks 4-5 rewrite them wholesale as
+      facet migrations. **Case 103 done (Task 4, 2026-07-16):** flat 8x8 ground generated via
+      `udgeom.create_flat_surface` + IBM f2py preprocessing with `stl_ground=True`; 128 floor
+      facets cover the full footprint, `solid_c/u/v` are empty everywhere (no solid volume
+      introduced — `kb` stays fluid), `factypes.inp.103` carries `z0=0.01`/`z0h=0.000067`,
+      `Tfacinit.inp.103` is 288 K on all facets, `namoptions.103` sets `libm=.true.`,
+      `iwallmom=2`/`iwalltemp=2`. Also fixed `&DOMAIN xsize/ysize` (not valid Fortran namelist
+      keys — replaced with `xlen`/`ylen`) since the file wouldn't have parsed otherwise; grid
+      *values* are unchanged. Still open: `examples/024/namoptions.024:48`
       (which set the now-deleted `BCbotT = 2`, dead even pre-refactor since it defaults
       `lbottom=.false.`) has been cleaned as part of Task 3's sweep, along with every other
       namoptions file under `tests/` and `examples/` that set a pruned key (except the two above).
@@ -490,6 +497,13 @@ New coverage to add:
 - [ ] **§6.2 `lbottom` retirement regression (Phase 1).** Convert the migrated cases
       (examples/999, regression 103) to floor-facet equivalents; assert statistical equivalence
       to the pre-migration `lbottom` result (regime and tolerance stated in the suite entry).
+      **Deferred (2026-07-16, Task 4):** case 103's inputs were generated and statically verified
+      (facet/solid/fluid file parsing only — see `.superpowers/sdd/phase1-task-4-report.md`); no
+      Fortran/MPI/NetCDF-Fortran toolchain is available in this environment to actually run the
+      old-`lbottom` vs new-facet solver comparison. The statistical-equivalence run (old-vs-new
+      103, slab-averaged profiles over an averaging window) is deferred to a Linux session with a
+      full build — the facet wall-function formulation legitimately differs from the old
+      `BCbotT=2` flat-surface one, so the acceptance criterion is statistical, not bitwise.
 - [ ] **§6.3 Base-state invariance + validation (Phase 0).** Assert that Exner / hydrostatic
       pressure / buoyancy depend only on the derived base state (initial profiles + `ps`); assert
       startup **fails loudly** when `ps` is unset with active thermodynamics, and when
