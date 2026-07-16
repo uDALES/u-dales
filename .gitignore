@@ -42,5 +42,9 @@ tmp/*
 **/__pycache__/
 *.pyc
 **/*.pyd
+tools/python/tests/.tmp/
+# editable-install metadata (pip install -e tools/python)
+*.egg-info/
+tools/python/build/
 facets*.vs3
 tests/cases/**/*.fig

@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 from scipy.interpolate import CubicSpline
-from .udprep import Section, SectionSpec
+from ._section import Section, SectionSpec
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("forcing", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
@@ -133,7 +133,8 @@ class ForcingSection(Section):
         prdata = prdata[:, :5]
 
         if prdata[0, 0] > 0:
-            prdata = np.vstack(([0.0, 0.0, 0.0, 293.0, 0.0], prdata))  # add a surface point if not present in source file
+            surface_thl = float(self.thl0)
+            prdata = np.vstack(([0.0, 0.0, 0.0, surface_thl, 0.0], prdata))
         if prdata.shape[0] < 2 or np.any(np.diff(prdata[:, 0]) <= 0):
             _warn_keep_original("invalid; height column must contain at least two strictly increasing values")
             return

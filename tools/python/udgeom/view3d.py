@@ -23,10 +23,11 @@ try:
 except ImportError:  # pragma: no cover - optional runtime dependency
     netCDF4 = None
 
+from exceptions import DependencyError
 try:
     import trimesh
 except ImportError as exc:  # pragma: no cover - required for STL conversion
-    raise ImportError("trimesh is required for View3D geometry export") from exc
+    raise DependencyError("trimesh is required for View3D geometry export") from exc
 
 
 @dataclass(frozen=True)
@@ -429,7 +430,7 @@ def write_vf(path: str | Path, vf: np.ndarray) -> Path:
     the MATLAB preprocessing route.
     """
     if netCDF4 is None:
-        raise ImportError("netCDF4 is required to write full view factor matrices")
+        raise DependencyError("netCDF4 is required to write full view factor matrices")
 
     path = Path(path)
     with netCDF4.Dataset(path, "w", format="NETCDF4") as ds:

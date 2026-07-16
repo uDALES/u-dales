@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Direct shortwave solvers (facsec, moller, scanline_f2py, scanline_legacy) with shared helpers.
 
@@ -7,6 +5,7 @@ This module consolidates the implementations that previously lived in
 directshortwave_facsec.py and directshortwave_moller.py so it can be used
 standalone.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Dict, Tuple
@@ -17,14 +16,13 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
-import warnings
 
 try:
     import numba as nb
 except ImportError:  # pragma: no cover - runtime dependent
     nb = None
 
-
+from exceptions import DependencyError, RadiationError
 @dataclass
 class VegData:
     points: np.ndarray  # (n, 3) 0-based (i, j, k)
@@ -89,8 +87,12 @@ def _veg_from_data(veg_data: Dict[str, Any] | None) -> VegData:
 def _compute_ktot_and_z_edges(
     grid,
     veg_points: np.ndarray | None = None,
+    mesh=None,
     facsec_locs: np.ndarray | None = None,
 ) -> Tuple[int, np.ndarray, float, np.ndarray]:
+    z_base = grid.zm
+    z_edges_full = np.concatenate([z_base, [grid.zsize]])
+
     solid_full = getattr(grid, "Sc", None)
     kmax_solid = -1
     if solid_full is not None:
@@ -98,11 +100,19 @@ def _compute_ktot_and_z_edges(
         if np.any(solid_any):
             kmax_solid = int(np.max(np.where(solid_any)[0]))
     kmax_veg = int(np.max(veg_points[:, 2])) if veg_points is not None and veg_points.size else -1
+    # Include the geometry's vertical extent (P4): when the IBM solid mask (Sc)
+    # is absent, kmax_solid is -1, and without this the traced volume collapses
+    # to ktot=2 so no direct shortwave is computed above the bottom two layers.
+    # The mesh top always bounds the geometry that can cast/receive shadows.
+    kmax_mesh = -1
+    if mesh is not None:
+        verts = np.asarray(getattr(mesh, "vertices", np.empty((0, 3))), dtype=float)
+        if verts.size:
+            z_top = float(verts[:, 2].max())
+            kmax_mesh = int(np.searchsorted(z_edges_full, z_top, side="right") - 1)
     kmax_facsec = int(np.max(facsec_locs[:, 2])) if facsec_locs is not None and facsec_locs.size else -1
-    kmax = max(0, min(grid.ktot - 1, max(kmax_solid, kmax_veg, kmax_facsec)))
+    kmax = max(0, min(grid.ktot - 1, max(kmax_solid, kmax_veg, kmax_mesh, kmax_facsec)))
     ktot = min(grid.ktot, kmax + 2)
-    z_base = grid.zm
-    z_edges_full = np.concatenate([z_base, [grid.zsize]])
     z_edges = z_edges_full[: ktot + 1]
     z_max = float(z_edges[-1])
     dz = grid.dzt[:ktot]
@@ -177,7 +187,7 @@ def _build_cell_facet_lookup(
 
 def _require_numba() -> None:
     if nb is None:
-        raise ImportError("numba is required for directshortwave")
+        raise DependencyError("The numba-accelerated direct-shortwave kernels require numba. Install it with: pip install numba")
 
 
 if nb is not None:
@@ -615,6 +625,7 @@ if nb is not None:
                 ds += 1.0e-6
 
             hit_facet = False
+            hit_fid_cell = -1
             if geom_inside and cell_has_facets[ii, jj, k] and ds > 0.0:
                 cell_idx = ii + itot * (jj + jtot * k)
                 ox = x + dir_x * t
@@ -643,10 +654,11 @@ if nb is not None:
                     debug_test_count,
                 )
                 if t_hit >= 0.0:
+                    # Limit the segment to the hit point; the facet is credited
+                    # only AFTER the vegetation in this cell attenuates the beam
+                    # over this shortened segment (see below).
                     ds = max(0.0, t_hit)
-                    if hit_fid >= 0:
-                        if base_inside:
-                            facet_hit_energy[hit_fid] += r_in * ray_area * irradiance
+                    hit_fid_cell = hit_fid
                     hit_facet = True
 
             if base_inside:
@@ -663,7 +675,12 @@ if nb is not None:
                     r_in = r_out
 
             if hit_facet:
+                # Book the facet with the post-attenuation beam so vegetation
+                # sharing this cell is not double-counted (the facsec kernel
+                # attenuates before the hit for the same reason).
                 if base_inside:
+                    if hit_fid_cell >= 0:
+                        facet_hit_energy[hit_fid_cell] += r_in * ray_area * irradiance
                     solid_hit_energy[ii, jj, k] += r_in * ray_area * irradiance
                     return 0.0
                 return r_in * ray_area * irradiance
@@ -1062,10 +1079,10 @@ class DirectShortwaveSolver:
 
         if self.method in ("moller", "facsec"):
             if nb is None:
-                raise ImportError("numba is required for direct shortwave (moller/facsec)")
+                raise DependencyError("The moller/facsec direct-shortwave methods require numba. Install it with: pip install numba")
         elif self.method == "scanline_f2py":
             try:
-                import udprep.directshortwave_f2py as _dsroot
+                from . import directshortwave_f2py as _dsroot
             except ImportError as exc:
                 raise RuntimeError(
                     "directshortwave_f2py module not available; "
@@ -1093,6 +1110,16 @@ class DirectShortwaveSolver:
         facsec = None
         facsec_locs = None
         if self.method == "facsec":
+            solid_full = getattr(sim, "Sc", None)
+            if solid_full is None:
+                # Without the solid mask the facsec kernel never blocks a ray, so
+                # every facet sees the sun and sdir is ~0 everywhere with no
+                # warning (P4). Fail loud instead of silently mis-computing.
+                raise RadiationError(
+                    "facsec direct shortwave requires the IBM solid mask (sim.Sc), "
+                    "which is not loaded. Run the IBM preprocessing step (or load "
+                    "solid_*.txt) before computing shortwave, or use method='moller'."
+                )
             if not hasattr(sim, "facsec") or sim.facsec is None or "c" not in sim.facsec:
                 raise ValueError("Facet sections not available; sim.facsec['c'] is required.")
             facsec = sim.facsec["c"]
@@ -1101,7 +1128,8 @@ class DirectShortwaveSolver:
         self.ktot, self.z_edges, self.z_max, self.dz = _compute_ktot_and_z_edges(
             sim,
             self.veg.points if self.veg.points.size else None,
-            facsec_locs,
+            mesh=surface_mesh,
+            facsec_locs=facsec_locs,
         )
         self.lad_3d, self.dec_3d, self.veg_index = _build_veg_fields(
             sim, self.veg, self.ktot
@@ -1135,9 +1163,8 @@ class DirectShortwaveSolver:
             )
 
         if self.method == "facsec":
-            solid_full = getattr(sim, "Sc", None)
-            self.has_solid = solid_full is not None
-            self.solid = solid_full[:, :, : self.ktot] if self.has_solid else np.zeros((1, 1, 1), dtype=bool)
+            self.has_solid = True
+            self.solid = solid_full[:, :, : self.ktot]
 
             self.facsec_facids = facsec["facid"].astype(int)
             self.facsec_areas = facsec["area"]
@@ -1151,6 +1178,23 @@ class DirectShortwaveSolver:
         periodic_xy: bool = False,
         resolution: float | None = None,
     ) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
+        """
+        Compute direct shortwave irradiance on facets and vegetation.
+
+        Returns
+        -------
+        sdir : np.ndarray, shape (nfaces,)
+            Direct shortwave irradiance on each facet [W/m^2].
+        s_veg : np.ndarray, shape (nveg,)
+            Physical vegetation absorption power density [W/m^3], already scaled
+            by ``irradiance`` (empty array for no-vegetation / scanline runs).
+            The radiation writer stores this value verbatim under its "[W/m3]"
+            header, so the scaling is applied here and nowhere else.
+        bud : dict
+            Energy budget in Watts. ``bud["veg"]`` is derived from the scaled
+            ``s_veg`` (never double-scaled) and closes as
+            ``bud["in"] ~= bud["veg"] + bud["fac"] + bud["out"]``.
+        """
         nsun = np.asarray(nsun, dtype=float)
         norm = np.linalg.norm(nsun)
         if norm <= 0.0:
@@ -1317,16 +1361,36 @@ class DirectShortwaveSolver:
 
         bud["fac"] = float(np.sum(sdir * self.face_areas))
         bud["sol"] = float(np.sum(solid_hit_energy))
-        if veg_absorb.size:
-            k_idx = self.veg.points[:, 2].astype(int)
-            cell_vol = self.sim.dx * self.sim.dy * self.dz[k_idx]
-            bud["veg"] = float(np.sum(veg_absorb * cell_vol) * irradiance)
+        s_veg = self._scale_veg_absorption(veg_absorb, irradiance, bud)
         # Any solid energy not mapped to facets is treated as escaping the domain.
         unmapped = bud["sol"] - bud["fac"]
         if unmapped > 0.0:
             bud["out"] += unmapped
             bud["sol"] = bud["fac"]
-        return sdir, veg_absorb, bud
+        return sdir, s_veg, bud
+
+    def _scale_veg_absorption(
+        self,
+        veg_absorb: np.ndarray,
+        irradiance: float,
+        bud: Dict[str, float],
+    ) -> np.ndarray:
+        """Convert the raw kernel accumulator to physical absorbed power density.
+
+        The ray tracers accumulate ``veg_absorb`` as a transmittance-weighted,
+        cell-volume-normalised intercepted area with units [1/m] (``r_in``
+        starts at 1.0, so it carries no irradiance factor). This is the single
+        place the beam ``irradiance`` [W/m^2] is applied to obtain the physical
+        vegetation absorption ``s_veg`` [W/m^3] that ``compute`` returns and the
+        radiation writer stores verbatim. ``bud["veg"]`` is set from the scaled
+        values so it is never double-scaled.
+        """
+        s_veg = veg_absorb * irradiance
+        if s_veg.size:
+            k_idx = self.veg.points[:, 2].astype(int)
+            cell_vol = self.sim.dx * self.sim.dy * self.dz[k_idx]
+            bud["veg"] = float(np.sum(s_veg * cell_vol))
+        return s_veg
 
     def _compute_facsec(
         self,
@@ -1410,38 +1474,33 @@ class DirectShortwaveSolver:
         j_idx = locs[:, 1]
         k_idx = locs[:, 2]
 
+        # P10: the per-section redistribution below was two pure-Python loops
+        # over all facet sections (dominant preprocessing cost for 1e5-1e7
+        # sections). Vectorised with np.add.at, which accumulates in index
+        # order — identical to the original loop order — so results are
+        # bit-for-bit unchanged.
+        cos_inc_sec = cos_inc_all[facids]          # cos incidence per section
+        proj_area_sec = areas * cos_inc_sec        # projected area per section
+
         # Precompute projected face area per cell for facsec energy redistribution.
         cell_proj_area = np.zeros((self.sim.itot, self.sim.jtot, self.ktot), dtype=float)
+        pos = cos_inc_sec > 0.0
+        np.add.at(
+            cell_proj_area,
+            (i_idx[pos], j_idx[pos], k_idx[pos]),
+            proj_area_sec[pos],
+        )
+
         # Redistribute cell energy to facets proportionally by projected area.
-        for idx in range(len(facids)):
-            fid = facids[idx]
-            cos_inc = cos_inc_all[fid]
-            if cos_inc <= 0.0:
-                continue
-            i = i_idx[idx]
-            j = j_idx[idx]
-            k = k_idx[idx]
-            cell_proj_area[i, j, k] += areas[idx] * cos_inc
+        cpa_sec = cell_proj_area[i_idx, j_idx, k_idx]
+        cell_energy_sec = solid_hit_energy[i_idx, j_idx, k_idx]
+        valid = pos & (cpa_sec > 0.0) & (cell_energy_sec > 0.0)
+        sect_energy = cell_energy_sec[valid] * (proj_area_sec[valid] / cpa_sec[valid])
 
         sdir_accum = np.zeros(self.nfaces, dtype=float)
         area_accum = np.zeros(self.nfaces, dtype=float)
-        for idx in range(len(facids)):
-            fid = facids[idx]
-            cos_inc = cos_inc_all[fid]
-            if cos_inc <= 0.0:
-                continue
-            i = i_idx[idx]
-            j = j_idx[idx]
-            k = k_idx[idx]
-            if cell_proj_area[i, j, k] <= 0.0:
-                continue
-            cell_energy = solid_hit_energy[i, j, k]
-            if cell_energy <= 0.0:
-                continue
-            proj_area = areas[idx] * cos_inc
-            sect_energy = cell_energy * (proj_area / cell_proj_area[i, j, k])
-            sdir_accum[fid] += sect_energy
-            area_accum[fid] += areas[idx]
+        np.add.at(sdir_accum, facids[valid], sect_energy)
+        np.add.at(area_accum, facids[valid], areas[valid])
 
         sdir = np.zeros(self.nfaces, dtype=float)
         mask = area_accum > 0.0
@@ -1450,15 +1509,12 @@ class DirectShortwaveSolver:
 
         bud["fac"] = float(np.sum(sdir * self.face_areas))
         bud["sol"] = float(np.sum(solid_hit_energy))
-        if veg_absorb.size:
-            k_idx = self.veg.points[:, 2].astype(int)
-            cell_vol = self.sim.dx * self.sim.dy * self.dz[k_idx]
-            bud["veg"] = float(np.sum(veg_absorb * cell_vol) * irradiance)
+        s_veg = self._scale_veg_absorption(veg_absorb, irradiance, bud)
         unmapped = bud["sol"] - bud["fac"]
         if unmapped > 0.0:
             bud["out"] += unmapped
             bud["sol"] = bud["fac"]
-        return sdir, veg_absorb, bud
+        return sdir, s_veg, bud
 
     def _compute_scanline(
         self,
@@ -1592,7 +1648,7 @@ class DirectShortwaveSolver:
     ) -> np.ndarray:
         """Trace a single ray through the DDA and return segment diagnostics."""
         if nb is None:
-            raise ImportError("numba is required for trace_ray_segments")
+            raise DependencyError("trace_ray_segments requires numba. Install it with: pip install numba")
         ktot, z_edges, z_max, dz = _compute_ktot_and_z_edges(self.sim, None)
         max_ray_length = 10.0 * max(self.sim.xlen, self.sim.ylen)
         buf, count = _trace_ray_segments_numba(

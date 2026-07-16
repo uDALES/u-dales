@@ -135,7 +135,16 @@ modules = [
     ("f90nml", "f90nml"),
     ("numba", "numba"),
     ("pvlib", "pvlib"),
-    ("plotly", "plotly"),
+    # PyVista is the default 3-D backend and a core dependency; Plotly is an
+    # optional alternative (requirements-plotly.txt) and is deliberately not
+    # required here.
+    ("pyvista", "pyvista"),
+    # uDALES tools themselves — verifies the editable install resolves without
+    # any PYTHONPATH / sys.path manipulation.
+    ("udbase", "udbase"),
+    ("udgeom", "udgeom"),
+    ("udprep", "udprep"),
+    ("udvis", "udvis"),
 ]
 
 failed = False
@@ -305,6 +314,15 @@ if [ "$SKIP_INSTALL" = false ]; then
     else
         print_yellow "[WARN] requirements-build.txt not found at ${SCRIPT_DIR}/requirements-build.txt"
     fi
+
+    # Register the uDALES Python tools as an editable install so `udbase`,
+    # `udgeom`, `udprep`, `udvis` (and the flat helper modules) import from any
+    # working directory without PYTHONPATH / sys.path edits. This does not copy
+    # or build anything, so the in-place f2py extensions in udprep/ keep working.
+    echo "Installing uDALES Python tools (editable: pip install -e)..."
+    # --no-deps: the runtime dependencies were already installed from
+    # requirements.txt above; this step only registers the source dir on the path.
+    python -m pip install -e "${SCRIPT_DIR}" --no-deps
 else
     echo "Installation steps skipped."
 fi

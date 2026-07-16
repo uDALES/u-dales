@@ -12,7 +12,8 @@ from pathlib import Path
 import numpy as np
 import warnings
 
-from .udprep import Section, SectionSpec
+from exceptions import DependencyError
+from ._section import Section, SectionSpec
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("seb", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
@@ -64,9 +65,9 @@ class SEBSection(Section):
 
         path = Path(sim.path) / f"Tfacinit.inp.{sim.expnr}"
         with path.open("w", encoding="ascii", newline="\n") as f:
-            f.write("# Initial facet tempereatures in radiative equilibrium\n")
+            f.write("# Initial facet temperatures in radiative equilibrium\n")
         with path.open("a", encoding="ascii", newline="\n") as f:
-            np.savetxt(f, Tfacinit, fmt="%4f")
+            np.savetxt(f, Tfacinit, fmt="%.4f")
 
     def write_Tfacinit_layers(self) -> None:
         """Write initial facet temperatures per layer (write_Tfacinit_layers)."""
@@ -87,23 +88,30 @@ class SEBSection(Section):
         try:
             from netCDF4 import Dataset
         except ImportError as exc:
-            raise ImportError("netCDF4 is required to read facT_file") from exc
+            raise DependencyError("netCDF4 is required to read facT_file") from exc
 
         with Dataset(facT_path, "r") as ds:
             if "T" not in ds.variables:
                 raise ValueError("facT_file missing variable 'T'")
             Tfac = ds.variables["T"][:]
 
-        if Tfac.ndim < 3:
-            raise ValueError("facT_file variable 'T' must be at least 3D")
+        # Tfacinit_layers takes the last layer via Tfac[:, :, -1], which assumes
+        # the (nfcts, ntimes, nlayers) axis order. Require exactly 3D so that a
+        # differently-shaped array is rejected rather than silently mis-sliced
+        # (P27).
+        if Tfac.ndim != 3:
+            raise ValueError(
+                "facT_file variable 'T' must be 3D with axis order "
+                f"(nfcts, ntimes, nlayers); got {Tfac.ndim}D shape {tuple(Tfac.shape)}"
+            )
 
         Tfacinit_layers = np.asarray(Tfac[:, :, -1], dtype=float)
 
         path = Path(sim.path) / f"Tfacinit_layers.inp.{sim.expnr}"
         with path.open("w", encoding="ascii", newline="\n") as f:
-            f.write("# Initial facet tempereatures in radiative equilibrium\n")
+            f.write("# Initial facet temperatures in radiative equilibrium\n")
         with path.open("a", encoding="ascii", newline="\n") as f:
-            np.savetxt(f, Tfacinit_layers, fmt="%4f")
+            np.savetxt(f, Tfacinit_layers, fmt="%.4f")
 
 
 SPEC = SectionSpec(name="seb", fields=FIELDS, defaults=DEFAULTS, section_cls=SEBSection)

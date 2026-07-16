@@ -33,7 +33,6 @@ from udgeom.view3d import (  # noqa: E402
     write_vfsparse,
 )
 
-
 class TestView3DUtils(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = TemporaryDirectory()

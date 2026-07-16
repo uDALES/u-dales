@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "udales-tools"
+version = "0.1.0"
+description = "uDALES Python pre/post-processing tools (udbase, udgeom, udprep, udvis)"
+readme = "README_VENV.md"
+requires-python = ">=3.9"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "the uDALES Team" }]
+# Core runtime dependencies and the optional Plotly backend / build tools are
+# kept in the existing requirements files so there is one source of truth; the
+# non-editable `pip install -r requirements.txt` path keeps working unchanged.
+dynamic = ["dependencies", "optional-dependencies"]
+
+[project.urls]
+Homepage = "https://github.com/uDALES/u-dales"
+
+# Editable install (`pip install -e tools/python`) registers this source
+# directory on sys.path without copying or building, so the in-place f2py
+# extensions in udprep/ keep being found and rebuilt by setup_venv.* / f2py.
+[tool.setuptools]
+py-modules = [
+    "udbase",
+    "exceptions",
+    "udconfig",
+    "udgrid",
+    "udstats",
+    "udfacet",
+    "udnetcdf",
+    "convert_trees_to_sparse",
+]
+packages = ["udgeom", "udprep", "udvis"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.dynamic.optional-dependencies]
+plotly = { file = ["requirements-plotly.txt"] }
+build = { file = ["requirements-build.txt"] }

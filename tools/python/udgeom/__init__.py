@@ -18,14 +18,26 @@ from .check_mesh import (
     identify_ground_faces,
 )
 from .delete_ground import delete_ground
+from .extrude_to_ground import extrude_to_ground
 from .fix_mesh import fix, repair_adjacent_buildings, resolve_vertical_coplanar_overlaps, weld_touching_boundaries
 from .split_buildings import split_buildings
+from .truncate_below_ground import truncate_below_ground
 from .geometry_generation import (
     add_ground,
     create_flat_surface,
     create_canyons,
     create_cubes,
     plot_ground_generation_step1,
+)
+from .view3d import (
+    compute_svf,
+    read_view3d_output,
+    resolve_view3d_exe,
+    run_view3d,
+    stl_to_view3d,
+    write_svf,
+    write_vf,
+    write_vfsparse,
 )
 
 __all__ = [
@@ -50,16 +62,12 @@ __all__ = [
     'create_canyons',
     'create_cubes',
     'plot_ground_generation_step1',
+    'compute_svf',
+    'read_view3d_output',
+    'resolve_view3d_exe',
+    'run_view3d',
+    'stl_to_view3d',
+    'write_svf',
+    'write_vf',
+    'write_vfsparse',
 ]
-
-
-def truncate_below_ground(*args, **kwargs):
-    from .truncate_below_ground import truncate_below_ground as _truncate_below_ground
-
-    return _truncate_below_ground(*args, **kwargs)
-
-
-def extrude_to_ground(*args, **kwargs):
-    from .extrude_to_ground import extrude_to_ground as _extrude_to_ground
-
-    return _extrude_to_ground(*args, **kwargs)

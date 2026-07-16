@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+import warnings
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from pathlib import Path
 
 import numpy as np
-from .udprep import Section, SectionSpec
-from .directshortwave import DirectShortwaveSolver
+
+from exceptions import DependencyError
+from . import _radiation_compute
+from ._section import Section, SectionSpec
+
+if TYPE_CHECKING:
+    # Only for annotations; the real import is lazy (numba JIT kernels) so this
+    # module can be imported without triggering compilation.
+    from .directshortwave import DirectShortwaveSolver
 from .solar import nsun_from_angles, solar_position_python, solar_state, solar_strength_ashrae
 from udgeom.view3d import (
     compute_svf,
@@ -24,6 +32,54 @@ from udgeom.view3d import (
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("radiation", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
 
+# P11: the direct-shortwave solver (DirectShortwaveSolver.compute) raises when
+# the sun's vertical component |cos(zenith)| falls below this floor (rays become
+# near-horizontal). The timedep loops must therefore treat such steps as night
+# (skip them) rather than let one sunrise/sunset step abort the whole run. Kept
+# in sync with the ``abs(direction[2]) < 1e-2`` guard in directshortwave.py.
+_MIN_SUN_VERTICAL = 1.0e-2
+
+
+# ---------------------------------------------------------------------------
+# Output-staleness signatures (P5)
+#
+# Shortwave outputs (Sdir.txt, netsw.inp) are cached on disk and reused when
+# force=False. Without a signature, a sun-position sweep or a namelist change
+# would silently return the FIRST run's results because the file simply exists.
+# We store a tiny sidecar (`<file>.sig`) describing the inputs that produced the
+# file, and only reuse the file when the signature still matches.
+# ---------------------------------------------------------------------------
+
+
+def _shortwave_signature(**inputs: Any) -> str:
+    import json
+
+    def _norm(v: Any) -> Any:
+        if isinstance(v, (list, tuple, np.ndarray)):
+            return [round(float(x), 8) for x in np.asarray(v, dtype=float).ravel()]
+        if isinstance(v, float):
+            return round(v, 8)
+        return v
+
+    return json.dumps({k: _norm(v) for k, v in inputs.items()}, sort_keys=True, default=str)
+
+
+def _sig_path(data_path: Path) -> Path:
+    p = Path(data_path)
+    return p.with_name(p.name + ".sig")
+
+
+def _read_sig(data_path: Path) -> str | None:
+    try:
+        return _sig_path(data_path).read_text(encoding="ascii")
+    except OSError:
+        return None
+
+
+def _write_sig(data_path: Path, sig: str) -> None:
+    _sig_path(data_path).write_text(sig, encoding="ascii")
+
+
 class RadiationSection(Section):
     def __init__(
         self,
@@ -38,6 +94,10 @@ class RadiationSection(Section):
         self._vf_cache: Any | None = None
         self._svf_cache: np.ndarray | None = None
         self._vf_cache_key: tuple | None = None
+        # (veg_data object, content token). The strong reference to the last
+        # veg_data keeps its address alive so it cannot be recycled into a stale
+        # solver key (P20: id() reuse after GC could silently reuse the solver).
+        self._veg_key_cache: Tuple[Any, str] | None = None
 
     def run_all(self, force: bool = False) -> None:
         """Run radiation preprocessing steps."""
@@ -114,10 +174,14 @@ class RadiationSection(Section):
             "method": method_key,
             "ray_density": float(ray_density),
             "ray_jitter": float(ray_jitter),
-            "veg_key": id(veg_data) if veg_data is not None else None,
+            "veg_key": self._veg_data_key(veg_data),
         }
         if self._direct_sw_solver is None or self._direct_sw_solver_cfg != cfg:
             sim = self._require_sim()
+            # Imported lazily: DirectShortwaveSolver pulls in the numba JIT
+            # kernels, which must not be triggered merely by importing this
+            # module (e.g. to reach the pure helpers or RadiationSection config).
+            from .directshortwave import DirectShortwaveSolver
             self._direct_sw_solver = DirectShortwaveSolver(
                 sim,
                 method_key,
@@ -261,9 +325,17 @@ class RadiationSection(Section):
 
         raise ValueError(f"Unsupported isolar value: {self.isolar}")
 
-    def calc_view_factors(self, maxD: float = 250.0, force: bool = False):
+    def calc_view_factors(self, maxD: float | None = None, force: bool = False):
         """
         Export geometry, run View3D, and load view factors + sky view factors.
+
+        Parameters
+        ----------
+        maxD : float, optional
+            Max ray distance passed to View3D. Defaults to None, meaning use
+            radiation.maxD (the section default).
+        force : bool
+            If True, recompute and overwrite existing outputs.
 
         Returns
         -------
@@ -283,6 +355,8 @@ class RadiationSection(Section):
 
         if self.view3d_out == 2 and not self.lvfsparse:
             raise ValueError("view3d_out=2 requires lvfsparse=true in the ENERGYBALANCE section")
+        if maxD is None:
+            maxD = self.maxD
         maxD = float(maxD)
 
         vs3_path = out_dir / f"facets.{sim.expnr}.vs3"
@@ -313,7 +387,10 @@ class RadiationSection(Section):
         stl_path = Path(sim.path) / sim.stl_file
         stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
         nfacets = sim.geom.stl.faces.shape[0]
-        cache_key = (str(stl_path), stl_mtime, self.view3d_out, self.lvfsparse, self.maxD, nfacets)
+        # Shared with calc_short_wave (same self._vf_cache storage): both cache
+        # the identical (vf, svf) View3D result, so keep the key format identical
+        # to let the two methods share entries. maxD is the validated per-call value.
+        cache_key = (str(stl_path), stl_mtime, self.view3d_out, self.lvfsparse, maxD, nfacets)
         if self._vf_cache is not None and self._svf_cache is not None and self._vf_cache_key == cache_key:
             return self._vf_cache, self._svf_cache, paths
 
@@ -340,7 +417,7 @@ class RadiationSection(Section):
             self._vf_cache_key = cache_key
             return vf, svf, paths
 
-        stl_to_view3d(stl_path, vs3_path, self.view3d_out, maxD=self.maxD, row=0, col=0)
+        stl_to_view3d(stl_path, vs3_path, self.view3d_out, maxD=maxD, row=0, col=0)
 
         legacy_vs3_path = out_dir / "facets.vs3"
         if legacy_vs3_path != vs3_path and legacy_vs3_path.exists():
@@ -389,52 +466,11 @@ class RadiationSection(Section):
         tol: float = 0.01,
         max_iter: int = 1000,
     ) -> np.ndarray:
-        """
-        Compute net shortwave including reflections (tools/SEB/netShortwave.m).
-
-        Parameters
-        ----------
-        sdir : np.ndarray
-            Direct shortwave on facets [W/m^2].
-        dsky : float
-            Diffuse sky irradiance [W/m^2].
-        vf : array-like or sparse matrix
-            View factor matrix between facets.
-        svf : np.ndarray
-            Sky view factor per facet.
-        albedo : np.ndarray
-            Facet albedo (0-1).
-        tol : float
-            Convergence threshold for additional absorbed energy.
-        max_iter : int
-            Safety cap on the iteration count.
-        """
-        sdir = np.asarray(sdir, dtype=float)
-        svf = np.asarray(svf, dtype=float)
-        albedo = np.asarray(albedo, dtype=float)
-        if sdir.shape != svf.shape or sdir.shape != albedo.shape:
-            raise ValueError("sdir, svf, and albedo must have matching shapes")
-        if tol <= 0.0:
-            raise ValueError("tol must be > 0")
-        if max_iter <= 0:
-            raise ValueError("max_iter must be > 0")
-
-        kin0 = sdir + dsky * svf
-        knet = (1.0 - albedo) * kin0
-        kout = albedo * kin0
-
-        for _ in range(max_iter):
-            vf_kout = vf @ kout
-            kadd = (1.0 - albedo) * vf_kout
-            kout = albedo * vf_kout
-            knet = knet + kadd
-
-            denom = np.maximum(knet - kadd, 1.0e-12)
-            if np.max(kadd / denom) < tol:
-                break
-
-        return knet
-
+        """Net shortwave incl. reflections (wrapper over
+        :func:`_radiation_compute.net_shortwave_reflections`)."""
+        return _radiation_compute.net_shortwave_reflections(
+            sdir, dsky, vf, svf, albedo, tol=tol, max_iter=max_iter
+        )
     def calc_short_wave(
         self,
         nsun: np.ndarray,
@@ -478,7 +514,9 @@ class RadiationSection(Section):
         K_star : np.ndarray
             Net shortwave on facets including reflections [W/m^2].
         S_veg : np.ndarray or None
-            Vegetation absorption term when available; None for scanline or cached runs.
+            Physical vegetation absorption power density per vegetation cell
+            [W/m^3] (empty array for no-vegetation / scanline runs, or None on
+            the cached-Sdir path where the solver is not re-run).
         vf : array-like or sparse matrix, optional
             View factor matrix between facets (only when return_vf=True).
         svf : np.ndarray, optional
@@ -499,23 +537,34 @@ class RadiationSection(Section):
         else:
             vf_path = out_dir / f"vfsparse.inp.{sim.expnr}"
 
+        if maxD is None:
+            maxD = self.maxD
+        dsky_sig = dsky if dsky is not None else self.Dsky
+        stl_path = Path(sim.path) / sim.stl_file
+        stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
+        # Signature of the inputs that determine Sdir/netsw; the cached files are
+        # reused only while it matches (P5: a sun-position sweep must not keep
+        # returning the first run's Sdir/netsw just because the files exist).
+        sw_sig = _shortwave_signature(
+            nsun=nsun, irradiance=irradiance, method=method,
+            dsky=dsky_sig, maxD=maxD, stl_mtime=stl_mtime,
+        )
+
         sdir = None
         s_veg = None
-        if not force and sdir_path.exists():
+        if not force and sdir_path.exists() and _read_sig(sdir_path) == sw_sig:
             sdir = np.loadtxt(sdir_path)
         if sdir is None:
             sdir, s_veg, _ = self.calc_direct_sw(nsun, irradiance, method=method, **kwargs)
             np.savetxt(sdir_path, sdir, fmt="%8.2f")
+            _write_sig(sdir_path, sw_sig)
 
         vf = None
         svf = None
-        if maxD is None:
-            maxD = self.maxD
-
-        stl_path = Path(sim.path) / sim.stl_file
-        stl_mtime = stl_path.stat().st_mtime if stl_path.exists() else None
         nfacets = sim.geom.stl.faces.shape[0]
-        cache_key = (str(stl_path), stl_mtime, self.view3d_out, float(maxD), nfacets)
+        # Keep this key format identical to calc_view_factors: both share
+        # self._vf_cache and cache the same (vf, svf), so a match must be comparable.
+        cache_key = (str(stl_path), stl_mtime, self.view3d_out, self.lvfsparse, float(maxD), nfacets)
         if not force and self._vf_cache is not None and self._svf_cache is not None and self._vf_cache_key == cache_key:
             vf = self._vf_cache
             svf = self._svf_cache
@@ -534,13 +583,14 @@ class RadiationSection(Section):
         albedo = sim.assign_prop_to_fac("al")
 
         k_star = None
-        if not force and netsw_path.exists():
+        if not force and netsw_path.exists() and _read_sig(netsw_path) == sw_sig:
             k_star = np.loadtxt(netsw_path)
         if k_star is None:
             k_star = self.calc_reflections_sw(sdir, dsky, vf, svf, albedo)
             with netsw_path.open("w", encoding="ascii", newline="\n") as f:
                 f.write("# net shortwave on facets [W/m2] (including reflections and diffusive)\n")
                 np.savetxt(f, k_star, fmt="%6.4f")
+            _write_sig(netsw_path, sw_sig)
 
         if return_vf:
             return sdir, k_star, s_veg, vf, svf
@@ -556,7 +606,18 @@ class RadiationSection(Section):
 
         sdir_path = out_dir / "Sdir.txt"
         netsw_path = out_dir / f"netsw.inp.{sim.expnr}"
-        if not force and sdir_path.exists() and netsw_path.exists():
+        # P5 remainder: validate that existing outputs still match the current
+        # inputs before skipping. The signature is computed defensively so a
+        # minimal sim never crashes here; a MISSING sidecar counts as valid
+        # (backward compatible), only a genuine MISMATCH forces a recompute.
+        sw_sig = self._shortwave_output_signature(timedep=False)
+        stored_sig = _read_sig(sdir_path)
+        if (
+            not force
+            and sdir_path.exists()
+            and netsw_path.exists()
+            and (stored_sig is None or stored_sig == sw_sig)
+        ):
             legacy_vs3_path = out_dir / "facets.vs3"
             if legacy_vs3_path.exists() and (out_dir / f"facets.{sim.expnr}.vs3").exists():
                 legacy_vs3_path.unlink()
@@ -602,6 +663,7 @@ class RadiationSection(Section):
         )
         self.write_netsw(knet, s_veg=s_veg)
         np.savetxt(sdir_path, sdir, fmt="%8.2f")
+        _write_sig(sdir_path, sw_sig)
 
     def run_short_wave_timedep(self, force: bool = False) -> None:
         """
@@ -617,10 +679,15 @@ class RadiationSection(Section):
         sdir_nc_path = out_dir / "Sdir.nc"
         timedepsw_path = out_dir / f"timedepsw.inp.{sim.expnr}"
         timedepsveg_path = out_dir / f"timedepsveg.inp.{sim.expnr}"
+        # P5 remainder: validate the cached outputs against the current inputs
+        # (defensive signature; missing sidecar = valid, mismatch = recompute).
+        sw_sig = self._shortwave_output_signature(timedep=True)
+        stored_sig = _read_sig(timedepsw_path)
         if (
             not force
             and sdir_nc_path.exists()
             and timedepsw_path.exists()
+            and (stored_sig is None or stored_sig == sw_sig)
         ):
             if timedepsveg_path.exists() or not sim.ltrees:
                 return
@@ -642,8 +709,12 @@ class RadiationSection(Section):
 
         sdir_all = np.zeros((albedo.size, nt), dtype=float)
         knet_all = np.zeros((albedo.size, nt), dtype=float)
-        s_veg_all = np.zeros((albedo.size, nt), dtype=float)
-        has_sveg = False
+        # The solver returns s_veg (veg_absorb) as an array of length nveg
+        # (empty for no-veg / scanline runs), never None. nveg is generally
+        # != nfcts, so s_veg_all is allocated lazily as (nveg, nt) on the first
+        # daytime step that carries vegetation absorption. Left None when no
+        # step has any vegetation, in which case no timedepsveg file is written.
+        s_veg_all: np.ndarray | None = None
 
         start = datetime(
             self.year,
@@ -682,7 +753,11 @@ class RadiationSection(Section):
             for n, t_val in enumerate(tSP):
                 solarzenith = float(zenith_interp[n])
                 irradiance = float(I_interp[n])
-                if solarzenith < 90.0 and irradiance > 0.0:
+                if (
+                    solarzenith < 90.0
+                    and irradiance > 0.0
+                    and abs(np.cos(np.radians(solarzenith))) >= _MIN_SUN_VERTICAL
+                ):
                     azimuth = float(azimuth_interp[n]) - self.xazimuth
                     nsun = nsun_from_angles(solarzenith, azimuth)
                     dsky = float(Dsky_interp[n])
@@ -700,14 +775,19 @@ class RadiationSection(Section):
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
-                    if s_veg is not None:
+                    if s_veg is not None and s_veg.size > 0:
+                        if s_veg_all is None:
+                            s_veg_all = np.zeros((s_veg.size, nt), dtype=float)
                         s_veg_all[:, n] = s_veg
-                        has_sveg = True
         else:
             for n, t_val in enumerate(tSP):
                 time_of_day = start + timedelta(seconds=float(t_val))
                 nsun, solarzenith, _, irradiance, dsky = self._solar_state_time(time_of_day)
-                if solarzenith < 90.0 and irradiance > 0.0:
+                if (
+                    solarzenith < 90.0
+                    and irradiance > 0.0
+                    and abs(np.cos(np.radians(solarzenith))) >= _MIN_SUN_VERTICAL
+                ):
                     sdir, knet, s_veg = self._compute_knet(
                         nsun,
                         irradiance,
@@ -722,14 +802,16 @@ class RadiationSection(Section):
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
-                    if s_veg is not None:
+                    if s_veg is not None and s_veg.size > 0:
+                        if s_veg_all is None:
+                            s_veg_all = np.zeros((s_veg.size, nt), dtype=float)
                         s_veg_all[:, n] = s_veg
-                        has_sveg = True
 
         self._write_sdir_nc(sdir_nc_path, tSP, sdir_all)
         self.write_timedepsw(tSP, knet_all)
-        if has_sveg:
+        if s_veg_all is not None:
             self.write_timedepsveg(tSP, s_veg_all)
+        _write_sig(timedepsw_path, sw_sig)
 
     def write_timedepsw(self, tSP: np.ndarray, knet: np.ndarray) -> None:
         """Write time-dependent net shortwave (timedepsw.inp.<expnr>)."""
@@ -780,6 +862,46 @@ class RadiationSection(Section):
             raise ValueError("RadiationSection requires a UDBase instance (sim).")
         return self.sim
 
+    def _veg_data_key(self, veg_data: Dict[str, Any] | None) -> str | None:
+        """Stable content token for the solver cache (P20).
+
+        Keyed on the vegetation content, not ``id(veg_data)``: a recreated dict
+        at a recycled address must not silently reuse a stale solver. The last
+        token is memoised by object identity — and a strong reference to that
+        object is retained — so the address cannot be recycled while cached and
+        the (potentially large) hash is computed at most once per object.
+        """
+        if veg_data is None:
+            return None
+        cache = self._veg_key_cache
+        if cache is not None and cache[0] is veg_data:
+            return cache[1]
+        token = self._hash_veg_data(veg_data)
+        self._veg_key_cache = (veg_data, token)
+        return token
+
+    @staticmethod
+    def _hash_veg_data(veg_data: Dict[str, Any]) -> str:
+        import hashlib
+
+        h = hashlib.blake2b(digest_size=16)
+        try:
+            points = np.ascontiguousarray(veg_data.get("points", []))
+            h.update(str((points.shape, points.dtype.str)).encode("ascii"))
+            h.update(points.tobytes())
+            params = veg_data.get("params", {}) or {}
+            for name in sorted(params):
+                arr = np.ascontiguousarray(params[name])
+                h.update(name.encode("ascii"))
+                h.update(str((arr.shape, arr.dtype.str)).encode("ascii"))
+                h.update(arr.tobytes())
+        except Exception:
+            # Unexpected veg_data shape: fall back to a per-object token so the
+            # cache decision never crashes (still not raw id() reuse, since the
+            # object is held strongly by the caller's memo entry).
+            return f"unhashable-{id(veg_data):x}"
+        return h.hexdigest()
+
     def _get_veg_data(self) -> Dict[str, Any] | None:
         sim = self._require_sim()
         ltree = sim.ltrees
@@ -797,20 +919,64 @@ class RadiationSection(Section):
                 "ishortwave=2 is the MATLAB-only scanline debug implementation; "
                 "use 1, 3, or 4 in Python."
             )
-        methods = {
-            0: ("scanline_legacy", self.psc_res),
-            1: ("scanline_f2py", self.psc_res),
-            3: ("facsec", None),
-            4: ("moller", None),
-        }
+        if self.ishortwave == 0:
+            return "scanline_legacy", self.psc_res
+        if self.ishortwave == 1:
+            return "scanline_f2py", self.psc_res
+        if self.ishortwave == 3:
+            return "facsec", None
+        if self.ishortwave == 4:
+            return "moller", None
+        raise ValueError(
+            f"Unsupported ishortwave value: {self.ishortwave}. "
+            "Valid Python namelist values are 1 (scanline_f2py), "
+            "3 (facsec), or 4 (moller)."
+        )
+
+    def _shortwave_output_signature(self, *, timedep: bool) -> str:
+        """Signature of the inputs that determine run_short_wave[_timedep]'s
+        outputs (Sdir/netsw or Sdir.nc/timedepsw).
+
+        Computed DEFENSIVELY: every field is read via getattr with a fallback
+        and the stl mtime / solver method lookups are wrapped, so signing never
+        crashes on a minimal sim that lacks e.g. ``stl_file`` or ``ishortwave``.
+        A MISSING sidecar is always treated as valid (backward compatible); only
+        a genuine MISMATCH forces a recompute.
+        """
+        sim = self.sim
+
+        def g(name: str, default: Any = None) -> Any:
+            return getattr(self, name, default)
+
+        stl_mtime = None
         try:
-            return methods[self.ishortwave]
-        except KeyError as exc:
-            raise ValueError(
-                f"Unsupported ishortwave value: {self.ishortwave}. "
-                "Valid Python namelist values are 1 (scanline_f2py), "
-                "3 (facsec), or 4 (moller)."
-            ) from exc
+            stl_file = getattr(sim, "stl_file", None)
+            if stl_file:
+                stl_path = Path(sim.path) / stl_file
+                if stl_path.exists():
+                    stl_mtime = stl_path.stat().st_mtime
+        except Exception:
+            stl_mtime = None
+
+        try:
+            method, resolution = self._shortwave_method()
+        except Exception:
+            method, resolution = None, None
+
+        return _shortwave_signature(
+            kind="timedep" if timedep else "single",
+            year=g("year"), month=g("month"), day=g("day"),
+            hour=g("hour"), minute=g("minute"), second=g("second"),
+            isolar=g("isolar"),
+            solarzenith=g("solarzenith"), solarazimuth=g("solarazimuth"),
+            xazimuth=g("xazimuth"), I=g("I"), Dsky=g("Dsky"),
+            longitude=g("longitude"), latitude=g("latitude"),
+            timezone=g("timezone"), elevation=g("elevation"),
+            weatherfname=g("weatherfname"),
+            lEB=g("lEB"), method=method, resolution=resolution,
+            maxD=g("maxD"), stl_mtime=stl_mtime,
+            runtime=g("runtime"), dtSP=g("dtSP"),
+        )
 
     def _solar_state_time(
         self,
@@ -885,7 +1051,7 @@ class RadiationSection(Section):
         else:
             if fss is None:
                 raise ValueError("Fss is required for non-scattering shortwave")
-            knet = (1.0 - albedo) * (sdir + dsky * fss)
+            knet = _radiation_compute.net_shortwave_nonscattering(sdir, dsky, fss, albedo)
         return sdir, knet, s_veg
 
     @staticmethod
@@ -907,13 +1073,21 @@ class RadiationSection(Section):
             names = [n.strip() for n in names]
 
             rows = []
+            dropped = 0
             for line in f:
                 if not line.strip() or line.strip().startswith("#"):
                     continue
                 parts = line.split(",") if delimiter == "," else line.split()
                 if len(parts) != len(names):
+                    dropped += 1
                     continue
                 rows.append([float(p) for p in parts])
+
+        if dropped:
+            warnings.warn(
+                f"Weather file {path}: dropped {dropped} malformed row(s) "
+                f"(column count != {len(names)} header fields)."
+            )
 
         if not rows:
             raise ValueError(f"Weather file contains no data rows: {path}")
@@ -926,57 +1100,14 @@ class RadiationSection(Section):
 
     @staticmethod
     def _interp_makima(x: np.ndarray, y: np.ndarray, x_new: np.ndarray) -> np.ndarray:
-        x = np.asarray(x, dtype=float)
-        y = np.asarray(y, dtype=float)
-        x_new = np.asarray(x_new, dtype=float)
-
-        if x.size < 2:
-            raise ValueError("Need at least two points for interpolation")
-        if np.any(np.diff(x) <= 0):
-            raise ValueError("x must be strictly increasing for interpolation")
-
-        m = np.diff(y) / np.diff(x)
-        m1 = 2.0 * m[0] - m[1]
-        m2 = 2.0 * m1 - m[0]
-        m_end1 = 2.0 * m[-1] - m[-2]
-        m_end2 = 2.0 * m_end1 - m[-1]
-        m_ext = np.concatenate(([m2, m1], m, [m_end1, m_end2]))
-
-        d = np.zeros_like(x)
-        for i in range(x.size):
-            w1 = abs(m_ext[i + 3] - m_ext[i + 2]) + abs(m_ext[i + 3] + m_ext[i + 2]) * 0.5
-            w2 = abs(m_ext[i + 1] - m_ext[i]) + abs(m_ext[i + 1] + m_ext[i]) * 0.5
-            if w1 + w2 > 0.0:
-                d[i] = (w1 * m_ext[i + 1] + w2 * m_ext[i + 2]) / (w1 + w2)
-            else:
-                d[i] = 0.5 * (m_ext[i + 1] + m_ext[i + 2])
-
-        idx = np.searchsorted(x, x_new, side="right") - 1
-        idx = np.clip(idx, 0, x.size - 2)
-        x0 = x[idx]
-        x1 = x[idx + 1]
-        y0 = y[idx]
-        y1 = y[idx + 1]
-        d0 = d[idx]
-        d1 = d[idx + 1]
-        h = x1 - x0
-        t = (x_new - x0) / h
-
-        t2 = t * t
-        t3 = t2 * t
-        h00 = 2.0 * t3 - 3.0 * t2 + 1.0
-        h10 = t3 - 2.0 * t2 + t
-        h01 = -2.0 * t3 + 3.0 * t2
-        h11 = t3 - t2
-
-        return h00 * y0 + h10 * h * d0 + h01 * y1 + h11 * h * d1
-
+        """Modified-Akima interpolation (wrapper over :func:`_radiation_compute.interp_makima`)."""
+        return _radiation_compute.interp_makima(x, y, x_new)
     @staticmethod
     def _write_sdir_nc(path: Path, tSP: np.ndarray, sdir: np.ndarray) -> None:
         try:
             from netCDF4 import Dataset
         except ImportError as exc:
-            raise ImportError("netCDF4 is required to write Sdir.nc") from exc
+            raise DependencyError("netCDF4 is required to write Sdir.nc") from exc
 
         with Dataset(path, "w", format="NETCDF4") as ds:
             ds.createDimension("rows", sdir.shape[0])
