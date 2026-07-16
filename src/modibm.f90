@@ -24,7 +24,6 @@
 module modibm
    use mpi
    use modibmdata
-   !use wf_uno
    implicit none
    save
    public :: initibm, ibmnorm, ibmwallfun, createmasks, &

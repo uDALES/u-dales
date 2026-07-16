@@ -293,8 +293,8 @@ contains
         !   call ncinfo(ncname( n,:),'xyzrt','Wavenumbers','M','tttt')
         !   pfields(n)%point => xyzrt(1:sp%zsz(1),1:sp%zsz(2),1:ktot)
         case default
-          call ncinfo(ncname( n,:),'u','West-East velocity','m/s','mttt')
-          pfields(n)%point => u0(ib:ie,jb:je,kb:ke)
+          write(0, *) 'ERROR: Unknown fieldvars code: ', fieldvars(3*n-2:3*n-1)
+          stop 1
         end select
       end do
 

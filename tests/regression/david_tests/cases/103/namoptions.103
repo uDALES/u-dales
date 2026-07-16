@@ -79,5 +79,6 @@ iwalltemp    = 2
 zsize        = 8
 u0           = 2
 dpdx         = 0.0001
+stl_ground   = .true.
 stl_file     = 'geom.103.STL'
 /

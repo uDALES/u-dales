@@ -148,7 +148,7 @@ program uDALES
     call subgrid
 
 !-----------------------------------------------------
-!   3.4   REMAINING TERMS
+!   3.3   REMAINING TERMS
 !-----------------------------------------------------
 
     call coriolis       !remaining terms of ns equation

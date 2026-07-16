@@ -31,6 +31,7 @@ ylen         = 64
 zsize        = 64.
 u0           = 1.
 dpdx         = 0.0001
+stl_ground   = .true.
 stl_file     = geom.999.STL
 /
 
