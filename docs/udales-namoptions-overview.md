@@ -45,7 +45,7 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| ps | 101325 | `REAL` > 0 | Air pressure at surface, recommend using standard pressure.| [Pa] |
+| ps | 101325 | `REAL` > 0 | Air pressure at surface, recommend using standard pressure. Required when `ltempeq` or `lmoist`. | [Pa] |
 | igrw_damp | 0 | 0, 1, 2, 3 | Integer switch to enable gravity wave damping.| - |
 | ltempeq | .false. | .true. or .false. | Switch for solving temperature equation. | - |
 | lbuoyancy | .false. | .true. or .false. | Switch for buoyancy force in temperature equation. | - |
@@ -142,8 +142,8 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | BCbots | 1 | 1 | Boundary condition for scalars at domain bottom (if `lbottom = .true.`). | - |
 | wtsurf | -1. |`REAL` | Temperature flux at domain bottom (if `lbottom = .true.`). | [Km/s] |
 | wqsurf | -1. | `REAL`| Moisture flux at domain bottom (if `lbottom = .true.`).  | [m/s] |
-| thls | -1. |  `REAL`| Temperature at domain bottom (if `lbottom = .true.`).  | [K] |
-| qts | -1. | `REAL` | Moisture at domain bottom (if `lbottom = .true.`). Used in modthermodynamics to get a BC for the moisture profile. | [kg/kg] |
+| thls | -1. |  `REAL`| **Deprecated** — used only by the legacy `lbottom` scheme (if `lbottom = .true.`). The thermodynamic base state is now derived from `prof.inp` and `ps`; removal planned with `lbottom`. | [K] |
+| qts | -1. | `REAL` | **Deprecated** — used only by the legacy `lbottom` scheme (if `lbottom = .true.`). The thermodynamic base state is now derived from `prof.inp` and `ps`; removal planned with `lbottom`. | [kg/kg] |
 | z0 | -1. |  `REAL`| Momentum roughness length of the domain bottom (if `lbottom = .true.`).  | [m] |
 | z0h | -1. |  `REAL`| Heat roughness length of the domain bottom (if `lbottom = .true.`).| [m] |
 

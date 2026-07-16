@@ -488,6 +488,18 @@ groups:
           - "{branch_a}"
           - "{branch_b}"
           - "{build_type}"
+      - label: "experimental: bc-cleanup phase-0 regression"
+        class: experimental
+        kind: regression
+        component: solver
+        platform: hpc
+        cost: slow
+        command:
+          - "{python}"
+          - "{tests_dir}/regression/bc_cleanup/run_test.py"
+          - "{branch_a}"
+          - "{branch_b}"
+          - "{build_type}"
 
   all:
     includes:
