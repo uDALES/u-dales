@@ -190,22 +190,21 @@ Further information on these parameters is in the [Namoptions overview](./udales
 
 #### No buildings, bottom surface roughness
 
-This simulation does not contain any buildings. Therefore we need to set:
+This simulation does not contain any buildings. A flat ground facet (`flat_ground.stl`) still covers the domain bottom, so the surface is set up like any other facet-based case:
 
 ```fortran
 &WALLS
-nfcts = 0
-lbottom = .true.
+nfcts = 128
 ```
 
-A rough surface at the bottom is simulated by setting the following parameters:
+A rough surface at the bottom is simulated by giving the ground facet's wall type (`-1` in `factypes.inp.001`) its roughness lengths:
 
-```fortran
-&BC
-thls         = 288.
-z0           = 0.01
-z0h          = 0.000067
+```text
+wallid   z0 [m]   z0h [m]
+    -1     0.05   0.00035
 ```
+
+The thermodynamic base state (e.g. surface temperature) is derived from `prof.inp` rather than set directly in `&BC`.
 
 where `z0` is the roughness length for momentum. Note that even though this is a neutral simulation, all of these parameters need to be specified to reasonable values.
 The simulation uses periodic lateral boundary conditions by default.

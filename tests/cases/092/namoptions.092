@@ -37,10 +37,6 @@ iadv_sv      = 7
 /
 
 &BC
-wtsurf       = 0.
-wqsurf       = 0.
-thls         = 290.
-qts          = 0.0
 thl_top      = 285.
 BCtopT       = 2
 BCxs         = 2

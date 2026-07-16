@@ -107,7 +107,7 @@ Lateral BCs (BCx, BCy): 1 = periodic, 2 in/outflow conditions, inflow given by p
 
 BCs at the top (BCtop): 1 = freeslip, 2 = noslip, 3 = should be used with inflow/outflow conditions.
 
-BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 = flux, 2 = wall function, 3 = neutral wall function.
+The legacy flat-surface bottom BC keys (`BCbotm`, `BCbotT`, `BCbotq`, `BCbots`, `wtsurf`, `wqsurf`, `thls`, `qts`, `z0`, `z0h`, `wsvsurfdum`, `lbottom`) have been removed. The bottom boundary condition is now always given by ground facets; old namoptions files that still set these keys fail to parse (`stop 1` at the namelist read).
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -136,20 +136,9 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | thl_top | -1. | `REAL` >= 0 | Temperature at the top boundary. | [K] |
 | qt_top | -1. | `REAL` >= 0| Humidity at the top boundary. | [kg/kg] |
 | wttop | 0. | `REAL` | Temperature flux at the top boundary. | [Km/s] |
-| BCbotm | 2 | 1,2,3 | Boundary condition for momentum at domain bottom (if `lbottom = .true.`). | - |
-| BCbotT | 1 | 1,2 | Boundary condition for temperature at domain bottom (if `lbottom = .true.`). | - |
-| BCbotq | 1 | 1 | Boundary condition for humidity at domain bottom (if `lbottom = .true.`). | - |
-| BCbots | 1 | 1 | Boundary condition for scalars at domain bottom (if `lbottom = .true.`). | - |
-| wtsurf | -1. |`REAL` | Temperature flux at domain bottom (if `lbottom = .true.`). | [Km/s] |
-| wqsurf | -1. | `REAL`| Moisture flux at domain bottom (if `lbottom = .true.`).  | [m/s] |
-| thls | -1. |  `REAL`| **Deprecated** — still read by the legacy `lbottom` scheme and the dormant inlet generator (removal planned: `lbottom` in Phase 1, inlet generator in Phase 3). The thermodynamic base state is now derived from `prof.inp` and `ps`. | [K] |
-| qts | -1. | `REAL` | **Deprecated** — unused; kept for namelist compatibility until removal. The thermodynamic base state is now derived from `prof.inp` and `ps`. | [kg/kg] |
-| z0 | -1. |  `REAL`| Momentum roughness length of the domain bottom (if `lbottom = .true.`).  | [m] |
-| z0h | -1. |  `REAL`| Heat roughness length of the domain bottom (if `lbottom = .true.`).| [m] |
 
 <!---
 | wsvtopdum | 0 | | Scalar boundary conditions top. | - |
-| wsvsurfdum | | | Scalar flux at domain bottom (if `lbottom = .true.`). | - |
 --->
 ## Namelist NAMSUBGRID
 
@@ -197,7 +186,6 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
-| lbottom | .false. | .true., .false. | Switch for using wall function as bottom BC. *Used only if no ground facets.* | - |
 | nsolpts_u | 0 | `INTEGER` | Number of solid points on u-grid. | - |
 | nsolpts_v | 0 | `INTEGER` | Number of solid points on v-grid. | - |
 | nsolpts_w | 0 | `INTEGER` | Number of solid points on w-grid. | - |

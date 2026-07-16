@@ -18,24 +18,21 @@ against a small non-zero tolerance instead of bitwise equality. The
 tree-case (`526`) and `treedump`/vegetation-mask handling from the
 parent script were deleted; case 090 has no vegetation.
 
-## Case 090: matched-anchor construction
+## Case 090: matched-anchor construction (historical)
 
 Case `090` (`tests/cases/090/`) is copied from `tests/cases/101/` (dry,
-`ltempeq = .true.`, IBM buildings) and adjusted so that:
+`ltempeq = .true.`, IBM buildings). Before Task 3, `namoptions.090` set
+`thls = 290.` and `qts = 0.0` to match the bottom-row `thl`/`qt` in
+`prof.inp.090` (z = 0.5 m), so the old surface virtual temperature
+`thvs` (computed from `thls`/`qts`) was numerically equal to the new
+`thv_b(kb)` (computed from the profile at the lowest level).
 
-- `thls = 290.` in `namoptions.090` equals the bottom-row `thl` in
-  `prof.inp.090` (z = 0.5 m).
-- `qts = 0.0` in `namoptions.090` equals the bottom-row `qt` in
-  `prof.inp.090`.
-
-This "matched anchor" makes the old surface virtual temperature
-`thvs` (computed from `thls`/`qts`) numerically equal to the new
-`thv_b(kb)` (computed from the profile at the lowest level), so any
-BCcleanup commit that is meant to be a pure refactor of how the
-surface virtual temperature is derived can be checked at `--atol 0.0`:
-if the two derivations agree at the matched anchor, a bitwise field
-match confirms the refactor introduced no behavioural change on this
-case.
+As of Task 3, `thls`/`qts` (along with the other flat-surface BC keys)
+have been pruned from `&BC` entirely, so `namoptions.090` no longer
+sets them — the base state derives from `prof.inp` alone. The anchor
+property still holds automatically, since the bottom-row `thl`/`qt` in
+`prof.inp.090` are unchanged (290. / 0.0), so a bitwise field match at
+`--atol 0.0` still confirms no behavioural change was introduced.
 
 Case 090 also enables `ltdump = .true.` with `tstatsdump = 5.` (and a
 20 s `runtime`), so at least 3 `tdump.*.090.nc` time slices exist to

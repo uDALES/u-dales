@@ -53,10 +53,6 @@ lvreman      = .true.
 /
 
 &BC
-wtsurf       = 0.
-wqsurf       = 0.
-z0           = 0.01
-z0h          = 0.000067
 /
 
 &WALLS

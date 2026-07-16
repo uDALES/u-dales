@@ -1,10 +1,6 @@
 {
   "namelists": {
     "BC": [
-      "bcbotm",
-      "bcbotq",
-      "bcbots",
-      "bcbott",
       "bcqfxm",
       "bcqfxp",
       "bcqfym",
@@ -30,16 +26,9 @@
       "bczp",
       "ds",
       "qt_top",
-      "qts",
       "thl_top",
-      "thls",
-      "wqsurf",
-      "wsvsurfdum",
       "wsvtopdum",
-      "wtsurf",
-      "wttop",
-      "z0",
-      "z0h"
+      "wttop"
     ],
     "CHEMISTRY": [
       "jno2",
@@ -279,7 +268,6 @@
       "iwallmom",
       "iwallscal",
       "iwalltemp",
-      "lbottom",
       "lnorec",
       "lwritefac",
       "nbndpts_c",
@@ -300,10 +288,6 @@
   },
   "variables": {
     "author": "RUN",
-    "bcbotm": "BC",
-    "bcbotq": "BC",
-    "bcbots": "BC",
-    "bcbott": "BC",
     "bcqfxm": "BC",
     "bcqfxp": "BC",
     "bcqfym": "BC",
@@ -390,7 +374,6 @@
     "ktot": "DOMAIN",
     "lad": "TREES",
     "ladaptive": "RUN",
-    "lbottom": "WALLS",
     "lbuoyancy": "PHYSICS",
     "lbuoycorr": "NAMSUBGRID",
     "lcalc_time_and_length_scale": "STG",
@@ -499,7 +482,6 @@
     "qpu": "PURIFS",
     "qstar": "TREES",
     "qt_top": "BC",
-    "qts": "BC",
     "r_s": "TREES",
     "randqt": "RUN",
     "randthl": "RUN",
@@ -515,7 +497,6 @@
     "tdriverstart": "DRIVER",
     "tfielddump": "OUTPUT",
     "thl_top": "BC",
-    "thls": "BC",
     "tnudge": "PHYSICS",
     "totalreadu": "INFO",
     "trestart": "RUN",
@@ -530,12 +511,9 @@
     "vinf": "INLET",
     "wfc": "ENERGYBALANCE",
     "wgrmax": "ENERGYBALANCE",
-    "wqsurf": "BC",
     "wsoil": "ENERGYBALANCE",
-    "wsvsurfdum": "BC",
     "wsvtopdum": "BC",
     "wtop": "INFO",
-    "wtsurf": "BC",
     "wttop": "BC",
     "wwilt": "ENERGYBALANCE",
     "xday": "DOMAIN",
@@ -543,8 +521,6 @@
     "xlen": "DOMAIN",
     "xlon": "DOMAIN",
     "xtime": "DOMAIN",
-    "ylen": "DOMAIN",
-    "z0": "BC",
-    "z0h": "BC"
+    "ylen": "DOMAIN"
   }
 }

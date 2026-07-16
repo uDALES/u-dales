@@ -221,7 +221,6 @@ classdef preprocessing < dynamicprops
             %% &WALLS
             preprocessing.addvar(obj, 'iwallmom', 3)
             preprocessing.addvar(obj, 'iwalltemp', 1)
-            preprocessing.addvar(obj, 'lbottom', 0)
             preprocessing.addvar(obj, 'lwritefac', 0)
 
             %% &PHYSICS
@@ -1210,11 +1209,6 @@ classdef preprocessing < dynamicprops
 %             figure
             %title('Blocks', 'interpreter', 'latex')
 %             view(3)
-            
-%             if obj.lbottom
-%                 clr = [0.85, 0.85, 0.85];
-%                 patch([obj.xh(1)   obj.xh(1)   obj.xh(end)   obj.xh(end)]  , [obj.yh(1) obj.yh(end) obj.yh(end) obj.yh(1)],   [obj.zh(1)   obj.zh(1) obj.zh(1) obj.zh(1)], clr)
-%             end
 
 %             if ~obj.lflat && ~obj.lfloors
 %                 clr = [0.85, 0.85, 0.85];

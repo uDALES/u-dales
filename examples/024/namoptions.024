@@ -45,12 +45,6 @@ lvreman      = .true.
 /
 
 &BC
-BCbotT       = 2
-wtsurf       = 0.
-wqsurf       = 0.
-thls         = 301.
-z0           = 0.01
-z0h          = 0.000067
 /
 
 &WALLS

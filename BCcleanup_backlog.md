@@ -292,11 +292,11 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
       wholesale deletion of the flat-surface scheme (Task 2) rather than migrate-then-retire.
 - [ ] **Migrate the cases that use `lbottom`** (§4) to ground facets. Still open:
       `examples/999/namoptions.999` and `tests/regression/david_tests/cases/103/namoptions.103`
-      set `lbottom=.true.`, and `examples/024/namoptions.024:48` sets the now-deleted `BCbotT = 2`
-      (dead even pre-refactor, since it defaults `lbottom=.false.`) — all three will now fail to
-      parse (unknown namelist key) until migrated; update those namoptions files,
-      `tools/preprocessing.m:224`, `tools/python/namelists.json:282,393`, and the docs (§4) in a
-      follow-up.
+      set `lbottom=.true.` and are deliberately left broken-parse (unknown namelist key) —
+      Tasks 4-5 rewrite them wholesale as facet migrations. `examples/024/namoptions.024:48`
+      (which set the now-deleted `BCbotT = 2`, dead even pre-refactor since it defaults
+      `lbottom=.false.`) has been cleaned as part of Task 3's sweep, along with every other
+      namoptions file under `tests/` and `examples/` that set a pruned key (except the two above).
 - [x] **Relocate the unconditional code first** (it runs on every run regardless of `lbottom`):
   - [x] `e120/e12m` ghost at `kb-1` (modibm.f90:2010-2011) → `modboundary`, next to the `ekm/ekh`
         ghosts. Nothing else sets it; the subgrid model reads it at `kb`.
@@ -321,7 +321,7 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
       entirely in a follow-up — the build globs `src/*.f90`, so no CMake edit needed.
 - [x] Remove `BCbot*` end-to-end: declarations (modglobal.f90:160-174), namelist read/broadcast
       (modstartup.f90:136,422-425), and the `BCbotm` write (modstartup.f90:816).
-- [ ] Update the pre-processing surfaces: `tools/preprocessing.m:224` (`addvar 'lbottom'`) and
+- [x] Update the pre-processing surfaces: `tools/preprocessing.m:224` (`addvar 'lbottom'`) and
       `tools/python/namelists.json:282,393`.
 - [ ] Tests: §6.2 (plus §6.5 bitwise check for `lbottom=.false.` runs).
 
@@ -340,8 +340,9 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
       `thls` namelist prune below; `modbasestate` already existed pre-Phase-2.
 - [ ] Move survivors `ps` and the derived base-state profiles (`thl_b/qt_b/thv_b/p_b/exn_b`,
       §1.5) into a new `modbasestate`; then remove `modsurfdata` entirely.
-- [ ] Update docs: `docs/udales-namoptions-overview.md` (rows 139-152, 200) and
-      `docs/udales-example-simulations.md` (lbottom section, line 198).
+- [x] Update docs: `docs/udales-namoptions-overview.md` (rows 139-152, 200) and
+      `docs/udales-example-simulations.md` (lbottom section, line 198). Done in Task 3, ahead
+      of the rest of Phase 2 landing.
 
 ### Phase 3 — remove the recycling/rescaling inlet generator (#68, overlapping part)
 
