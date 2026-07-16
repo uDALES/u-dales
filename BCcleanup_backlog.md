@@ -567,6 +567,13 @@ here.
   settable from `namoptions`; it silently rides the `real :: wqtop = 0.` default
   (modboundary.f90:40) on every run. Not fixed here — out of scope for this cleanup pass; track as
   a follow-up (add `wqtop` to `namelist/BC/`, decide/validate a sensible default).
+- Latent pre-existing typo carried verbatim into `inflow.f90:159,197` (ex-moddriver):
+  `allocate(storethlmdriver(jb-jh:je+kh, ...))` — `je+kh` is almost certainly meant to be
+  `je+jh`; inert when `jh==kh` (the usual case). Found in the Phase-3b final review; deliberately
+  NOT fixed on this branch (bitwise gates) — fix in the future selector-consolidation task, which
+  also owns: `iinflow` rename (user-deferred), `initinflow` import fossil in `startup`
+  (modstartup.f90:88/:600), `default private` encapsulation for the `inflow` module, and the
+  alloc-never-read `storeumdriver`.
 
 Rationale for the split: the out-of-scope items are about *lateral / inflow-outflow* boundary
 conditions and momentum forcing — orthogonal to the *surface* (bottom) and *base-state* concerns

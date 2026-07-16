@@ -28,7 +28,7 @@ Key Fortran files under `src/`:
 - `modglobal.f90`: global parameters/state
 - `modstartup.f90`, `readinput.f90`: startup and input parsing
 - `modfields.f90`, `modsave.f90`, `modfielddump.f90`, `modstatsdump.f90`, `modstat_nc.f90`: field/state/output handling
-- `modboundary.f90`, `modinlet*.f90`, `moddriver.f90`: boundaries, inflow, driver runs
+- `modboundary.f90`, `inflow.f90`: boundaries, inflow generation (precursor/driver method)
 - `modforces.f90`, `modthermodynamics.f90`, `modsubgrid*.f90`, `modpois.f90`: core physics/numerics
 - `modibm*.f90`, `initfac.f90`: immersed boundary method
 - `vegetation.f90`, `modEB.f90`, `heatpump.f90`, `modchem.f90`, `modpurifiers.f90`: branch/domain-specific physics
