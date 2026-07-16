@@ -178,7 +178,7 @@ subroutine tstep_integrate
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,&
                         dpdxl,dgdt,thl0c
-  use modinletdata, only: nstepreaddriver, irecydriver
+  use inflow, only: nstepreaddriver, irecydriver
   use modsubgriddata, only : loneeqn
   use modchem, only : chem
   use decomp_2d, only : exchange_halo_z

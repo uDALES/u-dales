@@ -1,10 +1,13 @@
-!! moddriverinlet.f90 contains the set up for creating a driver simulation to use an inlet conditions for a following simulation/
+!! inflow.f90 contains the set up for creating a driver simulation to use an inlet conditions for a following simulation/
 !! This creates a realistic turbulent inlet profiles as necessary.
 !! The fields are extracted from a specified plane and stored in
 !! respective files. These files are then used to create inlet
 !! conditions for a following simualtion. Fields are linearly
 !! interpolated in time where necessary.
 !! Code set up is adapted from modinlet.f90 since similar processes are involved
+!!
+!! Merged from the former driver-subroutine module and the former driver/inlet data module as
+!! part of the BC-cleanup driver-subsystem relocation (backlog section 3b).
 
 !! \author Anton Esmail-Yakas, Imperial College London, August 5th 2017.
 !! Edited by tg3315, ICL, May 2019.
@@ -29,14 +32,58 @@
 !
 !  Copyright 2006-2021 the uDALES Team.
 !
-module moddriver
-use modinletdata
+module inflow
 implicit none
 save
-  public :: initdriver,exitdriver,readdriverfile,drivergen,readdriverfile_chunk,driverchunkread
+
+  real :: iangle    !< inflow angle in radians (change with respect to inlet velocity that is read in)
+  real :: iangledeg=0. !< inflow angle in degrees (change with respect to inlet velocity that is read in)
+
+! Inlet driver simulation variables - idriver - ae1212
+
+  real, allocatable :: storeu0driver(:,:,:)
+  real, allocatable :: storev0driver(:,:,:)
+  real, allocatable :: storew0driver(:,:,:)
+  real, allocatable :: storethl0driver(:,:,:)
+  real, allocatable :: storeqt0driver(:,:,:)
+  real, allocatable :: storesv0driver(:,:,:,:)
+  real, allocatable :: storetdriver(:)
+  real, allocatable :: u0driver(:,:)
+  real, allocatable :: v0driver(:,:)
+  real, allocatable :: u0driverrot(:,:)
+  real, allocatable :: v0driverrot(:,:)
+  real, allocatable :: w0driver(:,:)
+  real, allocatable :: thl0driver(:,:)
+  real, allocatable :: qt0driver(:,:)
+  real, allocatable :: sv0driver(:,:,:)
+
+  real, allocatable :: storeumdriver(:,:,:)
+  real, allocatable :: umdriver(:,:)
+  real, allocatable :: storevmdriver(:,:,:)
+  real, allocatable :: vmdriver(:,:)
+  real, allocatable :: storewmdriver(:,:,:)
+  real, allocatable :: wmdriver(:,:)
+  real, allocatable :: storethlmdriver(:,:,:)
+  real, allocatable :: thlmdriver(:,:)
+  real, allocatable :: storeqtmdriver(:,:,:)
+  real, allocatable :: qtmdriver(:,:)
+  real, allocatable :: storesvmdriver(:,:,:,:)
+  real, allocatable :: svmdriver(:,:,:)
+
+  integer :: irecydriver
+  integer :: nstepreaddriver=0
+
+  integer :: chunkreadctr = 1             ! chunk reading counter
+  integer :: chunkread_s = 0              ! chunk reading loop start
+  integer :: chunkread_e = 0              ! chunk reading loop end
+
+  public :: initinflow, exitinflow, drivergen, readdriverfile, readdriverfile_chunk, driverchunkread, &
+            u0driver, v0driver, w0driver, umdriver, vmdriver, wmdriver, &
+            thl0driver, thlmdriver, qt0driver, qtmdriver, sv0driver, svmdriver, &
+            iangle, iangledeg, nstepreaddriver, irecydriver
 
 contains
-  subroutine initdriver
+  subroutine initinflow
     use modglobal, only : jh,jb,je,kb,ke,kh,jhc,khc,idriver,lchunkread,chunkread_size,iplane,ltempeq,lmoist,pi,driverstore,tdriverstart,tdriverdump,nsv,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid
     use modmpi, only : myidy,nprocy
     use decomp_2d, only : zstart, zend
@@ -169,7 +216,7 @@ contains
       return
     end if
 
-  end subroutine initdriver
+  end subroutine initinflow
 
   subroutine drivergen
     use modglobal,   only : timee,btime,rk3step,&
@@ -177,7 +224,6 @@ contains
                             driverstore,prandtlmoli,numol,grav,&
                             tdriverstart,dtdriver,tdriverdump,lchunkread,chunkread_size,ltempeq,lmoist,nsv,lhdriver,lqdriver,lsdriver,&
                             iplanerank,driverid,runtime,lwarmstart
-    use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
     implicit none
 
@@ -515,7 +561,6 @@ contains
   subroutine writedriverfile
     use modglobal, only : runtime,timee,tdriverstart,tdriverstart_cold,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,ltempeq,lmoist,driverstore,dtdriver,nsv,driverid,cdriverid,btime,lwarmstart
     use modfields, only : u0, v0, w0, thl0, qt0, sv0
-    use modinletdata, only : nstepreaddriver
     implicit none
     integer :: IOS
     integer :: filesizet, filesizev, filesizes
@@ -752,7 +797,6 @@ contains
     use modfields, only : u0,sv0
     use modglobal, only : ib,jb,je,kb,ke,kh,jhc,khc,ifinput,driverstore,ltempeq,lmoist,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,driverid,cdriverid,lwarmstart
     use modmpi,    only : slabsum,excjs
-    use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver
     implicit none
     integer :: IOS, filesize, filesizes
     integer :: j,k,m,n
@@ -934,8 +978,6 @@ contains
     use modfields, only : u0,sv0
     use modglobal, only : ib,jb,je,kb,ke,kh,jhc,khc,ifinput,driverstore,chunkread_size,ltempeq,lmoist,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,driverid,cdriverid,lwarmstart
     use modmpi,    only : myid,slabsum,excjs
-    use modinletdata, only : storetdriver,storeu0driver,storev0driver,storew0driver,storethl0driver,storeqt0driver,storesv0driver, &
-                             chunkreadctr, chunkread_s, chunkread_e
     implicit none
     integer :: IOS, filesize, filesizes
     integer :: j,k,m,n
@@ -1166,7 +1208,6 @@ contains
 
   subroutine driverchunkread
     use modglobal,    only : timee,ibrank
-    use modinletdata, only : storetdriver, chunkread_e
     use modmpi,       only : myid
 
     ! if (idriver==2 .and. lchunkread .and. timee > storetdriver(chunkread_e)) then
@@ -1187,7 +1228,7 @@ contains
 
   end subroutine driverchunkread
 
-  subroutine exitdriver
+  subroutine exitinflow
     use modglobal,      only : idriver,ltempeq,lmoist,nsv,lhdriver,lqdriver,lsdriver,ibrank,iplanerank
 
     if (idriver==1 .and. iplanerank) then
@@ -1216,6 +1257,6 @@ contains
       end if
     end if
 
-  end subroutine exitdriver
+  end subroutine exitinflow
 
-end module
+end module inflow

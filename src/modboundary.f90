@@ -28,7 +28,7 @@ module modboundary
    private
    public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, bcp, bcpup, closurebc, &
              xm_periodic, xT_periodic, xq_periodic, xs_periodic, ym_periodic, yT_periodic, yq_periodic, ys_periodic, &
-             thl_top, qt_top, wttop, wqtop, sv_top, wsvtop, wsvtopdum
+             thl_top, qt_top, wttop, wqtop, sv_top, wsvtop, wsvtopdum, ubulk, vbulk
    integer :: ksp = -1 !<    lowest level of sponge layer
    real, allocatable :: tsc(:) !<   damping coefficients to be used in grwdamp.
    real :: rnu0 = 2.75e-3
@@ -41,6 +41,8 @@ module modboundary
    real, allocatable :: sv_top (:)        !<  Top scalar concentrations
    real, allocatable :: wsvtop (:)        !<  Kinematic scalar flux at top wall [- m/s]
    real :: wsvtopdum(1:99) = 0. !<  Dummy variable as nsv allocated variable
+   real :: ubulk=0.   !< Bulk velocity (to be determined at first time step)
+   real :: vbulk=0.   !< Bulk velocity (to be determined at first time step)
 contains
    !>
    !! Initializing Boundary; specifically the sponge layer
@@ -138,8 +140,7 @@ contains
       use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, u0av, v0av, uouttot, vouttot, thl0c
       use modsubgriddata, only : ekh, ekm, loneeqn
       use modmpi,         only : slabsum, avey_ibm
-      use moddriver,      only : drivergen, driverchunkread
-      use modinletdata,   only : ubulk, vbulk
+      use inflow,         only : drivergen, driverchunkread
       use decomp_2d,      only : exchange_halo_z
 
       implicit none
@@ -733,7 +734,7 @@ contains
 
      subroutine xmi_driver
        use modglobal,      only : ib, jb, je, kb, ke
-       use modinletdata,   only : u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver
+       use inflow,         only : u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver
        use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m
        use modsubgriddata, only : loneeqn
 
@@ -809,7 +810,7 @@ contains
 
      subroutine xTi_driver
        use modglobal,    only : ib, jb, je, kb, ke
-       use modinletdata, only : thl0driver, thlmdriver
+       use inflow, only : thl0driver, thlmdriver
        use modfields,    only : thl0, thlm
        integer j, k
 
@@ -840,7 +841,7 @@ contains
 
    subroutine xqi_driver
      use modglobal,    only : ib, jb, je, kb, ke
-     use modinletdata, only : qt0driver, qtmdriver
+     use inflow, only : qt0driver, qtmdriver
      use modfields,    only : qt0, qtm
 
      integer j, k
@@ -900,7 +901,7 @@ contains
 
    subroutine xsi_driver
      use modglobal,    only : ib, ihc, jb, je, kb, ke, nsv
-     use modinletdata, only : sv0driver, svmdriver
+     use inflow, only : sv0driver, svmdriver
      use modfields,    only : sv0, svm
 
      integer j, k, n, m
@@ -1211,7 +1212,7 @@ contains
                               BCym_periodic, BCym_profile
      use modfields,    only : pres0, up, vp, wp, um, vm, wm, u0, v0, uouttot, vouttot, uprof, vprof, pres0, IIc, IIcs
      use modmpi,       only : excjs, excis, avexy_ibm
-     use modinletdata, only : u0driver
+     use inflow, only : u0driver
      use decomp_2d,    only : exchange_halo_z
 
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup

@@ -42,7 +42,7 @@ program uDALES
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
-  use moddriver,         only : initdriver
+  use inflow,            only : initinflow
   use modadvection,      only : advection
   use modtstep,          only : tstep_update,tstep_integrate
   use modscalsource,     only : createscals,scalsource
@@ -85,7 +85,7 @@ program uDALES
 
   ! call initinlet
 
-  call initdriver
+  call initinflow
 
   call initpois
 

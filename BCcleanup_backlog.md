@@ -442,19 +442,36 @@ gone; `modinflow` is method-agnostic (driver + synthetic + whatever next) and pa
 `iinflow` selector. Keep the `mod` prefix — dropping it is a repo-wide convention change, out of
 scope here. (Fallback: keep `modinlet` to avoid renaming call sites.)
 
+**Naming, actual (Task 1, 2026-07-16):** `src/inflow.f90` / module `inflow` — no `mod` prefix,
+per explicit user direction overriding the proposal above. `modinlet.f90` was already deleted in
+Phase 2 (Task 1), so there was no surviving file to repurpose in place; `moddriver.f90` and
+`modinletdata.f90` were merged into this new file instead, with `moddriver`'s subroutine bodies
+carried over verbatim (only `initdriver`→`initinflow`, `exitdriver`→`exitinflow`, dropped
+now-redundant internal `use modinletdata`/`use moddriver` only-lists, and a dropped dead `use
+modsave, only: writerestartfiles` in `drivergen`).
+
 - [ ] Strip the Lund recycling/rescaling code (§3a), leaving the module as the inflow-generation
-      shell.
-- [ ] Fold `moddriver`'s functionality into it, and move the driver data
+      shell. **Superseded:** §3a already removed `modinlet.f90`/the recycling half of
+      `modinletdata.f90` in Phase 2 — nothing left to strip here.
+- [x] Fold `moddriver`'s functionality into it, and move the driver data
       (`storeu0driver…storesv0driver`, modinletdata.f90:194-200; `iangle`/`iangledeg`, consumed at
       moddriver.f90:465-466) in with it. Retire `moddriver` as a separate module. The three driver
       cases (examples/949, examples/950, tests/cases/525 — `idriver` 1/2) are the regression
-      anchors for this move.
-- [ ] Relocate `ubulk`/`vbulk` (modinletdata.f90:130-131; assigned across modstartup.f90
+      anchors for this move. **Done (Task 1, 2026-07-16):** all 7 subroutines and surviving data
+      moved into `src/inflow.f90`; five never-read members (`tdriver`, `storee120driver`,
+      `e120driver`, `storee12mdriver`, `e12mdriver` — zero live references beyond declaration,
+      verified by repo grep) dropped along with the move; `storeumdriver` kept (allocated, though
+      never subsequently read — pre-existing behaviour, not this task's to fix). Driver
+      cases/regression run deferred per this task's gate (static verification only, no Fortran
+      toolchain in this environment).
+- [x] Relocate `ubulk`/`vbulk` (modinletdata.f90:130-131; assigned across modstartup.f90
       1342-1988, consumed only at modboundary.f90:159-160; *not* inflow-generation state) to the
-      BC-owning module, **not** into the inflow module.
-- [ ] Delete `modinletdata.f90` once emptied.
+      BC-owning module, **not** into the inflow module. **Done (Task 1, 2026-07-16):** now
+      module data in `modboundary` (public, defaults `0.`, comments preserved).
+- [x] Delete `modinletdata.f90` once emptied. **Done (Task 1, 2026-07-16):** `git rm`, alongside
+      `moddriver.f90`.
 - [ ] Consolidate the method selector: replace `iinletgen` (0/1/2) + `idriver` (0/1/2) with one
-      switch `iinflow` (0=none, 1=driver, 2=synthetic).
+      switch `iinflow` (0=none, 1=driver, 2=synthetic). Deferred to Task 2 (selector rename).
 - Sequencing: §3a is well-bounded and low-risk (dead code) and lands first; the
   `moddriver`→`modinflow` consolidation in §3b is a larger refactor — separate commit/PR.
 

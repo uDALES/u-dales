@@ -85,10 +85,9 @@ module modstartup
       use modthermodynamics, only : initthermodynamics, lqlnr
       use modsubgrid,        only : initsubgrid
       use modmpi,            only : comm3d, myid, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy
-      use modinletdata,      only : iangledeg, iangle
+      use inflow,            only : iangledeg, iangle, initinflow
       use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
       use modforces,         only : calcfluidvolumes
-      use moddriver,         only : initdriver
       use modtimedep,        only : ltimedepsurf, ntimedepsurf, ltimedepnudge, ntimedepnudge, &
                                     ltimedeplw, ntimedeplw, ltimedepsw, ntimedepsw
       use modibm,            only : nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
@@ -933,12 +932,11 @@ module modstartup
          idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,BCxm_driver,&
          tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
-      use modboundary, only:boundary, tqaver, halos, sv_top
+      use modboundary, only:boundary, tqaver, halos, sv_top, ubulk, vbulk
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
       use modbasestate, only:initbasestate, thv_b
-      use modinletdata, only:ubulk, vbulk
-      use moddriver, only: readdriverfile,initdriver,drivergen,readdriverfile_chunk
+      use inflow, only: readdriverfile,initinflow,drivergen,readdriverfile_chunk
       use decomp_2d, only : exchange_halo_z, update_halo
 
       integer i, j, k, n
@@ -2037,6 +2035,7 @@ module modstartup
       use modsubgrid, only:exitsubgrid
       use modthermodynamics, only:exitthermodynamics
       use modbasestate, only:exitbasestate
+      use inflow, only:exitinflow
 
       call exitthermodynamics
       call exitbasestate
@@ -2044,6 +2043,7 @@ module modstartup
       call exitpois
       call exitfields
       call exitglobal
+      call exitinflow
       call exitmpi
 
    end subroutine exitmodules
