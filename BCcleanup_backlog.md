@@ -423,6 +423,15 @@ in `modinletdata` but are consumed by kept subsystems — relocate, don't delete
 - [ ] Tests: §6.4.
 
 #### 3b. Repurpose the module as *the inflow-generation module* (data + functionality together)
+
+**Carry-overs from the Phase-2 final review (2026-07-16, cosmetic — deferred here to keep the
+frozen gate spans clean):** orphaned `INFO` group in tools/python/namelists.json (:100 + reverse
+maps — described modinlet's inlet-metadata namelist); write-only locals
+`uaverager/uaveragei/taverager/taveragei/waverage` in modstartup.f90 (~:950, ~:1644); stale
+only-imports `Uinf, jgb, jge` in `readinitfiles`' modglobal list (verify `jgb/jge` strat-start use
+first); duplicate `timee` in modsave.f90's only-list (pre-existing); comment fossils referencing
+modinlet/lstoreplane in moddriver.f90:7,1194.
+
 Rather than delete the file, turn it into the single, self-contained home for inflow generation:
 the precursor/driver method moves in now, and a planned **synthetic turbulence generator** lands
 here later. This applies the "data + functionality together" principle (the same reason
