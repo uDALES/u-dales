@@ -394,6 +394,15 @@ git commit -m "fix(subgrid): use evolving thvf(k) in SGS buoyancy terms (DALES 4
 ```
 Tick the SGS checkbox in the backlog.
 
+**Correction (2026-07-16):** the `--atol 5e-3` expectation above does not hold on case 090.
+090 only sets `lvreman = .true.` (the default), so `closure` in `src/modsubgrid.f90` takes the
+Vreman branch, never the `loneeqn` branch that contains the two re-pointed lines
+(`zlt` at line 387, `sbbuo` at line 486). On 090 this task is dead code and the gate passes
+bitwise (`--atol 0.0`), same as Tasks 2/3/5. `tests/cases/092/` (090 with
+`lvreman = .false.` / `loneeqn = .true.`) was added to actually exercise the `loneeqn` branch;
+the `5e-3` tolerance applies there. See `tests/regression/bc_cleanup/run_test.py`'s per-case
+`default_atol` and the matching correction in `BCcleanup_backlog.md` §6.6.
+
 ---
 
 ### Task 5: Remove the `tl<100` clamp

@@ -503,6 +503,18 @@ New coverage to add:
 - [ ] Register these under an `ibm` / `reference` group in `tests/test_suites.yml` so they run in
       the merge gate.
 
+      **Correction (2026-07-16): Task 4's `5e-3` tolerance claim on case 090 was vacuous.**
+      Case 090 only sets `lvreman = .true.` (the default), so it exercises solely the Vreman
+      branch of `closure` in `src/modsubgrid.f90`. Task 4's re-point of `zlt`/`sbbuo` to the
+      evolving `thvf(k)` (`src/modsubgrid.f90:387,486`) lives in the `loneeqn` branch, which
+      090 never enters — so that commit is dead code from 090's point of view and 090 is
+      expected **bitwise** (`--atol 0.0`) across the whole branch, including through Task 4.
+      `tests/cases/092/` (090 + `lvreman = .false.` / `loneeqn = .true.`) was added so a case
+      actually runs the re-pointed lines; the `5e-3` tolerance expectation from Task 4 applies
+      to 092, not 090. See `tests/regression/bc_cleanup/run_test.py`'s per-case `default_atol`
+      (090: `0.0`, 092: `5e-3`) and `docs/superpowers/plans/2026-07-16-bc-cleanup-phase0.md`
+      (Task 4) for the matching correction.
+
 ---
 
 ## Appendix: how the IBM facet path applies surface BCs (for contrast)

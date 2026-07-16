@@ -142,8 +142,8 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | BCbots | 1 | 1 | Boundary condition for scalars at domain bottom (if `lbottom = .true.`). | - |
 | wtsurf | -1. |`REAL` | Temperature flux at domain bottom (if `lbottom = .true.`). | [Km/s] |
 | wqsurf | -1. | `REAL`| Moisture flux at domain bottom (if `lbottom = .true.`).  | [m/s] |
-| thls | -1. |  `REAL`| **Deprecated** — used only by the legacy `lbottom` scheme (if `lbottom = .true.`). The thermodynamic base state is now derived from `prof.inp` and `ps`; removal planned with `lbottom`. | [K] |
-| qts | -1. | `REAL` | **Deprecated** — used only by the legacy `lbottom` scheme (if `lbottom = .true.`). The thermodynamic base state is now derived from `prof.inp` and `ps`; removal planned with `lbottom`. | [kg/kg] |
+| thls | -1. |  `REAL`| **Deprecated** — still read by the legacy `lbottom` scheme and the dormant inlet generator (removal planned: `lbottom` in Phase 1, inlet generator in Phase 3). The thermodynamic base state is now derived from `prof.inp` and `ps`. | [K] |
+| qts | -1. | `REAL` | **Deprecated** — unused; kept for namelist compatibility until removal. The thermodynamic base state is now derived from `prof.inp` and `ps`. | [kg/kg] |
 | z0 | -1. |  `REAL`| Momentum roughness length of the domain bottom (if `lbottom = .true.`).  | [m] |
 | z0h | -1. |  `REAL`| Heat roughness length of the domain bottom (if `lbottom = .true.`).| [m] |
 
