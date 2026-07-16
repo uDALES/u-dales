@@ -312,7 +312,13 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
 - [x] Delete `subroutine bottom` (modibm.f90:1997-2099), its call site (program.f90:153) and
       import (program.f90:38).
 - [x] Delete `CASE(91)/(92)` surface blocks in `wfuno`/`wfmneutral`
-      (modwallfunctions.f90:81-164, 307-350).
+      (modwallfunctions.f90:81-164, 307-350). **Went further:** post-deletion both
+      subroutines had zero remaining cases and zero call sites anywhere in src/ (the
+      IBM path uses `wallfunmom`/`wallfunheat` in modibm — the scouted facet-code
+      callers never existed), so `wfuno`, `wfmneutral`, and their orphaned Uno1995
+      helpers `unoh`/`unom` were deleted wholesale. `modwallfunctions` is now an
+      empty module shell (tombstone comment points here); the file can be dropped
+      entirely in a follow-up — the build globs `src/*.f90`, so no CMake edit needed.
 - [x] Remove `BCbot*` end-to-end: declarations (modglobal.f90:160-174), namelist read/broadcast
       (modstartup.f90:136,422-425), and the `BCbotm` write (modstartup.f90:816).
 - [ ] Update the pre-processing surfaces: `tools/preprocessing.m:224` (`addvar 'lbottom'`) and
