@@ -2,12 +2,26 @@
 
 """Phase 0 regression gate for the BCcleanup refactor (BCcleanup_backlog.md).
 
-Compares dumped fields on the matched-anchor case 090 between two refs, run
-under two MPI decompositions. Adapted from
-tests/regression/mpi_averaging_regression/run_test.py: the worktree/build/
-run/stitch machinery is unchanged; the case matrix, decomposition set, and
-field comparison were replaced for a single-case, tolerance-driven gate that
-every BCcleanup commit is checked against.
+Compares dumped fields between two refs, run under two MPI decompositions,
+for two cases:
+
+- 090: matched-anchor case, Vreman SGS (`lvreman = .true.`, the default).
+  Bitwise across the whole branch (`default_atol = 0.0`) — the Task 4
+  SGS re-point (`src/modsubgrid.f90:387,486`) lives in the `loneeqn`
+  branch of `closure`, which 090 never executes, so that commit is a
+  no-op here.
+- 092: same fixture as 090 but with the one-equation TKE closure enabled
+  (`lvreman = .false.`, `loneeqn = .true.`), so the Task 4 re-point
+  actually runs. `default_atol = 5e-3` for this case (constant-thvs to
+  evolving-thvf(k) is a deliberate physics change; see Task 4 and the
+  correction note in `BCcleanup_backlog.md`).
+
+Each `CaseSpec` carries its own `default_atol`, used when `--atol` is not
+passed; an explicit `--atol` overrides the tolerance for every case.
+Adapted from tests/regression/mpi_averaging_regression/run_test.py: the
+worktree/build/run/stitch machinery is unchanged; the case matrix,
+decomposition set, and field comparison were replaced for a tolerance-driven
+gate that every BCcleanup commit is checked against.
 """
 
 import argparse
@@ -51,14 +65,22 @@ LOG_PATTERNS = {
     "divergence": re.compile(r"divmax, divtot =\s*([Ee0-9+\-\.]+)\s+([Ee0-9+\-\.]+)"),
 }
 
-CaseSpec = collections.namedtuple("CaseSpec", "case nc_pattern fields abs_tol")
+CaseSpec = collections.namedtuple("CaseSpec", "case nc_pattern fields abs_tol default_atol")
 
 CASES = (
     CaseSpec(
         case="090",
         nc_pattern="tdump.*.090.nc",   # match the per-tile dump files case 090 produces
         fields=None,                    # None = compare every variable with ndim >= 3
-        abs_tol=None,                   # filled from --atol
+        abs_tol=None,                   # filled from --atol or default_atol in main()
+        default_atol=0.0,               # Vreman SGS: Task 4 re-point is dead code here (bitwise)
+    ),
+    CaseSpec(
+        case="092",
+        nc_pattern="tdump.*.092.nc",   # match the per-tile dump files case 092 produces
+        fields=None,                    # None = compare every variable with ndim >= 3
+        abs_tol=None,                   # filled from --atol or default_atol in main()
+        default_atol=5.0e-3,            # one-equation SGS: Task 4 re-point is live here
     ),
 )
 
@@ -70,11 +92,12 @@ CONFIGS = {
 # Cases available to --assert-only (single-branch smoke checks, not the
 # reference-vs-current field comparison used by CASES/_run_case_matrix).
 ASSERT_ONLY_CASES = {
-    "090": CaseSpec(case="090", nc_pattern="tdump.*.090.nc", fields=None, abs_tol=None),
+    "090": CaseSpec(case="090", nc_pattern="tdump.*.090.nc", fields=None, abs_tol=None, default_atol=0.0),
     # Buried-slab fixture (backlog 6.6): floor-covering box, 2 grid cells
     # tall, so slabs kb and kb+1 are fully solid (IIcs(k) == 0). Exercises
     # the base-state fallback in diagfld (src/modthermodynamics.f90).
-    "091": CaseSpec(case="091", nc_pattern="tdump.*.091.nc", fields=None, abs_tol=None),
+    "091": CaseSpec(case="091", nc_pattern="tdump.*.091.nc", fields=None, abs_tol=None, default_atol=0.0),
+    "092": CaseSpec(case="092", nc_pattern="tdump.*.092.nc", fields=None, abs_tol=None, default_atol=5.0e-3),
 }
 
 BASE_STATE_LOG_MARKER = "Base state:"
@@ -344,6 +367,16 @@ def _compare_fields(
                 f"{label}: {field} shape mismatch ref {reference[field].shape} cur {current[field].shape}"
             )
             continue
+        # NaN comparisons are always False, so `max_diff > spec.abs_tol` below would
+        # silently pass if either side contains NaN (np.abs(nan - x).max() is nan,
+        # and `nan > anything` is False). Fail loudly instead.
+        cur_nan_count = int(np.isnan(current[field]).sum())
+        ref_nan_count = int(np.isnan(reference[field]).sum())
+        if cur_nan_count or ref_nan_count:
+            failures.append(
+                f"{label}: {field} contains NaN (current: {cur_nan_count}, reference: {ref_nan_count})"
+            )
+            continue
         diff = np.abs(current[field] - reference[field])
         flat = int(np.argmax(diff))
         idx = tuple(int(v) for v in np.unravel_index(flat, diff.shape))
@@ -609,7 +642,7 @@ def main(
     branch_a: str,
     branch_b: str,
     build_type: str,
-    atol: float,
+    atol: Optional[float] = None,
     ci_mode: bool = False,
     reference_build_dir: Optional[Path] = None,
     reuse_current_build: bool = False,
@@ -619,7 +652,13 @@ def main(
     configs: Optional[Sequence[str]] = None,
 ) -> int:
     workdir = workdir.resolve()
-    selected_specs = [spec._replace(abs_tol=atol) for spec in CASES]
+    # An explicit --atol overrides every case's tolerance; otherwise each
+    # case uses its own default_atol (see the CASES table and the module
+    # docstring for why 090 and 092 differ).
+    selected_specs = [
+        spec._replace(abs_tol=(atol if atol is not None else spec.default_atol))
+        for spec in CASES
+    ]
     selected_configs = list(CONFIGS) if configs is None else list(configs)
 
     with _create_temp_root(workdir, "bc-cleanup-worktrees-", cleanup) as worktree_tmp, \
@@ -649,11 +688,11 @@ def main(
             print(f"current branch:    {branch_b}", flush=True)
             print(f"ci mode:           {ci_mode}", flush=True)
             print(f"build type:        {build_type}", flush=True)
-            print(f"atol:              {atol}", flush=True)
+            print(f"atol override:     {atol if atol is not None else '(none; using per-case default_atol)'}", flush=True)
             print(f"workdir:           {workdir}", flush=True)
             print(f"cleanup:           {cleanup}", flush=True)
             print(f"run root:          {run_root}", flush=True)
-            print(f"cases:             {[spec.case for spec in selected_specs]}", flush=True)
+            print(f"cases:             {[(spec.case, spec.abs_tol) for spec in selected_specs]}", flush=True)
             print(f"configs:           {selected_configs}", flush=True)
             if reference_build_dir is not None:
                 print(f"reference build dir:{reference_exe}", flush=True)
@@ -730,8 +769,10 @@ if __name__ == "__main__":
     parser.add_argument("branch_a")
     parser.add_argument("branch_b")
     parser.add_argument("build_type", choices=["Debug", "Release"])
-    parser.add_argument("--atol", type=float, default=0.0,
-                        help="max allowed |current - reference| per field (0.0 = bitwise)")
+    parser.add_argument("--atol", type=float, default=None,
+                        help="max allowed |current - reference| per field, applied to every "
+                             "case. If omitted, each case uses its own default_atol from CASES "
+                             "(090: 0.0 bitwise; 092: 5e-3).")
     parser.add_argument("--ci", action="store_true")
     parser.add_argument(
         "--reference-build-dir",
