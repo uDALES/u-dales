@@ -24,13 +24,18 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
+from exceptions import DependencyError
 from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
 from shapely.ops import unary_union
+
+from ._meshutil import _iter_polygons, _project_vertical_face
+
+from ._meshgraph import build_face_adjacency, connected_components
 
 
 def _as_trimesh(mesh_or_geom) -> "trimesh.Trimesh":
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     if isinstance(mesh_or_geom, trimesh.Trimesh):
         return mesh_or_geom
@@ -93,29 +98,12 @@ def identify_ground_faces(
     if not np.any(horizontal_mask):
         return np.zeros(n_faces, dtype=bool)
 
-    adjacency = {i: set() for i in range(n_faces)}
-    for face_a, face_b in np.asarray(mesh.face_adjacency, dtype=int):
-        adjacency[int(face_a)].add(int(face_b))
-        adjacency[int(face_b)].add(int(face_a))
-
-    visited = set()
-    components = []
-    candidate_ids = np.flatnonzero(horizontal_mask)
-    for face_id in candidate_ids:
-        face_id = int(face_id)
-        if face_id in visited:
-            continue
-        stack = [face_id]
-        visited.add(face_id)
-        component = []
-        while stack:
-            current = stack.pop()
-            component.append(current)
-            for nb in adjacency[current]:
-                if nb not in visited and horizontal_mask[nb]:
-                    visited.add(nb)
-                    stack.append(nb)
-        components.append(np.asarray(component, dtype=int))
+    adjacency = build_face_adjacency(mesh)
+    # Components restricted to horizontal faces (start from them, only traverse
+    # into other horizontal faces).
+    components = connected_components(
+        adjacency, seeds=np.flatnonzero(horizontal_mask), keep=horizontal_mask
+    )
 
     if not components:
         return np.zeros(n_faces, dtype=bool)
@@ -153,32 +141,6 @@ def identify_ground_faces(
     for comp in ground_components:
         mask[comp] = True
     return mask
-
-
-def _iter_polygons(geom):
-    if geom.is_empty:
-        return
-    if isinstance(geom, Polygon):
-        yield geom
-    elif isinstance(geom, MultiPolygon):
-        for poly in geom.geoms:
-            yield from _iter_polygons(poly)
-    elif isinstance(geom, GeometryCollection):
-        for item in geom.geoms:
-            yield from _iter_polygons(item)
-
-
-def _project_vertical_face(vertices: np.ndarray, axis: int) -> Polygon | None:
-    if axis == 0:
-        coords = vertices[:, [1, 2]]
-    else:
-        coords = vertices[:, [0, 2]]
-    poly = Polygon(coords)
-    if not poly.is_valid:
-        poly = poly.buffer(0)
-    if poly.is_empty or poly.area <= 1.0e-12:
-        return None
-    return poly
 
 
 def find_internal_touching_wall_regions(
@@ -526,31 +488,12 @@ def calculate_independent_surfaces(mesh_or_geom) -> Dict[str, Union[int, list, n
             "surfaces": [],
         }
 
-    adjacency = {i: set() for i in range(n_faces)}
-    for face_a, face_b in np.asarray(mesh.face_adjacency, dtype=int):
-        adjacency[int(face_a)].add(int(face_b))
-        adjacency[int(face_b)].add(int(face_a))
+    adjacency = build_face_adjacency(mesh)
+    components = connected_components(adjacency)  # ascending face-order seeds
 
-    visited = set()
     face_surface_ids = np.zeros(n_faces, dtype=int)
     surfaces = []
-    surface_id = 0
-    for face_id in range(n_faces):
-        if face_id in visited:
-            continue
-        surface_id += 1
-        stack = [face_id]
-        visited.add(face_id)
-        component_face_ids = []
-        while stack:
-            current = stack.pop()
-            component_face_ids.append(current)
-            for nb in adjacency[current]:
-                if nb not in visited:
-                    visited.add(nb)
-                    stack.append(nb)
-
-        component_face_ids = np.asarray(component_face_ids, dtype=int)
+    for surface_id, component_face_ids in enumerate(components, start=1):
         face_surface_ids[component_face_ids] = int(surface_id)
         surfaces.append(
             {
@@ -560,6 +503,7 @@ def calculate_independent_surfaces(mesh_or_geom) -> Dict[str, Union[int, list, n
                 "bbox": _bbox_from_face_ids(vertices, faces, component_face_ids),
             }
         )
+    surface_id = len(components)  # n_surfaces for the return below
 
     surfaces.sort(key=lambda item: (-item["n_faces"], item["surface_id"]))
     return {
@@ -732,11 +676,12 @@ def check(mesh_or_geom, require_single_component: bool = True) -> Dict[str, Unio
         report["issues"].append(f"mesh has {n_duplicate_faces} duplicate faces")
 
     # Degenerate faces / zero-area faces
-    n_degenerate_faces = int(np.count_nonzero(np.array([len(np.unique(face)) < 3 for face in faces], dtype=bool)))
+    degenerate_mask = np.array([len(np.unique(face)) < 3 for face in faces], dtype=bool)
+    n_degenerate_faces = int(np.count_nonzero(degenerate_mask))
     report["n_degenerate_faces"] = n_degenerate_faces
     if n_degenerate_faces > 0:
         report["details"]["degenerate_face_ids"] = np.flatnonzero(
-            np.array([len(np.unique(face)) < 3 for face in faces], dtype=bool)
+            degenerate_mask
         ).astype(int).tolist()
         report["valid"] = False
         report["issues"].append(f"mesh has {n_degenerate_faces} degenerate faces")

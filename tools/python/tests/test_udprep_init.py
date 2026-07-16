@@ -1,21 +1,15 @@
-import io
+from __future__ import annotations
+
 import shutil
 import subprocess
 import sys
 import unittest
-from contextlib import redirect_stderr
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 from udprep.udprep_init import (  # noqa: E402
     _parse_shell_config,
@@ -23,7 +17,6 @@ from udprep.udprep_init import (  # noqa: E402
     _validate_config_paths,
     validate_expnr,
 )
-
 
 def _write_namoptions(path: Path, expnr: str, iexpnr_line: str | None = None) -> None:
     """Write a minimal namoptions file to *path*."""
@@ -34,14 +27,24 @@ def _write_namoptions(path: Path, expnr: str, iexpnr_line: str | None = None) ->
         encoding="ascii",
     )
 
+from exceptions import ConfigurationError  # noqa: E402
 
 class TestShellConfigParsing(unittest.TestCase):
     def setUp(self):
         self.temp_dir = TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
-        self.workdir = Path(self.temp_dir.name)
+        # Resolve symlinks in the temp path: on macOS $TMPDIR is /var -> /private/var
+        # (and some clusters symlink it too). The config.sh below uses $(pwd), which
+        # bash reports resolved, so the expected path must be resolved to match.
+        self.workdir = Path(self.temp_dir.name).resolve()
 
     @unittest.skipIf(shutil.which("bash") is None, "bash is required for shell config sourcing")
+    @unittest.skipIf(
+        sys.platform == "win32",
+        "sources config through bash, whose $(pwd) reports a POSIX mount path "
+        "that cannot equal Python's Windows temp path; this shell-sourcing path "
+        "is a Linux/macOS production feature.",
+    )
     def test_parse_shell_config_sources_shell_and_filters_da_variables(self):
         config = self.workdir / "config.sh"
         config.write_text(
@@ -84,6 +87,20 @@ class TestShellConfigParsing(unittest.TestCase):
 
         self.assertEqual(variables, {"DA_EXPDIR": "/tmp/experiments", "DA_TOOLSDIR": "/tmp/tools"})
 
+    def test_parse_shell_config_falls_back_when_bash_missing(self):
+        # Regression (P12): on stock Windows there is no bash, so subprocess.run
+        # raises FileNotFoundError (an OSError) rather than CalledProcessError.
+        # The text-parsing fallback must still be reached.
+        config = self.workdir / "config.sh"
+        config.write_text("export DA_EXPDIR='/tmp/experiments'\n", encoding="ascii")
+
+        with mock.patch(
+            "udprep.udprep_init.subprocess.run",
+            side_effect=FileNotFoundError("bash not found"),
+        ):
+            variables = _parse_shell_config(config)
+
+        self.assertEqual(variables, {"DA_EXPDIR": "/tmp/experiments"})
 
 class TestValidateConfigPaths(unittest.TestCase):
     def setUp(self):
@@ -97,34 +114,33 @@ class TestValidateConfigPaths(unittest.TestCase):
     def test_validate_config_paths_warns_for_missing_required_variables(self):
         (self.expdir / "config.sh").write_text("", encoding="ascii")
 
-        stderr = io.StringIO()
         with mock.patch(
             "udprep.udprep_init._parse_shell_config",
             return_value={"DA_EXPDIR": str(self.expbase)},
-        ), redirect_stderr(stderr):
+        ), warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
             _validate_config_paths(self.expdir)
 
-        text = stderr.getvalue()
-        self.assertIn("WARNING: Missing variables in config.sh: DA_TOOLSDIR", text)
-        self.assertIn("optional for preprocessing", text)
+        messages = " ".join(str(w.message) for w in caught)
+        self.assertIn("Missing variables in config.sh: DA_TOOLSDIR", messages)
+        self.assertIn("optional for preprocessing", messages)
 
     def test_validate_config_paths_warns_for_mismatched_paths(self):
         (self.expdir / "config.sh").write_text("", encoding="ascii")
 
-        stderr = io.StringIO()
         with mock.patch(
             "udprep.udprep_init._parse_shell_config",
             return_value={
                 "DA_EXPDIR": "/tmp/wrong-experiments",
                 "DA_TOOLSDIR": "/tmp/wrong-tools",
             },
-        ), redirect_stderr(stderr):
+        ), warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
             _validate_config_paths(self.expdir)
 
-        text = stderr.getvalue()
-        self.assertIn("WARNING: DA_EXPDIR mismatch", text)
-        self.assertIn("WARNING: DA_TOOLSDIR mismatch", text)
-
+        messages = " ".join(str(w.message) for w in caught)
+        self.assertIn("DA_EXPDIR mismatch", messages)
+        self.assertIn("DA_TOOLSDIR mismatch", messages)
 
 class TestReadIexpnrFromNameoptions(unittest.TestCase):
     def setUp(self):
@@ -150,19 +166,19 @@ class TestReadIexpnrFromNameoptions(unittest.TestCase):
     def test_exits_on_missing_iexpnr(self):
         f = self.workdir / "namoptions.001"
         f.write_text("&RUN\n lbuoyancy = .true.\n/\n", encoding="ascii")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             _read_iexpnr_from_namoptions(f)
 
     def test_exits_on_non_three_digit_iexpnr(self):
         f = self.workdir / "namoptions.001"
         f.write_text("&RUN\n iexpnr = 1,\n/\n", encoding="ascii")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             _read_iexpnr_from_namoptions(f)
 
     def test_exits_on_four_digit_iexpnr(self):
         f = self.workdir / "namoptions.001"
         f.write_text("&RUN\n iexpnr = 1000,\n/\n", encoding="ascii")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             _read_iexpnr_from_namoptions(f)
 
     def test_skips_comment_lines(self):
@@ -171,7 +187,6 @@ class TestReadIexpnrFromNameoptions(unittest.TestCase):
             "! iexpnr = 999\n&RUN\n iexpnr = 007,\n/\n", encoding="ascii"
         )
         self.assertEqual(_read_iexpnr_from_namoptions(f), "007")
-
 
 class TestValidateExpnr(unittest.TestCase):
     def setUp(self):
@@ -193,26 +208,26 @@ class TestValidateExpnr(unittest.TestCase):
         self.assertEqual(validate_expnr(expdir), "042")
 
     def test_exits_if_directory_does_not_exist(self):
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(self.expbase / "999")
 
     def test_exits_if_no_namoptions_file(self):
         expdir = self.expbase / "001"
         expdir.mkdir()
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
 
     def test_exits_if_namoptions_suffix_not_three_digits(self):
         expdir = self.expbase / "abc"
         expdir.mkdir()
         (expdir / "namoptions.abc").write_text("&RUN\n iexpnr = abc,\n/\n", encoding="ascii")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
 
     def test_exits_if_multiple_namoptions_files(self):
         expdir = self._make_case("010")
         (expdir / "namoptions.011").write_text("&RUN\n iexpnr = 011,\n/\n", encoding="ascii")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
 
     def test_exits_if_dirname_mismatches_filename_suffix(self):
@@ -220,7 +235,7 @@ class TestValidateExpnr(unittest.TestCase):
         expdir = self.expbase / "050"
         expdir.mkdir()
         _write_namoptions(expdir / "namoptions.051", "051")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
 
     def test_exits_if_iexpnr_mismatches_filename_suffix(self):
@@ -228,16 +243,15 @@ class TestValidateExpnr(unittest.TestCase):
         expdir = self.expbase / "050"
         expdir.mkdir()
         _write_namoptions(expdir / "namoptions.050", "099")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
 
     def test_exits_if_all_three_mismatch(self):
         expdir = self.expbase / "001"
         expdir.mkdir()
         _write_namoptions(expdir / "namoptions.002", "003")
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ConfigurationError):
             validate_expnr(expdir)
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,11 +4,20 @@ import unittest
 
 import numpy as np
 
-from _common import REPO_ROOT
+from _common import REPO_ROOT, RUN_SLOW_TESTS, requires_slow_tests
+
+# Gate BEFORE importing the solver: importing udprep.directshortwave triggers
+# numba compilation, so even a skipped test class would pay minutes of import
+# cost during ordinary discovery (see test_directshortwave.py).
+if not RUN_SLOW_TESTS:
+    raise unittest.SkipTest(
+        "slow numba direct-shortwave tests; set UDALES_RUN_SLOW_TESTS=1 to run"
+    )
+
 from udbase import UDBase
 from udprep.directshortwave import DirectShortwaveSolver
 
-
+@requires_slow_tests
 class TestDirectShortwavePeriodic(unittest.TestCase):
     def setUp(self):
         self.sim = UDBase("101", REPO_ROOT / "examples" / "101", load_geometry=True)
@@ -39,7 +48,6 @@ class TestDirectShortwavePeriodic(unittest.TestCase):
         self.assertGreater(bud_periodic["fac"], 0.0)
         self.assertGreater(np.count_nonzero(sdir_periodic > 0.0), 0)
         self.assertFalse(np.allclose(sdir_nonperiodic, sdir_periodic))
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -46,7 +46,7 @@ The commands on this page were validated with the following local setup:
 - GCC 15.2.0 (`gcc` from conda-forge)
 - GFortran 15.2.0 (`gfortran` from conda-forge)
 - Ninja 1.13.0
-- Python packages from `tools/python/requirements.txt` (including `numpy`, `scipy`, `xarray`, `netCDF4`, `matplotlib`, `f90nml`, `numba`, `pvlib`, `plotly`, `ipykernel`)
+- Python packages from `tools/python/requirements.txt` (including `numpy`, `scipy`, `pandas`, `xarray`, `netCDF4`, `h5netcdf`, `trimesh`, `shapely`, `matplotlib`, `f90nml`, `numba`, `pvlib`, `pyvista`, `ipykernel`). `plotly` is an optional visualization backend in `requirements-plotly.txt`.
 - Python build packages from `tools/python/requirements-build.txt` (`meson`, `ninja`)
 
 You can inspect your local tool versions with:

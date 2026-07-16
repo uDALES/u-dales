@@ -1,27 +1,21 @@
+import contextlib
 import sys
 import types
 import unittest
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
 
 import numpy as np
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR
-
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
 
 from udprep.udprep import Section, SectionSpec, SKIP, UDPrep  # noqa: E402
 from udprep.udprep_bcs import SPEC as BCS_SPEC  # noqa: E402
 from udprep.udprep_ibm import IBMSection  # noqa: E402
 from udprep.udprep_radiation import RadiationSection  # noqa: E402
 from udprep.udprep_seb import SEBSection  # noqa: E402
-
 
 class DummySection(Section):
     def ping(self):
@@ -33,7 +27,6 @@ class DummySection(Section):
     def accept_kwargs(self, **kwargs):
         self.kwargs_seen = kwargs
 
-
 class DummySim:
     def __init__(self, expnr="999", path=None):
         self.expnr = expnr
@@ -44,7 +37,6 @@ class DummySim:
 
     def save_param(self, key, value):
         self.saved.append((key, value))
-
 
 class FakeSection:
     def __init__(self, name, values, sim=None, defaults=None):
@@ -70,7 +62,6 @@ class FakeSection:
     def __repr__(self):
         return f"{self._name}:"
 
-
 class TestSectionCore(unittest.TestCase):
     def test_resolve_default_supports_fraction_reference(self):
         ctx = types.SimpleNamespace(foo=12.0, bar=3.0)
@@ -82,6 +73,22 @@ class TestSectionCore(unittest.TestCase):
             {},
         )
         self.assertEqual(value, 4.0)
+
+    def test_resolve_default_does_not_split_non_identifier_slash_string(self):
+        # P17: a string default containing "/" that is not an identifier/identifier
+        # fraction (e.g. a path or a units label) must be returned verbatim, not
+        # interpreted as a division of two ctx attributes.
+        ctx = types.SimpleNamespace()
+        for literal in ("some/path", "W/m2", "1/foo", "foo/2"):
+            with self.subTest(literal=literal):
+                value = Section.resolve_default(
+                    "grid",
+                    "label",
+                    ctx,
+                    {"grid": {"label": literal}},
+                    {},
+                )
+                self.assertEqual(value, literal)
 
     def test_resolve_default_falls_back_to_callable(self):
         ctx = types.SimpleNamespace(foo=8)
@@ -137,7 +144,6 @@ class TestSectionCore(unittest.TestCase):
         changed = section._changed_params()
         self.assertEqual(len(changed), 1)
         self.assertEqual(changed[0][0], "arr")
-
 
 class TestIBMSection(unittest.TestCase):
     def setUp(self):
@@ -328,6 +334,38 @@ class TestIBMSection(unittest.TestCase):
         self.assertEqual(len(lines), 4)
         self.assertTrue(lines[1].startswith("   1"))
         self.assertTrue(lines[3].startswith("   4"))
+
+    def test_write_facets_does_not_overwrite_existing_file(self):
+        # Regression: an existing facets.inp is authored input. A re-run must not
+        # clobber hand-assigned materials (previously it overwrote unconditionally,
+        # destroying e.g. green-roof/asphalt-floor types with all-concrete).
+        section = self._make_section()
+        section.sim.geom = types.SimpleNamespace(
+            stl=types.SimpleNamespace(
+                faces=np.array([[0, 1, 2], [2, 3, 0], [0, 3, 4]], dtype=int),
+                face_normals=np.array(
+                    [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], dtype=float
+                ),
+            )
+        )
+        existing = (
+            "# type, normal\n"
+            "  -1 0.0000 0.0000 1.0000\n"
+            "   1 0.0000 1.0000 0.0000\n"
+            "  12 1.0000 0.0000 0.0000\n"
+        )
+        facets_path = self.workdir / "facets.inp.321"
+        facets_path.write_text(existing, encoding="ascii")
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            section.write_facets()
+
+        # File is left untouched, and its types are loaded into state.
+        self.assertEqual(facets_path.read_text(encoding="ascii"), existing)
+        self.assertEqual(section.sim.facet_types.tolist(), [-1, 1, 12])
+        self.assertEqual(section.sim.nfcts, 3)
+        self.assertTrue(any("NOT overwriting" in str(w.message) for w in caught))
 
     def test_load_facet_types_accepts_one_line_header(self):
         types_path = self.workdir / "types.txt"
@@ -656,9 +694,16 @@ class TestUDPrepCore(unittest.TestCase):
 
         self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
         prep.radiation.run_all.assert_called_once_with(force=True)
+        # P7 / #316: SEB is decoupled from the radiation gate. The orchestrator
+        # always delegates to SEBSection when libm is set; the section itself
+        # decides whether to write Tfacinit (a no-op here, since sim.lEB=False
+        # and no iwall*==2). Section-level gating is covered by TestSEBSection.
         prep.seb.run_all.assert_called_once()
 
     def test_run_all_skips_radiation_but_still_runs_facet_temperature_gate_when_lEB_is_false(self):
+        # P7 / #316: SEB is decoupled from the radiation gate. Radiation is
+        # disabled here while the facet-temperature step still runs; the two
+        # gates are independent.
         prep = self._make_run_all_prep(libm=True, radiation_lEB=False)
         prep.sim.lEB = True
         prep.radiation.run_all = mock.Mock()
@@ -667,6 +712,21 @@ class TestUDPrepCore(unittest.TestCase):
         prep.run_all(force=True, ibm_backend="legacy")
 
         self.assertEqual(prep.ibm.run_all_calls, [{"backend": "legacy"}])
+        prep.radiation.run_all.assert_not_called()
+        prep.seb.run_all.assert_called_once()
+
+    def test_run_all_runs_seb_for_wall_temperature_bc_without_lEB(self):
+        # P7 / #316: a non-EB case with iwalltemp=2 must still get Tfacinit from
+        # the pipeline. Radiation stays off (radiation_lEB=False); the
+        # orchestrator delegates to SEBSection, which gates on iwalltemp==2.
+        prep = self._make_run_all_prep(libm=True, radiation_lEB=False)
+        prep.sim.lEB = False
+        prep.sim.iwalltemp = 2
+        prep.radiation.run_all = mock.Mock()
+        prep.seb.run_all = mock.Mock()
+
+        prep.run_all(force=True, ibm_backend="legacy")
+
         prep.radiation.run_all.assert_not_called()
         prep.seb.run_all.assert_called_once()
 
@@ -697,7 +757,6 @@ class TestUDPrepCore(unittest.TestCase):
         self.assertEqual(prep.beta.write_changed_params_calls, 1)
         self.assertEqual(prep.alpha.show_changed_params_calls, 1)
         self.assertEqual(prep.beta.show_changed_params_calls, 1)
-
 
 class TestRadiationSection(unittest.TestCase):
     def test_shortwave_method_maps_ishortwave_to_backend(self):
@@ -800,6 +859,52 @@ class TestRadiationSection(unittest.TestCase):
 
             self.assertFalse(vf_path.exists())
 
+    def test_run_short_wave_recomputes_on_signature_mismatch(self):
+        # P5 remainder: outputs that exist with a STALE signature sidecar must
+        # not be reused — the section must fall through and recompute.
+        with TemporaryDirectory() as temp_dir:
+            case_dir = Path(temp_dir)
+            sim = DummySim(expnr="321", path=case_dir)
+            sim.ltrees = False
+            sim.assign_prop_to_fac = lambda _prop: np.ones(3)
+            sim.geom = types.SimpleNamespace(
+                stl=types.SimpleNamespace(face_normals=np.tile([0.0, 0.0, 1.0], (3, 1)))
+            )
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+            section.lEB = False
+            section.isolar = 1
+            section.ishortwave = 4
+            section.psc_res = None
+            section.solarzenith = 45.0
+            section.solarazimuth = 180.0
+            section.xazimuth = 0.0
+            section.I = 800.0
+            section.Dsky = 100.0
+            section.maxD = 1000.0
+            section.year, section.month, section.day = 2020, 6, 21
+            section.hour, section.minute, section.second = 12, 0, 0
+
+            (case_dir / "Sdir.txt").write_text("1.0\n", encoding="ascii")
+            (case_dir / "netsw.inp.321").write_text("1.0\n", encoding="ascii")
+            # A stale sidecar that cannot match the current inputs.
+            (case_dir / "Sdir.txt.sig").write_text("STALE-DOES-NOT-MATCH", encoding="ascii")
+
+            called = {}
+
+            def fake_compute_knet(*_a, **_k):
+                called["hit"] = True
+                return np.zeros(3), np.zeros(3), None
+
+            section._compute_knet = fake_compute_knet
+            section.run_short_wave()
+
+            self.assertTrue(called.get("hit"), "stale signature must force a recompute")
+            # The recompute must refresh the sidecar so the next run can skip.
+            self.assertNotEqual(
+                (case_dir / "Sdir.txt.sig").read_text(encoding="ascii"),
+                "STALE-DOES-NOT-MATCH",
+            )
+
     def test_write_netsw_only_writes_sveg_when_nonempty(self):
         with TemporaryDirectory() as temp_dir:
             case_dir = Path(temp_dir)
@@ -812,12 +917,52 @@ class TestRadiationSection(unittest.TestCase):
             section.write_netsw(np.array([1.0]), s_veg=np.array([2.0]))
             self.assertTrue((case_dir / "sveg.inp.321").exists())
 
+    def test_write_netsw_sveg_written_verbatim_under_wm3_header(self):
+        # The solver scales s_veg to physical W/m3; the writer must store those
+        # values verbatim under a truthful [W/m3] header (no re-scaling here, so
+        # the solver is the single owner of the irradiance factor).
+        with TemporaryDirectory() as temp_dir:
+            case_dir = Path(temp_dir)
+            sim = DummySim(expnr="321", path=case_dir)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+
+            s_veg = np.array([314.7755, 12.5, 0.25], dtype=float)
+            section.write_netsw(np.array([1.0, 2.0]), s_veg=s_veg)
+
+            sveg_path = case_dir / "sveg.inp.321"
+            header = sveg_path.read_text(encoding="ascii").splitlines()[0]
+            self.assertIn("[W/m3]", header)
+            values = np.loadtxt(sveg_path)
+            np.testing.assert_allclose(values, s_veg, atol=1.0e-4)
+
+    def test_write_timedepsveg_written_verbatim_under_wm3_header(self):
+        # Per-step physical W/m3 values (already scaled by each step's
+        # irradiance in the solver) must be stored verbatim, times first.
+        with TemporaryDirectory() as temp_dir:
+            case_dir = Path(temp_dir)
+            sim = DummySim(expnr="321", path=case_dir)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+
+            tSP = np.array([0.0, 100.0, 200.0], dtype=float)
+            # (nveg=2, nt=3): distinct per-step values to catch any re-scaling.
+            s_veg = np.array([[1.0, 2.0, 3.0], [10.0, 20.0, 30.0]], dtype=float)
+            section.write_timedepsveg(tSP, s_veg)
+
+            path = case_dir / "timedepsveg.inp.321"
+            header = path.read_text(encoding="ascii").splitlines()[0]
+            self.assertIn("[W/m3]", header)
+            data = np.loadtxt(path)
+            np.testing.assert_allclose(data[0], tSP, atol=1.0e-4)
+            np.testing.assert_allclose(data[1:], s_veg, atol=1.0e-4)
+
     def test_scanline_knet_uses_sdir_file_precision(self):
         section = RadiationSection("radiation", {}, sim=DummySim())
         full_sdir = np.array([1.234, 5.675, 9.999], dtype=float)
 
         def fake_calc_direct_sw(*_args, **_kwargs):
-            return full_sdir.copy(), None, {}
+            # Mirror the REAL solver contract: scanline returns an empty
+            # veg-absorption array (np.zeros(0)), never None.
+            return full_sdir.copy(), np.zeros(0, dtype=float), {}
 
         seen = {}
 
@@ -845,8 +990,178 @@ class TestRadiationSection(unittest.TestCase):
         np.testing.assert_allclose(seen["sdir"], expected)
         np.testing.assert_allclose(sdir, expected)
         np.testing.assert_allclose(knet, expected + 1.0)
-        self.assertIsNone(s_veg)
+        self.assertIsInstance(s_veg, np.ndarray)
+        self.assertEqual(s_veg.size, 0)
 
+    # ------------------------------------------------------------------
+    # Item 1 (P1): run_short_wave_timedep vegetation array-shape contract
+    # ------------------------------------------------------------------
+    def _run_timedep(self, tmp, nfcts, ltrees, s_veg_value):
+        """Drive run_short_wave_timedep with the solver mocked to honour the
+        REAL contract: _compute_knet returns an s_veg array (never None)."""
+        sim = types.SimpleNamespace(
+            path=Path(tmp),
+            expnr="001",
+            ltrees=ltrees,
+            geom=types.SimpleNamespace(
+                stl=types.SimpleNamespace(face_normals=np.zeros((nfcts, 3)))
+            ),
+        )
+        sim.assign_prop_to_fac = lambda _prop: np.ones(nfcts)
+
+        section = RadiationSection("radiation", {}, sim=sim, defaults={})
+        section.ltimedepsw = True
+        section.lEB = False
+        section.isolar = 2
+        section.ishortwave = 4
+        section.runtime = 20.0
+        section.dtSP = 10.0
+        section.year = 2020
+        section.month = 6
+        section.day = 21
+        section.hour = 12
+        section.minute = 0
+        section.second = 0
+
+        section._solar_state_time = mock.Mock(
+            return_value=(np.array([0.0, 0.0, 1.0]), 30.0, 0.0, 800.0, 100.0)
+        )
+        section._compute_knet = mock.Mock(
+            return_value=(np.ones(nfcts), np.ones(nfcts), s_veg_value)
+        )
+        section._write_sdir_nc = mock.Mock()
+        section.write_timedepsw = mock.Mock()
+        section.write_timedepsveg = mock.Mock()
+
+        section.run_short_wave_timedep()
+        return section
+
+    def test_timedep_no_veg_completes_without_valueerror(self):
+        with TemporaryDirectory() as tmp:
+            section = self._run_timedep(
+                tmp, nfcts=4, ltrees=False, s_veg_value=np.zeros(0, dtype=float)
+            )
+        section.write_timedepsw.assert_called_once()
+        _tSP, knet = section.write_timedepsw.call_args.args
+        self.assertEqual(knet.shape, (4, 3))
+        section._write_sdir_nc.assert_called_once()
+        section.write_timedepsveg.assert_not_called()
+
+    def test_timedep_veg_stores_nveg_rows(self):
+        nfcts, nveg = 4, 7
+        with TemporaryDirectory() as tmp:
+            section = self._run_timedep(
+                tmp, nfcts=nfcts, ltrees=True, s_veg_value=np.arange(nveg, dtype=float)
+            )
+        section.write_timedepsveg.assert_called_once()
+        _tSP, sveg = section.write_timedepsveg.call_args.args
+        self.assertEqual(sveg.shape, (nveg, 3))
+        np.testing.assert_allclose(sveg[:, 0], np.arange(nveg))
+
+    def test_timedep_skips_near_horizon_step_without_crashing(self):
+        # P11: a near-horizon step (|cos(zenith)| < 1e-2, where the solver would
+        # raise) must be skipped, not abort the whole multi-step run.
+        with TemporaryDirectory() as tmp:
+            nfcts = 4
+            sim = types.SimpleNamespace(
+                path=Path(tmp),
+                expnr="001",
+                ltrees=False,
+                geom=types.SimpleNamespace(
+                    stl=types.SimpleNamespace(face_normals=np.zeros((nfcts, 3)))
+                ),
+            )
+            sim.assign_prop_to_fac = lambda _prop: np.ones(nfcts)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+            section.ltimedepsw = True
+            section.lEB = False
+            section.isolar = 2
+            section.ishortwave = 4
+            section.runtime = 20.0
+            section.dtSP = 10.0
+            section.year, section.month, section.day = 2020, 6, 21
+            section.hour = section.minute = section.second = 0
+            # step 0: sun at 89.9 deg (cos < 1e-2) -> skip; steps 1,2: high sun.
+            near = (np.array([1.0, 0.0, 1.0e-3]), 89.9, 0.0, 500.0, 80.0)
+            high = (np.array([0.0, 0.0, 1.0]), 30.0, 0.0, 800.0, 100.0)
+            section._solar_state_time = mock.Mock(side_effect=[near, high, high])
+            section._compute_knet = mock.Mock(
+                return_value=(np.ones(nfcts), np.ones(nfcts), np.zeros(0, dtype=float))
+            )
+            section._write_sdir_nc = mock.Mock()
+            section.write_timedepsw = mock.Mock()
+            section.write_timedepsveg = mock.Mock()
+
+            section.run_short_wave_timedep()  # must not raise
+
+            # Only the two high-sun steps reached the solver.
+            self.assertEqual(section._compute_knet.call_count, 2)
+            section.write_timedepsw.assert_called_once()
+
+    # ------------------------------------------------------------------
+    # Item 2 (P3): calc_view_factors honours the per-call maxD argument
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _vf_section(tmp):
+        sim = types.SimpleNamespace(
+            path=Path(tmp),
+            expnr="001",
+            stl_file="geom.stl",
+            geom=types.SimpleNamespace(
+                stl=types.SimpleNamespace(faces=np.zeros((3, 3), dtype=int))
+            ),
+        )
+        section = RadiationSection("radiation", {}, sim=sim, defaults={})
+        section.view3d_out = 0
+        section.lvfsparse = False
+        section.maxD = 1000.0
+        return section
+
+    @staticmethod
+    def _enter_view3d_mocks(stack):
+        fake_vf = mock.MagicMock()
+        fake_vf.nnz = 5
+        fake_vf.toarray.return_value = np.zeros((3, 3))
+        mocks = stack.enter_context(
+            mock.patch.multiple(
+                "udprep.udprep_radiation",
+                stl_to_view3d=mock.DEFAULT,
+                resolve_view3d_exe=mock.DEFAULT,
+                run_view3d=mock.DEFAULT,
+                read_view3d_output=mock.DEFAULT,
+                compute_svf=mock.DEFAULT,
+                write_svf=mock.DEFAULT,
+                write_vf=mock.DEFAULT,
+                write_vfsparse=mock.DEFAULT,
+            )
+        )
+        mocks["read_view3d_output"].return_value = fake_vf
+        mocks["compute_svf"].return_value = np.zeros(3)
+        return mocks
+
+    def test_calc_view_factors_uses_per_call_maxD(self):
+        with TemporaryDirectory() as tmp, contextlib.ExitStack() as stack:
+            mocks = self._enter_view3d_mocks(stack)
+            section = self._vf_section(tmp)
+            section.calc_view_factors(maxD=123.0)
+            self.assertEqual(mocks["stl_to_view3d"].call_args.kwargs["maxD"], 123.0)
+
+    def test_calc_view_factors_maxD_none_uses_self_maxD(self):
+        with TemporaryDirectory() as tmp, contextlib.ExitStack() as stack:
+            mocks = self._enter_view3d_mocks(stack)
+            section = self._vf_section(tmp)
+            section.calc_view_factors(maxD=None)
+            self.assertEqual(mocks["stl_to_view3d"].call_args.kwargs["maxD"], 1000.0)
+
+    def test_calc_view_factors_maxD_participates_in_cache_key(self):
+        with TemporaryDirectory() as tmp, contextlib.ExitStack() as stack:
+            mocks = self._enter_view3d_mocks(stack)
+            section = self._vf_section(tmp)
+            section.calc_view_factors(maxD=123.0)
+            section.calc_view_factors(maxD=123.0)  # same maxD -> memory cache hit
+            self.assertEqual(mocks["stl_to_view3d"].call_count, 1)
+            section.calc_view_factors(maxD=456.0)  # different maxD -> recompute
+            self.assertEqual(mocks["stl_to_view3d"].call_count, 2)
 
 if __name__ == "__main__":
     unittest.main()

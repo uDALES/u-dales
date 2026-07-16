@@ -22,7 +22,7 @@ To set up a project template for uDALES with a generic folder structure that you
 
 - [Git](https://git-scm.com/) >= 2.
 - A [GitHub](https://github.com) account. (optional)
-- [Python](https://www.python.org/) >= 3.6.
+- [Python](https://www.python.org/) >= 3.9.
 
 ### Pre-processing
 
