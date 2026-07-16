@@ -266,7 +266,7 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
       correction: the final Exner is already `ps`-anchored by the two-pass recompute,
       modthermodynamics.f90:312,329-334); removes the last `thls` read in `modthermodynamics`;
       bitwise-neutral when dry.
-- [ ] **Re-point the SGS buoyancy terms** `grav/thvs → grav/thvf(k)`
+- [x] **Re-point the SGS buoyancy terms** `grav/thvs → grav/thvf(k)`
       (modsubgrid.f90:388,488), completing the `ILS13` modernisation (Appendix B) and matching
       DALES ≥ 4.0.
 - [x] **Base-profile fallback for solid slabs**: in the thermo-facing slab averages, where

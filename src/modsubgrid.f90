@@ -193,8 +193,7 @@ contains
     use modglobal,   only : ib,ie,jb,je,kb,ke,delta,ekmin,grav,&
          dxi,dxiq,dx2,dy2,dyi,dyiq,dzf,dzf2,dzfi,dzhi, &
          numol,numoli,prandtlmoli,dzfiq,lbuoyancy,dzh
-    use modfields,   only : dthvdz,e120,u0,v0,w0,thl0
-    use modsurfdata, only : thvs
+    use modfields,   only : dthvdz,e120,u0,v0,w0,thl0,thvf
     use modmpi,    only : excjs,mpi_sum,slabsumi
     use modboundary, only : closurebc
     implicit none
@@ -384,8 +383,8 @@ contains
                    ekm(i,j,k) = ekm(i,j,k) + numol                     ! add molecular viscosity
                    ekh(i,j,k) = ekh(i,j,k) + numol*prandtlmoli         ! add molecular diffusivity
                 else
-                   !            zlt(i,j,k) = min(delta(i,k),cn*e120(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))
-                   zlt(i,j,k) = min(delta(i,k),cn*e120(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))   !thls is used
+                   !            zlt(i,j,k) = min(delta(i,k),cn*e120(i,j,k)/sqrt(grav/thvf(k)*abs(dthvdz(i,j,k))))
+                   zlt(i,j,k) = min(delta(i,k),cn*e120(i,j,k)/sqrt(grav/thvf(k)*abs(dthvdz(i,j,k))))
                    ekm(i,j,k) = cm * zlt(i,j,k) *damp(i,j,k)* e120(i,j,k) !* 0.5     ! LES with near-wall damping !!! added factor 0.5 for shear-driven flow
                    ekh(i,j,k) = (ch1 + ch2 * zlt(i,j,k)/delta(i,k)) * ekm(i,j,k) !  needed in LES!
                    ekm(i,j,k) = ekm(i,j,k) + numol                     ! add molecular viscosity
@@ -437,8 +436,7 @@ contains
 
     use modglobal,   only : ib,ie,jb,je,kb,ke,dxi,delta,dyi,dzfi,dzhi,grav,numol,prandtlmol,&
          delta
-    use modfields,   only : u0,v0,w0,e120,e12p,dthvdz
-    use modsurfdata,  only : thvs
+    use modfields,   only : u0,v0,w0,e120,e12p,dthvdz,thvf
 !    use modmpi,       only : myid
     implicit none
 
@@ -484,8 +482,8 @@ contains
              !    sbbuo(i,j,k)  = -ekh(i,j,k)*grav/thvs*dthvdz(i,j,k)/ ( 2*e120(i,j,k))
              !    sbdiss(i,j,k) = - (ce1 + ce2*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 /(2.*zlt(i,j,k))
              sbshr(i,j,k)  = (ekm(i,j,k)-numol)*tdef2/ ( 2*e120(i,j,k))                                   ! subtract molecular viscosity
-             !    sbbuo(i,j,k)  = -(ekh(i,j,k)-numol*prandtlmoli)*grav/thvs*dthvdz(i,j,k)/ ( 2*e120(i,j,k))     ! subtract molecular diffusivity
-             sbbuo(i,j,k)  = -(ekh(i,j,k)-numol*prandtlmoli)*grav/thvs*dthvdz(i,j,k)/ ( 2*e120(i,j,k))     ! subtract molecular diffusivity and use thls instead of thvs (not defined)
+             !    sbbuo(i,j,k)  = -(ekh(i,j,k)-numol*prandtlmoli)*grav/thvf(k)*dthvdz(i,j,k)/ ( 2*e120(i,j,k))     ! subtract molecular diffusivity
+             sbbuo(i,j,k)  = -(ekh(i,j,k)-numol*prandtlmoli)*grav/thvf(k)*dthvdz(i,j,k)/ ( 2*e120(i,j,k))     ! subtract molecular diffusivity
              !    sbdiss(i,j,k) = - (ce1 + ce2*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 /(2.*damp*zlt(i,j,k))   ! add near-wall damping function
              ! added factor 2. for shear-driven flow
              sbdiss(i,j,k) = - 2. * (ce1 + ce2*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 /(2.*damp(i,j,k)*zlt(i,j,k))   ! add near-wall damping function !! added f
