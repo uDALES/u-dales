@@ -51,6 +51,14 @@ class TestUDBaseVisualizationCompatibility(unittest.TestCase):
         messages = [str(w.message) for w in caught]
         self.assertEqual(messages, [message])  # exactly one, matching diagnostic
         self.assertEqual(len(messages[0].splitlines()), 1)
+        formatted = warnings.formatwarning(
+            caught[0].message,
+            caught[0].category,
+            caught[0].filename,
+            caught[0].lineno,
+            caught[0].line,
+        )
+        self.assertEqual(len(formatted.splitlines()), 1)
 
     def test_udbase_plot_fac_forwards_to_vis_facade(self):
         sim = UDBase.__new__(UDBase)

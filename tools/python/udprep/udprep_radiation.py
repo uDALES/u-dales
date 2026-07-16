@@ -912,20 +912,19 @@ class RadiationSection(Section):
                 "ishortwave=2 is the MATLAB-only scanline debug implementation; "
                 "use 1, 3, or 4 in Python."
             )
-        methods = {
-            0: ("scanline_legacy", self.psc_res),
-            1: ("scanline_f2py", self.psc_res),
-            3: ("facsec", None),
-            4: ("moller", None),
-        }
-        try:
-            return methods[self.ishortwave]
-        except KeyError as exc:
-            raise ValueError(
-                f"Unsupported ishortwave value: {self.ishortwave}. "
-                "Valid Python namelist values are 1 (scanline_f2py), "
-                "3 (facsec), or 4 (moller)."
-            ) from exc
+        if self.ishortwave == 0:
+            return "scanline_legacy", self.psc_res
+        if self.ishortwave == 1:
+            return "scanline_f2py", self.psc_res
+        if self.ishortwave == 3:
+            return "facsec", None
+        if self.ishortwave == 4:
+            return "moller", None
+        raise ValueError(
+            f"Unsupported ishortwave value: {self.ishortwave}. "
+            "Valid Python namelist values are 1 (scanline_f2py), "
+            "3 (facsec), or 4 (moller)."
+        )
 
     def _shortwave_output_signature(self, *, timedep: bool) -> str:
         """Signature of the inputs that determine run_short_wave[_timedep]'s

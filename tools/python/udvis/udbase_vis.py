@@ -8,6 +8,7 @@ plotting methods backed by matplotlib (2-D plots) and plotly or pyvista
 from __future__ import annotations
 
 import logging
+import sys
 import warnings
 from typing import Any, Dict, List, Optional, Union
 
@@ -94,11 +95,31 @@ class UDVis:
     def _missing_plot_data(message: str):
         """Warn that required plot data is unavailable and return ``None``.
 
-        Uses ``warnings.warn`` (not a bare stderr print) so notebooks/scripts can
-        capture or silence the diagnostic; the ``None`` return lets plot methods
-        bail out gracefully when their inputs are missing.
+        Uses the warnings machinery (not a bare stderr print) so notebooks/scripts
+        can capture or silence the diagnostic; the ``None`` return lets plot
+        methods bail out gracefully when their inputs are missing.
         """
-        warnings.warn(message, stacklevel=2)
+        frame = sys._getframe(1)
+        registry = frame.f_globals.setdefault("__warningregistry__", {})
+        original_showwarning = warnings.showwarning
+
+        def show_without_source_line(
+            message, category, filename, lineno, file=None, line=None
+        ):
+            return original_showwarning(message, category, filename, lineno, file=file, line="")
+
+        warnings.showwarning = show_without_source_line
+        try:
+            warnings.warn_explicit(
+                message,
+                UserWarning,
+                frame.f_code.co_filename,
+                frame.f_lineno,
+                module=frame.f_globals.get("__name__"),
+                registry=registry,
+            )
+        finally:
+            warnings.showwarning = original_showwarning
         return None
 
     def show_geometry(

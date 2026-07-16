@@ -873,8 +873,7 @@ class TestRadiationSection(unittest.TestCase):
             section = RadiationSection("radiation", {}, sim=sim, defaults={})
             section.lEB = False
             section.isolar = 1
-            section.ishortwave = 2
-            section.directsw_method = "moller"
+            section.ishortwave = 4
             section.psc_res = None
             section.solarzenith = 45.0
             section.solarazimuth = 180.0
@@ -1014,8 +1013,7 @@ class TestRadiationSection(unittest.TestCase):
         section.ltimedepsw = True
         section.lEB = False
         section.isolar = 2
-        section.ishortwave = 2
-        section.directsw_method = "moller"
+        section.ishortwave = 4
         section.runtime = 20.0
         section.dtSP = 10.0
         section.year = 2020
@@ -1078,8 +1076,7 @@ class TestRadiationSection(unittest.TestCase):
             section.ltimedepsw = True
             section.lEB = False
             section.isolar = 2
-            section.ishortwave = 2
-            section.directsw_method = "moller"
+            section.ishortwave = 4
             section.runtime = 20.0
             section.dtSP = 10.0
             section.year, section.month, section.day = 2020, 6, 21

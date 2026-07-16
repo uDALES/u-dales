@@ -1110,6 +1110,16 @@ class DirectShortwaveSolver:
         facsec = None
         facsec_locs = None
         if self.method == "facsec":
+            solid_full = getattr(sim, "Sc", None)
+            if solid_full is None:
+                # Without the solid mask the facsec kernel never blocks a ray, so
+                # every facet sees the sun and sdir is ~0 everywhere with no
+                # warning (P4). Fail loud instead of silently mis-computing.
+                raise RadiationError(
+                    "facsec direct shortwave requires the IBM solid mask (sim.Sc), "
+                    "which is not loaded. Run the IBM preprocessing step (or load "
+                    "solid_*.txt) before computing shortwave, or use method='moller'."
+                )
             if not hasattr(sim, "facsec") or sim.facsec is None or "c" not in sim.facsec:
                 raise ValueError("Facet sections not available; sim.facsec['c'] is required.")
             facsec = sim.facsec["c"]
@@ -1153,16 +1163,6 @@ class DirectShortwaveSolver:
             )
 
         if self.method == "facsec":
-            solid_full = getattr(sim, "Sc", None)
-            if solid_full is None:
-                # Without the solid mask the facsec kernel never blocks a ray, so
-                # every facet sees the sun and sdir is ~0 everywhere with no
-                # warning (P4). Fail loud instead of silently mis-computing.
-                raise RadiationError(
-                    "facsec direct shortwave requires the IBM solid mask (sim.Sc), "
-                    "which is not loaded. Run the IBM preprocessing step (or load "
-                    "solid_*.txt) before computing shortwave, or use method='moller'."
-                )
             self.has_solid = True
             self.solid = solid_full[:, :, : self.ktot]
 
