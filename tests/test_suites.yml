@@ -500,6 +500,20 @@ groups:
           - "{branch_a}"
           - "{branch_b}"
           - "{build_type}"
+      - label: "experimental: bc-cleanup buried-slab assert"
+        class: experimental
+        kind: regression
+        component: solver
+        platform: hpc
+        cost: slow
+        command:
+          - "{python}"
+          - "{tests_dir}/regression/bc_cleanup/run_test.py"
+          - "{branch_a}"
+          - "{branch_b}"
+          - "{build_type}"
+          - "--assert-only"
+          - "091"
 
   all:
     includes:
