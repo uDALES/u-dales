@@ -292,9 +292,11 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
       wholesale deletion of the flat-surface scheme (Task 2) rather than migrate-then-retire.
 - [ ] **Migrate the cases that use `lbottom`** (§4) to ground facets. Still open:
       `examples/999/namoptions.999` and `tests/regression/david_tests/cases/103/namoptions.103`
-      set `lbottom=.true.` and will now fail to parse (unknown namelist key) until migrated;
-      update those namoptions files, `tools/preprocessing.m:224`, `tools/python/namelists.json:282,393`,
-      and the docs (§4) in a follow-up.
+      set `lbottom=.true.`, and `examples/024/namoptions.024:48` sets the now-deleted `BCbotT = 2`
+      (dead even pre-refactor, since it defaults `lbottom=.false.`) — all three will now fail to
+      parse (unknown namelist key) until migrated; update those namoptions files,
+      `tools/preprocessing.m:224`, `tools/python/namelists.json:282,393`, and the docs (§4) in a
+      follow-up.
 - [x] **Relocate the unconditional code first** (it runs on every run regardless of `lbottom`):
   - [x] `e120/e12m` ghost at `kb-1` (modibm.f90:2010-2011) → `modboundary`, next to the `ekm/ekh`
         ghosts. Nothing else sets it; the subgrid model reads it at `kb`.
