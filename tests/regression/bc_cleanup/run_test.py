@@ -46,9 +46,14 @@ REPO_ROOT = TESTS_DIR.parent
 BUILD_SYSTEM = os.environ.get("UDALES_BUILD_SYSTEM", "icl")
 GIT = os.environ.get("UDALES_GIT", "/usr/bin/git")
 SUBMODULE_DIRS = ("2decomp-fft", "tools/View3D")
+# Must stay consistent with the `icl` stack in tools/build_executable.sh: the
+# runtime loads these on top of whatever the caller already has, so mixing
+# toolchain years (intel/2025a + iimpi-2023a netCDF + intel-2021a FFTW) makes
+# Lmod abort when the 2025a toolchain is already loaded, and silently collapse
+# to 2021a when it is not.
 RUNTIME_MODULES = os.environ.get(
     "UDALES_RUNTIME_MODULES",
-    "intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a "
+    "intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a "
     "FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0",
 )
 DEFAULT_WORKDIR = Path(os.environ.get("UDALES_SCRATCH_ROOT", "/tmp")).resolve()

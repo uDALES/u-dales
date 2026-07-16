@@ -66,6 +66,7 @@
       "iadv_tke",
       "ilimiter",
       "ipoiss",
+      "lfftwmeasure",
       "lqlnr"
     ],
     "ENERGYBALANCE": [
@@ -365,6 +366,7 @@
     "leb": "ENERGYBALANCE",
     "lfactlyrs": "ENERGYBALANCE",
     "lfan_hp": "HEATPUMP",
+    "lfftwmeasure": "DYNAMICS",
     "lfielddump": "OUTPUT",
     "lheatpump": "HEATPUMP",
     "libm": "RUN",

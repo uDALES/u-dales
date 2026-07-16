@@ -60,7 +60,7 @@ module modstartup
                                     lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, tstatstart, trestart, &
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
-                                    nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
+                                    nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,lfftwmeasure,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
                                     lper2inout, libm, lconservativeibm, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                                     uflowrate, vflowrate, iplane, &
                                     lreadmean, inletav, Uinf, Vinf, &
@@ -125,7 +125,7 @@ module modstartup
          ltimedeplw, ntimedeplw, ltimedepsw, ntimedepsw, &
          lconservativeibm
       namelist/DYNAMICS/ &
-         lqlnr, ipoiss, &
+         lqlnr, ipoiss, lfftwmeasure, &
          iadv_mom, iadv_tke, iadv_thl, iadv_qt, iadv_sv
       namelist/BC/ &
          BCxm, BCxT, BCxq, BCxs, &
@@ -549,6 +549,7 @@ module modstartup
       call MPI_BCAST(courant, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(diffnr, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ipoiss, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(lfftwmeasure, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_mom, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_tke, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_thl, 1, MPI_INTEGER, 0, comm3d, mpierr)

@@ -366,6 +366,14 @@ module modglobal
 
    integer :: ipoiss   = POISS_FFT2D
 
+   !< FFTW planning strategy for the Poisson solver. FFTW_MEASURE benchmarks
+   !< several algorithms at plan time and keeps the fastest, so the plan - and
+   !< with it the summation order, and the last bits of every solve - depends on
+   !< machine load rather than on the input. Runs are then not reproducible, which
+   !< makes bitwise regression comparison impossible. Set .false. to plan with
+   !< FFTW_ESTIMATE, which picks by fixed heuristics and so is reproducible.
+   logical :: lfftwmeasure = .true.
+
    !Advection scheme
    integer, parameter :: iadv_upw = 1  !< first order upwind scheme
    integer, parameter :: iadv_cd2 = 2  !< second order central difference scheme

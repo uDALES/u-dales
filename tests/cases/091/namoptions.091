@@ -1,6 +1,6 @@
 &RUN
 iexpnr       = 091
-runtime      = 20.
+runtime      = 3.
 trestart     = 100.
 dtmax        = 1
 irandom      = 43
@@ -32,6 +32,7 @@ uflowrate    = 1.5
 
 &DYNAMICS
 ipoiss       = 0
+lfftwmeasure = .false.
 iadv_thl     = 2
 iadv_sv      = 7
 /
@@ -71,11 +72,11 @@ nscasrcl     = 1
 
 &OUTPUT
 lfielddump   = .true.
-tfielddump   = 10.
+tfielddump   = 3.
 fieldvars    = 'u0,v0,w0,th,s1'
 lxytdump     = .true.
 ltdump       = .true.
-tstatsdump   = 5.
+tstatsdump   = 1.
 tsample      = 1.
 /
 

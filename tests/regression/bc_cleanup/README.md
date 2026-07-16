@@ -30,14 +30,42 @@ Case `090` (`tests/cases/090/`) is copied from `tests/cases/101/` (dry,
 As of Task 3, `thls`/`qts` (along with the other flat-surface BC keys)
 have been pruned from `&BC` entirely, so `namoptions.090` no longer
 sets them — the base state derives from `prof.inp` alone. The anchor
-property still holds automatically, since the bottom-row `thl`/`qt` in
-`prof.inp.090` are unchanged (290. / 0.0), so a bitwise field match at
-`--atol 0.0` still confirms no behavioural change was introduced.
+property holds for the *current* code, since the bottom-row `thl`/`qt`
+in `prof.inp.090` are unchanged (290. / 0.0).
 
-Case 090 also enables `ltdump = .true.` with `tstatsdump = 5.` (and a
-20 s `runtime`), so at least 3 `tdump.*.090.nc` time slices exist to
+It does **not** hold for a reference older than Task 3. Both sides of a
+comparison are run from the same (current) `tests/cases/090`, but a
+pre-Task-3 executable still expects `thls`/`qts` in `&BC` and silently
+falls back to its defaults (`thls = -1.`) when they are absent, giving
+`thvs = thls*(1.+(rv/rd-1.)*qts) ≈ -0.392` instead of 290. Restoring
+`thls = 290.` / `qts = 0.0` on such a reference measurably changes the
+dumped fields, so `branch_a` must be at or after the Task 3 commit for
+the comparison to mean anything. Comparing against, say, the pre-branch
+merge-base is not a valid gate.
+
+Case 090 also enables `ltdump = .true.` with `tstatsdump = 1.` (and a
+3 s `runtime`), so at least 3 `tdump.*.090.nc` time slices exist to
 compare per run. See `tests/cases/090/README.md` for the full list of
 changes from case 101.
+
+## Reproducibility precondition (`lfftwmeasure`)
+
+A bitwise comparison is only meaningful if the solver is deterministic,
+and by default it is not. The Poisson FFT plans are built with
+`FFTW_MEASURE` (`src/modpois.f90`), which benchmarks candidate
+algorithms at plan time and keeps whichever was fastest *on that run*.
+The winner depends on machine load, so the summation order — and the
+last bits of every solve — varies between runs of the same executable on
+the same input. Measured on case 090 (1 rank, 3 s, Debug): two identical
+runs with `FFTW_MEASURE` differ in 15 of 32 dumped fields (~1 ULP of the
+single-precision dumps, e.g. `wt` 2.3e-10), while two runs with
+`FFTW_ESTIMATE` are bitwise identical.
+
+Every case used by this harness therefore sets `lfftwmeasure = .false.`
+in `&DYNAMICS`, which plans with `FFTW_ESTIMATE` (fixed heuristics, no
+timing). The default stays `.true.` so production runs keep the faster
+plans. Do not remove this from the regression cases: without it, an
+`--atol 0.0` comparison fails intermittently regardless of the code.
 
 ## Tolerance regime per BCcleanup commit
 
