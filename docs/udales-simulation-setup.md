@@ -30,7 +30,7 @@ export PREPROC_NCPU=8                                   # Number of CPUs to use 
 # It is recommended to write the full path instead of using $(pwd) in config.sh file
 ```
 
-`PREPROC_NCPU` is required when running `tools/write_inputs.sh`. It should be the same integer as `nompthreads` under the `&INPS` section of `namoptions.###`. The default value of `nompthreads` is `8`, so use `export PREPROC_NCPU=8` unless you explicitly set a different `nompthreads` value in `namoptions.###`. On Imperial HPC, compute-node preprocessing with `write_inputs.sh ... c` also requires `PREPROC_WALLTIME` and `PREPROC_MEM` in `config.sh`. The default View3D dense-matrix guard is derived as `PREPROC_MEM - 16 GiB`, unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is explicitly set.
+`PREPROC_NCPU` is required when running `tools/write_inputs.sh`. It should be the same integer as `nompthreads` under the `&INPS` section of `namoptions.###`. The default value of `nompthreads` is `8`, so use `export PREPROC_NCPU=8` unless you explicitly set a different `nompthreads` value in `namoptions.###`. On Imperial HPC, compute-node preprocessing with `write_inputs.sh ... c` also requires `PREPROC_WALLTIME` and `PREPROC_MEM` in `config.sh`. `PREPROC_MEM` must be written as a number followed by lowercase `gb`, such as `128gb`; unitless values are rejected. The default View3D dense-matrix guard is derived as `PREPROC_MEM - 16 GiB`, unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is explicitly set.
 
 Then, to start the simulation, run:
 

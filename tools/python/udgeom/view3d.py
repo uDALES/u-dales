@@ -87,7 +87,7 @@ def _source_view3d_config(config_path: Path, base_env: dict[str, str]) -> dict[s
         (
             "set -a; "
             'VIEW3D_CONFIG_DIR="$(cd "$(dirname "$1")" && pwd)"; '
-            'source "$1" >/dev/null; '
+            'source "$1" >/dev/null && '
             "env -0"
         ),
         "bash",

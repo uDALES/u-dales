@@ -41,7 +41,9 @@ When submitting preprocessing to an Imperial HPC compute node with
 export `PREPROC_WALLTIME` and `PREPROC_MEM`, for example
 `PREPROC_WALLTIME="48:00:00"` and `PREPROC_MEM="128gb"`. These control the
 preprocessing PBS job only and are separate from the solver job `WALLTIME` and
-`MEM` settings used by `tools/hpc_execute.sh`. Unless
+`MEM` settings used by `tools/hpc_execute.sh`. `PREPROC_MEM` must be written as
+a number followed by lowercase `gb`, such as `128gb`; a unitless value such as
+`128` is rejected before PBS submission. Unless
 `VIEW3D_MAX_DENSE_MATRIX_GIB` is set explicitly, `tools/view3d_config.sh`
 derives the View3D dense-matrix guard from the preprocessing memory request as
 `PREPROC_MEM - 16 GiB`.

@@ -106,6 +106,10 @@ if [ "$start" == "c" ]; then
 		echo "Memory requirement PREPROC_MEM must be set inside $inputdir/config.sh"
 		exit 1
 	fi;
+	if [[ ! "$PREPROC_MEM" =~ ^[0-9]+gb$ ]]; then
+		echo "Memory requirement PREPROC_MEM must be set like 128gb"
+		exit 1
+	fi
 fi
 
 popd
@@ -113,7 +117,10 @@ popd
 export VIEW3D_CONFIG="${VIEW3D_CONFIG:-$DA_TOOLSDIR/view3d_config.sh}"
 if [ -f "$VIEW3D_CONFIG" ]; then
 	set -a
-	source "$VIEW3D_CONFIG"
+	if ! source "$VIEW3D_CONFIG"; then
+		set +a
+		exit 1
+	fi
 	set +a
 fi
 
@@ -155,7 +162,10 @@ export PREPROC_NCPU="$PREPROC_NCPU"
 export VIEW3D_CONFIG="$VIEW3D_CONFIG"
 if [ -f "$VIEW3D_CONFIG" ]; then
 	set -a
-	source "$VIEW3D_CONFIG"
+	if ! source "$VIEW3D_CONFIG"; then
+		set +a
+		exit 1
+	fi
 	set +a
 fi
 

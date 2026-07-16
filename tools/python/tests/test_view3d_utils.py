@@ -213,15 +213,6 @@ class TestView3DUtils(unittest.TestCase):
         self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "112")
 
     @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
-    def test_default_view3d_config_accepts_plain_preproc_mem_gib(self) -> None:
-        env, _ = load_view3d_runtime_env(
-            base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_MEM": "64"},
-            config_path=default_view3d_config_path(),
-        )
-
-        self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "48")
-
-    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
     def test_default_view3d_config_preserves_explicit_dense_limit(self) -> None:
         env, _ = load_view3d_runtime_env(
             base_env={
