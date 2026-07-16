@@ -11,7 +11,7 @@ Covered cases:
 
 - `tests/cases/100/`
   - legacy Fortran `tools/SEB/directShortwave.f90`
-  - Python `scanline` via the mandatory `directshortwave_f2py` wrapper
+  - Python `scanline_f2py` via the mandatory `directshortwave_f2py` wrapper
   - Python `facsec`
   - Python `moller`
 - `tests/cases/525/`

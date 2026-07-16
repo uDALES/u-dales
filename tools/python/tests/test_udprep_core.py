@@ -700,6 +700,89 @@ class TestUDPrepCore(unittest.TestCase):
 
 
 class TestRadiationSection(unittest.TestCase):
+    def test_shortwave_method_maps_ishortwave_to_backend(self):
+        sim = DummySim()
+        sim.ltrees = False
+        section = RadiationSection(
+            "radiation",
+            {"ishortwave": 1, "psc_res": 0.25},
+            sim=sim,
+            defaults={},
+        )
+
+        expected = {
+            0: ("scanline_legacy", 0.25),
+            1: ("scanline_f2py", 0.25),
+            3: ("facsec", None),
+            4: ("moller", None),
+        }
+        for ishortwave, backend in expected.items():
+            with self.subTest(ishortwave=ishortwave):
+                section.ishortwave = ishortwave
+                self.assertEqual(section._shortwave_method(), backend)
+
+        section.ishortwave = 2
+        with self.assertRaisesRegex(ValueError, "use 1, 3, or 4 in Python"):
+            section._shortwave_method()
+
+        section.ishortwave = 5
+        with self.assertRaisesRegex(ValueError, "Valid Python namelist values are 1 .*3 .*4"):
+            section._shortwave_method()
+
+    def test_explicit_scanline_methods_default_to_psc_res(self):
+        sim = DummySim()
+        sim.ltrees = False
+        section = RadiationSection(
+            "radiation",
+            {
+                "ishortwave": 3,
+                "psc_res": 0.25,
+                "ray_density": 4.0,
+                "ray_jitter": 0.0,
+                "periodic_xy": False,
+            },
+            sim=sim,
+            defaults={},
+        )
+        seen = []
+
+        class FakeSolver:
+            def compute(self, *_args, **kwargs):
+                seen.append(kwargs["resolution"])
+                return np.array([1.0]), np.array([]), {}
+
+        section._direct_sw_solver = FakeSolver()
+        section._direct_sw_solver_cfg = {
+            "method": "scanline_f2py",
+            "ray_density": 4.0,
+            "ray_jitter": 0.0,
+            "veg_key": None,
+        }
+
+        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method=" Scanline_F2PY ")
+        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method="scanline_f2py", resolution=0.1)
+
+        section._direct_sw_solver_cfg = {
+            "method": "scanline_legacy",
+            "ray_density": 4.0,
+            "ray_jitter": 0.0,
+            "veg_key": None,
+        }
+        section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method=" SCANLINE_LEGACY ")
+
+        self.assertEqual(seen, [0.25, 0.1, 0.25])
+
+    def test_direct_shortwave_method_aliases_are_rejected(self):
+        section = RadiationSection("radiation", {}, sim=DummySim(), defaults={})
+        with self.assertRaisesRegex(ValueError, "Use scanline_f2py"):
+            section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method=" scanline ")
+
+        old_names = ("f2py", "legacy_fortran", "raycast", "mt", "section")
+        for method in old_names:
+            with self.subTest(method=method):
+                with self.assertRaisesRegex(ValueError, "Unknown direct shortwave method"):
+                    section.calc_direct_sw(np.array([0.0, 0.0, 1.0]), 800.0, method=method)
+
     def test_run_short_wave_skip_removes_full_vf_text_intermediate(self):
         with TemporaryDirectory() as temp_dir:
             case_dir = Path(temp_dir)
@@ -749,7 +832,7 @@ class TestRadiationSection(unittest.TestCase):
             np.array([0.0, 0.0, 1.0]),
             800.0,
             250.0,
-            "scanline",
+            "scanline_f2py",
             0.1,
             True,
             np.zeros(3),

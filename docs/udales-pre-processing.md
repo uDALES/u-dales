@@ -235,11 +235,22 @@ The following parameters are related to the immersed boundary method.
 
 If using the energy balance, the following parameters can also be specified.
 
-- `ishortwave`: Option for shortwave radiation calculation. 1: Fortran (default, fast), 2:  MATLAB (useful for debugging).
+- `ishortwave`: Option for shortwave radiation calculation. The MATLAB preprocessing default is `1`; the Python preprocessing default is `3`.
 - `isolar`: Option for solar radiation (see below for futher detail). 1: custom (default), 2: from latitude & longitude, 3: from weather file.
 - `view3d_out`: Output format for View3D: 0: text, 1: binary, 2: sparse (text). Default: 0.
 - `maxD`: Maximum distance to check view factors, otherwise they are zero. Default: Inf.
 - `xazimuth`: the azimuthal angle of the x-axis (with respect to North). Default : 90 degrees, i.e. East.
+
+`ishortwave` values are interpreted as follows during preprocessing:
+
+| Value | MATLAB preprocessing | Python preprocessing |
+| ----- | -------------------- | -------------------- |
+| `1` | Standalone Fortran scanline rasterization (no vegetation). | f2py scanline rasterization wrapper (same scanline algorithm, no vegetation). |
+| `2` | MATLAB scanline debug implementation (slow; no vegetation). | Unsupported; raises an error because this implementation is MATLAB-only. |
+| `3` | Unsupported; raises an error because this is Python-only. | `facsec` method, using ray casting with solid mask and facet-section reconstruction. |
+| `4` | Unsupported; raises an error because this is Python-only. | `moller` method, using Moller-Trumbore triangle hits. |
+
+The explicit Python API backend `method="scanline_legacy"` remains available as a reference/parity implementation, but it is not a normal documented namelist choice.
 
 If `isolar = 1`, then the solar radiation is determined by:
 
