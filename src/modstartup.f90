@@ -1050,7 +1050,7 @@ module modstartup
          call MPI_BCAST(qtprof, kmax, MY_REAL, 0, comm3d, mpierr)
 
          call initbasestate(thlprof(kb:ke), qtprof(kb:ke))
-         thvs = thv_b(kb) ! bridge for remaining modsurfdata readers; removed in Phase 2
+         thvs = thv_b(kb) ! kept defined until modsurfdata is dissolved (Phase 2); no live readers on this branch
 
          do k = kb, ke
             do j = jb - 1, je + 1
@@ -1171,7 +1171,7 @@ module modstartup
             call MPI_BCAST(e12prof, kmax, MY_REAL, 0, comm3d, mpierr)
 
             call initbasestate(thlprof(kb:ke), qtprof(kb:ke))
-            thvs = thv_b(kb) ! bridge for remaining modsurfdata readers; removed in Phase 2
+            thvs = thv_b(kb) ! kept defined until modsurfdata is dissolved (Phase 2); no live readers on this branch
 
             do k = kb, ke
             do j = jb - 1, je + 1
@@ -1698,7 +1698,7 @@ module modstartup
             call MPI_BCAST(e12prof, kmax, MY_REAL, 0, comm3d, mpierr)
 
             call initbasestate(thlprof(kb:ke), qtprof(kb:ke))
-            thvs = thv_b(kb) ! bridge for remaining modsurfdata readers; removed in Phase 2
+            thvs = thv_b(kb) ! kept defined until modsurfdata is dissolved (Phase 2); no live readers on this branch
 
             btime = timee
             um = u0
