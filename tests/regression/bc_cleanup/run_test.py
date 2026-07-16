@@ -67,6 +67,20 @@ CONFIGS = {
     "xy_split": dict(nprocx=2, nprocy=2),
 }
 
+# Cases available to --assert-only (single-branch smoke checks, not the
+# reference-vs-current field comparison used by CASES/_run_case_matrix).
+ASSERT_ONLY_CASES = {
+    "090": CaseSpec(case="090", nc_pattern="tdump.*.090.nc", fields=None, abs_tol=None),
+    # Buried-slab fixture (backlog 6.6): floor-covering box, 2 grid cells
+    # tall, so slabs kb and kb+1 are fully solid (IIcs(k) == 0). Exercises
+    # the base-state fallback in diagfld (src/modthermodynamics.f90).
+    "091": CaseSpec(case="091", nc_pattern="tdump.*.091.nc", fields=None, abs_tol=None),
+}
+
+BASE_STATE_LOG_MARKER = "Base state:"
+SENTINEL_VALUE = -999.0
+SENTINEL_ATOL = 1.0e-6
+
 
 def _read_int_setting(namelist: Path, key: str) -> int:
     match = re.search(
@@ -481,6 +495,73 @@ def _create_temp_root(workdir: Path, prefix: str, cleanup: bool):
     return _KeepTempRoot(path)
 
 
+def _assert_base_state_logged(log_path: Path) -> None:
+    text = log_path.read_text(encoding="utf-8", errors="replace")
+    if BASE_STATE_LOG_MARKER not in text:
+        raise RuntimeError(
+            f"Startup log {log_path} does not contain '{BASE_STATE_LOG_MARKER}' "
+            "(expected from modbasestate.f90's initbasestate)"
+        )
+
+
+def _assert_no_sentinel_or_nan(run_dir: Path, spec: CaseSpec) -> None:
+    files = _dump_files(run_dir, spec)
+    if not files:
+        raise RuntimeError(f"No files matching '{spec.nc_pattern}' found in {run_dir}")
+
+    failures: List[str] = []
+    for path in files:
+        with nc.Dataset(path) as ds:
+            field_names = list(spec.fields) if spec.fields is not None else _discover_fields(path)
+            for field in field_names:
+                if field not in ds.variables:
+                    failures.append(f"{path.name}: field '{field}' not present")
+                    continue
+                arr = np.asarray(ds.variables[field][:], dtype=np.float64)
+                nan_mask = np.isnan(arr)
+                if nan_mask.any():
+                    idx = tuple(int(v) for v in np.unravel_index(int(np.argmax(nan_mask)), arr.shape))
+                    failures.append(f"{path.name}: field '{field}' contains NaN at index {idx}")
+                sentinel_mask = np.isclose(arr, SENTINEL_VALUE, atol=SENTINEL_ATOL, rtol=0.0)
+                if sentinel_mask.any():
+                    idx = tuple(int(v) for v in np.unravel_index(int(np.argmax(sentinel_mask)), arr.shape))
+                    failures.append(
+                        f"{path.name}: field '{field}' contains sentinel {SENTINEL_VALUE} at index {idx}"
+                    )
+    if failures:
+        raise RuntimeError(
+            "Dumped fields contain sentinel/NaN values (buried-slab base-state fallback not applied):\n- "
+            + "\n- ".join(failures)
+        )
+
+
+def _run_assert_only_case(
+    current_exe: Path,
+    case_source: Path,
+    tmp_root: Path,
+    spec: CaseSpec,
+) -> None:
+    run_dir = tmp_root / "assert-only" / spec.case
+    shutil.copytree(case_source, run_dir)
+    namelist = run_dir / f"namoptions.{spec.case}"
+    nprocx = _read_int_setting(namelist, "nprocx")
+    nprocy = _read_int_setting(namelist, "nprocy")
+
+    context = f"case {spec.case} [assert-only]"
+    print(f"Running {context}", flush=True)
+    print(f"  run dir: {run_dir}", flush=True)
+    log_path = _run_case(current_exe, run_dir, spec, nprocx * nprocy)
+    print(f"  run complete: {log_path}", flush=True)
+
+    print(f"  checking startup log for '{BASE_STATE_LOG_MARKER}' ({context})", flush=True)
+    _assert_base_state_logged(log_path)
+    print(f"  base-state log check passed ({context})", flush=True)
+
+    print(f"  scanning dumped fields for sentinel/NaN values ({context})", flush=True)
+    _assert_no_sentinel_or_nan(run_dir, spec)
+    print(f"  sentinel/NaN check passed ({context})", flush=True)
+
+
 def _run_case_matrix(
     reference_exe: Path,
     current_exe: Path,
@@ -597,6 +678,53 @@ def main(
     return 0
 
 
+def main_assert_only(
+    case: str,
+    build_type: str,
+    reuse_current_build: bool = False,
+    workdir: Path = DEFAULT_WORKDIR,
+    cleanup: bool = False,
+) -> int:
+    """Single-branch smoke check: build the current workspace, run one case,
+    and assert (a) the run completes, (b) the startup log contains
+    'Base state:', and (c) no dumped field contains a -999. sentinel or NaN.
+
+    Unlike main()/_run_case_matrix, this does not build or run a reference
+    branch and does not compare fields against a reference — see
+    .superpowers/sdd/task-7-brief.md step 2.
+    """
+    workdir = workdir.resolve()
+    spec = ASSERT_ONLY_CASES.get(case)
+    if spec is None:
+        raise SystemExit(
+            f"Unknown --assert-only case '{case}'; known cases: {sorted(ASSERT_ONLY_CASES)}"
+        )
+
+    with _create_temp_root(workdir, "bc-cleanup-assert-runs-", cleanup) as run_tmp:
+        run_root = Path(run_tmp)
+
+        if reuse_current_build:
+            current_exe = _validate_build_dir(_workspace_build_dir(build_type), "current")
+        else:
+            current_exe = _build_current_workspace(build_type)
+
+        print("Running bc_cleanup assert-only check", flush=True)
+        print(f"case:              {case}", flush=True)
+        print(f"build type:        {build_type}", flush=True)
+        print(f"workdir:           {workdir}", flush=True)
+        print(f"cleanup:           {cleanup}", flush=True)
+        print(f"run root:          {run_root}", flush=True)
+        print(f"current build dir: {current_exe}", flush=True)
+
+        case_source = REPO_ROOT / "tests" / "cases" / spec.case
+        if not case_source.is_dir():
+            raise RuntimeError(f"Missing case source: {case_source}")
+        _run_assert_only_case(current_exe, case_source, run_root, spec)
+
+    print("bc_cleanup assert-only check passed")
+    return 0
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("branch_a")
@@ -636,6 +764,19 @@ if __name__ == "__main__":
         type=str,
         help="Comma-separated decomposition labels to run, e.g. xy_split or serial,xy_split.",
     )
+    parser.add_argument(
+        "--assert-only",
+        metavar="CASE",
+        type=str,
+        default=None,
+        help=(
+            "Run a single case (e.g. 091) against the current workspace build only, with no "
+            "reference branch/build and no field comparison. Asserts the run completes, the "
+            f"startup log contains '{BASE_STATE_LOG_MARKER}', and no dumped field contains a "
+            f"{SENTINEL_VALUE} sentinel or NaN. branch_a/branch_b are accepted but unused. "
+            f"Known cases: {sorted(ASSERT_ONLY_CASES)}."
+        ),
+    )
     args = parser.parse_args()
     configs = None
     if args.configs:
@@ -643,6 +784,17 @@ if __name__ == "__main__":
         unknown_configs = [label for label in configs if label not in CONFIGS]
         if unknown_configs:
             raise SystemExit(f"Unknown configs requested: {unknown_configs}")
+
+    if args.assert_only:
+        raise SystemExit(
+            main_assert_only(
+                args.assert_only,
+                args.build_type,
+                reuse_current_build=args.reuse_current_build,
+                workdir=args.workdir,
+                cleanup=args.cleanup,
+            )
+        )
 
     raise SystemExit(
         main(

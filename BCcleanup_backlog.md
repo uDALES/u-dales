@@ -482,6 +482,24 @@ New coverage to add:
       means, that `presf` at the fluid levels equals the reference-column continuation (weight of
       the buried layers included), and that dumps at buried levels contain the base profiles
       rather than sentinels.
+
+      **Progress (2026-07-16): fixture landed, run unexecuted.** `tests/cases/091/` (copy of
+      `tests/cases/090/` with `geom.091.STL` — a programmatic, watertight, floor-covering box
+      2 grid cells tall) was generated and regenerated end-to-end with the Python `udprep` IBM
+      preprocessing (`ibm.run_all(backend="f2py")`, plus `seb`/`scalars` reruns for the
+      facet-count- and geometry-dependent side files). Statically verified: `solid_c.txt`,
+      `solid_u.txt`, `solid_v.txt` have exactly `itot*jtot=4096` unique `(i,j)` at both `k=1`
+      and `k=2` and nothing at `k>=3` — i.e. slabs `kb`/`kb+1` are fully solid on the relevant
+      grids. `tests/regression/bc_cleanup/run_test.py --assert-only <case>` was added (checks:
+      run completes; startup log contains `Base state:`; no dumped field is `-999.`/NaN),
+      wired to both `090` and `091`, and verified with `python -m py_compile` plus standalone
+      unit checks of the new assertion helpers against synthetic fixtures. **Not done:** the
+      solver was never actually run against case 091 in this environment (no Fortran/MPI/
+      NetCDF-Fortran toolchain for building `u-dales` itself, only for the Python preprocessing
+      f2py extensions) — the `presf`/reference-column-continuation and no-sentinel-in-dumps
+      assertions above are implemented but unexercised. Whoever picks this up next should run
+      `python tests/regression/bc_cleanup/run_test.py BCcleanup BCcleanup Debug --assert-only 091`
+      on a machine with a full build toolchain before relying on this fixture.
 - [ ] Register these under an `ibm` / `reference` group in `tests/test_suites.yml` so they run in
       the merge gate.
 
