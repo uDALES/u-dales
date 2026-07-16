@@ -278,7 +278,7 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
       `lbottom` wall function (modibm.f90:2023,2046) — but are removed from the base-state path,
       and `lbottom=.true.` gains validation that `thls` is set. Full namelist removal (with the
       loud unknown-key migration signal) moves to **Phase 1**, when `lbottom` is retired.
-- [ ] Remove the `tl<100` clamp (modthermodynamics.f90:486-491) once the root cause is gone and
+- [x] Remove the `tl<100` clamp (modthermodynamics.f90:486-491) once the root cause is gone and
       the new tests pass.
 - [ ] **Staging for regression:** land as two commits — (1) the `kb`-overwrite deletion, compared
       **bitwise**; (2) the base-state re-source, which is *not* bitwise even with matched values
