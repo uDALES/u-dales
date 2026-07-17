@@ -70,7 +70,10 @@ LOG_PATTERNS = {
     "divergence": re.compile(r"divmax, divtot =\s*([Ee0-9+\-\.]+)\s+([Ee0-9+\-\.]+)"),
 }
 
-CaseSpec = collections.namedtuple("CaseSpec", "case nc_pattern fields abs_tol default_atol")
+CaseSpec = collections.namedtuple("CaseSpec", "case nc_pattern fields abs_tol default_atol rel_tol")
+# rel_tol defaults to 0.0: the same-branch comparison stays a pure absolute check
+# (bitwise when abs_tol is 0). It is raised only for --historical (see main).
+CaseSpec.__new__.__defaults__ = (0.0,)
 
 CASES = (
     CaseSpec(
@@ -105,6 +108,26 @@ ASSERT_ONLY_CASES = {
     "092": CaseSpec(case="092", nc_pattern="tdump.*.092.nc", fields=None, abs_tol=None, default_atol=5.0e-3),
 }
 
+# Relative tolerance for --historical (comparison against a pre-branch reference).
+# The old solver has no FFTW planning switch, so it runs FFTW_MEASURE and is not
+# reproducible: two runs differ by ~1 ULP of the single-precision dumps (~1.2e-7
+# relative). 1e-5 clears that comfortably while staying far below any real change
+# (a refactor claiming no behavioural change should differ only at roundoff; the
+# one behaviour-changing commit, Task 4, is in the loneeqn branch that case 090
+# never executes). So a pass here means "no change larger than FFTW noise", not
+# "bitwise identical" -- the strongest statement possible against a nondeterministic
+# reference.
+HISTORICAL_RTOL = 1.0e-5
+# Absolute floor for --historical. Several dumped fields are second-order
+# statistics (variances, covariances) that are ~1e-11 or smaller early in the run,
+# essentially machine zero; for those a purely relative tolerance collapses below
+# the roundoff floor and rejects FFTW noise as a difference. The floor is set from
+# the noise actually observed on case 090: the largest absolute difference between
+# the old and new executables was 1.5e-8 (field pt), so 1e-6 clears every field
+# with ~60x margin while staying far below any physical signal (thlt ~ 290, pt ~ 5,
+# velocities ~ 1). Combined tolerance: HISTORICAL_ATOL + HISTORICAL_RTOL*max|ref|.
+HISTORICAL_ATOL = 1.0e-6
+
 BASE_STATE_LOG_MARKER = "Base state:"
 SENTINEL_VALUE = -999.0
 SENTINEL_ATOL = 1.0e-6
@@ -128,6 +151,50 @@ def _configure_namelist(run_dir: Path, spec: CaseSpec, nprocx: int, nprocy: int)
     text = re.sub(r"(?m)^(\s*nprocx\s*=\s*)\d+(\s*)$", rf"\g<1>{nprocx}\2", text)
     text = re.sub(r"(?m)^(\s*nprocy\s*=\s*)\d+(\s*)$", rf"\g<1>{nprocy}\2", text)
     target.write_text(text, encoding="utf-8")
+
+
+def _patch_reference_namelist_historical(run_dir: Path, spec: CaseSpec) -> None:
+    """Adapt the (current) namelist so a pre-branch executable runs the equivalent
+    configuration.
+
+    Two edits, both required:
+      - strip `lfftwmeasure`: the old &DYNAMICS reader does not know the key and
+        aborts at the namelist read on an unknown name.
+      - restore `thls`/`qts` in &BC from the bottom row of prof.inp: the old code
+        builds its surface virtual temperature from these (thvs = thls*(1+(rv/rd-1)
+        *qts)); with them pruned it would default thls to -1. and run a different
+        base state. Setting them to the bottom-row profile values reproduces the
+        base state the new code derives, so the two sides represent the same setup.
+
+    This is why --historical proves "no change beyond FFTW noise" rather than
+    bitwise equivalence: the reference is a genuinely different, older executable
+    coaxed into the matching configuration, not the same code.
+    """
+    target = run_dir / f"namoptions.{spec.case}"
+    text = target.read_text(encoding="utf-8")
+
+    # drop any lfftwmeasure line
+    text = re.sub(r"(?m)^\s*lfftwmeasure\s*=.*\n", "", text)
+
+    # bottom-row thl/qt from prof.inp (two header lines, then: z thl qt u v tke)
+    prof = run_dir / f"prof.inp.{spec.case}"
+    thl0, qt0 = None, None
+    if prof.is_file():
+        with prof.open() as fh:
+            rows = [ln for ln in fh if ln.strip() and not ln.lstrip().startswith("#")]
+        if rows:
+            cols = rows[0].split()
+            if len(cols) >= 3:
+                thl0, qt0 = cols[1], cols[2]
+    if thl0 is None:
+        raise RuntimeError(f"cannot read bottom-row thl/qt from {prof}")
+
+    # inject thls/qts at the top of &BC (old code reads them there)
+    inject = f"thls         = {thl0}\nqts          = {qt0}\n"
+    new_text, n = re.subn(r"(?m)^(&BC\s*\n)", r"\g<1>" + inject, text, count=1)
+    if n == 0:
+        new_text = text.rstrip() + "\n\n&BC\n" + inject + "/\n"
+    target.write_text(new_text, encoding="utf-8")
 
 
 def _tile_index_pattern(nc_pattern: str) -> "re.Pattern[str]":
@@ -386,8 +453,14 @@ def _compare_fields(
         flat = int(np.argmax(diff))
         idx = tuple(int(v) for v in np.unravel_index(flat, diff.shape))
         max_diff = float(diff[idx])
-        print(f"    {label}: {field} max|diff| = {max_diff:.6e}", flush=True)
-        if max_diff > spec.abs_tol:
+        # Combined tolerance: abs_tol + rel_tol*max|reference|. rel_tol is 0 for the
+        # same-branch (bitwise) comparison and non-zero only for --historical, where
+        # a single absolute atol cannot fairly cover fields from ~290 (theta) down to
+        # ~1e-3 (w).
+        ref_scale = float(np.abs(reference[field]).max())
+        tol = spec.abs_tol + spec.rel_tol * ref_scale
+        print(f"    {label}: {field} max|diff| = {max_diff:.6e} (tol {tol:.3e})", flush=True)
+        if max_diff > tol:
             ref_val = float(reference[field][idx])
             cur_val = float(current[field][idx])
             failures.append(
@@ -705,6 +778,7 @@ def _run_case_matrix(
     spec: CaseSpec,
     compare_logs: bool,
     configs: Sequence[str],
+    historical: bool = False,
 ) -> None:
     for label in configs:
         nprocx = CONFIGS[label]["nprocx"]
@@ -715,6 +789,10 @@ def _run_case_matrix(
         shutil.copytree(case_source, run_current)
         _configure_namelist(run_reference, spec, nprocx, nprocy)
         _configure_namelist(run_current, spec, nprocx, nprocy)
+        if historical:
+            # The reference is a pre-branch executable; make the namelist one it can
+            # read and one that reproduces the same base state (see the function).
+            _patch_reference_namelist_historical(run_reference, spec)
 
         context = f"case {spec.case} [{label}]"
         print(f"Running {context}", flush=True)
@@ -752,13 +830,24 @@ def main(
     workdir: Path = DEFAULT_WORKDIR,
     cleanup: bool = False,
     configs: Optional[Sequence[str]] = None,
+    historical: bool = False,
+    rtol: Optional[float] = None,
 ) -> int:
     workdir = workdir.resolve()
     # An explicit --atol overrides every case's tolerance; otherwise each
     # case uses its own default_atol (see the CASES table and the module
-    # docstring for why 090 and 092 differ).
+    # docstring for why 090 and 092 differ). --historical adds a relative
+    # tolerance (default HISTORICAL_RTOL) so a nondeterministic old reference
+    # can be compared field-fairly; without it rel_tol stays 0 (bitwise).
+    effective_rtol = rtol if rtol is not None else (HISTORICAL_RTOL if historical else 0.0)
+    def _abs_tol(spec):
+        if atol is not None:
+            return atol
+        if historical:
+            return max(spec.default_atol, HISTORICAL_ATOL)
+        return spec.default_atol
     selected_specs = [
-        spec._replace(abs_tol=(atol if atol is not None else spec.default_atol))
+        spec._replace(abs_tol=_abs_tol(spec), rel_tol=effective_rtol)
         for spec in CASES
     ]
     selected_configs = list(CONFIGS) if configs is None else list(configs)
@@ -809,7 +898,7 @@ def main(
                 case_source = REPO_ROOT / "tests" / "cases" / spec.case
                 if not case_source.is_dir():
                     raise RuntimeError(f"Missing case source: {case_source}")
-                _run_case_matrix(reference_exe, current_exe, case_source, run_root, spec, compare_logs, selected_configs)
+                _run_case_matrix(reference_exe, current_exe, case_source, run_root, spec, compare_logs, selected_configs, historical=historical)
         finally:
             _remove_worktree(current_worktree)
             _remove_worktree(reference_worktree)
@@ -876,6 +965,25 @@ if __name__ == "__main__":
                              "case. If omitted, each case uses its own default_atol from CASES "
                              "(090: 0.0 bitwise; 092: 5e-3).")
     parser.add_argument("--ci", action="store_true")
+    parser.add_argument(
+        "--historical",
+        action="store_true",
+        help=(
+            "Compare against a pre-branch reference (branch_a older than the Task 3 "
+            "commit). Patches the reference namelist to strip lfftwmeasure and "
+            "restore thls/qts, and applies a relative tolerance (default "
+            f"{HISTORICAL_RTOL:g}) above the FFTW_MEASURE noise floor. Proves 'no "
+            "change larger than FFTW noise', not bitwise equivalence -- the old "
+            "solver is not reproducible. Intended as a one-off pre-merge check."
+        ),
+    )
+    parser.add_argument(
+        "--rtol",
+        type=float,
+        default=None,
+        help="Relative tolerance rel_tol in abs_tol + rel_tol*max|ref| per field. "
+             "Defaults to 0 (bitwise), or HISTORICAL_RTOL under --historical.",
+    )
     parser.add_argument(
         "--reference-build-dir",
         type=Path,
@@ -952,5 +1060,7 @@ if __name__ == "__main__":
             workdir=args.workdir,
             cleanup=args.cleanup,
             configs=configs,
+            historical=args.historical,
+            rtol=args.rtol,
         )
     )
