@@ -22,6 +22,9 @@ label="${2:-build}"
 out="${GITHUB_STEP_SUMMARY:-/dev/stdout}"
 
 if [ ! -f "$log" ]; then
+    # Loud on stdout: a missing log means this reported nothing, and a silent
+    # exit 0 would be indistinguishable from a clean build.
+    echo "WARNING: no build log at '${log}' -- no warnings were summarised." >&2
     echo "### Compiler warnings — ${label}" >> "$out"
     echo >> "$out"
     echo "_No build log at \`${log}\` — nothing to report._" >> "$out"
@@ -35,6 +38,10 @@ counts="$(grep -ohE '\[-W[a-z-]+\]' "$log" | tr -d '[]' | sort | uniq -c | sort 
 
 total=$(printf '%s' "$counts" | awk '{s+=$1} END {print s+0}')
 actionable=$(printf '%s' "$counts" | awk -v re="$BENIGN_RE" '$2 !~ re {s+=$1} END {print s+0}')
+
+# Echoed to the job log as well as the summary, so the log alone shows whether
+# this actually ran against a real build.
+echo "${label}: ${total} warning(s), ${actionable} actionable, from '${log}'"
 
 {
     echo "### Compiler warnings — ${label}"
