@@ -51,8 +51,13 @@ then
     # "intel/2025a cannot be loaded", leaving nothing loaded. Replaced with a
     # self-consistent 2021a Intel stack (the version it resolved to anyway),
     # which loads regardless of prior session state.
+    # NOTE (2026-07): CMake and git must use GCCcore-10.3.0 to match intel/2021a.
+    # Using GCCcore-13.3.0 variants (CMake/3.29.3, git/2.45.1) causes Lmod to
+    # swap GCCcore-10.3.0 -> 13.3.0, which then prevents cURL/7.76.0-GCCcore-10.3.0
+    # and zlib/1.2.11-GCCcore-10.3.0 (deps of netCDF/HDF5) from loading, producing
+    # "dependent module(s) are not currently loaded" warnings.
     # module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
-    module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
+    module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a CMake/3.20.1-GCCcore-10.3.0 git/2.32.0-GCCcore-10.3.0-nodocs
     FC=mpiifort
     NETCDF_DIR=/sw-eb/software/netCDF/4.8.0-iimpi-2021a
     NETCDF_FORTRAN_DIR=/sw-eb/software/netCDF-Fortran/4.5.3-iimpi-2021a

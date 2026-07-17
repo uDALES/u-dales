@@ -42,7 +42,7 @@ contains
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,sv0,mindist,wall,pres0
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,trestart,tnextrestart,timee,&
                           cexpnr,rk3step,ifoutput,nsv,dt,ntrun,&
-                          iinletgen,timee,nstore,numol,grav
+                          iinletgen,timee,nstore
     use modmpi,    only : cmyidx,cmyidy,myid,slabsum,excjs,comm3d
     use modsubgriddata, only : ekm
     use modinletdata, only   : nstepread

@@ -35,7 +35,7 @@ module modfielddump
   PUBLIC :: initfielddump, fielddump,exitfielddump
   save
   !NetCDF variables
-  integer :: ncid,ncid1,ncid2,nrec = 0
+  integer :: ncid,nrec = 0
 !  real, pointer :: point
   type domainptr
     real, pointer :: point(:,:,:)
@@ -43,12 +43,8 @@ module modfielddump
   type(domainptr), dimension(30) :: pfields
 
   character(80) :: fname = 'fielddump.xxx.xxx.xxx.nc'
-  character(80) :: fname1 = 'fielddump.xxx.xxx.xxx.1.nc'
-  character(80) :: fname2 = 'fielddump.xxx.xxx.xxx.2.nc'
   !dimension(nvar,4) :: ncname
   character(80),dimension(1,4) :: tncname
-  character(80),dimension(1,4) :: tncname1
-  character(80),dimension(1,4) :: tncname2
 
   integer :: ilow,ihigh,jlow,jhigh,klow,khigh,nvar
   logical :: ldiracc   = .false. !< switch for doing direct access writing (on/off)
@@ -59,7 +55,7 @@ contains
  !> Initializing fielddump. Read out the namelist, initializing the variables
   subroutine initfielddump
     use modmpi,   only   :mpierr,comm3d,mpi_logical,mpi_integer,cmyidx,cmyidy,mpi_character
-    use modglobal,only   :cexpnr,ifnamopt,kb,ke,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,kh
+    use modglobal,only   :cexpnr,kb,ke,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,kh
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
     use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,tau_x, tau_y, tau_z, thl_flux
     use modibm, only : mask_u, mask_v, mask_w, mask_c
@@ -383,7 +379,7 @@ contains
   !> Do fielddump. Collect data to truncated (2 byte) integers, and write them to file
   subroutine fielddump
     use modfields, only : u0,v0,w0,div,dudx,dvdy,dwdz  !ILS13 21.04.2015 changed to u0 from um  etc
-    use modglobal, only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,timee,ifoutput,&
+    use modglobal, only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,timee,&
                           tfielddump, tnextfielddump, lfielddump, rk3step,dyi,dxfi,dzhi
     !use modmpi,    only : myid,cmyid
     !use modsubgriddata, only : ekm,sbshr
