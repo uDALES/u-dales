@@ -210,37 +210,23 @@ cd tests/integration/mpi_operators
 
 `tests/regression` contains branch-comparison and case-based regression assets:
 
-- `david_tests/`: the older branch-comparison regression harness and its helper assets
+- `bc_cleanup/`: the base-state / flat-surface-retirement regression (cases `090`,
+  `091`, `092`), plus the reproducibility and buried-slab checks it depends on
 - `new_vegetation_module_against_v2.2/`: the `526` legacy vegetation regression against release `v2.2.0`
 - `mpi_averaging_regression/`: branch/commit regression for MPI-sensitive dumped fields and diagnostics
 
-At present there are three regression paths:
+(The former `david_tests/` harness has been removed: its `run_and_compare` was
+commented out and pointed at directories that no longer exist, so it built two
+branches and compared nothing. The one case it carried, `103`, moved to
+`tests/cases/103` and is now exercised by `tests/integration/migrated_cases`.)
 
-- `david_tests/`: an older branch-comparison build harness used by the supported suite
-- `new_vegetation_module_against_v2.2/`: a dedicated solver-output regression for the new vegetation module against the `v2.2.0` release
-- `mpi_averaging_regression/`: a compact branch-comparison regression for decomposition-sensitive dumped fields on cases `100` and `526`
-
-To run regression tests:
-
-```bash
-cd tests/regression/david_tests
-python run_tests.py <branch_a> <branch_b> <build_type>
-```
-
-Or via the top-level dispatcher:
+To run the regression and integration suites via the top-level dispatcher:
 
 ```bash
 python tests/run_tests.py supported --branch-a <branch_a> --branch-b <branch_b> --build-type <build_type>
 ```
 
 Where `<branch_a>` and `<branch_b>` are the two branches you want to compare and `<build_type>` is either `Debug` or `Release`.
-
-Example:
-
-```bash
-cd tests/regression/david_tests
-python run_tests.py master dmey/patch-1 Release
-```
 
 ## Notes
 

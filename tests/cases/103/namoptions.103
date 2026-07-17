@@ -1,6 +1,6 @@
 &RUN
 iexpnr       = 103
-runtime      = 50
+runtime      = 10
 trestart     = 1000
 dtmax        = 1
 irandom      = 43
@@ -15,14 +15,14 @@ nprocy       = 2
 
 &OUTPUT
 lfielddump   = .true.
-tfielddump   = 49.
+tfielddump   = 5.
 fieldvars    = 'u0,v0,w0,th'
 ltdump       = .true.
 lydump       = .true.
 lytdump      = .true.
 lxydump      = .true.
 lxytdump     = .true.
-tstatsdump   = 45.
+tstatsdump   = 5.
 tsample      = 5.
 /
 

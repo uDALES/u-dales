@@ -19,7 +19,7 @@ These two are 8×8×8 on 2 ranks and finish in seconds.
 ## Construction
 
 Geometry (flat ground, 128 facets) is the 8³ fixture from
-`tests/regression/david_tests/cases/103`; the grid is the smallest that already
+`tests/cases/103`; the grid is the smallest that already
 had ground facets, so no preprocessing step is needed to build the pair.
 
 Configuration follows what production actually uses rather than what was
