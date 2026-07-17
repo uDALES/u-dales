@@ -32,7 +32,7 @@ module modthermodynamics
 
   implicit none
   !   private
-  public :: thermodynamics,calc_halflev
+  public :: thermodynamics,calc_halflev,tests_buried_continuation
   public :: lqlnr
   logical :: lqlnr    = .false. !< switch for ql calc. with Newton-Raphson (on/off)
   real, allocatable :: th0av(:)
@@ -450,6 +450,130 @@ contains
 
     return
   end subroutine fromztop
+
+  !> Check that the buried-slab base state feeds the hydrostatic march correctly
+  !! (issue #302, backlog section 6.6). Dispatched by runmode TEST_BURIED.
+  !!
+  !! diagfld substitutes the base profiles (thl_b, qt_b, ql=0) for the slab means
+  !! wherever a slab is fully solid, in place of avexy_ibm's nodata marker, then
+  !! calls fromztop. This checks the arithmetic that substitution feeds into: with
+  !! the slab means set to the base profiles, fromztop's pressure column must equal
+  !! initbasestate's reference column to roundoff.
+  !!
+  !! It lives here, not in tests.f90, because fromztop and th0av are private to
+  !! this module. It runs at the runmode dispatch point, so it allocates the few
+  !! 1D arrays fromztop touches itself rather than relying on initfields.
+  !!
+  !! The profile is deliberately two-layer (a base 'below-ground' value under a
+  !! different 'above-ground' value), not uniform: a uniform column cannot tell a
+  !! correct interface weighting from a wrong one, nor a march that includes the
+  !! lower layers' weight from one that skips it -- which is exactly the -999
+  !! poisoning this fix removes. Feeding the same two-layer profile to
+  !! initbasestate makes pf_b the reference column that includes every layer, so a
+  !! march that dropped the buried layers would land somewhere else.
+  logical function tests_buried_continuation()
+    use modmpi,       only : myid
+    use modglobal,    only : kb, ke, kh
+    use modbasestate, only : initbasestate, exitbasestate, pf_b, ph_b
+    use modfields,    only : presf, presh, thvh, thvf, qt0av, ql0av
+
+    implicit none
+
+    real, allocatable :: thlprof(:), qtprof(:)
+    real    :: thv_lower, thv_upper, tol
+    integer :: k, k_split
+    logical :: ok
+
+    ok  = .true.
+    tol = 1.e-10   ! dry: fromztop's recurrence is initbasestate's, reordered only
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A)') 'tests_buried_continuation: buried base state (#302, 6.6)'
+      write(*, '(A)') '================================================'
+    end if
+
+    ! fromztop reads th0av/qt0av/ql0av and writes presf/presh/thvh/thvf. At the
+    ! runmode dispatch point none of these exist yet, so make them here.
+    if (.not. allocated(th0av)) allocate(th0av(kb:ke+kh))
+    if (.not. allocated(presf)) allocate(presf(kb:ke+kh))
+    if (.not. allocated(presh)) allocate(presh(kb:ke+kh))
+    if (.not. allocated(thvh))  allocate(thvh(kb:ke+kh))
+    if (.not. allocated(thvf))  allocate(thvf(kb:ke+kh))
+    if (.not. allocated(qt0av)) allocate(qt0av(kb:ke+kh))
+    if (.not. allocated(ql0av)) allocate(ql0av(kb:ke+kh))
+    allocate(thlprof(kb:ke), qtprof(kb:ke))
+
+    ! two-layer dry profile: base value in the lower third, a warmer value above
+    thv_lower = 290.
+    thv_upper = 300.
+    k_split   = kb + (ke - kb)/3
+    do k = kb, ke
+      if (k <= k_split) then
+        thlprof(k) = thv_lower
+      else
+        thlprof(k) = thv_upper
+      end if
+    end do
+    qtprof = 0.
+
+    ! initbasestate builds the reference column pf_b/ph_b from this profile,
+    ! including every layer's weight.
+    call initbasestate(thlprof(kb:ke), qtprof(kb:ke))
+
+    ! feed fromztop exactly what diagfld's fallback would hand it for a column of
+    ! fully-solid slabs: the base profiles, dry.
+    th0av(kb:ke) = thlprof
+    th0av(ke+kh) = thlprof(ke)
+    qt0av        = 0.
+    ql0av        = 0.
+
+    call fromztop
+
+    do k = kb, ke + kh
+      if (.not. close_rel(presf(k), pf_b(k), tol)) then
+        if (myid == 0) write(*, '(A,I4,A,F14.4,A,F14.4)') &
+          '  FAIL: presf(', k, ') =', presf(k), ' expected pf_b =', pf_b(k)
+        ok = .false.
+      end if
+      if (.not. close_rel(presh(k), ph_b(k), tol)) then
+        if (myid == 0) write(*, '(A,I4,A,F14.4,A,F14.4)') &
+          '  FAIL: presh(', k, ') =', presh(k), ' expected ph_b =', ph_b(k)
+        ok = .false.
+      end if
+    end do
+
+    ! Pressure must fall monotonically through both layers; a march that dropped
+    ! the buried layers' weight would still be monotone, so this is only a
+    ! sanity guard on top of the reference-column comparison above.
+    do k = kb + 1, ke + kh
+      if (presf(k) >= presf(k-1)) then
+        if (myid == 0) write(*, '(A,I4)') '  FAIL: presf not decreasing at k =', k
+        ok = .false.
+      end if
+    end do
+
+    call exitbasestate
+    deallocate(thlprof, qtprof)
+
+    if (myid == 0) then
+      if (ok) then
+        write(*, '(A)') 'tests_buried_continuation: PASS'
+      else
+        write(*, '(A)') 'tests_buried_continuation: FAIL'
+      end if
+    end if
+
+    tests_buried_continuation = ok
+
+  contains
+
+    logical function close_rel(got, want, rtol)
+      real, intent(in) :: got, want, rtol
+      close_rel = abs(got - want) <= rtol*max(abs(want), tiny(want))
+    end function close_rel
+
+  end function tests_buried_continuation
 
   !> Calculates liquid water content.
   !!     Given theta_l and q_tot the liquid water content

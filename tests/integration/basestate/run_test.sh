@@ -1,15 +1,21 @@
 #!/bin/bash
-# Unit check of the derived hydrostatic base state (src/modbasestate.f90, #302),
-# via runmode 1006 (TEST_BASESTATE).
+# Analytic checks of the derived hydrostatic base state (src/modbasestate.f90,
+# src/modthermodynamics.f90; issue #302), via two runmodes:
 #
-# The solver dispatches this straight after initglobal, so the vertical grid
-# exists but readinitfiles has not run. tests_basestate therefore supplies its
-# own profiles and calls initbasestate directly, and compares the result with the
-# closed-form hydrostatic solution rather than with a previous run. That is the
-# part cases 090/091/092 cannot do: a regression comparison only shows the base
-# state has not *changed*, and the 091 assert only shows it was *printed*.
+#   1006 TEST_BASESTATE   -- initbasestate vs the closed-form hydrostatic column,
+#                            in uniform, linearly stratified and moist regimes.
+#   1007 TEST_BURIED      -- fromztop fed the base profiles (what diagfld's
+#                            fully-solid-slab fallback hands it) must reproduce
+#                            that reference column: the section 6.6 continuation.
 #
-# Single rank, no geometry, no timesteps: it exits at the dispatch point.
+# Both dispatch straight after initglobal, so the vertical grid exists but
+# readinitfiles has not run. The tests supply their own profiles and call the
+# real routines directly, comparing with an independent expectation rather than
+# with a previous run. That is the part cases 090/091/092 cannot do: a regression
+# comparison only shows the base state has not *changed*, and the 091 assert only
+# shows it was *printed*.
+#
+# Single rank, no geometry, no timesteps: each exits at the dispatch point.
 
 set -u
 
@@ -26,43 +32,46 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/debug/u-dales}"
-NAMELIST="${NAMELIST:-namoptions.1006}"
 
 if [ ! -x "$UDALES_BUILD" ]; then
     echo "FAIL: no u-dales executable at $UDALES_BUILD" >&2
     exit 1
 fi
 
-# Deliberately no mpiexec: this is a single-rank check that exits at the runmode
-# dispatch, and MPI singleton init covers it. Going through mpiexec would add a
+# Deliberately no mpiexec: these are single-rank checks that exit at the runmode
+# dispatch, and MPI singleton init covers them. Going through mpiexec would add a
 # hydra bootstrap that fails on some CX3 nodes, producing a failure that looks
 # exactly like a real test failure.
 
 WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/udales-basestate-XXXXXX")"
 cleanup() { [ "${KEEP_WORKDIR:-0}" = "1" ] || rm -rf "$WORKDIR"; }
 trap cleanup EXIT
-
-# initglobal reads zf from prof.inp before the runmode dispatch, so the grid
-# file must be present even though this test never uses the profile itself.
-cp "${SCRIPT_DIR}/${NAMELIST}" "${SCRIPT_DIR}/prof.inp.090" "$WORKDIR/"
-
 export HDF5_USE_FILE_LOCKING=FALSE
 
-( cd "$WORKDIR" && "$UDALES_BUILD" "$NAMELIST" > out.log 2>&1 )
-rc=$?
+# runmode -> (namelist, prof.inp grid file, PASS marker printed by the routine)
+run_one() {
+    local namelist="$1" prof="$2" marker="$3"
+    # initglobal reads zf from prof.inp before the runmode dispatch, so the grid
+    # file must be present even though these tests never use the profile itself.
+    cp "${SCRIPT_DIR}/${namelist}" "${SCRIPT_DIR}/${prof}" "$WORKDIR/"
+    ( cd "$WORKDIR" && "$UDALES_BUILD" "$namelist" > "out.${namelist}.log" 2>&1 )
+    local rc=$?
+    if [ "$rc" -ne 0 ]; then
+        echo "FAIL: ${marker} run exited $rc" >&2
+        grep -E "FAIL|${marker}" "$WORKDIR/out.${namelist}.log" >&2 || tail -25 "$WORKDIR/out.${namelist}.log" >&2
+        return 1
+    fi
+    # The routine must actually have been dispatched. Without this a namelist typo
+    # that fell through to a normal 1 s run would exit 0 and "pass".
+    if ! grep -q "${marker}: PASS" "$WORKDIR/out.${namelist}.log"; then
+        echo "FAIL: ${marker} did not run (runmode not dispatched?)" >&2
+        tail -25 "$WORKDIR/out.${namelist}.log" >&2
+        return 1
+    fi
+    return 0
+}
 
-if [ "$rc" -ne 0 ]; then
-    echo "FAIL: tests_basestate reported failure (exit $rc)" >&2
-    grep -E "FAIL|tests_basestate" "$WORKDIR/out.log" >&2 || tail -25 "$WORKDIR/out.log" >&2
-    exit 1
-fi
+run_one namoptions.1006 prof.inp.090 tests_basestate          || exit 1
+run_one namoptions.1007 prof.inp.091 tests_buried_continuation || exit 1
 
-# The runmode must actually have been dispatched. Without this, a namelist typo
-# that silently fell through to a normal 1 s run would exit 0 and "pass".
-if ! grep -q "tests_basestate: PASS" "$WORKDIR/out.log"; then
-    echo "FAIL: tests_basestate did not run (runmode not dispatched?)" >&2
-    tail -25 "$WORKDIR/out.log" >&2
-    exit 1
-fi
-
-echo "basestate: PASS (hydrostatic base state matches closed form)"
+echo "basestate: PASS (closed-form base state + buried-slab continuation)"

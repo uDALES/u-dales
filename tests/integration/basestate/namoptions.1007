@@ -1,0 +1,35 @@
+&RUN
+iexpnr       = 091
+runmode      = 1007
+runtime      = 1.
+libm         = .true.
+nprocx       = 1
+nprocy       = 1
+/
+
+&DOMAIN
+itot         = 64
+jtot         = 64
+ktot         = 64
+xlen         = 64
+ylen         = 64
+/
+
+&PHYSICS
+ps           = 101500.
+lbuoyancy    = .true.
+ltempeq      = .true.
+/
+
+&DYNAMICS
+ipoiss       = 0
+lfftwmeasure = .false.
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&INPS
+zsize        = 64
+/

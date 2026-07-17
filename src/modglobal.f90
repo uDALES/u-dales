@@ -81,6 +81,7 @@ module modglobal
    integer, parameter :: TEST_SPARSE_IJK = 1004
    integer, parameter :: TEST_MPI_OPERATORS = 1005
    integer, parameter :: TEST_BASESTATE = 1006
+   integer, parameter :: TEST_BURIED = 1007
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
