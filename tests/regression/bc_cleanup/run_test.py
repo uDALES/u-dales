@@ -127,6 +127,11 @@ HISTORICAL_RTOL = 1.0e-5
 # with ~60x margin while staying far below any physical signal (thlt ~ 290, pt ~ 5,
 # velocities ~ 1). Combined tolerance: HISTORICAL_ATOL + HISTORICAL_RTOL*max|ref|.
 HISTORICAL_ATOL = 1.0e-6
+# Cases the pre-branch reference cannot run, so --historical has no baseline for
+# them. 092 is the loneeqn case; f5de904c aborts on it (Debug) with the
+# modboundary e12 out-of-bounds (index -1) that this PR fixes -- the crash the
+# fix removes, so its absence of a baseline is expected, not a gap.
+HISTORICAL_SKIP = frozenset({"092"})
 
 BASE_STATE_LOG_MARKER = "Base state:"
 SENTINEL_VALUE = -999.0
@@ -846,9 +851,20 @@ def main(
         if historical:
             return max(spec.default_atol, HISTORICAL_ATOL)
         return spec.default_atol
+    cases = CASES
+    if historical:
+        # The pre-branch reference cannot run the loneeqn case 092: f5de904c
+        # crashes on it with the modboundary e12 out-of-bounds this PR fixes, so
+        # there is no historical baseline to compare against (and that crash is
+        # itself why the fix is needed). Compare only the Vreman case 090.
+        skipped = [s.case for s in cases if s.case in HISTORICAL_SKIP]
+        if skipped:
+            print(f"historical: skipping case(s) {skipped} -- the pre-branch "
+                  "reference cannot run them (see HISTORICAL_SKIP)", flush=True)
+        cases = tuple(s for s in cases if s.case not in HISTORICAL_SKIP)
     selected_specs = [
         spec._replace(abs_tol=_abs_tol(spec), rel_tol=effective_rtol)
-        for spec in CASES
+        for spec in cases
     ]
     selected_configs = list(CONFIGS) if configs is None else list(configs)
 
