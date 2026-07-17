@@ -542,6 +542,96 @@ def _assert_base_state_logged(log_path: Path) -> None:
         )
 
 
+def _fully_solid_levels(run_dir: Path, spec: CaseSpec) -> set:
+    """k indices whose slab has no fluid cells at all, read from solid_c.txt.
+
+    A slab is fully solid when it holds itot*jtot solid cell centres. These are
+    the levels where no average exists, so they are the only ones allowed to
+    carry the nodata marker.
+    """
+    nml = (run_dir / f"namoptions.{spec.case}").read_text(encoding="utf-8", errors="replace")
+
+    def _int_key(key: str) -> int:
+        m = re.search(rf"^\s*{key}\s*=\s*(\d+)", nml, flags=re.MULTILINE | re.IGNORECASE)
+        if not m:
+            raise RuntimeError(f"cannot read {key} from namoptions.{spec.case}")
+        return int(m.group(1))
+
+    ncells = _int_key("itot") * _int_key("jtot")
+    counts: Dict[int, int] = collections.defaultdict(int)
+    solid = run_dir / "solid_c.txt"
+    if not solid.is_file():
+        return set()
+    with solid.open() as fh:
+        for line in fh:
+            if line.lstrip().startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) < 3:
+                continue
+            try:
+                counts[int(parts[2])] += 1
+            except ValueError:
+                continue
+    return {k for k, n in counts.items() if n >= ncells}
+
+
+def _assert_sentinels_only_in_solid_slabs(run_dir: Path, spec: CaseSpec) -> None:
+    """The nodata marker must appear only where there is genuinely no data.
+
+    Two things this exists to catch, both of which the old check could not see.
+    It globbed a single pattern (tdump), and it only inspected variables with
+    ndim >= 3 -- but xytdump's variables are (time, zt), i.e. ndim 2, so the scan
+    was structurally blind to the one file where the marker actually lands.
+
+    The contract asserted here:
+      - tdump/fielddump carry no marker at all: these are the thermo-facing and
+        prognostic dumps, where modthermodynamics substitutes the base state for
+        fully-solid slabs (issue #302).
+      - xytdump may carry the marker, but only at fully-solid slabs. A marker at
+        a fluid level means an average was dropped where one existed.
+    """
+    solid_levels = _fully_solid_levels(run_dir, spec)
+    failures: List[str] = []
+
+    for path in sorted(run_dir.glob("*.nc")):
+        stats_dump = path.name.startswith("xytdump")
+        with nc.Dataset(path) as ds:
+            zt = np.asarray(ds.variables["zt"][:]) if "zt" in ds.variables else None
+            for name, var in ds.variables.items():
+                if var.dtype.kind != "f" or name in ("zt", "zm", "time", "xt", "xm", "yt", "ym"):
+                    continue
+                arr = np.asarray(var[:], dtype=np.float64)
+                if arr.size == 0:
+                    continue
+                hit = np.isclose(arr, SENTINEL_VALUE, atol=SENTINEL_ATOL, rtol=0.0)
+                if not hit.any():
+                    continue
+                if not stats_dump:
+                    failures.append(
+                        f"{path.name}: '{name}' contains the nodata marker "
+                        f"({SENTINEL_VALUE}); prognostic/thermo dumps must carry the "
+                        "base state instead (#302)"
+                    )
+                    continue
+                # xytdump: the marker is expected, but only in fully-solid slabs.
+                if solid_levels and zt is not None:
+                    k_axis = next((i for i, d in enumerate(var.dimensions) if d == "zt"), None)
+                    if k_axis is None:
+                        continue
+                    flagged = {int(i) + 1 for i in np.unique(np.where(hit)[k_axis])}
+                    stray = sorted(flagged - solid_levels)
+                    if stray:
+                        failures.append(
+                            f"{path.name}: '{name}' has the nodata marker at fluid "
+                            f"level(s) k={stray}; only fully-solid slabs "
+                            f"{sorted(solid_levels)} may be marked"
+                        )
+
+    if failures:
+        raise RuntimeError("nodata marker check failed:\n" + "\n".join(failures))
+
+
 def _assert_no_sentinel_or_nan(run_dir: Path, spec: CaseSpec) -> None:
     files = _dump_files(run_dir, spec)
     if not files:
@@ -598,6 +688,13 @@ def _run_assert_only_case(
     print(f"  scanning dumped fields for sentinel/NaN values ({context})", flush=True)
     _assert_no_sentinel_or_nan(run_dir, spec)
     print(f"  sentinel/NaN check passed ({context})", flush=True)
+
+    # The check above only globs spec.nc_pattern (tdump) and only inspects
+    # variables with ndim >= 3, so it never sees xytdump, whose variables are
+    # (time, zt). Scan every dump the case wrote, at any dimensionality.
+    print(f"  checking the nodata marker across all dumps ({context})", flush=True)
+    _assert_sentinels_only_in_solid_slabs(run_dir, spec)
+    print(f"  nodata marker check passed ({context})", flush=True)
 
 
 def _run_case_matrix(

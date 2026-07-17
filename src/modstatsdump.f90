@@ -533,7 +533,7 @@ contains
                                ltreedump
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
-  use modmpi,           only : myid,avey_ibm,&
+  use modmpi,           only : myid,avey_ibm,nodata,&
                                avexy_ibm
   use modsubgrid,       only : ekh,ekm
   use modstatistics,    only : genstats,tkestats
@@ -1019,13 +1019,13 @@ contains
           wpthlpyk = wthlyk - wy*thlyk
 
           where (IIwt==0)
-            wpthlpyk  = -999.0
+            wpthlpyk  = nodata
           endwhere
 
         end if
 
         where (IIuwt==0)
-          upwpyik    = -999.0
+          upwpyik    = nodata
         endwhere
 
       end if ! lydump
@@ -1803,7 +1803,7 @@ contains
                                p_b,p_t,adv,IIc,IIcs
   use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,&
                                dzfi,dzhi,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
-  use modmpi,           only : avey_ibm,excjs,avexy_ibm
+  use modmpi,           only : avey_ibm,excjs,avexy_ibm,nodata
   use modbasestate,     only : thv_b
   use decomp_2d,        only : exchange_halo_z
   implicit none
