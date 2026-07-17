@@ -926,6 +926,24 @@ contains
    end subroutine xmo_convective
 
 
+  !  subroutine xmo_Neumann
+  !    use modglobal,      only : ie
+  !    use modfields,      only : v0, vm, w0, wm, e120, e12m
+  !    use modsubgriddata, only : loneeqn
+
+  !    v0(ie + 1, :, :) = v0(ie, :, :)
+  !    w0(ie + 1, :, :) = w0(ie, :, :)
+  !    vm(ie + 1, :, :) = vm(ie, :, :)
+  !    wm(ie + 1, :, :) = wm(ie, :, :)
+
+  !    if (loneeqn) then
+  !      e120(ie + 1, :, :) = e120(ie, :, :)
+  !      e12m(ie + 1, :, :) = e12m(ie, :, :)
+  !    end if
+
+  !  end subroutine xmo_Neumann
+
+
    subroutine xTo_convective
      use modglobal, only : ie, dxi, rk3step, dt
      use modfields, only : thl0, thlm, uouttot
@@ -937,6 +955,16 @@ contains
      thlm(ie + 1, :, :) = thlm(ie+1, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxi*rk3coef*uouttot
 
    end subroutine xTo_convective
+
+
+  !  subroutine xTo_Neumann
+  !    use modglobal, only : ie
+  !    use modfields, only : thl0, thlm
+
+  !    thl0(ie + 1, :, :) = thl0(ie, :, :)
+  !    thlm(ie + 1, :, :) = thlm(ie, :, :)
+
+  !  end subroutine xTo_Neumann
 
 
    subroutine xqo_convective
@@ -966,6 +994,24 @@ contains
      end do
 
    end subroutine xso_convective
+
+
+  !  subroutine xso_Neumann
+  !    use modglobal, only : ie, ihc, rk3step, dt, nsv
+  !    use modfields, only :sv0, svm
+  !    real rk3coef
+  !    integer n, m
+
+  !    rk3coef = dt/(4.-dble(rk3step))
+
+  !    do n = 1, nsv
+  !      do m = 1, ihc
+  !        sv0(ie + m, :, :, n) = sv0(ie, :, :, n)
+  !        svm(ie + m, :, :, n) = svm(ie, :, :, n)
+  !      end do
+  !    end do
+
+  !  end subroutine xso_Neumann
 
 
    subroutine ymi_profile
@@ -1119,6 +1165,26 @@ contains
      end do
 
    end subroutine yso_convective
+
+
+  !  subroutine yso_Neumann
+
+  !    use modglobal, only : je, jhc, rk3step, dt, nsv
+  !    use modfields, only : sv0, svm
+
+  !    real rk3coef
+  !    integer n, m
+
+  !    rk3coef = dt/(4.-dble(rk3step))
+
+  !    do n = 1, nsv
+  !      do m = 1, jhc
+  !        sv0(:, je + m, :, n) = sv0(:, je, :, n)
+  !        svm(:, je + m, :, n) = svm(:, je, :, n)
+  !      end do
+  !    end do
+
+  !  end subroutine yso_Neumann
 
 
    !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
