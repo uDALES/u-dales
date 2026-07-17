@@ -1803,7 +1803,7 @@ contains
                                p_b,p_t,adv,IIc,IIcs
   use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,&
                                dzfi,dzhi,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
-  use modmpi,           only : avey_ibm,excjs,avexy_ibm,nodata
+  use modmpi,           only : avey_ibm,excjs,avexy_ibm
   use modbasestate,     only : thv_b
   use decomp_2d,        only : exchange_halo_z
   implicit none

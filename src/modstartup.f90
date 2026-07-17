@@ -936,7 +936,7 @@ module modstartup
       use modboundary, only:boundary, tqaver, halos, sv_top, ubulk, vbulk
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
-      use modbasestate, only:initbasestate, thv_b
+      use modbasestate, only:initbasestate
       use inflow, only: readdriverfile,initinflow,drivergen,readdriverfile_chunk
       use decomp_2d, only : exchange_halo_z, update_halo
 
