@@ -213,6 +213,25 @@ class TestView3DUtils(unittest.TestCase):
         self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "112")
 
     @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_uses_low_preproc_mem_as_dense_limit(self) -> None:
+        env, _ = load_view3d_runtime_env(
+            base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_NCPU": "8", "PREPROC_MEM": "8gb"},
+            config_path=default_view3d_config_path(),
+        )
+
+        self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "8")
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_rejects_invalid_preproc_mem(self) -> None:
+        for value in ("128", "abcgb"):
+            with self.subTest(PREPROC_MEM=value):
+                with self.assertRaisesRegex(RuntimeError, "PREPROC_MEM must be set like 128gb"):
+                    load_view3d_runtime_env(
+                        base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_NCPU": "8", "PREPROC_MEM": value},
+                        config_path=default_view3d_config_path(),
+                    )
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
     def test_default_view3d_config_uses_preproc_ncpu_when_available(self) -> None:
         env, _ = load_view3d_runtime_env(
             base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_NCPU": "6"},

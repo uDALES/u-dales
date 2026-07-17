@@ -45,16 +45,21 @@ fi
 #
 # On Imperial HPC preprocessing jobs, derive the guard from PREPROC_MEM while
 # leaving 16 GiB for Python, View3D metadata, OpenMP worker state, and system
-# overhead. For example, PREPROC_MEM=128gb gives
-# VIEW3D_MAX_DENSE_MATRIX_GIB=112. Set VIEW3D_MAX_DENSE_MATRIX_GIB explicitly
-# before sourcing this file if you need a different limit.
+# overhead when PREPROC_MEM is larger than 16 GiB. For example,
+# PREPROC_MEM=128gb gives VIEW3D_MAX_DENSE_MATRIX_GIB=112. Smaller requests use
+# the requested GiB value. Set VIEW3D_MAX_DENSE_MATRIX_GIB explicitly before
+# sourcing this file if you need a different limit.
 if [ -z "${VIEW3D_MAX_DENSE_MATRIX_GIB:-}" ]; then
 	if [ -n "${PREPROC_MEM:-}" ]; then
-		_mem_gib="${PREPROC_MEM%gb}"
+		if [[ ! "$PREPROC_MEM" =~ ^[0-9]+gb$ ]]; then
+			echo "PREPROC_MEM must be set like 128gb when provided before sourcing view3d_config.sh." >&2
+			return 1 2>/dev/null || exit 1
+		fi
+		_mem_gib=$((10#${PREPROC_MEM%gb}))
 		if [ "$_mem_gib" -gt 16 ]; then
 			export VIEW3D_MAX_DENSE_MATRIX_GIB="$((_mem_gib - 16))"
 		else
-			export VIEW3D_MAX_DENSE_MATRIX_GIB=1
+			export VIEW3D_MAX_DENSE_MATRIX_GIB="$_mem_gib"
 		fi
 	else
 		export VIEW3D_MAX_DENSE_MATRIX_GIB=112

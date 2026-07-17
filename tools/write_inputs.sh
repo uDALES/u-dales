@@ -78,6 +78,23 @@ extract_nompthreads() {
 	fi
 }
 
+source_view3d_config() {
+	local config_file=$1
+	local status
+
+	set -a
+	if source "$config_file"; then
+		set +a
+		return 0
+	else
+		status=$?
+		set +a
+		echo "Failed to source View3D config: $config_file" >&2
+		echo "Check the file syntax and required environment variables." >&2
+		return "$status"
+	fi
+}
+
 if (( $# < 2 ))
 then
 	echo "The preprocessing route and path to case/experiment folder must be set."
@@ -170,14 +187,11 @@ fi
 popd
 
 export VIEW3D_CONFIG="${VIEW3D_CONFIG:-$DA_TOOLSDIR/view3d_config.sh}"
-if [ -f "$VIEW3D_CONFIG" ]; then
-	set -a
-	if ! source "$VIEW3D_CONFIG"; then
-		set +a
-		exit 1
-	fi
-	set +a
+if [ ! -f "$VIEW3D_CONFIG" ]; then
+	echo "View3D config file not found: $VIEW3D_CONFIG" >&2
+	exit 1
 fi
+source_view3d_config "$VIEW3D_CONFIG" || exit 1
 
 if [ "$route" == "python" ]; then
 	python_exe="$DA_TOOLSDIR/python/.venv/bin/python"
@@ -215,14 +229,27 @@ export PYTHONUNBUFFERED=1
 export GFORTRAN_UNBUFFERED_PRECONNECTED=1
 export PREPROC_NCPU="$PREPROC_NCPU"
 export VIEW3D_CONFIG="$VIEW3D_CONFIG"
-if [ -f "$VIEW3D_CONFIG" ]; then
+source_view3d_config() {
+	local config_file=\$1
+	local status
+
 	set -a
-	if ! source "$VIEW3D_CONFIG"; then
+	if source "\$config_file"; then
 		set +a
-		exit 1
+		return 0
+	else
+		status=\$?
+		set +a
+		echo "Failed to source View3D config: \$config_file" >&2
+		echo "Check the file syntax and required environment variables." >&2
+		return "\$status"
 	fi
-	set +a
+}
+if [ ! -f "$VIEW3D_CONFIG" ]; then
+	echo "View3D config file not found: $VIEW3D_CONFIG" >&2
+	exit 1
 fi
+source_view3d_config "$VIEW3D_CONFIG" || exit 1
 
 EOF
 
