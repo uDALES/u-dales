@@ -43,7 +43,7 @@ module modsubgrid
 contains
   subroutine initsubgrid
     use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh, &
-         pi,ifnamopt
+         pi
 
     implicit none
 
@@ -79,8 +79,8 @@ contains
   end subroutine initsubgrid
 
   subroutine subgridnamelist
-    use modglobal, only : pi,ifnamopt,fname_options,lles
-    use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+    use modglobal, only : ifnamopt,fname_options,lles
+    use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical
 
     implicit none
 
@@ -190,11 +190,11 @@ contains
     !                                                                 |
     !-----------------------------------------------------------------|
 
-    use modglobal,   only : ib,ie,jb,je,kb,ke,delta,ekmin,grav,&
+    use modglobal,   only : ib,ie,jb,je,kb,ke,delta,grav,&
          dxi,dxiq,dx2,dy2,dyi,dyiq,dzf,dzf2,dzfi,dzhi, &
-         numol,numoli,prandtlmoli,dzfiq,lbuoyancy,dzh
+         numol,prandtlmoli,dzfiq,lbuoyancy,dzh
     use modfields,   only : dthvdz,e120,u0,v0,w0,thl0,thvf
-    use modmpi,    only : excjs,mpi_sum,slabsumi
+    use modmpi,    only : excjs,slabsumi
     use modboundary, only : closurebc
     implicit none
 

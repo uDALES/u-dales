@@ -26,12 +26,7 @@ except ImportError:
     TRIMESH_AVAILABLE = False
     warnings.warn("trimesh not installed. Geometry functionality will be limited.")
 
-try:
-    from scipy.spatial import ConvexHull
-    SCIPY_AVAILABLE = True
-except ImportError:
-    SCIPY_AVAILABLE = False
-
+from exceptions import DependencyError
 # Import package functions
 from .calculate_outline import calculate_outline
 from .check_mesh import (
@@ -48,9 +43,13 @@ from .fix_mesh import (
     resolve_vertical_coplanar_overlaps as resolve_vertical_coplanar_overlaps_impl,
     weld_touching_boundaries as weld_touching_boundaries_impl,
 )
-from .split_buildings import split_buildings
+from ._meshgraph import build_face_adjacency, connected_components
 
-from udvis import UDVis
+import logging
+
+from udvis import UDVis, DEFAULT_BACKEND
+
+logger = logging.getLogger(__name__)
 
 
 class UDGeom:
@@ -89,20 +88,24 @@ class UDGeom:
     >>> geom.save('box.stl')
     """
     
-    def __init__(self, path: Optional[Union[str, Path]] = None, 
-                 stl: Optional['trimesh.Trimesh'] = None):
+    def __init__(self, path: Optional[Union[str, Path]] = None,
+                 stl: Optional['trimesh.Trimesh'] = None,
+                 backend: str = DEFAULT_BACKEND):
         """
         Initialize UDGeom object.
-        
+
         Parameters
         ----------
         path : str or Path, optional
             Path to geometry directory. If None, uses current directory.
         stl : trimesh.Trimesh, optional
             Pre-existing trimesh object.
+        backend : {"plotly", "pyvista"}, default ``udvis.DEFAULT_BACKEND``
+            Default rendering backend for the 3-D geometry plots. Overridable
+            per instance via ``geom.backend`` or per call via ``backend=``.
         """
         if not TRIMESH_AVAILABLE:
-            raise ImportError("trimesh is required for UDGeom. Install with: pip install trimesh")
+            raise DependencyError("trimesh is required for UDGeom. Install with: pip install trimesh")
         
         # Set path
         if path is not None:
@@ -118,13 +121,36 @@ class UDGeom:
         else:
             self.stl = None
         
-        # Cached properties for lazy loading
+        # Cached lazy-loaded properties (see _invalidate_cache).
+        self._invalidate_cache()
+        self.vis = UDVis(self, backend=backend)
+
+    def _invalidate_cache(self) -> None:
+        """Reset all lazily-computed geometry caches (outlines, buildings,
+        face->building map). Call after any mutation of ``self.stl``."""
         self._outline2d = None
         self._outline3d = None
         self._buildings = None
         self._face_to_building_map = None
-        self.vis = UDVis(self)
-    
+
+    @property
+    def backend(self) -> str:
+        """Default rendering backend for 3-D plots (``"plotly"`` or ``"pyvista"``).
+
+        Settable on an existing geometry, so a geometry produced by a factory
+        (``create_cubes`` ...) or a repair step can be switched without passing
+        ``backend=`` to every ``show``/``plot`` call::
+
+            geom = create_cubes(...)
+            geom.backend = "pyvista"
+            geom.show()
+        """
+        return self.vis.backend
+
+    @backend.setter
+    def backend(self, value: str) -> None:
+        self.vis.backend = value
+
     def load(self, filename: str):
         """
         Load geometry from an STL file.
@@ -144,7 +170,7 @@ class UDGeom:
         Examples
         --------
         >>> geom = UDGeom('experiments/001')
-        >>> geom.load('geometry.001')
+        >>> geom.load('geometry.stl')
         """
         filepath = self.path / filename
         
@@ -164,16 +190,13 @@ class UDGeom:
 
             self._align_loaded_stl_to_file_normals(filepath)
             
-            print(f"Loaded geometry: {len(self.stl.faces)} faces, {len(self.stl.vertices)} vertices")
+            logger.info("Loaded geometry: %d faces, %d vertices", len(self.stl.faces), len(self.stl.vertices))
             
             # Invalidate cached properties
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
             
         except Exception as e:
-            raise ValueError(f"Error loading STL file {filepath}: {e}")
+            raise ValueError(f"Error loading STL file {filepath}: {e}") from e
 
     @staticmethod
     def _read_stl_file_normals(filepath: Path) -> Optional[np.ndarray]:
@@ -262,28 +285,31 @@ class UDGeom:
         
         try:
             self.stl.export(str(filepath))
-            print(f"Saved geometry to: {filepath}")
+            logger.info("Saved geometry to: %s", filepath)
         except Exception as e:
-            raise ValueError(f"Error saving STL file {filepath}: {e}")
+            raise ValueError(f"Error saving STL file {filepath}: {e}") from e
     
-    def show(self, color_buildings: bool = True, plot_quiver: bool = True, 
+    def show(self, color_buildings: bool = True, plot_quiver: bool = False,
              normal_scale: float = 0.2,
-             show_edges: bool = True, show_ground: bool = True, show: bool = True):
+             show_edges: bool = True, show_ground: bool = True, show: bool = True,
+             backend: Optional[str] = None):
         """
         Visualize the geometry.
-        
+
         Creates a 3D plot of the triangulated surface. Ground facets (z <= 0) are
         shown in light gray, while building facets (z > 0) can be colored blue.
         Normal vectors can be displayed as arrows.
-        
+
         Parameters
         ----------
         color_buildings : bool, default=True
             If True, color building facets (z > 0) blue. Ground remains gray.
             Set to False for very large geometries to improve performance.
-        plot_quiver : bool, default=True
+        plot_quiver : bool, default=False
             If True, display normal vectors as arrows from face centers.
-            (Renamed from show_normals to match MATLAB interface)
+            (Renamed from show_normals to match the MATLAB interface; note the
+            MATLAB toolbox defaults this to true, whereas Python defaults to
+            False to avoid cluttering large meshes.)
         normal_scale : float, default=0.2
             Scaling factor for normal vector arrow lengths.
         show_edges : bool, default=True
@@ -293,19 +319,30 @@ class UDGeom:
         show : bool, default=True
             If True, display the figure immediately. If False, only return the
             figure object.
-            
+        backend : {"plotly", "pyvista"}, optional
+            Rendering backend; defaults to the backend chosen when this UDGeom
+            was constructed (``UDGeom(..., backend=...)``).
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or pyvista.Plotter or None
+            When ``show=False``, the Plotly ``Figure`` or the PyVista
+            ``Plotter`` depending on ``backend``; ``None`` when ``show=True``
+            (the figure/window is displayed instead).
+
         Raises
         ------
         ValueError
             If no geometry is loaded
         ImportError
-            If matplotlib is not installed
-            
+            If plotly (plotly backend) or pyvista (pyvista backend) is not
+            installed
+
         Examples
         --------
-        >>> geom.show()  # Default: color buildings, show normals
+        >>> geom.show()  # uses the geometry's default backend
+        >>> geom.show(backend="pyvista")  # override for this call
         >>> geom.show(color_buildings=False)  # Faster for large meshes
-        >>> geom.show(True, False)  # Color buildings but don't show normals
         >>> fig = geom.show(show=False)  # Build the figure without displaying it
         """
         return self.vis.show_geometry(
@@ -315,6 +352,7 @@ class UDGeom:
             show_edges=show_edges,
             show_ground=show_ground,
             show=show,
+            backend=backend,
         )
     
     @property
@@ -352,7 +390,7 @@ class UDGeom:
             (x, y, z) coordinates of face centers
         """
         if self.stl is None:
-            return np.array([])
+            return np.empty((0, 3), dtype=float)
         return self.stl.triangles_center
 
     @property
@@ -366,7 +404,7 @@ class UDGeom:
             Incenter coordinates for each triangular face.
         """
         if self.stl is None:
-            return np.array([])
+            return np.empty((0, 3), dtype=float)
 
         vertices = np.asarray(self.stl.vertices, dtype=float)
         faces = np.asarray(self.stl.faces, dtype=int)
@@ -470,39 +508,24 @@ class UDGeom:
             self._face_to_building_map = np.zeros(len(self.stl.faces), dtype=int)
             return
         
-        # Build adjacency graph restricted to building faces
-        face_adj = self.stl.face_adjacency
-        # Keep only adjacency where both faces are buildings
-        mask = np.isin(face_adj, building_faces).all(axis=1)
-        face_adj = face_adj[mask]
-        
-        # Connected components over building faces
-        component_labels = -np.ones(len(self.stl.faces), dtype=int)
-        current_label = 0
-        
-        for f in building_faces:
-            if component_labels[f] != -1:
-                continue
-            stack = [f]
-            component_labels[f] = current_label
-            while stack:
-                face_idx = stack.pop()
-                # neighbors where face_idx participates
-                neighbors = face_adj[(face_adj[:, 0] == face_idx) | (face_adj[:, 1] == face_idx)].ravel()
-                for nb in neighbors:
-                    if component_labels[nb] == -1 and nb in building_faces:
-                        component_labels[nb] = current_label
-                        stack.append(nb)
-            current_label += 1
-        
+        # Connected components over building faces only, seeded in ascending
+        # face order so the component numbering matches the historical labelling.
+        is_building = np.zeros(len(self.stl.faces), dtype=bool)
+        is_building[building_faces] = True
+        adjacency = build_face_adjacency(self.stl)
+        components = connected_components(
+            adjacency, seeds=building_faces, keep=is_building
+        )
+
         # Extract individual building meshes with component labels
         buildings_with_labels = []
-        
-        for comp in range(current_label):
-            face_idxs = np.where(component_labels == comp)[0]
+
+        for comp, component in enumerate(components):
+            # Ascending face order (matches the previous np.where labelling).
+            face_idxs = np.sort(component)
             if face_idxs.size == 0:
                 continue
-            
+
             # Extract submesh for this building
             try:
                 building_mesh = self.stl.submesh([face_idxs], append=True)
@@ -551,7 +574,7 @@ class UDGeom:
         -------
         outlines : list of dict
             Each item contains:
-            - 'polygon': ndarray, shape (n_vertices, 3) ordered convex hull in x-y
+            - 'polygon': ndarray, shape (n_vertices, 3) ordered free-boundary loop in x-y
             - 'centroid': ndarray, shape (3,) centroid of the polygon (z=0)
             
         Examples
@@ -677,18 +700,21 @@ class UDGeom:
             warnings.warn('No STL geometry loaded. Load geometry first.')
             return []
 
+        cache_key = float(angle_threshold)
+        if self._outline3d is not None and cache_key in self._outline3d:
+            return self._outline3d[cache_key]
+
+        outlines: List[np.ndarray] = []
+        for building in self.get_buildings():
+            edges, _ = calculate_outline(building, angle_threshold)
+            outlines.append(edges)
+
+        # ``get_buildings()`` can invalidate the cache while it runs (resetting
+        # ``self._outline3d`` to None), so (re)create the dict only after the
+        # per-building outlines have been resolved.
         if self._outline3d is None:
             self._outline3d = {}
-
-        cache_key = float(angle_threshold)
-        if cache_key not in self._outline3d:
-            outlines: List[np.ndarray] = []
-            for building in self.get_buildings():
-                edges, _ = calculate_outline(building, angle_threshold)
-                outlines.append(edges)
-            if self._outline3d is None:
-                self._outline3d = {}
-            self._outline3d[cache_key] = outlines
+        self._outline3d[cache_key] = outlines
         return self._outline3d[cache_key]
 
     def get_outline(self, angle_threshold: float = 45.0) -> np.ndarray:
@@ -723,7 +749,7 @@ class UDGeom:
             Unit normal vectors for each face
         """
         if self.stl is None:
-            return np.array([])
+            return np.empty((0, 3), dtype=float)
         return self.stl.face_normals
     
     @property
@@ -771,14 +797,16 @@ class UDGeom:
         self,
         angle_threshold: float = 45.0,
         show_ground: bool = True,
+        color_buildings: bool = False,
         show: bool = True,
+        backend: Optional[str] = None,
     ):
         """
         Plot the geometry with outline edges highlighted.
-        
+
         Displays the mesh in gray with black outline edges overlaid.
         Outline edges are detected based on the angle between adjacent faces.
-        
+
         Parameters
         ----------
         angle_threshold : float, default=45.0
@@ -787,26 +815,37 @@ class UDGeom:
             threshold are considered outline edges.
         show_ground : bool, default=True
             If True, include ground faces in the visualization.
+        color_buildings : bool, default=False
+            If True, colour buildings blue and ground grey. If False (default),
+            use two-tone grey shading that makes the outline edges stand out.
+            Honoured by both backends.
         show : bool, default=True
             If True, display the figure immediately. If False, only return the
             figure object.
-            
+        backend : {"plotly", "pyvista"}, optional
+            Rendering backend; defaults to the backend chosen when this UDGeom
+            was constructed (``UDGeom(..., backend=...)``).
+
         Raises
         ------
         ValueError
             If no geometry is loaded
         ImportError
-            If matplotlib is not installed
-            
+            If plotly (plotly backend) or pyvista (pyvista backend) is not
+            installed
+
         Examples
         --------
-        >>> geom.show_outline()  # Default 45° threshold
+        >>> geom.show_outline()  # uses the geometry's default backend
+        >>> geom.show_outline(backend="pyvista")  # override for this call
         >>> geom.show_outline(angle_threshold=30)  # More sensitive
         """
         return self.vis.show_geometry_outline(
             angle_threshold=angle_threshold,
             show_ground=show_ground,
+            color_buildings=color_buildings,
             show=show,
+            backend=backend,
         )
 
     def check(self, require_single_component: bool = True):
@@ -860,19 +899,13 @@ class UDGeom:
             geom, debug = result
             if inplace:
                 self.stl = geom.stl
-                self._outline2d = None
-                self._outline3d = None
-                self._buildings = None
-                self._face_to_building_map = None
+                self._invalidate_cache()
             return geom, debug
 
         geom = result
         if inplace:
             self.stl = geom.stl
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
         return geom
 
     def calculate_independent_surfaces(self):
@@ -999,10 +1032,7 @@ class UDGeom:
         )
         if inplace:
             self.stl = fixed_mesh
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
         return fixed_mesh, report
 
     def resolve_vertical_coplanar_overlaps(
@@ -1024,10 +1054,7 @@ class UDGeom:
         )
         if inplace:
             self.stl = fixed_mesh
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
         return fixed_mesh, report
 
     def weld_touching_boundaries(
@@ -1044,10 +1071,7 @@ class UDGeom:
         fixed_mesh, report = weld_touching_boundaries_impl(self)
         if inplace:
             self.stl = fixed_mesh
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
         return fixed_mesh, report
 
     def repair_adjacent_buildings(
@@ -1075,10 +1099,7 @@ class UDGeom:
         )
         if inplace:
             self.stl = cleaned_geom.stl
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
             return (self.stl, report) if return_trimesh else (self, report)
         return (cleaned_geom.stl, report) if return_trimesh else (cleaned_geom, report)
 
@@ -1125,10 +1146,7 @@ class UDGeom:
         )
         if inplace:
             self.stl = cleaned_geom.stl
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
             return (self.stl, report) if return_trimesh else (self, report)
         return (cleaned_geom.stl, report) if return_trimesh else (cleaned_geom, report)
 
@@ -1178,14 +1196,12 @@ class UDGeom:
         )
         if inplace:
             self.stl = cleaned_geom.stl
-            self._outline2d = None
-            self._outline3d = None
-            self._buildings = None
-            self._face_to_building_map = None
+            self._invalidate_cache()
             return (self.stl, report) if return_trimesh else (self, report)
         return (cleaned_geom.stl, report) if return_trimesh else (cleaned_geom, report)
 
-    def plot_independent_surfaces(self, show: bool = True, return_result: bool = False):
+    def plot_independent_surfaces(self, show: bool = True, return_result: bool = False,
+                                  backend: Optional[str] = None):
         """
         Visualize face-connected independent surfaces using face ids as colors.
 
@@ -1195,14 +1211,19 @@ class UDGeom:
             If True, display the figure immediately.
         return_result : bool, default=False
             If True, also return the independent-surface partition result.
+        backend : {"plotly", "pyvista"}, optional
+            Rendering backend; defaults to the backend chosen when this UDGeom
+            was constructed (``UDGeom(..., backend=...)``).
 
         Returns
         -------
         fig or (fig, result)
-            Plotly figure from ``plot_fac``. When ``return_result=True``, also
-            return the surface partition result.
+            The figure/plotter when ``show=False``; ``None`` when ``show=True``
+            (displayed instead). When ``return_result=True``, the surface
+            partition result is returned alongside, i.e. ``(fig, result)`` or
+            ``(None, result)``.
         """
-        return self.vis.plot_independent_surfaces(show=show, return_result=return_result)
+        return self.vis.plot_independent_surfaces(show=show, return_result=return_result, backend=backend)
     
     def _calculate_outline_edges(self, angle_threshold: float = 45.0) -> List[tuple]:
         """
@@ -1227,7 +1248,6 @@ class UDGeom:
         
         # Process the entire geometry (including ground faces) to match MATLAB get_outline()
         # MATLAB only filters ground when splitting buildings, not when computing overall outline
-        vertices = self.stl.vertices
         faces = self.stl.faces
         
         # Get face adjacency info
@@ -1274,18 +1294,12 @@ class UDGeom:
                 edge_counts[edge] = edge_counts.get(edge, 0) + 1
         
         # Boundary edges appear only once (not shared between faces)
-        boundary_edges_added = 0
-        ground_boundary_edges = 0
         for edge, count in edge_counts.items():
             if count == 1:  # Boundary edge
                 if edge not in outline_edge_set:
                     outline_edge_set.add(edge)
                     outline_edges.append(edge)
-                    boundary_edges_added += 1
-                    # Check if this is a ground-level edge
-                    if vertices[edge[0]][2] == 0 and vertices[edge[1]][2] == 0:
-                        ground_boundary_edges += 1
-        
+
         return outline_edges
     
     def __repr__(self) -> str:

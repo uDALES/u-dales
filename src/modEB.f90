@@ -377,7 +377,7 @@ contains
     ! bare soil
     ! E = max(0,(1-vegetation%) * rhoa * (qa-qsat(TGR)*hu) * (1/(rs+ra))
 
-    use modglobal, only:nfcts, rlv, rlvi, rhoa, cp, wfc, wwilt, rsmin, GRLAI, tEB, rsmax, lconstW
+    use modglobal, only:nfcts, rlv, rlvi, rhoa, wfc, wwilt, rsmin, GRLAI, tEB, rsmax, lconstW
     use initfac, only:netSW, fachurel, faclGR, facwsoil, facf, facT, facefi, facqsat, facd, faca, qsat
 
     integer :: n

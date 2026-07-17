@@ -23,13 +23,8 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
-
-def _copy_mesh(mesh: "trimesh.Trimesh") -> "trimesh.Trimesh":
-    return trimesh.Trimesh(
-        vertices=np.asarray(mesh.vertices, dtype=float).copy(),
-        faces=np.asarray(mesh.faces, dtype=int).copy(),
-        process=False,
-    )
+from exceptions import DependencyError
+from ._meshutil import _copy_mesh
 
 
 def _estimate_planar_ground_level(mesh: "trimesh.Trimesh", ground_mask: np.ndarray, tolerance: float) -> float:
@@ -232,9 +227,14 @@ def truncate_below_ground(
     clip_tolerance : float, default=1e-9
         Numerical tolerance for triangle-plane clipping.
     edgelength : float, optional
-        Optional reference spacing stored in the report. The current
+        Accepted for API compatibility but not used to remesh: the current
         implementation preserves and locally restitches the existing ground
-        mesh rather than remeshing the whole domain.
+        mesh rather than remeshing the whole domain, so no target spacing is
+        needed. The ``edgelength`` field of the returned report reports the
+        ground spacing *estimated* from the existing mesh, not this argument
+        (except for an empty input mesh, where the provided value is echoed
+        back). To honour a requested spacing the whole-domain remesh path would
+        have to be reinstated, which would change existing results.
     return_trimesh : bool, default=False
         If True, return the repaired ``trimesh.Trimesh`` directly. Otherwise
         return a ``UDGeom`` object.
@@ -248,7 +248,7 @@ def truncate_below_ground(
         Summary of the truncation and local ground restitching operation.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     mesh = _copy_mesh(_as_trimesh(mesh_or_geom))
     if len(mesh.faces) == 0:
@@ -261,8 +261,8 @@ def truncate_below_ground(
         }
         if return_trimesh:
             return mesh, report
-        from .udgeom import UDGeom
-        return UDGeom(stl=mesh), report
+        from .udgeom import UDGeom, DEFAULT_BACKEND
+        return UDGeom(stl=mesh, backend=getattr(mesh_or_geom, "backend", DEFAULT_BACKEND)), report
 
     ground_mask = identify_ground_faces(mesh)
     ground_face_count = int(np.count_nonzero(ground_mask))
@@ -327,9 +327,9 @@ def truncate_below_ground(
     if return_trimesh:
         return cleaned, report
 
-    from .udgeom import UDGeom
+    from .udgeom import UDGeom, DEFAULT_BACKEND
 
-    return UDGeom(stl=cleaned), report
+    return UDGeom(stl=cleaned, backend=getattr(mesh_or_geom, "backend", DEFAULT_BACKEND)), report
 
 
 __all__ = ["truncate_below_ground"]

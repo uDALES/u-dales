@@ -55,11 +55,23 @@ jobs:
         PREPROCESSING_PYTHON_EXECUTABLE="$(command -v python)" \
           bash tools/build_preprocessing.sh common preprocessing_tools
 
+    - name: Install uDALES Python tools (editable)
+      shell: bash -l {0}
+      # Registers tools/python on the path so the test suite imports udbase/
+      # udgeom/udprep/udvis without sys.path edits. --no-deps: deps come from
+      # environment.yml.
+      run: python -m pip install -e tools/python --no-deps
+
     - name: Build current branch for integration tests
       shell: bash -l {0}
       run: |
+        # This step overrides the default shell, which drops GitHub's `-eo
+        # pipefail`. The build is piped into tee below, so pipefail is required
+        # or a failed build would be masked by tee's exit status.
+        set -o pipefail
         build_dir="build/${{ matrix.build-type }}"
         build_dir="$(printf '%s' "$build_dir" | tr '[:upper:]' '[:lower:]')"
+        echo "UDALES_BUILD_LOG=${build_dir}/build.log" >> "$GITHUB_ENV"
         source .github/scripts/setup_mpi_env.sh "${{ matrix.os }}"
         if [ ${{ matrix.os }} = 'macos-latest' ]; then
           which gfortran
@@ -72,7 +84,13 @@ jobs:
           -DMPI_Fortran_COMPILER="$UDALES_MPI_FORTRAN_COMPILER" \
           -DMPI_C_COMPILER="$UDALES_MPI_C_COMPILER" \
           -DMPIEXEC_EXECUTABLE="$UDALES_MPIEXEC"
-        cmake --build "$build_dir" -- -j 4
+        cmake --build "$build_dir" -- -j 4 2>&1 | tee "$build_dir/build.log"
+
+    - name: Summarise compiler warnings
+      # Reporting only -- deliberately never fails the build. See the script
+      # header for why this is not a -Werror gate.
+      if: always()
+      run: bash .github/scripts/summarise_warnings.sh "$UDALES_BUILD_LOG" "${{ matrix.os }} ${{ matrix.build-type }}"
 
     - name: Build and test uDALES
       shell: bash -l {0}
@@ -88,6 +106,51 @@ jobs:
           selection="supported"
         fi
         python3 -u tests/run_tests.py "$selection" --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type }}
+
+  python-viz:
+    # environment.yml installs PyVista (the default backend), but the GL-free
+    # matrix gate skips the PyVista *rendering* tests because they require
+    # PYVISTA_OFF_SCREEN. This Linux job adds headless GL and the optional Plotly
+    # backend, then runs the visualization tests off-screen so BOTH backends are
+    # exercised by the merge gate.
+    if: >
+      github.event_name != 'push' ||
+      !contains(github.event.head_commit.message, '[skip ci]')
+    name: python-viz (both backends)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check-out project
+      uses: actions/checkout@v6
+
+    - name: Install headless OpenGL/xvfb for VTK
+      # Ubuntu 24.04 (noble) dropped the transitional libgl1-mesa-glx package;
+      # libgl1 + libglx-mesa0 provide libGL/GLX and libgl1-mesa-dri provides the
+      # software (llvmpipe) renderer needed for off-screen rendering under xvfb.
+      run: sudo apt-get update && sudo apt-get install -y xvfb libgl1 libglx-mesa0 libgl1-mesa-dri libxrender1
+
+    - name: Install python dependencies
+      uses: conda-incubator/setup-miniconda@9b650ee299f7fe47ab3a9688166e64e965c83272 # main (node24)
+      with:
+        miniconda-version: "latest"
+        auto-update-conda: true
+        activate-environment: udales
+        environment-file: environment.yml
+        channel-priority: strict
+
+    - name: Install optional Plotly backend
+      shell: bash -l {0}
+      run: python -m pip install -r tools/python/requirements-plotly.txt
+
+    - name: Install uDALES Python tools (editable)
+      shell: bash -l {0}
+      run: python -m pip install -e tools/python --no-deps
+
+    - name: Run visualization tests (both backends, off-screen)
+      shell: bash -l {0}
+      env:
+        PYVISTA_OFF_SCREEN: "true"
+      run: xvfb-run -a python -m unittest discover -s tools/python/tests -p "test_udbase_vis.py"
 
   docs:
     if: >

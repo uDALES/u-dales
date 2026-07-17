@@ -387,7 +387,7 @@ subroutine scalsource
   use modglobal,  only : pi,nsv,ib,ie,jb,je,kb,ke,zf,dx,dy,imax,jmax,&
                          xS,yS,zS,xSb,ySb,zSb,xSe,ySe,zSe,SS,sigS,lscasrc,lscasrcl,dzfi,nscasrc,scasrcp,nscasrcl,scasrcl
   use modfields,  only : svp
-  use modmpi,     only : myidx,myidy,MPI_SUM
+  use modmpi,     only : myidx,myidy
 
   implicit none
   integer :: i,j,k,n,ns

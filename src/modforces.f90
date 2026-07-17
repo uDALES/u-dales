@@ -134,7 +134,6 @@ module modforces
     use modglobal, only : ke,&
                           lvinf
     use modfields, only : u0av,v0av
-    use modmpi, only    : mpi_sum
     implicit none
     real, intent(out) :: freestream
 
@@ -175,7 +174,6 @@ module modforces
                           Uinf,ifixuinf,tscale,rk3step,inletav,&
                           freestreamav
     use modfields, only : dgdt
-    use modmpi, only    : mpi_sum
     implicit none
 
     real  utop,freestream
@@ -222,7 +220,6 @@ module modforces
                           Uinf,Vinf,ifixuinf,rk3step,&
                           lvinf
     use modfields, only : up,vp,u0av,v0av
-    use modmpi, only    : mpi_sum
     implicit none
 
     real  utop
@@ -233,7 +230,7 @@ module modforces
 
     if ((ifixuinf==1) .and. (rk3step==3)) then
 
-      ! rk3coef = dt / (4. - dble(rk3step))
+      ! rk3coef = dt / (4. - real(rk3step))
 
       ! do j =jb,je
       !   do i =ib,ie
@@ -289,7 +286,6 @@ module modforces
   end subroutine fixuinf1
 
   subroutine fixthetainf
-    use modmpi, only    : mpi_sum
     implicit none
 
     real  ttop
@@ -298,7 +294,7 @@ module modforces
 
     ! if (ifixuinf==1 .and. rk3step==3 .and. ltempeq) then !tg3315 commented
 
-    !   rk3coef = dt / (4. - dble(rk3step))
+    !   rk3coef = dt / (4. - real(rk3step))
 
     !   do j =jb,je
     !     do i =ib,ie
@@ -352,7 +348,7 @@ module modforces
     integer                       i,j,k
 
     if ((.not.linoutflow) .and. (luoutflowr)) then
-      rk3coef = dt / (4. - dble(rk3step))
+      rk3coef = dt / (4. - real(rk3step))
       rk3coefi = 1 / rk3coef
 
       ! Assumes ie=itot
@@ -394,7 +390,7 @@ module modforces
       uouttot = sum(uout(kb:ke))  ! mass flow rate at outlet
 
     elseif ((.not.linoutflow) .and. (luvolflowr)) then
-      rk3coef = dt / (4. - dble(rk3step))
+      rk3coef = dt / (4. - real(rk3step))
       rk3coefi = 1 / rk3coef
 
       udef = 0.
@@ -424,7 +420,7 @@ module modforces
     end if
 
     if ((.not.linoutflow) .and. (lvoutflowr)) then
-      rk3coef = dt / (4. - dble(rk3step))
+      rk3coef = dt / (4. - real(rk3step))
       rk3coefi = 1 / rk3coef
 
       ! Assumes je=jtot
@@ -468,7 +464,7 @@ module modforces
       end do
 
     elseif ((.not.linoutflow) .and. (lvvolflowr)) then
-      rk3coef = dt / (4. - dble(rk3step))
+      rk3coef = dt / (4. - real(rk3step))
       rk3coefi = 1 / rk3coef
 
       vdef = 0.
@@ -826,7 +822,7 @@ module modforces
   end subroutine lstend
 
   subroutine nudge
-    use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,lnudgevel,tnudge,nnudge,numol,nsv
+    use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,lnudgevel,tnudge,nnudge,nsv
     use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av,up,vp,u0av,v0av,uprof,vprof,thlprof,qtprof,svprof
     implicit none
     integer :: k, n
@@ -962,7 +958,7 @@ module modforces
       real :: vs, rk3coef
 
       if (ds > 0) then
-      rk3coef = dt / (4. - dble(rk3step))
+      rk3coef = dt / (4. - real(rk3step))
       do i = ib,ie
          ig = i + zstart(1) - 1 ! global i position
          if (ig > int(itot/2)) then

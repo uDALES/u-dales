@@ -84,7 +84,7 @@ save
 
 contains
   subroutine initinflow
-    use modglobal, only : jh,jb,je,kb,ke,kh,jhc,khc,idriver,lchunkread,chunkread_size,iplane,ltempeq,lmoist,pi,driverstore,tdriverstart,tdriverdump,nsv,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid
+    use modglobal, only : jh,jb,je,kb,ke,kh,jhc,khc,idriver,lchunkread,chunkread_size,iplane,ltempeq,lmoist,driverstore,tdriverstart,tdriverdump,nsv,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid
     use modmpi, only : myidy,nprocy
     use decomp_2d, only : zstart, zend
 
@@ -220,8 +220,8 @@ contains
 
   subroutine drivergen
     use modglobal,   only : timee,btime,rk3step,&
-                            numol,idriver,&
-                            driverstore,prandtlmoli,numol,grav,&
+                            idriver,&
+                            driverstore,&
                             tdriverstart,dtdriver,tdriverdump,lchunkread,chunkread_size,ltempeq,lmoist,nsv,lhdriver,lqdriver,lsdriver,&
                             iplanerank,driverid,runtime,lwarmstart
     use modmpi,      only : slabsum,myid
@@ -229,7 +229,7 @@ contains
 
     real :: elapsrec                            ! time elapsed in this inlet record
     real :: dtint                               ! dt for linear interpolation
-    real, PARAMETER :: eps = 1d-4
+    real, PARAMETER :: eps = 1e-4
     integer x,xc
 
     if (idriver == 1 .and. iplanerank) then
@@ -559,7 +559,7 @@ contains
   end subroutine drivergen
 
   subroutine writedriverfile
-    use modglobal, only : runtime,timee,tdriverstart,tdriverstart_cold,jb,je,jh,kb,ke,kh,cexpnr,ifoutput,ltempeq,lmoist,driverstore,dtdriver,nsv,driverid,cdriverid,btime,lwarmstart
+    use modglobal, only : runtime,timee,tdriverstart,tdriverstart_cold,jb,je,jh,kb,ke,kh,cexpnr,ltempeq,lmoist,driverstore,dtdriver,nsv,driverid,cdriverid,btime,lwarmstart
     use modfields, only : u0, v0, w0, thl0, qt0, sv0
     implicit none
     integer :: IOS
@@ -795,7 +795,7 @@ contains
   subroutine readdriverfile
     ! this gets called in modstartup (readinitfiles) when ibrank=.true.
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,kb,ke,kh,jhc,khc,ifinput,driverstore,ltempeq,lmoist,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,driverid,cdriverid,lwarmstart
+    use modglobal, only : ib,jb,je,kb,ke,kh,jhc,khc,driverstore,ltempeq,lmoist,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,driverid,cdriverid,lwarmstart
     use modmpi,    only : slabsum,excjs
     implicit none
     integer :: IOS, filesize, filesizes
@@ -976,7 +976,7 @@ contains
 
   subroutine readdriverfile_chunk
     use modfields, only : u0,sv0
-    use modglobal, only : ib,jb,je,kb,ke,kh,jhc,khc,ifinput,driverstore,chunkread_size,ltempeq,lmoist,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,driverid,cdriverid,lwarmstart
+    use modglobal, only : ib,jb,je,kb,ke,kh,jhc,khc,driverstore,chunkread_size,ltempeq,lmoist,jh,driverjobnr,cdriverjobnr,nsv,timee,tdriverstart,lhdriver,lqdriver,lsdriver,driverid,cdriverid,lwarmstart
     use modmpi,    only : myid,slabsum,excjs
     implicit none
     integer :: IOS, filesize, filesizes

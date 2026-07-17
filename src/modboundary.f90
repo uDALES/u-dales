@@ -926,7 +926,7 @@ contains
      use modsubgriddata, only : loneeqn
      real rk3coef
 
-     rk3coef = dt/(4.-dble(rk3step))
+     rk3coef = dt/(4.-real(rk3step))
 
      v0(ie + 1, :, :) = v0(ie+1, :, :) - (v0(ie+1, :, :) - v0(ie, :, :))*dxi*rk3coef*uouttot
      w0(ie + 1, :, :) = w0(ie+1, :, :) - (w0(ie+1, :, :) - w0(ie, :, :))*dxi*rk3coef*uouttot
@@ -941,22 +941,22 @@ contains
    end subroutine xmo_convective
 
 
-   subroutine xmo_Neumann
-     use modglobal,      only : ie
-     use modfields,      only : v0, vm, w0, wm, e120, e12m
-     use modsubgriddata, only : loneeqn
+  !  subroutine xmo_Neumann
+  !    use modglobal,      only : ie
+  !    use modfields,      only : v0, vm, w0, wm, e120, e12m
+  !    use modsubgriddata, only : loneeqn
 
-     v0(ie + 1, :, :) = v0(ie, :, :)
-     w0(ie + 1, :, :) = w0(ie, :, :)
-     vm(ie + 1, :, :) = vm(ie, :, :)
-     wm(ie + 1, :, :) = wm(ie, :, :)
+  !    v0(ie + 1, :, :) = v0(ie, :, :)
+  !    w0(ie + 1, :, :) = w0(ie, :, :)
+  !    vm(ie + 1, :, :) = vm(ie, :, :)
+  !    wm(ie + 1, :, :) = wm(ie, :, :)
 
-     if (loneeqn) then
-       e120(ie + 1, :, :) = e120(ie, :, :)
-       e12m(ie + 1, :, :) = e12m(ie, :, :)
-     end if
+  !    if (loneeqn) then
+  !      e120(ie + 1, :, :) = e120(ie, :, :)
+  !      e12m(ie + 1, :, :) = e12m(ie, :, :)
+  !    end if
 
-   end subroutine xmo_Neumann
+  !  end subroutine xmo_Neumann
 
 
    subroutine xTo_convective
@@ -964,7 +964,7 @@ contains
      use modfields, only : thl0, thlm, uouttot
      real rk3coef
 
-     rk3coef = dt/(4.-dble(rk3step))
+     rk3coef = dt/(4.-real(rk3step))
 
      thl0(ie + 1, :, :) = thl0(ie+1, :, :) - (thl0(ie + 1, :, :) - thl0(ie, :, :))*dxi*rk3coef*uouttot
      thlm(ie + 1, :, :) = thlm(ie+1, :, :) - (thlm(ie + 1, :, :) - thlm(ie, :, :))*dxi*rk3coef*uouttot
@@ -972,14 +972,14 @@ contains
    end subroutine xTo_convective
 
 
-   subroutine xTo_Neumann
-     use modglobal, only : ie
-     use modfields, only : thl0, thlm
+  !  subroutine xTo_Neumann
+  !    use modglobal, only : ie
+  !    use modfields, only : thl0, thlm
 
-     thl0(ie + 1, :, :) = thl0(ie, :, :)
-     thlm(ie + 1, :, :) = thlm(ie, :, :)
+  !    thl0(ie + 1, :, :) = thl0(ie, :, :)
+  !    thlm(ie + 1, :, :) = thlm(ie, :, :)
 
-   end subroutine xTo_Neumann
+  !  end subroutine xTo_Neumann
 
 
    subroutine xqo_convective
@@ -987,7 +987,7 @@ contains
      use modfields, only : qt0, qtm, uouttot
      real rk3coef
 
-     rk3coef = dt/(4.-dble(rk3step))
+     rk3coef = dt/(4.-real(rk3step))
 
      qt0(ie + 1, :, :) = qt0(ie, :, :) - (qt0(ie + 1, :, :) - qt0(ie, :, :))*dxi*rk3coef*uouttot
      qtm(ie + 1, :, :) = qtm(ie, :, :) - (qtm(ie + 1, :, :) - qtm(ie, :, :))*dxi*rk3coef*uouttot
@@ -1001,7 +1001,7 @@ contains
      real rk3coef
      integer n
 
-     rk3coef = dt/(4.-dble(rk3step))
+     rk3coef = dt/(4.-real(rk3step))
 
      do n = 1, nsv
        sv0(ie + 1, :, :, n) = sv0(ie + 1, :, :, n) - (sv0(ie + 1, :, :, n) - sv0(ie, :, :, n))*dxi*rk3coef*uouttot
@@ -1011,22 +1011,22 @@ contains
    end subroutine xso_convective
 
 
-   subroutine xso_Neumann
-     use modglobal, only : ie, ihc, rk3step, dt, nsv
-     use modfields, only :sv0, svm
-     real rk3coef
-     integer n, m
+  !  subroutine xso_Neumann
+  !    use modglobal, only : ie, ihc, rk3step, dt, nsv
+  !    use modfields, only :sv0, svm
+  !    real rk3coef
+  !    integer n, m
 
-     rk3coef = dt/(4.-dble(rk3step))
+  !    rk3coef = dt/(4.-dble(rk3step))
 
-     do n = 1, nsv
-       do m = 1, ihc
-         sv0(ie + m, :, :, n) = sv0(ie, :, :, n)
-         svm(ie + m, :, :, n) = svm(ie, :, :, n)
-       end do
-     end do
+  !    do n = 1, nsv
+  !      do m = 1, ihc
+  !        sv0(ie + m, :, :, n) = sv0(ie, :, :, n)
+  !        svm(ie + m, :, :, n) = svm(ie, :, :, n)
+  !      end do
+  !    end do
 
-   end subroutine xso_Neumann
+  !  end subroutine xso_Neumann
 
 
    subroutine ymi_profile
@@ -1119,7 +1119,7 @@ contains
 
      real rk3coef
 
-     rk3coef = dt/(4.-dble(rk3step))
+     rk3coef = dt/(4.-real(rk3step))
 
      ! change to vouttot
      u0(:, je + 1, :) = u0(:, je + 1, :) - (u0(:, je + 1, :) - u0(:, je, :))*dyi*rk3coef*vouttot
@@ -1142,7 +1142,7 @@ contains
 
      real rk3coef
 
-     rk3coef = dt/(4.-dble(rk3step))
+     rk3coef = dt/(4.-real(rk3step))
 
      thl0(:, je + 1, :) = thl0(:, je + 1, :) - (thl0(:, je + 1, :) - thl0(:, je, :))*dyi*rk3coef*vouttot
      thlm(:, je + 1, :) = thlm(:, je + 1, :) - (thlm(:, je + 1, :) - thlm(:, je, :))*dyi*rk3coef*vouttot
@@ -1156,7 +1156,7 @@ contains
      use modfields, only : qt0, qtm, vouttot
 
      real rk3coef
-     rk3coef = dt/(4.-dble(rk3step))
+     rk3coef = dt/(4.-real(rk3step))
 
      qt0(:, je + 1, :) = qt0(:, je + 1, :) - (qt0(:, je + 1, :) - qt0(:, je, :))*dyi*rk3coef*vouttot
      qtm(:, je + 1, :) = qtm(:, je + 1, :) - (qtm(:, je + 1, :) - qtm(:, je, :))*dyi*rk3coef*vouttot
@@ -1172,7 +1172,7 @@ contains
      real rk3coef
      integer n
 
-     rk3coef = dt/(4.-dble(rk3step))
+     rk3coef = dt/(4.-real(rk3step))
 
      do n = 1, nsv
        sv0(:, je + 1, :, n) = sv0(:, je + 1, :, n) - (sv0(:, je + 1, :, n) - sv0(:, je, :, n))*dyi*rk3coef*vouttot
@@ -1182,24 +1182,24 @@ contains
    end subroutine yso_convective
 
 
-   subroutine yso_Neumann
+  !  subroutine yso_Neumann
 
-     use modglobal, only : je, jhc, rk3step, dt, nsv
-     use modfields, only : sv0, svm
+  !    use modglobal, only : je, jhc, rk3step, dt, nsv
+  !    use modfields, only : sv0, svm
 
-     real rk3coef
-     integer n, m
+  !    real rk3coef
+  !    integer n, m
 
-     rk3coef = dt/(4.-dble(rk3step))
+  !    rk3coef = dt/(4.-dble(rk3step))
 
-     do n = 1, nsv
-       do m = 1, jhc
-         sv0(:, je + m, :, n) = sv0(:, je, :, n)
-         svm(:, je + m, :, n) = svm(:, je, :, n)
-       end do
-     end do
+  !    do n = 1, nsv
+  !      do m = 1, jhc
+  !        sv0(:, je + m, :, n) = sv0(:, je, :, n)
+  !        svm(:, je + m, :, n) = svm(:, je, :, n)
+  !      end do
+  !    end do
 
-   end subroutine yso_Neumann
+  !  end subroutine yso_Neumann
 
 
    !>set boundary conditions pup,pvp,pwp in subroutine fillps in modpois.f90
@@ -1370,7 +1370,7 @@ contains
      if (rk3step == 0) then ! dt not defined yet
        rk3coef = 1.
      else
-       rk3coef = dt / (4. - dble(rk3step))
+       rk3coef = dt / (4. - real(rk3step))
      end if
      rk3coefi = 1. / rk3coef
 
@@ -1552,7 +1552,7 @@ contains
    end subroutine fluxtopscal
 
    subroutine valuetopscal(val)
-      use modglobal, only:ke, eps1, nsv, khc
+      use modglobal, only:ke, nsv, khc
       use modfields, only:sv0, svm
       real, intent(in)    :: val(1:nsv)
       integer :: m, n

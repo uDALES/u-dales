@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 uDALES Post-Processing Module
 
@@ -12,6 +10,7 @@ Oct 2025, Maarten van Reeuwijk, Jingzi Huang, Dipanjan Majumdar. Major upgrade o
 
 Copyright (C) 2016- the uDALES Team.
 """
+from __future__ import annotations
 
 import numpy as np
 import xarray as xr
@@ -21,34 +20,16 @@ from pathlib import Path
 from typing import Optional, Union, Dict, Any, List
 import importlib.util
 import warnings
-import sys
 
+import udstats
+import udnetcdf
+import udfacet
+import udconfig
+import udgrid
 # Import UDGeom from the udgeom package
-try:
-    from udgeom import UDGeom
-except ImportError:
-    from .udgeom import UDGeom
-
-try:
-    from udvis import UDVis
-except ImportError:
-    from .udvis import UDVis
-
-
-def _file_has_data(path: Path, skiprows: int = 0) -> bool:
-    try:
-        with path.open("r", encoding="ascii", errors="ignore") as f:
-            for _ in range(skiprows):
-                next(f, None)
-            for line in f:
-                stripped = line.strip()
-                if stripped and not stripped.startswith("#"):
-                    return True
-    except OSError:
-        return False
-    return False
-
-
+from udgeom import UDGeom
+from udvis import UDVis, DEFAULT_BACKEND
+from exceptions import DependencyError, DataFormatError
 def _empty_2d(dtype: np.dtype) -> np.ndarray:
     return np.empty((0, 0), dtype=dtype)
 
@@ -82,6 +63,7 @@ class UDBase:
         path: Optional[Union[str, Path]] = None,
         load_geometry: bool = True,
         suppress_load_warnings: bool = False,
+        backend: str = DEFAULT_BACKEND,
     ):
         """
         Initialize a UDBase instance.
@@ -97,6 +79,9 @@ class UDBase:
             If True, load STL geometry when available.
         suppress_load_warnings : bool, optional
             If True, suppress missing-file warnings during constructor loading.
+        backend : {"plotly", "pyvista"}, default ``udvis.DEFAULT_BACKEND``
+            Default rendering backend for the 3-D plots. Overridable per instance
+            via ``sim.backend`` or per call via ``backend=``.
 
         Attributes
         ----------
@@ -126,42 +111,40 @@ class UDBase:
         """
 
         if importlib.util.find_spec("trimesh") is None:
-            raise ImportError("trimesh is required for UDBase. Install with: pip install trimesh")
+            raise DependencyError("trimesh is required for UDBase. Install with: pip install trimesh")
 
         # Store experiment number
         self.expnr = f"{int(expnr):03d}"
         
         # Set paths
         self.cpath = Path.cwd()
+        # Tolerate a zero-arg callable passed as ``path``: one tutorial notebook
+        # passes a bound ``.resolve`` method without parentheses (review finding
+        # E3). The proper fix is in the notebooks; this guard only avoids a
+        # crash and is kept until E3 lands.
         if callable(path):
             path = path()
         self.path = Path(path).expanduser() if path else self.cpath
 
-        # Standard filenames and prefixes used across loaders, kept aligned
-        # with the legacy MATLAB udbase defaults.
-        self.fnamoptions = "namoptions"
-        self.fprof = "prof.inp"
-        self.flscale = "lscale.inp"
-        self.fxytdump = "xytdump"
-        self.ftdump = "tdump"
-        self.ffielddump = "fielddump"
-        self.fislicedump = "islicedump"
-        self.fjslicedump = "jslicedump"
-        self.fkslicedump = "kslicedump"
-        self.fsolid = "solid"
-        self.ffacEB = "facEB"
-        self.ffacT = "facT"
-        self.ffac = "fac"
-        self.ffacets = "facets.inp"
-        self.ffactypes = "factypes.inp"
-        self.ffacetarea = "facetarea.inp"
-        self.ffluid_boundary = "fluid_boundary"
-        self.ffacet_sections = "facet_sections"
-        self.ftreedump = "treedump"
-        self.ftrees = "trees.inp"
+        # Configurable filenames/prefixes that are ACTUALLY consumed to build
+        # paths (by loaders here or by the udvis facade). The other "configurable
+        # filename" attributes were removed as dead code (C14): loaders such as
+        # load_field / load_fac_* / _load_solid_masks / _load_tree_data hardcode
+        # their filenames, so those attributes were never read.
+        self.fprof = "prof.inp"                    # load_prof
+        self.flscale = "lscale.inp"                # load_lscale
+        self.ffacets = "facets.inp"                # udvis error messages
+        self.ffactypes = "factypes.inp"            # udvis error messages
+        self.ffluid_boundary = "fluid_boundary"    # facsec loaders + error messages
+        self.ffacet_sections = "facet_sections"    # facsec loaders + error messages
 
         # Load-time warning control
         self._suppress_load_warnings = suppress_load_warnings
+
+        # Geometry is optional (load_geometry=False, or no STL present). Initialize
+        # it unconditionally so __repr__ and the udvis methods can rely on the
+        # attribute existing regardless of the loading path taken below.
+        self.geom = None
 
         # File presence flags
         self._lfprof = True
@@ -181,7 +164,7 @@ class UDBase:
         
         # Load geometry if present (can be disabled for faster startup)
         if load_geometry:
-            self._load_geometry()
+            self._load_geometry(backend)
         
         # Load solid masks if present
         self._load_solid_masks()
@@ -197,8 +180,25 @@ class UDBase:
 
         # Visualization facade. `UDBase` owns the simulation state; `self.vis`
         # provides plotting methods on top of that state.
-        self.vis = UDVis(self)
-    
+        self.vis = UDVis(self, backend=backend)
+
+    @property
+    def backend(self) -> str:
+        """Default rendering backend for 3-D plots (``"plotly"`` or ``"pyvista"``).
+
+        Settable after construction; changing it switches every subsequent
+        ``sim.plot_*`` / ``sim.vis.*`` 3-D call without a per-call ``backend=``.
+        """
+        return self.vis.backend
+
+    @backend.setter
+    def backend(self, value: str) -> None:
+        self.vis.backend = value
+        # Keep the owned geometry's backend in sync so sim.geom.show() matches.
+        # self.geom is always initialized in __init__ (None when not loaded).
+        if self.geom is not None:
+            self.geom.backend = value
+
     def _read_namoptions(self):
         """
         Read namoptions file and store all parameters as attributes.
@@ -209,58 +209,21 @@ class UDBase:
         - Strings -> str (with quotes removed)
         """
         filepath = self.path / f"namoptions.{self.expnr}"
-        
+
         if not filepath.exists():
             raise FileNotFoundError(f"namoptions.{self.expnr} not found in {self.path}")
 
-        scalar_defaults = {
-            "nsv": 0,
-            "lscasrc": False,
-            "lscasrcl": False,
-            "lscasrcr": False,
-            "nscasrc": 0,
-            "nscasrcl": 0,
-        }
-        for key, val in scalar_defaults.items():
+        # Pure parsing lives in udconfig; UDBase just applies the mapping.
+        for key, val in udconfig.parse_namoptions(filepath).items():
             setattr(self, key, val)
-        
-        with open(filepath, 'r') as f:
-            for line in f:
-                # Skip comments and namelist headers
-                if line.strip().startswith('&') or line.strip().startswith('!') or '=' not in line:
-                    continue
-                
-                # Parse key=value pairs
-                if '=' in line:
-                    parts = line.split('=', 1)
-                    key = parts[0].strip()
-                    val = parts[1].split('!')[0].strip()  # Remove inline comments
-                    
-                    # Convert value types
-                    if val.lower() == '.true.':
-                        val = True
-                    elif val.lower() == '.false.':
-                        val = False
-                    else:
-                        # Try to parse as number
-                        try:
-                            if '.' in val or 'e' in val.lower():
-                                val = float(val)
-                            else:
-                                val = int(val)
-                        except ValueError:
-                            # String value - remove quotes
-                            val = val.strip("'\"")
-                    
-                    # Store as attribute
-                    setattr(self, key, val)
-        
+
         # Compute derived values
         if hasattr(self, 'xlen') and hasattr(self, 'itot'):
             self.dx = self.xlen / self.itot
         if hasattr(self, 'ylen') and hasattr(self, 'jtot'):
             self.dy = self.ylen / self.jtot
 
+    @staticmethod
     def read_matrix(filename, skiprows=1):
         """
         Python equivalent of MATLAB readmatrix function
@@ -286,11 +249,10 @@ class UDBase:
         elif ext in {'.csv'}:
             return pd.read_csv(filename, skiprows=skiprows, header=None).to_numpy()
         elif ext in {'.txt', '.dat'}:
-            # Try comma-delimited first, then whitespace-delimited
-            try:
-                return pd.read_csv(filename, skiprows=skiprows, header=None).to_numpy()
-            except Exception:
-                return pd.read_csv(filename, skiprows=skiprows, header=None, delim_whitespace=True).to_numpy()
+            # uDALES text matrices are whitespace-delimited. (Comma-first parsing
+            # silently mis-read these as a single string column, because a
+            # whitespace row has no commas and so raises no error to fall back on.)
+            return pd.read_csv(filename, skiprows=skiprows, header=None, sep=r"\s+").to_numpy()
         else:
             try:
                 # df = pd.read_csv(filename, skiprows=skiprows, header=None, sep=r"\s+", engine="python").to_numpy()
@@ -343,64 +305,59 @@ class UDBase:
         prof_file = self.path / f"prof.inp.{self.expnr}"
         
         if prof_file.exists():
+            # The file exists, so it is meant to define the grid. A parse or
+            # grid-construction failure here would make every z-coordinate wrong;
+            # raise instead of silently substituting a uniform grid. A genuinely
+            # *missing* prof.inp (legitimate before preprocessing) is handled in
+            # the else branch below and keeps the warn-and-continue fallback.
             try:
                 # Load prof.inp - skip header lines
                 data = np.loadtxt(prof_file, skiprows=1)
-                
-                # Cell centers (zt)
-                self.zt = data[:, 0]
-                
-                # Cell edges (zm)
-                zm_full = np.concatenate([[0], 0.5 * (self.zt[:-1] + self.zt[1:]), [self.zsize]])
-                self.zm = zm_full[:-1]  # Match dimensions
-                
-                # Grid spacing
-                self.dzt = np.diff(np.append(self.zm, self.zsize))
-                
-            except Exception as e:
-                warnings.warn(
-                    f"Error loading prof.inp.{self.expnr}: {e}. Using uniform grid."
-                )
-                self._lfprof = False
-                self._generate_uniform_zgrid()
+
+                self.zt = data[:, 0]  # cell centres
+                self.zm, self.dzt = udgrid.z_grid_from_profile(self.zt, self.zsize)
+
+            except (ValueError, IndexError, AttributeError) as e:
+                # ValueError: non-numeric content; IndexError: wrong shape (e.g. a
+                # single column/row); AttributeError: missing zsize on self.
+                raise DataFormatError(
+                    f"Error loading prof.inp.{self.expnr}: {e}. The file is present "
+                    f"but could not be parsed into a valid stretched z-grid."
+                ) from e
         else:
             self._warn_load(f"prof.inp.{self.expnr} not found. Assuming equidistant grid.")
             self._lfprof = False
             self._generate_uniform_zgrid()
         
-        # Generate x and y grids
-        self.xm = np.arange(self.itot) * self.dx
-        self.xt = self.xm + 0.5 * self.dx
-        
-        self.ym = np.arange(self.jtot) * self.dy
-        self.yt = self.ym + 0.5 * self.dy
-    
+        self.xm, self.xt, self.ym, self.yt = udgrid.horizontal_grid(
+            self.itot, self.dx, self.jtot, self.dy
+        )
+
     def _generate_uniform_zgrid(self):
         """Generate uniform z-grid when prof.inp is not available."""
         if hasattr(self, 'zsize') and hasattr(self, 'ktot'):
-            dz = self.zsize / self.ktot
-            
-            self.zm = np.arange(self.ktot) * dz
-            self.zt = self.zm + 0.5 * dz
-            
-            self.dzt = np.full(self.ktot, dz)
+            self.zm, self.zt, self.dzt = udgrid.uniform_z_grid(self.zsize, self.ktot)
         else:
             self._warn_load("Cannot generate z-grid: zsize or ktot not found in namoptions")
 
     def _warn_load(self, message: str) -> None:
+        """Emit a non-fatal load diagnostic (a missing optional input file).
+
+        Routed through ``warnings.warn`` so callers can capture or filter it,
+        rather than printing to stderr. Honoured only when load warnings are not
+        suppressed for this instance.
+        """
         if self._suppress_load_warnings:
             return
-        print("=" * 67, file=sys.stderr)
-        print(f"WARNING: {message}", file=sys.stderr)
-        print("=" * 67, file=sys.stderr)
+        warnings.warn(message, stacklevel=2)
     
-    def _load_geometry(self):
-        """Load STL geometry file if present."""
+    def _load_geometry(self, backend: str = DEFAULT_BACKEND):
+        """Load STL geometry file if present, on the given rendering backend."""
         if hasattr(self, 'stl_file'):
             stl_path = self.path / self.stl_file
             if stl_path.exists():
                 try:
-                    self.geom = UDGeom(self.path)
+                    self.geom = UDGeom(self.path, backend=backend)
                     self.geom.load(self.stl_file)
                 except Exception as e:
                     raise RuntimeError(f"Error loading geometry from {stl_path}: {e}") from e
@@ -453,7 +410,9 @@ class UDBase:
         facetarea_file = self.path / f"facetarea.inp.{self.expnr}"
         if facetarea_file.exists():
             try:
-                self.facs['area'] = np.loadtxt(facetarea_file, skiprows=1)
+                # ndmin=1 keeps a single-facet file a 1-D (n_facets,) vector
+                # rather than a 0-D scalar (which breaks len()/indexing).
+                self.facs['area'] = np.loadtxt(facetarea_file, skiprows=1, ndmin=1)
             except Exception as e:
                 warnings.warn(f"Error loading facetarea.inp.{self.expnr}: {e}")
                 self._lffacetarea = False
@@ -465,7 +424,9 @@ class UDBase:
         facets_file = self.path / f"facets.inp.{self.expnr}"
         if facets_file.exists():
             try:
-                data = np.loadtxt(facets_file, skiprows=1)
+                # ndmin=2 keeps a single-facet file a (1, ncols) matrix so the
+                # column indexing below works instead of raising IndexError.
+                data = np.loadtxt(facets_file, skiprows=1, ndmin=2)
                 self.facs['typeid'] = data[:, 0].astype(int)
                 self.facs['normals'] = data[:, 1:4]  # Surface normals
             except Exception as e:
@@ -479,11 +440,45 @@ class UDBase:
         factypes_file = self.path / f"factypes.inp.{self.expnr}"
         if factypes_file.exists():
             try:
-                data = np.loadtxt(factypes_file, skiprows=3)
-                
-                if not hasattr(self, 'nfaclyrs'):
+                # ndmin=2 keeps a single-walltype file a (1, ncols) matrix so the
+                # column indexing below works instead of raising IndexError.
+                data = np.loadtxt(factypes_file, skiprows=3, ndmin=2)
+            except Exception as e:
+                warnings.warn(f"Error loading factypes.inp.{self.expnr}: {e}")
+                self._lffactypes = False
+            else:
+                if hasattr(self, 'nfaclyrs'):
+                    nfaclyrs_source = "read from namoptions"
+                else:
                     self.nfaclyrs = 3  # Default
-                
+                    nfaclyrs_source = "guessed default; not in namoptions"
+
+                # The factypes row layout is: 6 leading columns (wallid, lGR, z0,
+                # z0h, al, em), then per-layer blocks d(k), C(k), l(k) and k(k+1),
+                # i.e. 6 + 4*nfaclyrs + 1 columns. numpy slicing silently returns
+                # the wrong physical columns when the file's layer count differs
+                # from nfaclyrs, so validate the width and raise on mismatch
+                # rather than corrupting the material properties fed to load_seb.
+                if data.size == 0:
+                    # A header-only file yields an empty array (e.g. shape
+                    # (0, 1)) whose column count is meaningless; report the
+                    # real problem rather than a spurious width mismatch.
+                    raise DataFormatError(
+                        f"factypes.inp.{self.expnr} contains no data rows; "
+                        f"expected at least one wall-type definition."
+                    )
+
+                expected_cols = 6 + 4 * self.nfaclyrs + 1
+                actual_cols = data.shape[1]
+                if actual_cols != expected_cols:
+                    raise DataFormatError(
+                        f"factypes.inp.{self.expnr} has {actual_cols} columns but "
+                        f"{expected_cols} were expected for nfaclyrs={self.nfaclyrs} "
+                        f"({nfaclyrs_source}); expected width = 6 + 4*nfaclyrs + 1. "
+                        f"The file's layer count does not match nfaclyrs, so the "
+                        f"material properties would be mis-sliced."
+                    )
+
                 self.factypes['id'] = data[:, 0].astype(int)
                 self.factypes['lGR'] = data[:, 1].astype(bool)
                 self.factypes['z0'] = data[:, 2]
@@ -511,10 +506,6 @@ class UDBase:
                     wall_names.get(int(id_), f"Custom walltype {int(id_)}")
                     for id_ in self.factypes['id']
                 ]
-                
-            except Exception as e:
-                warnings.warn(f"Error loading factypes.inp.{self.expnr}: {e}")
-                self._lffactypes = False
         else:
             self._warn_load(f"factypes.inp.{self.expnr} not found.")
             self._lffactypes = False
@@ -565,24 +556,46 @@ class UDBase:
                 self._lffacet_sections = False
     
     def _load_tree_data(self):
-        """Load tree bounding box information if present."""
+        """Load tree bounding-box indices from ``trees.inp.<expnr>`` if present.
+
+        Format: one or more ``#`` comment/header lines, then one integer row per
+        tree. Each data row is the bounding box ``il iu jl ju kl ku`` in 1-based
+        grid indices; an optional leading ``tree_n`` column (as in the header) is
+        dropped. Stored 0-based in ``self.trees`` with shape ``(n_trees, 6)`` (an
+        empty ``(0, 6)`` array when the file has no tree rows).
+        """
         trees_file = self.path / f"trees.inp.{self.expnr}"
-        
-        if trees_file.exists():
-            try:
-                # Load tree data (skip first 2 header lines)
-                self.trees = np.loadtxt(trees_file, skiprows=2, dtype=int)
-                if self.trees.ndim == 1:
-                    self.trees = self.trees.reshape(1, -1)
-                self.trees = self.trees.astype(int) - 1
-            except Exception as e:
-                warnings.warn(f"Error loading trees.inp.{self.expnr}: {e}")
-                self._lftrees = False
-                self.trees = None
-        else:
+
+        if not trees_file.exists():
             self._warn_load(f"trees.inp.{self.expnr} not found.")
             self._lftrees = False
             self.trees = None
+            return
+
+        try:
+            # comments="#" skips any number of header lines, so the loader does
+            # not depend on a fixed header row count. A header-only file is a
+            # valid "no trees" case, so silence numpy's empty-input warning.
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="loadtxt: input contained no data")
+                raw = np.loadtxt(trees_file, comments="#", dtype=int, ndmin=2)
+        except ValueError as e:
+            warnings.warn(f"Error loading trees.inp.{self.expnr}: {e}")
+            self._lftrees = False
+            self.trees = None
+            return
+
+        if raw.size == 0:
+            self.trees = np.empty((0, 6), dtype=int)
+            self._lftrees = True
+            return
+
+        # The header names 7 columns (tree_n + 6 box indices) but the tree index
+        # is redundant; accept files with or without it.
+        if raw.shape[1] == 7:
+            raw = raw[:, 1:]
+        self.trees = raw - 1  # file is 1-based; store 0-based
+        self._lftrees = True
 
     def _load_veg_data(self):
         """Load vegetation sparse data if present."""
@@ -602,7 +615,14 @@ class UDBase:
 
     def load_veg(self, *, zero_based: bool = True, cache: bool = True) -> Dict[str, Any]:
         """Load vegetation sparse points and parameters."""
-        if cache and hasattr(self, "veg") and self.veg is not None:
+        # The cache stores a single variant keyed by the indexing convention it
+        # was loaded with; a request for the other convention must not return
+        # the cached one.
+        if (
+            cache
+            and getattr(self, "veg", None) is not None
+            and getattr(self, "_veg_zero_based", None) == zero_based
+        ):
             return self.veg
 
         points_path = self.path / f"veg.inp.{self.expnr}"
@@ -635,6 +655,7 @@ class UDBase:
             }
             if cache:
                 self.veg = veg
+                self._veg_zero_based = zero_based
             return veg
 
         if points.size == 0 or params.size == 0:
@@ -661,6 +682,7 @@ class UDBase:
         }
         if cache:
             self.veg = veg
+            self._veg_zero_based = zero_based
         return veg
 
     def load_scalar_sources(self) -> Dict[str, Dict[int, np.ndarray]]:
@@ -690,24 +712,49 @@ class UDBase:
 
         return sources
     
-    def __repr__(self):
-        """String representation of UDBase object."""
+    def _summary_lines(self):
+        """Concise header lines shared by ``__repr__`` and :meth:`describe`."""
         info = [
             f"UDBase(expnr='{self.expnr}')",
             f"  path: {self.path}",
         ]
-        
+
         if hasattr(self, 'itot'):
             info.append(f"  grid: {self.itot} x {self.jtot} x {self.ktot}")
-        
+
         if hasattr(self, 'xlen'):
             info.append(f"  domain: {self.xlen} x {self.ylen} x {self.zsize}")
-        
+
         if self.geom is not None:
             info.append(f"  geometry: loaded")
-        
+
         if hasattr(self, 'nfcts'):
             info.append(f"  facets: {self.nfcts}")
+
+        return info
+
+    def __repr__(self):
+        """Concise one-block summary (grid, domain, geometry, facets).
+
+        The full per-attribute dump — every scalar namoptions parameter and
+        array — was hundreds of lines in a notebook cell; it now lives in
+        :meth:`describe`.
+        """
+        info = self._summary_lines()
+        info.append("  (call .describe() for the full attribute listing)")
+        return "\n".join(info)
+
+    def describe(self) -> str:
+        """Full attribute listing: the concise summary plus every scalar
+        namoptions parameter, array shape, and path stored on the instance.
+
+        Returns
+        -------
+        str
+            Multi-line description. This is the verbose dump that ``__repr__``
+            used to produce; use it explicitly when you want everything.
+        """
+        info = self._summary_lines()
 
         scalar_types = (int, float, bool, str, np.integer, np.floating)
         if self.__dict__:
@@ -886,76 +933,32 @@ class UDBase:
         return self._load_ncdata(filename, var)
     
     def _load_ncdata(self, filename: Path, var: Optional[str]) -> Union[xr.Dataset, np.ndarray]:
-        """
-        Helper method to load NetCDF data using xarray.
-        
-        Automatically reverses dimension order to match MATLAB conventions.
-        When a specific variable is requested, returns it as a numpy array for
-        memory efficiency with large datasets.
-        
-        NetCDF files use C-style (row-major) dimension ordering, while MATLAB
-        uses Fortran-style (column-major) ordering. Due to this fundamental
-        difference, MATLAB automatically reverses dimension order when reading
-        NetCDF files. This method reverses dimensions to match MATLAB's behavior.
-        
-        Examples of transformations:
-        - (time, zt) -> (zt, time)
-        - (time, zt, yt, xm) -> (xm, yt, zt, time)
-        - (time, fct) -> (fct, time)
-        - (time, lyr, fct) -> (fct, lyr, time)
-        
-        Parameters
-        ----------
-        filename : Path
-            Path to NetCDF file
-        var : str, optional
-            Variable to extract. If None, displays available variables.
-        
-        Returns
-        -------
-        xarray.Dataset or numpy.ndarray
-            Full dataset if var is None (for browsing), numpy array if var is specified.
+        """Load NetCDF data (thin wrapper over :func:`udnetcdf.load_ncdata`)."""
+        return udnetcdf.load_ncdata(filename, var)
+
+    def _load_nc_vars(self, filename: Path, names: List[str]) -> Dict[str, np.ndarray]:
+        """Load several variables from one NetCDF file in a single open.
+
+        Each variable is returned as a numpy array reversed to the MATLAB
+        (column-major) dimension convention — identical to what
+        :func:`udnetcdf.load_ncdata` returns per variable — but the file is
+        opened only once instead of once per variable. Used by
+        :meth:`load_seb`, which otherwise re-opened ``facEB``/``facT`` for every
+        term.
         """
         if not filename.exists():
             raise FileNotFoundError(f"File not found: {filename}")
-        
-        ds = xr.open_dataset(filename)
-        
-        # Transpose all data variables to match MATLAB's column-major convention
-        # Reverse dimension order for all variables with 2+ dimensions
-        transposed_vars = {}
-        for var_name in ds.data_vars:
-            data_var = ds[var_name]
-            if len(data_var.dims) >= 2:
-                transposed_vars[var_name] = data_var.transpose(*reversed(data_var.dims))
-            else:
-                transposed_vars[var_name] = data_var
-        
-        # Create new dataset with transposed variables
-        ds_transposed = xr.Dataset(transposed_vars, coords=ds.coords, attrs=ds.attrs)
-        
-        if var is None:
-            # Display file contents
-            self._display_ncinfo(ds_transposed, filename.name)
-            return ds_transposed
-        else:
-            if var not in ds_transposed:
-                raise KeyError(f"Variable '{var}' not found in {filename.name}")
-            
-            # Return as numpy array for consistency with MATLAB and memory efficiency
-            return ds_transposed[var].values
-    
-    def _display_ncinfo(self, ds: xr.Dataset, filename: str):
-        """Display information about NetCDF dataset."""
-        print(f"\nContents of {filename}:")
-        print(f"{'Name':<20} {'Dimensions':<30} {'Shape':<20}")
-        print("-" * 70)
-        
-        for var_name in sorted(ds.data_vars):
-            var = ds[var_name]
-            dims = ', '.join(var.dims)
-            shape = ' x '.join(map(str, var.shape))
-            print(f"{var_name:<20} {dims:<30} {shape:<20}")
+
+        out: Dict[str, np.ndarray] = {}
+        with xr.open_dataset(filename) as ds:
+            for name in names:
+                if name not in ds.data_vars:
+                    raise KeyError(f"Variable '{name}' not found in {filename.name}")
+                data_var = ds[name]
+                if len(data_var.dims) >= 2:
+                    data_var = data_var.transpose(*reversed(data_var.dims))
+                out[name] = data_var.values
+        return out
     
     # ===== Facet Data Loading Methods =====
     
@@ -1051,24 +1054,30 @@ class UDBase:
         >>> print(seb['Kstar'].shape)
         >>> seb_avg = sim.area_average_seb(seb)
         """
-        # Load energy balance terms
+        # Read every energy-balance term in a single open of facEB (previously
+        # this file was opened once per term); likewise facT in a single open.
         try:
-            t = self.load_fac_eb('t')
+            eb = self._load_nc_vars(
+                self.path / f"facEB.{self.expnr}.nc",
+                ['t', 'netsw', 'LWin', 'LWout', 'hf', 'ef'],
+            )
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"Surface energy balance file facEB.{self.expnr}.nc not found in {self.path}"
             )
-        K = self.load_fac_eb('netsw')
-        Lin = self.load_fac_eb('LWin')
-        Lout = self.load_fac_eb('LWout')
-        H = self.load_fac_eb('hf')
-        E = self.load_fac_eb('ef')
-        
-        # Load temperature data for ground heat flux calculation
-        T = self.load_fac_temperature('T')
-        dTdz = self.load_fac_temperature('dTdz')
+        t = eb['t']
+        K = eb['netsw']
+        Lin = eb['LWin']
+        Lout = eb['LWout']
+        H = eb['hf']
+        E = eb['ef']
+
+        # Load temperature data for ground heat flux calculation (one open).
+        temp = self._load_nc_vars(self.path / f"facT.{self.expnr}.nc", ['T', 'dTdz'])
+        T = temp['T']
+        dTdz = temp['dTdz']
         lam = self.assign_prop_to_fac('lam')
-        
+
         # Calculate derived quantities
         L = Lin - Lout
         # Data now comes as (fct, lyr, time) from _load_ncdata, transposed to match MATLAB
@@ -1126,23 +1135,43 @@ class UDBase:
         if prop not in self.factypes:
             raise KeyError(f"Property '{prop}' not found in factypes")
         
-        # Get property values and type IDs
-        prop_vals = self.factypes[prop]
+        # Get property values and type IDs. ``np.asarray`` so a non-array
+        # property such as ``factypes['name']`` (a Python list of strings) also
+        # has ``.ndim``/``.shape`` and does not crash with an AttributeError.
+        prop_vals = np.asarray(self.factypes[prop])
         type_ids = self.factypes['id']
         facet_types = self.facs['typeid']
-        
-        # Map type IDs to property values
+
+        # Warn (rather than silently return NaN) when some facets reference a
+        # walltype id that is absent from factypes: those entries stay unfilled.
+        unmatched = ~np.isin(facet_types, type_ids)
+        n_unmatched = int(np.count_nonzero(unmatched))
+        if n_unmatched:
+            missing = np.unique(facet_types[unmatched])
+            warnings.warn(
+                f"assign_prop_to_fac('{prop}'): {n_unmatched} facet(s) reference "
+                f"typeid(s) {missing.tolist()} not present in factypes; their "
+                f"values are left unassigned."
+            )
+
+        # Map type IDs to property values. Non-numeric properties (e.g. names)
+        # use an object fill so string values survive; numeric ones use NaN.
+        if np.issubdtype(prop_vals.dtype, np.number):
+            fill, out_dtype = np.nan, float
+        else:
+            fill, out_dtype = None, object
+
         if prop_vals.ndim == 1:
-            # 1D property (e.g., albedo)
-            result = np.full_like(facet_types, np.nan, dtype=float)
+            # 1D property (e.g., albedo, or name strings)
+            result = np.full(len(facet_types), fill, dtype=out_dtype)
             for i, tid in enumerate(type_ids):
                 result[facet_types == tid] = prop_vals[i]
         else:
             # 2D property (e.g., layer thicknesses)
-            result = np.full((len(facet_types), prop_vals.shape[1]), np.nan)
+            result = np.full((len(facet_types), prop_vals.shape[1]), fill, dtype=out_dtype)
             for i, tid in enumerate(type_ids):
                 result[facet_types == tid, :] = prop_vals[i, :]
-        
+
         return result
     
     def area_average_fac(self, var: np.ndarray, sel: Optional[np.ndarray] = None) -> np.ndarray:
@@ -1190,7 +1219,15 @@ class UDBase:
             total_area = np.sum(sel_areas)
             return total_var / total_area
         elif var.ndim == 2:
-            # Determine which axis is facets
+            # Determine which axis is facets. When BOTH axes equal n_facets the
+            # auto-detection is ambiguous; warn and fall through to the axis-0
+            # (facets-first) interpretation so the choice is at least visible.
+            if var.shape[0] == n_facets and var.shape[1] == n_facets:
+                warnings.warn(
+                    f"area_average_fac: var shape {var.shape} is square and both "
+                    f"axes match n_facets={n_facets}; assuming facets are axis 0. "
+                    f"Pass a non-square array or pre-select to disambiguate."
+                )
             if var.shape[0] == n_facets:
                 # Shape (n_facets, n_other) - facets in first dimension
                 if isinstance(sel, slice):
@@ -1232,284 +1269,111 @@ class UDBase:
         >>> seb_avg = sim.area_average_seb(seb)
         >>> import matplotlib.pyplot as plt
         >>> plt.plot(seb_avg['t'], seb_avg['Kstar'])
+
+        Notes
+        -----
+        Every SEB term present in ``seb`` is area-averaged, including the
+        surface temperature ``Tsurf`` returned by :meth:`load_seb` (previously
+        dropped despite the "all surface energy balance terms" contract). ``t``
+        is passed through unchanged. Terms absent from ``seb`` are skipped, so a
+        partial input dict maps to a partial output dict.
         """
-        return {
-            'Kstar': self.area_average_fac(seb['Kstar']),
-            'Lstar': self.area_average_fac(seb['Lstar']),
-            'Lin': self.area_average_fac(seb['Lin']),
-            'Lout': self.area_average_fac(seb['Lout']),
-            'H': self.area_average_fac(seb['H']),
-            'E': self.area_average_fac(seb['E']),
-            'G': self.area_average_fac(seb['G']),
-            't': seb['t']
-        }
+        # Area-average every facet-valued term; pass the time axis through.
+        out: Dict[str, np.ndarray] = {}
+        for key, val in seb.items():
+            if key == 't':
+                out['t'] = val
+            else:
+                out[key] = self.area_average_fac(val)
+        return out
     
     @staticmethod
     def time_average(var: np.ndarray, other: Optional[np.ndarray] = None):
-        """
-        Time-average variables.
-        
-        Parameters
-        ----------
-        var : ndarray
-            Variable to average. Time must be the last dimension.
-        other : ndarray, optional
-            Second variable (same shape as ``var``) to compute covariance with.
-        
-        Returns
-        -------
-        tuple
-            - (mean, variance) when only ``var`` is provided
-            - (x_mean, y_mean, covariance) when ``other`` is provided
-        
-        Notes
-        -----
-        Variance/covariance are computed by delegating to ``merge_stat`` with
-        zero instantaneous contributions.
-        """
-        X = np.asarray(var)
-        n = X.shape[-1]
-        
-        if other is None:
-            zeros = np.zeros_like(X)
-            return UDBase.merge_stat(X, zeros, n)
-        
-        Y = np.asarray(other)
-        zeros = np.zeros_like(X)
-        return UDBase.merge_stat(X, Y, zeros, n)
+        """Time-average a variable (thin wrapper over :func:`udstats.time_average`)."""
+        return udstats.time_average(var, other)
 
     @staticmethod
     def merge_stat(X: np.ndarray, *args, Y: Optional[np.ndarray] = None,
                    XpXp: Optional[np.ndarray] = None,
                    XpYp: Optional[np.ndarray] = None):
-        """
-        Merge short-term statistics into longer windows.
-
-        Supported call patterns:
-          - merge_stat(X, n)
-          - merge_stat(X, XpXp, n)                  
-          - merge_stat(X, Y, XpYp, n)               
-          - merge_stat(X, n, XpXp=array)            # single variable mean/variance
-          - merge_stat(X, n, Y=array, XpYp=array)   # two variables mean/cov
-
-        Parameters
-        ----------
-        X : ndarray
-            First variable. Final dimension is time or short-term windows.
-        args : tuple
-            Positional parameters parsed according to the patterns above.
-        Y : ndarray, optional
-            Second variable (same trailing dimension as ``X``).
-        XpXp : ndarray, optional
-            Variance contribution for ``X`` aligned with ``X``.
-        XpYp : ndarray, optional
-            Covariance contribution for ``X`` and ``Y`` aligned with ``X``.
-
-        Returns
-        -------
-        tuple | ndarray
-            ``Xmean`` if only ``X`` provided;
-            ``Xmean, var`` if ``XpXp`` given;
-            ``Xmean, Ymean, cov`` if ``Y`` provided (and optionally ``XpYp``).
-
-        Notes
-        -----
-        Discards the oldest samples that do not fill a complete window so the
-        most recent data is retained. Variance/covariance combine the mean of
-        short-window contributions with the variance/covariance of the short
-        means inside each merged window.
-        """
-        # Parse positional arguments to support both MATLAB and Python styles
-        n = None
-        X = np.asarray(X)
-        if len(args) == 1:
-            n = int(args[0])
-        elif len(args) == 2 and Y is None:
-            # MATLAB style: merge_stat(X, XpXp, n)
-            XpXp = np.asarray(args[0])
-            n = int(args[1])
-        elif len(args) == 3:
-            # MATLAB style: merge_stat(X, Y, XpYp, n)
-            Y = np.asarray(args[0])
-            XpYp = np.asarray(args[1])
-            n = int(args[2])
-        else:
-            raise ValueError("merge_stat expects 1, 2, or 3 positional arguments after X")
-
-        if n <= 0:
-            raise ValueError("n must be positive")
-        if X.shape[-1] < n:
-            raise ValueError("Not enough samples to form a single merged window")
-
-        nwin = X.shape[-1] // n
-        start = X.shape[-1] - nwin * n  # discard oldest incomplete window
-        X_use = X[..., start:]
-        X_group = X_use.reshape(*X.shape[:-1], nwin, n)
-        Xmean = X_group.mean(axis=-1)
-
-        if Y is None:
-            if XpXp is None:
-                return Xmean
-
-            XpXp = np.asarray(XpXp)
-            if XpXp.shape[-1] != X.shape[-1]:
-                raise ValueError("XpXp must match X shape in the last dimension")
-            XpXp_use = XpXp[..., start:]
-            XpXp_group = XpXp_use.reshape(*XpXp.shape[:-1], nwin, n)
-            within = XpXp_group.mean(axis=-1)
-            between = ((X_group - Xmean[..., None]) ** 2).mean(axis=-1)
-            return Xmean, within + between
-
-        Y = np.asarray(Y)
-        if Y.shape[-1] < n:
-            raise ValueError("Y does not have enough samples to form a merged window")
-        if Y.shape[-1] != X.shape[-1]:
-            raise ValueError("X and Y must share the same length in the last dimension")
-
-        Y_use = Y[..., start:]
-        Y_group = Y_use.reshape(*Y.shape[:-1], nwin, n)
-        Ymean = Y_group.mean(axis=-1)
-
-        if XpYp is None:
-            cov_within = ((X_group - Xmean[..., None]) * (Y_group - Ymean[..., None])).mean(axis=-1)
-            between = 0.0
-        else:
-            XpYp = np.asarray(XpYp)
-            if XpYp.shape[-1] != X.shape[-1]:
-                raise ValueError("XpYp must match X and Y in the last dimension")
-            XpYp_use = XpYp[..., start:]
-            XpYp_group = XpYp_use.reshape(*XpYp.shape[:-1], nwin, n)
-            cov_within = XpYp_group.mean(axis=-1)
-            between = ((X_group - Xmean[..., None]) * (Y_group - Ymean[..., None])).mean(axis=-1)
-
-        cov = cov_within + between
-        return Xmean, Ymean, cov
+        """Merge short-window statistics (thin wrapper over :func:`udstats.merge_stat`)."""
+        return udstats.merge_stat(X, *args, Y=Y, XpXp=XpXp, XpYp=XpYp)
 
     @staticmethod
     def coarsegrain_field(var: np.ndarray, Lflt: np.ndarray,
                           xm: np.ndarray, ym: np.ndarray) -> np.ndarray:
-        """
-        Apply 2D periodic box filters to a 3D field.
-
-        Parameters
-        ----------
-        var : ndarray, shape (nx, ny, nz)
-            Field data (time or height on the last axis).
-        Lflt : array-like
-            Filter lengths (meters). Multiple lengths are allowed.
-        xm, ym : array-like
-            Grid coordinates in meters; must be 1D and roughly uniform.
-
-        Returns
-        -------
-        ndarray
-            Filtered field with shape (nx, ny, nz, n_filters).
-        """
-        var = np.asarray(var)
-        if var.ndim != 3:
-            raise ValueError("var must be 3D with shape (nx, ny, nz)")
-
-        xm = np.asarray(xm).ravel()
-        ym = np.asarray(ym).ravel()
-        if xm.size < 2 or ym.size < 2:
-            raise ValueError("xm and ym must contain at least two points")
-
-        dx = float(np.mean(np.diff(xm)))
-        dy = float(np.mean(np.diff(ym)))
-        if dx <= 0 or dy <= 0:
-            raise ValueError("Grid spacings must be positive")
-
-        Lflt_arr = np.atleast_1d(Lflt)
-        nx, ny, nz = var.shape
-        out = np.empty((nx, ny, nz, len(Lflt_arr)))
-
-        # Build filters using half-width convention (matches MATLAB implementation)
-        ii, jj = np.meshgrid(np.arange(nx), np.arange(ny), indexing="ij")
-        di = np.minimum(ii, nx - ii)  # periodic distance in i
-        dj = np.minimum(jj, ny - jj)  # periodic distance in j
-
-        for i, L in enumerate(Lflt_arr):
-            ngx = max(int(round((L / dx) / 2.0)), 1)
-            ngy = max(int(round((L / dy) / 2.0)), 1)
-            mask = (di <= ngx) & (dj <= ngy)
-            kernel = mask.astype(float)
-            kernel /= kernel.sum()
-            k_hat = np.fft.fftn(kernel)
-
-            for k in range(nz):
-                v_hat = np.fft.fftn(var[:, :, k])
-                out[:, :, k, i] = np.real(np.fft.ifftn(v_hat * k_hat))
-
-        return out
+        """2-D periodic box filter (thin wrapper over :func:`udstats.coarsegrain_field`)."""
+        return udstats.coarsegrain_field(var, Lflt, xm, ym)
     
-    def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False):
-        """Plot vegetation points on top of the geometry using the visualization facade."""
-        return self.vis.plot_veg(veg=veg, show=show)
+    def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False,
+                 backend: Optional[str] = None):
+        """Plot vegetation points on top of the geometry using the visualization facade.
+
+        ``show`` defaults to ``False`` (returns the figure/plotter without
+        displaying it), consistent with the other overlay plots
+        (``plot_scalar_source``, ``plot_trees``).
+        """
+        return self.vis.plot_veg(veg=veg, show=show, backend=backend)
 
     def plot_scalar_source(
         self,
         scalar_sources: Optional[Dict[str, Dict[int, np.ndarray]]] = None,
         scalar_index: Optional[int] = None,
         show: bool = False,
+        backend: Optional[str] = None,
     ):
-        """Plot scalar point and line sources on top of the geometry."""
+        """Plot scalar point and line sources on top of the geometry.
+
+        ``show`` defaults to ``False`` (returns the figure/plotter without
+        displaying it), like the other overlay plots.
+        """
         return self.vis.plot_scalar_source(
             scalar_sources=scalar_sources,
             scalar_index=scalar_index,
             show=show,
+            backend=backend,
         )
 
     def plot_trees(self, show: bool = False):
-        """Backward-compatible alias for plot_veg."""
-        return self.vis.plot_trees(show=show)
+        """Backward-compatible alias for :meth:`plot_veg`.
+
+        ``UDVis`` exposes only ``plot_veg`` (vegetation is the current name for
+        what legacy cases called "trees"), so forward there rather than to a
+        nonexistent ``UDVis.plot_trees``. ``show`` defaults to ``False``.
+        """
+        return self.vis.plot_veg(show=show)
     
-    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None, show: bool = True):
-        """Plot facet data as a 3D surface."""
-        return self.vis.plot_fac(var=var, building_ids=building_ids, show=show)
+    def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None,
+                 show: bool = True, backend: Optional[str] = None):
+        """Plot facet data as a 3D surface.
+
+        Parameters
+        ----------
+        show : bool, default True
+            Display the plot immediately. Unlike the overlay plots
+            (``plot_veg``/``plot_scalar_source``/``plot_trees``, which default
+            to ``False``), the standalone facet/building plots default to
+            ``True``.
+        backend : {"plotly", "pyvista"}, optional
+            Rendering backend; defaults to the backend chosen when this UDBase
+            was constructed (``UDBase(..., backend=...)``).
+        """
+        return self.vis.plot_fac(var=var, building_ids=building_ids, show=show, backend=backend)
     
-    def _create_colored_mesh(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None):
-        """Create a colored trimesh object from facet data, optionally filtered by building IDs."""
-        return self.vis._create_colored_mesh(var=var, building_ids=building_ids)
-    
-    def _render_scene(self, mesh, show_outlines: bool = True, angle_threshold: float = 45.0, building_ids: Optional[np.ndarray] = None, custom_edges: Optional[List[tuple]] = None, show: bool = True):
-        """Render the mesh scene using trimesh/plotly. Returns figure handle if available."""
-        return self.vis._render_scene(
-            mesh=mesh,
-            show_outlines=show_outlines,
-            angle_threshold=angle_threshold,
-            building_ids=building_ids,
-            custom_edges=custom_edges,
-            show=show,
-        )
-    
-    def _render_plotly(self, meshes, outline_edges, show: bool = True):
-        """Render using plotly for notebook display. Returns the figure object."""
-        return self.vis._render_plotly(meshes=meshes, outline_edges=outline_edges, show=show)
-    
-    def _render_trimesh(self, scene, num_outline_edges, show: bool = True):
-        """Render using trimesh viewer."""
-        return self.vis._render_trimesh(scene=scene, num_outline_edges=num_outline_edges, show=show)
-    
-    def _add_building_outlines_to_scene(self, building_ids=None):
-        """Add building outlines to the current scene (placeholder for future implementation)."""
-        return self.vis._add_building_outlines_to_scene(building_ids=building_ids)
-    
-    def _add_building_outlines(self, ax, building_ids=None, angle_threshold: float = 45.0):
-        """Helper method to add building outline edges to current 3D matplotlib plot."""
-        return self.vis._add_building_outlines(
-            ax=ax,
-            building_ids=building_ids,
-            angle_threshold=angle_threshold,
-        )
-    
-    def plot_fac_type(self, building_ids: Optional[np.ndarray] = None, 
-                      show_outlines: bool = True, angle_threshold: float = 45.0, show: bool = True):
-        """Plot the different surface types in the geometry using the visualization facade."""
+    def plot_fac_type(self, building_ids: Optional[np.ndarray] = None,
+                      show_outlines: bool = True, angle_threshold: float = 45.0, show: bool = True,
+                      backend: Optional[str] = None):
+        """Plot the different surface types in the geometry using the visualization facade.
+
+        ``show`` defaults to ``True`` (displays immediately), like the other
+        standalone facet/building plots.
+        """
         return self.vis.plot_fac_type(
             building_ids=building_ids,
             show_outlines=show_outlines,
             angle_threshold=angle_threshold,
             show=show,
+            backend=backend,
         )
     
     def convert_fac_to_field(self, var: np.ndarray, facsec: Optional[Dict] = None,
@@ -1562,39 +1426,19 @@ class UDBase:
         if not hasattr(self, 'facsec') or self.facsec is None:
             raise ValueError(
                 "This method requires facet section data. "
-                f"Ensure {self.ffacet_sections}_(u,v,w,c).{self.expnr} and "
-                f"{self.ffluid_boundary}_(u,v,w,c).{self.expnr} files exist."
+                f"Ensure {self.ffacet_sections}_(u,v,w,c).txt and "
+                f"{self.ffluid_boundary}_(u,v,w,c).txt files exist."
             )
         
-        # Use defaults if not provided
+        # Gather case state and delegate the maths to the pure helper.
         if facsec is None:
             facsec = self.facsec['c']
-        
         if dz is None:
             dz = self.dzt
-        
-        # Initialize field
-        fld = np.zeros((self.itot, self.jtot, self.ktot), dtype=np.float32)
-        
-        # Get facet section data
-        facids = facsec['facid']
-        areas = facsec['area']
-        locs = facsec['locs']  # (i, j, k) locations (0-based)
-        
-        i_idx = locs[:, 0].astype(int)
-        j_idx = locs[:, 1].astype(int)
-        k_idx = locs[:, 2].astype(int)
-        
-        # Loop over all facet sections and create density field
-        for m in range(len(areas)):
-            facid = facids[m]
-            i, j, k = i_idx[m], j_idx[m], k_idx[m]
-            
-            # Add contribution to cell
-            cell_volume = self.dx * self.dy * dz[k]
-            fld[i, j, k] += var[facid] * areas[m] / cell_volume
-        
-        return fld
+
+        return udfacet.facsec_to_field(
+            var, facsec, dz, (self.itot, self.jtot, self.ktot), self.dx, self.dy
+        )
     
     def convert_facvar_to_field(self, var: np.ndarray, facsec: Dict,
                                 building_ids: Optional[np.ndarray] = None) -> np.ndarray:
@@ -1671,40 +1515,23 @@ class UDBase:
             raise ValueError("This method requires facet section data. "
                            "Ensure facet_sections_*.txt and fluid_boundary_*.txt files exist.")
         
-        # Initialize output field
-        fld = np.zeros((self.itot, self.jtot, self.ktot), dtype=np.float32)
-        
-        # Get facet section data
-        facids = facsec['facid']
-        areas = facsec['area']
-        locs = facsec['locs']  # (i, j, k) locations (0-based)
-        
-        # If building IDs specified, get face mask for filtering
-        face_mask = None
+        # Optional building-id filtering -> per-facet inclusion mask.
+        include_mask = None
         if building_ids is not None:
-            # Get face to building mapping
             face_to_building = self.geom.get_face_to_building_map()
-            building_ids = np.asarray(building_ids)
-            
-            # Create face mask for requested building IDs
-            face_mask = np.isin(face_to_building, building_ids)
-        
-        # Loop over all facet sections and create density field
-        for m in range(len(facids)):
-            facid = int(facids[m])
-            
-            # If building filtering is active, check if this face should be included
-            if face_mask is not None and not face_mask[facid]:
-                continue
-            
-            # Get grid location (convert from 1-indexed to 0-indexed)
-            i, j, k = int(locs[m, 0]), int(locs[m, 1]), int(locs[m, 2])
-            
-            # Add contribution to cell
-            cell_volume = self.dx * self.dy * dz[k]
-            fld[i, j, k] += var[facid] * areas[m] / cell_volume
-        
-        return fld
+            include_mask = np.isin(face_to_building, np.asarray(building_ids))
+
+        # Delegate to the shared, vectorised scatter (udfacet.facsec_to_field);
+        # this used to be a per-section Python loop duplicated from that helper.
+        return udfacet.facsec_to_field(
+            var,
+            facsec,
+            dz,
+            (self.itot, self.jtot, self.ktot),
+            self.dx,
+            self.dy,
+            include_mask=include_mask,
+        )
     
     def load_facsec(self, var: str) -> Dict[str, np.ndarray]:
         """
@@ -1736,6 +1563,12 @@ class UDBase:
         >>> facsec_u = sim.load_facsec('u')
         >>> print(facsec_u.keys())
         """
+        # Validate the grid designator up front (like load_slice validates its
+        # plane), so an invalid name fails clearly instead of raising an obscure
+        # FileNotFoundError for a path that could never exist.
+        if var not in ('u', 'v', 'w', 'c'):
+            raise ValueError("var must be 'u', 'v', 'w', or 'c'")
+
         # Load facet section data
         fname_sec = self.path / f"{self.ffacet_sections}_{var}.txt"
         if not fname_sec.exists():
@@ -1829,8 +1662,8 @@ class UDBase:
         if not hasattr(self, 'facsec') or self.facsec is None:
             raise ValueError(
                 "This method requires facet section data. "
-                f"Ensure {self.ffacet_sections}_(u,v,w,c).{self.expnr} and "
-                f"{self.ffluid_boundary}_(u,v,w,c).{self.expnr} files exist."
+                f"Ensure {self.ffacet_sections}_(u,v,w,c).txt and "
+                f"{self.ffluid_boundary}_(u,v,w,c).txt files exist."
             )
         
         # Get face normals
@@ -1870,11 +1703,9 @@ class UDBase:
         # Normalize blockage ratios by total cross-sectional area
         brx /= (self.ylen * self.zsize)
         bry /= (self.xlen * self.zsize)
-        
-        # Print results
-        print(f"x-direction: frontal area = {Afx:8.1f} m², blockage ratio = {brx:8.3f}")
-        print(f"y-direction: frontal area = {Afy:8.1f} m², blockage ratio = {bry:8.3f}")
-        
+
+        # Frontal areas and blockage ratios are returned below; callers that want
+        # to display them can format the returned dict (no stdout side effects).
         return {
             'skylinex': Ibx,
             'skyliney': Iby,
@@ -1885,13 +1716,19 @@ class UDBase:
         }
     
     def plot_building_ids(self, show: bool = True):
-        """Plot building IDs from above (x,y view) with distinct colors."""
+        """Plot building IDs from above (x,y view) with distinct colors.
+
+        ``show`` defaults to ``True`` (displays immediately).
+        """
         return self.vis.plot_building_ids(show=show)
     
     def plot_2dmap(self, val: Union[float, np.ndarray], 
                    labels: Optional[Union[str, list]] = None,
                    show: bool = True):
-        """Plot a 2D map of buildings colored by a value per building."""
+        """Plot a 2D map of buildings colored by a value per building.
+
+        ``show`` defaults to ``True`` (displays immediately).
+        """
         return self.vis.plot_2dmap(val=val, labels=labels, show=show)
     
     def __str__(self):

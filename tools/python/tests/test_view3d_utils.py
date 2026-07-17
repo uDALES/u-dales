@@ -9,17 +9,9 @@ import numpy as np
 from scipy import sparse
 import trimesh
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR  # noqa: E402
 
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
-
 from udgeom.view3d import compute_svf, read_view3d_output, stl_to_view3d, write_vf, write_vfsparse  # noqa: E402
-
 
 class TestView3DUtils(unittest.TestCase):
     def setUp(self) -> None:
@@ -138,7 +130,6 @@ class TestView3DUtils(unittest.TestCase):
         self.assertIn("V    1 0.000000 0.000000 0.000000\r\n", content)
         self.assertIn("S    1      1      2      3      0      0      0      0      1f\r\n", content)
         self.assertTrue(content.endswith("End of Data\r\n"))
-
 
 if __name__ == "__main__":
     unittest.main()

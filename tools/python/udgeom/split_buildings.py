@@ -17,7 +17,9 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
+from exceptions import DependencyError
 from .delete_ground import delete_ground
+from ._meshgraph import build_edge_face_adjacency, connected_components
 
 
 def split_buildings(mesh: 'trimesh.Trimesh', remove_ground: bool = True) -> Tuple[List['trimesh.Trimesh'], np.ndarray]:
@@ -88,7 +90,7 @@ def split_buildings(mesh: 'trimesh.Trimesh', remove_ground: bool = True) -> Tupl
     UDGeom.get_buildings : Cached building access method
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
     
     vertices = mesh.vertices
     faces = mesh.faces
@@ -105,52 +107,12 @@ def split_buildings(mesh: 'trimesh.Trimesh', remove_ground: bool = True) -> Tupl
         warnings.warn("No building faces found after ground removal")
         return [], np.zeros(len(faces), dtype=int)
     
-    # Step 2: Build edge-to-face mapping for connectivity
-    edge_to_faces = {}
-    
-    for idx, (orig_idx, face) in enumerate(zip(building_face_indices, building_faces)):
-        # Create edges (sorted pairs of vertices)
-        edges = [
-            tuple(sorted([face[0], face[1]])),
-            tuple(sorted([face[1], face[2]])),
-            tuple(sorted([face[2], face[0]]))
-        ]
-        
-        for edge in edges:
-            if edge not in edge_to_faces:
-                edge_to_faces[edge] = []
-            edge_to_faces[edge].append(idx)  # Use local index
-    
-    # Step 3: Build adjacency graph
-    # Each face is a node, edges connect faces that share an edge
-    n_building_faces = len(building_faces)
-    adjacency = {i: set() for i in range(n_building_faces)}
-    
-    for edge, face_list in edge_to_faces.items():
-        if len(face_list) > 1:
-            # Faces sharing this edge are connected
-            for i in range(len(face_list)):
-                for j in range(i + 1, len(face_list)):
-                    adjacency[face_list[i]].add(face_list[j])
-                    adjacency[face_list[j]].add(face_list[i])
-    
-    # Step 4: Find connected components using depth-first search
-    visited = set()
-    components = []
-    
-    for i in range(n_building_faces):
-        if i not in visited:
-            component = []
-            stack = [i]
-            visited.add(i)
-            while stack:
-                node = stack.pop()
-                component.append(node)
-                for neighbor in adjacency[node]:
-                    if neighbor not in visited:
-                        visited.add(neighbor)
-                        stack.append(neighbor)
-            components.append(component)
+    # Step 2: Build the shared-edge adjacency graph over the building faces
+    # (faces indexed locally, 0..n_building_faces-1).
+    adjacency = build_edge_face_adjacency(building_faces)
+
+    # Step 3: Find connected components (depth-first over the shared-edge graph)
+    components = connected_components(adjacency)
     
     # Step 5: Create triangulation objects for each component
     building_components = []

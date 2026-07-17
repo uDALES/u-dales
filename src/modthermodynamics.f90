@@ -391,7 +391,7 @@ contains
   !! \author Pier Siebesma   K.N.M.I.     06/01/1995
   subroutine fromztop
 
-    use modglobal, only : kb,ke,kh,dzf,dzh,rv,rd,cp,tmelt,zf,grav,pref0
+    use modglobal, only : kb,ke,kh,dzf,dzh,rv,rd,cp,zf,grav,pref0
     use modfields, only : qt0av,ql0av,presf,presh,thvh,thvf
     use modbasestate, only : thv_b, ps
     implicit none
@@ -527,7 +527,7 @@ contains
   !> Calculates the scalars at half levels.
   !! If the kappa advection scheme is active, interpolation needs to be done consistently.
   subroutine calc_halflev
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzf,dzh,iadv_kappa
+    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzf,dzh
     use modfields, only : thl0,thl0h,qt0,qt0h
     implicit none
 

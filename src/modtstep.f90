@@ -188,7 +188,7 @@ subroutine tstep_integrate
   integer i,j,k,n
   real rk3coef,rk3coefi
 
-  rk3coef = dt / (4. - dble(rk3step))
+  rk3coef = dt / (4. - real(rk3step))
   rk3coefi = 1./rk3coef
 
   if(ifixuinf==2) then
@@ -230,7 +230,10 @@ subroutine tstep_integrate
     enddo
   end if
 
-  if (lchem .and. rk3coef == dt) then
+  ! Chemistry is applied once per full time step, on the last RK3 substep. This
+  ! used to be spelled `rk3coef == dt`, which holds only for rk3step==3 because
+  ! rk3coef = dt/(4-rk3step) -- true but obscure, and an exact real comparison.
+  if (lchem .and. rk3step == 3) then
     call chem
   end if
 
@@ -308,7 +311,6 @@ subroutine tstep_integrate
           if (ltempeq) then
             open(unit=11,file='thlsrc.txt',position='append')
             write(11,3002) timee,thlsrc
-3003        format (13(6e20.12))
             close(11)
           end if
 

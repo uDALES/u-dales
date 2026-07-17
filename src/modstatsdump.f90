@@ -61,7 +61,7 @@ module modstatsdump
   character(80),dimension(1,4) :: tncstattr
   character(80),dimension(1,4) :: tncstatmint
 
-  integer :: klow,khigh,i,j,k
+  integer :: klow,khigh
   real    :: tsamplep,tstatsdumpp,tsample,tstatsdump
 
 
@@ -533,7 +533,7 @@ contains
                                ltreedump
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
-  use modmpi,           only : myid,mpi_sum,avey_ibm,&
+  use modmpi,           only : myid,avey_ibm,&
                                avexy_ibm
   use modsubgrid,       only : ekh,ekm
   use modstatistics,    only : genstats,tkestats
@@ -1803,7 +1803,7 @@ contains
                                p_b,p_t,adv,IIc,IIcs
   use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,&
                                dzfi,dzhi,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
-  use modmpi,           only : mpi_sum,avey_ibm,excjs,avexy_ibm
+  use modmpi,           only : avey_ibm,excjs,avexy_ibm
   use modbasestate,     only : thv_b
   use decomp_2d,        only : exchange_halo_z
   implicit none
