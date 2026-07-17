@@ -86,7 +86,7 @@ def _source_view3d_config(config_path: Path, base_env: dict[str, str]) -> dict[s
         "-c",
         (
             "set -a; "
-            'VIEW3D_CONFIG_DIR="$(cd "$(dirname "$1")" && pwd)"; '
+            'cd "$(dirname "$1")" || exit 1; '
             'source "$1" >/dev/null && '
             "env -0"
         ),
@@ -292,7 +292,10 @@ def run_view3d(
                     peak_rss_kb = sample_kb
                 time.sleep(memory_poll_interval)
     except BaseException:
-        proc.kill()
+        try:
+            proc.kill()
+        except ProcessLookupError:
+            pass
         if wait4_available:
             try:
                 os.wait4(proc.pid, 0)
