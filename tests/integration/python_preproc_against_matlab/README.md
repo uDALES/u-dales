@@ -21,8 +21,8 @@ Current scope:
 - committed MATLAB-generated preprocessing outputs live directly in the case
   directory
 - the test copies the case to a temp directory, cleans generated preprocessing
-  outputs, reruns Python `tools/write_inputs.py`, and compares the regenerated
-  files against the committed references
+  outputs, reruns Python `tools/write_inputs.py` with `PREPROC_NCPU=8`, and
+  compares the regenerated files against the committed references
 
 Why it exists:
 

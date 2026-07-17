@@ -25,12 +25,11 @@ export DA_TOOLSDIR=$(pwd)/u-dales/tools                 # Directory of scripts
 export DA_BUILD=$(pwd)/u-dales/build/release/u-dales    # Build file
 export DA_WORKDIR=$(pwd)/outputs                        # Output top-level directory
 export NCPU=8                                           # Number of CPUs to use for a simulation
-export PREPROC_NCPU=8                                   # Number of CPUs to use for preprocessing; match &INPS nompthreads
 
 # It is recommended to write the full path instead of using $(pwd) in config.sh file
 ```
 
-`PREPROC_NCPU` is required when running `tools/write_inputs.sh`. It should be the same integer as `nompthreads` under the `&INPS` section of `namoptions.###`. The default value of `nompthreads` is `8`, so use `export PREPROC_NCPU=8` unless you explicitly set a different `nompthreads` value in `namoptions.###`. On Imperial HPC, compute-node preprocessing with `write_inputs.sh ... c` also requires `PREPROC_WALLTIME` and `PREPROC_MEM` in `config.sh`. `PREPROC_MEM` must be written as a number followed by lowercase `gb`, such as `128gb`; unitless values are rejected. The default View3D dense-matrix guard is derived as `PREPROC_MEM - 16 GiB`, unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is explicitly set.
+`tools/write_inputs.sh` reads `nompthreads` from the `&INPS` section of `namoptions.###` and uses it for the preprocessing CPU request. If `nompthreads` is omitted, the preprocessing default is `8`. The wrapper exports the derived value internally as `PREPROC_NCPU` for PBS submission and for the default View3D thread count, unless `VIEW3D_NUM_THREADS` is explicitly overridden. On Imperial HPC, compute-node preprocessing with `write_inputs.sh ... c` also requires `PREPROC_WALLTIME` and `PREPROC_MEM` in `config.sh`. `PREPROC_MEM` must be written as a number followed by lowercase `gb`, such as `128gb`; unitless values are rejected. The default View3D dense-matrix guard is derived as `PREPROC_MEM - 16 GiB`, unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is explicitly set.
 
 Then, to start the simulation, run:
 
@@ -54,7 +53,6 @@ export DA_TOOLSDIR=$(pwd)/u-dales/tools                 # Directory of scripts
 export DA_BUILD=$(pwd)/u-dales/build/release/u-dales    # Build file
 export DA_WORKDIR=$EPHEMERAL                            # Output top-level directory
 export NCPU=128                                         # Number of CPUs to use for a simulation
-export PREPROC_NCPU=8                                   # Number of CPUs to use for preprocessing; match &INPS nompthreads
 export PREPROC_WALLTIME="48:00:00"                      # Walltime for Imperial HPC preprocessing jobs
 export PREPROC_MEM="128gb"                              # Memory request for Imperial HPC preprocessing jobs
 export NNODE=1                                          # Number of nodes to use for a simulation
@@ -87,7 +85,6 @@ export DA_TOOLSDIR=/work/account/account/username/top_level_project_directory/u-
 export DA_BUILD=/work/account/account/username/top_level_project_directory/u-dales/build/release/u-dales    # Build file
 export DA_WORKDIR=/work/account/account/username/top_level_project_directory/outputs                        # Output top-level directory
 export NCPU=128                                                                                             # Number of CPUs to use for a simulation
-export PREPROC_NCPU=8                                                                                       # Number of CPUs to use for preprocessing; match &INPS nompthreads
 export NNODE=1                                                                                              # Number of nodes to use for a simulation
 export WALLTIME="24:00:00"                                                                  # Maximum runtime for simulation in hours:minutes:seconds
 export MEM="256gb"                                                                          # Memory request per node

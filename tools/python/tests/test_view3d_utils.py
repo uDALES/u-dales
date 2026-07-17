@@ -205,7 +205,7 @@ class TestView3DUtils(unittest.TestCase):
     @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
     def test_default_view3d_config_derives_dense_limit_from_preproc_mem(self) -> None:
         env, path = load_view3d_runtime_env(
-            base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_MEM": "128gb"},
+            base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_NCPU": "8", "PREPROC_MEM": "128gb"},
             config_path=default_view3d_config_path(),
         )
 
@@ -213,10 +213,29 @@ class TestView3DUtils(unittest.TestCase):
         self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "112")
 
     @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_uses_preproc_ncpu_when_available(self) -> None:
+        env, _ = load_view3d_runtime_env(
+            base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_NCPU": "6"},
+            config_path=default_view3d_config_path(),
+        )
+
+        self.assertEqual(env["VIEW3D_NUM_THREADS"], "6")
+        self.assertEqual(env["OMP_NUM_THREADS"], "6")
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_requires_preproc_ncpu(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "PREPROC_NCPU must be set"):
+            load_view3d_runtime_env(
+                base_env={"PATH": os.environ.get("PATH", "")},
+                config_path=default_view3d_config_path(),
+            )
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
     def test_default_view3d_config_preserves_explicit_dense_limit(self) -> None:
         env, _ = load_view3d_runtime_env(
             base_env={
                 "PATH": os.environ.get("PATH", ""),
+                "PREPROC_NCPU": "8",
                 "PREPROC_MEM": "128gb",
                 "VIEW3D_MAX_DENSE_MATRIX_GIB": "96",
             },

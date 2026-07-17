@@ -29,12 +29,12 @@ This is the cluster-side source of truth for preprocessing build setup.
 
 ## Preprocessing Runs
 
-Each case `config.sh` must export `PREPROC_NCPU` before running
-`tools/write_inputs.sh`. Set `PREPROC_NCPU` to the same value as
-`nompthreads` under `&INPS` in `namoptions.###`; if `nompthreads` is omitted,
-the preprocessing default is `8`. The default View3D configuration also uses
-`PREPROC_NCPU` to choose the View3D OpenMP thread count unless
-`VIEW3D_NUM_THREADS` is set explicitly.
+`tools/write_inputs.sh` reads `nompthreads` under `&INPS` in `namoptions.###`
+and uses it for the preprocessing CPU request. If `nompthreads` is omitted, the
+preprocessing default is `8`. The wrapper exports the derived value internally
+as `PREPROC_NCPU`; the default View3D configuration also uses that value to
+choose the View3D OpenMP thread count unless `VIEW3D_NUM_THREADS` is set
+explicitly.
 
 When submitting preprocessing to an Imperial HPC compute node with
 `tools/write_inputs.sh <route> <case-directory> c`, `config.sh` must also

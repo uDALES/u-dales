@@ -38,23 +38,26 @@ Environment
 
         bash tools/python/setup_venv.sh <common|icl>
         source tools/python/.venv/bin/activate
-        python tools/write_inputs.py
+        PREPROC_NCPU=8 python tools/write_inputs.py examples/999
 
     If the virtual environment is not active, a clear error message is
     printed with the exact commands needed to set it up.
+
+    The shell wrapper tools/write_inputs.sh -p is the recommended entry point
+    because it derives PREPROC_NCPU from &INPS/nompthreads before sourcing the
+    default View3D runtime configuration. If this Python script is invoked
+    directly for a case that runs View3D, export PREPROC_NCPU explicitly first
+    (use the namoptions nompthreads value, or 8 if nompthreads is omitted).
 
 Examples
 --------
     Example commands from the repository root.
 
-    # Process the default example case (examples/999)
-    python tools/write_inputs.py
-
     # Process a specific case directory
-    python tools/write_inputs.py examples/101
+    PREPROC_NCPU=8 python tools/write_inputs.py examples/101
 
     # Force regeneration of all outputs
-    python tools/write_inputs.py examples/101 --force
+    PREPROC_NCPU=8 python tools/write_inputs.py examples/101 --force
 """
 
 from __future__ import annotations

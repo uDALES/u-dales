@@ -19,14 +19,16 @@
 # Number of OpenMP threads used by View3D. This is View3D-specific and takes
 # priority over OMP_NUM_THREADS inside the modified View3D code.
 #
-# By default, use the preprocessing CPU request from tools/write_inputs.sh
-# (PREPROC_NCPU). Set VIEW3D_NUM_THREADS explicitly here if you want View3D to
-# use a different number of threads from the preprocessing job's requested CPU
-# count.
+# By default, use PREPROC_NCPU exported by tools/write_inputs.sh. If sourcing
+# this file directly, export PREPROC_NCPU explicitly first. Set
+# VIEW3D_NUM_THREADS explicitly here if you want View3D to use a different
+# number of threads from the preprocessing job's requested CPU count.
+if [ -z "${PREPROC_NCPU:-}" ]; then
+	echo "PREPROC_NCPU must be set before sourcing view3d_config.sh. Run tools/write_inputs.sh or export PREPROC_NCPU explicitly." >&2
+	return 1 2>/dev/null || exit 1
+fi
 if [ -z "${VIEW3D_NUM_THREADS:-}" ]; then
-	if [ -n "${PREPROC_NCPU:-}" ]; then
-		export VIEW3D_NUM_THREADS="$PREPROC_NCPU"
-	fi
+	export VIEW3D_NUM_THREADS="$PREPROC_NCPU"
 fi
 # export VIEW3D_NUM_THREADS=128
 

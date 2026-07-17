@@ -39,6 +39,45 @@ usage() {
 	echo "   start (optional): (c)ompute node or (l)ogin node; default is (l) which runs on the current node"
 }
 
+default_nompthreads=8
+
+extract_nompthreads() {
+	local namoptions_file=$1
+	local occurrence_count
+	local nompthreads_line
+	local nompthreads_value
+
+	occurrence_count=$(grep -io "nompthreads" "$namoptions_file" | wc -l)
+	occurrence_count=${occurrence_count//[[:space:]]/}
+
+	if [ "$occurrence_count" -eq 0 ]; then
+		return 0
+	fi
+	if [ "$occurrence_count" -gt 1 ]; then
+		echo "MULTIPLE"
+		return 0
+	fi
+
+	nompthreads_line=$(grep -i "nompthreads" "$namoptions_file")
+	if [[ "$nompthreads_line" != *"="* ]]; then
+		echo "INVALID"
+		return 0
+	fi
+
+	nompthreads_value=${nompthreads_line#*=}
+	nompthreads_value=${nompthreads_value%%!*}
+	nompthreads_value=${nompthreads_value%%,*}
+	nompthreads_value=${nompthreads_value%%/*}
+	nompthreads_value="${nompthreads_value#"${nompthreads_value%%[![:space:]]*}"}"
+	nompthreads_value="${nompthreads_value%"${nompthreads_value##*[![:space:]]}"}"
+
+	if [[ "$nompthreads_value" =~ ^[0-9]+$ ]] && [ "$nompthreads_value" -gt 0 ]; then
+		printf "%d\n" "$nompthreads_value"
+	else
+		echo "INVALID"
+	fi
+}
+
 if (( $# < 2 ))
 then
 	echo "The preprocessing route and path to case/experiment folder must be set."
@@ -90,11 +129,27 @@ if [ -z "${DA_EXPDIR:-}" ]; then
 	echo "Experiment directory DA_EXPDIR must be set inside $inputdir/config.sh"
 	exit 1
 fi;
-if [ -z "${PREPROC_NCPU:-}" ]; then
-	echo "Number of CPU cores on each node PREPROC_NCPU must be set inside $inputdir/config.sh"
-	echo "PREPROC_NCPU must be equal to nompthreads set under &INPS in $inputdir/namoptions.$iexpnr"
+
+namoptions_file="$inputdir/namoptions.$iexpnr"
+if [ ! -f "$namoptions_file" ]; then
+	echo "Namelist file not found: $namoptions_file"
 	exit 1
-fi;
+fi
+
+nompthreads=$(extract_nompthreads "$namoptions_file")
+case "$nompthreads" in
+	MULTIPLE)
+		echo "Multiple nompthreads occurrences found in $namoptions_file"
+		echo "Set nompthreads only once."
+		exit 1
+		;;
+	INVALID)
+		echo "Invalid nompthreads value in $namoptions_file"
+		echo "nompthreads must be a positive integer."
+		exit 1
+		;;
+esac
+export PREPROC_NCPU="${nompthreads:-$default_nompthreads}"
 
 if [ "$start" == "c" ]; then
 	## check if required variables are set

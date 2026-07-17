@@ -27,9 +27,15 @@ Then activate and use:
 
 ```bash
 source tools/python/.venv/bin/activate
-python tools/write_inputs.py
+./tools/write_inputs.sh -p examples/999
 deactivate
 ```
+
+Use `tools/write_inputs.sh -p` for normal preprocessing runs. The wrapper reads
+`nompthreads` from `namoptions.###` and exports `PREPROC_NCPU` before the default
+View3D runtime configuration is sourced. If you invoke `python tools/write_inputs.py`
+directly for a case that runs View3D, export `PREPROC_NCPU` first; use the
+`nompthreads` value, or `8` when `nompthreads` is omitted.
 
 ### Windows (PowerShell)
 
@@ -44,7 +50,8 @@ Then activate and use:
 
 ```powershell
 tools\python\.venv\Scripts\Activate.ps1
-python tools\write_inputs.py
+$env:PREPROC_NCPU = "8"
+python tools\write_inputs.py examples\999
 deactivate
 ```
 
