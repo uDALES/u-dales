@@ -45,8 +45,9 @@ preprocessing PBS job only and are separate from the solver job `WALLTIME` and
 a number followed by lowercase `gb`, such as `128gb`; a unitless value such as
 `128` is rejected before PBS submission. Unless
 `VIEW3D_MAX_DENSE_MATRIX_GIB` is set explicitly, `tools/view3d_config.sh`
-derives the View3D dense-matrix guard from the preprocessing memory request as
-`PREPROC_MEM - 16 GiB`.
+derives the View3D dense-matrix guard from the preprocessing memory request:
+requests above `16gb` leave 16 GiB for overhead, while smaller requests use the
+requested GiB value.
 
 ## Batch Execution
 
