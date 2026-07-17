@@ -39,7 +39,11 @@ endif()
 find_package(MPI REQUIRED)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow -std=f2008" CACHE STRING "Fortran flags" FORCE)
+    # -fdefault-double-8 is required alongside -fdefault-real-8: on its own,
+    # -fdefault-real-8 also widens DOUBLE PRECISION to 16 bytes, which made every
+    # `dble(...)` and `1d0` literal software-emulated quad precision that was then
+    # truncated straight back to real(8) on assignment.
+    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -fdefault-double-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow -std=f2008" CACHE STRING "Fortran flags" FORCE)
     set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -finit-real=nan -fcheck=all -Wall -Wextra -Wuninitialized -Warray-bounds -Wconversion" CACHE STRING "Fortran debug flags" FORCE)
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3" CACHE STRING "Fortran release flags" FORCE)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")

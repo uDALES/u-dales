@@ -65,8 +65,13 @@ jobs:
     - name: Build current branch for integration tests
       shell: bash -l {0}
       run: |
+        # This step overrides the default shell, which drops GitHub's `-eo
+        # pipefail`. The build is piped into tee below, so pipefail is required
+        # or a failed build would be masked by tee's exit status.
+        set -o pipefail
         build_dir="build/${{ matrix.build-type }}"
         build_dir="$(printf '%s' "$build_dir" | tr '[:upper:]' '[:lower:]')"
+        echo "UDALES_BUILD_LOG=${build_dir}/build.log" >> "$GITHUB_ENV"
         source .github/scripts/setup_mpi_env.sh "${{ matrix.os }}"
         if [ ${{ matrix.os }} = 'macos-latest' ]; then
           which gfortran
@@ -79,7 +84,13 @@ jobs:
           -DMPI_Fortran_COMPILER="$UDALES_MPI_FORTRAN_COMPILER" \
           -DMPI_C_COMPILER="$UDALES_MPI_C_COMPILER" \
           -DMPIEXEC_EXECUTABLE="$UDALES_MPIEXEC"
-        cmake --build "$build_dir" -- -j 4
+        cmake --build "$build_dir" -- -j 4 2>&1 | tee "$build_dir/build.log"
+
+    - name: Summarise compiler warnings
+      # Reporting only -- deliberately never fails the build. See the script
+      # header for why this is not a -Werror gate.
+      if: always()
+      run: bash .github/scripts/summarise_warnings.sh "$UDALES_BUILD_LOG" "${{ matrix.os }} ${{ matrix.build-type }}"
 
     - name: Build and test uDALES
       shell: bash -l {0}
