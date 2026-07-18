@@ -78,7 +78,10 @@ Gotchas (learned the hard way):
   this compiler" errors. `rm -f *.mod *__genmod.f90` in the repo root to clear them.
 - Debug builds land in `build/debug` (lowercase, from the `debug` arg), not `build/Debug`.
 - `git push` from a plain shell here has no GitHub credential (HTTPS remote, no helper/
-  token) — push from VSCode Source Control / a VSCode integrated terminal instead.
+  token). Two options: push from VSCode Source Control / a VSCode integrated terminal, or
+  use the gh CLI's credential helper without changing config:
+  `git -c credential.helper= -c credential.helper='!gh auth git-credential' push origin <branch>`
+  (requires `gh auth status` to show a logged-in account).
 
 Tests:
 ```bash

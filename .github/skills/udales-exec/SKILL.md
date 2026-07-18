@@ -95,6 +95,12 @@ Whenever a new system is encountered or a module stack changes, append a new
 entry to `references/clusters.md`. Do not overwrite existing entries unless
 the user explicitly approves a cleanup.
 
+## Related skills
+
+For performance commissioning of a machine (compiler-flag audit, MPI
+viability probes, benchmark timing/scaling with the repo's standard cases in
+`simulations/`), use the `udales-perf` skill.
+
 ## References to consult
 
 Read these files when you need guidance:

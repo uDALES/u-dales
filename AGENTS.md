@@ -1,5 +1,19 @@
 # uDALES Agent Notes
 
+## Session Preflight (60 seconds, every session)
+
+1. `git fetch origin` BEFORE branching, diffing, or reading guidance — the
+   skills, agent notes, and code evolve on master. Working from a stale base
+   has caused an 81-commit rebase and a full re-benchmark before.
+2. Confirm what your branch is based on (`git log --oneline master..HEAD` /
+   `git merge-base HEAD origin/master`).
+3. Route your task via "Agent Skills" below (detect/exec/perf) and read the
+   relevant skill before build/run/benchmark work.
+4. Know this quirk: `tools/View3D` is a git submodule. A `M tools/View3D
+   (new commits)` in `git status` usually means an accidental pointer update,
+   not real work — restore with `git checkout -- tools/View3D` and do not
+   commit it unless you intended a submodule bump.
+
 ## What This Repo Is
 
 uDALES is an urban large-eddy simulation codebase centered on a Fortran MPI
@@ -101,6 +115,39 @@ Placement guidance:
 - Put exploratory, visual, or solver-development scripts in
   `tools/python/examples/` or a dedicated dev area, not in the automated test suites.
 
+## Fast Validation Ladder ("did I break it?")
+
+In increasing order of cost — climb only as far as the change warrants:
+
+1. **Compile both build types** (debug catches what release hides: bounds,
+   FPE traps, `-warn all`). A release-only compile is not validation.
+2. **Smoke run**: a small case (`examples/`, or `simulations/
+   benchmark-standard-900` scaled down) for ~50 steps; check it completes,
+   divergence stays at machine level, no NaN/oscillation in the log.
+3. **Integration tests**: `tests/integration/` entry points (see
+   `tests/README.md`).
+4. **Branch regression**: `python tests/run_tests.py supported --branch-a
+   <a> --branch-b <b> ...` for solver-behaviour changes.
+5. **Physics-equivalence check** (refactors/optimizations that must not
+   change results): run both versions ~50 steps with `trestart` set to write
+   restart files at the end, compare fields (see
+   `.github/skills/udales-perf/scripts/compare_restarts.py`). EXPECTATION:
+   agreement at ~1e-15 relative L-inf, NOT bitwise — default Intel
+   `-fp-model fast` reassociates restructured loops. Diffs at ~1e-15 are
+   compiler roundoff; diffs well above that are real behaviour changes.
+
+## Key Docs
+
+- `docs/udales-namoptions-overview.md` — every namelist parameter; consult
+  before touching any `namoptions.*`.
+- `docs/udales-simulation-setup.md` — case setup workflow (config.sh, DA_*
+  variables, preprocessing, submission).
+- `docs/udales-pre-processing.md`, `docs/udales-post-processing.md` — the
+  MATLAB/Python tooling workflows.
+- `docs/CONTRIBUTING.md` — contribution/PR conventions.
+- `simulations/README.md` — curated real-case setups (benchmarks, reference
+  simulations) and the rules for using them.
+
 ## Build And Run
 
 Typical debug build:
@@ -173,16 +220,30 @@ selection.
 
 ## Agent Skills (Repo-Local)
 
-This repo includes repo-local skills for cluster detection and execution:
+This repo includes repo-local skills for cluster detection, execution, and
+performance work:
 
-- `.github/skills/udales-exec/`: execution/runbook guidance
+- `.github/skills/udales-exec/`: execution/runbook guidance; per-cluster
+  module stacks and gotchas in its `references/clusters.md`
 - `.github/skills/udales-detect/`: environment detection and site lookup
+- `.github/skills/udales-perf/`: performance commissioning of a machine —
+  compiler-flag audit, MPI viability probes per node class, benchmark timing
+  (frozen cases in `simulations/`) and scaling; per-machine profiles in its
+  `references/machines.md`
 
 Routing rule:
 
 - For user questions about how to install/build/run on "this machine" (including
   Windows vs WSL vs Linux vs cluster), use `udales-detect` first, then route
   execution/build commands to `udales-exec`.
+- For "how fast is this machine" / benchmarking / compiler-flag or scaling
+  questions, use `udales-perf`.
+
+Self-update rule:
+
+- When you discover new machine/cluster facts, append them to the relevant
+  skill's `references/` file — that is the shared record across agents and
+  sessions. Fetch origin before branching; these files evolve on master.
 
 Compatibility note:
 
