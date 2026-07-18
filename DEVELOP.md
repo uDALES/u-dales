@@ -51,7 +51,7 @@ The user documentation is built with [MkDocs](https://www.mkdocs.org/) (Material
 
 ```sh
 mkdocs build --site-dir build/html
-ford docs/udales-docs-software.md
+ford ford.md
 ```
 
 For live preview while editing, use `mkdocs serve`.

@@ -122,7 +122,7 @@ nav:
     - How to contribute: udales-contributing.md
     - Parallelisation (2DECOMP&FFT): udales-2decomp.md
     - Using agents: udales-agents.md
-    - Software docs: udales-docs-software/index.html
+    - Fortran API reference: udales-software-docs.md
   - About:
     - How to cite: udales-how-to-cite.md
     - Publication list: udales-pub-list.md
