@@ -1,6 +1,9 @@
 
 # Using uDALES utilities in MATLAB
 
+!!! warning "MATLAB path to be retired in v3.0"
+    These tutorials currently use the MATLAB toolchain. The MATLAB route is deprecated and will be retired from uDALES v3.0 onwards, in favour of the [uDALES Python package](udales-python-package.md).
+
 This tutorial demonstrates how to use the uDALES MATLAB utilities for post-processing simulation data. It covers 1) time-averaging; 2) merging short-term time-averaged data to long-term averages, and 3) coarse-graining fields for Spatial filtering (coarse-graining method). The utility functions include:
 
 - [**time_average**](#time_average-time-averaged-mean-and-variance-of-instantaneous-data). This routine calculates the time-average of a quantity (assumes time is in the last index of the variable).

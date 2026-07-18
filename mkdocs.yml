@@ -5,9 +5,9 @@ site_author: 'The uDALES Team'
 site_url: 'https://uDALES.github.io/u-dales'
 
 # Repository
-repo_name: 'u-dales'
+repo_name: 'uDALES/u-dales'
 repo_url: 'https://github.com/uDALES/u-dales'
-edit_uri:  '' # disable 'Edit this page' option (https://www.mkdocs.org/user-guide/configuration/#edit_uri)
+edit_uri: '' # disable 'Edit this page' option (https://www.mkdocs.org/user-guide/configuration/#edit_uri)
 
 # Copyright
 copyright: 'The uDALES Team'
@@ -16,74 +16,112 @@ copyright: 'The uDALES Team'
 theme:
   name: 'material'
   language: 'en'
+  icon:
+    logo: material/city
+    repo: fontawesome/brands/github
   palette:
-    primary: 'light-blue'
-    accent: 'pink'
+    # Palette toggle for light mode
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: 'light blue'
+      accent: 'deep orange'
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: 'light blue'
+      accent: 'deep orange'
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
   font:
     text: 'Roboto'
     code: 'Roboto Mono'
-
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
 
 # Extensions
 markdown_extensions:
-  - pymdownx.arithmatex
+  - admonition
+  - attr_list
+  - md_in_html
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.betterem:
       smart_enable: all
   - pymdownx.caret
   - pymdownx.critic
   - pymdownx.details
   - pymdownx.emoji:
-      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      guess_lang: false
   - pymdownx.inlinehilite
   - pymdownx.magiclink
   - pymdownx.mark
   - pymdownx.smartsymbols
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tilde
-  - codehilite:
-      guess_lang: false
-  - toc:
-      permalink: true
-  - footnotes
-  - pymdownx.mark
-  - pymdownx.details
-  - pymdownx.superfences
-  - pymdownx.tasklist
 
 extra_javascript:
-  - 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'
+  - 'javascripts/mathjax.js'
+  - 'https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js'
 
 # Page tree
 nav:
   - Home: index.md
-  - Installation: udales-installation.md
-  - "Simulation inputs":
+  - Getting started:
+    - Installation: udales-installation.md
+    - Workflow overview: udales-workflow.md
+    - Example simulations: udales-example-simulations.md
+  - Simulation inputs:
     - List of input parameters: udales-namoptions-overview.md
     - Boundary conditions: udales-boundary-conditions.md
     - Geometry generation: udales-geometry-tutorial.md
     - Copying from other simulations: udales-copy-inputs.md
     - Precursor simulations: udales-driver-simulations.md
-  - "Running the simulation":
+  - Running simulations:
     - Pre-processing: udales-pre-processing.md
     - Windows preprocessing setup: udales-preprocessing-windows.md
     - Running uDALES: udales-simulation-setup.md
     - Post-processing: udales-post-processing.md
-  - "Data post-processing":
+    - Cluster workflows: cluster_workflows.md
+  - Tutorials:
     - udbase: udales-udbase-tutorial.md
     - Flow fields and statistics: udales-fields-tutorial.md
     - Facets: udales-facets-tutorial.md
     - Utility routines: udales-utility-tutorial.md
-  - Example simulations: udales-example-simulations.md
-  - How to cite: udales-how-to-cite.md
-  - Publication list: udales-pub-list.md
-  - Development notes: DEVELOP.md
-  - How to contribute: CONTRIBUTING.md
-  - Software docs: udales-docs-software/index.html
+  - Python package: udales-python-package.md
+  - Development:
+    - Development notes: DEVELOP.md
+    - How to contribute: CONTRIBUTING.md
+    - Parallelisation (2DECOMP&FFT): udales-2decomp.md
+    - Using agents: udales-agents.md
+    - Software docs: udales-docs-software/index.html
+  - About:
+    - How to cite: udales-how-to-cite.md
+    - Publication list: udales-pub-list.md
 
 plugins:
   - search
   - bibtex:
       bib_file: "docs/references.bib"
-      cite_style: "pandoc"

@@ -104,7 +104,7 @@ In the next steps we will assume your current working directory is the top-level
 
 ## Build on common systems
 
-To compile uDALES (in release mode) on common/local uvuntu or mac systems using helper script, run:
+To compile uDALES (in release mode) on common/local Ubuntu or Mac systems using the helper script, run:
 
 ```sh
 # We assume you are running the following commands from the u-dales directory
@@ -181,9 +181,12 @@ By default uDALES will compile in `Release` mode. You can change this by specify
 | Name                            | Options            | Default   | Description                                   |
 | ------------------------------- | ------------------ | --------- | --------------------------------------------- |
 | `CMAKE_BUILD_TYPE`              | `Release`, `Debug` | `Release` | Whether to optimise/build with debug flags    |
-| `NETCDF4_DIR`                   | `<path>`           | -         | Path to netCDF-C installation directory       |
+| `NETCDF_DIR`                    | `<path>`           | -         | Path to netCDF-C installation directory       |
 | `NETCDF_FORTRAN_DIR`            | `<path>`           | -         | Path to netCDF-Fortran installation directory |
 | `SKIP_UPDATE_EXTERNAL_PROJECTS` | `ON`, `OFF`        | `OFF`     | Whether to skip updating external projects    |
+| `DOUBLE_PRECISION`              | `ON`, `OFF`        | `ON`      | Build 2DECOMP&FFT with double precision       |
+| `SINGLE_PRECISION_OUTPUT`       | `ON`, `OFF`        | `OFF`     | Write output in single precision              |
+| `FFT_Choice`                    | `fftw3`, `generic` | `fftw3`   | FFT backend for 2DECOMP&FFT                   |
 
 ## Singularity
 

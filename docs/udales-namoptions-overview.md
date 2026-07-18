@@ -17,7 +17,7 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | trestart | 10000. | 0 < trestart < runtime | Time at which restart files are written, trestart > runtime will prevent restart files being written.  | [s] |
 | dtmax | 20 | > 0 | Maximum allowed numerical integration timestep. | [s] |
 | ladaptive | .false. | .true. or .false. | Switch for adaptive time-stepping, .true. recommended. | - |
-| courant | 1.1 | 1 <= courant <=2 | Courant number, default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). | - |
+| courant | 1.5 | 1 <= courant <=2 | Courant number, default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). | - |
 | lrandomize | .true. | .true. or .false. | Switch that determines whether initial field is randomised.| - |
 | irandom | 43 | `INTEGER` > 0 | Seed for random number generation. | - |
 | randu | 0.01 |`REAL` > 0 | Amplitude of velocity field randomisation. | [m/s] |
@@ -55,8 +55,6 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | lvoutflowr | .false. | .true. or .false. | Switch that determines whether u-velocity is corrected to get a fixed outflow rate. *Only functional when y-direction is not parellelised.* | |
 | luvolflowr | .false. | .true. or .false. | Switch that determines whether u-velocity is corrected to get a fixed volume flow rate. | - |
 | lvvolflowr | .false. | .true. or .false. | Switch that determines whether u-velocity is corrected to get a fixed volume flow rate. | - |
-| luflowr | .false. | .true. or .false. | Switch that determines whether u-velocity is corrected to get a fixed flow velocity. | - |
-| lvflowr | .false. | .true. or .false. | Switch that determines whether v-velocity is corrected to get a fixed flow velocity. | - |
 | uflowrate | 1. | `REAL` | U-velocity flow rate for out- or volume-flow forcing. | [m/s] |
 | vflowrate | 1. | `REAL` | V-velocity flow rate out- or volume-flow forcing. | [m/s] |
 | lprofforc | .false. | .true. or .false. | Switch for nudging flow to a profile (forcing). | - |
@@ -191,7 +189,6 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| nblocks | 0 | `INTEGER` | Number of blocks specified in `blocks.inp`. | - |
 | nfcts | -1 | `INTEGER` | Number of facets specified in `facets.inp`. | - |
 | iwallmom | 2 | 1, 2, 3 (1 means zero flux) | Building wall momentum flux. | - |
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
@@ -234,7 +231,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | nnz | 0 | `INTEGER` | Number of non-zero view factors (only used with sparse view factor format. | - |
 | lperiodicEBcorr | .false. | .true. or .false. | Switch for preventing over-heating and moisture saturation in periodic simualtions. | - |
 | sinkbase | 0 | `INTEGER` > 0  | k index above which the periodicEBcorr sink is applied (should be above height of tallest building). | - |
-| fraction | 0 | `REAL` > 0  | Ratio of domain height to uncapped boundary layer height. | - |
+| fraction | 1 | `REAL` > 0  | Ratio of domain height to uncapped boundary layer height. | - |
 
 ## Namelist SCALARS
 
@@ -252,11 +249,10 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | ---- | ------- | --------------- | ----------- | ---- |
 | idriver | 0 | 0, 1, 2 | Options for running precursor driver simulations where \*driver\* files will be written (`= 1`) and reading a completed driver simulation as the inlet to a simulation (`= 2`). Default (`= 0`) will do neither. | - |
 | tdriverstart | 0. | `REAL` | Time at which \*driver\* files start being written. In use for `idriver = 1`. | s |
-| dtdriver | 0. | `REAL` | Timestep at which \*driver\* file planes are written. In use for `idriver = 1`. | s |
+| dtdriver | 0.1 | `REAL` | Timestep at which \*driver\* file planes are written. In use for `idriver = 1`. | s |
 | iplane | - | `INTEGER` | Index of the position on the x-axis of the plane that will be written to \*driver\* files. In use for `idriver = 1`. | |
-| driverstore | 0. | `INTEGER` | Number of timesteps (`idriver = 1`) to be written to \*driver\* files or (`idriver = 2`) contained in \*driver\* files to be read. | - |
+| driverstore | - | `INTEGER` | Number of timesteps (`idriver = 1`) to be written to \*driver\* files or (`idriver = 2`) contained in \*driver\* files to be read. Must be set when using driver simulations. | - |
 | driverjobnr | - | - | Job number of the \*driver\* files to be read. These files should be copied into the experiments folder of the driven simulation. In use for `idriver = 2`. | - |
-| lsdriver | .false. | .true., .false. |  Switch for reading scalar driver files. In use for `idriver = 2`. | - |
 
 ## Namelist OUTPUT
 
@@ -273,7 +269,6 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | lytdump | .false. | .true. or .false. | Switch to output y- and time- averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lxydump | .false. | .true. or .false. | Switch to output x- and y- averaged statistics. | - |
 | lxytdump | .false. | .true. or .false. | Switch to output x-, y- and time-averaged statistics. | - |
-| lslicedump | .false. | .true. or .false. | Switch to output slices in the xy-plane. | - |
 <!---
 | ltkedump | .false. | .true. or .false. | *Not supported in the current version.* | - |
 --->

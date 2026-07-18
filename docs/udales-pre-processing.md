@@ -17,7 +17,7 @@ export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of the scripts
 export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups
 ```
 
-Before running the preprocessing, one must build a virtual python environment as uDALES preprocessing setup is gradually moving towards Python; the MATLAB codes will depricate in near future. Run the virtual environment setup script from the repository root as given below. It creates the virtual environment, installs all dependencies, and builds the preprocessing tools (View3D and f2py extension modules). For more details on virtual environment set up see [here](./../tools/python/README_VENV.md):
+Before running the preprocessing, one must build a virtual python environment as uDALES preprocessing setup is gradually moving towards Python; the MATLAB route is deprecated and will be retired from uDALES v3.0 onwards. Run the virtual environment setup script from the repository root as given below. It creates the virtual environment, installs all dependencies, and builds the preprocessing tools (View3D and f2py extension modules). For more details on virtual environment set up see the [virtual environment README](https://github.com/uDALES/u-dales/blob/master/tools/python/README_VENV.md):
 
 ```bash
 # For a local machine
@@ -63,10 +63,10 @@ For ICL HPC
 
 # General syntax: write_inputs.sh <-m|-p> experiments/exp_id run_node_type
 
-# To run preprocessing on HPC log in node (not recomended)
+# To run preprocessing on HPC login node (not recommended)
 ./u-dales/tools/write_inputs.sh -m experiments/001 l
 
-# To run preprocessing on HPC compute node (recomended)
+# To run preprocessing on HPC compute node (recommended)
 # For MATLAB
 ./u-dales/tools/write_inputs.sh -m experiments/001 c
 # For Python

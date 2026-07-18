@@ -48,24 +48,25 @@ Use the gather wrapper to collect outputs after the run:
 
 ## Python Environment
 
-Use the shared virtual environment at:
+Create the project virtual environment with the setup script, which also
+builds the preprocessing tools (View3D and the f2py extension modules):
 
 ```bash
-/rds/general/user/mvr/home/udales/.venv
+./tools/python/setup_venv.sh icl
 ```
 
-When activating that environment on the cluster, load the matching Python
+When activating the environment on the cluster, load the matching Python
 module first so the runtime libraries are available:
 
 ```bash
-module load Python/3.9.6-GCCcore-11.2.0
-source /rds/general/user/mvr/home/udales/.venv/bin/activate
+module load Python/3.13.1-GCCcore-14.2.0
+source tools/python/.venv/bin/activate
 ```
 
-Use that Python 3.9 module for repo Python workflows on the cluster. In
+Use that Python module for repo Python workflows on the cluster. In
 particular, the `f2py`-based extensions in this repository are expected to be
-built and run with the Python 3.9 environment above rather than whichever
-`python3` happens to be first on `PATH`.
+built and run with the environment above rather than whichever `python3`
+happens to be first on `PATH`.
 
 ## Interactive Analysis
 
