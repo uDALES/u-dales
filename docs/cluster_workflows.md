@@ -93,14 +93,14 @@ job environment. In particular:
   `PATH` after loading modules
 - batch-style output redirection patterns may fail interactively even when they
   work inside submitted jobs
-- Codex sandboxed sessions can add another layer of difference: a launcher
-  failure seen inside the sandbox may be a sandbox socket restriction rather
-  than a real cluster-side problem
+- sandboxed agent sessions (Codex, Claude Code) can add another layer of
+  difference: a launcher failure seen inside the sandbox may be a sandbox
+  socket restriction rather than a real cluster-side problem
 
 So for interactive debugging:
 
 - prefer reproducing the environment from the repo wrappers
-- if a login-node MPI launch fails inside Codex, retry it outside the sandbox
+- if a login-node MPI launch fails inside an agent sandbox, retry it outside the sandbox
   before treating it as a solver or cluster configuration issue
 - keep the launcher invocation minimal
 - avoid changing MPI launcher behavior and output handling unless you have

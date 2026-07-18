@@ -1,7 +1,13 @@
 # Using Agents
 
-This page describes how we use Codex agents for uDALES development work.
-It is aimed at contributors working on this repository.
+This page describes how we use AI coding agents — currently OpenAI Codex and
+Anthropic Claude Code — for uDALES development work. It is aimed at
+contributors working on this repository.
+
+!!! note "Improved agent instructions coming"
+    A revised, expanded set of agent instructions is under development on the
+    [`performance` branch](https://github.com/uDALES/u-dales/tree/performance)
+    and will supersede parts of this page once merged.
 
 ## When to use an agent
 
@@ -22,7 +28,7 @@ Use an agent when the task benefits from:
 
 Project-specific instructions for agents live in:
 
-- `AGENTS.md` (repo-level guidance)
+- `AGENTS.md` (repo-level guidance, read by both Codex and Claude Code)
 - `.github/skills/udales-exec/` (cluster execution runbook skill)
 - `.github/skills/udales-detect/` (environment detection skill)
 
