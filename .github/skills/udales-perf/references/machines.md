@@ -35,12 +35,16 @@ loop only). Debug variant: 101 steps.
 Node classes probed (jobs route by size: ≤16 cores small, ≤64 medium,
 ≤128 large, ≤256 capability; suffix 24/72 = walltime band):
 - 64-core medium class (racks 2–6 era, EPYC 7742 128-core nodes): MPI OK.
-- 128-core whole-node requests → large class (racks 12–15): **Intel MPI
-  2021.2 hydra bootstrap BROKEN on every node tried** (ssh + pbs_tmrsh to
-  self OK; plain/-bootstrap ssh/fork mpiexec all fail). No launcher flag
-  fixes it — newer OS image. Newer toolchains live under `module load
-  tools/dev` but did not co-load cleanly as of 2026-07 (intel/2023a loads
-  nothing); ask RCS.
+- **CORRECTED DIAGNOSIS (2026-07-18):** hydra bootstrap failures are NOT an
+  OS/toolchain incompatibility. Affected nodes (observed: cx3-12-24,
+  cx3-13-13, cx3-14-14, cx3-15-17; healthy: cx3-15-0, racks 2–6) firewall
+  TCP connections TO THEMSELVES — the proxy times out connecting
+  node→same-node ("check for firewalls!" in the .ER file). Fix:
+  `export I_MPI_HYDRA_IFACE=lo` before mpiexec (single-node runs; ranks use
+  shm anyway). This also reopens whole-node/large-class requests → true
+  exclusivity may be attainable; retest. Report the node list to RCS.
+  (Side note: newer toolchains live under `module load tools/dev` but
+  intel/2023a did not co-load cleanly as of 2026-07.)
 - `place=excl` in the medium class: never scheduled within 1.5 h. Whole-node
   exclusivity is therefore NOT available with the 2021a stack.
 

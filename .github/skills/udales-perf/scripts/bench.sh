@@ -92,6 +92,8 @@ for rep in $(seq $REP_START $(( REP_START + NREPS - 1 ))); do
 #PBS -o $LOGDIR/
 #PBS -e $LOGDIR/
 module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a
+# some CX3 nodes firewall TCP-to-self, killing hydra bootstrap; loopback avoids it
+export I_MPI_HYDRA_IFACE=lo
 set -e
 cd $rundir
 
