@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import unittest
 
 from tools.python.tests._common import REPO_ROOT, copy_case
@@ -9,12 +10,23 @@ from udgeom.view3d import count_sparse_entries, resolve_view3d_exe
 
 class TestView3D(unittest.TestCase):
     def setUp(self):
+        self._old_preproc_ncpu = os.environ.get("PREPROC_NCPU")
+        if self._old_preproc_ncpu is None:
+            os.environ["PREPROC_NCPU"] = "8"
+        self.addCleanup(self._restore_preproc_ncpu)
+
         self.temp_dir, self.case_dir = copy_case(REPO_ROOT / "examples" / "101")
         self.addCleanup(self.temp_dir.cleanup)
 
         exe = resolve_view3d_exe()
         if not exe.exists():
             raise unittest.SkipTest(f"View3D executable not found at {exe}")
+
+    def _restore_preproc_ncpu(self):
+        if self._old_preproc_ncpu is None:
+            os.environ.pop("PREPROC_NCPU", None)
+        else:
+            os.environ["PREPROC_NCPU"] = self._old_preproc_ncpu
 
     def test_calc_view_factors(self):
         prep = UDPrep("101", self.case_dir, load_geometry=True)
