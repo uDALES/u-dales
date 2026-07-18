@@ -37,6 +37,22 @@ descriptive with a numeric suffix (`benchmark-standard-900`).
 | join two runs | `append_outputs.sh <exp1_dir> <exp2_dir>` | concatenate outputs across a restart |
 | driver/inflow | `generate_synthetic_inflow.sh`, `link_driver_files.sh` | precursor/driver-simulation workflows |
 
+## Rebuilding during development
+
+`build_executable.sh` is for the FIRST build of a configuration (it loads
+modules and runs the cmake configure step, including the findFFTW download).
+When iterating on source files, incremental rebuilds are much faster:
+
+```bash
+# same module environment as the original build, then:
+cd build/release && make -j4
+```
+
+cmake regenerates automatically if CMakeLists.txt changed. Only rerun the
+wrapper (or `rm -rf build/<type>` first) when the toolchain or compiler
+flags change — stale objects built with different flags otherwise mix
+silently into the executable.
+
 ## Porting to a new platform
 
 The execute/gather scripts target the two production platforms (ICL CX3 =

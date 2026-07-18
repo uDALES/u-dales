@@ -160,7 +160,9 @@ porting to others. Details: `tools/README.md`.
 ## Build And Run
 
 (Raw commands below for understanding/debugging; prefer the wrapper
-scripts above for actual workflows.)
+scripts above for actual workflows. For repeated compiles while editing
+source, `cd build/<type> && make -j4` — with the build's module environment
+loaded — skips the configure step and is much faster; see tools/README.md.)
 
 Typical debug build:
 
