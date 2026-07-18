@@ -110,11 +110,17 @@ if [ "$start" == "c" ]; then
 
 	cd "$inputdir"
 
+	## pre-job resources: overridable from config.sh (large cases need far
+	## more than the defaults; the facet-section stage is OpenMP-parallel)
+	PRE_NCPU=${PRE_NCPU:-8}
+	PRE_MEM=${PRE_MEM:-128gb}
+	PRE_WALLTIME=${PRE_WALLTIME:-24:00:00}
+
 ###### RUN SCRIPT through HPC job script
 cat <<EOF > pre-job.$iexpnr
 #!/bin/bash
-#PBS -l walltime=24:00:00
-#PBS -l select=1:ncpus=8:mem=128gb
+#PBS -l walltime=${PRE_WALLTIME}
+#PBS -l select=1:ncpus=${PRE_NCPU}:mem=${PRE_MEM}
 
 module load tools/prod
 module load GCC/14.2.0

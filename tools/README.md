@@ -29,7 +29,7 @@ descriptive with a numeric suffix (`benchmark-standard-900`).
 | build solver | `build_executable.sh <system> <debug\|release>` | system = `icl`, `archer`, `cca`, `common`; sets modules + netCDF paths per platform |
 | build preprocessing | `build_preprocessing.sh <system>` | View3D and facet-section tooling |
 | new case from old | `copy_inputs.sh <src_case_path> <new_case_number> [c\|w]` | cold- or warm-start setup |
-| preprocess geometry | `write_inputs.sh <case_path> [c\|l]` | runs the MATLAB preprocessing; `c` submits a compute-node batch job (use for anything big), `l`/default runs where you are; fills the `&WALLS` counts in namoptions |
+| preprocess geometry | `write_inputs.sh <case_path> [c\|l]` | runs the MATLAB preprocessing; `c` submits a compute-node batch job (use for anything big), `l`/default runs where you are; fills the `&WALLS` counts in namoptions. Batch resources overridable via `PRE_NCPU`/`PRE_MEM`/`PRE_WALLTIME` in `config.sh` (defaults 8/128gb/24h; the facet-section stage is OpenMP-parallel, so large cases benefit from 32+ cores and need far more memory) |
 | run locally | `local_execute.sh <case_path>` | workstation/login-node mpiexec run |
 | run on ICL HPC (PBS) | `hpc_execute.sh <case_path>` | writes a PBS job from config.sh and submits it |
 | run on ARCHER2 (Slurm) | `archer_execute.sh <case_path>` | Slurm equivalent |
