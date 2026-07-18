@@ -24,22 +24,18 @@ For the Python tooling (pre-processing and the Python package tests), create the
 
 This creates the environment at `tools/python/.venv`, installs all dependencies, and builds the compiled preprocessing extensions (View3D and the f2py modules). See [tools/python/README_VENV.md](https://github.com/uDALES/u-dales/blob/master/tools/python/README_VENV.md) for details.
 
-## Installation
+## Building for development
 
-To install uDALES on Linux, macOS, and WSL, use the following commands from the command prompt:
+Building the model is described in the [installation guide](https://udales.github.io/u-dales/udales-installation/); the same instructions apply for development. In addition, developers will usually want a `Debug` build, which enables runtime checks and floating-point exception trapping:
 
 ```sh
-mkdir -p build/release
-pushd build/release
-cmake ../..
+mkdir -p build/debug
+pushd build/debug
+cmake -DCMAKE_BUILD_TYPE=Debug ../..
 make
 ```
 
-To know more about build options, please see [build/default options](https://udales.github.io/u-dales/udales-installation/#build-defaultsoptions).
-
-## Running
-
-A uDALES simulation needs to be executed from a directory containing all required input files. Examples of experiments and required inputs are in the `examples` directory. To run a uDALES simulation you need to specify the number of cpus `<NCPU>`, the path to the build file `<BUILD>` and the simulation configuration file `<NAMOPTIONS>` and execute the simulation with the following command:
+For quick testing without the wrapper scripts, the solver can be run directly from a directory containing all input files:
 
 ``` sh
 mpiexec -n <NCPU> <BUILD> <NAMOPTIONS>

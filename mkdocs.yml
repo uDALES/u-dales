@@ -117,7 +117,8 @@ nav:
     - Utility routines: udales-utility-tutorial.md
   - Python package: udales-python-package.md
   - Development:
-    - Development notes: udales-development.md
+    - Overview: udales-development.md
+    - Development notes: udales-development-notes.md
     - How to contribute: udales-contributing.md
     - Parallelisation (2DECOMP&FFT): udales-2decomp.md
     - Using agents: udales-agents.md
