@@ -46,7 +46,8 @@ Node classes probed (jobs route by size: ≤16 cores small, ≤64 medium,
   (Side note: newer toolchains live under `module load tools/dev` but
   intel/2023a did not co-load cleanly as of 2026-07.)
 - `place=excl` in the medium class: never scheduled within 1.5 h. Whole-node
-  exclusivity is therefore NOT available with the 2021a stack.
+  requests (128 cores) DO schedule; with the I_MPI_HYDRA_IFACE=lo fix they
+  are the route to true exclusivity — retest and update here.
 
 Placement protocol: paired round-robin dependency chain in the medium class
 (all binaries alternate each round; 6 release rounds + 2 debug rounds), then
