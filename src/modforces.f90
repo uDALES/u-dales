@@ -252,9 +252,10 @@ module modforces
       !call detfreestream(freestream)
       ! write(*,*) "freestream",freestream
       if (lvinf) then
+        ! i innermost (column-major; see #330)
         do k=kb,ke
-          do i=ib,ie
-            do j=jb,je
+          do j=jb,je
+            do i=ib,ie
               vp(i,j,k) = vp(i,j,k) - (1./dt) * (v0av(ke) - Vinf)
             enddo
           enddo
@@ -909,9 +910,10 @@ module modforces
   !phi_q_t = (1-fraction)*E_proj
 
    if (ltempeq) then
-     do i = ib,ie
+     ! i innermost (column-major; see #330)
+     do k = sinkbase +1 , ke!max_height_index +1 , ke ! Only apply the correction over the volume above the buidlings
        do j = jb,je
-         do k = sinkbase +1 , ke!max_height_index +1 , ke ! Only apply the correction over the volume above the buidlings
+         do i = ib,ie
            !thlp(i,j,k) = thlp(i,j,k) + fraction*tot_Tflux*(zh(k+1)-zh(k))/(imax*jtot*(zh(ke+1) - zh(max_height_index+1)))
            !thlp(i,j,k) = thlp(i,j,k) - fraction*tot_Tflux/(itot*jtot*(ke-sinkbase)) ! Most recent working version pre M changes cew216 20240112
            thlp(i,j,k) = thlp(i,j,k) + R_theta_scaled
@@ -920,8 +922,8 @@ module modforces
      end do
    !end if
   !sensible_heat_out = (1-fraction)*tot_Tflux/(itot*jtot)
-    do i = ib,ie
-      do j = jb,je
+    do j = jb,je
+      do i = ib,ie
         thlp(i,j,ke) = thlp(i,j,ke) + phi_theta_t
       end do
     end do
@@ -930,9 +932,10 @@ module modforces
   !
   !
   if (lmoist) then
-    do i = ib,ie
-       do j = jb,je
-        do k = sinkbase +1,ke ! Only apply the correction over the volume above the buidlings
+    ! i innermost (column-major; see #330)
+    do k = sinkbase +1,ke ! Only apply the correction over the volume above the buidlings
+      do j = jb,je
+        do i = ib,ie
           !qtp(i,j,k) = qtp(i,j,k) + fraction*tot_qflux*(zh(k+1)-zh(k))/(imax*jtot*(zh(ke+1) - zh(max_height_index+1)))
           !qtp(i,j,k) = qtp(i,j,k) - fraction*tot_qflux/(itot*jtot*(ke-sinkbase))
           qtp(i,j,k) = qtp(i,j,k) + R_q_scaled
@@ -940,8 +943,8 @@ module modforces
       end do
     end do
     latent_heat_out = (1-fraction)*tot_qflux/(itot*jtot*(zh(ke+1)-zh(ke)))
-     do i = ib,ie
-       do j = jb,je
+    do j = jb,je
+      do i = ib,ie
         qtp(i,j,ke) = qtp(i,j,ke) + phi_q_t
       end do
     end do
@@ -956,23 +959,28 @@ module modforces
       use modfields, only : u0, v0, w0, u0av, up, vp, wp
       use decomp_2d, only : zstart
 
-      integer :: i, j, k, ig
+      integer :: i, j, k, ig, il
       real :: vs, rk3coef
+      real, dimension(ib:ie) :: sinfac
 
       if (ds > 0) then
       rk3coef = dt / (4. - real(rk3step))
-      do i = ib,ie
+      ! ig > itot/2 selects a contiguous local range il..ie; precompute the
+      ! i-dependent sine once per column and run i innermost (see #330)
+      il = max(ib, int(itot/2) - zstart(1) + 2)
+      do i = il,ie
          ig = i + zstart(1) - 1 ! global i position
-         if (ig > int(itot/2)) then
-            do j = jb,je
-               do k = kb,ke
-                  vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sin(pi*(xh(ig)-xh(int(itot/2))) / (0.5*xlen))
-                  up(i,j,k) = up(i,j,k) - vs * (u0(i,j,k) - u0(i,j-1,k)) * dyi
-                  vp(i,j,k) = vp(i,j,k) - vs * (v0(i,j,k) - v0(i,j-1,k)) * dyi
-                  wp(i,j,k) = wp(i,j,k) - vs * (w0(i,j,k) - w0(i,j-1,k)) * dyi
-               end do
+         sinfac(i) = sin(pi*(xh(ig)-xh(int(itot/2))) / (0.5*xlen))
+      end do
+      do k = kb,ke
+         do j = jb,je
+            do i = il,ie
+               vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sinfac(i)
+               up(i,j,k) = up(i,j,k) - vs * (u0(i,j,k) - u0(i,j-1,k)) * dyi
+               vp(i,j,k) = vp(i,j,k) - vs * (v0(i,j,k) - v0(i,j-1,k)) * dyi
+               wp(i,j,k) = wp(i,j,k) - vs * (w0(i,j,k) - w0(i,j-1,k)) * dyi
             end do
-         end if
+         end do
       end do
 
       end if

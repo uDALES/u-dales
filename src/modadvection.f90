@@ -113,6 +113,10 @@ subroutine advecc_2nd(hi, hj, hk, putin, putout)
    real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk), intent(inout) :: putout !< Output: the tendency
 
    integer :: i, j, k, ip, im, jp, jm, kp, km
+
+   ! Single fused pass, i innermost (column-major; see #330). The horizontal and
+   ! vertical updates are kept as two statements so the rounding sequence is
+   ! identical to the former two-pass version.
    do k = kb, ke
       km = k - 1
       kp = k + 1
@@ -131,19 +135,6 @@ subroutine advecc_2nd(hi, hj, hk, putin, putout)
                               v0(i, jp, k)*(putin(i, jp, k) + putin(i, j, k)) &
                             - v0(i, j, k)*(putin(i, jm, k) + putin(i, j, k)) & ! d(vc)/dy
                               )*dyi5)
-         end do
-      end do
-   end do
-
-   do j = jb, je
-      jm = j - 1
-      jp = j + 1
-      do i = ib, ie
-         im = i - 1
-         ip = i + 1
-         do k = kb, ke
-            km = k - 1
-            kp = k + 1
             putout(i, j, k) = putout(i, j, k) - ( &
                               w0(i, j, kp)*(putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp) &
                             - w0(i, j, k)*(putin(i, j, km)*dzf(k) + putin(i, j, k)*dzf(km))*dzhi(k) &
@@ -166,6 +157,8 @@ subroutine advecu_2nd(putin, putout)
 
    integer :: i, j, k, ip, im, jp, jm, kp, km
 
+   ! Single fused pass, i innermost; two statements preserve the two-pass
+   ! rounding sequence (see advecc_2nd / #330).
    do k = kb, ke
       km = k - 1
       kp = k + 1
@@ -185,20 +178,6 @@ subroutine advecu_2nd(putin, putout)
                             - (putin(i, j, k) + putin(i, jm, k))*(v0(i, j, k) +  v0(im, j, k)) & ! d(vu)/dy
                               )*dyiq) &
                             - ((pres0(i, j, k) - pres0(i - 1, j, k))*dxi) ! - dp/dx
-
-         end do
-      end do
-   end do
-
-   do j = jb, je
-      jm = j - 1
-      jp = j + 1
-      do i = ib, ie
-         im = i - 1
-         ip = i + 1
-         do k = kb, ke
-            km = k - 1
-            kp = k + 1
             putout(i, j, k) = putout(i, j, k) - ( &
                               (putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp) &
                             * (w0(i, j, kp) + w0(im, j, kp)) &
@@ -243,20 +222,6 @@ subroutine advecv_2nd(putin, putout)
                               )*dyiq &
                               ) &
                             - ((pres0(i, j, k) - pres0(i, jm, k))*dyi) ! - dp/dy
-
-         end do
-      end do
-   end do
-
-   do j = jb, je
-      jm = j - 1
-      jp = j + 1
-      do i = ib, ie
-         im = i - 1
-         ip = i + 1
-         do k = kb, ke
-            km = k - 1
-            kp = k + 1
             putout(i, j, k) = putout(i, j, k) - ( &
                               (w0(i, j, kp) + w0(i, jm, kp)) &
                             * (putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp) &

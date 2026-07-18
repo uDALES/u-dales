@@ -1,0 +1,72 @@
+&RUN
+iexpnr       = 900
+runtime      = 50.
+trestart     = 1000000.
+dtmax        = 0.05
+ladaptive    = .false.
+irandom      = 43
+randu        = 0.01
+nprocx       = 8
+nprocy       = 8
+libm         = .true.
+/
+
+&OUTPUT
+/
+
+&DOMAIN
+itot         = 256
+jtot         = 256
+ktot         = 128
+xlen         = 160
+ylen         = 160
+/
+
+&PHYSICS
+ps           = 101500.
+igrw_damp    = 0
+ltempeq      = .false.
+lmoist       = .false.
+lbuoyancy    = .false.
+/
+
+&DYNAMICS
+ipoiss       = 0
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&BC
+wtsurf       = 0.
+wqsurf       = 0.
+thls         = 288.
+z0           = 0.01
+z0h          = 0.000067
+/
+
+&WALLS
+nfcts = 1102
+nsolpts_u = 194752
+nsolpts_v = 194752
+nsolpts_w = 233472
+nsolpts_c = 183296
+nbndpts_u = 115656
+nbndpts_v = 115656
+nbndpts_w = 110144
+nbndpts_c = 114224
+nfctsecs_u = 105736
+nfctsecs_v = 105807
+nfctsecs_w = 56968
+nfctsecs_c = 122456
+/
+
+&INPS
+zsize        = 120
+u0           = 3.
+dpdx         = 0.0041912
+stl_file     = xie_castro_2008.stl
+diag_neighbs = .true.
+stl_ground   = .true.
+/

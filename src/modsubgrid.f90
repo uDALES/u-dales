@@ -206,16 +206,17 @@ contains
 
     !  if (lles  .and. rk3step == 1) then        ! compute ekm and ekh only once in complete RK-cycle
     if(lsmagorinsky) then
+       ! i innermost (column-major; see #330)
        do k = kb,ke
           kp=k+1
           km=k-1
-          do i = ib,ie
-             ip=i+1
-             im=i-1
-             mlen = csz(i,k) * delta(i,k)
-             do j = jb,je
-                jp=j+1
-                jm=j-1
+          do j = jb,je
+             jp=j+1
+             jm=j-1
+             do i = ib,ie
+                ip=i+1
+                im=i-1
+                mlen = csz(i,k) * delta(i,k)
 
                 ! iw = wall(i,j,k,1)   ! indices of closest wall
                 ! jw = wall(i,j,k,2)-myid*jmax   ! indices of closest wall in local j-index
@@ -254,7 +255,7 @@ contains
                            + ((v0(i,jp,k )-v0(i,jp,km))*dzhi(k ) + (w0(i,jp,k )-w0(i,j ,k ))*dyi)**2 &
                            + ((v0(i,jp,kp)-v0(i,jp,k ))*dzhi(kp) + (w0(i,jp,kp)-w0(i,j ,kp))*dyi)**2 )
 
-                ekm(i,j,k)  = (mlen*damp(i,j,k)) ** 2. * sqrt(2. * strain2)
+                ekm(i,j,k)  = (mlen*damp(i,j,k)) ** 2 * sqrt(2. * strain2)
                 ekh(i,j,k)  = ekm(i,j,k) * prandtli
              end do
           end do
