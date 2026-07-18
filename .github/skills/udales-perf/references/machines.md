@@ -41,7 +41,9 @@ Node classes probed (jobs route by size: ≤16 cores small, ≤64 medium,
   TCP connections TO THEMSELVES — the proxy times out connecting
   node→same-node ("check for firewalls!" in the .ER file). Fix:
   `export I_MPI_HYDRA_IFACE=lo` before mpiexec (single-node runs; ranks use
-  shm anyway). This also reopens whole-node/large-class requests → true
+  shm anyway). PROBE-CONFIRMED on cx3-14-14 (2026-07-19): plain mpiexec
+  fails, with IFACE=lo it works; 36/36 production chain jobs succeeded with
+  the fix. This also reopens whole-node/large-class requests → true
   exclusivity may be attainable; retest. Report the node list to RCS.
   (Side note: newer toolchains live under `module load tools/dev` but
   intel/2023a did not co-load cleanly as of 2026-07.)
