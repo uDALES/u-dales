@@ -118,6 +118,9 @@ nav:
   - Python package: udales-python-package.md
   - Development:
     - Overview: udales-development.md
+    - Code architecture: udales-architecture.md
+    - Extending uDALES: udales-extending.md
+    - Testing and CI: udales-testing.md
     - Development notes: udales-development-notes.md
     - How to contribute: udales-contributing.md
     - Parallelisation (2DECOMP&FFT): udales-2decomp.md

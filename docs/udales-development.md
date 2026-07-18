@@ -2,9 +2,14 @@
 
 uDALES is developed openly on [GitHub](https://github.com/uDALES/u-dales). Bug reports, feature requests, and pull requests are all welcome — see [how to contribute](udales-contributing.md) for the process.
 
+Development starts from the `master` branch, which is the bleeding-edge version of the model; users running simulations should instead use the [latest release](https://github.com/uDALES/u-dales/releases), as described in the [installation guide](udales-installation.md).
+
 This section collects the developer-facing documentation:
 
-- [Development notes](udales-development-notes.md) — setting up a development environment, building in debug mode, running the tests, and building this documentation.
+- [Code architecture](udales-architecture.md) — how the solver is organised: repository layout, module responsibilities, and the exact sequence of calls in a timestep. Start here before modifying the solver.
+- [Extending uDALES](udales-extending.md) — recipes for common tasks, each traced through a working example in the code: adding a namelist option, an output variable, a statistic, an example case, or a test.
+- [Testing and CI](udales-testing.md) — the test suites, how to run them locally, and what continuous integration checks on every pull request.
+- [Development notes](udales-development-notes.md) — setting up a development environment, building in debug mode, and building this documentation.
 - [How to contribute](udales-contributing.md) — reporting bugs, requesting features, and opening pull requests.
 - [Parallelisation](udales-2decomp.md) — how the 2-D pencil domain decomposition with 2DECOMP&FFT works, and what it means for code that loops over the grid.
 - [Using agents](udales-agents.md) — conventions for working on this repository with AI coding agents.

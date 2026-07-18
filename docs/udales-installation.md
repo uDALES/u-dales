@@ -69,6 +69,9 @@ cd uDALES
 git clone --recurse-submodules https://github.com/uDALES/u-dales.git
 ```
 
+!!! tip "Which version to use"
+    For running simulations, we recommend using the latest release — check out its tag after cloning, e.g. `git checkout v2.2.0` (see the [releases page](https://github.com/uDALES/u-dales/releases) for the current version). The `master` branch is the bleeding-edge development version: it is where new features land first, but it may contain unresolved issues. Use `master` if you are [developing uDALES](udales-development.md).
+
 Create directories for experiment set-ups and output data:
 
 ```sh
