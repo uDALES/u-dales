@@ -148,7 +148,41 @@ In increasing order of cost — climb only as far as the change warrants:
 - `simulations/README.md` — curated real-case setups (benchmarks, reference
   simulations) and the rules for using them.
 
+## Workflow Automation Scripts (`tools/*.sh`)
+
+These wrappers automate the whole simulation lifecycle and are the PREFERRED
+interface — use them before hand-rolling cmake/mpiexec/qsub commands. They
+read a `config.sh` in the case directory (defines `DA_EXPDIR`, `DA_WORKDIR`,
+`DA_TOOLSDIR`, `DA_BUILD`, and for clusters `NCPU`/`NNODE`/`WALLTIME`/`MEM`)
+and derive the case number from the LAST THREE characters of the case
+directory name.
+
+Lifecycle order:
+
+| Step | Script | Notes |
+|------|--------|-------|
+| build solver | `build_executable.sh <system> <debug\|release>` | system = `icl`, `archer`, `cca`, `common`; sets modules + netCDF paths per platform |
+| build preprocessing | `build_preprocessing.sh <system>` | View3D etc. |
+| new case from old | `copy_inputs.sh <src_case_path> <new_case_number> [c\|w]` | cold- or warm-start setup |
+| preprocess geometry | `write_inputs.sh <case_path> [c\|l]` | runs the MATLAB preprocessing; `c` submits a compute-node batch job (use for anything big), `l`/default runs where you are |
+| run locally | `local_execute.sh <case_path>` | workstation/login-node mpiexec run |
+| run on ICL HPC (PBS) | `hpc_execute.sh <case_path>` | writes a PBS job from config.sh and submits it |
+| run on ARCHER2 (Slurm) | `archer_execute.sh <case_path>` | Slurm equivalent |
+| merge outputs | `gather_outputs.sh <exp_dir>` (+ `hpc_gather.sh`, `archer_gather.sh`) | merges per-rank NetCDF via NCO (`nco_concatenate_field*.sh`) |
+| join two runs | `append_outputs.sh <exp1_dir> <exp2_dir>` | concatenate outputs across a restart |
+| driver/inflow | `generate_synthetic_inflow.sh`, `link_driver_files.sh` | precursor/driver-simulation workflows |
+
+Porting note: the execute/gather scripts are written for the two production
+platforms (ICL CX3 = PBS, ARCHER2 = Slurm) but are deliberately thin — to
+support a new machine, copy the closest `*_execute.sh`/`*_gather.sh` pair and
+adapt the scheduler directives and module lines, and add a system entry in
+`build_executable.sh`. Record the new platform in
+`.github/skills/udales-exec/references/clusters.md`.
+
 ## Build And Run
+
+(Raw commands below for understanding/debugging; prefer the wrapper
+scripts above for actual workflows.)
 
 Typical debug build:
 
