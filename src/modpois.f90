@@ -1043,11 +1043,16 @@ contains
     ! **  pressure gradients.  ***************************************
     !*****************************************************************
 
-    do i=ib,ie
-      do j=jb,je
+    ! i innermost (column-major; see #330)
+    do j=jb,je
+      do i=ib,ie
         up(i,j,kb) = up(i,j,kb)-(p(i,j,kb)-p(i-1,j,kb))*dxi
         vp(i,j,kb) = vp(i,j,kb)-(p(i,j,kb)-p(i,j-1,kb))*dyi
-        do k=kb+1,ke
+      end do
+    end do
+    do k=kb+1,ke
+      do j=jb,je
+        do i=ib,ie
           up(i,j,k) = up(i,j,k)-(p(i,j,k)-p(i-1,j,k))*dxi
           vp(i,j,k) = vp(i,j,k)-(p(i,j,k)-p(i,j-1,k))*dyi
           wp(i,j,k) = wp(i,j,k)-(p(i,j,k)-p(i,j,k-1))*dzhi(k)
