@@ -51,6 +51,10 @@ save
   real, allocatable :: xrt(:), yrt(:), zrt(:)
   real, allocatable, target :: xyzrt(:,:,:), bxyzrt(:,:,:)
   real, allocatable :: a(:), b(:), c(:) ! coefficients for tridiagonal matrix
+  ! persistent pencil work arrays for poisson() (allocated on first use;
+  ! formerly allocated/deallocated every call, 3x per step -- #330)
+  real, allocatable, dimension(:,:,:) :: px, py, pz
+  real, allocatable, dimension(:,:,:) :: d_solmpj
   integer :: kbc1, kbc2
 
   integer(kind=selected_int_kind(18)) :: plan_r2fc_x, plan_r2fc_y, plan_fc2r_x, plan_fc2r_y
@@ -81,12 +85,9 @@ contains
     allocate(pvp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
     allocate(pwp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
     call alloc_z(p)
-    call alloc_z(rhs, opt_zlevel=(/0,0,0/))
-    call alloc_z(dpupdx)
-    call alloc_z(dpvpdy)
-    call alloc_z(dpwpdz)
-    call alloc_z(Fxy, opt_zlevel=(/0,0,0/))
-    call alloc_z(Fxyz, opt_zlevel=(/0,0,0/))
+    ! rhs/dpupdx/dpvpdy/dpwpdz/Fxy/Fxyz were solver-state snapshots consumed
+    ! only by commented-out fielddump diagnostics; they cost 5+ full-field
+    ! copies per substep and are no longer allocated or filled (#330).
 
     if (ipoiss == POISS_FFT2D) then
       allocate(xrt(itot))
@@ -421,7 +422,6 @@ contains
     use modmpi, only : barrou
     implicit none
     complex, allocatable, dimension(:,:,:) :: Fx, Fy, Fz
-    real, allocatable, dimension(:,:,:) :: px, py, pz
     !real, allocatable, dimension(:) :: FFTI, FFTJ, winew, wjnew
     real, allocatable, dimension(:,:,:) :: Fzr, d
     real    z,ak,bk,bbk
@@ -430,17 +430,17 @@ contains
 
     call fillps
 
-    rhs = p(ib:ie,jb:je,kb:ke)
-
 !  ibc?=1: neumann
 !  ibc?=2: periodic
 !  ibc?=3: dirichlet
 
     select case (ipoiss)
     case (POISS_FFT2D)
-      call alloc_x(px, opt_xlevel=(/0,0,0/))
-      call alloc_y(py, opt_ylevel=(/0,0,0/))
-      call alloc_z(pz, opt_zlevel=(/0,0,0/))
+      if (.not. allocated(px)) then
+        call alloc_x(px, opt_xlevel=(/0,0,0/))
+        call alloc_y(py, opt_ylevel=(/0,0,0/))
+        call alloc_z(pz, opt_zlevel=(/0,0,0/))
+      end if
 
       pz = p(ib:ie,jb:je,kb:ke)
 
@@ -475,19 +475,19 @@ contains
         !   end do
         ! end do
 
+        ! normalization folded into the unpack (no separate px = px*fac pass)
         do k=1,xsize(3)
           do j=1,xsize(2)
             Sxr = px(:,j,k)
             call dfftw_execute(plan_r2fc_x)
-            px(1,j,k) = REAL(Sxfc(0))
+            px(1,j,k) = REAL(Sxfc(0))*fac
             do i=1,itot/2-1
-              px(2*i,j,k) = REAL(Sxfc(i))
-              px(2*i+1,j,k) = AIMAG(Sxfc(i))
+              px(2*i,j,k) = REAL(Sxfc(i))*fac
+              px(2*i+1,j,k) = AIMAG(Sxfc(i))*fac
             end do
-            px(itot,j,k) = REAL(Sxfc(itot/2))
+            px(itot,j,k) = REAL(Sxfc(itot/2))*fac
           end do
         end do
-        px = px*fac
 
       else
         fac = 1./sqrt(2.*itot)
@@ -519,19 +519,19 @@ contains
         !   end do
         ! end do
 
+        ! normalization folded into the unpack (no separate py = py*fac pass)
         do i=1,ysize(1)
           do k=1,ysize(3)
             Syr = py(i,:,k)
             call dfftw_execute(plan_r2fc_y)
-            py(i,1,k) = REAL(Syfc(0))
+            py(i,1,k) = REAL(Syfc(0))*fac
             do j=1,jtot/2-1
-              py(i,2*j,k) = REAL(Syfc(j))
-              py(i,2*j+1,k) = AIMAG(Syfc(j))
+              py(i,2*j,k) = REAL(Syfc(j))*fac
+              py(i,2*j+1,k) = AIMAG(Syfc(j))*fac
             end do
-            py(i,jtot,k) = REAL(Syfc(jtot/2))
+            py(i,jtot,k) = REAL(Syfc(jtot/2))*fac
           end do
         end do
-        py = py*fac
 
       else
         fac = 1./sqrt(2.*jtot)
@@ -546,7 +546,6 @@ contains
       end if
 
       call transpose_y_to_z(py,pz)
-      Fxy = pz
 
       ! In z-pencil
       if (BCzp == 1) then
@@ -590,8 +589,6 @@ contains
         end do
 
       end if ! BCzp
-
-      Fxyz = pz
 
       call transpose_z_to_y(pz,py)
       ! call transpose_z_to_y(pz_top, py_top, decomp_top)
@@ -707,14 +704,14 @@ contains
       p(ib:ie,jb:je,kb:ke) = pz
       ! p(ib:ie,jb:je, ke+1) = pz_top(:,:,1)
 
-      deallocate(px,py,pz)
+      ! px/py/pz are persistent module arrays (no per-call deallocate)
       ! if (BCxm == 1) deallocate(FFTI, winew)
       ! if (BCym == 1) deallocate(FFTJ, wjnew)
 
     case(POISS_FFT2D_2DECOMP)
-      call alloc_x(px, opt_xlevel=(/0,0,0/))
-      call alloc_y(py, opt_ylevel=(/0,0,0/))
-      call alloc_z(pz, opt_zlevel=(/0,0,0/))
+      if (.not. allocated(px)) call alloc_x(px, opt_xlevel=(/0,0,0/))
+      if (.not. allocated(py)) call alloc_y(py, opt_ylevel=(/0,0,0/))
+      if (.not. allocated(pz)) call alloc_z(pz, opt_zlevel=(/0,0,0/))
       allocate(Fx(sp%xsz(1),sp%xsz(2),sp%xsz(3)))
       allocate(Fy(sp%ysz(1),sp%ysz(2),sp%ysz(3)))
       allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
@@ -802,7 +799,7 @@ contains
 
       p(ib:ie,jb:je,kb:ke) = pz
 
-      deallocate(px,py,pz,Fx,Fy,Fz,d)
+      deallocate(Fx,Fy,Fz,d)
 
 
     case (POISS_FFT3D)
@@ -811,7 +808,7 @@ contains
       allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
       allocate(Fzr(imax,jmax,ktot))
 
-      call alloc_z(pz, opt_zlevel=(/0,0,0/))
+      if (.not. allocated(pz)) call alloc_z(pz, opt_zlevel=(/0,0,0/))
       pz = p(ib:ie,jb:je,kb:ke)
 
       call decomp_2d_fft_3d(pz,Fx) ! start in z-pencil in physical space, end in x-pencil in Fourier space
@@ -877,7 +874,7 @@ contains
 
       p(ib:ie,jb:je,kb:ke) = pz
 
-      deallocate(Fx,Fy,Fz,pz)
+      deallocate(Fx,Fy,Fz)
 
     case (POISS_CYC)
       ! if (linoutflow ) then
@@ -972,15 +969,8 @@ contains
       end do
     end do
 
-    do k=kb,ke
-      do j=jb,je
-        do i=ib,ie
-          dpupdx(i,j,k) = (pup(i+1,j,k)-pup(i,j,k)) * dxi
-          dpvpdy(i,j,k) = (pvp(i,j+1,k)-pvp(i,j,k)) * dyi
-          dpwpdz(i,j,k) = (pwp(i,j,k+1)-pwp(i,j,k)) * dzfi(k)
-        end do
-      end do
-    end do
+    ! (a second nest recomputing the identical divergence into dpupdx/dpvpdy/
+    !  dpwpdz was removed -- consumed only by commented-out fielddump code, #330)
 
     ! ! MOMS
     ! do k=kb,ke
@@ -1116,17 +1106,20 @@ contains
     implicit none
 
     !real, allocatable, dimension(:,:,:) :: px, py, pz
-    real, dimension(imax,jmax,ktot) :: d
     real, dimension(imax,jmax,ktot), intent(INOUT) :: x
     !real, allocatable, dimension(:) :: FFTI, FFTJ, winew, wjnew
     real    z,ak,bk,bbk
     integer i, j, k
 
+    ! persistent work array (was a full-3D automatic array per call: repeated
+    ! allocation cost and a stack hazard -- #330)
+    if (.not. allocated(d_solmpj)) allocate(d_solmpj(imax,jmax,ktot))
+
     do j=1,zsize(2)
       do i=1,zsize(1)
         !z         = 1./(b(1)+xyzrt(i,j,1))
         z         = 1./(bxyzrt(i,j,1))
-        d(i,j,1)  = c(1)*z
+        d_solmpj(i,j,1)  = c(1)*z
         x(i,j,1) = x(i,j,1)*z
       end do
     end do
@@ -1136,8 +1129,8 @@ contains
         do i=1,zsize(1)
           !bbk       = b(k)+xyzrt(i,j,k)
           bbk       = bxyzrt(i,j,k)
-          z         = 1./(bbk-a(k)*d(i,j,k-1))
-          d(i,j,k)  = c(k)*z
+          z         = 1./(bbk-a(k)*d_solmpj(i,j,k-1))
+          d_solmpj(i,j,k)  = c(k)*z
           x(i,j,k) = (x(i,j,k)-a(k)*x(i,j,k-1))*z
         end do
       end do
@@ -1149,7 +1142,7 @@ contains
       do i=1,zsize(1)
         !bbk = bk + xyzrt(i,j,ktot)
         bbk = bxyzrt(i,j,ktot)
-        z        = bbk-ak*d(i,j,ktot-1)
+        z        = bbk-ak*d_solmpj(i,j,ktot-1)
         !if(z/=0.) then
           x(i,j,ktot) = (x(i,j,ktot)-ak*x(i,j,ktot-1))/z
         !else
@@ -1162,7 +1155,7 @@ contains
     do k=zsize(3)-1,1,-1
       do j=1,zsize(2)
         do i=1,zsize(1)
-          x(i,j,k) = x(i,j,k)-d(i,j,k)*x(i,j,k+1)
+          x(i,j,k) = x(i,j,k)-d_solmpj(i,j,k)*x(i,j,k+1)
         end do
       end do
     end do
