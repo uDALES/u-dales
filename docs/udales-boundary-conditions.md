@@ -77,4 +77,33 @@ Determined by `iwallmoist`. Possible values:
 
 ## Scalars
 
-TBC
+Only relevant when `nsv > 0`.
+
+### Top
+
+Determined by `BCtops`. Possible values:
+
+- 1: constant flux given by `wsvtop`.
+- 2: constant value given by `sv_top`.
+
+### Bottom
+
+NB: only relevant if the bottom of the domain is not covered by floor facets. Determined by `BCbots`. Possible values:
+
+- 1: zero flux.
+
+### x
+
+Determined by `BCxs`. Possible values:
+
+- 1: periodic
+- 2: inflow-outflow, fixed profile
+- 3: inflow-outflow, inflow given by time-varying profile from precursor simulation
+- 4: inflow-outflow, fixed profile imposed only in a narrow strip around the domain's central y-plane; used for demonstration/testing purposes rather than production use.
+
+### y
+
+Determined by `BCys`. Possible values:
+
+- 1: periodic
+- 2: inflow-outflow, fixed profile

@@ -16,26 +16,13 @@ conda env create -f environment.yml
 
 Then activate with `conda activate udales`.
 
-If a shared virtual environment already exists at `../.venv/`, you can
-also use that directly for Python tooling and tests, for example:
+For the Python tooling (pre-processing and the Python package tests), create the project virtual environment with:
 
 ```sh
-../.venv/bin/python -m unittest tools/python/tests/test_namelist.py
+./tools/python/setup_venv.sh common
 ```
 
-The Python radiation tooling also requires the compiled View3D executable and
-the `directshortwave_f2py` wrapper. The simplest setup path is:
-
-```sh
-PYTHON_BIN=/opt/pbs/python/bin/python3 ./tools/python/setup_venv.sh
-```
-
-Use another interpreter only if it provides the matching Python development
-headers needed by f2py.
-
-New Linux/WSL setups now default to `../.venv/`, matching the Windows
-setup script. If you already have a repo-local `.venv/`, the setup script will
-keep using it until you migrate manually.
+This creates the environment at `tools/python/.venv`, installs all dependencies, and builds the compiled preprocessing extensions (View3D and the f2py modules). See [tools/python/README_VENV.md](https://github.com/uDALES/u-dales/blob/master/tools/python/README_VENV.md) for details.
 
 ## Installation
 
@@ -60,14 +47,18 @@ mpiexec -n <NCPU> <BUILD> <NAMOPTIONS>
 
 ## Testing
 
-Please refer to [Test docs](https://github.com/uDALES/u-dales/blob/master/tests/README.md).
+Tests are dispatched from a manifest with `tests/run_tests.py` (suites are defined in `tests/test_suites.yml`). Please refer to the [test docs](https://github.com/uDALES/u-dales/blob/master/tests/README.md) for the test layout and execution contracts.
 
 ## Documentation
+
+The user documentation is built with [MkDocs](https://www.mkdocs.org/) (Material theme) and the software docs with [FORD](https://github.com/Fortran-FOSS-Programmers/ford); both are installed by the conda environment above. To build:
 
 ```sh
 mkdocs build --site-dir build/html
 ford docs/udales-docs-software.md
 ```
+
+For live preview while editing, use `mkdocs serve`.
 
 ### Examples input plots
 
@@ -77,7 +68,7 @@ To create domain plots of the examples, run the following from your command line
  matlab -nosplash -nodesktop -r "cd('tools/examples'); plot_blocks('<CASE_NUMBER>'); quit"
 ```
 
-where `<CASE_NUMBER>` is e.g. `201`. Plots are then saved in their respective example folders.   
+where `<CASE_NUMBER>` is e.g. `201`. Plots are then saved in their respective example folders.
 
 ### Examples outputs and plots
 
@@ -92,7 +83,6 @@ Then, to create a sample plot for case `102` run the following from your command
 ```sh
 matlab -nosplash -nodesktop -r "cd('tools/examples'); plot_fielddump_slice('102','u','y',32,1); quit"
 ```
-
 
 ## Versioning
 

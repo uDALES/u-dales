@@ -1,6 +1,6 @@
 # How to contribute
 
-In general, you can contribute by reporting an issue or by directly contributing to the source code. For the latter, clone the repository, make your changes, and create a pull request (PR) with a **clear description** of your changes -- if you are unfamiliar with creating PRs, please see [this guide](https://guides.github.com/activities/forking/#making-a-pull-request) first. Please also read the [development notes](./DEVELOP.md) before opening an issue or create a PR. For specific instructions on how to report a bug or how to submit a feature request, please see below:
+In general, you can contribute by reporting an issue or by directly contributing to the source code. For the latter, clone the repository, make your changes, and create a pull request (PR) with a **clear description** of your changes -- if you are unfamiliar with creating PRs, please see [this guide](https://guides.github.com/activities/forking/#making-a-pull-request) first. Please also read the [development notes](https://udales.github.io/u-dales/udales-development/) before opening an issue or creating a PR. For specific instructions on how to report a bug or how to submit a feature request, please see below:
 
 - [How to contribute](#how-to-contribute)
   - [Report a bug](#report-a-bug)
@@ -9,7 +9,7 @@ In general, you can contribute by reporting an issue or by directly contributing
 
 ## Report a bug
 
-Before creating bug reports, please check if similar issue have already been reported [here](https://github.com/uDALES/u-dales/issues). If none exist please create a new issue and include as many details as possible using the required template.
+Before creating bug reports, please check if similar issues have already been reported [here](https://github.com/uDALES/u-dales/issues). If none exist please create a new issue and include as many details as possible using the required template.
 
 ## Request a new feature
 

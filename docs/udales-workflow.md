@@ -13,7 +13,7 @@ flowchart LR
 
 ## 1. Install and build
 
-Install the prerequisites and build the uDALES executable, either manually with CMake or with the helper script `tools/build_executable.sh`. A Singularity image is also available. See [Installation](udales-installation.md).
+Install the prerequisites and build the uDALES executable, either manually with CMake or with the helper script `tools/build_executable.sh`. See [Installation](udales-installation.md).
 
 ## 2. Set up an experiment
 

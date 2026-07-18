@@ -73,6 +73,8 @@ markdown_extensions:
   - pymdownx.magiclink
   - pymdownx.mark
   - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -90,9 +92,11 @@ extra_javascript:
 nav:
   - Home: index.md
   - Getting started:
+    - Model overview: udales-model-overview.md
     - Installation: udales-installation.md
     - Workflow overview: udales-workflow.md
     - Example simulations: udales-example-simulations.md
+    - Troubleshooting: udales-troubleshooting.md
   - Simulation inputs:
     - List of input parameters: udales-namoptions-overview.md
     - Boundary conditions: udales-boundary-conditions.md
@@ -104,6 +108,7 @@ nav:
     - Windows preprocessing setup: udales-preprocessing-windows.md
     - Running uDALES: udales-simulation-setup.md
     - Post-processing: udales-post-processing.md
+    - Output files: udales-output-files.md
     - Cluster workflows: cluster_workflows.md
   - Tutorials:
     - udbase: udales-udbase-tutorial.md
@@ -112,8 +117,8 @@ nav:
     - Utility routines: udales-utility-tutorial.md
   - Python package: udales-python-package.md
   - Development:
-    - Development notes: DEVELOP.md
-    - How to contribute: CONTRIBUTING.md
+    - Development notes: udales-development.md
+    - How to contribute: udales-contributing.md
     - Parallelisation (2DECOMP&FFT): udales-2decomp.md
     - Using agents: udales-agents.md
     - Software docs: udales-docs-software/index.html
