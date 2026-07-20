@@ -32,6 +32,8 @@
 
 set -e
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 usage() {
 	echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/write_inputs.sh <-m|-p> <PATH_TO_CASE> [start]"
 	echo "   -m: run MATLAB preprocessing route"
@@ -132,20 +134,10 @@ iexpnr="${inputdir: -3}"
 ## read in additional variables
 if [ -f config.sh ]; then
   source config.sh
-else
-  echo "config.sh must be set inside $inputdir"
-  exit 1
 fi
 
-## check if required variables are set
-if [ -z "${DA_TOOLSDIR:-}" ]; then
-  echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
-  exit 1
-fi;
-if [ -z "${DA_EXPDIR:-}" ]; then
-	echo "Experiment directory DA_EXPDIR must be set inside $inputdir/config.sh"
-	exit 1
-fi;
+export DA_TOOLSDIR="${DA_TOOLSDIR:-$script_dir}"
+export DA_EXPDIR="${DA_EXPDIR:-$(cd "$inputdir/.." && pwd)}"
 
 namoptions_file="$inputdir/namoptions.$iexpnr"
 if [ ! -f "$namoptions_file" ]; then
@@ -167,21 +159,12 @@ case "$nompthreads" in
 		;;
 esac
 export PREPROC_NCPU="${nompthreads:-$default_nompthreads}"
+export PREPROC_WALLTIME="${PREPROC_WALLTIME:-24:00:00}"
+export PREPROC_MEM="${PREPROC_MEM:-128gb}"
 
-if [ "$start" == "c" ]; then
-	## check if required variables are set
-	if [ -z "${PREPROC_WALLTIME:-}" ]; then
-		echo "Wall clock time PREPROC_WALLTIME must be set inside $inputdir/config.sh"
-		exit 1
-	fi;
-	if [ -z "${PREPROC_MEM:-}" ]; then
-		echo "Memory requirement PREPROC_MEM must be set inside $inputdir/config.sh"
-		exit 1
-	fi;
-	if [[ ! "$PREPROC_MEM" =~ ^[0-9]+gb$ ]]; then
-		echo "Memory requirement PREPROC_MEM must be set like 128gb"
-		exit 1
-	fi
+if [[ ! "$PREPROC_MEM" =~ ^[0-9]+gb$ ]]; then
+	echo "Memory requirement PREPROC_MEM must be set like 128gb"
+	exit 1
 fi
 
 popd
@@ -228,6 +211,7 @@ export MATLAB_USE_USERWORK=0
 export PYTHONUNBUFFERED=1
 export GFORTRAN_UNBUFFERED_PRECONNECTED=1
 export PREPROC_NCPU="$PREPROC_NCPU"
+export PREPROC_MEM="$PREPROC_MEM"
 export VIEW3D_CONFIG="$VIEW3D_CONFIG"
 source_view3d_config() {
 	local config_file=\$1

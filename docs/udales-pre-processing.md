@@ -1,31 +1,30 @@
 # uDALES preprocessing
 
 In order to perform a simulation with uDALES, the input data needs to be processed, which creates a number of [input files](#input-files) that will be read by the uDALES simulation.
-This can be done from the command line using the shell script `write_inputs.sh`, which is a wrapper around either the MATLAB script `write_inputs.m` or the Python script `write_inputs.py`. For more info about the functions see the [Developer's guide](#developers-guide). The script requires several variables in order to be execute without errors. Three main files required inside the experiment case directory are
+This can be done from the command line using the shell script `write_inputs.sh`, which is a wrapper around either the MATLAB script `write_inputs.m` or the Python script `write_inputs.py`. For more info about the functions see the [Developer's guide](#developers-guide). The main files required inside the experiment case directory are
 
 1. an appropriately set namoptions.001 (assumming 001 is the case directory name) file,
-2. an STL file of the  building geometry (except for few special cases)
-3. the config.sh file.
+2. an STL file of the  building geometry (except for few special cases).
 
-Below is an example setup for copying and pasting. You need to specify these parameters in a `config.sh` file within the example directory, which is then read by the scripts.
+The wrapper also reads `config.sh` from the example directory when it is present. Use it for overrides such as:
 
 ``` sh
 # We assume you are running the following commands from your
 # top-level project directory.
 
-export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of the scripts
-export DA_EXPDIR=$(pwd)/experiments #  The top-level directory of the simulation setups
+export DA_TOOLSDIR=$(pwd)/u-dales/tools # Optional; defaults to the script directory
+export DA_EXPDIR=$(pwd)/experiments # Optional; defaults to the parent directory of the case
 
-# Required only when submitting preprocessing to an Imperial HPC compute node
-export PREPROC_WALLTIME="48:00:00" # Preprocessing PBS walltime
-export PREPROC_MEM="128gb" # Preprocessing PBS memory request
+# Optional overrides for Imperial HPC compute-node preprocessing
+export PREPROC_WALLTIME="24:00:00" # Defaults to 24:00:00
+export PREPROC_MEM="128gb" # Defaults to 128gb
 ```
 
-`tools/write_inputs.sh` reads `nompthreads` from the `&INPS` section of `namoptions.###` and uses it for the preprocessing CPU request. If `nompthreads` is omitted, the preprocessing default is `8`. The wrapper exports the derived value internally as `PREPROC_NCPU` for PBS submission and for the default View3D thread count, unless `VIEW3D_NUM_THREADS` is explicitly overridden.
+`tools/write_inputs.sh` scans `namoptions.###` for `nompthreads` and uses it for the preprocessing CPU request. If `nompthreads` is omitted, the preprocessing default is `8`. If `nompthreads` appears more than once anywhere in the file, the wrapper stops and asks for a single value. The wrapper exports the derived value internally as `PREPROC_NCPU` for PBS submission and for the default View3D thread count, unless `VIEW3D_NUM_THREADS` is explicitly overridden.
 
-When running preprocessing on an Imperial HPC compute node with `write_inputs.sh ... c`, `config.sh` must also define `PREPROC_WALLTIME` and `PREPROC_MEM`. These size the preprocessing PBS job only; they are separate from the solver job variables `WALLTIME` and `MEM` used by `hpc_execute.sh`. `PREPROC_MEM` must be written as a number followed by lowercase `gb`, such as `128gb`; a unitless value such as `128` is rejected before submitting the PBS job. Unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is explicitly set, the default View3D configuration derives the dense-matrix guard from `PREPROC_MEM`: requests above `16gb` leave 16 GiB for overhead, while smaller requests use the requested GiB value. For example, `PREPROC_MEM="128gb"` gives `VIEW3D_MAX_DENSE_MATRIX_GIB=112`.
+When running preprocessing on an Imperial HPC compute node with `write_inputs.sh ... c`, the wrapper uses `PREPROC_WALLTIME="24:00:00"` and `PREPROC_MEM="128gb"` unless these are set in `config.sh` or the calling environment. These size the preprocessing PBS job only; they are separate from the solver job variables `WALLTIME` and `MEM` used by `hpc_execute.sh`. `PREPROC_MEM` must be written as a number followed by lowercase `gb`, such as `128gb`; a unitless value such as `128` is rejected before submitting the PBS job. Unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is explicitly set, the default View3D configuration derives the dense-matrix guard from `PREPROC_MEM`: requests above `16gb` leave 16 GiB for overhead, while smaller requests use the requested GiB value. For example, `PREPROC_MEM="128gb"` gives `VIEW3D_MAX_DENSE_MATRIX_GIB=112`.
 
-Before running the preprocessing, one must build a virtual python environment as uDALES preprocessing setup is gradually moving towards Python; the MATLAB codes will depricate in near future. Run the virtual environment setup script from the repository root as given below. It creates the virtual environment, installs all dependencies, and builds the preprocessing tools (View3D and f2py extension modules). For more details on virtual environment set up see [here](./../tools/python/README_VENV.md):
+Before running the Python preprocessing route, build the Python virtual environment. The setup script creates the environment, installs all dependencies, and builds the preprocessing tools (View3D and f2py extension modules). For the MATLAB route, the same setup is still a convenient way to build View3D and the bundled Python helpers used by some preprocessing paths, such as vegetation conversion. For more details on virtual environment setup see [here](./../tools/python/README_VENV.md):
 
 ```bash
 # For a local machine
@@ -34,17 +33,17 @@ bash tools/python/setup_venv.sh common
 # For the Imperial HPC machine
 bash tools/python/setup_venv.sh icl
 ```
-This is a one time task and should be done as soon as you clone u-dales from GitHub. **Carry out the Python virtual environment setup irrespective of you use the MATLAB preprocessing route or the Python.**
+This is a one-time setup task and should be repeated after pulling changes that affect Python dependencies or preprocessing binaries.
 
 <!---
 ``` sh
 # We assume you are running the following commands from the u-dales directory.
 
 # To build on local/common ubuntu or mac systems
-./tools/build_preprocessing.sh common
+./tools/build_preprocessing.sh common preprocessing_tools
 
 # To build on ICL HPC
-./tools/build_preprocessing.sh icl
+./tools/build_preprocessing.sh icl preprocessing_tools
 ```
 --->
 
@@ -56,7 +55,7 @@ For local ubuntu or mac
 # We assume you are running the following commands from your
 # top-level project directory.
 
-# General syntax: write_inputs.sh <-m|-p> exp_id
+# General syntax: write_inputs.sh <-m|-p> <PATH_TO_CASE> [start]
 ./u-dales/tools/write_inputs.sh -m experiments/001
 
 # Or run the Python preprocessing route
@@ -87,7 +86,7 @@ Note: After editing or creating a `namoptions.###` file (use an existing templat
 
 ## Input files
 
-uDALES requires a number of input files, all suffixed by the experiment number, which is omitted in the following documentation. The `namoptions.inp` file contains a list of parameters for uDALES and the pre-processing routines, and the pre-processing is intended to run using solely this file (with some exceptions). The input files are:
+uDALES requires a number of input files, all suffixed by the experiment number, which is omitted in the following documentation. The `namoptions.###` file contains a list of parameters for uDALES and the pre-processing routines, and the pre-processing is intended to run using solely this file (with some exceptions). The input files are:
 
 - `prof.inp`: initial profiles of flow variables (described in DALES documentation).
 - `lscale.inp`: large-scale forcings (described in DALES documentation).
@@ -129,7 +128,7 @@ The `u-dales/tools/preprocessing.m` matlab class contains the functionality for 
 
 The `u-dales/tools/write_inputs.m` matlab script calls member functions of `preprocessing.m` in order to write the basic input files (those not relating to the IBM or SEB), followed by routines located in the `IBM` and `SEB` directories within the uDALES tools directory. It is intended to be as short and readable as possible, with the goal being that a developer can edit for a particular purpose. It will work simply as a normal script using the matlab IDE, but when doing this, ensure that `DA_EXPDIR = <top level directory>/experiments/` and `DA_TOOLSDIR = <top level directory>/u-dales/tools/` are defined.
 
-The `u-dales/tools/write_inputs.sh` shell script acts as a wrapper around either `write_inputs.m` or `write_inputs.py`. Before running the selected route, it will run the shell script `config.sh` located in the experiment directory, which defines environmental variables such as `DA_EXPDIR` and `DA_TOOLSDIR`. It then reads `nompthreads` from `namoptions.###` and exports the derived preprocessing CPU count internally as `PREPROC_NCPU`. The first argument must be either `-m` for MATLAB or `-p` for Python. It is intended to be run from the top level project directory.
+The `u-dales/tools/write_inputs.sh` shell script acts as a wrapper around either `write_inputs.m` or `write_inputs.py`. Before running the selected route, it will run the shell script `config.sh` located in the experiment directory when that file is present. It defaults `DA_TOOLSDIR` to the directory containing `write_inputs.sh` and `DA_EXPDIR` to the parent directory of the case directory. It scans `namoptions.###` for `nompthreads`, requires at most one occurrence, and exports the derived preprocessing CPU count internally as `PREPROC_NCPU`. The first argument must be either `-m` for MATLAB or `-p` for Python. It is intended to be run from the top level project directory.
 
 Some parameters used by uDALES are used in the pre-processing. They are the following:
 
@@ -153,17 +152,17 @@ This section describes the parameters used by the IBM.
 - `iwalltemp`: Temperature flux boundary condition - 1: constant flux, 2: wall function.
 If either of these are true, then `Tfacinit.inp.xxx` is written using the value of `facT`.
 
-The following parameters are not used, but instead generated by the pre-processing routines and written to the file `info.txt` by the pre-processing script. They must be added to namoptions manually.
+The following parameters are generated by the pre-processing routines. The current MATLAB and Python preprocessing routes write the generated values back to `namoptions.###` when they are generated, so check the updated namelist after preprocessing completes.
 
 - `nfcts`: number of facets. If using `write_inputs.sh` (see below), this will write its value into namoptions. Equal to the number of (non-header) lines in `facets.inp.xxx`.
 - `nsolpts_u`: number of solid points on the u-grid. Equal to the number of (non-header) lines in `solid_u.txt`.
 - `nsolpts_v`: number of solid points on the v-grid. Equal to the number of (non-header) lines in `solid_v.txt`.
 - `nsolpts_w`: number of solid points on the w-grid. Equal to the number of (non-header) lines in `solid_w.txt`.
 - `nsolpts_c`: number of solid points on the c-grid. Equal to the number of (non-header) lines in `solid_c.txt`.
-- `nsndpts_u`: number of fluid boundary points on the u-grid. Equal to the number of (non-header) lines in `fluid_boundary_u.txt`.
-- `nsndpts_v`: number of fluid boundary points on the v-grid. Equal to the number of (non-header) lines in `fluid_boundary_v.txt`.
-- `nsndpts_w`: number of fluid boundary points on the w-grid. Equal to the number of (non-header) lines in `fluid_boundary_w.txt`.
-- `nsndpts_c`: number of fluid boundary points on the c-grid. Equal to the number of (non-header) lines in `fluid_boundary_c.txt`.
+- `nbndpts_u`: number of fluid boundary points on the u-grid. Equal to the number of (non-header) lines in `fluid_boundary_u.txt`.
+- `nbndpts_v`: number of fluid boundary points on the v-grid. Equal to the number of (non-header) lines in `fluid_boundary_v.txt`.
+- `nbndpts_w`: number of fluid boundary points on the w-grid. Equal to the number of (non-header) lines in `fluid_boundary_w.txt`.
+- `nbndpts_c`: number of fluid boundary points on the c-grid. Equal to the number of (non-header) lines in `fluid_boundary_c.txt`.
 - `nfctsecs_u`: number of facet sections on the u-grid. Equal to the number of (non-header) lines in `facet_sections_u.txt`.
 - `nfctsecs_v`: number of facet sections on the v-grid. Equal to the number of (non-header) lines in `facet_sections_v.txt`.
 - `nfctsecs_w`: number of facet sections on the w-grid. Equal to the number of (non-header) lines in `facet_sections_w.txt`.
@@ -184,7 +183,7 @@ Note only one forcing should be specified, i.e. one of `luoutflowr`/`lvoutflowr`
 
 - `lEB`: switch for energy balance. Default: false.
 - `lvfsparse`: switch for view factors in sparse (text) format.
-- `nnz`: number of non-zero view factors when using sparse format - this needs to be written to namoptions after pre-processing.
+- `nnz`: number of non-zero view factors when using sparse format. This is written to `namoptions.###` by preprocessing when sparse view factors are generated.
 - `dtEB`: surface energy balance timestep.
 
 ### `&CHEMISTRY`
@@ -205,7 +204,7 @@ The parameters under the `&INPS` header are used only in the pre-processing.
 - `lstretchtanh`: switch for z grid stretched using tanh function. Default: false.
 - `lstretch2tanh`: switch for z grid stretched using 2tanh function. Default: false.
 - `stretchconst`: stretch constant. Default: 0.01.
-- `nompthreads`: number of OpenMP threads used by preprocessing routines that support OpenMP, including IBM preprocessing. Default: 8. `write_inputs.sh` also uses this value for the preprocessing CPU request.
+- `nompthreads`: number of OpenMP threads used by preprocessing routines that support OpenMP, including IBM preprocessing. Default: 8. `write_inputs.sh` also uses this value for the preprocessing CPU request and requires that it appears at most once in `namoptions.###`.
 - `u0`: initial u-velocity (m/s). Also applied as geostrophic term where applicable. Default: 0.
 - `v0`: initial v-velocity (m/s). Also applied as geostrophic term where applicable. Default: 0.
 - `dpdx`: pressure gradient in x direction (Pa/m). Default: 0.
@@ -236,7 +235,7 @@ If using the energy balance, the following parameters can also be specified.
 
 - `ishortwave`: Option for shortwave radiation calculation. The MATLAB preprocessing default is `1`; the Python preprocessing default is `3`.
 - `isolar`: Option for solar radiation (see below for futher detail). 1: custom (default), 2: from latitude & longitude, 3: from weather file.
-- `view3d_out`: Output format for View3D: 0: text, 1: binary, 2: sparse (text). Default: 0.
+- `view3d_out`: Output format for View3D: 0: text, 1: binary, 2: sparse (text). The MATLAB preprocessing default is `0`; the Python preprocessing default is `2`.
 - `maxD`: Maximum distance to check view factors, otherwise they are zero. Default: Inf.
 - `xazimuth`: the azimuthal angle of the x-axis (with respect to North). Default : 90 degrees, i.e. East.
 

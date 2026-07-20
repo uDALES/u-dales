@@ -77,7 +77,7 @@ Direct shortwave prerequisites:
 Run the direct shortwave integration test with:
 
 ```bash
-source ../.venv/bin/activate
+source tools/python/.venv/bin/activate
 python tests/integration/directshortwave/test_directshortwave.py
 ```
 

@@ -19,7 +19,7 @@ Normal test runs consume the committed JSON in `data/` and do not require
 MATLAB. To regenerate the references:
 
 ```bash
-module load tools/prod MATLAB/2024b Python/3.9.6-GCCcore-11.2.0
-source /rds/general/user/mvr/home/udales/.venv/bin/activate
+module load tools/prod MATLAB/2024b Python/3.13.1-GCCcore-14.2.0
+source tools/python/.venv/bin/activate
 python tools/harvest_udbase_matlab_references.py --clean
 ```

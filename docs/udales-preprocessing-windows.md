@@ -57,26 +57,29 @@ You can inspect your local tool versions with:
     gfortran --version
     ninja --version
 
-## 1. Create or activate the shared virtual environment
+## 1. Create or update the preprocessing environment
 
-From the project top-level directory (the parent of `u-dales`):
+Run the PowerShell setup script from the repository root:
 
-    cd "C:\Users\<user>\...\uDALES"
-    python -m venv .venv
-    .\.venv\Scripts\Activate.ps1
+    .\tools\python\setup_venv.ps1
 
-If the venv already exists, only activation is needed:
+This creates or updates `tools\python\.venv`, installs the Python dependencies,
+and builds the preprocessing artifacts. To build only View3D:
 
-    .\.venv\Scripts\Activate.ps1
+    .\tools\python\setup_venv.ps1 -BuildTarget view3d
 
-## 2. Install Python dependencies
+If the venv already exists, the setup script asks whether to recreate it.
 
-Move to the repository root and install runtime + build packages:
+## 2. Activate the environment
 
-    cd .\u-dales
-    python -m pip install --upgrade pip
-    python -m pip install -r tools\python\requirements.txt
-    python -m pip install -r tools\python\requirements-build.txt
+From the repository root:
+
+    tools\python\.venv\Scripts\Activate.ps1
+
+Then run preprocessing tools/tests as needed, for example:
+
+    $env:PREPROC_NCPU = "8"
+    python tools\write_inputs.py examples\999
 
 ## 3. Important Windows path note (spaces)
 
@@ -89,9 +92,20 @@ From the project top-level directory:
     subst U: "C:\Users\<user>\...\uDALES"
     cd /d U:\u-dales
 
-Use `U:\.venv\Scripts\python.exe` as the Python executable for preprocessing builds.
+Run the setup script from the mapped path:
 
-## 4. Build preprocessing targets (Windows)
+    .\tools\python\setup_venv.ps1
+
+If you need an explicit interpreter, set `PYTHON_BIN` before running the setup
+script.
+
+## 4. Manual preprocessing rebuilds (Windows)
+
+The setup script normally handles this. Use the manual CMake commands below only
+when debugging the preprocessing build directly. Activate the venv first:
+
+    tools\python\.venv\Scripts\Activate.ps1
+    $py = (Get-Command python).Source
 
 ### Option A: Build Python/Fortran preprocessing libraries (no View3D)
 
@@ -99,7 +113,7 @@ Use this when you do not yet have a Windows C++ compiler installed.
 
     cmake -G Ninja -S tools/preprocessing -B tools/preprocessing/build ^
       -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ^
-      -DPREPROCESSING_PYTHON_EXECUTABLE="U:\.venv\Scripts\python.exe" ^
+      -DPREPROCESSING_PYTHON_EXECUTABLE="$py" ^
       -DCMAKE_C_COMPILER=gcc ^
       -DCMAKE_Fortran_COMPILER=gfortran ^
       -DBUILD_PREPROCESSING_VIEW3D=OFF
@@ -118,7 +132,7 @@ Requires a Windows C++ compiler in PATH.
 
     cmake -G Ninja -S tools/preprocessing -B tools/preprocessing/build ^
       -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ^
-      -DPREPROCESSING_PYTHON_EXECUTABLE="U:\.venv\Scripts\python.exe" ^
+      -DPREPROCESSING_PYTHON_EXECUTABLE="$py" ^
       -DCMAKE_C_COMPILER=gcc ^
       -DCMAKE_Fortran_COMPILER=gfortran
 
@@ -177,8 +191,7 @@ Fix:
 
 From project top-level:
 
-    .\.venv\Scripts\Activate.ps1
-    subst U: "C:\Users\<user>\...\uDALES"
-    cd /d U:\u-dales
-
-Then run preprocessing tools/tests as needed.
+    cd .\u-dales
+    tools\python\.venv\Scripts\Activate.ps1
+    $env:PREPROC_NCPU = "8"
+    python tools\write_inputs.py examples\999
