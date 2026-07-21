@@ -134,7 +134,7 @@ fi
 echo "${TAG},${rep},\${SLURM_JOB_ID},${COMMIT},\$node,\$cpu_model,\$nsteps,\$cpu_s,\$sps" >> $RESULTS
 
 cp \$log $LOGDIR/output.${TAG}_rep${rep}.log
-cd; rm -rf $rundir
+rm -rf $rundir
 EOF
 
     if [ -n "$BENCH_DEPEND" ]; then
