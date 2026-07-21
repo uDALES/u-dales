@@ -1,6 +1,6 @@
 # Boundary conditions
 
-The boundary conditions for uDALES are specified under the `&BC` header in `namoptions.inp`.
+The boundary conditions for uDALES are specified under the `&BC` header in `namoptions.###`.
 
 ## Momentum
 

@@ -394,6 +394,8 @@ class RadiationSection(Section):
             return self._vf_cache, self._svf_cache, paths
 
         if not force and vf_path.exists() and svf_path.exists():
+            print("[view3d] using existing output; external solver not run", flush=True)
+            print(f"[view3d] facets: {nfacets}", flush=True)
             vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
             svf = np.loadtxt(svf_path)
             if vfsparse_path is not None and not vfsparse_path.exists():
@@ -407,6 +409,7 @@ class RadiationSection(Section):
             nnz = int(vf.nnz)
             if vfsparse_path is not None or self.view3d_out == 2:
                 self.save_param("nnz", nnz)
+                print(f"[view3d] sparse entries: {nnz}", flush=True)
             self._vf_cache = vf
             self._svf_cache = svf
             self._vf_cache_key = cache_key
@@ -425,7 +428,7 @@ class RadiationSection(Section):
                 "Set VIEW3D_EXE or build tools/View3D to enable."
             )
 
-        run_view3d(view3d_exe, vs3_path, vf_path, check=True)
+        run_view3d(view3d_exe, vs3_path, vf_path, check=True, nfacets=nfacets)
 
         vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
         svf = compute_svf(vf)
@@ -443,6 +446,7 @@ class RadiationSection(Section):
         nnz = int(vf.nnz)
         if vfsparse_path is not None or self.view3d_out == 2:
             self.save_param("nnz", nnz)
+            print(f"[view3d] sparse entries: {nnz}", flush=True)
         self._vf_cache = vf
         self._svf_cache = svf
         self._vf_cache_key = cache_key

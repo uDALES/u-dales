@@ -188,7 +188,7 @@ between multiple components rather than one isolated API.
 To run the direct shortwave reference test:
 
 ```bash
-source ../.venv/bin/activate
+source tools/python/.venv/bin/activate
 python tests/integration/directshortwave/test_directshortwave.py
 ```
 

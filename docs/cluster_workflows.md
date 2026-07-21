@@ -19,13 +19,50 @@ the solver build expects.
 
 ## Preprocessing Build
 
-Build View3D and related preprocessing binaries with:
+Set up the Python environment and build the full preprocessing toolchain with:
 
 ```bash
-./tools/build_preprocessing.sh icl
+./tools/python/setup_venv.sh icl
 ```
 
-This is the cluster-side source of truth for preprocessing build setup.
+This creates `tools/python/.venv`, installs the Python dependencies, and builds
+View3D plus the f2py extension modules required by the Python preprocessing
+route.
+
+If you only need to rebuild the preprocessing binaries after the environment is
+already available, use:
+
+```bash
+./tools/build_preprocessing.sh icl preprocessing_tools
+```
+
+Use `./tools/build_preprocessing.sh icl view3d` only when you deliberately want
+to rebuild View3D without the f2py extension modules.
+
+## Preprocessing Runs
+
+`tools/write_inputs.sh` scans `namoptions.###` for `nompthreads` and uses it
+for the preprocessing CPU request. If `nompthreads` is omitted, the
+preprocessing default is `8`; if it appears more than once anywhere in the file,
+the wrapper stops and asks for a single value. The wrapper exports the derived
+value internally as `PREPROC_NCPU`; the default View3D configuration also uses
+that value to choose the View3D OpenMP thread count unless
+`VIEW3D_NUM_THREADS` is set explicitly. For preprocessing, `DA_TOOLSDIR`
+defaults to the directory containing `write_inputs.sh` and `DA_EXPDIR` defaults
+to the parent directory of the case directory unless these are set in
+`config.sh` or the calling environment.
+
+When submitting preprocessing to an Imperial HPC compute node with
+`tools/write_inputs.sh <route> <case-directory> c`, the wrapper uses
+`PREPROC_WALLTIME="24:00:00"` and `PREPROC_MEM="128gb"` unless these are set in
+`config.sh` or the calling environment. These control the preprocessing PBS job
+only and are separate from the solver job `WALLTIME` and `MEM` settings used by
+`tools/hpc_execute.sh`. `PREPROC_MEM` must be written as a number followed by
+lowercase `gb`, such as `128gb`; a unitless value such as `128` is rejected
+before PBS submission. Unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is set explicitly,
+`tools/view3d_config.sh` derives the View3D dense-matrix guard from the
+preprocessing memory request: requests above `16gb` leave 16 GiB for overhead,
+while smaller requests use the requested GiB value.
 
 ## Batch Execution
 
@@ -48,24 +85,24 @@ Use the gather wrapper to collect outputs after the run:
 
 ## Python Environment
 
-Use the shared virtual environment at:
+Use the repo-local virtual environment created by `setup_venv.sh`:
 
 ```bash
-/rds/general/user/mvr/home/udales/.venv
+tools/python/.venv
 ```
 
-When activating that environment on the cluster, load the matching Python
-module first so the runtime libraries are available:
+When activating that environment on the cluster, load the matching Python module
+first so the runtime libraries are available:
 
 ```bash
-module load Python/3.9.6-GCCcore-11.2.0
-source /rds/general/user/mvr/home/udales/.venv/bin/activate
+module load Python/3.13.1-GCCcore-14.2.0
+source tools/python/.venv/bin/activate
 ```
 
-Use that Python 3.9 module for repo Python workflows on the cluster. In
+Use the same Python module for repo Python workflows on the cluster. In
 particular, the `f2py`-based extensions in this repository are expected to be
-built and run with the Python 3.9 environment above rather than whichever
-`python3` happens to be first on `PATH`.
+built and run with the same Python runtime rather than whichever `python3`
+happens to be first on `PATH`.
 
 ## Interactive Analysis
 
