@@ -128,10 +128,23 @@ Results (release, commit `edd3c0d169`, 3 reps, tag `perfbranch`):
 
 min 0.35466 s/step, spread ~1.5% across reps/nodes — consistent with
 exclusive whole-node allocation (no pairing needed to see this level of
-repeatability). This is the current `performance`-branch baseline on
-ARCHER2; no #330-style optimization campaign has been run here yet, so
-there is no before/after delta to report (only a single toolchain/config
-point).
+repeatability). This single point is the current `performance`-branch tip
+(commit `edd3c0d169`, i.e. B4 + local commissioning commits) — it is NOT
+yet the staged B0-B4 replication of the #330 PR (see PENDING note below).
+
+**PENDING — staged B0-B4 replication not yet run on this machine.** The PR
+measured six specific commits in sequence (see the CX3 entry's results
+table for the reference numbers: base 0.4289, B0 0.4219, B1 0.4218,
+B2 0.3986, B3 0.3773, B4 0.3269 s/step, 1.312x cumulative). A handoff
+script that builds and benchmarks the same six commits on ARCHER2 via git
+worktrees + the existing `bench_archer2.sh` (using its `BENCH_BIN`/
+`BENCH_COMMIT` overrides) has been written but deliberately NOT executed:
+`.github/skills/udales-perf/scripts/stage_campaign_archer2.sh` — read its
+header for the exact commit SHAs (`base`=`6f5c4494`, `B0`=`fb90a0cb`,
+`B1`=`8a0bb7c2`, `B2`=`ae25ba0e`, `B3`=`9ac67d41`, `B4`=`ec47eaeb`) and
+run instructions. The next agent should run it, then append the resulting
+six-row table + deltas here, in the same format as the CX3 entry, without
+removing this paragraph until that table is in place.
 
 Debug/release ratio: **not measured** — the Debug build crashes with
 SIGFPE before completing even step 1 (before its first stdout line),
