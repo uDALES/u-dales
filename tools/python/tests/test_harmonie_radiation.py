@@ -63,6 +63,23 @@ class TestAccumulatedFluxSeries(unittest.TestCase):
         np.testing.assert_allclose(times, [0.0, 900.0, 1800.0])
         np.testing.assert_allclose(fluxes, [20.0, 30.0, 40.0])
 
+    def test_cycle_start_uses_zero_previous_accumulation(self):
+        reader = FakeAccumulationReader(
+            {
+                0: 0.0,
+                900: 9000.0,
+                1800: 27000.0,
+            }
+        )
+        times, fluxes = accumulated_flux_series(
+            reader,
+            start_offset_seconds=0,
+            end_offset_seconds=1800,
+            difference_interval_seconds=900,
+        )
+        np.testing.assert_allclose(times, [0.0, 900.0, 1800.0])
+        np.testing.assert_allclose(fluxes, [0.0, 10.0, 20.0])
+
     def test_clamps_tiny_negative_accumulation_noise(self):
         reader = FakeAccumulationReader({900: 1000.0, 1800: 999.5})
         _, fluxes = accumulated_flux_series(

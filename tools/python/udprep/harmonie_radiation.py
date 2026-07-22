@@ -470,12 +470,15 @@ def accumulated_flux_series(
     for idx, offset in enumerate(offsets):
         previous = int(offset) - int(difference_interval_seconds)
         if previous < 0:
-            raise ValueError(
-                "Cannot difference accumulated radiation before forecast start. "
-                f"Needed {previous} seconds for offset {offset}."
-            )
+            if int(offset) != 0:
+                raise ValueError(
+                    "Cannot difference accumulated radiation before forecast start. "
+                    f"Needed {previous} seconds for offset {offset}."
+                )
+            previous_accum = 0.0
+        else:
+            previous_accum = reader.mean_accumulation(previous)
         current_accum = reader.mean_accumulation(int(offset))
-        previous_accum = reader.mean_accumulation(previous)
         flux = (current_accum - previous_accum) / float(difference_interval_seconds)
         if flux < -ACCUMULATED_FLUX_TOLERANCE_W_M2:
             raise ValueError(
