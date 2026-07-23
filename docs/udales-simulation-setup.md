@@ -1,4 +1,4 @@
-## Running uDALES
+# Running uDALES
 
 The scripts `local_execute.sh` (for local machines), `hpc_execute.sh` (for ICL cluster) and `archer_execute.sh` (for ARCHER2) in `u-dales/tools` are used as wrappers to run simulations. These scripts contain several helpers to run the simulations and merge outputs (see [Post-processing](./udales-post-processing.md) for more info) from several CPUs into a single file.
 
@@ -13,7 +13,7 @@ Example cases shipped with uDALES are located under `u-dales/examples/` and are 
 
 Note that you need to choose the number of CPUs you are using to run the simulation such that the product of `nprocx` and `nprocy` (in the `namoptions` input file) is equal to the total number of CPU asked, i.e., `nprocx * nprocy = NCPU` for local machines, and `nprocx * nprocy = NNODE * NCPU` for ICL HPC or ARCHER2 clusters.
 
-### Run on common systems
+## Run on common systems
 
 ``` sh
 # Contents of the config.sh file
@@ -41,7 +41,7 @@ Then, to start the simulation, run:
 ./u-dales/tools/local_execute.sh experiments/009
 ```
 
-### Run on ICL cluster
+## Run on ICL cluster
 
 ``` sh
 # Contents of the config.sh file
@@ -73,7 +73,7 @@ Then, to start the simulation, run:
 ./u-dales/tools/hpc_execute.sh experiments/009
 ```
 
-### Run on ARCHER2
+## Run on ARCHER2
 
 ``` sh
 # Contents of the config.sh file

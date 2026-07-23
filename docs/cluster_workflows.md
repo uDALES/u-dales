@@ -85,14 +85,15 @@ Use the gather wrapper to collect outputs after the run:
 
 ## Python Environment
 
-Use the repo-local virtual environment created by `setup_venv.sh`:
+Create the project virtual environment with the setup script, which also
+builds the preprocessing tools (View3D and the f2py extension modules):
 
 ```bash
-tools/python/.venv
+./tools/python/setup_venv.sh icl
 ```
 
-When activating that environment on the cluster, load the matching Python module
-first so the runtime libraries are available:
+When activating the environment on the cluster, load the matching Python
+module first so the runtime libraries are available:
 
 ```bash
 module load Python/3.13.1-GCCcore-14.2.0
@@ -101,7 +102,7 @@ source tools/python/.venv/bin/activate
 
 Use the same Python module for repo Python workflows on the cluster. In
 particular, the `f2py`-based extensions in this repository are expected to be
-built and run with the same Python runtime rather than whichever `python3`
+built and run with the same Python runtime environment above rather than whichever `python3`
 happens to be first on `PATH`.
 
 ## Interactive Analysis
@@ -129,14 +130,14 @@ job environment. In particular:
   `PATH` after loading modules
 - batch-style output redirection patterns may fail interactively even when they
   work inside submitted jobs
-- Codex sandboxed sessions can add another layer of difference: a launcher
-  failure seen inside the sandbox may be a sandbox socket restriction rather
-  than a real cluster-side problem
+- sandboxed agent sessions (Codex, Claude Code) can add another layer of
+  difference: a launcher failure seen inside the sandbox may be a sandbox
+  socket restriction rather than a real cluster-side problem
 
 So for interactive debugging:
 
 - prefer reproducing the environment from the repo wrappers
-- if a login-node MPI launch fails inside Codex, retry it outside the sandbox
+- if a login-node MPI launch fails inside an agent sandbox, retry it outside the sandbox
   before treating it as a solver or cluster configuration issue
 - keep the launcher invocation minimal
 - avoid changing MPI launcher behavior and output handling unless you have

@@ -54,7 +54,7 @@ Replace 009 and 010 with the numbers of your simulations.
 
 ## Different output files explained
 
-The output files generated depend on the parameters specified under `&OUPUT` in the `namoptions` file of your simulation (see [Configuration](udales-namoptions-overview.md) for details), and the name of the output file(s) matches the name of that switch, e.g. if `lxytdump` is selected for experiment `009` then there will be an output file called `xytdump.009.nc`. If `lfielddump` is selected, note that there will be a `fielddump.xxx.009.nc` file for each cpu.
+The output files generated depend on the parameters specified under `&OUTPUT` in the `namoptions` file of your simulation (see [Configuration](udales-namoptions-overview.md) for details), and the name of the output file(s) matches the name of that switch, e.g. if `lxytdump` is selected for experiment `009` then there will be an output file called `xytdump.009.nc`. If `lfielddump` is selected, note that there will be a `fielddump.xxx.009.nc` file for each cpu.
 
 ## Reading output files
 

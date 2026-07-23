@@ -24,7 +24,7 @@ export PREPROC_MEM="128gb" # Defaults to 128gb
 
 When running preprocessing on an Imperial HPC compute node with `write_inputs.sh ... c`, the wrapper uses `PREPROC_WALLTIME="24:00:00"` and `PREPROC_MEM="128gb"` unless these are set in `config.sh` or the calling environment. These size the preprocessing PBS job only; they are separate from the solver job variables `WALLTIME` and `MEM` used by `hpc_execute.sh`. `PREPROC_MEM` must be written as a number followed by lowercase `gb`, such as `128gb`; a unitless value such as `128` is rejected before submitting the PBS job. Unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is explicitly set, the default View3D configuration derives the dense-matrix guard from `PREPROC_MEM`: requests above `16gb` leave 16 GiB for overhead, while smaller requests use the requested GiB value. For example, `PREPROC_MEM="128gb"` gives `VIEW3D_MAX_DENSE_MATRIX_GIB=112`.
 
-Before running the Python preprocessing route, build the Python virtual environment. The setup script creates the environment, installs all dependencies, and builds the preprocessing tools (View3D and f2py extension modules). For the MATLAB route, the same setup is still a convenient way to build View3D and the bundled Python helpers used by some preprocessing paths, such as vegetation conversion. For more details on virtual environment setup see [here](./../tools/python/README_VENV.md):
+Before running the preprocessing, one must build virtual python environment as uDALES preprocessing setup is gradually moving towards Python; the MATLAB route is deprecated and will be retired from uDALES v3.0 onwards. Run the virtual environment setup script from the repository root as given below. It creates the virtual environment, installs all dependencies, and builds the preprocessing tools (View3D and f2py extension modules). For the MATLAB route, the same setup is still a convenient way to build View3D and the bundled Python helpers used by some preprocessing paths, such as vegetation conversion. For more details on virtual environment set up see the [virtual environment README](https://github.com/uDALES/u-dales/blob/master/tools/python/README_VENV.md):
 
 ```bash
 # For a local machine
@@ -70,10 +70,10 @@ For ICL HPC
 
 # General syntax: write_inputs.sh <-m|-p> experiments/exp_id run_node_type
 
-# To run preprocessing on HPC log in node (not recomended)
+# To run preprocessing on HPC login node (not recommended)
 ./u-dales/tools/write_inputs.sh -m experiments/001 l
 
-# To run preprocessing on HPC compute node (recomended)
+# To run preprocessing on HPC compute node (recommended)
 # For MATLAB
 ./u-dales/tools/write_inputs.sh -m experiments/001 c
 # For Python

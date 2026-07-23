@@ -2,7 +2,7 @@
 
 ## Set up
 
-Install all required packages for uDALES described in the [prerequisites section](https://udales.github.io/u-dales/udales-getting-started/#prerequisites-when-not-using-singularity), plus optionally [Graphviz](https://graphviz.org/) for generating graphs in the code viewer. E.g. installing all the required packages using Ubuntu's APT:
+Install all required packages for uDALES described in the [prerequisites section](https://udales.github.io/u-dales/udales-installation/#prerequisites), plus optionally [Graphviz](https://graphviz.org/) for generating graphs in the code viewer. E.g. installing all the required packages using Ubuntu's APT:
 
 ```sh
 sudo apt update && sudo apt install -y gfortran libopenmpi-dev openmpi-bin libnetcdf-dev libnetcdff-dev graphviz
@@ -16,43 +16,26 @@ conda env create -f environment.yml
 
 Then activate with `conda activate udales`.
 
-If a shared virtual environment already exists at `../.venv/`, you can
-also use that directly for Python tooling and tests, for example:
+For the Python tooling (pre-processing and the Python package tests), create the project virtual environment with:
 
 ```sh
-../.venv/bin/python -m unittest tools/python/tests/test_namelist.py
+./tools/python/setup_venv.sh common
 ```
 
-The Python radiation tooling also requires the compiled View3D executable and
-the `directshortwave_f2py` wrapper. The simplest setup path is:
+This creates the environment at `tools/python/.venv`, installs all dependencies, and builds the compiled preprocessing extensions (View3D and the f2py modules). See [tools/python/README_VENV.md](https://github.com/uDALES/u-dales/blob/master/tools/python/README_VENV.md) for details.
+
+## Building for development
+
+Building the model is described in the [installation guide](https://udales.github.io/u-dales/udales-installation/); the same instructions apply for development. In addition, developers will usually want a `Debug` build, which enables runtime checks and floating-point exception trapping:
 
 ```sh
-PYTHON_BIN=/opt/pbs/python/bin/python3 ./tools/python/setup_venv.sh
-```
-
-Use another interpreter only if it provides the matching Python development
-headers needed by f2py.
-
-New Linux/WSL setups now default to `../.venv/`, matching the Windows
-setup script. If you already have a repo-local `.venv/`, the setup script will
-keep using it until you migrate manually.
-
-## Installation
-
-To install uDALES on Linux, macOS, and WSL, use the following commands from the command prompt:
-
-```sh
-mkdir -p build/release
-pushd build/release
-cmake ../..
+mkdir -p build/debug
+pushd build/debug
+cmake -DCMAKE_BUILD_TYPE=Debug ../..
 make
 ```
 
-To know more about build options, please see [build/default options](https://udales.github.io/u-dales/udales-getting-started/#build-defaultsoptions).
-
-## Running
-
-A uDALES simulation needs to be executed from a directory containing all required input files. Examples of experiments and required inputs are in the `examples` directory. To run a uDALES simulation you need to specify the number of cpus `<NCPU>`, the path to the build file `<BUILD>` and the simulation configuration file `<NAMOPTIONS>` and execute the simulation with the following command:
+For quick testing without the wrapper scripts, the solver can be run directly from a directory containing all input files:
 
 ``` sh
 mpiexec -n <NCPU> <BUILD> <NAMOPTIONS>
@@ -60,14 +43,18 @@ mpiexec -n <NCPU> <BUILD> <NAMOPTIONS>
 
 ## Testing
 
-Please refer to [Test docs](https://github.com/uDALES/u-dales/blob/master/tests/README.md).
+Tests are dispatched from a manifest with `tests/run_tests.py` (suites are defined in `tests/test_suites.yml`). Please refer to the [test docs](https://github.com/uDALES/u-dales/blob/master/tests/README.md) for the test layout and execution contracts.
 
 ## Documentation
 
+The user documentation is built with [MkDocs](https://www.mkdocs.org/) (Material theme) and the software docs with [FORD](https://github.com/Fortran-FOSS-Programmers/ford); both are installed by the conda environment above. To build:
+
 ```sh
 mkdocs build --site-dir build/html
-ford docs/udales-docs-software.md
+ford ford.md
 ```
+
+For live preview while editing, use `mkdocs serve`.
 
 ### Examples input plots
 
@@ -77,7 +64,7 @@ To create domain plots of the examples, run the following from your command line
  matlab -nosplash -nodesktop -r "cd('tools/examples'); plot_blocks('<CASE_NUMBER>'); quit"
 ```
 
-where `<CASE_NUMBER>` is e.g. `201`. Plots are then saved in their respective example folders.   
+where `<CASE_NUMBER>` is e.g. `201`. Plots are then saved in their respective example folders.
 
 ### Examples outputs and plots
 
@@ -92,7 +79,6 @@ Then, to create a sample plot for case `102` run the following from your command
 ```sh
 matlab -nosplash -nodesktop -r "cd('tools/examples'); plot_fielddump_slice('102','u','y',32,1); quit"
 ```
-
 
 ## Versioning
 
