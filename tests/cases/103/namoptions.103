@@ -1,0 +1,84 @@
+&RUN
+iexpnr       = 103
+runtime      = 10
+trestart     = 1000
+dtmax        = 1
+irandom      = 43
+randqt       = 2.5e-5
+randthl      = 0.001
+randu        = 0.01
+ladaptive    = .true.
+libm         = .true.
+nprocx       = 1
+nprocy       = 2
+/
+
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 5.
+fieldvars    = 'u0,v0,w0,th'
+ltdump       = .true.
+lydump       = .true.
+lytdump      = .true.
+lxydump      = .true.
+lxytdump     = .true.
+tstatsdump   = 5.
+tsample      = 5.
+/
+
+&DOMAIN
+itot         = 8
+jtot         = 8
+ktot         = 8
+xlen         = 8
+ylen         = 8
+/
+
+&PHYSICS
+lbuoyancy    = .true.
+ltempeq      = .true.
+lmoist       = .true.
+ps           = 101500.00
+igrw_damp    = 0
+/
+
+&DYNAMICS
+iadv_thl     = 2
+iadv_qt      = 2
+ipoiss       = 0
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&BC
+thl_top      = 288.
+qt_top       = 0.0
+/
+
+&WALLS
+nfcts        = 128
+nsolpts_u    = 0
+nsolpts_v    = 0
+nsolpts_w    = 64
+nsolpts_c    = 0
+nbndpts_u    = 64
+nbndpts_v    = 64
+nbndpts_w    = 64
+nbndpts_c    = 64
+nfctsecs_u   = 240
+nfctsecs_v   = 240
+nfctsecs_w   = 0
+nfctsecs_c   = 128
+iwallmom     = 2
+iwalltemp    = 2
+/
+
+&INPS
+zsize        = 8
+u0           = 2
+dpdx         = 0.0001
+stl_ground   = .true.
+stl_file     = 'geom.103.STL'
+/

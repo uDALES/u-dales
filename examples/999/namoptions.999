@@ -6,7 +6,7 @@ dtmax        = 1.
 ladaptive    = .true.
 nprocx       = 4
 nprocy       = 2
-libm         = .false.
+libm         = .true.
 /
 
 &OUTPUT
@@ -27,18 +27,27 @@ xlen         = 64
 ylen         = 64
 /
 
-&INP
+&INPS
 zsize        = 64.
 u0           = 1.
 dpdx         = 0.0001
-/
-
-&BC
-z0           = 0.05
-z0h          = 0.00035
+stl_ground   = .true.
+stl_file     = geom.999.STL
 /
 
 &WALLS
-nfcts = 0
-lbottom = .true.
+nfcts        = 2
+nsolpts_u    = 0
+nsolpts_v    = 0
+nsolpts_w    = 16384
+nsolpts_c    = 0
+nbndpts_u    = 16384
+nbndpts_v    = 16384
+nbndpts_w    = 16384
+nbndpts_c    = 16384
+nfctsecs_u   = 16639
+nfctsecs_v   = 16639
+nfctsecs_w   = 0
+nfctsecs_c   = 16512
+iwallmom     = 3
 /

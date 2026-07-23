@@ -19,7 +19,7 @@ module tests
 
   implicit none
   save
-  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators
+  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_basestate
 
 contains
 
@@ -427,5 +427,228 @@ contains
     end function compare_real_2d_jk
 
   end function tests_mpi_operators
+
+  !> Check the derived hydrostatic base state (modbasestate, issue #302) against
+  !! closed-form results.
+  !!
+  !! The profiles are built here rather than read from a case, so this checks the
+  !! arithmetic itself and not merely that a run reproduces its own previous
+  !! output. It runs at the runmode dispatch point, after initglobal has set up
+  !! the vertical grid but before readinitfiles would call initbasestate.
+  !!
+  !! For a column of uniform thv the discrete integration in initbasestate
+  !! telescopes, because dzh(k) = zf(k)-zf(k-1) and dzf(k) = zh(k+1)-zh(k), and
+  !! every level then has a closed form:
+  !!
+  !!   p(z)**(Rd/cp) = ps**(Rd/cp) - g*pref0**(Rd/cp)*z/(cp*thv)
+  !!
+  !! evaluated at zf for full levels and zh for half levels. That is an
+  !! independent expectation, so a wrong hydrostatic scheme fails here even
+  !! though it would reproduce itself perfectly in a regression comparison.
+  logical function tests_basestate()
+    use modglobal,    only : kb, ke, kh, zf, zh, dzf, dzh, grav, cp, rd, rv, pref0
+    use modbasestate, only : initbasestate, exitbasestate, ps, thv_b, pf_b, ph_b, &
+                             exnf_b, exnh_b
+
+    implicit none
+
+    real, allocatable :: thlprof(:), qtprof(:), thv_expect(:)
+    real    :: rdocp, thv0, gamma, qt0, dqtdz, tol_exact, tol_trunc
+    integer :: k
+    logical :: ok
+
+    ok        = .true.
+    tol_exact = 1.e-10  ! vs the telescoped sum: same arithmetic, different order
+    tol_trunc = 1.e-5   ! vs the continuous solution: the scheme is 2nd order in dz
+    rdocp     = rd/cp
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A)') 'tests_basestate: hydrostatic base state (#302)'
+      write(*, '(A)') '================================================'
+    end if
+
+    allocate(thlprof(kb:ke), qtprof(kb:ke), thv_expect(kb:ke+kh))
+
+    ! initbasestate integrates upward from ps at z = 0, so every expectation
+    ! below is only the right answer if the domain bottom really is at z = 0.
+    if (abs(zh(kb)) > 1.e-12) then
+      if (myid == 0) write(*, '(A,E12.4)') '  FAIL: zh(kb) is not 0:', zh(kb)
+      ok = .false.
+    end if
+
+    ! ---- A. dry, uniform thv ------------------------------------------------
+    ! The simplest regime, and the one where a closed form exists outright:
+    ! p(z)**rdocp = ps**rdocp - g*pref0**rdocp*z/(cp*thv).
+    thv0    = 290.
+    thlprof = thv0
+    qtprof  = 0.
+    call initbasestate(thlprof, qtprof)
+
+    ! thv_b(kb) is what the retired thls sentinel used to supply. #302's bug gave
+    ! thvs = thls*(1+(rv/rd-1)*qts) with qts unset (-1), i.e. ~0.39*thls; anything
+    ! but thl(kb) here means that class of error is back.
+    if (.not. close_rel(thv_b(kb), thv0, tol_exact)) then
+      if (myid == 0) write(*, '(A,F12.5,A,F12.5)') '  FAIL: thv_b(kb) =', thv_b(kb), ' expected', thv0
+      ok = .false.
+    end if
+    if (ph_b(kb) /= ps) then
+      if (myid == 0) write(*, '(A,F12.3,A,F12.3)') '  FAIL: ph_b(kb) =', ph_b(kb), ' expected ps =', ps
+      ok = .false.
+    end if
+
+    do k = kb, ke + kh
+      if (.not. close_rel(pf_b(k), (ps**rdocp - grav*(pref0**rdocp)*zf(k)/(cp*thv0))**(1./rdocp), tol_exact)) then
+        if (myid == 0) write(*, '(A,I4,A,F14.4)') '  FAIL: uniform pf_b(', k, ') =', pf_b(k)
+        ok = .false.
+      end if
+      if (.not. close_rel(ph_b(k), (ps**rdocp - grav*(pref0**rdocp)*zh(k)/(cp*thv0))**(1./rdocp), tol_exact)) then
+        if (myid == 0) write(*, '(A,I4,A,F14.4)') '  FAIL: uniform ph_b(', k, ') =', ph_b(k)
+        ok = .false.
+      end if
+      if (.not. close_rel(exnf_b(k), (pf_b(k)/pref0)**rdocp, tol_exact)) then
+        if (myid == 0) write(*, '(A,I4)') '  FAIL: exnf_b inconsistent with pf_b at k =', k
+        ok = .false.
+      end if
+      if (.not. close_rel(exnh_b(k), (ph_b(k)/pref0)**rdocp, tol_exact)) then
+        if (myid == 0) write(*, '(A,I4)') '  FAIL: exnh_b inconsistent with ph_b at k =', k
+        ok = .false.
+      end if
+    end do
+    do k = kb + 1, ke + kh
+      if (pf_b(k) >= pf_b(k-1)) then
+        if (myid == 0) write(*, '(A,I4)') '  FAIL: pf_b not decreasing at k =', k
+        ok = .false.
+      end if
+    end do
+    call exitbasestate
+
+    ! ---- B. dry, linearly stratified ---------------------------------------
+    ! thv(z) = thv0 + gamma*z. A uniform column cannot tell a correct thvh
+    ! weighting from a wrong one -- every average of equal values is the same
+    ! value -- so the interface weighting is only really exercised once thv
+    ! varies with height. Two independent expectations are checked:
+    !
+    !   (i)  the telescoped sum, exact for any profile;
+    !   (ii) the continuous solution, which for linear thv integrates to a log:
+    !        p(z)**rdocp = ps**rdocp - (g*pref0**rdocp/(cp*gamma))*ln(1+gamma*z/thv0)
+    !
+    ! (i) pins the discretisation; (ii) says the discretisation is actually
+    ! solving hydrostatic balance, which (i) alone would not catch if the scheme
+    ! were self-consistently wrong.
+    gamma = 0.01                                  ! K/m, a stable lapse
+    do k = kb, ke
+      thlprof(k) = thv0 + gamma*zf(k)
+    end do
+    qtprof = 0.
+    call initbasestate(thlprof, qtprof)
+
+    do k = kb, ke
+      thv_expect(k) = thv0 + gamma*zf(k)
+    end do
+    thv_expect(ke+kh) = thv_expect(ke)
+    do k = kb, ke + kh
+      if (.not. close_rel(thv_b(k), thv_expect(k), tol_exact)) then
+        if (myid == 0) write(*, '(A,I4,A,F12.5,A,F12.5)') '  FAIL: stratified thv_b(', k, ') =', thv_b(k), ' expected', thv_expect(k)
+        ok = .false.
+      end if
+    end do
+
+    if (.not. check_telescoped_sum(thv_expect, rdocp, tol_exact)) ok = .false.
+
+    ! (ii) continuous solution. Only meaningful where thv really is linear, i.e.
+    ! below ke; thv_b is flattened at the top ghost level by construction.
+    do k = kb, ke
+      if (.not. close_rel(pf_b(k), &
+            (ps**rdocp - (grav*(pref0**rdocp)/(cp*gamma))*log(1. + gamma*zf(k)/thv0))**(1./rdocp), &
+            tol_trunc)) then
+        if (myid == 0) write(*, '(A,I4,A,F14.4)') '  FAIL: stratified pf_b vs continuous solution at k =', k, ' got', pf_b(k)
+        ok = .false.
+      end if
+    end do
+    call exitbasestate
+
+    ! ---- C. moist, both thl and qt varying with height ----------------------
+    ! thv = thl*(1 + (rv/rd - 1)*qt) with ql = 0. Varying qt as well as thl means
+    ! a qt that is dropped, or mis-scaled, or read at the wrong level shows up
+    ! here, where a constant qt would hide it in a single offset.
+    qt0   = 8.e-3
+    dqtdz = -5.e-5                                ! kg/kg per m, drying upward
+    do k = kb, ke
+      thlprof(k) = thv0 + gamma*zf(k)
+      qtprof(k)  = qt0 + dqtdz*zf(k)
+    end do
+    call initbasestate(thlprof, qtprof)
+
+    do k = kb, ke
+      thv_expect(k) = thlprof(k)*(1. + (rv/rd - 1.)*qtprof(k))
+    end do
+    thv_expect(ke+kh) = thlprof(ke)*(1. + (rv/rd - 1.)*qtprof(ke))
+    do k = kb, ke + kh
+      if (.not. close_rel(thv_b(k), thv_expect(k), tol_exact)) then
+        if (myid == 0) write(*, '(A,I4,A,F12.5,A,F12.5)') '  FAIL: moist thv_b(', k, ') =', thv_b(k), ' expected', thv_expect(k)
+        ok = .false.
+      end if
+    end do
+
+    if (.not. check_telescoped_sum(thv_expect, rdocp, tol_exact)) ok = .false.
+    call exitbasestate
+
+    deallocate(thlprof, qtprof, thv_expect)
+
+    if (myid == 0) then
+      if (ok) then
+        write(*, '(A)') 'tests_basestate: PASS'
+      else
+        write(*, '(A)') 'tests_basestate: FAIL'
+      end if
+    end if
+
+    tests_basestate = ok
+
+  contains
+
+    logical function close_rel(got, want, rtol)
+      real, intent(in) :: got, want, rtol
+      close_rel = abs(got - want) <= rtol*max(abs(want), tiny(want))
+    end function close_rel
+
+    !> pf_b/ph_b written as a running sum instead of the module's step-by-step
+    !! recurrence. Exact for any profile, because each step of the recurrence
+    !! subtracts an independent increment in p**rdocp space:
+    !!
+    !!   pf_b(k)**rdocp = ps**rdocp
+    !!                  - (g*pref0**rdocp/cp)*[ zf(kb)/thv(kb)
+    !!                                        + sum_{j=kb+1..k} dzh(j)/thvh(j) ]
+    !!
+    !! with thvh(j) the module's own interface weighting. This catches a wrong
+    !! increment, a wrong dz, a sign slip or a mis-weighted interface, none of
+    !! which a uniform-thv column can distinguish.
+    logical function check_telescoped_sum(thv, rdocp_in, rtol)
+      real, intent(in) :: thv(kb:ke+kh), rdocp_in, rtol
+      real    :: accf, acch, thvh, fac, expect
+      integer :: j
+      check_telescoped_sum = .true.
+      fac  = grav*(pref0**rdocp_in)/cp
+      accf = zf(kb)/thv(kb)
+      acch = 0.
+      do j = kb + 1, ke + kh
+        thvh = (thv(j)*dzf(j-1) + thv(j-1)*dzf(j))/(2.*dzh(j))
+        accf = accf + dzh(j)/thvh
+        acch = acch + dzf(j-1)/thv(j-1)
+        expect = (ps**rdocp_in - fac*accf)**(1./rdocp_in)
+        if (.not. close_rel(pf_b(j), expect, rtol)) then
+          if (myid == 0) write(*, '(A,I4,A,F14.4,A,F14.4)') '  FAIL: telescoped pf_b(', j, ') =', pf_b(j), ' expected', expect
+          check_telescoped_sum = .false.
+        end if
+        expect = (ps**rdocp_in - fac*acch)**(1./rdocp_in)
+        if (.not. close_rel(ph_b(j), expect, rtol)) then
+          if (myid == 0) write(*, '(A,I4,A,F14.4,A,F14.4)') '  FAIL: telescoped ph_b(', j, ') =', ph_b(j), ' expected', expect
+          check_telescoped_sum = .false.
+        end if
+      end do
+    end function check_telescoped_sum
+
+  end function tests_basestate
 
 end module tests

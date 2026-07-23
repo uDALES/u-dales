@@ -65,7 +65,7 @@ save
 contains
   subroutine initpois
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot, &
-                          dxi,dzh,dzf,dyi,dzfi,ipoiss,pi,&
+                          dxi,dzh,dzf,dyi,dzfi,ipoiss,pi,lfftwmeasure,&
                           POISS_FFT2D,POISS_FFT3D,POISS_CYC,POISS_FFT2D_2DECOMP,&
                           BCxm,BCym,BCzp
     use modfields, only : rhobf, rhobh
@@ -73,6 +73,9 @@ contains
     implicit none
     real dzi, fac, b_top_D, b_top_N
     integer i,j,k,iv,jv,kv
+    integer plan_flag
+
+    plan_flag = merge(FFTW_MEASURE, FFTW_ESTIMATE, lfftwmeasure)
 
     allocate(dpdztop(ib:ie,jb:je), pij(kb:ke+kh))
 
@@ -107,8 +110,8 @@ contains
         xrt(itot ) = -4.*dxi*dxi
 
         allocate(Sxr(0:itot-1), Sxfc(0:itot/2))
-        call dfftw_plan_dft_r2c_1d(plan_r2fc_x,itot,Sxr,Sxfc,FFTW_MEASURE)
-        call dfftw_plan_dft_c2r_1d(plan_fc2r_x,itot,Sxfc,Sxr,FFTW_MEASURE)
+        call dfftw_plan_dft_r2c_1d(plan_r2fc_x,itot,Sxr,Sxfc,plan_flag)
+        call dfftw_plan_dft_c2r_1d(plan_fc2r_x,itot,Sxfc,Sxr,plan_flag)
 
       else ! Neumann-Neumann
         fac = 1./(2.*itot)
@@ -117,8 +120,8 @@ contains
         end do
 
         allocate(Sxr(0:itot-1), Sxfr(0:itot-1))
-        call dfftw_plan_r2r_1d(plan_r2fr_x,itot,Sxr,Sxfr,FFTW_REDFT10,FFTW_MEASURE)
-        call dfftw_plan_r2r_1d(plan_fr2r_x,itot,Sxfr,Sxr,FFTW_REDFT01,FFTW_MEASURE)
+        call dfftw_plan_r2r_1d(plan_r2fr_x,itot,Sxr,Sxfr,FFTW_REDFT10,plan_flag)
+        call dfftw_plan_r2r_1d(plan_fr2r_x,itot,Sxfr,Sxr,FFTW_REDFT01,plan_flag)
       end if
 
       if (BCym == 1) then ! periodic
@@ -131,8 +134,8 @@ contains
         yrt(jtot ) = -4.*dyi*dyi
 
         allocate(Syr(0:jtot-1), Syfc(0:jtot/2))
-        call dfftw_plan_dft_r2c_1d(plan_r2fc_y,jtot,Syr,Syfc,FFTW_MEASURE)
-        call dfftw_plan_dft_c2r_1d(plan_fc2r_y,jtot,Syfc,Syr,FFTW_MEASURE)
+        call dfftw_plan_dft_r2c_1d(plan_r2fc_y,jtot,Syr,Syfc,plan_flag)
+        call dfftw_plan_dft_c2r_1d(plan_fc2r_y,jtot,Syfc,Syr,plan_flag)
 
       else ! Neumann-Neumann
         fac = 1./(2.*jtot)
@@ -141,8 +144,8 @@ contains
         end do
 
         allocate(Syr(0:jtot-1), Syfr(0:jtot-1))
-        call dfftw_plan_r2r_1d(plan_r2fr_y,jtot,Syr,Syfr,FFTW_REDFT10,FFTW_MEASURE)
-        call dfftw_plan_r2r_1d(plan_fr2r_y,jtot,Syfr,Syr,FFTW_REDFT01,FFTW_MEASURE)
+        call dfftw_plan_r2r_1d(plan_r2fr_y,jtot,Syr,Syfr,FFTW_REDFT10,plan_flag)
+        call dfftw_plan_r2r_1d(plan_fr2r_y,jtot,Syfr,Syr,FFTW_REDFT01,plan_flag)
       end if
 
       if (BCzp == 1) then ! solve using GE
@@ -187,8 +190,8 @@ contains
         zrt(1) = 0.
 
         allocate(Szr(0:ktot-1), Szfr(0:ktot-1))
-        call dfftw_plan_r2r_1d(plan_r2fr_z,ktot,Szr,Szfr,FFTW_REDFT10,FFTW_MEASURE)
-        call dfftw_plan_r2r_1d(plan_fr2r_z,ktot,Szfr,Szr,FFTW_REDFT01,FFTW_MEASURE)
+        call dfftw_plan_r2r_1d(plan_r2fr_z,ktot,Szr,Szfr,FFTW_REDFT10,plan_flag)
+        call dfftw_plan_r2r_1d(plan_fr2r_z,ktot,Szfr,Szr,FFTW_REDFT01,plan_flag)
 
       end if
 

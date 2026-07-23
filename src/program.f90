@@ -26,22 +26,23 @@ program uDALES
 !!----------------------------------------------------------------
   use modmpi,            only : initmpi,exitmpi,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_BASESTATE,TEST_BURIED
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
   use modboundary,       only : initboundary,boundary,grwdamp,halos
-  use modthermodynamics, only : initthermodynamics,thermodynamics
+  use modthermodynamics, only : initthermodynamics,thermodynamics,tests_buried_continuation
+  use modbasestate,      only : exitbasestate
   use modsubgrid,        only : initsubgrid,subgrid
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
-  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
+  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm
   use vegetation,        only : init_vegetation, vegetation_forcing
   use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
-  use moddriver,         only : initdriver
+  use inflow,            only : initinflow
   use modadvection,      only : advection
   use modtstep,          only : tstep_update,tstep_integrate
   use modscalsource,     only : createscals,scalsource
@@ -54,7 +55,7 @@ program uDALES
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
-  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators
+  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_basestate
   implicit none
 
 !----------------------------------------------------------------
@@ -84,7 +85,7 @@ program uDALES
 
   ! call initinlet
 
-  call initdriver
+  call initinflow
 
   call initpois
 
@@ -147,13 +148,7 @@ program uDALES
     call subgrid
 
 !-----------------------------------------------------
-!   3.3   THE SURFACE LAYER
-!-----------------------------------------------------
-
-    call bottom
-
-!-----------------------------------------------------
-!   3.4   REMAINING TERMS
+!   3.3   REMAINING TERMS
 !-----------------------------------------------------
 
     call coriolis       !remaining terms of ns equation
@@ -231,6 +226,7 @@ program uDALES
   call exitfielddump
   call exitstatsdump     !tg3315
   call exit_heatpump
+  call exitbasestate
   !call exitmodules
   !call exittest
   call exitmpi
@@ -251,6 +247,10 @@ contains
         test_failed = .not. tests_read_sparse_ijk()
       case (TEST_MPI_OPERATORS)
         test_failed = .not. tests_mpi_operators()
+      case (TEST_BASESTATE)
+        test_failed = .not. tests_basestate()
+      case (TEST_BURIED)
+        test_failed = .not. tests_buried_continuation()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

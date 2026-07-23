@@ -41,11 +41,9 @@ contains
 
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,sv0,mindist,wall,pres0
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,trestart,tnextrestart,timee,&
-                          cexpnr,rk3step,ifoutput,nsv,dt,ntrun,&
-                          iinletgen,timee,nstore
+                          cexpnr,rk3step,ifoutput,nsv,dt,ntrun
     use modmpi,    only : cmyidx,cmyidy,myid,slabsum,excjs,comm3d
     use modsubgriddata, only : ekm
-    use modinletdata, only   : nstepread
 
     implicit none
     logical :: lexitnow = .false.
@@ -54,12 +52,7 @@ contains
     integer :: ierr, err_code
 
     if (timee == 0) return
-!    if (rk3step /=3) return
-    if ((iinletgen==2) .and. (nstepread==nstore)) then                ! This overrules the need for rk3step to be 3 in case of reading inletfiles
-      write(6,*) 'Writing restartfiles after reading in new inletfiles'
-    else
-      if (rk3step /=3) return   ! Normal check
-    end if
+    if (rk3step /=3) return   ! Normal check
 
     if (myid == 0) then
       name = 'exit_now.'//cexpnr
@@ -74,7 +67,7 @@ contains
       call MPI_Abort(MPI_COMM_WORLD, err_code, ierr)
     end if
 
-    if (((timee>=tnextrestart)) .or. ((lexitnow) .or. (nstepread == nstore+1))) then
+    if (((timee>=tnextrestart)) .or. (lexitnow)) then
       tnextrestart = tnextrestart+trestart
 
       name = 'initd        _   _   .'

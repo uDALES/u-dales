@@ -172,13 +172,13 @@ subroutine tstep_integrate
 
 
   use modglobal, only : ib,ie,jb,je,kb,ke,nsv,dt,rk3step,e12min,lmoist,timee,&
-                        iinletgen,ltempeq,idriver,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic, &
+                        ltempeq,idriver,BCtopm,BCtopm_pressure,BCxm_periodic,BCym_periodic, &
                         ifixuinf,thlsrc,lchem,ierank,jerank,BCxm,BCym
   use modmpi, only    : cmyid,myid
   use modfields, only : u0,um,up,v0,vm,vp,w0,wm,wp,&
                         thl0,thlm,thlp,qt0,qtm,qtp,e120,e12m,e12p,sv0,svm,svp,&
                         dpdxl,dgdt,thl0c
-  use modinletdata, only: nstepreaddriver, irecydriver
+  use inflow, only: nstepreaddriver
   use modsubgriddata, only : loneeqn
   use modchem, only : chem
   use decomp_2d, only : exchange_halo_z
@@ -289,14 +289,13 @@ subroutine tstep_integrate
 !  Write some statistics to monitoring file
       if ((myid==0) .and. (rk3step==3)) then
         open(unit=11,file='monitor'//cmyid//'.txt',position='append')
-        if (iinletgen == 1) then
-          write(11,3001) timee
-        elseif (idriver == 1) then
+        if (idriver == 1) then
+          ! The u0 probe that used to live here indexed k with a hardcoded 32,
+          ! which is out of bounds for any precursor with ktot < 32 (caught by
+          ! -CB, silently reading past the array otherwise). Nothing reads
+          ! monitor*.txt, so the probe is dropped rather than clamped.
           write(11, '(I4)') nstepreaddriver
-          write(11, 3001) timee, u0(irecydriver,1,32)
-        ! elseif (idriver == 2) then
-          ! write(11, '(I4)') nstepreaddriver
-          ! write(11, 3001) timee, storetdriver(nstepreaddriver), u0(irecydriver, 1, 32)
+          write(11, 3001) timee
         else
           write(11,3001) timee
         end if

@@ -533,7 +533,7 @@ contains
                                ltreedump
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
-  use modmpi,           only : myid,avey_ibm,&
+  use modmpi,           only : myid,avey_ibm,nodata,&
                                avexy_ibm
   use modsubgrid,       only : ekh,ekm
   use modstatistics,    only : genstats,tkestats
@@ -1019,13 +1019,13 @@ contains
           wpthlpyk = wthlyk - wy*thlyk
 
           where (IIwt==0)
-            wpthlpyk  = -999.0
+            wpthlpyk  = nodata
           endwhere
 
         end if
 
         where (IIuwt==0)
-          upwpyik    = -999.0
+          upwpyik    = nodata
         endwhere
 
       end if ! lydump
@@ -1804,7 +1804,7 @@ contains
   use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,&
                                dzfi,dzhi,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
   use modmpi,           only : avey_ibm,excjs,avexy_ibm
-  use modsurfdata,      only : thls
+  use modbasestate,     only : thv_b
   use decomp_2d,        only : exchange_halo_z
   implicit none
 
@@ -2123,7 +2123,7 @@ contains
                               - 0.5*(ttmy(i,j,k) + ttmy(i,jp,k))        &
                               - 0.5*(ttmz(i,j,k) + ttmz(i,j,kp))
 
-             p_bav(i,j,k)   = (grav/thls)*0.5*(thlpwpav(i,j,k)+thlpwpav(i,j,kp)) !use of thls here...????
+             p_bav(i,j,k)   = (grav/thv_b(kb))*0.5*(thlpwpav(i,j,k)+thlpwpav(i,j,kp))
 
           end do
         end do

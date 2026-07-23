@@ -87,18 +87,16 @@ groups:
     includes:
       - python-library
     suites:
-      - label: "supported: regression"
+      - label: "supported: migrated cases smoke"
         class: supported
-        kind: regression
-        component: regression
-        platform: linux
-        cost: slow
+        kind: integration
+        component: ibm
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
-          - "{python}"
-          - "{tests_dir}/regression/david_tests/run_tests.py"
-          - "{branch_a}"
-          - "{branch_b}"
-          - "{build_type}"
+          - "bash"
+          - "{tests_dir}/integration/migrated_cases/run_test.sh"
       - label: "supported: ibm sparse input integration"
         class: supported
         kind: integration
@@ -119,6 +117,36 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/mpi_operators/run_test.sh"
+      - label: "supported: retired keys contract"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/retired_keys/run_test.sh"
+      - label: "supported: basestate unit"
+        class: supported
+        kind: unit
+        component: solver
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/basestate/run_test.sh"
+      - label: "supported: driver inflow integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/driver_inflow/run_test.sh"
       - label: "supported: processor boundaries integration"
         class: supported
         kind: integration
@@ -212,6 +240,32 @@ groups:
           - "{branch_a}"
           - "{branch_b}"
           - "{build_type}"
+      - label: "experimental: bc-cleanup phase-0 regression"
+        class: experimental
+        kind: regression
+        component: solver
+        platform: hpc
+        cost: slow
+        command:
+          - "{python}"
+          - "{tests_dir}/regression/bc_cleanup/run_test.py"
+          - "{branch_a}"
+          - "{branch_b}"
+          - "{build_type}"
+      - label: "experimental: bc-cleanup buried-slab assert"
+        class: experimental
+        kind: regression
+        component: solver
+        platform: hpc
+        cost: slow
+        command:
+          - "{python}"
+          - "{tests_dir}/regression/bc_cleanup/run_test.py"
+          - "{branch_a}"
+          - "{branch_b}"
+          - "{build_type}"
+          - "--assert-only"
+          - "091"
 
   all:
     includes:

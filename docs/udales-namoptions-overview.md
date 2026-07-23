@@ -45,7 +45,7 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| ps | 101325 | `REAL` > 0 | Air pressure at surface, recommend using standard pressure.| [Pa] |
+| ps | 101325 | `REAL` > 0 | Air pressure at surface, recommend using standard pressure. Required when `ltempeq` or `lmoist`. | [Pa] |
 | igrw_damp | 0 | 0, 1, 2, 3 | Integer switch to enable gravity wave damping.| - |
 | ltempeq | .false. | .true. or .false. | Switch for solving temperature equation. | - |
 | lbuoyancy | .false. | .true. or .false. | Switch for buoyancy force in temperature equation. | - |
@@ -105,7 +105,7 @@ Lateral BCs (BCx, BCy): 1 = periodic, 2 in/outflow conditions, inflow given by p
 
 BCs at the top (BCtop): 1 = freeslip, 2 = noslip, 3 = should be used with inflow/outflow conditions.
 
-BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 = flux, 2 = wall function, 3 = neutral wall function.
+The legacy flat-surface bottom BC keys (`BCbotm`, `BCbotT`, `BCbotq`, `BCbots`, `wtsurf`, `wqsurf`, `thls`, `qts`, `z0`, `z0h`, `wsvsurfdum`, `lbottom`) have been removed. The bottom boundary condition is now always given by ground facets; old namoptions files that still set these keys fail to parse (`stop 1` at the namelist read).
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -134,20 +134,9 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | thl_top | -1. | `REAL` >= 0 | Temperature at the top boundary. | [K] |
 | qt_top | -1. | `REAL` >= 0| Humidity at the top boundary. | [kg/kg] |
 | wttop | 0. | `REAL` | Temperature flux at the top boundary. | [Km/s] |
-| BCbotm | 2 | 1,2,3 | Boundary condition for momentum at domain bottom (if `lbottom = .true.`). | - |
-| BCbotT | 1 | 1,2 | Boundary condition for temperature at domain bottom (if `lbottom = .true.`). | - |
-| BCbotq | 1 | 1 | Boundary condition for humidity at domain bottom (if `lbottom = .true.`). | - |
-| BCbots | 1 | 1 | Boundary condition for scalars at domain bottom (if `lbottom = .true.`). | - |
-| wtsurf | -1. |`REAL` | Temperature flux at domain bottom (if `lbottom = .true.`). | [Km/s] |
-| wqsurf | -1. | `REAL`| Moisture flux at domain bottom (if `lbottom = .true.`).  | [m/s] |
-| thls | -1. |  `REAL`| Temperature at domain bottom (if `lbottom = .true.`).  | [K] |
-| qts | -1. | `REAL` | Moisture at domain bottom (if `lbottom = .true.`). Used in modthermodynamics to get a BC for the moisture profile. | [kg/kg] |
-| z0 | -1. |  `REAL`| Momentum roughness length of the domain bottom (if `lbottom = .true.`).  | [m] |
-| z0h | -1. |  `REAL`| Heat roughness length of the domain bottom (if `lbottom = .true.`).| [m] |
 
 <!---
 | wsvtopdum | 0 | | Scalar boundary conditions top. | - |
-| wsvsurfdum | | | Scalar flux at domain bottom (if `lbottom = .true.`). | - |
 --->
 ## Namelist NAMSUBGRID
 
@@ -194,7 +183,6 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
-| lbottom | .false. | .true., .false. | Switch for using wall function as bottom BC. *Used only if no ground facets.* | - |
 | nsolpts_u | 0 | `INTEGER` | Number of solid points on u-grid. | - |
 | nsolpts_v | 0 | `INTEGER` | Number of solid points on v-grid. | - |
 | nsolpts_w | 0 | `INTEGER` | Number of solid points on w-grid. | - |
@@ -360,11 +348,17 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | Q_dot_hp | 0. | `REAL` | Total volume flux emission from the heat pump in vertical direction. | [m^3/s] |
 | QH_dot_hp | 0. | `REAL` | Rate of total heat extracted from the ambient air by the heat pump. | [W] |
 
-<!---
 ## Namelist INLET
+
+The recycling/rescaling inlet generator (Lund et al. 1998) has been removed; it was unreachable
+dead code (no case in `tests/` or `examples/` enabled it). Turbulent inflow is instead supplied by
+the precursor/driver method (`idriver`, see Namelist DRIVER) or synthetic inflow generation. The
+switches that existed solely to serve the removed generator (`di`, `dti`, `lfixinlet`,
+`lfixutauin`, `linletRA`, `lreadminl`, `lstoreplane`, `lwallfunc`) have been deleted from this
+namelist.
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | Uinf | 0. | `REAL` | Fixed velocity at domain top (x-direction). | m/s |
 | Vinf | 0. | `REAL` | Fixed velocity at domain top (y-direction). | m/s |
--->
+| inletav | 0. | `REAL` | Averaging time window used by the `ifixuinf = 2` free-stream forcing. | s |

@@ -65,8 +65,7 @@ module modglobal
    integer ::  khc = 2 ! used in k-scheme
 
    integer :: nfcts = -1 ! no. of wall facets
-   integer ::  iplane ! ib+iplane is the plane that is stored when lstoreplane=.true.
-   integer ::  nstore = 1002 ! number of rk steps in inletfile. This should be a multiple of three!
+   integer ::  iplane ! ib+iplane is the i-plane written to/read from driver files (idriver)
    character(90) :: fname_options = 'namoptions'
    integer, parameter :: longint = 8
 
@@ -81,6 +80,8 @@ module modglobal
    integer, parameter :: TEST_2DCOMP_INIT_EXIT = 1003
    integer, parameter :: TEST_SPARSE_IJK = 1004
    integer, parameter :: TEST_MPI_OPERATORS = 1005
+   integer, parameter :: TEST_BASESTATE = 1006
+   integer, parameter :: TEST_BURIED = 1007
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
@@ -155,31 +156,12 @@ module modglobal
    integer :: BCtopq = BCtopq_flux
    integer :: BCtops = BCtops_flux
 
-   !> bottom
-   ! tangential velocities (vertical is always impermeable)
-   integer, parameter :: BCbotm_freeslip = 1  ! do nothing
-   integer, parameter :: BCbotm_wf = 2        ! wall function
-   integer, parameter :: BCbotm_wfneutral = 3 ! neutral wall function
-   ! temperature
-   integer, parameter :: BCbotT_flux = 1       ! determined by wtsurf
-   integer, parameter :: BCbotT_wf = 2         ! wall function
-   ! moisture
-   integer, parameter :: BCbotq_flux = 1       ! determined by wtsurf
-   ! scalars
-   integer, parameter :: BCbots_flux = 1       ! zero flux
-   ! set defaults
-   integer :: BCbotm = BCbotm_wf
-   integer :: BCbotT = BCbotT_flux
-   integer :: BCbotq = BCbotq_flux
-   integer :: BCbots = BCbots_flux
-
    integer :: BCzp = 1 ! 1: solve poisson equation using GE. 2: solve using cosine transform
    real :: ds = 0 ! Shifted boundary conditions
 
-   integer :: iinletgen = 0 !<  0: no inletgen, 1: turb. inlet generator (Lund (1998)), 2: read inlet from file
    integer :: idriver = 0 !<  0: no inlet driver store, 1: Save inlet driver data, 2: read inlet driver data from file
    logical :: linoutflow = .false. !<  switch for periodic BC in both horizontal directions (false) or inflow/outflow in i and periodic in j.
-   logical :: lzerogradtop = .false. !<  switch for zero gradient BC's at top wall (iinletgen 1 and 2 are seperate).
+   logical :: lzerogradtop = .false. !<  switch for zero gradient BC's at top wall.
    logical :: lzerogradtopscal = .false. !
    logical :: lbuoyancy = .false. !<  switch for buoyancy force in modforces
    logical :: ltempeq = .false. !<  switch for solving temperature equation (either with or without buoyancy term)
@@ -192,9 +174,6 @@ module modglobal
    logical :: lconservativeibm = .false. !<  switch that determines whether the conservative immersed boundary method is used (if libm is true) for temperature, moisture and scalars
    logical :: lwalldist = .false. !<  switch that determines whether the wall distances should be computed
    logical :: lles = .true. !<  switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS)
-   logical :: linletRA = .false. !<  switch that determines whether a Running Average should be used (.true.) in inlet generator
-   logical :: lfixinlet = .false. !<  switch that determines whether the average inlet profiles can evolve or not (only used when iinletgen=1,2)
-   logical :: lfixutauin = .false. !<  switch that determines whether the utau is kept fixed at the inlet (only used when iinletgen=1,2)
    logical :: lscasrc = .false. !
    logical :: lscasrcl = .false. !tg3315
    logical :: lydump = .false.  !<  switch to output y-averaged statistics every tsample
@@ -224,13 +203,10 @@ module modglobal
    logical :: lpurif = .false.         !<  switch to turn on purifiers module
    logical :: ltreedump = .false.   !<  switch to output tree results time-averaged statistics every tstatsdump
 
-   logical :: lreadminl = .false. !<  switch for reading mean inlet/recycle plane profiles (used in inletgenerator)
-   logical :: lwallfunc = .true. !<  switch that determines whether wall functions are used to compute the wall-shear stress
    logical :: luoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
    logical :: lvoutflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed outflow rate
    logical :: luvolflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed volume flow rate
    logical :: lvvolflowr = .false. !<  switch that determines whether u-velocity is corrected to get a fixed volume flow rate
-   logical :: lstoreplane = .false. !<  switch that determines whether i-plane data is stored.
    logical :: lstorexy = .false. !xy files stored
    logical :: lreadmean = .false. !<  switch that determines whether mean variables should be read from means#myid#.#expnr#
    logical :: lstat = .false.
@@ -332,8 +308,7 @@ module modglobal
    real    :: vflowrate = 1. !< fixed flow rate used for v-velocity correction
    real    :: Uinf = 0. !< fixed U_inf (used in inlet generator), also in conjunction with ifixuinf
    real    :: Vinf = 0. !fixed V_inf
-   real    :: inletav = 0. !< averaging interval for inlet generator
-   real    :: totinletav = 0. !< averaging interval for inlet generator (used in Running Average)
+   real    :: inletav = 0. !< running-average window for the free-stream forcing (ifixuinf==2)
    real    :: om22 !<    *2.*omega_earth*cos(lat)
    real    :: om23 !<    *2.*omega_earth*sin(lat)
    real    :: om22_gs !<    *2.*omega_earth*cos(lat)
@@ -393,6 +368,14 @@ module modglobal
 
    integer :: ipoiss   = POISS_FFT2D
 
+   !< FFTW planning strategy for the Poisson solver. FFTW_MEASURE benchmarks
+   !< several algorithms at plan time and keeps the fastest, so the plan - and
+   !< with it the summation order, and the last bits of every solve - depends on
+   !< machine load rather than on the input. Runs are then not reproducible, which
+   !< makes bitwise regression comparison impossible. Set .false. to plan with
+   !< FFTW_ESTIMATE, which picks by fixed heuristics and so is reproducible.
+   logical :: lfftwmeasure = .true.
+
    !Advection scheme
    integer, parameter :: iadv_upw = 1  !< first order upwind scheme
    integer, parameter :: iadv_cd2 = 2  !< second order central difference scheme
@@ -433,7 +416,11 @@ module modglobal
    !      integer(kind=longint) :: timee             !<     * elapsed time since the "cold" start
    real :: timee !<     * elapsed time since the "cold" start
    !      integer(kind=longint) :: btime             !<     * time of (re)start
-   real :: btime !<     * time of (re)start
+   !< Initialised here because readinitfiles calls drivergen (idriver == 2),
+   !< which reads runtime+btime, before either `btime = timee` assignment later
+   !< in that same routine. Release builds happened to read the zero that static
+   !< storage gave them; a Debug build (-init=snan -fpe0) trapped instead.
+   real :: btime = 0. !<     * time of (re)start
    real :: runavtime !<     * time of starting running average
    integer :: ntimee !<     * number of timesteps since the cold start
    integer :: ntrun !<     * number of timesteps since the start of the run

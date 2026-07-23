@@ -72,8 +72,6 @@ module modforces
 
 
     if (lbuoyancy ) then
-    !ILS13 replace thvsi by thvh
-    ! thvsi = 1./thvsi
 
        do k=kb+1,ke
           do j=jb,je

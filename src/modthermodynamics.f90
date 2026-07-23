@@ -32,7 +32,7 @@ module modthermodynamics
 
   implicit none
   !   private
-  public :: thermodynamics,calc_halflev
+  public :: thermodynamics,calc_halflev,tests_buried_continuation
   public :: lqlnr
   logical :: lqlnr    = .false. !< switch for ql calc. with Newton-Raphson (on/off)
   real, allocatable :: th0av(:)
@@ -58,6 +58,7 @@ contains
     use modglobal, only : lmoist, timee, kb, ke, kh, ib, ie, jb, je,rlv, cp, rd, rv, eps1
     use modfields, only : thl0,thl0h,qt0,qt0h,ql0,ql0h,presf,presh,exnf,exnh,thvh,thv0h,qt0av,ql0av,thvf,IIc,IIw,IIcs,IIws
     use modmpi,    only : slabsum,avexy_ibm
+    use modbasestate, only : thv_b
 !ILS13 added variables behind "exnh"
     implicit none
     integer :: k
@@ -78,6 +79,14 @@ contains
 !    call slabsum(thvh,kb,ke+kh,thv0h(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh) !redefine halflevel thv using calculated thv
 !    thvh = thvh/rslabs
     call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+
+    ! avexy_ibm returns -999. where no fluid cells populate the slab; fall back to
+    ! the base state (reference-column continuation) so thvh stays finite there
+    do k=kb,ke+kh
+       if (IIws(k) == 0) then
+          thvh(k) = thv_b(k)
+       end if
+    end do
 
 !    if (libm) then
 !      call avexy_ibm(thvh(kb:ke),thv0h(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIws(kb:ke))    
@@ -105,6 +114,14 @@ contains
 !    call slabsum(thvf,kb,ke+kh,thv0,ib,ie+ih,jb,je+jh,kb,ke+kh,ib+ih,ie,jb+ih,je,kb,ke+kh)
 !    call slabsum(thvf,kb,ke+kh,thv0,ib,ie,jb,je,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
     call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+
+    ! avexy_ibm returns -999. where no fluid cells populate the slab; fall back to
+    ! the base state (reference-column continuation) so thvf stays finite there
+    do k=kb,ke+kh
+       if (IIcs(k) == 0) then
+          thvf(k) = thv_b(k)
+       end if
+    end do
 !    write(*,*) 'IIc(2,2,:), myid' , IIc(12,2,:), myid
 
 !    where (thvf==0) !override slabs completely covered by blocks
@@ -243,7 +260,7 @@ contains
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,khc,nsv,zh,zf,grav,rlv,cp,rd,rv,pref0
     use modfields, only : u0,v0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
          presf,presh,exnf,exnh,rhof,thvf,IIc,IIcs,IIu,IIus,IIv,IIvs
-    use modsurfdata,only : thls,ps
+    use modbasestate, only : exnf_b, exnh_b, thl_b, qt_b, ps
     use modmpi,    only : slabsum,avexy_ibm
     implicit none
 
@@ -288,8 +305,19 @@ contains
 !    call slabsum(ql0av ,kb,ke+kh,ql0 ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
     call avexy_ibm(ql0av(kb:ke+kh),ql0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
-    exnf   = 1-grav*zf/(cp*thls)
-    exnh  = 1-grav*zh/(cp*thls)
+    ! slabs without fluid cells: avexy_ibm returns -999.; use the base state
+    ! (reference-column continuation) so the hydrostatic march stays sane
+    do k=kb,ke+kh
+       if (IIcs(k) == 0) then
+          thl0av(k) = thl_b(k)
+          qt0av(k)  = qt_b(k)
+          ql0av(k)  = 0.
+       end if
+    end do
+
+    ! base-state seed; refined below from the ps-anchored pressure
+    exnf = exnf_b
+    exnh = exnh_b
     th0av  = thl0av + (rlv/cp)*ql0av/exnf
 
     !write(*,*) 'thl0av',thl0av
@@ -365,7 +393,7 @@ contains
 
     use modglobal, only : kb,ke,kh,dzf,dzh,rv,rd,cp,zf,grav,pref0
     use modfields, only : qt0av,ql0av,presf,presh,thvh,thvf
-    use modsurfdata,only : ps,thvs
+    use modbasestate, only : thv_b, ps
     implicit none
 
     integer   k
@@ -390,9 +418,9 @@ contains
     !          assuming hydrostatic equilibrium       *
     !**************************************************
 
-    !     1: lowest level: use thvs
+    !     1: lowest level: use thv_b (base state, #302)
 
-    thvh(kb) = thvs
+    thvh(kb) = thv_b(kb)
     presf(kb) = ps**rdocp - &
          grav*(pref0**rdocp)*zf(kb) /(cp*thvh(kb))
     presf(kb) = presf(kb)**(1./rdocp)
@@ -422,6 +450,130 @@ contains
 
     return
   end subroutine fromztop
+
+  !> Check that the buried-slab base state feeds the hydrostatic march correctly
+  !! (issue #302, backlog section 6.6). Dispatched by runmode TEST_BURIED.
+  !!
+  !! diagfld substitutes the base profiles (thl_b, qt_b, ql=0) for the slab means
+  !! wherever a slab is fully solid, in place of avexy_ibm's nodata marker, then
+  !! calls fromztop. This checks the arithmetic that substitution feeds into: with
+  !! the slab means set to the base profiles, fromztop's pressure column must equal
+  !! initbasestate's reference column to roundoff.
+  !!
+  !! It lives here, not in tests.f90, because fromztop and th0av are private to
+  !! this module. It runs at the runmode dispatch point, so it allocates the few
+  !! 1D arrays fromztop touches itself rather than relying on initfields.
+  !!
+  !! The profile is deliberately two-layer (a base 'below-ground' value under a
+  !! different 'above-ground' value), not uniform: a uniform column cannot tell a
+  !! correct interface weighting from a wrong one, nor a march that includes the
+  !! lower layers' weight from one that skips it -- which is exactly the -999
+  !! poisoning this fix removes. Feeding the same two-layer profile to
+  !! initbasestate makes pf_b the reference column that includes every layer, so a
+  !! march that dropped the buried layers would land somewhere else.
+  logical function tests_buried_continuation()
+    use modmpi,       only : myid
+    use modglobal,    only : kb, ke, kh
+    use modbasestate, only : initbasestate, exitbasestate, pf_b, ph_b
+    use modfields,    only : presf, presh, thvh, thvf, qt0av, ql0av
+
+    implicit none
+
+    real, allocatable :: thlprof(:), qtprof(:)
+    real    :: thv_lower, thv_upper, tol
+    integer :: k, k_split
+    logical :: ok
+
+    ok  = .true.
+    tol = 1.e-10   ! dry: fromztop's recurrence is initbasestate's, reordered only
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A)') 'tests_buried_continuation: buried base state (#302, 6.6)'
+      write(*, '(A)') '================================================'
+    end if
+
+    ! fromztop reads th0av/qt0av/ql0av and writes presf/presh/thvh/thvf. At the
+    ! runmode dispatch point none of these exist yet, so make them here.
+    if (.not. allocated(th0av)) allocate(th0av(kb:ke+kh))
+    if (.not. allocated(presf)) allocate(presf(kb:ke+kh))
+    if (.not. allocated(presh)) allocate(presh(kb:ke+kh))
+    if (.not. allocated(thvh))  allocate(thvh(kb:ke+kh))
+    if (.not. allocated(thvf))  allocate(thvf(kb:ke+kh))
+    if (.not. allocated(qt0av)) allocate(qt0av(kb:ke+kh))
+    if (.not. allocated(ql0av)) allocate(ql0av(kb:ke+kh))
+    allocate(thlprof(kb:ke), qtprof(kb:ke))
+
+    ! two-layer dry profile: base value in the lower third, a warmer value above
+    thv_lower = 290.
+    thv_upper = 300.
+    k_split   = kb + (ke - kb)/3
+    do k = kb, ke
+      if (k <= k_split) then
+        thlprof(k) = thv_lower
+      else
+        thlprof(k) = thv_upper
+      end if
+    end do
+    qtprof = 0.
+
+    ! initbasestate builds the reference column pf_b/ph_b from this profile,
+    ! including every layer's weight.
+    call initbasestate(thlprof(kb:ke), qtprof(kb:ke))
+
+    ! feed fromztop exactly what diagfld's fallback would hand it for a column of
+    ! fully-solid slabs: the base profiles, dry.
+    th0av(kb:ke) = thlprof
+    th0av(ke+kh) = thlprof(ke)
+    qt0av        = 0.
+    ql0av        = 0.
+
+    call fromztop
+
+    do k = kb, ke + kh
+      if (.not. close_rel(presf(k), pf_b(k), tol)) then
+        if (myid == 0) write(*, '(A,I4,A,F14.4,A,F14.4)') &
+          '  FAIL: presf(', k, ') =', presf(k), ' expected pf_b =', pf_b(k)
+        ok = .false.
+      end if
+      if (.not. close_rel(presh(k), ph_b(k), tol)) then
+        if (myid == 0) write(*, '(A,I4,A,F14.4,A,F14.4)') &
+          '  FAIL: presh(', k, ') =', presh(k), ' expected ph_b =', ph_b(k)
+        ok = .false.
+      end if
+    end do
+
+    ! Pressure must fall monotonically through both layers; a march that dropped
+    ! the buried layers' weight would still be monotone, so this is only a
+    ! sanity guard on top of the reference-column comparison above.
+    do k = kb + 1, ke + kh
+      if (presf(k) >= presf(k-1)) then
+        if (myid == 0) write(*, '(A,I4)') '  FAIL: presf not decreasing at k =', k
+        ok = .false.
+      end if
+    end do
+
+    call exitbasestate
+    deallocate(thlprof, qtprof)
+
+    if (myid == 0) then
+      if (ok) then
+        write(*, '(A)') 'tests_buried_continuation: PASS'
+      else
+        write(*, '(A)') 'tests_buried_continuation: FAIL'
+      end if
+    end if
+
+    tests_buried_continuation = ok
+
+  contains
+
+    logical function close_rel(got, want, rtol)
+      real, intent(in) :: got, want, rtol
+      close_rel = abs(got - want) <= rtol*max(abs(want), tiny(want))
+    end function close_rel
+
+  end function tests_buried_continuation
 
   !> Calculates liquid water content.
   !!     Given theta_l and q_tot the liquid water content
@@ -482,14 +634,7 @@ contains
           do j=jb,je
              do i=ib,ie
                 tl  = thl(i,j,k)*exner(k)
-                
-                !! X. Long: This is a fix to tackle incorrect thls input. The reason why tl is going less than 100K (unphysical) 
-                !! is that it is calculated from thl which dose not change over time here.Probably this is happening at
-                !'calc_halflev and call thermo(thl0h,qt0h,ql0h,presh,exnh)'. This problem should be fixed later.  
-                if (tl<100.0) then 
-                    tl=100.0
-                end if
-                
+
                 es  = es0*exp(at*(tl-tmelt)/(tl-bt))
                 qsl = rd/rv*es/(pressure(k)-(1-rd/rv)*es)
                 b1  = rlv**2/(tl**2*cp*rv)
@@ -508,7 +653,6 @@ contains
   subroutine calc_halflev
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzf,dzh
     use modfields, only : thl0,thl0h,qt0,qt0h
-    use modsurfdata,only: qts,thls
     implicit none
 
     integer :: i,j,k
@@ -523,7 +667,8 @@ contains
        end do
 
     end do
-        thl0h(ib:ie,jb:je,kb) = thls
+        ! one-sided: the IBM owns the bottom interface; kb may lie inside solid (#299)
+        thl0h(ib:ie,jb:je,kb) = thl0(ib:ie,jb:je,kb)
 
     !      do  k=kb+1,ke+kh
     do  k=kb,ke+kh
@@ -533,7 +678,7 @@ contains
           end do
        end do
     end do
-          qt0h(ib:ie,jb:je,kb)  = qts
+          qt0h(ib:ie,jb:je,kb)  = qt0(ib:ie,jb:je,kb)
 
   end subroutine calc_halflev
 

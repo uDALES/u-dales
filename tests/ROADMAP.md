@@ -82,7 +82,7 @@ Current rough mapping:
   `tests/regression/` case assets.
 - PALM shared test tooling under `packages/palm/model/share/palmtest/` maps to
   the role currently played by `tests/run_tests.py`, `tests/test_suites.yml`,
-  and helper scripts under `tests/regression/david_tests/scripts/`.
+  and the per-suite harnesses under `tests/integration/` and `tests/regression/`.
 - PALM's separation between core model tests and package-specific tests maps to
   the existing uDALES split between repo-level solver tests in `tests/` and
   Python-tooling tests in `tools/python/tests/`.
@@ -175,7 +175,9 @@ Goal: give new functionality automated coverage early without overcommitting the
 
 Goal: protect accepted behaviour, not just buildability.
 
-- Finish the actual run-and-compare path in `tests/regression/david_tests/run_tests.py`.
+- Build out branch-comparison coverage in `tests/regression/bc_cleanup/` and the
+  per-case smoke suites under `tests/integration/` (the hollow `david_tests`
+  harness has been removed).
 - Start with a small set of canonical cases.
 - Compare outputs that matter, such as field dumps, statistics, budgets, and restart outputs.
 - Define explicit tolerances and document why they are acceptable.
