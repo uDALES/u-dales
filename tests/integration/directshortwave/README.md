@@ -39,7 +39,7 @@ depend on them.
 To run it:
 
 ```bash
-source ../.venv/bin/activate
+source tools/python/.venv/bin/activate
 python tests/integration/directshortwave/test_directshortwave.py
 ```
 

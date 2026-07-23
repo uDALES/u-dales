@@ -283,6 +283,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | lstretchtanh   | false   | true or false   | Switch for z grid stretched using tanh function.                                          | -           |
 | lstretch2tanh  | false   | true or false   | Switch for z grid stretched using 2tanh function.                                         | -           |
 | stretchconst   | 0.01    | -               | Stretch constant.                                                                         | -           |
+| nompthreads    | 8       | `INTEGER` > 0   | Number of OpenMP threads used by preprocessing routines that support OpenMP. `write_inputs.sh` also uses this value for the preprocessing CPU request and requires it to appear at most once in `namoptions.###`. | - |
 | u0             | 0       | -               | Initial u-velocity. Also applied as geostrophic term where applicable.                    | [m/s]         |
 | v0             | 0       | -               | Initial v-velocity. Also applied as geostrophic term where applicable.                    | [m/s]         |
 | dpdx           | 0       | -               | Pressure gradient in x direction.                                                         | [Pa/m]        |
@@ -319,7 +320,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | ifacsec | 1 | 1 or 2 | Option for facet section calculation. 1: Fortran (default, fast), 2: MATLAB (useful for debugging | - |
 | ishortwave   | MATLAB: 1; Python: 3 | 1, 2, 3, or 4 | Option for shortwave radiation calculation. 1: scanline rasterization in both toolchains (MATLAB standalone Fortran executable; Python f2py wrapper). 2: MATLAB-only scanline debug implementation. 3: Python-only facsec method. 4: Python-only moller method. MATLAB errors on 3/4; Python errors on 2. | -  |
 | isolar       | 1        | 1 , 2, 3| Option for solar radiation, 1 uses custom values, 2 uses lattitude and lonigtude, 3 uses weather file.             | -  |
-| view3d_out   | 0        | 0 , 1 , 2                    | Output format for View3D, 0 is text, 2 is binary, 2 is sparse.                   | - |
+| view3d_out   | MATLAB: 0; Python: 2 | 0 , 1 , 2                    | Output format for View3D: 0 is text, 1 is binary, 2 is sparse text.                   | - |
 | maxD         | Inf      |   `REAL` > 0   | Maximum distance to check view factors, otherwise they are zero.    | - |
 | xazimuth     | 90       |  `REAL`    | The azimuthal angle of the x-axis (with respect to North).     | [degrees]  |
 | solarazimuth | 135       |  `REAL`            | Solar azimuth, used if isolar = 1.                                   | [degrees] |

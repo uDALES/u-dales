@@ -1,17 +1,37 @@
 from __future__ import annotations
 
+import os
 import sys
 import unittest
 from pathlib import Path
+import shutil
 from tempfile import TemporaryDirectory
+from unittest import mock
 
 import numpy as np
 from scipy import sparse
 import trimesh
 
+TESTS_DIR = Path(__file__).resolve().parent
+if str(TESTS_DIR) not in sys.path:
+    sys.path.insert(0, str(TESTS_DIR))
+
 from _common import PYTHON_DIR  # noqa: E402
 
-from udgeom.view3d import compute_svf, read_view3d_output, stl_to_view3d, write_vf, write_vfsparse  # noqa: E402
+if str(PYTHON_DIR) not in sys.path:
+    sys.path.insert(0, str(PYTHON_DIR))
+
+from udgeom.view3d import (  # noqa: E402
+    compute_svf,
+    count_sparse_entries,
+    default_view3d_config_path,
+    load_view3d_runtime_env,
+    read_view3d_output,
+    resolve_view3d_exe,
+    stl_to_view3d,
+    write_vf,
+    write_vfsparse,
+)
 
 class TestView3DUtils(unittest.TestCase):
     def setUp(self) -> None:
@@ -53,6 +73,15 @@ class TestView3DUtils(unittest.TestCase):
         lines = out_path.read_text(encoding="ascii").splitlines()
         self.assertEqual(lines, ["1 2 0.500000", "2 1 0.200000", "3 2 0.400000"])
 
+    def test_count_sparse_entries_ignores_blank_lines(self) -> None:
+        out_path = self.workdir / "vfsparse.inp.101"
+        out_path.write_text(
+            "1 2 0.500000\n\n  \n2 1 0.200000\n",
+            encoding="ascii",
+        )
+
+        self.assertEqual(count_sparse_entries(out_path), 2)
+
     def test_write_vf_uses_matlab_compatible_orientation(self) -> None:
         try:
             import netCDF4
@@ -79,6 +108,22 @@ class TestView3DUtils(unittest.TestCase):
                 [0.0, 0.5, 0.0],
                 [0.0, 0.0, 0.0],
                 [0.25, 0.0, 0.0],
+            ],
+            dtype=float,
+        )
+        np.testing.assert_allclose(vf.toarray(), expected)
+
+    def test_read_view3d_output_sparse_text_accepts_single_zero_based_entry(self) -> None:
+        out_path = self.workdir / "vf_sparse_zero_based.txt"
+        out_path.write_text("0 2 0.75\n", encoding="ascii")
+
+        vf = read_view3d_output(out_path, nfacets=3, outformat=2, one_based=False)
+
+        expected = np.array(
+            [
+                [0.0, 0.0, 0.75],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
             ],
             dtype=float,
         )
@@ -130,6 +175,103 @@ class TestView3DUtils(unittest.TestCase):
         self.assertIn("V    1 0.000000 0.000000 0.000000\r\n", content)
         self.assertIn("S    1      1      2      3      0      0      0      0      1f\r\n", content)
         self.assertTrue(content.endswith("End of Data\r\n"))
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_load_view3d_runtime_env_sources_shell_config(self) -> None:
+        config = self.workdir / "view3d_config.sh"
+        config.write_text(
+            "\n".join(
+                [
+                    "export VIEW3D_NUM_THREADS=7",
+                    "OMP_NUM_THREADS=7",
+                    'export VIEW3D_MAX_DENSE_MATRIX_GIB="${VIEW3D_MAX_DENSE_MATRIX_GIB:-112}"',
+                    "echo ignored stdout",
+                ]
+            )
+            + "\n",
+            encoding="ascii",
+        )
+
+        env, path = load_view3d_runtime_env(
+            base_env={"PATH": os.environ.get("PATH", ""), "VIEW3D_MAX_DENSE_MATRIX_GIB": "128"},
+            config_path=config,
+        )
+
+        self.assertEqual(path, config.resolve())
+        self.assertEqual(env["VIEW3D_NUM_THREADS"], "7")
+        self.assertEqual(env["OMP_NUM_THREADS"], "7")
+        self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "128")
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_derives_dense_limit_from_preproc_mem(self) -> None:
+        env, path = load_view3d_runtime_env(
+            base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_NCPU": "8", "PREPROC_MEM": "128gb"},
+            config_path=default_view3d_config_path(),
+        )
+
+        self.assertEqual(path, default_view3d_config_path().resolve())
+        self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "112")
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_uses_low_preproc_mem_as_dense_limit(self) -> None:
+        env, _ = load_view3d_runtime_env(
+            base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_NCPU": "8", "PREPROC_MEM": "8gb"},
+            config_path=default_view3d_config_path(),
+        )
+
+        self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "8")
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_rejects_invalid_preproc_mem(self) -> None:
+        for value in ("128", "abcgb"):
+            with self.subTest(PREPROC_MEM=value):
+                with self.assertRaisesRegex(RuntimeError, "PREPROC_MEM must be set like 128gb"):
+                    load_view3d_runtime_env(
+                        base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_NCPU": "8", "PREPROC_MEM": value},
+                        config_path=default_view3d_config_path(),
+                    )
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_uses_preproc_ncpu_when_available(self) -> None:
+        env, _ = load_view3d_runtime_env(
+            base_env={"PATH": os.environ.get("PATH", ""), "PREPROC_NCPU": "6"},
+            config_path=default_view3d_config_path(),
+        )
+
+        self.assertEqual(env["VIEW3D_NUM_THREADS"], "6")
+        self.assertEqual(env["OMP_NUM_THREADS"], "6")
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_requires_preproc_ncpu(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "PREPROC_NCPU must be set"):
+            load_view3d_runtime_env(
+                base_env={"PATH": os.environ.get("PATH", "")},
+                config_path=default_view3d_config_path(),
+            )
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_default_view3d_config_preserves_explicit_dense_limit(self) -> None:
+        env, _ = load_view3d_runtime_env(
+            base_env={
+                "PATH": os.environ.get("PATH", ""),
+                "PREPROC_NCPU": "8",
+                "PREPROC_MEM": "128gb",
+                "VIEW3D_MAX_DENSE_MATRIX_GIB": "96",
+            },
+            config_path=default_view3d_config_path(),
+        )
+
+        self.assertEqual(env["VIEW3D_MAX_DENSE_MATRIX_GIB"], "96")
+
+    @unittest.skipIf(shutil.which("bash") is None, "bash is required for View3D shell config sourcing")
+    def test_resolve_view3d_exe_uses_configured_executable(self) -> None:
+        config = self.workdir / "view3d_config.sh"
+        custom_exe = self.workdir / "custom-view3d"
+        config.write_text(f'export VIEW3D_EXE="{custom_exe}"\n', encoding="ascii")
+
+        with mock.patch.dict(os.environ, {"VIEW3D_CONFIG": str(config)}):
+            self.assertEqual(resolve_view3d_exe(), custom_exe.resolve())
+
 
 if __name__ == "__main__":
     unittest.main()
