@@ -1,0 +1,1037 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>wfuno &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>wfuno
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.8% of total for procedures.">111 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modwallfunctions.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modwallfunctions.f90.html'>modwallfunctions.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modwallfunctions.html'>modwallfunctions</a></li>
+            <li class="breadcrumb-item active" aria-current="page">wfuno</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/wfuno.html#src">wfuno</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine wfuno(hi, hj, hk, iout1, iout2, iot, iomomflux, iotflux, obcTfluxA, utang1, utang2, Tcell, Twall, z0, z0h, wforient)  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modsubgriddata.html'>modsubgriddata</a></li>
+                  <li class="list-inline-item"><a href='../module/modibmdata.html'>modibmdata</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~wfuno~~UsesGraph Pages: 1 -->
+<svg id="procwfunoUsesGraph" width="197pt" height="116pt"
+ viewBox="0.00 0.00 197.00 116.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~wfuno~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 112.27)">
+<title>proc~~wfuno~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-112.27 193.27,-112.27 193.27,4 -4,4"/>
+<!-- proc~wfuno -->
+<g id="proc~~wfuno~~UsesGraph_node1" class="node">
+<title>proc~wfuno</title>
+<polygon fill="none" stroke="black" points="189.27,-66.27 135.27,-66.27 135.27,-42 189.27,-42 189.27,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="162.27" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50">wfuno</text>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~wfuno~~UsesGraph_node2" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~wfuno~~UsesGraph_node2"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="83.89,-108.27 15.38,-108.27 15.38,-84 83.89,-84 83.89,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="49.63" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~wfuno&#45;&gt;module~modglobal -->
+<g id="proc~~wfuno~~UsesGraph_edge1" class="edge">
+<title>proc~wfuno&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M134.77,-64.2C122.66,-68.79 108,-74.36 94.33,-79.55"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="93.17,-76.24 85.07,-83.06 95.66,-82.79 93.17,-76.24"/>
+</g>
+<!-- module~modibmdata -->
+<g id="proc~~wfuno~~UsesGraph_node3" class="node">
+<title>module~modibmdata</title>
+<g id="a_proc~~wfuno~~UsesGraph_node3"><a xlink:href="../module/modibmdata.html" xlink:title="modibmdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="89.52,-66.27 9.75,-66.27 9.75,-42 89.52,-42 89.52,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="49.63" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata</text>
+</a>
+</g>
+</g>
+<!-- proc~wfuno&#45;&gt;module~modibmdata -->
+<g id="proc~~wfuno~~UsesGraph_edge2" class="edge">
+<title>proc~wfuno&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M134.77,-54.13C124.7,-54.13 112.87,-54.13 101.3,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="101.42,-50.64 91.42,-54.14 101.42,-57.64 101.42,-50.64"/>
+</g>
+<!-- module~modsubgriddata -->
+<g id="proc~~wfuno~~UsesGraph_node4" class="node">
+<title>module~modsubgriddata</title>
+<g id="a_proc~~wfuno~~UsesGraph_node4"><a xlink:href="../module/modsubgriddata.html" xlink:title="modsubgriddata">
+<polygon fill="#337ab7" stroke="#337ab7" points="99.27,-24.27 0,-24.27 0,0 99.27,0 99.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="49.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgriddata</text>
+</a>
+</g>
+</g>
+<!-- proc~wfuno&#45;&gt;module~modsubgriddata -->
+<g id="proc~~wfuno~~UsesGraph_edge3" class="edge">
+<title>proc~wfuno&#45;&gt;module~modsubgriddata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M134.77,-44.07C122.66,-39.48 108,-33.91 94.33,-28.72"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="95.66,-25.48 85.07,-25.21 93.17,-32.03 95.66,-25.48"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-hi~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>hi</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-hj~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>hj</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-hk~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>hk</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iout1"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iout1</strong>(ib-hi:ie+hi,jb-hj:je+hj,kb:ke+hk)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iout2"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iout2</strong>(ib-hi:ie+hi,jb-hj:je+hj,kb:ke+hk)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iot"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iot</strong>(ib-hi:ie+hi,jb-hj:je+hj,kb:ke+hk)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iomomflux"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iomomflux</strong>(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iotflux"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iotflux</strong>(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-obctfluxa"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>obcTfluxA</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-utang1"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>utang1</strong>(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-utang2"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>utang2</strong>(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-tcell"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>Tcell</strong>(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-twall"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>Twall</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-z0~7"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>z0</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-z0h~4"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>z0h</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wforient"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>wforient</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~wfuno~~CallsGraph Pages: 1 -->
+<svg id="procwfunoCallsGraph" width="152pt" height="74pt"
+ viewBox="0.00 0.00 152.00 74.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~wfuno~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 70.27)">
+<title>proc~~wfuno~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-70.27 148,-70.27 148,4 -4,4"/>
+<!-- proc~wfuno -->
+<g id="proc~~wfuno~~CallsGraph_node1" class="node">
+<title>proc~wfuno</title>
+<polygon fill="none" stroke="black" points="54,-45.27 0,-45.27 0,-21 54,-21 54,-45.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50">wfuno</text>
+</g>
+<!-- proc~unoh -->
+<g id="proc~~wfuno~~CallsGraph_node2" class="node">
+<title>proc~unoh</title>
+<g id="a_proc~~wfuno~~CallsGraph_node2"><a xlink:href="../proc/unoh.html" xlink:title="unoh">
+<polygon fill="#d9534f" stroke="#d9534f" points="144,-66.27 90,-66.27 90,-42 144,-42 144,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="117" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">unoh</text>
+</a>
+</g>
+</g>
+<!-- proc~wfuno&#45;&gt;proc~unoh -->
+<g id="proc~~wfuno~~CallsGraph_edge1" class="edge">
+<title>proc~wfuno&#45;&gt;proc~unoh</title>
+<path fill="none" stroke="#ff0000" d="M54.4,-39.44C61.97,-41.24 70.38,-43.25 78.48,-45.18"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="77.6,-48.57 88.14,-47.49 79.23,-41.76 77.6,-48.57"/>
+</g>
+<!-- proc~unom -->
+<g id="proc~~wfuno~~CallsGraph_node3" class="node">
+<title>proc~unom</title>
+<g id="a_proc~~wfuno~~CallsGraph_node3"><a xlink:href="../proc/unom.html" xlink:title="unom">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="144,-24.27 90,-24.27 90,0 144,0 144,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="117" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">unom</text>
+</a>
+</g>
+</g>
+<!-- proc~wfuno&#45;&gt;proc~unom -->
+<g id="proc~~wfuno~~CallsGraph_edge2" class="edge">
+<title>proc~wfuno&#45;&gt;proc~unom</title>
+<path fill="none" stroke="#ff0000" d="M54.4,-26.83C61.97,-25.03 70.38,-23.02 78.48,-21.09"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="79.23,-24.51 88.14,-18.78 77.6,-17.7 79.23,-24.51"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~wfuno~~CalledByGraph Pages: 1 -->
+<svg id="procwfunoCalledByGraph" width="242pt" height="32pt"
+ viewBox="0.00 0.00 242.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~wfuno~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~wfuno~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 238,-28.27 238,4 -4,4"/>
+<!-- proc~wfuno -->
+<g id="proc~~wfuno~~CalledByGraph_node1" class="node">
+<title>proc~wfuno</title>
+<polygon fill="none" stroke="black" points="234,-24.27 180,-24.27 180,0 234,0 234,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="207" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">wfuno</text>
+</g>
+<!-- proc~bottom -->
+<g id="proc~~wfuno~~CalledByGraph_node2" class="node">
+<title>proc~bottom</title>
+<g id="a_proc~~wfuno~~CalledByGraph_node2"><a xlink:href="../proc/bottom.html" xlink:title="bottom">
+<polygon fill="#d9534f" stroke="#d9534f" points="144,-24.27 90,-24.27 90,0 144,0 144,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="117" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">bottom</text>
+</a>
+</g>
+</g>
+<!-- proc~bottom&#45;&gt;proc~wfuno -->
+<g id="proc~~wfuno~~CalledByGraph_edge1" class="edge">
+<title>proc~bottom&#45;&gt;proc~wfuno</title>
+<path fill="none" stroke="#ff0000" d="M144.4,-12.13C151.89,-12.13 160.18,-12.13 168.2,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="168.1,-15.64 178.1,-12.14 168.1,-8.64 168.1,-15.64"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~wfuno~~CalledByGraph_node3" class="node">
+<title>program~udales</title>
+<g id="a_proc~~wfuno~~CalledByGraph_node3"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~bottom -->
+<g id="proc~~wfuno~~CalledByGraph_edge2" class="edge">
+<title>program~udales&#45;&gt;proc~bottom</title>
+<path fill="none" stroke="#ff0000" d="M54.4,-12.13C61.89,-12.13 70.18,-12.13 78.2,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.1,-15.64 88.1,-12.14 78.1,-8.64 78.1,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="k">SUBROUTINE </span><span class="n">wfuno</span><span class="p">(</span><span class="n">hi</span><span class="p">,</span><span class="n">hj</span><span class="p">,</span><span class="n">hk</span><span class="p">,</span><span class="n">iout1</span><span class="p">,</span><span class="n">iout2</span><span class="p">,</span><span class="n">iot</span><span class="p">,</span><span class="n">iomomflux</span><span class="p">,</span><span class="n">iotflux</span><span class="p">,</span><span class="n">obcTfluxA</span><span class="p">,</span><span class="n">utang1</span><span class="p">,</span><span class="n">utang2</span><span class="p">,</span><span class="n">Tcell</span><span class="p">,</span><span class="n">Twall</span><span class="p">,</span><span class="n">z0</span><span class="p">,</span><span class="n">z0h</span><span class="p">,</span><span class="n">wforient</span><span class="p">)</span>
+<span class="w">   </span><span class="c">!wfuno</span>
+<span class="w">   </span><span class="c">!calculating wall function for momentum and scalars following Cai2012&amp;Uno1995, extension of Louis 1979 method to rough walls</span>
+<span class="w">   </span><span class="c">!fluxes in m2/s2 and Km/s</span>
+<span class="w">   </span><span class="k">USE </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">ONLY</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">dzf</span><span class="p">,</span><span class="n">dzfi</span><span class="p">,</span><span class="n">dzh2i</span><span class="p">,</span><span class="n">dzhi</span><span class="p">,</span><span class="n">dzhiq</span><span class="p">,</span><span class="n">dxf</span><span class="p">,</span><span class="n">dxhi</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">fkar</span><span class="p">,</span><span class="n">grav</span>
+<span class="w">   </span><span class="k">USE </span><span class="n">modsubgriddata</span><span class="p">,</span><span class="w"> </span><span class="k">ONLY</span><span class="p">:</span><span class="n">ekh</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span>
+<span class="w">   </span><span class="k">USE </span><span class="n">modibmdata</span>
+<span class="w">   </span><span class="kt">INTEGER </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="w"> </span><span class="n">ju</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">,</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="w"> </span><span class="n">iu</span><span class="p">,</span><span class="w"> </span><span class="n">km</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">Ribl0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!initial guess of Ribl based on Ts</span>
+
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">bcTflux</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!temp storage for temperature flux</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">bcmomflux</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!temp storage for momentum flux</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ctm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!momentum transfer coefficient</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">cth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!heat transfer coefficient</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">dummy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!for debugging</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">delta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!distance from wall</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">logdz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!log(delta/z0)</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">logdzh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!log(delta/z0h)</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">logzh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!log(z0/z0h)</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">sqdz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="c">!sqrt(delta/z0)</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">utang1Int</span><span class="w"> </span><span class="c">!Interpolated 1st tangential velocity component needed for stability calculation (to T location)</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">utang2Int</span><span class="w"> </span><span class="c">!Interpolated 2nd tangential velocity component needed for stability calculation (to T location)</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">utangInt</span><span class="w"> </span><span class="c">!Interpolated absolute tangential velocity</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">dT</span><span class="w"> </span><span class="c">!Temperature difference between wall and cell</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">fkar2</span><span class="w"> </span><span class="c">!fkar^2, von Karman constant squared</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">emom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="p">,</span><span class="w"> </span><span class="n">eomm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">umin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0001</span><span class="w"> </span><span class="c">!m^2/s^2</span>
+
+<span class="w">   </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hi</span><span class="w"> </span><span class="c">!&lt;size of halo in i</span>
+<span class="w">   </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hj</span><span class="w"> </span><span class="c">!&lt;size of halo in j</span>
+<span class="w">   </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">hk</span><span class="w"> </span><span class="c">!&lt;size of halo in k</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">out</span><span class="p">)</span><span class="w">   </span><span class="kd">::</span><span class="w"> </span><span class="n">obcTfluxA</span><span class="w"> </span><span class="c">!temperature flux of entire wall facet (double sum over indeces) [Km/s]</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iout1</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!updated prognostic tangential velocity (component1)</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iout2</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!updated prognostic tangential velocity (component2)</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iot</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!updated prognostic temperature</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iomomflux</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="o">-</span><span class="n">hk</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!a field to save the momentum flux</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iotflux</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="o">-</span><span class="n">hk</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!a field to save the heat flux</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">Tcell</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hk</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!Temperature of fluid cell</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">Twall</span><span class="w"> </span><span class="c">!Temperature of surfaces !SINCE EVERY WALL HAS PRECISELY ONE TEMPERATURE (at the outside). CAREFUL IF THIS EVER CHANGES (i.e. multiple EB facets per wall)</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">z0</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">z0h</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hk</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!tangential velocity field</span>
+<span class="w">   </span><span class="kt">REAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">ib</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hi</span><span class="p">:</span><span class="n">ie</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hi</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hj</span><span class="p">:</span><span class="n">je</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hj</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">hk</span><span class="p">:</span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">hk</span><span class="p">)</span><span class="w"> </span><span class="c">!second tangential velocity field</span>
+<span class="w">   </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">wforient</span><span class="w"> </span><span class="c">!orientation of the facet see below:</span>
+<span class="w">   </span><span class="c">!frist digit, orientation of wall, determines iteration indices</span>
+<span class="w">   </span><span class="c">!second digit, if for momentum or for scalar (necessary because of staggered grid -&gt; which variable to interpolate)</span>
+<span class="w">   </span><span class="c">!xlow=1,xup=2,yup=3,ylow=4,z=5</span>
+<span class="w">   </span><span class="c">!momentum=1,scalar=2</span>
+<span class="w">   </span><span class="n">fkar2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fkar</span><span class="o">**</span><span class="mi">2</span>
+<span class="w">   </span><span class="n">obcTfluxA</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">   </span><span class="c">!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</span>
+<span class="w">   </span><span class="c">!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CASES FOR SCALARS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</span>
+<span class="w">   </span><span class="k">SELECT CASE</span><span class="w"> </span><span class="p">(</span><span class="n">wforient</span><span class="p">)</span>
+
+<span class="w">   </span><span class="c">!!!!!!!!!!!!!!!SPECIAL CASES FOR THE SURFACE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</span>
+<span class="w">   </span><span class="c">!can actually be made redundant and just be replaced by standard horizontal case (doesn&#39;t really matter though)</span>
+<span class="w">   </span><span class="c">! SO: This code is essentially unchanged from uDALES v1, and should probably be moved out of this file in a later release.</span>
+<span class="w">   </span><span class="k">CASE</span><span class="w"> </span><span class="p">(</span><span class="mi">91</span><span class="p">)</span><span class="w"> </span><span class="c">!surface momentum flux</span>
+
+<span class="w">      </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="c">!</span>
+<span class="w">      </span><span class="n">km</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="c">!</span>
+<span class="w">      </span><span class="n">il</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span>
+<span class="w">      </span><span class="n">iu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">      </span><span class="n">jl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span>
+<span class="w">      </span><span class="n">ju</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">je</span>
+
+
+<span class="w">      </span><span class="n">delta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="o">*</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">!might need attention on streched grids! as well as the dzfi when updating up</span>
+<span class="w">      </span><span class="n">logdz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">LOG</span><span class="p">(</span><span class="n">delta</span><span class="o">/</span><span class="n">z0</span><span class="p">)</span>
+<span class="w">      </span><span class="n">logdzh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">LOG</span><span class="p">(</span><span class="n">delta</span><span class="o">/</span><span class="n">z0h</span><span class="p">)</span>
+<span class="w">      </span><span class="n">logzh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">LOG</span><span class="p">(</span><span class="n">z0</span><span class="o">/</span><span class="n">z0h</span><span class="p">)</span>
+<span class="w">      </span><span class="n">sqdz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">SQRT</span><span class="p">(</span><span class="n">delta</span><span class="o">/</span><span class="n">z0</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">DO </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="w"> </span><span class="n">ju</span><span class="w"> </span><span class="c">!u component</span>
+<span class="w">         </span><span class="k">DO </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="w"> </span><span class="n">iu</span>
+<span class="w">            </span><span class="n">utang1Int</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span>
+<span class="w">            </span><span class="n">utang2Int</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="mf">0.25</span>
+<span class="w">            </span><span class="n">utangInt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">umin</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">utang1Int</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2Int</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+<span class="w">            </span><span class="n">dT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">((</span><span class="n">Tcell</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Tcell</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">Twall</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Twall</span><span class="p">))</span><span class="o">*</span><span class="mf">0.5</span>
+<span class="w">            </span><span class="n">Ribl0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">grav</span><span class="o">*</span><span class="n">delta</span><span class="o">*</span><span class="n">dT</span><span class="o">*</span><span class="mi">2</span><span class="o">/</span><span class="p">((</span><span class="n">Twall</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Twall</span><span class="p">)</span><span class="o">*</span><span class="n">utangInt</span><span class="p">)</span><span class="w"> </span><span class="c">!Eq. 6, guess initial Ri</span>
+<span class="w">            </span><span class="n">ctm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">unom</span><span class="p">(</span><span class="n">logdz</span><span class="p">,</span><span class="w"> </span><span class="n">logzh</span><span class="p">,</span><span class="w"> </span><span class="n">sqdz</span><span class="p">,</span><span class="w"> </span><span class="n">Ribl0</span><span class="p">,</span><span class="w"> </span><span class="n">fkar2</span><span class="p">)</span><span class="w"> </span><span class="c">!save result and update field</span>
+<span class="w">            </span><span class="c">!dummy = (utang1Int**2)*ctm</span>
+<span class="w">            </span><span class="n">dummy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">abs</span><span class="p">(</span><span class="n">utang1Int</span><span class="p">)</span><span class="o">*</span><span class="nb">sqrt</span><span class="p">(</span><span class="n">utangInt</span><span class="p">)</span><span class="o">*</span><span class="n">ctm</span>
+<span class="w">            </span><span class="n">bcmomflux</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">SIGN</span><span class="p">(</span><span class="n">dummy</span><span class="p">,</span><span class="w"> </span><span class="n">utang1Int</span><span class="p">)</span><span class="w"> </span><span class="c">!bcmomflux=u_star^2</span>
+<span class="w">            </span><span class="n">iomomflux</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iomomflux</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">bcmomflux</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">            </span><span class="n">emom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dxf</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dxf</span><span class="p">(</span><span class="n">i</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! dx is non-equidistant</span>
+<span class="w">                    </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">dxf</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="n">dxf</span><span class="p">(</span><span class="n">i</span><span class="p">)))</span><span class="o">*</span><span class="n">dxhi</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">dzhiq</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">            </span><span class="n">iout1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iout1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">emom</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">bcmomflux</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">!</span>
+<span class="w">         </span><span class="k">END DO</span>
+<span class="k">      END DO</span>
+
+<span class="k">      DO </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="w"> </span><span class="n">ju</span>
+<span class="w">         </span><span class="k">DO </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="w"> </span><span class="n">iu</span>
+<span class="w">            </span><span class="n">utang1Int</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="o">*</span><span class="mf">0.25</span>
+<span class="w">            </span><span class="n">utang2Int</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span>
+<span class="w">            </span><span class="n">utangInt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">umin</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">utang1Int</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2Int</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+<span class="w">            </span><span class="n">dT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">((</span><span class="n">Tcell</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Tcell</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">Twall</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Twall</span><span class="p">))</span><span class="o">*</span><span class="mf">0.5</span>
+<span class="w">            </span><span class="n">Ribl0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">grav</span><span class="o">*</span><span class="n">delta</span><span class="o">*</span><span class="n">dT</span><span class="o">*</span><span class="mi">2</span><span class="o">/</span><span class="p">((</span><span class="n">Twall</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Twall</span><span class="p">)</span><span class="o">*</span><span class="n">utangInt</span><span class="p">)</span><span class="w"> </span><span class="c">!Eq. 6, guess initial Ri</span>
+<span class="w">            </span><span class="n">ctm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">unom</span><span class="p">(</span><span class="n">logdz</span><span class="p">,</span><span class="w"> </span><span class="n">logzh</span><span class="p">,</span><span class="w"> </span><span class="n">sqdz</span><span class="p">,</span><span class="w"> </span><span class="n">Ribl0</span><span class="p">,</span><span class="w"> </span><span class="n">fkar2</span><span class="p">)</span><span class="w"> </span><span class="c">!save result and update field</span>
+<span class="w">            </span><span class="c">!dummy = (utang2Int**2)*ctm !save result and update field</span>
+<span class="w">            </span><span class="n">dummy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">abs</span><span class="p">(</span><span class="n">utang2Int</span><span class="p">)</span><span class="o">*</span><span class="nb">sqrt</span><span class="p">(</span><span class="n">utangInt</span><span class="p">)</span><span class="o">*</span><span class="n">ctm</span>
+<span class="w">            </span><span class="n">bcmomflux</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">SIGN</span><span class="p">(</span><span class="n">dummy</span><span class="p">,</span><span class="w"> </span><span class="n">utang2Int</span><span class="p">)</span>
+<span class="w">            </span><span class="n">iomomflux</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iomomflux</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">bcmomflux</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">            </span><span class="n">eomm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">km</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">)))</span><span class="o">*</span><span class="n">dzhiq</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">            </span><span class="n">iout2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iout2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">km</span><span class="p">))</span><span class="o">*</span><span class="n">eomm</span><span class="o">*</span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">bcmomflux</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="c">!</span>
+<span class="w">         </span><span class="k">END DO</span>
+<span class="k">      END DO</span>
+
+<span class="w">   </span><span class="c">!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</span>
+<span class="w">   </span><span class="k">CASE</span><span class="w"> </span><span class="p">(</span><span class="mi">92</span><span class="p">)</span><span class="w"> </span><span class="c">!surface temperature flux</span>
+<span class="w">      </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="w"> </span><span class="c">!block location</span>
+<span class="w">      </span><span class="n">ku</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="c">!shear velocity location</span>
+<span class="w">      </span><span class="n">il</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span>
+<span class="w">      </span><span class="n">iu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">      </span><span class="n">jl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span>
+<span class="w">      </span><span class="n">ju</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">je</span>
+
+<span class="w">      </span><span class="n">delta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="mf">0.5</span>
+<span class="w">      </span><span class="n">logdz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">LOG</span><span class="p">(</span><span class="n">delta</span><span class="o">/</span><span class="n">z0</span><span class="p">)</span>
+<span class="w">      </span><span class="n">logdzh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">LOG</span><span class="p">(</span><span class="n">delta</span><span class="o">/</span><span class="n">z0h</span><span class="p">)</span>
+<span class="w">      </span><span class="n">logzh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">LOG</span><span class="p">(</span><span class="n">z0</span><span class="o">/</span><span class="n">z0h</span><span class="p">)</span>
+<span class="w">      </span><span class="n">sqdz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">SQRT</span><span class="p">(</span><span class="n">delta</span><span class="o">/</span><span class="n">z0</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">DO </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jl</span><span class="p">,</span><span class="w"> </span><span class="n">ju</span>
+<span class="w">         </span><span class="k">DO </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">il</span><span class="p">,</span><span class="w"> </span><span class="n">iu</span>
+<span class="w">            </span><span class="n">utang1Int</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang1</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">))</span><span class="o">*</span><span class="mf">0.5</span>
+<span class="w">            </span><span class="n">utang2Int</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">))</span><span class="o">*</span><span class="mf">0.5</span>
+<span class="w">            </span><span class="n">utangInt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">umin</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">utang1Int</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">utang2Int</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+<span class="w">            </span><span class="n">dT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">Tcell</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Twall</span><span class="p">)</span>
+<span class="w">            </span><span class="n">Ribl0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">grav</span><span class="o">*</span><span class="n">delta</span><span class="o">*</span><span class="n">dT</span><span class="o">/</span><span class="p">(</span><span class="n">Twall</span><span class="o">*</span><span class="n">utangInt</span><span class="p">)</span><span class="w"> </span><span class="c">!</span>
+<span class="w">            </span><span class="k">call </span><span class="n">unoh</span><span class="p">(</span><span class="n">bcTflux</span><span class="p">,</span><span class="w"> </span><span class="n">cth</span><span class="p">,</span><span class="w"> </span><span class="n">logdz</span><span class="p">,</span><span class="w"> </span><span class="n">logzh</span><span class="p">,</span><span class="w"> </span><span class="n">sqdz</span><span class="p">,</span><span class="w"> </span><span class="n">utangInt</span><span class="p">,</span><span class="w"> </span><span class="n">dT</span><span class="p">,</span><span class="w"> </span><span class="n">Ribl0</span><span class="p">,</span><span class="w"> </span><span class="n">fkar2</span><span class="p">)</span>
+<span class="w">            </span><span class="n">obcTfluxA</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">obcTfluxA</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">bcTflux</span>
+<span class="w">            </span><span class="n">iotflux</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iotflux</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">bcTflux</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">            </span><span class="n">iot</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iot</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">ku</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span><span class="c">! zero flux</span>
+<span class="w">                            </span><span class="p">(</span><span class="n">Tcell</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Tcell</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">dzh2i</span><span class="p">(</span><span class="n">ku</span><span class="p">)</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">ku</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                            </span><span class="o">-</span><span class="w"> </span><span class="n">bcTflux</span><span class="o">*</span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">         </span><span class="k">END DO</span>
+<span class="k">      END DO</span>
+
+<span class="k">   END SELECT</span>
+
+<span class="k">END SUBROUTINE </span><span class="n">wfuno</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-07-23 12:42 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

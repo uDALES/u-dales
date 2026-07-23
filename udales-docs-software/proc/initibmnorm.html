@@ -1,0 +1,812 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>initibmnorm &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>initibmnorm
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.1% of total for procedures.">9 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modibm.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modibm.f90.html'>modibm.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modibm.html'>modibm</a></li>
+            <li class="breadcrumb-item active" aria-current="page">initibmnorm</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/initibmnorm.html#src">initibmnorm</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine initibmnorm(fname, solid_info)  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/readinput.html'>readinput</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~initibmnorm~~UsesGraph Pages: 1 -->
+<svg id="procinitibmnormUsesGraph" width="383pt" height="136pt"
+ viewBox="0.00 0.00 383.00 136.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~initibmnorm~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 132.27)">
+<title>proc~~initibmnorm~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-132.27 379.06,-132.27 379.06,4 -4,4"/>
+<!-- proc~initibmnorm -->
+<g id="proc~~initibmnorm~~UsesGraph_node1" class="node">
+<title>proc~initibmnorm</title>
+<polygon fill="none" stroke="black" points="375.06,-65.27 298.29,-65.27 298.29,-41 375.06,-41 375.06,-65.27"/>
+<text xml:space="preserve" text-anchor="middle" x="336.67" y="-49.53" font-family="Helvetica,sans-Serif" font-size="10.50">initibmnorm</text>
+</g>
+<!-- module~readinput -->
+<g id="proc~~initibmnorm~~UsesGraph_node2" class="node">
+<title>module~readinput</title>
+<g id="a_proc~~initibmnorm~~UsesGraph_node2"><a xlink:href="../module/readinput.html" xlink:title="readinput">
+<polygon fill="#337ab7" stroke="#337ab7" points="262.29,-65.27 199.77,-65.27 199.77,-41 262.29,-41 262.29,-65.27"/>
+<text xml:space="preserve" text-anchor="middle" x="231.03" y="-49.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readinput</text>
+</a>
+</g>
+</g>
+<!-- proc~initibmnorm&#45;&gt;module~readinput -->
+<g id="proc~~initibmnorm~~UsesGraph_edge1" class="edge">
+<title>proc~initibmnorm&#45;&gt;module~readinput</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M297.96,-53.13C290.19,-53.13 281.95,-53.13 274.03,-53.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="274.26,-49.64 264.26,-53.14 274.26,-56.64 274.26,-49.64"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~initibmnorm~~UsesGraph_node3" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="163.77,-128.27 90,-128.27 90,-104 163.77,-104 163.77,-128.27"/>
+<text xml:space="preserve" text-anchor="middle" x="126.88" y="-112.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~readinput&#45;&gt;decomp_2d -->
+<g id="proc~~initibmnorm~~UsesGraph_edge2" class="edge">
+<title>module~readinput&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M210.72,-65.63C197.56,-74.08 179.7,-85.43 163.77,-95.14 162.34,-96 160.88,-96.89 159.41,-97.77"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="157.71,-94.71 150.89,-102.83 161.28,-100.73 157.71,-94.71"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~initibmnorm~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~initibmnorm~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="161.14,-86.27 92.62,-86.27 92.62,-62 161.14,-62 161.14,-86.27"/>
+<text xml:space="preserve" text-anchor="middle" x="126.88" y="-70.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- module~readinput&#45;&gt;module~modglobal -->
+<g id="proc~~initibmnorm~~UsesGraph_edge3" class="edge">
+<title>module~readinput&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M199.38,-59.44C190.95,-61.17 181.64,-63.08 172.59,-64.94"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="171.93,-61.51 162.84,-66.95 173.34,-68.36 171.93,-61.51"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~initibmnorm~~UsesGraph_node5" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~initibmnorm~~UsesGraph_node5"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="154.77,-44.27 99,-44.27 99,-20 154.77,-20 154.77,-44.27"/>
+<text xml:space="preserve" text-anchor="middle" x="126.88" y="-28.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- module~readinput&#45;&gt;module~modmpi -->
+<g id="proc~~initibmnorm~~UsesGraph_edge4" class="edge">
+<title>module~readinput&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M199.38,-46.83C188.92,-44.68 177.08,-42.25 166.09,-39.99"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="167.02,-36.61 156.52,-38.02 165.61,-43.46 167.02,-36.61"/>
+</g>
+<!-- mpi -->
+<g id="proc~~initibmnorm~~UsesGraph_node6" class="node">
+<title>mpi</title>
+<g id="a_proc~~initibmnorm~~UsesGraph_node6"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~readinput&#45;&gt;mpi -->
+<g id="proc~~initibmnorm~~UsesGraph_edge5" class="edge">
+<title>module~readinput&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M215.7,-40.63C203.02,-30.45 183.52,-16.87 163.77,-11.13 131.58,-1.79 93.27,-3.14 65.56,-6.18"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="65.38,-2.67 55.88,-7.37 66.24,-9.62 65.38,-2.67"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~initibmnorm~~UsesGraph_edge6" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M98.62,-26.56C88.37,-24.47 76.54,-22.05 65.53,-19.8"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="66.43,-16.41 55.93,-17.84 65.02,-23.27 66.43,-16.41"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-fname~3"></span>
+              character(len=11),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>fname</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-solid_info~2"></span>
+              type(<a href='../type/solid_info_type.html'>solid_info_type</a>),
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>solid_info</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~initibmnorm~~CallsGraph Pages: 1 -->
+<svg id="procinitibmnormCallsGraph" width="316pt" height="116pt"
+ viewBox="0.00 0.00 316.00 116.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~initibmnorm~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 112.27)">
+<title>proc~~initibmnorm~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-112.27 311.56,-112.27 311.56,4 -4,4"/>
+<!-- proc~initibmnorm -->
+<g id="proc~~initibmnorm~~CallsGraph_node1" class="node">
+<title>proc~initibmnorm</title>
+<polygon fill="none" stroke="black" points="76.77,-66.27 0,-66.27 0,-42 76.77,-42 76.77,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="38.38" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50">initibmnorm</text>
+</g>
+<!-- proc~read_sparse_ijk -->
+<g id="proc~~initibmnorm~~CallsGraph_node2" class="node">
+<title>proc~read_sparse_ijk</title>
+<g id="a_proc~~initibmnorm~~CallsGraph_node2"><a xlink:href="../proc/read_sparse_ijk.html" xlink:title="read_sparse_ijk">
+<polygon fill="#d9534f" stroke="#d9534f" points="206.04,-66.27 112.77,-66.27 112.77,-42 206.04,-42 206.04,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="159.41" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">read_sparse_ijk</text>
+</a>
+</g>
+</g>
+<!-- proc~initibmnorm&#45;&gt;proc~read_sparse_ijk -->
+<g id="proc~~initibmnorm~~CallsGraph_edge1" class="edge">
+<title>proc~initibmnorm&#45;&gt;proc~read_sparse_ijk</title>
+<path fill="none" stroke="#ff0000" d="M77.04,-54.13C84.73,-54.13 92.98,-54.13 101.17,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="101.13,-57.64 111.13,-54.14 101.13,-50.64 101.13,-57.64"/>
+</g>
+<!-- mpi_bcast -->
+<g id="proc~~initibmnorm~~CallsGraph_node3" class="node">
+<title>mpi_bcast</title>
+<polygon fill="#777777" stroke="#777777" points="307.56,-108.27 242.04,-108.27 242.04,-84 307.56,-84 307.56,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="274.8" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_bcast</text>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;mpi_bcast -->
+<g id="proc~~initibmnorm~~CallsGraph_edge2" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#ff0000" d="M194.43,-66.74C205.92,-70.99 218.89,-75.8 230.97,-80.27"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="229.73,-83.54 240.32,-83.74 232.16,-76.98 229.73,-83.54"/>
+</g>
+<!-- zend -->
+<g id="proc~~initibmnorm~~CallsGraph_node4" class="node">
+<title>zend</title>
+<polygon fill="#777777" stroke="#777777" points="301.8,-66.27 247.8,-66.27 247.8,-42 301.8,-42 301.8,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="274.8" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zend</text>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;zend -->
+<g id="proc~~initibmnorm~~CallsGraph_edge3" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;zend</title>
+<path fill="none" stroke="#ff0000" d="M206.53,-54.13C216.36,-54.13 226.63,-54.13 236.1,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="236.06,-57.64 246.06,-54.14 236.06,-50.64 236.06,-57.64"/>
+</g>
+<!-- zstart -->
+<g id="proc~~initibmnorm~~CallsGraph_node5" class="node">
+<title>zstart</title>
+<polygon fill="#777777" stroke="#777777" points="301.8,-24.27 247.8,-24.27 247.8,0 301.8,0 301.8,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="274.8" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zstart</text>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;zstart -->
+<g id="proc~~initibmnorm~~CallsGraph_edge4" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;zstart</title>
+<path fill="none" stroke="#ff0000" d="M194.43,-41.53C207.81,-36.58 223.21,-30.87 236.87,-25.81"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="237.79,-29.21 245.95,-22.45 235.36,-22.64 237.79,-29.21"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~initibmnorm~~CalledByGraph Pages: 1 -->
+<svg id="procinitibmnormCalledByGraph" width="611pt" height="95pt"
+ viewBox="0.00 0.00 611.00 95.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~initibmnorm~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 91.15)">
+<title>proc~~initibmnorm~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-91.15 607.06,-91.15 607.06,4 -4,4"/>
+<!-- proc~initibmnorm -->
+<g id="proc~~initibmnorm~~CalledByGraph_node1" class="node">
+<title>proc~initibmnorm</title>
+<polygon fill="none" stroke="black" points="603.06,-66.27 526.29,-66.27 526.29,-42 603.06,-42 603.06,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="564.67" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50">initibmnorm</text>
+</g>
+<!-- proc~initibm -->
+<g id="proc~~initibmnorm~~CalledByGraph_node2" class="node">
+<title>proc~initibm</title>
+<g id="a_proc~~initibmnorm~~CalledByGraph_node2"><a xlink:href="../proc/initibm.html" xlink:title="initibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="490.29,-66.27 436.29,-66.27 436.29,-42 490.29,-42 490.29,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="463.29" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibm</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~initibmnorm -->
+<g id="proc~~initibmnorm~~CalledByGraph_edge1" class="edge">
+<title>proc~initibm&#45;&gt;proc~initibmnorm</title>
+<path fill="none" stroke="#ff0000" d="M490.66,-54.13C498.01,-54.13 506.24,-54.13 514.45,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="514.44,-57.64 524.44,-54.14 514.44,-50.64 514.44,-57.64"/>
+</g>
+<!-- proc~tests_mpi_operators -->
+<g id="proc~~initibmnorm~~CalledByGraph_node3" class="node">
+<title>proc~tests_mpi_operators</title>
+<g id="a_proc~~initibmnorm~~CalledByGraph_node3"><a xlink:href="../proc/tests_mpi_operators.html" xlink:title="tests_mpi_operators">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="398.04,-66.27 279.27,-66.27 279.27,-42 398.04,-42 398.04,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="338.65" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">tests_mpi_operators</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~initibm -->
+<g id="proc~~initibmnorm~~CalledByGraph_edge2" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~initibm</title>
+<path fill="none" stroke="#ff0000" d="M398.46,-54.13C407.3,-54.13 416.2,-54.13 424.45,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="424.45,-57.64 434.45,-54.14 424.45,-50.64 424.45,-57.64"/>
+</g>
+<!-- proc~tests_read_sparse_ijk -->
+<g id="proc~~initibmnorm~~CalledByGraph_node4" class="node">
+<title>proc~tests_read_sparse_ijk</title>
+<g id="a_proc~~initibmnorm~~CalledByGraph_node4"><a xlink:href="../proc/tests_read_sparse_ijk.html" xlink:title="tests_read_sparse_ijk">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="400.29,-24.27 277.02,-24.27 277.02,0 400.29,0 400.29,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="338.65" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">tests_read_sparse_ijk</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_read_sparse_ijk&#45;&gt;proc~initibm -->
+<g id="proc~~initibmnorm~~CalledByGraph_edge3" class="edge">
+<title>proc~tests_read_sparse_ijk&#45;&gt;proc~initibm</title>
+<path fill="none" stroke="#ff0000" d="M376.45,-24.74C391.89,-30.03 409.82,-36.16 425.28,-41.46"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="424.01,-44.72 434.61,-44.65 426.28,-38.1 424.01,-44.72"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~initibmnorm~~CalledByGraph_node5" class="node">
+<title>program~udales</title>
+<g id="a_proc~~initibmnorm~~CalledByGraph_node5"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-86.27 0,-86.27 0,-62 54,-62 54,-86.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-70.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~initibm -->
+<g id="proc~~initibmnorm~~CalledByGraph_edge4" class="edge">
+<title>program~udales&#45;&gt;proc~initibm</title>
+<path fill="none" stroke="#ff0000" d="M54.42,-77.18C115.7,-83.59 272.1,-96.25 400.29,-75.13 408.54,-73.78 417.17,-71.46 425.27,-68.86"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="426.18,-72.25 434.49,-65.68 423.9,-65.63 426.18,-72.25"/>
+</g>
+<!-- proc~execute_runmode_actions -->
+<g id="proc~~initibmnorm~~CalledByGraph_node6" class="node">
+<title>proc~execute_runmode_actions</title>
+<g id="a_proc~~initibmnorm~~CalledByGraph_node6"><a xlink:href="../proc/execute_runmode_actions.html" xlink:title="execute_runmode_actions">
+<polygon fill="#d9534f" stroke="#d9534f" points="241.02,-66.27 90,-66.27 90,-42 241.02,-42 241.02,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="165.51" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">execute_runmode_actions</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~execute_runmode_actions -->
+<g id="proc~~initibmnorm~~CalledByGraph_edge7" class="edge">
+<title>program~udales&#45;&gt;proc~execute_runmode_actions</title>
+<path fill="none" stroke="#ff0000" d="M54.32,-70.28C61.57,-69.22 69.84,-68 78.53,-66.73"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.82,-70.23 88.21,-65.31 77.8,-63.3 78.82,-70.23"/>
+</g>
+<!-- proc~execute_runmode_actions&#45;&gt;proc~tests_mpi_operators -->
+<g id="proc~~initibmnorm~~CalledByGraph_edge5" class="edge">
+<title>proc~execute_runmode_actions&#45;&gt;proc~tests_mpi_operators</title>
+<path fill="none" stroke="#ff0000" d="M241.08,-54.13C249.91,-54.13 258.9,-54.13 267.66,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="267.51,-57.64 277.51,-54.14 267.51,-50.64 267.51,-57.64"/>
+</g>
+<!-- proc~execute_runmode_actions&#45;&gt;proc~tests_read_sparse_ijk -->
+<g id="proc~~initibmnorm~~CalledByGraph_edge6" class="edge">
+<title>proc~execute_runmode_actions&#45;&gt;proc~tests_read_sparse_ijk</title>
+<path fill="none" stroke="#00ff00" d="M217.86,-41.53C235.88,-37.11 256.33,-32.09 275.17,-27.47"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="275.99,-30.87 284.87,-25.09 274.33,-24.07 275.99,-30.87"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">   </span><span class="k">subroutine </span><span class="n">initibmnorm</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="w"> </span><span class="n">solid_info</span><span class="p">)</span>
+<span class="w">     </span><span class="k">use </span><span class="n">readinput</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">read_sparse_ijk</span>
+
+<span class="w">     </span><span class="kt">character</span><span class="p">(</span><span class="mi">11</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">fname</span>
+
+<span class="w">     </span><span class="k">type</span><span class="p">(</span><span class="n">solid_info_type</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">solid_info</span>
+
+<span class="w">     </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ids_loc</span><span class="p">(:),</span><span class="w"> </span><span class="n">pts_loc</span><span class="p">(:,:)</span>
+
+<span class="w">     </span><span class="c">! Use generic read_sparse_ijk to read and distribute solid points</span>
+<span class="w">     </span><span class="k">call </span><span class="n">read_sparse_ijk</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="w"> </span><span class="n">solid_info</span><span class="p">%</span><span class="n">nsolpts</span><span class="p">,</span><span class="w"> </span><span class="n">solid_info</span><span class="p">%</span><span class="n">nsolptsrank</span><span class="p">,</span><span class="w"> </span><span class="n">ids_loc</span><span class="p">,</span><span class="w"> </span><span class="n">pts_loc</span><span class="p">)</span>
+<span class="w">     </span>
+<span class="w">     </span><span class="c">! Transfer ownership of arrays (no copying, no conversion needed)</span>
+<span class="w">     </span><span class="k">call </span><span class="nb">move_alloc</span><span class="p">(</span><span class="n">ids_loc</span><span class="p">,</span><span class="w"> </span><span class="n">solid_info</span><span class="p">%</span><span class="n">solptsrank</span><span class="p">)</span>
+<span class="w">     </span><span class="k">call </span><span class="nb">move_alloc</span><span class="p">(</span><span class="n">pts_loc</span><span class="p">,</span><span class="w"> </span><span class="n">solid_info</span><span class="p">%</span><span class="n">solpts_loc</span><span class="p">)</span>
+
+<span class="w">     </span><span class="c">!write(*,*) &quot;rank &quot;, myid, &quot; has &quot;, solid_info%nsolptsrank, &quot; solid points from &quot;, fname</span>
+
+<span class="w">   </span><span class="k">end subroutine </span><span class="n">initibmnorm</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-07-23 12:42 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>
