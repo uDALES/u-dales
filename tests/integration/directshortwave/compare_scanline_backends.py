@@ -353,7 +353,7 @@ def main() -> int:
             nsun,
             irradiance,
             dsky,
-            "scanline",
+            "scanline_f2py",
             resolution,
             lscatter,
             albedo,

@@ -1,11 +1,11 @@
-## Running uDALES
+# Running uDALES
 
 The scripts `local_execute.sh` (for local machines), `hpc_execute.sh` (for ICL cluster) and `archer_execute.sh` (for ARCHER2) in `u-dales/tools` are used as wrappers to run simulations. These scripts contain several helpers to run the simulations and merge outputs (see [Post-processing](./udales-post-processing.md) for more info) from several CPUs into a single file.
 
 The scripts require several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the example directory, which is then read by the scripts. We recommend keeping a `config.sh` in each example case directory with the appropriate variable setting.
 The simulation workflow consists of three stages:
 
-1. Pre-processing: create or update input files with `write_input.sh` (calls `write_input.m`) or other pre-processing tools.
+1. Pre-processing: create or update input files with `write_inputs.sh` (calls `write_inputs.m` or `write_inputs.py`) or other pre-processing tools.
 2. Execution: launch the solver using `local_execute.sh` (for desktop) or `hpc_execute.sh` (for clusters).
 3. Post-processing: merge and analyse output files using `gather_outputs.sh` or other scripts.
 
@@ -13,7 +13,7 @@ Example cases shipped with uDALES are located under `u-dales/examples/` and are 
 
 Note that you need to choose the number of CPUs you are using to run the simulation such that the product of `nprocx` and `nprocy` (in the `namoptions` input file) is equal to the total number of CPU asked, i.e., `nprocx * nprocy = NCPU` for local machines, and `nprocx * nprocy = NNODE * NCPU` for ICL HPC or ARCHER2 clusters.
 
-### Run on common systems
+## Run on common systems
 
 ``` sh
 # Contents of the config.sh file
@@ -29,6 +29,8 @@ export NCPU=8                                           # Number of CPUs to use 
 # It is recommended to write the full path instead of using $(pwd) in config.sh file
 ```
 
+`tools/write_inputs.sh` scans `namoptions.###` for `nompthreads` and uses it for the preprocessing CPU request. If `nompthreads` is omitted, the preprocessing default is `8`; if it appears more than once anywhere in the file, the wrapper stops and asks for a single value. The wrapper exports the derived value internally as `PREPROC_NCPU` for PBS submission and for the default View3D thread count, unless `VIEW3D_NUM_THREADS` is explicitly overridden. For preprocessing, `DA_TOOLSDIR` defaults to the wrapper script directory and `DA_EXPDIR` defaults to the parent directory of the case directory unless these are set in `config.sh` or the calling environment. On Imperial HPC, compute-node preprocessing with `write_inputs.sh ... c` defaults to `PREPROC_WALLTIME="24:00:00"` and `PREPROC_MEM="128gb"`. `PREPROC_MEM` must be written as a number followed by lowercase `gb`, such as `128gb`; unitless values are rejected. Unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is explicitly set, the default View3D dense-matrix guard leaves 16 GiB for overhead when `PREPROC_MEM` is above `16gb`, while smaller requests use the requested GiB value.
+
 Then, to start the simulation, run:
 
 ``` sh
@@ -39,7 +41,7 @@ Then, to start the simulation, run:
 ./u-dales/tools/local_execute.sh experiments/009
 ```
 
-### Run on ICL cluster
+## Run on ICL cluster
 
 ``` sh
 # Contents of the config.sh file
@@ -51,6 +53,8 @@ export DA_TOOLSDIR=$(pwd)/u-dales/tools                 # Directory of scripts
 export DA_BUILD=$(pwd)/u-dales/build/release/u-dales    # Build file
 export DA_WORKDIR=$EPHEMERAL                            # Output top-level directory
 export NCPU=128                                         # Number of CPUs to use for a simulation
+export PREPROC_WALLTIME="24:00:00"                      # Optional preprocessing override; defaults to 24:00:00
+export PREPROC_MEM="128gb"                              # Optional preprocessing override; defaults to 128gb
 export NNODE=1                                          # Number of nodes to use for a simulation
 export WALLTIME="00:30:00"                              # Maximum runtime for simulation in hours:minutes:seconds
 export MEM="128gb"                                      # Memory request per node
@@ -69,7 +73,7 @@ Then, to start the simulation, run:
 ./u-dales/tools/hpc_execute.sh experiments/009
 ```
 
-### Run on ARCHER2
+## Run on ARCHER2
 
 ``` sh
 # Contents of the config.sh file

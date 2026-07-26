@@ -9,16 +9,16 @@ These functions mirror the MATLAB implementations in tools/matlab/+udgeom:
 """
 
 from pathlib import Path
-from functools import reduce
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
 
+from exceptions import DependencyError
 try:
     import trimesh
 except ImportError as exc:
-    raise ImportError("trimesh is required for geometry generation; install with `pip install trimesh`.") from exc
+    raise DependencyError("trimesh is required for geometry generation; install with `pip install trimesh`.") from exc
 
 try:
     from scipy.spatial import Delaunay
@@ -200,252 +200,6 @@ def _ground_footprint_union(existing: "trimesh.Trimesh"):
     return unary_union(filtered)
 
 
-def _triangles_to_mesh(triangles: list) -> "trimesh.Trimesh":
-    """Convert a list of shapely triangles into a trimesh surface on z=0."""
-    vertices = []
-    faces = []
-    vertex_map = {}
-
-    for tri in triangles:
-        if hasattr(tri, "exterior"):
-            coords = list(tri.exterior.coords)[:-1]
-        else:
-            coords = [tuple(row) for row in np.asarray(tri, dtype=float)]
-        if len(coords) != 3:
-            continue
-        face = []
-        for x, y in coords:
-            key = (round(float(x), 12), round(float(y), 12), 0.0)
-            if key not in vertex_map:
-                vertex_map[key] = len(vertices)
-                vertices.append(key)
-            face.append(vertex_map[key])
-        faces.append(face)
-
-    if not faces:
-        return trimesh.Trimesh(vertices=np.empty((0, 3)), faces=np.empty((0, 3), dtype=int), process=False)
-
-    return trimesh.Trimesh(vertices=np.asarray(vertices, dtype=float), faces=np.asarray(faces, dtype=int), process=False)
-
-
-def _signed_area_2d(points: np.ndarray) -> float:
-    """Signed polygon area; positive for counter-clockwise rings."""
-    x = points[:, 0]
-    y = points[:, 1]
-    return 0.5 * float(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
-
-
-def _point_in_triangle(pt: np.ndarray, a: np.ndarray, b: np.ndarray, c: np.ndarray, eps: float = 1e-12) -> bool:
-    """Return True when pt lies inside or on the boundary of triangle abc."""
-    v0 = c - a
-    v1 = b - a
-    v2 = pt - a
-
-    dot00 = np.dot(v0, v0)
-    dot01 = np.dot(v0, v1)
-    dot02 = np.dot(v0, v2)
-    dot11 = np.dot(v1, v1)
-    dot12 = np.dot(v1, v2)
-    denom = dot00 * dot11 - dot01 * dot01
-    if abs(denom) <= eps:
-        return False
-    inv = 1.0 / denom
-    u = (dot11 * dot02 - dot01 * dot12) * inv
-    v = (dot00 * dot12 - dot01 * dot02) * inv
-    return u >= -eps and v >= -eps and (u + v) <= 1.0 + eps
-
-
-def _triangulate_simple_polygon(piece: "Polygon") -> List[np.ndarray]:
-    """
-    Triangulate a simple polygon while preserving every boundary edge exactly.
-
-    The polygons produced by the constrained ground cell construction are simple
-    rings without holes. Ear clipping is sufficient here and ensures the ground
-    shares the same boundary edges as the building base.
-    """
-    if len(piece.interiors) > 0:
-        return []
-
-    coords = np.asarray(piece.exterior.coords[:-1], dtype=float)
-    if len(coords) < 3:
-        return []
-
-    # Remove duplicate consecutive vertices and collinear slivers.
-    cleaned = []
-    for pt in coords:
-        if not cleaned or np.linalg.norm(pt - cleaned[-1]) > 1e-12:
-            cleaned.append(pt)
-    coords = np.asarray(cleaned, dtype=float)
-    if len(coords) < 3:
-        return []
-
-    if _signed_area_2d(coords) < 0.0:
-        coords = coords[::-1]
-
-    indices = list(range(len(coords)))
-    triangles: List[np.ndarray] = []
-    eps = 1e-12
-
-    while len(indices) > 3:
-        ear_found = False
-        n = len(indices)
-        for pos in range(n):
-            ia = indices[(pos - 1) % n]
-            ib = indices[pos]
-            ic = indices[(pos + 1) % n]
-            a, b, c = coords[ia], coords[ib], coords[ic]
-
-            cross = np.cross(b - a, c - b)
-            if cross <= eps:
-                continue
-
-            tri = np.array([a, b, c], dtype=float)
-            contains_other = False
-            for idx in indices:
-                if idx in (ia, ib, ic):
-                    continue
-                if _point_in_triangle(coords[idx], a, b, c, eps=eps):
-                    contains_other = True
-                    break
-            if contains_other:
-                continue
-
-            triangles.append(tri)
-            indices.pop(pos)
-            ear_found = True
-            break
-
-        if not ear_found:
-            # Fallback for unexpected degeneracy; better to return a valid but
-            # less exact triangulation than fail outright.
-            return [np.asarray(list(t.exterior.coords)[:-1], dtype=float) for t in triangulate(piece) if piece.covers(t)]
-
-    if len(indices) == 3:
-        triangles.append(coords[np.asarray(indices, dtype=int)])
-    return triangles
-
-
-def _sample_linestring_points(coords: np.ndarray, spacing: float) -> np.ndarray:
-    """Sample points along a polyline including both endpoints."""
-    if len(coords) == 0:
-        return np.empty((0, 2), dtype=float)
-
-    sampled = [coords[0]]
-    spacing = max(float(spacing), 1e-9)
-    for start, end in zip(coords[:-1], coords[1:]):
-        seg = end - start
-        length = float(np.linalg.norm(seg))
-        if length <= 1e-12:
-            continue
-        nseg = max(1, int(np.ceil(length / spacing)))
-        for step in range(1, nseg + 1):
-            sampled.append(start + (step / nseg) * seg)
-    ordered = []
-    for pt in np.round(np.asarray(sampled, dtype=float), 12):
-        if not ordered or np.linalg.norm(pt - ordered[-1]) > 1e-12:
-            ordered.append(pt)
-    if len(ordered) > 1 and np.linalg.norm(ordered[0] - ordered[-1]) <= 1e-12:
-        ordered = ordered[:-1]
-    return np.asarray(ordered, dtype=float)
-
-
-def _triangle_quality(tri: np.ndarray) -> float:
-    """Return a simple triangle quality metric in [0, 1]."""
-    a = float(np.linalg.norm(tri[1] - tri[0]))
-    b = float(np.linalg.norm(tri[2] - tri[1]))
-    c = float(np.linalg.norm(tri[0] - tri[2]))
-    denom = a * a + b * b + c * c
-    if denom <= 1e-12:
-        return 0.0
-    area = 0.5 * abs(float(np.cross(tri[1] - tri[0], tri[2] - tri[0])))
-    return float(4.0 * np.sqrt(3.0) * area / denom)
-
-
-def _refine_skewed_triangles(
-    triangles: List[np.ndarray],
-    target_spacing: float,
-    min_quality: float = 0.18,
-    max_passes: int = 2,
-) -> List[np.ndarray]:
-    """
-    Improve very skewed triangles by midpoint insertion on the longest edge.
-
-    This is intentionally conservative: it keeps the original exact cell
-    triangulation and only adds points where a triangle is clearly poor and
-    still large enough relative to the target spacing.
-    """
-    refined = [np.asarray(tri, dtype=float) for tri in triangles]
-    target_spacing = max(float(target_spacing), 1e-6)
-
-    for _ in range(max_passes):
-        changed = False
-        next_tris: List[np.ndarray] = []
-        for tri in refined:
-            edges = [
-                (0, 1, float(np.linalg.norm(tri[1] - tri[0]))),
-                (1, 2, float(np.linalg.norm(tri[2] - tri[1]))),
-                (2, 0, float(np.linalg.norm(tri[0] - tri[2]))),
-            ]
-            longest = max(edges, key=lambda item: item[2])
-            quality = _triangle_quality(tri)
-            if quality >= min_quality or longest[2] <= 1.35 * target_spacing:
-                next_tris.append(tri)
-                continue
-
-            i, j, _ = longest
-            k = next(idx for idx in (0, 1, 2) if idx not in (i, j))
-            midpoint = 0.5 * (tri[i] + tri[j])
-            next_tris.append(np.asarray([tri[i], midpoint, tri[k]], dtype=float))
-            next_tris.append(np.asarray([midpoint, tri[j], tri[k]], dtype=float))
-            changed = True
-
-        refined = next_tris
-        if not changed:
-            break
-
-    return refined
-
-
-def _polygon_to_triangle_pslg(piece: "Polygon", spacing: float) -> Dict[str, np.ndarray]:
-    """Convert a shapely polygon-with-holes into Triangle PSLG input."""
-    vertices: List[List[float]] = []
-    segments: List[List[int]] = []
-    holes: List[List[float]] = []
-    vertex_map: Dict[Tuple[float, float], int] = {}
-
-    def add_vertex(pt: np.ndarray) -> int:
-        key = (round(float(pt[0]), 12), round(float(pt[1]), 12))
-        if key in vertex_map:
-            return vertex_map[key]
-        idx = len(vertices)
-        vertices.append([key[0], key[1]])
-        vertex_map[key] = idx
-        return idx
-
-    def add_ring(coords: np.ndarray) -> None:
-        ring = np.asarray(coords, dtype=float)
-        if len(ring) > 1 and np.linalg.norm(ring[0] - ring[-1]) <= 1e-12:
-            ring = ring[:-1]
-        ring_ids = [add_vertex(pt) for pt in ring]
-        for i in range(len(ring_ids)):
-            segments.append([ring_ids[i], ring_ids[(i + 1) % len(ring_ids)]])
-
-    add_ring(np.asarray(piece.exterior.coords, dtype=float))
-    for ring in piece.interiors:
-        ring_coords = np.asarray(ring.coords, dtype=float)
-        add_ring(ring_coords)
-        hole_pt = Polygon(ring_coords).representative_point()
-        holes.append([float(hole_pt.x), float(hole_pt.y)])
-
-    data: Dict[str, np.ndarray] = {
-        "vertices": np.asarray(vertices, dtype=float),
-        "segments": np.asarray(segments, dtype=int),
-    }
-    if holes:
-        data["holes"] = np.asarray(holes, dtype=float)
-    return data
-
-
 def _linework_to_triangle_pslg(
     lines: List["LineString"],
     hole_points: Optional[List[Tuple[float, float]]] = None,
@@ -538,55 +292,6 @@ def _points_constraints_to_triangle_pslg(
     return data
 
 
-def _rings_to_triangle_pslg(
-    outer_ring: np.ndarray,
-    hole_rings: Sequence[np.ndarray],
-    free_points: Optional[np.ndarray] = None,
-) -> Dict[str, np.ndarray]:
-    """Build Triangle PSLG input from explicit outer and hole rings."""
-    vertices: List[List[float]] = []
-    segments: List[List[int]] = []
-    holes: List[List[float]] = []
-    vertex_map: Dict[Tuple[float, float], int] = {}
-
-    def add_vertex(pt: Sequence[float]) -> int:
-        key = (round(float(pt[0]), 12), round(float(pt[1]), 12))
-        if key in vertex_map:
-            return vertex_map[key]
-        idx = len(vertices)
-        vertices.append([key[0], key[1]])
-        vertex_map[key] = idx
-        return idx
-
-    def add_ring(coords: np.ndarray) -> None:
-        ring = np.asarray(coords, dtype=float)
-        if len(ring) > 1 and np.linalg.norm(ring[0] - ring[-1]) <= 1e-12:
-            ring = ring[:-1]
-        ids = [add_vertex(pt) for pt in ring]
-        for i in range(len(ids)):
-            if ids[i] != ids[(i + 1) % len(ids)]:
-                segments.append([ids[i], ids[(i + 1) % len(ids)]])
-
-    add_ring(outer_ring)
-    for ring in hole_rings:
-        add_ring(ring)
-        poly = Polygon(np.asarray(ring, dtype=float))
-        rp = poly.representative_point()
-        holes.append([float(rp.x), float(rp.y)])
-
-    if free_points is not None:
-        for pt in np.asarray(free_points, dtype=float):
-            add_vertex(pt)
-
-    data: Dict[str, np.ndarray] = {
-        "vertices": np.asarray(vertices, dtype=float),
-        "segments": np.asarray(segments, dtype=int),
-    }
-    if holes:
-        data["holes"] = np.asarray(holes, dtype=float)
-    return data
-
-
 def _mesh_edges_from_simplices(simplices: np.ndarray) -> set[Tuple[int, int]]:
     """Return the unique undirected edges of a triangulation."""
     edges: set[Tuple[int, int]] = set()
@@ -650,16 +355,6 @@ def _validate_triangle_boundary(result: Dict[str, np.ndarray], pslg: Dict[str, n
         raise RuntimeError(f"Triangle output does not preserve {len(missing)} boundary segments.")
 
 
-def _point_on_any_segment(point: np.ndarray, vertices: np.ndarray, segments: np.ndarray, tol: float = 1e-9) -> bool:
-    """Return True if point lies on any original PSLG segment."""
-    for seg in np.asarray(segments, dtype=int):
-        a = np.asarray(vertices[int(seg[0])], dtype=float)
-        b = np.asarray(vertices[int(seg[1])], dtype=float)
-        if _point_on_segment_2d(point, a, b, tol=tol):
-            return True
-    return False
-
-
 def _triangle_incenters(triangles: np.ndarray) -> np.ndarray:
     """Return incenters for an array of triangles with shape (n, 3, d)."""
     edge_a = np.linalg.norm(triangles[:, 1] - triangles[:, 2], axis=1)
@@ -675,28 +370,6 @@ def _triangle_incenters(triangles: np.ndarray) -> np.ndarray:
             + edge_c[valid, None] * triangles[valid, 2]
         ) / perimeter[valid, None]
     return incenters
-
-
-def _validate_triangle_boundary_vertices(
-    result: Dict[str, np.ndarray],
-    pslg: Dict[str, np.ndarray],
-    piece: "Polygon",
-    tol: float = 1e-8,
-) -> None:
-    """Verify that all mesh vertices on the boundary lie on original boundary segments."""
-    vertices = np.asarray(result.get("vertices", []), dtype=float)
-    segments = np.asarray(pslg.get("segments", []), dtype=int)
-    if len(vertices) == 0 or len(segments) == 0:
-        raise RuntimeError("Triangle output is incomplete; cannot validate boundary vertices.")
-
-    bad = []
-    for idx, pt in enumerate(vertices):
-        if piece.boundary.distance(Point(float(pt[0]), float(pt[1]))) > tol:
-            continue
-        if not _point_on_any_segment(pt, pslg["vertices"], segments, tol=tol):
-            bad.append((idx, float(pt[0]), float(pt[1])))
-    if bad:
-        raise RuntimeError(f"Triangle output contains {len(bad)} boundary vertices off the original boundary.")
 
 
 def _validate_triangle_domain(result: Dict[str, np.ndarray], piece: "Polygon", tol: float = 1e-8) -> None:
@@ -716,40 +389,6 @@ def _validate_triangle_domain(result: Dict[str, np.ndarray], piece: "Polygon", t
     mismatch = union.symmetric_difference(piece).area
     if mismatch > max(tol, 1e-8 * max(1.0, piece.area)):
         raise RuntimeError(f"Triangle output does not match target domain; mismatch area={mismatch:.6g}.")
-
-
-def _triangulate_polygon_with_triangle(piece: "Polygon", spacing: float) -> List[np.ndarray]:
-    """Generate a quality constrained triangulation with Triangle."""
-    spacing = max(float(spacing), 1e-6)
-    max_area = np.sqrt(3.0) * spacing * spacing / 4.0
-    pslg = _polygon_to_triangle_pslg(piece, spacing)
-
-    result = triangle_lib.triangulate(pslg, f"pq18a{max_area:.12g}e")
-    _validate_triangle_boundary(result, pslg)
-    _validate_triangle_boundary_vertices(result, pslg, piece)
-    _validate_triangle_domain(result, piece)
-
-    vertices = np.asarray(result.get("vertices", []), dtype=float)
-    simplices = np.asarray(result.get("triangles", []), dtype=int)
-    if len(vertices) == 0 or len(simplices) == 0:
-        raise RuntimeError("Triangle returned no triangles for constrained ground mesh.")
-
-    triangles_out: List[np.ndarray] = []
-    for simplex in simplices:
-        tri = vertices[np.asarray(simplex, dtype=int)]
-        poly = Polygon(tri)
-        if poly.area > 1e-12 and piece.covers(poly):
-            triangles_out.append(tri)
-    return triangles_out
-
-
-def _triangulate_polygon_piece(piece: "Polygon", spacing: float) -> List[np.ndarray]:
-    """
-    Triangulate a polygon cell with Triangle using a cleaned PSLG.
-    """
-    if piece.is_empty or piece.area <= 1e-12:
-        return []
-    return _triangulate_polygon_with_triangle(piece, spacing)
 
 
 def _point_on_segment_2d(point: np.ndarray, a: np.ndarray, b: np.ndarray, tol: float = 1e-9) -> bool:
@@ -920,46 +559,6 @@ def _matlab_interior_points(xsize: float, ysize: float, edgelength: float) -> np
     return np.asarray(points, dtype=float) if points else np.empty((0, 2), dtype=float)
 
 
-def _ordered_rectangle_boundary_points(
-    rect: np.ndarray,
-    boundary_points: np.ndarray,
-    tol: float = 1e-9,
-) -> np.ndarray:
-    """Return exact mesh boundary points ordered around an axis-aligned rectangle."""
-    x0 = float(np.min(rect[:, 0]))
-    x1 = float(np.max(rect[:, 0]))
-    y0 = float(np.min(rect[:, 1]))
-    y1 = float(np.max(rect[:, 1]))
-
-    pts = np.asarray(boundary_points, dtype=float)
-    if len(pts) == 0:
-        return np.asarray([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], dtype=float)
-
-    bottom = pts[np.isclose(pts[:, 1], y0, atol=tol)]
-    right = pts[np.isclose(pts[:, 0], x1, atol=tol)]
-    top = pts[np.isclose(pts[:, 1], y1, atol=tol)]
-    left = pts[np.isclose(pts[:, 0], x0, atol=tol)]
-
-    ordered_parts = []
-    if len(bottom):
-        ordered_parts.append(bottom[np.argsort(bottom[:, 0])])
-    if len(right):
-        ordered_parts.append(right[np.argsort(right[:, 1])])
-    if len(top):
-        ordered_parts.append(top[np.argsort(top[:, 0])[::-1]])
-    if len(left):
-        ordered_parts.append(left[np.argsort(left[:, 1])[::-1]])
-
-    ordered = []
-    for part in ordered_parts:
-        for pt in part:
-            if not ordered or np.linalg.norm(pt - ordered[-1]) > tol:
-                ordered.append(pt)
-    if len(ordered) > 1 and np.linalg.norm(ordered[0] - ordered[-1]) <= tol:
-        ordered = ordered[:-1]
-    return np.asarray(ordered, dtype=float)
-
-
 def _structured_quad_mesh(
     p00: np.ndarray,
     p10: np.ndarray,
@@ -1002,13 +601,6 @@ def _structured_quad_mesh(
         faces=np.asarray(faces, dtype=int),
         process=False,
     )
-
-
-def _sample_interval(a: float, b: float, target_spacing: float) -> np.ndarray:
-    """Sample a closed 1D interval with locally uniform spacing."""
-    length = abs(float(b) - float(a))
-    n = max(1, int(np.ceil(length / max(float(target_spacing), 1e-9))))
-    return np.linspace(float(a), float(b), n + 1)
 
 
 def _remove_under_building_ground_faces(
@@ -1289,8 +881,8 @@ def _triangulate_ground(points_xy: np.ndarray, xsize: float, ysize: float) -> "t
         return trimesh.Trimesh(vertices=vertices_3d, faces=simplices, process=False)
 
     # Fallback: build structured grid
-    nx = int(round(xsize / (points_xy[:, 0].ptp() / max(1, len(np.unique(points_xy[:, 0])) - 1))))
-    ny = int(round(ysize / (points_xy[:, 1].ptp() / max(1, len(np.unique(points_xy[:, 1])) - 1))))
+    nx = int(round(xsize / (np.ptp(points_xy[:, 0]) / max(1, len(np.unique(points_xy[:, 0])) - 1))))
+    ny = int(round(ysize / (np.ptp(points_xy[:, 1]) / max(1, len(np.unique(points_xy[:, 1])) - 1))))
     xs = np.linspace(0.0, xsize, nx + 1)
     ys = np.linspace(0.0, ysize, ny + 1)
     vertices = np.array([(x, y, 0.0) for x in xs for y in ys], dtype=float)
@@ -1407,7 +999,6 @@ def create_canyons(
     x_rights[mask_right] += shift
 
     strip_meshes = []
-    footprint_polys = []
     for x0, x1 in zip(x_lefts, x_rights):
         left_wall = _structured_quad_mesh(
             np.array([x0, 0.0, 0.0], dtype=float),
@@ -1434,18 +1025,6 @@ def create_canyons(
             ny_edges,
         )
         strip_meshes.extend([left_wall, right_wall, roof])
-
-        x_samples = np.linspace(x0, x1, nx_edges + 1)
-        y_samples = np.linspace(0.0, ysize, ny_edges + 1)
-        ring_xy = np.vstack(
-            [
-                np.column_stack([x_samples, np.zeros_like(x_samples)]),
-                np.column_stack([np.full_like(y_samples[1:], x1), y_samples[1:]]),
-                np.column_stack([x_samples[-2::-1], np.full_like(x_samples[:-1], ysize)]),
-                np.column_stack([np.full_like(y_samples[-2:0:-1], x0), y_samples[-2:0:-1]]),
-            ]
-        )
-        footprint_polys.append(Polygon(ring_xy))
 
     mesh = trimesh.util.concatenate(strip_meshes) if strip_meshes else trimesh.Trimesh(
         vertices=np.empty((0, 3), dtype=float),
@@ -1543,7 +1122,6 @@ def create_cubes(
         or if geom_option is invalid.
     """
     divisions = int(round(Hx / edgelength))
-    tol = 0.0
 
     opt = geom_option.upper()
     if opt not in {"S", "AC", "SC"}:
@@ -1600,25 +1178,6 @@ def create_cubes(
     else:  # 'S'
         shift = np.array([[xsize / 2.0, ysize / 2.0, 0.0]]) + np.array([0.0, 0.0, Hz / 2.0])
         mesh = _operate_unit_cube([Hx, Hy, Hz], shift, divisions)
-
-    # Apply tiny normal shifts (tol) except -z faces (tol is zero here, kept for parity)
-    if tol != 0.0:
-        normals = mesh.face_normals
-        verts = mesh.vertices.copy()
-        faces = mesh.faces
-        for idx, nrm in enumerate(normals):
-            ids = faces[idx]
-            if np.allclose(nrm, [1, 0, 0]):
-                verts[ids] += tol * np.array([1, 0, 0])
-            elif np.allclose(nrm, [-1, 0, 0]):
-                verts[ids] += tol * np.array([-1, 0, 0])
-            elif np.allclose(nrm, [0, 1, 0]):
-                verts[ids] += tol * np.array([0, 1, 0])
-            elif np.allclose(nrm, [0, -1, 0]):
-                verts[ids] += tol * np.array([0, -1, 0])
-            elif np.allclose(nrm, [0, 0, 1]):
-                verts[ids] += tol * np.array([0, 0, 1])
-        mesh = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
 
     ground, _ = _generate_ground_matlab_style(mesh, xsize, ysize, edgelength)
     return UDGeom(stl=ground)
@@ -1720,7 +1279,7 @@ def plot_ground_generation_step1(debug: Dict[str, Any], show: bool = True):
     try:
         import plotly.graph_objects as go
     except ImportError as exc:
-        raise ImportError("plotly is required for this visualization. Install with: pip install plotly") from exc
+        raise DependencyError("plotly is required for this visualization. Install with: pip install plotly") from exc
 
     def _iter_polygons(geom):
         if geom is None or getattr(geom, "is_empty", True):

@@ -58,7 +58,9 @@ contains
     implicit none
     integer, intent (out) :: ncid,nrec
     integer, optional, intent (in) :: n1, n2, n3, ns, nfcts, nlyrs
-    character (len=40), intent (in) :: fname
+    ! Assumed length: every caller passes a character(80) name, so a fixed
+    ! len=40 here silently truncated any output filename over 40 characters.
+    character (len=*), intent (in) :: fname
 
     character (len=12):: date='',time=''
     integer :: iret,varid,ncall,RecordDimID
@@ -72,8 +74,8 @@ contains
 
       call date_and_time(date,time)
       !iret = nf90_create(fname,NF90_SHARE,ncid)
-      iret = nf90_create(fname,IOR(NF90_NETCDF4, NF90_SHARE),ncid)
-      iret = nf90_put_att(ncid,NF90_GLOBAL,'title',fname)
+      iret = nf90_create(trim(fname),IOR(NF90_NETCDF4, NF90_SHARE),ncid)
+      iret = nf90_put_att(ncid,NF90_GLOBAL,'title',trim(fname))
       iret = nf90_put_att(ncid,NF90_GLOBAL,'history','Created on '//trim(date)//' at '//trim(time))
       iret = nf90_put_att(ncid, NF90_GLOBAL, 'Source',trim(version))
       iret = nf90_put_att(ncid, NF90_GLOBAL, 'Author',trim(author))
@@ -343,13 +345,11 @@ contains
    if (status /= nf90_noerr) call nchandle_error(status)
  end subroutine exitstat_nc
   subroutine writestat_dims_nc(ncid)
-    use modglobal, only : xf,xh,yf,yh,dy,zf,zh,jmax,imax,kb,dxh
+    use modglobal, only : xf,xh,yf,yh,zf,zh,jmax,imax
     implicit none
     integer, intent(in) :: ncid
     integer             :: i=0,iret,length,varid
-    integer :: dx
 
-    dx = dxh(1) ! Assume equidistant grid
     !write(*,*) 'writestat_dims_nc'
     iret = nf90_inq_varid(ncid, 'xt', VarID)
     if (iret==0) iret=nf90_inquire_dimension(ncid, xtID, len=length)

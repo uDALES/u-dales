@@ -32,11 +32,69 @@
 
 set -e
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 usage() {
 	echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/write_inputs.sh <-m|-p> <PATH_TO_CASE> [start]"
 	echo "   -m: run MATLAB preprocessing route"
 	echo "   -p: run Python preprocessing route"
 	echo "   start (optional): (c)ompute node or (l)ogin node; default is (l) which runs on the current node"
+}
+
+default_nompthreads=8
+
+extract_nompthreads() {
+	local namoptions_file=$1
+	local occurrence_count
+	local nompthreads_line
+	local nompthreads_value
+
+	occurrence_count=$(grep -io "nompthreads" "$namoptions_file" | wc -l)
+	occurrence_count=${occurrence_count//[[:space:]]/}
+
+	if [ "$occurrence_count" -eq 0 ]; then
+		return 0
+	fi
+	if [ "$occurrence_count" -gt 1 ]; then
+		echo "MULTIPLE"
+		return 0
+	fi
+
+	nompthreads_line=$(grep -i "nompthreads" "$namoptions_file")
+	if [[ "$nompthreads_line" != *"="* ]]; then
+		echo "INVALID"
+		return 0
+	fi
+
+	nompthreads_value=${nompthreads_line#*=}
+	nompthreads_value=${nompthreads_value%%!*}
+	nompthreads_value=${nompthreads_value%%,*}
+	nompthreads_value=${nompthreads_value%%/*}
+	nompthreads_value="${nompthreads_value#"${nompthreads_value%%[![:space:]]*}"}"
+	nompthreads_value="${nompthreads_value%"${nompthreads_value##*[![:space:]]}"}"
+
+	if [[ "$nompthreads_value" =~ ^[0-9]+$ ]] && [ "$nompthreads_value" -gt 0 ]; then
+		printf "%d\n" "$nompthreads_value"
+	else
+		echo "INVALID"
+	fi
+}
+
+source_view3d_config() {
+	local config_file=$1
+	local status
+
+	set -a
+	if source "$config_file"; then
+		set +a
+		return 0
+	else
+		status=$?
+		set +a
+		echo "Failed to source View3D config: $config_file" >&2
+		echo "Check the file syntax and required environment variables." >&2
+		return "$status"
+	fi
 }
 
 if (( $# < 2 ))
@@ -68,30 +126,55 @@ esac
 
 # go to experiment directory
 pushd "$case_path"
-	inputdir=$(pwd)
+inputdir=$(pwd)
 
-	## set experiment number via path
-	iexpnr="${inputdir: -3}"
+## set experiment number via path
+iexpnr="${inputdir: -3}"
 
-	## read in additional variables
-	if [ -f config.sh ]; then
-   	 source config.sh
-	else
-	 echo "config.sh must be set inside $inputdir"
-     exit 1
-	fi
+## read in additional variables
+if [ -f config.sh ]; then
+  source config.sh
+fi
 
-	## check if required variables are set
-	if [ -z "${DA_TOOLSDIR:-}" ]; then
-	    echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
-	    exit 1
-	fi;
-	if [ -z "${DA_EXPDIR:-}" ]; then
-		echo "Experiment directory DA_EXPDIR must be set $inputdir/config.sh"
+export DA_TOOLSDIR="${DA_TOOLSDIR:-$script_dir}"
+export DA_EXPDIR="${DA_EXPDIR:-$(cd "$inputdir/.." && pwd)}"
+
+namoptions_file="$inputdir/namoptions.$iexpnr"
+if [ ! -f "$namoptions_file" ]; then
+	echo "Namelist file not found: $namoptions_file"
+	exit 1
+fi
+
+nompthreads=$(extract_nompthreads "$namoptions_file")
+case "$nompthreads" in
+	MULTIPLE)
+		echo "Multiple nompthreads occurrences found in $namoptions_file"
+		echo "Set nompthreads only once."
 		exit 1
-	fi;
+		;;
+	INVALID)
+		echo "Invalid nompthreads value in $namoptions_file"
+		echo "nompthreads must be a positive integer."
+		exit 1
+		;;
+esac
+export PREPROC_NCPU="${nompthreads:-$default_nompthreads}"
+export PREPROC_WALLTIME="${PREPROC_WALLTIME:-24:00:00}"
+export PREPROC_MEM="${PREPROC_MEM:-128gb}"
+
+if [[ ! "$PREPROC_MEM" =~ ^[0-9]+gb$ ]]; then
+	echo "Memory requirement PREPROC_MEM must be set like 128gb"
+	exit 1
+fi
 
 popd
+
+export VIEW3D_CONFIG="${VIEW3D_CONFIG:-$DA_TOOLSDIR/view3d_config.sh}"
+if [ ! -f "$VIEW3D_CONFIG" ]; then
+	echo "View3D config file not found: $VIEW3D_CONFIG" >&2
+	exit 1
+fi
+source_view3d_config "$VIEW3D_CONFIG" || exit 1
 
 if [ "$route" == "python" ]; then
 	python_exe="$DA_TOOLSDIR/python/.venv/bin/python"
@@ -113,8 +196,8 @@ if [ "$start" == "c" ]; then
 ###### RUN SCRIPT through HPC job script
 cat <<EOF > pre-job.$iexpnr
 #!/bin/bash
-#PBS -l walltime=24:00:00
-#PBS -l select=1:ncpus=8:mem=128gb
+#PBS -l walltime=$PREPROC_WALLTIME
+#PBS -l select=1:ncpus=$PREPROC_NCPU:mem=${PREPROC_MEM}
 
 module load tools/prod
 module load GCC/14.2.0
@@ -127,6 +210,30 @@ export DA_EXPDIR="$DA_EXPDIR"
 export MATLAB_USE_USERWORK=0
 export PYTHONUNBUFFERED=1
 export GFORTRAN_UNBUFFERED_PRECONNECTED=1
+export PREPROC_NCPU="$PREPROC_NCPU"
+export PREPROC_MEM="$PREPROC_MEM"
+export VIEW3D_CONFIG="$VIEW3D_CONFIG"
+source_view3d_config() {
+	local config_file=\$1
+	local status
+
+	set -a
+	if source "\$config_file"; then
+		set +a
+		return 0
+	else
+		status=\$?
+		set +a
+		echo "Failed to source View3D config: \$config_file" >&2
+		echo "Check the file syntax and required environment variables." >&2
+		return "\$status"
+	fi
+}
+if [ ! -f "$VIEW3D_CONFIG" ]; then
+	echo "View3D config file not found: $VIEW3D_CONFIG" >&2
+	exit 1
+fi
+source_view3d_config "$VIEW3D_CONFIG" || exit 1
 
 EOF
 

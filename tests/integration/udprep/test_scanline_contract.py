@@ -35,7 +35,7 @@ class TestScanlineContract(unittest.TestCase):
             raise unittest.SkipTest("; ".join(missing))
         cls.case_dir = REPO_ROOT / "tests" / "cases" / "064"
         cls.sim = UDBase("064", cls.case_dir, load_geometry=True)
-        cls.solver = DirectShortwaveSolver(cls.sim, method="scanline", ray_density=12.0, ray_jitter=0.0)
+        cls.solver = DirectShortwaveSolver(cls.sim, method="scanline_f2py", ray_density=12.0, ray_jitter=0.0)
         cls.nsun = np.array([0.0, 0.0, 1.0], dtype=float)
 
     def test_scanline_inputs_follow_matlab_contract(self) -> None:

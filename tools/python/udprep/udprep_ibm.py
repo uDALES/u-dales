@@ -16,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from .udprep import Section, SectionSpec
+from ._section import Section, SectionSpec
 
 IBM_FORTRAN_DIR = Path(__file__).resolve().parents[1] / "fortran" / "ibm_preproc"
 PREBUILT_IBM_EXE = Path(__file__).resolve().parents[2] / "preprocessing" / "build" / "bin" / "IBM_preproc"
@@ -132,10 +132,26 @@ class IBMSection(Section):
                 f.write("  ".join(fields) + "\n")
 
     def write_facets(self) -> None:
-        """Write facets.inp file from STL and facet types."""
+        """Write facets.inp from the STL and facet types.
+
+        An existing facets.inp is treated as authored input and is NOT
+        overwritten (mirrors the factypes.inp protection), so hand-assigned
+        materials are never destroyed by a re-run. Its facet types are loaded so
+        downstream steps still see the correct state. Delete facets.inp to force
+        regeneration.
+        """
         sim = self._require_sim()
         stl = sim.geom.stl
         path = Path(sim.path) / f"facets.inp.{sim.expnr}"
+
+        if path.exists():
+            self._warn_not_overwriting(path)
+            sim.facet_types = np.atleast_1d(
+                np.loadtxt(path, skiprows=1, usecols=0, dtype=int)
+            ).reshape(-1)
+            sim.nfcts = len(stl.faces)
+            return
+
         if self.read_types:
             if not str(self.types_path).strip():
                 raise ValueError("types_path must be specified if read_types is true in namoptions")
@@ -259,7 +275,9 @@ class IBMSection(Section):
             if unused_sources:
                 shutil.copy2(unused_sources[0], Path(sim.path) / f"facets_unused.{sim.expnr}")
         for base in ("facetarea.inp", "facets.inp", "factypes.inp"):
-            sources = list(geom_path.glob(f"{base}.*"))
+            # Sort so that, with several matching variants, the copied file is
+            # deterministic rather than filesystem-glob order (P24).
+            sources = sorted(geom_path.glob(f"{base}.*"))
             if not sources:
                 raise FileNotFoundError(f"No files matching '{base}.*' found in {geom_path}")
             shutil.copy2(sources[0], Path(sim.path) / f"{base}.{sim.expnr}")
@@ -275,12 +293,41 @@ class IBMSection(Section):
             self._write_ibm_input_files()
             self._run_ibm_via_legacy()
             self._update_counts_from_info_fort()
+            # These generically-named intermediates are produced only by the
+            # legacy path (_write_ibm_input_files / the legacy executable), so
+            # only clean them up there. Deleting them unconditionally would
+            # clobber unrelated user files of the same name on the f2py path,
+            # which never creates them (P23).
+            for name in (
+                "inmypoly_inp_info.txt",
+                "faces.txt",
+                "vertices.txt",
+                "zfgrid.txt",
+                "zhgrid.txt",
+                "info_fort.txt",
+            ):
+                path = Path(sim.path) / name
+                if path.exists():
+                    path.unlink()
         else:
             raise ValueError(f"Unknown IBM backend: {backend}")
-        for name in ("inmypoly_inp_info.txt", "faces.txt", "vertices.txt", "zfgrid.txt", "zhgrid.txt", "info_fort.txt"):
-            path = Path(sim.path) / name
-            if path.exists():
-                path.unlink()
+        self._reload_ibm_outputs()
+
+    def _reload_ibm_outputs(self) -> None:
+        """Reload the solid masks and facet sections just written by ``run_ibm``.
+
+        ``UDBase`` loads ``S{u,v,w,c}`` and ``facsec`` once at construction. On a
+        first-ever preprocessing run those files do not yet exist, so ``sim``
+        holds empty masks/sections. ``run_ibm`` writes the real ``solid_*.txt``
+        and ``facet_sections_*.txt`` files but does not refresh ``sim``; the
+        downstream radiation step would then trace an empty solid volume or raise
+        "Facet sections not available". Re-invoke the existing UDBase loaders so
+        the fresh outputs are in memory, for both backends and for callers that
+        invoke ``prep.ibm.run_ibm()`` directly.
+        """
+        sim = self._require_sim()
+        sim._load_solid_masks()
+        sim._load_facet_sections()
 
     def _run_ibm_via_f2py(self) -> np.ndarray:
         try:

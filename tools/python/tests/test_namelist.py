@@ -4,17 +4,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import shutil
 
-PYTHON_DIR = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PYTHON_DIR))
-
 from udprep.udprep import Section  # noqa: E402
-
 
 class DummySim:
     def __init__(self, expnr: str, path: Path):
         self.expnr = expnr
         self.path = path
-
 
 class DummySection(Section):
     @staticmethod
@@ -23,7 +18,6 @@ class DummySection(Section):
             "ntrees": "TREES",
             "newvar": "TREES",
         }
-
 
 def _get_block(lines, name):
     name_lower = name.lower()
@@ -43,7 +37,6 @@ def _get_block(lines, name):
     if end is None:
         return None
     return lines[start : end + 1]
-
 
 class TestNamelistUpdate(unittest.TestCase):
     def setUp(self):
@@ -83,7 +76,6 @@ class TestNamelistUpdate(unittest.TestCase):
         self.assertIsNotNone(block)
         self.assertTrue(block[0].strip().startswith("&INP"))
         self.assertTrue(any(line.strip().lower().startswith("foo") for line in block))
-
 
 if __name__ == "__main__":
     unittest.main()

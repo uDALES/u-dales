@@ -61,31 +61,30 @@ module modstartup
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
                                     nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
-                                    linoutflow, lper2inout, libm, lconservativeibm, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+                                    lper2inout, libm, lconservativeibm, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                                     uflowrate, vflowrate, lstoreplane, iplane, &
-                                    lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, &
-                                    lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,lzerogradtop,&
+                                    lreadmean, inletav, lreadminl, Uinf, Vinf, linletRA, &
+                                    lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,&
                                     lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice,nkslice,nislice,njslice, &
                                     lprobedump,nprobe, &
-                                    lzerogradtopscal, lbuoyancy, ltempeq, &
+                                    lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
-                                    thlsrc, ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
+                                    thlsrc, ifixuinf, lvinf, tscale,  &
                                     lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,flrT, lperiodicEBcorr, fraction,sinkbase,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lvfsparse,nnz,lfacTlyrs, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
-                                    BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
                                     lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
-      use modfields,         only : initfields, dpdx, ncname
+      use modfields,         only : initfields, dpdx
       use modpois,           only : initpois
       use modboundary,       only : initboundary, ksp
-      use modthermodynamics, only : initthermodynamics, lqlnr, chi_half
+      use modthermodynamics, only : initthermodynamics, lqlnr
       use modsubgrid,        only : initsubgrid
-      use modmpi,            only : comm3d, myid, myidx, myidy, cmyid, cmyidx, cmyidy, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy, nbreast, nbrwest, nbrnorth, nbrsouth
+      use modmpi,            only : comm3d, myid, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy
       use modinlet,          only : initinlet
       use modinletdata,      only : di, dr, di_test, dti, iangledeg, iangle
       use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
@@ -101,8 +100,6 @@ module modstartup
 
       implicit none
       integer :: ierr
-      logical, dimension(3) :: periodic_bc
-      integer, dimension(2) :: myids
 
       !declare namelists
 
@@ -477,8 +474,8 @@ module modstartup
       call MPI_BCAST(lmintdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(ltkedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing tke budget files
       call MPI_BCAST(iplane, 1, MPI_INTEGER, 0, comm3d, mpierr) ! J.Tomas: ib+iplane is the i-plane that is stored if lstoreplane is .true.
-      call MPI_BCAST(startfile, 50, MPI_CHARACTER, 0, comm3d, mpierr)
-      call MPI_BCAST(author, 80, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(startfile, len(startfile), MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(author, len(author), MPI_CHARACTER, 0, comm3d, mpierr)
       call MPI_BCAST(runtime, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(trestart, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tinstantstart, 1, MY_REAL, 0, comm3d, mpierr)
@@ -494,9 +491,9 @@ module modstartup
       call MPI_BCAST(nsv, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nscasrc,1,MPI_INTEGER,0,comm3d,mpierr)
       call MPI_BCAST(nscasrcl,1,MPI_INTEGER,0,comm3d,mpierr)
-      call MPI_BCAST(fieldvars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
-      call MPI_BCAST(slicevars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
-      call MPI_BCAST(probevars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(fieldvars, len(fieldvars), MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(slicevars, len(slicevars), MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(probevars, len(probevars), MPI_CHARACTER, 0, comm3d, mpierr)
       !call MPI_BCAST(nstat      ,1,MPI_INTEGER,0,comm3d,mpierr) !tg3315
       !call MPI_BCAST(ncstat     ,80,MPI_CHARACTER,0,comm3d,mpierr) !tg3315
       call MPI_BCAST(ifixuinf, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -751,26 +748,24 @@ module modstartup
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only : wtsurf, wqsurf, qts, ps
-      use modglobal,   only : itot,ktot,jtot,ylen,xlen,ib,ie,dtmax,runtime, &
+      use modsurfdata, only : ps
+      use modglobal,   only : itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
                               startfile,lwarmstart,lstratstart,lmoist, nsv, &
-                              BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCys, BCtopm, BCbotm, &
+                              BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCtopm, BCbotm, &
                               BCbotm_wfneutral, BCtopm_pressure, &
                               BCxm_periodic, BCxT_periodic, BCxq_periodic, &
                               BCxm_profile, BCxT_profile, BCxq_profile, &
                               BCxm_driver, BCxT_driver, BCxq_driver, BCxs_driver, &
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
-                              iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
-                              ipoiss,POISS_FFT2D,POISS_FFT3D,POISS_CYC,&
-                              lydump,lytdump,luoutflowr,lvoutflowr,&
+                              linoutflow,ltempeq,iwalltemp,iwallmom,&
+                              ipoiss,POISS_FFT2D,&
+                              luoutflowr,lvoutflowr,&
                               lhdriver,lqdriver,lsdriver,ltrees,lEB,itree_mode,&
                               TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
       use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
       use modglobal,   only : idriver
       implicit none
-      real :: d(1:itot-1)
-      logical :: inequi
 
       if (mod(jtot, nprocy) /= 0) then
          if (myid == 0) then
@@ -968,11 +963,6 @@ module modstartup
          end if
        end select
 
-      !  if ((lydump .or. lytdump) .and. (nprocx > 1)) then
-      !     write(*, *) "Error: y-averaged statistics not currently implemented for nprocx > 1."
-      !     stop 1
-      !  end if
-
        if ((luoutflowr) .and. (nprocx > 1)) then
           write(*, *) "Error: constant x outflow only possible for nprocx = 1."
           stop 1
@@ -988,36 +978,31 @@ module modstartup
    subroutine readinitfiles
       use modfields, only:u0, v0, w0, um, vm, wm, thlm, thl0, thl0h, qtm, qt0, qt0h, uinit, vinit, &
          ql0, ql0h, thv0h, sv0, svm, e12m, e120, &
-         dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, &
          dqtdxls, dqtdyls, dqtdtls, dpdx, dpdxl, dpdyl, &
          wfls, whls, ug, vg, pgx, pgy, uprof, vprof, thlprof, qtprof, e12prof, svprof, &
-         v0av, u0av, qt0av, ql0av, thl0av, qt0av, sv0av, exnf, exnh, presf, presh, rhof, &
-         thlpcar, uav, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, u0h, thl0c
+         v0av, u0av, qt0av, thl0av, qt0av, sv0av, &
+         thlpcar, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, thl0c
             use modglobal,         only : ib,ie,ih,ihc,jb,je,jh,jhc,kb,ke,kh,khc,kmax,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
-         zf, zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, Vinf, dy, &
-         rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
-         ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
-         uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
-         tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
+         zh, dzf, dzh, rv, rd, cp, rlv, om23_gs, jgb, jge, Uinf, &
+         e12min, dzh, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
+         ladaptive, tnextrestart, linoutflow, lper2inout, iinletgen, lreadminl, &
+         ltempeq, prandtlmoli, &
+         startfile, lprofforc,&
+         idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,&
          tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
-      use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
-         thls, thvs, ps, qts, svs, sv_top
+      use modsurfdata, only:thls, sv_top
       ! use modsurface,        only : surface,dthldz
       use modboundary, only:boundary, tqaver, halos
-      use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm, myidx, myidy
+      use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
-         Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui, iangle,&
-         u0driver,umdriver,v0driver,vmdriver,w0driver,e120driver,tdriver,thl0driver,qt0driver,storetdriver,&
-         storeu0driver,storeumdriver,storev0driver,storew0driver,storee120driver,storethl0driver,storeqt0driver,&
-         nstepreaddriver
+         Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui
       use modinlet, only:readinletfile
       use moddriver, only: readdriverfile,initdriver,drivergen,readdriverfile_chunk
-      use decomp_2d, only : exchange_halo_z, update_halo, decomp_main
+      use decomp_2d, only : exchange_halo_z, update_halo
 
       integer i, j, k, n
 
@@ -1030,10 +1015,8 @@ module modstartup
       real, dimension(kb:ke) :: taverager ! recycle plane
       real, dimension(kb:ke) :: taveragei ! inlet plane
       real, dimension(kb:ke + 1) :: waverage
-      real, dimension(kb:ke + 1) :: uprofrot
-      real, dimension(kb:ke + 1) :: vprofrot
       real, dimension(kb:ke+kh)  :: u_init, v_init, thl_init, qt_init
-      real tv, ran, ran1
+      real ran, ran1
 
       character(80) chmess
 
@@ -1127,11 +1110,11 @@ module modstartup
 
          thvh = 0.
          ! call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) ! redefine halflevel thv using calculated thv
-         call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+         call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
          ! thvh = thvh/rslabs
 
          thvf = 0.0
-         call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+         call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
          ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
          ! thvf = thvf/rslabs
 
@@ -1543,7 +1526,7 @@ module modstartup
               ! call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
               ! uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
 
-              ! call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
+              ! call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
               ! do k=kb,ke
               !   uaverage(k) = uaverage(k)*dzf(k)
               ! end do
@@ -1558,9 +1541,7 @@ module modstartup
                if (runtime < tdriverstart) then
                   if (myid==0) write(*,*) 'Warning! No driver files will be written as runtime < tdriverstart.'
                else
-                  if (trestart /= (tdriverstart + (driverstore-1)*dtdriver)) then
-                     trestart = (tdriverstart + (driverstore-1)*dtdriver)
-                  end if
+                  trestart = (tdriverstart + (driverstore-1)*dtdriver)
                   if (myid==0) then
                      write(*,'(A,F15.5)') 'Warning! for driver simulation, trestart gets set as &
                                            (tdriverstart + (driverstore-1)*dtdriver), ignoring the &
@@ -1665,10 +1646,10 @@ module modstartup
             call readrestartfiles
 
             ! average initial profiles
-            call avexy_ibm(u_init(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-            call avexy_ibm(v_init(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-            call avexy_ibm(thl_init(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-            call avexy_ibm(qt_init(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(u_init(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+            call avexy_ibm(v_init(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+            call avexy_ibm(thl_init(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(qt_init(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
             if (myid == 0) then
                ! Read profiles from file (potentially for forcing)
@@ -1749,9 +1730,7 @@ module modstartup
 
                   tdriverstart_cold = tdriverstart
                   tdriverstart = timee
-                  if (trestart /= (driverstore-1)*dtdriver) then
-                     trestart = (driverstore-1)*dtdriver
-                  end if
+                  trestart = (driverstore-1)*dtdriver
 
                   if (myid==0) then
                      write(*,'(A,F15.5)') "Warning! during warmstart of driver simulat ion, tdriverstart &
@@ -1767,9 +1746,7 @@ module modstartup
                   end if
 
                else ! if (timee<tdriverstart)
-                  if (trestart /= (tdriverstart + (driverstore-1)*dtdriver - btime)) then
-                     trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
-                  end if
+                  trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
                   if (myid==0) then
                      write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart gets set as &
                                            (tdriverstart + (driverstore-1)*dtdriver - btime), ignoring the &
@@ -1815,11 +1792,11 @@ module modstartup
 
             thvh = 0.
             ! call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) ! redefine halflevel thv using calculated thv
-            call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+            call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
             ! thvh = thvh/rslabs
 
             thvf = 0.0
-            call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
             ! thvf = thvf/rslabs
 
@@ -1958,7 +1935,7 @@ module modstartup
 
               !call slabsum(uaverage,kb,ke,u0,ib-1,ie+1,jb-1,je+1,kb-1,ke+1,ib,ie,jb,je,kb,ke)
               !uaverage = uaverage / ((ie-ib+1)*(jge-jgb+1))  ! this gives the i-j-averaged velocity (only correct for equidistant grid?)
-              ! call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
+              ! call avexy_ibm(uaverage(kb:ke),u0(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke),IIus(kb:ke),.false.)
               ! do k=kb,ke
               !   uaverage(k) = uaverage(k)*dzf(k)
               ! end do
@@ -2080,16 +2057,16 @@ module modstartup
             sv0av = 0.
 
             ! call slabsum(u0av  ,kb,ke+kh,u0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(u0av(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+            call avexy_ibm(u0av(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
             ! call slabsum(v0av  ,kb,ke+kh,v0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(v0av(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+            call avexy_ibm(v0av(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
             ! call slabsum(thl0av,kb,ke+kh,thl0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             ! call slabsum(qt0av,kb,ke+kh,qt0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             do n = 1, nsv
                ! call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-               call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
+               call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
             end do
 
             ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile
@@ -2212,15 +2189,14 @@ module modstartup
 
    subroutine readrestartfiles
 
-      use modsurfdata, only:ustar, thlflux, qtflux, svflux, dudz, dvdz, dthldz, dqtdz, ps, thls, qts, thvs, oblav, &
-         wtsurf
-      use modfields, only:u0, v0, w0, thl0, qt0, ql0, ql0h, qtav, qlav, e120, dthvdz, presf, presh, sv0, mindist, wall, &
-         uav, vav, wav, uuav, vvav, wwav, uvav, uwav, vwav, svav, thlav, thl2av, sv2av, pres0, svm, &
+      use modsurfdata, only:thls
+      use modfields, only:u0, v0, w0, thl0, qt0, ql0, ql0h, qtav, qlav, e120, sv0, mindist, wall, &
+         uav, vav, wav, uuav, vvav, wwav, uvav, uwav, vwav, svav, thlav, thl2av, sv2av, pres0, &
          svprof, viscratioav, thluav, thlvav, thlwav, svuav, svvav, svwav, presav, &
          uusgsav, vvsgsav, wwsgsav, uwsgsav, thlusgsav, thlwsgsav, svusgsav, svwsgsav, tkesgsav, &
          strain2av, nusgsav
-      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, dtheta, dqt, dsv, startfile, timee, totavtime, runavtime, &
-         iexpnr, ntimee, rk3step, ifinput, nsv, runtime, dt, cexpnr, lreadmean, lreadminl, &
+      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, startfile, timee, totavtime, &
+         ifinput, nsv, dt, cexpnr, lreadmean, lreadminl, &
          totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli
       use modmpi, only:cmyid, cmyidx, cmyidy, myid
       use modsubgriddata, only:ekm
@@ -2236,7 +2212,8 @@ module modstartup
       real, dimension(kbin:kein)          ::  Tinlin
       real, dimension(kbin:kein)          ::  Trecin
       real, dimension(kbin:kein + 1)        ::  Wrecin
-      character(50) :: name, name2, name4
+      character(len(startfile)) :: name
+      character(50) :: name2, name4
       real dummy
       integer i, j, k, n
       !********************************************************************

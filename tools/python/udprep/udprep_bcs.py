@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from .udprep import Section, SectionSpec
+from ._section import Section, SectionSpec
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("bcs", {})
 FIELDS: List[str] = list(DEFAULTS.keys())

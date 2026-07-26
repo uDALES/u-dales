@@ -11,8 +11,9 @@ import numpy as np
 from scipy.optimize import brentq
 import warnings
 
-from .udprep import Section, SectionSpec
+from ._section import Section, SectionSpec
 
+from exceptions import ConfigurationError
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("grid", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
 
@@ -175,14 +176,43 @@ class GridSection(Section):
         linear_dz = self.hlin / il if il > 0 else self.dzlin
         xi = np.arange(0, ir + 1, dtype=float) / ir
 
-        while True:
+        # The stretch transforms are 0/0 -> NaN at gf == 0 (e.g. exp:
+        # (e^0-1)/(e^0-1)), so gf must stay strictly positive. Without a floor the
+        # decrement loop could reach exactly 0.0, produce a NaN grid, and — because
+        # NaN < linear_dz is False — break and write "nan" heights into
+        # prof.inp/lscale.inp with no error. Guard with a positive floor and fail
+        # loudly if no admissible stretch factor exists.
+        gf_floor = 1.0e-6
+        gf_step = 0.01
+        fitted = False
+        while gf > gf_floor:
             stretched = zm[il] + (self.zsize - zm[il]) * transform(gf, xi)
             zm[il:] = stretched
             if (zm[il + 1] - zm[il]) < linear_dz:
-                gf -= 0.01
+                gf -= gf_step
                 continue
             self._warn_large_top_spacing(np.diff(zm), linear_dz)
+            fitted = True
             break
+
+        if not fitted:
+            raise ConfigurationError(
+                "Unable to fit a stretched z-grid: the stretch factor decayed to "
+                f"gf<={gf_floor:g} (starting from stretchconst={self.stretchconst}) "
+                "without producing a near-wall stretched spacing at least as large "
+                f"as the linear spacing ({linear_dz:g} m). The domain is too shallow "
+                f"for the requested linear region: (zsize - hlin)/ir = "
+                f"{(self.zsize - zm[il]) / ir:g} m < {linear_dz:g} m. Increase zsize, "
+                "reduce hlin or dzlin, or lower ktot."
+            )
+
+        # Cheap invariant: a valid face grid must be finite and strictly increasing.
+        if not np.all(np.isfinite(zm)) or np.any(np.diff(zm) <= 0.0):
+            raise ConfigurationError(
+                "Stretched z-grid fitting produced a non-finite or non-monotonic "
+                f"face grid (zm={zm!r}). Check zsize, hlin, dzlin, ktot, and "
+                "stretchconst in namoptions."
+            )
 
         self._set_vertical_grid_from_faces(zm)
 

@@ -214,14 +214,14 @@ module modstatsdump
   !> tg3315 still under going work to be completed
   subroutine tkestatsdump
 
-  use modfields,        only : u0,v0,w0,thl0,uav,vav,wav,uuav,vvav,wwav,uvav,uwav,vwav,thlav,pres0,&
+  use modfields,        only : uav,vav,wav,uuav,vvav,wwav,uvav,uwav,vwav,&
                                upupav,vpvpav,wpwpav,upvpav,upwpav,vpwpav,thlpwpav,presav,&
-                               strain2av,disssgsav,t_vav,tvmx,tvmy,tvmz,tsgsmx1,tsgsmx2,tsgsmy1,tsgsmy2,tsgsmz1,t_sgsav,nusgsav,&
+                               strain2av,disssgsav,t_vav,tvmx,tvmy,tvmz,tsgsmx1,tsgsmx2,tsgsmy1,tsgsmy2,t_sgsav,nusgsav,&
                                tpm,t_pav,ttmx,ttmy,ttmz,t_tav,p_bav,d_sgsav,p_tav,tkeadv,tsgsmz1,tsgsmz2,t_t,t_v,t_p,t_sgs,d_sgs,&
                                p_b,p_t,adv,IIc,IIcs
-  use modglobal,        only : ib,ie,ih,jb,je,jgb,jge,dy,jh,ke,kb,kh,rk3step,timee,cexpnr,tsample,tstatsdump,jtot,imax,dzf,&
-                               dzf,dzfi,dzhi,dxf,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
-  use modmpi,           only : myid,cmyid,my_real,mpi_sum,avey_ibm,mpierr,comm3d,excjs,avexy_ibm
+  use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,&
+                               dzfi,dzhi,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
+  use modmpi,           only : avexy_ibm !, excjs
   use modsurfdata,      only : thls
   use decomp_2d,        only : exchange_halo_z
   implicit none
@@ -236,7 +236,6 @@ module modstatsdump
 
   integer i,j,k,ip,im,jp,jm,kp,km
   real strainav2
-  real dummy
 
     ! Tvav = (Tvm - <ui>*d/dxj(<Sij>)  ) + 2*nu*<Sij'Sij'>
     ! Tvm = Tvmx + Tvmy + Tvmz -> therefore: subtraction, then interpolation,
@@ -549,14 +548,22 @@ module modstatsdump
       end do
 
     ! need updating tg3315
-    call avexy_ibm(p_b(kb:ke+kh),p_bav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(t_p(kb:ke+kh),t_pav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(adv(kb:ke+kh),tkeadv(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(t_t(kb:ke+kh),t_tav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(t_sgs(kb:ke+kh),t_sgsav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(p_t(kb:ke+kh),p_tav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-    call avexy_ibm(d_sgs(kb:ke+kh),d_sgsav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
-     call avexy_ibm(t_v(kb:ke+kh),t_vav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc,IIcs,.true.)
+    call avexy_ibm(p_b(kb:ke+kh),p_bav(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,&
+                   IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.true.)
+    call avexy_ibm(t_p(kb:ke+kh),t_pav(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,&
+                   IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.true.)
+    call avexy_ibm(adv(kb:ke+kh),tkeadv(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,&
+                   IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.true.)
+    call avexy_ibm(t_t(kb:ke+kh),t_tav(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,&
+                   IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.true.)
+    call avexy_ibm(t_sgs(kb:ke+kh),t_sgsav(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,&
+                   IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.true.)
+    call avexy_ibm(p_t(kb:ke+kh),p_tav(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,&
+                   IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.true.)
+    call avexy_ibm(d_sgs(kb:ke+kh),d_sgsav(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,&
+                   IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.true.)
+    call avexy_ibm(t_v(kb:ke+kh),t_vav(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,&
+                   IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.true.)
 
    end subroutine tkestatsdump
 
@@ -565,7 +572,7 @@ module modstatsdump
   !------------------------
 
   subroutine exitstatsdump
-    use modstat_nc, only : exitstat_nc
+    ! use modstat_nc, only : exitstat_nc
     implicit none
     ! if (ltkedump) then
     !   call exitstat_nc(ncidtke)

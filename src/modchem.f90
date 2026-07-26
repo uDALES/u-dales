@@ -27,8 +27,8 @@ save
 
 contains
     subroutine chem
-    use modglobal,  only : lchem,k1,JNO2,dt,rk3step,ib,ie,ihc,ih,jb,je,jhc,jh,kb,ke,khc,kh
-    use modfields,  only : svp,svm,sv0,IIc
+    use modglobal,  only : lchem,k1,JNO2,dt,rk3step,ib,ie,ihc,jb,je,jhc,kb,ke,khc
+    use modfields,  only : sv0,IIc
     implicit none
     real, dimension(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)     :: dummyNO, dummyNO2, dummyO3
 

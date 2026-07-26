@@ -1,7 +1,8 @@
-"""Surface energy balance (SEB) preprocessing for uDALES.
+"""Facet surface-temperature preprocessing for uDALES.
 
 Writes initial facet-temperature files (Tfacinit, Tfacinit_layers)
-used by the energy balance solver at startup.
+used by the energy balance and fixed-temperature/stability wall routines
+at startup.
 """
 from __future__ import annotations
 
@@ -9,21 +10,40 @@ from typing import Any, Dict, List
 
 from pathlib import Path
 import numpy as np
+import warnings
 
-from .udprep import Section, SectionSpec
+from exceptions import DependencyError
+from ._section import Section, SectionSpec
 
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("seb", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
 
 class SEBSection(Section):
-    def run_all(self) -> None:
-        """Run SEB preprocessing steps."""
+    def _needs_facet_temperature_file(self) -> bool:
+        """Return whether readfacetfiles will read Tfacinit for this setup."""
         sim = self.sim
         if sim is None:
             raise ValueError("UDBase instance must be provided")
 
-        needs_facet_temperature = (sim.lEB or sim.iwallmom == 2 or sim.iwalltemp == 2 or sim.iwallmoist == 2)
-        if not needs_facet_temperature:
+        if sim.iwallmom == 2 and ((not sim.ltempeq) or sim.iwalltemp == 1):
+            warnings.warn(
+                "Changing to neutral wall function: iwallmom=2 requires an "
+                "evolved air temperature and a facet wall temperature, but current "
+                f"namoptions has ltempeq={sim.ltempeq} and iwalltemp={sim.iwalltemp}. "
+                "Setting iwallmom=3 for preprocessing.",
+                stacklevel=2,
+            )
+            sim.iwallmom = 3
+
+        return sim.lEB or sim.iwallmom == 2 or sim.iwalltemp == 2 or sim.iwallmoist == 2
+
+    def run_all(self) -> None:
+        """Write facet-temperature initialization files when needed."""
+        sim = self.sim
+        if sim is None:
+            raise ValueError("UDBase instance must be provided")
+
+        if not self._needs_facet_temperature_file():
             return
 
         if self.lfacTlyrs:
@@ -45,9 +65,9 @@ class SEBSection(Section):
 
         path = Path(sim.path) / f"Tfacinit.inp.{sim.expnr}"
         with path.open("w", encoding="ascii", newline="\n") as f:
-            f.write("# Initial facet tempereatures in radiative equilibrium\n")
+            f.write("# Initial facet temperatures in radiative equilibrium\n")
         with path.open("a", encoding="ascii", newline="\n") as f:
-            np.savetxt(f, Tfacinit, fmt="%4f")
+            np.savetxt(f, Tfacinit, fmt="%.4f")
 
     def write_Tfacinit_layers(self) -> None:
         """Write initial facet temperatures per layer (write_Tfacinit_layers)."""
@@ -68,23 +88,30 @@ class SEBSection(Section):
         try:
             from netCDF4 import Dataset
         except ImportError as exc:
-            raise ImportError("netCDF4 is required to read facT_file") from exc
+            raise DependencyError("netCDF4 is required to read facT_file") from exc
 
         with Dataset(facT_path, "r") as ds:
             if "T" not in ds.variables:
                 raise ValueError("facT_file missing variable 'T'")
             Tfac = ds.variables["T"][:]
 
-        if Tfac.ndim < 3:
-            raise ValueError("facT_file variable 'T' must be at least 3D")
+        # Tfacinit_layers takes the last layer via Tfac[:, :, -1], which assumes
+        # the (nfcts, ntimes, nlayers) axis order. Require exactly 3D so that a
+        # differently-shaped array is rejected rather than silently mis-sliced
+        # (P27).
+        if Tfac.ndim != 3:
+            raise ValueError(
+                "facT_file variable 'T' must be 3D with axis order "
+                f"(nfcts, ntimes, nlayers); got {Tfac.ndim}D shape {tuple(Tfac.shape)}"
+            )
 
         Tfacinit_layers = np.asarray(Tfac[:, :, -1], dtype=float)
 
         path = Path(sim.path) / f"Tfacinit_layers.inp.{sim.expnr}"
         with path.open("w", encoding="ascii", newline="\n") as f:
-            f.write("# Initial facet tempereatures in radiative equilibrium\n")
+            f.write("# Initial facet temperatures in radiative equilibrium\n")
         with path.open("a", encoding="ascii", newline="\n") as f:
-            np.savetxt(f, Tfacinit_layers, fmt="%4f")
+            np.savetxt(f, Tfacinit_layers, fmt="%.4f")
 
 
 SPEC = SectionSpec(name="seb", fields=FIELDS, defaults=DEFAULTS, section_cls=SEBSection)

@@ -288,7 +288,8 @@ contains
   subroutine initfields
 
     use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,jtot,nsv,&
-         ihc,jhc,khc,lmintdump,ltkedump,ltempeq,lmoist,lchem,lscasrcr,ltreedump
+         ihc,jhc,khc,lmintdump,ltkedump,lscasrcr
+    ! use modglobal, only : ltempeq, lmoist
     use decomp_2d, only : alloc_z
     ! Allocation of prognostic variables
     implicit none

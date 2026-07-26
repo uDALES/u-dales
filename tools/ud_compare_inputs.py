@@ -19,7 +19,7 @@ Numerical comparison (max absolute error, # comments skipped):
   solid_c/u/v/w.txt
 
 NetCDF comparison (all variables, max absolute error, requires netCDF4):
-  vf.nc.inp.<exp>
+  vf.nc.inp.<exp>         Sdir.nc
 
 Usage:
   ud_compare_inputs.py <exp_num> <exppath> <ref_path> [tolerance]
@@ -297,6 +297,12 @@ def run_comparison(dir1: str, exp_str1: str, dir2: str, exp_str2: str, tolerance
     compare_netcdf_file(
         f"vf.nc.inp.{exp_str1}",
         pp(f"vf.nc.inp.{exp_str1}", f"vf.nc.inp.{exp_str2}"),
+        tolerance, counters)
+
+    # Sdir.nc: fixed-name time-dependent direct shortwave NetCDF companion file.
+    compare_netcdf_file(
+        "Sdir.nc",
+        pp("Sdir.nc"),
         tolerance, counters)
 
     # Fixed-name text files (no exp suffix)

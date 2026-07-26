@@ -183,8 +183,8 @@ class TestDirectShortwaveReferenceIntegration(_DirectShortwaveCaseMixin, unittes
 
     def test_scanline_matches_legacy_fortran_reference(self) -> None:
         reference, fortran_seconds = self._run_fortran_scanline(self.RAY_DENSITY)
-        scanline, _, budget, f2py_seconds = self._run_python_method("scanline", self.RAY_DENSITY)
-        metrics = self._compare_fields(scanline, reference)
+        scanline_f2py, _, budget, f2py_seconds = self._run_python_method("scanline_f2py", self.RAY_DENSITY)
+        metrics = self._compare_fields(scanline_f2py, reference)
         budget_energy_ratio = float(np.sum(reference * self.areas) / budget["fac"])
 
         print(
@@ -324,7 +324,7 @@ class TestDirectShortwavePreprocessingParityIntegration(unittest.TestCase):
 
     def test_scanline_f2py_matches_legacy_preprocessing_contract(self) -> None:
         legacy, legacy_budget = self._run_backend("scanline_legacy")
-        f2py, f2py_budget = self._run_backend("scanline")
+        f2py, f2py_budget = self._run_backend("scanline_f2py")
         metrics = self._compare_fields(f2py, legacy, self.areas)
 
         print(

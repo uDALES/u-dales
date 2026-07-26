@@ -9,6 +9,8 @@ tests/system/outputs/
 .codex
 *.o
 *.mod
+# Intel Fortran auto-generated interface stubs (emitted under -warn all)
+*__genmod.f90
 image.sif
 *.log
 logdir/
@@ -40,5 +42,9 @@ tmp/*
 **/__pycache__/
 *.pyc
 **/*.pyd
+tools/python/tests/.tmp/
+# editable-install metadata (pip install -e tools/python)
+*.egg-info/
+tools/python/build/
 facets*.vs3
 tests/cases/**/*.fig
