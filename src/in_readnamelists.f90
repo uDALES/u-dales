@@ -1,4 +1,4 @@
-!> \file readparameters.f90
+!> \file in_readnamelists.f90
 !!  Reads and broadcasts configuration parameters for uDALES
 
 !>
@@ -31,7 +31,7 @@
 !  Copyright 2017-2024 uDALES contributors, Imperial College London
 !
 
-module readparameters
+module readnamelists
 
 use mpi
    use modglobal, mg_rv => rv
@@ -142,7 +142,7 @@ use mpi
          nprocsinl,jgtotinl,kmaxin,dtin,wtop,totalreadu
 
 contains
-   subroutine readnamelists
+   subroutine read_namelist_inputs
 
       !-----------------------------------------------------------------|
       !                                                                 |
@@ -344,7 +344,7 @@ contains
 
          close(ifnamopt)
       end if
-   end subroutine readnamelists
+   end subroutine read_namelist_inputs
 
    subroutine writenamelists
       !-----------------------------------------------------------------|
@@ -782,4 +782,4 @@ contains
 
       close(scan_unit)
    end function has_namelist_group
-end module readparameters
+end module readnamelists

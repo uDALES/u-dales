@@ -35,7 +35,7 @@ module modstartup
 
    use mpi
    use modglobal, mg_rv => rv
-   use readparameters, only : readnamelists, broadcast_config_parameters
+   use readnamelists, only : read_namelist_inputs, broadcast_config_parameters
    use modsurfdata
    use modfields
    use modpois
@@ -59,9 +59,9 @@ module modstartup
 
    contains
 
-   subroutine readconfig
+   subroutine initrunparams
 
-      call readnamelists
+      call read_namelist_inputs
       call broadcast_config_parameters
 
       tnextfac = dtfac
@@ -79,7 +79,7 @@ module modstartup
       if (nsv > 0) call MPI_BCAST(wsvtop(1:nsv), nsv, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(iadv_sv(1:nsv), nsv, MPI_INTEGER, 0, comm3d, mpierr)
 
-   end subroutine readconfig
+   end subroutine initrunparams
 
    subroutine init2decomp
      use decomp_2d
@@ -397,7 +397,7 @@ module modstartup
    end subroutine checkinitvalues
 
    subroutine readinitfiles
-      use readparameters, only: irandom, krand, randu, randthl, randqt
+      use readnamelists, only: irandom, krand, randu, randthl, randqt
       use modfields, only:u0, v0, w0, um, vm, wm, thlm, thl0, thl0h, qtm, qt0, qt0h, uinit, vinit, &
          ql0, ql0h, thv0h, sv0, svm, e12m, e120, &
          dqtdxls, dqtdyls, dqtdtls, dpdx, dpdxl, dpdyl, &

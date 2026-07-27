@@ -171,7 +171,7 @@ def filter_config_for_namelists(config, repo_root, schema_path):
         src_dir=str(Path(repo_root) / "src"),
         schema_file=str(schema_path),
     )
-    indexer.parse_fortran_files(file_path=str(Path(repo_root) / "src" / "readparameters.f90"))
+    indexer.parse_fortran_files(file_path=str(Path(repo_root) / "src" / "in_readnamelists.f90"))
 
     filtered = {}
     for section, params in config.items():

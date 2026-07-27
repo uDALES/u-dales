@@ -27,7 +27,7 @@ program uDALES
   use modmpi,            only : initmpi,exitmpi,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_ROUNDTRIP,TEST_IO,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
-  use modstartup,        only : readconfig,init2decomp,checkinitvalues,readinitfiles,exitmodules
+  use modstartup,        only : initrunparams,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
   use modboundary,       only : initboundary,boundary,grwdamp,halos
@@ -69,7 +69,7 @@ program uDALES
   call initmpi
 
   !call startup
-  call readconfig
+  call initrunparams
 
   ! TEST_ROUNDTRIP is dispatched before init2decomp because it manages its
   ! own decomposition setup and teardown in init_tests/exit_tests.

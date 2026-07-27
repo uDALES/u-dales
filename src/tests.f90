@@ -47,7 +47,7 @@ contains
   !> Returns .true. if all tests pass, .false. otherwise
   logical function tests_read_sparse_ijk()
     use modglobal,    only : runmode
-    use readinput, only : read_sparse_ijk
+    use readsparsefiles, only : read_sparse_ijk
     use modibm,       only : initibm
     use modibm,       only : solid_info_u, solid_info_v, solid_info_w, solid_info_c
     use modibm,       only : bound_info_u, bound_info_v, bound_info_w, bound_info_c
@@ -430,7 +430,7 @@ contains
   end function tests_mpi_operators
 
   !> Prepare for the input round-trip test (TEST_ROUNDTRIP).  Unlike the other
-  !! test runmodes, this one is dispatched directly after readconfig, so it
+  !! test runmodes, this one is dispatched directly after initrunparams, so it
   !! sets up its own decomposition and finalizes MPI itself in exit_tests.
   subroutine init_tests
     use mpi
@@ -469,7 +469,7 @@ contains
   subroutine tests_roundtrip
     use mpi
     use modmpi,         only : nprocx, nprocy
-    use readparameters, only : writenamelists
+    use readnamelists, only : writenamelists
     implicit none
 
     integer :: ierr, nprocs, myid, last_proc

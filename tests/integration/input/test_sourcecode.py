@@ -131,7 +131,7 @@ def main(argv=None):
             candidate = src_dir / args.fortran_file
         readparams = candidate
     else:
-        readparams = src_dir / "readparameters.f90"
+        readparams = src_dir / "in_readnamelists.f90"
 
     indexer.parse_fortran_files(str(readparams))
     indexer.parse_json_schema()
