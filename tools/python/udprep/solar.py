@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Solar position + irradiance helpers (ported from tools/SEB/SPA + ASHRAE.m).
 
@@ -7,6 +5,7 @@ Backends:
 - python: direct port of MATLAB SPA implementation.
 - pvlib: use pvlib for angles, ASHRAE for irradiance.
 """
+from __future__ import annotations
 
 from datetime import datetime, timezone as dt_timezone, timedelta
 import math
@@ -14,7 +13,7 @@ from typing import Any, Dict, Tuple
 
 import numpy as np
 
-
+from exceptions import DependencyError
 # -----------------------------------------------------------------------------
 # ASHRAE coefficients (tools/SEB/ASHRAE.m)
 # -----------------------------------------------------------------------------
@@ -541,6 +540,29 @@ def _dayfrac_to_local_hr(dayfrac: float, timezone: float) -> float:
 
 def _third_order_polynomial(a: float, b: float, c: float, d: float, x: float) -> float:
     return ((a * x + b) * x + c) * x + d
+
+
+# P30: map the numeric SPA validation codes (from _validate_inputs) to the
+# offending field so failures are actionable instead of "SPA error code: 9".
+_SPA_ERROR_MESSAGES: Dict[int, str] = {
+    1: "year out of range [-2000, 6000]",
+    2: "month out of range [1, 12]",
+    3: "day out of range [1, 31]",
+    4: "hour out of range [0, 24]",
+    5: "minute out of range [0, 59]",
+    6: "second out of range [0, 60)",
+    7: "delta_t out of range (|delta_t| <= 8000)",
+    8: "timezone out of range (|timezone| <= 18)",
+    9: "longitude out of range (|longitude| <= 180)",
+    10: "latitude out of range (|latitude| <= 90)",
+    11: "elevation out of range (>= -6500000 m)",
+    12: "pressure out of range [0, 5000]",
+    13: "temperature out of range (-273, 6000]",
+    14: "slope out of range (|slope| <= 360)",
+    15: "azm_rotation out of range (|azm_rotation| <= 360)",
+    16: "atmos_refract out of range (|atmos_refract| <= 5)",
+    17: "delta_ut1 out of range (-1, 1)",
+}
 
 
 def _validate_inputs(spa: Dict[str, Any]) -> int:
@@ -1107,7 +1129,8 @@ def solar_position_python(time_of_day: datetime, longitude: float, latitude: flo
 
     result, spa = _spa_calculate(spa)
     if result != 0:
-        raise ValueError(f"SPA error code: {result}")
+        detail = _SPA_ERROR_MESSAGES.get(result, "unknown input error")
+        raise ValueError(f"SPA error code {result}: {detail}")
     return spa
 
 
@@ -1162,7 +1185,9 @@ def solar_state_pvlib(
         import pandas as pd
         import pvlib
     except ImportError as exc:
-        raise ImportError("pvlib backend requested but pvlib is not installed") from exc
+        raise DependencyError(
+            "The pvlib solar-position backend requires pvlib. Install it with: pip install pvlib"
+        ) from exc
 
     tzinfo = dt_timezone(timedelta(hours=timezone))
     if time_of_day.tzinfo is None:

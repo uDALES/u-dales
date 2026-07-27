@@ -13,7 +13,6 @@ from typing import Any, Dict, List, Optional
 TESTS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TESTS_DIR.parent
 MANIFEST_PATH = TESTS_DIR / "test_suites.yml"
-DEFAULT_VENV_PYTHON = REPO_ROOT.parent / ".venv" / "bin" / "python"
 MPLCONFIGDIR = Path("/tmp") / "udales-matplotlib"
 PURPOSE_ORDER = {
     "unit": 0,
@@ -161,9 +160,20 @@ def _run_command(
     return completed.returncode
 
 
-def _select_python_interpreter() -> str:
-    if DEFAULT_VENV_PYTHON.exists():
-        return str(DEFAULT_VENV_PYTHON)
+def _select_python_interpreter(explicit: Optional[str] = None) -> str:
+    """Return the interpreter used to launch child test suites.
+
+    Preference: an explicit ``--python`` argument, then the
+    ``UDALES_TEST_PYTHON`` environment variable, then the active interpreter
+    (``sys.executable``). Preferring the active interpreter means tests run in
+    whatever environment the caller activated (e.g. ``tools/python/.venv``),
+    rather than a hard-coded venv path that may be stale or missing deps.
+    """
+    if explicit:
+        return explicit
+    override = os.environ.get("UDALES_TEST_PYTHON")
+    if override:
+        return override
     return sys.executable
 
 
@@ -205,10 +215,18 @@ def main() -> int:
         default="Release",
         help="Build type for supported regression tests (default: Release).",
     )
+    parser.add_argument(
+        "--python",
+        default=None,
+        help=(
+            "Interpreter used to launch child test suites. Defaults to the "
+            "active interpreter (or the UDALES_TEST_PYTHON environment variable)."
+        ),
+    )
     args = parser.parse_args()
 
     variables = {
-        "python": _select_python_interpreter(),
+        "python": _select_python_interpreter(args.python),
         "repo_root": str(REPO_ROOT),
         "tests_dir": str(TESTS_DIR),
         "branch_a": args.branch_a,

@@ -22,7 +22,7 @@ export NCPU=2 # Number of CPUs to use for a simulation
 export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
 ```
 
-If `UD_TOPDIR` is already set and `u-dales/bin` is on `PATH`, you can also check the executable location with `which u-dales`.
+If you have optionally added `u-dales/bin` to `PATH`, you can also check the executable location with `which u-dales`.
 
 <!-- omit in toc -->
 ## Run
@@ -75,7 +75,7 @@ Table 1: Main setups of urban case studies and reference example simulation(s).
 | Surface and top scalar BCs                 | energy balance                      | yes                     | 201                          |
 | Output                                     | instantaneous fields                | no                      | 001, 101, 102, 201, 949      |
 | Output                                     | time-averaged fields                | no                      | 201, 950                     |
-| Output                                     | space-averaged (along x,y) profiles | no                      | 002, 101, 102, 201, 501, 950 |
+| Output                                     | space-averaged (along x,y) profiles | no                      | 002, 101, 102, 201, 949, 950 |
 
 <!-- omit in toc -->
 <!---| Domain                                     | equidistant grid                    | yes                     | 001, 002, 101, 102, 501, 502 | --->
@@ -325,7 +325,7 @@ iadv_thl     = 2
 
 #### Isothermal BC for temperature
 
-The temperature on the facets is set by the values in `Tfacinit.f90` (295 K in this case). These temperatures do not change as the energy balance is not used as a default (`lEB = .false.`). A fixed temperature at the the top of the domain (`thl_top`) is set by
+The temperature on the facets is set by the values in `Tfacinit.inp.101` (295 K in this case). These temperatures do not change as the energy balance is not used as a default (`lEB = .false.`). A fixed temperature at the the top of the domain (`thl_top`) is set by
 
 ```fortran
 &BC
@@ -473,7 +473,7 @@ Here `lreadscal` is necessary as we are running a warmstart.
 The position, strength and standard deviation of emission of the source are set by:
 
 ```fortran
-&INP
+&INPS
 xS           = 4
 yS           = 8
 zS           = 3
@@ -629,9 +629,9 @@ nnudge       = 64
 
 ### 949
 
-![blocks.501](./assets/images/geom_949.png)
+![blocks.949](./assets/images/geom_949.png)
 
-This simulation is similar to `101` but does not contain any scalars. It is used as the precursor simulation for simulation `949`.
+This simulation is similar to `101` but does not contain any scalars. It is used as the precursor simulation for simulation `950`.
 
 #### Driver/precursor simulation
 
@@ -650,7 +650,7 @@ iplane       = 256
 
 ### 950
 
-![blocks.502](./assets/images/uDALES_geom.png)
+![blocks.950](./assets/images/uDALES_geom.png)
 
 #### Prerequisites simulation with external forcing
 
@@ -706,7 +706,7 @@ runtime      = 100.
 dtmax        = 1.
 ```
 
-and we want to set `dtmax` = `dtdriver` (`501`) to avoid interpolation of the driver snapshots.
+and we want to set `dtmax` = `dtdriver` (`949`) to avoid interpolation of the driver snapshots.
 
 All boundary conditions (momentum, temperature) are set to inflow-outflow by:
 

@@ -138,17 +138,24 @@ selection.
 
 ## Python Environment
 
-- Use the canonical shared virtual environment at `../.venv/` for Python
-  tooling and tests.
-- `tools/python/setup_venv.sh` expects a Python interpreter with development
-  headers because the `directshortwave_f2py` extension is mandatory.
-- On this cluster, `/opt/pbs/python/bin/python3` is a known-good interpreter
-  for creating a build-capable venv when `/usr/bin/python3` lacks `Python.h`.
+- The canonical virtual environment is **`tools/python/.venv/`**, created by
+  `tools/python/setup_venv.sh` (override the location with `VENV_DIR`). Activate
+  it before running tools or tests. Do not maintain multiple repo-local venvs.
+- `setup_venv.sh` installs the deps (`requirements.txt`), builds View3D + the
+  f2py extensions, and registers the tools as an **editable package**
+  (`pip install -e tools/python`). Because of the editable install, `udbase`,
+  `udgeom`, `udprep`, `udvis` (and the flat helper modules) import from any
+  working directory — notebooks/scripts/tests need **no `sys.path` edits**.
+- The test runner (`tests/run_tests.py`) uses the **active interpreter**
+  (`sys.executable`) by default — activate the venv, or override with `--python`
+  / `UDALES_TEST_PYTHON`. It no longer hard-codes a venv path.
+- `setup_venv.sh` expects a Python interpreter with development headers because
+  the `directshortwave_f2py` extension is mandatory. On this cluster,
+  `/opt/pbs/python/bin/python3` is a known-good interpreter when
+  `/usr/bin/python3` lacks `Python.h`.
 - View3D and `directshortwave_f2py` are required parts of the Python radiation
-  workflow, not optional extras.
-- New setups should use the single shared `../.venv/` environment. A
-  legacy repo-local `.venv/` may still exist on older checkouts, but avoid
-  maintaining multiple repo-local virtual environments.
+  workflow, not optional extras. PyVista is the default 3-D visualization
+  backend (core); Plotly (`requirements-plotly.txt`) is an optional alternative.
 
 ## Branch-Specific Gotchas
 

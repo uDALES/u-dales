@@ -362,7 +362,8 @@ module instant
     subroutine instant_field_main
       ! use modglobal, only : dxfi, dyi, dzhi
       implicit none
-      integer :: i, j, k, n
+      integer :: n
+      ! integer :: i, j, k
 
       if (.not. lfielddump) return
 
@@ -577,7 +578,7 @@ module instant
           call define_nc(ncidislice, 1, slicetimeVar)
           call writestat_dims_nc(ncidislice)
           ! Add islice-specific x coordinate information
-          call instant_write_islice_xcoord_local(ncidislice, local_nislice, nislice, islice, myidx, nprocx, itot)
+          call instant_write_islice_xcoord_local(ncidislice, local_nislice, nislice, islice)
         end if
         call define_nc(ncidislice, nslicevars, isliceVars)
         
@@ -613,7 +614,7 @@ module instant
         if (nrecjslice==0) then
           call define_nc(ncidjslice, 1, slicetimeVar)
           call writestat_dims_nc(ncidjslice)
-          call instant_write_jslice_ycoord_local(ncidjslice, local_njslice, njslice, jslice, myidy, nprocy, jtot)
+          call instant_write_jslice_ycoord_local(ncidjslice, local_njslice, njslice, jslice)
         end if
         call define_nc(ncidjslice, nslicevars, jsliceVars)
         ! write(*,'(A,A,A,I2,A)') '  Processor (myidy=', cmyidy, ') created islice file with ', local_njslice, ' slices'
@@ -660,7 +661,7 @@ module instant
       end if
       
       ! u velocity (interpolated to cell centers in x-direction)
-      if (present('u0')) then
+      if (ispresent('u0')) then
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
@@ -677,7 +678,7 @@ module instant
       end if
 
       ! v velocity
-      if (present('v0')) then
+      if (ispresent('v0')) then
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
@@ -694,7 +695,7 @@ module instant
       end if
       
       ! w velocity
-      if (present('w0')) then
+      if (ispresent('w0')) then
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
@@ -711,7 +712,7 @@ module instant
       end if
       
       ! p pressure
-      if (present('p0')) then
+      if (ispresent('p0')) then
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
@@ -728,7 +729,7 @@ module instant
       end if
 
       ! temperature
-      if (present('th') .and. ltempeq) then
+      if (ispresent('th') .and. ltempeq) then
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
@@ -745,7 +746,7 @@ module instant
       end if
       
       ! moisture
-      if (present('qt') .and. lmoist) then
+      if (ispresent('qt') .and. lmoist) then
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
@@ -762,7 +763,7 @@ module instant
       end if
       
       ! scalars s1-s4
-      if (present('s1') .and. nsv>0) then
+      if (ispresent('s1') .and. nsv>0) then
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
@@ -778,7 +779,7 @@ module instant
         call writeoffset(ncidislice, 's1', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
-      if (present('s2') .and. nsv>1) then
+      if (ispresent('s2') .and. nsv>1) then
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
@@ -794,7 +795,7 @@ module instant
         call writeoffset(ncidislice, 's2', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
-      if (present('s3') .and. nsv>2) then
+      if (ispresent('s3') .and. nsv>2) then
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
@@ -810,7 +811,7 @@ module instant
         call writeoffset(ncidislice, 's3', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
       
-      if (present('s4') .and. nsv>3) then
+      if (ispresent('s4') .and. nsv>3) then
         tmp_slice = 0.0
         local_idx = 0
         do i = 1, nislice
@@ -846,7 +847,7 @@ module instant
       end if
 
       ! u velocity
-      if (present('u0')) then
+      if (ispresent('u0')) then
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
@@ -863,7 +864,7 @@ module instant
       end if
 
       ! v velocity (interpolated to cell centers in y-direction)
-      if (present('v0')) then
+      if (ispresent('v0')) then
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
@@ -880,7 +881,7 @@ module instant
       end if
 
       ! w velocity
-      if (present('w0')) then
+      if (ispresent('w0')) then
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
@@ -897,7 +898,7 @@ module instant
       end if
 
       ! p pressure
-      if (present('p0')) then
+      if (ispresent('p0')) then
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
@@ -914,7 +915,7 @@ module instant
       end if
 
       ! temperature
-      if (present('th') .and. ltempeq) then
+      if (ispresent('th') .and. ltempeq) then
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
@@ -931,7 +932,7 @@ module instant
       end if
 
       ! moisture
-      if (present('qt') .and. lmoist) then
+      if (ispresent('qt') .and. lmoist) then
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
@@ -948,7 +949,7 @@ module instant
       end if
 
       ! scalars s1-s4
-      if (present('s1') .and. nsv>0) then
+      if (ispresent('s1') .and. nsv>0) then
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
@@ -964,7 +965,7 @@ module instant
         call writeoffset_1dx(ncidjslice, 's1', tmp_slice, nrecjslice, xdim,  local_njslice, zdim)
       end if
 
-      if (present('s2') .and. nsv>1) then
+      if (ispresent('s2') .and. nsv>1) then
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
@@ -980,7 +981,7 @@ module instant
         call writeoffset_1dx(ncidjslice, 's2', tmp_slice, nrecjslice, xdim,  local_njslice, zdim)
       end if
 
-      if (present('s3') .and. nsv>2) then
+      if (ispresent('s3') .and. nsv>2) then
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
@@ -996,7 +997,7 @@ module instant
         call writeoffset_1dx(ncidjslice, 's3', tmp_slice, nrecjslice, xdim,  local_njslice, zdim)
       end if
 
-      if (present('s4') .and. nsv>3) then
+      if (ispresent('s4') .and. nsv>3) then
         tmp_slice = 0.0
         local_idy = 0
         do j = 1, njslice
@@ -1015,12 +1016,11 @@ module instant
       deallocate(tmp_slice)
     end subroutine instant_write_jslice
 
-    subroutine instant_write_islice_xcoord_local(ncid, local_n, nislice_total, islice_positions, myidx_in, nprocx_in, itot_in)
+    subroutine instant_write_islice_xcoord_local(ncid, local_n, nislice_total, islice_positions)
       ! Write x-coordinates for LOCAL islice positions only
       implicit none
       integer, intent(in) :: ncid, local_n, nislice_total
       integer, dimension(nislice_total), intent(in) :: islice_positions
-      integer, intent(in) :: myidx_in, nprocx_in, itot_in
       integer :: varid, ierr, i, local_idx
       real, allocatable :: x_islice_f(:), x_islice_h(:)
       integer, allocatable :: islice_indices(:)
@@ -1032,7 +1032,6 @@ module instant
       
       local_idx = 0
       do i = 1, nislice_total
-!        if ( (islice_positions(i)-1)/(itot_in/nprocx_in) == myidx_in) then
         if (islice_positions(i) >= zstart(1) .and. islice_positions(i) <= zend(1)) then
           local_idx = local_idx + 1
           x_islice_f(local_idx) = xf(islice_positions(i))  ! full level (cell center)
@@ -1066,12 +1065,11 @@ module instant
       deallocate(islice_indices)
     end subroutine instant_write_islice_xcoord_local
 
-    subroutine instant_write_jslice_ycoord_local(ncid, local_n, njslice_total, jslice_positions, myidy_in, nprocy_in, jtot_in)
+    subroutine instant_write_jslice_ycoord_local(ncid, local_n, njslice_total, jslice_positions)
       ! Write y-coordinates for LOCAL jslice positions (round-robin assignment over myidy)
       implicit none
       integer, intent(in) :: ncid, local_n, njslice_total
       integer, dimension(njslice_total), intent(in) :: jslice_positions
-      integer, intent(in) :: myidy_in, nprocy_in, jtot_in
       integer :: varid, ierr, j, local_idy
       real, allocatable :: y_jslice_f(:), y_jslice_h(:)
       integer, allocatable :: jslice_indices(:)
@@ -1170,7 +1168,7 @@ module instant
       end if
       
       ! u velocity
-      if (present('u0')) then
+      if (ispresent('u0')) then
         do k = 1, nkslice
           kk = kslice(k)
           tmp_slice(:,:,k) = um(ib:ie, jb:je, kk)
@@ -1179,7 +1177,7 @@ module instant
       end if
       
       ! v velocity
-      if (present('v0')) then
+      if (ispresent('v0')) then
         do k = 1, nkslice
           kk = kslice(k)
           tmp_slice(:,:,k) = vm(ib:ie, jb:je, kk)
@@ -1188,7 +1186,7 @@ module instant
       end if
       
       ! w velocity (interpolated to cell centers)
-      if (present('w0')) then
+      if (ispresent('w0')) then
         do k = 1, nkslice
           kk = kslice(k)
           tmp_slice(:,:,k) = 0.5 * (wm(ib:ie, jb:je, kk) + wm(ib:ie, jb:je, kk+1))
@@ -1197,7 +1195,7 @@ module instant
       end if
 
       ! pressure
-      if (present('p0')) then
+      if (ispresent('p0')) then
         do k = 1, nkslice
           kk = kslice(k)
           tmp_slice(:,:,k) = pres0(ib:ie, jb:je, kk)
@@ -1207,7 +1205,7 @@ module instant
 
 
       ! temperature
-      if (present('th') .and. ltempeq) then
+      if (ispresent('th') .and. ltempeq) then
         do k = 1, nkslice
           kk = kslice(k)
           tmp_slice(:,:,k) = thlm(ib:ie, jb:je, kk)
@@ -1216,7 +1214,7 @@ module instant
       end if
       
       ! moisture
-      if (present('qt') .and. lmoist) then
+      if (ispresent('qt') .and. lmoist) then
         do k = 1, nkslice
           kk = kslice(k)
           tmp_slice(:,:,k) = qtm(ib:ie, jb:je, kk)
@@ -1225,7 +1223,7 @@ module instant
       end if
       
       ! scalars s1-s4
-      if (present('s1') .and. nsv>0) then
+      if (ispresent('s1') .and. nsv>0) then
         do k = 1, nkslice
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 1)
@@ -1233,7 +1231,7 @@ module instant
         call writeoffset(ncidkslice, 's1', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
       
-      if (present('s2') .and. nsv>1) then
+      if (ispresent('s2') .and. nsv>1) then
         do k = 1, nkslice
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 2)
@@ -1241,7 +1239,7 @@ module instant
         call writeoffset(ncidkslice, 's2', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
       
-      if (present('s3') .and. nsv>2) then
+      if (ispresent('s3') .and. nsv>2) then
         do k = 1, nkslice
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 3)
@@ -1249,7 +1247,7 @@ module instant
         call writeoffset(ncidkslice, 's3', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
       
-      if (present('s4') .and. nsv>3) then
+      if (ispresent('s4') .and. nsv>3) then
         do k = 1, nkslice
           kk = kslice(k)
           tmp_slice(:,:,k) = svm(ib:ie, jb:je, kk, 4)
@@ -1260,22 +1258,23 @@ module instant
       deallocate(tmp_slice)
     end subroutine instant_write_kslice
 
-    logical function present(str)
+    logical function ispresent(str)
       implicit none
       character(len=*), intent(in) :: str
       integer :: pos
 
       pos = index(slicevars, str)   ! returns the position of the substring str in slicevars. If not found, it returns 0.
-      present = (pos > 0)
-    end function present
+      ispresent = (pos > 0)
+    end function ispresent
 
 
     subroutine instant_probe_init
       use modglobal, only : ifinput
       implicit none
-      integer :: n, ierr, vn
+      integer :: n, vn
       integer :: point_dimid, time_dimid
-      integer :: varid_xt, varid_xm, varid_yt, varid_ym, varid_zt, varid_zm
+      integer :: varid_xt, varid_yt, varid_zt
+      ! integer :: varid_xm, varid_ym, varid_zm
       real,    allocatable :: xt(:), xm(:), yt(:), ym(:), zt(:), zm(:)
       character(2)  :: varname
       character(80) :: chmess

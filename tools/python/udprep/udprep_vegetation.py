@@ -10,12 +10,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 import warnings
 
-from .udprep import Section, SectionSpec
+from ._section import Section, SectionSpec
 
 if TYPE_CHECKING:
     from udbase import UDBase
 import numpy as np
 
+from exceptions import DependencyError
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("vegetation", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
 
@@ -177,10 +178,34 @@ class VegetationSection(Section):
         if self.ntrees != len(points):
             self.ntrees = len(points)
         self.sim.veg = veg
+        # Mark the veg cache provenance (0-based points) so a subsequent
+        # sim.load_veg(zero_based=True, cache=True) hits the cache instead of
+        # re-reading a not-yet-written veg.inp and overwriting sim.veg.
+        self.sim._veg_zero_based = True
         self.save_param("ntrees", len(points))
 
-    def load_stl(self, filename: str | Path | None = None) -> Dict[str, np.ndarray]:
-        """Convert a closed STL volume to sparse vegetation points."""
+    def load_stl(self, filename: str | Path | None = None, plot: bool = True) -> Any:
+        """Convert a closed STL volume to sparse vegetation points.
+
+        Parameters
+        ----------
+        filename : str or Path, optional
+            STL file to voxelise. Defaults to ``vegetation.treesfile``.
+        plot : bool
+            Whether to build and return a visualisation of the result (P28). The
+            loader populates ``sim.veg`` regardless; the plot is a side effect.
+            Pass ``plot=False`` for a headless, side-effect-free load (e.g. in
+            CI or batch preprocessing) — no rendering backend is touched.
+
+        Returns
+        -------
+        dict or Any
+            When ``plot=False``, the vegetation dict written to ``sim.veg``.
+            When ``plot=True`` (default), the backend-dependent visualisation
+            object from ``sim.vis.plot_veg(veg, show=False)`` (e.g. a
+            ``plotly.graph_objects.Figure`` or ``pyvista.Plotter``), or
+            ``None`` when no plot could be produced.
+        """
         sim = self.sim
         if sim is None:
             raise ValueError("UDBase instance must be provided")
@@ -200,7 +225,7 @@ class VegetationSection(Section):
         try:
             import trimesh
         except ImportError as exc:
-            raise ImportError("trimesh is required for load_stl") from exc
+            raise DependencyError("trimesh is required for load_stl") from exc
 
         if not stl_path.is_file():
             raise FileNotFoundError(f"Missing STL file: {stl_path}")
@@ -264,8 +289,14 @@ class VegetationSection(Section):
         if self.ntrees != len(points):
             self.ntrees = len(points)
         self.sim.veg = veg
+        # Mark the veg cache provenance (0-based points) so a subsequent
+        # sim.load_veg(zero_based=True, cache=True) hits the cache instead of
+        # re-reading a not-yet-written veg.inp and overwriting sim.veg.
+        self.sim._veg_zero_based = True
         self.save_param("ntrees", len(points))
 
+        if not plot:
+            return veg
         fig = sim.vis.plot_veg(veg, show=False)
         return fig
 

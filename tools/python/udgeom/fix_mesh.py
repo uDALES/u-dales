@@ -21,6 +21,7 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
+from exceptions import DependencyError
 from .check_mesh import (
     _as_trimesh,
     _boundary_edge_face_map,
@@ -29,74 +30,18 @@ from .check_mesh import (
     identify_ground_faces,
 )
 from .delete_ground import delete_ground
+from ._meshgraph import build_face_adjacency, connected_components
+from ._meshutil import _copy_mesh, _iter_polygons, _project_vertical_face
 
 from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
 from shapely.ops import triangulate, unary_union
 import triangle as triangle_lib
 
 
-def _copy_mesh(mesh: "trimesh.Trimesh") -> "trimesh.Trimesh":
-    return trimesh.Trimesh(
-        vertices=np.asarray(mesh.vertices, dtype=float).copy(),
-        faces=np.asarray(mesh.faces, dtype=int).copy(),
-        process=False,
-    )
-
-
 def _face_components(mesh: "trimesh.Trimesh") -> list[np.ndarray]:
-    faces = np.asarray(mesh.faces, dtype=int)
-    n_faces = len(faces)
-    if n_faces == 0:
+    if len(mesh.faces) == 0:
         return []
-
-    adjacency = {i: set() for i in range(n_faces)}
-    for face_a, face_b in np.asarray(mesh.face_adjacency, dtype=int):
-        adjacency[int(face_a)].add(int(face_b))
-        adjacency[int(face_b)].add(int(face_a))
-
-    visited = set()
-    components: list[np.ndarray] = []
-    for face_id in range(n_faces):
-        if face_id in visited:
-            continue
-        stack = [face_id]
-        visited.add(face_id)
-        component = []
-        while stack:
-            current = stack.pop()
-            component.append(current)
-            for nb in adjacency[current]:
-                if nb not in visited:
-                    visited.add(nb)
-                    stack.append(nb)
-        components.append(np.asarray(component, dtype=int))
-    return components
-
-
-def _iter_polygons(geom):
-    if geom.is_empty:
-        return
-    if isinstance(geom, Polygon):
-        yield geom
-    elif isinstance(geom, MultiPolygon):
-        for poly in geom.geoms:
-            yield from _iter_polygons(poly)
-    elif isinstance(geom, GeometryCollection):
-        for item in geom.geoms:
-            yield from _iter_polygons(item)
-
-
-def _project_vertical_face(vertices: np.ndarray, axis: int) -> Polygon | None:
-    if axis == 0:
-        coords = vertices[:, [1, 2]]
-    else:
-        coords = vertices[:, [0, 2]]
-    poly = Polygon(coords)
-    if not poly.is_valid:
-        poly = poly.buffer(0)
-    if poly.is_empty or poly.area <= 1.0e-12:
-        return None
-    return poly
+    return connected_components(build_face_adjacency(mesh))
 
 
 def _triangle_to_3d(coords2d: np.ndarray, axis: int, plane_value: float, sign: int) -> np.ndarray:
@@ -436,7 +381,7 @@ def fix(
         checks.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     original = _as_trimesh(mesh_or_geom)
     mesh = _copy_mesh(original)
@@ -546,7 +491,7 @@ def resolve_vertical_coplanar_overlaps(
     boundary T-junctions created by that repair.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     mesh = _copy_mesh(_as_trimesh(mesh_or_geom))
     before = check(mesh, require_single_component=False)
@@ -578,7 +523,7 @@ def weld_touching_boundaries(
     vertices and rebuilding the affected triangles.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     mesh = _copy_mesh(_as_trimesh(mesh_or_geom))
     before = check(mesh, require_single_component=False)
@@ -636,7 +581,7 @@ def repair_adjacent_buildings(
         summary.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     mesh = _copy_mesh(_as_trimesh(mesh_or_geom))
     ground_mask = identify_ground_faces(mesh)
@@ -672,9 +617,9 @@ def repair_adjacent_buildings(
     if return_trimesh:
         return cleaned, report
 
-    from .udgeom import UDGeom
+    from .udgeom import UDGeom, DEFAULT_BACKEND
 
-    return UDGeom(stl=cleaned), report
+    return UDGeom(stl=cleaned, backend=getattr(mesh_or_geom, "backend", DEFAULT_BACKEND)), report
 
 
 __all__ = ["fix", "resolve_vertical_coplanar_overlaps", "weld_touching_boundaries", "repair_adjacent_buildings"]

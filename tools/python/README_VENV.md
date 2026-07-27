@@ -27,9 +27,15 @@ Then activate and use:
 
 ```bash
 source tools/python/.venv/bin/activate
-python tools/write_inputs.py
+./tools/write_inputs.sh -p examples/999
 deactivate
 ```
+
+Use `tools/write_inputs.sh -p` for normal preprocessing runs. The wrapper reads
+`nompthreads` from `namoptions.###` and exports `PREPROC_NCPU` before the default
+View3D runtime configuration is sourced. If you invoke `python tools/write_inputs.py`
+directly for a case that runs View3D, export `PREPROC_NCPU` first; use the
+`nompthreads` value, or `8` when `nompthreads` is omitted.
 
 ### Windows (PowerShell)
 
@@ -44,7 +50,8 @@ Then activate and use:
 
 ```powershell
 tools\python\.venv\Scripts\Activate.ps1
-python tools\write_inputs.py
+$env:PREPROC_NCPU = "8"
+python tools\write_inputs.py examples\999
 deactivate
 ```
 
@@ -61,7 +68,7 @@ deactivate
 
 ## Setup Script Reference
 
-Both scripts perform the same logical setup steps. The Linux script requires the build system as its first positional argument; the PowerShell script uses named parameters with Windows/local defaults. On Windows, `tools/build_preprocessing.sh` is bash-only, so the PowerShell script drives CMake directly instead.
+Both scripts set up the Python environment and build preprocessing artifacts. The Linux script requires the build system as its first positional argument and also runs import/f2py validation checks. The PowerShell script uses named parameters with Windows/local defaults. On Windows, `tools/build_preprocessing.sh` is bash-only, so the PowerShell script drives CMake directly instead.
 
 ### Linux / WSL
 
@@ -87,7 +94,7 @@ bash tools/python/setup_venv.sh <build_system> [build_target]
 | Variable | Default (Linux) | Default (Windows) | Description |
 |---|---|---|---|
 | `PYTHON_BIN` | `python3` | `python` | Python interpreter for creating the venv. Override when the default lacks development headers. |
-| `VENV_DIR` | `tools/python/.venv` | `tools\python\.venv` | Explicit venv path. Falls back to `.venv` at the repo root if that legacy directory exists. |
+| `VENV_DIR` | `tools/python/.venv` | `tools\python\.venv` | Explicit venv path. On Linux/WSL, set this variable if you need any non-default location. On Windows, an existing repo-root `.venv` is treated as a legacy fallback. |
 
 ### Examples (Linux / WSL)
 
@@ -123,23 +130,25 @@ $env:PYTHON_BIN = "C:\Python312\python.exe"
 
 - If the venv directory does not exist it is created from scratch.
 - If it already exists the script prompts whether to recreate it (default: **N**).
-  Answering N skips package installation/rebuild and runs validation checks.
+  On Linux/WSL, answering N skips package installation/rebuild and runs
+  validation checks on the existing environment. On Windows, answering N reuses
+  the existing environment and exits after printing the activation command.
 
 ---
 
 ## What the Setup Scripts Do
 
-Both scripts perform the same logical steps:
+The setup scripts perform these broad steps:
 
 1. Validate `build_system` and `build_target` inputs.
-2. Resolve the virtual environment directory using the priority chain:
-   explicit override → existing default venv → existing legacy venv → new default venv.
+2. Resolve the virtual environment directory. On Linux/WSL this is `VENV_DIR` if set, otherwise `tools/python/.venv`. On Windows the priority is explicit parameter or `VENV_DIR` → existing default venv → existing legacy repo-root `.venv` → new default venv.
 3. Check that the chosen Python interpreter is available.
 4. Create the virtual environment with `python -m venv`.
 5. Install runtime dependencies from `tools/python/requirements.txt`.
 6. Install build-time dependencies from `tools/python/requirements-build.txt`
    (`meson` and `ninja`, used to compile the Fortran extensions).
-7. Build the preprocessing tools:
+7. On Linux/WSL, register `tools/python` as an editable package and run import checks.
+8. Build the preprocessing tools:
 
    | Artifact | Linux path | Windows path |
    |---|---|---|

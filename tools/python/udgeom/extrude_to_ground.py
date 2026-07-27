@@ -27,7 +27,7 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
-
+from exceptions import DependencyError
 def extrude_to_ground(
     mesh_or_geom,
     surface_id: int,
@@ -72,7 +72,7 @@ def extrude_to_ground(
         describing the moved vertices and local ground restitching.
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
 
     mesh = _copy_mesh(_as_trimesh(mesh_or_geom))
     if len(mesh.faces) == 0:
@@ -181,9 +181,9 @@ def extrude_to_ground(
     if return_trimesh:
         return cleaned, report
 
-    from .udgeom import UDGeom
+    from .udgeom import UDGeom, DEFAULT_BACKEND
 
-    return UDGeom(stl=cleaned), report
+    return UDGeom(stl=cleaned, backend=getattr(mesh_or_geom, "backend", DEFAULT_BACKEND)), report
 
 
 __all__ = ["extrude_to_ground"]

@@ -10,15 +10,9 @@ import trimesh
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 
-TESTS_DIR = Path(__file__).resolve().parent
-if str(TESTS_DIR) not in sys.path:
-    sys.path.insert(0, str(TESTS_DIR))
-
 from _common import PYTHON_DIR, REPO_ROOT, copy_case
 
-if str(PYTHON_DIR) not in sys.path:
-    sys.path.insert(0, str(PYTHON_DIR))
-
+import udgeom
 from udgeom import (
     UDGeom,
     add_ground,
@@ -39,9 +33,24 @@ from udgeom import (
 from udgeom.geometry_generation import _ground_footprint_union
 from udgeom.split_buildings import split_buildings as geom_split_buildings
 
-
 DATA_DIR = REPO_ROOT / "tools" / "python" / "tests" / "data" / "udgeom_matlab"
 EXAMPLES_DIR = REPO_ROOT / "tools" / "python" / "examples"
+
+class TestUDGeomExports(unittest.TestCase):
+    def test_view3d_helpers_are_exported_by_the_package(self):
+        expected = {
+            "compute_svf",
+            "read_view3d_output",
+            "resolve_view3d_exe",
+            "run_view3d",
+            "stl_to_view3d",
+            "write_svf",
+            "write_vf",
+            "write_vfsparse",
+        }
+        for name in expected:
+            self.assertIn(name, udgeom.__all__)
+            self.assertTrue(hasattr(udgeom, name), f"udgeom.{name} not exported")
 
 
 class TestUDGeomApi(unittest.TestCase):
@@ -604,10 +613,14 @@ class TestUDGeomApi(unittest.TestCase):
         self.assertEqual(geom.n_faces, 0)
         self.assertEqual(geom.n_vertices, 0)
         np.testing.assert_array_equal(geom.bounds, np.array([[0, 0, 0], [0, 0, 0]]))
-        np.testing.assert_array_equal(geom.face_centers, np.array([]))
-        np.testing.assert_array_equal(geom.face_incenters, np.array([]))
-        np.testing.assert_array_equal(geom.face_normals, np.array([]))
+        np.testing.assert_array_equal(geom.face_centers, np.empty((0, 3)))
+        self.assertEqual(geom.face_centers.shape, (0, 3))
+        np.testing.assert_array_equal(geom.face_incenters, np.empty((0, 3)))
+        self.assertEqual(geom.face_incenters.shape, (0, 3))
+        np.testing.assert_array_equal(geom.face_normals, np.empty((0, 3)))
+        self.assertEqual(geom.face_normals.shape, (0, 3))
         np.testing.assert_array_equal(geom.face_areas, np.array([]))
+        self.assertEqual(geom.face_areas.shape, (0,))
         self.assertEqual(geom.total_area, 0.0)
         self.assertEqual(geom.volume, 0.0)
         self.assertFalse(geom.is_watertight)
@@ -1136,6 +1149,63 @@ class TestUDGeomApi(unittest.TestCase):
         with self.assertRaises(ValueError):
             extrude_to_ground(mesh, surface_id=999, return_trimesh=True)
 
+    def _above_ground_building_surface_id(self, mesh):
+        surface_result = calculate_independent_surfaces(mesh)
+        centers = np.asarray(mesh.triangles_center, dtype=float)
+        for surface in surface_result["surfaces"]:
+            face_ids = np.asarray(surface["face_ids"], dtype=int)
+            if float(np.min(centers[face_ids, 2])) > 0.0:
+                return int(surface["surface_id"])
+        return None
+
+    def test_package_truncate_below_ground_survives_repeated_calls(self):
+        # Regression for G1: the module-level lazy wrapper rebinds the package
+        # attribute to the submodule on first use, so a second call used to raise
+        # ``TypeError: 'module' object is not callable``.
+        mesh = self._mesh_with_flat_ground_and_subground_building()
+
+        first, first_report = udgeom.truncate_below_ground(mesh, return_trimesh=True)
+        self.assertTrue(callable(udgeom.truncate_below_ground))
+
+        second, second_report = udgeom.truncate_below_ground(mesh, return_trimesh=True)
+        self.assertTrue(callable(udgeom.truncate_below_ground))
+
+        self.assertEqual(len(first.faces), len(second.faces))
+        np.testing.assert_allclose(
+            np.asarray(first.vertices, dtype=float),
+            np.asarray(second.vertices, dtype=float),
+        )
+        self.assertEqual(first_report, second_report)
+
+    def test_package_extrude_then_truncate_survives(self):
+        # Regression for G1: ``extrude_to_ground`` imports ``truncate_below_ground``
+        # at module top level, so using it clobbered the ``truncate_below_ground``
+        # package attribute too.
+        extrude_mesh = self._mesh_with_flat_ground_and_above_ground_building()
+        surface_id = self._above_ground_building_surface_id(extrude_mesh)
+        self.assertIsNotNone(surface_id)
+
+        udgeom.extrude_to_ground(extrude_mesh, surface_id, return_trimesh=True)
+        self.assertTrue(callable(udgeom.extrude_to_ground))
+        self.assertTrue(callable(udgeom.truncate_below_ground))
+
+        truncate_mesh = self._mesh_with_flat_ground_and_subground_building()
+        udgeom.truncate_below_ground(truncate_mesh, return_trimesh=True)
+        self.assertTrue(callable(udgeom.truncate_below_ground))
+
+    def test_package_wrappers_stay_callable_after_use(self):
+        # Regression for G1: both public names must remain callable attributes of
+        # the package after being invoked.
+        truncate_mesh = self._mesh_with_flat_ground_and_subground_building()
+        udgeom.truncate_below_ground(truncate_mesh, return_trimesh=True)
+
+        extrude_mesh = self._mesh_with_flat_ground_and_above_ground_building()
+        surface_id = self._above_ground_building_surface_id(extrude_mesh)
+        udgeom.extrude_to_ground(extrude_mesh, surface_id, return_trimesh=True)
+
+        self.assertTrue(callable(udgeom.truncate_below_ground))
+        self.assertTrue(callable(udgeom.extrude_to_ground))
+
     def test_volume_warns_for_non_watertight_mesh(self):
         geom = UDGeom(DATA_DIR)
         geom.load("flat_ground.stl")
@@ -1235,6 +1305,7 @@ class TestUDGeomApi(unittest.TestCase):
                     "show_edges": False,
                     "show_ground": True,
                     "show": True,
+                    "backend": None,
                 }
             ],
         )
@@ -1256,7 +1327,8 @@ class TestUDGeomApi(unittest.TestCase):
         self.assertEqual(result, "show_geometry_outline_result")
         self.assertEqual(
             geom.vis.calls,
-            [{"angle_threshold": 30.0, "show_ground": False, "show": True}],
+            [{"angle_threshold": 30.0, "show_ground": False, "color_buildings": False,
+              "show": True, "backend": None}],
         )
 
     def test_show_outline_forwards_show_flag_to_vis_facade(self):
@@ -1276,7 +1348,8 @@ class TestUDGeomApi(unittest.TestCase):
         self.assertEqual(result, "show_geometry_outline_result")
         self.assertEqual(
             geom.vis.calls,
-            [{"angle_threshold": 45.0, "show_ground": True, "show": False}],
+            [{"angle_threshold": 45.0, "show_ground": True, "color_buildings": False,
+              "show": False, "backend": None}],
         )
 
     def test_show_forwards_show_flag_to_vis_facade(self):
@@ -1291,7 +1364,8 @@ class TestUDGeomApi(unittest.TestCase):
         geom = UDGeom.__new__(UDGeom)
         geom.vis = RecordingVis()
 
-        result = UDGeom.show(geom, show=False, plot_quiver=False, show_edges=False)
+        # plot_quiver deliberately NOT passed: this pins the default (False).
+        result = UDGeom.show(geom, show=False, show_edges=False)
 
         self.assertEqual(result, "show_geometry_result")
         self.assertEqual(
@@ -1303,8 +1377,43 @@ class TestUDGeomApi(unittest.TestCase):
                 "show_edges": False,
                 "show_ground": True,
                 "show": False,
+                "backend": None,
             }],
         )
+
+    def test_show_plot_quiver_defaults_false_in_all_signatures(self):
+        import inspect
+
+        from udvis.udbase_vis import UDVis
+
+        self.assertIs(
+            inspect.signature(UDGeom.show).parameters["plot_quiver"].default, False
+        )
+        self.assertIs(
+            inspect.signature(UDVis.show_geometry).parameters["plot_quiver"].default,
+            False,
+        )
+
+    def test_show_routes_backend_to_vis_facade(self):
+        # backend= selects the renderer via the single show_geometry method
+        # (no parallel *_pyvista methods, no pyvista= alias).
+        class RecordingVis:
+            def __init__(self):
+                self.calls = []
+
+            def show_geometry(self, **kwargs):
+                self.calls.append(kwargs)
+                return "backend_result"
+
+        geom = UDGeom.__new__(UDGeom)
+        geom.vis = RecordingVis()
+
+        result = UDGeom.show(geom, backend="pyvista", show=False)
+
+        self.assertEqual(result, "backend_result")
+        self.assertEqual(len(geom.vis.calls), 1)
+        self.assertEqual(geom.vis.calls[0]["show"], False)
+        self.assertEqual(geom.vis.calls[0]["backend"], "pyvista")
 
     def test_plot_independent_surfaces_forwards_to_plot_fac(self):
         class RecordingVis:
@@ -1323,7 +1432,7 @@ class TestUDGeomApi(unittest.TestCase):
         fig = UDGeom.plot_independent_surfaces(geom, show=False)
 
         self.assertEqual(fig, "surface-figure")
-        self.assertEqual(geom.vis.calls, [{"show": False, "return_result": False}])
+        self.assertEqual(geom.vis.calls, [{"show": False, "return_result": False, "backend": None}])
 
     def test_plot_independent_surfaces_can_return_partition_result(self):
         class RecordingVis:
@@ -1341,7 +1450,7 @@ class TestUDGeomApi(unittest.TestCase):
 
         self.assertEqual(fig, "surface-figure")
         self.assertEqual(result["n_surfaces"], 2)
-        self.assertEqual(geom.vis.calls, [{"show": False, "return_result": True}])
+        self.assertEqual(geom.vis.calls, [{"show": False, "return_result": True, "backend": None}])
 
     def test_add_ground_respects_building_footprint_constraints(self):
         building_mesh = self._open_bottom_box_mesh()
@@ -1637,7 +1746,6 @@ class TestUDGeomApi(unittest.TestCase):
         np.testing.assert_array_equal(face_map[:2], np.array([0, 0], dtype=int))
         self.assertTrue(np.all(face_map[2:4] == 1))
         self.assertTrue(np.all(face_map[6:8] == 2))
-
 
 if __name__ == "__main__":
     unittest.main()
