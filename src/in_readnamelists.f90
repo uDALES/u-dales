@@ -155,8 +155,6 @@ contains
 
       implicit none
       integer :: ierr
-      logical, dimension(3) :: periodic_bc
-      integer, dimension(2) :: myids
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then

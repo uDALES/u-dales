@@ -43,7 +43,6 @@ contains
 !> Initializing Checksim. Read out the namelist, initializing the variables
   subroutine initchecksim
     use modglobal, only : dtmax,ladaptive,btime
-    use modmpi,    only : myid
     implicit none
 
     if ((.not. ladaptive) .and. (tcheck < dtmax)) then
