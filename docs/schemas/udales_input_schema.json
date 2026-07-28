@@ -1210,7 +1210,7 @@
         },
         "tcheck": {
           "type": "number",
-          "default": 1,
+          "default": 0,
           "description": "Time interval for output log"
         },
         "ltkedump": {
