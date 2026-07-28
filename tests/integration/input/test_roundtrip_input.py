@@ -70,8 +70,6 @@ def _compare_generated(generated, input_cfg, schema, compare_defaults=True):
     for section, params in generated.items():
         if not isinstance(params, dict):
             continue
-        if section.upper() == "INFO":
-            continue
         input_section = input_cfg.get(section, {})
         sec_schema = find_schema_section(section) or {}
         sec_props = sec_schema.get("properties", {}) if isinstance(sec_schema, dict) else {}

@@ -65,7 +65,6 @@ use mpi
    integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomnizer with
    integer :: krand = huge(0)  ! returns the largest integer that is not an infinity
    real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
-   logical :: has_info_namelist = .false.
 
    ! Module-level namelist definitions
    namelist/RUN/ &
@@ -138,8 +137,6 @@ use mpi
       lheatpump, lfan_hp, nhppoints, Q_dot_hp, QH_dot_hp
    namelist/NAMSUBGRID/ &
          ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,lvreman,loneeqn,c_vreman,sg_cs,nmason,lbuoycorr
-   namelist/INFO/ &
-         nprocsinl,jgtotinl,kmaxin,dtin,wtop,totalreadu
 
 contains
    subroutine read_namelist_inputs
@@ -313,17 +310,6 @@ contains
          rewind (ifnamopt)
          !write(6 ,NAMSUBGRID)
  
-         has_info_namelist = has_namelist_group('INFO')
-         if (has_info_namelist) then
-            read (ifnamopt,INFO,iostat=ierr)
-            if (ierr > 0) then
-               write(0, *) 'Problem in namoptions INFO'
-               write(0, *) 'iostat error: ', ierr
-               stop 1
-            endif
-            !write(6,INFO)
-         endif
-
          if (lrandomize) then
             if (.not. lles) then
                write(0, *) 'Cannot use lrandomize=.true. with lles=.false.'
@@ -394,7 +380,6 @@ contains
       write(iunit, nml=TREES)
       write(iunit, nml=PURIFS)
       write(iunit, nml=HEATPUMP)
-      write(iunit, nml=INFO)
       write(iunit, nml=NAMSUBGRID)
       close(iunit)   
      end subroutine writenamelists
@@ -424,8 +409,6 @@ contains
       call broadcast_chemistry_parameters()
       call broadcast_trees_parameters()
       call broadcast_walls_parameters()
-      call MPI_BCAST(has_info_namelist, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-      if (has_info_namelist) call broadcast_info_parameters()
       call broadcast_namsubgrid_parameters()
       
    end subroutine broadcast_config_parameters
@@ -744,19 +727,6 @@ contains
       call MPI_BCAST(nsolpts_w, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(prandtlturb, 1, MY_REAL, 0, comm3d, mpierr)
    end subroutine broadcast_walls_parameters
-   subroutine broadcast_info_parameters()
-      !-----------------------------------------------------------------|
-      ! Broadcast INFO namelist parameters to all processes
-      !-----------------------------------------------------------------|
-      use modinletdata, only: nprocsinl, jgtotinl, kmaxin, dtin, wtop, totalreadu
-      
-      call MPI_BCAST(nprocsinl, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(jgtotinl, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(kmaxin, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(dtin, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(wtop, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(totalreadu, 1, MY_REAL, 0, comm3d, mpierr)
-   end subroutine broadcast_info_parameters
    subroutine broadcast_namsubgrid_parameters()
       !-----------------------------------------------------------------|
       ! Broadcast NAMSUBGRID namelist parameters to all processes

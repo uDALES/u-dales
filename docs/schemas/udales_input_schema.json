@@ -1396,42 +1396,6 @@
         }
       }
     },
-    "INFO": {
-      "type": "object",
-      "description": "Internal bookkeeping and input info",
-      "properties": {
-        "nprocsinl": {
-          "type": "integer",
-          "default": 0,
-          "description": "Number of processes in input list"
-        },
-        "jgtotinl": {
-          "type": "integer",
-          "default": 0,
-          "description": "Total j grid points in input list"
-        },
-        "kmaxin": {
-          "type": "integer",
-          "default": 0,
-          "description": "Maximum k index in input list"
-        },
-        "dtin": {
-          "type": "number",
-          "default": 0.0,
-          "description": "Input dt"
-        },
-        "wtop": {
-          "type": "number",
-          "default": 0.0,
-          "description": "Top boundary height for input"
-        },
-        "totalreadu": {
-          "type": "integer",
-          "default": 0,
-          "description": "Total read count"
-        }
-      }
-    },
     "INPS": {
       "type": "object",
       "description": "Initial conditions and input parameters",
