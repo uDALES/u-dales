@@ -110,7 +110,7 @@ def generate_random_config(schema_path):
     config["DOMAIN"]["xlen"] = 100.0  # 100 meters
     config["DOMAIN"]["ylen"] = 100.0  # 100 meters
 
-    # Keep iadv_sv consistent with runtime behavior (initglobal forces kappa scheme)
+    # Provide explicit per-scalar advection settings for stable roundtrip checks.
     iadv_kappa = 7
     config["DYNAMICS"]["iadv_sv"] = [iadv_kappa for _ in range(nsv)]
  

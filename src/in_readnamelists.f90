@@ -335,14 +335,33 @@ contains
             end if
          end if
 
-         if (any(iadv_sv(1:nsv) == -1)) then
-            write(0, *) 'ERROR: iadv_sv contains -1, which is invalid. Please check your configuration.'
-            stop 1
-         end if
+         call default_scalar_advection
 
          close(ifnamopt)
       end if
    end subroutine read_namelist_inputs
+
+   subroutine default_scalar_advection
+      implicit none
+      integer :: n
+
+      if (nsv <= 0) return
+      if (nsv > size(iadv_sv)) then
+         write(0, *) 'ERROR: nsv exceeds the supported number of scalar advection settings.'
+         stop 1
+      end if
+
+      do n = 1, nsv
+         if (iadv_sv(n) == -1) iadv_sv(n) = iadv_kappa
+         select case (iadv_sv(n))
+         case (iadv_upw, iadv_cd2, iadv_kappa)
+         case default
+            write(0, *) 'ERROR: iadv_sv contains an invalid advection scheme:', iadv_sv(n)
+            write(0, *) 'Valid iadv_sv values are 1, 2, or 7.'
+            stop 1
+         end select
+      end do
+   end subroutine default_scalar_advection
 
    subroutine writenamelists
       !-----------------------------------------------------------------|
