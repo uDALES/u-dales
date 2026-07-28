@@ -15,7 +15,7 @@ lrandomize   = .true.
 &OUTPUT
 lfielddump   = .false.
 ltdump = .false. 
-tfielddump   = 11.
+tinstantdump = 11.
 fieldvars    = 'v0,th,qt,u0,w0'
 lxytdump     = .true.
 tsample      = 1.

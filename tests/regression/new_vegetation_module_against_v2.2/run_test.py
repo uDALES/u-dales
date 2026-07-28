@@ -69,6 +69,8 @@ def _run_case(path_to_exe: Path, run_dir: Path) -> None:
     diag_log = run_dir / "fortran_diagnostics.log"
     for stale in run_dir.glob("monitor*.txt"):
         stale.unlink()
+    for stale in run_dir.glob(f"stats_tree.*.{CASE_ID}.nc"):
+        stale.unlink()
     for stale in run_dir.glob(f"treedump.*.*.{CASE_ID}.nc"):
         stale.unlink()
     if diag_log.exists():
@@ -85,23 +87,17 @@ def _run_case(path_to_exe: Path, run_dir: Path) -> None:
     subprocess.run(["bash", "-lc", shell_command], cwd=REPO_ROOT, check=True)
 
 
-def _treedump_files(run_dir: Path) -> List[Path]:
-    files = sorted(run_dir.glob(f"treedump.*.*.{CASE_ID}.nc"))
+def _tree_output_files(run_dir: Path) -> List[Path]:
+    current_files = sorted(run_dir.glob(f"stats_tree.*.{CASE_ID}.nc"))
+    legacy_files = sorted(run_dir.glob(f"treedump.*.*.{CASE_ID}.nc"))
+    if current_files and legacy_files:
+        raise RuntimeError(
+            f"Both stats_tree and treedump outputs found in {run_dir}; clean stale outputs first"
+        )
+    files = current_files or legacy_files
     if not files:
-        raise RuntimeError(f"No treedump outputs found in {run_dir}")
+        raise RuntimeError(f"No tree statistics outputs found in {run_dir}")
     return files
-
-
-def _copy_for_local_read(path_a: Path, path_b: Path) -> Tuple[Path, Path]:
-    scratch_dir = SCRATCH_ROOT / "udales-tree-regression-compare"
-    scratch_dir.mkdir(parents=True, exist_ok=True)
-    local_a = scratch_dir / "reference" / path_a.name
-    local_b = scratch_dir / "current" / path_b.name
-    local_a.parent.mkdir(parents=True, exist_ok=True)
-    local_b.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(path_a, local_a)
-    shutil.copy2(path_b, local_b)
-    return local_a, local_b
 
 
 def _load_veg_mask(case_dir: Path) -> np.ndarray:
@@ -125,25 +121,60 @@ def _load_veg_mask(case_dir: Path) -> np.ndarray:
     return mask
 
 
-def _tile_mask(global_mask: np.ndarray, case_dir: Path, tile_name: str, tile_shape: Tuple[int, int, int]) -> np.ndarray:
-    namelist = case_dir / f"namoptions.{CASE_ID}"
+def _parse_tree_output_tile(path: Path) -> Tuple[int, int, bool]:
+    current = re.match(rf"stats_tree\.(\d{{3}})\.{CASE_ID}\.nc$", path.name)
+    if current:
+        return int(current.group(1)), 0, True
+    legacy = re.match(rf"treedump\.(\d{{3}})\.(\d{{3}})\.{CASE_ID}\.nc$", path.name)
+    if legacy:
+        return int(legacy.group(1)), int(legacy.group(2)), False
+    raise RuntimeError(f"Unexpected tree statistics file name: {path.name}")
+
+
+def _load_global_tree_fields(files: List[Path]) -> Dict[str, np.ndarray]:
+    if not files:
+        raise RuntimeError("No tree statistics files provided")
+    run_dir = files[0].parent
+    namelist = run_dir / f"namoptions.{CASE_ID}"
     nprocx = _read_int_setting(namelist, "nprocx")
     nprocy = _read_int_setting(namelist, "nprocy")
     itot = _read_int_setting(namelist, "itot")
     jtot = _read_int_setting(namelist, "jtot")
-    match = re.match(rf"treedump\.(\d{{3}})\.(\d{{3}})\.{CASE_ID}\.nc$", tile_name)
-    if not match:
-        raise RuntimeError(f"Unexpected treedump tile name: {tile_name}")
-    px = int(match.group(1))
-    py = int(match.group(2))
-    nx = tile_shape[2]
-    ny = tile_shape[1]
-    nz = tile_shape[0]
-    if px >= nprocx or py >= nprocy:
-        raise RuntimeError(f"Tile index out of range for {tile_name}")
-    istart = px * (itot // nprocx)
-    jstart = py * (jtot // nprocy)
-    return global_mask[:nz, jstart : jstart + ny, istart : istart + nx]
+    ktot = _read_int_setting(namelist, "ktot")
+
+    field_names = THERMO_FIELDS + MOMENTUM_FIELDS
+    fields = {field: np.zeros((ktot, jtot, itot), dtype=np.float64) for field in field_names}
+    covered = np.zeros((ktot, jtot, itot), dtype=bool)
+
+    for path in files:
+        if path.parent != run_dir:
+            raise RuntimeError(f"Tree statistics files must come from one run directory: {path}")
+        px, py, has_global_y = _parse_tree_output_tile(path)
+        if px >= nprocx or py >= nprocy:
+            raise RuntimeError(f"Tile index out of range for {path.name}")
+        with nc.Dataset(path) as ds:
+            missing = [field for field in field_names if field not in ds.variables]
+            if missing:
+                raise RuntimeError(f"Missing variables in {path.name}: {missing}")
+            sample = np.asarray(ds.variables[field_names[0]][-1], dtype=np.float64)
+            nz, ny, nx = sample.shape
+            istart = px * (itot // nprocx)
+            jstart = 0 if has_global_y else py * (jtot // nprocy)
+            if istart + nx > itot or jstart + ny > jtot or nz > ktot:
+                raise RuntimeError(f"Output tile {path.name} shape {sample.shape} exceeds global domain")
+            for field in field_names:
+                arr = np.asarray(ds.variables[field][-1], dtype=np.float64)
+                if arr.shape != sample.shape:
+                    raise RuntimeError(
+                        f"Variable {field} in {path.name} has shape {arr.shape}, expected {sample.shape}"
+                    )
+                fields[field][:nz, jstart : jstart + ny, istart : istart + nx] = arr
+            covered[:nz, jstart : jstart + ny, istart : istart + nx] = True
+
+    if not np.all(covered):
+        missing = int(np.size(covered) - np.count_nonzero(covered))
+        raise RuntimeError(f"Tree statistics outputs do not cover the global domain; missing {missing} cells")
+    return fields
 
 
 def _support_mask_for_field(tile_mask: np.ndarray, field: str) -> np.ndarray:
@@ -176,20 +207,20 @@ def _interior_mask_for_field(support: np.ndarray, field: str) -> np.ndarray:
     return interior
 
 
-def _fortran_local_idx(idx: Tuple[int, int, int]) -> Tuple[int, int, int]:
+def _fortran_global_idx(idx: Tuple[int, int, int]) -> Tuple[int, int, int]:
     z, y, x = idx
     return (x + 1, y + 1, z + 1)
 
 
-def _format_loc(tile_name: str, idx: Tuple[int, int, int]) -> str:
-    i, j, k = _fortran_local_idx(idx)
-    return f"{tile_name} local ({i}, {j}, {k})"
+def _format_loc(idx: Tuple[int, int, int]) -> str:
+    i, j, k = _fortran_global_idx(idx)
+    return f"global ({i}, {j}, {k})"
 
 
-def _format_optional_loc(tile_name: str | None, idx: Tuple[int, int, int] | None) -> str:
-    if tile_name is None or idx is None:
+def _format_optional_loc(idx: Tuple[int, int, int] | None) -> str:
+    if idx is None:
         return "n/a"
-    return _format_loc(tile_name, idx)
+    return _format_loc(idx)
 
 
 def _safe_relative(diff_value: float, ref_value: float) -> float:
@@ -204,30 +235,27 @@ def _compare_outputs(
     case_dir: Path,
     enforce_tolerances: bool = True,
 ) -> None:
-    if len(reference_files) != len(current_files):
-        raise RuntimeError(
-            "Legacy tree regression produced a different number of treedump tiles: "
-            f"{len(reference_files)} vs {len(current_files)}"
-        )
-
     global_mask = _load_veg_mask(case_dir)
-    thermo_max: Dict[str, Tuple[float, str | None, Tuple[int, int, int] | None]] = {
-        field: (-1.0, None, None) for field in THERMO_FIELDS
+    reference = _load_global_tree_fields(reference_files)
+    current = _load_global_tree_fields(current_files)
+
+    thermo_max: Dict[str, Tuple[float, Tuple[int, int, int] | None]] = {
+        field: (-1.0, None) for field in THERMO_FIELDS
     }
     thermo_ref_sum = {field: 0.0 for field in THERMO_FIELDS}
     thermo_ref_count = {field: 0 for field in THERMO_FIELDS}
-    momentum_max: Dict[str, Tuple[float, str | None, Tuple[int, int, int] | None]] = {
-        field: (-1.0, None, None) for field in MOMENTUM_FIELDS
+    momentum_max: Dict[str, Tuple[float, Tuple[int, int, int] | None]] = {
+        field: (-1.0, None) for field in MOMENTUM_FIELDS
     }
     momentum_ref_sum = {field: 0.0 for field in MOMENTUM_FIELDS}
     momentum_ref_count = {field: 0 for field in MOMENTUM_FIELDS}
-    interior_max: Dict[str, Tuple[float, str | None, Tuple[int, int, int] | None]] = {
-        field: (-1.0, None, None) for field in MOMENTUM_FIELDS
+    interior_max: Dict[str, Tuple[float, Tuple[int, int, int] | None]] = {
+        field: (-1.0, None) for field in MOMENTUM_FIELDS
     }
     interior_ref_sum = {field: 0.0 for field in MOMENTUM_FIELDS}
     interior_ref_count_scale = {field: 0 for field in MOMENTUM_FIELDS}
-    side_max: Dict[str, Tuple[float, str | None, Tuple[int, int, int] | None]] = {
-        field: (-1.0, None, None) for field in MOMENTUM_FIELDS
+    side_max: Dict[str, Tuple[float, Tuple[int, int, int] | None]] = {
+        field: (-1.0, None) for field in MOMENTUM_FIELDS
     }
     side_ref_sum = {field: 0.0 for field in MOMENTUM_FIELDS}
     side_ref_count_scale = {field: 0 for field in MOMENTUM_FIELDS}
@@ -235,102 +263,88 @@ def _compare_outputs(
     interior_counts = {field: 0 for field in MOMENTUM_FIELDS}
     side_counts = {field: 0 for field in MOMENTUM_FIELDS}
 
-    for path_reference, path_current in zip(reference_files, current_files):
-        if path_reference.name != path_current.name:
-            raise RuntimeError(
-                f"Mismatched treedump tiles: {path_reference.name} vs {path_current.name}"
-            )
-        local_reference, local_current = _copy_for_local_read(path_reference, path_current)
-        with nc.Dataset(local_reference) as ds_reference, nc.Dataset(local_current) as ds_current:
-            sample = np.asarray(ds_reference.variables["tr_qt"][-1], dtype=np.float64)
-            tile_mask = _tile_mask(global_mask, case_dir, path_reference.name, sample.shape)
+    for field in THERMO_FIELDS:
+        arr_reference = reference[field]
+        arr_current = current[field]
+        if arr_reference.shape != arr_current.shape:
+            raise RuntimeError(f"Shape mismatch for {field}: {arr_reference.shape} vs {arr_current.shape}")
+        diff = np.abs(arr_current - arr_reference)
+        thermo_ref_sum[field] = float(np.sum(np.abs(arr_reference[global_mask])))
+        thermo_ref_count[field] = int(np.count_nonzero(global_mask))
+        idx = tuple(int(v) for v in np.unravel_index(np.argmax(diff), diff.shape))
+        thermo_max[field] = (float(diff[idx]), idx)
 
-            for field in THERMO_FIELDS:
-                arr_reference = np.asarray(ds_reference.variables[field][-1], dtype=np.float64)
-                arr_current = np.asarray(ds_current.variables[field][-1], dtype=np.float64)
-                diff = np.abs(arr_current - arr_reference)
-                thermo_ref_sum[field] += float(np.sum(np.abs(arr_reference[tile_mask])))
-                thermo_ref_count[field] += int(np.count_nonzero(tile_mask))
-                idx = tuple(int(v) for v in np.unravel_index(np.argmax(diff), diff.shape))
-                val = float(diff[idx])
-                if val > thermo_max[field][0]:
-                    thermo_max[field] = (val, path_reference.name, idx)
+    for field in MOMENTUM_FIELDS:
+        arr_reference = reference[field]
+        arr_current = current[field]
+        if arr_reference.shape != arr_current.shape:
+            raise RuntimeError(f"Shape mismatch for {field}: {arr_reference.shape} vs {arr_current.shape}")
+        diff = np.abs(arr_current - arr_reference)
+        idx = tuple(int(v) for v in np.unravel_index(np.argmax(diff), diff.shape))
+        momentum_max[field] = (float(diff[idx]), idx)
+        momentum_counts[field] = int(np.count_nonzero(arr_current != arr_reference))
 
-            for field in MOMENTUM_FIELDS:
-                arr_reference = np.asarray(ds_reference.variables[field][-1], dtype=np.float64)
-                arr_current = np.asarray(ds_current.variables[field][-1], dtype=np.float64)
-                diff = np.abs(arr_current - arr_reference)
-                idx = tuple(int(v) for v in np.unravel_index(np.argmax(diff), diff.shape))
-                val = float(diff[idx])
-                if val > momentum_max[field][0]:
-                    momentum_max[field] = (val, path_reference.name, idx)
-                momentum_counts[field] += int(np.count_nonzero(arr_current != arr_reference))
+        support = _support_mask_for_field(global_mask, field)
+        interior = _interior_mask_for_field(support, field)
+        side = support & ~interior
+        momentum_ref_sum[field] = float(np.sum(np.abs(arr_reference[support])))
+        momentum_ref_count[field] = int(np.count_nonzero(support))
 
-                support = _support_mask_for_field(tile_mask, field)
-                interior = _interior_mask_for_field(support, field)
-                side = support & ~interior
-                momentum_ref_sum[field] += float(np.sum(np.abs(arr_reference[support])))
-                momentum_ref_count[field] += int(np.count_nonzero(support))
-
-                interior_counts[field] += int(np.count_nonzero(interior))
-                if np.any(interior):
-                    interior_ref_sum[field] += float(np.sum(np.abs(arr_reference[interior])))
-                    interior_ref_count_scale[field] += int(np.count_nonzero(interior))
-                    interior_diff = np.where(interior, diff, 0.0)
-                    interior_idx = tuple(int(v) for v in np.unravel_index(np.argmax(interior_diff), interior_diff.shape))
-                    interior_val = float(interior_diff[interior_idx])
-                    if interior_val > interior_max[field][0]:
-                        interior_max[field] = (interior_val, path_reference.name, interior_idx)
-                side_counts[field] += int(np.count_nonzero(side))
-                if np.any(side):
-                    side_ref_sum[field] += float(np.sum(np.abs(arr_reference[side])))
-                    side_ref_count_scale[field] += int(np.count_nonzero(side))
-                    side_diff = np.where(side, diff, 0.0)
-                    side_idx = tuple(int(v) for v in np.unravel_index(np.argmax(side_diff), side_diff.shape))
-                    side_val = float(side_diff[side_idx])
-                    if side_val > side_max[field][0]:
-                        side_max[field] = (side_val, path_reference.name, side_idx)
+        interior_counts[field] = int(np.count_nonzero(interior))
+        if np.any(interior):
+            interior_ref_sum[field] = float(np.sum(np.abs(arr_reference[interior])))
+            interior_ref_count_scale[field] = int(np.count_nonzero(interior))
+            interior_diff = np.where(interior, diff, 0.0)
+            interior_idx = tuple(int(v) for v in np.unravel_index(np.argmax(interior_diff), interior_diff.shape))
+            interior_max[field] = (float(interior_diff[interior_idx]), interior_idx)
+        side_counts[field] = int(np.count_nonzero(side))
+        if np.any(side):
+            side_ref_sum[field] = float(np.sum(np.abs(arr_reference[side])))
+            side_ref_count_scale[field] = int(np.count_nonzero(side))
+            side_diff = np.where(side, diff, 0.0)
+            side_idx = tuple(int(v) for v in np.unravel_index(np.argmax(side_diff), side_diff.shape))
+            side_max[field] = (float(side_diff[side_idx]), side_idx)
 
     momentum_scale = momentum_ref_sum["tr_u"] / max(momentum_ref_count["tr_u"], 1)
     interior_scale = interior_ref_sum["tr_u"] / max(interior_ref_count_scale["tr_u"], 1)
     side_scale = side_ref_sum["tr_u"] / max(side_ref_count_scale["tr_u"], 1)
 
     for field in THERMO_FIELDS:
-        value, tile_name, idx = thermo_max[field]
+        value, idx = thermo_max[field]
         rel = _safe_relative(value, thermo_ref_sum[field] / max(thermo_ref_count[field], 1))
         print(
             f"Relative diff {field}: {rel:.6e} "
-            f"at {_format_optional_loc(tile_name, idx)}"
+            f"at {_format_optional_loc(idx)}"
         )
 
     interior_failures = []
     for field in MOMENTUM_FIELDS:
-        value, tile_name, idx = momentum_max[field]
-        int_value, int_tile_name, int_idx = interior_max[field]
-        side_value, side_tile_name, side_idx = side_max[field]
+        value, idx = momentum_max[field]
+        int_value, int_idx = interior_max[field]
+        side_value, side_idx = side_max[field]
         rel = _safe_relative(value, momentum_scale)
         int_rel = _safe_relative(int_value, interior_scale)
         side_rel = _safe_relative(side_value, side_scale)
         print(
             f"Relative diff {field}: {rel:.6e} "
-            f"at {_format_optional_loc(tile_name, idx)}"
+            f"at {_format_optional_loc(idx)}"
         )
         print(f"Count diff {field}: {momentum_counts[field]}")
         print(
             f"Relative diff (interior) {field}: {int_rel:.6e} "
             f"(abs {int_value:.6e}) "
-            f"at {_format_optional_loc(int_tile_name, int_idx)} count {interior_counts[field]}"
+            f"at {_format_optional_loc(int_idx)} count {interior_counts[field]}"
         )
         print(
             f"Relative diff (side) {field}: {side_rel:.6e} "
             f"(abs {side_value:.6e}) "
-            f"at {_format_optional_loc(side_tile_name, side_idx)} count {side_counts[field]}"
+            f"at {_format_optional_loc(side_idx)} count {side_counts[field]}"
         )
         if enforce_tolerances and int_rel > INTERIOR_REL_TOL and int_value > INTERIOR_ABS_TOL:
             interior_failures.append(
                 f"{field} interior relative diff {int_rel:.6e} "
                 f"(abs {int_value:.6e}) at "
-                f"{_format_optional_loc(int_tile_name, int_idx)}"
+                f"{_format_optional_loc(int_idx)}"
             )
 
     if interior_failures:
@@ -348,8 +362,8 @@ def analyze_existing_outputs(
     enforce_tolerances: bool = True,
 ) -> None:
     _compare_outputs(
-        _treedump_files(reference_run_dir),
-        _treedump_files(current_run_dir),
+        _tree_output_files(reference_run_dir),
+        _tree_output_files(current_run_dir),
         case_dir,
         enforce_tolerances=enforce_tolerances,
     )
@@ -520,7 +534,7 @@ def main(branch_a: str, branch_b: str, build_type: str, ci_mode: bool = False, k
             _run_case(reference_exe, run_reference)
             _run_case(current_exe, run_current)
 
-            _compare_outputs(_treedump_files(run_reference), _treedump_files(run_current), case_source)
+            _compare_outputs(_tree_output_files(run_reference), _tree_output_files(run_current), case_source)
         finally:
             if keep_runs:
                 print(f"Kept reference run dir: {run_reference}")
