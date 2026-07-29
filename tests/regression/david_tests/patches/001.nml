@@ -3,5 +3,5 @@ runtime = 5.
 /
 
 &OUTPUT
-tfielddump = 4.
+tinstantdump = 4.
 /
