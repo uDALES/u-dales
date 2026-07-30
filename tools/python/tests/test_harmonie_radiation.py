@@ -1,19 +1,26 @@
 """Tests for HARMONIE radiation conversion helpers."""
 
 from datetime import datetime
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import types
 import unittest
+from unittest import mock
 
 import numpy as np
 
 from _common import PYTHON_DIR  # noqa: F401
 
 from udprep.harmonie_radiation import (
+    ShortwaveAtmosphere,
     accumulated_flux_series,
     format_forecast_offset,
+    generate_timedepsw_from_harmonie,
     interpolate_flux_to_times,
     make_longwave_times,
     make_model_times,
     split_global_horizontal_erbs,
+    write_netsw,
     write_timedeplw,
 )
 
@@ -146,6 +153,65 @@ class TestLongwaveWriter(unittest.TestCase):
                     "     0.000000   300.000000",
                     "  3600.000000   301.250000",
                 ],
+            )
+
+
+class TestShortwaveWriters(unittest.TestCase):
+    def test_write_netsw_format(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "netsw.inp.300"
+            write_netsw(path, np.array([1.25, 2.5]), overwrite=False)
+
+            lines = path.read_text(encoding="ascii").splitlines()
+            self.assertIn("initial column", lines[0])
+            np.testing.assert_allclose(np.loadtxt(path, skiprows=1), [1.25, 2.5])
+
+    def test_write_netsw_requires_1d_values(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "netsw.inp.300"
+            with self.assertRaisesRegex(ValueError, "one-dimensional"):
+                write_netsw(path, np.ones((2, 2)), overwrite=False)
+
+    def test_generate_timedepsw_writes_matching_netsw(self):
+        with TemporaryDirectory() as tmp:
+            case_dir = Path(tmp) / "300"
+            case_dir.mkdir()
+            prep = types.SimpleNamespace(
+                sim=types.SimpleNamespace(path=case_dir, expnr="300"),
+                radiation=types.SimpleNamespace(),
+            )
+            atmosphere = ShortwaveAtmosphere(
+                times=np.array([0.0, 10.0]),
+                ghi=np.array([100.0, 110.0]),
+                dni=np.array([80.0, 90.0]),
+                dsky=np.array([20.0, 20.0]),
+                zenith=np.array([30.0, 31.0]),
+                azimuth_local=np.array([180.0, 181.0]),
+            )
+            sdir = np.array([[1.0, 2.0], [3.0, 4.0]])
+            knet = np.array([[10.0, 11.0], [20.0, 21.0]])
+
+            with (
+                mock.patch("udprep.udprep.UDPrep", return_value=prep),
+                mock.patch(
+                    "udprep.harmonie_radiation.prepare_harmonie_ssrd_atmosphere",
+                    return_value=(atmosphere, types.SimpleNamespace(mask_points=4)),
+                ),
+                mock.patch(
+                    "udprep.harmonie_radiation.map_atmosphere_to_facets",
+                    return_value=(sdir, knet, None),
+                ),
+            ):
+                result = generate_timedepsw_from_harmonie(
+                    case_dir=case_dir,
+                    nwp_root=Path(tmp),
+                    write_sdir_nc=False,
+                    verbose=False,
+                )
+
+            self.assertEqual(result.netsw_path, case_dir / "netsw.inp.300")
+            np.testing.assert_allclose(
+                np.loadtxt(result.netsw_path, skiprows=1), knet[:, 0]
             )
 
 

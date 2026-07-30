@@ -1058,6 +1058,73 @@ class TestRadiationSection(unittest.TestCase):
         self.assertEqual(sveg.shape, (nveg, 3))
         np.testing.assert_allclose(sveg[:, 0], np.arange(nveg))
 
+    def test_timedep_writes_static_netsw_from_first_column(self):
+        with TemporaryDirectory() as tmp:
+            nfcts = 3
+            sim = types.SimpleNamespace(
+                path=Path(tmp),
+                expnr="001",
+                ltrees=False,
+                geom=types.SimpleNamespace(
+                    stl=types.SimpleNamespace(face_normals=np.zeros((nfcts, 3)))
+                ),
+            )
+            sim.assign_prop_to_fac = lambda _prop: np.ones(nfcts)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+            section.ltimedepsw = True
+            section.lEB = False
+            section.isolar = 2
+            section.ishortwave = 4
+            section.runtime = 20.0
+            section.dtSP = 10.0
+            section.year, section.month, section.day = 2020, 6, 21
+            section.hour = 12
+            section.minute = section.second = 0
+
+            section._solar_state_time = mock.Mock(
+                return_value=(np.array([0.0, 0.0, 1.0]), 30.0, 0.0, 800.0, 100.0)
+            )
+            knet_steps = [
+                np.array([10.0, 20.0, 30.0]),
+                np.array([11.0, 21.0, 31.0]),
+                np.array([12.0, 22.0, 32.0]),
+            ]
+            section._compute_knet = mock.Mock(
+                side_effect=[
+                    (np.zeros(nfcts), knet, np.zeros(0, dtype=float))
+                    for knet in knet_steps
+                ]
+            )
+            section._write_sdir_nc = mock.Mock()
+
+            section.run_short_wave_timedep()
+
+            values = np.loadtxt(Path(tmp) / "netsw.inp.001", skiprows=1)
+            np.testing.assert_allclose(values, knet_steps[0], atol=1.0e-4)
+
+    def test_timedep_cache_rewrites_static_netsw_from_cached_file(self):
+        with TemporaryDirectory() as tmp:
+            case_dir = Path(tmp)
+            sim = types.SimpleNamespace(path=case_dir, expnr="001", ltrees=False)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+            section.ltimedepsw = True
+
+            (case_dir / "Sdir.nc").write_bytes(b"cached")
+            (case_dir / "timedepsw.inp.001").write_text(
+                "# time-dependent net shortwave on facets [W/m2]\n"
+                "     0.00     10.00\n"
+                "   100.0    101.0\n"
+                "   200.0    201.0\n",
+                encoding="ascii",
+            )
+            section._compute_knet = mock.Mock()
+
+            section.run_short_wave_timedep()
+
+            section._compute_knet.assert_not_called()
+            values = np.loadtxt(case_dir / "netsw.inp.001", skiprows=1)
+            np.testing.assert_allclose(values, [100.0, 200.0], atol=1.0e-4)
+
     def test_timedep_skips_near_horizon_step_without_crashing(self):
         # P11: a near-horizon step (|cos(zenith)| < 1e-2, where the solver would
         # raise) must be skipped, not abort the whole multi-step run.

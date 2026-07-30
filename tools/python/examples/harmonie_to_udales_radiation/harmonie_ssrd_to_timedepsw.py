@@ -46,7 +46,10 @@ DEFAULT_CASE_DIR = Path.home() / "simulation/udtest/experiments/300"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate timedepsw.inp.<expnr> from HARMONIE ssrd."
+        description=(
+            "Generate timedepsw.inp.<expnr> and matching netsw.inp.<expnr> "
+            "from HARMONIE ssrd."
+        )
     )
     parser.add_argument("--case-dir", type=Path, default=DEFAULT_CASE_DIR)
     parser.add_argument("--nwp-root", type=Path, default=DEFAULT_NWP_ROOT)
@@ -95,7 +98,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--overwrite",
         action="store_true",
-        help="Replace existing timedepsw/Sdir outputs.",
+        help="Replace existing timedepsw/netsw/Sdir outputs.",
     )
     parser.add_argument("--quiet", action="store_true")
     return parser.parse_args()
@@ -133,6 +136,7 @@ def main() -> int:
         return 0
 
     print(f"Wrote {result.timedepsw_path}")
+    print(f"Wrote {result.netsw_path}")
     if result.sdir_nc_path is not None:
         print(f"Wrote {result.sdir_nc_path}")
     if result.timedepsveg_path is not None:

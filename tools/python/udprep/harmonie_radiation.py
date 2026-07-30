@@ -104,6 +104,7 @@ class TimedepShortwaveResult:
     knet: np.ndarray
     sveg: np.ndarray | None
     timedepsw_path: Path
+    netsw_path: Path
     sdir_nc_path: Path | None
     timedepsveg_path: Path | None
 
@@ -776,6 +777,23 @@ def write_timedepsveg(
         np.savetxt(handle, sveg, fmt="%9.4f")
 
 
+def write_netsw(path: Path, netsw: np.ndarray, *, overwrite: bool) -> None:
+    """Write the static uDALES netsw startup file."""
+    path = Path(path)
+    if path.exists() and not overwrite:
+        raise FileExistsError(f"{path} already exists. Pass --overwrite to replace it.")
+    values = np.asarray(netsw, dtype=float)
+    if values.ndim != 1:
+        raise ValueError(f"netsw must be one-dimensional; got shape {values.shape}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="ascii", newline="\n") as handle:
+        handle.write(
+            "# net shortwave on facets [W/m2] "
+            "(initial column from timedepsw.inp)\n"
+        )
+        np.savetxt(handle, values, fmt="%6.4f")
+
+
 def write_timedeplw(path: Path, times: np.ndarray, lwsky: np.ndarray, *, overwrite: bool) -> None:
     """Write the uDALES timedeplw format."""
     path = Path(path)
@@ -789,11 +807,12 @@ def write_timedeplw(path: Path, times: np.ndarray, lwsky: np.ndarray, *, overwri
             handle.write(f"{time_value:13.6f} {flux_value:12.6f}\n")
 
 
-def _default_case_output_paths(sim: Any) -> tuple[Path, Path, Path]:
+def _default_case_output_paths(sim: Any) -> tuple[Path, Path, Path, Path]:
     out_dir = Path(sim.path)
     expnr = str(sim.expnr)
     return (
         out_dir / f"timedepsw.inp.{expnr}",
+        out_dir / f"netsw.inp.{expnr}",
         out_dir / "Sdir.nc",
         out_dir / f"timedepsveg.inp.{expnr}",
     )
@@ -960,15 +979,18 @@ def generate_timedepsw_from_harmonie(
     if prep is None:
         raise RuntimeError("Internal error: UDPrep was not loaded for facet mapping")
 
-    timedepsw_path, default_sdir_nc_path, timedepsveg_path = _default_case_output_paths(
-        prep.sim
-    )
+    (
+        timedepsw_path,
+        netsw_path,
+        default_sdir_nc_path,
+        timedepsveg_path,
+    ) = _default_case_output_paths(prep.sim)
     if output is not None:
         timedepsw_path = Path(output).expanduser().resolve()
     if sdir_nc is not None:
         default_sdir_nc_path = Path(sdir_nc).expanduser().resolve()
     sdir_nc_path = default_sdir_nc_path if write_sdir_nc else None
-    paths_to_check = [timedepsw_path]
+    paths_to_check = [timedepsw_path, netsw_path]
     if sdir_nc_path is not None:
         paths_to_check.append(sdir_nc_path)
     _check_output_paths(paths_to_check, overwrite=overwrite)
@@ -978,6 +1000,7 @@ def generate_timedepsw_from_harmonie(
     )
 
     write_timedepsw(timedepsw_path, atmosphere.times, knet, overwrite=overwrite)
+    write_netsw(netsw_path, knet[:, 0], overwrite=overwrite)
     if sdir_nc_path is not None:
         prep.radiation._write_sdir_nc(sdir_nc_path, atmosphere.times, sdir)
     written_sveg_path = None
@@ -993,6 +1016,7 @@ def generate_timedepsw_from_harmonie(
         knet=knet,
         sveg=sveg,
         timedepsw_path=timedepsw_path,
+        netsw_path=netsw_path,
         sdir_nc_path=sdir_nc_path,
         timedepsveg_path=written_sveg_path,
     )
