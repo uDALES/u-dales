@@ -51,7 +51,6 @@ module modstartup
    use modtimedep
    use modibm
    use decomp_2d
-   use modsubgriddata, sg_cs => cs
    implicit none
    ! private
    ! public :: startup,trestart
@@ -397,7 +396,7 @@ module modstartup
    end subroutine checkinitvalues
 
    subroutine readinitfiles
-      use readnamelists, only: irandom, krand, randu, randthl, randqt
+      use readnamelists, only: irandom, krand, randu !, randthl
       use modfields, only:u0, v0, w0, um, vm, wm, thlm, thl0, thl0h, qtm, qt0, qt0h, uinit, vinit, &
          ql0, ql0h, thv0h, sv0, svm, e12m, e120, &
          dqtdxls, dqtdyls, dqtdtls, dpdx, dpdxl, dpdyl, &
