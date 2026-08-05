@@ -128,7 +128,6 @@ program uDALES
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
-  !write(*,*) 'Starting rank ', myid
   call starttimer
   do while ((timeleft>0) .or. (rk3step < 3))
 
