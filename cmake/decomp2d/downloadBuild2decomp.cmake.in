@@ -3,7 +3,7 @@
 # This file is part of Xcompact3d (xcompact3d.com)
 # SPDX-License-Identifier: BSD 3-Clause
 
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.9)
 
 project(downloadBuild2decomp NONE)
 

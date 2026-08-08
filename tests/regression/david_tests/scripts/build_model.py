@@ -28,8 +28,31 @@ import sys
 from pathlib import Path
 
 
+def checkout_ref(ref_name: str, path_to_proj_dir: Path) -> None:
+    """Check out a ref and initialize the submodules required by that ref."""
+    # The compared branches do not necessarily use the same submodules. Empty
+    # the current branch's clean submodule worktrees before switching so paths
+    # removed by the target branch do not remain as untracked directories.
+    subprocess.run(
+        ['git', 'submodule', 'deinit', '--all'],
+        cwd=path_to_proj_dir,
+        check=True,
+    )
+    subprocess.run(['git', 'checkout', ref_name], cwd=path_to_proj_dir, check=True)
+    subprocess.run(
+        ['git', 'submodule', 'sync', '--recursive'],
+        cwd=path_to_proj_dir,
+        check=True,
+    )
+    subprocess.run(
+        ['git', 'submodule', 'update', '--init', '--recursive'],
+        cwd=path_to_proj_dir,
+        check=True,
+    )
+
+
 def build_from_branch(branch_name: str, path_to_proj_dir: Path, build_type: str, clean_build_dir=False, skip_build=False) -> str:
-    subprocess.run(['git', 'checkout', branch_name], cwd=path_to_proj_dir, check=True)
+    checkout_ref(branch_name, path_to_proj_dir)
     # Common branch names use / as user separator.
     path_to_build_dir = path_to_proj_dir / 'build' / branch_name.replace('/', '_')
     if not skip_build:

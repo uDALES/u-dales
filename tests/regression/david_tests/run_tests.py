@@ -127,7 +127,7 @@ def main(branch_a: str, branch_b: str, build_type: str):
         #run_and_compare(test_cases, path_to_exes, is_patch=False)
         #run_and_compare(patched_example_cases, path_to_exes, is_patch=True)
     finally:
-        subprocess.run(['git', 'checkout', original_head], cwd=PROJ_DIR, check=True)
+        build_model.checkout_ref(original_head, PROJ_DIR)
 
 
 def run_and_compare(cases_dir, path_to_exes, is_patch=False):
