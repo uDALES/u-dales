@@ -38,8 +38,8 @@ module modforces
   implicit none
   save
   private
-  public :: forces, coriolis, lstend,fixuinf1,&
-            detfreestream,nudge,&
+  public :: forces, coriolis, lstend,fixuinf1,fixuinf2,fixthetainf,&
+            detfreestream,detfreestrtmp,nudge,&
             masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes,shiftedPBCs, periodicEBcorr
   contains
 
@@ -176,15 +176,10 @@ module modforces
   end subroutine forces
 
   subroutine detfreestream(freestream)
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxf,xh,dt,&
-                          Uinf,Vinf,lvinf,dy
-    use modfields, only : u0,dpdxl,dpdx,v0,u0av,v0av
-    use modmpi, only    : myid,comm3d,mpierr,mpi_sum,my_real,nprocs
+    use modglobal, only : ke, lvinf
+    use modfields, only : u0av, v0av
     implicit none
     real, intent(out) :: freestream
-
-    real  utop,vtop,dum
-    integer i,j
 
     if (lvinf) then
         freestream = v0av(ke)
@@ -193,6 +188,41 @@ module modforces
     end if
 
   end subroutine detfreestream
+
+  subroutine detfreestrtmp(freestrtmp)
+    use modglobal, only : ib, ie, jb, je, ke, dxf, xh
+    use modfields, only : thl0
+    use modmpi,    only : comm3d, mpierr, mpi_sum, my_real, nprocs
+    implicit none
+
+    real, intent(out) :: freestrtmp
+    real :: ttop
+    integer :: i, j
+
+    ttop = 0.
+    do j = jb, je
+      do i = ib, ie
+        ttop = ttop + thl0(i,j,ke)*dxf(i)
+      end do
+    end do
+    ttop = ttop / ((je-jb+1)*(xh(ie+1)-xh(ib)))
+    call MPI_ALLREDUCE(ttop, freestrtmp, 1, my_real, MPI_SUM, comm3d, mpierr)
+    freestrtmp = freestrtmp / nprocs
+  end subroutine detfreestrtmp
+
+  subroutine fixuinf2
+    use modglobal, only : dt, Uinf, ifixuinf, tscale, rk3step, inletav, freestreamav
+    use modfields, only : dgdt
+    implicit none
+
+    real :: freestream
+
+    if ((ifixuinf == 2) .and. (rk3step == 3)) then
+      call detfreestream(freestream)
+      freestreamav = freestream*dt/inletav + (1.-dt/inletav)*freestreamav
+      dgdt = (freestreamav - Uinf) / tscale
+    end if
+  end subroutine fixuinf2
 
   subroutine fixuinf1
     use modglobal, only : ib, ie, jb, je, kb, ke, dt, &
@@ -280,16 +310,22 @@ module modforces
 
   end subroutine fixuinf1
 
+  subroutine fixthetainf
+    implicit none
+    ! Reserved for the freestream potential-temperature controller.
+  end subroutine fixthetainf
+
   subroutine masscorr
     !> correct the velocities to get prescribed flow rate
 
-    use modglobal, only : ib,ie,jb,je,ih,jh,kb,ke,kh,dzf,dxf,dy,zh,dt,rk3step,&
+    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzf,dxf,dy,zh,&
                           uflowrate,vflowrate,linoutflow,&
                           luoutflowr,lvoutflowr,luvolflowr,lvvolflowr,&
                           rk3coef,rk3coefi
-    use modfields, only : um,up,vm,vp,uouttot,udef,vouttot,vdef,&
-                          uoutarea,voutarea,fluidvol,IIu,IIv,IIus,IIvs
-    use modmpi,    only : myid,comm3d,mpierr,nprocs,MY_REAL,sumy_ibm,sumx_ibm,avexy_ibm
+    use modfields, only : um,up,vm,vp,uouttot,udef,vdef,&
+                          uoutarea,voutarea,IIu,IIv,IIus,IIvs
+    use modmpi,    only : sumy_ibm,sumx_ibm,avexy_ibm !, myid, nprocs
+    implicit none
 
     real, dimension(kb:ke+kh)     :: uvol
     real, dimension(kb:ke+kh)     :: vvol
@@ -352,8 +388,8 @@ module modforces
       uvolold = 0.
 
       ! Assumes equidistant grid
-      call avexy_ibm(uvol(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-      call avexy_ibm(uvolold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call avexy_ibm(uvol(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+      call avexy_ibm(uvolold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
 
       ! average over fluid volume
       uoutflow = rk3coef*sum(uvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
@@ -422,8 +458,8 @@ module modforces
       vvolold = 0.
 
       ! Assumes equidistant grid
-      call avexy_ibm(vvol(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-      call avexy_ibm(vvolold(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call avexy_ibm(vvol(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+      call avexy_ibm(vvolold(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
 
       ! average over fluid volume
       voutflow = rk3coef*sum(vvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
@@ -446,7 +482,7 @@ module modforces
   subroutine uoutletarea(area)
     ! calculates outlet area of domain for u-velocity excluding blocks
 
-    use modglobal, only   : ib,ie,jb,je,kb,ke,dy,dzf,ierank
+    use modglobal, only   : ie,jb,je,kb,ke,dy,dzf
     use modfields, only   : IIc
     use modmpi, only      : sumy_ibm
 
@@ -471,7 +507,7 @@ module modforces
   subroutine voutletarea(area)
     ! calculates outlet area of domain for v-velocity excluding blocks
 
-    use modglobal, only : ib,ie,jb,je,kb,ke,dxf,dzf,jerank
+    use modglobal, only : ib,ie,je,kb,ke,dxf,dzf
     use modfields, only : IIc
     use modmpi,    only : sumx_ibm
 
@@ -496,7 +532,7 @@ module modforces
   subroutine fluidvolume(volume)
     ! calculates fluid volume of domain excluding blocks
 
-    use modglobal, only   : ib,ie,ih,jb,je,jh,kb,ke,kh,dy,dxf,dzf
+    use modglobal, only   : ib,ie,jb,je,kb,ke,kh,dy,dxf,dzf
     use modfields, only   : IIc, IIcs
     use modmpi, only      : sumy_ibm, avexy_ibm
 
@@ -504,7 +540,6 @@ module modforces
     real, intent(out)             :: volume
     real, dimension(ib:ie,kb:ke)  :: sumy
     real, dimension(kb:ke+kh)        :: sumxy
-    integer                          k
 
     sumy = 0.
     sumxy = 0.
@@ -518,7 +553,7 @@ module modforces
     ! end do
 
     ! Equidistant x
-    call avexy_ibm(sumxy(kb:ke+kh),IIc(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+    call avexy_ibm(sumxy(kb:ke+kh),IIc(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
     ! integrate fluid area in z
     volume = sum(sumxy(kb:ke)*dzf(kb:ke))
@@ -636,7 +671,7 @@ module modforces
 #else
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzh,dzf
     use modfields, only : u0,v0,w0,up,vp,wp,ug
-    use modmpi,    only : myid
+    ! use modmpi, only : myid
 #endif
     implicit none
 
@@ -872,8 +907,9 @@ module modforces
     !                                                                 |
     !-----------------------------------------------------------------|
 
-    use modglobal, only : lmomsubs, ltempeq, lmoist, nsv
+    use modglobal, only : lmomsubs, nsv
 #if defined(_GPU)
+    use modglobal, only : ltempeq, lmoist
     use cudafor
     use modcuda, only: griddim, blockdim, checkCUDA
 #else
@@ -969,9 +1005,8 @@ module modforces
   end subroutine lstend
 
   subroutine nudge
-    use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,lnudgevel,tnudge,nnudge,numol,nsv
+    use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,lnudgevel,tnudge,nnudge,nsv
     use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av,up,vp,u0av,v0av,uprof,vprof,thlprof,qtprof,svprof
-    use modmpi,     only : myid
     implicit none
     integer :: k, n
 
@@ -1012,13 +1047,13 @@ module modforces
   ! use initfac, only :  max_height_index
   use modfields, only : thlp, qtp
   !use modglobal, only: ltempeq, lperiodicEBcorr, ib, ie, jb, je, kb, ke, imax, jtot
-  use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, kb, ke,&
+  use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, ke,&
                           itot, jtot, totheatflux,sinkbase, totqflux, &
-                          zh, dx, dy ,dzh, fraction,xlen,ylen,zf,dzf
-  use modmpi, only : comm3d, mpierr, MY_REAL, myid, MPI_SUM
+                          zh, fraction,xlen,ylen,dzf
+  use modmpi, only : comm3d, mpierr, MY_REAL, MPI_SUM
   !
-  integer :: i, j, k, n, M
-  real :: tot_Tflux, tot_qflux, sensible_heat_out, latent_heat_out,R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t  !, !tot_qflux !, sink_points
+  integer :: i, j, k, M
+  real :: tot_Tflux, tot_qflux, latent_heat_out,R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t  !, !tot_qflux !, sink_points
   !
   !write(*,*) 'lperiodicEBcorr ', lperiodicEBcorr
   !write(*,*) 'fraction', fraction

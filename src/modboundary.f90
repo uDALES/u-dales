@@ -66,17 +66,16 @@ contains
    ! Needs to be called before divergence is calculated
    subroutine halos
 
-      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, ihc, jhc, khc, nsv, &
+      use modglobal, only : ihc, jhc, khc, nsv, &
                             BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, &
                             BCxm_periodic, BCxT_periodic, BCxq_periodic, BCxs_periodic, &
                             BCym_periodic, BCyT_periodic, BCyq_periodic, BCys_periodic, &
                             ibrank, ierank, jbrank, jerank
       use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, sv0, svm, thl0c
       use m_halo, only : halo_exchange
-      use decomp_2d, only: decomp_main
 
       implicit none
-      integer i, k, n
+      integer n
 
 !$acc data create(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
 !$acc update device(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
@@ -119,7 +118,7 @@ contains
    !! Set boundary conditions for the next timestep
    ! Will result in velocity field being not divergence-free
    subroutine boundary
-      use modglobal,      only : ib, ie, ih, jb, je, jh, kb, ke, kh, ihc, jhc, khc, dzf, zh, nsv, &
+      use modglobal,      only : kb, ke, khc, dzf, zh, nsv, &
                                  ltempeq, lmoist, luvolflowr, luoutflowr, &
                                  BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT, BCtopq, BCtops, &
                                  BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
@@ -133,16 +132,15 @@ contains
                                  ibrank, ierank, jbrank, jerank, e12min, idriver, &
                                  Uinf, Vinf, &
                                  rk3step, lchunkread
-      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, sv0, svm, u0av, v0av, uouttot, vouttot, thl0c
+      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, u0av, v0av, uouttot, vouttot, thl0c
       use modsubgriddata, only : ekh, ekm, loneeqn
       use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
-      use modmpi,         only : myid, slabsum, avey_ibm
+      use modmpi,         only : slabsum, avey_ibm
       use moddriver,      only : drivergen, driverchunkread
-      use modinletdata,   only : ubulk, vbulk, iangle
+      use modinletdata,   only : ubulk, vbulk !, iangle
       implicit none
       real, dimension(kb:ke) :: uaverage, vaverage
-      real, dimension(ib:ie,kb:ke) :: uavey
-      integer i, k, n
+      integer k, n
 
      ! if not using massflowrate need to set outflow velocity
      if (luoutflowr) then
@@ -394,6 +392,148 @@ contains
    end subroutine boundary
 
 
+   subroutine reassure_fluxtop_boundary
+    use modglobal,      only : ltempeq, lmoist, nsv, &
+                               BCtopm, BCtopT, BCtopq, BCtops, &
+                               BCtopm_freeslip, BCtopm_pressure, &
+                               BCtopT_flux, BCtopq_flux, BCtops_flux
+#if defined(_GPU)
+    use modglobal,      only : ib, ie, ih, jb, je, jh, ke, khc, dzf, dzh, dzhi, eps1
+    use modcuda,        only : u0_d, v0_d, um_d, vm_d, thl0_d, thlm_d, &
+                               qt0_d, qtm_d, sv0_d, svm_d, ekh_d
+#else
+    use modfields,      only : u0, v0, um, vm, thl0, thlm, qt0, qtm
+    use modsubgriddata, only : ekh, ekm
+#endif
+    use modsurfdata,    only : wttop, wqtop, wsvtop
+    implicit none
+#if defined(_GPU)
+    integer :: i, j, m, n
+    real :: flux_factor, ek_lower, ek_upper
+#endif
+
+#if defined(_GPU)
+    select case(BCtopm)
+      case(BCtopm_freeslip, BCtopm_pressure)
+        !$acc kernels default(present)
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            um_d(i, j, ke+1) = um_d(i, j, ke)
+            u0_d(i, j, ke+1) = u0_d(i, j, ke)
+            vm_d(i, j, ke+1) = vm_d(i, j, ke)
+            v0_d(i, j, ke+1) = v0_d(i, j, ke)
+          end do
+        end do
+        !$acc end kernels
+      case default
+    end select
+
+    if (ltempeq .and. (BCtopT .eq. BCtopT_flux)) then
+      if (abs(wttop) .le. eps1) then
+        !$acc kernels default(present)
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            thlm_d(i, j, ke+1) = thlm_d(i, j, ke)
+            thl0_d(i, j, ke+1) = thl0_d(i, j, ke)
+          end do
+        end do
+        !$acc end kernels
+      else
+        flux_factor = dzh(ke+1)*wttop/dzhi(ke+1)
+        ek_lower = 0.5*dzf(ke)
+        ek_upper = 0.5*dzf(ke+1)
+        !$acc kernels default(present)
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            thlm_d(i, j, ke+1) = thlm_d(i, j, ke) + flux_factor / &
+              (ek_lower*ekh_d(i, j, ke+1) + ek_upper*ekh_d(i, j, ke))
+            thl0_d(i, j, ke+1) = thl0_d(i, j, ke) + flux_factor / &
+              (ek_lower*ekh_d(i, j, ke+1) + ek_upper*ekh_d(i, j, ke))
+          end do
+        end do
+        !$acc end kernels
+      end if
+    end if
+
+    if (lmoist .and. (BCtopq .eq. BCtopq_flux)) then
+      if (abs(wqtop) .le. eps1) then
+        !$acc kernels default(present)
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            qtm_d(i, j, ke+1) = qtm_d(i, j, ke)
+            qt0_d(i, j, ke+1) = qt0_d(i, j, ke)
+          end do
+        end do
+        !$acc end kernels
+      else
+        flux_factor = dzh(ke+1)*wqtop/dzhi(ke+1)
+        ek_lower = 0.5*dzf(ke)
+        ek_upper = 0.5*dzf(ke+1)
+        !$acc kernels default(present)
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            qtm_d(i, j, ke+1) = qtm_d(i, j, ke) + flux_factor / &
+              (ek_lower*ekh_d(i, j, ke+1) + ek_upper*ekh_d(i, j, ke))
+            qt0_d(i, j, ke+1) = qt0_d(i, j, ke) + flux_factor / &
+              (ek_lower*ekh_d(i, j, ke+1) + ek_upper*ekh_d(i, j, ke))
+          end do
+        end do
+        !$acc end kernels
+      end if
+    end if
+
+    if (nsv > 0 .and. (BCtops .eq. BCtops_flux)) then
+      do n = 1, nsv
+        flux_factor = dzh(ke+1)*wsvtop(n)/dzhi(ke+1)
+        ek_lower = 0.5*dzf(ke)
+        ek_upper = 0.5*dzf(ke+1)
+        !$acc kernels default(present)
+        do m = 1, khc
+          do j = jb-jh, je+jh
+            do i = ib-ih, ie+ih
+              sv0_d(i, j, ke+m, n) = sv0_d(i, j, ke, n) + flux_factor / &
+                (ek_lower*ekh_d(i, j, ke+1) + ek_upper*ekh_d(i, j, ke))
+              svm_d(i, j, ke+m, n) = svm_d(i, j, ke, n) + flux_factor / &
+                (ek_lower*ekh_d(i, j, ke+1) + ek_upper*ekh_d(i, j, ke))
+            end do
+          end do
+        end do
+        !$acc end kernels
+      end do
+    end if
+#else
+    select case(BCtopm)
+      case(BCtopm_freeslip)
+        !free-slip = zero-flux
+        call fluxtop(um, ekm, 0.0)
+        call fluxtop(u0, ekm, 0.0)
+        call fluxtop(vm, ekm, 0.0)
+        call fluxtop(v0, ekm, 0.0)
+      case(BCtopm_pressure)
+        call fluxtop(um, ekm, 0.0)
+        call fluxtop(u0, ekm, 0.0)
+        call fluxtop(vm, ekm, 0.0)
+        call fluxtop(v0, ekm, 0.0)
+      case default
+    end select
+
+    if (ltempeq .and. (BCtopT .eq. BCtopT_flux)) then
+      call fluxtop(thlm, ekh, wttop)
+      call fluxtop(thl0, ekh, wttop)
+    end if
+
+    if (lmoist .and. (BCtopq .eq. BCtopq_flux)) then
+      call fluxtop(qtm, ekh, wqtop)
+      call fluxtop(qt0, ekh, wqtop)
+    end if
+
+    if (nsv > 0 .and. (BCtops .eq. BCtops_flux)) then
+      call fluxtopscal(wsvtop)
+    end if
+#endif
+   end subroutine reassure_fluxtop_boundary
+
+
    subroutine closurebc
      use modglobal,      only : ib, ie, jb, je, kb, ke, numol, prandtlmoli, &
                                 ibrank, ierank, jbrank, jerank, BCtopm, BCxm, BCym, &
@@ -536,6 +676,8 @@ contains
        end if
      end if
 
+     call reassure_fluxtop_boundary
+
    end subroutine closurebc
 
 
@@ -543,10 +685,10 @@ contains
    subroutine xm_periodic
       use modglobal, only : ib, ie, ih
       use modfields, only : u0, um, v0, vm, w0, wm, e120, e12m
-      use modsubgriddata, only : loneeqn, lsmagorinsky
+      use modsubgriddata, only : loneeqn
       use modmpi, only : excis
 
-      integer n, m
+      integer m
 
       do m = 1, ih
          u0(ib - m, :, :) = u0(ie + 1 - m, :, :)
@@ -615,7 +757,7 @@ contains
    subroutine xs_periodic
       use modglobal, only : ib, ie, ihc
       use modfields, only : sv0, svm
-      integer m, n
+      integer m
 
       do m = 1, ihc
          sv0(ib - m, :, :, :) = sv0(ie + 1 - m, :, :, :)
@@ -629,12 +771,12 @@ contains
 
    !>set lateral periodic boundary conditions for momentum in y/j direction
    subroutine ym_periodic
-      use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, kh, jmax
-      use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m, shear
-      use modsubgriddata, only:loneeqn, lsmagorinsky
+      use modglobal, only:jb, je, ih
+      use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m
+      use modsubgriddata, only:loneeqn
       use modmpi, only:excjs
 
-      integer n, m
+      integer m
 
       do m = 1, ih
          u0(:, jb - m, :) = u0(:, je + 1 - m, :)
@@ -666,7 +808,7 @@ contains
    subroutine yT_periodic
       use modglobal, only : jb, je, jh, jhc
       use modfields, only : thl0, thlm, thl0c
-      use modmpi, only:excjs, myid, nprocs
+      use modmpi, only:excjs
       integer m
 
       do m = 1, jh
@@ -721,7 +863,7 @@ contains
 
 
      subroutine xmi_profile
-       use modglobal,      only : ib, ie, jb, je, kb, ke
+       use modglobal,      only : ib, jb, je, kb, ke
        use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m, uprof, vprof, e12prof
        use modsubgriddata, only : loneeqn
 
@@ -753,9 +895,9 @@ contains
 
 
      subroutine xmi_driver
-       use modglobal,      only : ib, ie, jb, je, kb, ke
+       use modglobal,      only : ib, jb, je, kb, ke
        use modinletdata,   only : u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver
-       use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m, e12prof
+       use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m
        use modsubgriddata, only : loneeqn
 
        integer j, k
@@ -799,7 +941,7 @@ contains
 
 
      subroutine xTi_profile
-       use modglobal, only : ib, ie, jb, je, kb, ke
+       use modglobal, only : ib, jb, je, kb, ke
        use modfields, only : thl0, thlm, thlprof
        integer j, k
 
@@ -829,7 +971,7 @@ contains
 
 
      subroutine xTi_driver
-       use modglobal,    only : ib, ie, jb, je, kb, ke
+       use modglobal,    only : ib, jb, je, kb, ke
        use modinletdata, only : thl0driver, thlmdriver
        use modfields,    only : thl0, thlm
        integer j, k
@@ -845,7 +987,7 @@ contains
 
 
      subroutine xqi_profile
-       use modglobal,    only : ib, ie, jb, je, kb, ke
+       use modglobal,    only : ib, jb, je, kb, ke
        use modfields,    only : qt0, qtm, qtprof
        integer j, k
 
@@ -860,7 +1002,7 @@ contains
 
 
    subroutine xqi_driver
-     use modglobal,    only : ib, ie, jb, je, kb, ke
+     use modglobal,    only : ib, jb, je, kb, ke
      use modinletdata, only : qt0driver, qtmdriver
      use modfields,    only : qt0, qtm
 
@@ -877,7 +1019,7 @@ contains
 
 
    subroutine xsi_profile
-     use modglobal,    only : ib, ie, jb, je, kb, ke, nsv, ihc
+     use modglobal,    only : ib, jb, je, kb, ke, nsv, ihc
      use modfields,    only : sv0, svm, svprof
 
      integer j, k, n, m
@@ -897,7 +1039,7 @@ contains
 
 
      subroutine xsi_custom
-       use modglobal,    only : ib, ie, jb, je, jtot, kb, ke, nsv, ihc
+       use modglobal,    only : ib, jb, je, jtot, kb, ke, nsv, ihc
        use modfields,    only : sv0, svm, svprof
        use decomp_2d,    only : zstart
 
@@ -920,7 +1062,7 @@ contains
 
 
    subroutine xsi_driver
-     use modglobal,    only : ib, ie, ihc, jb, je, jhc, kb, ke, khc, nsv
+     use modglobal,    only : ib, ihc, jb, je, kb, ke, nsv
      use modinletdata, only : sv0driver, svmdriver
      use modfields,    only : sv0, svm
 
@@ -942,7 +1084,7 @@ contains
 
    subroutine xmo_convective
      use modglobal,      only : ie, dxi, rk3coef
-     use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m, uouttot
+     use modfields,      only : v0, vm, w0, wm, e120, e12m, uouttot
      use modsubgriddata, only : loneeqn
 
      v0(ie + 1, :, :) = v0(ie+1, :, :) - (v0(ie+1, :, :) - v0(ie, :, :))*dxi*rk3coef*uouttot
@@ -958,22 +1100,22 @@ contains
    end subroutine xmo_convective
 
 
-   subroutine xmo_Neumann
-     use modglobal,      only : ie
-     use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m
-     use modsubgriddata, only : loneeqn
+  !  subroutine xmo_Neumann
+  !    use modglobal,      only : ie
+  !    use modfields,      only : v0, vm, w0, wm, e120, e12m
+  !    use modsubgriddata, only : loneeqn
 
-     v0(ie + 1, :, :) = v0(ie, :, :)
-     w0(ie + 1, :, :) = w0(ie, :, :)
-     vm(ie + 1, :, :) = vm(ie, :, :)
-     wm(ie + 1, :, :) = wm(ie, :, :)
+  !    v0(ie + 1, :, :) = v0(ie, :, :)
+  !    w0(ie + 1, :, :) = w0(ie, :, :)
+  !    vm(ie + 1, :, :) = vm(ie, :, :)
+  !    wm(ie + 1, :, :) = wm(ie, :, :)
 
-     if (loneeqn) then
-       e120(ie + 1, :, :) = e120(ie, :, :)
-       e12m(ie + 1, :, :) = e12m(ie, :, :)
-     end if
+  !    if (loneeqn) then
+  !      e120(ie + 1, :, :) = e120(ie, :, :)
+  !      e12m(ie + 1, :, :) = e12m(ie, :, :)
+  !    end if
 
-   end subroutine xmo_Neumann
+  !  end subroutine xmo_Neumann
 
 
    subroutine xTo_convective
@@ -986,14 +1128,14 @@ contains
    end subroutine xTo_convective
 
 
-   subroutine xTo_Neumann
-     use modglobal, only : ie
-     use modfields, only : thl0, thlm
+  !  subroutine xTo_Neumann
+  !    use modglobal, only : ie
+  !    use modfields, only : thl0, thlm
 
-     thl0(ie + 1, :, :) = thl0(ie, :, :)
-     thlm(ie + 1, :, :) = thlm(ie, :, :)
+  !    thl0(ie + 1, :, :) = thl0(ie, :, :)
+  !    thlm(ie + 1, :, :) = thlm(ie, :, :)
 
-   end subroutine xTo_Neumann
+  !  end subroutine xTo_Neumann
 
 
    subroutine xqo_convective
@@ -1019,23 +1161,23 @@ contains
    end subroutine xso_convective
 
 
-   subroutine xso_Neumann
-     use modglobal, only : ie, ihc, dxi, nsv
-     use modfields, only :sv0, svm
-     integer n, m
+  !  subroutine xso_Neumann
+  !    use modglobal, only : ie, ihc, nsv
+  !    use modfields, only :sv0, svm
+  !    integer n, m
 
-     do n = 1, nsv
-       do m = 1, ihc
-         sv0(ie + m, :, :, n) = sv0(ie, :, :, n)
-         svm(ie + m, :, :, n) = svm(ie, :, :, n)
-       end do
-     end do
+  !    do n = 1, nsv
+  !      do m = 1, ihc
+  !        sv0(ie + m, :, :, n) = sv0(ie, :, :, n)
+  !        svm(ie + m, :, :, n) = svm(ie, :, :, n)
+  !      end do
+  !    end do
 
-   end subroutine xso_Neumann
+  !  end subroutine xso_Neumann
 
 
    subroutine ymi_profile
-     use modglobal,      only : ib, ie, jb, je, kb, ke
+     use modglobal,      only : ib, ie, jb, kb, ke
      use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m, uprof, vprof, e12prof
      use modsubgriddata, only : loneeqn
      integer i, k
@@ -1066,7 +1208,7 @@ contains
 
 
    subroutine yTi_profile
-     use modglobal, only : ib, ie, jb, je, kb, ke
+     use modglobal, only : ib, ie, jb, kb, ke
      use modfields, only : thl0, thlm, thlprof
 
      integer i, k
@@ -1082,7 +1224,7 @@ contains
 
 
    subroutine yqi_profile
-     use modglobal, only : ib, ie, jb, je, kb, ke
+     use modglobal, only : ie, jb, kb, ke
      use modfields, only : qt0, qtm, qtprof
 
      integer i, k
@@ -1098,7 +1240,7 @@ contains
 
 
    subroutine ysi_profile
-     use modglobal, only : ib, ie, jb, je, kb, ke, nsv, ihc
+     use modglobal, only : ib, ie, jb, kb, ke, nsv, ihc
      use modfields, only : sv0, svm, svprof
 
      integer i, k, n, m
@@ -1119,7 +1261,7 @@ contains
 
    subroutine ymo_convective
      use modglobal,      only : je, dyi, rk3coef
-     use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m, vouttot
+     use modfields,      only : u0, um, w0, wm, e120, e12m, vouttot
      use modsubgriddata, only : loneeqn
 
      ! change to vouttot
@@ -1139,7 +1281,7 @@ contains
    subroutine yTo_convective
 
      use modglobal, only : je, dyi, rk3coef
-     use modfields, only : thl0, thlm, v0, vouttot
+     use modfields, only : thl0, thlm, vouttot
 
      thl0(:, je + 1, :) = thl0(:, je + 1, :) - (thl0(:, je + 1, :) - thl0(:, je, :))*dyi*rk3coef*vouttot
      thlm(:, je + 1, :) = thlm(:, je + 1, :) - (thlm(:, je + 1, :) - thlm(:, je, :))*dyi*rk3coef*vouttot
@@ -1150,7 +1292,7 @@ contains
    subroutine yqo_convective
 
      use modglobal, only : je, dyi, rk3coef
-     use modfields, only : qt0, qtm, v0, vouttot
+     use modfields, only : qt0, qtm, vouttot
 
      qt0(:, je + 1, :) = qt0(:, je + 1, :) - (qt0(:, je + 1, :) - qt0(:, je, :))*dyi*rk3coef*vouttot
      qtm(:, je + 1, :) = qtm(:, je + 1, :) - (qtm(:, je + 1, :) - qtm(:, je, :))*dyi*rk3coef*vouttot
@@ -1161,7 +1303,7 @@ contains
    subroutine yso_convective
 
      use modglobal, only : je, rk3coef, dyi, nsv
-     use modfields, only :sv0, svm, v0, vouttot
+     use modfields, only :sv0, svm, vouttot
      integer n
 
      do n = 1, nsv
@@ -1172,20 +1314,20 @@ contains
    end subroutine yso_convective
 
 
-   subroutine yso_Neumann
+  !  subroutine yso_Neumann
 
-     use modglobal, only : je, jhc, dyi, nsv
-     use modfields, only : sv0, svm
-     integer n, m
+  !    use modglobal, only : je, jhc, nsv
+  !    use modfields, only : sv0, svm
+  !    integer n, m
 
-     do n = 1, nsv
-       do m = 1, jhc
-         sv0(:, je + m, :, n) = sv0(:, je, :, n)
-         svm(:, je + m, :, n) = svm(:, je, :, n)
-       end do
-     end do
+  !    do n = 1, nsv
+  !      do m = 1, jhc
+  !        sv0(:, je + m, :, n) = sv0(:, je, :, n)
+  !        svm(:, je + m, :, n) = svm(:, je, :, n)
+  !      end do
+  !    end do
 
-   end subroutine yso_Neumann
+  !  end subroutine yso_Neumann
 
 
 #if defined(_GPU)
@@ -1403,7 +1545,7 @@ contains
 #endif
 
        case(BCtopm_pressure)
-         call avexy_ibm(pres0ij(kb:ke+kh),pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+         call avexy_ibm(pres0ij(kb:ke+kh),pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
 #if defined(_GPU)
          call bcpup_pwp_BCtopm_pressure_cuda<<<griddim,blockdim>>>(rk3coefi, pres0ij(ke))
@@ -1854,8 +1996,7 @@ contains
    end subroutine fluxtop
 
    subroutine valuetop(field, val)
-      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, dzh, dzf, dzhi, dzfi
-      use modmpi, only : myid
+      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh
       real, intent(inout) :: field(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh)
       real, intent(in)    :: val
 
@@ -1867,7 +2008,7 @@ contains
    end subroutine valuetop
 
    subroutine fluxtopscal(flux)
-      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, dzf, dzh, dzhi, nsv, khc
+      use modglobal, only:ib, ie, ih, jb, je, jh, ke, dzf, dzh, dzhi, nsv, khc
       use modfields, only:sv0, svm
       use modsubgriddata, only:ekh
 
@@ -1885,7 +2026,7 @@ contains
    end subroutine fluxtopscal
 
    subroutine valuetopscal(val)
-      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, eps1, nsv, khc
+      use modglobal, only:ke, nsv, khc
       use modfields, only:sv0, svm
       real, intent(in)    :: val(1:nsv)
       integer :: m, n
@@ -1906,7 +2047,7 @@ contains
    subroutine tqaver
 
       use modmpi, only:comm3d, mpierr, my_real, mpi_sum
-      use modglobal, only:ib, ie, jb, je, ih, jh, kb, ke, nsv, rslabs
+      use modglobal, only:ib, ie, jb, je, ke, nsv, rslabs
       use modfields, only:thl0, qt0, sv0
       implicit none
 

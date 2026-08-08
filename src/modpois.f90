@@ -42,6 +42,10 @@ implicit none
 
 include "fftw3.f"
 
+! FFTW's legacy interface (fftw3.f) declares no explicit interfaces for these
+! routines, so declare them EXTERNAL to satisfy -warn all (Intel #8889).
+external :: dfftw_plan_dft_r2c_1d, dfftw_plan_dft_c2r_1d, dfftw_plan_r2r_1d, dfftw_execute
+
 private
 public :: initpois,poisson,exitpois,p,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,pij
 save
@@ -75,7 +79,6 @@ save
   real, allocatable :: Sxr(:), Sxfr(:), Syr(:), Syfr(:), Szr(:), Szfr(:)
   complex, allocatable :: Sxfc(:), Syfc(:)
   type(DECOMP_INFO) :: sp
-  type(DECOMP_INFO) :: decomp_top
   real, allocatable :: pij(:)
 
   integer :: sp_zst3, sp_zst2, sp_zst1, sp_zen3, sp_zen2, sp_zen1
@@ -83,8 +86,7 @@ save
 contains
   subroutine initpois
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot, &
-                          dxi,dzh,dzf,dy,dyi,dxfi,dzfi,pi,linoutflow,&
-                          BCtopm,BCtopm_pressure
+                          dxi,dzh,dzf,dyi,dzfi,pi !,BCtopm, BCtopm_pressure
     use modfields, only : rhobf, rhobh
     implicit none
     integer :: kbc1, kbc2
@@ -826,9 +828,9 @@ contains
   ! Chiel van Heerwaarden,  19 June 2007
   ! Adapted fillps for RK3 time loop
     use modfields,   only : up, vp, wp, um, vm, wm
-    use modglobal,   only : rk3coefi, ib, ie, jb, je, kb, ke, dxi, dyi, dzfi, &
-                            pi, dy, imax, jmax, ylen, xf, zf
-    use modmpi,      only : myidx, myidy
+    use modglobal,   only : rk3coefi, ib, ie, jb, je, kb, ke, dxi, dyi, dzfi
+    ! use modglobal, only : pi, dy, imax, jmax, ylen, xf, zf
+    ! use modmpi, only : myidx, myidy
     use modboundary, only : bcpup
 #if defined(_GPU)
     use cudafor
@@ -970,7 +972,7 @@ contains
     !-----------------------------------------------------------------|
 
     use modfields,   only: up, vp, wp, pres0, IIc, IIcs
-    use modglobal,   only: ib,ie,ih,jb,je,jh,kb,ke,kh,dxi,dyi,dzhi,linoutflow,rslabs,BCtopm,BCtopm_pressure
+    use modglobal,   only: ib,ie,jb,je,kb,ke,kh,dxi,dyi,dzhi,BCtopm,BCtopm_pressure !,linoutflow, rslabs
     use modmpi,      only: slabsum, avexy_ibm
     use modboundary, only: bcp
 #if defined(_GPU)
@@ -1009,7 +1011,7 @@ contains
 #if defined(_GPU)
       p = p_d
 #endif
-      call avexy_ibm(pij(kb:ke+kh),p(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      call avexy_ibm(pij(kb:ke+kh),p(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
 #if defined(_GPU)
       call tderive_update_wptop_cuda<<<griddim,blockdim>>>(pij(ke))
@@ -1065,9 +1067,8 @@ contains
   end subroutine tderive
 
   subroutine solmpj(x)
-    use modmpi,    only : myid,comm3d,mpierr,nprocs, barrou
-    use modglobal, only : imax,jmax,ktot,isen,itot,jtot,pi,dyi,dzf,dzh,dxfi, kb, ke, kh,kmax, ib, ie, jb, je, kb, ke, linoutflow, ierank, jerank, ibrank, jbrank, BCxm, BCym
-    use modfields, only : rhobf, rhobh
+    use modmpi,    only : barrou
+    use modglobal, only : imax,jmax,ktot
 
     implicit none
 
@@ -1075,7 +1076,7 @@ contains
     real, dimension(imax,jmax,ktot) :: d
     real, dimension(imax,jmax,ktot), intent(INOUT) :: x
     !real, allocatable, dimension(:) :: FFTI, FFTJ, winew, wjnew
-    real    z,ak,bk,bbk,fac
+    real    z,ak,bk,bbk
     integer i, j, k
 
     do j=1,zsize(2)

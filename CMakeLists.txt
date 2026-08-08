@@ -40,50 +40,66 @@ find_package(MPI REQUIRED)
 
 set(UDALES_DECOMP2D_ARGS "")
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow -std=f2008 -cpp")
-    set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -finit-real=nan -fcheck=all -Wall -Wextra -Wuninitialized -Warray-bounds -Wconversion")
-    set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
+    # -fdefault-double-8 is required alongside -fdefault-real-8: on its own,
+    # -fdefault-real-8 also widens DOUBLE PRECISION to 16 bytes, which made every
+    # `dble(...)` and `1d0` literal software-emulated quad precision that was then
+    # truncated straight back to real(8) on assignment.
+    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -fdefault-double-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow -std=f2008 -cpp" CACHE STRING "Fortran flags" FORCE)
+    set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -finit-real=nan -fcheck=all -Wall -Wextra -Wuninitialized -Warray-bounds -Wconversion" CACHE STRING "Fortran debug flags" FORCE)
+    set(CMAKE_Fortran_FLAGS_RELEASE "-O3" CACHE STRING "Fortran release flags" FORCE)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     # FIXME: `-heap-arrays 10` required as using Intel Fortran
     # means they are stored on the stack (by default), whereas GNU Fortran stores
     # them on the heap (https://github.com/uDALES/u-dales/issues/13).
-    set(CMAKE_Fortran_FLAGS "-r8 -fpe0 -heap-arrays 10 -cpp")
-    set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -O0 -init=snan -CB -check all")
-    set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
+    set(CMAKE_Fortran_FLAGS "-r8 -fpe0 -heap-arrays 10 -fpp" CACHE STRING "Fortran flags" FORCE)
+    # #7712 (unused variables/imports) and the non-MPI #8889 (own procedures now
+    # in modules; FFTW declared EXTERNAL) are fixed in the source. The remaining
+    # #8889 are all MPI calls: Intel's F90 `use mpi` module does not provide the
+    # explicit interfaces -warn all wants for choice-buffer routines (MPI_BCAST,
+    # MPI_ALLREDUCE, ...) on any compiler available here (only an mpi_f08
+    # migration would), so #8889 stays suppressed to keep regression logs readable.
+    set(
+        CMAKE_Fortran_FLAGS_DEBUG
+        "-g -traceback -O0 -init=snan -CB -check bounds,format,output_conversion,pointers,uninit -warn all -diag-disable=8889"
+        CACHE STRING "Fortran debug flags"
+        FORCE
+    )
+    set(CMAKE_Fortran_FLAGS_RELEASE "-O3" CACHE STRING "Fortran release flags" FORCE)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Cray")
     # https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85
-    set(CMAKE_Fortran_FLAGS "-s real64 -N 1023 -K trap=divz,inv,ovf -cpp")
-    set(CMAKE_Fortran_FLAGS_DEBUG "-G0 -O0 -ei -R bcdps -m 0")
-    set(CMAKE_Fortran_FLAGS_RELEASE "-O3")
+    set(CMAKE_Fortran_FLAGS "-s real64 -N 1023 -K trap=divz,inv,ovf -eZ" CACHE STRING "Fortran flags" FORCE)
+    set(CMAKE_Fortran_FLAGS_DEBUG "-G0 -O0 -ei -R bcdps -m 0" CACHE STRING "Fortran debug flags" FORCE)
+    set(CMAKE_Fortran_FLAGS_RELEASE "-O3" CACHE STRING "Fortran release flags" FORCE)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NVHPC")
-    set(CMAKE_Fortran_FLAGS "-gpu=cc86,ccall,lineinfo -cuda -cudalib=cufft -acc -mp -Minfo=accel -Mpreprocess -cpp -r8 -Mextend -Ktrap=divz,inv,ovf,fp")
-    set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -Mincoming=nan -Mbounds -Mwarn -Mchkstk -traceback -Minfo=all")
-    set(CMAKE_Fortran_FLAGS_RELEASE "-fast -Kieee")
+    set(CMAKE_Fortran_FLAGS "-gpu=cc86,ccall,lineinfo -cuda -cudalib=cufft -acc -mp -Minfo=accel -Mpreprocess -cpp -r8 -Mextend -Ktrap=divz,inv,ovf,fp" CACHE STRING "Fortran flags" FORCE)
+    set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -Mincoming=nan -Mbounds -Mwarn -Mchkstk -traceback -Minfo=all" CACHE STRING "Fortran debug flags" FORCE)
+    set(CMAKE_Fortran_FLAGS_RELEASE "-fast -Kieee" CACHE STRING "Fortran release flags" FORCE)
     add_definitions(-D_GPU)
     set(UDALES_DECOMP2D_ARGS "-DBUILD_TARGET=gpu")
 else()
-    message(FATAL_ERROR "Only GNU, Intel, and Cray Fortran compilers are supported")
+    message(FATAL_ERROR "Only GNU, Intel, Cray, and NVHPC Fortran compilers are supported")
 endif()
 
-#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/findFFTW")
-configure_file(downloadFindFFTW.cmake.in findFFTW-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-        RESULT_VARIABLE result
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-download )
-if(result)
-    message(FATAL_ERROR "CMake step for findFFTW failed: ${result}")
-else()
-    message("CMake step for findFFTW completed (${result}).")
-endif()
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-        RESULT_VARIABLE result
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-download )
-if(result)
-    message(FATAL_ERROR "Build step for findFFTW failed: ${result}")
-else()
-    message("Build step for findFFTW completed (${result}).")
-endif()
 set(findFFTW_DIR ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-src)
+if(EXISTS "${findFFTW_DIR}/FindFFTW.cmake")
+    message("Reusing cached FindFFTW module from ${findFFTW_DIR}")
+else()
+    configure_file(downloadFindFFTW.cmake.in findFFTW-download/CMakeLists.txt)
+    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+            RESULT_VARIABLE result
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-download )
+    if(result)
+        message(FATAL_ERROR "CMake step for findFFTW failed: ${result}")
+        else()
+        message("CMake step for findFFTW completed (${result}).")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} --build .
+            RESULT_VARIABLE result
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/findFFTW-download )
+    if(result)
+        message(FATAL_ERROR "Build step for findFFTW failed: ${result}")
+    endif()
+endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${findFFTW_DIR}")
 find_package(FFTW REQUIRED)
 if(CMAKE_Fortran_COMPILER_ID MATCHES "NVHPC")
@@ -102,7 +118,7 @@ else()
      message(FATAL_ERROR "NetCDF F90 include directories not found.")
 endif()
 
-file(GLOB_RECURSE src_f90 "src/*.f90")
+file(GLOB_RECURSE src_f90 CONFIGURE_DEPENDS "src/*.f90")
 
 #add_subdirectory(external)
 

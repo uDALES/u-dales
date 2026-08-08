@@ -18,7 +18,9 @@
 # Copyright (C) 2016-2019 the uDALES Team.
 
 # script for setting key namoptions and writing *.inp.* files
-# variables not specified in namoptions can be set here. It updates these in write_inputs.m and then runs the matlab code to produce the required text files.
+# variables not specified in namoptions can be set here. It updates these in
+# write_inputs.m or write_inputs.py and then runs the selected preprocessing
+# route to produce the required text files.
 
 # tg3315 20/07/2017, modified by SO 06/02/20, modified by DM 27/08/24
 
@@ -26,80 +28,249 @@
 # (1) if no forcing found in namoptions then applies the initial velocities and uses the pressure terms
 
 # Assuming running from top-level project directory.
-# u-dales/tools/write_inputs.sh <PATH_TO_CASE>
+# u-dales/tools/write_inputs.sh <-m|-p> <PATH_TO_CASE> [c|l]
 
 set -e
 
-if (( $# < 1 )) 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+	echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/write_inputs.sh <-m|-p> <PATH_TO_CASE> [start]"
+	echo "   -m: run MATLAB preprocessing route"
+	echo "   -p: run Python preprocessing route"
+	echo "   start (optional): (c)ompute node or (l)ogin node; default is (l) which runs on the current node"
+}
+
+default_nompthreads=8
+
+extract_nompthreads() {
+	local namoptions_file=$1
+	local occurrence_count
+	local nompthreads_line
+	local nompthreads_value
+
+	occurrence_count=$(grep -io "nompthreads" "$namoptions_file" | wc -l)
+	occurrence_count=${occurrence_count//[[:space:]]/}
+
+	if [ "$occurrence_count" -eq 0 ]; then
+		return 0
+	fi
+	if [ "$occurrence_count" -gt 1 ]; then
+		echo "MULTIPLE"
+		return 0
+	fi
+
+	nompthreads_line=$(grep -i "nompthreads" "$namoptions_file")
+	if [[ "$nompthreads_line" != *"="* ]]; then
+		echo "INVALID"
+		return 0
+	fi
+
+	nompthreads_value=${nompthreads_line#*=}
+	nompthreads_value=${nompthreads_value%%!*}
+	nompthreads_value=${nompthreads_value%%,*}
+	nompthreads_value=${nompthreads_value%%/*}
+	nompthreads_value="${nompthreads_value#"${nompthreads_value%%[![:space:]]*}"}"
+	nompthreads_value="${nompthreads_value%"${nompthreads_value##*[![:space:]]}"}"
+
+	if [[ "$nompthreads_value" =~ ^[0-9]+$ ]] && [ "$nompthreads_value" -gt 0 ]; then
+		printf "%d\n" "$nompthreads_value"
+	else
+		echo "INVALID"
+	fi
+}
+
+source_view3d_config() {
+	local config_file=$1
+	local status
+
+	set -a
+	if source "$config_file"; then
+		set +a
+		return 0
+	else
+		status=$?
+		set +a
+		echo "Failed to source View3D config: $config_file" >&2
+		echo "Check the file syntax and required environment variables." >&2
+		return "$status"
+	fi
+}
+
+if (( $# < 2 ))
 then
-    echo "The path to case/experiment folder must be set."
-	echo "usage: FROM THE TOP LEVEL DIRECTORY run: u-dales/tools/write_inputs.sh <PATH_TO_CASE> (start)"
-	echo "   start (optional): (c)ompute node or (l)ogin node"
+	echo "The preprocessing route and path to case/experiment folder must be set."
+	usage
 	echo "... execution terminated"
     exit 1
 fi
 
-start=${2:-"x"}     # pass 'c' if needs to be run on hpc compute node, or 'l' if to be run on login node
+route_arg=$1
+case_path=$2
+start=${3:-"x"}     # pass 'c' if needs to be run on hpc compute node, or 'l' if to be run on login node
+
+case "$route_arg" in
+	-m)
+		route="matlab"
+		;;
+	-p)
+		route="python"
+		;;
+	*)
+		echo "Unrecognised preprocessing route: $route_arg"
+		usage
+		echo "... execution terminated"
+		exit 1
+		;;
+esac
 
 # go to experiment directory
-pushd $1
-	inputdir=$(pwd)
+pushd "$case_path"
+inputdir=$(pwd)
 
-	## set experiment number via path
-	iexpnr="${inputdir: -3}"
+## set experiment number via path
+iexpnr="${inputdir: -3}"
 
-	## read in additional variables
-	if [ -f config.sh ]; then
-   	 source config.sh
-	else
-	 echo "config.sh must be set inside $inputdir"
-     exit 1
-	fi
+## read in additional variables
+if [ -f config.sh ]; then
+  source config.sh
+fi
 
-	## check if required variables are set
-	if [ -z $DA_TOOLSDIR ]; then
-	    echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
-	    exit 1
-	fi;
-	if [ -z $DA_EXPDIR ]; then
-		echo "Experiment directory DA_EXPDIR must be set $inputdir/config.sh"
+export DA_TOOLSDIR="${DA_TOOLSDIR:-$script_dir}"
+export DA_EXPDIR="${DA_EXPDIR:-$(cd "$inputdir/.." && pwd)}"
+
+namoptions_file="$inputdir/namoptions.$iexpnr"
+if [ ! -f "$namoptions_file" ]; then
+	echo "Namelist file not found: $namoptions_file"
+	exit 1
+fi
+
+nompthreads=$(extract_nompthreads "$namoptions_file")
+case "$nompthreads" in
+	MULTIPLE)
+		echo "Multiple nompthreads occurrences found in $namoptions_file"
+		echo "Set nompthreads only once."
 		exit 1
-	fi;
+		;;
+	INVALID)
+		echo "Invalid nompthreads value in $namoptions_file"
+		echo "nompthreads must be a positive integer."
+		exit 1
+		;;
+esac
+export PREPROC_NCPU="${nompthreads:-$default_nompthreads}"
+export PREPROC_WALLTIME="${PREPROC_WALLTIME:-24:00:00}"
+export PREPROC_MEM="${PREPROC_MEM:-128gb}"
+
+if [[ ! "$PREPROC_MEM" =~ ^[0-9]+gb$ ]]; then
+	echo "Memory requirement PREPROC_MEM must be set like 128gb"
+	exit 1
+fi
 
 popd
 
-if [ $start == "c" ]; then
+export VIEW3D_CONFIG="${VIEW3D_CONFIG:-$DA_TOOLSDIR/view3d_config.sh}"
+if [ ! -f "$VIEW3D_CONFIG" ]; then
+	echo "View3D config file not found: $VIEW3D_CONFIG" >&2
+	exit 1
+fi
+source_view3d_config "$VIEW3D_CONFIG" || exit 1
 
-	cd $inputdir
+if [ "$route" == "python" ]; then
+	python_exe="$DA_TOOLSDIR/python/.venv/bin/python"
+	if [ ! -x "$python_exe" ]; then
+		echo "Python virtual environment not found or not executable: $python_exe"
+		echo "Set it up with: bash $DA_TOOLSDIR/python/setup_venv.sh <common|icl>"
+		echo "... execution terminated"
+		exit 1
+	fi
+	# Keep f2py/Fortran status messages ordered with Python output in redirected logs.
+	export PYTHONUNBUFFERED=1
+	export GFORTRAN_UNBUFFERED_PRECONNECTED=1
+fi
 
-###### RUN MATLAB SCRIPT through HPC job script
+if [ "$start" == "c" ]; then
+
+	cd "$inputdir"
+
+###### RUN SCRIPT through HPC job script
 cat <<EOF > pre-job.$iexpnr
 #!/bin/bash
-#PBS -l walltime=24:00:00
-#PBS -l select=1:ncpus=8:mem=64gb
+#PBS -l walltime=$PREPROC_WALLTIME
+#PBS -l select=1:ncpus=$PREPROC_NCPU:mem=${PREPROC_MEM}
 
 module load tools/prod
-module load MATLAB/2024b
 module load GCC/14.2.0
+module load Python/3.13.1-GCCcore-14.2.0
 
-cd $DA_TOOLSDIR
+cd "$DA_TOOLSDIR"
 
-export DA_TOOLSDIR=$DA_TOOLSDIR
-export DA_EXPDIR=$DA_EXPDIR
+export DA_TOOLSDIR="$DA_TOOLSDIR"
+export DA_EXPDIR="$DA_EXPDIR"
 export MATLAB_USE_USERWORK=0
+export PYTHONUNBUFFERED=1
+export GFORTRAN_UNBUFFERED_PRECONNECTED=1
+export PREPROC_NCPU="$PREPROC_NCPU"
+export PREPROC_MEM="$PREPROC_MEM"
+export VIEW3D_CONFIG="$VIEW3D_CONFIG"
+source_view3d_config() {
+	local config_file=\$1
+	local status
 
-nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 < /dev/null
+	set -a
+	if source "\$config_file"; then
+		set +a
+		return 0
+	else
+		status=\$?
+		set +a
+		echo "Failed to source View3D config: \$config_file" >&2
+		echo "Check the file syntax and required environment variables." >&2
+		return "\$status"
+	fi
+}
+if [ ! -f "$VIEW3D_CONFIG" ]; then
+	echo "View3D config file not found: $VIEW3D_CONFIG" >&2
+	exit 1
+fi
+source_view3d_config "$VIEW3D_CONFIG" || exit 1
 
 EOF
+
+	if [ "$route" == "matlab" ]; then
+		cat <<EOF >> pre-job.$iexpnr
+module load MATLAB/2024b
+nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > "$inputdir/write_inputs.$iexpnr.log" 2>&1 < /dev/null
+
+EOF
+	else
+		cat <<EOF >> pre-job.$iexpnr
+if command -v stdbuf >/dev/null 2>&1; then
+	stdbuf_cmd="stdbuf -oL -eL"
+else
+	stdbuf_cmd=""
+fi
+nohup \$stdbuf_cmd "$python_exe" -u "$DA_TOOLSDIR/write_inputs.py" "$inputdir" > "$inputdir/write_inputs.$iexpnr.log" 2>&1 < /dev/null
+
+EOF
+	fi
 
 ## submit job.exp file to queue
 	qsub pre-job.$iexpnr
 	echo "pre-job.$iexpnr submitted."
 else
-	###### RUN MATLAB SCRIPT
-	cd $DA_TOOLSDIR
-	nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > $inputdir/write_inputs.$iexpnr.log 2>&1 < /dev/null &
-	cd $DA_EXPDIR
+	###### RUN SCRIPT
+	cd "$DA_TOOLSDIR"
+	if [ "$route" == "matlab" ]; then
+		nohup matlab -nodesktop -noFigureWindows -nosplash -nodisplay -r "expnr=$iexpnr; write_inputs; quit" > "$inputdir/write_inputs.$iexpnr.log" 2>&1 < /dev/null &
+	else
+		if command -v stdbuf >/dev/null 2>&1; then
+			nohup stdbuf -oL -eL "$python_exe" -u "$DA_TOOLSDIR/write_inputs.py" "$inputdir" > "$inputdir/write_inputs.$iexpnr.log" 2>&1 < /dev/null &
+		else
+			nohup "$python_exe" -u "$DA_TOOLSDIR/write_inputs.py" "$inputdir" > "$inputdir/write_inputs.$iexpnr.log" 2>&1 < /dev/null &
+		fi
+	fi
+	cd "$DA_EXPDIR"
 	cd ..
 fi
 

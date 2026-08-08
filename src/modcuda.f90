@@ -13,7 +13,7 @@ module modcuda
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
                              um, vm, wm, e12m, thlm, qtm, svm, &
-                             tau_x, tau_y, tau_z, thl_flux, &
+                             tau_x, tau_y, tau_z, thl_flux, momfluxb, tfluxb, &
                              u0av, v0av, thl0av, qt0av, sv0av, dthvdz, ug, vg, whls, tsc, &
                              dpdxl, dpdyl, thv0h, thvh, thlpcar, &
                              dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls, &
@@ -38,7 +38,7 @@ module modcuda
    real,    device :: dx2_d, dxi_d, dx2i_d, dxi5_d, dxiq_d, dy2_d, dyi_d, dy2i_d, dyi5_d, dyiq_d, &
                       eps1_d, numol_d, prandtlmoli_d, prandtlturb_d, prandtli_d, grav_d, dampmin_d, c_vreman_d, fkar2_d, &
                       cn_d, cm_d, ch1_d, ch2_d, ce1_d, ce2_d, &
-                      thvs_d
+                      thvs_d, bcTfluxA_d
 
    integer, device, dimension(3) :: zstart_d
 
@@ -57,6 +57,7 @@ module modcuda
    real, device, allocatable :: um_d(:,:,:), vm_d(:,:,:), wm_d(:,:,:), e12m_d(:,:,:), thlm_d(:,:,:), qtm_d(:,:,:), svm_d(:,:,:,:)
    real, device, allocatable :: p_d(:,:,:), pup_d(:,:,:), pvp_d(:,:,:), pwp_d(:,:,:)
    real, device, allocatable :: tau_x_d(:,:,:), tau_y_d(:,:,:), tau_z_d(:,:,:), thl_flux_d(:,:,:)
+   real, device, allocatable :: momfluxb_d(:,:,:), tfluxb_d(:,:,:)
    real, device, allocatable :: dthvdz_d(:,:,:)
    real, device, allocatable :: ekm_d(:,:,:), ekh_d(:,:,:), sbshr_d(:,:,:), sbbuo_d(:,:,:), sbdiss_d(:,:,:), zlt_d(:,:,:), damp_d(:,:,:)
    real, device, allocatable :: thv0h_d(:,:,:)
@@ -162,6 +163,7 @@ module modcuda
          allocate(tau_x_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
          allocate(tau_y_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
          allocate(tau_z_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(momfluxb_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
 
          allocate(u0av_d(kb:ke+kh))
          allocate(v0av_d(kb:ke+kh))
@@ -223,6 +225,8 @@ module modcuda
             thlpcar_d = thlpcar
             dthldxls_d = dthldxls
             dthldyls_d = dthldyls
+
+            allocate(tfluxb_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
          end if
 
          if (lmoist) then
@@ -321,7 +325,7 @@ module modcuda
          implicit none
          deallocate(dxf_d, dxhi_d, dzf_d, dzf2_d, dzfi_d, dzfi5_d, dzfiq_d, dzh_d, dzhi_d, dzh2i_d, dzhiq_d, delta_d)
          deallocate(u0_d, v0_d, w0_d, pres0_d, um_d, vm_d, wm_d, up_d, vp_d, wp_d)
-         deallocate(tau_x_d, tau_y_d, tau_z_d)
+         deallocate(tau_x_d, tau_y_d, tau_z_d, momfluxb_d)
          deallocate(u0av_d, v0av_d, ug_d, vg_d, whls_d, tsc_d)
          deallocate(dpdxl_d, dpdyl_d, dudxls_d, dudyls_d, dvdxls_d, dvdyls_d)
          deallocate(uprof_d, vprof_d, u0driver_d)
@@ -331,6 +335,7 @@ module modcuda
             if (iadv_thl == iadv_kappa) deallocate(thl0c_d, thlpc_d)
             deallocate(thv0h_d, thvh_d, thl0av_d, thlpcar_d)
             deallocate(dthldxls_d, dthldyls_d)
+            deallocate(tfluxb_d)
          end if
          if (lmoist) deallocate(qt0_d, qtm_d, qtp_d, qt0av_d, dqtdxls_d, dqtdyls_d, dqtdtls_d)
          if (nsv>0) then
@@ -375,6 +380,7 @@ module modcuda
          tau_x_d = tau_x
          tau_y_d = tau_y
          tau_z_d = tau_z
+         momfluxb_d = momfluxb
 
          u0av_d = u0av
          v0av_d = v0av
@@ -405,6 +411,8 @@ module modcuda
             if (ltrees .and. lmoist) then
                thlpcar_d = thlpcar
             end if
+
+            tfluxb_d = tfluxb
          end if
 
          if (lmoist) then
@@ -506,6 +514,7 @@ module modcuda
          tau_x = tau_x_d
          tau_y = tau_y_d
          tau_z = tau_z_d
+         momfluxb = momfluxb_d
          if (loneeqn) then
             e12m = e12m_d
             e120 = e120_d
@@ -515,6 +524,7 @@ module modcuda
             thlp = thlp_d
             if (iadv_thl == iadv_kappa) thlpc = thlpc_d
             thl_flux = thl_flux_d
+            tfluxb = tfluxb_d
          end if
          if (lmoist) then
             qtp = qtp_d

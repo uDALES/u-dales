@@ -36,9 +36,7 @@ save
 
 contains
   subroutine initinlet
-    use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh,iinletgen,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,pi,zf,zh
-    use modfields, only : um
-    use modmpi, only : myid,nprocs
+    use modglobal, only : ib,ie,jh,jb,je,kb,ke,iinletgen,iplane,xf,lstoreplane,nstore,Uinf,ltempeq,pi,zf,zh
 
     implicit none
     real    :: pfi, epsi
@@ -202,8 +200,10 @@ contains
   end subroutine initinlet
 
   subroutine inletgen
-    use modglobal,   only : ib,ie,jb,je,jtot,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,rk3coef,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,luvolflowr,lfixutauin
-    use modfields,   only : u0,v0,w0,thl0,wm,uprof
+    use modglobal,   only : ib,ie,jb,je,jtot,kb,ke,zf,zh,dzf,timee,btime,rk3step,rk3coef,dt,numol, &
+                            iinletgen,inletav,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore, &
+                            prandtlmoli,grav,lbuoyancy,lfixinlet,luvolflowr,lfixutauin !,dzhi 
+    use modfields,   only : u0,v0,w0,thl0
     use modsurfdata, only : thls,thl_top
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
@@ -221,13 +221,11 @@ contains
     real,dimension(jb:je,kb:ke)   :: tpinlo            ! = lambda  * (tprec   interpolated to zoti grid)
     real,dimension(jb:je,kb:ke+1) :: wpinli            ! = gamma * (wprec   interpolated to zii grid)
     real,dimension(jb:je,kb:ke+1) :: wpinlo            ! = gamma * (wprec   interpolated to zoi grid)
-    real,dimension(kb:ke)   :: udiff                   ! difference between Uinl and Urec
 !    real,dimension(kb:ke)   :: Urecdiff                ! difference between Urec new and old
     real,dimension(kb:ke)   :: urav                    ! j-averaged u-velocity (not time-averaged)
     real,dimension(kb:ke)   :: trav                    ! j-averaged temperature (not time-averaged)
     real,dimension(kb:ke)   :: uravdzf                 ! j-averaged u-velocity (not time-averaged) times dzf
     real,dimension(kb:ke)   :: uinldzf                 ! j-averaged u-velocity (not time-averaged) times dzf
-    real,dimension(kb:ke)   :: Urecdzf                 ! Urec times dzf
     real,dimension(kb:ke+1) :: wrav                    ! j-averaged w-velocity (not time-averaged)
     real,dimension(kb:ke)   :: Uinli                   ! = gamma * (Urec interpolated to ziif grid points)
     real,dimension(kb:ke+1) :: Winli                   ! = gamma * (Wrec interpolated to ziih grid points)
@@ -238,15 +236,13 @@ contains
     real,dimension(kb:ke)   :: wfuncf                  ! weight function at full level
     real,dimension(kb:ke+1) :: wfunch                  ! weight function at half level
     real,dimension(kb:ke)   :: wfunct                  ! weight function at full level
-    real                    :: utaur2,utaui2           ! (utau)^2 at recycle station and inlet
+    real                    :: utaur2                  ! (utau)^2 at recycle station and inlet
     real                    :: gamm                    ! utaui / utaur
     real                    :: lamb                    ! ttaui / ttaur
     real                    :: avint,avinti            ! avering interval
     real                    :: alpha,beta              ! factors used in the Weight function
 !    real                    :: totalu                  ! total u-velocity at outlet
-    real                    :: Urectot                  ! total u-velocity at recycle plane
 !    real                    :: di_test                 ! BL thickness as measured from Uinl
-    real                    :: utop                    ! j-averaged top velocity
     real                    :: interval
     real                    :: dtinrk                  ! RK time step in inlet data
     real                    :: rk3coefin               ! Cumulative RK time step in inlet data
@@ -254,7 +250,7 @@ contains
     real                    :: scalef                      ! scale factor to scale instantaneous velocity profile with to get constant mass flux
     real                    :: totaluinl                   ! bulk velocity at the inlet
 !    real                    :: q0                      ! heat flux
-    integer i,j,k,kk,kdamp
+    integer i,j,k,kk
 
 
    if (iinletgen == 1) then
@@ -874,7 +870,7 @@ contains
         deltat = rk3coef - (dt/2.)
       end if
   ! determine time step interval in inlet data
-      rk3coefin = dtin / (4. - dble(rk3stepin))
+      rk3coefin = dtin / (4. - real(rk3stepin))
       if (rk3stepin==1) then
         dtinrk = rk3coefin
       elseif (rk3stepin==2) then
@@ -889,7 +885,7 @@ contains
         nstepread = nstepread +1
         elapstep = mod(elapstep,dtinrk)
         rk3stepin = mod(rk3stepin,3) + 1
-        rk3coefin = dtin / (4. - dble(rk3stepin))
+        rk3coefin = dtin / (4. - real(rk3stepin))
         if (rk3stepin==1) then
           dtinrk = rk3coefin
         elseif (rk3stepin==2) then
@@ -947,8 +943,10 @@ contains
   end subroutine inletgen
 
   subroutine inletgennotemp
-    use modglobal,   only : ib,ie,jb,je,jb,jtot,kb,ke,zf,zh,dzf,dzhi,timee,btime,totavtime,rk3step,rk3coef,dt,numol,iplane,lles,iinletgen,inletav,runavtime,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,lfixinlet,lfixutauin,luvolflowr
-    use modfields,   only : u0,v0,w0,wm,uprof
+    use modglobal,   only : ib,ie,jb,je,jtot,kb,ke,zf,zh,dzf,timee,btime,rk3step,rk3coef,dt,numol, &
+                            iinletgen,inletav,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore, &
+                            lfixinlet,lfixutauin,luvolflowr
+    use modfields,   only : u0,v0,w0
     use modsave,     only : writerestartfiles
     use modmpi,      only : slabsum,myid
     implicit none
@@ -961,12 +959,10 @@ contains
     real,dimension(jb:je,kb:ke)   :: upinlo,vpinlo     ! = gamma * (uprec,v interpolated to zoi grid)
     real,dimension(jb:je,kb:ke+1) :: wpinli            ! = gamma * (wprec   interpolated to zii grid)
     real,dimension(jb:je,kb:ke+1) :: wpinlo            ! = gamma * (wprec   interpolated to zoi grid)
-    real,dimension(kb:ke)   :: udiff                   ! difference between Uinl and Urec
 !    real,dimension(kb:ke)   :: Urecdiff                ! difference between Urec new and old
     real,dimension(kb:ke)   :: urav                    ! j-averaged u-velocity (not time-averaged)
     real,dimension(kb:ke)   :: uravdzf                 ! j-averaged u-velocity (not time-averaged) times dzf
     real,dimension(kb:ke)   :: uinldzf                 ! j-averaged u-velocity (not time-averaged) times dzf
-    real,dimension(kb:ke)   :: Urecdzf                 ! Urec times dzf
     real,dimension(kb:ke+1) :: wrav                    ! j-averaged w-velocity (not time-averaged)
     real,dimension(kb:ke)   :: Uinli                   ! = gamma * (Urec interpolated to ziif grid points)
     real,dimension(kb:ke+1) :: Winli                   ! = gamma * (Wrec interpolated to ziih grid points)
@@ -974,14 +970,12 @@ contains
     real,dimension(kb:ke+1) :: Winlo                   ! = gamma * (Wrec interpolated to zoih grid points)
     real,dimension(kb:ke)   :: wfuncf                  ! weight function at full level
     real,dimension(kb:ke+1) :: wfunch                  ! weight function at half level
-    real                    :: utaur2,utaui2           ! (utau)^2 at recycle station and inlet
+    real                    :: utaur2                  ! (utau)^2 at recycle station and inlet
     real                    :: gamm                    ! utaui / utaur
     real                    :: avint,avinti            ! avering interval
     real                    :: alpha,beta              ! factors used in the Weight function
 !    real                    :: totalu                  ! total u-velocity at outlet
-    real                    :: Urectot                  ! total u-velocity at recycle plane
 !    real                    :: di_test                 ! BL thickness as measured from Uinl
-    real                    :: utop                    ! j-averaged top velocity
     real                    :: interval
     real                    :: dtinrk                  ! RK time step in inlet data
     real                    :: rk3coefin               ! Cumulative RK time step in inlet data
@@ -1396,7 +1390,7 @@ contains
         deltat = rk3coef - (dt/2.)
       end if
   ! determine time step interval in inlet data
-      rk3coefin = dtin / (4. - dble(rk3stepin))
+      rk3coefin = dtin / (4. - real(rk3stepin))
       if (rk3stepin==1) then
         dtinrk = rk3coefin
       elseif (rk3stepin==2) then
@@ -1411,7 +1405,7 @@ contains
         nstepread = nstepread +1
         elapstep = mod(elapstep,dtinrk)
         rk3stepin = mod(rk3stepin,3) + 1
-        rk3coefin = dtin / (4. - dble(rk3stepin))
+        rk3coefin = dtin / (4. - real(rk3stepin))
         if (rk3stepin==1) then
           dtinrk = rk3coefin
         elseif (rk3stepin==2) then
@@ -1467,9 +1461,7 @@ contains
 
   subroutine momentumthicknessexp(output,uinput)
 
-    use modglobal, only : jb,kb,ke,dzf !,Uinf
-    use modinletdata, only : ubulk
-    use modmpi, only    : myid
+    use modglobal, only : kb,ke,dzf !,Uinf
     implicit none
 
        real, dimension(kb:ke), intent(in) :: uinput  !< input velocity
@@ -1499,7 +1491,6 @@ contains
     real, intent(in)                   :: ustar      ! friction velocity
     real, intent(in)                   :: blth       ! boundary layer thickness
     real, intent(out)                  :: output     ! momentum thickness
-    real :: B     = 5.0       ! Wake parameter
     real :: C     = 0.5       ! Coles parameter
     real :: kappa = 0.41      ! Von k�r�n constant
     real :: lam               ! = Uinf/ustar
@@ -1520,7 +1511,6 @@ contains
     real, intent(in)                   :: lmo        ! Obukhov length
     real, intent(in)                   :: blth       ! boundary layer thickness
     real, intent(out)                  :: output     ! momentum thickness
-    real :: B     = 5.0       ! Wake parameter
     real :: C     = 0.5       ! Coles parameter
     real :: kappa = 0.41      ! Von k�r�n constant
     real :: cmo   = 0.702     ! constant in MO theory (0.135*5.2)
@@ -1534,10 +1524,8 @@ contains
 
   subroutine enthalpythickness(output,tinput,uinput)
 
-    use modglobal, only : jb,kb,ke,dzf !,Uinf
-    use modinletdata, only : ubulk
+    use modglobal, only : kb,ke,dzf !,Uinf
     use modsurfdata, only : thls
-    use modmpi, only    : myid
     implicit none
 
        real, dimension(kb:ke), intent(in) :: tinput  !< input temperature
@@ -1547,6 +1535,13 @@ contains
        real thlsdummy
        integer :: k
 
+       ! An isothermal inlet top (tinput(ke) exactly == thls) makes the enthalpy
+       ! -thickness denominator below exactly zero, which -ffpe-trap=zero turns
+       ! into a crash. Offsetting thls avoids that. The exact-equality test is
+       ! deliberate and must stay: a tolerance test would also capture merely
+       ! near-equal values, and clamping those to -0.000001 would flip the sign
+       ! of the denominator (and so of ethick) rather than just regularise it.
+       ! gfortran's -Wcompare-reals flags this; it is a false positive here.
        thlsdummy = thls
        if (tinput(ke) == thls) then
          thlsdummy = thls -0.000001
@@ -1557,6 +1552,10 @@ contains
 
        end do
        output   = sum(ethick)  ! enthalpy thickness
+       ! Callers divide by the enthalpy thickness, so an exactly-zero sum (an inlet
+       ! with no temperature deficit) is regularised rather than allowed to trap.
+       ! As above, the exact comparison is intended: only the exactly-zero case is
+       ! degenerate, and a small non-zero thickness is physically meaningful.
        if (output==0.) then
          output= 0.000001
        end if
@@ -1601,7 +1600,7 @@ contains
 
   subroutine dispthickness(output)
 ! output is an array of length (ib:ie)) containing displacement thickness values
-    use modglobal, only : ib,ie,kb,ke,dzf,xf,Uinf,numol
+    use modglobal, only : ib,ie,kb,dzf,xf,Uinf,numol
     implicit none
 
        real, dimension(ib:ie),       intent(out) :: output  !< dispacement thickness
@@ -1634,7 +1633,7 @@ contains
 
   subroutine dispthicknessmo(output)
 ! output is an array of length (ib:ie)) containing displacement thickness values
-    use modglobal, only : ib,ie,kb,ke,dzf,xf,Uinf,numol,grav,prandtlmoli
+    use modglobal, only : ib,ie,kb,dzf,xf,Uinf,numol,grav,prandtlmoli
     use modsurfdata, only : thls
     implicit none
 
@@ -1854,11 +1853,10 @@ contains
 
   subroutine writeinletfile
     use modglobal, only : jb,je,kb,ke,cexpnr,ifoutput,nstore,ltempeq
-    use modmpi,    only : cmyid,myid
+    use modmpi,    only : cmyid
 !    use modinletdata, only : storeu0inletbc,storev0inletbc,storew0inletbc,nfile
 
     implicit none
-    integer fileid
     integer j,k,n
     character(24) name
 
@@ -1891,14 +1889,11 @@ contains
   end subroutine writeinletfile
 
   subroutine readinletfile
-    use modglobal, only : ib,jb,je,jmax,kb,ke,cexpnr,ifinput,nstore,ltempeq,ntrun,zh,jtot,jh
-    use modmpi,    only : cmyid,myid,nprocs,slabsum,excjs
+    use modglobal, only : jb,je,kb,ke,cexpnr,ifinput,nstore,ltempeq,jh
+    use modmpi,    only : slabsum,excjs
 !    use modinletdata, only : storeu0inletbc,storev0inletbc,storew0inletbc,nfile
 
     implicit none
-    real, dimension(ib:ib,jb:jb+inlfactor*jmax-1,kbin:kein)        :: udummy
-    real, dimension(kbin:kein)                                     :: uread
-    real, dimension(kbin:kein)                                     :: ureaddzfin
     real, dimension(jb:jb+jtotin-1,kbin:kein,1:nstore)     :: storeu0inold
     real, dimension(jb:jb+jtotin-1,kbin:kein,1:nstore)     :: storev0inold
     real, dimension(jb:jb+jtotin-1,kbin:kein+1,1:nstore)   :: storew0inold
@@ -1911,7 +1906,7 @@ contains
     real, dimension(jb:je,kbin:kein,1:nstore)     :: storev0innew
     real, dimension(jb:je,kbin:kein+1,1:nstore)   :: storew0innew
     real, dimension(jb:je,kbin:kein,1:nstore)     :: storet0innew
-    integer filen,filee
+    integer filen
     integer fileid
     integer j,k,n,js,jf,jfdum,jsdum
     character(24) name
@@ -2069,7 +2064,7 @@ contains
   end subroutine zinterpolate1d
 
  subroutine zinterpolate2d(input,output)
-  use modglobal,      only : ib,ie,kb,ke,zf,nstore
+  use modglobal,      only : ib,ie,kb,ke,zf
   implicit none
   real, dimension(ib:ie,kbin:kein), intent(in)  :: input
   real, dimension(ib:ie,kb:ke), intent(inout) :: output
@@ -2175,7 +2170,7 @@ contains
   end subroutine zinterpolatet
 
   subroutine zinterpolatet1d(input,output)
-  use modglobal,      only : jb,je,kb,ke,zf,nstore
+  use modglobal,      only : kb,ke,zf
   use modsurfdata,     only : thls
   implicit none
   real, dimension(kbin:kein), intent(in)  :: input
@@ -2221,7 +2216,7 @@ contains
   integer, intent(in) :: kf
   real, dimension(jbdum:jedum,ks:kf,1:nstore), intent(in)  :: input
   real, dimension(jb   :je   ,ks:kf,1:nstore), intent(inout) :: output
-  integer j, jj
+  integer j
 
     do j=jb,je
 !      if (np==0 .and. yloclowf(j)==)

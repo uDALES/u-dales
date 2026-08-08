@@ -39,9 +39,9 @@ module modstartup
    ! public :: startup,trestart
    save
 
-   integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomnizer with
+   integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomizer with
    integer :: krand = huge(0)  ! returns the largest integer that is not an infinity
-   real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomnization
+   real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomization
 
    contains
 
@@ -56,35 +56,34 @@ module modstartup
       !      Thijs Heus                   15/06/2007                    |
       !-----------------------------------------------------------------|
 
-      use modglobal,         only : initglobal, iexpnr, runtime, dtmax,  &
+      use modglobal,         only : initglobal, iexpnr, runtime, runmode, dtmax,  &
                                     lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, tstatstart, trestart, &
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
                                     nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
-                                    linoutflow, lper2inout, libm, lconservativeibm, lbottom, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+                                    lper2inout, libm, lconservativeibm, lbottom, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                                     uflowrate, vflowrate, lstoreplane, iplane, &
-                                    lreadmean, iinletgen, inletav, lreadminl, Uinf, Vinf, linletRA, nblocks, &
-                                    lscalrec,lSIRANEinout,lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,lzerogradtop,&
+                                    lreadmean, inletav, lreadminl, Uinf, Vinf, linletRA, &
+                                    lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,&
                                     lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice,&
-                                    lzerogradtopscal, lbuoyancy, ltempeq, &
+                                    lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
-                                    ifixuinf, lvinf, tscale, ltempinout, lmoistinout,  &
+                                    ifixuinf, lvinf, tscale,  &
                                     lwallfunc,lprofforc,lchem,k1,JNO2,rv,rd,tnextEB,tEB,dtEB,bldT,flrT, lperiodicEBcorr, fraction,sinkbase,wsoil,wgrmax,wwilt,wfc,skyLW,GRLAI,rsmin,nfcts,lEB,lwriteEBfiles,nfaclyrs,lconstW,lvfsparse,nnz,lfacTlyrs, &
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
-                                    BCxm_periodic, BCym_periodic, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
                                     lrandomize, prandtlturb, fkar, fkar2, lwritefac, dtfac, tfac, tnextfac, &
-                                    ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump, &
+                                    ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
       use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
-      use modfields,         only : initfields, dpdx, ncname
+      use modfields,         only : initfields, dpdx
       use modpois,           only : initpois
       use modboundary,       only : initboundary, ksp
-      use modthermodynamics, only : initthermodynamics, lqlnr, chi_half
+      use modthermodynamics, only : initthermodynamics, lqlnr
       use modsubgrid,        only : initsubgrid
-      use modmpi,            only : comm3d, myid, myidx, myidy, cmyid, cmyidx, cmyidy, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy, nbreast, nbrwest, nbrnorth, nbrsouth
+      use modmpi,            only : comm3d, myid, mpi_integer, mpi_logical, my_real, mpierr, mpi_character, nprocx, nprocy
       use modinlet,          only : initinlet
       use modinletdata,      only : di, dr, di_test, dti, iangledeg, iangle
       use modibmdata,        only : bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
@@ -100,13 +99,12 @@ module modstartup
 
       implicit none
       integer :: ierr
-      logical, dimension(3) :: periodic_bc
-      integer, dimension(2) :: myids
 
       !declare namelists
 
       namelist/RUN/ &
          iexpnr, lwarmstart, lstratstart, startfile, &
+         runmode, &
          runtime, dtmax, trestart, ladaptive, &
          irandom, randu, randthl, randqt, krand, &
          courant, diffnr, author, &
@@ -148,7 +146,7 @@ module modstartup
          driverstore, iplane, iangledeg, &
          lchunkread, chunkread_size
       namelist/WALLS/ &
-         nblocks, nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
+         nfcts, iwallmom, iwalltemp, iwallmoist, iwallscal, &
          nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
          nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
          nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, lnorec, &
@@ -167,7 +165,7 @@ module modstartup
          lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, ltkedump, tstatsdump, tsample, &
          tstatstart
       namelist/TREES/ &
-         ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump
+         ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump, itree_mode
       namelist/PURIFS/ &
          lpurif, npurif, Qpu, epu
       namelist/HEATPUMP/ &
@@ -366,6 +364,7 @@ module modstartup
 
       !write (*, *) "starting broadcast"
       call MPI_BCAST(iexpnr, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(runmode, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lwarmstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lstratstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lfielddump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -468,8 +467,8 @@ module modstartup
       call MPI_BCAST(lmintdump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing statistics files
       call MPI_BCAST(ltkedump, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315 added switch for writing tke budget files
       call MPI_BCAST(iplane, 1, MPI_INTEGER, 0, comm3d, mpierr) ! J.Tomas: ib+iplane is the i-plane that is stored if lstoreplane is .true.
-      call MPI_BCAST(startfile, 50, MPI_CHARACTER, 0, comm3d, mpierr)
-      call MPI_BCAST(author, 80, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(startfile, len(startfile), MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(author, len(author), MPI_CHARACTER, 0, comm3d, mpierr)
       call MPI_BCAST(runtime, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(trestart, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tfielddump, 1, MY_REAL, 0, comm3d, mpierr)
@@ -483,7 +482,7 @@ module modstartup
       call MPI_BCAST(nsv, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(nscasrc,1,MPI_INTEGER,0,comm3d,mpierr)
       call MPI_BCAST(nscasrcl,1,MPI_INTEGER,0,comm3d,mpierr)
-      call MPI_BCAST(fieldvars, 50, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(fieldvars, len(fieldvars), MPI_CHARACTER, 0, comm3d, mpierr)
       !call MPI_BCAST(nstat      ,1,MPI_INTEGER,0,comm3d,mpierr) !tg3315
       !call MPI_BCAST(ncstat     ,80,MPI_CHARACTER,0,comm3d,mpierr) !tg3315
       call MPI_BCAST(ifixuinf, 1, MPI_INTEGER, 0, comm3d, mpierr)
@@ -549,7 +548,6 @@ module modstartup
       call MPI_BCAST(inletav, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lqlnr, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ksp, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(nblocks, 1, MPI_INTEGER, 0, comm3d, mpierr) ! no. of blocks used in IBM
       call MPI_BCAST(nfcts, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(lconstW, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lEB, 1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -592,6 +590,7 @@ module modstartup
       call MPI_BCAST(ltrees, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ntrees, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ltreedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(itree_mode, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(Qstar, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(dQdt, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lsize, 1, MY_REAL, 0, comm3d, mpierr)
@@ -710,25 +709,24 @@ module modstartup
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only : wtsurf, wqsurf, qts, ps
-      use modglobal,   only : itot,ktot,jtot,ylen,xlen,ib,ie,dtmax,runtime, &
+      use modsurfdata, only : ps
+      use modglobal,   only : itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
                               startfile,lwarmstart,lstratstart,lmoist, nsv, &
-                              BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCys, BCtopm, BCbotm, &
+                              BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCtopm, BCbotm, &
                               BCbotm_wfneutral, BCtopm_pressure, &
                               BCxm_periodic, BCxT_periodic, BCxq_periodic, &
                               BCxm_profile, BCxT_profile, BCxq_profile, &
                               BCxm_driver, BCxT_driver, BCxq_driver, BCxs_driver, &
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
-                              iinletgen,linoutflow,ltempeq,iwalltemp,iwallmom,&
-                              ipoiss,POISS_FFT2D,POISS_FFT3D,&
+                              linoutflow,ltempeq,iwalltemp,iwallmom,&
+                              ipoiss,POISS_FFT2D,&
                               lydump,lytdump,luoutflowr,lvoutflowr,&
-                              lhdriver,lqdriver,lsdriver
+                              lhdriver,lqdriver,lsdriver,ltrees,lEB,itree_mode,&
+                              TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
       use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
       use modglobal,   only : idriver
       implicit none
-      real :: d(1:itot-1)
-      logical :: inequi
 
       if (mod(jtot, nprocy) /= 0) then
          if (myid == 0) then
@@ -787,6 +785,26 @@ module modstartup
       if ((lwarmstart) .or. (lstratstart)) then
          if (startfile == '') then
             write(0, *) 'ERROR: no restartfile set'
+            stop 1
+         end if
+      end if
+
+      if (ltrees) then
+         select case (itree_mode)
+         case (TREE_MODE_DRAG_ONLY, TREE_MODE_SVEG, TREE_MODE_LEGACY_SEB)
+            continue
+         case default
+            if (myid == 0) then
+               write(0, *) 'ERROR: invalid itree_mode. Supported values are 1 (drag only), 2 (sveg), 99 (legacy SEB).'
+               write(0, *) 'Configured itree_mode = ', itree_mode
+            end if
+            stop 1
+         end select
+
+         if ((itree_mode == TREE_MODE_LEGACY_SEB) .and. lEB) then
+            if (myid == 0) then
+               write(0, *) 'ERROR: legacy tree SEB (itree_mode=99) cannot be combined with lEB=.true.'
+            end if
             stop 1
          end if
       end if
@@ -926,36 +944,30 @@ module modstartup
    subroutine readinitfiles
       use modfields, only:u0, v0, w0, um, vm, wm, thlm, thl0, thl0h, qtm, qt0, qt0h, uinit, vinit, &
          ql0, ql0h, thv0h, sv0, svm, e12m, e120, &
-         dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, &
          dqtdxls, dqtdyls, dqtdtls, dpdx, dpdxl, dpdyl, &
          wfls, whls, ug, vg, pgx, pgy, uprof, vprof, thlprof, qtprof, e12prof, svprof, &
-         v0av, u0av, qt0av, ql0av, thl0av, qt0av, sv0av, exnf, exnh, presf, presh, rhof, &
-         thlpcar, uav, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, u0h, thl0c
+         v0av, u0av, qt0av, thl0av, qt0av, sv0av, &
+         thlpcar, thvh, thvf, IIc, IIcs, IIu, IIus, IIv, IIvs, IIw, IIws, thl0c !, exnf, exnh, presf, presh
             use modglobal,         only : ib,ie,ih,ihc,jb,je,jh,jhc,kb,ke,kh,khc,kmax,rk3step,rk3coef,rk3coefi,dtmax,dt,runtime,timeleft,timee,ntimee,ntrun,btime,dt_lim,nsv,&
-         zf, zh, dzf, dzh, rv, rd, grav, cp, rlv, pref0, om23_gs, jgb, jge, Uinf, Vinf, dy, &
-         rslabs, e12min, dzh, dtheta, dqt, dsv, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
-         ladaptive, tnextrestart, jmax, imax, xh, xf, linoutflow, lper2inout, iinletgen, lreadminl, &
-         uflowrate, vflowrate,ltempeq, prandtlmoli, freestreamav, &
-         tnextfielddump, tfielddump, tsample, tstatsdump, startfile, lprofforc, lchem, k1, JNO2,&
-         idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,xlen,ylen,itot,jtot,ibrank,ierank,jbrank,jerank,BCxm,BCym,lrandomize,BCxq,BCxs,BCxT, BCyq,BCys,BCyT,BCxm_driver,&
-         tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
+         zh, dzf, dzh, rv, rd, cp, rlv, om23_gs, jgb, jge, Uinf, &
+         e12min, dzh, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
+         ladaptive, tnextrestart, linoutflow, lper2inout, iinletgen, lreadminl, &
+         ltempeq, prandtlmoli, &
+         tnextfielddump, tfielddump, startfile, lprofforc,&
+         idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,&
+         tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac !,BCxm,BCym, dy,ierank, imax, jmax, pref0,rslabs,zf,ylen
       use modsubgriddata, only:ekm, ekh, loneeqn
-      use modsurfdata, only:wtsurf, wqsurf, wsvsurf, &
-         thls, thvs, ps, qts, svs, sv_top
+      use modsurfdata, only:thls, sv_top
       ! use modsurface,        only : surface,dthldz
       use modboundary, only:boundary, tqaver, halos
-      use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm, myidx, myidy
+      use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
-         Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui, iangle,&
-         u0driver,umdriver,v0driver,vmdriver,w0driver,e120driver,tdriver,thl0driver,qt0driver,storetdriver,&
-         storeu0driver,storeumdriver,storev0driver,storew0driver,storee120driver,storethl0driver,storeqt0driver,&
-         nstepreaddriver
+         Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui
       use modinlet, only:readinletfile
       use moddriver, only: readdriverfile,initdriver,drivergen,readdriverfile_chunk
-      use decomp_2d, only : decomp_main
 
       integer i, j, k, n
 
@@ -968,10 +980,8 @@ module modstartup
       real, dimension(kb:ke) :: taverager ! recycle plane
       real, dimension(kb:ke) :: taveragei ! inlet plane
       real, dimension(kb:ke + 1) :: waverage
-      real, dimension(kb:ke + 1) :: uprofrot
-      real, dimension(kb:ke + 1) :: vprofrot
       real, dimension(kb:ke+kh)  :: u_init, v_init, thl_init, qt_init
-      real tv, ran, ran1
+      real ran, ran1
 
       character(80) chmess
 
@@ -1065,11 +1075,11 @@ module modstartup
 
          thvh = 0.
          ! call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) ! redefine halflevel thv using calculated thv
-         call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+         call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
          ! thvh = thvh/rslabs
 
          thvf = 0.0
-         call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+         call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
          ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
          ! thvf = thvf/rslabs
 
@@ -1203,13 +1213,13 @@ module modstartup
               !! add random fluctuations
               krand = min(krand, ke)
               do k = kb, krand
-                call randomnize(um, k, randu, irandom, ih, jh)
+                call randomize_field(um, k, randu, irandom, ih, jh)
               end do
               do k = kb, krand
-                call randomnize(vm, k, randu, irandom, ih, jh)
+                call randomize_field(vm, k, randu, irandom, ih, jh)
               end do
               do k = kb, krand
-                call randomnize(wm, k, randu, irandom, ih, jh)
+                call randomize_field(wm, k, randu, irandom, ih, jh)
               end do
             end if
 
@@ -1496,9 +1506,7 @@ module modstartup
                if (runtime < tdriverstart) then
                   if (myid==0) write(*,*) 'Warning! No driver files will be written as runtime < tdriverstart.'
                else
-                  if (trestart /= (tdriverstart + (driverstore-1)*dtdriver)) then
-                     trestart = (tdriverstart + (driverstore-1)*dtdriver)
-                  end if
+                  trestart = (tdriverstart + (driverstore-1)*dtdriver)
                   if (myid==0) then
                      write(*,'(A,F15.5)') 'Warning! for driver simulation, trestart gets set as &
                                            (tdriverstart + (driverstore-1)*dtdriver), ignoring the &
@@ -1515,14 +1523,14 @@ module modstartup
             end if
 
             !---------------------------------------------------------------
-            !  1.2 randomnize fields
+            !  1.2 randomize fields
             !---------------------------------------------------------------
             !     if (iinletgen /= 2 .and. iinletgen /= 1) then
-            !       write(6,*) 'randomnizing temperature!'
+            !       write(6,*) 'randomizing temperature!'
             !       krand  = min(krand,ke)
             !        do k = kb,ke !edited tg3315 krand --> ke
-            !          call randomnize(thlm,k,randthl,irandom,ih,jh)
-            !          call randomnize(thl0,k,randthl,irandom,ih,jh)
+            !          call randomize_field(thlm,k,randthl,irandom,ih,jh)
+            !          call randomize_field(thl0,k,randthl,irandom,ih,jh)
             !        end do
             !       end if
 
@@ -1603,10 +1611,10 @@ module modstartup
             call readrestartfiles
 
             ! average initial profiles
-            call avexy_ibm(u_init(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
-            call avexy_ibm(v_init(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-            call avexy_ibm(thl_init(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-            call avexy_ibm(qt_init(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(u_init(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+            call avexy_ibm(v_init(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+            call avexy_ibm(thl_init(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(qt_init(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
             if (myid == 0) then
                ! Read profiles from file (potentially for forcing)
@@ -1687,9 +1695,7 @@ module modstartup
 
                   tdriverstart_cold = tdriverstart
                   tdriverstart = timee
-                  if (trestart /= (driverstore-1)*dtdriver) then
-                     trestart = (driverstore-1)*dtdriver
-                  end if
+                  trestart = (driverstore-1)*dtdriver
 
                   if (myid==0) then
                      write(*,'(A,F15.5)') "Warning! during warmstart of driver simulat ion, tdriverstart &
@@ -1705,9 +1711,7 @@ module modstartup
                   end if
 
                else ! if (timee<tdriverstart)
-                  if (trestart /= (tdriverstart + (driverstore-1)*dtdriver - btime)) then
-                     trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
-                  end if
+                  trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
                   if (myid==0) then
                      write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart gets set as &
                                            (tdriverstart + (driverstore-1)*dtdriver - btime), ignoring the &
@@ -1753,11 +1757,11 @@ module modstartup
 
             thvh = 0.
             ! call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) ! redefine halflevel thv using calculated thv
-            call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+            call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
             ! thvh = thvh/rslabs
 
             thvf = 0.0
-            call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
             ! thvf = thvf/rslabs
 
@@ -2018,16 +2022,16 @@ module modstartup
             sv0av = 0.
 
             ! call slabsum(u0av  ,kb,ke+kh,u0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(u0av(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+            call avexy_ibm(u0av(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
             ! call slabsum(v0av  ,kb,ke+kh,v0(:,:,kb:ke+kh)  ,ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(v0av(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+            call avexy_ibm(v0av(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
             ! call slabsum(thl0av,kb,ke+kh,thl0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             ! call slabsum(qt0av,kb,ke+kh,qt0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-            call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             do n = 1, nsv
                ! call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
-               call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,ih,jh,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
+               call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
             end do
 
             ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile
@@ -2154,15 +2158,14 @@ module modstartup
 
    subroutine readrestartfiles
 
-      use modsurfdata, only:ustar, thlflux, qtflux, svflux, dudz, dvdz, dthldz, dqtdz, ps, thls, qts, thvs, oblav, &
-         wtsurf
-      use modfields, only:u0, v0, w0, thl0, qt0, ql0, ql0h, qtav, qlav, e120, dthvdz, presf, presh, sv0, mindist, wall, &
-         uav, vav, wav, uuav, vvav, wwav, uvav, uwav, vwav, svav, thlav, thl2av, sv2av, pres0, svm, &
+      use modsurfdata, only:thls
+      use modfields, only:u0, v0, w0, thl0, qt0, ql0, ql0h, qtav, qlav, e120, sv0, mindist, wall, &
+         uav, vav, wav, uuav, vvav, wwav, uvav, uwav, vwav, svav, thlav, thl2av, sv2av, pres0, &
          svprof, viscratioav, thluav, thlvav, thlwav, svuav, svvav, svwav, presav, &
          uusgsav, vvsgsav, wwsgsav, uwsgsav, thlusgsav, thlwsgsav, svusgsav, svwsgsav, tkesgsav, &
          strain2av, nusgsav
-      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, dtheta, dqt, dsv, startfile, timee, totavtime, runavtime, &
-         iexpnr, ntimee, rk3step, ifinput, nsv, runtime, dt, cexpnr, lreadmean, lreadminl, &
+      use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, startfile, timee, totavtime, &
+         ifinput, nsv, dt, cexpnr, lreadmean, lreadminl, &
          totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli
       use modmpi, only:cmyid, cmyidx, cmyidy, myid
       use modsubgriddata, only:ekm
@@ -2178,7 +2181,8 @@ module modstartup
       real, dimension(kbin:kein)          ::  Tinlin
       real, dimension(kbin:kein)          ::  Trecin
       real, dimension(kbin:kein + 1)        ::  Wrecin
-      character(50) :: name, name2, name4
+      character(len(startfile)) :: name
+      character(50) :: name2, name4
       real dummy
       integer i, j, k, n
       !********************************************************************
@@ -2363,277 +2367,35 @@ module modstartup
 
    end subroutine exitmodules
 
-   subroutine randomnize(field, klev, ampl, ir, ihl, jhl)
+   subroutine randomize_field(field, klev, ampl, ir, ihl, jhl)
 
-      use modmpi, only:myid, nprocs
-      use modglobal, only:ib, ie, imax, jmax, jb, je, kb, ke, kh, ierank, BCxm
+      use decomp_2d, only: zstart
+      use modglobal, only: ib, ie, jb, je, kb, ke, kh, itot, jtot
       integer(KIND=selected_int_kind(6)):: imm, ia, ic, ir
       integer ihl, jhl
       integer i, j, klev
-      integer m, mfac
+      integer iglob, jglob
+      integer(KIND=selected_int_kind(12)) :: linear_id, state
       real ran, ampl
       real field(ib - ihl:ie + ihl, jb - jhl:je + jhl, kb - kh:ke + kh)
       parameter(imm=134456, ia=8121, ic=28411)
-
-      if (myid > 0) then
-         mfac = myid*jmax*imax
-         do m = 1, mfac
-            ir = mod((ir)*ia + ic, imm)
-
-         end do
-      end if
-
-      ! if (ierank .and. BCxm > 1) then
-      !   do j = jb, je
-      !     do i = ib, ie-1
-      !       ir = mod((ir)*ia + ic, imm)
-      !       ran = real(ir)/real(imm)
-      !       field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
-      !     end do
-      !   end do
-      ! else
-        do j = jb, je
-          do i = ib, ie
-            ir = mod((ir)*ia + ic, imm)
-            ran = real(ir)/real(imm)
+      do j = jb, je
+         jglob = j + zstart(2) - 1
+         do i = ib, ie
+            iglob = i + zstart(1) - 1
+            ! Use the global cell index so the perturbation field is
+            ! identical regardless of the MPI decomposition.
+            linear_id = int(iglob, kind(linear_id)) &
+                        + int(itot, kind(linear_id)) * int(jglob - 1, kind(linear_id)) &
+                        + int(itot, kind(linear_id)) * int(jtot, kind(linear_id)) * int(klev - 1, kind(linear_id))
+            state = mod(int(ir, kind(state)) + linear_id, int(imm, kind(state)))
+            state = mod(state * int(ia, kind(state)) + int(ic, kind(state)), int(imm, kind(state)))
+            ran = real(state)/real(imm)
             field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
-          end do
-        end do
-      !end if
-
-      if (nprocs - 1 - myid > 0) then
-         mfac = (nprocs - 1 - myid)*imax*jmax
-         do m = 1, mfac
-            ir = mod((ir)*ia + ic, imm)
          end do
-      end if
+      end do
 
       return
-   end subroutine randomnize
-
-   ! subroutine createmasks
-   !    use modglobal, only:ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, rslabs, jmax, nblocks,&
-   !       ifinput, cexpnr, libm, jtot, block
-   !    use modfields, only:IIc, IIu, IIv, IIw, IIuw, IIvw, IIuv, IIct, IIwt, IIut, IIuwt, IIvt,&
-   !       IIcs, IIus, IIuws, IIvws, IIuvs, IIvs, IIws, &
-   !       um, u0, vm, v0, wm, w0
-   !    use modmpi, only:myid, comm3d, mpierr, MY_REAL, nprocs, &
-   !       cmyid, excjs
-   !    ! use initfac, only:block
-   !    integer k, n, il, iu, jl, ju, kl, ku
-   !    integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
-   !    integer :: IIcd(ib:ie, kb:ke)
-   !    integer :: IIwd(ib:ie, kb:ke)
-   !    integer :: IIuwd(ib:ie, kb:ke)
-   !    integer :: IIud(ib:ie, kb:ke)
-   !    integer :: IIvd(ib:ie, kb:ke)
-   !    character(80) chmess, name2
-   !
-   !    ! II*l needn't be defined up to ke_khc, but for now would require large scale changes in modstatsdump so if works leave as is ! tg3315 04/07/18
-   !
-   !    if (.not. libm) then
-   !       IIc(:, :, :) = 1
-   !       IIu(:, :, :) = 1
-   !       IIv(:, :, :) = 1
-   !       IIw(:, :, :) = 1
-   !       IIuw(:, :, :) = 1
-   !       IIvw(:, :, :) = 1
-   !       IIuv(:, :, :) = 1
-   !       IIcs(:) = nint(rslabs)
-   !       IIus(:) = nint(rslabs)
-   !       IIvs(:) = nint(rslabs)
-   !       IIws(:) = nint(rslabs)
-   !       IIuws(:) = nint(rslabs)
-   !       IIvws(:) = nint(rslabs)
-   !       IIuvs(:) = nint(rslabs)
-   !       IIct(:, :) = jtot
-   !       IIut(:, :) = jtot
-   !       IIvt(:, :) = jtot
-   !       IIwt(:, :) = jtot
-   !       IIuwt(:, :) = jtot
-   !       return
-   !    end if
-   !
-   !    allocate (block(1:nblocks, 1:11))
-   !
-   !    if (myid == 0) then
-   !       if (nblocks > 0) then
-   !          open (ifinput, file='blocks.inp.'//cexpnr)
-   !          read (ifinput, '(a80)') chmess
-   !          read (ifinput, '(a80)') chmess
-   !          do n = 1, nblocks
-   !             read (ifinput, *) &
-   !                block(n, 1), &
-   !                block(n, 2), &
-   !                block(n, 3), &
-   !                block(n, 4), &
-   !                block(n, 5), &
-   !                block(n, 6), &
-   !                block(n, 7), &
-   !                block(n, 8), &
-   !                block(n, 9), &
-   !                block(n, 10), &
-   !                block(n, 11)
-   !          end do
-   !          close (ifinput)
-   !
-   !          do n = 1, nblocks
-   !             write (6, *) &
-   !                n, &
-   !                block(n, 1), &
-   !                block(n, 2), &
-   !                block(n, 3), &
-   !                block(n, 4), &
-   !                block(n, 5), &
-   !                block(n, 6)
-   !          end do
-   !       end if !nblocks>0
-   !    end if !myid
-   !
-   !    call MPI_BCAST(block, 11*nblocks, MPI_INTEGER, 0, comm3d, mpierr)
-   !
-   !    ! Create masking matrices
-   !    IIc = 1; IIu = 1; IIv = 1; IIct = 1; IIw = 1; IIuw = 1; IIvw = 1; IIuv = 1; IIwt = 1; IIut = 1; IIvt = 1; IIuwt = 1; IIcs = 1; IIus = 1; IIvs = 1; IIws = 1; IIuws = 1; IIvws = 1; IIuvs = 1
-   !
-   !    do n = 1, nblocks
-   !       il = block(n, 1)
-   !       iu = block(n, 2)
-   !       !kl = block(n, 5)
-   !       kl = kb ! tg3315 changed as buildings for lEB must start at kb+1 not kb with no block below
-   !       ku = block(n, 6)
-   !       jl = block(n, 3) - myid*jmax
-   !       ju = block(n, 4) - myid*jmax
-   !       if (ju < jb - 1 .or. jl > je) then
-   !          cycle
-   !       else
-   !          if (ju >= je) then !tg3315 04/07/18 to avoid ju+1 when is last cell...
-   !             if (jl < jb) jl = jb
-   !             ju = je
-   !
-   !             ! Masking matrices !tg3315
-   !             IIc(il:iu, jl:ju, kl:ku) = 0
-   !             IIu(il:iu + 1, jl:ju, kl:ku) = 0
-   !             IIv(il:iu, jl:ju, kl:ku) = 0
-   !             IIw(il:iu, jl:ju, kl:ku + 1) = 0
-   !             IIuw(il:iu + 1, jl:ju, kl:ku + 1) = 0
-   !             IIvw(il:iu, jl:ju, kl:ku + 1) = 0
-   !             IIuv(il:iu + 1, jl:ju, kl:ku) = 0
-   !
-   !          else if (ju == jb - 1) then ! if end of block is in cell before proc
-   !
-   !             IIv(il:iu, jb, kl:ku) = 0
-   !             IIvw(il:iu, jb, kl:ku + 1) = 0
-   !             IIuv(il:iu + 1, jb, kl:ku) = 0
-   !
-   !          else ! ju is in this proc...
-   !             if (jl < jb) jl = jb
-   !
-   !             ! Masking matrices !tg3315
-   !             IIc(il:iu, jl:ju, kl:ku) = 0
-   !             IIu(il:iu + 1, jl:ju, kl:ku) = 0
-   !             IIv(il:iu, jl:ju + 1, kl:ku) = 0
-   !             IIw(il:iu, jl:ju, kl:ku + 1) = 0
-   !             IIuw(il:iu + 1, jl:ju, kl:ku + 1) = 0
-   !             IIvw(il:iu, jl:ju + 1, kl:ku + 1) = 0
-   !             IIuv(il:iu + 1, jl:ju + 1, kl:ku) = 0
-   !
-   !          end if
-   !
-   !          ! ensure that ghost cells know where blocks are !tg3315 this is not necessary
-   !          ! if (jl<jb+jh)  IIc(il:iu,je+jh,kl:ku) = 0
-   !          ! if (jl<jb+jhc) IIc(il:iu,je+jhc,kl:ku) = 0
-   !          ! if (ju>je-jh)  IIc(il:iu,jb-jh,kl:ku) = 0
-   !          ! if (ju>je-jhc) IIc(il:iu,jb-jhc,kl:ku) = 0
-   !
-   !          ! if (il<ib+ih)  IIc(ie+ih,jl:ju,kl:ku) = 0
-   !          ! if (il<ib+ihc) IIc(ie+ihc,jl:ju,kl:ku) = 0
-   !          ! if (iu>ie-ih)  IIc(ib-ih,jl:ju,kl:ku) = 0
-   !          ! if (iu>ie-ihc) IIc(ib-ihc,jl:ju,kl:ku) = 0
-   !
-   !       end if
-   !    end do
-   !
-   !    IIw(:, :, kb) = 0; IIuw(:, :, kb) = 0; IIvw(:, :, kb) = 0
-   !
-   !    ! for correct ghost cells from adjacent processors !tg3315 ?unsure if this is correct
-   !    ! tg3315 22/11/17 does not work because II is an integer and needs real numbers... !tg3315 not necessary
-   !    !call excjs( IIc  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
-   !    !call excjs( IIu  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
-   !    !call excjs( IIv  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
-   !    !call excjs( IIw  , ib,ie,jb,je,kb,ke+khc,ihc,jhc)
-   !
-   !    do k = kb, ke + khc
-   !       IIcl(k) = sum(IIc(ib:ie, jb:je, k))
-   !       IIul(k) = sum(IIu(ib:ie, jb:je, k))
-   !       IIvl(k) = sum(IIv(ib:ie, jb:je, k))
-   !       IIwl(k) = sum(IIw(ib:ie, jb:je, k))
-   !       IIuwl(k) = sum(IIuw(ib:ie, jb:je, k))
-   !       IIvwl(k) = sum(IIvw(ib:ie, jb:je, k))
-   !       IIuvl(k) = sum(IIuv(ib:ie, jb:je, k))
-   !    enddo
-   !
-   !    call MPI_ALLREDUCE(IIcl, IIcs, ke + khc - kb + 1, MPI_INTEGER, &
-   !                       MPI_SUM, comm3d, mpierr)
-   !    call MPI_ALLREDUCE(IIul, IIus, ke + khc - kb + 1, MPI_INTEGER, &
-   !                       MPI_SUM, comm3d, mpierr)
-   !    call MPI_ALLREDUCE(IIvl, IIvs, ke + khc - kb + 1, MPI_INTEGER, &
-   !                       MPI_SUM, comm3d, mpierr)
-   !    call MPI_ALLREDUCE(IIwl, IIws, ke + khc - kb + 1, MPI_INTEGER, &
-   !                       MPI_SUM, comm3d, mpierr)
-   !    call MPI_ALLREDUCE(IIuwl, IIuws, ke + khc - kb + 1, MPI_INTEGER, &
-   !                       MPI_SUM, comm3d, mpierr)
-   !    call MPI_ALLREDUCE(IIvwl, IIvws, ke + khc - kb + 1, MPI_INTEGER, &
-   !                       MPI_SUM, comm3d, mpierr)
-   !    call MPI_ALLREDUCE(IIuvl, IIuvs, ke + khc - kb + 1, MPI_INTEGER, &
-   !                       MPI_SUM, comm3d, mpierr)
-   !
-   !    IIcd(ib:ie, kb:ke) = sum(IIc(ib:ie, jb:je, kb:ke), DIM=2)
-   !    IIwd(ib:ie, kb:ke) = sum(IIw(ib:ie, jb:je, kb:ke), DIM=2)
-   !    IIuwd(ib:ie, kb:ke) = sum(IIuw(ib:ie, jb:je, kb:ke), DIM=2)
-   !    IIud(ib:ie, kb:ke) = sum(IIu(ib:ie, jb:je, kb:ke), DIM=2)
-   !    IIvd(ib:ie, kb:ke) = sum(IIv(ib:ie, jb:je, kb:ke), DIM=2)
-   !
-   !    call MPI_ALLREDUCE(IIwd(ib:ie, kb:ke), IIwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-   !    call MPI_ALLREDUCE(IIcd(ib:ie, kb:ke), IIct(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-   !    call MPI_ALLREDUCE(IIuwd(ib:ie, kb:ke), IIuwt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-   !    call MPI_ALLREDUCE(IIud(ib:ie, kb:ke), IIut(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-   !    call MPI_ALLREDUCE(IIvd(ib:ie, kb:ke), IIvt(ib:ie, kb:ke), (ke - kb + 1)*(ie - ib + 1), MPI_INTEGER, MPI_SUM, comm3d, mpierr)
-   !
-   !    ! masking matrix for switch if entire slab is blocks
-   !    !if (IIcs(kb) == 0) then
-   !    !  IIbl = 0
-   !    !else
-   !    !  IIbl = 1
-   !    !end if
-   !
-   !    !where (IIcs == 0)
-   !    !IIcs = nint(rslabs)
-   !    !endwhere
-   !    !where (IIus == 0)
-   !    !IIus = nint(rslabs)
-   !    !endwhere
-   !    !where (IIvs == 0)
-   !    !IIvs = nint(rslabs)
-   !    !endwhere
-   !    !where (IIws == 0)
-   !    !IIws = nint(rslabs)
-   !    !endwhere
-   !    !where (IIuws == 0)
-   !    !IIuws = nint(rslabs)
-   !    !endwhere
-   !    !where (IIvws == 0)
-   !    !IIvws = nint(rslabs)
-   !    !endwhere
-   !
-   !    ! use masking matrices to set 0 in blocks from start? tg3315 13/12/17
-   !    ! um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIu(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*um(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
-   !    ! vm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*vm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
-   !    ! wm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh) = IIw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)*wm(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
-   !
-   !    ! u0 = um
-   !    ! v0 = vm
-   !    ! w0 = wm
-   !
-   ! end subroutine createmasks
+   end subroutine randomize_field
 
 end module modstartup

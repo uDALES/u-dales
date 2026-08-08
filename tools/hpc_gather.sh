@@ -45,27 +45,19 @@ fi
 
 ## check if required variables are set
 if [ -z $DA_WORKDIR ]; then
-    echo "Script directory DA_WORKDIR must be set inside $inputdir/config.sh"
+    echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
 if [ -z $DA_TOOLSDIR ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $NNODE ]; then
-    echo "Script directory NNODE must be set inside $inputdir/config.sh"
-    exit 1
-fi;
-if [ -z $NCPU ]; then
-    echo "Script directory NCPU must be set inside $inputdir/config.sh"
-    exit 1
-fi;
 if [ -z $WALLTIME ]; then
-    echo "Script directory WALLTIME must be set inside $inputdir/config.sh"
+    echo "Wall clock time WALLTIME must be set inside $inputdir/config.sh"
     exit 1
 fi;
 if [ -z $MEM ]; then
-    echo "Script directory MEM must be set inside $inputdir/config.sh"
+    echo "Memory requirement MEM must be set inside $inputdir/config.sh"
     exit 1
 fi;
 

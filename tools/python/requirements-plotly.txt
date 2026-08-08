@@ -1,0 +1,7 @@
+# Optional Plotly visualization backend for uDALES Python tools.
+# PyVista (in requirements.txt) is the default backend; install Plotly only if
+# you want the lightweight in-browser alternative:
+#     pip install -r requirements.txt -r requirements-plotly.txt
+# Then select it per object/call with backend="plotly", or set the session
+# default via udvis.scene.DEFAULT_BACKEND = "plotly".
+plotly>=5.0.0

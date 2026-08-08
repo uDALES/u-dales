@@ -3,17 +3,24 @@ build/
 temp/
 tmp/
 tests/outputs/
+tests/system/experiments/
+tests/system/outputs/
 .vscode/
+.codex
 *.o
 *.mod
+# Intel Fortran auto-generated interface stubs (emitted under -warn all)
+*__genmod.f90
 image.sif
 *.log
+logdir/
 *.nc
 monitor*.txt
 outputs/
 examples/*/blocks.*.png
 tmp/*
 bin/
+tools/python/examples/*.stl
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*
@@ -24,6 +31,20 @@ examples/*/*driver*
 # Matlab artifacts
 *.m~
 
+# virtual environments
+venv/
+env/
+.venv/
+tmp/*
+.venv_netcdf/
+
 # Python
 **/__pycache__/
 *.pyc
+**/*.pyd
+tools/python/tests/.tmp/
+# editable-install metadata (pip install -e tools/python)
+*.egg-info/
+tools/python/build/
+facets*.vs3
+tests/cases/**/*.fig

@@ -1,0 +1,16 @@
+python module directshortwave_f2py
+    interface
+        subroutine calculate_direct_shortwave_f2py(connectivitylist,incenter,facenormal,vertices,nfaces,nvertices,nsun,irradiance,resolution,sdir)
+            integer intent(in) :: nfaces
+            integer intent(in) :: nvertices
+            integer intent(in), dimension(nfaces,3) :: connectivitylist
+            real intent(in), dimension(nfaces,3) :: incenter
+            real intent(in), dimension(nfaces,3) :: facenormal
+            real intent(in), dimension(nvertices,3) :: vertices
+            real intent(in), dimension(3) :: nsun
+            real intent(in) :: irradiance
+            real intent(in) :: resolution
+            real intent(out), dimension(nfaces) :: sdir
+        end subroutine calculate_direct_shortwave_f2py
+    end interface
+end python module directshortwave_f2py

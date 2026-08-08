@@ -74,7 +74,7 @@ contains
   end subroutine initchecksim
 !>Run checksim. Timekeeping, and output
   subroutine checksim
-    use modglobal, only : timee, rk3step, dt_lim,dt
+    use modglobal, only : timee, rk3step, dt
     use modmpi,    only : myid
     implicit none
     character(20) :: timeday
@@ -98,7 +98,7 @@ contains
   end subroutine checksim
 !>      Calculates the courant number as in max(w)*deltat/deltaz
   subroutine calccourant
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dxhi,dyi,dzhi,dt,timee
+    use modglobal, only : ib,ie,jb,je,kb,ke,dxhi,dyi,dzhi
     use modfields, only : um,vm,wm
     use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
     implicit none
@@ -128,7 +128,7 @@ contains
 !> Calculates the diffusion number as max(ekm) *deltat/deltax**2
   subroutine calcdiffnr
 
-    use modglobal,      only : ib,ie,jb,je,kb,ke,kh,dxh2i,dy2i,dzh,dt,timee
+    use modglobal,      only : ib,ie,jb,je,kb,ke,dxh2i,dy2i,dzh
     use modsubgriddata, only : ekm,ekh
     use modmpi,         only : myid,comm3d,mpierr,mpi_max,my_real
     implicit none
@@ -156,37 +156,6 @@ contains
 
     return
   end subroutine calcdiffnr
-
-  !ils13, 13.08.18: currently unused, not called
-  !> tg3315 27/02/18 - was not outputting cell Peclet number so added this to give cell Reynolds number
-  subroutine calcreyn
-
-    use modglobal, only : ib,ie,jb,je,ke,kb,dy,dxh,dzh
-    use modfields, only : u0,v0,w0
-    use modmpi,    only : myid,comm3d,mpi_sum,mpi_max,my_real,mpierr
-    use modsubgriddata, only : ekm,ekh
-    implicit none
-
-    real reyntotl,reyntot
-    integer       :: i,j,k
-
-    reyntotl = 0.
-    reyntot  = 0.
-    do k=kb,ke
-      do j=jb,je
-        do i=ib,ie
-      reyntotl = max(reyntotl,  u0(i,j,k) * dxh(i) / ekm(i,j,k), v0(i,j,k) * dy / ekm(i,j,k),  &
-                                    w0(i,j,k) * dzh(k) / ekm(i,j,k))  ! or should I interpolate ekm to the correct position?
-        end do
-      end do
-    end do
-
-    call MPI_ALLREDUCE(reyntotl,reyntot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
-    if (myid==0) then
-      write(6,'(A,ES10.2)') 'Cell Reynolds number:',reyntot
-    end if
-
-  end subroutine calcreyn
 
 !> Checks local and total divergence
   subroutine chkdiv

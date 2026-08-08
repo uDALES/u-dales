@@ -1,0 +1,80 @@
+import sys
+import unittest
+from pathlib import Path
+
+import numpy as np
+import trimesh
+
+from _common import PYTHON_DIR
+
+from udgeom import UDGeom
+from udgeom.calculate_outline import calculate_outline
+
+def _ring_prism_mesh():
+    outer_bottom = np.array(
+        [[0.0, 0.0, 0.0], [4.0, 0.0, 0.0], [4.0, 4.0, 0.0], [0.0, 4.0, 0.0]]
+    )
+    inner_bottom = np.array(
+        [[1.0, 1.0, 0.0], [3.0, 1.0, 0.0], [3.0, 3.0, 0.0], [1.0, 3.0, 0.0]]
+    )
+    outer_top = outer_bottom + np.array([0.0, 0.0, 2.0])
+    inner_top = inner_bottom + np.array([0.0, 0.0, 2.0])
+    vertices = np.vstack([outer_bottom, inner_bottom, outer_top, inner_top])
+
+    def quad(a, b, c, d):
+        return [[a, b, c], [a, c, d]]
+
+    faces = []
+
+    # Outer walls.
+    faces += quad(0, 1, 9, 8)
+    faces += quad(1, 2, 10, 9)
+    faces += quad(2, 3, 11, 10)
+    faces += quad(3, 0, 8, 11)
+
+    # Inner courtyard walls.
+    faces += quad(4, 12, 13, 5)
+    faces += quad(5, 13, 14, 6)
+    faces += quad(6, 14, 15, 7)
+    faces += quad(7, 15, 12, 4)
+
+    # Top ring.
+    faces += quad(8, 9, 13, 12)
+    faces += quad(9, 10, 14, 13)
+    faces += quad(10, 11, 15, 14)
+    faces += quad(11, 8, 12, 15)
+
+    return trimesh.Trimesh(vertices=vertices, faces=np.asarray(faces, dtype=int), process=False)
+
+class TestUDGeomOutlineLoops(unittest.TestCase):
+    def test_calculate_outline2d_keeps_multiple_boundary_loops(self):
+        geom = UDGeom(stl=_ring_prism_mesh())
+
+        outlines = geom.calculate_outline2d()
+
+        self.assertEqual(len(outlines), 1)
+        outline = outlines[0]
+        polygon_xy = np.asarray(outline["polygon"])[:, :2]
+
+        expected_vertices = {
+            (0.0, 0.0), (4.0, 0.0), (4.0, 4.0), (0.0, 4.0),
+            (1.0, 1.0), (3.0, 1.0), (3.0, 3.0), (1.0, 3.0),
+        }
+        observed_vertices = {tuple(row) for row in np.unique(polygon_xy, axis=0)}
+
+        self.assertEqual(observed_vertices, expected_vertices)
+        np.testing.assert_allclose(outline["centroid"][:2], np.array([2.0, 2.0]), atol=1e-12)
+
+    def test_calculate_outline_empty_result_has_documented_shape(self):
+        # A mesh with no faces yields no outline edges; the result must still be
+        # the documented (K, 2) shape rather than a bare (0,) array.
+        empty_mesh = trimesh.Trimesh(
+            vertices=np.zeros((0, 3)), faces=np.zeros((0, 3), dtype=int), process=False
+        )
+
+        edges, _ = calculate_outline(empty_mesh)
+
+        self.assertEqual(edges.shape, (0, 2))
+
+if __name__ == "__main__":
+    unittest.main()

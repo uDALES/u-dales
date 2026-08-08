@@ -51,6 +51,7 @@ save
   integer my_real
   real    CPU_program    !end time
   real    CPU_program0   !start time
+  logical :: timer_started = .false.
   character(3) :: cmyid
   character(3) :: cmyidx
   character(3) :: cmyidy
@@ -62,6 +63,11 @@ contains
     ! integer dims(1)
     ! logical periods(1)
     ! integer periods2(1)
+
+     ! Initialize CPU timer variables
+     CPU_program = 0.0
+     CPU_program0 = 0.0
+     timer_started = .false.
 
      call MPI_INIT(mpierr)
      MY_REAL = MPI_DOUBLE_PRECISION  !MPI_REAL8 should be the same..
@@ -135,6 +141,7 @@ contains
 
     if(myid==0)then
       CPU_program0 = MPI_Wtime()
+      timer_started = .true.
     end if
 
   end subroutine starttimer
@@ -146,8 +153,10 @@ contains
     implicit none
 
     if(myid==0)then
-      CPU_program = MPI_Wtime() - CPU_program0
-      write(6,*)'TOTAL CPU time = ', CPU_program
+      if (timer_started) then
+        CPU_program = MPI_Wtime() - CPU_program0
+        write(6,*)'TOTAL CPU time by main time loop = ', CPU_program
+      end if
     end if
 
     !call MPI_Comm_free( comm3d, mpierr )
@@ -611,10 +620,10 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
     return
   end subroutine slabsum
 
-  subroutine avexy_ibm(aver,var,ib,ie,jb,je,kb,ke,ih,jh,kh,II,IIs,lnan)
+  subroutine avexy_ibm(aver,var,ib,ie,jb,je,kb,ke,kh,II,IIs,lnan)
     implicit none
 
-    integer :: ib,ie,jb,je,kb,ke,ih,jh,kh
+    integer :: ib,ie,jb,je,kb,ke,kh
     real    :: aver(kb:ke+kh)
     real    :: var(ib:ie,jb:je,kb:ke+kh)
     integer :: II(ib:ie,jb:je,kb:ke+kh)
@@ -689,7 +698,6 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
   real                    :: var(ib:ie,jb:je,kb:ke)
   integer                 :: II(ib:ie,jb:je,kb:ke)
   integer                 :: IIt(ib:ie,kb:ke)
-  logical                 :: lytdump,lnan
 
   avero = 0.
   aver  = 0.

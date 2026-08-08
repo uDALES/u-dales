@@ -18,7 +18,7 @@ try:
 except ImportError:
     TRIMESH_AVAILABLE = False
 
-
+from exceptions import DependencyError
 def calculate_outline(mesh: 'trimesh.Trimesh', angle_threshold: float = 45.0) -> Tuple[np.ndarray, Dict]:
     """
     Calculate boundary and sharp edges for mesh outlining.
@@ -72,7 +72,7 @@ def calculate_outline(mesh: 'trimesh.Trimesh', angle_threshold: float = 45.0) ->
     split_buildings : Separate individual buildings from mesh
     """
     if not TRIMESH_AVAILABLE:
-        raise ImportError("trimesh is required. Install with: pip install trimesh")
+        raise DependencyError("trimesh is required. Install with: pip install trimesh")
     
     # Extract mesh data
     vertices = mesh.vertices
@@ -132,8 +132,8 @@ def calculate_outline(mesh: 'trimesh.Trimesh', angle_threshold: float = 45.0) ->
             if max_angle > angle_threshold:
                 boundary_edges.append(edge)
     
-    # Convert to numpy array
-    boundary_edges = np.array(boundary_edges, dtype=int)
+    # Convert to numpy array with the documented (K, 2) shape, even when empty.
+    boundary_edges = np.array(boundary_edges, dtype=int).reshape(-1, 2)
     
     # Package mesh data for output
     mesh_data = {

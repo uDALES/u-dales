@@ -27,7 +27,7 @@
    module initfac
       use mpi
       use modglobal, only : ifinput, nfcts, cexpnr, libm, bldT, flrT, rsmin, wsoil, wfc, &
-                           nfaclyrs, block, lEB, lvfsparse, nnz, lfacTlyrs, lwritefac
+                           nfaclyrs, lEB, lvfsparse, nnz, lfacTlyrs, lwritefac
       use modmpi,   only : myid, comm3d, mpierr, MY_REAL, nprocs, cmyid
       use netcdf
       implicit none
@@ -56,8 +56,10 @@
       real, allocatable    :: netsw(:) !net shortwave radiation on facets
       real, allocatable    :: facLWin(:) !incoming longwave on facets [W/m2]
       real, allocatable    :: vfsparse(:)
-      real, allocatable    :: ivfsparse(:)
-      real, allocatable    :: jvfsparse(:)
+      ! facet indices of the sparse view-factor entries: integer, matching the
+      ! `%d %d %.6f` layout written by the pre-processing.
+      integer, allocatable :: ivfsparse(:)
+      integer, allocatable :: jvfsparse(:)
       !temperature
       real, allocatable    :: Tfacinit(:) !initial facet temperatures
       real, allocatable    :: Tfacinit_layers(:,:) !initial facet temperatures
@@ -86,7 +88,7 @@
     contains
 
       subroutine readfacetfiles
-        use modglobal, only: block, cexpnr, iwallmom, iwalltemp, iwallmoist
+        use modglobal, only: cexpnr, iwallmom, iwalltemp, iwallmoist
         implicit none
 
         !use modglobal, only:block
@@ -99,7 +101,7 @@
         !use modglobal, only : nblocks, nfcts, cexpnr, ifinput
         character (len = 13) :: FILE_VF = 'vf.nc.inp.xxx'
         integer :: ncid, varid
-        integer :: n = 0, m = 0, i = 0, j = 0, k = 0, io = 0
+        integer :: n = 0, m = 0, i = 0, j = 0, io = 0
         integer :: iret
 
         if (.not.(nfcts > 0)) return
