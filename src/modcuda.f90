@@ -1,6 +1,9 @@
 module modcuda
 #if defined(_GPU)        
    use cudafor
+#if defined(UDALES_DEBUG)
+   use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+#endif
    use modglobal,      only: itot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
                              dx2, dxi, dx2i, dxi5, dxiq, dy2, dyi, dy2i, dyi5, dyiq, dxf, dxhi, &
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
@@ -107,6 +110,10 @@ module modcuda
          kb_d = kb
          ke_d = ke
          kh_d = kh
+
+#if defined(UDALES_DEBUG)
+         call test_initfield_extended_halos
+#endif
 
          dx2_d  = dx2
          dxi_d  = dxi
@@ -368,13 +375,13 @@ module modcuda
          w0_d = w0
          pres0_d = pres0
 
-         call initfield<<<griddim,blockdim>>>(up_d, 0.)
+         call initfield<<<griddim,blockdim>>>(up_d, 0., ih, jh, kh)
          call checkCUDA( cudaGetLastError(), 'initfield up_d' )
 
-         call initfield<<<griddim,blockdim>>>(vp_d, 0.)
+         call initfield<<<griddim,blockdim>>>(vp_d, 0., ih, jh, kh)
          call checkCUDA( cudaGetLastError(), 'initfield vp_d' )
 
-         call initfield<<<griddim,blockdim>>>(wp_d, 0.)
+         call initfield<<<griddim,blockdim>>>(wp_d, 0., ih, jh, kh)
          call checkCUDA( cudaGetLastError(), 'initfield wp_d' )
 
          tau_x_d = tau_x
@@ -388,18 +395,18 @@ module modcuda
          if (loneeqn) then
             e12m_d = e12m
             e120_d = e120
-            call initfield<<<griddim,blockdim>>>(e12p_d, 0.)
+            call initfield<<<griddim,blockdim>>>(e12p_d, 0., ih, jh, kh)
             call checkCUDA( cudaGetLastError(), 'initfield e12p_d' )
          end if
 
          if (ltempeq) then
             thl0_d = thl0
-            call initfield<<<griddim,blockdim>>>(thlp_d, 0.)
+            call initfield<<<griddim,blockdim>>>(thlp_d, 0., ih, jh, kh)
             call checkCUDA( cudaGetLastError(), 'initfield thlp_d' )
 
             if (iadv_thl == iadv_kappa) then
                thl0c_d = thl0c
-               call initfield<<<griddim,blockdim>>>(thlpc_d, 0.)
+               call initfield<<<griddim,blockdim>>>(thlpc_d, 0., ihc, jhc, khc)
                call checkCUDA( cudaGetLastError(), 'initfield thlpc_d' )
             end if
 
@@ -417,7 +424,7 @@ module modcuda
 
          if (lmoist) then
             qt0_d = qt0
-            call initfield<<<griddim,blockdim>>>(qtp_d, 0.)
+            call initfield<<<griddim,blockdim>>>(qtp_d, 0., ih, jh, kh)
             call checkCUDA( cudaGetLastError(), 'initfield qtp_d' )
             qt0av_d = qt0av
          end if
@@ -425,7 +432,7 @@ module modcuda
          if (nsv>0) then
             sv0_d = sv0
             do n = 1, nsv
-               call initfield<<<griddim,blockdim>>>(svp_d(:, :, :, n), 0.)
+               call initfield<<<griddim,blockdim>>>(svp_d(:, :, :, n), 0., ihc, jhc, khc)
                call checkCUDA( cudaGetLastError(), 'initfield svp_d' )
             end do
             sv0av_d = sv0av
@@ -499,6 +506,12 @@ module modcuda
          if (nsv>0) then
             sv0 = sv0_d
             svm = svm_d
+#if defined(UDALES_DEBUG)
+            if (.not. all(ieee_is_finite(sv0(ib:ie, jb:je, kb:ke, 1:nsv)))) then
+               write(*,*) 'Non-finite scalar value detected after the GPU pressure step.'
+               error stop 1
+            end if
+#endif
          end if
          if (loneeqn) then
             e120 = e120_d
@@ -542,6 +555,7 @@ module modcuda
          character(len=*), intent(in) :: kernelname
          if(istat /= cudaSuccess) then
             write(*,*) "Error in ", trim(kernelname), ": ", cudaGetErrorString(istat)
+            error stop 1
          end if
       end subroutine checkCUDA
 
@@ -556,9 +570,10 @@ module modcuda
          stridez = gridDim%z * blockDim%z
       end subroutine tidandstride
 
-      attributes(global) subroutine initfield(var, varvalue)
+      attributes(global) subroutine initfield(var, varvalue, halo_i, halo_j, halo_k)
          implicit none
-         real, dimension(ib_d-ih_d:ie_d+ih_d, jb_d-jh_d:je_d+jh_d, kb_d:ke_d+kh_d), intent(inout) :: var
+         integer, value, intent(in) :: halo_i, halo_j, halo_k
+         real, dimension(ib_d-halo_i:ie_d+halo_i, jb_d-halo_j:je_d+halo_j, kb_d:ke_d+halo_k), intent(inout) :: var
          real, value, intent(in) :: varvalue
 
          integer :: tidx, tidy, tidz, stridex, stridey, stridez
@@ -566,14 +581,39 @@ module modcuda
 
          call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
-         do i = tidx-ih_d, ie_d+ih_d, stridex
-            do j = tidy-jh_d, je_d+jh_d, stridey
-               do k = tidz, ke_d+kh_d, stridez
+         do i = tidx-halo_i, ie_d+halo_i, stridex
+            do j = tidy-halo_j, je_d+halo_j, stridey
+               do k = tidz, ke_d+halo_k, stridez
                   var(i,j,k) = varvalue
                end do
             end do
          end do
       end subroutine initfield
+
+#if defined(UDALES_DEBUG)
+      subroutine test_initfield_extended_halos
+         implicit none
+         real, device, allocatable :: test_d(:, :, :)
+         real, allocatable :: test_h(:, :, :)
+
+         allocate(test_d(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb:ke+khc))
+         allocate(test_h(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb:ke+khc))
+
+         test_d = 1.
+         call initfield<<<griddim,blockdim>>>(test_d, 0., ihc, jhc, khc)
+         call checkCUDA(cudaGetLastError(), 'extended-halo initfield self-test launch')
+         call checkCUDA(cudaDeviceSynchronize(), 'extended-halo initfield self-test synchronization')
+         test_h = test_d
+
+         if (any(test_h /= 0.)) then
+            write(*,*) 'CUDA extended-halo initfield self-test failed.'
+            error stop 1
+         end if
+
+         deallocate(test_h, test_d)
+         write(*,*) 'CUDA extended-halo initfield self-test passed.'
+      end subroutine test_initfield_extended_halos
+#endif
       
       ! copy routines called inside advection, for kappa scheme of thlp
       attributes(global) subroutine thlptothlpc_cuda

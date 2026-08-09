@@ -15,6 +15,8 @@ into two groups:
 
 Current contents:
 
+- `cuda_extended_halo_initializer/` for the Debug-only CUDA runtime self-test
+  that verifies complete initialization of extended-halo tendency arrays
 - `directshortwave/` for committed direct shortwave cases, including no-tree
   reference case `100` and tree case `525`
 - `ibm_sparse_input/` for MPI validation of the sparse IBM input reader on committed case `101`

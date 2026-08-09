@@ -72,7 +72,9 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Cray")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3" CACHE STRING "Fortran release flags" FORCE)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NVHPC")
     set(CMAKE_Fortran_FLAGS "-gpu=cc86,ccall,lineinfo -cuda -cudalib=cufft -acc -mp -Minfo=accel -Mpreprocess -cpp -r8 -Mextend -Ktrap=divz,inv,ovf,fp" CACHE STRING "Fortran flags" FORCE)
-    set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -Mincoming=nan -Mbounds -Mwarn -Mchkstk -traceback -Minfo=all" CACHE STRING "Fortran debug flags" FORCE)
+    # Minimal optimization is required for NVHPC to resolve device-module data
+    # imported from the static 2decomp-fft library during the device-link step.
+    set(CMAKE_Fortran_FLAGS_DEBUG "-g -O1 -Minit-real=snan -Mbounds -Minform=warn -Mchkstk -traceback -Minfo=all" CACHE STRING "Fortran debug flags" FORCE)
     set(CMAKE_Fortran_FLAGS_RELEASE "-fast -Kieee" CACHE STRING "Fortran release flags" FORCE)
     add_definitions(-D_GPU)
     set(UDALES_DECOMP2D_ARGS "-DBUILD_TARGET=gpu")
@@ -144,6 +146,7 @@ set_property(CACHE FFT_Choice PROPERTY STRINGS generic fftw3)
 
 
 add_executable(u-dales ${src_f90})
+target_compile_definitions(u-dales PRIVATE $<$<CONFIG:Debug>:UDALES_DEBUG>)
 
 # Find and link DECOMP2D
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
