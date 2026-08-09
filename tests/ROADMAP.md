@@ -123,6 +123,10 @@ Current state:
 - the regression harness is still only partially mature: it remains in the
   supported path, but its full run-and-compare case-output flow is still a
   later roadmap item
+- the GPU branch now has a strict same-commit CPU/GPU parity harness with
+  isolated build trees, deterministic smoke cases, broader nightly physics
+  cases, a multi-GPU selection, machine-readable diagnostics, and a dedicated
+  self-hosted-runner workflow
 
 This means:
 

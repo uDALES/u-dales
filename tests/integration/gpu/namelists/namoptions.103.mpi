@@ -1,0 +1,59 @@
+&RUN
+iexpnr       = 103
+runtime      = 1.0
+trestart     = 1000.
+dtmax        = 0.25
+ladaptive    = .false.
+lrandomize   = .false.
+libm         = .false.
+nprocx       = 2
+nprocy       = 1
+/
+
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 0.5
+fieldvars    = 'u0,v0,w0,p0'
+ltdump       = .true.
+lxytdump     = .true.
+tstatstart   = 0.0
+tstatsdump   = 0.5
+tsample      = 0.25
+/
+
+&DOMAIN
+itot         = 8
+jtot         = 8
+ktot         = 8
+xlen         = 8
+ylen         = 8
+/
+
+&PHYSICS
+lbuoyancy    = .false.
+ltempeq      = .false.
+lmoist       = .false.
+igrw_damp    = 0
+/
+
+&DYNAMICS
+ipoiss       = 0
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&BC
+z0           = 0.01
+/
+
+&WALLS
+lbottom      = .true.
+/
+
+&INPS
+zsize        = 8
+u0           = 2
+dpdx         = 0.0001
+/

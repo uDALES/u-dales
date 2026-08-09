@@ -111,10 +111,6 @@ module modcuda
          ke_d = ke
          kh_d = kh
 
-#if defined(UDALES_DEBUG)
-         call test_initfield_extended_halos
-#endif
-
          dx2_d  = dx2
          dxi_d  = dxi
          dxi5_d = dxi5
@@ -590,31 +586,6 @@ module modcuda
          end do
       end subroutine initfield
 
-#if defined(UDALES_DEBUG)
-      subroutine test_initfield_extended_halos
-         implicit none
-         real, device, allocatable :: test_d(:, :, :)
-         real, allocatable :: test_h(:, :, :)
-
-         allocate(test_d(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb:ke+khc))
-         allocate(test_h(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb:ke+khc))
-
-         test_d = 1.
-         call initfield<<<griddim,blockdim>>>(test_d, 0., ihc, jhc, khc)
-         call checkCUDA(cudaGetLastError(), 'extended-halo initfield self-test launch')
-         call checkCUDA(cudaDeviceSynchronize(), 'extended-halo initfield self-test synchronization')
-         test_h = test_d
-
-         if (any(test_h /= 0.)) then
-            write(*,*) 'CUDA extended-halo initfield self-test failed.'
-            error stop 1
-         end if
-
-         deallocate(test_h, test_d)
-         write(*,*) 'CUDA extended-halo initfield self-test passed.'
-      end subroutine test_initfield_extended_halos
-#endif
-      
       ! copy routines called inside advection, for kappa scheme of thlp
       attributes(global) subroutine thlptothlpc_cuda
          implicit none

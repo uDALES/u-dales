@@ -4,6 +4,7 @@ This directory contains committed case fixtures shared by repo-level tests.
 
 Current cases:
 
+- `064/`: compact IBM/surface-energy-balance fixture, also used by GPU parity
 - `100/`: no-tree direct shortwave reference case
 - `101/`: IBM sparse-input reference case
 - `525/`: flat-terrain tree case for direct shortwave integration checks
@@ -18,6 +19,10 @@ Current consumers:
   - `526/` as the staged base case for vegetation decomposition checks
 - `integration/ibm_sparse_input/run_test.sh`
   - `101/` as the staged base case for the `read_sparse_ijk()` IBM test
+- `integration/gpu/run_gpu_tests.py`
+  - `064/` for scheduled SEB parity
+  - `101/` for scheduled IBM/wall/scalar parity
+  - `526/` for scheduled vegetation parity
 - `integration/directshortwave/test_directshortwave.py`
   - `100/` for the legacy Fortran vs f2py vs Python no-tree reference test
   - `525/` for the tree-enabled `facsec` vs `moller` comparison

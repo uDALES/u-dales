@@ -4,7 +4,7 @@ description: Run curated test selections by support level from tests/test_suites
 # - groups.<name>.suites: concrete suite entries for that selection
 # - groups.<name>.includes: other group names to include
 # - suite.label: human-readable display name
-# - suite.class: execution policy (`supported` or `experimental`)
+# - suite.class: execution policy (`supported`, `experimental`, or `heavy`)
 # - suite.kind: validation scope (`unit`, `integration`, `reference`, `system`, `regression`)
 # - suite.component: subsystem or ownership area (`udbase`, `udgeom`, `udprep`, `ibm`, etc.)
 # - suite.platform: expected runtime target (`linux`, `macos`, `hpc`, `any`)
@@ -82,6 +82,21 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
+      - label: "python-library: GPU parity harness"
+        class: supported
+        kind: unit
+        component: gpu-tests
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{tests_dir}/integration/gpu"
+          - "-p"
+          - "test_*.py"
 
   supported:
     includes:
@@ -212,6 +227,121 @@ groups:
           - "{branch_a}"
           - "{branch_b}"
           - "{build_type}"
+
+  gpu-build:
+    suites:
+      - label: "gpu: isolated CPU and GPU builds"
+        class: experimental
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: slow
+        command:
+          - "bash"
+          - "{tests_dir}/integration/gpu/build_test_binaries.sh"
+          - "{build_type}"
+
+  gpu-smoke:
+    suites:
+      - label: "gpu: Debug CPU and GPU builds"
+        class: experimental
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: slow
+        command:
+          - "bash"
+          - "{tests_dir}/integration/gpu/build_test_binaries.sh"
+          - "Debug"
+      - label: "gpu: Debug device self-test and CPU/GPU smoke parity"
+        class: experimental
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: medium
+        env_UDALES_CPU_BUILD: "{repo_root}/build/common/debug/u-dales"
+        env_UDALES_GPU_BUILD: "{repo_root}/build/gpu/debug/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/gpu/run_gpu_tests.py"
+          - "smoke"
+          - "--require-debug-selftest"
+
+  gpu-nightly:
+    suites:
+      - label: "gpu: Release CPU and GPU builds"
+        class: heavy
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: slow
+        command:
+          - "bash"
+          - "{tests_dir}/integration/gpu/build_test_binaries.sh"
+          - "Release"
+      - label: "gpu: representative CPU/GPU nightly parity"
+        class: heavy
+        kind: regression
+        component: gpu
+        platform: gpu
+        cost: slow
+        env_UDALES_CPU_BUILD: "{repo_root}/build/common/release/u-dales"
+        env_UDALES_GPU_BUILD: "{repo_root}/build/gpu/release/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/gpu/run_gpu_tests.py"
+          - "nightly"
+
+  gpu-mpi:
+    suites:
+      - label: "gpu: Debug CPU and GPU builds"
+        class: heavy
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: slow
+        command:
+          - "bash"
+          - "{tests_dir}/integration/gpu/build_test_binaries.sh"
+          - "Debug"
+      - label: "gpu: two-rank CPU/multi-GPU parity"
+        class: heavy
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: medium
+        env_UDALES_CPU_BUILD: "{repo_root}/build/common/debug/u-dales"
+        env_UDALES_GPU_BUILD: "{repo_root}/build/gpu/debug/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/gpu/run_gpu_tests.py"
+          - "mpi"
+          - "--require-debug-selftest"
+
+  gpu-full:
+    suites:
+      - label: "gpu: Release CPU and GPU builds"
+        class: heavy
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: slow
+        command:
+          - "bash"
+          - "{tests_dir}/integration/gpu/build_test_binaries.sh"
+          - "Release"
+      - label: "gpu: full CPU/GPU parity matrix"
+        class: heavy
+        kind: regression
+        component: gpu
+        platform: gpu
+        cost: slow
+        env_UDALES_CPU_BUILD: "{repo_root}/build/common/release/u-dales"
+        env_UDALES_GPU_BUILD: "{repo_root}/build/gpu/release/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/gpu/run_gpu_tests.py"
+          - "full"
 
   all:
     includes:

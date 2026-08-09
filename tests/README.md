@@ -47,6 +47,15 @@ Current intended categories are:
 - `heavy`: resource-heavy or cluster-oriented coverage not expected in routine
   GitHub Actions
 
+GPU coverage has dedicated selections because it requires NVHPC and CUDA
+hardware:
+
+- `gpu-build`: isolated CPU and GPU builds for the requested build type
+- `gpu-smoke`: Debug build, CUDA initializer self-test, and two tiny parity cases
+- `gpu-nightly`: Release build and representative IBM, vegetation, and SEB parity
+- `gpu-mpi`: Debug two-rank parity on two GPUs
+- `gpu-full`: the full single- and multi-GPU matrix
+
 For Python-library-only validation, use the dedicated dispatcher selection:
 
 ```bash
@@ -78,6 +87,8 @@ membership lives in `tests/test_suites.yml`:
 python tests/run_tests.py supported --branch-a master --branch-b HEAD --build-type Release
 python tests/run_tests.py experimental
 python tests/run_tests.py all --branch-a master --branch-b HEAD --build-type Release
+python tests/run_tests.py gpu-smoke
+python tests/run_tests.py gpu-nightly
 ```
 
 ## Test Manifest Schema
@@ -170,6 +181,9 @@ between multiple components rather than one isolated API.
   MATLAB and Python entry points on no-tree case `100`
 - `udbase_against_matlab/`: Python-vs-MATLAB parity checks on committed cases
 - `udprep/`: preprocessing integration checks on committed cases and binaries
+- `gpu/`: strict same-commit CPU/GPU output parity on deterministic committed
+  fixtures; see `tests/integration/gpu/README.md` for the case matrix, runner
+  requirements, and CI contract
 
 `tests/cases/` holds shared committed fixtures used by these tests. At present:
 
@@ -198,6 +212,18 @@ To run the sparse IBM input test:
 cd tests/integration/ibm_sparse_input
 ./run_test.sh
 ```
+
+To run the Debug GPU smoke suite after loading NVHPC and activating the
+canonical Python environment:
+
+```bash
+python tests/run_tests.py gpu-smoke
+```
+
+This builds CPU and GPU executables in separate CMake trees, runs the existing
+Debug CUDA extended-halo self-test, executes both solvers from the same commit,
+and compares every variable in the required NetCDF outputs. GPU suites are not
+included in `supported` or `all`; they are selected explicitly on GPU hardware.
 
 To run the direct MPI operator test:
 

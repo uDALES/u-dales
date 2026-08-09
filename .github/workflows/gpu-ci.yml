@@ -1,0 +1,167 @@
+name: GPU CI
+
+on:
+  push:
+    branches: [gpu]
+  pull_request:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: GPU suite to run
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - nightly
+          - mpi
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gpu-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  HDF5_USE_FILE_LOCKING: "FALSE"
+
+jobs:
+  validate-gpu-test-configuration:
+    name: validate GPU test configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v6
+      - name: Validate committed GPU case matrix
+        run: python3 tests/integration/gpu/run_gpu_tests.py smoke --validate-config
+
+  gpu-smoke:
+    # Never execute code from an untrusted fork on the persistent GPU runner.
+    if: >
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository) &&
+      (github.event_name != 'workflow_dispatch' || inputs.suite == 'smoke') &&
+      github.event_name != 'schedule'
+    name: GPU Debug smoke parity
+    needs: validate-gpu-test-configuration
+    runs-on: [self-hosted, linux, x64, gpu, nvhpc]
+    timeout-minutes: 45
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Build and run GPU smoke suite
+        shell: bash -l {0}
+        env:
+          UDALES_GPU_TEST_ARTIFACTS: ${{ runner.temp }}/udales-gpu-smoke
+        run: |
+          source /etc/profile.d/modules.sh
+          module purge
+          module use /opt/nvidia/hpc_sdk/modulefiles
+          module load nvhpc/24.11
+          export UDALES_GPU_FORTRAN_COMPILER="$(command -v mpif90)"
+          export UDALES_CPU_MPIEXEC=/usr/bin/mpiexec
+          export UDALES_GPU_MPIEXEC="$(command -v mpiexec)"
+          test_python="${UDALES_GPU_PYTHON:-tools/python/.venv/bin/python}"
+          "$test_python" -c "import netCDF4, numpy"
+          "$test_python" tests/run_tests.py gpu-smoke
+      - name: Upload GPU smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gpu-smoke-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/udales-gpu-smoke/
+            build/common/debug/config.log
+            build/common/debug/build.log
+            build/gpu/debug/config.log
+            build/gpu/debug/build.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  gpu-nightly:
+    if: >
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.suite == 'nightly')
+    name: GPU Release nightly parity
+    needs: validate-gpu-test-configuration
+    runs-on: [self-hosted, linux, x64, gpu, nvhpc]
+    timeout-minutes: 120
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Build and run nightly GPU matrix
+        shell: bash -l {0}
+        env:
+          UDALES_GPU_TEST_ARTIFACTS: ${{ runner.temp }}/udales-gpu-nightly
+        run: |
+          source /etc/profile.d/modules.sh
+          module purge
+          module use /opt/nvidia/hpc_sdk/modulefiles
+          module load nvhpc/24.11
+          export UDALES_GPU_FORTRAN_COMPILER="$(command -v mpif90)"
+          export UDALES_CPU_MPIEXEC=/usr/bin/mpiexec
+          export UDALES_GPU_MPIEXEC="$(command -v mpiexec)"
+          test_python="${UDALES_GPU_PYTHON:-tools/python/.venv/bin/python}"
+          "$test_python" -c "import netCDF4, numpy"
+          "$test_python" tests/run_tests.py gpu-nightly
+      - name: Upload nightly GPU diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gpu-nightly-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/udales-gpu-nightly/
+            build/common/release/config.log
+            build/common/release/build.log
+            build/gpu/release/config.log
+            build/gpu/release/build.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  gpu-mpi:
+    if: github.event_name == 'workflow_dispatch' && inputs.suite == 'mpi'
+    name: two-rank multi-GPU parity
+    needs: validate-gpu-test-configuration
+    runs-on: [self-hosted, linux, x64, multi-gpu, nvhpc]
+    timeout-minutes: 60
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Build and run multi-GPU suite
+        shell: bash -l {0}
+        env:
+          UDALES_GPU_TEST_ARTIFACTS: ${{ runner.temp }}/udales-gpu-mpi
+        run: |
+          source /etc/profile.d/modules.sh
+          module purge
+          module use /opt/nvidia/hpc_sdk/modulefiles
+          module load nvhpc/24.11
+          export UDALES_GPU_FORTRAN_COMPILER="$(command -v mpif90)"
+          export UDALES_CPU_MPIEXEC=/usr/bin/mpiexec
+          export UDALES_GPU_MPIEXEC="$(command -v mpiexec)"
+          test_python="${UDALES_GPU_PYTHON:-tools/python/.venv/bin/python}"
+          "$test_python" -c "import netCDF4, numpy"
+          "$test_python" tests/run_tests.py gpu-mpi
+      - name: Upload multi-GPU diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gpu-mpi-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/udales-gpu-mpi/
+            build/common/debug/config.log
+            build/common/debug/build.log
+            build/gpu/debug/config.log
+            build/gpu/debug/build.log
+          if-no-files-found: warn
+          retention-days: 14

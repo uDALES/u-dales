@@ -1,0 +1,10 @@
+# Deterministic non-uniform scalar profile for the Kappa advection path
+# z scalar-1
+0.5  0.10
+1.5  0.18
+2.5  0.29
+3.5  0.43
+4.5  0.58
+5.5  0.70
+6.5  0.79
+7.5  0.85

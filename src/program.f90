@@ -30,6 +30,9 @@ program uDALES
   use cudafor
   use modcuda,           only : initCUDA, updateDevice, updateHost, updateDevicePriorPoiss, updateHostAfterPoiss, checkCUDA, exitCUDA
 #endif
+#if defined(_GPU) && defined(UDALES_DEBUG)
+  use tests_cuda,        only : run_cuda_selftests_if_requested
+#endif
   use modglobal,         only : initglobal,rk3step,timeleft
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
@@ -135,6 +138,9 @@ program uDALES
 
 #if defined(_GPU)
   call initCUDA
+#endif
+#if defined(_GPU) && defined(UDALES_DEBUG)
+  call run_cuda_selftests_if_requested
 #endif
 
 !------------------------------------------------------

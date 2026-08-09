@@ -19,7 +19,12 @@
 
 set -euo pipefail
 
-# Usage: ./tools/build_executable.sh [icl, archer, cca, common] [debug, release]
+# Usage: ./tools/build_executable.sh [icl, archer, cca, gpu, common] [debug, release]
+#
+# Optional environment overrides:
+#   UDALES_BUILD_DIR          independent CMake build directory
+#   UDALES_BUILD_JOBS         parallel build jobs (default: 8)
+#   UDALES_FORTRAN_COMPILER   Fortran compiler/MPI wrapper
 
 if [ ! -d src ]; then
     echo "Please run this script from being inside the u-dales folder"
@@ -34,9 +39,22 @@ capitalize() {
 #echo "env: " `env`
 #echo "PATH: " ${PATH}
 
-NPROC=8 # TODO: make into a arg var.
-system=$1
-build_type=$2
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <icl|archer|cca|gpu|common> <debug|release>"
+    exit 2
+fi
+
+NPROC="${UDALES_BUILD_JOBS:-8}"
+system="$1"
+build_type="$2"
+
+case "$build_type" in
+    debug|release) ;;
+    *)
+        echo "Build type must be either 'debug' or 'release'"
+        exit 2
+        ;;
+esac
 
 
 if [ $system == "icl" ]
@@ -97,11 +115,17 @@ else
     exit 1
 fi
 
+FC="${UDALES_FORTRAN_COMPILER:-$FC}"
+
 
 # Configure and Build
-path_to_build_dir="$(pwd)/build/$build_type"
-mkdir -p $path_to_build_dir
-pushd $path_to_build_dir
+repo_root="$(pwd)"
+path_to_build_dir="${UDALES_BUILD_DIR:-$repo_root/build/$build_type}"
+if [[ "$path_to_build_dir" != /* ]]; then
+    path_to_build_dir="$repo_root/$path_to_build_dir"
+fi
+mkdir -p "$path_to_build_dir"
+pushd "$path_to_build_dir"
 cmake_build_type="$(capitalize $build_type)"
 cmake_args=(
     -DNETCDF_DIR="$NETCDF_DIR"
@@ -117,6 +141,10 @@ if [ -n "${FFTW_FLOAT_LIB:-}" ]; then
     cmake_args+=("-DFFTW_FLOAT_OPENMP_LIB=$FFTW_FLOAT_LIB")
 fi
 
-FC=$FC cmake "${cmake_args[@]}" ../../ 2>&1 | tee -a $path_to_build_dir/config.log
-make -j$NPROC 2>&1 | tee -a $path_to_build_dir/build.log
+if [ -n "$FC" ]; then
+    cmake_args+=("-DCMAKE_Fortran_COMPILER=$FC")
+fi
+
+cmake "${cmake_args[@]}" "$repo_root" 2>&1 | tee -a "$path_to_build_dir/config.log"
+cmake --build . --parallel "$NPROC" 2>&1 | tee -a "$path_to_build_dir/build.log"
 popd

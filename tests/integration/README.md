@@ -17,6 +17,8 @@ Current contents:
 
 - `cuda_extended_halo_initializer/` for the Debug-only CUDA runtime self-test
   that verifies complete initialization of extended-halo tendency arrays
+- `gpu/` for same-commit CPU/GPU parity, strict NetCDF comparison, Debug CUDA
+  self-test enforcement, and single-/multi-GPU selections
 - `directshortwave/` for committed direct shortwave cases, including no-tree
   reference case `100` and tree case `525`
 - `ibm_sparse_input/` for MPI validation of the sparse IBM input reader on committed case `101`
@@ -56,12 +58,16 @@ Current supported status:
 - `processor_boundaries/`: supported solver-facing integration coverage
 - `udprep/`: supported preprocessing/tooling integration coverage
 - `udbase_against_matlab/`: supported Python/MATLAB parity integration coverage
+- `gpu/`: experimental smoke coverage plus heavy nightly/multi-GPU coverage;
+  its hardware-independent harness tests are in the supported Python stream
 
 This directory now feeds two different curated paths through
 `tests/test_suites.yml`:
 
 - `supported`: stable integration suites that are part of the supported path
 - `experimental`: non-primary integration and regression coverage
+- `gpu-smoke`, `gpu-nightly`, `gpu-mpi`, and `gpu-full`: CUDA-specific paths
+  requiring an NVHPC build and suitable GPU hardware
 
 Each suite here should state whether it is intended for:
 

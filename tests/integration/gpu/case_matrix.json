@@ -1,0 +1,106 @@
+{
+  "description": "Deterministic same-commit CPU/GPU parity cases for uDALES",
+  "tolerances": {
+    "default": {
+      "atol": 1e-6,
+      "rtol": 1e-6
+    },
+    "variables": {
+      "time": {
+        "atol": 1e-12,
+        "rtol": 1e-12
+      }
+    }
+  },
+  "selections": {
+    "smoke": [
+      "dry-poisson-fft",
+      "thermo-scalar-wall"
+    ],
+    "nightly": [
+      "dry-poisson-fft",
+      "thermo-scalar-wall",
+      "ibm-scalar-wall",
+      "vegetation",
+      "surface-energy-balance"
+    ],
+    "mpi": [
+      "dry-two-rank"
+    ],
+    "full": [
+      "dry-poisson-fft",
+      "thermo-scalar-wall",
+      "ibm-scalar-wall",
+      "vegetation",
+      "surface-energy-balance",
+      "dry-two-rank"
+    ]
+  },
+  "cases": [
+    {
+      "name": "dry-poisson-fft",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.dry",
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["momentum", "advection", "subgrid", "neutral-bottom-wall", "ipoiss-3"],
+      "timeout_seconds": 180
+    },
+    {
+      "name": "thermo-scalar-wall",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.thermo-scalar",
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103",
+        "tests/integration/gpu/fixtures/scalar.inp.103"
+      ],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["thermodynamics", "moisture", "second-order-advection", "kappa-scalar-advection", "thermal-wall-flux", "ipoiss-0"],
+      "timeout_seconds": 180
+    },
+    {
+      "name": "ibm-scalar-wall",
+      "case_id": 101,
+      "base_case": "tests/cases/101",
+      "namelist": "tests/integration/gpu/namelists/namoptions.101.ibm-scalar",
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["immersed-boundary", "iomomflux", "iotflux", "obcTfluxA", "scalar-extended-halos"],
+      "timeout_seconds": 600
+    },
+    {
+      "name": "vegetation",
+      "case_id": 526,
+      "base_case": "tests/cases/526",
+      "namelist": "tests/integration/processor_boundaries/namoptions.526.serial",
+      "nprocs": 1,
+      "required_outputs": ["tdump", "treedump"],
+      "coverage": ["vegetation", "tree-forcing", "tree-output"],
+      "timeout_seconds": 900
+    },
+    {
+      "name": "surface-energy-balance",
+      "case_id": 64,
+      "base_case": "tests/cases/064",
+      "namelist": "tests/integration/gpu/namelists/namoptions.064.seb",
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["surface-energy-balance", "sparse-view-factors", "periodic-EB-correction", "thermal-and-moisture-walls"],
+      "timeout_seconds": 900
+    },
+    {
+      "name": "dry-two-rank",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.mpi",
+      "nprocs": 2,
+      "minimum_gpus": 2,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["multi-GPU", "MPI-x-halos", "decomposition", "ipoiss-0"],
+      "timeout_seconds": 300
+    }
+  ]
+}
