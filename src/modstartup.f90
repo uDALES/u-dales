@@ -135,7 +135,7 @@ module modstartup
          BCbotm, BCbotT, BCbotq, BCbots, &
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
          bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz, &
-         wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
+         wttop, wqtop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
          wtsurf, wqsurf, thls, z0, z0h, BCzp, ds
       namelist/INLET/ &
          Uinf, Vinf, di, dti, inletav, linletRA, &

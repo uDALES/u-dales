@@ -24,9 +24,10 @@ if TYPE_CHECKING:
 TEST_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TEST_DIR.parents[2]
 DEFAULT_MATRIX = TEST_DIR / "case_matrix.json"
-CUDA_SELFTEST_PASS = "CUDA extended-halo initfield self-test passed."
-CUDA_SELFTEST_FAIL = "CUDA extended-halo initfield self-test failed."
+CUDA_SELFTEST_PASS = "CUDA device self-tests passed."
+CUDA_SELFTEST_FAIL = "CUDA device self-tests failed:"
 CUDA_SELFTEST_ENV = "UDALES_RUN_CUDA_SELFTEST"
+CUDA_SELFTEST_COVERAGE = "debug-device-selftests"
 
 
 class ConfigurationError(RuntimeError):
@@ -52,6 +53,74 @@ def _read_namelist_integer(path: Path, key: str) -> Optional[int]:
         path.read_text(encoding="utf-8"),
     )
     return int(match.group(1)) if match else None
+
+
+def _read_namelist_scalar(path: Path, key: str) -> Any:
+    """Read one simple scalar assignment from a committed Fortran namelist."""
+
+    match = re.search(
+        rf"(?mi)^\s*{re.escape(key)}\s*=\s*([^!\n/]+)",
+        path.read_text(encoding="utf-8"),
+    )
+    if match is None:
+        raise KeyError(key)
+    raw = match.group(1).strip().rstrip(",").strip()
+    lowered = raw.lower()
+    if lowered in {".true.", "true"}:
+        return True
+    if lowered in {".false.", "false"}:
+        return False
+    if (raw.startswith("'") and raw.endswith("'")) or (
+        raw.startswith('"') and raw.endswith('"')
+    ):
+        return raw[1:-1]
+    try:
+        return int(raw)
+    except ValueError:
+        try:
+            return float(raw.replace("d", "e").replace("D", "e"))
+        except ValueError:
+            return raw
+
+
+def _discover_cuda_routines() -> set[str]:
+    """Return production CUDA global/device routines declared under src/."""
+
+    declaration = re.compile(
+        r"(?im)^\s*attributes\s*\(\s*(?:global|device)\s*\)\s*"
+        r"(?:(?:real|integer|logical|double\s+precision)(?:\s*\([^)]*\))?\s+)?"
+        r"(?:subroutine|(?:real\s+)?function)\s+(\w+)"
+    )
+    discovered: set[str] = set()
+    for source in sorted((REPO_ROOT / "src").glob("*.f90")):
+        if source.name == "tests_cuda.f90":
+            continue
+        for match in declaration.finditer(source.read_text(encoding="utf-8", errors="replace")):
+            discovered.add(f"src/{source.name}:{match.group(1)}")
+    return discovered
+
+
+def _discover_openacc_routines() -> set[str]:
+    """Return production subroutines containing executable OpenACC regions."""
+
+    discovered: set[str] = set()
+    start = re.compile(
+        r"^\s*(?!end\b)(?:[\w(),=*:+-]+\s+)*subroutine\s+(\w+)",
+        re.IGNORECASE,
+    )
+    end = re.compile(r"^\s*end\s*subroutine", re.IGNORECASE)
+    directive = re.compile(r"!\$acc\s+(?:parallel|kernels|routine)", re.IGNORECASE)
+    for source in sorted((REPO_ROOT / "src").glob("*.f90")):
+        stack: list[str] = []
+        for line in source.read_text(encoding="utf-8", errors="replace").splitlines():
+            match = start.match(line)
+            if match:
+                stack.append(match.group(1))
+            if directive.search(line) and stack:
+                discovered.add(f"src/{source.name}:{stack[-1]}")
+            if end.match(line) and stack:
+                stack.pop()
+    return discovered
 
 
 def validate_matrix(matrix: Mapping[str, Any]) -> None:
@@ -130,6 +199,21 @@ def validate_matrix(matrix: Mapping[str, Any]) -> None:
         if float(case.get("timeout_seconds", 300)) <= 0:
             errors.append(f"{label}: timeout_seconds must be positive")
 
+        assertions = case.get("namelist_assertions", {})
+        if not isinstance(assertions, dict):
+            errors.append(f"{label}: namelist_assertions must be an object")
+        elif namelist.is_file():
+            for key, expected in assertions.items():
+                try:
+                    actual = _read_namelist_scalar(namelist, str(key))
+                except KeyError:
+                    errors.append(f"{label}: asserted namelist key is absent: {key}")
+                    continue
+                if actual != expected:
+                    errors.append(
+                        f"{label}: namelist assertion {key}={expected!r}, found {actual!r}"
+                    )
+
     for selection, selected_names in selections.items():
         if not isinstance(selected_names, list) or not selected_names:
             errors.append(f"selection '{selection}' must be a non-empty list")
@@ -143,6 +227,65 @@ def validate_matrix(matrix: Mapping[str, Any]) -> None:
         value = float(default_tolerance.get(key, 0.0))
         if value < 0 or not value < float("inf"):
             errors.append(f"default tolerance {key} must be finite and non-negative")
+
+    contract = matrix.get("ported_routines")
+    if not isinstance(contract, dict):
+        errors.append("'ported_routines' must be an object")
+    else:
+        known_targets = names | {CUDA_SELFTEST_COVERAGE}
+        for kind, discovered in (
+            ("cuda", _discover_cuda_routines()),
+            ("openacc", _discover_openacc_routines()),
+        ):
+            declared = contract.get(kind)
+            if not isinstance(declared, dict):
+                errors.append(f"ported_routines.{kind} must be an object")
+                continue
+            declared_names = set(declared)
+            missing = sorted(discovered - declared_names)
+            stale = sorted(declared_names - discovered)
+            if missing:
+                errors.append(f"ported_routines.{kind} misses source routines: {missing}")
+            if stale:
+                errors.append(f"ported_routines.{kind} has stale routines: {stale}")
+            for routine, targets in declared.items():
+                if not isinstance(targets, list) or not targets:
+                    errors.append(
+                        f"ported_routines.{kind}.{routine} must name at least one test"
+                    )
+                    continue
+                unknown_targets = sorted(set(targets) - known_targets)
+                if unknown_targets:
+                    errors.append(
+                        f"ported_routines.{kind}.{routine} references unknown tests: "
+                        f"{unknown_targets}"
+                    )
+
+    unsupported = matrix.get("unsupported_gpu_options")
+    if not isinstance(unsupported, dict) or not unsupported:
+        errors.append("'unsupported_gpu_options' must be a non-empty object")
+    else:
+        for option, values in unsupported.items():
+            if not isinstance(values, list) or not values:
+                errors.append(
+                    f"unsupported_gpu_options.{option} must be a non-empty list"
+                )
+                continue
+            for case in cases:
+                if not isinstance(case, dict) or "namelist" not in case:
+                    continue
+                namelist = _resolve_repo_path(str(case["namelist"]))
+                if not namelist.is_file():
+                    continue
+                try:
+                    actual = _read_namelist_scalar(namelist, str(option))
+                except KeyError:
+                    continue
+                if actual in values:
+                    errors.append(
+                        f"case '{case.get('name', '?')}': unsupported GPU option "
+                        f"{option}={actual!r}"
+                    )
 
     if errors:
         raise ConfigurationError("Invalid GPU test matrix:\n- " + "\n- ".join(errors))
@@ -348,7 +491,7 @@ def _visible_gpu_count() -> Optional[int]:
 def _require_cuda_selftest(log_path: Path, expected_ranks: int) -> Optional[str]:
     log = log_path.read_text(encoding="utf-8", errors="replace")
     if CUDA_SELFTEST_FAIL in log:
-        return "CUDA extended-halo initializer self-test reported failure"
+        return "CUDA device self-test suite reported failure"
     passed_ranks = [
         int(rank)
         for rank in re.findall(
@@ -358,13 +501,13 @@ def _require_cuda_selftest(log_path: Path, expected_ranks: int) -> Optional[str]
     ]
     if not passed_ranks:
         return (
-            "CUDA extended-halo initializer self-test did not run; "
+            "CUDA device self-test suite did not run; "
             "use a Debug GPU executable or omit --require-debug-selftest"
         )
     expected = list(range(expected_ranks))
     if sorted(passed_ranks) != expected:
         return (
-            "CUDA extended-halo initializer self-test did not pass exactly once "
+            "CUDA device self-test suite did not pass exactly once "
             f"on every MPI rank: expected={expected}, observed={sorted(passed_ranks)}"
         )
     return None

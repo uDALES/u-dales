@@ -1,4 +1,4 @@
-# CUDA Extended-Halo Initializer
+# CUDA Device Self-Test Compatibility Entry Point
 
 This is a GPU integration check. It is not part of the CPU-only GitHub Actions
 gate because it requires an NVHPC CUDA build and a CUDA-capable device. It is
@@ -7,13 +7,14 @@ owned and automatically enabled by the `gpu-smoke` and `gpu-mpi` selections.
 The test implementation lives in the dedicated Fortran test module
 `src/tests_cuda.f90`. The Python GPU runner opts into it by setting
 `UDALES_RUN_CUDA_SELFTEST=1`; ordinary Debug GPU simulations do not execute
-test-only code. The test fills an array having the scalar/Kappa halo widths
-(`ihc`, `jhc`, `khc`) with a non-zero sentinel, launches the production
-`initfield` kernel, copies the complete allocation back to the host, and
-terminates the run if any element was not reset. A successful rank writes:
+test-only code. The suite now checks the extended-halo initializer, Kappa
+limiter, scalar-upwind kernel, Kappa temperature-copy kernels, and driver-inlet
+boundary kernel. This directory retains the standalone log checker for manual
+runs; automated ownership is under `tests/integration/gpu/`. A successful rank
+writes:
 
 ```text
-CUDA extended-halo initfield self-test passed. rank=0
+CUDA device self-tests passed. rank=0
 ```
 
 For a standalone Debug GPU run, request the test and verify its log with:

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,7 +15,9 @@ from compare_outputs import compare_output_directories
 from run_gpu_tests import (
     CUDA_SELFTEST_FAIL,
     CUDA_SELFTEST_PASS,
+    ConfigurationError,
     DEFAULT_MATRIX,
+    REPO_ROOT,
     _read_matrix,
     _require_cuda_selftest,
     validate_matrix,
@@ -45,6 +48,35 @@ def _write_output(
 class TestGpuOutputComparator(unittest.TestCase):
     def test_committed_matrix_is_valid(self) -> None:
         validate_matrix(_read_matrix(DEFAULT_MATRIX))
+
+    def test_matrix_rejects_unmapped_cuda_routine(self) -> None:
+        matrix = copy.deepcopy(_read_matrix(DEFAULT_MATRIX))
+        del matrix["ported_routines"]["cuda"]["src/modcuda.f90:initfield"]
+
+        with self.assertRaisesRegex(ConfigurationError, "misses source routines"):
+            validate_matrix(matrix)
+
+    def test_matrix_rejects_incorrect_activation_assertion(self) -> None:
+        matrix = copy.deepcopy(_read_matrix(DEFAULT_MATRIX))
+        matrix["cases"][0]["namelist_assertions"]["ipoiss"] = 999
+
+        with self.assertRaisesRegex(ConfigurationError, "namelist assertion ipoiss"):
+            validate_matrix(matrix)
+
+    def test_matrix_rejects_unsupported_gpu_option(self) -> None:
+        matrix = copy.deepcopy(_read_matrix(DEFAULT_MATRIX))
+        source = Path(matrix["cases"][0]["namelist"])
+        source = REPO_ROOT / source
+        with tempfile.TemporaryDirectory() as temporary:
+            namelist = Path(temporary) / "namoptions.103"
+            namelist.write_text(
+                source.read_text(encoding="utf-8").replace("ipoiss       = 3", "ipoiss       = 2"),
+                encoding="utf-8",
+            )
+            matrix["cases"][0]["namelist"] = str(namelist)
+
+            with self.assertRaisesRegex(ConfigurationError, "unsupported GPU option ipoiss=2"):
+                validate_matrix(matrix)
 
     def test_allows_values_inside_absolute_and_relative_tolerance(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -160,7 +192,7 @@ class TestGpuOutputComparator(unittest.TestCase):
 
             self.assertEqual(
                 failure,
-                "CUDA extended-halo initializer self-test reported failure",
+                "CUDA device self-test suite reported failure",
             )
 
 

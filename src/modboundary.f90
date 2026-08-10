@@ -706,10 +706,12 @@ contains
       end do
 
       if (loneeqn) then
-         e120(ib - m, :, :) = e120(ie + 1 - m, :, :)
-         e120(ie + m, :, :) = e120(ib - 1 + m, :, :)
-         e12m(ib - m, :, :) = e12m(ie + 1 - m, :, :)
-         e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
+         do m = 1, ih
+            e120(ib - m, :, :) = e120(ie + 1 - m, :, :)
+            e120(ie + m, :, :) = e120(ib - 1 + m, :, :)
+            e12m(ib - m, :, :) = e12m(ie + 1 - m, :, :)
+            e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
+         end do
       end if
 
       return
@@ -771,14 +773,14 @@ contains
 
    !>set lateral periodic boundary conditions for momentum in y/j direction
    subroutine ym_periodic
-      use modglobal, only:jb, je, ih
+      use modglobal, only:jb, je, jh
       use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m
       use modsubgriddata, only:loneeqn
       use modmpi, only:excjs
 
       integer m
 
-      do m = 1, ih
+      do m = 1, jh
          u0(:, jb - m, :) = u0(:, je + 1 - m, :)
          u0(:, je + m, :) = u0(:, jb - 1 + m, :)
          v0(:, jb - m, :) = v0(:, je + 1 - m, :)
@@ -794,10 +796,12 @@ contains
       end do
 
       if (loneeqn) then
-        e120(:, jb - m, :) = e120(:, je + 1 - m, :)
-        e120(:, je + m, :) = e120(:, jb - 1 + m, :)
-        e12m(:, jb - m, :) = e12m(:, je + 1 - m, :)
-        e12m(:, je + m, :) = e12m(:, jb - 1 + m, :)
+         do m = 1, jh
+            e120(:, jb - m, :) = e120(:, je + 1 - m, :)
+            e120(:, je + m, :) = e120(:, jb - 1 + m, :)
+            e12m(:, jb - m, :) = e12m(:, je + 1 - m, :)
+            e12m(:, je + m, :) = e12m(:, jb - 1 + m, :)
+         end do
       end if
 
       return

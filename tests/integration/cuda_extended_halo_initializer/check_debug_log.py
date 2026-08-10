@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify that a Debug GPU run completed the extended-halo initializer test."""
+"""Verify that a Debug GPU run completed the CUDA device self-test suite."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ import re
 from pathlib import Path
 
 
-PASS_MARKER = "CUDA extended-halo initfield self-test passed."
-FAIL_MARKER = "CUDA extended-halo initfield self-test failed."
+PASS_MARKER = "CUDA device self-tests passed."
+FAIL_MARKER = "CUDA device self-tests failed:"
 
 
 def main() -> int:
@@ -25,9 +25,9 @@ def main() -> int:
 
     contents = args.log.read_text(encoding="utf-8", errors="replace")
     if FAIL_MARKER in contents:
-        raise SystemExit(f"initializer self-test failed in {args.log}")
+        raise SystemExit(f"CUDA device self-test suite failed in {args.log}")
     if PASS_MARKER not in contents:
-        raise SystemExit(f"initializer self-test did not run in {args.log}")
+        raise SystemExit(f"CUDA device self-test suite did not run in {args.log}")
     if args.expected_ranks is not None:
         if args.expected_ranks < 1:
             raise SystemExit("--expected-ranks must be positive")
@@ -38,11 +38,11 @@ def main() -> int:
         expected = list(range(args.expected_ranks))
         if passed_ranks != expected:
             raise SystemExit(
-                "initializer self-test did not pass exactly once on every rank: "
+                "CUDA device self-test suite did not pass exactly once on every rank: "
                 f"expected={expected}, observed={passed_ranks}"
             )
 
-    print(f"initializer self-test passed in {args.log}")
+    print(f"CUDA device self-test suite passed in {args.log}")
     return 0
 
 

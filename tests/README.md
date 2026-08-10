@@ -220,8 +220,8 @@ canonical Python environment:
 python tests/run_tests.py gpu-smoke
 ```
 
-This builds CPU and GPU executables in separate CMake trees, runs the existing
-Debug CUDA extended-halo self-test, executes both solvers from the same commit,
+This builds CPU and GPU executables in separate CMake trees, runs the Debug CUDA
+device self-test suite, executes both solvers from the same commit,
 and compares every variable in the required NetCDF outputs. GPU suites are not
 included in `supported` or `all`; they are selected explicitly on GPU hardware.
 
@@ -278,3 +278,134 @@ python run_tests.py master dmey/patch-1 Release
 - For tests with nontrivial prerequisites, make those requirements explicit in the suite README and in the test code where possible.
 - Do not put exploratory or plotting-heavy development scripts in either automated test tree; keep those in `tools/python/examples/` or a dedicated dev location.
 - See `tests/ROADMAP.md` for the current phased testing roadmap and project status against it.
+
+## Validation Before Committing, Pushing, or Merging
+
+### Before committing
+
+Inspect the working tree and check the patch for whitespace errors:
+
+```bash
+git status --short
+git diff
+git diff --check
+```
+
+Build the Debug solver and run the Python test stream and GPU matrix
+configuration checks:
+
+```bash
+cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/debug -j 4
+
+source tools/python/.venv/bin/activate
+python tests/run_tests.py python-library
+python tests/integration/gpu/run_gpu_tests.py full --validate-config
+```
+
+For solver or GPU-related changes, also validate every committed GPU-suite
+fixture with the CPU executable:
+
+```bash
+python tests/integration/gpu/run_gpu_tests.py full \
+  --cpu-only \
+  --cpu-executable build/debug/u-dales
+```
+
+### Before pushing
+
+After committing the changes, run the supported Debug stream and the complete
+Release stream. Branch-comparison tests use committed revisions, so `HEAD`
+must contain the changes being tested.
+
+```bash
+python tests/run_tests.py supported \
+  --branch-a master \
+  --branch-b HEAD \
+  --build-type Debug
+
+cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release
+cmake --build build/release -j 4
+
+python tests/run_tests.py all \
+  --branch-a master \
+  --branch-b HEAD \
+  --build-type Release
+```
+
+For GPU-related changes, run at least the Debug smoke suite on a machine with
+a visible NVIDIA GPU and the required NVHPC environment:
+
+```bash
+python tests/run_tests.py gpu-smoke
+```
+
+### Before merging branches
+
+Start from a clean working tree, update the remote references, and inspect the
+incoming change summary:
+
+```bash
+git status --short
+git fetch origin
+git diff --stat HEAD..origin/master
+```
+
+Perform the merge without creating its commit immediately:
+
+```bash
+git merge --no-commit --no-ff origin/master
+```
+
+After resolving conflicts, confirm that none remain and that the resolved
+patch has no whitespace errors:
+
+```bash
+git diff --name-only --diff-filter=U
+git diff --check
+```
+
+Repeat the **Before committing** checks before creating the merge commit, then
+run the **Before pushing** checks before publishing it. When suitable GPU
+hardware is available, finish with:
+
+```bash
+python tests/run_tests.py gpu-smoke
+python tests/run_tests.py gpu-full
+```
+
+`gpu-full` requires four visible GPUs. With one GPU, use `gpu-nightly`; with
+two GPUs, additionally use `gpu-mpi`.
+
+### Coverage of this validation workflow
+
+Running the complete sequence above covers:
+
+- CPU Debug and Release compilation
+- supported and experimental CPU tests
+- Python tooling and preprocessing tests
+- CPU regression against `master`
+- GPU Debug and Release compilation
+- Debug CUDA device self-tests
+- all 20 CPU/GPU parity cases
+- serial and multi-GPU MPI paths
+
+If preprocessing source code changed, rebuild the preprocessing tools before
+running their tests so that stale executables or extension modules cannot hide
+a problem:
+
+```bash
+PREPROCESSING_PYTHON_EXECUTABLE="$(command -v python)" \
+  bash tools/build_preprocessing.sh common preprocessing_tools
+
+python tests/run_tests.py python-library
+```
+
+Branch-comparison tests operate on committed Git revisions. Consequently,
+`HEAD` must contain the changes being validated before running the pre-push
+regression commands with `--branch-b HEAD`.
+
+Subject to the documented dependencies and four visible GPUs for `gpu-full`,
+this sequence covers all tests registered in the curated uDALES test system.
+It does not represent exhaustive testing of every possible namelist
+configuration.

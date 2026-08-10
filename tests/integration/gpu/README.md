@@ -11,34 +11,56 @@ been stable for a suitable period.
 
 ## What is implemented
 
-`case_matrix.json` defines six deterministic cases and four selections:
+`case_matrix.json` defines 20 deterministic cases and four selections:
 
 | Selection | Cases | Intended use |
 | --- | --- | --- |
-| `smoke` | two 8 x 8 x 8 cases | Debug development and trusted pull requests |
-| `nightly` | smoke plus IBM, vegetation, and SEB | single-GPU scheduled regression |
-| `mpi` | two-rank X-decomposed case | manually dispatched two-GPU check |
-| `full` | nightly plus MPI | manual validation on a multi-GPU machine |
+| `smoke` | four 8 x 8 x 8 cases | Debug development and trusted pull requests |
+| `nightly` | 17 serial cases | single-GPU scheduled regression |
+| `mpi` | two-rank X and Y cases | manually dispatched two-GPU check |
+| `full` | nightly plus X, Y, and 2 x 2 MPI | manual four-GPU validation |
 
 The current coverage is:
 
-- dry momentum, advection, subgrid closure, and neutral bottom-wall handling
+- dry momentum, second-order advection, Vreman closure, and neutral bottom wall
 - both `ipoiss=0` and `ipoiss=3`
-- temperature, moisture, second-order thermodynamic advection, and Kappa
-  scalar advection
-- non-neutral bottom-wall heat and momentum fluxes
+- temperature and moisture with second-order advection
+- Kappa temperature and scalar advection, including the temperature tendency
+  conversion kernels
+- one-equation SGS TKE advection, production, diffusion, and integration
+- fixed bottom temperature, moisture, and scalar flux kernels
+- non-neutral flat-bottom Uno momentum/heat wall functions and their atomic
+  heat-flux accumulation
+- Coriolis and profile forcing, nonzero large-scale subsidence/radiative/
+  moisture tendencies, shifted periodic-boundary forcing, `ifixuinf=1`, and
+  all three gravity-damping modes
+- X and Y profile inflow/outflow, pressure-top, no-slip top, and nonzero top
+  temperature/moisture/scalar fluxes
+- three-species NO/NO2/O3 chemistry
 - IBM wall functions, including the paths that update `iomomflux`, `iotflux`,
   and `obcTfluxA`
 - the extended scalar halos involved in the former `sca1` mismatch
 - vegetation forcing and tree output
 - surface energy balance, sparse view factors, and periodic EB correction
-- a two-rank/multi-GPU X decomposition
+- two-rank X and Y decompositions and a four-rank 2 x 2 decomposition
 
-Every Debug GPU smoke/MPI run must also emit a CUDA extended-halo initializer
-self-test marker from every MPI rank. The Python runner opts into the dedicated
-`src/tests_cuda.f90` check with `UDALES_RUN_CUDA_SELFTEST=1`; ordinary Debug GPU
-simulations do not run it. A missing marker is a failure, preventing a Release
-executable from accidentally being used for the Debug device check.
+Every Debug GPU smoke/MPI run must also emit a CUDA device-suite marker from
+every MPI rank. The opt-in `src/tests_cuda.f90` suite checks the extended-halo
+initializer, the Kappa limiter, first-order upwind scalar advection, both Kappa
+temperature tendency-copy directions, and the driver-inlet boundary kernel.
+The Kappa/upwind and temperature-copy checks run when the selected case has
+allocated their required extended-grid arrays; the smoke selection deliberately
+contains cases that do so. The runner enables the suite with
+`UDALES_RUN_CUDA_SELFTEST=1`; ordinary Debug GPU simulations do not run it.
+
+The `ported_routines` contract in `case_matrix.json` is checked against the
+current Fortran source. At present it maps all 48 production CUDA global/device
+routines (including device functions) and all nine subroutines containing
+executable OpenACC regions to one or more parity cases or to the Debug device
+suite. Matrix validation fails when a new ported routine has no declared test,
+a deleted routine leaves a stale entry, a mapped test does not exist, or a
+namelist no longer selects the option asserted by its case. It also rejects the
+explicitly unsupported GPU configurations `ipoiss=2` and `lpurif=.true.`.
 
 ## Comparison contract
 
@@ -108,8 +130,8 @@ python tests/run_tests.py gpu-mpi
 python tests/run_tests.py gpu-full
 ```
 
-`gpu-mpi` and `gpu-full` require at least two visible GPUs because the existing
-`tools/bind.sh` assigns one local MPI rank per device. Set
+`gpu-mpi` requires at least two visible GPUs and `gpu-full` requires four,
+because the existing `tools/bind.sh` assigns one local MPI rank per device. Set
 `UDALES_GPU_BIND=0` only when device placement is managed externally.
 
 Do not set `UDALES_RUN_CUDA_SELFTEST` manually when using this runner. The

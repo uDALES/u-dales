@@ -15,8 +15,8 @@ into two groups:
 
 Current contents:
 
-- `cuda_extended_halo_initializer/` for the Debug-only CUDA runtime self-test
-  that verifies complete initialization of extended-halo tendency arrays
+- `cuda_extended_halo_initializer/` for the legacy standalone log-checker entry
+  point for the Debug CUDA device self-test suite
 - `gpu/` for same-commit CPU/GPU parity, strict NetCDF comparison, Debug CUDA
   self-test enforcement, and single-/multi-GPU selections
 - `directshortwave/` for committed direct shortwave cases, including no-tree

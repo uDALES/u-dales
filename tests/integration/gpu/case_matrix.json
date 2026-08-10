@@ -1,39 +1,57 @@
 {
   "description": "Deterministic same-commit CPU/GPU parity cases for uDALES",
   "tolerances": {
-    "default": {
-      "atol": 1e-6,
-      "rtol": 1e-6
-    },
-    "variables": {
-      "time": {
-        "atol": 1e-12,
-        "rtol": 1e-12
-      }
-    }
+    "default": {"atol": 1e-6, "rtol": 1e-6},
+    "variables": {"time": {"atol": 1e-12, "rtol": 1e-12}}
   },
   "selections": {
     "smoke": [
       "dry-poisson-fft",
-      "thermo-scalar-wall"
+      "thermo-scalar-wall",
+      "temperature-kappa",
+      "stability-wall"
     ],
     "nightly": [
       "dry-poisson-fft",
       "thermo-scalar-wall",
+      "temperature-kappa",
+      "one-equation-sgs",
+      "fixed-surface-fluxes",
+      "stability-wall",
+      "active-forcing",
+      "profile-forcing",
+      "gravity-damping-2",
+      "gravity-damping-3",
+      "boundary-x-profile",
+      "boundary-y-profile",
+      "top-flux-noslip",
+      "chemistry",
       "ibm-scalar-wall",
       "vegetation",
       "surface-energy-balance"
     ],
-    "mpi": [
-      "dry-two-rank"
-    ],
+    "mpi": ["dry-two-rank-x", "dry-two-rank-y"],
     "full": [
       "dry-poisson-fft",
       "thermo-scalar-wall",
+      "temperature-kappa",
+      "one-equation-sgs",
+      "fixed-surface-fluxes",
+      "stability-wall",
+      "active-forcing",
+      "profile-forcing",
+      "gravity-damping-2",
+      "gravity-damping-3",
+      "boundary-x-profile",
+      "boundary-y-profile",
+      "top-flux-noslip",
+      "chemistry",
       "ibm-scalar-wall",
       "vegetation",
       "surface-energy-balance",
-      "dry-two-rank"
+      "dry-two-rank-x",
+      "dry-two-rank-y",
+      "dry-four-rank-xy"
     ]
   },
   "cases": [
@@ -44,7 +62,8 @@
       "namelist": "tests/integration/gpu/namelists/namoptions.103.dry",
       "nprocs": 1,
       "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["momentum", "advection", "subgrid", "neutral-bottom-wall", "ipoiss-3"],
+      "coverage": ["momentum", "second-order-advection", "Vreman-subgrid", "neutral-bottom-wall", "ipoiss-3"],
+      "namelist_assertions": {"ipoiss": 3, "ltempeq": false, "lvreman": true},
       "timeout_seconds": 180
     },
     {
@@ -58,7 +77,165 @@
       ],
       "nprocs": 1,
       "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["thermodynamics", "moisture", "second-order-advection", "kappa-scalar-advection", "thermal-wall-flux", "ipoiss-0"],
+      "coverage": ["thermodynamics", "moisture", "second-order-thermodynamic-advection", "Kappa-scalar-advection", "fixed-temperature-wall", "ipoiss-0"],
+      "namelist_assertions": {"ltempeq": true, "lmoist": true, "iadv_thl": 2, "nsv": 1, "BCbotT": 2},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "temperature-kappa",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.temperature-kappa",
+      "overrides": ["tests/integration/gpu/fixtures/prof.inp.103"],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["Kappa-temperature-advection", "temperature-tendency-copy", "extended-temperature-halos"],
+      "namelist_assertions": {"ltempeq": true, "iadv_thl": 7},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "one-equation-sgs",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.one-equation",
+      "overrides": ["tests/integration/gpu/fixtures/oneeqn/prof.inp.103"],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["one-equation-SGS", "TKE-advection", "TKE-sources", "TKE-diffusion", "TKE-integration"],
+      "namelist_assertions": {"loneeqn": true, "lvreman": false, "iadv_tke": 2},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "fixed-surface-fluxes",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.fixed-surface-fluxes",
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103",
+        "tests/integration/gpu/fixtures/scalar.inp.103"
+      ],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["fixed-bottom-heat-flux", "fixed-bottom-moisture-flux", "fixed-bottom-scalar-flux", "bottom-tendency-kernels"],
+      "namelist_assertions": {"BCbotT": 1, "BCbotq": 1, "BCbots": 1, "wtsurf": 0.015, "nsv": 1},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "stability-wall",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.stability-wall",
+      "overrides": ["tests/integration/gpu/fixtures/prof.inp.103"],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["non-neutral-flat-bottom-wall", "Uno-momentum", "Uno-heat", "wall-flux-atomic-reduction"],
+      "namelist_assertions": {"BCbotm": 2, "BCbotT": 2, "iwallmom": 2, "iwalltemp": 2},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "active-forcing",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.active-forcing",
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103",
+        "tests/integration/gpu/fixtures/scalar.inp.103",
+        "tests/integration/gpu/fixtures/forcing/lscale.inp.103"
+      ],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["Coriolis", "large-scale-forcing", "subsidence", "radiative-tendency", "shifted-PBC", "fixuinf-1", "gravity-damping-1"],
+      "namelist_assertions": {"lcoriol": true, "lprofforc": false, "ifixuinf": 1, "igrw_damp": 1, "ds": 1.0},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "profile-forcing",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.profile-forcing",
+      "overrides": ["tests/integration/gpu/fixtures/forcing/lscale.inp.103"],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["profile-Coriolis-forcing", "geostrophic-profile", "profile-pressure-gradient"],
+      "namelist_assertions": {"lcoriol": true, "lprofforc": true},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "gravity-damping-2",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.gravity-2",
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103",
+        "tests/integration/gpu/fixtures/forcing/lscale.inp.103"
+      ],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["gravity-damping-2", "geostrophic-sponge", "thermal-and-moisture-sponge"],
+      "namelist_assertions": {"igrw_damp": 2, "ksp": 5},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "gravity-damping-3",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.gravity-3",
+      "overrides": ["tests/integration/gpu/fixtures/prof.inp.103"],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["gravity-damping-3", "mean-flow-sponge", "thermal-and-moisture-sponge"],
+      "namelist_assertions": {"igrw_damp": 3, "ksp": 5},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "boundary-x-profile",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.boundary-x-profile",
+      "overrides": ["tests/integration/gpu/fixtures/prof.inp.103"],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["X-profile-inflow", "X-convective-outflow", "pressure-top-boundary", "temperature-and-moisture-profile-boundaries"],
+      "namelist_assertions": {"BCxm": 2, "BCxT": 2, "BCxq": 2, "BCtopm": 3},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "boundary-y-profile",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.boundary-y-profile",
+      "overrides": ["tests/integration/gpu/fixtures/prof.inp.103"],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["Y-profile-inflow", "Y-convective-outflow", "pressure-top-boundary", "temperature-and-moisture-profile-boundaries"],
+      "namelist_assertions": {"BCym": 2, "BCyT": 2, "BCyq": 2, "BCtopm": 3},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "top-flux-noslip",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.top-flux-noslip",
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103",
+        "tests/integration/gpu/fixtures/scalar.inp.103"
+      ],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["top-no-slip", "nonzero-top-temperature-flux", "nonzero-top-moisture-flux", "nonzero-top-scalar-flux"],
+      "namelist_assertions": {"BCtopm": 2, "BCtopT": 1, "BCtopq": 1, "BCtops": 1, "wttop": -0.00001, "wqtop": 0.000001},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "chemistry",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.chemistry",
+      "overrides": ["tests/integration/gpu/fixtures/chemistry/scalar.inp.103"],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["three-species-chemistry", "NO-NO2-O3-null-cycle", "Kappa-multi-scalar-advection"],
+      "namelist_assertions": {"nsv": 3, "lchem": true},
       "timeout_seconds": 180
     },
     {
@@ -92,15 +269,107 @@
       "timeout_seconds": 900
     },
     {
-      "name": "dry-two-rank",
+      "name": "dry-two-rank-x",
       "case_id": 103,
       "base_case": "tests/regression/david_tests/cases/103",
       "namelist": "tests/integration/gpu/namelists/namoptions.103.mpi",
       "nprocs": 2,
       "minimum_gpus": 2,
       "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["multi-GPU", "MPI-x-halos", "decomposition", "ipoiss-0"],
+      "coverage": ["multi-GPU", "MPI-X-halos", "X-decomposition", "ipoiss-0"],
+      "namelist_assertions": {"nprocx": 2, "nprocy": 1},
+      "timeout_seconds": 300
+    },
+    {
+      "name": "dry-two-rank-y",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.mpi-y",
+      "nprocs": 2,
+      "minimum_gpus": 2,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["multi-GPU", "MPI-Y-halos", "Y-decomposition", "ipoiss-0"],
+      "namelist_assertions": {"nprocx": 1, "nprocy": 2},
+      "timeout_seconds": 300
+    },
+    {
+      "name": "dry-four-rank-xy",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.mpi-xy",
+      "nprocs": 4,
+      "minimum_gpus": 4,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["multi-GPU", "MPI-X-and-Y-halos", "two-dimensional-decomposition", "ipoiss-0"],
+      "namelist_assertions": {"nprocx": 2, "nprocy": 2},
       "timeout_seconds": 300
     }
-  ]
+  ],
+  "unsupported_gpu_options": {
+    "ipoiss": [2],
+    "lpurif": [true]
+  },
+  "ported_routines": {
+    "cuda": {
+      "src/modadvection.f90:advecc_2nd_cuda": ["thermo-scalar-wall", "one-equation-sgs"],
+      "src/modadvection.f90:advecu_2nd_cuda": ["dry-poisson-fft"],
+      "src/modadvection.f90:advecv_2nd_cuda": ["dry-poisson-fft"],
+      "src/modadvection.f90:advecw_2nd_cuda": ["dry-poisson-fft"],
+      "src/modadvection.f90:advecc_kappa_reset_cuda": ["thermo-scalar-wall", "temperature-kappa", "chemistry"],
+      "src/modadvection.f90:advecc_kappa_ducdx_cuda": ["thermo-scalar-wall", "temperature-kappa", "chemistry"],
+      "src/modadvection.f90:advecc_kappa_dvcdy_cuda": ["thermo-scalar-wall", "temperature-kappa", "chemistry"],
+      "src/modadvection.f90:advecc_kappa_dwcdz_cuda": ["thermo-scalar-wall", "temperature-kappa", "chemistry"],
+      "src/modadvection.f90:advecc_kappa_add_cuda": ["thermo-scalar-wall", "temperature-kappa", "chemistry"],
+      "src/modadvection.f90:rlim_cuda": ["debug-device-selftests", "temperature-kappa"],
+      "src/modadvection.f90:advecc_upw_cuda": ["debug-device-selftests"],
+      "src/modboundary.f90:bcpup_pwp_BCtopm_xslip_cuda": ["dry-poisson-fft", "top-flux-noslip"],
+      "src/modboundary.f90:bcpup_pwp_BCtopm_pressure_cuda": ["boundary-x-profile", "boundary-y-profile"],
+      "src/modboundary.f90:bcpup_pup_BCxm_periodic_cuda": ["dry-poisson-fft"],
+      "src/modboundary.f90:bcpup_pup_BCxm_profile_cuda": ["boundary-x-profile"],
+      "src/modboundary.f90:bcpup_pup_BCxm_driver_cuda": ["debug-device-selftests"],
+      "src/modboundary.f90:bcpup_pvp_BCym_periodic_cuda": ["dry-poisson-fft"],
+      "src/modboundary.f90:bcpup_pvp_BCym_profile_cuda": ["boundary-y-profile"],
+      "src/modcuda.f90:tidandstride": ["debug-device-selftests", "dry-poisson-fft"],
+      "src/modcuda.f90:initfield": ["debug-device-selftests"],
+      "src/modcuda.f90:thlptothlpc_cuda": ["debug-device-selftests", "temperature-kappa"],
+      "src/modcuda.f90:thlpctothlp_cuda": ["debug-device-selftests", "temperature-kappa"],
+      "src/modforces.f90:forces_cuda": ["active-forcing"],
+      "src/modforces.f90:coriolis_cuda": ["active-forcing"],
+      "src/modforces.f90:profforc_cuda": ["profile-forcing"],
+      "src/modforces.f90:lstend_cuda": ["active-forcing"],
+      "src/modforces.f90:shiftedPBCs_cuda": ["active-forcing"],
+      "src/modibm.f90:bottom_set_tau_cuda": ["dry-poisson-fft"],
+      "src/modibm.f90:bottom_update_thlp_cuda": ["fixed-surface-fluxes"],
+      "src/modibm.f90:bottom_update_qtp_cuda": ["fixed-surface-fluxes"],
+      "src/modibm.f90:bottom_update_svp_cuda": ["fixed-surface-fluxes"],
+      "src/modibm.f90:bottom_update_tau_cuda": ["dry-poisson-fft", "stability-wall"],
+      "src/modpois.f90:compute_pup_cuda": ["dry-poisson-fft", "thermo-scalar-wall"],
+      "src/modpois.f90:compute_p_cuda": ["dry-poisson-fft", "thermo-scalar-wall"],
+      "src/modpois.f90:tderive_update_upvpwp_cuda": ["dry-poisson-fft", "thermo-scalar-wall"],
+      "src/modpois.f90:tderive_update_wptop_cuda": ["boundary-x-profile", "boundary-y-profile"],
+      "src/modsubgrid.f90:closure_cuda": ["dry-poisson-fft", "one-equation-sgs"],
+      "src/modsubgrid.f90:sources_cuda": ["one-equation-sgs"],
+      "src/modsubgrid.f90:sources_sum_cuda": ["one-equation-sgs"],
+      "src/modsubgrid.f90:diffc_cuda": ["thermo-scalar-wall", "chemistry"],
+      "src/modsubgrid.f90:diffe_cuda": ["one-equation-sgs"],
+      "src/modsubgrid.f90:diffu_cuda": ["dry-poisson-fft"],
+      "src/modsubgrid.f90:diffv_cuda": ["dry-poisson-fft"],
+      "src/modsubgrid.f90:diffw_cuda": ["dry-poisson-fft"],
+      "src/modwallfunctions.f90:wfuno_cuda": ["stability-wall", "ibm-scalar-wall"],
+      "src/modwallfunctions.f90:unoh_cuda": ["stability-wall", "ibm-scalar-wall"],
+      "src/modwallfunctions.f90:unom_cuda": ["stability-wall", "ibm-scalar-wall"],
+      "src/modwallfunctions.f90:wfmneutral_cuda": ["dry-poisson-fft", "fixed-surface-fluxes"]
+    },
+    "openacc": {
+      "src/modboundary.f90:reassure_fluxtop_boundary": ["top-flux-noslip"],
+      "src/modboundary.f90:closurebc": ["dry-poisson-fft", "top-flux-noslip"],
+      "src/modboundary.f90:bcp": ["boundary-x-profile", "boundary-y-profile"],
+      "src/modboundary.f90:grwdamp": ["active-forcing", "gravity-damping-2", "gravity-damping-3"],
+      "src/modchem.f90:chem": ["chemistry"],
+      "src/modforces.f90:fixuinf1": ["active-forcing"],
+      "src/modpois.f90:poisson": ["dry-poisson-fft", "thermo-scalar-wall"],
+      "src/modpois.f90:tderive": ["dry-poisson-fft", "thermo-scalar-wall"],
+      "src/modtstep.f90:tstep_integrate": ["dry-poisson-fft", "thermo-scalar-wall", "one-equation-sgs"]
+    }
+  }
 }
