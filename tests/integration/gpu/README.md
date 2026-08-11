@@ -46,15 +46,16 @@ The current coverage is:
 
 Every Debug GPU smoke/MPI run must also emit a CUDA device-suite marker from
 every MPI rank. The opt-in `src/tests_cuda.f90` suite checks the extended-halo
-initializer, the Kappa limiter, first-order upwind scalar advection, both Kappa
-temperature tendency-copy directions, and the driver-inlet boundary kernel.
+initializer, the Kappa limiter, fused Kappa scalar advection, first-order
+upwind scalar advection, both Kappa temperature tendency-copy directions, and
+the driver-inlet boundary kernel.
 The Kappa/upwind and temperature-copy checks run when the selected case has
 allocated their required extended-grid arrays; the smoke selection deliberately
 contains cases that do so. The runner enables the suite with
 `UDALES_RUN_CUDA_SELFTEST=1`; ordinary Debug GPU simulations do not run it.
 
 The `ported_routines` contract in `case_matrix.json` is checked against the
-current Fortran source. At present it maps all 48 production CUDA global/device
+current Fortran source. At present it maps all 45 production CUDA global/device
 routines (including device functions) and all nine subroutines containing
 executable OpenACC regions to one or more parity cases or to the Debug device
 suite. Matrix validation fails when a new ported routine has no declared test,

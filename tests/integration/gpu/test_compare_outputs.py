@@ -4,9 +4,13 @@
 from __future__ import annotations
 
 import copy
+import io
+import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 import netCDF4
 import numpy as np
@@ -20,6 +24,7 @@ from run_gpu_tests import (
     REPO_ROOT,
     _read_matrix,
     _require_cuda_selftest,
+    main,
     validate_matrix,
 )
 
@@ -46,6 +51,18 @@ def _write_output(
 
 
 class TestGpuOutputComparator(unittest.TestCase):
+    def test_validate_config_output_explains_scope_and_next_step(self) -> None:
+        output = io.StringIO()
+        with patch.object(sys, "argv", ["run_gpu_tests.py", "full", "--validate-config"]):
+            with redirect_stdout(output):
+                status = main()
+
+        message = output.getvalue()
+        self.assertEqual(status, 0)
+        self.assertIn("PASSED: GPU test matrix configuration is valid", message)
+        self.assertIn("no solver executable was built or run and no GPU was used", message)
+        self.assertIn("python tests/run_tests.py gpu-smoke", message)
+
     def test_committed_matrix_is_valid(self) -> None:
         validate_matrix(_read_matrix(DEFAULT_MATRIX))
 

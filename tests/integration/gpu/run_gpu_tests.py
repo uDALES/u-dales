@@ -696,10 +696,16 @@ def main() -> int:
     matrix = _read_matrix(args.matrix.resolve())
     validate_matrix(matrix)
     selected = _selected_cases(matrix, args.selection)
+    if args.validate_config:
+        print(f"PASSED: GPU test matrix configuration is valid ({len(matrix['cases'])} cases).")
+        print(f"Selection '{args.selection}': {', '.join(case['name'] for case in selected)}")
+        print("Scope: configuration only; no solver executable was built or run and no GPU was used.")
+        print("Next: build and run the Debug GPU smoke tests with:")
+        print("  python tests/run_tests.py gpu-smoke")
+        return 0
+
     print(f"GPU test matrix is valid: {len(matrix['cases'])} cases")
     print(f"selection '{args.selection}': {', '.join(case['name'] for case in selected)}")
-    if args.validate_config:
-        return 0
 
     cpu_executable = args.cpu_executable.resolve()
     gpu_executable = args.gpu_executable.resolve()

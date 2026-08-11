@@ -66,7 +66,7 @@ module modcuda
    real, device, allocatable :: thv0h_d(:,:,:)
    real, device, allocatable :: IIc_d(:,:,:)
 
-   real, device, allocatable :: dumu_d(:,:,:), duml_d(:,:,:)
+   real, device, allocatable :: kappa_xflux_d(:,:,:), kappa_yflux_d(:,:,:)
    real, device, allocatable :: dummyNO_d(:,:,:), dummyNO2_d(:,:,:), dummyO3_d(:,:,:)
 
    contains
@@ -265,8 +265,8 @@ module modcuda
          allocate(dthvdz_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
 
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
-            allocate(dumu_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-            allocate(duml_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
+            allocate(kappa_xflux_d(ib:ie + 1, jb:je, kb:ke))
+            allocate(kappa_yflux_d(ib:ie, jb:je + 1, kb:ke))
             allocate (dxhci_d(ib - 1:itot + ihc))
             allocate (dxfc_d(ib - ihc:itot + ihc))
             allocate (dzhci_d(kb - 1:ke + khc))
@@ -348,7 +348,7 @@ module modcuda
             end if
          end if
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
-            deallocate(dumu_d, duml_d, dxhci_d, dxfc_d, dzhci_d, dzfc_d)
+            deallocate(kappa_xflux_d, kappa_yflux_d, dxhci_d, dxfc_d, dzhci_d, dzfc_d)
          end if
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. any(iadv_sv(1:nsv) == iadv_upw) .or. (iadv_thl == iadv_kappa)) then
             deallocate(dxfci_d, dzfci_d)

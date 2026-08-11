@@ -310,7 +310,7 @@ module modtstep
           thl0c_d(ib:ie,jb:je,kb:ke) = thl0_d(ib:ie,jb:je,kb:ke)
           !$acc end kernels
 #else
-          thl0c(ib:ie,jb:je,kb:ke) = thl0c(ib:ie,jb:je,kb:ke)
+          thl0c(ib:ie,jb:je,kb:ke) = thl0(ib:ie,jb:je,kb:ke)
 #endif
         end if
       end if
