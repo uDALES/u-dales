@@ -6,14 +6,20 @@ module tests_cuda
    use cudafor
    use modadvection, only : advecc_kappa_flux_xy_cuda, &
                             advecc_kappa_divergence_cuda, advecc_upw_cuda, rlim_cuda
-   use modboundary,  only : bcpup_pup_BCxm_driver_cuda
+   use modboundary,  only : bcpup_pup_BCxm_driver_cuda, &
+                            xm_periodic_device, xT_periodic_device, &
+                            xq_periodic_device, xs_periodic_device, &
+                            ym_periodic_device, yT_periodic_device, &
+                            yq_periodic_device, ys_periodic_device
    use modcuda,  only : blockdim, griddim, checkCUDA, initfield, &
                         thlptothlpc_cuda, thlpctothlp_cuda, &
                         dxhci_d, dxfc_d, dxfci_d, dzhci_d, dzfc_d, dzfci_d, &
-                        u0_d, v0_d, w0_d, &
+                        u0_d, v0_d, w0_d, um_d, vm_d, wm_d, e120_d, e12m_d, &
+                        thl0_d, thlm_d, thl0c_d, qt0_d, qtm_d, sv0_d, svm_d, &
                         thlp_d, thlpc_d, pup_d, up_d, u0driver_d
-   use modfields, only : u0, v0, w0
-   use modglobal, only : ib, ie, jb, je, kb, ke, ih, jh, kh, &
+   use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, &
+                         thl0, thlm, thl0c, qt0, qtm, sv0, svm
+   use modglobal, only : ib, ie, jb, je, kb, ke, ih, jh, kh, nsv, &
                          ihc, jhc, khc, dxhci, dxfc, dxfci, dyi, &
                          dzhci, dzfc, dzfci, eps1
    use modinletdata, only : u0driver
@@ -23,6 +29,8 @@ module tests_cuda
    private
 
    public :: run_cuda_selftests_if_requested
+
+   real, parameter :: periodic_halo_sentinel = -12345678.
 
 contains
 
@@ -45,6 +53,7 @@ contains
          call test_upwind_scalar_advection
          call test_temperature_tendency_copy
          call test_driver_inlet_boundary
+         call test_periodic_device_halos
          write(*,'(A,I0)') 'CUDA device self-tests passed. rank=', myid
       case ('', '0', 'false', 'FALSE', 'no', 'NO', 'off', 'OFF')
          return
@@ -433,6 +442,416 @@ contains
       u0driver_d = u0driver
       deallocate(up_h, pup_h)
    end subroutine test_driver_inlet_boundary
+
+   !> Check every periodic device routine against independently generated halo values.
+   subroutine test_periodic_device_halos
+      implicit none
+
+      call test_x_momentum_periodic
+      call test_y_momentum_periodic
+      call test_x_temperature_periodic
+      call test_y_temperature_periodic
+      call test_x_moisture_periodic
+      call test_y_moisture_periodic
+      call test_x_scalar_periodic
+      call test_y_scalar_periodic
+
+      call restore_periodic_device_fields
+      call checkCUDA(cudaDeviceSynchronize(), &
+                     'periodic halo self-test field restoration')
+   end subroutine test_periodic_device_halos
+
+   subroutine test_x_momentum_periodic
+      implicit none
+
+      call prepare_standard_device(u0_d,   10., 'x')
+      call prepare_standard_device(um_d,   20., 'x')
+      call prepare_standard_device(v0_d,   30., 'x')
+      call prepare_standard_device(vm_d,   40., 'x')
+      call prepare_standard_device(w0_d,   50., 'x')
+      call prepare_standard_device(wm_d,   60., 'x')
+      if (allocated(e120_d)) then
+         call prepare_standard_device(e120_d, 70., 'x')
+         call prepare_standard_device(e12m_d, 80., 'x')
+      end if
+
+      call xm_periodic_device
+      call checkCUDA(cudaDeviceSynchronize(), 'x momentum periodic halo self-test')
+
+      call assert_standard_periodic(u0_d,   10., 'x', 'x-periodic u0')
+      call assert_standard_periodic(um_d,   20., 'x', 'x-periodic um')
+      call assert_standard_periodic(v0_d,   30., 'x', 'x-periodic v0')
+      call assert_standard_periodic(vm_d,   40., 'x', 'x-periodic vm')
+      call assert_standard_periodic(w0_d,   50., 'x', 'x-periodic w0')
+      call assert_standard_periodic(wm_d,   60., 'x', 'x-periodic wm')
+      if (allocated(e120_d)) then
+         call assert_standard_periodic(e120_d, 70., 'x', 'x-periodic e120')
+         call assert_standard_periodic(e12m_d, 80., 'x', 'x-periodic e12m')
+      end if
+   end subroutine test_x_momentum_periodic
+
+   subroutine test_y_momentum_periodic
+      implicit none
+
+      call prepare_standard_device(u0_d,   10., 'y')
+      call prepare_standard_device(um_d,   20., 'y')
+      call prepare_standard_device(v0_d,   30., 'y')
+      call prepare_standard_device(vm_d,   40., 'y')
+      call prepare_standard_device(w0_d,   50., 'y')
+      call prepare_standard_device(wm_d,   60., 'y')
+      if (allocated(e120_d)) then
+         call prepare_standard_device(e120_d, 70., 'y')
+         call prepare_standard_device(e12m_d, 80., 'y')
+      end if
+
+      call ym_periodic_device
+      call checkCUDA(cudaDeviceSynchronize(), 'y momentum periodic halo self-test')
+
+      call assert_standard_periodic(u0_d,   10., 'y', 'y-periodic u0')
+      call assert_standard_periodic(um_d,   20., 'y', 'y-periodic um')
+      call assert_standard_periodic(v0_d,   30., 'y', 'y-periodic v0')
+      call assert_standard_periodic(vm_d,   40., 'y', 'y-periodic vm')
+      call assert_standard_periodic(w0_d,   50., 'y', 'y-periodic w0')
+      call assert_standard_periodic(wm_d,   60., 'y', 'y-periodic wm')
+      if (allocated(e120_d)) then
+         call assert_standard_periodic(e120_d, 70., 'y', 'y-periodic e120')
+         call assert_standard_periodic(e12m_d, 80., 'y', 'y-periodic e12m')
+      end if
+   end subroutine test_y_momentum_periodic
+
+   subroutine test_x_temperature_periodic
+      implicit none
+
+      if (.not. allocated(thl0_d)) return
+
+      call prepare_standard_device(thl0_d, 110., 'x')
+      call prepare_standard_device(thlm_d, 120., 'x')
+      if (allocated(thl0c_d)) call prepare_extended_device(thl0c_d, 130., 'x')
+
+      call xT_periodic_device
+      call checkCUDA(cudaDeviceSynchronize(), 'x temperature periodic halo self-test')
+
+      call assert_standard_periodic(thl0_d, 110., 'x', 'x-periodic thl0')
+      call assert_standard_periodic(thlm_d, 120., 'x', 'x-periodic thlm')
+      if (allocated(thl0c_d)) then
+         call assert_extended_periodic(thl0c_d, 130., 'x', 'x-periodic thl0c')
+      end if
+   end subroutine test_x_temperature_periodic
+
+   subroutine test_y_temperature_periodic
+      implicit none
+
+      if (.not. allocated(thl0_d)) return
+
+      call prepare_standard_device(thl0_d, 110., 'y')
+      call prepare_standard_device(thlm_d, 120., 'y')
+      if (allocated(thl0c_d)) call prepare_extended_device(thl0c_d, 130., 'y')
+
+      call yT_periodic_device
+      call checkCUDA(cudaDeviceSynchronize(), 'y temperature periodic halo self-test')
+
+      call assert_standard_periodic(thl0_d, 110., 'y', 'y-periodic thl0')
+      call assert_standard_periodic(thlm_d, 120., 'y', 'y-periodic thlm')
+      if (allocated(thl0c_d)) then
+         call assert_extended_periodic(thl0c_d, 130., 'y', 'y-periodic thl0c')
+      end if
+   end subroutine test_y_temperature_periodic
+
+   subroutine test_x_moisture_periodic
+      implicit none
+
+      if (.not. allocated(qt0_d)) return
+
+      call prepare_standard_device(qt0_d, 210., 'x')
+      call prepare_standard_device(qtm_d, 220., 'x')
+      call xq_periodic_device
+      call checkCUDA(cudaDeviceSynchronize(), 'x moisture periodic halo self-test')
+      call assert_standard_periodic(qt0_d, 210., 'x', 'x-periodic qt0')
+      call assert_standard_periodic(qtm_d, 220., 'x', 'x-periodic qtm')
+   end subroutine test_x_moisture_periodic
+
+   subroutine test_y_moisture_periodic
+      implicit none
+
+      if (.not. allocated(qt0_d)) return
+
+      call prepare_standard_device(qt0_d, 210., 'y')
+      call prepare_standard_device(qtm_d, 220., 'y')
+      call yq_periodic_device
+      call checkCUDA(cudaDeviceSynchronize(), 'y moisture periodic halo self-test')
+      call assert_standard_periodic(qt0_d, 210., 'y', 'y-periodic qt0')
+      call assert_standard_periodic(qtm_d, 220., 'y', 'y-periodic qtm')
+   end subroutine test_y_moisture_periodic
+
+   subroutine test_x_scalar_periodic
+      implicit none
+
+      if (.not. allocated(sv0_d)) return
+
+      call prepare_scalar_device(sv0_d, 310., 'x')
+      call prepare_scalar_device(svm_d, 320., 'x')
+      call xs_periodic_device
+      call checkCUDA(cudaDeviceSynchronize(), 'x scalar periodic halo self-test')
+      call assert_scalar_periodic(sv0_d, 310., 'x', 'x-periodic sv0')
+      call assert_scalar_periodic(svm_d, 320., 'x', 'x-periodic svm')
+   end subroutine test_x_scalar_periodic
+
+   subroutine test_y_scalar_periodic
+      implicit none
+
+      if (.not. allocated(sv0_d)) return
+
+      call prepare_scalar_device(sv0_d, 310., 'y')
+      call prepare_scalar_device(svm_d, 320., 'y')
+      call ys_periodic_device
+      call checkCUDA(cudaDeviceSynchronize(), 'y scalar periodic halo self-test')
+      call assert_scalar_periodic(sv0_d, 310., 'y', 'y-periodic sv0')
+      call assert_scalar_periodic(svm_d, 320., 'y', 'y-periodic svm')
+   end subroutine test_y_scalar_periodic
+
+   subroutine prepare_standard_device(field_d, offset, direction)
+      implicit none
+
+      real, device, intent(out) :: field_d(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+      real, intent(in) :: offset
+      character(len=1), intent(in) :: direction
+      real, allocatable :: field_h(:, :, :)
+      integer i, j, k
+
+      allocate(field_h(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      do k = kb-kh, ke+kh
+         do j = jb-jh, je+jh
+            do i = ib-ih, ie+ih
+               field_h(i,j,k) = periodic_value(i, j, k, 0, offset)
+            end do
+         end do
+      end do
+      select case (direction)
+      case ('x')
+         field_h(ib-ih:ib-1,:,:) = periodic_halo_sentinel
+         field_h(ie+1:ie+ih,:,:) = periodic_halo_sentinel
+      case ('y')
+         field_h(:,jb-jh:jb-1,:) = periodic_halo_sentinel
+         field_h(:,je+1:je+jh,:) = periodic_halo_sentinel
+      case default
+         call fail_cuda_selftest('invalid standard periodic direction')
+      end select
+      field_d = field_h
+      deallocate(field_h)
+   end subroutine prepare_standard_device
+
+   subroutine prepare_extended_device(field_d, offset, direction)
+      implicit none
+
+      real, device, intent(out) :: field_d(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb-khc:ke+khc)
+      real, intent(in) :: offset
+      character(len=1), intent(in) :: direction
+      real, allocatable :: field_h(:, :, :)
+      integer i, j, k
+
+      allocate(field_h(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb-khc:ke+khc))
+      do k = kb-khc, ke+khc
+         do j = jb-jhc, je+jhc
+            do i = ib-ihc, ie+ihc
+               field_h(i,j,k) = periodic_value(i, j, k, 0, offset)
+            end do
+         end do
+      end do
+      select case (direction)
+      case ('x')
+         field_h(ib-ihc:ib-1,:,:) = periodic_halo_sentinel
+         field_h(ie+1:ie+ihc,:,:) = periodic_halo_sentinel
+      case ('y')
+         field_h(:,jb-jhc:jb-1,:) = periodic_halo_sentinel
+         field_h(:,je+1:je+jhc,:) = periodic_halo_sentinel
+      case default
+         call fail_cuda_selftest('invalid extended periodic direction')
+      end select
+      field_d = field_h
+      deallocate(field_h)
+   end subroutine prepare_extended_device
+
+   subroutine prepare_scalar_device(field_d, offset, direction)
+      implicit none
+
+      real, device, intent(out) :: field_d(ib-ihc:ie+ihc, jb-jhc:je+jhc, &
+                                             kb-khc:ke+khc, 1:nsv)
+      real, intent(in) :: offset
+      character(len=1), intent(in) :: direction
+      real, allocatable :: field_h(:, :, :, :)
+      integer i, j, k, n
+
+      allocate(field_h(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb-khc:ke+khc, nsv))
+      do n = 1, nsv
+         do k = kb-khc, ke+khc
+            do j = jb-jhc, je+jhc
+               do i = ib-ihc, ie+ihc
+                  field_h(i,j,k,n) = periodic_value(i, j, k, n, offset)
+               end do
+            end do
+         end do
+      end do
+      select case (direction)
+      case ('x')
+         field_h(ib-ihc:ib-1,:,:,:) = periodic_halo_sentinel
+         field_h(ie+1:ie+ihc,:,:,:) = periodic_halo_sentinel
+      case ('y')
+         field_h(:,jb-jhc:jb-1,:,:) = periodic_halo_sentinel
+         field_h(:,je+1:je+jhc,:,:) = periodic_halo_sentinel
+      case default
+         call fail_cuda_selftest('invalid scalar periodic direction')
+      end select
+      field_d = field_h
+      deallocate(field_h)
+   end subroutine prepare_scalar_device
+
+   subroutine assert_standard_periodic(field_d, offset, direction, name)
+      implicit none
+
+      real, device, intent(in) :: field_d(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+      real, intent(in) :: offset
+      character(len=1), intent(in) :: direction
+      character(len=*), intent(in) :: name
+      real, allocatable :: field_h(:, :, :)
+      real expected
+      integer i, j, k, source_i, source_j
+
+      allocate(field_h(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      field_h = field_d
+      do k = kb-kh, ke+kh
+         do j = jb-jh, je+jh
+            do i = ib-ih, ie+ih
+               source_i = i
+               source_j = j
+               call periodic_source_index(i, j, ih, jh, direction, source_i, source_j)
+               expected = periodic_value(source_i, source_j, k, 0, offset)
+               if (field_h(i,j,k) /= expected) call fail_cuda_selftest(name)
+            end do
+         end do
+      end do
+      deallocate(field_h)
+   end subroutine assert_standard_periodic
+
+   subroutine assert_extended_periodic(field_d, offset, direction, name)
+      implicit none
+
+      real, device, intent(in) :: field_d(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb-khc:ke+khc)
+      real, intent(in) :: offset
+      character(len=1), intent(in) :: direction
+      character(len=*), intent(in) :: name
+      real, allocatable :: field_h(:, :, :)
+      real expected
+      integer i, j, k, source_i, source_j
+
+      allocate(field_h(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb-khc:ke+khc))
+      field_h = field_d
+      do k = kb-khc, ke+khc
+         do j = jb-jhc, je+jhc
+            do i = ib-ihc, ie+ihc
+               source_i = i
+               source_j = j
+               call periodic_source_index(i, j, ihc, jhc, direction, source_i, source_j)
+               expected = periodic_value(source_i, source_j, k, 0, offset)
+               if (field_h(i,j,k) /= expected) call fail_cuda_selftest(name)
+            end do
+         end do
+      end do
+      deallocate(field_h)
+   end subroutine assert_extended_periodic
+
+   subroutine assert_scalar_periodic(field_d, offset, direction, name)
+      implicit none
+
+      real, device, intent(in) :: field_d(ib-ihc:ie+ihc, jb-jhc:je+jhc, &
+                                            kb-khc:ke+khc, 1:nsv)
+      real, intent(in) :: offset
+      character(len=1), intent(in) :: direction
+      character(len=*), intent(in) :: name
+      real, allocatable :: field_h(:, :, :, :)
+      real expected
+      integer i, j, k, n, source_i, source_j
+
+      allocate(field_h(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb-khc:ke+khc, nsv))
+      field_h = field_d
+      do n = 1, nsv
+         do k = kb-khc, ke+khc
+            do j = jb-jhc, je+jhc
+               do i = ib-ihc, ie+ihc
+                  source_i = i
+                  source_j = j
+                  call periodic_source_index(i, j, ihc, jhc, direction, source_i, source_j)
+                  expected = periodic_value(source_i, source_j, k, n, offset)
+                  if (field_h(i,j,k,n) /= expected) call fail_cuda_selftest(name)
+               end do
+            end do
+         end do
+      end do
+      deallocate(field_h)
+   end subroutine assert_scalar_periodic
+
+   subroutine periodic_source_index(i, j, halo_i, halo_j, direction, source_i, source_j)
+      implicit none
+
+      integer, intent(in) :: i, j, halo_i, halo_j
+      character(len=1), intent(in) :: direction
+      integer, intent(inout) :: source_i, source_j
+
+      select case (direction)
+      case ('x')
+         if (i < ib) source_i = ie + 1 - (ib - i)
+         if (i > ie) source_i = ib - 1 + (i - ie)
+      case ('y')
+         if (j < jb) source_j = je + 1 - (jb - j)
+         if (j > je) source_j = jb - 1 + (j - je)
+      case default
+         call fail_cuda_selftest('invalid periodic assertion direction')
+      end select
+
+      ! Ensure callers passed the halo depth matching the tested array shape.
+      if ((direction == 'x') .and. ((i < ib-halo_i) .or. (i > ie+halo_i))) then
+         call fail_cuda_selftest('invalid x periodic halo extent')
+      end if
+      if ((direction == 'y') .and. ((j < jb-halo_j) .or. (j > je+halo_j))) then
+         call fail_cuda_selftest('invalid y periodic halo extent')
+      end if
+   end subroutine periodic_source_index
+
+   real function periodic_value(i, j, k, n, offset)
+      implicit none
+
+      integer, intent(in) :: i, j, k, n
+      real, intent(in) :: offset
+
+      periodic_value = offset + real(i + 101*j + 10007*k + 1000003*n)
+   end function periodic_value
+
+   subroutine restore_periodic_device_fields
+      implicit none
+
+      u0_d = u0
+      v0_d = v0
+      w0_d = w0
+      um_d = um
+      vm_d = vm
+      wm_d = wm
+      if (allocated(e120_d)) then
+         e120_d = e120
+         e12m_d = e12m
+      end if
+      if (allocated(thl0_d)) then
+         thl0_d = thl0
+         thlm_d = thlm
+      end if
+      if (allocated(thl0c_d)) thl0c_d = thl0c
+      if (allocated(qt0_d)) then
+         qt0_d = qt0
+         qtm_d = qtm
+      end if
+      if (allocated(sv0_d)) then
+         sv0_d = sv0
+         svm_d = svm
+      end if
+   end subroutine restore_periodic_device_fields
 
    !> Evaluate the device-only limiter for a compact vector of test inputs.
    attributes(global) subroutine evaluate_rlim_cuda(nvalues, d1, d2, result)

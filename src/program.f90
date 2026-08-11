@@ -28,7 +28,8 @@ program uDALES
   use modmpi,            only : initmpi,exitmpi,starttimer
 #if defined(_GPU)
   use cudafor
-  use modcuda,           only : initCUDA, updateDevice, updateHost, updateDevicePriorPoiss, updateHostAfterPoiss, checkCUDA, exitCUDA
+  use modcuda,           only : initCUDA, updateDevice, updateHost, updateDevicePriorPoiss, &
+                                updateHostAfterPoiss, checkCUDA, exitCUDA
 #endif
 #if defined(_GPU) && defined(UDALES_DEBUG)
   use tests_cuda,        only : run_cuda_selftests_if_requested
@@ -39,6 +40,9 @@ program uDALES
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
   use modboundary,       only : initboundary,boundary,grwdamp,halos
+#if defined(_GPU)
+  use modboundary,       only : halos_device
+#endif
   use modthermodynamics, only : initthermodynamics,thermodynamics
   use modsubgrid,        only : initsubgrid,subgrid
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,nudge,masscorr,shiftedPBCs,periodicEBcorr
@@ -241,10 +245,11 @@ program uDALES
     call tstep_integrate
 
 #if defined(_GPU)
+    call halos_device
     call updateHostAfterPoiss
-#endif
-
+#else
     call halos
+#endif
 
     call checksim
 

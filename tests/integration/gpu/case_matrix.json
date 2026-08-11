@@ -358,6 +358,14 @@
       "src/modwallfunctions.f90:wfmneutral_cuda": ["dry-poisson-fft", "fixed-surface-fluxes"]
     },
     "openacc": {
+      "src/modboundary.f90:xm_periodic_device": ["debug-device-selftests", "dry-poisson-fft", "one-equation-sgs"],
+      "src/modboundary.f90:xT_periodic_device": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa"],
+      "src/modboundary.f90:xq_periodic_device": ["debug-device-selftests", "thermo-scalar-wall"],
+      "src/modboundary.f90:xs_periodic_device": ["debug-device-selftests", "thermo-scalar-wall"],
+      "src/modboundary.f90:ym_periodic_device": ["debug-device-selftests", "dry-poisson-fft", "one-equation-sgs"],
+      "src/modboundary.f90:yT_periodic_device": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa"],
+      "src/modboundary.f90:yq_periodic_device": ["debug-device-selftests", "thermo-scalar-wall"],
+      "src/modboundary.f90:ys_periodic_device": ["debug-device-selftests", "thermo-scalar-wall"],
       "src/modboundary.f90:reassure_fluxtop_boundary": ["top-flux-noslip"],
       "src/modboundary.f90:closurebc": ["dry-poisson-fft", "top-flux-noslip"],
       "src/modboundary.f90:bcp": ["boundary-x-profile", "boundary-y-profile"],

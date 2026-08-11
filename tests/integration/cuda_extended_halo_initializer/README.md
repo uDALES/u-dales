@@ -8,10 +8,11 @@ The test implementation lives in the dedicated Fortran test module
 `src/tests_cuda.f90`. The Python GPU runner opts into it by setting
 `UDALES_RUN_CUDA_SELFTEST=1`; ordinary Debug GPU simulations do not execute
 test-only code. The suite now checks the extended-halo initializer, Kappa
-limiter, scalar-upwind kernel, Kappa temperature-copy kernels, and driver-inlet
-boundary kernel. This directory retains the standalone log checker for manual
-runs; automated ownership is under `tests/integration/gpu/`. A successful rank
-writes:
+limiter, scalar-upwind kernel, Kappa temperature-copy kernels, driver-inlet
+boundary kernel, and all eight X/Y periodic device routines for momentum,
+temperature, moisture, and scalars. This directory retains the standalone log
+checker for manual runs; automated ownership is under
+`tests/integration/gpu/`. A successful rank writes:
 
 ```text
 CUDA device self-tests passed. rank=0

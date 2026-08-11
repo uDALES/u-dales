@@ -26,8 +26,14 @@ module modboundary
    implicit none
    save
    private
-   public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, bcp, bcpup, closurebc, &
-             xm_periodic, xT_periodic, xq_periodic, xs_periodic, ym_periodic, yT_periodic, yq_periodic, ys_periodic
+   public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, bcp, bcpup, closurebc
+#if defined(_GPU)
+   public :: halos_device
+#if defined(UDALES_DEBUG)
+   public :: xm_periodic_device, xT_periodic_device, xq_periodic_device, xs_periodic_device, &
+             ym_periodic_device, yT_periodic_device, yq_periodic_device, ys_periodic_device
+#endif
+#endif
    integer :: ksp = -1 !<    lowest level of sponge layer
    real :: rnu0 = 2.75e-3
 contains
@@ -65,7 +71,6 @@ contains
    !! Fill halo cells, including ghost cells outside domain
    ! Needs to be called before divergence is calculated
    subroutine halos
-
       use modglobal, only : ihc, jhc, khc, nsv, &
                             BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, &
                             BCxm_periodic, BCxT_periodic, BCxq_periodic, BCxs_periodic, &
@@ -73,12 +78,17 @@ contains
                             ibrank, ierank, jbrank, jerank
       use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, sv0, svm, thl0c
       use m_halo, only : halo_exchange
-
       implicit none
       integer n
 
-!$acc data create(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
-!$acc update device(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
+#if defined(_GPU)
+      ! The GPU build of 2DECOMP accepts device arrays. During startup, before
+      ! initCUDA allocates the persistent CUDA arrays, use temporary OpenACC
+      ! mappings for the host fields and copy the exchanged halos back.
+      !$acc data create(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
+      !$acc update device(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
+      !$acc host_data use_device(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
+#endif
       call halo_exchange(u0, 3)
       call halo_exchange(v0, 3)
       call halo_exchange(w0, 3)
@@ -94,8 +104,11 @@ contains
          call halo_exchange(sv0(:, :, :, n), 3, opt_levels=(/ihc,jhc,khc/))
          call halo_exchange(svm(:, :, :, n), 3, opt_levels=(/ihc,jhc,khc/))
       enddo
-!$acc update host(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
-!$acc end data
+#if defined(_GPU)
+      !$acc end host_data
+      !$acc update host(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
+      !$acc end data
+#endif
 
       if (ibrank .and. ierank) then ! not parallelized in x
         if (BCxm == BCxm_periodic) call xm_periodic
@@ -104,14 +117,65 @@ contains
         if (BCxs == BCxs_periodic) call xs_periodic
       end if
 
-      if (jbrank .and. jerank) then ! not parallelized in x
+      if (jbrank .and. jerank) then ! not parallelized in y
         if (BCym == BCym_periodic) call ym_periodic
         if (BCyT == BCyT_periodic) call yT_periodic
         if (BCyq == BCyq_periodic) call yq_periodic
         if (BCys == BCys_periodic) call ys_periodic
       end if
+   end subroutine halos
+#if defined(_GPU)
+   !> Fill device-resident halo and periodic ghost cells
+   subroutine halos_device
+      use modglobal, only : ihc, jhc, khc, nsv, &
+                            BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, &
+                            BCxm_periodic, BCxT_periodic, BCxq_periodic, BCxs_periodic, &
+                            BCym_periodic, BCyT_periodic, BCyq_periodic, BCys_periodic, &
+                            ibrank, ierank, jbrank, jerank, &
+                            ltempeq, lmoist, iadv_thl, iadv_kappa
+      use m_halo,    only : halo_exchange
+      use modcuda,   only : u0_d, v0_d, w0_d, um_d, vm_d, wm_d, &
+                            thl0_d, thlm_d, qt0_d, qtm_d, sv0_d, svm_d, thl0c_d
+      implicit none
+      integer n
 
-    end subroutine halos
+      call halo_exchange(u0_d, 3)
+      call halo_exchange(v0_d, 3)
+      call halo_exchange(w0_d, 3)
+      call halo_exchange(um_d, 3)
+      call halo_exchange(vm_d, 3)
+      call halo_exchange(wm_d, 3)
+      if (ltempeq) then
+        call halo_exchange(thl0_d, 3)
+        call halo_exchange(thlm_d, 3)
+        if (iadv_thl == iadv_kappa) then
+          call halo_exchange(thl0c_d, 3, opt_levels=(/ihc,jhc,khc/))
+        end if
+      end if
+      if (lmoist) then
+        call halo_exchange(qt0_d, 3)
+        call halo_exchange(qtm_d, 3)
+      end if
+      do n = 1, nsv
+         call halo_exchange(sv0_d(:, :, :, n), 3, opt_levels=(/ihc,jhc,khc/))
+         call halo_exchange(svm_d(:, :, :, n), 3, opt_levels=(/ihc,jhc,khc/))
+      enddo
+
+      if (ibrank .and. ierank) then ! not parallelized in x
+        if (BCxm == BCxm_periodic) call xm_periodic_device
+        if (BCxT == BCxT_periodic) call xT_periodic_device
+        if (BCxq == BCxq_periodic) call xq_periodic_device
+        if (BCxs == BCxs_periodic) call xs_periodic_device
+      end if
+
+      if (jbrank .and. jerank) then ! not parallelized in y
+        if (BCym == BCym_periodic) call ym_periodic_device
+        if (BCyT == BCyT_periodic) call yT_periodic_device
+        if (BCyq == BCyq_periodic) call yq_periodic_device
+        if (BCys == BCys_periodic) call ys_periodic_device
+      end if
+   end subroutine halos_device
+#endif
 
 
    !>
@@ -681,14 +745,13 @@ contains
    end subroutine closurebc
 
 
-   !>set lateral periodic boundary conditions for momentum in x/i direction
+   !> Set lateral periodic boundary conditions for momentum in x/i direction on the host
    subroutine xm_periodic
-      use modglobal, only : ib, ie, ih
-      use modfields, only : u0, um, v0, vm, w0, wm, e120, e12m
+      use modglobal,      only : ib, ie, ih
+      use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m
       use modsubgriddata, only : loneeqn
-      use modmpi, only : excis
-
-      integer m
+      implicit none
+      integer :: m
 
       do m = 1, ih
          u0(ib - m, :, :) = u0(ie + 1 - m, :, :)
@@ -713,16 +776,59 @@ contains
             e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
          end do
       end if
-
-      return
    end subroutine xm_periodic
+#if defined(_GPU)
+   subroutine xm_periodic_device
+      use modglobal,      only : ib, ie, ih, jb, je, jh, kb, ke, kh
+      use modsubgriddata, only : loneeqn
+      use modcuda,        only : u0_d, um_d, v0_d, vm_d, w0_d, wm_d, e120_d, e12m_d
+      implicit none
+      integer :: j, k, m
 
+      !$acc parallel loop collapse(2) default(present) private(m)
+      do k = kb - kh, ke + kh
+         do j = jb - jh, je + jh
+            do m = 1, ih
+               u0_d(ib - m, j, k) = u0_d(ie + 1 - m, j, k)
+               u0_d(ie + m, j, k) = u0_d(ib - 1 + m, j, k)
+               v0_d(ib - m, j, k) = v0_d(ie + 1 - m, j, k)
+               v0_d(ie + m, j, k) = v0_d(ib - 1 + m, j, k)
+               w0_d(ib - m, j, k) = w0_d(ie + 1 - m, j, k)
+               w0_d(ie + m, j, k) = w0_d(ib - 1 + m, j, k)
+               um_d(ib - m, j, k) = um_d(ie + 1 - m, j, k)
+               um_d(ie + m, j, k) = um_d(ib - 1 + m, j, k)
+               vm_d(ib - m, j, k) = vm_d(ie + 1 - m, j, k)
+               vm_d(ie + m, j, k) = vm_d(ib - 1 + m, j, k)
+               wm_d(ib - m, j, k) = wm_d(ie + 1 - m, j, k)
+               wm_d(ie + m, j, k) = wm_d(ib - 1 + m, j, k)
+            end do
+         end do
+      end do
+      !$acc end parallel loop
 
-   !> Sets x/i periodic boundary conditions for the temperature
+      if (loneeqn) then
+         !$acc parallel loop collapse(2) default(present) private(m)
+         do k = kb - kh, ke + kh
+            do j = jb - jh, je + jh
+               do m = 1, ih
+                  e120_d(ib - m, j, k) = e120_d(ie + 1 - m, j, k)
+                  e120_d(ie + m, j, k) = e120_d(ib - 1 + m, j, k)
+                  e12m_d(ib - m, j, k) = e12m_d(ie + 1 - m, j, k)
+                  e12m_d(ie + m, j, k) = e12m_d(ib - 1 + m, j, k)
+               end do
+            end do
+         end do
+         !$acc end parallel loop
+      end if
+   end subroutine xm_periodic_device
+#endif
+
+   !> Set x/i periodic boundary conditions for temperature on the host
    subroutine xT_periodic
       use modglobal, only : ib, ie, ih, ihc
       use modfields, only : thl0, thlm, thl0c
-      integer m
+      implicit none
+      integer :: m
 
       do m = 1, ih
          thl0(ib - m, :, :) = thl0(ie + 1 - m, :, :)
@@ -735,15 +841,51 @@ contains
          thl0c(ib - m, :, :) = thl0c(ie + 1 - m, :, :)
          thl0c(ie + m, :, :) = thl0c(ib - 1 + m, :, :)
       end do
-
-      return
    end subroutine xT_periodic
+#if defined(_GPU)
+   subroutine xT_periodic_device
+      use modglobal, only : jb, je, jh, jhc, kb, ke, kh, khc, &
+                            ib, ie, ih, ihc, ltempeq, iadv_thl, iadv_kappa
+      use modcuda,   only : thl0_d, thlm_d, thl0c_d
+      implicit none
+      integer :: j, k, m
 
-   !> Sets x/i periodic boundary conditions for the humidity
+      if (ltempeq) then
+        !$acc parallel loop collapse(2) default(present) private(m)
+        do k = kb - kh, ke + kh
+          do j = jb - jh, je + jh
+            do m = 1, ih
+              thl0_d(ib - m, j, k) = thl0_d(ie + 1 - m, j, k)
+              thl0_d(ie + m, j, k) = thl0_d(ib - 1 + m, j, k)
+              thlm_d(ib - m, j, k) = thlm_d(ie + 1 - m, j, k)
+              thlm_d(ie + m, j, k) = thlm_d(ib - 1 + m, j, k)
+            end do
+          end do
+        end do
+        !$acc end parallel loop
+
+        if (iadv_thl == iadv_kappa) then
+          !$acc parallel loop collapse(2) default(present) private(m)
+          do k = kb - khc, ke + khc
+            do j = jb - jhc, je + jhc
+              do m = 1, ihc
+                thl0c_d(ib - m, j, k) = thl0c_d(ie + 1 - m, j, k)
+                thl0c_d(ie + m, j, k) = thl0c_d(ib - 1 + m, j, k)
+              end do
+            end do
+          end do
+          !$acc end parallel loop
+        end if
+      end if
+   end subroutine xT_periodic_device
+#endif
+
+   !> Set x/i periodic boundary conditions for humidity on the host
    subroutine xq_periodic
       use modglobal, only : ib, ie, ih
       use modfields, only : qt0, qtm
-      integer m
+      implicit none
+      integer :: m
 
       do m = 1, ih
          qt0(ib - m, :, :) = qt0(ie + 1 - m, :, :)
@@ -751,15 +893,37 @@ contains
          qtm(ib - m, :, :) = qtm(ie + 1 - m, :, :)
          qtm(ie + m, :, :) = qtm(ib - 1 + m, :, :)
       end do
-
-      return
    end subroutine xq_periodic
+#if defined(_GPU)
+   subroutine xq_periodic_device
+      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, lmoist
+      use modcuda,   only : qt0_d, qtm_d
+      implicit none
+      integer :: j, k, m
 
-   !> Sets x/iperiodic boundary conditions for the scalars
+      if (lmoist) then
+        !$acc parallel loop collapse(2) default(present) private(m)
+        do k = kb - kh, ke + kh
+          do j = jb - jh, je + jh
+            do m = 1, ih
+              qt0_d(ib - m, j, k) = qt0_d(ie + 1 - m, j, k)
+              qt0_d(ie + m, j, k) = qt0_d(ib - 1 + m, j, k)
+              qtm_d(ib - m, j, k) = qtm_d(ie + 1 - m, j, k)
+              qtm_d(ie + m, j, k) = qtm_d(ib - 1 + m, j, k)
+            end do
+          end do
+        end do
+        !$acc end parallel loop
+      end if
+   end subroutine xq_periodic_device
+#endif
+
+   !> Set x/i periodic boundary conditions for scalars on the host
    subroutine xs_periodic
       use modglobal, only : ib, ie, ihc
       use modfields, only : sv0, svm
-      integer m
+      implicit none
+      integer :: m
 
       do m = 1, ihc
          sv0(ib - m, :, :, :) = sv0(ie + 1 - m, :, :, :)
@@ -767,18 +931,40 @@ contains
          svm(ib - m, :, :, :) = svm(ie + 1 - m, :, :, :)
          svm(ie + m, :, :, :) = svm(ib - 1 + m, :, :, :)
       end do
-
-      return
    end subroutine xs_periodic
+#if defined(_GPU)
+   subroutine xs_periodic_device
+      use modglobal, only : ib, ie, ihc, jb, je, jhc, kb, ke, khc, nsv
+      use modcuda,   only : sv0_d, svm_d
+      implicit none
+      integer :: j, k, m, n
 
-   !>set lateral periodic boundary conditions for momentum in y/j direction
+      if (nsv>0) then
+        !$acc parallel loop collapse(3) default(present) private(m)
+        do n = 1, nsv
+          do k = kb - khc, ke + khc
+            do j = jb - jhc, je + jhc
+              do m = 1, ihc
+                sv0_d(ib - m, j, k, n) = sv0_d(ie + 1 - m, j, k, n)
+                sv0_d(ie + m, j, k, n) = sv0_d(ib - 1 + m, j, k, n)
+                svm_d(ib - m, j, k, n) = svm_d(ie + 1 - m, j, k, n)
+                svm_d(ie + m, j, k, n) = svm_d(ib - 1 + m, j, k, n)
+              end do
+            end do
+          end do
+        end do
+        !$acc end parallel loop
+      end if
+   end subroutine xs_periodic_device
+#endif
+
+   !> Set lateral periodic boundary conditions for momentum in y/j direction on the host
    subroutine ym_periodic
-      use modglobal, only:jb, je, jh
-      use modfields, only:u0, um, v0, vm, w0, wm, e120, e12m
-      use modsubgriddata, only:loneeqn
-      use modmpi, only:excjs
-
-      integer m
+      use modglobal,      only : jb, je, jh
+      use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m
+      use modsubgriddata, only : loneeqn
+      implicit none
+      integer :: m
 
       do m = 1, jh
          u0(:, jb - m, :) = u0(:, je + 1 - m, :)
@@ -803,17 +989,59 @@ contains
             e12m(:, je + m, :) = e12m(:, jb - 1 + m, :)
          end do
       end if
-
-      return
    end subroutine ym_periodic
+#if defined(_GPU)
+   subroutine ym_periodic_device
+      use modglobal,      only : ib, ie, ih, jb, je, jh, kb, ke, kh
+      use modsubgriddata, only : loneeqn
+      use modcuda,        only : u0_d, um_d, v0_d, vm_d, w0_d, wm_d, e120_d, e12m_d
+      implicit none
+      integer :: i, k, m
 
+      !$acc parallel loop collapse(2) default(present) private(m)
+      do k = kb - kh, ke + kh
+         do i = ib - ih, ie + ih
+            do m = 1, jh
+               u0_d(i, jb - m, k) = u0_d(i, je + 1 - m, k)
+               u0_d(i, je + m, k) = u0_d(i, jb - 1 + m, k)
+               v0_d(i, jb - m, k) = v0_d(i, je + 1 - m, k)
+               v0_d(i, je + m, k) = v0_d(i, jb - 1 + m, k)
+               w0_d(i, jb - m, k) = w0_d(i, je + 1 - m, k)
+               w0_d(i, je + m, k) = w0_d(i, jb - 1 + m, k)
+               um_d(i, jb - m, k) = um_d(i, je + 1 - m, k)
+               um_d(i, je + m, k) = um_d(i, jb - 1 + m, k)
+               vm_d(i, jb - m, k) = vm_d(i, je + 1 - m, k)
+               vm_d(i, je + m, k) = vm_d(i, jb - 1 + m, k)
+               wm_d(i, jb - m, k) = wm_d(i, je + 1 - m, k)
+               wm_d(i, je + m, k) = wm_d(i, jb - 1 + m, k)
+            end do
+         end do
+      end do
+      !$acc end parallel loop
 
-   !> Sets y/j periodic boundary conditions for the temperature
+      if (loneeqn) then
+         !$acc parallel loop collapse(2) default(present) private(m)
+         do k = kb - kh, ke + kh
+            do i = ib - ih, ie + ih
+               do m = 1, jh
+                  e120_d(i, jb - m, k) = e120_d(i, je + 1 - m, k)
+                  e120_d(i, je + m, k) = e120_d(i, jb - 1 + m, k)
+                  e12m_d(i, jb - m, k) = e12m_d(i, je + 1 - m, k)
+                  e12m_d(i, je + m, k) = e12m_d(i, jb - 1 + m, k)
+               end do
+            end do
+         end do
+         !$acc end parallel loop
+      end if
+   end subroutine ym_periodic_device
+#endif
+
+   !> Set y/j periodic boundary conditions for temperature on the host
    subroutine yT_periodic
       use modglobal, only : jb, je, jh, jhc
       use modfields, only : thl0, thlm, thl0c
-      use modmpi, only:excjs
-      integer m
+      implicit none
+      integer :: m
 
       do m = 1, jh
          thl0(:, jb - m, :) = thl0(:, je + 1 - m, :)
@@ -826,16 +1054,51 @@ contains
          thl0c(:, jb - m, :) = thl0c(:, je + 1 - m, :)
          thl0c(:, je + m, :) = thl0c(:, jb - 1 + m, :)
       end do
-
-      return
    end subroutine yT_periodic
+#if defined(_GPU)
+   subroutine yT_periodic_device
+      use modglobal, only : ib, ie, ih, ihc, kb, ke, kh, khc, &
+                            jb, je, jh, jhc, ltempeq, iadv_thl, iadv_kappa
+      use modcuda,   only : thl0_d, thlm_d, thl0c_d
+      implicit none
+      integer :: i, k, m
 
-   !> Sets y/j periodic boundary conditions for the humidity
+      if (ltempeq) then
+         !$acc parallel loop collapse(2) default(present) private(m)
+         do k = kb - kh, ke + kh
+            do i = ib - ih, ie + ih
+               do m = 1, jh
+                  thl0_d(i, jb - m, k) = thl0_d(i, je + 1 - m, k)
+                  thl0_d(i, je + m, k) = thl0_d(i, jb - 1 + m, k)
+                  thlm_d(i, jb - m, k) = thlm_d(i, je + 1 - m, k)
+                  thlm_d(i, je + m, k) = thlm_d(i, jb - 1 + m, k)
+               end do
+            end do
+         end do
+         !$acc end parallel loop
+
+         if (iadv_thl == iadv_kappa) then
+          !$acc parallel loop collapse(2) default(present) private(m)
+          do k = kb - khc, ke + khc
+              do i = ib - ihc, ie + ihc
+                do m = 1, jhc
+                    thl0c_d(i, jb - m, k) = thl0c_d(i, je + 1 - m, k)
+                    thl0c_d(i, je + m, k) = thl0c_d(i, jb - 1 + m, k)
+                end do
+              end do
+          end do
+          !$acc end parallel loop
+         end if
+      end if
+   end subroutine yT_periodic_device
+#endif
+
+   !> Set y/j periodic boundary conditions for humidity
    subroutine yq_periodic
       use modglobal, only : jb, je, jh
       use modfields, only : qt0, qtm
-
-      integer m
+      implicit none
+      integer :: m
 
       do m = 1, jh
          qt0(:, jb - m, :) = qt0(:, je + 1 - m, :)
@@ -843,27 +1106,72 @@ contains
          qtm(:, jb - m, :) = qtm(:, je + 1 - m, :)
          qtm(:, je + m, :) = qtm(:, jb - 1 + m, :)
       end do
-
-      return
    end subroutine yq_periodic
+#if defined(_GPU)
+   subroutine yq_periodic_device
+      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, lmoist
+      use modcuda,   only : qt0_d, qtm_d
+      implicit none
+      integer :: i, k, m
 
-   !> Sets y/j periodic boundary conditions for the scalars
+      if (lmoist) then
+         !$acc parallel loop collapse(2) default(present) private(m)
+         do k = kb - kh, ke + kh
+            do i = ib - ih, ie + ih
+               do m = 1, jh
+                  qt0_d(i, jb - m, k) = qt0_d(i, je + 1 - m, k)
+                  qt0_d(i, je + m, k) = qt0_d(i, jb - 1 + m, k)
+                  qtm_d(i, jb - m, k) = qtm_d(i, je + 1 - m, k)
+                  qtm_d(i, je + m, k) = qtm_d(i, jb - 1 + m, k)
+               end do
+            end do
+         end do
+         !$acc end parallel loop
+      end if
+   end subroutine yq_periodic_device
+#endif
+
+   !> Set y/j periodic boundary conditions for scalars
    subroutine ys_periodic
       use modglobal, only : jb, je, jhc, nsv
       use modfields, only : sv0, svm
-      integer n, m
+      implicit none
+      integer :: n, m
 
       do n = 1, nsv
-        do m = 1, jhc
-          sv0(:, jb - m, :, :) = sv0(:, je + 1 - m, :, :)
-          sv0(:, je + m, :, :) = sv0(:, jb - 1 + m, :, :)
-          svm(:, jb - m, :, :) = svm(:, je + 1 - m, :, :)
-          svm(:, je + m, :, :) = svm(:, jb - 1 + m, :, :)
-        end do
+         do m = 1, jhc
+            sv0(:, jb - m, :, :) = sv0(:, je + 1 - m, :, :)
+            sv0(:, je + m, :, :) = sv0(:, jb - 1 + m, :, :)
+            svm(:, jb - m, :, :) = svm(:, je + 1 - m, :, :)
+            svm(:, je + m, :, :) = svm(:, jb - 1 + m, :, :)
+         end do
       end do
-
-      return
    end subroutine ys_periodic
+#if defined(_GPU)
+   subroutine ys_periodic_device
+      use modglobal, only : ib, ie, ihc, jb, je, jhc, kb, ke, khc, nsv
+      use modcuda,   only : sv0_d, svm_d
+      implicit none
+      integer :: i, k, m, n
+
+      if (nsv>0) then
+         !$acc parallel loop collapse(3) default(present) private(m)
+         do n = 1, nsv
+            do k = kb - khc, ke + khc
+               do i = ib - ihc, ie + ihc
+                  do m = 1, jhc
+                     sv0_d(i, jb - m, k, n) = sv0_d(i, je + 1 - m, k, n)
+                     sv0_d(i, je + m, k, n) = sv0_d(i, jb - 1 + m, k, n)
+                     svm_d(i, jb - m, k, n) = svm_d(i, je + 1 - m, k, n)
+                     svm_d(i, je + m, k, n) = svm_d(i, jb - 1 + m, k, n)
+                  end do
+               end do
+            end do
+         end do
+         !$acc end parallel loop
+      end if
+   end subroutine ys_periodic_device
+#endif
 
 
      subroutine xmi_profile
