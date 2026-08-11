@@ -62,7 +62,13 @@ class TestBuildExecutableLayout(unittest.TestCase):
             expected = project / expected_relative_path
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
             self.assertTrue(expected.is_dir())
-            self.assertIn(f"Build directory: {expected}", completed.stdout)
+            prefix = "Build directory: "
+            reported_lines = [
+                line for line in completed.stdout.splitlines() if line.startswith(prefix)
+            ]
+            self.assertEqual(len(reported_lines), 1, completed.stdout)
+            reported = Path(reported_lines[0][len(prefix):])
+            self.assertEqual(reported.resolve(), expected.resolve())
 
     def test_all_non_gpu_systems_use_cpu_directory(self) -> None:
         for system in ("common", "icl", "archer", "cca"):
