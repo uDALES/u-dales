@@ -177,9 +177,15 @@ node-local scratch directory when `/tmp` is unsuitable. It sets
 
 ## GitHub Actions
 
-`.github/workflows/gpu-ci.yml` contains three hardware jobs:
+The Debug smoke suite is local-only and is not run by GitHub Actions. Run it
+before pushing GPU-related changes with:
 
-- Debug smoke on pushes to `gpu` and trusted same-repository pull requests
+```bash
+python tests/run_tests.py gpu-smoke
+```
+
+`.github/workflows/gpu-ci.yml` contains two hardware jobs:
+
 - Release nightly on the schedule or manual dispatch
 - two-rank MPI only by manual dispatch on a runner labelled `multi-gpu`
 
@@ -195,10 +201,9 @@ used by `tools/build_executable.sh`, `/usr/bin/mpif90` for the CPU build, and
 `tools/python/.venv` with NumPy and netCDF4. Set `UDALES_GPU_PYTHON` in the
 runner service environment if the canonical venv is elsewhere.
 
-The workflow intentionally refuses to execute a fork pull request on the
-self-hosted GPU runner. The standard Ubuntu job still validates the committed
-matrix for such pull requests. Configure protected branches and runner-group
-access before making `gpu-smoke` a required check.
+The standard Ubuntu job validates the committed smoke matrix without running
+the solver. Configure protected branches and runner-group access before
+restoring `gpu-smoke` as a GitHub-hosted check.
 
 Logs and comparison artifacts are retained for 14 days. Scheduled workflows
 only run from GitHub's default branch, so the schedule becomes active there

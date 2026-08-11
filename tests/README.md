@@ -235,6 +235,8 @@ This builds CPU and GPU executables in separate CMake trees, runs the Debug CUDA
 device self-test suite, executes both solvers from the same commit,
 and compares every variable in the required NetCDF outputs. GPU suites are not
 included in `supported` or `all`; they are selected explicitly on GPU hardware.
+The Debug GPU smoke suite is currently local-only and is not run by GitHub
+Actions.
 
 To run the direct MPI operator test:
 
