@@ -106,6 +106,15 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/build_tools/test_build_executable.py"
+      - label: "python-library: runtime module-loading contract"
+        class: supported
+        kind: integration
+        component: test-runtime
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/runtime_environment/test_runtime_modules.py"
 
   supported:
     includes:

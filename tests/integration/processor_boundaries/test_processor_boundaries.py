@@ -2,6 +2,7 @@
 
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -15,14 +16,12 @@ import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 TEST_DIR = Path(__file__).resolve().parent
+RUNTIME_MODULE_HELPER = (
+    REPO_ROOT / "tests" / "integration" / "common" / "runtime_modules.sh"
+)
 TREE_CASE_ID = 526
 NO_TREE_CASE_ID = 100
 UDALES_BUILD = Path(os.environ.get("UDALES_BUILD", REPO_ROOT / "build" / "release" / "u-dales"))
-RUNTIME_MODULES = os.environ.get(
-    "UDALES_RUNTIME_MODULES",
-    "intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a "
-    "FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0",
-)
 TREE_FIELDS = ("tr_u", "tr_v", "tr_w")
 NO_TREE_FIELDS = ("ut", "vt", "wt")
 ABS_TOL = 1.0e-9
@@ -157,19 +156,30 @@ def _load_global_fields(run_dir: Path, case_id: int, prefix: str, fields: Iterab
     return fields
 
 
+def _runtime_module_prefix() -> str:
+    return (
+        f"source {shlex.quote(str(RUNTIME_MODULE_HELPER))} && "
+        "load_udales_runtime_modules && "
+    )
+
+
 def _mpi_exec_and_args() -> Tuple[str, str]:
     mpiexec = os.environ.get("MPIEXEC")
     if not mpiexec:
-        mpiifort = shutil.which("mpiifort")
-        if mpiifort:
-            mpiexec = str(Path(mpiifort).parent / "mpiexec")
-        else:
+        if os.environ.get("UDALES_RUNTIME_MODULES", "").strip():
+            # Resolve the launcher after the requested modules modify PATH.
             mpiexec = "mpiexec"
+        else:
+            mpiifort = shutil.which("mpiifort")
+            if mpiifort:
+                mpiexec = str(Path(mpiifort).parent / "mpiexec")
+            else:
+                mpiexec = "mpiexec"
 
     extra_args = os.environ.get("MPI_LAUNCH_EXTRA_ARGS", "").strip()
     try:
         version = subprocess.run(
-            [mpiexec, "--version"],
+            ["bash", "-lc", f"{_runtime_module_prefix()}{shlex.quote(mpiexec)} --version"],
             check=False,
             capture_output=True,
             text=True,
@@ -193,12 +203,8 @@ def _run_case(executable: Path, run_dir: Path, case_id: int, nprocs: int) -> Non
     if diag_log.exists():
         diag_log.unlink()
 
-    module_setup = ""
-    if Path("/etc/profile.d/modules.sh").is_file():
-        module_setup = "source /etc/profile.d/modules.sh >/dev/null 2>&1 || true; "
     shell_command = (
-        f"{module_setup}"
-        f"if command -v module >/dev/null 2>&1; then module load {RUNTIME_MODULES}; fi && "
+        f"{_runtime_module_prefix()}"
         f"export HDF5_USE_FILE_LOCKING=FALSE && "
         f"export FOR_DISABLE_DIAGNOSTIC_DISPLAY=TRUE && "
         f"export FOR_DIAGNOSTIC_LOG_FILE='{diag_log}' && "
@@ -242,13 +248,9 @@ def _run_case(executable: Path, run_dir: Path, case_id: int, nprocs: int) -> Non
 
 def _launcher_unavailable_reason() -> Optional[str]:
     mpiexec, extra_args = _mpi_exec_and_args()
-    module_setup = ""
-    if Path("/etc/profile.d/modules.sh").is_file():
-        module_setup = "source /etc/profile.d/modules.sh >/dev/null 2>&1 || true; "
     shell_command = (
-        f"{module_setup}"
-        f"if command -v module >/dev/null 2>&1; then module load {RUNTIME_MODULES}; fi && "
-        f"'{mpiexec}' {extra_args} -n 1 /bin/true"
+        f"{_runtime_module_prefix()}"
+        f"{shlex.quote(mpiexec)} {extra_args} -n 1 /bin/true"
     )
     probe = subprocess.run(
         ["bash", "-lc", shell_command],

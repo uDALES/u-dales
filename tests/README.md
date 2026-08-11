@@ -65,7 +65,8 @@ python tests/run_tests.py python-library
 This runs Python-library unit tests plus Python-driven library integration/
 reference suites (including directshortwave, udprep integration, udbase
 parity, Python preprocessing parity, the GPU harness unit tests, and the build
-wrapper directory contract). It skips solver/MPI and regression suites.
+wrapper and runtime module-loading contracts). It skips solver/MPI and
+regression suites.
 
 Today, GitHub Actions runs the curated `supported` selection:
 
@@ -174,6 +175,8 @@ between multiple components rather than one isolated API.
   shortwave on committed cases `100` and `525`
 - `build_tools/`: compiler-free contract tests for the CPU/GPU build-directory
   selection in `tools/build_executable.sh`
+- `runtime_environment/`: contract tests ensuring that MPI integration tests
+  load environment modules only when explicitly requested
 - `ibm_sparse_input/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
 - `mpi_operators/`: direct MPI operator validation for `runmode = 1005` on
   the Xie/Castro case `100` across `1x1`, `2x1`, `1x2`, and `2x2`
@@ -214,6 +217,12 @@ To run the sparse IBM input test:
 cd tests/integration/ibm_sparse_input
 ./run_test.sh
 ```
+
+The MPI integration tests inherit the caller's active compiler/MPI environment
+and do not infer a cluster from the presence of the `module` command. Cluster
+automation may explicitly request a module stack by exporting a space-separated
+`UDALES_RUNTIME_MODULES` value before invoking the test. If the required modules
+are already loaded, leave `UDALES_RUNTIME_MODULES` unset.
 
 To run the Debug GPU smoke suite after loading NVHPC and activating the
 canonical Python environment:
