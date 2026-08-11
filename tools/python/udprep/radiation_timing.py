@@ -42,6 +42,8 @@ TIMESTAMP_FIELDS = (
     "step_cpu_seconds",
     "cumulative_wall_seconds",
     "peak_rss_mib",
+    "worker_pid",
+    "resumed",
     "completed_at_utc",
 )
 
@@ -58,12 +60,12 @@ class Stopwatch:
 
     def __init__(self) -> None:
         self._wall_start = time.perf_counter()
-        self._cpu_start = time.process_time()
+        self._cpu_start = process_tree_cpu_seconds()
 
     def sample(self) -> TimingSample:
         return TimingSample(
             wall_seconds=time.perf_counter() - self._wall_start,
-            cpu_seconds=time.process_time() - self._cpu_start,
+            cpu_seconds=process_tree_cpu_seconds() - self._cpu_start,
             peak_rss_mib=peak_rss_mib(),
         )
 
@@ -76,6 +78,15 @@ def peak_rss_mib() -> float | None:
     if sys.platform == "darwin":
         return value / (1024.0 * 1024.0)
     return value / 1024.0
+
+
+def process_tree_cpu_seconds() -> float:
+    """Return CPU time for this process and any completed children."""
+    if resource is None:
+        return time.process_time()
+    own = resource.getrusage(resource.RUSAGE_SELF)
+    children = resource.getrusage(resource.RUSAGE_CHILDREN)
+    return own.ru_utime + own.ru_stime + children.ru_utime + children.ru_stime
 
 
 def _sha256(path: Path) -> str:
@@ -194,7 +205,8 @@ class ShortwaveTimingRecorder:
     def record_timestamp(self, values: dict[str, Any]) -> None:
         row = {field: values.get(field, "") for field in TIMESTAMP_FIELDS}
         row["cumulative_wall_seconds"] = self.elapsed_wall_seconds()
-        row["peak_rss_mib"] = peak_rss_mib()
+        if "peak_rss_mib" not in values:
+            row["peak_rss_mib"] = peak_rss_mib()
         row["completed_at_utc"] = datetime.now(timezone.utc).isoformat()
         self._writer.writerow(row)
         self._handle.flush()

@@ -109,6 +109,23 @@ def parse_args() -> argparse.Namespace:
             "<PREFIX>.summary.json."
         ),
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of independent facet timestamps to compute concurrently.",
+    )
+    parser.add_argument(
+        "--checkpoint-dir",
+        type=Path,
+        default=None,
+        help="Write one atomic checkpoint per completed radiation timestamp.",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Reuse compatible completed timestamps from --checkpoint-dir.",
+    )
     parser.add_argument("--quiet", action="store_true")
     return parser.parse_args()
 
@@ -130,6 +147,9 @@ def main() -> int:
             method=args.method,
             verbose=not args.quiet,
             timing_prefix=args.timing_prefix,
+            workers=args.workers,
+            checkpoint_dir=args.checkpoint_dir,
+            resume=args.resume,
         )
     except (RuntimeError, FileExistsError, FileNotFoundError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

@@ -333,6 +333,106 @@ class TestShortwaveTiming(unittest.TestCase):
         self.assertEqual(float(rows[0]["direct_wall_seconds"]), 0.1)
         self.assertGreaterEqual(float(rows[1]["net_wall_seconds"]), 0.0)
 
+    def test_facet_checkpoints_resume_without_recomputation(self):
+        class FakeRadiation:
+            lEB = False
+            maxD = 96.0
+            calls = 0
+
+            @staticmethod
+            def _shortwave_method():
+                return "scanline_f2py", 0.5
+
+            def _compute_knet(self, *_args, timing=None, **_kwargs):
+                self.calls += 1
+                return np.array([10.0, 20.0]), np.array([8.0, 16.0]), None
+
+        radiation = FakeRadiation()
+        sim = types.SimpleNamespace(
+            geom=types.SimpleNamespace(
+                stl=types.SimpleNamespace(
+                    face_normals=np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
+                )
+            ),
+            assign_prop_to_fac=lambda _name: np.array([0.2, 0.2]),
+        )
+        prep = types.SimpleNamespace(sim=sim, radiation=radiation)
+        atmosphere = ShortwaveAtmosphere(
+            times=np.array([0.0, 10.0]),
+            ghi=np.array([450.0, 0.0]),
+            dni=np.array([500.0, 0.0]),
+            dsky=np.array([100.0, 0.0]),
+            zenith=np.array([45.0, 100.0]),
+            azimuth_local=np.array([180.0, 200.0]),
+        )
+
+        with TemporaryDirectory() as tmp:
+            checkpoint_dir = Path(tmp) / "checkpoints"
+            first = map_atmosphere_to_facets(
+                prep,
+                atmosphere,
+                verbose=False,
+                checkpoint_dir=checkpoint_dir,
+            )
+            self.assertEqual(radiation.calls, 1)
+            self.assertEqual(len(list(checkpoint_dir.glob("step_*.npz"))), 2)
+
+            second = map_atmosphere_to_facets(
+                prep,
+                atmosphere,
+                verbose=False,
+                checkpoint_dir=checkpoint_dir,
+                resume=True,
+            )
+
+        self.assertEqual(radiation.calls, 1)
+        np.testing.assert_array_equal(second[0], first[0])
+        np.testing.assert_array_equal(second[1], first[1])
+
+    @unittest.skipUnless(
+        "fork" in __import__("multiprocessing").get_all_start_methods(),
+        "parallel facet mapping requires multiprocessing fork support",
+    )
+    def test_parallel_facet_mapping_matches_serial(self):
+        class FakeRadiation:
+            lEB = False
+            maxD = 96.0
+
+            @staticmethod
+            def _shortwave_method():
+                return "scanline_f2py", 0.5
+
+            @staticmethod
+            def _compute_knet(*_args, timing=None, **_kwargs):
+                return np.array([10.0, 20.0]), np.array([8.0, 16.0]), None
+
+        sim = types.SimpleNamespace(
+            geom=types.SimpleNamespace(
+                stl=types.SimpleNamespace(
+                    face_normals=np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
+                )
+            ),
+            assign_prop_to_fac=lambda _name: np.array([0.2, 0.2]),
+        )
+        prep = types.SimpleNamespace(sim=sim, radiation=FakeRadiation())
+        atmosphere = ShortwaveAtmosphere(
+            times=np.array([0.0, 10.0, 20.0]),
+            ghi=np.array([450.0, 50.0, 0.0]),
+            dni=np.array([500.0, 0.0, 0.0]),
+            dsky=np.array([100.0, 50.0, 0.0]),
+            zenith=np.array([45.0, 95.0, 100.0]),
+            azimuth_local=np.array([180.0, 190.0, 200.0]),
+        )
+
+        serial = map_atmosphere_to_facets(prep, atmosphere, verbose=False)
+        parallel = map_atmosphere_to_facets(
+            prep, atmosphere, verbose=False, workers=2
+        )
+
+        np.testing.assert_array_equal(parallel[0], serial[0])
+        np.testing.assert_array_equal(parallel[1], serial[1])
+        self.assertIsNone(parallel[2])
+
 
 if __name__ == "__main__":
     unittest.main()

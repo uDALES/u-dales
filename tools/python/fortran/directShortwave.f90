@@ -42,18 +42,17 @@ contains
       real   , dimension(nFaces,3) :: planeIncenter
       real   , dimension(nFaces) :: areas, distIncenter, projAreas
       integer, dimension(nFaces) :: visibility, sortedFaces ! if visiblity is false then face is self-shaded, i.e. not visible to the sun
-      real   , dimension(nVertices,3) :: planeVertices, projVertices
+      real   , dimension(nVertices,3) :: planeVertices
       real   , dimension(nVertices,2) :: locVertices
-      real   , dimension(nVertices) :: distVertices
       logical, dimension(:,:), allocatable :: mask
       integer, dimension(:,:), allocatable :: maskIDs
       real   , dimension(:), allocatable :: locCoord1, locCoord2
       integer, dimension(:), allocatable :: counts
-      real :: xmin, xmax, xrange, ymin, ymax, yrange, temp
+      real :: xmin, xmax, xrange, ymin, ymax, yrange
       real, dimension(3) :: p0, u1, u2, up
       real, dimension(2) :: cor1, cor2, cor3, cor4
       real, dimension(3,3) :: matrix, invMatrix
-      integer :: i, j, n, m, id_temp, size_xi, size_eta
+      integer :: i, j, n, m, size_xi, size_eta
       logical :: flag
       real :: start, finish
 
@@ -109,8 +108,6 @@ contains
 
       ! calculate areas and determine visiblity
 
-      sortedFaces(1) = 1
-
       do n=1,nFaces
          areas(n) = 0.5*norm2(cross_product(vertices(connectivityList(n,2),:) - vertices(connectivityList(n,1),:), &
                                             vertices(connectivityList(n,3),:) - vertices(connectivityList(n,1),:)))
@@ -118,25 +115,10 @@ contains
          if (dot_product(faceNormal(n,:), nsun) > 0)  visibility(n) = 1
          planeIncenter(n,:) = matmul(invMatrix, incenter(n,:) - p0)
          distIncenter(n) = planeIncenter(n,3)
-         !write(*,*) n, distIncenter(n)
-         ! sort
-         if (n > 1) then
-            m = n
-            do while (m > 1 .and. distIncenter(m) > distIncenter(m - 1)) ! note in descending order (>)
-            ! Swap array(m) and array(m - 1)
-            temp = distIncenter(m)
-            distIncenter(m) = distIncenter(m - 1)
-            distIncenter(m - 1) = temp
-            ! Update the corresponding index
-            id_temp = sortedFaces(m)
-            sortedFaces(m) = sortedFaces(m - 1)
-            sortedFaces(m - 1) = id_temp
-            m = m - 1
-            end do
-            ! Update the index for the newly inserted element
-            sortedFaces(m) = n
-         end if
+         sortedFaces(n) = n
       end do
+
+      call stableSortIndicesDescending(distIncenter, sortedFaces, nFaces)
 
       ! open (unit=11,file='sortedFaces_fort.txt',action="write")
       ! do n=1,nFaces
@@ -153,9 +135,6 @@ contains
 
       do n=1,nVertices
          planeVertices(n,:) = matmul(invMatrix, vertices(n,:) - p0)
-         distVertices(n) = planeVertices(n,3)
-         projVertices(n,:) = vertices(n,:) + distVertices(n) * nsun
-         !write(*,*) n, projVertices(n,:)
       end do
 
       locVertices(:,1) = planeVertices(:,1) + abs(minval(planeVertices(:,1)))
@@ -287,6 +266,53 @@ contains
       print '("Time = ",f10.3," seconds.")',finish-start
 
    end subroutine calculateDirectShortwave
+
+
+   subroutine stableSortIndicesDescending(values, indices, nValues)
+      integer, intent(in) :: nValues
+      real, intent(in) :: values(nValues)
+      integer, intent(inout) :: indices(nValues)
+      integer, allocatable :: work(:)
+      integer :: width, left, middle, right, i, j, k
+
+      if (nValues <= 1) return
+      allocate(work(nValues))
+
+      width = 1
+      do while (width < nValues)
+         left = 1
+         do while (left <= nValues)
+            middle = min(left + width - 1, nValues)
+            right = min(left + 2*width - 1, nValues)
+            i = left
+            j = middle + 1
+
+            do k=left,right
+               if (i > middle) then
+                  work(k) = indices(j)
+                  j = j + 1
+               else if (j > right) then
+                  work(k) = indices(i)
+                  i = i + 1
+               else if (values(indices(i)) >= values(indices(j))) then
+                  ! Prefer the left run for equal values to preserve input order.
+                  work(k) = indices(i)
+                  i = i + 1
+               else
+                  work(k) = indices(j)
+                  j = j + 1
+               end if
+            end do
+            indices(left:right) = work(left:right)
+            left = left + 2*width
+         end do
+
+         if (width > nValues/2) exit
+         width = 2*width
+      end do
+
+      deallocate(work)
+   end subroutine stableSortIndicesDescending
 
 
    subroutine writeDirectShortwave(Sdir, nFaces)

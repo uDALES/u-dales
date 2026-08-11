@@ -1125,15 +1125,24 @@ class DirectShortwaveSolver:
             facsec = sim.facsec["c"]
             facsec_locs = facsec["locs"].astype(int)
 
-        self.ktot, self.z_edges, self.z_max, self.dz = _compute_ktot_and_z_edges(
-            sim,
-            self.veg.points if self.veg.points.size else None,
-            mesh=surface_mesh,
-            facsec_locs=facsec_locs,
-        )
-        self.lad_3d, self.dec_3d, self.veg_index = _build_veg_fields(
-            sim, self.veg, self.ktot
-        )
+        if self.method in ("moller", "facsec"):
+            self.ktot, self.z_edges, self.z_max, self.dz = _compute_ktot_and_z_edges(
+                sim,
+                self.veg.points if self.veg.points.size else None,
+                mesh=surface_mesh,
+                facsec_locs=facsec_locs,
+            )
+            self.lad_3d, self.dec_3d, self.veg_index = _build_veg_fields(
+                sim, self.veg, self.ktot
+            )
+        else:
+            self.ktot = 0
+            self.z_edges = np.empty(0, dtype=float)
+            self.z_max = 0.0
+            self.dz = np.empty(0, dtype=float)
+            self.lad_3d = np.empty((0, 0, 0), dtype=float)
+            self.dec_3d = np.empty((0, 0, 0), dtype=float)
+            self.veg_index = np.empty((0, 0, 0), dtype=int)
 
         self.mesh = surface_mesh
         mesh = surface_mesh
@@ -1142,6 +1151,31 @@ class DirectShortwaveSolver:
         self.face_areas = mesh.area_faces
         if hasattr(sim, "facs") and "area" in sim.facs and sim.facs["area"].shape == self.face_areas.shape:
             self.face_areas = sim.facs["area"]
+
+        if self.method in ("scanline_f2py", "scanline_legacy"):
+            self._scanline_faces_1based = np.asfortranarray(
+                np.asarray(mesh.faces, dtype=np.int32) + 1
+            )
+            self._scanline_facet_points = np.asfortranarray(
+                np.asarray(self.sim.geom.face_incenters, dtype=float)
+            )
+            self._scanline_face_normals = np.asfortranarray(
+                np.asarray(mesh.face_normals, dtype=float)
+            )
+            self._scanline_vertices = np.asfortranarray(
+                np.asarray(mesh.vertices, dtype=float)
+            )
+
+        if self.method == "scanline_f2py":
+            self._scanline_facet_points_f2py = np.asfortranarray(
+                self._scanline_facet_points, dtype=np.float32
+            )
+            self._scanline_face_normals_f2py = np.asfortranarray(
+                self._scanline_face_normals, dtype=np.float32
+            )
+            self._scanline_vertices_f2py = np.asfortranarray(
+                self._scanline_vertices, dtype=np.float32
+            )
 
         if self.method == "moller":
             if hasattr(mesh, "triangles"):
@@ -1526,10 +1560,10 @@ class DirectShortwaveSolver:
         inputs = self._build_scanline_inputs(nsun_unit, irradiance, resolution=resolution)
 
         sdir = self._dsmod.calculate_direct_shortwave_f2py(
-            np.asfortranarray(inputs.faces_1based, dtype=np.int32),
-            np.asfortranarray(inputs.facet_points, dtype=np.float32),
-            np.asfortranarray(inputs.face_normals, dtype=np.float32),
-            np.asfortranarray(inputs.vertices, dtype=np.float32),
+            self._scanline_faces_1based,
+            self._scanline_facet_points_f2py,
+            self._scanline_face_normals_f2py,
+            self._scanline_vertices_f2py,
             inputs.nsun,
             inputs.irradiance,
             inputs.resolution,
@@ -1600,17 +1634,16 @@ class DirectShortwaveSolver:
         - vertices are TR.Points
         - info_directShortwave.txt carries nsun, irradiance, and resolution
         """
-        mesh = self.mesh
         if resolution is None:
             cell_min = min(self.sim.dx, self.sim.dy, float(np.min(self.sim.dzt)))
             resolution = 0.25 * cell_min / self.ray_density
         if resolution <= 0.0:
             raise ValueError("resolution must be > 0")
         return ScanlineInputs(
-            faces_1based=np.asfortranarray(np.asarray(mesh.faces, dtype=np.int32) + 1),
-            facet_points=np.asfortranarray(np.asarray(self.sim.geom.face_incenters, dtype=float)),
-            face_normals=np.asfortranarray(np.asarray(mesh.face_normals, dtype=float)),
-            vertices=np.asfortranarray(np.asarray(mesh.vertices, dtype=float)),
+            faces_1based=self._scanline_faces_1based,
+            facet_points=self._scanline_facet_points,
+            face_normals=self._scanline_face_normals,
+            vertices=self._scanline_vertices,
             nsun=np.asfortranarray(np.asarray(nsun_unit, dtype=float)),
             irradiance=float(irradiance),
             resolution=float(resolution),

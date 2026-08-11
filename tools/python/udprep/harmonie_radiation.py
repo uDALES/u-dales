@@ -9,7 +9,11 @@ shortwave-reflection machinery.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
+import multiprocessing
+import os
 import runpy
 import subprocess
 import sys
@@ -24,6 +28,7 @@ from . import _radiation_compute
 from .radiation_timing import (
     ShortwaveTimingRecorder,
     Stopwatch,
+    TimingSample,
     benchmark_metadata,
     timed_stage,
 )
@@ -113,6 +118,33 @@ class TimedepShortwaveResult:
     netsw_path: Path
     sdir_nc_path: Path | None
     timedepsveg_path: Path | None
+
+
+@dataclass(frozen=True)
+class _FacetMappingContext:
+    radiation: Any
+    atmosphere: ShortwaveAtmosphere
+    method: str
+    resolution: float | None
+    lscatter: bool
+    albedo: np.ndarray
+    vf: Any
+    svf: np.ndarray | None
+    fss: np.ndarray | None
+    nfacets: int
+
+
+@dataclass(frozen=True)
+class _FacetStepResult:
+    index: int
+    mode: str
+    sdir: np.ndarray | None
+    knet: np.ndarray | None
+    sveg: np.ndarray | None
+    timing: dict[str, float]
+    sample: TimingSample
+    worker_pid: int
+    resumed: bool = False
 
 
 @dataclass(frozen=True)
@@ -835,6 +867,199 @@ def _check_output_paths(paths: Iterable[Path], *, overwrite: bool) -> None:
         )
 
 
+_FACET_MAPPING_CONTEXT: _FacetMappingContext | None = None
+
+
+def _compute_facet_step(context: _FacetMappingContext, idx: int) -> _FacetStepResult:
+    timer = Stopwatch()
+    atmosphere = context.atmosphere
+    radiation = context.radiation
+    dni = float(atmosphere.dni[idx])
+    dsky = float(atmosphere.dsky[idx])
+    zenith = float(atmosphere.zenith[idx])
+    mode = "night"
+    sdir_result = None
+    knet_result = None
+    sveg_result = None
+    step_timing: dict[str, float] = {}
+
+    if dni > 0.0 and zenith < 90.0:
+        nsun = nsun_from_angles(zenith, float(atmosphere.azimuth_local[idx]))
+        if abs(float(nsun[2])) >= MIN_DIRECT_COS_ZENITH:
+            mode = "direct"
+            sdir, knet, sveg = radiation._compute_knet(
+                nsun,
+                dni,
+                dsky,
+                context.method,
+                context.resolution,
+                context.lscatter,
+                context.albedo,
+                context.vf,
+                context.svf,
+                context.fss,
+                timing=step_timing,
+            )
+            sdir_result = np.asarray(sdir, dtype=np.float32)
+            knet_result = np.asarray(knet, dtype=np.float32)
+            if sveg is not None and np.asarray(sveg).size > 0:
+                sveg_result = np.asarray(sveg, dtype=np.float32)
+        elif dsky > 0.0:
+            mode = "diffuse"
+    elif dsky > 0.0:
+        mode = "diffuse"
+
+    if mode == "diffuse":
+        zero_sdir = np.zeros(context.nfacets, dtype=np.float64)
+        net_timer = Stopwatch()
+        if context.lscatter:
+            if context.vf is None or context.svf is None:
+                raise ValueError("View factors are required for diffuse shortwave")
+            knet = radiation.calc_reflections_sw(
+                zero_sdir,
+                dsky,
+                context.vf,
+                context.svf,
+                context.albedo,
+            )
+        else:
+            if context.fss is None:
+                raise ValueError("Fss is required for non-scattering shortwave")
+            knet = _radiation_compute.net_shortwave_nonscattering(
+                zero_sdir, dsky, context.fss, context.albedo
+            )
+        net_sample = net_timer.sample()
+        step_timing["net_wall_seconds"] = net_sample.wall_seconds
+        step_timing["net_cpu_seconds"] = net_sample.cpu_seconds
+        knet_result = np.asarray(knet, dtype=np.float32)
+
+    return _FacetStepResult(
+        index=idx,
+        mode=mode,
+        sdir=sdir_result,
+        knet=knet_result,
+        sveg=sveg_result,
+        timing=step_timing,
+        sample=timer.sample(),
+        worker_pid=os.getpid(),
+    )
+
+
+def _facet_mapping_worker(idx: int) -> _FacetStepResult:
+    if _FACET_MAPPING_CONTEXT is None:
+        raise RuntimeError("Facet mapping worker was not initialized")
+    return _compute_facet_step(_FACET_MAPPING_CONTEXT, idx)
+
+
+def _checkpoint_manifest(context: _FacetMappingContext) -> dict[str, Any]:
+    times = np.ascontiguousarray(context.atmosphere.times, dtype=np.float64)
+    return {
+        "schema_version": 1,
+        "nfacets": context.nfacets,
+        "ntimestamps": int(times.size),
+        "times_sha256": hashlib.sha256(times.tobytes()).hexdigest(),
+        "method": context.method,
+        "resolution": context.resolution,
+        "lscatter": context.lscatter,
+    }
+
+
+def _prepare_checkpoint_dir(
+    checkpoint_dir: Path,
+    context: _FacetMappingContext,
+    *,
+    resume: bool,
+) -> Path:
+    checkpoint_dir = Path(checkpoint_dir).expanduser().resolve()
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = checkpoint_dir / "manifest.json"
+    expected = _checkpoint_manifest(context)
+    if manifest_path.exists():
+        existing = json.loads(manifest_path.read_text(encoding="ascii"))
+        if resume and existing != expected:
+            raise ValueError(
+                f"Checkpoint manifest does not match this run: {manifest_path}"
+            )
+    temp_path = checkpoint_dir / f".manifest.{os.getpid()}.tmp"
+    with temp_path.open("w", encoding="ascii") as handle:
+        json.dump(expected, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    temp_path.replace(manifest_path)
+    return checkpoint_dir
+
+
+def _checkpoint_path(checkpoint_dir: Path, idx: int) -> Path:
+    return checkpoint_dir / f"step_{idx + 1:06d}.npz"
+
+
+def _write_step_checkpoint(
+    checkpoint_dir: Path,
+    result: _FacetStepResult,
+    model_time_seconds: float,
+) -> None:
+    path = _checkpoint_path(checkpoint_dir, result.index)
+    temp_path = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    with temp_path.open("wb") as handle:
+        np.savez(
+            handle,
+            index=np.int64(result.index),
+            model_time_seconds=np.float64(model_time_seconds),
+            mode=np.asarray(result.mode),
+            sdir=(
+                result.sdir
+                if result.sdir is not None
+                else np.empty(0, dtype=np.float32)
+            ),
+            knet=(
+                result.knet
+                if result.knet is not None
+                else np.empty(0, dtype=np.float32)
+            ),
+            sveg=(
+                result.sveg
+                if result.sveg is not None
+                else np.empty(0, dtype=np.float32)
+            ),
+        )
+    temp_path.replace(path)
+
+
+def _load_step_checkpoint(
+    checkpoint_dir: Path,
+    idx: int,
+    model_time_seconds: float,
+    nfacets: int,
+) -> _FacetStepResult | None:
+    path = _checkpoint_path(checkpoint_dir, idx)
+    if not path.exists():
+        return None
+    try:
+        with np.load(path, allow_pickle=False) as data:
+            stored_idx = int(data["index"])
+            stored_time = float(data["model_time_seconds"])
+            mode = str(data["mode"].item())
+            sdir_data = np.asarray(data["sdir"], dtype=np.float32)
+            knet_data = np.asarray(data["knet"], dtype=np.float32)
+            sveg_data = np.asarray(data["sveg"], dtype=np.float32)
+    except (OSError, ValueError, KeyError):
+        return None
+    if stored_idx != idx or stored_time != float(model_time_seconds):
+        return None
+    if sdir_data.size not in (0, nfacets) or knet_data.size not in (0, nfacets):
+        return None
+    return _FacetStepResult(
+        index=idx,
+        mode=mode,
+        sdir=sdir_data if sdir_data.size else None,
+        knet=knet_data if knet_data.size else None,
+        sveg=sveg_data if sveg_data.size else None,
+        timing={},
+        sample=TimingSample(0.0, 0.0, None),
+        worker_pid=os.getpid(),
+        resumed=True,
+    )
+
+
 def map_atmosphere_to_facets(
     prep: Any,
     atmosphere: ShortwaveAtmosphere,
@@ -842,8 +1067,17 @@ def map_atmosphere_to_facets(
     method: str | None = None,
     verbose: bool = True,
     timing: ShortwaveTimingRecorder | None = None,
+    workers: int = 1,
+    checkpoint_dir: Path | None = None,
+    resume: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
     """Map atmospheric shortwave forcing to uDALES facets."""
+    workers = int(workers)
+    if workers < 1:
+        raise ValueError("workers must be >= 1")
+    if resume and checkpoint_dir is None:
+        raise ValueError("resume requires checkpoint_dir")
+
     setup_timer = Stopwatch() if timing is not None else None
     sim = prep.sim
     radiation = prep.radiation
@@ -862,6 +1096,24 @@ def map_atmosphere_to_facets(
 
     nt = atmosphere.times.size
     nfacets = albedo.size
+    context = _FacetMappingContext(
+        radiation=radiation,
+        atmosphere=atmosphere,
+        method=method_name,
+        resolution=resolution,
+        lscatter=lscatter,
+        albedo=albedo,
+        vf=vf,
+        svf=svf,
+        fss=fss,
+        nfacets=nfacets,
+    )
+    prepared_checkpoint_dir = None
+    if checkpoint_dir is not None:
+        prepared_checkpoint_dir = _prepare_checkpoint_dir(
+            checkpoint_dir, context, resume=resume
+        )
+
     sdir_all = np.zeros((nfacets, nt), dtype=np.float32)
     knet_all = np.zeros((nfacets, nt), dtype=np.float32)
     sveg_all: np.ndarray | None = None
@@ -883,108 +1135,127 @@ def map_atmosphere_to_facets(
             tzinfo=model_timezone,
         )
 
-    for idx, time_value in enumerate(atmosphere.times):
-        step_timer = Stopwatch() if timing is not None else None
-        step_timing: dict[str, float] = {}
+    def print_step(prefix: str, idx: int) -> None:
+        if not verbose:
+            return
+        time_value = atmosphere.times[idx]
         dni = float(atmosphere.dni[idx])
         dsky = float(atmosphere.dsky[idx])
         zenith = float(atmosphere.zenith[idx])
-        mode = "night"
-        if verbose:
-            print(
-                f"[{idx + 1:3d}/{nt}] t={time_value:8.1f}s "
-                f"GHI={atmosphere.ghi[idx]:8.3f} DNI={dni:8.3f} "
-                f"Dsky={dsky:8.3f} zenith={zenith:7.3f}",
-                flush=True,
+        print(
+            f"[{prefix} {idx + 1:3d}/{nt}] t={time_value:8.1f}s "
+            f"GHI={atmosphere.ghi[idx]:8.3f} DNI={dni:8.3f} "
+            f"Dsky={dsky:8.3f} zenith={zenith:7.3f}",
+            flush=True,
+        )
+
+    def consume_result(result: _FacetStepResult) -> None:
+        nonlocal sveg_all
+        idx = result.index
+        if result.sdir is not None:
+            sdir_all[:, idx] = result.sdir
+        if result.knet is not None:
+            knet_all[:, idx] = result.knet
+        if result.sveg is not None:
+            if sveg_all is None:
+                sveg_all = np.zeros((result.sveg.size, nt), dtype=np.float32)
+            sveg_all[:, idx] = result.sveg
+
+        if prepared_checkpoint_dir is not None and not result.resumed:
+            _write_step_checkpoint(
+                prepared_checkpoint_dir,
+                result,
+                float(atmosphere.times[idx]),
             )
 
-        if dni > 0.0 and zenith < 90.0:
-            nsun = nsun_from_angles(zenith, float(atmosphere.azimuth_local[idx]))
-            if abs(float(nsun[2])) >= MIN_DIRECT_COS_ZENITH:
-                mode = "direct"
-                timing_args = {"timing": step_timing} if timing is not None else {}
-                sdir, knet, sveg = radiation._compute_knet(
-                    nsun,
-                    dni,
-                    dsky,
-                    method_name,
-                    resolution,
-                    lscatter,
-                    albedo,
-                    vf,
-                    svf,
-                    fss,
-                    **timing_args,
-                )
-                sdir_all[:, idx] = np.asarray(sdir, dtype=np.float32)
-                knet_all[:, idx] = np.asarray(knet, dtype=np.float32)
-                if sveg is not None and np.asarray(sveg).size > 0:
-                    if sveg_all is None:
-                        sveg_all = np.zeros((np.asarray(sveg).size, nt), dtype=np.float32)
-                    sveg_all[:, idx] = np.asarray(sveg, dtype=np.float32)
-            elif dsky > 0.0:
-                mode = "diffuse"
-        elif dsky > 0.0:
-            mode = "diffuse"
-
-        if mode == "diffuse":
-            zero_sdir = np.zeros(nfacets, dtype=np.float64)
-            net_timer = Stopwatch() if timing is not None else None
-            if lscatter:
-                if vf is None or svf is None:
-                    raise ValueError("View factors are required for diffuse shortwave")
-                knet = radiation.calc_reflections_sw(zero_sdir, dsky, vf, svf, albedo)
-            else:
-                if fss is None:
-                    raise ValueError("Fss is required for non-scattering shortwave")
-                knet = _radiation_compute.net_shortwave_nonscattering(
-                    zero_sdir, dsky, fss, albedo
-                )
-            knet_all[:, idx] = np.asarray(knet, dtype=np.float32)
-            if net_timer is not None:
-                net_sample = net_timer.sample()
-                step_timing["net_wall_seconds"] = net_sample.wall_seconds
-                step_timing["net_cpu_seconds"] = net_sample.cpu_seconds
-
-        if timing is not None and step_timer is not None:
+        if timing is not None:
             if model_start is None:
                 raise RuntimeError("Internal error: benchmark model start is unavailable")
-            step_sample = step_timer.sample()
             timing.record_timestamp(
                 {
                     "index": idx + 1,
                     "total": nt,
-                    "model_time_seconds": float(time_value),
+                    "model_time_seconds": float(atmosphere.times[idx]),
                     "simulation_datetime": (
-                        model_start + timedelta(seconds=float(time_value))
+                        model_start
+                        + timedelta(seconds=float(atmosphere.times[idx]))
                     ).isoformat(),
-                    "mode": mode,
+                    "mode": result.mode,
                     "ghi_w_m2": float(atmosphere.ghi[idx]),
-                    "dni_w_m2": dni,
-                    "dsky_w_m2": dsky,
-                    "zenith_degrees": zenith,
+                    "dni_w_m2": float(atmosphere.dni[idx]),
+                    "dsky_w_m2": float(atmosphere.dsky[idx]),
+                    "zenith_degrees": float(atmosphere.zenith[idx]),
                     "azimuth_local_degrees": float(atmosphere.azimuth_local[idx]),
-                    "direct_wall_seconds": step_timing.get("direct_wall_seconds", 0.0),
-                    "direct_cpu_seconds": step_timing.get("direct_cpu_seconds", 0.0),
-                    "net_wall_seconds": step_timing.get("net_wall_seconds", 0.0),
-                    "net_cpu_seconds": step_timing.get("net_cpu_seconds", 0.0),
-                    "step_wall_seconds": step_sample.wall_seconds,
-                    "step_cpu_seconds": step_sample.cpu_seconds,
+                    "direct_wall_seconds": result.timing.get(
+                        "direct_wall_seconds", 0.0
+                    ),
+                    "direct_cpu_seconds": result.timing.get(
+                        "direct_cpu_seconds", 0.0
+                    ),
+                    "net_wall_seconds": result.timing.get("net_wall_seconds", 0.0),
+                    "net_cpu_seconds": result.timing.get("net_cpu_seconds", 0.0),
+                    "step_wall_seconds": result.sample.wall_seconds,
+                    "step_cpu_seconds": result.sample.cpu_seconds,
+                    "peak_rss_mib": result.sample.peak_rss_mib,
+                    "worker_pid": result.worker_pid,
+                    "resumed": result.resumed,
                 }
             )
-            if verbose:
-                peak_text = (
-                    f"{step_sample.peak_rss_mib:.1f} MiB"
-                    if step_sample.peak_rss_mib is not None
-                    else "n/a"
-                )
-                print(
-                    f"[timing {idx + 1:3d}/{nt}] mode={mode:<7s} "
-                    f"wall={step_sample.wall_seconds:.3f}s "
-                    f"cpu={step_sample.cpu_seconds:.3f}s "
-                    f"peak_rss={peak_text}",
-                    flush=True,
-                )
+
+        if verbose:
+            peak_text = (
+                f"{result.sample.peak_rss_mib:.1f} MiB"
+                if result.sample.peak_rss_mib is not None
+                else "n/a"
+            )
+            action = "resumed" if result.resumed else "done"
+            print(
+                f"[{action} {idx + 1:3d}/{nt}] mode={result.mode:<7s} "
+                f"wall={result.sample.wall_seconds:.3f}s "
+                f"cpu={result.sample.cpu_seconds:.3f}s "
+                f"peak_rss={peak_text} pid={result.worker_pid}",
+                flush=True,
+            )
+
+    pending: list[int] = []
+    for idx, time_value in enumerate(atmosphere.times):
+        result = None
+        if resume and prepared_checkpoint_dir is not None:
+            result = _load_step_checkpoint(
+                prepared_checkpoint_dir,
+                idx,
+                float(time_value),
+                nfacets,
+            )
+        if result is None:
+            pending.append(idx)
+        else:
+            consume_result(result)
+
+    if workers == 1:
+        for idx in pending:
+            print_step("start", idx)
+            consume_result(_compute_facet_step(context, idx))
+    elif pending:
+        if "fork" not in multiprocessing.get_all_start_methods():
+            raise RuntimeError("Parallel facet mapping requires multiprocessing fork support")
+        process_count = min(workers, len(pending))
+        if verbose:
+            print(
+                f"[parallel] workers={process_count} pending={len(pending)}",
+                flush=True,
+            )
+        global _FACET_MAPPING_CONTEXT
+        _FACET_MAPPING_CONTEXT = context
+        try:
+            mp_context = multiprocessing.get_context("fork")
+            with mp_context.Pool(processes=process_count) as pool:
+                for result in pool.imap_unordered(
+                    _facet_mapping_worker, pending, chunksize=1
+                ):
+                    consume_result(result)
+        finally:
+            _FACET_MAPPING_CONTEXT = None
 
     return sdir_all, knet_all, sveg_all
 
@@ -1004,6 +1275,9 @@ def generate_timedepsw_from_harmonie(
     method: str | None = None,
     verbose: bool = True,
     timing_prefix: Path | None = None,
+    workers: int = 1,
+    checkpoint_dir: Path | None = None,
+    resume: bool = False,
 ) -> TimedepShortwaveResult | ShortwaveAtmosphere:
     """Generate HARMONIE shortwave inputs with optional benchmark timing."""
     case_dir = Path(case_dir).expanduser().resolve()
@@ -1017,6 +1291,13 @@ def generate_timedepsw_from_harmonie(
                 "version": version,
                 "method_override": method,
                 "atmos_only": atmos_only,
+                "workers": int(workers),
+                "checkpoint_dir": (
+                    str(Path(checkpoint_dir).expanduser())
+                    if checkpoint_dir is not None
+                    else None
+                ),
+                "resume": resume,
             }
         )
         timing = ShortwaveTimingRecorder(
@@ -1041,6 +1322,9 @@ def generate_timedepsw_from_harmonie(
             method=method,
             verbose=verbose,
             timing=timing,
+            workers=workers,
+            checkpoint_dir=checkpoint_dir,
+            resume=resume,
         )
     except BaseException as exc:
         if timing is not None:
@@ -1081,6 +1365,9 @@ def _generate_timedepsw_from_harmonie(
     method: str | None = None,
     verbose: bool = True,
     timing: ShortwaveTimingRecorder | None = None,
+    workers: int = 1,
+    checkpoint_dir: Path | None = None,
+    resume: bool = False,
 ) -> TimedepShortwaveResult | ShortwaveAtmosphere:
     """Generate ``timedepsw.inp.<expnr>`` from HARMONIE ``ssrd``.
 
@@ -1177,6 +1464,9 @@ def _generate_timedepsw_from_harmonie(
             method=method,
             verbose=verbose,
             timing=timing,
+            workers=workers,
+            checkpoint_dir=checkpoint_dir,
+            resume=resume,
         )
 
     with timed_stage(timing, "write_timedepsw"):

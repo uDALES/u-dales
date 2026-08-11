@@ -59,6 +59,23 @@ class TestScanlineContract(unittest.TestCase):
         self.assertTrue(inputs.nsun.flags["F_CONTIGUOUS"])
         self.assertEqual(inputs.faces_1based.dtype, np.int32)
 
+    def test_static_scanline_geometry_is_reused_between_calls(self) -> None:
+        first = self.solver._build_scanline_inputs(self.nsun, 800.0, resolution=0.1)
+        second = self.solver._build_scanline_inputs(self.nsun, 700.0, resolution=0.2)
+
+        self.assertIs(first.faces_1based, second.faces_1based)
+        self.assertIs(first.facet_points, second.facet_points)
+        self.assertIs(first.face_normals, second.face_normals)
+        self.assertIs(first.vertices, second.vertices)
+        self.assertEqual(second.irradiance, 700.0)
+        self.assertEqual(second.resolution, 0.2)
+
+    def test_scanline_does_not_allocate_ray_casting_volume_fields(self) -> None:
+        self.assertEqual(self.solver.ktot, 0)
+        self.assertEqual(self.solver.lad_3d.size, 0)
+        self.assertEqual(self.solver.dec_3d.size, 0)
+        self.assertEqual(self.solver.veg_index.size, 0)
+
     def test_legacy_serialization_matches_canonical_inputs(self) -> None:
         inputs = self.solver._build_scanline_inputs(self.nsun, 800.0, resolution=0.1)
         with tempfile.TemporaryDirectory(prefix="udales-scanline-contract-") as td:
