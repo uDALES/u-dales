@@ -340,7 +340,7 @@ contains
     real :: ltemp = 0.
 
     if (lvfsparse) then
-         facLWin = svf*skyLW*facem
+         facLWin = svf*skyLW*facem(1:nfcts)
          do n=1,nnz
             i = ivfsparse(n)
             j = jvfsparse(n)
