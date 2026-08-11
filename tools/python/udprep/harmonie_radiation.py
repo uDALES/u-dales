@@ -21,6 +21,12 @@ from typing import Any, Iterable
 import numpy as np
 
 from . import _radiation_compute
+from .radiation_timing import (
+    ShortwaveTimingRecorder,
+    Stopwatch,
+    benchmark_metadata,
+    timed_stage,
+)
 from .solar import nsun_from_angles, solar_position_python
 
 
@@ -835,8 +841,10 @@ def map_atmosphere_to_facets(
     *,
     method: str | None = None,
     verbose: bool = True,
+    timing: ShortwaveTimingRecorder | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
     """Map atmospheric shortwave forcing to uDALES facets."""
+    setup_timer = Stopwatch() if timing is not None else None
     sim = prep.sim
     radiation = prep.radiation
     lscatter = bool(radiation.lEB)
@@ -857,11 +865,31 @@ def map_atmosphere_to_facets(
     sdir_all = np.zeros((nfacets, nt), dtype=np.float32)
     knet_all = np.zeros((nfacets, nt), dtype=np.float32)
     sveg_all: np.ndarray | None = None
+    if timing is not None and setup_timer is not None:
+        timing.record_stage("facet_mapping_setup", setup_timer.sample())
+
+    model_start = None
+    if timing is not None:
+        model_timezone = timezone(
+            timedelta(hours=float(getattr(radiation, "timezone", 0.0)))
+        )
+        model_start = datetime(
+            int(radiation.year),
+            int(radiation.month),
+            int(radiation.day),
+            int(radiation.hour),
+            int(radiation.minute),
+            int(radiation.second),
+            tzinfo=model_timezone,
+        )
 
     for idx, time_value in enumerate(atmosphere.times):
+        step_timer = Stopwatch() if timing is not None else None
+        step_timing: dict[str, float] = {}
         dni = float(atmosphere.dni[idx])
         dsky = float(atmosphere.dsky[idx])
         zenith = float(atmosphere.zenith[idx])
+        mode = "night"
         if verbose:
             print(
                 f"[{idx + 1:3d}/{nt}] t={time_value:8.1f}s "
@@ -873,6 +901,8 @@ def map_atmosphere_to_facets(
         if dni > 0.0 and zenith < 90.0:
             nsun = nsun_from_angles(zenith, float(atmosphere.azimuth_local[idx]))
             if abs(float(nsun[2])) >= MIN_DIRECT_COS_ZENITH:
+                mode = "direct"
+                timing_args = {"timing": step_timing} if timing is not None else {}
                 sdir, knet, sveg = radiation._compute_knet(
                     nsun,
                     dni,
@@ -884,6 +914,7 @@ def map_atmosphere_to_facets(
                     vf,
                     svf,
                     fss,
+                    **timing_args,
                 )
                 sdir_all[:, idx] = np.asarray(sdir, dtype=np.float32)
                 knet_all[:, idx] = np.asarray(knet, dtype=np.float32)
@@ -891,10 +922,14 @@ def map_atmosphere_to_facets(
                     if sveg_all is None:
                         sveg_all = np.zeros((np.asarray(sveg).size, nt), dtype=np.float32)
                     sveg_all[:, idx] = np.asarray(sveg, dtype=np.float32)
-                continue
+            elif dsky > 0.0:
+                mode = "diffuse"
+        elif dsky > 0.0:
+            mode = "diffuse"
 
-        if dsky > 0.0:
+        if mode == "diffuse":
             zero_sdir = np.zeros(nfacets, dtype=np.float64)
+            net_timer = Stopwatch() if timing is not None else None
             if lscatter:
                 if vf is None or svf is None:
                     raise ValueError("View factors are required for diffuse shortwave")
@@ -906,6 +941,50 @@ def map_atmosphere_to_facets(
                     zero_sdir, dsky, fss, albedo
                 )
             knet_all[:, idx] = np.asarray(knet, dtype=np.float32)
+            if net_timer is not None:
+                net_sample = net_timer.sample()
+                step_timing["net_wall_seconds"] = net_sample.wall_seconds
+                step_timing["net_cpu_seconds"] = net_sample.cpu_seconds
+
+        if timing is not None and step_timer is not None:
+            if model_start is None:
+                raise RuntimeError("Internal error: benchmark model start is unavailable")
+            step_sample = step_timer.sample()
+            timing.record_timestamp(
+                {
+                    "index": idx + 1,
+                    "total": nt,
+                    "model_time_seconds": float(time_value),
+                    "simulation_datetime": (
+                        model_start + timedelta(seconds=float(time_value))
+                    ).isoformat(),
+                    "mode": mode,
+                    "ghi_w_m2": float(atmosphere.ghi[idx]),
+                    "dni_w_m2": dni,
+                    "dsky_w_m2": dsky,
+                    "zenith_degrees": zenith,
+                    "azimuth_local_degrees": float(atmosphere.azimuth_local[idx]),
+                    "direct_wall_seconds": step_timing.get("direct_wall_seconds", 0.0),
+                    "direct_cpu_seconds": step_timing.get("direct_cpu_seconds", 0.0),
+                    "net_wall_seconds": step_timing.get("net_wall_seconds", 0.0),
+                    "net_cpu_seconds": step_timing.get("net_cpu_seconds", 0.0),
+                    "step_wall_seconds": step_sample.wall_seconds,
+                    "step_cpu_seconds": step_sample.cpu_seconds,
+                }
+            )
+            if verbose:
+                peak_text = (
+                    f"{step_sample.peak_rss_mib:.1f} MiB"
+                    if step_sample.peak_rss_mib is not None
+                    else "n/a"
+                )
+                print(
+                    f"[timing {idx + 1:3d}/{nt}] mode={mode:<7s} "
+                    f"wall={step_sample.wall_seconds:.3f}s "
+                    f"cpu={step_sample.cpu_seconds:.3f}s "
+                    f"peak_rss={peak_text}",
+                    flush=True,
+                )
 
     return sdir_all, knet_all, sveg_all
 
@@ -924,6 +1003,84 @@ def generate_timedepsw_from_harmonie(
     atmos_only: bool = False,
     method: str | None = None,
     verbose: bool = True,
+    timing_prefix: Path | None = None,
+) -> TimedepShortwaveResult | ShortwaveAtmosphere:
+    """Generate HARMONIE shortwave inputs with optional benchmark timing."""
+    case_dir = Path(case_dir).expanduser().resolve()
+    timing = None
+    if timing_prefix is not None:
+        repo_root = Path(__file__).resolve().parents[3]
+        metadata = benchmark_metadata(repo_root, case_dir)
+        metadata.update(
+            {
+                "nwp_root": str(Path(nwp_root).expanduser()),
+                "version": version,
+                "method_override": method,
+                "atmos_only": atmos_only,
+            }
+        )
+        timing = ShortwaveTimingRecorder(
+            timing_prefix,
+            metadata=metadata,
+            overwrite=overwrite,
+        )
+
+    total_timer = Stopwatch()
+    try:
+        result = _generate_timedepsw_from_harmonie(
+            case_dir=case_dir,
+            nwp_root=nwp_root,
+            version=version,
+            data_dir=data_dir,
+            download=download,
+            output=output,
+            sdir_nc=sdir_nc,
+            write_sdir_nc=write_sdir_nc,
+            overwrite=overwrite,
+            atmos_only=atmos_only,
+            method=method,
+            verbose=verbose,
+            timing=timing,
+        )
+    except BaseException as exc:
+        if timing is not None:
+            timing.finish(
+                status="failed",
+                total=total_timer.sample(),
+                error=f"{type(exc).__name__}: {exc}",
+            )
+        raise
+
+    if timing is not None:
+        outputs = None
+        if isinstance(result, TimedepShortwaveResult):
+            outputs = {
+                "timedepsw": str(result.timedepsw_path),
+                "netsw": str(result.netsw_path),
+                "sdir_nc": str(result.sdir_nc_path) if result.sdir_nc_path else None,
+                "timedepsveg": (
+                    str(result.timedepsveg_path) if result.timedepsveg_path else None
+                ),
+            }
+        timing.finish(status="completed", total=total_timer.sample(), outputs=outputs)
+    return result
+
+
+def _generate_timedepsw_from_harmonie(
+    *,
+    case_dir: Path,
+    nwp_root: Path = DEFAULT_NWP_ROOT,
+    version: str = DEFAULT_VERSION,
+    data_dir: Path | None = None,
+    download: bool = False,
+    output: Path | None = None,
+    sdir_nc: Path | None = None,
+    write_sdir_nc: bool = True,
+    overwrite: bool = False,
+    atmos_only: bool = False,
+    method: str | None = None,
+    verbose: bool = True,
+    timing: ShortwaveTimingRecorder | None = None,
 ) -> TimedepShortwaveResult | ShortwaveAtmosphere:
     """Generate ``timedepsw.inp.<expnr>`` from HARMONIE ``ssrd``.
 
@@ -934,30 +1091,48 @@ def generate_timedepsw_from_harmonie(
     expnr = case_dir.name
 
     prep = None
-    if atmos_only:
-        radiation = radiation_config_from_case_dir(case_dir)
-    else:
-        try:
-            from .udprep import UDPrep
-        except ImportError as exc:
-            raise RuntimeError(
-                "Facet mapping requires the uDALES preprocessing environment "
-                "(geometry/radiation dependencies such as trimesh, triangle, "
-                "netCDF4, and directshortwave_f2py) in addition to the HARMONIE "
-                "GRIB dependencies (xarray, cfgrib, pyproj)."
-            ) from exc
+    with timed_stage(timing, "load_case_geometry"):
+        if atmos_only:
+            radiation = radiation_config_from_case_dir(case_dir)
+        else:
+            try:
+                from .udprep import UDPrep
+            except ImportError as exc:
+                raise RuntimeError(
+                    "Facet mapping requires the uDALES preprocessing environment "
+                    "(geometry/radiation dependencies such as trimesh, triangle, "
+                    "netCDF4, and directshortwave_f2py) in addition to the HARMONIE "
+                    "GRIB dependencies (xarray, cfgrib, pyproj)."
+                ) from exc
 
-        prep = UDPrep(expnr, case_dir, load_geometry=True)
-        radiation = prep.radiation
+            prep = UDPrep(expnr, case_dir, load_geometry=True)
+            radiation = prep.radiation
 
-    atmosphere, reader = prepare_harmonie_ssrd_atmosphere(
-        radiation=radiation,
-        nwp_root=nwp_root,
-        version=version,
-        data_dir=data_dir,
-        download=download,
-        verbose=verbose,
-    )
+    if timing is not None:
+        runtime_value = getattr(radiation, "runtime", None)
+        dtsp_value = getattr(radiation, "dtSP", None)
+        ntimedepsw_value = getattr(radiation, "ntimedepsw", None)
+        timing.update_metadata(
+            experiment=expnr,
+            runtime_seconds=(float(runtime_value) if runtime_value is not None else None),
+            dtsp_seconds=(float(dtsp_value) if dtsp_value is not None else None),
+            ntimedepsw=(
+                int(ntimedepsw_value) if ntimedepsw_value is not None else None
+            ),
+            ishortwave=getattr(radiation, "ishortwave", None),
+            psc_res=getattr(radiation, "psc_res", None),
+            energy_balance=bool(getattr(radiation, "lEB", False)),
+        )
+
+    with timed_stage(timing, "prepare_harmonie_atmosphere"):
+        atmosphere, reader = prepare_harmonie_ssrd_atmosphere(
+            radiation=radiation,
+            nwp_root=nwp_root,
+            version=version,
+            data_dir=data_dir,
+            download=download,
+            verbose=verbose,
+        )
     if verbose:
         print(f"Spatial mask points: {reader.mask_points}")
         print(
@@ -995,18 +1170,29 @@ def generate_timedepsw_from_harmonie(
         paths_to_check.append(sdir_nc_path)
     _check_output_paths(paths_to_check, overwrite=overwrite)
 
-    sdir, knet, sveg = map_atmosphere_to_facets(
-        prep, atmosphere, method=method, verbose=verbose
-    )
+    with timed_stage(timing, "map_atmosphere_to_facets"):
+        sdir, knet, sveg = map_atmosphere_to_facets(
+            prep,
+            atmosphere,
+            method=method,
+            verbose=verbose,
+            timing=timing,
+        )
 
-    write_timedepsw(timedepsw_path, atmosphere.times, knet, overwrite=overwrite)
-    write_netsw(netsw_path, knet[:, 0], overwrite=overwrite)
+    with timed_stage(timing, "write_timedepsw"):
+        write_timedepsw(timedepsw_path, atmosphere.times, knet, overwrite=overwrite)
+    with timed_stage(timing, "write_netsw"):
+        write_netsw(netsw_path, knet[:, 0], overwrite=overwrite)
     if sdir_nc_path is not None:
-        prep.radiation._write_sdir_nc(sdir_nc_path, atmosphere.times, sdir)
+        with timed_stage(timing, "write_sdir_nc"):
+            prep.radiation._write_sdir_nc(sdir_nc_path, atmosphere.times, sdir)
     written_sveg_path = None
     if sveg is not None:
         _check_output_paths([timedepsveg_path], overwrite=overwrite)
-        write_timedepsveg(timedepsveg_path, atmosphere.times, sveg, overwrite=overwrite)
+        with timed_stage(timing, "write_timedepsveg"):
+            write_timedepsveg(
+                timedepsveg_path, atmosphere.times, sveg, overwrite=overwrite
+            )
         written_sveg_path = timedepsveg_path
 
     return TimedepShortwaveResult(

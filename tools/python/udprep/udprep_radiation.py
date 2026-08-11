@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import warnings
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple
@@ -1055,17 +1056,28 @@ class RadiationSection(Section):
         vf,
         svf: np.ndarray | None,
         fss: np.ndarray | None,
+        *,
+        timing: Dict[str, float] | None = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+        if timing is not None:
+            direct_wall_start = time.perf_counter()
+            direct_cpu_start = time.process_time()
         sdir, s_veg, _ = self.calc_direct_sw(
             nsun,
             irradiance,
             method=method,
             resolution=resolution,
         )
+        if timing is not None:
+            timing["direct_wall_seconds"] = time.perf_counter() - direct_wall_start
+            timing["direct_cpu_seconds"] = time.process_time() - direct_cpu_start
         if method == "scanline_f2py":
             # MATLAB's Fortran route writes Sdir.txt with f8.2 and reads it
             # back before computing Knet, so use the same precision here.
             sdir = np.round(sdir, 2)
+        if timing is not None:
+            net_wall_start = time.perf_counter()
+            net_cpu_start = time.process_time()
         if lscatter:
             if vf is None or svf is None:
                 raise ValueError("View factors are required for shortwave reflections")
@@ -1074,6 +1086,9 @@ class RadiationSection(Section):
             if fss is None:
                 raise ValueError("Fss is required for non-scattering shortwave")
             knet = _radiation_compute.net_shortwave_nonscattering(sdir, dsky, fss, albedo)
+        if timing is not None:
+            timing["net_wall_seconds"] = time.perf_counter() - net_wall_start
+            timing["net_cpu_seconds"] = time.process_time() - net_cpu_start
         return sdir, knet, s_veg
 
     @staticmethod

@@ -973,6 +973,7 @@ class TestRadiationSection(unittest.TestCase):
         section.calc_direct_sw = fake_calc_direct_sw
         section.calc_reflections_sw = fake_calc_reflections_sw
 
+        timing = {}
         sdir, knet, s_veg = section._compute_knet(
             np.array([0.0, 0.0, 1.0]),
             800.0,
@@ -984,6 +985,7 @@ class TestRadiationSection(unittest.TestCase):
             object(),
             np.ones(3),
             None,
+            timing=timing,
         )
 
         expected = np.round(full_sdir, 2)
@@ -992,6 +994,10 @@ class TestRadiationSection(unittest.TestCase):
         np.testing.assert_allclose(knet, expected + 1.0)
         self.assertIsInstance(s_veg, np.ndarray)
         self.assertEqual(s_veg.size, 0)
+        self.assertGreaterEqual(timing["direct_wall_seconds"], 0.0)
+        self.assertGreaterEqual(timing["direct_cpu_seconds"], 0.0)
+        self.assertGreaterEqual(timing["net_wall_seconds"], 0.0)
+        self.assertGreaterEqual(timing["net_cpu_seconds"], 0.0)
 
     # ------------------------------------------------------------------
     # Item 1 (P1): run_short_wave_timedep vegetation array-shape contract
