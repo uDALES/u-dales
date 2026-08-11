@@ -106,15 +106,15 @@ Placement guidance:
 Typical debug build:
 
 ```bash
-cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug
-cmake --build build/debug -j 4
+cmake -S . -B build/cpu/debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/cpu/debug -j 4
 ```
 
 Typical release build:
 
 ```bash
-cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release
-cmake --build build/release -j 4
+cmake -S . -B build/cpu/release -DCMAKE_BUILD_TYPE=Release
+cmake --build build/cpu/release -j 4
 ```
 
 On the cluster, MPI-enabled builds and tests may require loading the project

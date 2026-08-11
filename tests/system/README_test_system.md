@@ -150,7 +150,7 @@ Progress and results are written to `test_inputs.log`.
 
 | Phase | What happens |
 |-------|-------------|
-| **1 — Build** | Deletes `build/` and rebuilds u-dales (`tools/build_executable.sh common release` for `--system common`; loads `nvhpc/24.11` and uses `tools/build_executable.sh gpu release` for `--system gpu`) |
+| **1 — Build** | Deletes only the selected `build/cpu/release` or `build/gpu/release` tree and rebuilds u-dales (`tools/build_executable.sh common release` for `--system common`; loads `nvhpc/24.11` and uses `tools/build_executable.sh gpu release` for `--system gpu`) |
 | **2 — Simulate** | For each case, deletes any previous `outputs/<case>/` directory then runs the simulation via `tools/local_execute.sh tests/system/experiments/<case>` |
 | **3 — Compare outputs** | Calls `tools/ud_compare_outputs.py <case> outputs/ <ref_data_path> <tolerance> <tol_thl>`, comparing freshly produced NetCDF files in `outputs/<case>/` against `<ref_data_path>/<case>/`. `--tolerance` applies to non-temperature variables and defaults to `1e-6`; `--tol-thl` applies to temperature variables and defaults to `--tolerance` if not set |
 | **4 — Compare inputs** *(optional)* | Runs automatically if Phase 3 fails. Calls `tools/ud_compare_inputs.py <case> experiments/ <ref_data_path>` to check whether input files differ from the reference, helping diagnose the root cause |
@@ -175,7 +175,9 @@ The script exits with code `0` (all passed) or `1` (any failure).
 ## Adding a new test case
 
 1. Create `experiments/<NNN>/` with the simulation input files and a `config.sh`
-   that exports `DA_EXPDIR`, `DA_BUILD`, `DA_WORKDIR`, and `NCPU`.
+   that exports `DA_EXPDIR`, `DA_BUILD`, `DA_WORKDIR`, and `NCPU`. Point
+   `DA_BUILD` to `build/cpu/release/u-dales` for `--system common` or
+   `build/gpu/release/u-dales` for `--system gpu`.
 2. Run the simulation once manually to produce output, then copy the NetCDF
    output files (`xytdump.<NNN>.nc`, `tdump.<NNN>.nc`, `fielddump.<NNN>.nc`,
    and `treedump.<NNN>.nc` if applicable) to `ref_data/<NNN>/`.

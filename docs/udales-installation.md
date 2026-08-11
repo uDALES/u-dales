@@ -112,6 +112,10 @@ To compile uDALES (in release mode) on common/local Ubuntu or Mac systems using 
 tools/build_executable.sh common release
 ```
 
+The helper keeps CPU and GPU CMake caches separate. CPU targets (`common`,
+`icl`, `archer`, and `cca`) are written under `build/cpu/<build-type>`, while
+the `gpu` target is written under `build/gpu/<build-type>`.
+
 OR,
 you can do it manually. On standard systems and configurations, you can build uDALES with the following commands:
 
@@ -119,9 +123,9 @@ you can do it manually. On standard systems and configurations, you can build uD
 # We assume you are running the following commands from your
 # top-level project directory.
 
-mkdir -p u-dales/build/release # in case you want to later create a build/debug
-pushd u-dales/build/release
-cmake -LA ../..
+mkdir -p u-dales/build/cpu/release # in case you later want build/cpu/debug
+pushd u-dales/build/cpu/release
+cmake -LA ../../..
 make
 popd
 ```
@@ -166,9 +170,9 @@ Then, to build the uDALES executable, run the following commands:
 # We assume you are running the following commands from your
 # top-level project directory.
 
-mkdir -p u-dales/build/release
-pushd u-dales/build/release
-FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran -LA ../..
+mkdir -p u-dales/build/cpu/release
+pushd u-dales/build/cpu/release
+FC=mpiifort cmake -DNETCDF_DIR=/apps/netcdf/4.4.1-c -DNETCDF_FORTRAN_DIR=/apps/netcdf/4.4.4-fortran -LA ../../..
 make
 popd
 ```

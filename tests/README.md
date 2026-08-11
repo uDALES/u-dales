@@ -64,8 +64,8 @@ python tests/run_tests.py python-library
 
 This runs Python-library unit tests plus Python-driven library integration/
 reference suites (including directshortwave, udprep integration, udbase
-parity, and Python preprocessing parity). It skips solver/MPI and regression
-suites.
+parity, Python preprocessing parity, the GPU harness unit tests, and the build
+wrapper directory contract). It skips solver/MPI and regression suites.
 
 Today, GitHub Actions runs the curated `supported` selection:
 
@@ -172,6 +172,8 @@ between multiple components rather than one isolated API.
 
 - `directshortwave/`: Python-driven preprocessing integration tests for direct
   shortwave on committed cases `100` and `525`
+- `build_tools/`: compiler-free contract tests for the CPU/GPU build-directory
+  selection in `tools/build_executable.sh`
 - `ibm_sparse_input/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
 - `mpi_operators/`: direct MPI operator validation for `runmode = 1005` on
   the Xie/Castro case `100` across `1x1`, `2x1`, `1x2`, and `2x2`
@@ -295,8 +297,8 @@ Build the Debug solver and run the Python test stream and GPU matrix
 configuration checks:
 
 ```bash
-cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug
-cmake --build build/debug -j 4
+cmake -S . -B build/cpu/debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/cpu/debug -j 4
 
 source tools/python/.venv/bin/activate
 python tests/run_tests.py python-library
@@ -309,7 +311,7 @@ fixture with the CPU executable:
 ```bash
 python tests/integration/gpu/run_gpu_tests.py full \
   --cpu-only \
-  --cpu-executable build/debug/u-dales
+  --cpu-executable build/cpu/debug/u-dales
 ```
 
 ### Before pushing
@@ -324,8 +326,8 @@ python tests/run_tests.py supported \
   --branch-b HEAD \
   --build-type Debug
 
-cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release
-cmake --build build/release -j 4
+cmake -S . -B build/cpu/release -DCMAKE_BUILD_TYPE=Release
+cmake --build build/cpu/release -j 4
 
 python tests/run_tests.py all \
   --branch-a master \

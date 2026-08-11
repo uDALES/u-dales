@@ -49,6 +49,9 @@ Solver build:
 ./tools/build_executable.sh <system> <debug|release>
 ```
 
+The wrapper writes CPU targets to `build/cpu/<build-type>` and the GPU target
+to `build/gpu/<build-type>`, unless `UDALES_BUILD_DIR` overrides the location.
+
 Preprocessing build (View3D etc.):
 
 ```bash

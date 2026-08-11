@@ -663,7 +663,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--cpu-executable",
         type=Path,
-        default=Path(os.environ.get("UDALES_CPU_BUILD", REPO_ROOT / "build/common/debug/u-dales")),
+        default=Path(os.environ.get("UDALES_CPU_BUILD", REPO_ROOT / "build/cpu/debug/u-dales")),
     )
     parser.add_argument(
         "--gpu-executable",

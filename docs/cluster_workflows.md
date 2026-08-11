@@ -15,7 +15,9 @@ Use the project wrapper instead of assembling a module stack by hand:
 
 That script is the source of truth for the solver build environment on the
 cluster. It loads the compiler, MPI, NetCDF, FFTW, CMake, and Git modules that
-the solver build expects.
+the solver build expects. CPU builds are written to `build/cpu/debug` or
+`build/cpu/release`; GPU builds use the corresponding directory under
+`build/gpu`.
 
 ## Preprocessing Build
 

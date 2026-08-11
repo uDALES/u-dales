@@ -77,8 +77,8 @@ jobs:
           name: gpu-smoke-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/udales-gpu-smoke/
-            build/common/debug/config.log
-            build/common/debug/build.log
+            build/cpu/debug/config.log
+            build/cpu/debug/build.log
             build/gpu/debug/config.log
             build/gpu/debug/build.log
           if-no-files-found: warn
@@ -119,8 +119,8 @@ jobs:
           name: gpu-nightly-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/udales-gpu-nightly/
-            build/common/release/config.log
-            build/common/release/build.log
+            build/cpu/release/config.log
+            build/cpu/release/build.log
             build/gpu/release/config.log
             build/gpu/release/build.log
           if-no-files-found: warn
@@ -159,8 +159,8 @@ jobs:
           name: gpu-mpi-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/udales-gpu-mpi/
-            build/common/debug/config.log
-            build/common/debug/build.log
+            build/cpu/debug/config.log
+            build/cpu/debug/build.log
             build/gpu/debug/config.log
             build/gpu/debug/build.log
           if-no-files-found: warn

@@ -92,12 +92,15 @@ accepts these optional variables:
 - `UDALES_BUILD_JOBS`
 - `UDALES_FORTRAN_COMPILER`
 
+Without an override, `tools/build_executable.sh` writes CPU builds to
+`build/cpu/<build-type>` and GPU builds to `build/gpu/<build-type>`.
+
 `build_test_binaries.sh` uses them to produce:
 
 ```text
-build/common/debug/u-dales
+build/cpu/debug/u-dales
 build/gpu/debug/u-dales
-build/common/release/u-dales
+build/cpu/release/u-dales
 build/gpu/release/u-dales
 ```
 
@@ -148,7 +151,7 @@ To reuse executables without rebuilding, call the runner directly:
 
 ```bash
 python tests/integration/gpu/run_gpu_tests.py smoke \
-  --cpu-executable build/common/debug/u-dales \
+  --cpu-executable build/cpu/debug/u-dales \
   --gpu-executable build/gpu/debug/u-dales \
   --require-debug-selftest \
   --artifacts-dir /tmp/udales-gpu-artifacts
@@ -165,7 +168,7 @@ outputs when only a CPU executable is available:
 
 ```bash
 python tests/integration/gpu/run_gpu_tests.py smoke \
-  --cpu-only --cpu-executable build/common/debug/u-dales
+  --cpu-only --cpu-executable build/cpu/debug/u-dales
 ```
 
 The runner stages fresh copies under `/tmp` by default. Set `--work-root` to a

@@ -29,6 +29,7 @@ fi
 
 NPROC=$1
 BUILD_TYPE=$2
+BUILD_TYPE_LOWER="$(printf '%s' "$BUILD_TYPE" | tr '[:upper:]' '[:lower:]')"
 PATH_TO_CASE=$3
 NAMELIST=$4
 
@@ -36,7 +37,7 @@ NAMELIST=$4
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SIF_PATH=$THIS_DIR/image.sif
 ROOT_DIR=$THIS_DIR/../..
-UDALES_EXE=$ROOT_DIR/build/$BUILD_TYPE/u-dales
+UDALES_EXE=$ROOT_DIR/build/cpu/$BUILD_TYPE_LOWER/u-dales
 
 singularity exec --containall \
     -B $ROOT_DIR:$ROOT_DIR \

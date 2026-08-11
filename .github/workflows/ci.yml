@@ -71,7 +71,7 @@ jobs:
         # pipefail`. The build is piped into tee below, so pipefail is required
         # or a failed build would be masked by tee's exit status.
         set -o pipefail
-        build_dir="build/${{ matrix.build-type }}"
+        build_dir="build/cpu/${{ matrix.build-type }}"
         build_dir="$(printf '%s' "$build_dir" | tr '[:upper:]' '[:lower:]')"
         echo "UDALES_BUILD_LOG=${build_dir}/build.log" >> "$GITHUB_ENV"
         source .github/scripts/setup_mpi_env.sh "${{ matrix.os }}"

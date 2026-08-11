@@ -97,6 +97,15 @@ groups:
           - "{tests_dir}/integration/gpu"
           - "-p"
           - "test_*.py"
+      - label: "python-library: build wrapper contract"
+        class: supported
+        kind: integration
+        component: build
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/build_tools/test_build_executable.py"
 
   supported:
     includes:
@@ -120,7 +129,7 @@ groups:
         component: ibm
         platform: hpc
         cost: medium
-        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
         command:
           - "bash"
           - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
@@ -130,7 +139,7 @@ groups:
         component: solver
         platform: hpc
         cost: medium
-        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
         command:
           - "bash"
           - "{tests_dir}/integration/mpi_operators/run_test.sh"
@@ -140,7 +149,7 @@ groups:
         component: solver
         platform: hpc
         cost: medium
-        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
         command:
           - "{python}"
           - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
@@ -155,7 +164,7 @@ groups:
         component: ibm
         platform: hpc
         cost: medium
-        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
         command:
           - "bash"
           - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
@@ -259,7 +268,7 @@ groups:
         component: gpu
         platform: gpu
         cost: medium
-        env_UDALES_CPU_BUILD: "{repo_root}/build/common/debug/u-dales"
+        env_UDALES_CPU_BUILD: "{repo_root}/build/cpu/debug/u-dales"
         env_UDALES_GPU_BUILD: "{repo_root}/build/gpu/debug/u-dales"
         command:
           - "{python}"
@@ -285,7 +294,7 @@ groups:
         component: gpu
         platform: gpu
         cost: slow
-        env_UDALES_CPU_BUILD: "{repo_root}/build/common/release/u-dales"
+        env_UDALES_CPU_BUILD: "{repo_root}/build/cpu/release/u-dales"
         env_UDALES_GPU_BUILD: "{repo_root}/build/gpu/release/u-dales"
         command:
           - "{python}"
@@ -310,7 +319,7 @@ groups:
         component: gpu
         platform: gpu
         cost: medium
-        env_UDALES_CPU_BUILD: "{repo_root}/build/common/debug/u-dales"
+        env_UDALES_CPU_BUILD: "{repo_root}/build/cpu/debug/u-dales"
         env_UDALES_GPU_BUILD: "{repo_root}/build/gpu/debug/u-dales"
         command:
           - "{python}"
@@ -336,7 +345,7 @@ groups:
         component: gpu
         platform: gpu
         cost: slow
-        env_UDALES_CPU_BUILD: "{repo_root}/build/common/release/u-dales"
+        env_UDALES_CPU_BUILD: "{repo_root}/build/cpu/release/u-dales"
         env_UDALES_GPU_BUILD: "{repo_root}/build/gpu/release/u-dales"
         command:
           - "{python}"

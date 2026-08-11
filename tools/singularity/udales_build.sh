@@ -24,12 +24,13 @@ set -e
 
 NPROC=$1
 BUILD_TYPE=$2
+BUILD_TYPE_LOWER="$(printf '%s' "$BUILD_TYPE" | tr '[:upper:]' '[:lower:]')"
 
 # https://stackoverflow.com/a/246128/8893833
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SIF_PATH=$THIS_DIR/image.sif
 ROOT_DIR=$THIS_DIR/../..
-PATH_TO_BUILD_DIR=$ROOT_DIR/build/$BUILD_TYPE
+PATH_TO_BUILD_DIR=$ROOT_DIR/build/cpu/$BUILD_TYPE_LOWER
 
 # Always clean up
 rm -rf $PATH_TO_BUILD_DIR
@@ -38,6 +39,5 @@ mkdir -p $PATH_TO_BUILD_DIR
 singularity exec --containall \
     -B $ROOT_DIR:$ROOT_DIR \
     $SIF_PATH \
-    bash -c "cd $PATH_TO_BUILD_DIR && \
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../../ 2>&1 | tee -a config.log && \
-        make -j$NPROC 2>&1 | tee -a $PATH_TO_BUILD_DIR/build.log"
+    bash -c "cmake -S $ROOT_DIR -B $PATH_TO_BUILD_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE 2>&1 | tee -a $PATH_TO_BUILD_DIR/config.log && \
+        cmake --build $PATH_TO_BUILD_DIR --parallel $NPROC 2>&1 | tee -a $PATH_TO_BUILD_DIR/build.log"

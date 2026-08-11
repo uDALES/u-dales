@@ -22,7 +22,7 @@ Note that you need to choose the number of CPUs you are using to run the simulat
 
 export DA_EXPDIR=$(pwd)/experiments                     # Experiments top-level directory
 export DA_TOOLSDIR=$(pwd)/u-dales/tools                 # Directory of scripts
-export DA_BUILD=$(pwd)/u-dales/build/release/u-dales    # Build file
+export DA_BUILD=$(pwd)/u-dales/build/cpu/release/u-dales    # Build file
 export DA_WORKDIR=$(pwd)/outputs                        # Output top-level directory
 export NCPU=8                                           # Number of CPUs to use for a simulation
 
@@ -50,7 +50,7 @@ Then, to start the simulation, run:
 
 export DA_EXPDIR=$(pwd)/experiments                     # Experiments top-level directory
 export DA_TOOLSDIR=$(pwd)/u-dales/tools                 # Directory of scripts
-export DA_BUILD=$(pwd)/u-dales/build/release/u-dales    # Build file
+export DA_BUILD=$(pwd)/u-dales/build/cpu/release/u-dales    # Build file
 export DA_WORKDIR=$EPHEMERAL                            # Output top-level directory
 export NCPU=128                                         # Number of CPUs to use for a simulation
 export PREPROC_WALLTIME="24:00:00"                      # Optional preprocessing override; defaults to 24:00:00
@@ -82,7 +82,7 @@ Then, to start the simulation, run:
 
 export DA_EXPDIR=/work/account/account/username/top_level_project_directory/experiments                     # Experiments top-level directory
 export DA_TOOLSDIR=/work/account/account/username/top_level_project_directory/u-dales/tools                 # Directory of scripts
-export DA_BUILD=/work/account/account/username/top_level_project_directory/u-dales/build/release/u-dales    # Build file
+export DA_BUILD=/work/account/account/username/top_level_project_directory/u-dales/build/cpu/release/u-dales    # Build file
 export DA_WORKDIR=/work/account/account/username/top_level_project_directory/outputs                        # Output top-level directory
 export NCPU=128                                                                                             # Number of CPUs to use for a simulation
 export NNODE=1                                                                                              # Number of nodes to use for a simulation

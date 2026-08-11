@@ -311,9 +311,9 @@ echo "======================================"
 
 # Set build command based on system
 if [ "$SYSTEM" = "common" ]; then
-    BUILD_CMD="cd '$REPO_ROOT' && echo 'Building from: $REPO_ROOT' && rm -rf build && echo 'REMOVED old u-dales build directory.' && tools/build_executable.sh common release"
+    BUILD_CMD="cd '$REPO_ROOT' && echo 'Building from: $REPO_ROOT' && rm -rf build/cpu/release && echo 'REMOVED old CPU Release build directory.' && tools/build_executable.sh common release"
 elif [ "$SYSTEM" = "gpu" ]; then
-    BUILD_CMD="cd '$REPO_ROOT' && echo 'Building from: $REPO_ROOT' && rm -rf build && echo 'REMOVED old u-dales build directory.' && module purge && module use /opt/nvidia/hpc_sdk/modulefiles && module load nvhpc/24.11 && module list && tools/build_executable.sh gpu release"
+    BUILD_CMD="cd '$REPO_ROOT' && echo 'Building from: $REPO_ROOT' && rm -rf build/gpu/release && echo 'REMOVED old GPU Release build directory.' && module purge && module use /opt/nvidia/hpc_sdk/modulefiles && module load nvhpc/24.11 && module list && tools/build_executable.sh gpu release"
 else
     echo "[ERROR] Invalid --system value: '$SYSTEM'. Must be 'common' or 'gpu'."
     exit 1

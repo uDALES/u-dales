@@ -29,7 +29,7 @@ if [ ! -d src ]; then
 fi
 
 export DA_TOOLSDIR=$(pwd)/tools
-export DA_BUILD=$(pwd)/build/release/u-dales
+export DA_BUILD=$(pwd)/build/cpu/release/u-dales
 export NCPU=2
 export DA_WORKDIR=$(pwd)/outputs
 

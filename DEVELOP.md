@@ -29,9 +29,9 @@ This creates the environment at `tools/python/.venv`, installs all dependencies,
 Building the model is described in the [installation guide](https://udales.github.io/u-dales/udales-installation/); the same instructions apply for development. In addition, developers will usually want a `Debug` build, which enables runtime checks and floating-point exception trapping:
 
 ```sh
-mkdir -p build/debug
-pushd build/debug
-cmake -DCMAKE_BUILD_TYPE=Debug ../..
+mkdir -p build/cpu/debug
+pushd build/cpu/debug
+cmake -DCMAKE_BUILD_TYPE=Debug ../../..
 make
 ```
 

@@ -40,7 +40,7 @@ INTERIOR_ABS_TOL = 1.0e-7
 NPROCS = 4
 NPROCX = 2
 NPROCY = 2
-CACHED_FFTW_MODULE = REPO_ROOT / "build" / "debug" / "findFFTW-src" / "FindFFTW.cmake"
+CACHED_FFTW_MODULE = REPO_ROOT / "build" / "cpu" / "debug" / "findFFTW-src" / "FindFFTW.cmake"
 NAMELIST_DIR = SCRIPT_DIR
 NAMELIST_MAP = {
     "reference": NAMELIST_DIR / "namoptions.526.reference",
@@ -458,15 +458,18 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${findFFTW_DIR}")
 
 
 def _build_in_worktree(worktree: Path, ref: str, build_type: str) -> Path:
-    build_dir = worktree / "build" / build_type.lower()
+    build_dir = worktree / "build" / "cpu" / build_type.lower()
     build_script = worktree / "tools" / "build_executable.sh"
     if not build_script.is_file():
         raise RuntimeError(f"Missing build script in worktree: {build_script}")
     _prepare_offline_fftw(worktree, build_dir)
+    build_environment = os.environ.copy()
+    build_environment["UDALES_BUILD_DIR"] = str(build_dir)
     subprocess.run(
         ["bash", str(build_script), BUILD_SYSTEM, build_type.lower()],
         cwd=worktree,
         check=True,
+        env=build_environment,
     )
     exe_path = build_dir / "u-dales"
     if not exe_path.is_file():

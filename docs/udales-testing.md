@@ -51,7 +51,8 @@ python tests/run_tests.py experimental
 
 - `python-library` — `tools/python` unit tests plus the Python-driven
   integration/reference suites (directshortwave, udprep integration,
-  udbase-vs-MATLAB parity, Python-vs-MATLAB preprocessing parity). Needs the
+  udbase-vs-MATLAB parity, Python-vs-MATLAB preprocessing parity), GPU harness
+  unit tests, and the build-wrapper directory contract. Needs the
   conda `udales` environment (or equivalent) and `tools/python` installed
   (`pip install -e tools/python --no-deps`); no compiled solver, no MPI.
 - `supported` — the curated merge-gating selection: `python-library` plus
@@ -59,7 +60,7 @@ python tests/run_tests.py experimental
   integration suites (IBM sparse input, MPI operators, processor
   boundaries). These need a compiled uDALES build; the MPI suites read the
   build path from `UDALES_BUILD` (set per suite by the manifest as
-  `build/<build-type-lower>/u-dales`) and expect `mpiexec` on `PATH`. The
+  `build/cpu/<build-type-lower>/u-dales`) and expect `mpiexec` on `PATH`. The
   regression suite additionally needs `--branch-a`/`--branch-b` (default
   `master`/`HEAD`) and builds both branches itself.
 - `supported-macos` — a temporary macOS compatibility selection:

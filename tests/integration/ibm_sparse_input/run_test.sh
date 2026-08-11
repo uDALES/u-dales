@@ -23,7 +23,7 @@ fi
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/debug/u-dales}"
+UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/cpu/debug/u-dales}"
 CASE_SOURCE="${CASE_SOURCE:-${REPO_ROOT}/tests/cases/101}"
 NAMELIST_SOURCE="${NAMELIST_SOURCE:-${SCRIPT_DIR}/namoptions.1004}"
 NAMELIST="${NAMELIST:-namoptions.101}"
@@ -51,7 +51,7 @@ fi
 if [ ! -f "$UDALES_BUILD" ]; then
     echo "ERROR: u-dales executable not found at: $UDALES_BUILD"
     echo "Please build u-dales in debug mode first:"
-    echo "  cd ${REPO_ROOT}/build/debug && cmake -DCMAKE_BUILD_TYPE=Debug ../.. && make"
+    echo "  ${REPO_ROOT}/tools/build_executable.sh common debug"
     exit 1
 fi
 

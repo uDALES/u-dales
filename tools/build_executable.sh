@@ -22,7 +22,8 @@ set -euo pipefail
 # Usage: ./tools/build_executable.sh [icl, archer, cca, gpu, common] [debug, release]
 #
 # Optional environment overrides:
-#   UDALES_BUILD_DIR          independent CMake build directory
+#   UDALES_BUILD_DIR          independent CMake build directory; overrides the
+#                             default build/<cpu|gpu>/<debug|release> layout
 #   UDALES_BUILD_JOBS         parallel build jobs (default: 8)
 #   UDALES_FORTRAN_COMPILER   Fortran compiler/MPI wrapper
 
@@ -120,10 +121,18 @@ FC="${UDALES_FORTRAN_COMPILER:-$FC}"
 
 # Configure and Build
 repo_root="$(pwd)"
-path_to_build_dir="${UDALES_BUILD_DIR:-$repo_root/build/$build_type}"
+if [ "$system" = "gpu" ]; then
+    build_target="gpu"
+else
+    build_target="cpu"
+fi
+path_to_build_dir="${UDALES_BUILD_DIR:-$repo_root/build/$build_target/$build_type}"
 if [[ "$path_to_build_dir" != /* ]]; then
     path_to_build_dir="$repo_root/$path_to_build_dir"
 fi
+echo "Build target:    $build_target"
+echo "Build type:      $build_type"
+echo "Build directory: $path_to_build_dir"
 mkdir -p "$path_to_build_dir"
 pushd "$path_to_build_dir"
 cmake_build_type="$(capitalize $build_type)"

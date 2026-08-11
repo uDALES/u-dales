@@ -14,7 +14,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/debug/u-dales}"
+UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/cpu/debug/u-dales}"
 CASE_SOURCE="${CASE_SOURCE:-${REPO_ROOT}/tests/cases/100}"
 NAMELIST_DIR="${NAMELIST_DIR:-${SCRIPT_DIR}}"
 NAMELIST="${NAMELIST:-namoptions.100}"

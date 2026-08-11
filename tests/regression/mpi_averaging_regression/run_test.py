@@ -31,7 +31,7 @@ RUNTIME_MODULES = os.environ.get(
     "FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0",
 )
 DEFAULT_SCRATCH_ROOT = Path(os.environ.get("UDALES_SCRATCH_ROOT", "/tmp")).resolve()
-CACHED_FFTW_MODULE = REPO_ROOT / "build" / "debug" / "findFFTW-src" / "FindFFTW.cmake"
+CACHED_FFTW_MODULE = REPO_ROOT / "build" / "cpu" / "debug" / "findFFTW-src" / "FindFFTW.cmake"
 
 ABS_TOL = 1.0e-9
 NO_TREE_GLOBAL_ABS_TOL = 2.0e-8
@@ -465,12 +465,19 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${findFFTW_DIR}")
 
 
 def _build_in_worktree(worktree: Path, build_type: str) -> Path:
-    build_dir = worktree / "build" / build_type.lower()
+    build_dir = worktree / "build" / "cpu" / build_type.lower()
     build_script = worktree / "tools" / "build_executable.sh"
     if not build_script.is_file():
         raise RuntimeError(f"Missing build script in worktree: {build_script}")
     _prepare_offline_fftw(worktree, build_dir)
-    subprocess.run(["bash", str(build_script), BUILD_SYSTEM, build_type.lower()], cwd=worktree, check=True)
+    build_environment = os.environ.copy()
+    build_environment["UDALES_BUILD_DIR"] = str(build_dir)
+    subprocess.run(
+        ["bash", str(build_script), BUILD_SYSTEM, build_type.lower()],
+        cwd=worktree,
+        check=True,
+        env=build_environment,
+    )
     exe_path = build_dir / "u-dales"
     if not exe_path.is_file():
         raise RuntimeError(f"Build completed without producing executable: {exe_path}")
@@ -482,7 +489,7 @@ def _build_current_workspace(build_type: str) -> Path:
 
 
 def _workspace_build_dir(build_type: str) -> Path:
-    return REPO_ROOT / "build" / build_type.lower()
+    return REPO_ROOT / "build" / "cpu" / build_type.lower()
 
 
 def _validate_build_dir(build_dir: Path, label: str) -> Path:
@@ -644,7 +651,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--reuse-current-build",
         action="store_true",
-        help="Reuse the existing workspace build/<type>/u-dales instead of rebuilding the current workspace.",
+        help="Reuse build/cpu/<type>/u-dales instead of rebuilding the current workspace.",
     )
     parser.add_argument(
         "--compare-logs",

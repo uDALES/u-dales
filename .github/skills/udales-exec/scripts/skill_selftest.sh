@@ -97,7 +97,7 @@ if command -v module >/dev/null 2>&1; then
     FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
 fi
 
-UD_BUILD="${UD_BUILD:-${ROOT_DIR}/build/debug/u-dales}"
+UD_BUILD="${UD_BUILD:-${ROOT_DIR}/build/cpu/debug/u-dales}"
 if [ ! -x "$UD_BUILD" ]; then
   echo "missing: UD_BUILD executable at ${UD_BUILD}"
   echo "set UD_BUILD to a built solver binary before running --full"
