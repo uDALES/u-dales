@@ -294,10 +294,6 @@ if nb is not None:
         cell_facets: np.ndarray,
         cell_idx: int,
         t_max: float,
-        debug_facid: int,
-        debug_min_t: np.ndarray,
-        debug_count: np.ndarray,
-        debug_test_count: np.ndarray,
     ) -> Tuple[float, int]:
         start = cell_offsets[cell_idx]
         end = cell_offsets[cell_idx + 1]
@@ -307,8 +303,6 @@ if nb is not None:
         best_fid = -1
         for idx in range(start, end):
             fid = cell_facets[idx]
-            if debug_facid >= 0 and fid == debug_facid:
-                debug_test_count[0] += 1
             v0 = triangles[fid, 0]
             v1 = triangles[fid, 1]
             v2 = triangles[fid, 2]
@@ -316,10 +310,6 @@ if nb is not None:
             if hit and t < best:
                 best = t
                 best_fid = fid
-            if debug_facid >= 0 and fid == debug_facid and hit:
-                if t < debug_min_t[0]:
-                    debug_min_t[0] = t
-                debug_count[0] += 1
         if best <= t_max:
             return best, best_fid
         return -1.0, -1
@@ -619,10 +609,6 @@ if nb is not None:
         periodic_xy: bool,
         max_ray_length: float,
         allow_outside_xy: bool,
-        debug_facid: int,
-        debug_min_t: np.ndarray,
-        debug_count: np.ndarray,
-        debug_test_count: np.ndarray,
     ) -> float:
         x, y, z = origin
 
@@ -732,10 +718,6 @@ if nb is not None:
                     cell_facets,
                     cell_idx,
                     ds,
-                    debug_facid,
-                    debug_min_t,
-                    debug_count,
-                    debug_test_count,
                 )
                 if t_hit >= 0.0:
                     # Limit the segment to the hit point; the facet is credited
@@ -939,10 +921,6 @@ if nb is not None:
         periodic_xy: bool,
         max_ray_length: float,
         allow_outside_xy: bool,
-        debug_facid: int,
-        debug_min_t: np.ndarray,
-        debug_count: np.ndarray,
-        debug_test_count: np.ndarray,
         bud_in: np.ndarray,
         bud_out: np.ndarray,
     ) -> None:
@@ -995,10 +973,6 @@ if nb is not None:
                     periodic_xy,
                     max_ray_length,
                     allow_outside_xy,
-                    debug_facid,
-                    debug_min_t,
-                    debug_count,
-                    debug_test_count,
                 )
 
     @nb.njit(cache=True, parallel=True)
@@ -1496,10 +1470,6 @@ class DirectShortwaveSolver:
             periodic_xy,
             10.0 * max(self.sim.xlen, self.sim.ylen),
             True,
-            -1,
-            np.array([np.inf], dtype=float),
-            np.array([0], dtype=np.int64),
-            np.array([0], dtype=np.int64),
             bud_in,
             bud_out,
         )
