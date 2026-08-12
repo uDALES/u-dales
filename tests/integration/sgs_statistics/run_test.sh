@@ -8,8 +8,16 @@ if ! command -v module >/dev/null 2>&1 && [ -f /etc/profile.d/modules.sh ]; then
     source /etc/profile.d/modules.sh
 fi
 
+# NOTE: this default matches the other solver suites, but it does NOT match the
+# stack tools/build_executable.sh actually builds with on CX3
+# (intel/2021a + netCDF-Fortran/4.5.3). Running a netCDF-writing case with the
+# 4.6.1 runtime against a 4.5.3-linked binary segfaults inside nf90_def_var.
+# This test never writes NetCDF so it is unaffected; override
+# UDALES_RUNTIME_MODULES if you need the build-matching stack.
+UDALES_RUNTIME_MODULES="${UDALES_RUNTIME_MODULES:-intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0}"
+
 if command -v module >/dev/null 2>&1; then
-    module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
+    module load $UDALES_RUNTIME_MODULES
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
