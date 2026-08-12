@@ -1,4 +1,5 @@
 import contextlib
+import io
 import sys
 import types
 import unittest
@@ -973,6 +974,7 @@ class TestRadiationSection(unittest.TestCase):
         section.calc_direct_sw = fake_calc_direct_sw
         section.calc_reflections_sw = fake_calc_reflections_sw
 
+        timing = {}
         sdir, knet, s_veg = section._compute_knet(
             np.array([0.0, 0.0, 1.0]),
             800.0,
@@ -984,6 +986,7 @@ class TestRadiationSection(unittest.TestCase):
             object(),
             np.ones(3),
             None,
+            timing=timing,
         )
 
         expected = np.round(full_sdir, 2)
@@ -992,6 +995,10 @@ class TestRadiationSection(unittest.TestCase):
         np.testing.assert_allclose(knet, expected + 1.0)
         self.assertIsInstance(s_veg, np.ndarray)
         self.assertEqual(s_veg.size, 0)
+        self.assertGreaterEqual(timing["direct_wall_seconds"], 0.0)
+        self.assertGreaterEqual(timing["direct_cpu_seconds"], 0.0)
+        self.assertGreaterEqual(timing["net_wall_seconds"], 0.0)
+        self.assertGreaterEqual(timing["net_cpu_seconds"], 0.0)
 
     # ------------------------------------------------------------------
     # Item 1 (P1): run_short_wave_timedep vegetation array-shape contract
@@ -1046,6 +1053,23 @@ class TestRadiationSection(unittest.TestCase):
         self.assertEqual(knet.shape, (4, 3))
         section._write_sdir_nc.assert_called_once()
         section.write_timedepsveg.assert_not_called()
+
+    def test_timedep_progress_is_indexed_and_backend_agnostic(self):
+        stream = io.StringIO()
+        with TemporaryDirectory() as tmp, contextlib.redirect_stdout(stream):
+            self._run_timedep(
+                tmp, nfcts=4, ltrees=False, s_veg_value=np.zeros(0, dtype=float)
+            )
+
+        lines = [line for line in stream.getvalue().splitlines() if line]
+        self.assertEqual(len(lines), 3)
+        self.assertRegex(
+            lines[0],
+            r"^\[shortwave\s+1/3\] t=\s+0\.0s mode=direct "
+            r"method=moller wall=\d+\.\d{3}s$",
+        )
+        self.assertIn("[shortwave   3/3]", lines[-1])
+        self.assertNotIn("Time =", stream.getvalue())
 
     def test_timedep_veg_stores_nveg_rows(self):
         nfcts, nveg = 4, 7

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import warnings
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple
@@ -759,6 +760,7 @@ class RadiationSection(Section):
                     azimuth = float(azimuth_interp[n]) - self.xazimuth
                     nsun = nsun_from_angles(solarzenith, azimuth)
                     dsky = float(Dsky_interp[n])
+                    step_start = time.perf_counter()
                     sdir, knet, s_veg = self._compute_knet(
                         nsun,
                         irradiance,
@@ -770,6 +772,9 @@ class RadiationSection(Section):
                         vf,
                         svf,
                         fss,
+                    )
+                    self._print_timedep_shortwave_progress(
+                        n, nt, t_val, method, time.perf_counter() - step_start
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
@@ -786,6 +791,7 @@ class RadiationSection(Section):
                     and irradiance > 0.0
                     and abs(np.cos(np.radians(solarzenith))) >= _MIN_SUN_VERTICAL
                 ):
+                    step_start = time.perf_counter()
                     sdir, knet, s_veg = self._compute_knet(
                         nsun,
                         irradiance,
@@ -797,6 +803,9 @@ class RadiationSection(Section):
                         vf,
                         svf,
                         fss,
+                    )
+                    self._print_timedep_shortwave_progress(
+                        n, nt, t_val, method, time.perf_counter() - step_start
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
@@ -812,6 +821,21 @@ class RadiationSection(Section):
         if s_veg_all is not None:
             self.write_timedepsveg(tSP, s_veg_all)
         _write_sig(timedepsw_path, sw_sig)
+
+    @staticmethod
+    def _print_timedep_shortwave_progress(
+        index: int,
+        total: int,
+        model_time_seconds: float,
+        method: str,
+        wall_seconds: float,
+    ) -> None:
+        print(
+            f"[shortwave {index + 1:3d}/{total}] "
+            f"t={model_time_seconds:8.1f}s mode=direct "
+            f"method={method} wall={wall_seconds:.3f}s",
+            flush=True,
+        )
 
     def write_timedepsw(self, tSP: np.ndarray, knet: np.ndarray) -> None:
         """Write time-dependent net shortwave (timedepsw.inp.<expnr>)."""
@@ -1055,17 +1079,28 @@ class RadiationSection(Section):
         vf,
         svf: np.ndarray | None,
         fss: np.ndarray | None,
+        *,
+        timing: Dict[str, float] | None = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+        if timing is not None:
+            direct_wall_start = time.perf_counter()
+            direct_cpu_start = time.process_time()
         sdir, s_veg, _ = self.calc_direct_sw(
             nsun,
             irradiance,
             method=method,
             resolution=resolution,
         )
+        if timing is not None:
+            timing["direct_wall_seconds"] = time.perf_counter() - direct_wall_start
+            timing["direct_cpu_seconds"] = time.process_time() - direct_cpu_start
         if method == "scanline_f2py":
             # MATLAB's Fortran route writes Sdir.txt with f8.2 and reads it
             # back before computing Knet, so use the same precision here.
             sdir = np.round(sdir, 2)
+        if timing is not None:
+            net_wall_start = time.perf_counter()
+            net_cpu_start = time.process_time()
         if lscatter:
             if vf is None or svf is None:
                 raise ValueError("View factors are required for shortwave reflections")
@@ -1074,6 +1109,9 @@ class RadiationSection(Section):
             if fss is None:
                 raise ValueError("Fss is required for non-scattering shortwave")
             knet = _radiation_compute.net_shortwave_nonscattering(sdir, dsky, fss, albedo)
+        if timing is not None:
+            timing["net_wall_seconds"] = time.perf_counter() - net_wall_start
+            timing["net_cpu_seconds"] = time.process_time() - net_cpu_start
         return sdir, knet, s_veg
 
     @staticmethod
