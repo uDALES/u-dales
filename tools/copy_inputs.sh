@@ -188,6 +188,19 @@ elif [ $start == "w" ]; then
       echo "Info: no scalar restart files found in $DA_WORKDIR/$src."
   fi
 
+  # facet warmstart file (surface energy balance state). This file is written by rank 0
+  # only and has no _<px>_<py> rank fields, so it is matched on the run counter of the
+  # momentum restart file rather than globbed like initd/inits.
+  facetfilen="initf"${startfilen#initd}
+  facetwarmstart=$DA_WORKDIR/$src"/"$facetfilen"."$src
+  if [ -f "$facetwarmstart" ]; then
+    ln -s $facetwarmstart $DA_EXPDIR/$tar/
+  else
+    echo "Info: no facet restart file $facetfilen.$src found in $DA_WORKDIR/$src."
+    echo "Info: facet temperatures will be re-initialised from Tfacinit.inp.$tar,"
+    echo "Info: so the surface energy balance will not continue across the restart."
+  fi
+
   # rename links
   for f in $DA_EXPDIR/$tar/*.$src; do
     mv $f "${f%.$src}.$tar"

@@ -57,7 +57,7 @@ module modstartup
       !-----------------------------------------------------------------|
 
       use modglobal,         only : initglobal, iexpnr, runtime, runmode, dtmax,  &
-                                    lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, tstatstart, trestart, &
+                                    lwarmstart, lstratstart, lfielddump, lreadscal, lreadfacT, startfile, tfielddump, fieldvars, tsample, tstatsdump, tstatstart, trestart, &
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
                                     nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
@@ -110,7 +110,7 @@ module modstartup
          courant, diffnr, author, &
          libm, lles, &
          lper2inout, lwalldist, &
-         lreadmean, &
+         lreadmean, lreadfacT, &
          nprocx, nprocy, &
          lrandomize
       namelist/DOMAIN/ &
@@ -369,6 +369,7 @@ module modstartup
       call MPI_BCAST(lstratstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lfielddump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lreadscal, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch to read scalar pollutant fields (warm start)
+      call MPI_BCAST(lreadfacT, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! switch to read the facet state from the initf restart file (warm start)
       call MPI_BCAST(lscasrc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
       call MPI_BCAST(lscasrcl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
       call MPI_BCAST(lscasrcr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
@@ -954,7 +955,7 @@ module modstartup
          ltempeq, prandtlmoli, &
          tnextfielddump, tfielddump, startfile, lprofforc,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,&
-         tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
+         tEB,tnextEB,dtEB,BCxs_custom,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:thls, sv_top
       ! use modsurface,        only : surface,dthldz
@@ -2038,9 +2039,6 @@ module modstartup
             if (.not. ladaptive) dt = dtmax
             !  call boundary
 
-            if (lEB .and. (lfacTlyrs .eqv. .false.)) then
-               if (myid==0) write(*,*) "Warmstarting an EB simulation - consider setting internal facet temperatures"
-            end if
          end if ! lwarmstart
       end if ! not lstratstart
       !-----------------------------------------------------------------
@@ -2163,12 +2161,14 @@ module modstartup
          strain2av, nusgsav
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, startfile, timee, totavtime, &
          ifinput, nsv, dt, cexpnr, lreadmean, lreadminl, &
-         totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli
-      use modmpi, only:cmyid, cmyidx, cmyidy, myid
+         totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli, &
+         lreadfacT, nfcts, nfaclyrs, lEB, iwallmom, iwalltemp, iwallmoist, ifacrestartversion
+      use modmpi, only:cmyid, cmyidx, cmyidy, myid, comm3d, mpierr, my_real, mpi_logical
       use modsubgriddata, only:ekm
       use modinlet, only:zinterpolate1d, zinterpolatet1d, zinterpolatew1d, zinterpolate2d, &
          Uinl, Urec, Wrec, Utav, Tinl, Trec, &
          kbin, kein, lzinzsim, utaui, Ttav, ttaui
+      use initfac, only:facT, facwsoil, facqsat, fachurel, facf
 
       real, dimension(ib:ie, jb:je, kb:ke)  ::  dummy3d
       real, dimension(ib:ie, kbin:kein)    ::  Utavin
@@ -2180,6 +2180,10 @@ module modstartup
       real, dimension(kbin:kein + 1)        ::  Wrecin
       character(len(startfile)) :: name
       character(50) :: name2, name4
+      character(50) :: namefac
+      logical :: lfacrestart = .false.
+      integer :: ifacversion, nfctsfile, nfaclyrsfile, iostatfac
+      real :: timeefac
       real dummy
       integer i, j, k, n
       !********************************************************************
@@ -2220,6 +2224,65 @@ module modstartup
       elseif ((nsv > 0) .and. (.not. lreadscal)) then
          sv0 = 0.
          svprof = 0.
+      end if
+
+      ! Read the facet state written by writerestartfiles. The facet arrays are global
+      ! rather than domain-decomposed, so the file has no rank fields and is read by
+      ! rank 0 and broadcast. This overwrites the Tfacinit.inp initialisation done in
+      ! readfacetfiles, which is called before readinitfiles in program.f90.
+      if ((nfcts > 0) .and. (lreadfacT) .and. &
+          ((lEB) .or. (iwalltemp == 2) .or. (iwallmom == 2) .or. (iwallmoist == 2))) then
+         namefac = 'initf        .'
+         namefac(6:13) = startfile(6:13)
+         namefac(15:17) = cexpnr
+
+         if (myid == 0) then
+            inquire (file=trim(namefac), exist=lfacrestart)
+         end if
+         call MPI_BCAST(lfacrestart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+
+         if (lfacrestart) then
+            if (myid == 0) then
+               open (unit=ifinput, file=trim(namefac), form='unformatted', status='old')
+               read (ifinput) ifacversion, nfctsfile, nfaclyrsfile
+               if ((nfctsfile /= nfcts) .or. (nfaclyrsfile /= nfaclyrs)) then
+                  write (0, *) 'ERROR: facet restart file ', trim(namefac), ' does not match this simulation'
+                  write (0, *) '       file       : nfcts = ', nfctsfile, ' nfaclyrs = ', nfaclyrsfile
+                  write (0, *) '       namoptions : nfcts = ', nfcts, ' nfaclyrs = ', nfaclyrs
+                  call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+               end if
+               ! only indices 1:nfcts are stored, index 0 is the sentinel set by readfacetfiles
+               read (ifinput) ((facT(n, j), n=1, nfcts), j=1, nfaclyrs + 1)
+               if (lEB) read (ifinput) (facwsoil(n), n=1, nfcts)
+               ! trailing records are read with iostat so that a file written by another
+               ! version of the format degrades gracefully instead of crashing
+               iostatfac = 0
+               timeefac = timee
+               read (ifinput, iostat=iostatfac) (facqsat(n), n=1, nfcts)
+               if (iostatfac == 0) read (ifinput, iostat=iostatfac) (fachurel(n), n=1, nfcts)
+               if (iostatfac == 0) read (ifinput, iostat=iostatfac) ((facf(n, j), n=1, nfcts), j=1, 5)
+               if (iostatfac == 0) read (ifinput, iostat=iostatfac) timeefac
+               close (ifinput)
+               write (*, *) 'Restored facet state from ', trim(namefac), ' (format version ', ifacversion, &
+                  ', timee ', timeefac, ')'
+               if (iostatfac /= 0) then
+                  write (*, *) '*** WARNING: ', trim(namefac), ' is truncated relative to format version ', &
+                     ifacrestartversion, '; the missing facet quantities keep their initial values.'
+               end if
+            end if
+
+            ! facwsoil is allocated on rank 0 only and used only there, so it is not broadcast
+            call MPI_BCAST(facT(0:nfcts, 1:nfaclyrs + 1), (nfcts + 1)*(nfaclyrs + 1), MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(facqsat(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(fachurel(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(facf(0:nfcts, 1:5), (nfcts + 1)*5, MY_REAL, 0, comm3d, mpierr)
+         else
+            if (myid == 0) then
+               write (*, *) '*** WARNING: facet restart file ', trim(namefac), ' not found.'
+               write (*, *) '*** Facet temperatures are re-initialised from Tfacinit.inp.'//cexpnr//','
+               write (*, *) '*** so the surface energy balance history is NOT continuous across this restart.'
+            end if
+         end if
       end if
 
       ! read mean variables if asked for by lreadmean
