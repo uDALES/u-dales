@@ -23,6 +23,11 @@ except ImportError:  # pragma: no cover - runtime dependent
     nb = None
 
 from exceptions import DependencyError, RadiationError
+
+
+_PARALLEL_RAY_BLOCK_SIZE = 1_000_000
+
+
 @dataclass
 class VegData:
     points: np.ndarray  # (n, 3) 0-based (i, j, k)
@@ -404,7 +409,6 @@ if nb is not None:
         veg_index: np.ndarray,
         solid: np.ndarray,
         has_solid: bool,
-        solid_hit_energy: np.ndarray,
         veg_absorb: np.ndarray,
         ray_area: float,
         itot: int,
@@ -415,7 +419,7 @@ if nb is not None:
         periodic_xy: bool,
         max_ray_length: float,
         allow_outside_xy: bool,
-    ) -> float:
+    ) -> Tuple[float, int, int, int, float]:
         i, j, k = _point_to_cell_numba(
             x,
             y,
@@ -430,7 +434,7 @@ if nb is not None:
             allow_outside_xy,
         )
         if i < 0:
-            return 0.0
+            return 0.0, -1, -1, -1, 0.0
 
         step_x = 0 if dir_x == 0.0 else (1 if dir_x > 0.0 else -1)
         step_y = 0 if dir_y == 0.0 else (1 if dir_y > 0.0 else -1)
@@ -485,18 +489,18 @@ if nb is not None:
                 jj = j % jtot
                 if has_solid and solid[ii, jj, k]:
                     if inside and last_i >= 0:
-                        solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
-                        return 0.0
-                    return r_in * ray_area * irradiance
+                        hit_energy = r_in * ray_area * irradiance
+                        return 0.0, last_i, last_j, last_k, hit_energy
+                    return r_in * ray_area * irradiance, -1, -1, -1, 0.0
             else:
                 if inside:
                     ii = i
                     jj = j
                     if has_solid and solid[ii, jj, k]:
                         if last_i >= 0:
-                            solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
-                            return 0.0
-                        return r_in * ray_area * irradiance
+                            hit_energy = r_in * ray_area * irradiance
+                            return 0.0, last_i, last_j, last_k, hit_energy
+                        return r_in * ray_area * irradiance, -1, -1, -1, 0.0
                 else:
                     ii = i
                     jj = j
@@ -523,7 +527,7 @@ if nb is not None:
                     r_in = r_out
 
             if t_next > max_ray_length:
-                return r_in * ray_area * irradiance
+                return r_in * ray_area * irradiance, -1, -1, -1, 0.0
 
             prev_i, prev_j, prev_k = last_i, last_j, last_k
             if inside:
@@ -544,9 +548,9 @@ if nb is not None:
             t = t_next
 
         if dir_z < 0.0 and k < 0 and last_i >= 0:
-            solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
-            return 0.0
-        return r_in * ray_area * irradiance
+            hit_energy = r_in * ray_area * irradiance
+            return 0.0, last_i, last_j, last_k, hit_energy
+        return r_in * ray_area * irradiance, -1, -1, -1, 0.0
 
     @nb.njit(cache=True)
     def _trace_ray_moller_numba(
@@ -957,7 +961,7 @@ if nb is not None:
                     debug_test_count,
                 )
 
-    @nb.njit(cache=True)
+    @nb.njit(cache=True, parallel=True)
     def _cast_rays_facsec_numba(
         u_vals: np.ndarray,
         v_vals: np.ndarray,
@@ -979,8 +983,15 @@ if nb is not None:
         veg_index: np.ndarray,
         solid: np.ndarray,
         has_solid: bool,
-        solid_hit_energy: np.ndarray,
-        veg_absorb: np.ndarray,
+        ray_start: int,
+        ray_count: int,
+        hit_i: np.ndarray,
+        hit_j: np.ndarray,
+        hit_k: np.ndarray,
+        hit_energy: np.ndarray,
+        ray_valid: np.ndarray,
+        ray_out: np.ndarray,
+        veg_absorb_thread: np.ndarray,
         ray_area: float,
         itot: int,
         jtot: int,
@@ -990,10 +1001,7 @@ if nb is not None:
         periodic_xy: bool,
         max_ray_length: float,
         allow_outside_xy: bool,
-        bud_in: np.ndarray,
-        bud_out: np.ndarray,
     ) -> None:
-        nu = u_vals.shape[0]
         nv = v_vals.shape[0]
         p0x, p0y, p0z = p0
         u1x, u1y, u1z = u1
@@ -1001,72 +1009,96 @@ if nb is not None:
         dir_x, dir_y, dir_z = direction
         xmin, ymin, zmin = bounds_min
         xmax, ymax, zmax = bounds_max
-        for iu in range(nu):
-            u = u_vals[iu]
-            for iv in range(nv):
-                idx = iu * nv + iv
-                v = v_vals[iv]
-                if use_jitter:
-                    u_use = u + jitter_u[idx]
-                    v_use = v + jitter_v[idx]
-                else:
-                    u_use = u
-                    v_use = v
-                ox = p0x + u1x * u_use + u2x * v_use
-                oy = p0y + u1y * u_use + u2y * v_use
-                oz = p0z + u1z * u_use + u2z * v_use
-                t0, t1 = _ray_box_intersection_scalar_numba(
-                    ox,
-                    oy,
-                    oz,
-                    dir_x,
-                    dir_y,
-                    dir_z,
-                    xmin,
-                    ymin,
-                    zmin,
-                    xmax,
-                    ymax,
-                    zmax,
-                )
-                if t1 < t0:
-                    continue
-                if t1 < 0.0:
-                    continue
-                bud_in[0] += irradiance * ray_area
-                entry = t0 if t0 > 0.0 else 0.0
-                start_offset = entry + 1.0e-6
-                sx = ox + dir_x * start_offset
-                sy = oy + dir_y * start_offset
-                sz = oz + dir_z * start_offset
-                bud_out[0] += _trace_ray_facsec_numba(
-                    sx,
-                    sy,
-                    sz,
-                    dir_x,
-                    dir_y,
-                    dir_z,
-                    dx,
-                    dy,
-                    z_edges,
-                    z_max,
-                    lad_3d,
-                    dec_3d,
-                    veg_index,
-                    solid,
-                    has_solid,
-                    solid_hit_energy,
-                    veg_absorb,
-                    ray_area,
-                    itot,
-                    jtot,
-                    ktot,
-                    dz,
-                    irradiance,
-                    periodic_xy,
-                    max_ray_length,
-                    allow_outside_xy,
-                )
+        for local_idx in nb.prange(ray_count):
+            idx = ray_start + local_idx
+            iu = idx // nv
+            iv = idx - iu * nv
+            u_use = u_vals[iu]
+            v_use = v_vals[iv]
+            if use_jitter:
+                u_use += jitter_u[idx]
+                v_use += jitter_v[idx]
+
+            hit_i[local_idx] = -1
+            hit_j[local_idx] = -1
+            hit_k[local_idx] = -1
+            hit_energy[local_idx] = 0.0
+            ray_valid[local_idx] = False
+            ray_out[local_idx] = 0.0
+
+            ox = p0x + u1x * u_use + u2x * v_use
+            oy = p0y + u1y * u_use + u2y * v_use
+            oz = p0z + u1z * u_use + u2z * v_use
+            t0, t1 = _ray_box_intersection_scalar_numba(
+                ox,
+                oy,
+                oz,
+                dir_x,
+                dir_y,
+                dir_z,
+                xmin,
+                ymin,
+                zmin,
+                xmax,
+                ymax,
+                zmax,
+            )
+            if t1 < t0 or t1 < 0.0:
+                continue
+
+            ray_valid[local_idx] = True
+            start_offset = (t0 if t0 > 0.0 else 0.0) + 1.0e-6
+            sx = ox + dir_x * start_offset
+            sy = oy + dir_y * start_offset
+            sz = oz + dir_z * start_offset
+            thread_id = nb.get_thread_id()
+            out_energy, hi, hj, hk, he = _trace_ray_facsec_numba(
+                sx,
+                sy,
+                sz,
+                dir_x,
+                dir_y,
+                dir_z,
+                dx,
+                dy,
+                z_edges,
+                z_max,
+                lad_3d,
+                dec_3d,
+                veg_index,
+                solid,
+                has_solid,
+                veg_absorb_thread[thread_id],
+                ray_area,
+                itot,
+                jtot,
+                ktot,
+                dz,
+                irradiance,
+                periodic_xy,
+                max_ray_length,
+                allow_outside_xy,
+            )
+            ray_out[local_idx] = out_energy
+            hit_i[local_idx] = hi
+            hit_j[local_idx] = hj
+            hit_k[local_idx] = hk
+            hit_energy[local_idx] = he
+
+    @nb.njit(cache=True)
+    def _reduce_ray_budget_numba(
+        ray_valid: np.ndarray,
+        ray_out: np.ndarray,
+        ray_count: int,
+        ray_input_energy: float,
+        budget_in: float,
+        budget_out: float,
+    ) -> Tuple[float, float]:
+        for idx in range(ray_count):
+            if ray_valid[idx]:
+                budget_in += ray_input_energy
+                budget_out += ray_out[idx]
+        return budget_in, budget_out
 
 
 class DirectShortwaveSolver:
@@ -1491,7 +1523,6 @@ class DirectShortwaveSolver:
         use_jitter = self.ray_jitter > 0.0
 
         solid_hit_energy = np.zeros((self.sim.itot, self.sim.jtot, self.ktot), dtype=float)
-        veg_absorb = np.zeros(len(self.veg.points), dtype=float)
 
         bud = {"in": 0.0, "veg": 0.0, "sol": 0.0, "out": 0.0, "fac": 0.0}
         bud["rays"] = int(len(u_vals) * len(v_vals))
@@ -1504,46 +1535,88 @@ class DirectShortwaveSolver:
             jitter_u = np.zeros(bud["rays"], dtype=float)
             jitter_v = np.zeros(bud["rays"], dtype=float)
 
-        bud_in = np.zeros(1, dtype=float)
-        bud_out = np.zeros(1, dtype=float)
-
-        # Trace rays through the solid mask inside numba; energy is accumulated per grid cell.
-        _cast_rays_facsec_numba(
-            u_vals,
-            v_vals,
-            jitter_u,
-            jitter_v,
-            use_jitter,
-            p0,
-            u1,
-            u2,
-            direction,
-            *self._compute_bounds(direction),
-            self.sim.dx,
-            self.sim.dy,
-            self.z_edges,
-            self.z_max,
-            self.lad_3d,
-            self.dec_3d,
-            self.veg_index,
-            self.solid,
-            self.has_solid,
-            solid_hit_energy,
-            veg_absorb,
-            ray_area,
-            self.sim.itot,
-            self.sim.jtot,
-            self.ktot,
-            self.dz,
-            irradiance,
-            periodic_xy,
-            10.0 * max(self.sim.xlen, self.sim.ylen),
-            True,
-            bud_in,
-            bud_out,
+        thread_count = nb.get_num_threads()
+        veg_absorb_thread = np.zeros(
+            (thread_count, len(self.veg.points)), dtype=float
         )
-        bud["in"] = float(bud_in[0])
-        bud["out"] = float(bud_out[0])
+        block_capacity = max(1, min(bud["rays"], _PARALLEL_RAY_BLOCK_SIZE))
+        hit_i = np.empty(block_capacity, dtype=np.int32)
+        hit_j = np.empty(block_capacity, dtype=np.int32)
+        hit_k = np.empty(block_capacity, dtype=np.int32)
+        hit_energy = np.empty(block_capacity, dtype=float)
+        ray_valid = np.empty(block_capacity, dtype=bool)
+        ray_out = np.empty(block_capacity, dtype=float)
+
+        bounds_min, bounds_max = self._compute_bounds(direction)
+        ray_input_energy = irradiance * ray_area
+        budget_in = 0.0
+        budget_out = 0.0
+        # Bound per-ray scratch while preserving ray-order scattering and budgets.
+        for ray_start in range(0, bud["rays"], block_capacity):
+            ray_count = min(block_capacity, bud["rays"] - ray_start)
+            _cast_rays_facsec_numba(
+                u_vals,
+                v_vals,
+                jitter_u,
+                jitter_v,
+                use_jitter,
+                p0,
+                u1,
+                u2,
+                direction,
+                bounds_min,
+                bounds_max,
+                self.sim.dx,
+                self.sim.dy,
+                self.z_edges,
+                self.z_max,
+                self.lad_3d,
+                self.dec_3d,
+                self.veg_index,
+                self.solid,
+                self.has_solid,
+                ray_start,
+                ray_count,
+                hit_i,
+                hit_j,
+                hit_k,
+                hit_energy,
+                ray_valid,
+                ray_out,
+                veg_absorb_thread,
+                ray_area,
+                self.sim.itot,
+                self.sim.jtot,
+                self.ktot,
+                self.dz,
+                irradiance,
+                periodic_xy,
+                10.0 * max(self.sim.xlen, self.sim.ylen),
+                True,
+            )
+
+            hit = hit_i[:ray_count] >= 0
+            np.add.at(
+                solid_hit_energy,
+                (
+                    hit_i[:ray_count][hit],
+                    hit_j[:ray_count][hit],
+                    hit_k[:ray_count][hit],
+                ),
+                hit_energy[:ray_count][hit],
+            )
+            budget_in, budget_out = _reduce_ray_budget_numba(
+                ray_valid,
+                ray_out,
+                ray_count,
+                ray_input_energy,
+                budget_in,
+                budget_out,
+            )
+
+        veg_absorb = np.sum(veg_absorb_thread, axis=0)
+        bud["in"] = float(budget_in)
+        bud["out"] = float(budget_out)
 
         cos_inc_all = np.dot(self.face_normals, nsun_unit)
         cos_inc_all = np.where(cos_inc_all > 0.0, cos_inc_all, 0.0)

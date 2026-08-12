@@ -20,6 +20,8 @@ if not RUN_SLOW_TESTS:
         "slow numba direct-shortwave tests; set UDALES_RUN_SLOW_TESTS=1 to run"
     )
 
+import numba as nb
+
 from udgeom import UDGeom
 from udprep.directshortwave import DirectShortwaveSolver
 
@@ -507,6 +509,51 @@ class TestDirectShortwaveVegetation(unittest.TestCase):
         self.assertAlmostEqual(bud_m["fac"], bud_f["fac"], delta=1.0e-3 * bud_f["fac"])
         self.assertAlmostEqual(
             float(sveg_m[0]), float(sveg_f[0]), delta=1.0e-3 * float(sveg_f[0])
+        )
+
+    def test_facsec_parallel_is_deterministic_with_vegetation_and_periodicity(self):
+        sim, mesh = _build_veg_over_ground_block_fixture()
+        solver = DirectShortwaveSolver(
+            sim,
+            method="facsec",
+            surface_mesh=mesh,
+            ray_density=16.0,
+            ray_jitter=0.0,
+            veg_data=self._veg_data(0, 0, 1),
+        )
+
+        original_threads = nb.get_num_threads()
+        results = {}
+        try:
+            for threads in sorted({1, min(2, original_threads)}):
+                nb.set_num_threads(threads)
+                first = solver.compute(
+                    nsun=self.nsun_vertical,
+                    irradiance=self.IRRADIANCE,
+                    periodic_xy=True,
+                )
+                second = solver.compute(
+                    nsun=self.nsun_vertical,
+                    irradiance=self.IRRADIANCE,
+                    periodic_xy=True,
+                )
+                self.assertTrue(np.array_equal(first[0], second[0]))
+                self.assertTrue(np.array_equal(first[1], second[1]))
+                self.assertEqual(first[2], second[2])
+                results[threads] = first
+        finally:
+            nb.set_num_threads(original_threads)
+
+        one_thread = results[1]
+        multi_thread = results[max(results)]
+        self.assertTrue(np.array_equal(one_thread[0], multi_thread[0]))
+        np.testing.assert_allclose(
+            one_thread[1], multi_thread[1], rtol=1.0e-14, atol=1.0e-14
+        )
+        for key in ("in", "sol", "out", "fac", "rays"):
+            self.assertEqual(one_thread[2][key], multi_thread[2][key])
+        self.assertAlmostEqual(
+            one_thread[2]["veg"], multi_thread[2]["veg"], delta=1.0e-12
         )
 
 if __name__ == "__main__":
