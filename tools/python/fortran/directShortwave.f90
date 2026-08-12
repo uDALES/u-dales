@@ -44,10 +44,10 @@ contains
       integer, dimension(nFaces) :: visibility, sortedFaces ! if visiblity is false then face is self-shaded, i.e. not visible to the sun
       real   , dimension(nVertices,3) :: planeVertices
       real   , dimension(nVertices,2) :: locVertices
-      logical, dimension(:,:), allocatable :: mask
+      logical(kind=1), dimension(:,:), allocatable :: scratch
       integer, dimension(:,:), allocatable :: maskIDs
       real   , dimension(:), allocatable :: locCoord1, locCoord2
-      integer, dimension(:), allocatable :: counts
+      integer, dimension(:), allocatable :: counts, minY, maxY
       real :: xmin, xmax, xrange, ymin, ymax, yrange
       real, dimension(3) :: p0, u1, u2, up
       real, dimension(2) :: cor1, cor2, cor3, cor4
@@ -151,6 +151,10 @@ contains
       !allocate(mask(size_eta, size_xi))
       allocate(maskIDs(size_eta, size_xi))
       maskIDs = 0
+      allocate(scratch(size_eta, size_xi), minY(size_xi), maxY(size_xi))
+      scratch = .false._1
+      minY = 0
+      maxY = 0
 
       ! allocate(locCoord1(sizeMask1))
       ! allocate(locCoord2(sizeMask2))
@@ -218,7 +222,7 @@ contains
             !mask = .false.
             call poly2maskIDs(locVertices(connectivityList(m, :), 1) / resolution, &
                            locVertices(connectivityList(m, :), 2) / resolution, size_eta, &
-                           size_xi, maskIDs, m*visibility(m))
+                           size_xi, scratch, minY, maxY, maskIDs, m*visibility(m))
 
             ! call poly2maskIDs([locVertices(connectivityList(m, :), 1) / resolution, &
             !                    locVertices(connectivityList(m, 1), 1) / resolution], &
@@ -237,8 +241,8 @@ contains
 
       allocate(counts(nFaces))
       counts = 0
-      do i=1,size(maskIDs,1)
-         do j=1,size(maskIDs,2)
+      do j=1,size(maskIDs,2)
+         do i=1,size(maskIDs,1)
             if (maskIDs(i,j) > 0) counts(maskIDs(i,j)) = counts(maskIDs(i,j)) + 1
          end do
       end do
@@ -471,43 +475,38 @@ contains
   ! end subroutine poly2maskIDs
 
     !subroutine poly2maskIDs(xpt, ypt, M, N, out, outIDs, id)
-    subroutine poly2maskIDs(xpt, ypt, M, N, outIDs, id)
+    subroutine poly2maskIDs(xpt, ypt, M, N, out, minY, maxY, outIDs, id)
         real  , intent(in) :: xpt(:), ypt(:) ! assumes x(end) != x(1)
-        real, allocatable, dimension(:) :: x, y
+        real :: x(size(xpt) + 1), y(size(ypt) + 1)
         integer, intent(in) :: M, N, id
-        !logical, intent(out) :: out(M, N)
-        logical :: out(M, N)
+        logical(kind=1), intent(inout) :: out(M, N)
+        integer, intent(inout) :: minY(N), maxY(N)
         integer, intent(inout) :: outIDs(M, N)
-        integer :: sizeX
+        integer :: sizeX, cmin, cmax
         real    :: scale = 5.0
-        integer :: minY(N), maxY(N)
 
-        ! Initialize
-        out = .false.
-        minY = 0
-        maxY = 0
+        cmin = N + 1
+        cmax = 0
         sizeX = size(xpt,1)+1 ! number of vertices
-        allocate(x(sizeX), y(sizeX))
         x(1:sizeX-1) = xpt
         y(1:sizeX-1) = ypt
         x(sizeX) = xpt(1)
         y(sizeX) = ypt(1)
 
         ! Create edges in mask to be used during parity scan
-        call poly2edgelist(x, y, sizeX, scale, M, N, out, minY, maxY)
+        call poly2edgelist(x, y, sizeX, scale, M, N, out, minY, maxY, cmin, cmax)
         ! Perform the parity scan over the output mask 'out'
-        call parityScan(out, N, minY, maxY, outIDs, id)
-
-        deallocate(x, y)
+        call parityScan(out, N, minY, maxY, outIDs, id, cmin, cmax)
 
     end subroutine poly2maskIDs
 
-    subroutine poly2edgelist(x, y, xLength, scale, M, N, out, minY, maxY)
+    subroutine poly2edgelist(x, y, xLength, scale, M, N, out, minY, maxY, cmin, cmax)
         real  , intent(inout) :: x(:), y(:)
         integer, intent(in) :: xLength, M, N
         real   , intent(in) :: scale
-        logical, intent(inout) :: out(M, N)
+        logical(kind=1), intent(inout) :: out(M, N)
         integer, intent(inout) :: minY(N), maxY(N)
+        integer, intent(inout) :: cmin, cmax
         real, allocatable, dimension(:) :: xLinePts, yLinePts
         integer :: borderSize
         integer :: i, pt, xUse, yUse
@@ -546,9 +545,11 @@ contains
                 xLinePts(pt) = scaledDown
                 yLinePts(pt) = ceiling((yLinePts(pt) + (scale - 1.0) / 2.0) / scale)
                 ! Set xUse and yUse to these scaled down x and y values for indexing into the boolean array.
-                xUse = nint(xLinePts(pt)) + 1
-                yUse = nint(yLinePts(pt)) + 1
+               xUse = nint(xLinePts(pt)) + 1
+               yUse = nint(yLinePts(pt)) + 1
                if (.not. (xUse < 2 .or. xUse > N + 1)) then
+                 cmin = min(cmin, xUse - 1)
+                 cmax = max(cmax, xUse - 1)
                  if (yUse > M + 1) then
                    if (minY(xUse - 1) == 0) then
                      minY(xUse - 1) = M + 1
@@ -724,29 +725,25 @@ contains
         end if
     end subroutine intLine
 
-    subroutine parityScan(out, N, minY, maxY, outIDs, id)
-        logical, intent(inout) :: out(:,:)
+    subroutine parityScan(out, N, minY, maxY, outIDs, id, cmin, cmax)
+        logical(kind=1), intent(inout) :: out(:,:)
         integer, intent(inout) :: outIDs(:,:)
-        integer, intent(in) :: N, id
-        integer, intent(in) :: minY(N), maxY(N)
+        integer, intent(in) :: N, id, cmin, cmax
+        integer, intent(inout) :: minY(N), maxY(N)
         logical :: pixel
-        integer :: c, r!, id_first, id_last
+        integer :: c, r, rhi
 
-        do c = 1, N
+        do c = cmin, cmax
+            if (maxY(c) == 0) cycle
+            rhi = min(maxY(c) - 1, size(out, 1))
             pixel = .false.
-            do r = minY(c), maxY(c) - 1
+            do r = minY(c), rhi
                 if (out(r, c)) pixel = .not. pixel
-                out(r, c) = pixel
-                if (out(r,c)) outIDs(r, c) = id
+                out(r, c) = .false._1
+                if (pixel) outIDs(r, c) = id
             end do
-            ! if (maxY(c) > 0) then
-            !    id_first = findloc(out(minY(c):maxY(c)-1,c), .true., 1) + minY(c) - 1
-            !    id_last  = findloc(out(minY(c):maxY(c)-1,c), .true., 1, back=.true.) + minY(c) - 1
-            !    out(id_last, c) = .false.
-            !    if (id_first+1 <= id_last-1) then
-            !       out(id_first+1:id_last-1, c) = .true.
-            !    end if
-            ! end if
+            minY(c) = 0
+            maxY(c) = 0
         end do
     end subroutine parityScan
 

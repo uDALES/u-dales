@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib
 import tempfile
 import unittest
@@ -13,6 +14,7 @@ from udbase import UDBase
 _IMPORT_ERROR = None
 try:
     from udprep.directshortwave import DirectShortwaveSolver
+    from udprep.solar import nsun_from_angles
 except ImportError as exc:
     DirectShortwaveSolver = None
     _IMPORT_ERROR = exc
@@ -90,6 +92,28 @@ class TestScanlineContract(unittest.TestCase):
         np.testing.assert_allclose(vertices, inputs.vertices)
         np.testing.assert_allclose(faces, self.solver._scanline_face_rows(inputs))
         self.assertEqual(info_lines, self.solver._scanline_info_lines(inputs))
+
+    def test_optimized_extension_is_bitwise_stable(self) -> None:
+        fields = []
+        for zenith, azimuth in (
+            (0.0, 0.0),
+            (15.0, 20.0),
+            (45.0, 123.0),
+            (81.5, 189.0),
+        ):
+            sdir, _, _ = self.solver.compute(
+                nsun=nsun_from_angles(zenith, azimuth),
+                irradiance=800.0,
+                resolution=0.1,
+            )
+            fields.append(sdir)
+
+        # Captured from the original extension before the scanline optimization.
+        digest = hashlib.sha256(np.stack(fields).tobytes(order="C")).hexdigest()
+        self.assertEqual(
+            digest,
+            "19622e3efdb88b2870490554808e34794290c19f9975264df14d5c6c6a0da51f",
+        )
 
 
 if __name__ == "__main__":
