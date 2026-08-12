@@ -124,6 +124,79 @@ def _compute_ktot_and_z_edges(
     return ktot, z_edges, z_max, dz
 
 
+if nb is not None:
+
+    @nb.njit(cache=True)
+    def _build_cell_facet_lookup_numba(
+        triangles: np.ndarray,
+        dx: float,
+        dy: float,
+        z_edges: np.ndarray,
+        itot: int,
+        jtot: int,
+        ktot: int,
+        face_mask: np.ndarray,
+        use_face_mask: bool,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        n_cells = itot * jtot * ktot
+        n_facets = triangles.shape[0]
+        cell_counts = np.zeros(n_cells, dtype=np.int64)
+        cell_bounds = np.full((n_facets, 6), -1, dtype=np.int32)
+        eps = 1.0e-9 * max(dx, dy)
+
+        for fid in range(n_facets):
+            if use_face_mask and not face_mask[fid]:
+                continue
+            xmin = min(triangles[fid, 0, 0], triangles[fid, 1, 0], triangles[fid, 2, 0]) - eps
+            xmax = max(triangles[fid, 0, 0], triangles[fid, 1, 0], triangles[fid, 2, 0]) + eps
+            ymin = min(triangles[fid, 0, 1], triangles[fid, 1, 1], triangles[fid, 2, 1]) - eps
+            ymax = max(triangles[fid, 0, 1], triangles[fid, 1, 1], triangles[fid, 2, 1]) + eps
+            zmin = min(triangles[fid, 0, 2], triangles[fid, 1, 2], triangles[fid, 2, 2]) - eps
+            zmax = max(triangles[fid, 0, 2], triangles[fid, 1, 2], triangles[fid, 2, 2]) + eps
+            ix0 = int(math.floor(xmin / dx))
+            ix1 = int(math.floor(xmax / dx))
+            iy0 = int(math.floor(ymin / dy))
+            iy1 = int(math.floor(ymax / dy))
+            k0 = int(np.searchsorted(z_edges, zmin, side="right") - 1)
+            k1 = int(np.searchsorted(z_edges, zmax, side="right") - 1)
+            if ix1 < 0 or iy1 < 0 or k1 < 0:
+                continue
+            if ix0 >= itot or iy0 >= jtot or k0 >= ktot:
+                continue
+            ix0 = max(ix0, 0)
+            iy0 = max(iy0, 0)
+            k0 = max(k0, 0)
+            ix1 = min(ix1, itot - 1)
+            iy1 = min(iy1, jtot - 1)
+            k1 = min(k1, ktot - 1)
+            cell_bounds[fid] = (ix0, ix1, iy0, iy1, k0, k1)
+            for i in range(ix0, ix1 + 1):
+                for j in range(iy0, iy1 + 1):
+                    for k in range(k0, k1 + 1):
+                        cell_idx = i + itot * (j + jtot * k)
+                        cell_counts[cell_idx] += 1
+
+        cell_offsets = np.zeros(n_cells + 1, dtype=np.int64)
+        for cell_idx in range(n_cells):
+            cell_offsets[cell_idx + 1] = cell_offsets[cell_idx] + cell_counts[cell_idx]
+        cell_facets = np.empty(cell_offsets[-1], dtype=np.int32)
+        cell_cursor = cell_offsets[:-1].copy()
+
+        # Facet-order filling matches the old lexicographic (cell, facet) sort.
+        for fid in range(n_facets):
+            ix0, ix1, iy0, iy1, k0, k1 = cell_bounds[fid]
+            if ix0 < 0:
+                continue
+            for i in range(ix0, ix1 + 1):
+                for j in range(iy0, iy1 + 1):
+                    for k in range(k0, k1 + 1):
+                        cell_idx = i + itot * (j + jtot * k)
+                        pos = cell_cursor[cell_idx]
+                        cell_facets[pos] = fid
+                        cell_cursor[cell_idx] = pos + 1
+        return cell_offsets, cell_facets, cell_counts
+
+
 def _build_cell_facet_lookup(
     triangles: np.ndarray,
     dx: float,
@@ -135,57 +208,24 @@ def _build_cell_facet_lookup(
     face_mask: np.ndarray | None = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Build a cell->facet CSR lookup based on triangle AABB overlap."""
-    # Build a per-cell list of candidate facets by overlapping triangle AABBs with grid cells.
-    cell_idx_list = []
-    facet_idx_list = []
-    eps = 1.0e-9 * max(dx, dy)
-    for fid, tri in enumerate(triangles):
-        if face_mask is not None and not face_mask[fid]:
-            continue
-        vmin = tri.min(axis=0) - eps
-        vmax = tri.max(axis=0) + eps
-        ix0 = int(math.floor(vmin[0] / dx))
-        ix1 = int(math.floor(vmax[0] / dx))
-        iy0 = int(math.floor(vmin[1] / dy))
-        iy1 = int(math.floor(vmax[1] / dy))
-        k0 = int(np.searchsorted(z_edges, vmin[2], side="right") - 1)
-        k1 = int(np.searchsorted(z_edges, vmax[2], side="right") - 1)
-        if ix1 < 0 or iy1 < 0 or k1 < 0:
-            continue
-        if ix0 >= itot or iy0 >= jtot or k0 >= ktot:
-            continue
-        ix0 = max(ix0, 0)
-        iy0 = max(iy0, 0)
-        k0 = max(k0, 0)
-        ix1 = min(ix1, itot - 1)
-        iy1 = min(iy1, jtot - 1)
-        k1 = min(k1, ktot - 1)
-        for i in range(ix0, ix1 + 1):
-            for j in range(iy0, iy1 + 1):
-                for k in range(k0, k1 + 1):
-                    cell_idx_list.append(i + itot * (j + jtot * k))
-                    facet_idx_list.append(fid)
-    if not cell_idx_list:
-        n_cells = itot * jtot * ktot
-        cell_offsets = np.zeros(n_cells + 1, dtype=np.int64)
-        cell_facets = np.zeros(0, dtype=np.int32)
-        cell_has_facets = np.zeros((itot, jtot, ktot), dtype=bool)
-        return cell_offsets, cell_facets, cell_has_facets
-    cell_idx = np.asarray(cell_idx_list, dtype=np.int64)
-    facet_idx = np.asarray(facet_idx_list, dtype=np.int32)
-    # Sort and de-duplicate (cell, facet) pairs, then build a CSR lookup.
-    order = np.lexsort((facet_idx, cell_idx))
-    cell_idx = cell_idx[order]
-    facet_idx = facet_idx[order]
-    uniq = np.ones(len(cell_idx), dtype=bool)
-    uniq[1:] = (cell_idx[1:] != cell_idx[:-1]) | (facet_idx[1:] != facet_idx[:-1])
-    cell_idx = cell_idx[uniq]
-    facet_idx = facet_idx[uniq]
-    n_cells = itot * jtot * ktot
-    counts = np.bincount(cell_idx, minlength=n_cells).astype(np.int64)
-    cell_offsets = np.zeros(n_cells + 1, dtype=np.int64)
-    cell_offsets[1:] = np.cumsum(counts, dtype=np.int64)
-    cell_facets = facet_idx.astype(np.int32)
+    _require_numba()
+    use_face_mask = face_mask is not None
+    mask = (
+        np.asarray(face_mask, dtype=bool)
+        if use_face_mask
+        else np.empty(0, dtype=bool)
+    )
+    cell_offsets, cell_facets, counts = _build_cell_facet_lookup_numba(
+        np.asarray(triangles, dtype=float),
+        float(dx),
+        float(dy),
+        np.asarray(z_edges, dtype=float),
+        int(itot),
+        int(jtot),
+        int(ktot),
+        mask,
+        use_face_mask,
+    )
     cell_has_facets = counts.reshape((itot, jtot, ktot), order="F") > 0
     return cell_offsets, cell_facets, cell_has_facets
 
