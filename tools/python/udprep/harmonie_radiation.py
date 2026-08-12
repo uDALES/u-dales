@@ -1139,6 +1139,12 @@ def map_atmosphere_to_facets(
         if not verbose:
             return
         time_value = atmosphere.times[idx]
+        if timing is None:
+            print(
+                f"[{prefix} {idx + 1:3d}/{nt}] t={time_value:8.1f}s",
+                flush=True,
+            )
+            return
         dni = float(atmosphere.dni[idx])
         dsky = float(atmosphere.dsky[idx])
         zenith = float(atmosphere.zenith[idx])
@@ -1202,7 +1208,7 @@ def map_atmosphere_to_facets(
                 }
             )
 
-        if verbose:
+        if verbose and timing is not None:
             peak_text = (
                 f"{result.sample.peak_rss_mib:.1f} MiB"
                 if result.sample.peak_rss_mib is not None
@@ -1214,6 +1220,16 @@ def map_atmosphere_to_facets(
                 f"wall={result.sample.wall_seconds:.3f}s "
                 f"cpu={result.sample.cpu_seconds:.3f}s "
                 f"peak_rss={peak_text} pid={result.worker_pid}",
+                flush=True,
+            )
+        elif verbose:
+            action = "resumed" if result.resumed else "done"
+            wall_text = (
+                "" if result.resumed else f" wall={result.sample.wall_seconds:.3f}s"
+            )
+            print(
+                f"[{action} {idx + 1:3d}/{nt}] "
+                f"mode={result.mode:<7s}{wall_text}",
                 flush=True,
             )
 

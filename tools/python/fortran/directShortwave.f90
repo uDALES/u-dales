@@ -54,7 +54,6 @@ contains
       real, dimension(3,3) :: matrix, invMatrix
       integer :: i, j, n, m, size_xi, size_eta
       logical :: flag
-      real :: start, finish
 
       ! projection
       xmin = minval(vertices(:,1))
@@ -213,8 +212,6 @@ contains
          !    end do
          ! end do
 
-         call cpu_time(start)
-
          ! polygon scan conversion
          do n=1,nFaces
            !write(*,*) "n", n
@@ -256,8 +253,6 @@ contains
       ! end do
       ! close (11)
 
-            call cpu_time(finish)
-
       projAreas = counts * resolution**2
 
       Sdir = irradiance * projAreas / areas
@@ -266,8 +261,6 @@ contains
       ! do n=1,1000
       !    write(*,*) n, counts(n), projAreas(n), Sdir(n)
       ! end do
-
-      print '("Time = ",f10.3," seconds.")',finish-start
 
    end subroutine calculateDirectShortwave
 

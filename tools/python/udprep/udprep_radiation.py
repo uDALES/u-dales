@@ -760,6 +760,7 @@ class RadiationSection(Section):
                     azimuth = float(azimuth_interp[n]) - self.xazimuth
                     nsun = nsun_from_angles(solarzenith, azimuth)
                     dsky = float(Dsky_interp[n])
+                    step_start = time.perf_counter()
                     sdir, knet, s_veg = self._compute_knet(
                         nsun,
                         irradiance,
@@ -771,6 +772,9 @@ class RadiationSection(Section):
                         vf,
                         svf,
                         fss,
+                    )
+                    self._print_timedep_shortwave_progress(
+                        n, nt, t_val, method, time.perf_counter() - step_start
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
@@ -787,6 +791,7 @@ class RadiationSection(Section):
                     and irradiance > 0.0
                     and abs(np.cos(np.radians(solarzenith))) >= _MIN_SUN_VERTICAL
                 ):
+                    step_start = time.perf_counter()
                     sdir, knet, s_veg = self._compute_knet(
                         nsun,
                         irradiance,
@@ -798,6 +803,9 @@ class RadiationSection(Section):
                         vf,
                         svf,
                         fss,
+                    )
+                    self._print_timedep_shortwave_progress(
+                        n, nt, t_val, method, time.perf_counter() - step_start
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
@@ -813,6 +821,21 @@ class RadiationSection(Section):
         if s_veg_all is not None:
             self.write_timedepsveg(tSP, s_veg_all)
         _write_sig(timedepsw_path, sw_sig)
+
+    @staticmethod
+    def _print_timedep_shortwave_progress(
+        index: int,
+        total: int,
+        model_time_seconds: float,
+        method: str,
+        wall_seconds: float,
+    ) -> None:
+        print(
+            f"[shortwave {index + 1:3d}/{total}] "
+            f"t={model_time_seconds:8.1f}s mode=direct "
+            f"method={method} wall={wall_seconds:.3f}s",
+            flush=True,
+        )
 
     def write_timedepsw(self, tSP: np.ndarray, knet: np.ndarray) -> None:
         """Write time-dependent net shortwave (timedepsw.inp.<expnr>)."""

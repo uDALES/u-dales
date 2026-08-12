@@ -1,7 +1,9 @@
 """Tests for HARMONIE radiation conversion helpers."""
 
 import csv
+from contextlib import redirect_stdout
 from datetime import datetime
+import io
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -226,6 +228,94 @@ class TestShortwaveWriters(unittest.TestCase):
 
 
 class TestShortwaveTiming(unittest.TestCase):
+    @staticmethod
+    def _nighttime_mapping_fixture():
+        class FakeRadiation:
+            lEB = False
+            maxD = 96.0
+            year, month, day = 2023, 8, 20
+            hour, minute, second = 18, 0, 0
+            timezone = 0.0
+
+            @staticmethod
+            def _shortwave_method():
+                return "scanline_f2py", 0.5
+
+        sim = types.SimpleNamespace(
+            geom=types.SimpleNamespace(
+                stl=types.SimpleNamespace(
+                    face_normals=np.array([[0.0, 0.0, 1.0]])
+                )
+            ),
+            assign_prop_to_fac=lambda _name: np.array([0.2]),
+        )
+        prep = types.SimpleNamespace(sim=sim, radiation=FakeRadiation())
+        atmosphere = ShortwaveAtmosphere(
+            times=np.array([0.0]),
+            ghi=np.array([0.0]),
+            dni=np.array([0.0]),
+            dsky=np.array([0.0]),
+            zenith=np.array([100.0]),
+            azimuth_local=np.array([180.0]),
+        )
+        return prep, atmosphere
+
+    def test_progress_detail_follows_timing_and_quiet_controls(self):
+        prep, atmosphere = self._nighttime_mapping_fixture()
+
+        concise_stream = io.StringIO()
+        with redirect_stdout(concise_stream):
+            map_atmosphere_to_facets(prep, atmosphere, verbose=True)
+        concise = concise_stream.getvalue()
+        self.assertIn("[start   1/1]", concise)
+        self.assertIn("[done   1/1] mode=night", concise)
+        self.assertIn("wall=", concise)
+        self.assertNotIn("GHI=", concise)
+        self.assertNotIn("cpu=", concise)
+        self.assertNotIn("peak_rss=", concise)
+        self.assertNotIn("pid=", concise)
+
+        with TemporaryDirectory() as tmp:
+            detailed_recorder = ShortwaveTimingRecorder(
+                Path(tmp) / "detailed", metadata={}, overwrite=False
+            )
+            detailed_stream = io.StringIO()
+            with redirect_stdout(detailed_stream):
+                map_atmosphere_to_facets(
+                    prep,
+                    atmosphere,
+                    verbose=True,
+                    timing=detailed_recorder,
+                )
+            detailed_recorder.finish(
+                status="completed", total=TimingSample(1.0, 1.0, 10.0)
+            )
+            detailed = detailed_stream.getvalue()
+            self.assertIn("GHI=", detailed)
+            self.assertIn("cpu=", detailed)
+            self.assertIn("peak_rss=", detailed)
+            self.assertIn("pid=", detailed)
+
+            quiet_recorder = ShortwaveTimingRecorder(
+                Path(tmp) / "quiet", metadata={}, overwrite=False
+            )
+            quiet_stream = io.StringIO()
+            with redirect_stdout(quiet_stream):
+                map_atmosphere_to_facets(
+                    prep,
+                    atmosphere,
+                    verbose=False,
+                    timing=quiet_recorder,
+                )
+            quiet_recorder.finish(
+                status="completed", total=TimingSample(1.0, 1.0, 10.0)
+            )
+            self.assertEqual(quiet_stream.getvalue(), "")
+            with (Path(tmp) / "quiet.timestamps.csv").open(
+                "r", encoding="ascii", newline=""
+            ) as handle:
+                self.assertEqual(len(list(csv.DictReader(handle))), 1)
+
     def test_recorder_flushes_timestamp_csv_and_summary(self):
         with TemporaryDirectory() as tmp:
             prefix = Path(tmp) / "baseline"
