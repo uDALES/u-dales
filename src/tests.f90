@@ -394,8 +394,9 @@ contains
   !!       in the discrete sense and to within the expected O(dz) truncation
   !!       error of the analytic profile;
   !!   (b) consistency with the solver: the vertical divergence of the SGS
-  !!       fluxes must reproduce the tendency diffu/diffc add to up/thlp, to
-  !!       machine precision;
+  !!       fluxes must reproduce the tendency diffu/diffw/diffc add to
+  !!       up/wp/thlp, to machine precision. This is what pins wsgs to a stress
+  !!       (m^2/s^2) rather than a tendency (m/s^2);
   !!   (c) sign regression: for a monotone shear the SGS momentum flux must be
   !!       negative (down-gradient), guarding the sign convention.
   logical function tests_sgs_statistics()

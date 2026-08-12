@@ -52,6 +52,8 @@ that they are easy to find when upgrading.
 - The 3-D `sv1sgs`–`sv4sgs` output in `tdump` is now masked with `IIw`, so solid
   and wall-adjacent faces report `-999.` instead of an interior-formula value
   the solver never applied.
+- `upwpxy`, `vpwpxy` and `wpthlpxy` report `-999.` at masked levels instead of
+  the product of two sentinels (`-999000`).
 - Several latent bugs inside the (disabled) TKE-budget path were repaired so
   that it is correct if revived: the mean rate-of-strain was a scalar reused
   across the whole domain, the vertical SGS transport term paired the `w`-based
