@@ -260,7 +260,7 @@ contains
     use modglobal, only : ib,ie,jb,je,kb,ke,kh,khc,nsv,zh,zf,grav,rlv,cp,rd,rv,pref0
     use modfields, only : u0,v0,thl0,qt0,ql0,sv0,u0av,v0av,thl0av,qt0av,ql0av,sv0av, &
          presf,presh,exnf,exnh,rhof,thvf,IIc,IIcs,IIu,IIus,IIv,IIvs
-    use modbasestate, only : exnf_b, exnh_b, thl_b, qt_b, ps
+    use modbasestate, only : exnf_b, exnh_b, thl_b, qt_b
     use modmpi,    only : slabsum,avexy_ibm
     implicit none
 
@@ -315,6 +315,14 @@ contains
        end if
     end do
 
+    ! avexy_ibm's nodata marker (-999.) must not reach downstream consumers
+    ! (lstend, nudging, outflow): the volume-mean of velocity in a fully-solid
+    ! slab is zero, not undefined.
+    do k=kb,ke+kh
+       if (IIus(k) == 0) u0av(k) = 0.
+       if (IIvs(k) == 0) v0av(k) = 0.
+    end do
+
     ! base-state seed; refined below from the ps-anchored pressure
     exnf = exnf_b
     exnh = exnh_b
@@ -327,6 +335,10 @@ contains
     do n=1,nsv
 !       call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
     call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
+    ! same nodata guard as above; sv0av's IBM mask runs to ke+khc, not ke+kh
+    do k=kb,ke+khc
+       if (IIcs(k) == 0) sv0av(k,n) = 0.
+    end do
     end do
 !    sv0av = sv0av/rslabs
 
@@ -354,9 +366,10 @@ contains
 
     !    3.1 determine exner
 
-    exnh(kb) = (ps/pref0)**(rd/cp)
-    exnf(kb) = (presf(kb)/pref0)**(rd/cp)
-    do k=kb+1,ke+kh
+    ! uniform over the whole column: fromztop now guarantees presh(kps) == ps
+    ! and carries the base-state column through the buried levels below kps,
+    ! so no special case is needed at kb.
+    do k=kb,ke+kh
        exnf(k) = (presf(k)/pref0)**(rd/cp)
        exnh(k) = (presh(k)/pref0)**(rd/cp)
     end do
@@ -391,9 +404,9 @@ contains
   !! \author Pier Siebesma   K.N.M.I.     06/01/1995
   subroutine fromztop
 
-    use modglobal, only : kb,ke,kh,dzf,dzh,rv,rd,cp,zf,grav,pref0
+    use modglobal, only : kb,ke,kh,dzf,dzh,rv,rd,cp,zf,zh,grav,pref0
     use modfields, only : qt0av,ql0av,presf,presh,thvh,thvf
-    use modbasestate, only : thv_b, ps
+    use modbasestate, only : thv_b, ps, kps, pf_b, ph_b
     implicit none
 
     integer   k
@@ -418,16 +431,27 @@ contains
     !          assuming hydrostatic equilibrium       *
     !**************************************************
 
-    !     1: lowest level: use thv_b (base state, #302)
+    !     0: levels buried below the anchor (only when kps > kb): fully-solid
+    !        slabs by definition of kps, so carry the base-state reference
+    !        continuation directly. Consistent to roundoff with the march
+    !        below because diagfld substitutes the base profiles there.
 
-    thvh(kb) = thv_b(kb)
-    presf(kb) = ps**rdocp - &
-         grav*(pref0**rdocp)*zf(kb) /(cp*thvh(kb))
-    presf(kb) = presf(kb)**(1./rdocp)
+    do k=kb,kps-1
+       presf(k) = pf_b(k)
+       presh(k) = ph_b(k)
+       thvh(k)  = thv_b(k)
+    end do
+
+    !     1: anchor level: use thv_b (base state, #302)
+
+    thvh(kps) = thv_b(kps)
+    presf(kps) = ps**rdocp - &
+         grav*(pref0**rdocp)*(zf(kps)-zh(kps)) /(cp*thvh(kps))
+    presf(kps) = presf(kps)**(1./rdocp)
 
     !     2: higher levels
 
-    do k=kb+1,ke+kh 
+    do k=kps+1,ke+kh
        thvh(k)  = thetah(k)*(1+(rv/rd-1)*qth(k)-rv/rd*qlh(k))
        presf(k) = presf(k-1)**rdocp - grav*(pref0**rdocp)*dzh(k) /(cp*thvh(k))
        presf(k) = presf(k)**(1./rdocp)
@@ -438,10 +462,16 @@ contains
     !           assuming hydrostatic equilibrium      *
     !**************************************************
 
-    presh(kb) = ps
+    ! thvf is diagnostic (from th0av), kept over the full range: diagfld
+    ! base-substitutes th0av/qt0av/ql0av below kps, so this is well-defined
+    ! there too, independent of where the pressure anchor sits.
     thvf(kb) = th0av(kb)*(1+(rv/rd-1)*qt0av(kb)-rv/rd*ql0av(kb))
     do k=kb+1,ke+kh
        thvf(k)  = th0av(k)*(1+(rv/rd-1)*qt0av(k)-rv/rd*ql0av(k))
+    end do
+
+    presh(kps) = ps
+    do k=kps+1,ke+kh
        presh(k) = presh(k-1)**rdocp - grav*(pref0**rdocp)*dzf(k-1) / (cp*thvf(k-1))
        presh(k) = presh(k)**(1./rdocp)
     end do

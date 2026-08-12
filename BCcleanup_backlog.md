@@ -272,7 +272,7 @@ Single work stream. Sequence Phase 0 → 1 → 3a → 2 (Phase 2's final deletio
 - [x] **Base-profile fallback for solid slabs**: in the thermo-facing slab averages, where
       `IIcs(k)==0` use `thl_b/qt_b` (and `ql=0`) instead of `avexy_ibm`'s `-999.`; delete the
       `kb` hack (modmpi.f90:644-650). Fixes the hydrostatic march below the ground surface
-      (§1.5).
+      (§1.5). *(The kb-hack deletion was deferred at the time; done in Phase 4.)*
 - [x] **Validate `ps`** at startup (required whenever thermodynamics is active; cannot be
       derived). `thls`/`qts` stay in the namelist for now — they are still consumed by the
       `lbottom` wall function (modibm.f90:2023,2046) — but are removed from the base-state path,
@@ -495,6 +495,51 @@ modsave, only: writerestartfiles` in `drivergen`).
 - `lzerogradtop`, `lzerogradtopscal` (top-BC switches).
 - `uouttot`/`vouttot` (declared modfields.f90:389-390; general convective-outflow velocity for
   all iolet BCs) — see §5.
+
+### Phase 4 — pressure anchor at the lowest fluid level + slab-average/bulk-integral cleanup (2026-08-12)
+
+Implemented (unverified on this machine — no Fortran toolchain; needs the CX3 gate):
+
+- [x] **`ps` redefined**: pressure at `zh(kps)`, `kps = min{k : IIcs(k)>0}` (modbasestate; new
+      public `kps`). Bitwise-identical when the bottom slab has fluid (`kps==kb`, `zh(kb)==0`);
+      only fully-buried-bottom cases change. Downward continuation below `kps` is the exact
+      algebraic inverse of the upward march in `p**rdocp` space (telescoped identity checked in
+      tests_basestate sub-test D). `fromztop` anchors at `kps` and copies `pf_b/ph_b` below;
+      `diagfld`'s Exner block is now one uniform loop; statsdump `p_bav` reference is
+      `thv_b(kps)`. Docs: namoptions `ps` row + new page `docs/udales-base-state.md` (maths).
+- [x] **Bulk quantities as masked integrals**: `boundary`'s `uouttot/vouttot` = outlet-plane
+      flux / free outlet area (sumy_ibm/sumx_ibm, mirrors uoutletarea/voutletarea); masscorr's
+      `luvolflowr/lvvolflowr` normalisation = fluid-volume mean
+      `sum(slabsum*dzf)/sum(count*dzf)`. Neither reads the `nodata` marker; fixes the
+      fluid-fraction weighting error (fluid-mean × full dz / H is not a volume mean).
+- [x] **`avexy_ibm` kb hack deleted** (the Phase-0 sub-clause left open); every
+      `lnan=.false.` call site now guards its own result: diagfld + readinitfiles fill
+      `thl_b/qt_b/thv_b` (thermo) or `0.` (u0av/v0av/sv0av, u_init/v_init), `pres0ij(ke)`/
+      `pij(ke)` zero-filled (modboundary/modpois, top slab only).
+
+Verification required on CX3 before merging: case 090 gate expected **bitwise** (kps==kb,
+periodic so `uouttot` unused — confirm); 091 expected to *differ* (anchor moves to kb+2 —
+re-baseline); any inflow–outflow case without flow-rate forcing gets a *different but more
+correct* `uouttot` (tolerance, not bitwise). Run runmodes 1006 (incl. new sub-test D) and 1007.
+
+Follow-ups discovered during this work:
+
+- [ ] **Retire the `nodata` value-dependence entirely** (the "mark at dump time" plan from
+      commit 9ed16bfe): modstatsdump's xytdump arrays still hold `-999.` internally (time-
+      averaging preserves it only because it is constant); key the NetCDF fill on `IIcs(k)==0`
+      at write time and make `run_test.py` read `_FillValue` from the file instead of the
+      hardcoded `SENTINEL_VALUE = -999.0` (line ~137). Then flip `nodata` to a signalling NaN
+      in Debug builds as the acceptance test: tdump/fielddump must stay bitwise, xytdump may
+      differ only at fill entries.
+- [ ] **Latent bug, `masscorr` `lvoutflowr` branch** (modforces.f90 ~line 443): uses
+      `sumy_ibm` where the comment (and physics) say integrate over x — should be `sumx_ibm`
+      — and slices `vp(ib:je,je,kb:ke)`, almost certainly a typo for `vp(ib:ie,...)`. Shape
+      mismatch vs the dummies; presumably nobody runs `lvoutflowr`. Fix + test before use.
+- [ ] **`fluidvolume` is wrong and dead** (modforces.f90 ~555): `avexy_ibm(IIc*dx*dy)/count`
+      collapses to `dx*dy` per non-empty slab, so `fluidvol` = single-column area × height of
+      non-empty slabs, not the domain fluid volume its comment claims. Nothing reads
+      `fluidvol` (periodicEBcorr does not use it). Either fix with a true masked sum or
+      delete `fluidvolume`/`fluidvol` and keep only the outlet areas in `calcfluidvolumes`.
 
 ---
 

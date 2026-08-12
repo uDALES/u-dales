@@ -4,8 +4,12 @@
 module modbasestate
    implicit none
    save
-   public :: initbasestate, exitbasestate, ps
+   public :: initbasestate, exitbasestate, ps, kps
    real              :: ps = 101325.  !<  Surface pressure [Pa]
+   integer           :: kps = 1  !< vertical index of the base-state pressure anchor --
+                                  !< the lowest slab with at least one fluid cell; equals
+                                  !< kb when IBM masks are unavailable (unit tests) or the
+                                  !< bottom slab has fluid.
    real, allocatable :: thl_b(:)  !< base-state liquid water potential temperature [K]
    real, allocatable :: qt_b(:)   !< base-state total specific humidity [kg/kg]
    real, allocatable :: thv_b(:)  !< base-state virtual potential temperature [K]
@@ -17,7 +21,8 @@ module modbasestate
 contains
 
    subroutine initbasestate(thlprof, qtprof)
-      use modglobal,   only : kb, ke, kh, zf, dzf, dzh, grav, cp, rd, rv, pref0
+      use modglobal,   only : kb, ke, kh, zf, zh, dzf, dzh, grav, cp, rd, rv, pref0
+      use modfields,   only : IIcs
       use modmpi,      only : myid
       real, intent(in) :: thlprof(kb:ke), qtprof(kb:ke)
       real :: rdocp, thvh_b
@@ -37,23 +42,52 @@ contains
       qt_b(ke+kh)  = qtprof(ke)
       thv_b = thl_b*(1.+(rv/rd - 1.)*qt_b) ! ql = 0 in the base state
 
-      ! hydrostatic integration from ps at the domain bottom (z = 0), same
-      ! discrete scheme as fromztop; defined over the full column, including
-      ! levels inside terrain (reference-column continuation, backlog section 1.5)
-      ph_b(kb) = ps
-      pf_b(kb) = (ps**rdocp - grav*(pref0**rdocp)*zf(kb)/(cp*thv_b(kb)))**(1./rdocp)
-      do k = kb + 1, ke + kh
+      ! locate the pressure anchor: the lowest slab with at least one fluid
+      ! cell. IIcs is unallocated for the unit tests (tests_basestate) and at
+      ! the runmode-test dispatch point; kps then stays kb, matching the prior
+      ! "ps at the domain bottom" behaviour exactly.
+      kps = kb
+      if (allocated(IIcs)) then
+         do k = kb, ke
+            if (IIcs(k) > 0) then
+               kps = k
+               exit
+            end if
+         end do
+      end if
+
+      ! hydrostatic integration anchored at ps, defined at zh(kps) -- the
+      ! lowest fluid level -- same discrete scheme as fromztop; defined over
+      ! the full column, including levels inside terrain (reference-column
+      ! continuation, backlog section 1.5). For the standard case (fluid at
+      ! kb) kps == kb and zh(kb) == 0, so this is exactly the historical
+      ! "ps at z = 0" anchor.
+      ph_b(kps) = ps
+      pf_b(kps) = (ps**rdocp - grav*(pref0**rdocp)*(zf(kps)-zh(kps))/(cp*thv_b(kps)))**(1./rdocp)
+      do k = kps + 1, ke + kh
          thvh_b  = (thv_b(k)*dzf(k-1) + thv_b(k-1)*dzf(k))/(2.*dzh(k))
          pf_b(k) = (pf_b(k-1)**rdocp - grav*(pref0**rdocp)*dzh(k)/(cp*thvh_b))**(1./rdocp)
          ph_b(k) = (ph_b(k-1)**rdocp - grav*(pref0**rdocp)*dzf(k-1)/(cp*thv_b(k-1)))**(1./rdocp)
+      end do
+
+      ! downward continuation for slabs buried below the anchor (only when
+      ! kps > kb). These are the exact algebraic inverses, in p**rdocp space,
+      ! of the upward recurrences above: re-marching upward from ph_b(kb)
+      ! through this column recovers ps at kps to roundoff. Sub-anchor
+      ! pressure is a derived reference continuation (a gauge), not user
+      ! input -- ps only ever specifies the pressure at kps.
+      do k = kps - 1, kb, -1
+         thvh_b  = (thv_b(k+1)*dzf(k) + thv_b(k)*dzf(k+1))/(2.*dzh(k+1))
+         pf_b(k) = (pf_b(k+1)**rdocp + grav*(pref0**rdocp)*dzh(k+1)/(cp*thvh_b))**(1./rdocp)
+         ph_b(k) = (ph_b(k+1)**rdocp + grav*(pref0**rdocp)*dzf(k)/(cp*thv_b(k)))**(1./rdocp)
       end do
 
       exnf_b = (pf_b/pref0)**rdocp
       exnh_b = (ph_b/pref0)**rdocp
 
       if (myid == 0) then
-         write (*, '(A,F8.3,A,F10.1,A)') ' Base state: thv_b(kb) = ', thv_b(kb), &
-            ' K, ps = ', ps, ' Pa (derived from prof.inp, #302)'
+         write (*, '(A,F8.3,A,F10.1,A,F8.2,A,I0,A)') ' Base state: thv_b = ', thv_b(kps), &
+            ' K, ps = ', ps, ' Pa at z = ', zh(kps), ' m (k = ', kps, ', lowest fluid level)'
       end if
    end subroutine initbasestate
 

@@ -936,7 +936,7 @@ module modstartup
       use modboundary, only:boundary, tqaver, halos, sv_top, ubulk, vbulk
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
-      use modbasestate, only:initbasestate
+      use modbasestate, only:initbasestate, thv_b, thl_b, qt_b
       use inflow, only: readdriverfile,initinflow,drivergen,readdriverfile_chunk
       use decomp_2d, only : exchange_halo_z, update_halo
 
@@ -1045,11 +1045,19 @@ module modstartup
          ! call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) ! redefine halflevel thv using calculated thv
          call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
          ! thvh = thvh/rslabs
+         ! fully-solid slabs: base-state fill instead of the nodata marker
+         do k = kb, ke + kh
+            if (IIws(k) == 0) thvh(k) = thv_b(k)
+         end do
 
          thvf = 0.0
          call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
          ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
          ! thvf = thvf/rslabs
+         ! fully-solid slabs: base-state fill instead of the nodata marker
+         do k = kb, ke + kh
+            if (IIcs(k) == 0) thvf(k) = thv_b(k)
+         end do
 
       else !if not lstratstart
 
@@ -1474,6 +1482,14 @@ module modstartup
             call avexy_ibm(v_init(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
             call avexy_ibm(thl_init(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             call avexy_ibm(qt_init(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+            ! fully-solid slabs: zero fill instead of the nodata marker
+            ! (u_init/v_init/thl_init/qt_init are diagnostic-only, written to
+            ! prof_restart below; initbasestate has not run yet at this point,
+            ! so thl_b/qt_b are not available -- see the thlprof/qtprof fallback below)
+            do k = kb, ke + kh
+               if (IIus(k) == 0) u_init(k) = 0.
+               if (IIvs(k) == 0) v_init(k) = 0.
+            end do
 
             if (myid == 0) then
                ! Read profiles from file (potentially for forcing)
@@ -1492,6 +1508,16 @@ module modstartup
                      e12prof(k)
                end do
                close (ifinput)
+
+               ! fully-solid slabs: fall back to the profile just read above
+               ! (thl_b/qt_b not available yet -- initbasestate runs later,
+               ! below, once thlprof/qtprof have been broadcast)
+               do k = kb, ke
+                  if (IIcs(k) == 0) then
+                     thl_init(k) = thlprof(k)
+                     qt_init(k)  = qtprof(k)
+                  end if
+               end do
 
                ! Write initial profile
                open (ifinput, file='prof_restart.'//cexpnr)
@@ -1621,11 +1647,19 @@ module modstartup
             ! call slabsum(thvh,kb,ke,thv0h,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke) ! redefine halflevel thv using calculated thv
             call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
             ! thvh = thvh/rslabs
+            ! fully-solid slabs: base-state fill instead of the nodata marker
+            do k = kb, ke + kh
+               if (IIws(k) == 0) thvh(k) = thv_b(k)
+            end do
 
             thvf = 0.0
             call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
             ! thvf = thvf/rslabs
+            ! fully-solid slabs: base-state fill instead of the nodata marker
+            do k = kb, ke + kh
+               if (IIcs(k) == 0) thvf(k) = thv_b(k)
+            end do
 
             ! Set average inlet profile to initial inlet profile in case of inletgenerator mode
             uaverage = 0.
@@ -1771,9 +1805,24 @@ module modstartup
             call avexy_ibm(thl0av(kb:ke+kh),thl0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
             ! call slabsum(qt0av,kb,ke+kh,qt0(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
             call avexy_ibm(qt0av(kb:ke+kh),qt0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+
+            ! fully-solid slabs: base-state / zero fill instead of the nodata marker
+            do k = kb, ke + kh
+               if (IIus(k) == 0) u0av(k) = 0.
+               if (IIvs(k) == 0) v0av(k) = 0.
+               if (IIcs(k) == 0) then
+                  thl0av(k) = thl_b(k)
+                  qt0av(k)  = qt_b(k)
+               end if
+            end do
+
             do n = 1, nsv
                ! call slabsum(sv0av(kb,n),kb,ke+kh,sv0(ib-ih,jb-jh,kb,n),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
                call avexy_ibm(sv0av(kb:ke+khc,n),sv0(ib:ie,jb:je,kb:ke+khc,n),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+khc),IIcs(kb:ke+khc),.false.)
+               ! fully-solid slabs: zero fill instead of the nodata marker
+               do k = kb, ke + khc
+                  if (IIcs(k) == 0) sv0av(k, n) = 0.
+               end do
             end do
 
             ! CvH - only do this for fixed timestepping. In adaptive dt comes from restartfile

@@ -1804,7 +1804,7 @@ contains
   use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,&
                                dzfi,dzhi,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
   use modmpi,           only : avey_ibm,excjs,avexy_ibm
-  use modbasestate,     only : thv_b
+  use modbasestate,     only : thv_b, kps
   use decomp_2d,        only : exchange_halo_z
   implicit none
 
@@ -2123,7 +2123,7 @@ contains
                               - 0.5*(ttmy(i,j,k) + ttmy(i,jp,k))        &
                               - 0.5*(ttmz(i,j,k) + ttmz(i,j,kp))
 
-             p_bav(i,j,k)   = (grav/thv_b(kb))*0.5*(thlpwpav(i,j,k)+thlpwpav(i,j,kp))
+             p_bav(i,j,k)   = (grav/thv_b(kps))*0.5*(thlpwpav(i,j,k)+thlpwpav(i,j,kp)) ! Boussinesq reference at the pressure-anchor level (lowest fluid slab)
 
           end do
         end do

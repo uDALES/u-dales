@@ -45,7 +45,7 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| ps | 101325 | `REAL` > 0 | Air pressure at surface, recommend using standard pressure. Required when `ltempeq` or `lmoist`. | [Pa] |
+| ps | 101325 | `REAL` > 0 | Air pressure at the lowest fluid level of the domain — the anchor of the hydrostatic base state. This is the level zh(k) of the first vertical slab containing fluid cells: z=0 for standard cases, the level just above the terrain when solid geometry fully covers the domain bottom. Recommend standard pressure. Required when `ltempeq` or `lmoist`. | [Pa] |
 | igrw_damp | 0 | 0, 1, 2, 3 | Integer switch to enable gravity wave damping.| - |
 | ltempeq | .false. | .true. or .false. | Switch for solving temperature equation. | - |
 | lbuoyancy | .false. | .true. or .false. | Switch for buoyancy force in temperature equation. | - |

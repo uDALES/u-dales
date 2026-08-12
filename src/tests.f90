@@ -446,16 +446,18 @@ contains
   !! independent expectation, so a wrong hydrostatic scheme fails here even
   !! though it would reproduce itself perfectly in a regression comparison.
   logical function tests_basestate()
-    use modglobal,    only : kb, ke, kh, zf, zh, dzf, dzh, grav, cp, rd, rv, pref0
+    use modglobal,    only : kb, ke, kh, khc, zf, zh, dzf, dzh, grav, cp, rd, rv, pref0
     use modbasestate, only : initbasestate, exitbasestate, ps, thv_b, pf_b, ph_b, &
-                             exnf_b, exnh_b
+                             exnf_b, exnh_b, kps
+    use modfields,    only : IIcs
 
     implicit none
 
     real, allocatable :: thlprof(:), qtprof(:), thv_expect(:)
     real    :: rdocp, thv0, gamma, qt0, dqtdz, tol_exact, tol_trunc
+    real    :: pf_kps_expect, telescoped
     integer :: k
-    logical :: ok
+    logical :: ok, IIcs_allocated_here
 
     ok        = .true.
     tol_exact = 1.e-10  ! vs the telescoped sum: same arithmetic, different order
@@ -593,6 +595,72 @@ contains
 
     if (.not. check_telescoped_sum(thv_expect, rdocp, tol_exact)) ok = .false.
     call exitbasestate
+
+    ! ---- D. elevated anchor (kps > kb) --------------------------------------
+    ! Two fully-buried slabs at the bottom (IIcs = 0) push the pressure anchor
+    ! up to kb+2. This exercises the branch that A-C do not: with IIcs
+    ! unallocated they all have kps == kb. Checks: (a) initbasestate finds the
+    ! anchor at the right level; (b) the anchor pressure is exactly ps, not a
+    ! derived value; (c) pressure still decreases monotonically through the
+    ! buried levels; (d) the downward continuation telescopes to exactly
+    ! invert the upward march, i.e. ph_b(kb) is the same gauge pressure a
+    ! march up from kb through the buried slabs would need to reach ps at
+    ! kps; (e) pf_b(kps) matches the same closed-form anchor expression
+    ! initbasestate uses; (f) exnh_b(kps) is consistent with ph_b(kps).
+    thv0    = 290.
+    thlprof = thv0
+    qtprof  = 0.
+
+    IIcs_allocated_here = .not. allocated(IIcs)
+    if (.not. allocated(IIcs)) allocate(IIcs(kb:ke+khc))
+    IIcs        = 1
+    IIcs(kb)    = 0
+    IIcs(kb+1)  = 0
+
+    call initbasestate(thlprof, qtprof)
+
+    if (kps /= kb + 2) then
+      if (myid == 0) write(*, '(A,I4,A,I4)') '  FAIL: kps =', kps, ' expected', kb + 2
+      ok = .false.
+    end if
+
+    if (ph_b(kps) /= ps) then
+      if (myid == 0) write(*, '(A,F12.3,A,F12.3)') '  FAIL: elevated ph_b(kps) =', ph_b(kps), ' expected ps =', ps
+      ok = .false.
+    end if
+
+    do k = kb, ke + kh - 1
+      if (ph_b(k) <= ph_b(k+1)) then
+        if (myid == 0) write(*, '(A,I4)') '  FAIL: elevated ph_b not decreasing at k =', k
+        ok = .false.
+      end if
+    end do
+
+    ! exact telescoped continuation: the downward march is the exact inverse
+    ! of the upward one, so re-accumulating the same per-level increments
+    ! from ph_b(kb) must land exactly back on ps**rdocp at kps.
+    telescoped = ps**rdocp
+    do k = kb, kps - 1
+      telescoped = telescoped + grav*(pref0**rdocp)*dzf(k)/(cp*thv_b(k))
+    end do
+    if (.not. close_rel(ph_b(kb)**rdocp, telescoped, tol_exact)) then
+      if (myid == 0) write(*, '(A,F14.4,A,F14.4)') '  FAIL: elevated ph_b(kb)**rdocp =', ph_b(kb)**rdocp, ' expected', telescoped
+      ok = .false.
+    end if
+
+    pf_kps_expect = (ps**rdocp - grav*(pref0**rdocp)*(zf(kps)-zh(kps))/(cp*thv_b(kps)))**(1./rdocp)
+    if (.not. close_rel(pf_b(kps), pf_kps_expect, tol_exact)) then
+      if (myid == 0) write(*, '(A,F14.4,A,F14.4)') '  FAIL: elevated pf_b(kps) =', pf_b(kps), ' expected', pf_kps_expect
+      ok = .false.
+    end if
+
+    if (.not. close_rel(exnh_b(kps), (ph_b(kps)/pref0)**rdocp, tol_exact)) then
+      if (myid == 0) write(*, '(A)') '  FAIL: elevated exnh_b(kps) inconsistent with ph_b(kps)'
+      ok = .false.
+    end if
+
+    call exitbasestate
+    if (IIcs_allocated_here) deallocate(IIcs)
 
     deallocate(thlprof, qtprof, thv_expect)
 

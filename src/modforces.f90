@@ -326,7 +326,7 @@ module modforces
   subroutine masscorr
     !> correct the velocities to get prescribed flow rate
 
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzf,dxf,dy,zh,dt,rk3step,&
+    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzf,dxf,dy,dt,rk3step,&
                           uflowrate,vflowrate,linoutflow,&
                           luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
     use modfields, only : um,up,vm,vp,uouttot,udef,vdef,&
@@ -402,9 +402,13 @@ module modforces
       call avexy_ibm(uvol(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
       call avexy_ibm(uvolold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
 
-      ! average over fluid volume
-      uoutflow = rk3coef*sum(uvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
-      uflowrateold =  sum(uvolold(kb:ke)*dzf(kb:ke)) / zh(ke+1)
+      ! fluid-volume mean: sum_k [slab-sum * dzf] / sum_k [fluid-count * dzf];
+      ! IIus(k)==0 slabs contribute zero by construction, so avexy_ibm's nodata
+      ! marker is never read
+      uoutflow     = rk3coef*sum(uvol(kb:ke)*real(IIus(kb:ke))*dzf(kb:ke), mask=IIus(kb:ke)>0) &
+                     / sum(real(IIus(kb:ke))*dzf(kb:ke))
+      uflowrateold = sum(uvolold(kb:ke)*real(IIus(kb:ke))*dzf(kb:ke), mask=IIus(kb:ke)>0) &
+                     / sum(real(IIus(kb:ke))*dzf(kb:ke))
 
       ! flow correction to match outflow rate
       udef = uflowrate - (uoutflow + uflowrateold)
@@ -476,9 +480,13 @@ module modforces
       call avexy_ibm(vvol(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
       call avexy_ibm(vvolold(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
 
-      ! average over fluid volume
-      voutflow = rk3coef*sum(vvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
-      vflowrateold =  sum(vvolold(kb:ke)*dzf(kb:ke)) / zh(ke+1)
+      ! fluid-volume mean: sum_k [slab-sum * dzf] / sum_k [fluid-count * dzf];
+      ! IIvs(k)==0 slabs contribute zero by construction, so avexy_ibm's nodata
+      ! marker is never read
+      voutflow     = rk3coef*sum(vvol(kb:ke)*real(IIvs(kb:ke))*dzf(kb:ke), mask=IIvs(kb:ke)>0) &
+                     / sum(real(IIvs(kb:ke))*dzf(kb:ke))
+      vflowrateold = sum(vvolold(kb:ke)*real(IIvs(kb:ke))*dzf(kb:ke), mask=IIvs(kb:ke)>0) &
+                     / sum(real(IIvs(kb:ke))*dzf(kb:ke))
 
       ! flow correction to match outflow rate
       vdef = vflowrate - (voutflow + vflowrateold)

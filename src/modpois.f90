@@ -1061,6 +1061,9 @@ contains
     if (BCtopm .eq. BCtopm_pressure) then
       ! Get out the slab averaged dp/dz = <rhw>
       call avexy_ibm(pij(kb:ke+kh),p(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+      ! fully-solid slab: zero fill instead of the nodata marker
+      ! (only pij(ke), the domain-top slab, is used below)
+      if (IIcs(ke) == 0) pij(ke) = 0.
 
       do i=ib,ie
         do j=jb,je

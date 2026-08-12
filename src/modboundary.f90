@@ -123,7 +123,7 @@ contains
    !! Set boundary conditions for the next timestep
    ! Will result in velocity field being not divergence-free
    subroutine boundary
-      use modglobal,      only : kb, ke, khc, dzf, zh, nsv, &
+      use modglobal,      only : ib, ie, jb, je, kb, ke, khc, dxf, dy, dzf, zh, nsv, &
                                  ltempeq, lmoist, luvolflowr, luoutflowr, &
                                  BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT, BCtopq, BCtops, &
                                  BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
@@ -137,32 +137,40 @@ contains
                                  ibrank, ierank, jbrank, jerank, e12min, idriver, &
                                  Uinf, Vinf, &
                                  rk3step, lchunkread
-      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, u0av, v0av, uouttot, vouttot, thl0c
+      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, &
+                                 uouttot, vouttot, thl0c, IIu, IIv, uoutarea, voutarea
       use modsubgriddata, only : ekh, ekm, loneeqn
-      use modmpi,         only : slabsum, avey_ibm
+      use modmpi,         only : slabsum, avey_ibm, sumy_ibm, sumx_ibm
       use inflow,         only : drivergen, driverchunkread
       use decomp_2d,      only : exchange_halo_z
 
       implicit none
-      real, dimension(kb:ke) :: uaverage, vaverage
+      real, dimension(kb:ke) :: uout, vout
       integer k, n
 
      ! if not using massflowrate need to set outflow velocity
      if (luoutflowr) then
         ! do nothing - calculated in modforces
      elseif (.not. luvolflowr) then
-        !ubulk = sum(u0av)/(ke-kb+1)
-        do k = kb, ke
-           uaverage(k) = u0av(k)*dzf(k)
-        end do
+        ! bulk velocity through the outlet plane, integrated over the open
+        ! (fluid) area only: fully-solid slabs contribute zero to a sum, so
+        ! no nodata marker can appear, and slabs are weighted by their actual
+        ! open area, not their full thickness
+        uout = 0.; vout = 0.
+        call sumy_ibm(uout, u0(ie,jb:je,kb:ke)*dy, ie, ie, jb, je, kb, ke, IIu(ie,jb:je,kb:ke))
+        call sumx_ibm(vout, v0(ib:ie,je,kb:ke)*dxf(1), ib, ie, je, je, kb, ke, IIv(ib:ie,je,kb:ke))
 
-        do k = kb, ke
-           vaverage(k) = v0av(k)*dzf(k)
-        end do
-        ! need a method to know if we have all blocks at lowest cell kb
-        ! assuming this for now (hence kb+1)
-        uouttot = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb+1))
-        vouttot = sum(vaverage(kb:ke))/(zh(ke + 1) - zh(kb+1))
+        if (uoutarea > 0.) then
+           uouttot = sum(uout(kb:ke)*dzf(kb:ke))/uoutarea
+        else
+           uouttot = 0. ! fully blocked outlet plane
+        end if
+
+        if (voutarea > 0.) then
+           vouttot = sum(vout(kb:ke)*dzf(kb:ke))/voutarea
+        else
+           vouttot = 0. ! fully blocked outlet plane
+        end if
      else
         uouttot = ubulk
         vouttot = vbulk
@@ -1248,6 +1256,9 @@ contains
 
      case(BCtopm_pressure)
        call avexy_ibm(pres0ij(kb:ke+kh),pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+       ! fully-solid slab: zero fill instead of the nodata marker
+       ! (only pres0ij(ke), the domain-top slab, is used below)
+       if (IIcs(ke) == 0) pres0ij(ke) = 0.
 
        do j = jb, je
          do i = ib, ie

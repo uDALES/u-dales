@@ -647,10 +647,11 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
     real    :: var(ib:ie,jb:je,kb:ke+kh)
     integer :: II(ib:ie,jb:je,kb:ke+kh)
     integer :: IIs(kb:ke+kh)
-    integer :: IId(kb:ke+kh)
     real    :: averl(kb:ke+kh)
     real    :: avers(kb:ke+kh)
     integer :: k
+    ! lnan is retained for interface stability (dozens of call sites); it
+    ! formerly toggled a kb fallback that has since been removed
     logical :: lnan
 
     averl       = 0.
@@ -660,23 +661,13 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
       averl(k) = sum(var(ib:ie,jb:je,k)*II(ib:ie,jb:je,k))
     enddo
 
-    IId = IIs
-
-    ! tg3315 22.03.19 - if not calculating stats and all blocks on lowest layer...
-    ! should not be necessary but value at kb is used in modthermo so reasonable value must
-    ! be assigned. Potentially should leave as before and only account for in modthermo...
-    if ((.not. lnan) .and. (IId(kb)==0)) then
-      averl(kb) = sum(var(ib:ie,jb:je,kb))
-      IId(kb) = IId(ke)
-    end if
-
     call MPI_ALLREDUCE(averl, avers, ke+kh-kb+1,  MY_REAL, &
                           MPI_SUM, comm3d,mpierr)
 
-    where (IId==0)
+    where (IIs==0)
       aver = nodata
     elsewhere
-      aver = avers/IId
+      aver = avers/IIs
     endwhere
 
     return
