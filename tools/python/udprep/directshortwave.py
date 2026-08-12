@@ -597,8 +597,6 @@ if nb is not None:
         cell_offsets: np.ndarray,
         cell_facets: np.ndarray,
         triangles: np.ndarray,
-        facet_hit_energy: np.ndarray,
-        solid_hit_energy: np.ndarray,
         veg_absorb: np.ndarray,
         ray_area: float,
         itot: int,
@@ -609,7 +607,7 @@ if nb is not None:
         periodic_xy: bool,
         max_ray_length: float,
         allow_outside_xy: bool,
-    ) -> float:
+    ) -> Tuple[float, int, int, int, float, int, float]:
         x, y, z = origin
 
         i, j, k = _point_to_cell_numba(
@@ -626,7 +624,7 @@ if nb is not None:
             allow_outside_xy,
         )
         if i < 0:
-            return 0.0
+            return 0.0, -1, -1, -1, 0.0, -1, 0.0
 
         dir_x, dir_y, dir_z = direction
         step_x = 0 if dir_x == 0.0 else (1 if dir_x > 0.0 else -1)
@@ -745,14 +743,12 @@ if nb is not None:
                 # sharing this cell is not double-counted (the facsec kernel
                 # attenuates before the hit for the same reason).
                 if base_inside:
-                    if hit_fid_cell >= 0:
-                        facet_hit_energy[hit_fid_cell] += r_in * ray_area * irradiance
-                    solid_hit_energy[ii, jj, k] += r_in * ray_area * irradiance
-                    return 0.0
-                return r_in * ray_area * irradiance
+                    hit_energy = r_in * ray_area * irradiance
+                    return 0.0, ii, jj, k, hit_energy, hit_fid_cell, hit_energy
+                return r_in * ray_area * irradiance, -1, -1, -1, 0.0, -1, 0.0
 
             if t_next > max_ray_length:
-                return r_in * ray_area * irradiance
+                return r_in * ray_area * irradiance, -1, -1, -1, 0.0, -1, 0.0
 
             prev_i, prev_j, prev_k = last_i, last_j, last_k
             if base_inside:
@@ -773,9 +769,9 @@ if nb is not None:
             t = t_next
 
         if dir_z < 0.0 and k < 0 and last_i >= 0:
-            solid_hit_energy[last_i, last_j, last_k] += r_in * ray_area * irradiance
-            return 0.0
-        return r_in * ray_area * irradiance
+            hit_energy = r_in * ray_area * irradiance
+            return 0.0, last_i, last_j, last_k, hit_energy, -1, 0.0
+        return r_in * ray_area * irradiance, -1, -1, -1, 0.0, -1, 0.0
 
     @nb.njit(cache=True)
     def _trace_ray_segments_numba(
@@ -885,7 +881,7 @@ if nb is not None:
             t = t_next
         return buf, idx
 
-    @nb.njit(cache=True)
+    @nb.njit(cache=True, parallel=True)
     def _cast_rays_numba(
         u_vals: np.ndarray,
         v_vals: np.ndarray,
@@ -909,9 +905,17 @@ if nb is not None:
         cell_offsets: np.ndarray,
         cell_facets: np.ndarray,
         triangles: np.ndarray,
-        facet_hit_energy: np.ndarray,
-        solid_hit_energy: np.ndarray,
-        veg_absorb: np.ndarray,
+        ray_start: int,
+        ray_count: int,
+        hit_i: np.ndarray,
+        hit_j: np.ndarray,
+        hit_k: np.ndarray,
+        hit_energy: np.ndarray,
+        facet_id: np.ndarray,
+        facet_energy: np.ndarray,
+        ray_valid: np.ndarray,
+        ray_out: np.ndarray,
+        veg_absorb_thread: np.ndarray,
         ray_area: float,
         itot: int,
         jtot: int,
@@ -921,59 +925,70 @@ if nb is not None:
         periodic_xy: bool,
         max_ray_length: float,
         allow_outside_xy: bool,
-        bud_in: np.ndarray,
-        bud_out: np.ndarray,
     ) -> None:
-        nu = u_vals.shape[0]
         nv = v_vals.shape[0]
-        idx = 0
-        for iu in range(nu):
-            u = u_vals[iu]
-            for iv in range(nv):
-                v = v_vals[iv]
-                if use_jitter:
-                    u_use = u + jitter_u[idx]
-                    v_use = v + jitter_v[idx]
-                else:
-                    u_use = u
-                    v_use = v
-                idx += 1
-                origin = p0 + u1 * u_use + u2 * v_use
-                t0, t1 = _ray_box_intersection_numba(origin, direction, bounds_min, bounds_max)
-                if t1 < t0:
-                    continue
-                if t1 < 0.0:
-                    continue
-                bud_in[0] += irradiance * ray_area
-                entry = t0 if t0 > 0.0 else 0.0
-                start = origin + direction * (entry + 1.0e-6)
-                bud_out[0] += _trace_ray_moller_numba(
-                    start,
-                    direction,
-                    dx,
-                    dy,
-                    z_edges,
-                    z_max,
-                    lad_3d,
-                    dec_3d,
-                    veg_index,
-                    cell_has_facets,
-                    cell_offsets,
-                    cell_facets,
-                    triangles,
-                    facet_hit_energy,
-                    solid_hit_energy,
-                    veg_absorb,
-                    ray_area,
-                    itot,
-                    jtot,
-                    ktot,
-                    dz,
-                    irradiance,
-                    periodic_xy,
-                    max_ray_length,
-                    allow_outside_xy,
-                )
+        for local_idx in nb.prange(ray_count):
+            idx = ray_start + local_idx
+            iu = idx // nv
+            iv = idx - iu * nv
+            u_use = u_vals[iu]
+            v_use = v_vals[iv]
+            if use_jitter:
+                u_use += jitter_u[idx]
+                v_use += jitter_v[idx]
+
+            hit_i[local_idx] = -1
+            hit_j[local_idx] = -1
+            hit_k[local_idx] = -1
+            hit_energy[local_idx] = 0.0
+            facet_id[local_idx] = -1
+            facet_energy[local_idx] = 0.0
+            ray_valid[local_idx] = False
+            ray_out[local_idx] = 0.0
+
+            origin = p0 + u1 * u_use + u2 * v_use
+            t0, t1 = _ray_box_intersection_numba(
+                origin, direction, bounds_min, bounds_max
+            )
+            if t1 < t0 or t1 < 0.0:
+                continue
+
+            ray_valid[local_idx] = True
+            entry = t0 if t0 > 0.0 else 0.0
+            start = origin + direction * (entry + 1.0e-6)
+            thread_id = nb.get_thread_id()
+            out_energy, hi, hj, hk, he, fid, fe = _trace_ray_moller_numba(
+                start,
+                direction,
+                dx,
+                dy,
+                z_edges,
+                z_max,
+                lad_3d,
+                dec_3d,
+                veg_index,
+                cell_has_facets,
+                cell_offsets,
+                cell_facets,
+                triangles,
+                veg_absorb_thread[thread_id],
+                ray_area,
+                itot,
+                jtot,
+                ktot,
+                dz,
+                irradiance,
+                periodic_xy,
+                max_ray_length,
+                allow_outside_xy,
+            )
+            ray_out[local_idx] = out_energy
+            hit_i[local_idx] = hi
+            hit_j[local_idx] = hj
+            hit_k[local_idx] = hk
+            hit_energy[local_idx] = he
+            facet_id[local_idx] = fid
+            facet_energy[local_idx] = fe
 
     @nb.njit(cache=True, parallel=True)
     def _cast_rays_facsec_numba(
@@ -1429,53 +1444,102 @@ class DirectShortwaveSolver:
             jitter_v = np.zeros(bud["rays"], dtype=float)
 
         solid_hit_energy = np.zeros((self.sim.itot, self.sim.jtot, self.ktot), dtype=float)
-        veg_absorb = np.zeros(len(self.veg.points), dtype=float)
         facet_hit_energy = np.zeros(self.nfaces, dtype=float)
 
-        bud_in = np.zeros(1, dtype=float)
-        bud_out = np.zeros(1, dtype=float)
-
-        # Cast all rays with triangle intersection tests; accumulate energy in arrays.
-        _cast_rays_numba(
-            u_vals,
-            v_vals,
-            jitter_u,
-            jitter_v,
-            use_jitter,
-            p0,
-            u1,
-            u2,
-            direction,
-            *self._compute_bounds(direction),
-            self.sim.dx,
-            self.sim.dy,
-            self.z_edges,
-            self.z_max,
-            self.lad_3d,
-            self.dec_3d,
-            self.veg_index,
-            self.cell_has_facets,
-            self.cell_offsets,
-            self.cell_facets,
-            self.triangles,
-            facet_hit_energy,
-            solid_hit_energy,
-            veg_absorb,
-            ray_area,
-            self.sim.itot,
-            self.sim.jtot,
-            self.ktot,
-            self.dz,
-            irradiance,
-            periodic_xy,
-            10.0 * max(self.sim.xlen, self.sim.ylen),
-            True,
-            bud_in,
-            bud_out,
+        thread_count = nb.get_num_threads()
+        veg_absorb_thread = np.zeros(
+            (thread_count, len(self.veg.points)), dtype=float
         )
+        block_capacity = max(1, min(bud["rays"], _PARALLEL_RAY_BLOCK_SIZE))
+        hit_i = np.empty(block_capacity, dtype=np.int32)
+        hit_j = np.empty(block_capacity, dtype=np.int32)
+        hit_k = np.empty(block_capacity, dtype=np.int32)
+        hit_energy = np.empty(block_capacity, dtype=float)
+        facet_id = np.empty(block_capacity, dtype=np.int32)
+        facet_energy = np.empty(block_capacity, dtype=float)
+        ray_valid = np.empty(block_capacity, dtype=bool)
+        ray_out = np.empty(block_capacity, dtype=float)
 
-        bud["in"] = float(bud_in[0])
-        bud["out"] = float(bud_out[0])
+        bounds_min, bounds_max = self._compute_bounds(direction)
+        ray_input_energy = irradiance * ray_area
+        budget_in = 0.0
+        budget_out = 0.0
+        # Bound per-ray scratch while preserving ray-order scattering and budgets.
+        for ray_start in range(0, bud["rays"], block_capacity):
+            ray_count = min(block_capacity, bud["rays"] - ray_start)
+            _cast_rays_numba(
+                u_vals,
+                v_vals,
+                jitter_u,
+                jitter_v,
+                use_jitter,
+                p0,
+                u1,
+                u2,
+                direction,
+                bounds_min,
+                bounds_max,
+                self.sim.dx,
+                self.sim.dy,
+                self.z_edges,
+                self.z_max,
+                self.lad_3d,
+                self.dec_3d,
+                self.veg_index,
+                self.cell_has_facets,
+                self.cell_offsets,
+                self.cell_facets,
+                self.triangles,
+                ray_start,
+                ray_count,
+                hit_i,
+                hit_j,
+                hit_k,
+                hit_energy,
+                facet_id,
+                facet_energy,
+                ray_valid,
+                ray_out,
+                veg_absorb_thread,
+                ray_area,
+                self.sim.itot,
+                self.sim.jtot,
+                self.ktot,
+                self.dz,
+                irradiance,
+                periodic_xy,
+                10.0 * max(self.sim.xlen, self.sim.ylen),
+                True,
+            )
+
+            solid_hit = hit_i[:ray_count] >= 0
+            np.add.at(
+                solid_hit_energy,
+                (
+                    hit_i[:ray_count][solid_hit],
+                    hit_j[:ray_count][solid_hit],
+                    hit_k[:ray_count][solid_hit],
+                ),
+                hit_energy[:ray_count][solid_hit],
+            )
+            facet_hit = facet_id[:ray_count] >= 0
+            np.add.at(
+                facet_hit_energy,
+                facet_id[:ray_count][facet_hit],
+                facet_energy[:ray_count][facet_hit],
+            )
+            budget_in, budget_out = _reduce_ray_budget_numba(
+                ray_valid,
+                ray_out,
+                ray_count,
+                ray_input_energy,
+                budget_in,
+                budget_out,
+            )
+
+        veg_absorb = np.sum(veg_absorb_thread, axis=0)
+        bud["in"] = float(budget_in)
+        bud["out"] = float(budget_out)
 
         cos_inc_all = np.dot(self.face_normals, nsun_unit)
         cos_inc_all = np.where(cos_inc_all > 0.0, cos_inc_all, 0.0)

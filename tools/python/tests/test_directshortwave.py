@@ -511,11 +511,13 @@ class TestDirectShortwaveVegetation(unittest.TestCase):
             float(sveg_m[0]), float(sveg_f[0]), delta=1.0e-3 * float(sveg_f[0])
         )
 
-    def test_facsec_parallel_is_deterministic_with_vegetation_and_periodicity(self):
+    def _assert_parallel_is_deterministic_with_vegetation_and_periodicity(
+        self, method
+    ):
         sim, mesh = _build_veg_over_ground_block_fixture()
         solver = DirectShortwaveSolver(
             sim,
-            method="facsec",
+            method=method,
             surface_mesh=mesh,
             ray_density=16.0,
             ray_jitter=0.0,
@@ -554,6 +556,16 @@ class TestDirectShortwaveVegetation(unittest.TestCase):
             self.assertEqual(one_thread[2][key], multi_thread[2][key])
         self.assertAlmostEqual(
             one_thread[2]["veg"], multi_thread[2]["veg"], delta=1.0e-12
+        )
+
+    def test_facsec_parallel_is_deterministic_with_vegetation_and_periodicity(self):
+        self._assert_parallel_is_deterministic_with_vegetation_and_periodicity(
+            "facsec"
+        )
+
+    def test_moller_parallel_is_deterministic_with_vegetation_and_periodicity(self):
+        self._assert_parallel_is_deterministic_with_vegetation_and_periodicity(
+            "moller"
         )
 
 if __name__ == "__main__":
