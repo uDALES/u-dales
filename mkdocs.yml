@@ -127,6 +127,7 @@ nav:
     - Using agents: udales-agents.md
     - Fortran API reference: udales-software-docs.md
   - About:
+    - Changelog: udales-changelog.md
     - How to cite: udales-how-to-cite.md
     - Publication list: udales-pub-list.md
 
