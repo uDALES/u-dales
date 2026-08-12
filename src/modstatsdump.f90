@@ -1052,6 +1052,20 @@ contains
           wpthlpxyk = wthlxyk - wxy*thlxyk
         end if
 
+        !> These are differences of averages, so a masked level (-999.) in either
+        !  operand produces a meaningless product. Restore the sentinel.
+        where (IIuws(kb:ke+kh)==0)
+          upwpxyik = -999.
+        endwhere
+        where (IIvws(kb:ke+kh)==0)
+          vpwpxyjk = -999.
+        endwhere
+        if (ltempeq) then
+          where (IIws(kb:ke+kh)==0)
+            wpthlpxyk = -999.
+          endwhere
+        end if
+
       end if ! lxydump
 
       !!>> CALCS FOR TIME DEPENDANT (AVERAGED) STATS
