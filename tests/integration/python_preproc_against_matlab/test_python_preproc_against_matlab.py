@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 import sys
@@ -155,9 +156,12 @@ class TestPythonPreprocAgainstMatlab(unittest.TestCase):
                     if clean.returncode != 0:
                         self.fail(f"cleansim failed for case {case_source.name}:\n{clean.stdout}")
 
+                    env = dict(os.environ)
+                    env.setdefault("PREPROC_NCPU", "8")
                     result = subprocess.run(
                         [sys.executable, str(WRITE_INPUTS), str(temp_case)],
                         cwd=REPO_ROOT,
+                        env=env,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT,
                         text=True,

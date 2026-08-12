@@ -6,9 +6,13 @@ and sky-view-factor files used by the radiation preprocessing.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 import os
+import shutil
 import subprocess
+import sys
+import time
 from typing import Iterable, Optional
 
 import numpy as np
@@ -26,6 +30,140 @@ except ImportError as exc:  # pragma: no cover - required for STL conversion
     raise DependencyError("trimesh is required for View3D geometry export") from exc
 
 
+@dataclass(frozen=True)
+class View3DRunStats:
+    """Runtime diagnostics from one external View3D process."""
+
+    elapsed_seconds: float
+    peak_rss_kb: int | None
+    returncode: int
+
+
+_VIEW3D_CONTROL_ENV_KEYS = (
+    "VIEW3D_EXE",
+    "VIEW3D_NUM_THREADS",
+    "OMP_NUM_THREADS",
+    "VIEW3D_MAX_DENSE_MATRIX_GIB",
+    "VIEW3D_DISABLE_OPENMP",
+    "VIEW3D_DISABLE_SPARSE_DIRECT",
+    "VIEW3D_DISABLE_DENSE_MEMORY_GUARD",
+)
+
+
+def default_view3d_config_path() -> Path:
+    """Return the repo-level View3D runtime configuration path."""
+
+    return Path(__file__).resolve().parents[2] / "view3d_config.sh"
+
+
+def _parse_env0(data: bytes) -> dict[str, str]:
+    env: dict[str, str] = {}
+    for item in data.split(b"\0"):
+        if not item:
+            continue
+        key, sep, value = item.partition(b"=")
+        if not sep:
+            continue
+        env[key.decode(errors="surrogateescape")] = value.decode(errors="surrogateescape")
+    return env
+
+
+def _source_view3d_config(config_path: Path, base_env: dict[str, str]) -> dict[str, str]:
+    bash = shutil.which("bash")
+    if bash is None:
+        print(
+            f"[view3d] config skipped because bash is unavailable: {config_path}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return dict(base_env)
+
+    env = dict(base_env)
+    env["VIEW3D_CONFIG"] = str(config_path)
+    command = [
+        bash,
+        "-c",
+        (
+            "set -a; "
+            'cd "$(dirname "$1")" || exit 1; '
+            'source "$1" >/dev/null && '
+            "env -0"
+        ),
+        "bash",
+        str(config_path),
+    ]
+    result = subprocess.run(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode != 0:
+        stderr = result.stderr.decode(errors="replace").strip()
+        msg = f"Failed to source View3D config {config_path}"
+        if stderr:
+            msg = f"{msg}: {stderr}"
+        raise RuntimeError(msg)
+    return _parse_env0(result.stdout)
+
+
+def load_view3d_runtime_env(
+    base_env: dict[str, str] | None = None,
+    config_path: str | Path | None = None,
+) -> tuple[dict[str, str], Path | None]:
+    """
+    Return the environment used for View3D, after sourcing the config file.
+    """
+
+    env = dict(os.environ if base_env is None else base_env)
+    explicit_config = config_path is not None or bool(env.get("VIEW3D_CONFIG"))
+    if config_path is None:
+        config_value = env.get("VIEW3D_CONFIG")
+        path = Path(config_value).expanduser() if config_value else default_view3d_config_path()
+    else:
+        path = Path(config_path).expanduser()
+
+    path = path.resolve()
+    if not path.exists():
+        if explicit_config:
+            raise FileNotFoundError(f"View3D config file not found: {path}")
+        return env, None
+
+    return _source_view3d_config(path, env), path
+
+
+def _format_view3d_controls(env: dict[str, str]) -> str:
+    controls = [f"{key}={env[key]}" for key in _VIEW3D_CONTROL_ENV_KEYS if env.get(key)]
+    return ", ".join(controls)
+
+
+def _read_proc_memory_kb(pid: int) -> int | None:
+    """
+    Read the best available RSS-like memory value for a running Linux process.
+    """
+    status_path = Path("/proc") / str(pid) / "status"
+    values: dict[str, int] = {}
+    try:
+        with status_path.open("r", encoding="ascii") as f:
+            for line in f:
+                name, _, rest = line.partition(":")
+                if name in {"VmHWM", "VmRSS"}:
+                    parts = rest.strip().split()
+                    if parts:
+                        values[name] = int(parts[0])
+    except (FileNotFoundError, PermissionError, ProcessLookupError, ValueError):
+        return None
+
+    return values.get("VmHWM") or values.get("VmRSS")
+
+
+def _format_peak_rss(peak_rss_kb: int | None) -> str:
+    if peak_rss_kb is None:
+        return "unavailable"
+    return f"{peak_rss_kb} kB ({peak_rss_kb / 1024.0**2:.3f} GiB)"
+
+
+def _rusage_maxrss_kb(ru_maxrss: int) -> int:
+    if sys.platform == "darwin":
+        return int((ru_maxrss + 1023) // 1024)
+    return int(ru_maxrss)
+
+
 def resolve_view3d_exe(override: str | Path | None = None) -> Path:
     """
     Resolve the View3D executable path.
@@ -38,7 +176,8 @@ def resolve_view3d_exe(override: str | Path | None = None) -> Path:
     if override is not None:
         return Path(override).expanduser().resolve()
 
-    env_path = os.environ.get("VIEW3D_EXE")
+    env, _ = load_view3d_runtime_env()
+    env_path = env.get("VIEW3D_EXE")
     if env_path:
         return Path(env_path).expanduser().resolve()
 
@@ -110,12 +249,82 @@ def run_view3d(
     vs3_path: str | Path,
     out_path: str | Path,
     check: bool = True,
-) -> None:
+    nfacets: int | None = None,
+    memory_poll_interval: float = 0.10,
+) -> View3DRunStats:
     """
     Execute View3D as an external process.
     """
     cmd = [str(view3d_exe), str(vs3_path), str(out_path)]
-    subprocess.run(cmd, check=check)
+    if nfacets is not None:
+        print(f"[view3d] facets: {nfacets}", flush=True)
+    env, config_path = load_view3d_runtime_env()
+    if config_path is not None:
+        print(f"[view3d] config: {config_path}", flush=True)
+    controls = _format_view3d_controls(env)
+    if controls:
+        print(f"[view3d] controls: {controls}", flush=True)
+
+    start = time.perf_counter()
+    proc = subprocess.Popen(cmd, env=env)
+    peak_rss_kb = _read_proc_memory_kb(proc.pid)
+    wait4_available = hasattr(os, "wait4") and hasattr(os, "waitstatus_to_exitcode")
+
+    try:
+        if wait4_available:
+            while True:
+                pid, status, rusage = os.wait4(proc.pid, os.WNOHANG)
+                sample_kb = _read_proc_memory_kb(proc.pid)
+                if sample_kb is not None and (peak_rss_kb is None or sample_kb > peak_rss_kb):
+                    peak_rss_kb = sample_kb
+                if pid == proc.pid:
+                    proc.returncode = os.waitstatus_to_exitcode(status)
+                    rusage_peak_kb = _rusage_maxrss_kb(rusage.ru_maxrss)
+                    if peak_rss_kb is None or rusage_peak_kb > peak_rss_kb:
+                        peak_rss_kb = rusage_peak_kb
+                    break
+                time.sleep(memory_poll_interval)
+        else:
+            while proc.poll() is None:
+                sample_kb = _read_proc_memory_kb(proc.pid)
+                if sample_kb is not None and (peak_rss_kb is None or sample_kb > peak_rss_kb):
+                    peak_rss_kb = sample_kb
+                time.sleep(memory_poll_interval)
+    except BaseException:
+        try:
+            proc.kill()
+        except ProcessLookupError:
+            pass
+        if wait4_available:
+            try:
+                os.wait4(proc.pid, 0)
+            except ChildProcessError:
+                pass
+        else:
+            proc.wait()
+        raise
+
+    elapsed_seconds = time.perf_counter() - start
+    stats = View3DRunStats(
+        elapsed_seconds=elapsed_seconds,
+        peak_rss_kb=peak_rss_kb,
+        returncode=proc.returncode,
+    )
+    print(f"[view3d] runtime: {stats.elapsed_seconds:.3f} s", flush=True)
+    print(f"[view3d] peak memory: {_format_peak_rss(stats.peak_rss_kb)}", flush=True)
+
+    if check and proc.returncode:
+        raise subprocess.CalledProcessError(proc.returncode, cmd)
+    return stats
+
+
+def count_sparse_entries(path: str | Path) -> int:
+    """
+    Count non-empty lines in a sparse View3D output file.
+    """
+    path = Path(path)
+    with path.open("rb") as f:
+        return sum(1 for line in f if line.strip())
 
 
 def read_view3d_output(

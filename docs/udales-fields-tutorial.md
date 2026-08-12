@@ -1,6 +1,9 @@
 
 # Working with uDALES field data in MATLAB
 
+!!! warning "MATLAB path to be retired in v3.0"
+    These tutorials currently use the MATLAB toolchain. The MATLAB route is deprecated and will be retired from uDALES v3.0 onwards, in favour of the [uDALES Python package](udales-python-package.md).
+
 This tutorial describes how to read and process field data output of the LES code uDALES using MATLAB. In addition, it describes some important concepts, such as the [grid layout](#udales-grid-layout), [variable locations](#averages-used-in-udales-output) and [averaging procedures](#averages-used-in-udales-output).
 
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field data:
@@ -12,7 +15,7 @@ The **`udbase`** post-processing class reads in most important input parameters,
 - [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data.
 - [**plot_trees**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method plots tree patches.
 
-**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
+**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_udbase.**
 
 ## Initialising udbase
 

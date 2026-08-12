@@ -394,6 +394,8 @@ class RadiationSection(Section):
             return self._vf_cache, self._svf_cache, paths
 
         if not force and vf_path.exists() and svf_path.exists():
+            print("[view3d] using existing output; external solver not run", flush=True)
+            print(f"[view3d] facets: {nfacets}", flush=True)
             vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
             svf = np.loadtxt(svf_path)
             if vfsparse_path is not None and not vfsparse_path.exists():
@@ -407,6 +409,7 @@ class RadiationSection(Section):
             nnz = int(vf.nnz)
             if vfsparse_path is not None or self.view3d_out == 2:
                 self.save_param("nnz", nnz)
+                print(f"[view3d] sparse entries: {nnz}", flush=True)
             self._vf_cache = vf
             self._svf_cache = svf
             self._vf_cache_key = cache_key
@@ -425,7 +428,7 @@ class RadiationSection(Section):
                 "Set VIEW3D_EXE or build tools/View3D to enable."
             )
 
-        run_view3d(view3d_exe, vs3_path, vf_path, check=True)
+        run_view3d(view3d_exe, vs3_path, vf_path, check=True, nfacets=nfacets)
 
         vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
         svf = compute_svf(vf)
@@ -443,6 +446,7 @@ class RadiationSection(Section):
         nnz = int(vf.nnz)
         if vfsparse_path is not None or self.view3d_out == 2:
             self.save_param("nnz", nnz)
+            print(f"[view3d] sparse entries: {nnz}", flush=True)
         self._vf_cache = vf
         self._svf_cache = svf
         self._vf_cache_key = cache_key
@@ -683,6 +687,7 @@ class RadiationSection(Section):
             and (stored_sig is None or stored_sig == sw_sig)
         ):
             if timedepsveg_path.exists() or not sim.ltrees:
+                self._write_initial_netsw_from_timedepsw(timedepsw_path, timedepsveg_path)
                 return
 
         tSP = np.arange(0.0, self.runtime + 0.5 * self.dtSP, self.dtSP, dtype=float)
@@ -802,6 +807,8 @@ class RadiationSection(Section):
 
         self._write_sdir_nc(sdir_nc_path, tSP, sdir_all)
         self.write_timedepsw(tSP, knet_all)
+        s_veg_initial = s_veg_all[:, 0] if s_veg_all is not None else None
+        self.write_netsw(knet_all[:, 0], s_veg=s_veg_initial)
         if s_veg_all is not None:
             self.write_timedepsveg(tSP, s_veg_all)
         _write_sig(timedepsw_path, sw_sig)
@@ -849,6 +856,28 @@ class RadiationSection(Section):
             with path.open("w", encoding="ascii", newline="\n") as f:
                 f.write("# vegetation absorption on vegetation cells [W/m3]\n")
                 np.savetxt(f, s_veg, fmt="%6.4f")
+
+    def _write_initial_netsw_from_timedepsw(
+        self, timedepsw_path: Path, timedepsveg_path: Path | None = None
+    ) -> None:
+        """Write static startup shortwave from the first time-dependent column."""
+        knet0 = self._read_first_timedep_column(timedepsw_path)
+        s_veg0 = None
+        if timedepsveg_path is not None and timedepsveg_path.exists():
+            s_veg0 = self._read_first_timedep_column(timedepsveg_path)
+        self.write_netsw(knet0, s_veg=s_veg0)
+
+    @staticmethod
+    def _read_first_timedep_column(path: Path) -> np.ndarray:
+        values: list[float] = []
+        with Path(path).open(encoding="ascii") as f:
+            f.readline()
+            f.readline()
+            for line in f:
+                cols = line.split(maxsplit=1)
+                if cols:
+                    values.append(float(cols[0]))
+        return np.asarray(values, dtype=float)
 
     def _require_sim(self):
         if self.sim is None:
