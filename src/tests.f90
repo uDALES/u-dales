@@ -19,7 +19,7 @@ module tests
 
   implicit none
   save
-  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators
+  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_sgs_statistics
 
 contains
 
@@ -305,7 +305,7 @@ contains
         end if
       end do
 
-      check_loc_xy = compare_real_1d('avexy_ibm '//trim(label), got, exp)
+      check_loc_xy = compare_real_1d('avexy_ibm '//trim(label), got, exp, 1.e-9)
 
       deallocate(var_clean, got, exp, sum_local, sum_global)
     end function check_loc_xy
@@ -370,62 +370,345 @@ contains
       call MPI_ALLREDUCE(sumx_local, sumx_global, size(sumx_local), MY_REAL, MPI_SUM, comm3d, mpierr)
       exp_sum_x = sumx_global
 
-      check_loc_y = compare_real_2d('avey_ibm '//trim(label), got_avg, exp_avg)
-      if (.not. compare_real_2d('sumy_ibm '//trim(label), got_sum_y, exp_sum_y)) check_loc_y = .false.
-      if (.not. compare_real_2d_jk('sumx_ibm '//trim(label), got_sum_x, exp_sum_x)) check_loc_y = .false.
+      check_loc_y = compare_real_2d('avey_ibm '//trim(label), got_avg, exp_avg, 1.e-9)
+      if (.not. compare_real_2d('sumy_ibm '//trim(label), got_sum_y, exp_sum_y, 1.e-9)) check_loc_y = .false.
+      if (.not. compare_real_2d_jk('sumx_ibm '//trim(label), got_sum_x, exp_sum_x, 1.e-9)) check_loc_y = .false.
 
       deallocate(var_clean, got_avg, got_sum_y, got_sum_x, exp_avg, exp_sum_y, exp_sum_x, &
                  sum_local, sum_global, sumx_local, sumx_global)
     end function check_loc_y
 
-    logical function compare_real_1d(label, got, exp)
-      implicit none
-      character(len=*), intent(in) :: label
-      real, intent(in) :: got(:), exp(:)
-      real :: max_abs
-      integer :: imax(1)
-
-      max_abs = maxval(abs(got - exp))
-      compare_real_1d = max_abs <= 1.e-9
-      if ((.not. compare_real_1d) .and. myid == 0) then
-        imax = maxloc(abs(got - exp))
-        write(*,'(A,1X,A,1X,ES12.4,1X,A,I0,1X,A,ES12.4,1X,A,ES12.4)') &
-             'FAIL', trim(label), max_abs, 'idx', imax(1), 'got', got(imax(1)), 'exp', exp(imax(1))
-      end if
-    end function compare_real_1d
-
-    logical function compare_real_2d(label, got, exp)
-      implicit none
-      character(len=*), intent(in) :: label
-      real, intent(in) :: got(:,:), exp(:,:)
-      real :: max_abs
-      integer :: imax(2)
-
-      max_abs = maxval(abs(got - exp))
-      compare_real_2d = max_abs <= 1.e-9
-      if ((.not. compare_real_2d) .and. myid == 0) then
-        imax = maxloc(abs(got - exp))
-        write(*,'(A,1X,A,1X,ES12.4,1X,A,I0,A,I0,1X,A,ES12.4,1X,A,ES12.4)') &
-             'FAIL', trim(label), max_abs, 'idx', imax(1), ',', imax(2), 'got', got(imax(1),imax(2)), 'exp', exp(imax(1),imax(2))
-      end if
-    end function compare_real_2d
-
-    logical function compare_real_2d_jk(label, got, exp)
-      implicit none
-      character(len=*), intent(in) :: label
-      real, intent(in) :: got(:,:), exp(:,:)
-      real :: max_abs
-      integer :: imax(2)
-
-      max_abs = maxval(abs(got - exp))
-      compare_real_2d_jk = max_abs <= 1.e-9
-      if ((.not. compare_real_2d_jk) .and. myid == 0) then
-        imax = maxloc(abs(got - exp))
-        write(*,'(A,1X,A,1X,ES12.4,1X,A,I0,A,I0,1X,A,ES12.4,1X,A,ES12.4)') &
-             'FAIL', trim(label), max_abs, 'idx', imax(1), ',', imax(2), 'got', got(imax(1),imax(2)), 'exp', exp(imax(1),imax(2))
-      end if
-    end function compare_real_2d_jk
-
   end function tests_mpi_operators
+
+  !> Validate the SGS fluxes written by the statistics output (modstatsdump).
+  !! Uses the stretched-grid case 300 (libm = .false.) so that the vertical
+  !! metric factors are genuinely non-uniform and dzf/dzh confusion is visible.
+  !!
+  !! All prescribed fields are pure functions of the GLOBAL coordinates, so the
+  !! halos can be filled analytically and the test needs no halo exchange and is
+  !! decomposition-invariant.
+  !!
+  !! Three independent assertions:
+  !!   (a) manufactured solution: u = a*z^2, w = b*x, thl = c*z^2 with constant
+  !!       ekm/ekh must reproduce -nu*(2*a*z + b) and -kappa*2*c*z, both exactly
+  !!       in the discrete sense and to within the expected O(dz) truncation
+  !!       error of the analytic profile;
+  !!   (b) consistency with the solver: the vertical divergence of the SGS
+  !!       fluxes must reproduce the tendency diffu/diffc add to up/thlp, to
+  !!       machine precision;
+  !!   (c) sign regression: for a monotone shear the SGS momentum flux must be
+  !!       negative (down-gradient), guarding the sign convention.
+  logical function tests_sgs_statistics()
+    use modglobal,    only : ib, ie, ih, jb, je, jh, kb, ke, kh, runmode, &
+                             dx, dzf, dzfi, dzh, dzhi, zf, zh
+    use modfields,    only : initfields, um, vm, wm, thlm, u0, v0, w0, thl0, up, wp, thlp
+    use modsubgrid,   only : initsubgrid, diffc, diffu, diffw, ekh, ekm
+    use modboundary,  only : initboundary
+    use modibm,       only : initibm, createmasks
+    use modstatsdump, only : compute_sgs_fluxes
+    use initfac,      only : readfacetfiles
+    use decomp_2d,    only : zstart
+
+    implicit none
+
+    real, parameter :: acoef = 0.37   ! u   = acoef*z^2
+    real, parameter :: bcoef = 0.21   ! w   = bcoef*x + dcoef*z
+    real, parameter :: ccoef = 0.53   ! thl = ccoef*z^2
+    real, parameter :: dcoef = 0.43
+    real, parameter :: nuconst = 0.17 ! constant ekm for the manufactured solution
+    real, parameter :: kaconst = 0.29 ! constant ekh for the manufactured solution
+
+    real, allocatable :: usgs(:,:,:), vsgs(:,:,:), wsgs(:,:,:)
+    real, allocatable :: thlsgs(:,:,:), qtsgs(:,:,:)
+    real, allocatable :: sv1sgs(:,:,:), sv2sgs(:,:,:), sv3sgs(:,:,:), sv4sgs(:,:,:)
+    real, allocatable :: zc(:), zw(:), got(:,:,:), exp(:,:,:)
+    logical :: all_passed
+    real    :: trunc_tol, scale
+    integer :: i, j, k, gi
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_sgs_statistics: SGS STATISTICS TEST'
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'Using stretched-grid case 300 to validate modstatsdump SGS fluxes'
+    end if
+
+    call initfields
+    call initboundary
+    call initsubgrid
+    call readfacetfiles
+    call initibm
+    call createmasks
+
+    allocate(usgs  (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(vsgs  (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(wsgs  (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(thlsgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(qtsgs (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(sv1sgs(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv2sgs(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv3sgs(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv4sgs(ib:ie,jb:je,kb:ke+kh))
+    allocate(got(ib:ie,jb:je,kb:ke+kh), exp(ib:ie,jb:je,kb:ke+kh))
+
+    ! Cell-centre heights, extended one level below the surface by mirroring
+    ! (zh(kb) = 0), which is the level the kb stencils actually reach into.
+    allocate(zc(kb-kh:ke+kh), zw(kb-kh:ke+kh))
+    do k = kb, ke+kh
+      zc(k) = zf(k)
+      zw(k) = zh(k)
+    end do
+    zc(kb-kh) = zf(kb) - dzh(kb)
+    zw(kb-kh) = zh(kb) - dzf(kb)
+
+    all_passed = .true.
+
+    !----------------------------------------------------------------------
+    ! (a) Manufactured solution on the stretched grid
+    !----------------------------------------------------------------------
+    ekm = nuconst
+    ekh = kaconst
+
+    do k = kb-kh, ke+kh
+      do j = jb-jh, je+jh
+        do i = ib-ih, ie+ih
+          gi = zstart(1) + i - 1
+          um(i,j,k)   = acoef * zc(k)**2
+          vm(i,j,k)   = 0.
+          wm(i,j,k)   = bcoef * (real(gi) - 0.5) * dx + dcoef * zw(k)
+          thlm(i,j,k) = ccoef * zc(k)**2
+        end do
+      end do
+    end do
+
+    call compute_sgs_fluxes(usgs,vsgs,wsgs,thlsgs,qtsgs,sv1sgs,sv2sgs,sv3sgs,sv4sgs)
+
+    ! (a1) exact discrete identity: the second-order stencils are exact for a
+    !      quadratic in z and a linear in x, so no truncation error enters here.
+    do k = kb, ke+kh
+      got(:,:,k) = usgs(ib:ie,jb:je,k)
+      exp(:,:,k) = -nuconst * (acoef*(zc(k) + zc(k-1)) + bcoef)
+    end do
+    if (.not. compare_real_3d('usgs discrete', got, exp, 1.e-10)) all_passed = .false.
+
+    do k = kb, ke+kh
+      got(:,:,k) = thlsgs(ib:ie,jb:je,k)
+      exp(:,:,k) = -kaconst * ccoef * (zc(k) + zc(k-1))
+    end do
+    if (.not. compare_real_3d('thlsgs discrete', got, exp, 1.e-10)) all_passed = .false.
+
+    ! wsgs is the normal stress tau_33 = -2*K_m*dw/dz at the CELL CENTRE, so with
+    ! dw/dz = dcoef it is exactly -2*nu*dcoef everywhere. If wsgs were the
+    ! vertical part of the diffw tendency instead (units m/s^2, not m^2/s^2) this
+    ! would be identically zero for a linear w and the check would fail.
+    do k = kb, ke
+      got(:,:,k) = wsgs(ib:ie,jb:je,k)
+      exp(:,:,k) = -2. * nuconst * dcoef
+    end do
+    got(:,:,ke+kh) = 0.; exp(:,:,ke+kh) = 0.
+    if (.not. compare_real_3d('wsgs discrete', got, exp, 1.e-10)) all_passed = .false.
+
+    ! (a2) second-order consistency with the analytic flux at the w-levels.
+    !      The stretched grid gives zf(k)+zf(k-1) - 2*zh(k) = (dzf(k)-dzf(k-1))/2,
+    !      so anything worse than that bound (a dzf/dzh swap, a missing factor,
+    !      a sign error) is caught here.
+    trunc_tol = 0.
+    do k = kb+1, ke+kh
+      trunc_tol = max(trunc_tol, abs(dzf(k) - dzf(k-1)))
+    end do
+    trunc_tol = 0.5 * trunc_tol
+
+    do k = kb, ke+kh
+      got(:,:,k) = usgs(ib:ie,jb:je,k)
+      exp(:,:,k) = -nuconst * (2.*acoef*zh(k) + bcoef)
+    end do
+    if (.not. compare_real_3d('usgs vs analytic', got, exp, &
+                              1.05*nuconst*acoef*trunc_tol + 1.e-10)) all_passed = .false.
+
+    do k = kb, ke+kh
+      got(:,:,k) = thlsgs(ib:ie,jb:je,k)
+      exp(:,:,k) = -kaconst * 2.*ccoef * zh(k)
+    end do
+    if (.not. compare_real_3d('thlsgs vs analytic', got, exp, &
+                              1.05*kaconst*ccoef*trunc_tol + 1.e-10)) all_passed = .false.
+
+    !----------------------------------------------------------------------
+    ! (c) Sign regression: monotone positive shear must give a negative
+    !     (down-gradient) SGS momentum flux. One-line guard on the convention.
+    !----------------------------------------------------------------------
+    if (maxval(usgs(ib:ie,jb:je,kb+1:ke)) >= 0.) then
+      if (myid == 0) write(*,'(A,1X,A,1X,ES12.4)') 'FAIL', 'usgs sign', &
+           maxval(usgs(ib:ie,jb:je,kb+1:ke))
+      all_passed = .false.
+    end if
+    if (maxval(thlsgs(ib:ie,jb:je,kb+1:ke)) >= 0.) then
+      if (myid == 0) write(*,'(A,1X,A,1X,ES12.4)') 'FAIL', 'thlsgs sign', &
+           maxval(thlsgs(ib:ie,jb:je,kb+1:ke))
+      all_passed = .false.
+    end if
+
+    !----------------------------------------------------------------------
+    ! (b) Consistency with the solver's diffusion terms.
+    !     u, v and thl vary in z only and w varies in x only, so the x- and
+    !     y-terms of diffu/diffc vanish identically and what is left is exactly
+    !     minus the vertical divergence of the SGS fluxes.
+    !----------------------------------------------------------------------
+    do k = kb-kh, ke+kh
+      do j = jb-jh, je+jh
+        do i = ib-ih, ie+ih
+          gi = zstart(1) + i - 1
+          ekm(i,j,k)  = 0.5 + 0.4*sin(1.7*real(gi) + 0.9*real(j) + 0.31*real(k))
+          ekh(i,j,k)  = 0.6 + 0.3*cos(0.7*real(gi) - 1.1*real(j) + 0.53*real(k))
+          um(i,j,k)   = sin(0.41*real(k)) + 0.3*cos(0.17*real(k))
+          vm(i,j,k)   = cos(0.23*real(k)) - 0.2*sin(0.61*real(k))
+          wm(i,j,k)   = 0.7*sin(0.29*(real(gi) - 0.5)*dx)
+          thlm(i,j,k) = 288. + sin(0.37*real(k)) + 0.4*cos(0.13*real(k))
+        end do
+      end do
+    end do
+    u0   = um
+    v0   = vm
+    w0   = wm
+    thl0 = thlm
+
+    call compute_sgs_fluxes(usgs,vsgs,wsgs,thlsgs,qtsgs,sv1sgs,sv2sgs,sv3sgs,sv4sgs)
+
+    up   = 0.
+    thlp = 0.
+    call diffu(up)
+    call diffc(ih,jh,kh,thl0,thlp)
+
+    do k = kb, ke
+      got(:,:,k) = up(ib:ie,jb:je,k)
+      exp(:,:,k) = -(usgs(ib:ie,jb:je,k+1) - usgs(ib:ie,jb:je,k)) * dzfi(k)
+    end do
+    got(:,:,ke+kh) = 0.; exp(:,:,ke+kh) = 0.
+    scale = max(maxval(abs(exp)), 1.)
+    if (.not. compare_real_3d('diffu vs div(usgs)', got, exp, 1.e-10*scale)) all_passed = .false.
+
+    do k = kb, ke
+      got(:,:,k) = thlp(ib:ie,jb:je,k)
+      exp(:,:,k) = -(thlsgs(ib:ie,jb:je,k+1) - thlsgs(ib:ie,jb:je,k)) * dzfi(k)
+    end do
+    got(:,:,ke+kh) = 0.; exp(:,:,ke+kh) = 0.
+    scale = max(maxval(abs(exp)), 1.)
+    if (.not. compare_real_3d('diffc vs div(thlsgs)', got, exp, 1.e-10*scale)) all_passed = .false.
+
+    ! Same idea for the normal stress: with u = v = 0 and w a function of z only,
+    ! the horizontal terms of diffw vanish and what is left is exactly minus the
+    ! vertical divergence of wsgs. This is the check that pins wsgs to a flux
+    ! (m^2/s^2) rather than a tendency (m/s^2).
+    do k = kb-kh, ke+kh
+      do j = jb-jh, je+jh
+        do i = ib-ih, ie+ih
+          um(i,j,k) = 0.
+          vm(i,j,k) = 0.
+          wm(i,j,k) = sin(0.33*real(k)) + 0.5*cos(0.19*real(k))
+        end do
+      end do
+    end do
+    u0 = um
+    v0 = vm
+    w0 = wm
+
+    call compute_sgs_fluxes(usgs,vsgs,wsgs,thlsgs,qtsgs,sv1sgs,sv2sgs,sv3sgs,sv4sgs)
+
+    wp = 0.
+    call diffw(wp)
+
+    got = 0.; exp = 0.
+    do k = kb+1, ke
+      got(:,:,k) = wp(ib:ie,jb:je,k)
+      exp(:,:,k) = -(wsgs(ib:ie,jb:je,k) - wsgs(ib:ie,jb:je,k-1)) * dzhi(k)
+    end do
+    scale = max(maxval(abs(exp)), 1.)
+    if (.not. compare_real_3d('diffw vs div(wsgs)', got, exp, 1.e-10*scale)) all_passed = .false.
+
+    deallocate(usgs, vsgs, wsgs, thlsgs, qtsgs, sv1sgs, sv2sgs, sv3sgs, sv4sgs, got, exp, zc, zw)
+
+    if (all_passed .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'ALL TESTS PASSED: tests_sgs_statistics'
+      write(*, '(A)') '================================================'
+    else if ((.not. all_passed) .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'TESTS FAILED: tests_sgs_statistics'
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_sgs_statistics = all_passed
+
+  end function tests_sgs_statistics
+
+  !> Shared comparators. Report the largest absolute deviation and where it is.
+  logical function compare_real_1d(label, got, exp, tol)
+    implicit none
+    character(len=*), intent(in) :: label
+    real, intent(in) :: got(:), exp(:)
+    real, intent(in) :: tol
+    real :: max_abs
+    integer :: imax(1)
+
+    max_abs = maxval(abs(got - exp))
+    compare_real_1d = max_abs <= tol
+    if ((.not. compare_real_1d) .and. myid == 0) then
+      imax = maxloc(abs(got - exp))
+      write(*,'(A,1X,A,1X,ES12.4,1X,A,I0,1X,A,ES12.4,1X,A,ES12.4)') &
+           'FAIL', trim(label), max_abs, 'idx', imax(1), 'got', got(imax(1)), 'exp', exp(imax(1))
+    end if
+  end function compare_real_1d
+
+  logical function compare_real_2d(label, got, exp, tol)
+    implicit none
+    character(len=*), intent(in) :: label
+    real, intent(in) :: got(:,:), exp(:,:)
+    real, intent(in) :: tol
+    real :: max_abs
+    integer :: imax(2)
+
+    max_abs = maxval(abs(got - exp))
+    compare_real_2d = max_abs <= tol
+    if ((.not. compare_real_2d) .and. myid == 0) then
+      imax = maxloc(abs(got - exp))
+      write(*,'(A,1X,A,1X,ES12.4,1X,A,I0,A,I0,1X,A,ES12.4,1X,A,ES12.4)') &
+           'FAIL', trim(label), max_abs, 'idx', imax(1), ',', imax(2), 'got', got(imax(1),imax(2)), 'exp', exp(imax(1),imax(2))
+    end if
+  end function compare_real_2d
+
+  logical function compare_real_2d_jk(label, got, exp, tol)
+    implicit none
+    character(len=*), intent(in) :: label
+    real, intent(in) :: got(:,:), exp(:,:)
+    real, intent(in) :: tol
+    real :: max_abs
+    integer :: imax(2)
+
+    max_abs = maxval(abs(got - exp))
+    compare_real_2d_jk = max_abs <= tol
+    if ((.not. compare_real_2d_jk) .and. myid == 0) then
+      imax = maxloc(abs(got - exp))
+      write(*,'(A,1X,A,1X,ES12.4,1X,A,I0,A,I0,1X,A,ES12.4,1X,A,ES12.4)') &
+           'FAIL', trim(label), max_abs, 'idx', imax(1), ',', imax(2), 'got', got(imax(1),imax(2)), 'exp', exp(imax(1),imax(2))
+    end if
+  end function compare_real_2d_jk
+
+  logical function compare_real_3d(label, got, exp, tol)
+    implicit none
+    character(len=*), intent(in) :: label
+    real, intent(in) :: got(:,:,:), exp(:,:,:)
+    real, intent(in) :: tol
+    real :: max_abs
+    integer :: imax(3)
+
+    max_abs = maxval(abs(got - exp))
+    compare_real_3d = max_abs <= tol
+    if ((.not. compare_real_3d) .and. myid == 0) then
+      imax = maxloc(abs(got - exp))
+      write(*,'(A,1X,A,1X,ES12.4,1X,A,I0,A,I0,A,I0,1X,A,ES12.4,1X,A,ES12.4,1X,A,ES12.4)') &
+           'FAIL', trim(label), max_abs, 'idx', imax(1), ',', imax(2), ',', imax(3), &
+           'got', got(imax(1),imax(2),imax(3)), 'exp', exp(imax(1),imax(2),imax(3)), 'tol', tol
+    end if
+  end function compare_real_3d
 
 end module tests
