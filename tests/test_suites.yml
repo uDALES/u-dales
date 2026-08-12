@@ -166,9 +166,12 @@ groups:
         command:
           - "{python}"
           - "-m"
-          - "pytest"
-          - "{tests_dir}/regression/bc_cleanup/test_assert_helpers.py"
-          - "-q"
+          - "unittest"
+          - "discover"
+          - "-s"
+          - "{tests_dir}/regression/bc_cleanup"
+          - "-p"
+          - "test_*.py"
 
   supported-macos:
     includes:
