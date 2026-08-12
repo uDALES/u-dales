@@ -344,7 +344,6 @@ if nb is not None:
         veg_index: np.ndarray,
         solid: np.ndarray,
         has_solid: bool,
-        energy_in: np.ndarray,
         solid_hit_energy: np.ndarray,
         veg_absorb: np.ndarray,
         ray_area: float,
@@ -355,8 +354,6 @@ if nb is not None:
         irradiance: float,
         periodic_xy: bool,
         max_ray_length: float,
-        enable_hit_count: bool,
-        hit_count: np.ndarray,
         allow_outside_xy: bool,
     ) -> float:
         x, y, z = origin
@@ -447,12 +444,6 @@ if nb is not None:
                     ii = i
                     jj = j
 
-            if enable_hit_count:
-                if inside:
-                    hit_count[ii, jj, k] += 1
-            if inside:
-                energy_in[ii, jj, k] += r_in * irradiance * ray_area
-
             t_next = min(t_max_x, t_max_y, t_max_z)
             if t_next > max_ray_length:
                 ds = max_ray_length - t
@@ -516,7 +507,6 @@ if nb is not None:
         cell_facets: np.ndarray,
         triangles: np.ndarray,
         facet_hit_energy: np.ndarray,
-        energy_in: np.ndarray,
         solid_hit_energy: np.ndarray,
         veg_absorb: np.ndarray,
         ray_area: float,
@@ -527,8 +517,6 @@ if nb is not None:
         irradiance: float,
         periodic_xy: bool,
         max_ray_length: float,
-        enable_hit_count: bool,
-        hit_count: np.ndarray,
         allow_outside_xy: bool,
         debug_facid: int,
         debug_min_t: np.ndarray,
@@ -609,11 +597,6 @@ if nb is not None:
             else:
                 ii = i
                 jj = j
-            if enable_hit_count and base_inside:
-                hit_count[ii, jj, k] += 1
-            if base_inside:
-                energy_in[ii, jj, k] += r_in * irradiance * ray_area
-
             t_next = min(t_max_x, t_max_y, t_max_z)
             t_limit = t_next
             if t_limit > max_ray_length:
@@ -844,7 +827,6 @@ if nb is not None:
         cell_facets: np.ndarray,
         triangles: np.ndarray,
         facet_hit_energy: np.ndarray,
-        energy_in: np.ndarray,
         solid_hit_energy: np.ndarray,
         veg_absorb: np.ndarray,
         ray_area: float,
@@ -855,8 +837,6 @@ if nb is not None:
         irradiance: float,
         periodic_xy: bool,
         max_ray_length: float,
-        enable_hit_count: bool,
-        hit_count: np.ndarray,
         allow_outside_xy: bool,
         debug_facid: int,
         debug_min_t: np.ndarray,
@@ -903,7 +883,6 @@ if nb is not None:
                     cell_facets,
                     triangles,
                     facet_hit_energy,
-                    energy_in,
                     solid_hit_energy,
                     veg_absorb,
                     ray_area,
@@ -914,8 +893,6 @@ if nb is not None:
                     irradiance,
                     periodic_xy,
                     max_ray_length,
-                    enable_hit_count,
-                    hit_count,
                     allow_outside_xy,
                     debug_facid,
                     debug_min_t,
@@ -945,7 +922,6 @@ if nb is not None:
         veg_index: np.ndarray,
         solid: np.ndarray,
         has_solid: bool,
-        energy_in: np.ndarray,
         solid_hit_energy: np.ndarray,
         veg_absorb: np.ndarray,
         ray_area: float,
@@ -956,8 +932,6 @@ if nb is not None:
         irradiance: float,
         periodic_xy: bool,
         max_ray_length: float,
-        enable_hit_count: bool,
-        hit_count: np.ndarray,
         allow_outside_xy: bool,
         bud_in: np.ndarray,
         bud_out: np.ndarray,
@@ -997,7 +971,6 @@ if nb is not None:
                     veg_index,
                     solid,
                     has_solid,
-                    energy_in,
                     solid_hit_energy,
                     veg_absorb,
                     ray_area,
@@ -1008,8 +981,6 @@ if nb is not None:
                     irradiance,
                     periodic_xy,
                     max_ray_length,
-                    enable_hit_count,
-                    hit_count,
                     allow_outside_xy,
                 )
 
@@ -1327,7 +1298,6 @@ class DirectShortwaveSolver:
             jitter_u = np.zeros(bud["rays"], dtype=float)
             jitter_v = np.zeros(bud["rays"], dtype=float)
 
-        energy_in = np.zeros((self.sim.itot, self.sim.jtot, self.ktot), dtype=float)
         solid_hit_energy = np.zeros((self.sim.itot, self.sim.jtot, self.ktot), dtype=float)
         veg_absorb = np.zeros(len(self.veg.points), dtype=float)
         facet_hit_energy = np.zeros(self.nfaces, dtype=float)
@@ -1359,7 +1329,6 @@ class DirectShortwaveSolver:
             self.cell_facets,
             self.triangles,
             facet_hit_energy,
-            energy_in,
             solid_hit_energy,
             veg_absorb,
             ray_area,
@@ -1370,8 +1339,6 @@ class DirectShortwaveSolver:
             irradiance,
             periodic_xy,
             10.0 * max(self.sim.xlen, self.sim.ylen),
-            False,
-            np.zeros((1, 1, 1), dtype=np.int32),
             True,
             -1,
             np.array([np.inf], dtype=float),
@@ -1439,7 +1406,6 @@ class DirectShortwaveSolver:
         ray_area = step * step
         use_jitter = self.ray_jitter > 0.0
 
-        energy_in = np.zeros((self.sim.itot, self.sim.jtot, self.ktot), dtype=float)
         solid_hit_energy = np.zeros((self.sim.itot, self.sim.jtot, self.ktot), dtype=float)
         veg_absorb = np.zeros(len(self.veg.points), dtype=float)
 
@@ -1478,7 +1444,6 @@ class DirectShortwaveSolver:
             self.veg_index,
             self.solid,
             self.has_solid,
-            energy_in,
             solid_hit_energy,
             veg_absorb,
             ray_area,
@@ -1489,8 +1454,6 @@ class DirectShortwaveSolver:
             irradiance,
             periodic_xy,
             10.0 * max(self.sim.xlen, self.sim.ylen),
-            False,
-            np.zeros((1, 1, 1), dtype=np.int32),
             True,
             bud_in,
             bud_out,
