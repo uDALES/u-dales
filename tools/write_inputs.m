@@ -73,7 +73,7 @@ if r.nsv>0
     end
 end
 
-if r.ltrees || r.ltreesfile
+if r.ltrees
     disp('Generating trees')
     preprocessing.generate_trees_from_namoptions(r);
     preprocessing.write_trees(r);
