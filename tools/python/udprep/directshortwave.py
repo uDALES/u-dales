@@ -309,6 +309,62 @@ if nb is not None:
         return i, j, k
 
     @nb.njit(cache=True)
+    def _ray_box_intersection_scalar_numba(
+        ox: float,
+        oy: float,
+        oz: float,
+        dir_x: float,
+        dir_y: float,
+        dir_z: float,
+        xmin: float,
+        ymin: float,
+        zmin: float,
+        xmax: float,
+        ymax: float,
+        zmax: float,
+    ) -> Tuple[float, float]:
+        t_min = -math.inf
+        t_max = math.inf
+
+        if abs(dir_x) < 1.0e-12:
+            if ox < xmin or ox > xmax:
+                return math.inf, -math.inf
+        else:
+            inv_d = 1.0 / dir_x
+            t0 = (xmin - ox) * inv_d
+            t1 = (xmax - ox) * inv_d
+            if t0 > t1:
+                t0, t1 = t1, t0
+            t_min = max(t_min, t0)
+            t_max = min(t_max, t1)
+
+        if abs(dir_y) < 1.0e-12:
+            if oy < ymin or oy > ymax:
+                return math.inf, -math.inf
+        else:
+            inv_d = 1.0 / dir_y
+            t0 = (ymin - oy) * inv_d
+            t1 = (ymax - oy) * inv_d
+            if t0 > t1:
+                t0, t1 = t1, t0
+            t_min = max(t_min, t0)
+            t_max = min(t_max, t1)
+
+        if abs(dir_z) < 1.0e-12:
+            if oz < zmin or oz > zmax:
+                return math.inf, -math.inf
+        else:
+            inv_d = 1.0 / dir_z
+            t0 = (zmin - oz) * inv_d
+            t1 = (zmax - oz) * inv_d
+            if t0 > t1:
+                t0, t1 = t1, t0
+            t_min = max(t_min, t0)
+            t_max = min(t_max, t1)
+
+        return t_min, t_max
+
+    @nb.njit(cache=True)
     def _ray_box_intersection_numba(
         origin: np.ndarray,
         direction: np.ndarray,
@@ -333,8 +389,12 @@ if nb is not None:
 
     @nb.njit(cache=True)
     def _trace_ray_facsec_numba(
-        origin: np.ndarray,
-        direction: np.ndarray,
+        x: float,
+        y: float,
+        z: float,
+        dir_x: float,
+        dir_y: float,
+        dir_z: float,
         dx: float,
         dy: float,
         z_edges: np.ndarray,
@@ -356,8 +416,6 @@ if nb is not None:
         max_ray_length: float,
         allow_outside_xy: bool,
     ) -> float:
-        x, y, z = origin
-
         i, j, k = _point_to_cell_numba(
             x,
             y,
@@ -374,7 +432,6 @@ if nb is not None:
         if i < 0:
             return 0.0
 
-        dir_x, dir_y, dir_z = direction
         step_x = 0 if dir_x == 0.0 else (1 if dir_x > 0.0 else -1)
         step_y = 0 if dir_y == 0.0 else (1 if dir_y > 0.0 else -1)
         step_z = 0 if dir_z == 0.0 else (1 if dir_z > 0.0 else -1)
@@ -938,10 +995,16 @@ if nb is not None:
     ) -> None:
         nu = u_vals.shape[0]
         nv = v_vals.shape[0]
-        idx = 0
+        p0x, p0y, p0z = p0
+        u1x, u1y, u1z = u1
+        u2x, u2y, u2z = u2
+        dir_x, dir_y, dir_z = direction
+        xmin, ymin, zmin = bounds_min
+        xmax, ymax, zmax = bounds_max
         for iu in range(nu):
             u = u_vals[iu]
             for iv in range(nv):
+                idx = iu * nv + iv
                 v = v_vals[iv]
                 if use_jitter:
                     u_use = u + jitter_u[idx]
@@ -949,19 +1012,40 @@ if nb is not None:
                 else:
                     u_use = u
                     v_use = v
-                idx += 1
-                origin = p0 + u1 * u_use + u2 * v_use
-                t0, t1 = _ray_box_intersection_numba(origin, direction, bounds_min, bounds_max)
+                ox = p0x + u1x * u_use + u2x * v_use
+                oy = p0y + u1y * u_use + u2y * v_use
+                oz = p0z + u1z * u_use + u2z * v_use
+                t0, t1 = _ray_box_intersection_scalar_numba(
+                    ox,
+                    oy,
+                    oz,
+                    dir_x,
+                    dir_y,
+                    dir_z,
+                    xmin,
+                    ymin,
+                    zmin,
+                    xmax,
+                    ymax,
+                    zmax,
+                )
                 if t1 < t0:
                     continue
                 if t1 < 0.0:
                     continue
                 bud_in[0] += irradiance * ray_area
                 entry = t0 if t0 > 0.0 else 0.0
-                start = origin + direction * (entry + 1.0e-6)
+                start_offset = entry + 1.0e-6
+                sx = ox + dir_x * start_offset
+                sy = oy + dir_y * start_offset
+                sz = oz + dir_z * start_offset
                 bud_out[0] += _trace_ray_facsec_numba(
-                    start,
-                    direction,
+                    sx,
+                    sy,
+                    sz,
+                    dir_x,
+                    dir_y,
+                    dir_z,
                     dx,
                     dy,
                     z_edges,
