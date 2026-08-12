@@ -168,6 +168,8 @@ between multiple components rather than one isolated API.
   no-tree case `100` and the vegetation case `526`
 - `python_preproc_against_matlab/`: preprocessing parity test between the
   MATLAB and Python entry points on no-tree case `100`
+- `warmstart_facets/`: warm-start facet-state continuity regression for issue
+  #269 on the energy-balance case `064`
 - `udbase_against_matlab/`: Python-vs-MATLAB parity checks on committed cases
 - `udprep/`: preprocessing integration checks on committed cases and binaries
 
@@ -184,6 +186,8 @@ between multiple components rather than one isolated API.
 - `526/`: reduced tree case used by `regression/new_vegetation_module_against_v2.2/`
 - `526/`: also used by `integration/processor_boundaries/` for the vegetation
   decomposition check
+- `064/`: energy-balance case used by `integration/warmstart_facets/` for the
+  warm-start facet continuity regression
 
 To run the direct shortwave reference test:
 
