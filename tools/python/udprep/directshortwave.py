@@ -1440,8 +1440,8 @@ class DirectShortwaveSolver:
             jitter_u = (rng.random(bud["rays"]) - 0.5) * step * self.ray_jitter
             jitter_v = (rng.random(bud["rays"]) - 0.5) * step * self.ray_jitter
         else:
-            jitter_u = np.zeros(bud["rays"], dtype=float)
-            jitter_v = np.zeros(bud["rays"], dtype=float)
+            jitter_u = np.empty(0, dtype=float)
+            jitter_v = np.empty(0, dtype=float)
 
         solid_hit_energy = np.zeros((self.sim.itot, self.sim.jtot, self.ktot), dtype=float)
         facet_hit_energy = np.zeros(self.nfaces, dtype=float)
@@ -1606,8 +1606,8 @@ class DirectShortwaveSolver:
             jitter_u = (rng.random(bud["rays"]) - 0.5) * step * self.ray_jitter
             jitter_v = (rng.random(bud["rays"]) - 0.5) * step * self.ray_jitter
         else:
-            jitter_u = np.zeros(bud["rays"], dtype=float)
-            jitter_v = np.zeros(bud["rays"], dtype=float)
+            jitter_u = np.empty(0, dtype=float)
+            jitter_v = np.empty(0, dtype=float)
 
         thread_count = nb.get_num_threads()
         veg_absorb_thread = np.zeros(
