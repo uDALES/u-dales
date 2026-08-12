@@ -524,22 +524,31 @@ correct* `uouttot` (tolerance, not bitwise). Run runmodes 1006 (incl. new sub-te
 
 Follow-ups discovered during this work:
 
-- [ ] **Retire the `nodata` value-dependence entirely** (the "mark at dump time" plan from
-      commit 9ed16bfe): modstatsdump's xytdump arrays still hold `-999.` internally (time-
-      averaging preserves it only because it is constant); key the NetCDF fill on `IIcs(k)==0`
-      at write time and make `run_test.py` read `_FillValue` from the file instead of the
-      hardcoded `SENTINEL_VALUE = -999.0` (line ~137). Then flip `nodata` to a signalling NaN
-      in Debug builds as the acceptance test: tdump/fielddump must stay bitwise, xytdump may
-      differ only at fill entries.
-- [ ] **Latent bug, `masscorr` `lvoutflowr` branch** (modforces.f90 ~line 443): uses
-      `sumy_ibm` where the comment (and physics) say integrate over x — should be `sumx_ibm`
-      — and slices `vp(ib:je,je,kb:ke)`, almost certainly a typo for `vp(ib:ie,...)`. Shape
-      mismatch vs the dummies; presumably nobody runs `lvoutflowr`. Fix + test before use.
-- [ ] **`fluidvolume` is wrong and dead** (modforces.f90 ~555): `avexy_ibm(IIc*dx*dy)/count`
-      collapses to `dx*dy` per non-empty slab, so `fluidvol` = single-column area × height of
-      non-empty slabs, not the domain fluid volume its comment claims. Nothing reads
-      `fluidvol` (periodicEBcorr does not use it). Either fix with a true masked sum or
-      delete `fluidvolume`/`fluidvol` and keep only the outlet areas in `calcfluidvolumes`.
+- [x] **Retire the `nodata` value-dependence** (the "mark at dump time" plan from commit
+      9ed16bfe): every written statistics profile (xyt 23 slots, yt 34 slots, tke 8 slots)
+      is now masked at write time via `fill_empty_slabs_1d/2d` in modstatsdump, keyed on the
+      fluid-count mask that produced it (IIcs/IIus/.../IIct/IIwt families), overwriting empty
+      slabs with the exact `nc_fillvalue` on the packed write copy only (accumulators
+      untouched). `run_test.py` now reads each variable's `_FillValue` (`_var_fill_value`,
+      NaN-aware `_marker_mask`, explicit `set_auto_mask(False)`) with `SENTINEL_VALUE` kept
+      only as a fallback; 22 unit tests in
+      `tests/regression/bc_cleanup/test_assert_helpers.py` (registered in test_suites.yml,
+      supported group) cover fills -999 / -1e30 / NaN. **Remaining (on CX3):** flip `nodata`
+      to a signalling NaN in Debug as the acceptance test — tdump/fielddump must stay
+      bitwise, xyt/yt/tke dumps may differ only at fill entries (which now hold the exact
+      fill value instead of roundoff-drifted -999).
+- [x] **Latent bug, `masscorr` `lvoutflowr` branch** fixed: `sumy_ibm` → `sumx_ibm` and
+      `vp(ib:je,...)` → `vp(ib:ie,...)`, matching voutletarea's convention. Untestable
+      without a full-field fixture; the operators themselves are covered by runmode 1005.
+      Note the pre-existing asymmetry left in place: the `luoutflowr` branch sets
+      `uouttot = sum(uout)` (a flow rate, not a velocity) and the v-branch sets no
+      `vouttot` at all — both only reachable when `.not. linoutflow`, where the outflow
+      BCs that read them are inactive.
+- [x] **`fluidvolume` deleted** (was wrong and dead): subroutine + `fluidvol` removed from
+      modforces/modfields; `calcfluidvolumes` now computes the two outlet areas only.
+      Also fixed in passing: the `ltkedump` write block's nonconforming
+      `varstke(:,n) = X(kb:ke+kh)` slices (LHS is `khigh-klow+1 = ke-kb+1`) → `(kb:ke)`;
+      these would abort any Debug (-CB) run with `ltkedump` enabled.
 
 ---
 

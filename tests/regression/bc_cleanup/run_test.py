@@ -134,6 +134,14 @@ HISTORICAL_ATOL = 1.0e-6
 HISTORICAL_SKIP = frozenset({"092"})
 
 BASE_STATE_LOG_MARKER = "Base state:"
+# Fallback nodata marker, used only when a variable carries no `_FillValue`
+# attribute of its own (see _var_fill_value). Every dump written by the
+# current Fortran declares `_FillValue`, so in practice the sentinel checks
+# below key on each variable's own attribute -- this constant exists so the
+# Fortran marker (e.g. a future move to a signalling NaN) can change without
+# touching the harness, and so fixtures/older files without the attribute
+# still get checked against something. Name kept stable: other tooling
+# imports SENTINEL_VALUE.
 SENTINEL_VALUE = -999.0
 SENTINEL_ATOL = 1.0e-6
 
@@ -654,6 +662,34 @@ def _fully_solid_levels(run_dir: Path, spec: CaseSpec) -> set:
     return {k for k, n in counts.items() if n >= ncells}
 
 
+def _var_fill_value(var: "nc.Variable") -> float:
+    """The nodata marker declared by this variable, from its `_FillValue`.
+
+    Keys the sentinel checks on each variable's own attribute rather than the
+    hardcoded SENTINEL_VALUE, so the Fortran marker (e.g. a future move from
+    -999.0 to a signalling NaN) can change without touching this harness.
+    Falls back to SENTINEL_VALUE when the attribute is absent -- not expected
+    for current dumps, but keeps older/fabricated files checkable instead of
+    raising.
+    """
+    fill = getattr(var, "_FillValue", None)
+    if fill is None:
+        return SENTINEL_VALUE
+    return float(np.asarray(fill).reshape(-1)[0])
+
+
+def _marker_mask(arr: np.ndarray, fill: float) -> np.ndarray:
+    """Boolean mask of elements of `arr` carrying the nodata marker `fill`.
+
+    A NaN fill value cannot be matched with np.isclose (NaN != NaN), so that
+    case is handled separately via np.isnan; otherwise this is the same
+    np.isclose(..., atol=SENTINEL_ATOL, rtol=0.0) comparison used throughout.
+    """
+    if np.isnan(fill):
+        return np.isnan(arr)
+    return np.isclose(arr, fill, atol=SENTINEL_ATOL, rtol=0.0)
+
+
 def _assert_sentinels_only_in_solid_slabs(run_dir: Path, spec: CaseSpec) -> None:
     """The nodata marker must appear only where there is genuinely no data.
 
@@ -675,6 +711,13 @@ def _assert_sentinels_only_in_solid_slabs(run_dir: Path, spec: CaseSpec) -> None
     for path in sorted(run_dir.glob("*.nc")):
         stats_dump = path.name.startswith("xytdump")
         with nc.Dataset(path) as ds:
+            # Explicit, deterministic raw-value reads. netCDF4 auto-masking is on by
+            # default and would turn a fill-valued element into a masked entry; the
+            # np.asarray(var[:]) below then silently returns the MaskedArray's
+            # underlying .data, which happens to still be the raw fill value today
+            # but is an implementation detail, not a guarantee -- disable masking
+            # explicitly instead of relying on that.
+            ds.set_auto_mask(False)
             zt = np.asarray(ds.variables["zt"][:]) if "zt" in ds.variables else None
             for name, var in ds.variables.items():
                 if var.dtype.kind != "f" or name in ("zt", "zm", "time", "xt", "xm", "yt", "ym"):
@@ -682,13 +725,14 @@ def _assert_sentinels_only_in_solid_slabs(run_dir: Path, spec: CaseSpec) -> None
                 arr = np.asarray(var[:], dtype=np.float64)
                 if arr.size == 0:
                     continue
-                hit = np.isclose(arr, SENTINEL_VALUE, atol=SENTINEL_ATOL, rtol=0.0)
+                fill = _var_fill_value(var)
+                hit = _marker_mask(arr, fill)
                 if not hit.any():
                     continue
                 if not stats_dump:
                     failures.append(
                         f"{path.name}: '{name}' contains the nodata marker "
-                        f"({SENTINEL_VALUE}); prognostic/thermo dumps must carry the "
+                        f"({fill}); prognostic/thermo dumps must carry the "
                         "base state instead (#302)"
                     )
                     continue
@@ -718,22 +762,41 @@ def _assert_no_sentinel_or_nan(run_dir: Path, spec: CaseSpec) -> None:
     failures: List[str] = []
     for path in files:
         with nc.Dataset(path) as ds:
+            # See the matching comment in _assert_sentinels_only_in_solid_slabs: turn
+            # off auto-masking so the fill-value comparison below reads raw values
+            # deterministically rather than relying on MaskedArray.data internals.
+            ds.set_auto_mask(False)
             field_names = list(spec.fields) if spec.fields is not None else _discover_fields(path)
             for field in field_names:
                 if field not in ds.variables:
                     failures.append(f"{path.name}: field '{field}' not present")
                     continue
-                arr = np.asarray(ds.variables[field][:], dtype=np.float64)
-                nan_mask = np.isnan(arr)
-                if nan_mask.any():
-                    idx = tuple(int(v) for v in np.unravel_index(int(np.argmax(nan_mask)), arr.shape))
-                    failures.append(f"{path.name}: field '{field}' contains NaN at index {idx}")
-                sentinel_mask = np.isclose(arr, SENTINEL_VALUE, atol=SENTINEL_ATOL, rtol=0.0)
-                if sentinel_mask.any():
-                    idx = tuple(int(v) for v in np.unravel_index(int(np.argmax(sentinel_mask)), arr.shape))
-                    failures.append(
-                        f"{path.name}: field '{field}' contains sentinel {SENTINEL_VALUE} at index {idx}"
-                    )
+                var = ds.variables[field]
+                fill = _var_fill_value(var)
+                arr = np.asarray(var[:], dtype=np.float64)
+                marker_mask = _marker_mask(arr, fill)
+                if np.isnan(fill):
+                    # The declared fill value IS NaN, so a NaN hit and a marker hit
+                    # are the same event -- report it once as the marker rather than
+                    # raising both a generic-NaN and a sentinel failure for it.
+                    if marker_mask.any():
+                        idx = tuple(int(v) for v in np.unravel_index(int(np.argmax(marker_mask)), arr.shape))
+                        failures.append(
+                            f"{path.name}: field '{field}' contains the nodata marker (NaN) at index {idx}"
+                        )
+                else:
+                    # Fill value is finite: any NaN here is never the declared marker,
+                    # so it is always a bug in its own right (checked independently
+                    # of the marker below) -- unchanged from the previous behaviour.
+                    nan_mask = np.isnan(arr)
+                    if nan_mask.any():
+                        idx = tuple(int(v) for v in np.unravel_index(int(np.argmax(nan_mask)), arr.shape))
+                        failures.append(f"{path.name}: field '{field}' contains NaN at index {idx}")
+                    if marker_mask.any():
+                        idx = tuple(int(v) for v in np.unravel_index(int(np.argmax(marker_mask)), arr.shape))
+                        failures.append(
+                            f"{path.name}: field '{field}' contains sentinel {fill} at index {idx}"
+                        )
     if failures:
         raise RuntimeError(
             "Dumped fields contain sentinel/NaN values (buried-slab base-state fallback not applied):\n- "
@@ -933,7 +996,9 @@ def main_assert_only(
 ) -> int:
     """Single-branch smoke check: build the current workspace, run one case,
     and assert (a) the run completes, (b) the startup log contains
-    'Base state:', and (c) no dumped field contains a -999. sentinel or NaN.
+    'Base state:', and (c) no dumped field contains its declared `_FillValue`
+    nodata marker (SENTINEL_VALUE, -999.0, when a variable has no such
+    attribute) or a stray NaN.
 
     Unlike main()/_run_case_matrix, this does not build or run a reference
     branch and does not compare fields against a reference — see
@@ -1039,9 +1104,10 @@ if __name__ == "__main__":
         help=(
             "Run a single case (e.g. 091) against the current workspace build only, with no "
             "reference branch/build and no field comparison. Asserts the run completes, the "
-            f"startup log contains '{BASE_STATE_LOG_MARKER}', and no dumped field contains a "
-            f"{SENTINEL_VALUE} sentinel or NaN. branch_a/branch_b are accepted but unused. "
-            f"Known cases: {sorted(ASSERT_ONLY_CASES)}."
+            f"startup log contains '{BASE_STATE_LOG_MARKER}', and no dumped field contains its "
+            f"declared `_FillValue` nodata marker (defaulting to {SENTINEL_VALUE} when a "
+            "variable has no such attribute) or a stray NaN. branch_a/branch_b are accepted "
+            f"but unused. Known cases: {sorted(ASSERT_ONLY_CASES)}."
         ),
     )
     args = parser.parse_args()

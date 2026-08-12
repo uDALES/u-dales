@@ -157,6 +157,18 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
+      - label: "supported: bc-cleanup assert-helper unit tests"
+        class: supported
+        kind: unit
+        component: python
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "-m"
+          - "pytest"
+          - "{tests_dir}/regression/bc_cleanup/test_assert_helpers.py"
+          - "-q"
 
   supported-macos:
     includes:

@@ -391,7 +391,6 @@ module modfields
 
   real              :: uoutarea                     !< area of domain u-outlet
   real              :: voutarea                     !< area of domain v-outlet
-  real              :: fluidvol                     !< fluid volume (excluding blocks)
 
   character(80), allocatable :: ncname(:,:)
   character(80), allocatable :: ncname1(:,:)
@@ -844,8 +843,8 @@ contains
     allocate(wall(ib:ie,jb:je,kb:ke,5))
     shear=0.
 
-    ! domain fluid volume and area calculations
-    uoutarea=0.;voutarea=0.;fluidvol=0.
+    ! domain outlet area calculations
+    uoutarea=0.;voutarea=0.
   end subroutine initfields
 
   !> Deallocate the fields

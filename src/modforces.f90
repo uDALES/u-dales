@@ -40,7 +40,7 @@ module modforces
   private
   public :: forces, coriolis, lstend,fixuinf1,fixuinf2,fixthetainf,&
             detfreestream,detfreestrtmp,nudge,&
-            masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes,shiftedPBCs, periodicEBcorr
+            masscorr,uoutletarea,voutletarea,calcfluidvolumes,shiftedPBCs, periodicEBcorr
   contains
 
   subroutine forces
@@ -440,8 +440,8 @@ module modforces
       !       voutold(k) = sum(vm(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at previous time step
       !    end do
       ! end if
-      call sumy_ibm(vout,vp(ib:je,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v tendency at previous time step
-      call sumy_ibm(voutold,vm(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v at previous time step
+      call sumx_ibm(vout,vp(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v tendency at previous time step
+      call sumx_ibm(voutold,vm(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v at previous time step
 
       ! integrate v in z
       do k=kb,ke
@@ -552,42 +552,11 @@ module modforces
 
   end subroutine voutletarea
 
-  subroutine fluidvolume(volume)
-    ! calculates fluid volume of domain excluding blocks
-
-    use modglobal, only   : ib,ie,jb,je,kb,ke,kh,dy,dxf,dzf
-    use modfields, only   : IIc, IIcs
-    use modmpi, only      : sumy_ibm, avexy_ibm
-
-    implicit none
-    real, intent(out)             :: volume
-    real, dimension(ib:ie,kb:ke)  :: sumy
-    real, dimension(kb:ke+kh)        :: sumxy
-
-    sumy = 0.
-    sumxy = 0.
-
-    ! ! integrate fluid volume in y
-    ! call sumy_ibm(sumy,IIc(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke))
-    !
-    ! ! integrate fluid area in x
-    ! do k=kb,ke
-    !   sumxy(k) = sum(sumy(ib:ie,k)*dxf(ib:ie))
-    ! end do
-
-    ! Equidistant x
-    call avexy_ibm(sumxy(kb:ke+kh),IIc(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-
-    ! integrate fluid area in z
-    volume = sum(sumxy(kb:ke)*dzf(kb:ke))
-
-  end subroutine fluidvolume
-
   subroutine calcfluidvolumes
-    !> calculates fluid volume and outlet areas, excluding blocks
-    !> and saves it to variables from modfields
+    !> calculates outlet areas, excluding blocks
+    !> and saves them to variables from modfields
 
-    use modfields, only : uoutarea, voutarea, fluidvol
+    use modfields, only : uoutarea, voutarea
     implicit none
     real :: volume
 
@@ -597,9 +566,6 @@ module modforces
     ! calculate outlet area
     call voutletarea(volume)
     voutarea = volume
-    ! calculate fluid volume
-    call fluidvolume(volume)
-    fluidvol = volume
 
   end subroutine calcfluidvolumes
 
