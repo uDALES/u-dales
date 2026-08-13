@@ -108,12 +108,44 @@ class TestScanlineContract(unittest.TestCase):
             )
             fields.append(sdir)
 
-        # Captured from the original extension before the scanline optimization.
+        # Captured after enforcing the local plane-incidence flux bound.
         digest = hashlib.sha256(np.stack(fields).tobytes(order="C")).hexdigest()
         self.assertEqual(
             digest,
-            "19622e3efdb88b2870490554808e34794290c19f9975264df14d5c6c6a0da51f",
+            "2e24403317b174311dd19354bd39995acb491430d5bdca73b1d58eb33426c486",
         )
+
+    def test_scanline_flux_respects_local_plane_incidence_bound(self) -> None:
+        for zenith, azimuth in ((0.0, 0.0), (45.0, 123.0), (81.5, 189.0)):
+            nsun = nsun_from_angles(zenith, azimuth)
+            sdir, _, _ = self.solver.compute(
+                nsun=nsun,
+                irradiance=800.0,
+                resolution=0.5,
+            )
+            physical_bound = 800.0 * np.clip(
+                self.solver.face_normals @ nsun, 0.0, 1.0
+            )
+            self.assertTrue(np.all(sdir <= physical_bound + 1.0e-5))
+            self.assertTrue(np.all(sdir >= 0.0))
+
+    def test_raw_f2py_flux_respects_local_plane_incidence_bound(self) -> None:
+        for zenith, azimuth in ((0.0, 0.0), (45.0, 123.0), (81.5, 189.0)):
+            nsun = nsun_from_angles(zenith, azimuth)
+            sdir = self.solver._dsmod.calculate_direct_shortwave_f2py(
+                self.solver._scanline_faces_1based,
+                self.solver._scanline_facet_points_f2py,
+                self.solver._scanline_face_normals_f2py,
+                self.solver._scanline_vertices_f2py,
+                nsun,
+                800.0,
+                0.5,
+            )
+            physical_bound = 800.0 * np.clip(
+                self.solver.face_normals @ nsun, 0.0, 1.0
+            )
+            self.assertTrue(np.all(sdir <= physical_bound + 1.0e-4))
+            self.assertTrue(np.all(sdir >= 0.0))
 
 
 if __name__ == "__main__":
