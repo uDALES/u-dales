@@ -387,6 +387,81 @@ def compute_svf(vf: sparse.spmatrix) -> np.ndarray:
     return np.maximum(1.0 - row_sum, 0.0)
 
 
+def validate_view_factors(
+    vf: sparse.spmatrix,
+    svf: np.ndarray,
+    *,
+    tolerance: float = 1.0e-3,
+) -> None:
+    """Reject non-physical facet and sky view-factor combinations."""
+    if tolerance <= 0.0:
+        raise ValueError("view-factor validation tolerance must be positive")
+
+    matrix = sparse.csr_matrix(vf)
+    sky = np.asarray(svf, dtype=float).reshape(-1)
+    if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
+        raise ValueError(f"View-factor matrix must be square; got {matrix.shape}")
+    if sky.shape != (matrix.shape[0],):
+        raise ValueError(
+            f"Sky view factors must have shape ({matrix.shape[0]},); got {sky.shape}"
+        )
+
+    problems: list[str] = []
+    data = matrix.data
+    nonfinite_matrix = int(np.count_nonzero(~np.isfinite(data)))
+    nonfinite_sky = int(np.count_nonzero(~np.isfinite(sky)))
+    if nonfinite_matrix or nonfinite_sky:
+        problems.append(
+            f"non-finite values (matrix={nonfinite_matrix}, sky={nonfinite_sky})"
+        )
+
+    finite_data = data[np.isfinite(data)]
+    finite_sky = sky[np.isfinite(sky)]
+    if finite_data.size:
+        negative = int(np.count_nonzero(finite_data < -tolerance))
+        above_one = int(np.count_nonzero(finite_data > 1.0 + tolerance))
+        if negative:
+            problems.append(
+                f"{negative} matrix entries below {-tolerance:g} "
+                f"(minimum={float(finite_data.min()):.6g})"
+            )
+        if above_one:
+            problems.append(
+                f"{above_one} matrix entries above {1.0 + tolerance:g} "
+                f"(maximum={float(finite_data.max()):.6g})"
+            )
+    if finite_sky.size:
+        sky_outside = int(
+            np.count_nonzero(
+                (finite_sky < -tolerance) | (finite_sky > 1.0 + tolerance)
+            )
+        )
+        if sky_outside:
+            problems.append(
+                f"{sky_outside} sky factors outside physical bounds "
+                f"(range={float(finite_sky.min()):.6g} to "
+                f"{float(finite_sky.max()):.6g})"
+            )
+
+    if not nonfinite_matrix and not nonfinite_sky:
+        closure = np.asarray(matrix.sum(axis=1)).reshape(-1) + sky
+        closure_error = np.abs(closure - 1.0)
+        bad_closure = int(np.count_nonzero(closure_error > tolerance))
+        if bad_closure:
+            problems.append(
+                f"{bad_closure} rows fail sum(Fij) + SVF = 1 within "
+                f"{tolerance:g} (range={float(closure.min()):.6g} to "
+                f"{float(closure.max()):.6g})"
+            )
+
+    if problems:
+        raise ValueError(
+            "Invalid View3D factors: "
+            + "; ".join(problems)
+            + ". Repair or regenerate the view factors before radiation preprocessing."
+        )
+
+
 def write_svf(path: str | Path, svf: np.ndarray) -> Path:
     """
     Write sky view factors to svf.inp.* format.
