@@ -24,6 +24,7 @@ from udgeom.view3d import (
     resolve_view3d_exe,
     run_view3d,
     stl_to_view3d,
+    validate_view_factors,
     write_svf,
     write_vf,
     write_vfsparse,
@@ -399,6 +400,8 @@ class RadiationSection(Section):
             print(f"[view3d] facets: {nfacets}", flush=True)
             vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
             svf = np.loadtxt(svf_path)
+            validate_view_factors(vf, svf)
+            print("[view3d] physical validation passed", flush=True)
             if vfsparse_path is not None and not vfsparse_path.exists():
                 write_vfsparse(vfsparse_path, vf, threshold=5e-7)
             if vf_nc_path is not None and not vf_nc_path.exists():
@@ -433,6 +436,8 @@ class RadiationSection(Section):
 
         vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
         svf = compute_svf(vf)
+        validate_view_factors(vf, svf)
+        print("[view3d] physical validation passed", flush=True)
         write_svf(svf_path, svf)
 
         if vfsparse_path is not None:

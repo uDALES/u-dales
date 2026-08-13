@@ -29,6 +29,7 @@ from udgeom.view3d import (  # noqa: E402
     read_view3d_output,
     resolve_view3d_exe,
     stl_to_view3d,
+    validate_view_factors,
     write_vf,
     write_vfsparse,
 )
@@ -54,6 +55,26 @@ class TestView3DUtils(unittest.TestCase):
         svf = compute_svf(vf)
 
         np.testing.assert_allclose(svf, np.array([0.4, 0.0, 1.0], dtype=float))
+
+    def test_validate_view_factors_accepts_closed_sparse_matrix(self) -> None:
+        vf = sparse.csr_matrix(
+            np.array([[0.0, 0.25], [0.4, 0.0]], dtype=float)
+        )
+
+        validate_view_factors(vf, compute_svf(vf))
+
+    def test_validate_view_factors_rejects_factor_above_one(self) -> None:
+        vf = sparse.csr_matrix(np.array([[0.0, 1.2], [0.0, 0.0]], dtype=float))
+
+        with self.assertRaisesRegex(ValueError, "matrix entries above"):
+            validate_view_factors(vf, compute_svf(vf))
+
+    def test_validate_view_factors_rejects_row_closure_error(self) -> None:
+        vf = sparse.csr_matrix(np.array([[0.0, 0.8], [0.2, 0.0]], dtype=float))
+        svf = np.array([0.3, 0.8], dtype=float)
+
+        with self.assertRaisesRegex(ValueError, "rows fail"):
+            validate_view_factors(vf, svf)
 
     def test_write_vfsparse_filters_and_sorts_entries(self) -> None:
         vf = sparse.coo_matrix(

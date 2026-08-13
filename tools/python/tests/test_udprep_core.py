@@ -1221,6 +1221,7 @@ class TestRadiationSection(unittest.TestCase):
                 run_view3d=mock.DEFAULT,
                 read_view3d_output=mock.DEFAULT,
                 compute_svf=mock.DEFAULT,
+                validate_view_factors=mock.DEFAULT,
                 write_svf=mock.DEFAULT,
                 write_vf=mock.DEFAULT,
                 write_vfsparse=mock.DEFAULT,
