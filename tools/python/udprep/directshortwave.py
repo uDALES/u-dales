@@ -1763,6 +1763,7 @@ class DirectShortwaveSolver:
             inputs.resolution,
         )
         sdir = np.asarray(sdir, dtype=float)
+        sdir = self._bound_scanline_flux(sdir, nsun_unit, irradiance)
         bud = {
             "fac": float(np.sum(sdir * self.face_areas)),
             "veg": 0.0,
@@ -1805,11 +1806,23 @@ class DirectShortwaveSolver:
             sdir = np.loadtxt(td_path / "Sdir.txt")
 
         sdir = np.asarray(sdir, dtype=float)
+        sdir = self._bound_scanline_flux(sdir, nsun_unit, irradiance)
         bud = {
             "fac": float(np.sum(sdir * self.face_areas)),
             "veg": 0.0,
         }
         return sdir, np.zeros(0, dtype=float), bud
+
+    def _bound_scanline_flux(
+        self,
+        sdir: np.ndarray,
+        nsun_unit: np.ndarray,
+        irradiance: float,
+    ) -> np.ndarray:
+        """Enforce the local direct-flux bound after rasterization."""
+        cos_incidence = np.clip(self.face_normals @ nsun_unit, 0.0, 1.0)
+        upper_bound = max(float(irradiance), 0.0) * cos_incidence
+        return np.minimum(np.maximum(np.asarray(sdir, dtype=float), 0.0), upper_bound)
 
     def _build_scanline_inputs(
         self,

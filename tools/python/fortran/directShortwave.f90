@@ -48,7 +48,7 @@ contains
       integer, dimension(:,:), allocatable :: maskIDs
       real   , dimension(:), allocatable :: locCoord1, locCoord2
       integer, dimension(:), allocatable :: counts, minY, maxY
-      real :: xmin, xmax, xrange, ymin, ymax, yrange
+      real :: xmin, xmax, xrange, ymin, ymax, yrange, cosIncidence
       real, dimension(3) :: p0, u1, u2, up
       real, dimension(2) :: cor1, cor2, cor3, cor4
       real, dimension(3,3) :: matrix, invMatrix
@@ -255,7 +255,19 @@ contains
 
       projAreas = counts * resolution**2
 
-      Sdir = irradiance * projAreas / areas
+      ! A raster cell can be much larger than a sliver facet.  Limit the
+      ! assigned flux to the unshaded plane-incidence bound so one raster cell
+      ! cannot deposit its full power on a much smaller facet.
+      do n=1,nFaces
+         if (areas(n) > 0.) then
+            Sdir(n) = irradiance * projAreas(n) / areas(n)
+            cosIncidence = min(max(dot_product(faceNormal(n,:), nsun), 0.), 1.)
+            Sdir(n) = min(max(Sdir(n), 0.), &
+                          max(irradiance, 0.) * cosIncidence)
+         else
+            Sdir(n) = 0.
+         end if
+      end do
 
       ! write(*,*) "n", "count", "projArea", "Sdir"
       ! do n=1,1000
