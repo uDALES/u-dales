@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 import numpy as np
+from scipy import sparse
 
 from _common import PYTHON_DIR
 
@@ -17,6 +18,10 @@ from udprep.udprep_bcs import SPEC as BCS_SPEC  # noqa: E402
 from udprep.udprep_ibm import IBMSection  # noqa: E402
 from udprep.udprep_radiation import RadiationSection  # noqa: E402
 from udprep.udprep_seb import SEBSection  # noqa: E402
+from udgeom.view3d import (  # noqa: E402
+    ViewFactorRepairLimits,
+    ViewFactorValidationError,
+)
 
 class DummySection(Section):
     def ping(self):
@@ -760,6 +765,56 @@ class TestUDPrepCore(unittest.TestCase):
         self.assertEqual(prep.beta.show_changed_params_calls, 1)
 
 class TestRadiationSection(unittest.TestCase):
+    @staticmethod
+    def _view_factor_conditioning_section(policy):
+        sim = DummySim()
+        sim.geom = types.SimpleNamespace(
+            stl=types.SimpleNamespace(area_faces=np.ones(3, dtype=float))
+        )
+        section = RadiationSection("radiation", {}, sim=sim, defaults={})
+        section.view_factor_policy = policy
+        section.view_factor_repair_limits = ViewFactorRepairLimits(
+            max_overfull_area_fraction=1.0,
+            max_exchange_area_reduction_fraction=1.0,
+        )
+        return section
+
+    def test_view_factor_repair_policy_conditions_overfull_matrix(self):
+        section = self._view_factor_conditioning_section("repair")
+        vf = sparse.csr_matrix(
+            np.array(
+                [
+                    [0.0, 0.7, 0.6],
+                    [0.7, 0.0, 0.2],
+                    [0.6, 0.2, 0.0],
+                ]
+            )
+        )
+
+        repaired, sky, report = section._condition_view_factors(vf)
+
+        self.assertIsNotNone(report)
+        self.assertTrue(report.repaired)
+        np.testing.assert_allclose(
+            np.asarray(repaired.sum(axis=1)).reshape(-1) + sky,
+            np.ones(3),
+        )
+
+    def test_view_factor_strict_policy_rejects_overfull_matrix(self):
+        section = self._view_factor_conditioning_section("strict")
+        vf = sparse.csr_matrix(
+            np.array(
+                [
+                    [0.0, 0.7, 0.6],
+                    [0.7, 0.0, 0.2],
+                    [0.6, 0.2, 0.0],
+                ]
+            )
+        )
+
+        with self.assertRaises(ViewFactorValidationError):
+            section._condition_view_factors(vf)
+
     def test_shortwave_method_maps_ishortwave_to_backend(self):
         sim = DummySim()
         sim.ltrees = False
@@ -1199,10 +1254,14 @@ class TestRadiationSection(unittest.TestCase):
             expnr="001",
             stl_file="geom.stl",
             geom=types.SimpleNamespace(
-                stl=types.SimpleNamespace(faces=np.zeros((3, 3), dtype=int))
+                stl=types.SimpleNamespace(
+                    faces=np.zeros((3, 3), dtype=int),
+                    area_faces=np.ones(3, dtype=float),
+                )
             ),
         )
         section = RadiationSection("radiation", {}, sim=sim, defaults={})
+        section.view_factor_policy = "strict"
         section.view3d_out = 0
         section.lvfsparse = False
         section.maxD = 1000.0
