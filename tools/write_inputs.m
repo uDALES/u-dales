@@ -298,7 +298,7 @@ if r.libm
                 vf = sparse(ijs(:,1), ijs(:,2), ijs(:,3), r.nfcts, r.nfcts);
             end
 
-            svf = max(1 - sum(vf, 2), 0);
+            [vf, svf, vf_repaired] = conditionViewFactors(vf, area_facets);
             preprocessing.write_svf(r, svf);
 
             % write uDALES view factor file
@@ -307,8 +307,11 @@ if r.libm
                     preprocessing.write_vf(r, full(vf))
                     disp(['Written vf.nc.inp.', r.expnr])
                 else
-                    %vfsparse = sparse(double(vf));
-                    preprocessing.write_vfsparse(r, vf);
+                    vf_threshold = 5e-7;
+                    if vf_repaired
+                        vf_threshold = 0;
+                    end
+                    preprocessing.write_vfsparse(r, vf, vf_threshold);
                     disp(['Written vfsparse.inp.', r.expnr])
                     preprocessing.update_namoptions(namoptionsfile,'&ENERGYBALANCE','nnz',nnz(vf));
                 end
@@ -316,7 +319,10 @@ if r.libm
                     delete(fpath_vf) % remove view3d output file
                 end
             elseif r.view3d_out == 2
-                if r.calc_vf
+                if vf_repaired
+                    preprocessing.write_vfsparse(r, vf, 0);
+                    disp(['Rewritten repaired vfsparse.inp.', r.expnr])
+                elseif r.calc_vf
                     disp(['View3D has written vfsparse.inp.', r.expnr])
                 else
                     copyfile(fpath_vf, [fpath 'vfsparse.inp.' r.expnr]);
