@@ -1545,8 +1545,9 @@ module modibm
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
          thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzh(k))
 
+         totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets (unconditional, mirrors totqflux; decouples periodicEBcorr from lEB)
+
          if (lEB) then
-           totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
            fachf(fac) = fachf(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
          end if !fachf=[Km/s]
        end if

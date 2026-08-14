@@ -51,6 +51,7 @@ save
   integer my_real
   real    CPU_program    !end time
   real    CPU_program0   !start time
+  logical :: timer_started = .false.
   character(3) :: cmyid
   character(3) :: cmyidx
   character(3) :: cmyidy
@@ -83,6 +84,7 @@ contains
      ! Initialize CPU timer variables
      CPU_program = 0.0
      CPU_program0 = 0.0
+     timer_started = .false.
 
      call MPI_INIT(mpierr)
      MY_REAL = MPI_DOUBLE_PRECISION  !MPI_REAL8 should be the same..
@@ -156,6 +158,7 @@ contains
 
     if(myid==0)then
       CPU_program0 = MPI_Wtime()
+      timer_started = .true.
     end if
 
   end subroutine starttimer
@@ -167,10 +170,9 @@ contains
     implicit none
 
     if(myid==0)then
-      ! Only compute CPU time if timer was started (CPU_program0 > 0)
-      if (CPU_program0 > 0.0) then
+      if (timer_started) then
         CPU_program = MPI_Wtime() - CPU_program0
-        write(6,*)'TOTAL CPU time = ', CPU_program
+        write(6,*)'TOTAL CPU time by main time loop = ', CPU_program
       end if
     end if
 

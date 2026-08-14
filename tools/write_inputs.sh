@@ -159,6 +159,7 @@ case "$nompthreads" in
 		;;
 esac
 export PREPROC_NCPU="${nompthreads:-$default_nompthreads}"
+export NUMBA_NUM_THREADS="${NUMBA_NUM_THREADS:-$PREPROC_NCPU}"
 export PREPROC_WALLTIME="${PREPROC_WALLTIME:-24:00:00}"
 export PREPROC_MEM="${PREPROC_MEM:-128gb}"
 
@@ -211,6 +212,7 @@ export MATLAB_USE_USERWORK=0
 export PYTHONUNBUFFERED=1
 export GFORTRAN_UNBUFFERED_PRECONNECTED=1
 export PREPROC_NCPU="$PREPROC_NCPU"
+export NUMBA_NUM_THREADS="$NUMBA_NUM_THREADS"
 export PREPROC_MEM="$PREPROC_MEM"
 export VIEW3D_CONFIG="$VIEW3D_CONFIG"
 source_view3d_config() {

@@ -45,19 +45,21 @@ Environment
 
     The shell wrapper tools/write_inputs.sh -p is the recommended entry point
     because it derives PREPROC_NCPU from &INPS/nompthreads before sourcing the
-    default View3D runtime configuration. If this Python script is invoked
-    directly for a case that runs View3D, export PREPROC_NCPU explicitly first
-    (use the namoptions nompthreads value, or 8 if nompthreads is omitted).
+    default View3D runtime configuration. It also defaults NUMBA_NUM_THREADS to
+    PREPROC_NCPU for the CPU-parallel facsec and moller shortwave backends. If
+    this Python script is invoked directly, export PREPROC_NCPU and
+    NUMBA_NUM_THREADS explicitly first (use the namoptions nompthreads value,
+    or 8 if nompthreads is omitted).
 
 Examples
 --------
     Example commands from the repository root.
 
     # Process a specific case directory
-    PREPROC_NCPU=8 python tools/write_inputs.py examples/101
+    PREPROC_NCPU=8 NUMBA_NUM_THREADS=8 python tools/write_inputs.py examples/101
 
     # Force regeneration of all outputs
-    PREPROC_NCPU=8 python tools/write_inputs.py examples/101 --force
+    PREPROC_NCPU=8 NUMBA_NUM_THREADS=8 python tools/write_inputs.py examples/101 --force
 """
 
 from __future__ import annotations

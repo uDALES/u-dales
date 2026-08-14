@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import sys
 import unittest
@@ -22,14 +23,21 @@ if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
 
 from udgeom.view3d import (  # noqa: E402
+    ViewFactorRepairError,
+    ViewFactorRepairLimits,
+    ViewFactorValidationError,
     compute_svf,
     count_sparse_entries,
     default_view3d_config_path,
+    inspect_view_factors,
     load_view3d_runtime_env,
     read_view3d_output,
+    repair_view_factors,
     resolve_view3d_exe,
     stl_to_view3d,
+    validate_view_factors,
     write_vf,
+    write_view_factor_repair_report,
     write_vfsparse,
 )
 
@@ -55,6 +63,154 @@ class TestView3DUtils(unittest.TestCase):
 
         np.testing.assert_allclose(svf, np.array([0.4, 0.0, 1.0], dtype=float))
 
+    def test_validate_view_factors_accepts_closed_sparse_matrix(self) -> None:
+        vf = sparse.csr_matrix(
+            np.array([[0.0, 0.25], [0.4, 0.0]], dtype=float)
+        )
+
+        validate_view_factors(vf, compute_svf(vf))
+
+    def test_validate_view_factors_rejects_factor_above_one(self) -> None:
+        vf = sparse.csr_matrix(np.array([[0.0, 1.2], [0.0, 0.0]], dtype=float))
+
+        with self.assertRaisesRegex(ValueError, "matrix entries above"):
+            validate_view_factors(vf, compute_svf(vf))
+
+    def test_validate_view_factors_rejects_row_closure_error(self) -> None:
+        vf = sparse.csr_matrix(np.array([[0.0, 0.8], [0.2, 0.0]], dtype=float))
+        svf = np.array([0.3, 0.8], dtype=float)
+
+        with self.assertRaisesRegex(ValueError, "rows fail"):
+            validate_view_factors(vf, svf)
+
+    def test_inspect_view_factors_marks_closure_only_failure(self) -> None:
+        vf = sparse.csr_matrix(np.array([[0.0, 0.8], [0.2, 0.0]]))
+        report = inspect_view_factors(vf, np.array([0.3, 0.8]))
+
+        self.assertFalse(report.is_valid)
+        self.assertTrue(report.closure_only)
+        self.assertEqual(report.bad_closure_rows, 1)
+
+    def test_repair_view_factors_preserves_reciprocity_and_closure(self) -> None:
+        areas = np.array([1.0, 2.0, 4.0])
+        exchange = np.array(
+            [
+                [0.0, 0.8, 0.5],
+                [0.8, 0.0, 0.4],
+                [0.5, 0.4, 0.0],
+            ]
+        )
+        vf = sparse.csr_matrix(exchange / areas[:, None])
+        limits = ViewFactorRepairLimits(
+            max_overfull_area_fraction=1.0,
+            max_exchange_area_reduction_fraction=1.0,
+        )
+
+        repaired, sky, report = repair_view_factors(vf, areas, limits=limits)
+
+        repaired_exchange = sparse.diags(areas) @ repaired
+        np.testing.assert_allclose(
+            repaired_exchange.toarray(), repaired_exchange.toarray().T, atol=1.0e-12
+        )
+        np.testing.assert_allclose(
+            np.asarray(repaired.sum(axis=1)).reshape(-1) + sky,
+            np.ones(3),
+            atol=1.0e-12,
+        )
+        self.assertTrue(report.repaired)
+        self.assertEqual(report.overfull_rows, 1)
+        self.assertGreater(report.scaled_entries, 0)
+        self.assertLessEqual(report.max_row_sum_after, 1.0)
+        self.assertAlmostEqual(report.reciprocity_l1_relative_after, 0.0)
+
+    def test_repair_view_factors_rejects_excessive_area_correction(self) -> None:
+        vf = sparse.csr_matrix(
+            np.array(
+                [
+                    [0.0, 0.7, 0.6],
+                    [0.7, 0.0, 0.6],
+                    [0.6, 0.6, 0.0],
+                ]
+            )
+        )
+
+        with self.assertRaisesRegex(ViewFactorRepairError, "facet area"):
+            repair_view_factors(vf, np.ones(3))
+
+    def test_repair_view_factors_rejects_individual_factor_above_one(self) -> None:
+        vf = sparse.csr_matrix(np.array([[0.0, 1.2], [0.2, 0.0]]))
+
+        with self.assertRaisesRegex(ViewFactorRepairError, "individual view factors"):
+            repair_view_factors(vf, np.ones(2))
+
+    def test_view_factor_repair_limits_reject_invalid_values(self) -> None:
+        invalid = (
+            {"max_row_sum": 1.0},
+            {"max_overfull_area_fraction": -0.1},
+            {"max_exchange_area_reduction_fraction": 1.1},
+            {"max_reciprocity_l1_relative": 0.0},
+            {"max_row_sum": np.inf},
+        )
+
+        for kwargs in invalid:
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaises(ValueError):
+                    ViewFactorRepairLimits(**kwargs)
+
+    def test_repair_view_factors_does_not_treat_roundoff_as_material(self) -> None:
+        vf = sparse.csr_matrix(np.array([[0.0, 1.0005], [1.0005, 0.0]]))
+
+        unchanged, sky, report = repair_view_factors(vf, np.ones(2))
+
+        self.assertFalse(report.repaired)
+        self.assertEqual(report.overfull_rows, 2)
+        self.assertEqual(report.materially_overfull_rows, 0)
+        self.assertEqual(report.materially_overfull_area_fraction, 0.0)
+        np.testing.assert_allclose(unchanged.toarray(), vf.toarray())
+        validate_view_factors(unchanged, sky, areas=np.ones(2))
+
+    def test_repair_view_factors_honours_custom_reciprocity_limit(self) -> None:
+        vf = sparse.csr_matrix(np.array([[0.0, 0.5], [0.4, 0.0]]))
+        limits = ViewFactorRepairLimits(max_reciprocity_l1_relative=0.5)
+
+        unchanged, sky, report = repair_view_factors(
+            vf, np.ones(2), limits=limits
+        )
+
+        self.assertFalse(report.repaired)
+        np.testing.assert_allclose(unchanged.toarray(), vf.toarray())
+        validate_view_factors(
+            unchanged, sky, areas=np.ones(2), reciprocity_tolerance=0.5
+        )
+
+    def test_write_view_factor_repair_report_is_machine_readable(self) -> None:
+        areas = np.ones(3)
+        vf = sparse.csr_matrix(
+            np.array(
+                ([0.0, 0.7, 0.6], [0.7, 0.0, 0.2], [0.6, 0.2, 0.0])
+            )
+        )
+        limits = ViewFactorRepairLimits(
+            max_overfull_area_fraction=1.0,
+            max_exchange_area_reduction_fraction=1.0,
+        )
+        _, _, report = repair_view_factors(vf, areas, limits=limits)
+        out_path = self.workdir / "view3d_repair.101.json"
+
+        write_view_factor_repair_report(out_path, report)
+        payload = json.loads(out_path.read_text(encoding="ascii"))
+
+        self.assertEqual(payload["algorithm"], "reciprocal-open-domain-v1")
+        self.assertEqual(payload["materially_overfull_rows"], 1)
+        self.assertGreater(payload["scaled_entries"], 0)
+
+    def test_strict_validation_rejects_material_reciprocity_error(self) -> None:
+        vf = sparse.csr_matrix(np.array([[0.0, 0.8], [0.2, 0.0]]))
+        sky = compute_svf(vf)
+
+        with self.assertRaisesRegex(ViewFactorValidationError, "reciprocity"):
+            validate_view_factors(vf, sky, areas=np.ones(2))
+
     def test_write_vfsparse_filters_and_sorts_entries(self) -> None:
         vf = sparse.coo_matrix(
             (
@@ -71,7 +227,38 @@ class TestView3DUtils(unittest.TestCase):
         write_vfsparse(out_path, vf, threshold=1.0e-6)
 
         lines = out_path.read_text(encoding="ascii").splitlines()
-        self.assertEqual(lines, ["1 2 0.500000", "2 1 0.200000", "3 2 0.400000"])
+        self.assertEqual(
+            lines,
+            ["1 2 0.50000000", "2 1 0.20000000", "3 2 0.40000000"],
+        )
+
+    def test_repaired_sparse_round_trip_remains_physical(self) -> None:
+        areas = np.array([1.0, 2.0, 4.0])
+        exchange = np.array(
+            [
+                [0.0, 0.8, 0.5],
+                [0.8, 0.0, 0.4],
+                [0.5, 0.4, 0.0],
+            ]
+        )
+        vf = sparse.csr_matrix(exchange / areas[:, None])
+        limits = ViewFactorRepairLimits(
+            max_overfull_area_fraction=1.0,
+            max_exchange_area_reduction_fraction=1.0,
+        )
+        repaired, _, _ = repair_view_factors(vf, areas, limits=limits)
+        out_path = self.workdir / "vfsparse.inp.101"
+
+        write_vfsparse(out_path, repaired, threshold=0.0)
+        reread = read_view3d_output(out_path, nfacets=3, outformat=2)
+        sky = compute_svf(reread)
+
+        validate_view_factors(reread, sky, areas=areas)
+        np.testing.assert_allclose(
+            np.asarray(reread.sum(axis=1)).reshape(-1) + sky,
+            np.ones(3),
+            atol=1.0e-7,
+        )
 
     def test_count_sparse_entries_ignores_blank_lines(self) -> None:
         out_path = self.workdir / "vfsparse.inp.101"

@@ -46,7 +46,10 @@ DEFAULT_CASE_DIR = Path.home() / "simulation/udtest/experiments/300"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate timedepsw.inp.<expnr> from HARMONIE ssrd."
+        description=(
+            "Generate timedepsw.inp.<expnr> and matching netsw.inp.<expnr> "
+            "from HARMONIE ssrd."
+        )
     )
     parser.add_argument("--case-dir", type=Path, default=DEFAULT_CASE_DIR)
     parser.add_argument("--nwp-root", type=Path, default=DEFAULT_NWP_ROOT)
@@ -95,7 +98,33 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--overwrite",
         action="store_true",
-        help="Replace existing timedepsw/Sdir outputs.",
+        help="Replace existing timedepsw/netsw/Sdir outputs.",
+    )
+    parser.add_argument(
+        "--timing-prefix",
+        type=Path,
+        default=None,
+        help=(
+            "Write benchmark progress to <PREFIX>.timestamps.csv and "
+            "<PREFIX>.summary.json."
+        ),
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of independent facet timestamps to compute concurrently.",
+    )
+    parser.add_argument(
+        "--checkpoint-dir",
+        type=Path,
+        default=None,
+        help="Write one atomic checkpoint per completed radiation timestamp.",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Reuse compatible completed timestamps from --checkpoint-dir.",
     )
     parser.add_argument("--quiet", action="store_true")
     return parser.parse_args()
@@ -117,6 +146,10 @@ def main() -> int:
             atmos_only=args.atmos_only,
             method=args.method,
             verbose=not args.quiet,
+            timing_prefix=args.timing_prefix,
+            workers=args.workers,
+            checkpoint_dir=args.checkpoint_dir,
+            resume=args.resume,
         )
     except (RuntimeError, FileExistsError, FileNotFoundError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
@@ -133,10 +166,14 @@ def main() -> int:
         return 0
 
     print(f"Wrote {result.timedepsw_path}")
+    print(f"Wrote {result.netsw_path}")
     if result.sdir_nc_path is not None:
         print(f"Wrote {result.sdir_nc_path}")
     if result.timedepsveg_path is not None:
         print(f"Wrote {result.timedepsveg_path}")
+    if args.timing_prefix is not None:
+        print(f"Wrote {args.timing_prefix}.timestamps.csv")
+        print(f"Wrote {args.timing_prefix}.summary.json")
     return 0
 
 
