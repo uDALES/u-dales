@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
 from matplotlib.collections import PatchCollection
+from matplotlib.colors import to_rgb
 from matplotlib.patches import Polygon as mplPolygon
 import numpy as np
 
@@ -32,6 +33,57 @@ from .scene import (
 )
 
 logger = logging.getLogger(__name__)
+
+VEG_RGB = (34 / 255, 139 / 255, 34 / 255)  # forest green
+
+
+def _as_rgb(color):
+    """Return an (r, g, b) tuple in 0..1 from a tuple or a matplotlib colour."""
+    if isinstance(color, str):
+        return tuple(to_rgb(color))
+    return tuple(float(c) for c in color[:3])
+
+
+# Triangulation of one box: 12 outward-wound triangles over the 8 corners
+# ordered (x0,y0,z0),(x1,y0,z0),(x1,y1,z0),(x0,y1,z0), then the same at z1.
+_BOX_TRIANGLES = np.array([
+    [0, 2, 1], [0, 3, 2],   # bottom
+    [4, 5, 6], [4, 6, 7],   # top
+    [0, 1, 5], [0, 5, 4],   # south (y0)
+    [1, 2, 6], [1, 6, 5],   # east (x1)
+    [2, 3, 7], [2, 7, 6],   # north (y1)
+    [3, 0, 4], [3, 4, 7],   # west (x0)
+], dtype=np.int64)
+
+
+def _veg_voxel_mesh(points, xm, ym, zm, dx, dy, dzt):
+    """Triangulated boxes filling the grid cell of each vegetation point.
+
+    The grid edge arrays hold the lower edge of every cell (length = number
+    of cells), so cell (i, j, k) spans [xm[i], xm[i] + dx] x [ym[j], ym[j] + dy]
+    x [zm[k], zm[k] + dzt[k]] (dzt carries stretched-grid spacings).
+
+    Returns ``(vertices, faces)`` with shapes (8n, 3) and (12n, 3).
+    """
+    pts = np.asarray(points, dtype=int)
+    if pts.size == 0:
+        return np.empty((0, 3), dtype=float), np.empty((0, 3), dtype=np.int64)
+    x0 = np.asarray(xm, dtype=float)[pts[:, 0]]
+    y0 = np.asarray(ym, dtype=float)[pts[:, 1]]
+    z0 = np.asarray(zm, dtype=float)[pts[:, 2]]
+    x1 = x0 + float(dx)
+    y1 = y0 + float(dy)
+    z1 = z0 + np.asarray(dzt, dtype=float)[pts[:, 2]]
+    n = len(pts)
+    corners = np.empty((n, 8, 3), dtype=float)
+    for idx, (cx, cy, cz) in enumerate(
+            [(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
+             (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)]):
+        corners[:, idx, 0] = cx
+        corners[:, idx, 1] = cy
+        corners[:, idx, 2] = cz
+    faces = _BOX_TRIANGLES[None, :, :] + 8 * np.arange(n, dtype=np.int64)[:, None, None]
+    return corners.reshape(-1, 3), faces.reshape(-1, 3)
 
 
 class UDVis:
@@ -191,7 +243,13 @@ class UDVis:
             edge_faces = faces if show_ground else faces[is_building]
             segments = np.asarray(self._collect_mesh_edges(edge_faces), dtype=int)
             if len(segments):
-                scene.lines.append(LineSet(vertices, segments, color="black", width=2, lift_ground=True))
+                # Thin, semi-transparent: these are dense full-wireframe edges
+                # (every triangle). Opacity is what keeps fine meshes from
+                # merging into a solid black mass - on large domains adjacent
+                # 1 px lines overlap on screen no matter how thin the width
+                # (issue #337). Outline plots keep width 2, opaque.
+                scene.lines.append(LineSet(vertices, segments, color="black", width=1.0,
+                                           opacity=0.4, lift_ground=True))
 
         if plot_quiver:
             scene.glyphs.append(GlyphSet(points=face_centers, vectors=face_normals,
@@ -289,12 +347,19 @@ class UDVis:
         )
         segments = np.asarray(self._collect_mesh_edges(faces), dtype=int)
         if len(segments):
-            scene.lines.append(LineSet(vertices, segments, color="black", width=1.5, lift_ground=True))
+            # Thin, semi-transparent full wireframe - see show_geometry for
+            # the rationale (issue #337).
+            scene.lines.append(LineSet(vertices, segments, color="black", width=1.0,
+                                       opacity=0.4, lift_ground=True))
         return scene
 
     def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False,
-                 backend: Optional[str] = None):
-        """Plot vegetation points on top of the geometry.
+                 backend: Optional[str] = None, color=VEG_RGB, opacity: float = 1.0):
+        """Plot vegetation on top of the geometry.
+
+        Every vegetation point is drawn as an opaque box filling its grid
+        cell, so canopy volumes read at their true size instead of as
+        near-invisible dots (issue #337).
 
         Parameters
         ----------
@@ -305,6 +370,10 @@ class UDVis:
             unlike sibling methods), return the figure/plotter.
         backend : {"plotly", "pyvista"}, optional
             Rendering backend; defaults to this UDVis instance's backend.
+        color : matplotlib colour or (r, g, b) tuple, optional
+            Vegetation colour; defaults to forest green.
+        opacity : float, default=1.0
+            Vegetation opacity in 0..1.
 
         Returns
         -------
@@ -331,15 +400,15 @@ class UDVis:
             points = points[rng.choice(len(points), size=max_points, replace=False)]
             logger.info("plot_veg: showing %d of %d points", max_points, len(veg['points']))
 
-        xs = self.sim.xt[points[:, 0].astype(int)]
-        ys = self.sim.yt[points[:, 1].astype(int)]
-        zs = self.sim.zt[points[:, 2].astype(int)]
+        verts, faces = _veg_voxel_mesh(
+            points, self.sim.xm, self.sim.ym, self.sim.zm,
+            self.sim.dx, self.sim.dy, self.sim.dzt)
 
         scene = self._base_overlay_scene(
             self.sim.geom, title=f"Geometry with Vegetation ({len(points)} points)")
-        scene.points.append(PointSet(
-            np.column_stack([xs, ys, zs]),
-            color="rgb(34,139,34)", size=2, opacity=0.2, name="vegetation"))
+        scene.meshes.append(MeshPrimitive(
+            verts, faces, solid_color=_as_rgb(color), opacity=float(opacity),
+            name="vegetation"))
         return render_scene(scene, backend=self._resolve_backend(backend), show=show)
 
     @staticmethod

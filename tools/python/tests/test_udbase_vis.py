@@ -91,6 +91,14 @@ class TestUDBaseVisualizationCompatibility(unittest.TestCase):
         self.assertEqual(result, "plot_veg_result")
         self.assertEqual(sim.vis.calls, [("plot_veg", {"show": False})])
 
+        # regression: the aliases must forward backend/color/opacity kwargs
+        # instead of raising TypeError on cases exercising them (issue #337)
+        sim.vis.calls.clear()
+        sim.plot_trees(show=False, backend="plotly", opacity=0.5)
+        self.assertEqual(sim.vis.calls, [
+            ("plot_veg", {"show": False, "backend": "plotly", "opacity": 0.5}),
+        ])
+
     def test_udbase_plot_2dmap_forwards_to_vis_facade(self):
         sim = UDBase.__new__(UDBase)
         sim.vis = RecordingVis()
@@ -557,6 +565,7 @@ class TestBackendSelection(unittest.TestCase):
         sim = SimpleNamespace(
             _lfgeom=True, geom=geom, expnr="001", path=Path(tmp_path),
             xt=grid, yt=grid, zt=grid, xm=grid, ym=grid, zm=grid,
+            dx=0.4, dy=0.4, dzt=_np.full(6, 0.4),
             ffacets="facets", ffactypes="factypes",
             veg={"points": _np.array([[1, 1, 1], [2, 2, 2], [3, 3, 3]])},
             Sc=_np.zeros((6, 6, 6), dtype=bool),
@@ -621,6 +630,167 @@ class TestOptionalBackendDependencyErrors(unittest.TestCase):
         msg = self._render_with_missing("pyvista", ["pyvista"])
         self.assertIn("pyvista", msg.lower())
         self.assertIn("pip install", msg)
+
+
+class TestNiceTicks(unittest.TestCase):
+    """Tick locator used by the hand-drawn PyVista axes (issue #337)."""
+
+    def test_round_steps_for_typical_domains(self):
+        from udvis.scene import _nice_ticks
+
+        values, decimals = _nice_ticks(0.0, 340.0)
+        self.assertEqual(values, [0.0, 50.0, 100.0, 150.0, 200.0, 250.0, 300.0])
+        self.assertEqual(decimals, 0)
+
+        values, decimals = _nice_ticks(0.0, 240.0)
+        self.assertEqual(values, [0.0, 50.0, 100.0, 150.0, 200.0])
+        self.assertEqual(decimals, 0)
+
+    def test_z_range_gets_intermediate_ticks(self):
+        from udvis.scene import _nice_ticks
+
+        values, decimals = _nice_ticks(0.0, 104.0)
+        self.assertEqual(values, [0.0, 20.0, 40.0, 60.0, 80.0, 100.0])
+        self.assertEqual(decimals, 0)
+
+    def test_at_most_max_ticks_values(self):
+        from udvis.scene import _nice_ticks
+
+        for vmax in (1.0, 7.3, 55.0, 104.0, 240.0, 333.0, 1024.0):
+            values, _ = _nice_ticks(0.0, vmax, max_ticks=8)
+            self.assertLessEqual(len(values), 8)
+            self.assertGreaterEqual(len(values), 4)
+            self.assertTrue(all(0.0 <= v <= vmax for v in values))
+
+    def test_fractional_steps_report_decimals(self):
+        from udvis.scene import _nice_ticks
+
+        values, decimals = _nice_ticks(0.0, 1.0)
+        self.assertEqual(values, [0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+        self.assertEqual(decimals, 1)
+
+    def test_offset_range_aligns_to_step_multiples(self):
+        from udvis.scene import _nice_ticks
+
+        values, _ = _nice_ticks(-104.0, 104.0)
+        self.assertIn(0.0, values)
+        self.assertEqual(values[0], -100.0)
+        self.assertEqual(values[-1], 100.0)
+
+    def test_degenerate_range_returns_single_tick(self):
+        from udvis.scene import _nice_ticks
+
+        values, decimals = _nice_ticks(5.0, 5.0)
+        self.assertEqual(values, [5.0])
+        self.assertEqual(decimals, 0)
+
+
+class TestPlotlySceneAxes(unittest.TestCase):
+    """Plotly 3-D axes must draw visible lines, clear of the data (issue #337)."""
+
+    @unittest.skipUnless(
+        importlib.util.find_spec("plotly"), "plotly backend is optional and not installed"
+    )
+    def test_axis_lines_shown_on_bounds_with_label_standoff(self):
+        from udvis.scene import MeshPrimitive, Scene, render_scene
+
+        verts = np.array([[0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [10.0, 20.0, 5.0],
+                          [0.0, 20.0, 5.0]])
+        faces = np.array([[0, 1, 2], [0, 2, 3]])
+        scene = Scene(meshes=[MeshPrimitive(verts, faces)],
+                      bounds=(verts.min(axis=0), verts.max(axis=0)))
+        fig = render_scene(scene, backend="plotly", show=False)
+
+        for name, hi in (("xaxis", 10.0), ("yaxis", 20.0), ("zaxis", 5.0)):
+            axis = getattr(fig.layout.scene, name)
+            self.assertTrue(axis.showline, name)
+            # axes anchored exactly on the domain bounds (no padding); the
+            # long outside ticks provide the label standoff instead
+            self.assertEqual(axis.range[0], 0.0, name)
+            self.assertEqual(axis.range[1], hi, name)
+            self.assertEqual(axis.ticks, "outside", name)
+            self.assertGreaterEqual(axis.ticklen, 8, name)
+
+
+class TestVegVoxelMesh(unittest.TestCase):
+    """plot_veg draws each vegetation point as a box filling its grid cell."""
+
+    def test_single_cell_spans_exact_cell_bounds(self):
+        from udvis.udbase_vis import _veg_voxel_mesh
+
+        xm = np.array([0.0, 2.0, 4.0])
+        ym = np.array([0.0, 3.0])
+        zm = np.array([0.0, 1.0, 2.5])
+        dzt = np.array([1.0, 1.5, 2.0])
+        verts, faces = _veg_voxel_mesh([[1, 0, 2]], xm, ym, zm, dx=2.0, dy=3.0, dzt=dzt)
+        self.assertEqual(verts.shape, (8, 3))
+        self.assertEqual(faces.shape, (12, 3))
+        np.testing.assert_allclose(verts.min(axis=0), [2.0, 0.0, 2.5])
+        np.testing.assert_allclose(verts.max(axis=0), [4.0, 3.0, 4.5])  # z1 = zm[2] + dzt[2]
+
+    def test_multiple_cells_index_into_own_vertex_block(self):
+        from udvis.udbase_vis import _veg_voxel_mesh
+
+        grid = np.arange(5, dtype=float)
+        verts, faces = _veg_voxel_mesh(
+            [[0, 0, 0], [3, 2, 1]], grid, grid, grid, dx=1.0, dy=1.0,
+            dzt=np.ones(5))
+        self.assertEqual(verts.shape, (16, 3))
+        self.assertEqual(faces.shape, (24, 3))
+        # second box's triangles reference only its own 8 vertices
+        self.assertTrue((faces[12:] >= 8).all() and (faces[12:] < 16).all())
+
+    def test_boxes_are_closed_watertight_triangulations(self):
+        import trimesh
+
+        from udvis.udbase_vis import _veg_voxel_mesh
+
+        grid = np.arange(3, dtype=float)
+        verts, faces = _veg_voxel_mesh([[1, 1, 1]], grid, grid, grid,
+                                       dx=1.0, dy=1.0, dzt=np.ones(3))
+        box = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
+        self.assertTrue(box.is_watertight)
+        self.assertGreater(box.volume, 0)  # outward winding
+
+    def test_empty_points_give_empty_mesh(self):
+        from udvis.udbase_vis import _veg_voxel_mesh
+
+        verts, faces = _veg_voxel_mesh(
+            np.empty((0, 3)), np.array([0.0]), np.array([0.0]), np.array([0.0]),
+            dx=1.0, dy=1.0, dzt=np.array([1.0]))
+        self.assertEqual(len(verts), 0)
+        self.assertEqual(len(faces), 0)
+
+
+class TestZTickValues(unittest.TestCase):
+    """Vertical-axis ticks skip the base label that collides with the y axis."""
+
+    def test_base_tick_dropped_at_exact_zero(self):
+        from udvis.scene import _z_tick_values
+
+        values, _ = _z_tick_values(0.0, 104.0)
+        self.assertEqual(values, [20.0, 40.0, 60.0, 80.0, 100.0])
+
+    def test_base_tick_dropped_despite_float_noise_below_zero(self):
+        # STL meshes commonly have zmin at -1e-9 rather than exactly 0; the
+        # base tick must still be excluded (regression for issue #337).
+        from udvis.scene import _z_tick_values
+
+        values, _ = _z_tick_values(-1.28e-9, 104.42)
+        self.assertEqual(values, [20.0, 40.0, 60.0, 80.0, 100.0])
+
+    def test_first_tick_kept_for_elevated_ranges(self):
+        from udvis.scene import _z_tick_values
+
+        values, _ = _z_tick_values(50.0, 104.0)
+        self.assertEqual(values[0], 60.0)
+
+    def test_degenerate_range_yields_no_ticks(self):
+        from udvis.scene import _z_tick_values
+
+        values, _ = _z_tick_values(0.0, 0.0)
+        self.assertEqual(values, [])
+
 
 if __name__ == "__main__":
     unittest.main()

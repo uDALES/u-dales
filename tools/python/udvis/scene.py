@@ -93,6 +93,7 @@ class LineSet:
     segments: np.ndarray  # (S, 2) int
     color: str = "black"
     width: float = 2.0
+    opacity: float = 1.0
     name: Optional[str] = None
     # Plotly cosmetic: lift edges that sit on the ground plane (z≈0) slightly so
     # they are not hidden by the ground mesh.
@@ -178,6 +179,12 @@ _BACKENDS = BACKENDS  # internal alias retained for existing references
 # where Plotly's in-browser Mesh3d struggles. Plotly remains available as an
 # optional lightweight backend (``backend="plotly"``).
 DEFAULT_BACKEND = "pyvista"
+
+# Supersampling ratio for notebook (trame) still frames. Text is rendered at
+# a fixed pixel size by VTK, so every font size in the PyVista renderer is
+# scaled by this same factor to keep its apparent size once the browser
+# scales the frame back down to the widget size.
+PYVISTA_STILL_RATIO = 1.5
 
 
 def normalize_backend(backend: Optional[str]) -> str:
@@ -277,6 +284,7 @@ def _render_plotly(scene: Scene, show: bool = True):
         fig.add_trace(go.Scatter3d(
             x=ex, y=ey, z=ez, mode="lines",
             line=dict(color=ln.color, width=ln.width),
+            opacity=float(ln.opacity),
             name=ln.name, showlegend=False, hoverinfo="skip",
         ))
 
@@ -353,6 +361,17 @@ def _render_plotly(scene: Scene, show: bool = True):
     mins, maxs = scene.compute_bounds()
     az, el, dist = np.deg2rad(225.0), np.deg2rad(20.0), 1.75
     lx, ly, lz = scene.axis_labels
+    x_range = [float(mins[0]), float(maxs[0])]
+    y_range = [float(mins[1]), float(maxs[1])]
+    z_range = [float(mins[2]), float(maxs[2])]
+    # Explicit axis lines and outside ticks: plotly 3-D axes draw no line at
+    # all by default, leaving the z axis in particular invisible. The axes sit
+    # exactly on the domain bounds; the long outside ticks are what keep the
+    # tick labels clear of the plotted field (3-D axes have no label
+    # standoff property).
+    _axis_common = dict(showgrid=False, showbackground=False, showline=True,
+                        linecolor="black", linewidth=2, ticks="outside",
+                        tickcolor="black", ticklen=10)
     # visible=False hides the axis line, ticks, labels and title together.
     _axis_extra = {} if scene.show_axes else dict(visible=False)
     _legend = dict(title=scene.legend_title, itemsizing="constant") if scene.legend else {}
@@ -363,9 +382,9 @@ def _render_plotly(scene: Scene, show: bool = True):
         margin=dict(l=0, r=0, b=0, t=40, pad=0),
         scene=dict(
             aspectmode="data",
-            xaxis=dict(title=lx, range=[float(mins[0]), float(maxs[0])], showgrid=False, showbackground=False, **_axis_extra),
-            yaxis=dict(title=ly, range=[float(mins[1]), float(maxs[1])], showgrid=False, showbackground=False, **_axis_extra),
-            zaxis=dict(title=lz, range=[float(mins[2]), float(maxs[2])], showgrid=False, showbackground=False, **_axis_extra),
+            xaxis=dict(title=lx, range=x_range, **_axis_common, **_axis_extra),
+            yaxis=dict(title=ly, range=y_range, **_axis_common, **_axis_extra),
+            zaxis=dict(title=lz, range=z_range, **_axis_common, **_axis_extra),
             camera=dict(
                 projection=dict(type="orthographic"),
                 eye=dict(
@@ -435,6 +454,24 @@ def _render_pyvista(scene: Scene, show: bool = True):
     plotter = pv.Plotter(image_scale=4)
     plotter.set_background("white")
     plotter.enable_parallel_projection()
+    try:
+        # Shader-based FXAA smooths edges in both the interactive view and
+        # screenshots. Deliberately not MSAA: multisample framebuffers hang
+        # some Windows GL drivers in interactive (trame) contexts.
+        plotter.enable_anti_aliasing("fxaa")
+    except Exception:
+        pass
+    try:
+        # Stream notebook stills above the widget's CSS size and at higher
+        # JPEG quality: at the pyvista defaults (ratio 1, quality 85) any
+        # OS/browser scaling above 100% shows an undersampled, soft image at
+        # rest. plotter._theme is a per-plotter copy, so nothing leaks
+        # globally. Font sizes below are scaled by the same ratio.
+        plotter._theme.trame.still_ratio = PYVISTA_STILL_RATIO
+        plotter._theme.trame.jpeg_quality = 95
+    except AttributeError:
+        pass
+    ts = PYVISTA_STILL_RATIO
 
     for mesh in scene.meshes:
         faces = np.asarray(mesh.faces, dtype=np.int64)
@@ -442,7 +479,8 @@ def _render_pyvista(scene: Scene, show: bool = True):
             continue
         verts = np.asarray(mesh.vertices, dtype=float)
         poly = pv.PolyData(verts, _faces_to_pyvista(faces))
-        common = dict(show_edges=mesh.show_edges, name=mesh.name or None)
+        common = dict(show_edges=mesh.show_edges, name=mesh.name or None,
+                      opacity=float(mesh.opacity))
         if mesh.show_edges:
             common.update(edge_color=mesh.edge_color, line_width=mesh.edge_width)
         if mesh.scalars is not None:
@@ -478,7 +516,8 @@ def _render_pyvista(scene: Scene, show: bool = True):
         line_poly = pv.PolyData()
         line_poly.points = verts
         line_poly.lines = cells.ravel()
-        plotter.add_mesh(line_poly, color=_pyvista_color(ln.color), line_width=ln.width, name=ln.name or None)
+        plotter.add_mesh(line_poly, color=_pyvista_color(ln.color), line_width=ln.width,
+                         opacity=float(ln.opacity), name=ln.name or None)
 
     for ps in scene.points:
         pts = np.asarray(ps.points, dtype=float)
@@ -489,7 +528,7 @@ def _render_pyvista(scene: Scene, show: bool = True):
                          render_points_as_spheres=True, name=ps.name or None)
         if ps.labels:
             plotter.add_point_labels(
-                pts, list(ps.labels), font_size=12, text_color="black",
+                pts, list(ps.labels), font_size=round(12 * ts), text_color="black",
                 font_family="times", shape=None, fill_shape=False,
                 show_points=False, always_visible=True,
                 name=(ps.name or "labels") + "-labels",
@@ -505,7 +544,8 @@ def _render_pyvista(scene: Scene, show: bool = True):
         plotter.add_mesh(glyphs, color=_pyvista_color(g.color), name=g.name or None)
 
     if scene.title:
-        plotter.add_text(scene.title, position="upper_edge", font_size=10, color="black")
+        plotter.add_text(scene.title, position="upper_edge", font_size=round(10 * ts),
+                         color="black")
 
     if scene.legend:
         plotter.add_legend(
@@ -517,13 +557,14 @@ def _render_pyvista(scene: Scene, show: bool = True):
         plotter.add_scalar_bar(
             title=scene.colorbar.title, color="black", vertical=True,
             position_x=0.92, position_y=0.15, width=0.04, height=0.7,
-            title_font_size=16, label_font_size=14, font_family="times",
+            title_font_size=round(16 * ts), label_font_size=round(14 * ts),
+            font_family="times",
             fmt=scene.colorbar.fmt,
         )
 
     if scene.show_axes:
         mins, maxs = scene.compute_bounds()
-        _draw_pyvista_axes(plotter, mins, maxs, scene.axis_labels)
+        _draw_pyvista_axes(plotter, mins, maxs, scene.axis_labels, text_scale=ts)
 
     plotter.view_isometric()
     plotter.camera.azimuth = 180
@@ -535,7 +576,50 @@ def _render_pyvista(scene: Scene, show: bool = True):
     return plotter
 
 
-def _draw_pyvista_axes(plotter, mins, maxs, labels=("x (m)", "y (m)", "z (m)")) -> None:
+def _nice_ticks(vmin, vmax, max_ticks: int = 8):
+    """Round tick values covering [vmin, vmax] using a 1/2/5 step sequence.
+
+    Returns ``(values, decimals)`` where ``values`` are the tick positions
+    (at most ``max_ticks`` of them, aligned to multiples of the step) and
+    ``decimals`` is the number of fractional digits needed to print the step
+    exactly (0 for steps >= 1).
+    """
+    span = float(vmax) - float(vmin)
+    if not np.isfinite(span) or span <= 0:
+        return [float(vmin)], 0
+    raw_step = span / max(max_ticks - 1, 1)
+    magnitude = 10.0 ** np.floor(np.log10(raw_step))
+    step = 10.0 * magnitude
+    for mult in (1.0, 2.0, 5.0):
+        if mult * magnitude >= raw_step - 1e-12 * magnitude:
+            step = mult * magnitude
+            break
+    first = np.ceil(float(vmin) / step - 1e-9) * step
+    count = int(np.floor((float(vmax) - first) / step + 1e-9)) + 1
+    decimals = 0 if step >= 1.0 else int(np.ceil(-np.log10(step) - 1e-9))
+    # Snap away float noise (0 + 3*0.2 -> 0.6000000000000001) so labels and
+    # equality checks see exact values.
+    snap = max(decimals + 2, 9)
+    values = [round(float(first + i * step), snap) for i in range(max(count, 0))]
+    return values, decimals
+
+
+def _z_tick_values(zmin, zmax, max_ticks: int = 8):
+    """Nice ticks for the vertical axis with the base tick dropped.
+
+    The z axis shares its base corner with the y axis, so a tick label at
+    (or near) the base collides with the y tick labels there. Mesh float
+    noise can put zmin fractionally below zero, so the base is excluded by
+    a span-relative threshold rather than an exact comparison.
+    """
+    values, decimals = _nice_ticks(zmin, zmax, max_ticks)
+    span = float(zmax) - float(zmin)
+    values = [v for v in values if (v - float(zmin)) > 0.05 * span]
+    return values, decimals
+
+
+def _draw_pyvista_axes(plotter, mins, maxs, labels=("x (m)", "y (m)", "z (m)"),
+                       text_scale=1.0) -> None:
     """Draw x/y/z axes (lines, ticks, labels), working around a VTK StaticTriad
     z-axis rendering bug by drawing plain line meshes plus point labels."""
     import pyvista as pv
@@ -544,34 +628,97 @@ def _draw_pyvista_axes(plotter, mins, maxs, labels=("x (m)", "y (m)", "z (m)")) 
     xmax_f, ymax_f, zmax_f = float(maxs[0]), float(maxs[1]), float(maxs[2])
     span_xy = float(np.asarray(maxs - mins)[:2].max())
 
-    def _draw_axis(p0, p1, ticks, label, tick_dir, font_size=14):
+    tick_len = 0.02 * span_xy
+    label_offset = 6.0 * tick_len
+    title_offset = 14.0 * tick_len
+
+    def _draw_axis(p0, p1, ticks, label, tick_dir, font_size=16, decimals=0,
+                   skip_first_label=False, label_dir=None, label_dist=None):
+        font_size = round(font_size * text_scale)
         plotter.add_mesh(pv.Line(p0, p1), color="black", line_width=3)
-        tick_len = 0.02 * span_xy
-        label_offset = 4.0 * tick_len
         pts, lbls = [], []
-        for val, pos in ticks:
+        for i, (val, pos) in enumerate(ticks):
             t_end = [pos[j] + tick_dir[j] * tick_len for j in range(3)]
             plotter.add_mesh(pv.Line(pos, t_end), color="black", line_width=2)
-            pts.append([pos[j] + tick_dir[j] * label_offset for j in range(3)])
-            lbls.append(f"{val:.0f}")
+            if skip_first_label and i == 0:
+                continue
+            if label_dir is None:
+                # default: label continues along the tick direction
+                pts.append([pos[j] + tick_dir[j] * label_offset for j in range(3)])
+            else:
+                # label hangs off the tick tip in label_dir (e.g. straight
+                # down on screen), centred under the tick mark
+                pts.append([t_end[j] + label_dir[j] * label_dist for j in range(3)])
+            lbls.append(f"{val:.{decimals}f}")
         if pts:
+            # Centre the text on its anchor: the default left/bottom
+            # justification grows the text box rightward, which visibly
+            # offsets labels from their tick lines (most on the x axis,
+            # whose ticks point down-right on screen).
             plotter.add_point_labels(
                 np.array(pts), lbls, point_size=0, render_points_as_spheres=False,
                 font_size=font_size, text_color="black", font_family="times",
                 shape=None, fill_shape=False, show_points=False, margin=3, always_visible=True,
+                justification_horizontal="center", justification_vertical="center",
             )
         mid = [0.5 * (p0[j] + p1[j]) for j in range(3)]
-        title_pos = [mid[j] + tick_dir[j] * tick_len * 8 for j in range(3)]
+        title_pos = [mid[j] + tick_dir[j] * title_offset for j in range(3)]
         plotter.add_point_labels(
             np.array([title_pos]), [label], point_size=0, render_points_as_spheres=False,
             show_points=False, font_size=font_size + 2, text_color="black", font_family="times",
             shape=None, fill_shape=False, bold=True, margin=3, always_visible=True,
+            justification_horizontal="center", justification_vertical="center",
         )
 
     lx, ly, lz = labels
-    x_ticks = [(v, (v, ymin_f, zmin_f)) for v in np.linspace(xmin_f, xmax_f, 9)]
-    _draw_axis((xmin_f, ymin_f, zmin_f), (xmax_f, ymin_f, zmin_f), x_ticks, lx, (0, -1, 0))
-    y_ticks = [(v, (xmin_f, v, zmin_f)) for v in np.linspace(ymin_f, ymax_f, 9)]
-    _draw_axis((xmin_f, ymin_f, zmin_f), (xmin_f, ymax_f, zmin_f), y_ticks, ly, (-1, 0, 0))
-    z_ticks = [(v, (xmin_f, ymax_f, v)) for v in [zmin_f, zmax_f]]
-    _draw_axis((xmin_f, ymax_f, zmin_f), (xmin_f, ymax_f, zmax_f), z_ticks, lz, (-1, 0, 0))
+    x_vals, x_dec = _nice_ticks(xmin_f, xmax_f)
+    y_vals, y_dec = _nice_ticks(ymin_f, ymax_f)
+    # When both tick sets start on the shared front corner with the same
+    # value, the two labels print on top of each other there. Replace them
+    # with one label hung straight below the corner: the world direction
+    # (-1, -1, 0) projects screen-vertical under the default camera (the
+    # sideways components of the two axis offsets cancel).
+    share_origin = (
+        len(x_vals) > 0 and len(y_vals) > 0
+        and (x_vals[0] - xmin_f) <= 0.05 * (xmax_f - xmin_f)
+        and (y_vals[0] - ymin_f) <= 0.05 * (ymax_f - ymin_f)
+        and x_vals[0] == y_vals[0]
+    )
+    # World direction (-1, -1, 0) projects straight down on screen under the
+    # default camera; x/y tick labels hang below their tick tips along it so
+    # each number reads as centred under its tick mark. (1, -1, 0) projects
+    # pure screen-right and provides the small x-label nudge.
+    screen_down = (-1.0 / np.sqrt(2.0), -1.0 / np.sqrt(2.0), 0.0)
+    screen_right = (1.0 / np.sqrt(2.0), -1.0 / np.sqrt(2.0), 0.0)
+    label_drop = 3.5 * tick_len
+    x_label_vec = tuple(screen_down[j] * label_drop + screen_right[j] * 0.75 * tick_len
+                        for j in range(3))
+    x_ticks = [(v, (v, ymin_f, zmin_f)) for v in x_vals]
+    _draw_axis((xmin_f, ymin_f, zmin_f), (xmax_f, ymin_f, zmin_f), x_ticks, lx, (0, -1, 0),
+               decimals=x_dec, skip_first_label=share_origin,
+               label_dir=x_label_vec, label_dist=1.0)
+    y_ticks = [(v, (xmin_f, v, zmin_f)) for v in y_vals]
+    _draw_axis((xmin_f, ymin_f, zmin_f), (xmin_f, ymax_f, zmin_f), y_ticks, ly, (-1, 0, 0),
+               decimals=y_dec, skip_first_label=share_origin,
+               label_dir=screen_down, label_dist=label_drop)
+    if share_origin:
+        offd = label_offset / np.sqrt(2.0)
+        corner_pos = [xmin_f - offd, ymin_f - offd, zmin_f]
+        corner_dec = max(x_dec, y_dec)
+        plotter.add_point_labels(
+            np.array([corner_pos]), [f"{x_vals[0]:.{corner_dec}f}"],
+            point_size=0, render_points_as_spheres=False,
+            font_size=round(16 * text_scale), text_color="black", font_family="times",
+            shape=None, fill_shape=False, show_points=False, margin=3, always_visible=True,
+            justification_horizontal="center", justification_vertical="center",
+        )
+    z_vals, z_dec = _z_tick_values(zmin_f, zmax_f)
+    z_ticks = [(v, (xmin_f, ymax_f, v)) for v in z_vals]
+    # The default camera (isometric, azimuth 180, elevation -10, parallel)
+    # projects pure -x downward on screen by 0.334 world-z units per offset
+    # unit (vtkCoordinate measurement). Compensate the z tick direction so
+    # ticks, labels and title extend horizontally on screen: diagonal tick
+    # stubs on the (screen-vertical) z axis read as kinks in the axis line.
+    z_tick_dir = (-1.0, 0.0, 0.334)
+    _draw_axis((xmin_f, ymax_f, zmin_f), (xmin_f, ymax_f, zmax_f), z_ticks, lz, z_tick_dir,
+               decimals=z_dec)
