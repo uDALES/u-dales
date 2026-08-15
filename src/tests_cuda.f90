@@ -4,8 +4,9 @@
 module tests_cuda
 #if defined(_GPU) && defined(UDALES_DEBUG)
    use cudafor
-   use modadvection, only : advecc_kappa_flux_xy_cuda, &
-                            advecc_kappa_divergence_cuda, advecc_upw_cuda, rlim_cuda
+   use modadvection, only : advecc_kappa_reset_cuda, advecc_kappa_ducdx_cuda, &
+                            advecc_kappa_dvcdy_cuda, advecc_kappa_dwcdz_cuda, &
+                            advecc_kappa_add_cuda, advecc_upw_cuda, rlim_cuda
    use modboundary,  only : bcpup_pup_BCxm_driver_cuda, &
                             xm_periodic_device, xT_periodic_device, &
                             xq_periodic_device, xs_periodic_device, &
@@ -123,7 +124,7 @@ contains
       deallocate(result_d, d2_d, d1_d)
    end subroutine test_kappa_limiter
 
-   !> Check the fused Kappa kernels against the host flux-divergence algebra.
+   !> Check the directional Kappa kernels against the host flux-divergence algebra.
    subroutine test_kappa_scalar_advection
       implicit none
 
@@ -182,13 +183,27 @@ contains
       v0_d = v_test_h
       w0_d = w_test_h
 
-      call advecc_kappa_flux_xy_cuda<<<griddim,blockdim>>>( &
-         ihc, jhc, khc, input_d)
-      call checkCUDA(cudaGetLastError(), 'fused Kappa X/Y flux self-test launch')
-      call advecc_kappa_divergence_cuda<<<griddim,blockdim>>>( &
-         ihc, jhc, khc, input_d, output_d)
-      call checkCUDA(cudaGetLastError(), 'fused Kappa divergence self-test launch')
-      call checkCUDA(cudaDeviceSynchronize(), 'fused Kappa advection self-test synchronization')
+      call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
+      call checkCUDA(cudaGetLastError(), 'Kappa X reset self-test launch')
+      call advecc_kappa_ducdx_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, input_d)
+      call checkCUDA(cudaGetLastError(), 'Kappa X flux self-test launch')
+      call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, output_d)
+      call checkCUDA(cudaGetLastError(), 'Kappa X add self-test launch')
+
+      call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
+      call checkCUDA(cudaGetLastError(), 'Kappa Y reset self-test launch')
+      call advecc_kappa_dvcdy_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, input_d)
+      call checkCUDA(cudaGetLastError(), 'Kappa Y flux self-test launch')
+      call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, output_d)
+      call checkCUDA(cudaGetLastError(), 'Kappa Y add self-test launch')
+
+      call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
+      call checkCUDA(cudaGetLastError(), 'Kappa Z reset self-test launch')
+      call advecc_kappa_dwcdz_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, input_d)
+      call checkCUDA(cudaGetLastError(), 'Kappa Z flux self-test launch')
+      call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, output_d)
+      call checkCUDA(cudaGetLastError(), 'Kappa Z add self-test launch')
+      call checkCUDA(cudaDeviceSynchronize(), 'Kappa advection self-test synchronization')
       output_h = output_d
 
       do k = kb, ke
@@ -279,7 +294,7 @@ contains
 
       tolerance = 4096.*epsilon(1.)*max(1., maxval(abs(expected)))
       if (maxval(abs(output_h(ib:ie,jb:je,kb:ke) - expected)) > tolerance) then
-         call fail_cuda_selftest('fused Kappa scalar advection')
+         call fail_cuda_selftest('Kappa scalar advection')
       end if
 
       u0_d = u0

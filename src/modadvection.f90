@@ -101,13 +101,29 @@ module modadvection
                   call thlptothlpc_cuda<<<griddim,blockdim>>>
                   call checkCUDA( cudaGetLastError(), 'thlptothlpc_cuda' )
 
-                  call advecc_kappa_flux_xy_cuda<<<griddim,blockdim>>>( &
-                     ihc, jhc, khc, thl0c_d)
-                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_flux_xy_cuda for temperature' )
+                  ! -d(u thl)/dx
+                  call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 1st call in temp' )
+                  call advecc_kappa_ducdx_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thl0c_d)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_ducdx_cuda in temp' )
+                  call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thlpc_d)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 1st call in temp' )
 
-                  call advecc_kappa_divergence_cuda<<<griddim,blockdim>>>( &
-                     ihc, jhc, khc, thl0c_d, thlpc_d)
-                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_divergence_cuda for temperature' )
+                  ! -d(v thl)/dy
+                  call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 2nd call in temp' )
+                  call advecc_kappa_dvcdy_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thl0c_d)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_dvcdy_cuda in temp' )
+                  call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thlpc_d)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 2nd call in temp' )
+
+                  ! -d(w thl)/dz
+                  call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 3rd call in temp' )
+                  call advecc_kappa_dwcdz_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thl0c_d)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_dwcdz_cuda in temp' )
+                  call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, thlpc_d)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 3rd call in temp' )
 
                   call thlpctothlp_cuda<<<griddim,blockdim>>>
                   call checkCUDA( cudaGetLastError(), 'thlpctothlp_cuda' )
@@ -148,13 +164,29 @@ module modadvection
 #endif
                case (iadv_kappa)
 #if defined(_GPU)
-                  call advecc_kappa_flux_xy_cuda<<<griddim,blockdim>>>( &
-                     ihc, jhc, khc, sv0_d(:, :, :, n))
-                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_flux_xy_cuda for scalar' )
+                  ! -d(uc)/dx
+                  call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 1st call in scalar' )
+                  call advecc_kappa_ducdx_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, sv0_d(:, :, :, n))
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_ducdx_cuda in scalar' )
+                  call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, svp_d(:, :, :, n))
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 1st call in scalar' )
 
-                  call advecc_kappa_divergence_cuda<<<griddim,blockdim>>>( &
-                     ihc, jhc, khc, sv0_d(:, :, :, n), svp_d(:, :, :, n))
-                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_divergence_cuda for scalar' )
+                  ! -d(vc)/dy
+                  call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 2nd call in scalar' )
+                  call advecc_kappa_dvcdy_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, sv0_d(:, :, :, n))
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_dvcdy_cuda in scalar' )
+                  call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, svp_d(:, :, :, n))
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 2nd call in scalar' )
+
+                  ! -d(wc)/dz
+                  call advecc_kappa_reset_cuda<<<griddim,blockdim>>>(ihc, jhc, khc)
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_reset_cuda 3rd call in scalar' )
+                  call advecc_kappa_dwcdz_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, sv0_d(:, :, :, n))
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_dwcdz_cuda in scalar' )
+                  call advecc_kappa_add_cuda<<<griddim,blockdim>>>(ihc, jhc, khc, svp_d(:, :, :, n))
+                  call checkCUDA( cudaGetLastError(), 'advecc_kappa_add_cuda 3rd call in scalar' )
 #else
                   call advecc_kappa(ihc, jhc, khc, sv0(:, :, :, n), svp(:, :, :, n))
 #endif
@@ -778,19 +810,64 @@ module modadvection
          end do
       end subroutine advecw_2nd_cuda
 
-      !> Compute the X/Y face fluxes for Kappa scalar advection.
-      !!
-      !! A single kernel replaces the X/Y reset and directional passes. Only
-      !! face values consumed by the divergence kernel are written, so no
-      !! scratch-array reset is required.
-      attributes(global) subroutine advecc_kappa_flux_xy_cuda(hi, hj, hk, var)
-         use modcuda, only: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, &
-                            dxfc_d, dxhci_d, u0_d, v0_d, &
-                            kappa_xflux_d, kappa_yflux_d, tidandstride
+      ! CUDA implementations for advec_kappa
+      attributes(global) subroutine advecc_kappa_reset_cuda(hi, hj, hk)
+         use modcuda, only: ie_d, je_d, ke_d, dumu_d, duml_d, tidandstride
          implicit none
          integer, value, intent(in) :: hi, hj, hk
-         real, dimension(ib_d - hi:ie_d + hi, jb_d - hj:je_d + hj, &
-                         kb_d - hk:ke_d + hk), intent(in) :: var
+         integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
+         call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+         do k = tidz, ke_d + hk, stridez
+            do j = tidy - hj, je_d + hj, stridey
+               do i = tidx - hi, ie_d + hi, stridex
+                  dumu_d(i,j,k) = 0.
+                  duml_d(i,j,k) = 0.
+               end do
+            end do
+         end do
+      end subroutine advecc_kappa_reset_cuda
+
+      ! -d(uc)/dx (stretched grid)
+      attributes(global) subroutine advecc_kappa_ducdx_cuda(hi, hj, hk, var)
+         use modcuda, only: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, dxfc_d, dxfci_d, dxhci_d, &
+                            u0_d, dumu_d, duml_d, &
+                            tidandstride
+         implicit none
+         integer, value, intent(in) :: hi, hj, hk
+         real, dimension(ib_d - hi:ie_d + hi, jb_d - hj:je_d + hj, kb_d - hk:ke_d + hk), intent(in) :: var
+         real    :: cf, d1, d2
+         integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
+
+         call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+         do k = tidz, ke_d, stridez
+            do j = tidy, je_d, stridey
+               do i = tidx, ie_d + 1, stridex
+                  if (u0_d(i, j, k) > 0) then
+                     d1 = (var(i - 1, j, k) - var(i - 2, j, k))*dxhci_d(i - 1)
+                     d2 = (var(i, j, k) - var(i - 1, j, k))*dxhci_d(i)
+                     cf = var(i - 1, j, k)
+                  else
+                     d1 = (var(i, j, k) - var(i + 1, j, k))*dxhci_d(i + 1)
+                     d2 = (var(i - 1, j, k) - var(i, j, k))*dxhci_d(i)
+                     cf = var(i, j, k)
+                  end if
+                  cf = cf + dxfc_d(i)*rlim_cuda(d1, d2)
+                  dumu_d(i - 1, j, k) = -cf*u0_d(i, j, k)*dxfci_d(i - 1)
+                  duml_d(i, j, k) = cf*u0_d(i, j, k)*dxfci_d(i)
+               end do
+            end do
+         end do
+      end subroutine advecc_kappa_ducdx_cuda
+
+      ! -d(vc)/dy (no stretched grid)
+      attributes(global) subroutine advecc_kappa_dvcdy_cuda(hi, hj, hk, var)
+         use modcuda, only: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, dyi_d, &
+                            v0_d, dumu_d, duml_d, &
+                            tidandstride
+         implicit none
+         integer, value, intent(in) :: hi, hj, hk
+         real, dimension(ib_d - hi:ie_d + hi, jb_d - hj:je_d + hj, kb_d - hk:ke_d + hk), intent(in) :: var
          real    :: cf, d1, d2
          integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
 
@@ -798,101 +875,72 @@ module modadvection
 
          do k = tidz, ke_d, stridez
             do j = tidy, je_d + 1, stridey
-               do i = tidx, ie_d + 1, stridex
-                  if (j <= je_d) then
-                     if (u0_d(i, j, k) > 0.) then
-                        d1 = (var(i - 1, j, k) - var(i - 2, j, k))*dxhci_d(i - 1)
-                        d2 = (var(i, j, k) - var(i - 1, j, k))*dxhci_d(i)
-                        cf = var(i - 1, j, k)
-                     else
-                        d1 = (var(i, j, k) - var(i + 1, j, k))*dxhci_d(i + 1)
-                        d2 = (var(i - 1, j, k) - var(i, j, k))*dxhci_d(i)
-                        cf = var(i, j, k)
-                     end if
-                     cf = cf + dxfc_d(i)*rlim_cuda(d1, d2)
-                     kappa_xflux_d(i, j, k) = cf*u0_d(i, j, k)
+               do i = tidx, ie_d, stridex
+                  if (v0_d(i, j, k) > 0) then
+                     d1 = var(i, j - 1, k) - var(i, j - 2, k)
+                     d2 = var(i, j, k) - var(i, j - 1, k)
+                     cf = var(i, j - 1, k)
+                  else
+                     d1 = var(i, j, k) - var(i, j + 1, k)
+                     d2 = var(i, j - 1, k) - var(i, j, k)
+                     cf = var(i, j, k)
                   end if
-
-                  if (i <= ie_d) then
-                     if (v0_d(i, j, k) > 0.) then
-                        d1 = var(i, j - 1, k) - var(i, j - 2, k)
-                        d2 = var(i, j, k) - var(i, j - 1, k)
-                        cf = var(i, j - 1, k)
-                     else
-                        d1 = var(i, j, k) - var(i, j + 1, k)
-                        d2 = var(i, j - 1, k) - var(i, j, k)
-                        cf = var(i, j, k)
-                     end if
-                     cf = cf + rlim_cuda(d1, d2)
-                     kappa_yflux_d(i, j, k) = cf*v0_d(i, j, k)
-                  end if
+                  cf = cf + rlim_cuda(d1, d2)
+                  duml_d(i, j, k) = cf*v0_d(i, j, k)*dyi_d
+                  dumu_d(i, j - 1, k) = -cf*v0_d(i, j, k)*dyi_d
                end do
             end do
          end do
-      end subroutine advecc_kappa_flux_xy_cuda
+      end subroutine advecc_kappa_dvcdy_cuda
 
-      !> Apply the X/Y flux divergence and gather the two Z-face fluxes.
-      !!
-      !! This second kernel is the synchronization point for the face data and
-      !! replaces all three former add passes. Gathering only the Z faces keeps
-      !! the scratch footprint to two arrays while avoiding the high register
-      !! pressure and six duplicated reconstructions of a monolithic kernel.
-      attributes(global) subroutine advecc_kappa_divergence_cuda(hi, hj, hk, var, varp)
-         use modcuda, only: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, &
-                            dxfci_d, dyi_d, dzfc_d, dzfci_d, dzhci_d, &
-                            w0_d, kappa_xflux_d, kappa_yflux_d, tidandstride
+      ! -d(wc)/dz (stretched grid)
+      attributes(global) subroutine advecc_kappa_dwcdz_cuda(hi, hj, hk, var)
+         use modcuda, only: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, dzfc_d, dzfci_d, dzhci_d, &
+                            w0_d, dumu_d, duml_d, &
+                            tidandstride
          implicit none
          integer, value, intent(in) :: hi, hj, hk
-         real, dimension(ib_d - hi:ie_d + hi, jb_d - hj:je_d + hj, &
-                         kb_d - hk:ke_d + hk), intent(in) :: var
-         real, dimension(ib_d - hi:ie_d + hi, jb_d - hj:je_d + hj, &
-                         kb_d:ke_d + hk), intent(inout) :: varp
-         real    :: cf, d1, d2, tendency
+         real, dimension(ib_d - hi:ie_d + hi, jb_d - hj:je_d + hj, kb_d - hk:ke_d + hk), intent(in) :: var
+         real    :: cf, d1, d2
          integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
 
          call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
-         do k = tidz, ke_d, stridez
+         do k = tidz + 1, ke_d + 1, stridez
             do j = tidy, je_d, stridey
                do i = tidx, ie_d, stridex
-                  tendency = varp(i, j, k)
-                  tendency = tendency - kappa_xflux_d(i + 1, j, k)*dxfci_d(i)
-                  tendency = tendency + kappa_xflux_d(i, j, k)*dxfci_d(i)
-                  tendency = tendency - kappa_yflux_d(i, j + 1, k)*dyi_d
-                  tendency = tendency + kappa_yflux_d(i, j, k)*dyi_d
-
-                  ! -d(wc)/dz: upper face k+1 and lower face k. The original
-                  ! scheme omits the lower contribution in the bottom cell.
-                  if (w0_d(i, j, k + 1) > 0.) then
-                     d1 = (var(i, j, k) - var(i, j, k - 1))*dzhci_d(k)
-                     d2 = (var(i, j, k + 1) - var(i, j, k))*dzhci_d(k + 1)
-                     cf = var(i, j, k)
+                  if (w0_d(i, j, k) > 0) then
+                     d1 = (var(i, j, k - 1) - var(i, j, k - 2))*dzhci_d(k - 1)
+                     d2 = (var(i, j, k) - var(i, j, k - 1))*dzhci_d(k)
+                     cf = var(i, j, k - 1)
                   else
-                     d1 = (var(i, j, k + 1) - var(i, j, k + 2))*dzhci_d(k + 2)
-                     d2 = (var(i, j, k) - var(i, j, k + 1))*dzhci_d(k + 1)
-                     cf = var(i, j, k + 1)
+                     d1 = (var(i, j, k) - var(i, j, k + 1))*dzhci_d(k + 1)
+                     d2 = (var(i, j, k - 1) - var(i, j, k))*dzhci_d(k)
+                     cf = var(i, j, k)
                   end if
-                  cf = cf + dzfc_d(k + 1)*rlim_cuda(d1, d2)
-                  tendency = tendency - cf*w0_d(i, j, k + 1)*dzfci_d(k)
-
-                  if (k > kb_d) then
-                     if (w0_d(i, j, k) > 0.) then
-                        d1 = (var(i, j, k - 1) - var(i, j, k - 2))*dzhci_d(k - 1)
-                        d2 = (var(i, j, k) - var(i, j, k - 1))*dzhci_d(k)
-                        cf = var(i, j, k - 1)
-                     else
-                        d1 = (var(i, j, k) - var(i, j, k + 1))*dzhci_d(k + 1)
-                        d2 = (var(i, j, k - 1) - var(i, j, k))*dzhci_d(k)
-                        cf = var(i, j, k)
-                     end if
-                     cf = cf + dzfc_d(k)*rlim_cuda(d1, d2)
-                     tendency = tendency + cf*w0_d(i, j, k)*dzfci_d(k)
-                  end if
-                  varp(i, j, k) = tendency
+                  cf = cf + dzfc_d(k)*rlim_cuda(d1, d2)
+                  duml_d(i, j, k) = cf*w0_d(i, j, k)*dzfci_d(k)
+                  dumu_d(i, j, k - 1) = -cf*w0_d(i, j, k)*dzfci_d(k - 1)
                end do
             end do
          end do
-      end subroutine advecc_kappa_divergence_cuda
+      end subroutine advecc_kappa_dwcdz_cuda
+
+      attributes(global) subroutine advecc_kappa_add_cuda(hi, hj, hk, varp)
+         use modcuda, only: ib_d, ie_d, jb_d, je_d, kb_d, ke_d, dumu_d, duml_d, tidandstride
+         implicit none
+         integer, value, intent(in) :: hi, hj, hk
+         real, dimension(ib_d - hi:ie_d + hi, jb_d - hj:je_d + hj, kb_d:ke_d + hk), intent(inout) :: varp
+         integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
+         call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+         do k = tidz, ke_d + hk, stridez
+            do j = tidy - hj, je_d + hj, stridey
+               do i = tidx - hi, ie_d + hi, stridex
+                  varp(i,j,k) = varp(i,j,k) + dumu_d(i,j,k) + duml_d(i,j,k)
+               end do
+            end do
+         end do
+      end subroutine advecc_kappa_add_cuda
       !> Determination of the limiter function
       attributes(device) real function rlim_cuda(d1, d2)
          use modcuda, only: eps1_d
