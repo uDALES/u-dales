@@ -330,6 +330,12 @@ if r.libm
                 end
                 preprocessing.update_namoptions(namoptionsfile,'&ENERGYBALANCE','nnz',nnz(vf));
             end
+
+            if r.lvfsparse
+                ijs = dlmread([fpath 'vfsparse.inp.' r.expnr], ' ', 0, 0);
+                vf = sparse(ijs(:,1), ijs(:,2), ijs(:,3), r.nfcts, r.nfcts);
+                svf = dlmread([fpath 'svf.inp.' r.expnr], ' ', 1, 0);
+            end
         end
 
         %% Calculate shortwave radiation
