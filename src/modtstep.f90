@@ -371,10 +371,10 @@ module modtstep
         um_d = u0_d
         vm_d = v0_d
         wm_d = w0_d
-        thlm_d = thl0_d
-        e12m_d = e120_d
-        svm_d = sv0_d
-        qtm_d = qt0_d
+        if (ltempeq) thlm_d = thl0_d
+        if (loneeqn) e12m_d = e120_d
+        if (nsv > 0) svm_d = sv0_d
+        if (lmoist) qtm_d = qt0_d
 #else
         um = u0
         vm = v0

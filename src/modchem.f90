@@ -27,17 +27,19 @@ module modchem
 
   contains
     subroutine chem
-      use modglobal,  only : lchem, k1, JNO2, dt, rk3step, kb, ke, khc
+      use modglobal,  only : lchem, k1, JNO2, dt, rk3step, &
+                             ib, ie, ihc, jb, je, jhc, kb, ke, khc
 #if defined(_GPU)
       use modcuda,    only : IIc_d, dummyNO_d, dummyNO2_d, dummyO3_d, sv0_d
 #else
       use modfields,  only : IIc, sv0
-      use modglobal,  only : ib, ie, ihc, jb, je, jhc
 #endif
       ! use modfields,  only : svp, svm
       implicit none
 #if !defined(_GPU)
       real, dimension(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)     :: dummyNO, dummyNO2, dummyO3
+#else
+      integer :: i, j, k
 #endif
 
       if (.not. lchem) return
@@ -58,11 +60,18 @@ module modchem
 
       ! convert into mol/m^3
 #if defined(_GPU)
-      !$acc kernels default(present)
-      dummyNO_d  = IIc_d*sv0_d(:,:,kb:ke+khc,1)/30.006
-      dummyNO2_d = IIc_d*sv0_d(:,:,kb:ke+khc,2)/46.005
-      dummyO3_d  = IIc_d*sv0_d(:,:,kb:ke+khc,3)/47.997
-      !$acc end kernels
+      ! Snapshot all three species before applying any chemistry update.
+      !$acc parallel loop collapse(3) default(present)
+      do k = kb, ke + khc
+        do j = jb - jhc, je + jhc
+          do i = ib - ihc, ie + ihc
+            dummyNO_d(i,j,k)  = IIc_d(i,j,k)*sv0_d(i,j,k,1)/30.006
+            dummyNO2_d(i,j,k) = IIc_d(i,j,k)*sv0_d(i,j,k,2)/46.005
+            dummyO3_d(i,j,k)  = IIc_d(i,j,k)*sv0_d(i,j,k,3)/47.997
+          end do
+        end do
+      end do
+      !$acc end parallel loop
 #else
       dummyNO  = IIc*sv0(:,:,kb:ke+khc,1)/30.006
       dummyNO2 = IIc*sv0(:,:,kb:ke+khc,2)/46.005
@@ -78,31 +87,34 @@ module modchem
 
       !backward Euler, fully implicit. Derivation at (/projects/Chemistry/FullyImplicit.mw)
 #if defined(_GPU)
-      !$acc kernels default(present)
-      sv0_d(:,:,kb:ke+khc,1) = 30.006 * ( (sv0_d(:,:,kb:ke+khc,1)/30.006) + ( dt * (- k1 * dummyNO_d * dummyO3_d + JNO2 * dummyNO2_d) ) / &
-                             ( 1. + ( ( dummyNO_d + dummyO3_d ) * k1 + JNO2 ) * dt ) )
-      !$acc end kernels
+      ! Update the three species together while retaining the snapshot-based equations.
+      !$acc parallel loop collapse(3) default(present)
+      do k = kb, ke + khc
+        do j = jb - jhc, je + jhc
+          do i = ib - ihc, ie + ihc
+            sv0_d(i,j,k,1) = 30.006 * ( (sv0_d(i,j,k,1)/30.006) + &
+                                   ( dt * (- k1 * dummyNO_d(i,j,k) * dummyO3_d(i,j,k) + &
+                                            JNO2 * dummyNO2_d(i,j,k)) ) / &
+                                   ( 1. + ( ( dummyNO_d(i,j,k) + dummyO3_d(i,j,k) ) * k1 + JNO2 ) * dt ) )
+
+            sv0_d(i,j,k,2) = 46.005 * ( (sv0_d(i,j,k,2)/46.005) - &
+                                   ( dt * (- k1 * dummyNO_d(i,j,k) * dummyO3_d(i,j,k) + &
+                                            JNO2 * dummyNO2_d(i,j,k)) ) / &
+                                   ( 1. + ( ( dummyNO_d(i,j,k) + dummyO3_d(i,j,k) ) * k1 + JNO2 ) * dt ) )
+
+            sv0_d(i,j,k,3) = 47.997 * ( (sv0_d(i,j,k,3)/47.997) + &
+                                   ( dt * (- k1 * dummyNO_d(i,j,k) * dummyO3_d(i,j,k) + &
+                                            JNO2 * dummyNO2_d(i,j,k)) ) / &
+                                   ( 1. + ( ( dummyNO_d(i,j,k) + dummyO3_d(i,j,k) ) * k1 + JNO2 ) * dt ) )
+          end do
+        end do
+      end do
+      !$acc end parallel loop
 #else
       sv0(:,:,kb:ke+khc,1) = 30.006 * ( (sv0(:,:,kb:ke+khc,1)/30.006) + ( dt * (- k1 * dummyNO * dummyO3 + JNO2 * dummyNO2) ) / &
                              ( 1. + ( ( dummyNO + dummyO3 ) * k1 + JNO2 ) * dt ) )
-#endif
-
-#if defined(_GPU)
-      !$acc kernels default(present)
-      sv0_d(:,:,kb:ke+khc,2) = 46.005 * ( (sv0_d(:,:,kb:ke+khc,2)/46.005) - ( dt * (- k1 * dummyNO_d * dummyO3_d + JNO2 * dummyNO2_d) ) / &
-                             ( 1. + ( ( dummyNO_d + dummyO3_d ) * k1 + JNO2 ) * dt ) )
-      !$acc end kernels
-#else
       sv0(:,:,kb:ke+khc,2) = 46.005 * ( (sv0(:,:,kb:ke+khc,2)/46.005) - ( dt * (- k1 * dummyNO * dummyO3 + JNO2 * dummyNO2) ) / &
                              ( 1. + ( ( dummyNO + dummyO3 ) * k1 + JNO2 ) * dt ) )
-#endif
-
-#if defined(_GPU)
-      !$acc kernels default(present)
-      sv0_d(:,:,kb:ke+khc,3) = 47.997 * ( (sv0_d(:,:,kb:ke+khc,3)/47.997) + ( dt * (- k1 * dummyNO_d * dummyO3_d + JNO2 * dummyNO2_d) ) / &
-                             ( 1. + ( ( dummyNO_d + dummyO3_d ) * k1 + JNO2 ) * dt ) )
-      !$acc end kernels
-#else
       sv0(:,:,kb:ke+khc,3) = 47.997 * ( (sv0(:,:,kb:ke+khc,3)/47.997) + ( dt * (- k1 * dummyNO * dummyO3 + JNO2 * dummyNO2) ) / &
                              ( 1. + ( ( dummyNO + dummyO3 ) * k1 + JNO2 ) * dt ) )
 #endif 
