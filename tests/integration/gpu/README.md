@@ -11,13 +11,14 @@ been stable for a suitable period.
 
 ## What is implemented
 
-`case_matrix.json` defines 20 deterministic cases and four selections:
+`case_matrix.json` defines 22 deterministic cases and five selections:
 
 | Selection | Cases | Intended use |
 | --- | --- | --- |
 | `smoke` | four 8 x 8 x 8 cases | Debug development and trusted pull requests |
+| `scalar-sources` | two serial and two two-rank cases | scalar-source parity and global positioning |
 | `nightly` | 17 serial cases | single-GPU scheduled regression |
-| `mpi` | two-rank X and Y cases | manually dispatched two-GPU check |
+| `mpi` | dry and scalar-source two-rank X/Y cases | manually dispatched two-GPU check |
 | `full` | nightly plus X, Y, and 2 x 2 MPI | manual four-GPU validation |
 
 The current coverage is:
@@ -37,6 +38,8 @@ The current coverage is:
 - X and Y profile inflow/outflow, pressure-top, no-slip top, and nonzero top
   temperature/moisture/scalar fluxes
 - three-species NO/NO2/O3 chemistry
+- point and finite-line passive-scalar sources, including global peak-location
+  checks on the non-root partition of two-rank X and Y decompositions
 - IBM wall functions, including the paths that update `iomomflux`, `iotflux`,
   and `obcTfluxA`
 - the extended scalar halos involved in the former `sca1` mismatch
@@ -61,7 +64,7 @@ contains cases that do so. The runner enables the suite with
 
 The `ported_routines` contract in `case_matrix.json` is checked against the
 current Fortran source. At present it maps all 48 production CUDA global/device
-routines (including device functions) and all 17 subroutines containing
+routines (including device functions) and all 18 subroutines containing
 executable OpenACC regions to one or more parity cases or to the Debug device
 suite. Matrix validation fails when a new ported routine has no declared test,
 a deleted routine leaves a stale entry, a mapped test does not exist, or a
@@ -83,6 +86,13 @@ The default tolerances and any variable-specific overrides are versioned in
 `case_matrix.json`. Failure reports include the file, variable, maximum error,
 and array index. The runner can write JSON, JUnit XML, logs, and the small
 NetCDF outputs to an artifact directory.
+
+Cases may additionally declare semantic `output_assertions`. The scalar-source
+MPI cases require a nonzero final `sca1` peak at the configured global cell
+centre and in the expected non-root rank-local fielddump file. This catches
+shared CPU and GPU failures such as silently skipping the source or treating
+its global coordinates as rank-local coordinates, which ordinary
+same-decomposition parity would miss.
 
 The hardware-independent comparator and matrix-validation tests are included
 in the normal `python-library` stream, so ordinary CPU GitHub Actions still
@@ -139,9 +149,28 @@ python tests/run_tests.py gpu-mpi
 python tests/run_tests.py gpu-full
 ```
 
+For focused scalar-source development with existing executables, run:
+
+```bash
+python tests/integration/gpu/run_gpu_tests.py scalar-sources \
+  --cpu-executable build/cpu/debug/u-dales \
+  --gpu-executable build/gpu/debug/u-dales
+```
+
+That selection includes two-rank X and Y positioning cases and therefore uses
+two GPUs with the default rank-to-device binding. For a correctness-only run
+on one GPU, allow both MPI ranks to share it:
+
+```bash
+UDALES_GPU_BIND=0 python tests/integration/gpu/run_gpu_tests.py scalar-sources \
+  --cpu-executable build/cpu/debug/u-dales \
+  --gpu-executable build/gpu/debug/u-dales
+```
+
 `gpu-mpi` requires at least two visible GPUs and `gpu-full` requires four,
 because the existing `tools/bind.sh` assigns one local MPI rank per device. Set
-`UDALES_GPU_BIND=0` only when device placement is managed externally.
+`UDALES_GPU_BIND=0` for correctness testing with shared-device ranks or when
+device placement is managed externally.
 
 Do not set `UDALES_RUN_CUDA_SELFTEST` manually when using this runner. The
 `--require-debug-selftest` option owns the flag and verifies one pass marker

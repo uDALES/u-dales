@@ -66,6 +66,8 @@ iwalltemp    = 2
 
 &SCALARS
 nsv          = 1
+lscasrcl     = .true.
+nscasrcl     = 1
 /
 
 &OUTPUT

@@ -113,10 +113,12 @@ module modfields
   real, allocatable, pinned         :: svm(:,:,:,:)
   real, allocatable, pinned, target :: sv0(:,:,:,:)
   real, allocatable, pinned         :: svp(:,:,:,:)
+  real, allocatable, pinned         :: scalar_source_tendency(:,:,:,:)
 #else
   real, allocatable                 :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
   real, allocatable,         target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
-  real, allocatable                 :: svp(:,:,:,:)             !<  tendency of sv(n)
+  real, allocatable                 :: svp(:,:,:,:)     !<  tendency of sv(n)
+  real, allocatable                 :: scalar_source_tendency(:,:,:,:)    !<  tendency of sv(n) due to scalar sources
 #endif
   real, allocatable :: svpp(:,:,:,:)
 

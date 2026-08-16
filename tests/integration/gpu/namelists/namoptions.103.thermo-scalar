@@ -66,6 +66,8 @@ lbottom      = .true.
 
 &SCALARS
 nsv          = 1
+lscasrc      = .true.
+nscasrc      = 1
 /
 
 &INPS

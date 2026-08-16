@@ -57,7 +57,7 @@ program uDALES
   use moddriver,         only : initdriver
   use modadvection,      only : advection
   use modtstep,          only : tstep_update,tstep_integrate
-  use modscalsource,     only : createscals,scalsource
+  use modscalsource,     only : createscals,scalsource,exitscals
 
 !----------------------------------------------------------------
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
@@ -216,11 +216,11 @@ program uDALES
 
     call heatpump
 
-    call scalsource     ! adds continuous forces in specified region of domain
-
 #if defined(_GPU)
     call updateDevicePriorPoiss
 #endif
+
+    call scalsource     ! adds continuous forces in specified region of domain
 
 !------------------------------------------------------
 !   3.4   EXECUTE ADD ONS
@@ -283,6 +283,8 @@ program uDALES
   call exit_heatpump
   !call exitmodules
   !call exittest
+
+  call exitscals
 
 #if defined(_GPU)
   call exitCUDA

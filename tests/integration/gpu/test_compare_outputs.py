@@ -10,6 +10,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from typing import Optional
 from unittest.mock import patch
 
 import netCDF4
@@ -24,6 +25,7 @@ from run_gpu_tests import (
     REPO_ROOT,
     _read_matrix,
     _require_cuda_selftest,
+    _validate_output_assertions,
     main,
     validate_matrix,
 )
@@ -48,6 +50,30 @@ def _write_output(
         if include_scalar:
             scalar = dataset.createVariable("sca1", "f8", ("time", "z", "y", "x"))
             scalar[0] = values * 0.5
+
+
+def _write_ranked_scalar_output(
+    path: Path,
+    x_coordinates: np.ndarray,
+    y_coordinates: np.ndarray,
+    peak_index: Optional[tuple[int, int, int]] = None,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    z_coordinates = np.array([0.5, 1.5, 2.5], dtype=np.float32)
+    with netCDF4.Dataset(path, "w") as dataset:
+        dataset.createDimension("time", 1)
+        dataset.createDimension("zt", len(z_coordinates))
+        dataset.createDimension("yt", len(y_coordinates))
+        dataset.createDimension("xt", len(x_coordinates))
+        dataset.createVariable("time", "f4", ("time",))[:] = [0.25]
+        dataset.createVariable("zt", "f4", ("zt",))[:] = z_coordinates
+        dataset.createVariable("yt", "f4", ("yt",))[:] = y_coordinates
+        dataset.createVariable("xt", "f4", ("xt",))[:] = x_coordinates
+        scalar = dataset.createVariable("sca1", "f4", ("time", "zt", "yt", "xt"))
+        values = np.zeros((1, len(z_coordinates), len(y_coordinates), len(x_coordinates)))
+        if peak_index is not None:
+            values[(0, *peak_index)] = 2.0
+        scalar[:] = values
 
 
 class TestGpuOutputComparator(unittest.TestCase):
@@ -94,6 +120,81 @@ class TestGpuOutputComparator(unittest.TestCase):
 
             with self.assertRaisesRegex(ConfigurationError, "unsupported GPU option ipoiss=2"):
                 validate_matrix(matrix)
+
+    def test_matrix_rejects_invalid_output_assertion(self) -> None:
+        matrix = copy.deepcopy(_read_matrix(DEFAULT_MATRIX))
+        matrix["cases"][0]["output_assertions"] = [
+            {
+                "type": "global_peak",
+                "output": "missing-output",
+                "variable": "u",
+                "expected_coordinates": {"xt": 0.5},
+            }
+        ]
+
+        with self.assertRaisesRegex(ConfigurationError, "is not in required_outputs"):
+            validate_matrix(matrix)
+
+    def test_global_peak_assertion_checks_coordinate_and_rank(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            run_dir = Path(temporary)
+            y_coordinates = np.array([0.5, 1.5, 2.5, 3.5, 4.5], dtype=np.float32)
+            _write_ranked_scalar_output(
+                run_dir / "fielddump.000.000.103.nc",
+                np.array([0.5, 1.5, 2.5, 3.5, 4.5], dtype=np.float32),
+                y_coordinates,
+            )
+            _write_ranked_scalar_output(
+                run_dir / "fielddump.001.000.103.nc",
+                np.array([5.5, 6.5, 7.5, 8.5], dtype=np.float32),
+                y_coordinates,
+                peak_index=(1, 4, 2),
+            )
+            case = {
+                "case_id": 103,
+                "output_assertions": [
+                    {
+                        "type": "global_peak",
+                        "output": "fielddump",
+                        "variable": "sca1",
+                        "record": -1,
+                        "minimum_value": 0.1,
+                        "expected_coordinates": {"xt": 7.5, "yt": 4.5, "zt": 1.5},
+                        "coordinate_atol": 1.0e-6,
+                        "expected_rank": [1, 0],
+                    }
+                ],
+            }
+
+            self.assertEqual(_validate_output_assertions(case, run_dir, "CPU"), [])
+
+    def test_global_peak_assertion_rejects_shifted_position(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            run_dir = Path(temporary)
+            _write_ranked_scalar_output(
+                run_dir / "fielddump.001.000.103.nc",
+                np.array([5.5, 6.5, 7.5, 8.5], dtype=np.float32),
+                np.array([0.5, 1.5, 2.5, 3.5, 4.5], dtype=np.float32),
+                peak_index=(1, 4, 3),
+            )
+            case = {
+                "case_id": 103,
+                "output_assertions": [
+                    {
+                        "type": "global_peak",
+                        "output": "fielddump",
+                        "variable": "sca1",
+                        "minimum_value": 0.1,
+                        "expected_coordinates": {"xt": 7.5},
+                        "coordinate_atol": 1.0e-6,
+                        "expected_rank": [1, 0],
+                    }
+                ],
+            }
+
+            failures = _validate_output_assertions(case, run_dir, "GPU")
+
+            self.assertTrue(any("peak xt=8.5" in failure for failure in failures))
 
     def test_allows_values_inside_absolute_and_relative_tolerance(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

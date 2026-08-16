@@ -11,6 +11,12 @@
       "temperature-kappa",
       "stability-wall"
     ],
+    "scalar-sources": [
+      "thermo-scalar-wall",
+      "ibm-scalar-wall",
+      "scalar-point-two-rank-x",
+      "scalar-line-two-rank-y"
+    ],
     "nightly": [
       "dry-poisson-fft",
       "thermo-scalar-wall",
@@ -30,7 +36,12 @@
       "vegetation",
       "surface-energy-balance"
     ],
-    "mpi": ["dry-two-rank-x", "dry-two-rank-y"],
+    "mpi": [
+      "dry-two-rank-x",
+      "dry-two-rank-y",
+      "scalar-point-two-rank-x",
+      "scalar-line-two-rank-y"
+    ],
     "full": [
       "dry-poisson-fft",
       "thermo-scalar-wall",
@@ -51,6 +62,8 @@
       "surface-energy-balance",
       "dry-two-rank-x",
       "dry-two-rank-y",
+      "scalar-point-two-rank-x",
+      "scalar-line-two-rank-y",
       "dry-four-rank-xy"
     ]
   },
@@ -73,12 +86,13 @@
       "namelist": "tests/integration/gpu/namelists/namoptions.103.thermo-scalar",
       "overrides": [
         "tests/integration/gpu/fixtures/prof.inp.103",
-        "tests/integration/gpu/fixtures/scalar.inp.103"
+        "tests/integration/gpu/fixtures/scalar.inp.103",
+        "tests/integration/gpu/fixtures/scalar_sources/scalarsourcep.inp.1.103"
       ],
       "nprocs": 1,
       "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["thermodynamics", "moisture", "second-order-thermodynamic-advection", "Kappa-scalar-advection", "fixed-temperature-wall", "ipoiss-0"],
-      "namelist_assertions": {"ltempeq": true, "lmoist": true, "iadv_thl": 2, "nsv": 1, "BCbotT": 2},
+      "coverage": ["thermodynamics", "moisture", "second-order-thermodynamic-advection", "Kappa-scalar-advection", "scalar-point-source", "fixed-temperature-wall", "ipoiss-0"],
+      "namelist_assertions": {"ltempeq": true, "lmoist": true, "iadv_thl": 2, "nsv": 1, "lscasrc": true, "nscasrc": 1, "BCbotT": 2},
       "timeout_seconds": 180
     },
     {
@@ -243,9 +257,11 @@
       "case_id": 101,
       "base_case": "tests/cases/101",
       "namelist": "tests/integration/gpu/namelists/namoptions.101.ibm-scalar",
+      "overrides": ["tests/integration/gpu/fixtures/scalar_sources/scalarsourcel.inp.1.101"],
       "nprocs": 1,
       "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["immersed-boundary", "iomomflux", "iotflux", "obcTfluxA", "scalar-extended-halos"],
+      "coverage": ["immersed-boundary", "iomomflux", "iotflux", "obcTfluxA", "scalar-extended-halos", "scalar-line-source"],
+      "namelist_assertions": {"nsv": 1, "lscasrcl": true, "nscasrcl": 1},
       "timeout_seconds": 600
     },
     {
@@ -267,6 +283,62 @@
       "required_outputs": ["fielddump", "tdump", "xytdump"],
       "coverage": ["surface-energy-balance", "sparse-view-factors", "periodic-EB-correction", "thermal-and-moisture-walls"],
       "timeout_seconds": 900
+    },
+    {
+      "name": "scalar-point-two-rank-x",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.scalar-point-mpi-x",
+      "overrides": [
+        "tests/integration/gpu/fixtures/scalar_sources/mpi/scalar.inp.103",
+        "tests/integration/gpu/fixtures/scalar_sources/mpi_x/scalarsourcep.inp.1.103"
+      ],
+      "nprocs": 2,
+      "minimum_gpus": 2,
+      "required_outputs": ["fielddump"],
+      "coverage": ["scalar-point-source", "multi-GPU", "X-decomposition", "global-source-position"],
+      "namelist_assertions": {"nprocx": 2, "nprocy": 1, "itot": 8, "jtot": 8, "nsv": 1, "lscasrc": true, "nscasrc": 1},
+      "output_assertions": [
+        {
+          "type": "global_peak",
+          "output": "fielddump",
+          "variable": "sca1",
+          "record": -1,
+          "minimum_value": 0.1,
+          "expected_coordinates": {"xt": 6.5, "yt": 4.5, "zt": 1.5},
+          "coordinate_atol": 1e-6,
+          "expected_rank": [1, 0]
+        }
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "name": "scalar-line-two-rank-y",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.scalar-line-mpi-y",
+      "overrides": [
+        "tests/integration/gpu/fixtures/scalar_sources/mpi/scalar.inp.103",
+        "tests/integration/gpu/fixtures/scalar_sources/mpi_y/scalarsourcel.inp.1.103"
+      ],
+      "nprocs": 2,
+      "minimum_gpus": 2,
+      "required_outputs": ["fielddump"],
+      "coverage": ["scalar-line-source", "multi-GPU", "Y-decomposition", "global-source-position"],
+      "namelist_assertions": {"nprocx": 1, "nprocy": 2, "itot": 8, "jtot": 8, "nsv": 1, "lscasrcl": true, "nscasrcl": 1},
+      "output_assertions": [
+        {
+          "type": "global_peak",
+          "output": "fielddump",
+          "variable": "sca1",
+          "record": -1,
+          "minimum_value": 0.1,
+          "expected_coordinates": {"xt": 4.5, "yt": 6.5},
+          "coordinate_atol": 1e-6,
+          "expected_rank": [0, 1]
+        }
+      ],
+      "timeout_seconds": 300
     },
     {
       "name": "dry-two-rank-x",
@@ -377,6 +449,7 @@
       "src/modforces.f90:fixuinf1": ["active-forcing"],
       "src/modpois.f90:poisson": ["dry-poisson-fft", "thermo-scalar-wall"],
       "src/modpois.f90:tderive": ["dry-poisson-fft", "thermo-scalar-wall"],
+      "src/modscalsource.f90:scalsource": ["thermo-scalar-wall", "ibm-scalar-wall", "scalar-point-two-rank-x", "scalar-line-two-rank-y"],
       "src/modtstep.f90:tstep_integrate": ["dry-poisson-fft", "thermo-scalar-wall", "one-equation-sgs"]
     }
   }

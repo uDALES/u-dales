@@ -8,7 +8,7 @@ module modcuda
                              dx2, dxi, dx2i, dxi5, dxiq, dy2, dyi, dy2i, dyi5, dyiq, dxf, dxhi, &
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
-                             ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, ltrees, &
+                             ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, ltrees, lscasrc, lscasrcl, &
                              BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xh, &
@@ -21,7 +21,7 @@ module modcuda
                              dpdxl, dpdyl, thv0h, thvh, thlpcar, &
                              dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls, &
                              uprof, vprof, &
-                             IIc
+                             IIc, scalar_source_tendency
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
@@ -68,6 +68,8 @@ module modcuda
 
    real, device, allocatable :: dumu_d(:,:,:), duml_d(:,:,:)
    real, device, allocatable :: dummyNO_d(:,:,:), dummyNO2_d(:,:,:), dummyO3_d(:,:,:)
+
+   real, device, allocatable :: scalar_source_tendency_d(:,:,:,:)
 
    contains
       subroutine initCUDA
@@ -258,6 +260,10 @@ module modcuda
                allocate(IIc_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
                IIc_d = IIc
             end if
+            if (lscasrc .or. lscasrcl) then
+               allocate(scalar_source_tendency_d(ib:ie,jb:je,kb:ke,nsv))
+               scalar_source_tendency_d = scalar_source_tendency
+            end if
          end if
 
          allocate(ekm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -343,9 +349,8 @@ module modcuda
          if (lmoist) deallocate(qt0_d, qtm_d, qtp_d, qt0av_d, dqtdxls_d, dqtdyls_d, dqtdtls_d)
          if (nsv>0) then
             deallocate(sv0_d, svm_d, svp_d, sv0av_d)
-            if (nsv==3 .and. lchem) then
-               deallocate(dummyNO_d, dummyNO2_d, dummyO3_d, IIc_d)
-            end if
+            if (lscasrc .or. lscasrcl) deallocate(scalar_source_tendency_d)
+            if (nsv==3 .and. lchem) deallocate(dummyNO_d, dummyNO2_d, dummyO3_d, IIc_d)
          end if
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
             deallocate(dumu_d, duml_d, dxhci_d, dxfc_d, dzhci_d, dzfc_d)

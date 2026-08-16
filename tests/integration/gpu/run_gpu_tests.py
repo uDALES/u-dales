@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import shlex
@@ -162,6 +163,8 @@ def validate_matrix(matrix: Mapping[str, Any]) -> None:
 
         base_case = _resolve_repo_path(str(case["base_case"]))
         namelist = _resolve_repo_path(str(case["namelist"]))
+        nprocx: Optional[int] = None
+        nprocy: Optional[int] = None
         if not base_case.is_dir():
             errors.append(f"{label}: base_case does not exist: {base_case}")
         if not namelist.is_file():
@@ -187,7 +190,8 @@ def validate_matrix(matrix: Mapping[str, Any]) -> None:
                 errors.append(f"{label}: override does not exist: {override}")
 
         outputs = case["required_outputs"]
-        if not isinstance(outputs, list) or not outputs:
+        outputs_are_valid = isinstance(outputs, list) and bool(outputs)
+        if not outputs_are_valid:
             errors.append(f"{label}: required_outputs must be a non-empty list")
         coverage = case["coverage"]
         if not isinstance(coverage, list) or not coverage:
@@ -213,6 +217,74 @@ def validate_matrix(matrix: Mapping[str, Any]) -> None:
                     errors.append(
                         f"{label}: namelist assertion {key}={expected!r}, found {actual!r}"
                     )
+
+        output_assertions = case.get("output_assertions", [])
+        if not isinstance(output_assertions, list):
+            errors.append(f"{label}: output_assertions must be a list")
+        else:
+            for assertion_index, assertion in enumerate(output_assertions):
+                assertion_label = f"{label}: output_assertions[{assertion_index}]"
+                if not isinstance(assertion, dict):
+                    errors.append(f"{assertion_label} must be an object")
+                    continue
+                if assertion.get("type") != "global_peak":
+                    errors.append(f"{assertion_label}: unsupported type {assertion.get('type')!r}")
+                output = assertion.get("output")
+                if not isinstance(output, str):
+                    errors.append(f"{assertion_label}: output must be a string")
+                elif outputs_are_valid and output not in outputs:
+                    errors.append(
+                        f"{assertion_label}: output {output!r} is not in required_outputs"
+                    )
+                if not isinstance(assertion.get("variable"), str):
+                    errors.append(f"{assertion_label}: variable must be a string")
+                expected_coordinates = assertion.get("expected_coordinates")
+                if not isinstance(expected_coordinates, dict) or not expected_coordinates:
+                    errors.append(
+                        f"{assertion_label}: expected_coordinates must be a non-empty object"
+                    )
+                else:
+                    for coordinate, expected in expected_coordinates.items():
+                        try:
+                            finite = math.isfinite(float(expected))
+                        except (TypeError, ValueError):
+                            finite = False
+                        if not isinstance(coordinate, str) or not finite:
+                            errors.append(
+                                f"{assertion_label}: expected coordinate values must be finite numbers"
+                            )
+                try:
+                    coordinate_atol = float(assertion.get("coordinate_atol", 0.0))
+                except (TypeError, ValueError):
+                    coordinate_atol = float("nan")
+                if not math.isfinite(coordinate_atol) or coordinate_atol < 0.0:
+                    errors.append(
+                        f"{assertion_label}: coordinate_atol must be finite and non-negative"
+                    )
+                try:
+                    minimum_value = float(assertion.get("minimum_value", 0.0))
+                except (TypeError, ValueError):
+                    minimum_value = float("nan")
+                if not math.isfinite(minimum_value):
+                    errors.append(f"{assertion_label}: minimum_value must be finite")
+                record = assertion.get("record", -1)
+                if not isinstance(record, int) or isinstance(record, bool):
+                    errors.append(f"{assertion_label}: record must be an integer")
+                expected_rank = assertion.get("expected_rank")
+                if expected_rank is not None and (
+                    not isinstance(expected_rank, list)
+                    or len(expected_rank) != 2
+                    or any(not isinstance(rank, int) or rank < 0 for rank in expected_rank)
+                ):
+                    errors.append(
+                        f"{assertion_label}: expected_rank must be [x_rank, y_rank]"
+                    )
+                elif expected_rank is not None and nprocx is not None and nprocy is not None:
+                    if expected_rank[0] >= nprocx or expected_rank[1] >= nprocy:
+                        errors.append(
+                            f"{assertion_label}: expected_rank {expected_rank} lies outside "
+                            f"the {nprocx} x {nprocy} process grid"
+                        )
 
     for selection, selected_names in selections.items():
         if not isinstance(selected_names, list) or not selected_names:
@@ -513,6 +585,118 @@ def _require_cuda_selftest(log_path: Path, expected_ranks: int) -> Optional[str]
     return None
 
 
+def _validate_output_assertions(
+    case: Mapping[str, Any],
+    run_dir: Path,
+    mode: str,
+) -> list[str]:
+    """Validate semantic properties that CPU/GPU parity alone cannot prove."""
+
+    import netCDF4
+    import numpy as np
+
+    failures: list[str] = []
+    case_id = int(case["case_id"])
+    for assertion in case.get("output_assertions", []):
+        output = str(assertion["output"])
+        variable_name = str(assertion["variable"])
+        paths = sorted(run_dir.glob(f"{output}*.{case_id:03d}.nc"))
+        label = f"{mode} {output}:{variable_name} global-peak assertion"
+        if not paths:
+            failures.append(f"{label}: no matching output files")
+            continue
+
+        best: Optional[Dict[str, Any]] = None
+        for path in paths:
+            with netCDF4.Dataset(path) as dataset:
+                if variable_name not in dataset.variables:
+                    failures.append(f"{label}: {variable_name} is absent from {path.name}")
+                    continue
+                variable = dataset.variables[variable_name]
+                dimensions = list(variable.dimensions)
+                values = np.ma.asarray(variable[:])
+                if "time" in dimensions:
+                    time_axis = dimensions.index("time")
+                    record = int(assertion.get("record", -1))
+                    record_count = values.shape[time_axis]
+                    resolved_record = record if record >= 0 else record_count + record
+                    if resolved_record < 0 or resolved_record >= record_count:
+                        failures.append(
+                            f"{label}: record {record} is outside {path.name}'s "
+                            f"{record_count} time records"
+                        )
+                        continue
+                    values = np.take(values, resolved_record, axis=time_axis)
+                    dimensions.pop(time_axis)
+
+                data = np.asarray(values.data)
+                valid = ~np.ma.getmaskarray(values) & np.isfinite(data)
+                if not np.any(valid):
+                    failures.append(f"{label}: {path.name} has no finite unmasked values")
+                    continue
+                peak_indices = np.unravel_index(
+                    int(np.argmax(np.where(valid, data, -np.inf))),
+                    data.shape,
+                )
+                peak_value = float(data[peak_indices])
+                coordinates: Dict[str, float] = {}
+                coordinate_error = False
+                for coordinate in assertion["expected_coordinates"]:
+                    if coordinate not in dimensions or coordinate not in dataset.variables:
+                        failures.append(
+                            f"{label}: coordinate {coordinate!r} is unavailable in {path.name}"
+                        )
+                        coordinate_error = True
+                        continue
+                    coordinate_axis = dimensions.index(coordinate)
+                    coordinate_values = np.asarray(dataset.variables[coordinate][:])
+                    coordinates[coordinate] = float(coordinate_values[peak_indices[coordinate_axis]])
+                if coordinate_error:
+                    continue
+
+                rank_match = re.fullmatch(
+                    rf"{re.escape(output)}\.(\d+)\.(\d+)\.{case_id:03d}\.nc",
+                    path.name,
+                )
+                rank = (
+                    [int(rank_match.group(1)), int(rank_match.group(2))]
+                    if rank_match is not None
+                    else None
+                )
+                candidate = {
+                    "value": peak_value,
+                    "coordinates": coordinates,
+                    "rank": rank,
+                    "file": path.name,
+                }
+                if best is None or peak_value > float(best["value"]):
+                    best = candidate
+
+        if best is None:
+            continue
+        minimum_value = float(assertion.get("minimum_value", 0.0))
+        if float(best["value"]) <= minimum_value:
+            failures.append(
+                f"{label}: peak {best['value']} does not exceed {minimum_value}; "
+                "the source may not have been applied"
+            )
+        coordinate_atol = float(assertion.get("coordinate_atol", 0.0))
+        for coordinate, expected in assertion["expected_coordinates"].items():
+            actual = float(best["coordinates"][coordinate])
+            if abs(actual - float(expected)) > coordinate_atol:
+                failures.append(
+                    f"{label}: peak {coordinate}={actual}, expected {expected} "
+                    f"within {coordinate_atol}; file={best['file']}"
+                )
+        expected_rank = assertion.get("expected_rank")
+        if expected_rank is not None and best["rank"] != expected_rank:
+            failures.append(
+                f"{label}: peak rank={best['rank']}, expected {expected_rank}; "
+                f"file={best['file']}"
+            )
+    return failures
+
+
 def run_cpu_fixture(
     case: Mapping[str, Any],
     cpu_executable: Path,
@@ -554,6 +738,7 @@ def run_cpu_fixture(
             tolerance_config,
         )
         failures.extend(comparison.failures)
+        failures.extend(_validate_output_assertions(case, cpu_dir, "CPU"))
     result = {
         "name": name,
         "passed": not failures,
@@ -624,7 +809,7 @@ def run_case(
             failures.append(selftest_failure)
 
     comparison: Optional["ComparisonResult"] = None
-    if not failures:
+    if cpu_run["returncode"] == 0 and gpu_run["returncode"] == 0:
         from compare_outputs import compare_output_directories
 
         comparison = compare_output_directories(
@@ -635,6 +820,8 @@ def run_case(
             tolerance_config,
         )
         failures.extend(comparison.failures)
+        failures.extend(_validate_output_assertions(case, cpu_dir, "CPU"))
+        failures.extend(_validate_output_assertions(case, gpu_dir, "GPU"))
 
     elapsed = float(cpu_run["elapsed_seconds"]) + float(gpu_run["elapsed_seconds"])
     result = {
@@ -713,7 +900,12 @@ def main() -> int:
         _check_cpu_executable(cpu_executable)
     else:
         _check_executables(cpu_executable, gpu_executable)
-        required_gpus = max(int(case.get("minimum_gpus", 1)) for case in selected)
+        bind_enabled = os.environ.get("UDALES_GPU_BIND", "1") != "0"
+        required_gpus = (
+            max(int(case.get("minimum_gpus", 1)) for case in selected)
+            if bind_enabled
+            else 1
+        )
         visible_gpus = _visible_gpu_count()
         if visible_gpus is not None and visible_gpus < required_gpus:
             raise ConfigurationError(
