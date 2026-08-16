@@ -34,7 +34,8 @@
       "chemistry",
       "ibm-scalar-wall",
       "vegetation",
-      "surface-energy-balance"
+      "surface-energy-balance",
+      "heatpump"
     ],
     "mpi": [
       "dry-two-rank-x",
@@ -60,6 +61,7 @@
       "ibm-scalar-wall",
       "vegetation",
       "surface-energy-balance",
+      "heatpump",
       "dry-two-rank-x",
       "dry-two-rank-y",
       "scalar-point-two-rank-x",
@@ -285,6 +287,21 @@
       "timeout_seconds": 900
     },
     {
+      "name": "heatpump",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.heatpump",
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103",
+        "tests/integration/gpu/fixtures/heatpump/heatpump.inp.103"
+      ],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["heat-pump-temperature-tendency", "heat-pump-fan-velocity"],
+      "namelist_assertions": {"lheatpump": true, "lfan_hp": true, "nhppoints": 1, "ltempeq": true},
+      "timeout_seconds": 180
+    },
+    {
       "name": "scalar-point-two-rank-x",
       "case_id": 103,
       "base_case": "tests/regression/david_tests/cases/103",
@@ -450,7 +467,8 @@
       "src/modpois.f90:poisson": ["dry-poisson-fft", "thermo-scalar-wall"],
       "src/modpois.f90:tderive": ["dry-poisson-fft", "thermo-scalar-wall"],
       "src/modscalsource.f90:scalsource": ["thermo-scalar-wall", "ibm-scalar-wall", "scalar-point-two-rank-x", "scalar-line-two-rank-y"],
-      "src/modtstep.f90:tstep_integrate": ["dry-poisson-fft", "thermo-scalar-wall", "one-equation-sgs"]
+      "src/modtstep.f90:tstep_integrate": ["dry-poisson-fft", "thermo-scalar-wall", "one-equation-sgs"],
+      "src/heatpump.f90:heatpump": ["debug-device-selftests", "heatpump"]
     }
   }
 }

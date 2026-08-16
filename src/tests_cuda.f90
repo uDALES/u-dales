@@ -17,12 +17,15 @@ module tests_cuda
                         dxhci_d, dxfc_d, dxfci_d, dzhci_d, dzfc_d, dzfci_d, &
                         u0_d, v0_d, w0_d, um_d, vm_d, wm_d, e120_d, e12m_d, &
                         thl0_d, thlm_d, thl0c_d, qt0_d, qtm_d, sv0_d, svm_d, &
-                        thlp_d, thlpc_d, pup_d, up_d, u0driver_d
+                        thlp_d, thlpc_d, pup_d, up_d, u0driver_d, wp_d
    use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, &
-                         thl0, thlm, thl0c, qt0, qtm, sv0, svm
+                         thl0, thlm, thl0c, qt0, qtm, sv0, svm, thlp, wp
    use modglobal, only : ib, ie, jb, je, kb, ke, ih, jh, kh, nsv, &
-                         ihc, jhc, khc, dxhci, dxfc, dxfci, dyi, &
-                         dzhci, dzfc, dzfci, eps1
+                         ihc, jhc, khc, dxhci, dxfc, dxfci, dxi, dyi, &
+                         dzhci, dzfc, dzfci, dzfi, eps1, &
+                         lheatpump, lfan_hp, nhppoints, ltempeq
+   use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
+                           thl_dot_hp, w_hp_exhaust
    use modinletdata, only : u0driver
    use modmpi,   only : myid
 
@@ -55,6 +58,7 @@ contains
          call test_temperature_tendency_copy
          call test_driver_inlet_boundary
          call test_periodic_device_halos
+         call test_heatpump_scatter
          write(*,'(A,I0)') 'CUDA device self-tests passed. rank=', myid
       case ('', '0', 'false', 'FALSE', 'no', 'NO', 'off', 'OFF')
          return
@@ -867,6 +871,104 @@ contains
          svm_d = svm
       end if
    end subroutine restore_periodic_device_fields
+
+   !> Verify the heatpump OpenACC kernel writes the correct cells and no others.
+   subroutine test_heatpump_scatter
+      implicit none
+
+      integer, parameter :: test_i = 3, test_j = 3, test_k = 3
+      real,    parameter :: initial_thlp = 5., thl_dot = 0.25, w_exhaust = 0.75
+
+      logical :: saved_lheatpump, saved_ltempeq, saved_lfan_hp
+      integer :: saved_nhppoints, saved_nhppoints_local
+      real    :: saved_thl_dot, saved_w_exhaust
+      real, allocatable :: thlp_h(:,:,:), wm_h(:,:,:), w0_h(:,:,:), wp_h(:,:,:)
+      real    :: expected_thlp, tolerance
+      integer :: i, j, k
+
+      if (.not. allocated(thlp_d)) return
+
+      saved_lheatpump       = lheatpump
+      saved_ltempeq         = ltempeq
+      saved_lfan_hp         = lfan_hp
+      saved_nhppoints       = nhppoints
+      saved_nhppoints_local = nhppoints_local
+      saved_thl_dot         = thl_dot_hp
+      saved_w_exhaust       = w_hp_exhaust
+
+      lheatpump       = .true.
+      ltempeq         = .true.
+      lfan_hp         = .true.
+      nhppoints       = 1
+      nhppoints_local = 1
+      thl_dot_hp      = thl_dot
+      w_hp_exhaust    = w_exhaust
+      if (allocated(idhppts_local_d)) deallocate(idhppts_local_d)
+      allocate(idhppts_local_d(1, 3))
+      idhppts_local_d(1, 1) = test_i
+      idhppts_local_d(1, 2) = test_j
+      idhppts_local_d(1, 3) = test_k
+
+      thlp_d = initial_thlp
+      wm_d   = 0.
+      w0_d   = 0.
+      wp_d   = 0.
+
+      call heatpump
+      call checkCUDA(cudaDeviceSynchronize(), 'heatpump scatter self-test synchronization')
+
+      allocate(thlp_h(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      allocate(wm_h  (ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(w0_h  (ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(wp_h  (ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      thlp_h = thlp_d
+      wm_h   = wm_d
+      w0_h   = w0_d
+      wp_h   = wp_d
+
+      expected_thlp = initial_thlp - thl_dot * dxi * dyi * dzfi(test_k)
+      tolerance = 64. * epsilon(1.) * max(1., abs(expected_thlp))
+      if (abs(thlp_h(test_i, test_j, test_k) - expected_thlp) > tolerance) then
+         call fail_cuda_selftest('heatpump temperature tendency')
+      end if
+      do k = kb, ke
+         do j = jb, je
+            do i = ib, ie
+               if (i == test_i .and. j == test_j .and. k == test_k) cycle
+               if (abs(thlp_h(i,j,k) - initial_thlp) > tolerance) then
+                  call fail_cuda_selftest('heatpump temperature tendency side-effect')
+               end if
+            end do
+         end do
+      end do
+
+      tolerance = 64. * epsilon(1.) * max(1., abs(w_exhaust))
+      if (abs(wm_h(test_i, test_j, test_k+1) - w_exhaust) > tolerance) then
+         call fail_cuda_selftest('heatpump fan wm')
+      end if
+      if (abs(w0_h(test_i, test_j, test_k+1) - w_exhaust) > tolerance) then
+         call fail_cuda_selftest('heatpump fan w0')
+      end if
+      if (abs(wp_h(test_i, test_j, test_k+1)) > tolerance) then
+         call fail_cuda_selftest('heatpump fan wp zeroed')
+      end if
+
+      deallocate(wp_h, w0_h, wm_h, thlp_h)
+      deallocate(idhppts_local_d)
+
+      lheatpump       = saved_lheatpump
+      ltempeq         = saved_ltempeq
+      lfan_hp         = saved_lfan_hp
+      nhppoints       = saved_nhppoints
+      nhppoints_local = saved_nhppoints_local
+      thl_dot_hp      = saved_thl_dot
+      w_hp_exhaust    = saved_w_exhaust
+
+      thlp_d = thlp
+      wm_d   = wm
+      w0_d   = w0
+      wp_d   = wp
+   end subroutine test_heatpump_scatter
 
    !> Evaluate the device-only limiter for a compact vector of test inputs.
    attributes(global) subroutine evaluate_rlim_cuda(nvalues, d1, d2, result)

@@ -214,11 +214,11 @@ program uDALES
 
     call vegetation_forcing
 
-    call heatpump
-
 #if defined(_GPU)
     call updateDevicePriorPoiss
 #endif
+
+    call heatpump
 
     call scalsource     ! adds continuous forces in specified region of domain
 
