@@ -286,7 +286,7 @@ module modscalsource
       implicit none
       integer :: n,m,k
       real :: line_length2, minimum_sigma, relevant_dz, z_min, z_max
-      character :: cnsv
+      character(len=2) :: cnsv
       character(80) :: chmess
 
       if (lscasrc .and. nsv > 0 .and. nscasrc <= 0) then
@@ -306,8 +306,8 @@ module modscalsource
         ! read global scalar source locations
         if(myid==0) then
           do m=1,nsv
-            write (cnsv, '(i1.1)') m
-            open (ifinput,file='scalarsourcep.inp.'//cnsv//'.'//cexpnr)
+            write (cnsv, '(i2.1)') m
+            open (ifinput,file='scalarsourcep.inp.'//trim(adjustl(cnsv))//'.'//cexpnr)
             read (ifinput,'(a80)') chmess
             read (ifinput,'(a80)') chmess
             do n=1,nscasrc
@@ -377,8 +377,8 @@ module modscalsource
         ! read global scalar line source locations
         if(myid==0) then
           do m=1,nsv
-            write (cnsv, '(i1.1)') m
-            open (ifinput,file='scalarsourcel.inp.'//cnsv//'.'//cexpnr)
+            write (cnsv, '(i2.1)') m
+            open (ifinput,file='scalarsourcel.inp.'//trim(adjustl(cnsv))//'.'//cexpnr)
             read (ifinput,'(a80)') chmess
             read (ifinput,'(a80)') chmess
             do n=1,nscasrcl
