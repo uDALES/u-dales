@@ -30,8 +30,6 @@ ipoiss       = 0
 /
 
 &BC
-wtsurf       = 0.
-wqsurf       = 0.
 /
 
 &NAMSUBGRID

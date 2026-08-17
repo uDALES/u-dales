@@ -14,11 +14,9 @@ Determined by `BCtopm`. Possible values:
 
 ### Bottom
 
-NB: only relevant if the bottom of the domain is not covered by floor facets. Determined by `BCbotm`. Possible values:
+The bottom of the domain is always covered by ground facets, treated as immersed-boundary walls. The wall function is selected by `iwallmom` (see [Walls](#walls) below), with per-facet roughness given in `factypes.inp`.
 
-- 1: free slip, i.e. zero flux.
-- 2: flux given by wall function involving temperature.
-- 3: flux given by neutral wall function.
+The legacy flat-surface bottom BC keys (`BCbotm`, `BCbotT`, `BCbotq`, `BCbots`, `wtsurf`, `wqsurf`, `thls`, `qts`, `z0`, `z0h`, `wsvsurfdum`, `lbottom`) have been removed. The bottom boundary condition is now always given by ground facets; old namoptions files that still set these keys fail to parse (`stop 1` at the namelist read).
 
 ### Walls
 
@@ -56,10 +54,9 @@ Determined by `BCtopT`. Possible values:
 
 ### Bottom
 
-Determined by `BCbotT`. Possible values:
+The bottom of the domain is always covered by ground facets, treated as immersed-boundary walls. The wall function is selected by `iwalltemp` (see [Walls](#walls) below), with per-facet initial temperature given in `Tfacinit.inp`.
 
-- 1: constant flux given by `wtsurf`.
-- 2: flux given by wall function. Temperature of ghost cells below floor facets given by `thls`.
+The legacy flat-surface bottom BC keys (`BCbotm`, `BCbotT`, `BCbotq`, `BCbots`, `wtsurf`, `wqsurf`, `thls`, `qts`, `z0`, `z0h`, `wsvsurfdum`, `lbottom`) have been removed. The bottom boundary condition is now always given by ground facets; old namoptions files that still set these keys fail to parse (`stop 1` at the namelist read).
 
 ### Walls
 

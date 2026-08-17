@@ -34,6 +34,25 @@ module modmpi
 use mpi
 implicit none
 save
+
+  !> Written by the slab/column averaging routines into slabs that contain no
+  !! fluid cells, where no average exists. Also declared to readers as the NetCDF
+  !! `_FillValue` (modstat_nc), so those points are masked automatically: the two
+  !! must stay equal, or the marker stops being recognised as missing data and is
+  !! plotted as a number.
+  !!
+  !! The value is -999. for now only because the code depends on it being small.
+  !! It is a poor marker -- a pressure perturbation or a temperature could take
+  !! it -- but it is not confined to output: it reaches the thermodynamics, and
+  !! -999. is merely mild enough there to produce slightly wrong numbers instead
+  !! of a trap. Substituting -1e30 makes case 091 (raised terrain) die with a
+  !! divide-by-zero in fromztop, because th0av at the top ghost then cancels
+  !! exactly against the level below and thetah becomes 0. Changing the value
+  !! therefore means guarding every consumer first, or marking only at dump time.
+  !! Tracked for 3.0; do not simply swap the number. Note -1e-99 is not an option
+  !! either: the dumps are single precision, so it would underflow to -0.
+  real, parameter :: nodata = -999.
+
   integer comm3d
   !integer nbrtop
   integer nbrnorth
@@ -628,10 +647,11 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
     real    :: var(ib:ie,jb:je,kb:ke+kh)
     integer :: II(ib:ie,jb:je,kb:ke+kh)
     integer :: IIs(kb:ke+kh)
-    integer :: IId(kb:ke+kh)
     real    :: averl(kb:ke+kh)
     real    :: avers(kb:ke+kh)
     integer :: k
+    ! lnan is retained for interface stability (dozens of call sites); it
+    ! formerly toggled a kb fallback that has since been removed
     logical :: lnan
 
     averl       = 0.
@@ -641,23 +661,13 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
       averl(k) = sum(var(ib:ie,jb:je,k)*II(ib:ie,jb:je,k))
     enddo
 
-    IId = IIs
-
-    ! tg3315 22.03.19 - if not calculating stats and all blocks on lowest layer...
-    ! should not be necessary but value at kb is used in modthermo so reasonable value must
-    ! be assigned. Potentially should leave as before and only account for in modthermo...
-    if ((.not. lnan) .and. (IId(kb)==0)) then
-      averl(kb) = sum(var(ib:ie,jb:je,kb))
-      IId(kb) = IId(ke)
-    end if
-
     call MPI_ALLREDUCE(averl, avers, ke+kh-kb+1,  MY_REAL, &
                           MPI_SUM, comm3d,mpierr)
 
-    where (IId==0)
-      aver = -999.
+    where (IIs==0)
+      aver = nodata
     elsewhere
-      aver = avers/IId
+      aver = avers/IIs
     endwhere
 
     return
@@ -707,7 +717,7 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
   call MPI_ALLREDUCE(avero(ib:ie,kb:ke), aver(ib:ie,kb:ke), (ke-kb+1)*(ie-ib+1), MY_REAL,MPI_SUM, comm3d,mpierr)
 
   where (IIt==0)
-    aver = -999.
+    aver = nodata
   elsewhere
     aver = aver/IIt
   endwhere

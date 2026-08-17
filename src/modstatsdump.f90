@@ -533,7 +533,7 @@ contains
                                ltreedump
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
-  use modmpi,           only : myid,avey_ibm,&
+  use modmpi,           only : myid,avey_ibm,nodata,&
                                avexy_ibm
   use modsubgrid,       only : ekh,ekm
   use modstatistics,    only : genstats,tkestats
@@ -1019,13 +1019,13 @@ contains
           wpthlpyk = wthlyk - wy*thlyk
 
           where (IIwt==0)
-            wpthlpyk  = -999.0
+            wpthlpyk  = nodata
           endwhere
 
         end if
 
         where (IIuwt==0)
-          upwpyik    = -999.0
+          upwpyik    = nodata
         endwhere
 
       end if ! lydump
@@ -1458,6 +1458,35 @@ contains
           varsxyt(:,21) = vpvptxyc(kb:ke)
           varsxyt(:,22) = wpwptxyc(kb:ke)
           varsxyt(:,23) = tketxyc(kb:ke)
+
+          ! Mask write-time copies with the fluid-count mask that produced each
+          ! profile (see avexy_ibm calls above), so empty slabs are written as
+          ! the exact NetCDF _FillValue rather than relying on the nodata
+          ! marker surviving the time-averaging arithmetic.
+          call fill_empty_slabs_1d(varsxyt(:,1),  IIus(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,2),  IIvs(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,3),  IIws(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,4),  IIcs(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,5),  IIcs(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,6),  IIcs(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,7),  IIuws(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,8),  IIws(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,9),  IIvws(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,10), IIuvs(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,11), IIuws(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,12), IIws(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,13), IIuvs(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,14), IIvws(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,15), IIws(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,16), IIuws(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,17), IIws(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,18), IIvws(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,19), IIcs(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,20), IIcs(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,21), IIcs(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,22), IIcs(kb:ke))
+          call fill_empty_slabs_1d(varsxyt(:,23), IIcs(kb:ke))
+
           call writestat_1D_nc(ncidxyt,nstatxyt,ncstatxyt,varsxyt,nrecxyt,khigh-klow+1)
       end if !myid
     end if !lxytdump
@@ -1548,6 +1577,45 @@ contains
           varsyt(:,:,32) = sv1sgsyt(ib:ie,kb:ke)
           varsyt(:,:,33) = sv2sgsyt(ib:ie,kb:ke)
           varsyt(:,:,34) = sv3sgsyt(ib:ie,kb:ke)
+
+          ! Mask write-time copies with the fluid-count mask that produced each
+          ! profile (see avey_ibm calls above), so empty slabs are written as
+          ! the exact NetCDF _FillValue rather than relying on the nodata
+          ! marker surviving the time-averaging arithmetic.
+          call fill_empty_slabs_2d(varsyt(:,:,1),  IIut(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,2),  IIvt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,3),  IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,4),  IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,5),  IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,6),  IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,7),  IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,8),  IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,9),  IIuwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,10), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,11), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,12), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,13), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,14), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,15), IIuwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,16), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,17), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,18), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,19), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,20), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,21), IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,22), IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,23), IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,24), IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,25), IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,26), IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,27), IIct(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,28), IIuwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,29), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,30), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,31), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,32), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,33), IIwt(ib:ie,kb:ke))
+          call fill_empty_slabs_2d(varsyt(:,:,34), IIwt(ib:ie,kb:ke))
 
           call writestat_nc(ncidyt,nstatyt,ncstatyt,varsyt,nrecyt,imax,khigh-klow+1)
         end if !myid
@@ -1708,14 +1776,30 @@ contains
         if (myid == 0) then
           call writestat_nc(ncidtke,1,tncstattke,(/timee/),nrectke,.true.)
           allocate(varstke(khigh-klow+1,nstattke))
-          varstke(:,1) = p_b(kb:ke+kh)
-          varstke(:,2) = t_p(kb:ke+kh)
-          varstke(:,3) = adv(kb:ke+kh)
-          varstke(:,4) = t_t(kb:ke+kh)
-          varstke(:,5) = t_sgs(kb:ke+kh)
-          varstke(:,6) = p_t(kb:ke+kh)
-          varstke(:,7) = t_v(kb:ke+kh)
-          varstke(:,8) = d_sgs(kb:ke+kh)
+          ! (kb:ke, not kb:ke+kh: varstke's first dimension is khigh-klow+1
+          ! = ke-kb+1, so the historical +kh slices were nonconforming)
+          varstke(:,1) = p_b(kb:ke)
+          varstke(:,2) = t_p(kb:ke)
+          varstke(:,3) = adv(kb:ke)
+          varstke(:,4) = t_t(kb:ke)
+          varstke(:,5) = t_sgs(kb:ke)
+          varstke(:,6) = p_t(kb:ke)
+          varstke(:,7) = t_v(kb:ke)
+          varstke(:,8) = d_sgs(kb:ke)
+
+          ! All tke budget profiles above are produced by avexy_ibm calls in
+          ! tkestatsdump keyed on IIc/IIcs (see p_b, t_p, adv, t_t, t_sgs,
+          ! p_t, d_sgs, t_v). Mask the write-time copy the same way empty
+          ! slabs in the xyt/yt blocks are masked.
+          call fill_empty_slabs_1d(varstke(:,1), IIcs(kb:ke))
+          call fill_empty_slabs_1d(varstke(:,2), IIcs(kb:ke))
+          call fill_empty_slabs_1d(varstke(:,3), IIcs(kb:ke))
+          call fill_empty_slabs_1d(varstke(:,4), IIcs(kb:ke))
+          call fill_empty_slabs_1d(varstke(:,5), IIcs(kb:ke))
+          call fill_empty_slabs_1d(varstke(:,6), IIcs(kb:ke))
+          call fill_empty_slabs_1d(varstke(:,7), IIcs(kb:ke))
+          call fill_empty_slabs_1d(varstke(:,8), IIcs(kb:ke))
+
           call writestat_1D_nc(ncidtke,nstattke,ncstattke,varstke,nrectke,khigh-klow+1)
         end if !myid
       endif !ltkedump
@@ -1804,7 +1888,7 @@ contains
   use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,&
                                dzfi,dzhi,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
   use modmpi,           only : avey_ibm,excjs,avexy_ibm
-  use modsurfdata,      only : thls
+  use modbasestate,     only : thv_b, kps
   use decomp_2d,        only : exchange_halo_z
   implicit none
 
@@ -2123,7 +2207,7 @@ contains
                               - 0.5*(ttmy(i,j,k) + ttmy(i,jp,k))        &
                               - 0.5*(ttmz(i,j,k) + ttmz(i,j,kp))
 
-             p_bav(i,j,k)   = (grav/thls)*0.5*(thlpwpav(i,j,k)+thlpwpav(i,j,kp)) !use of thls here...????
+             p_bav(i,j,k)   = (grav/thv_b(kps))*0.5*(thlpwpav(i,j,k)+thlpwpav(i,j,kp)) ! Boussinesq reference at the pressure-anchor level (lowest fluid slab)
 
           end do
         end do
@@ -2140,6 +2224,32 @@ contains
      call avexy_ibm(t_v(kb:ke+kh),t_vav(:,:,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc,IIcs,.true.)
 
    end subroutine tkestatsdump
+
+  !-------------------------
+  !> Output-side missing-data contract: at write time, overwrite slabs whose
+  !! producing fluid-count mask is zero with the exact NetCDF _FillValue.
+  !! This is applied only to the local packed/write copy of a profile
+  !! (e.g. varsxyt, varsyt, varstke), never to the time-accumulator arrays
+  !! themselves (e.g. uxyt), which keep evolving across dump intervals.
+  !-------------------------
+
+  subroutine fill_empty_slabs_1d(profile, counts)
+    use modstat_nc, only : nc_fillvalue
+    implicit none
+    real,    intent(inout) :: profile(:)
+    integer, intent(in)    :: counts(:)
+
+    where (counts == 0) profile = real(nc_fillvalue)
+  end subroutine fill_empty_slabs_1d
+
+  subroutine fill_empty_slabs_2d(profile, counts)
+    use modstat_nc, only : nc_fillvalue
+    implicit none
+    real,    intent(inout) :: profile(:,:)
+    integer, intent(in)    :: counts(:,:)
+
+    where (counts == 0) profile = real(nc_fillvalue)
+  end subroutine fill_empty_slabs_2d
 
   !-------------------------
   !> Clean up when leaving the run

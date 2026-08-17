@@ -40,7 +40,7 @@ module modforces
   private
   public :: forces, coriolis, lstend,fixuinf1,fixuinf2,fixthetainf,&
             detfreestream,detfreestrtmp,nudge,&
-            masscorr,uoutletarea,voutletarea,fluidvolume,calcfluidvolumes,shiftedPBCs, periodicEBcorr
+            masscorr,uoutletarea,voutletarea,calcfluidvolumes,shiftedPBCs, periodicEBcorr
   contains
 
   subroutine forces
@@ -72,8 +72,6 @@ module modforces
 
 
     if (lbuoyancy ) then
-    !ILS13 replace thvsi by thvh
-    ! thvsi = 1./thvsi
 
        do k=kb+1,ke
           do j=jb,je
@@ -328,7 +326,7 @@ module modforces
   subroutine masscorr
     !> correct the velocities to get prescribed flow rate
 
-    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzf,dxf,dy,zh,dt,rk3step,&
+    use modglobal, only : ib,ie,jb,je,kb,ke,kh,dzf,dxf,dy,dt,rk3step,&
                           uflowrate,vflowrate,linoutflow,&
                           luoutflowr,lvoutflowr,luvolflowr,lvvolflowr
     use modfields, only : um,up,vm,vp,uouttot,udef,vdef,&
@@ -404,9 +402,13 @@ module modforces
       call avexy_ibm(uvol(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
       call avexy_ibm(uvolold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
 
-      ! average over fluid volume
-      uoutflow = rk3coef*sum(uvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
-      uflowrateold =  sum(uvolold(kb:ke)*dzf(kb:ke)) / zh(ke+1)
+      ! fluid-volume mean: sum_k [slab-sum * dzf] / sum_k [fluid-count * dzf];
+      ! IIus(k)==0 slabs contribute zero by construction, so avexy_ibm's nodata
+      ! marker is never read
+      uoutflow     = rk3coef*sum(uvol(kb:ke)*real(IIus(kb:ke))*dzf(kb:ke), mask=IIus(kb:ke)>0) &
+                     / sum(real(IIus(kb:ke))*dzf(kb:ke))
+      uflowrateold = sum(uvolold(kb:ke)*real(IIus(kb:ke))*dzf(kb:ke), mask=IIus(kb:ke)>0) &
+                     / sum(real(IIus(kb:ke))*dzf(kb:ke))
 
       ! flow correction to match outflow rate
       udef = uflowrate - (uoutflow + uflowrateold)
@@ -438,8 +440,8 @@ module modforces
       !       voutold(k) = sum(vm(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at previous time step
       !    end do
       ! end if
-      call sumy_ibm(vout,vp(ib:je,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v tendency at previous time step
-      call sumy_ibm(voutold,vm(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v at previous time step
+      call sumx_ibm(vout,vp(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v tendency at previous time step
+      call sumx_ibm(voutold,vm(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v at previous time step
 
       ! integrate v in z
       do k=kb,ke
@@ -478,9 +480,13 @@ module modforces
       call avexy_ibm(vvol(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
       call avexy_ibm(vvolold(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
 
-      ! average over fluid volume
-      voutflow = rk3coef*sum(vvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
-      vflowrateold =  sum(vvolold(kb:ke)*dzf(kb:ke)) / zh(ke+1)
+      ! fluid-volume mean: sum_k [slab-sum * dzf] / sum_k [fluid-count * dzf];
+      ! IIvs(k)==0 slabs contribute zero by construction, so avexy_ibm's nodata
+      ! marker is never read
+      voutflow     = rk3coef*sum(vvol(kb:ke)*real(IIvs(kb:ke))*dzf(kb:ke), mask=IIvs(kb:ke)>0) &
+                     / sum(real(IIvs(kb:ke))*dzf(kb:ke))
+      vflowrateold = sum(vvolold(kb:ke)*real(IIvs(kb:ke))*dzf(kb:ke), mask=IIvs(kb:ke)>0) &
+                     / sum(real(IIvs(kb:ke))*dzf(kb:ke))
 
       ! flow correction to match outflow rate
       vdef = vflowrate - (voutflow + vflowrateold)
@@ -546,42 +552,11 @@ module modforces
 
   end subroutine voutletarea
 
-  subroutine fluidvolume(volume)
-    ! calculates fluid volume of domain excluding blocks
-
-    use modglobal, only   : ib,ie,jb,je,kb,ke,kh,dy,dxf,dzf
-    use modfields, only   : IIc, IIcs
-    use modmpi, only      : sumy_ibm, avexy_ibm
-
-    implicit none
-    real, intent(out)             :: volume
-    real, dimension(ib:ie,kb:ke)  :: sumy
-    real, dimension(kb:ke+kh)        :: sumxy
-
-    sumy = 0.
-    sumxy = 0.
-
-    ! ! integrate fluid volume in y
-    ! call sumy_ibm(sumy,IIc(ib:ie,jb:je,kb:ke)*dy,ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke))
-    !
-    ! ! integrate fluid area in x
-    ! do k=kb,ke
-    !   sumxy(k) = sum(sumy(ib:ie,k)*dxf(ib:ie))
-    ! end do
-
-    ! Equidistant x
-    call avexy_ibm(sumxy(kb:ke+kh),IIc(ib:ie,jb:je,kb:ke+kh)*dxf(1)*dy,ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-
-    ! integrate fluid area in z
-    volume = sum(sumxy(kb:ke)*dzf(kb:ke))
-
-  end subroutine fluidvolume
-
   subroutine calcfluidvolumes
-    !> calculates fluid volume and outlet areas, excluding blocks
-    !> and saves it to variables from modfields
+    !> calculates outlet areas, excluding blocks
+    !> and saves them to variables from modfields
 
-    use modfields, only : uoutarea, voutarea, fluidvol
+    use modfields, only : uoutarea, voutarea
     implicit none
     real :: volume
 
@@ -591,9 +566,6 @@ module modforces
     ! calculate outlet area
     call voutletarea(volume)
     voutarea = volume
-    ! calculate fluid volume
-    call fluidvolume(volume)
-    fluidvol = volume
 
   end subroutine calcfluidvolumes
 

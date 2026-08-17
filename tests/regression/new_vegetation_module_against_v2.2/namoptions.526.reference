@@ -50,8 +50,6 @@ BCxm         = 1
 BCxT         = 1
 BCxq         = 1
 BCtopm       = 3
-z0           = 0.01
-z0h          = 0.000067
 /
 
 &WALLS

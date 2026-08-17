@@ -49,8 +49,6 @@ lvreman      = .true.
 &BC
 BCxm         = 3
 BCtopm       = 3
-z0           = 0.01
-z0h          = 0.000067
 /
 
 &WALLS

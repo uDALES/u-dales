@@ -41,11 +41,8 @@ iadv_qt      = 2
 /
 
 &BC
-wtsurf       = 0.
-wqsurf       = 0.
 thl_top      = 288.
 qt_top       = 0.0
-qts          = 0.0
 /
 
 &NAMSUBGRID

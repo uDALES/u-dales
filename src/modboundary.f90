@@ -27,17 +27,28 @@ module modboundary
    save
    private
    public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, bcp, bcpup, closurebc, &
-             xm_periodic, xT_periodic, xq_periodic, xs_periodic, ym_periodic, yT_periodic, yq_periodic, ys_periodic
+             xm_periodic, xT_periodic, xq_periodic, xs_periodic, ym_periodic, yT_periodic, yq_periodic, ys_periodic, &
+             thl_top, qt_top, wttop, wqtop, sv_top, wsvtop, wsvtopdum, ubulk, vbulk
    integer :: ksp = -1 !<    lowest level of sponge layer
    real, allocatable :: tsc(:) !<   damping coefficients to be used in grwdamp.
    real :: rnu0 = 2.75e-3
+
+   ! Top-boundary prescribed conditions (previous isurf 2, 3 and 4)
+   real              :: thl_top  = -1.    !<  Liquid water potential temperature [K] at top wall
+   real              :: qt_top   = -1.    !<  Specific humidity [kg/kg] at top wall
+   real              :: wttop    = 0.     !<  Kinematic temperature flux at top wall [K m/s]
+   real              :: wqtop    = 0.     !<  Kinematic moisture flux at top wall [kg/kg m/s]
+   real, allocatable :: sv_top (:)        !<  Top scalar concentrations
+   real, allocatable :: wsvtop (:)        !<  Kinematic scalar flux at top wall [- m/s]
+   real :: wsvtopdum(1:99) = 0. !<  Dummy variable as nsv allocated variable
+   real :: ubulk=0.   !< Bulk velocity (to be determined at first time step)
+   real :: vbulk=0.   !< Bulk velocity (to be determined at first time step)
 contains
    !>
    !! Initializing Boundary; specifically the sponge layer
    !>
    subroutine initboundary
-      use modglobal,    only : ib, kb, ke, kh, kmax, pi, zf, iplane
-      use modinletdata, only : irecy
+      use modglobal,    only : kb, ke, kh, kmax, pi, zf
       implicit none
 
       real    :: zspb, zspt
@@ -57,7 +68,6 @@ contains
          tsc(k) = rnu0*sin(0.5*pi*(zf(k) - zspb)/(zspt - zspb))**2
       end do
       tsc(ke + 1) = tsc(ke)
-      irecy = ib + iplane
 
    end subroutine initboundary
 
@@ -113,7 +123,7 @@ contains
    !! Set boundary conditions for the next timestep
    ! Will result in velocity field being not divergence-free
    subroutine boundary
-      use modglobal,      only : kb, ke, khc, dzf, zh, nsv, &
+      use modglobal,      only : ib, ie, jb, je, kb, ke, khc, dxf, dy, dzf, zh, nsv, &
                                  ltempeq, lmoist, luvolflowr, luoutflowr, &
                                  BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT, BCtopq, BCtops, &
                                  BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
@@ -127,34 +137,40 @@ contains
                                  ibrank, ierank, jbrank, jerank, e12min, idriver, &
                                  Uinf, Vinf, &
                                  rk3step, lchunkread
-      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, u0av, v0av, uouttot, vouttot, thl0c
+      use modfields,      only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, e120, e12m, &
+                                 uouttot, vouttot, thl0c, IIu, IIv, uoutarea, voutarea
       use modsubgriddata, only : ekh, ekm, loneeqn
-      use modsurfdata,    only : thl_top, qt_top, sv_top, wttop, wqtop, wsvtop
-      use modmpi,         only : slabsum, avey_ibm
-      use moddriver,      only : drivergen, driverchunkread
-      use modinletdata,   only : ubulk, vbulk
+      use modmpi,         only : slabsum, avey_ibm, sumy_ibm, sumx_ibm
+      use inflow,         only : drivergen, driverchunkread
       use decomp_2d,      only : exchange_halo_z
 
       implicit none
-      real, dimension(kb:ke) :: uaverage, vaverage
+      real, dimension(kb:ke) :: uout, vout
       integer k, n
 
      ! if not using massflowrate need to set outflow velocity
      if (luoutflowr) then
         ! do nothing - calculated in modforces
      elseif (.not. luvolflowr) then
-        !ubulk = sum(u0av)/(ke-kb+1)
-        do k = kb, ke
-           uaverage(k) = u0av(k)*dzf(k)
-        end do
+        ! bulk velocity through the outlet plane, integrated over the open
+        ! (fluid) area only: fully-solid slabs contribute zero to a sum, so
+        ! no nodata marker can appear, and slabs are weighted by their actual
+        ! open area, not their full thickness
+        uout = 0.; vout = 0.
+        call sumy_ibm(uout, u0(ie,jb:je,kb:ke)*dy, ie, ie, jb, je, kb, ke, IIu(ie,jb:je,kb:ke))
+        call sumx_ibm(vout, v0(ib:ie,je,kb:ke)*dxf(1), ib, ie, je, je, kb, ke, IIv(ib:ie,je,kb:ke))
 
-        do k = kb, ke
-           vaverage(k) = v0av(k)*dzf(k)
-        end do
-        ! need a method to know if we have all blocks at lowest cell kb
-        ! assuming this for now (hence kb+1)
-        uouttot = sum(uaverage(kb:ke))/(zh(ke + 1) - zh(kb+1))
-        vouttot = sum(vaverage(kb:ke))/(zh(ke + 1) - zh(kb+1))
+        if (uoutarea > 0.) then
+           uouttot = sum(uout(kb:ke)*dzf(kb:ke))/uoutarea
+        else
+           uouttot = 0. ! fully blocked outlet plane
+        end if
+
+        if (voutarea > 0.) then
+           vouttot = sum(vout(kb:ke)*dzf(kb:ke))/voutarea
+        else
+           vouttot = 0. ! fully blocked outlet plane
+        end if
      else
         uouttot = ubulk
         vouttot = vbulk
@@ -396,7 +412,6 @@ contains
                                BCtopT_flux, BCtopq_flux, BCtops_flux
     use modfields,      only : u0, v0, um, vm, thl0, thlm, qt0, qtm
     use modsubgriddata, only : ekh, ekm
-    use modsurfdata,    only : wttop, wqtop, wsvtop
     implicit none
 
     select case(BCtopm)
@@ -433,6 +448,7 @@ contains
 
    subroutine closurebc
      use modsubgriddata, only : ekm, ekh
+     use modfields,      only : e120, e12m
      use modglobal,      only : ib, ie, jb, je, kb, ke, numol, prandtlmoli, &
                                 ibrank, ierank, jbrank, jerank, BCtopm, BCxm, BCym, &
                                 BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
@@ -463,6 +479,13 @@ contains
          end do
        end do
      end if
+
+     ! e12 ghost at kb-1: zero-gradient mirror for the TKE diffusion stencil at kb.
+     ! Relocated from the retired flat-surface scheme; setting it here makes the
+     ! value current within the same subgrid evaluation (previously one step stale,
+     ! set in subroutine bottom after diffe had already consumed it).
+     e120(:, :, kb - 1) = e120(:, :, kb)
+     e12m(:, :, kb - 1) = e12m(:, :, kb)
 
      if (BCxm .ne. BCxm_periodic) then ! inflow/outflow
        if (ibrank) then
@@ -526,14 +549,14 @@ contains
          vm(ie + m, :, :) = vm(ib - 1 + m, :, :)
          wm(ib - m, :, :) = wm(ie + 1 - m, :, :)
          wm(ie + m, :, :) = wm(ib - 1 + m, :, :)
-      end do
 
-      if (loneeqn) then
-         e120(ib - m, :, :) = e120(ie + 1 - m, :, :)
-         e120(ie + m, :, :) = e120(ib - 1 + m, :, :)
-         e12m(ib - m, :, :) = e12m(ie + 1 - m, :, :)
-         e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
-      end if
+         if (loneeqn) then
+            e120(ib - m, :, :) = e120(ie + 1 - m, :, :)
+            e120(ie + m, :, :) = e120(ib - 1 + m, :, :)
+            e12m(ib - m, :, :) = e12m(ie + 1 - m, :, :)
+            e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
+         end if
+      end do
 
       return
    end subroutine xm_periodic
@@ -614,14 +637,14 @@ contains
          vm(:, je + m, :) = vm(:, jb - 1 + m, :)
          wm(:, jb - m, :) = wm(:, je + 1 - m, :)
          wm(:, je + m, :) = wm(:, jb - 1 + m, :)
-      end do
 
-      if (loneeqn) then
-        e120(:, jb - m, :) = e120(:, je + 1 - m, :)
-        e120(:, je + m, :) = e120(:, jb - 1 + m, :)
-        e12m(:, jb - m, :) = e12m(:, je + 1 - m, :)
-        e12m(:, je + m, :) = e12m(:, jb - 1 + m, :)
-      end if
+         if (loneeqn) then
+           e120(:, jb - m, :) = e120(:, je + 1 - m, :)
+           e120(:, je + m, :) = e120(:, jb - 1 + m, :)
+           e12m(:, jb - m, :) = e12m(:, je + 1 - m, :)
+           e12m(:, je + m, :) = e12m(:, jb - 1 + m, :)
+         end if
+      end do
 
       return
    end subroutine ym_periodic
@@ -719,7 +742,7 @@ contains
 
      subroutine xmi_driver
        use modglobal,      only : ib, jb, je, kb, ke
-       use modinletdata,   only : u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver
+       use inflow,         only : u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver
        use modfields,      only : u0, um, v0, vm, w0, wm, e120, e12m
        use modsubgriddata, only : loneeqn
 
@@ -795,7 +818,7 @@ contains
 
      subroutine xTi_driver
        use modglobal,    only : ib, jb, je, kb, ke
-       use modinletdata, only : thl0driver, thlmdriver
+       use inflow, only : thl0driver, thlmdriver
        use modfields,    only : thl0, thlm
        integer j, k
 
@@ -826,7 +849,7 @@ contains
 
    subroutine xqi_driver
      use modglobal,    only : ib, jb, je, kb, ke
-     use modinletdata, only : qt0driver, qtmdriver
+     use inflow, only : qt0driver, qtmdriver
      use modfields,    only : qt0, qtm
 
      integer j, k
@@ -886,7 +909,7 @@ contains
 
    subroutine xsi_driver
      use modglobal,    only : ib, ihc, jb, je, kb, ke, nsv
-     use modinletdata, only : sv0driver, svmdriver
+     use inflow, only : sv0driver, svmdriver
      use modfields,    only : sv0, svm
 
      integer j, k, n, m
@@ -1197,7 +1220,7 @@ contains
                               BCym_periodic, BCym_profile
      use modfields,    only : pres0, up, vp, wp, um, vm, wm, u0, v0, uouttot, vouttot, uprof, vprof, pres0, IIc, IIcs
      use modmpi,       only : excjs, excis, avexy_ibm
-     use modinletdata, only : u0driver
+     use inflow, only : u0driver
      use decomp_2d,    only : exchange_halo_z
 
      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup
@@ -1233,6 +1256,9 @@ contains
 
      case(BCtopm_pressure)
        call avexy_ibm(pres0ij(kb:ke+kh),pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+       ! fully-solid slab: zero fill instead of the nodata marker
+       ! (only pres0ij(ke), the domain-top slab, is used below)
+       if (IIcs(ke) == 0) pres0ij(ke) = 0.
 
        do j = jb, je
          do i = ib, ie

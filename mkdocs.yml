@@ -100,6 +100,7 @@ nav:
   - Simulation inputs:
     - List of input parameters: udales-namoptions-overview.md
     - Boundary conditions: udales-boundary-conditions.md
+    - Base state and bulk flow: udales-base-state.md
     - Geometry generation: udales-geometry-tutorial.md
     - Copying from other simulations: udales-copy-inputs.md
     - Precursor simulations: udales-driver-simulations.md

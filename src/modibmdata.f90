@@ -50,7 +50,6 @@ module modibmdata
 
     !
     real                 :: sumctm=0.
-    real                 :: bcTfluxA=0. 
     real                 :: bcqfluxA=0.
     !fluxes for temperature and humidity at immersed boundaries
     real                 :: bctfxm=0.

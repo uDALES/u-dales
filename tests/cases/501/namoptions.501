@@ -1,0 +1,89 @@
+&RUN
+iexpnr       = 501
+runtime      = 4
+trestart     = 1000
+dtmax        = 0.25
+irandom      = 43
+randqt       = 2.5e-5
+randthl      = 0.001
+randu        = 0.01
+ladaptive    = .true.
+libm         = .true.
+nprocx       = 1
+nprocy       = 2
+/
+
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 4.
+fieldvars    = 'u0,v0,w0,th'
+ltdump       = .true.
+tstatsdump   = 2.
+tsample      = 1.
+/
+
+&DOMAIN
+itot         = 8
+jtot         = 8
+ktot         = 8
+xlen         = 8
+ylen         = 8
+/
+
+&PHYSICS
+lbuoyancy    = .true.
+ltempeq      = .true.
+lmoist       = .true.
+ps           = 101500.00
+igrw_damp    = 0
+/
+
+&DYNAMICS
+iadv_thl     = 2
+iadv_qt      = 2
+ipoiss       = 0
+lfftwmeasure = .false.
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&BC
+thl_top      = 288.
+qt_top       = 0.0
+/
+
+&WALLS
+nfcts        = 128
+nsolpts_u    = 0
+nsolpts_v    = 0
+nsolpts_w    = 64
+nsolpts_c    = 0
+nbndpts_u    = 64
+nbndpts_v    = 64
+nbndpts_w    = 64
+nbndpts_c    = 64
+nfctsecs_u   = 240
+nfctsecs_v   = 240
+nfctsecs_w   = 0
+nfctsecs_c   = 128
+iwallmom     = 2
+iwalltemp    = 2
+/
+
+&DRIVER
+idriver      = 1
+tdriverstart = 1.
+dtdriver     = 0.5
+driverstore  = 5
+iplane       = 8
+/
+
+&INPS
+zsize        = 8
+u0           = 2
+dpdx         = 0.0001
+stl_ground   = .true.
+stl_file     = 'geom.501.STL'
+/
