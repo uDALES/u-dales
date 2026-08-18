@@ -33,6 +33,7 @@
       "top-flux-noslip",
       "chemistry",
       "ibm-scalar-wall",
+      "ibm-reconstruction",
       "vegetation",
       "surface-energy-balance",
       "heatpump"
@@ -59,6 +60,7 @@
       "top-flux-noslip",
       "chemistry",
       "ibm-scalar-wall",
+      "ibm-reconstruction",
       "vegetation",
       "surface-energy-balance",
       "heatpump",
@@ -265,6 +267,17 @@
       "coverage": ["immersed-boundary", "iomomflux", "iotflux", "obcTfluxA", "scalar-extended-halos", "scalar-line-source"],
       "namelist_assertions": {"nsv": 1, "lscasrcl": true, "nscasrcl": 1},
       "timeout_seconds": 600
+    },
+    {
+      "name": "ibm-reconstruction",
+      "case_id": 100,
+      "base_case": "tests/cases/100",
+      "namelist": "tests/integration/gpu/namelists/namoptions.100.ibm-reconstruction",
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["immersed-boundary", "ibm-wall-function-reconstruction", "ibm-cell-index"],
+      "namelist_assertions": {"libm": true, "iwallmom": 2},
+      "timeout_seconds": 900
     },
     {
       "name": "vegetation",

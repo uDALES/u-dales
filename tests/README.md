@@ -316,6 +316,21 @@ python tests/run_tests.py python-library
 python tests/integration/gpu/run_gpu_tests.py full --validate-config
 ```
 
+Run the supported stream against that Debug build to exercise the compiled
+solver, including the in-solver runmode tests that the Python stream above does
+not reach. Keep the virtual environment activated: the dispatcher launches each
+suite with the interpreter that started it, so running this outside the
+environment fails on missing dependencies rather than on the code being tested.
+
+```bash
+python tests/run_tests.py supported
+```
+
+The branch-comparison regression inside this selection compares committed
+revisions, so it is only meaningful once the changes are committed. The
+`Before pushing` step below repeats the selection with explicit `--branch-a`
+and `--branch-b` for that reason.
+
 For solver or GPU-related changes, also validate every committed GPU-suite
 fixture with the CPU executable:
 

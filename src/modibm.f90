@@ -27,7 +27,7 @@ module modibm
    !use wf_uno
    implicit none
    save
-   public :: initibm, ibmnorm, ibmwallfun, bottom, createmasks, &
+   public :: initibm, ibmnorm, ibmwallfun, bottom, createmasks, cell_index, &
              nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
              nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
              nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
@@ -126,6 +126,31 @@ module modibm
    real, allocatable :: fac_cth_av(:)
 
    contains
+
+   !> Index of the cell containing coordinate p on a monotonically increasing grid.
+   !!
+   !! Returns the position (1-based, as the grid arrays all start at index 1) of the
+   !! last element of `grid` that p is greater than or equal to, and 0 when p lies
+   !! below grid(1). This is the same result as
+   !!     findloc(p >= grid, .true., 1, back=.true.)
+   !! which is how it used to be written. Because `grid` is monotonically increasing,
+   !! the mask (p >= grid) is .true. for a leading run of elements only, so the last
+   !! .true. position is simply the number of .true. values and count() is exact.
+   !!
+   !! count() is used rather than findloc() because the NVHPC runtime does not
+   !! implement FINDLOC for logical arrays - a GPU build aborts at run time with
+   !! "FINDLOC: unimplemented for data type" the first time this line is reached.
+   !! That only happens for geometries with facet sections close enough to a wall to
+   !! need full reconstruction, which is why it went unnoticed on grid-aligned cases.
+   !!
+   !! The monotonicity requirement is asserted by tests_ibm_cell_lookup.
+   pure integer function cell_index(p, grid)
+     real, intent(in) :: p
+     real, intent(in) :: grid(:)
+
+     cell_index = count(p >= grid)
+
+   end function cell_index
 
    subroutine initibm
      use modglobal, only : libm, xhat, yhat, zhat, vec0, &
@@ -431,21 +456,21 @@ module modibm
            end if
 
            ! find which cell the point lies in
-           bound_info%recids_u(n,1) = findloc(bound_info%recpts(n,1) >= xh, .true., 1, back=.true.)
-           bound_info%recids_u(n,2) = findloc(bound_info%recpts(n,2) >= yf, .true., 1, back=.true.)
-           bound_info%recids_u(n,3) = findloc(bound_info%recpts(n,3) >= zf, .true., 1, back=.true.)
+           bound_info%recids_u(n,1) = cell_index(bound_info%recpts(n,1), xh)
+           bound_info%recids_u(n,2) = cell_index(bound_info%recpts(n,2), yf)
+           bound_info%recids_u(n,3) = cell_index(bound_info%recpts(n,3), zf)
 
-           bound_info%recids_v(n,1) = findloc(bound_info%recpts(n,1) >= xf, .true., 1, back=.true.)
-           bound_info%recids_v(n,2) = findloc(bound_info%recpts(n,2) >= yh, .true., 1, back=.true.)
-           bound_info%recids_v(n,3) = findloc(bound_info%recpts(n,3) >= zf, .true., 1, back=.true.)
+           bound_info%recids_v(n,1) = cell_index(bound_info%recpts(n,1), xf)
+           bound_info%recids_v(n,2) = cell_index(bound_info%recpts(n,2), yh)
+           bound_info%recids_v(n,3) = cell_index(bound_info%recpts(n,3), zf)
 
-           bound_info%recids_w(n,1) = findloc(bound_info%recpts(n,1) >= xf, .true., 1, back=.true.)
-           bound_info%recids_w(n,2) = findloc(bound_info%recpts(n,2) >= yf, .true., 1, back=.true.)
-           bound_info%recids_w(n,3) = findloc(bound_info%recpts(n,3) >= zh, .true., 1, back=.true.)
+           bound_info%recids_w(n,1) = cell_index(bound_info%recpts(n,1), xf)
+           bound_info%recids_w(n,2) = cell_index(bound_info%recpts(n,2), yf)
+           bound_info%recids_w(n,3) = cell_index(bound_info%recpts(n,3), zh)
 
-           bound_info%recids_c(n,1) = findloc(bound_info%recpts(n,1) >= xf, .true., 1, back=.true.)
-           bound_info%recids_c(n,2) = findloc(bound_info%recpts(n,2) >= yf, .true., 1, back=.true.)
-           bound_info%recids_c(n,3) = findloc(bound_info%recpts(n,3) >= zf, .true., 1, back=.true.)
+           bound_info%recids_c(n,1) = cell_index(bound_info%recpts(n,1), xf)
+           bound_info%recids_c(n,2) = cell_index(bound_info%recpts(n,2), yf)
+           bound_info%recids_c(n,3) = cell_index(bound_info%recpts(n,3), zf)
 
            ! check to see if recids is inside the domain
            if (bound_info%recids_u(n,1) < ib .or. bound_info%recids_u(n,1)+1 > itot+ih .or. &

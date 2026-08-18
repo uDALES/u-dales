@@ -35,7 +35,7 @@ program uDALES
   use tests_cuda,        only : run_cuda_selftests_if_requested
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -67,7 +67,7 @@ program uDALES
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
-  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators
+  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup
   implicit none
 
   real    :: stime
@@ -308,6 +308,8 @@ contains
         test_failed = .not. tests_read_sparse_ijk()
       case (TEST_MPI_OPERATORS)
         test_failed = .not. tests_mpi_operators()
+      case (TEST_IBM_CELL_LOOKUP)
+        test_failed = .not. tests_ibm_cell_lookup()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

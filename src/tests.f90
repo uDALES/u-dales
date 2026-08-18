@@ -19,7 +19,8 @@ module tests
 
   implicit none
   save
-  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators
+  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, &
+            tests_ibm_cell_lookup
 
 contains
 
@@ -427,5 +428,262 @@ contains
     end function compare_real_2d_jk
 
   end function tests_mpi_operators
+
+  !> Validate the grid-cell lookup used by the IBM wall-function reconstruction.
+  !!
+  !! modibm::cell_index locates the cell containing a reconstruction point with
+  !!     count(p >= grid)
+  !! which is only equivalent to the backward search it replaced
+  !!     findloc(p >= grid, .true., 1, back=.true.)
+  !! when `grid` is monotonically increasing and fully initialised over its whole
+  !! declared extent. (findloc is not used because the NVHPC runtime aborts on
+  !! logical arrays with "FINDLOC: unimplemented for data type".)
+  !!
+  !! This test therefore checks three things:
+  !!   1. the precondition - every grid array really is strictly increasing across
+  !!      its full extent, including the halo elements, so no uninitialised entry
+  !!      can break the leading-run property that count() relies on;
+  !!   2. the equivalence - cell_index agrees with an explicit backward search on a
+  !!      probe sweep covering below-first, on-node, one ULP either side of a node,
+  !!      midpoint, and above-last positions;
+  !!   3. the real path - every reconstruction point produced by initibm for the
+  !!      loaded case resolves to the same indices as the backward search.
+  !!
+  !! Step 3 only means anything on a geometry that actually enters the
+  !! reconstruction branch, so the test fails if it finds no such sections rather
+  !! than reporting a vacuous pass. Run it against a case with non-grid-aligned or
+  !! near-wall facets (tests/cases/100).
+  !! Returns .true. if all checks pass, .false. otherwise.
+  logical function tests_ibm_cell_lookup()
+    use modglobal, only : runmode, xh, xf, yh, yf, zh, zf
+    use modibm,    only : initibm, bound_info_u, bound_info_v, bound_info_w, bound_info_c
+    use initfac,   only : readfacetfiles
+
+    implicit none
+
+    logical :: all_passed
+    integer :: nrec, nrec_total
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_ibm_cell_lookup: IBM CELL LOOKUP TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    all_passed = .true.
+
+    ! 1. Precondition: grid arrays strictly increasing over their full extent.
+    if (.not. check_monotonic('xh', xh)) all_passed = .false.
+    if (.not. check_monotonic('xf', xf)) all_passed = .false.
+    if (.not. check_monotonic('yh', yh)) all_passed = .false.
+    if (.not. check_monotonic('yf', yf)) all_passed = .false.
+    if (.not. check_monotonic('zh', zh)) all_passed = .false.
+    if (.not. check_monotonic('zf', zf)) all_passed = .false.
+
+    ! 2. Equivalence with an explicit backward search over a probe sweep.
+    if (.not. check_probe_sweep('xh', xh)) all_passed = .false.
+    if (.not. check_probe_sweep('xf', xf)) all_passed = .false.
+    if (.not. check_probe_sweep('yh', yh)) all_passed = .false.
+    if (.not. check_probe_sweep('yf', yf)) all_passed = .false.
+    if (.not. check_probe_sweep('zh', zh)) all_passed = .false.
+    if (.not. check_probe_sweep('zf', zf)) all_passed = .false.
+
+    ! 3. The real reconstruction points computed by initibm.
+    call readfacetfiles
+    call initibm
+
+    nrec_total = 0
+    if (.not. check_recids('bound_info_u', bound_info_u, nrec)) all_passed = .false.
+    nrec_total = nrec_total + nrec
+    if (.not. check_recids('bound_info_v', bound_info_v, nrec)) all_passed = .false.
+    nrec_total = nrec_total + nrec
+    if (.not. check_recids('bound_info_w', bound_info_w, nrec)) all_passed = .false.
+    nrec_total = nrec_total + nrec
+    if (.not. check_recids('bound_info_c', bound_info_c, nrec)) all_passed = .false.
+    nrec_total = nrec_total + nrec
+
+    ! A pass on a geometry that never reconstructs would be vacuous: the branch
+    ! containing the lookup is simply never executed. Treat that as a failure of
+    ! the fixture rather than a success of the code.
+    if (nrec_total == 0) then
+      if (myid == 0) then
+        write(*, '(A)') 'FAIL: no facet sections required reconstruction'
+        write(*, '(A)') '  This case never executes the cell lookup, so the test proves nothing.'
+        write(*, '(A)') '  Use a geometry with non-grid-aligned or near-wall facets.'
+      end if
+      all_passed = .false.
+    end if
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)')      'ALL TESTS PASSED: tests_ibm_cell_lookup'
+        write(*, '(A,I0,A)') '  Checked 6 grid arrays and ', nrec_total, ' reconstruction sections'
+      else
+        write(*, '(A)') 'TESTS FAILED: tests_ibm_cell_lookup'
+        write(*, '(A)') '  One or more checks did not pass'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_ibm_cell_lookup = all_passed
+
+  contains
+
+    !> Reference implementation of the lookup: an explicit backward search for the
+    !! last element of grid that p is greater than or equal to, 0 if there is none.
+    !! Written out longhand so that it depends on no intrinsic beyond comparison,
+    !! and so it stays valid even if the monotonicity precondition is violated.
+    integer function ref_cell_index(p, grid)
+      real, intent(in) :: p
+      real, intent(in) :: grid(:)
+      integer :: i
+
+      ref_cell_index = 0
+      do i = size(grid), 1, -1
+        if (p >= grid(i)) then
+          ref_cell_index = i
+          return
+        end if
+      end do
+
+    end function ref_cell_index
+
+    !> Check that a grid array is strictly increasing across its whole extent.
+    !! A single uninitialised halo element shows up here, and would otherwise
+    !! silently break the leading-run property that count() depends on.
+    logical function check_monotonic(label, grid)
+      character(len=*), intent(in) :: label
+      real, intent(in) :: grid(:)
+      integer :: i
+
+      check_monotonic = .true.
+      do i = 2, size(grid)
+        if (.not. (grid(i) > grid(i-1))) then
+          if (myid == 0) then
+            write(*,'(A,A,A,I0,A,I0,A,ES23.15,A,ES23.15)') &
+                 'FAIL: ', trim(label), ' not strictly increasing between i=', i-1, &
+                 ' and i=', i, ': ', grid(i-1), ' -> ', grid(i)
+          end if
+          check_monotonic = .false.
+          return
+        end if
+      end do
+
+    end function check_monotonic
+
+    !> Compare cell_index against the backward search, and optionally against an
+    !! independently known expected index.
+    logical function check_lookup(label, p, grid, expected)
+      use modibm, only : cell_index
+      character(len=*), intent(in) :: label
+      real, intent(in) :: p
+      real, intent(in) :: grid(:)
+      integer, intent(in), optional :: expected
+      integer :: got, ref
+
+      check_lookup = .true.
+      got = cell_index(p, grid)
+      ref = ref_cell_index(p, grid)
+
+      if (got /= ref) then
+        write(*,'(A,I0,A,A,A,ES23.15,A,I0,A,I0)') 'FAIL on rank ', myid, ': ', trim(label), &
+             ' p=', p, ' cell_index=', got, ' backward search=', ref
+        check_lookup = .false.
+      end if
+
+      if (present(expected)) then
+        if (got /= expected) then
+          write(*,'(A,I0,A,A,A,ES23.15,A,I0,A,I0)') 'FAIL on rank ', myid, ': ', trim(label), &
+               ' p=', p, ' cell_index=', got, ' expected=', expected
+          check_lookup = .false.
+        end if
+      end if
+
+    end function check_lookup
+
+    !> Sweep probe points across a grid array. Covers the cases the reconstruction
+    !! points can actually land on: outside either end of the grid, exactly on a
+    !! node (the floating-point equality edge), one ULP either side of a node, and
+    !! midway between nodes.
+    logical function check_probe_sweep(label, grid)
+      character(len=*), intent(in) :: label
+      real, intent(in) :: grid(:)
+      integer :: i, n
+      real :: span
+
+      check_probe_sweep = .true.
+      n = size(grid)
+      span = max(grid(n) - grid(1), 1.)
+
+      ! Below the first node the lookup must return 0, above the last it must
+      ! return n. These are the two results the caller's bounds check relies on.
+      if (.not. check_lookup(label//' below-first', grid(1) - span, grid, 0)) check_probe_sweep = .false.
+      if (.not. check_lookup(label//' above-last',  grid(n) + span, grid, n)) check_probe_sweep = .false.
+
+      do i = 1, n
+        if (.not. check_lookup(label//' on-node',    grid(i),                grid, i))   check_probe_sweep = .false.
+        if (.not. check_lookup(label//' below-node', nearest(grid(i), -1.),  grid, i-1)) check_probe_sweep = .false.
+        if (.not. check_lookup(label//' above-node', nearest(grid(i),  1.),  grid, i))   check_probe_sweep = .false.
+        if (i < n) then
+          if (.not. check_lookup(label//' midpoint', 0.5*(grid(i) + grid(i+1)), grid, i)) check_probe_sweep = .false.
+        end if
+      end do
+
+    end function check_probe_sweep
+
+    !> Re-derive the reconstruction indices stored by initibm and compare.
+    !!
+    !! initibm deallocates the global per-section arrays once it has distributed
+    !! them, so this works from the surviving per-rank _loc copies.
+    !!
+    !! lskipsec is assigned for every section, but lcomprec is only assigned when
+    !! lskipsec is .false.. Sections with lskipsec=.false. and lcomprec=.false. are
+    !! exactly those that went through the reconstruction branch, so those are the
+    !! ones whose recpts entry is defined and whose recids came from cell_index.
+    !! Note initibm additionally overrides lcomprec_loc to .true. for sections whose
+    !! reconstruction cell falls outside the rank's halo range; that only shrinks the
+    !! set checked here, so the caller's requirement that some sections were found
+    !! is what guards against the set collapsing to nothing.
+    !! nchecked reports how many were found, so the caller can detect a fixture
+    !! that never exercises the path.
+    logical function check_recids(label, bound_info, nchecked)
+      use modibm, only : bound_info_type
+      character(len=*), intent(in) :: label
+      type(bound_info_type), intent(in) :: bound_info
+      integer, intent(out) :: nchecked
+      integer :: n
+
+      check_recids = .true.
+      nchecked = 0
+
+      do n = 1, bound_info%nfctsecsrank
+        if (bound_info%lskipsec_loc(n)) cycle
+        if (bound_info%lcomprec_loc(n)) cycle
+        nchecked = nchecked + 1
+
+        if (.not. check_lookup(label//' recids_u(1)', bound_info%recpts_loc(n,1), xh, bound_info%recids_u_loc(n,1))) check_recids = .false.
+        if (.not. check_lookup(label//' recids_u(2)', bound_info%recpts_loc(n,2), yf, bound_info%recids_u_loc(n,2))) check_recids = .false.
+        if (.not. check_lookup(label//' recids_u(3)', bound_info%recpts_loc(n,3), zf, bound_info%recids_u_loc(n,3))) check_recids = .false.
+
+        if (.not. check_lookup(label//' recids_v(1)', bound_info%recpts_loc(n,1), xf, bound_info%recids_v_loc(n,1))) check_recids = .false.
+        if (.not. check_lookup(label//' recids_v(2)', bound_info%recpts_loc(n,2), yh, bound_info%recids_v_loc(n,2))) check_recids = .false.
+        if (.not. check_lookup(label//' recids_v(3)', bound_info%recpts_loc(n,3), zf, bound_info%recids_v_loc(n,3))) check_recids = .false.
+
+        if (.not. check_lookup(label//' recids_w(1)', bound_info%recpts_loc(n,1), xf, bound_info%recids_w_loc(n,1))) check_recids = .false.
+        if (.not. check_lookup(label//' recids_w(2)', bound_info%recpts_loc(n,2), yf, bound_info%recids_w_loc(n,2))) check_recids = .false.
+        if (.not. check_lookup(label//' recids_w(3)', bound_info%recpts_loc(n,3), zh, bound_info%recids_w_loc(n,3))) check_recids = .false.
+
+        if (.not. check_lookup(label//' recids_c(1)', bound_info%recpts_loc(n,1), xf, bound_info%recids_c_loc(n,1))) check_recids = .false.
+        if (.not. check_lookup(label//' recids_c(2)', bound_info%recpts_loc(n,2), yf, bound_info%recids_c_loc(n,2))) check_recids = .false.
+        if (.not. check_lookup(label//' recids_c(3)', bound_info%recpts_loc(n,3), zf, bound_info%recids_c_loc(n,3))) check_recids = .false.
+
+        if (.not. check_recids) return
+      end do
+
+    end function check_recids
+
+  end function tests_ibm_cell_lookup
 
 end module tests

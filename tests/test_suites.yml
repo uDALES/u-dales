@@ -16,11 +16,16 @@ description: Run curated test selections by support level from tests/test_suites
 # - `class` is about support/merge-gate policy, not technical scope
 # - `kind` is about technical scope, not CI policy
 # - `supported-macos` is a temporary compatibility group, not the long-term
-#   preferred schema shape
+#   preferred schema shape. It differs from `supported` only by the
+#   branch-comparison regression, which is skipped on macOS until master carries
+#   the findFFTW helper-project CMake minimum-version fix (see .github/workflows/ci.yml).
 # - `python-library` is the single source of truth for the tools/python test
 #   inventory. It uses `unittest discover`, so new test_*.py files are picked up
 #   automatically. `supported`/`supported-macos` include it rather than
 #   re-enumerating modules, so no test file can be silently dropped from the gate.
+# - `solver-suites` plays the same role for suites that drive the compiled
+#   solver. `supported`/`supported-macos` include it rather than listing those
+#   suites twice, so the two platforms cannot drift apart when a suite is added.
 
 groups:
   python-library:
@@ -116,22 +121,17 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/runtime_environment/test_runtime_modules.py"
 
-  supported:
-    includes:
-      - python-library
+  solver-suites:
     suites:
-      - label: "supported: regression"
+      - label: "supported: fortran intrinsic support probe"
         class: supported
-        kind: regression
-        component: regression
-        platform: linux
-        cost: slow
+        kind: unit
+        component: build
+        platform: any
+        cost: fast
         command:
-          - "{python}"
-          - "{tests_dir}/regression/david_tests/run_tests.py"
-          - "{branch_a}"
-          - "{branch_b}"
-          - "{build_type}"
+          - "bash"
+          - "{tests_dir}/unit/fortran_intrinsics/run_test.sh"
       - label: "supported: ibm sparse input integration"
         class: supported
         kind: integration
@@ -142,6 +142,16 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+      - label: "supported: ibm cell lookup integration"
+        class: supported
+        kind: integration
+        component: ibm
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/ibm_cell_lookup/run_test.sh"
       - label: "supported: mpi operators integration"
         class: supported
         kind: integration
@@ -163,20 +173,28 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
 
+  supported:
+    includes:
+      - python-library
+      - solver-suites
+    suites:
+      - label: "supported: regression"
+        class: supported
+        kind: regression
+        component: regression
+        platform: linux
+        cost: slow
+        command:
+          - "{python}"
+          - "{tests_dir}/regression/david_tests/run_tests.py"
+          - "{branch_a}"
+          - "{branch_b}"
+          - "{build_type}"
+
   supported-macos:
     includes:
       - python-library
-    suites:
-      - label: "supported: ibm sparse input integration"
-        class: supported
-        kind: integration
-        component: ibm
-        platform: hpc
-        cost: medium
-        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
-        command:
-          - "bash"
-          - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+      - solver-suites
 
   experimental:
     suites:
