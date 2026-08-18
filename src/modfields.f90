@@ -458,17 +458,21 @@ module modfields
   real, allocatable :: dthvdz(:,:,:)                 !<   theta_v at half level
 #endif
 
-  real, allocatable :: thlprof(:)                    !<   initial thl-profile
-  real, allocatable :: qtprof(:)                     !<   initial qt-profile
+  
 #if defined(_GPU)
   real, allocatable, pinned :: uprof(:)
   real, allocatable, pinned :: vprof(:)
+  real, allocatable, pinned :: thlprof(:)
+  real, allocatable, pinned :: qtprof(:)
+  real, allocatable, pinned :: svprof(:,:)
 #else
   real, allocatable :: uprof(:)                      !<   initial u-profile
   real, allocatable :: vprof(:)                      !<   initial v-profile
+  real, allocatable :: thlprof(:)                    !<   initial thl-profile
+  real, allocatable :: qtprof(:)                     !<   initial qt-profile
+  real, allocatable :: svprof(:,:)                   !<   initial sv(n)-profile
 #endif
   real, allocatable :: e12prof(:)                    !<   initial subgrid TKE profile
-  real, allocatable :: svprof(:,:)                   !<   initial sv(n)-profile
   real, allocatable :: qlprof(:)
   real, allocatable :: rhobf(:)
   real, allocatable :: rhobh(:)

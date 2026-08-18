@@ -20,7 +20,7 @@ module tests
   implicit none
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, &
-            tests_ibm_cell_lookup
+            tests_ibm_cell_lookup, tests_nudge
 
 contains
 
@@ -685,5 +685,202 @@ contains
     end function check_recids
 
   end function tests_ibm_cell_lookup
+
+  !> Validate the profile-nudging tendency applied by modforces::nudge.
+  !!
+  !! nudge relaxes the upper part of the domain towards prescribed profiles at
+  !! rate 1/tnudge, starting at level kb+nnudge. Two properties matter and
+  !! neither is obvious from the call site:
+  !!   - the relaxation starts at kb+nnudge, so everything below must be
+  !!     untouched;
+  !!   - the CPU branch uses whole-array assignment, so the tendency is applied
+  !!     across each array's entire declared extent, halo cells included. The
+  !!     GPU branch reproduces that with explicit loops, and this test pins the
+  !!     behaviour the two branches have to agree on.
+  !!
+  !! This exercises the host branch. The device kernels are covered by
+  !! tests_cuda.f90::test_nudge_profiles, which runs under
+  !! UDALES_RUN_CUDA_SELFTEST on a Debug GPU build.
+  !! Returns .true. if all checks pass, .false. otherwise.
+  logical function tests_nudge()
+    use modglobal, only : runmode, ih, ihc, jh, jhc, kb, ke, nsv, &
+                          ltempeq, lmoist, lnudge, lnudgevel, nnudge, tnudge
+    use modfields, only : initfields, up, vp, thlp, qtp, svp, &
+                          u0av, v0av, thl0av, qt0av, sv0av, &
+                          uprof, vprof, thlprof, qtprof, svprof
+    use modforces, only : nudge
+
+    implicit none
+
+    real, parameter :: initial_p = 2., av_value = 3., prof_value = 1., t_relax = 4.
+
+    logical :: all_passed, saved_lnudge, saved_lnudgevel, saved_ltempeq, saved_lmoist
+    integer :: saved_nnudge, ktest, n
+    real    :: saved_tnudge, expected, tol
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_nudge: PROFILE NUDGING TENDENCY TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+#if defined(_GPU)
+    ! nudge writes the device-resident tendencies in a GPU build, so the host
+    ! arrays this test inspects would never change. Say so explicitly rather
+    ! than reporting an unexplained numeric mismatch, and do not pass vacuously.
+    if (myid == 0) then
+      write(*, '(A)') 'FAIL: runmode 1007 exercises the host branch of nudge.'
+      write(*, '(A)') '  Run it against a CPU build (build/cpu/<type>/u-dales).'
+      write(*, '(A)') '  The device kernels are covered by tests_cuda.f90::test_nudge_profiles,'
+      write(*, '(A)') '  run with UDALES_RUN_CUDA_SELFTEST=1 on a Debug GPU build.'
+    end if
+    tests_nudge = .false.
+    return
+#endif
+
+    call initfields
+
+    all_passed = .true.
+
+    if (ke - kb < 2) then
+      if (myid == 0) write(*, '(A)') 'FAIL: need at least three vertical levels to test'
+      tests_nudge = .false.
+      return
+    end if
+
+    saved_lnudge    = lnudge
+    saved_lnudgevel = lnudgevel
+    saved_ltempeq   = ltempeq
+    saved_lmoist    = lmoist
+    saved_nnudge    = nnudge
+    saved_tnudge    = tnudge
+
+    lnudge    = .true.
+    lnudgevel = .true.
+    ltempeq   = .true.
+    lmoist    = .true.
+    nnudge    = 1
+    tnudge    = t_relax
+    ktest     = kb + nnudge
+
+    up = initial_p ; vp = initial_p ; thlp = initial_p ; qtp = initial_p ; svp = initial_p
+    u0av = av_value ; v0av = av_value ; thl0av = av_value ; qt0av = av_value ; sv0av = av_value
+    uprof = prof_value ; vprof = prof_value ; thlprof = prof_value
+    qtprof = prof_value ; svprof = prof_value
+
+    call nudge
+
+    expected = initial_p - (av_value - prof_value) / t_relax
+    tol      = 64. * epsilon(1.) * max(1., abs(expected))
+
+    ! Nudged levels, over the full declared extent including halos.
+    if (.not. check_block('up',   up  (:,:,ktest:ke), expected, tol)) all_passed = .false.
+    if (.not. check_block('vp',   vp  (:,:,ktest:ke), expected, tol)) all_passed = .false.
+    if (.not. check_block('thlp', thlp(:,:,ktest:ke), expected, tol)) all_passed = .false.
+    if (.not. check_block('qtp',  qtp (:,:,ktest:ke), expected, tol)) all_passed = .false.
+    do n = 1, nsv
+      if (.not. check_block('svp', svp(:,:,ktest:ke,n), expected, tol)) all_passed = .false.
+    end do
+
+    ! Levels below kb+nnudge must be untouched.
+    if (.not. check_block('up below level',   up  (:,:,kb:ktest-1), initial_p, tol)) all_passed = .false.
+    if (.not. check_block('vp below level',   vp  (:,:,kb:ktest-1), initial_p, tol)) all_passed = .false.
+    if (.not. check_block('thlp below level', thlp(:,:,kb:ktest-1), initial_p, tol)) all_passed = .false.
+    if (.not. check_block('qtp below level',  qtp (:,:,kb:ktest-1), initial_p, tol)) all_passed = .false.
+    do n = 1, nsv
+      if (.not. check_block('svp below level', svp(:,:,kb:ktest-1,n), initial_p, tol)) all_passed = .false.
+    end do
+
+    ! Halo cells must be nudged too, not just the interior. All four lateral
+    ! faces are checked for every field, because an explicit-loop port that
+    ! covers only part of the halo - ib-ih..ie, say - still reproduces every
+    ! interior value and would pass an interior-only comparison.
+    if (.not. check_halos('up',   up  (:,:,ktest:ke),   ih,  jh,  expected, tol)) all_passed = .false.
+    if (.not. check_halos('vp',   vp  (:,:,ktest:ke),   ih,  jh,  expected, tol)) all_passed = .false.
+    if (.not. check_halos('thlp', thlp(:,:,ktest:ke),   ih,  jh,  expected, tol)) all_passed = .false.
+    if (.not. check_halos('qtp',  qtp (:,:,ktest:ke),   ih,  jh,  expected, tol)) all_passed = .false.
+    do n = 1, nsv
+      if (.not. check_halos('svp', svp(:,:,ktest:ke,n), ihc, jhc, expected, tol)) all_passed = .false.
+    end do
+
+    ! lnudge off must be a no-op.
+    lnudge = .false.
+    up = initial_p
+    call nudge
+    if (.not. check_block('disabled', up, initial_p, tol)) all_passed = .false.
+
+    lnudge    = saved_lnudge
+    lnudgevel = saved_lnudgevel
+    ltempeq   = saved_ltempeq
+    lmoist    = saved_lmoist
+    nnudge    = saved_nnudge
+    tnudge    = saved_tnudge
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)')      'ALL TESTS PASSED: tests_nudge'
+        write(*, '(A,I0,A)') '  Checked momentum, temperature, moisture and ', nsv, ' scalar(s)'
+      else
+        write(*, '(A)') 'TESTS FAILED: tests_nudge'
+        write(*, '(A)') '  One or more checks did not pass'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_nudge = all_passed
+
+  contains
+
+    !> Assert every element of a block equals want, and report the worst offender.
+    logical function check_block(label, got, want, tol)
+      character(len=*), intent(in) :: label
+      real, intent(in) :: got(:,:,:)
+      real, intent(in) :: want, tol
+      real :: worst
+
+      check_block = .true.
+      if (size(got) == 0) return
+
+      worst = maxval(abs(got - want))
+      if (worst > tol) then
+        write(*,'(A,I0,A,A,A,ES12.4,A,ES12.4,A,ES12.4)') 'FAIL on rank ', myid, ': nudge ', &
+             trim(label), ' worst deviation ', worst, ' (expected ', want, ', tol ', tol
+        check_block = .false.
+      end if
+
+    end function check_block
+
+    !> Assert all four lateral halo faces of a block equal want.
+    !!
+    !! got must be the full declared i and j extent of the field; the dummy is
+    !! assumed-shape, so the faces are its first and last hx (hy) planes.
+    logical function check_halos(label, got, hx, hy, want, tol)
+      character(len=*), intent(in) :: label
+      real,    intent(in) :: got(:,:,:)
+      integer, intent(in) :: hx, hy
+      real,    intent(in) :: want, tol
+      integer :: ni, nj
+
+      check_halos = .true.
+      ni = size(got, 1)
+      nj = size(got, 2)
+
+      ! The extent must hold two disjoint faces plus an interior, otherwise the
+      ! slices below would overlap and a missed face could be covered by the
+      ! opposite one.
+      if (hx > 0 .and. ni > 2*hx) then
+        if (.not. check_block(label//' halo-x low',  got(1:hx,       :, :), want, tol)) check_halos = .false.
+        if (.not. check_block(label//' halo-x high', got(ni-hx+1:ni, :, :), want, tol)) check_halos = .false.
+      end if
+      if (hy > 0 .and. nj > 2*hy) then
+        if (.not. check_block(label//' halo-y low',  got(:, 1:hy,       :), want, tol)) check_halos = .false.
+        if (.not. check_block(label//' halo-y high', got(:, nj-hy+1:nj, :), want, tol)) check_halos = .false.
+      end if
+
+    end function check_halos
+
+  end function tests_nudge
 
 end module tests

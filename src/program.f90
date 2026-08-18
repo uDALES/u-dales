@@ -35,7 +35,7 @@ program uDALES
   use tests_cuda,        only : run_cuda_selftests_if_requested
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -67,7 +67,7 @@ program uDALES
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
-  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup
+  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge
   implicit none
 
   real    :: stime
@@ -190,18 +190,18 @@ program uDALES
 
     call lstend         !large scale forcings
 
+    call nudge          ! nudge top cells of fields to enforce steady-state
+
 #if defined(_GPU)
     call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
 #endif
-    write(6,'(A,F10.6)')'(advection to lstend) time = ', MPI_Wtime() - stime
+    write(6,'(A,F10.6)')'(advection to nudge) time = ', MPI_Wtime() - stime
 
     stime = MPI_Wtime()
 #if defined(_GPU)
     call updateHost
 #endif
     write(6,'(A,F10.6)')'updateHost time = ', MPI_Wtime() - stime
-
-    call nudge          ! nudge top cells of fields to enforce steady-state
 
     call ibmwallfun     ! immersed boundary forcing: only shear forces.
     call periodicEBcorr
@@ -238,7 +238,7 @@ program uDALES
 #if defined(_GPU)
     call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
 #endif
-    write(6,'(A,F10.6)')'possion time = ', MPI_Wtime() - stime
+    write(6,'(A,F10.6)')'poisson time = ', MPI_Wtime() - stime
 
     ! call purifiers      !placing need to be checked; Not GPU compatible yet
 
@@ -246,9 +246,12 @@ program uDALES
 
 #if defined(_GPU)
     call halos_device
-    call updateHostAfterPoiss
 #else
     call halos
+#endif
+
+#if defined(_GPU)
+    call updateHostAfterPoiss
 #endif
 
     call checksim
@@ -310,6 +313,8 @@ contains
         test_failed = .not. tests_mpi_operators()
       case (TEST_IBM_CELL_LOOKUP)
         test_failed = .not. tests_ibm_cell_lookup()
+      case (TEST_NUDGE)
+        test_failed = .not. tests_nudge()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

@@ -10,6 +10,7 @@ module modcuda
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
                              ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, ltrees, lscasrc, lscasrcl, &
                              BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
+                             lnudge, lnudgevel, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xh, &
                              eps1, numol, prandtlmoli, prandtlturb, grav, fkar2
@@ -20,7 +21,7 @@ module modcuda
                              u0av, v0av, thl0av, qt0av, sv0av, dthvdz, ug, vg, whls, tsc, &
                              dpdxl, dpdyl, thv0h, thvh, thlpcar, &
                              dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls, &
-                             uprof, vprof, &
+                             uprof, vprof, thlprof, qtprof, svprof, &
                              IIc, scalar_source_tendency
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
@@ -51,9 +52,9 @@ module modcuda
                                 xh_d(:), u0av_d(:), v0av_d(:), ug_d(:), vg_d(:), whls_d(:), thl0av_d(:), qt0av_d(:), tsc_d(:), &
                                 dpdxl_d(:), dpdyl_d(:), thvh_d(:), thlpcar_d(:), &
                                 dudxls_d(:), dudyls_d(:), dvdxls_d(:), dvdyls_d(:), dthldxls_d(:), dthldyls_d(:), dqtdxls_d(:), dqtdyls_d(:), dqtdtls_d(:), &
-                                uprof_d(:), vprof_d(:)
+                                uprof_d(:), vprof_d(:), thlprof_d(:), qtprof_d(:)
 
-   real, device, allocatable :: delta_d(:, :), csz_d(:,:), sv0av_d(:,:), u0driver_d(:,:)
+   real, device, allocatable :: delta_d(:, :), csz_d(:,:), sv0av_d(:,:), svprof_d(:,:), u0driver_d(:,:)
 
    real, device, allocatable :: u0_d(:,:,:), v0_d(:,:,:), w0_d(:,:,:), pres0_d(:,:,:), e120_d(:,:,:), thl0_d(:,:,:), thl0c_d(:,:,:), qt0_d(:,:,:), sv0_d(:,:,:,:)
    real, device, allocatable :: up_d(:,:,:), vp_d(:,:,:), wp_d(:,:,:), e12p_d(:,:,:), thlp_d(:,:,:), thlpc_d(:,:,:), qtp_d(:,:,:), svp_d(:,:,:,:)
@@ -223,6 +224,7 @@ module modcuda
             allocate(thv0h_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(thvh_d(kb:ke+kh))
             allocate(thl0av_d(kb:ke+kh))
+            allocate(thlprof_d(kb:ke+kh))
 
             allocate(thlpcar_d(kb:ke+kh))
             allocate(dthldxls_d(kb:ke+kh))
@@ -239,6 +241,7 @@ module modcuda
             allocate(qtm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(qtp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(qt0av_d(kb:ke+kh))
+            allocate(qtprof_d(kb:ke+kh))
 
             allocate(dqtdxls_d(kb:ke+kh))
             allocate(dqtdyls_d(kb:ke+kh))
@@ -253,6 +256,7 @@ module modcuda
             allocate(svm_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv))
             allocate(svp_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,nsv))
             allocate(sv0av_d(kb:ke+khc,nsv))
+            allocate(svprof_d(kb:ke+kh,nsv))
             if (nsv==3 .and. lchem) then
                allocate(dummyNO_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
                allocate(dummyNO2_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
@@ -342,13 +346,13 @@ module modcuda
          if (ltempeq) then
             deallocate(thl0_d, thlm_d, thlp_d, thl_flux_d)
             if (iadv_thl == iadv_kappa) deallocate(thl0c_d, thlpc_d)
-            deallocate(thv0h_d, thvh_d, thl0av_d, thlpcar_d)
+            deallocate(thv0h_d, thvh_d, thl0av_d, thlprof_d, thlpcar_d)
             deallocate(dthldxls_d, dthldyls_d)
             deallocate(tfluxb_d)
          end if
-         if (lmoist) deallocate(qt0_d, qtm_d, qtp_d, qt0av_d, dqtdxls_d, dqtdyls_d, dqtdtls_d)
+         if (lmoist) deallocate(qt0_d, qtm_d, qtp_d, qt0av_d, qtprof_d, dqtdxls_d, dqtdyls_d, dqtdtls_d)
          if (nsv>0) then
-            deallocate(sv0_d, svm_d, svp_d, sv0av_d)
+            deallocate(sv0_d, svm_d, svp_d, sv0av_d, svprof_d)
             if (lscasrc .or. lscasrcl) deallocate(scalar_source_tendency_d)
             if (nsv==3 .and. lchem) deallocate(dummyNO_d, dummyNO2_d, dummyO3_d, IIc_d)
          end if
@@ -393,6 +397,11 @@ module modcuda
          u0av_d = u0av
          v0av_d = v0av
 
+         if (lnudge .and. lnudgevel) then
+            uprof_d = uprof
+            vprof_d = vprof
+         end if
+
          if (loneeqn) then
             e12m_d = e12m
             e120_d = e120
@@ -416,6 +425,7 @@ module modcuda
             thv0h_d    = thv0h
             thvh_d     = thvh
             thl0av_d   = thl0av
+            if (lnudge) thlprof_d = thlprof
             if (ltrees .and. lmoist) then
                thlpcar_d = thlpcar
             end if
@@ -428,6 +438,7 @@ module modcuda
             call initfield<<<griddim,blockdim>>>(qtp_d, 0., ih, jh, kh)
             call checkCUDA( cudaGetLastError(), 'initfield qtp_d' )
             qt0av_d = qt0av
+            if (lnudge) qtprof_d = qtprof
          end if
 
          if (nsv>0) then
@@ -437,6 +448,7 @@ module modcuda
                call checkCUDA( cudaGetLastError(), 'initfield svp_d' )
             end do
             sv0av_d = sv0av
+            if (lnudge) svprof_d = svprof
          end if
 
          dthvdz_d = dthvdz

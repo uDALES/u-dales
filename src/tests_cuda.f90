@@ -17,13 +17,20 @@ module tests_cuda
                         dxhci_d, dxfc_d, dxfci_d, dzhci_d, dzfc_d, dzfci_d, &
                         u0_d, v0_d, w0_d, um_d, vm_d, wm_d, e120_d, e12m_d, &
                         thl0_d, thlm_d, thl0c_d, qt0_d, qtm_d, sv0_d, svm_d, &
-                        thlp_d, thlpc_d, pup_d, up_d, u0driver_d, wp_d
+                        thlp_d, thlpc_d, pup_d, up_d, u0driver_d, wp_d, &
+                        vp_d, qtp_d, svp_d, u0av_d, v0av_d, thl0av_d, qt0av_d, sv0av_d, &
+                        uprof_d, vprof_d, thlprof_d, qtprof_d, svprof_d
    use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, &
-                         thl0, thlm, thl0c, qt0, qtm, sv0, svm, thlp, wp
+                         thl0, thlm, thl0c, qt0, qtm, sv0, svm, thlp, wp, &
+                         up, vp, qtp, svp, &
+                         u0av, v0av, thl0av, qt0av, sv0av, &
+                         uprof, vprof, thlprof, qtprof, svprof
    use modglobal, only : ib, ie, jb, je, kb, ke, ih, jh, kh, nsv, &
                          ihc, jhc, khc, dxhci, dxfc, dxfci, dxi, dyi, &
                          dzhci, dzfc, dzfci, dzfi, eps1, &
-                         lheatpump, lfan_hp, nhppoints, ltempeq
+                         lheatpump, lfan_hp, nhppoints, ltempeq, &
+                         lmoist, lnudge, lnudgevel, tnudge, nnudge
+   use modforces,   only : nudge
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
                            thl_dot_hp, w_hp_exhaust
    use modinletdata, only : u0driver
@@ -59,6 +66,7 @@ contains
          call test_driver_inlet_boundary
          call test_periodic_device_halos
          call test_heatpump_scatter
+         call test_nudge_profiles
          write(*,'(A,I0)') 'CUDA device self-tests passed. rank=', myid
       case ('', '0', 'false', 'FALSE', 'no', 'NO', 'off', 'OFF')
          return
@@ -993,6 +1001,195 @@ contains
       phir = max(0., min(2.*ri, min(1./3. + 2./3.*ri, 2.)))
       kappa_rlim_host = 0.5*phir*d1
    end function kappa_rlim_host
+
+   !> Check the OpenACC nudge kernels against the same algebra on the host.
+   !!
+   !! Covers the two things most likely to go wrong in this port: that the
+   !! relaxation is applied only from kb+nnudge upwards, and that it spans each
+   !! array's full declared extent including the halos, matching the whole-array
+   !! assignment used by the CPU branch. Cells below the nudging level must be
+   !! left untouched.
+   subroutine test_nudge_profiles
+      implicit none
+
+      real, parameter :: initial_p = 2., av_value = 3., prof_value = 1., t_relax = 4.
+
+      logical :: saved_lnudge, saved_lnudgevel, saved_ltempeq, saved_lmoist
+      integer :: saved_nnudge
+      real    :: saved_tnudge
+      real, allocatable :: up_h(:,:,:), vp_h(:,:,:), thlp_h(:,:,:), qtp_h(:,:,:)
+      real, allocatable :: svp_h(:,:,:,:)
+      real    :: expected, tolerance
+      integer :: i, j, k, n, ktest
+
+      if (.not. allocated(up_d)) return
+
+      ! Need at least one nudged and one un-nudged level to test both.
+      if (ke - kb < 2) return
+
+      saved_lnudge    = lnudge
+      saved_lnudgevel = lnudgevel
+      saved_ltempeq   = ltempeq
+      saved_lmoist    = lmoist
+      saved_nnudge    = nnudge
+      saved_tnudge    = tnudge
+
+      lnudge    = .true.
+      lnudgevel = .true.
+      nnudge    = 1
+      tnudge    = t_relax
+      ktest     = kb + nnudge
+
+      up_d      = initial_p
+      vp_d      = initial_p
+      u0av_d    = av_value
+      v0av_d    = av_value
+      uprof_d   = prof_value
+      vprof_d   = prof_value
+      if (ltempeq) then
+         thlp_d    = initial_p
+         thl0av_d  = av_value
+         thlprof_d = prof_value
+      end if
+      if (lmoist) then
+         qtp_d    = initial_p
+         qt0av_d  = av_value
+         qtprof_d = prof_value
+      end if
+      if (nsv > 0) then
+         svp_d    = initial_p
+         sv0av_d  = av_value
+         svprof_d = prof_value
+      end if
+
+      call nudge
+      call checkCUDA(cudaDeviceSynchronize(), 'nudge self-test synchronization')
+
+      expected  = initial_p - (av_value - prof_value) / t_relax
+      tolerance = 64. * epsilon(1.) * max(1., abs(expected))
+
+      allocate(up_h (ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      allocate(vp_h (ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      up_h = up_d
+      vp_h = vp_d
+
+      ! Nudged levels, checked across the full halo extent.
+      do k = ktest, ke
+         do j = jb-jh, je+jh
+            do i = ib-ih, ie+ih
+               if (abs(up_h(i,j,k) - expected) > tolerance) call fail_cuda_selftest('nudge up')
+               if (abs(vp_h(i,j,k) - expected) > tolerance) call fail_cuda_selftest('nudge vp')
+            end do
+         end do
+      end do
+
+      ! Levels below kb+nnudge must be untouched.
+      do k = kb, ktest-1
+         do j = jb-jh, je+jh
+            do i = ib-ih, ie+ih
+               if (abs(up_h(i,j,k) - initial_p) > tolerance) call fail_cuda_selftest('nudge up below level')
+               if (abs(vp_h(i,j,k) - initial_p) > tolerance) call fail_cuda_selftest('nudge vp below level')
+            end do
+         end do
+      end do
+      deallocate(vp_h, up_h)
+
+      if (ltempeq) then
+         allocate(thlp_h(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+         thlp_h = thlp_d
+         do k = ktest, ke
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  if (abs(thlp_h(i,j,k) - expected) > tolerance) call fail_cuda_selftest('nudge thlp')
+               end do
+            end do
+         end do
+         do k = kb, ktest-1
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  if (abs(thlp_h(i,j,k) - initial_p) > tolerance) call fail_cuda_selftest('nudge thlp below level')
+               end do
+            end do
+         end do
+         deallocate(thlp_h)
+      end if
+
+      if (lmoist) then
+         allocate(qtp_h(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+         qtp_h = qtp_d
+         do k = ktest, ke
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  if (abs(qtp_h(i,j,k) - expected) > tolerance) call fail_cuda_selftest('nudge qtp')
+               end do
+            end do
+         end do
+         do k = kb, ktest-1
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  if (abs(qtp_h(i,j,k) - initial_p) > tolerance) call fail_cuda_selftest('nudge qtp below level')
+               end do
+            end do
+         end do
+         deallocate(qtp_h)
+      end if
+
+      if (nsv > 0) then
+         allocate(svp_h(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb:ke+khc, nsv))
+         svp_h = svp_d
+         do n = 1, nsv
+            do k = ktest, ke
+               do j = jb-jhc, je+jhc
+                  do i = ib-ihc, ie+ihc
+                     if (abs(svp_h(i,j,k,n) - expected) > tolerance) call fail_cuda_selftest('nudge svp')
+                  end do
+               end do
+            end do
+            do k = kb, ktest-1
+               do j = jb-jhc, je+jhc
+                  do i = ib-ihc, ie+ihc
+                     if (abs(svp_h(i,j,k,n) - initial_p) > tolerance) call fail_cuda_selftest('nudge svp below level')
+                  end do
+               end do
+            end do
+         end do
+         deallocate(svp_h)
+      end if
+
+      ! lnudge off must be a no-op.
+      lnudge = .false.
+      up_d = initial_p
+      call nudge
+      call checkCUDA(cudaDeviceSynchronize(), 'nudge disabled self-test synchronization')
+      allocate(up_h(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      up_h = up_d
+      if (any(abs(up_h - initial_p) > tolerance)) call fail_cuda_selftest('nudge disabled')
+      deallocate(up_h)
+
+      lnudge    = saved_lnudge
+      lnudgevel = saved_lnudgevel
+      ltempeq   = saved_ltempeq
+      lmoist    = saved_lmoist
+      nnudge    = saved_nnudge
+      tnudge    = saved_tnudge
+
+      ! Restore the device state the rest of the run expects.
+      up_d = up
+      vp_d = vp
+      if (ltempeq) thlp_d = thlp
+      if (lmoist)  qtp_d  = qtp
+      if (nsv > 0) svp_d  = svp
+      u0av_d = u0av
+      v0av_d = v0av
+      if (ltempeq) thl0av_d = thl0av
+      if (lmoist)  qt0av_d  = qt0av
+      if (nsv > 0) sv0av_d  = sv0av
+      uprof_d = uprof
+      vprof_d = vprof
+      if (ltempeq) thlprof_d = thlprof
+      if (lmoist)  qtprof_d  = qtprof
+      if (nsv > 0) svprof_d  = svprof
+   end subroutine test_nudge_profiles
 
    subroutine fail_cuda_selftest(name)
       implicit none

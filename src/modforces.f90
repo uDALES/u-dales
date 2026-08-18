@@ -1004,14 +1004,77 @@ module modforces
 #endif
   end subroutine lstend
 
+  !> Relax the upper cells of the domain towards the prescribed profiles.
   subroutine nudge
     use modglobal,  only : kb,ke,lmoist,ltempeq,lnudge,lnudgevel,tnudge,nnudge,nsv
+#if defined(_GPU)
+    use modglobal,  only : ib,ie,ih,ihc,jb,je,jh,jhc
+    use modcuda,    only : up_d,vp_d,thlp_d,qtp_d,svp_d, &
+                           u0av_d,v0av_d,thl0av_d,qt0av_d,sv0av_d, &
+                           uprof_d,vprof_d,thlprof_d,qtprof_d,svprof_d
+#else
     use modfields,  only : thlp,qtp,svp,sv0av,thl0av,qt0av,up,vp,u0av,v0av,uprof,vprof,thlprof,qtprof,svprof
+#endif
     implicit none
     integer :: k, n
+#if defined(_GPU)
+    integer :: i, j
+#endif
 
     if (lnudge .eqv. .false.) return
 
+#if defined(_GPU)
+    if (lnudgevel) then
+      !$acc parallel loop collapse(3) default(present)
+      do k = kb+nnudge, ke
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            up_d(i,j,k) = up_d(i,j,k) - (u0av_d(k) - uprof_d(k)) / tnudge
+            vp_d(i,j,k) = vp_d(i,j,k) - (v0av_d(k) - vprof_d(k)) / tnudge
+          end do
+        end do
+      end do
+      !$acc end parallel loop
+    end if
+
+    if (nsv > 0) then
+      !$acc parallel loop collapse(4) default(present)
+      do n = 1, nsv
+        do k = kb+nnudge, ke
+          do j = jb-jhc, je+jhc
+            do i = ib-ihc, ie+ihc
+              svp_d(i,j,k,n) = svp_d(i,j,k,n) - (sv0av_d(k,n) - svprof_d(k,n)) / tnudge
+            end do
+          end do
+        end do
+      end do
+      !$acc end parallel loop
+    end if
+
+    if (ltempeq) then
+      !$acc parallel loop collapse(3) default(present)
+      do k = kb+nnudge, ke
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            thlp_d(i,j,k) = thlp_d(i,j,k) - (thl0av_d(k) - thlprof_d(k)) / tnudge
+          end do
+        end do
+      end do
+      !$acc end parallel loop
+    end if
+
+    if (lmoist) then
+      !$acc parallel loop collapse(3) default(present)
+      do k = kb+nnudge, ke
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            qtp_d(i,j,k) = qtp_d(i,j,k) - (qt0av_d(k) - qtprof_d(k)) / tnudge
+          end do
+        end do
+      end do
+      !$acc end parallel loop
+    end if
+#else
     if (lnudgevel) then
       do k=kb+nnudge,ke
          up(:,:,k) = up(:,:,k) - (u0av(k) - uprof(k)) / tnudge
@@ -1036,6 +1099,7 @@ module modforces
         qtp(:,:,k) = qtp(:,:,k) - (qt0av(k) - qtprof(k)) / tnudge
       end do
     end if !lmoist
+#endif
 
   end subroutine nudge
 

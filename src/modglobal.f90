@@ -82,6 +82,7 @@ module modglobal
    integer, parameter :: TEST_SPARSE_IJK = 1004
    integer, parameter :: TEST_MPI_OPERATORS = 1005
    integer, parameter :: TEST_IBM_CELL_LOOKUP = 1006
+   integer, parameter :: TEST_NUDGE = 1007
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
