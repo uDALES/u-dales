@@ -83,6 +83,7 @@ module modglobal
    integer, parameter :: TEST_MPI_OPERATORS = 1005
    integer, parameter :: TEST_IBM_CELL_LOOKUP = 1006
    integer, parameter :: TEST_NUDGE = 1007
+   integer, parameter :: TEST_IBM_WALLFUN = 1008
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
@@ -493,6 +494,8 @@ module modglobal
 
    real :: rslabs
 #if defined(_GPU)
+  real, allocatable, pinned :: zh(:)
+  real, allocatable, pinned :: zf(:)
   real, allocatable, pinned :: dzf(:)
   real, allocatable, pinned :: dzf2(:)
   real, allocatable, pinned :: dzfi(:)
@@ -506,6 +509,8 @@ module modglobal
   real, allocatable, pinned :: dzfci(:)
   real, allocatable, pinned :: dzhci(:)
 #else
+  real, allocatable :: zh(:)    !<  height of half level [m]
+  real, allocatable :: zf(:)    !<  height of full level [m]
   real, allocatable :: dzf(:)   !<  thickness of full level
   real, allocatable :: dzf2(:)  !<  thickness of full level squared
   real, allocatable :: dzfi(:)  !<  1/dzf
@@ -519,8 +524,6 @@ module modglobal
   real, allocatable :: dzfci(:) !<  1/dzfc
   real, allocatable :: dzhci(:) !<  1/dzh (extra ghost nodes (used in k-scheme)
 #endif
-   real, allocatable :: zh(:)   !<  height of half level [m]
-   real, allocatable :: zf(:)   !<  height of full level [m]
    real, allocatable :: zhi(:)  !<  1/zh
    real, allocatable :: zfi(:)  !<  1/zf
 #if defined(_GPU)
@@ -547,13 +550,16 @@ module modglobal
    real, allocatable :: dxhiq(:) !<  = 0.25*(1/dxh)
    real, allocatable :: dxh2i(:) !<  = 1/dxh^2
 #if defined(_GPU)
-   real, allocatable, pinned :: xh(:) !<  height of half level [m]
+   real, allocatable, pinned :: xh(:)
+   real, allocatable, pinned :: xf(:)
+   real, allocatable, pinned :: yh(:)
+   real, allocatable, pinned :: yf(:)
 #else
    real, allocatable :: xh(:) !<  height of half level [m]
-#endif
    real, allocatable :: xf(:) !<  height of full level [m]
    real, allocatable :: yh(:) !<  height of half level [m]
    real, allocatable :: yf(:) !<  height of full level [m]
+#endif
    real :: xlen = -1. !<  domain size in x-direction
    real :: ylen = -1. !<  domain size in y-direction
 #if defined(_GPU)

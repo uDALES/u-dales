@@ -63,21 +63,42 @@
       !temperature
       real, allocatable    :: Tfacinit(:) !initial facet temperatures
       real, allocatable    :: Tfacinit_layers(:,:) !initial facet temperatures
+#if defined(_GPU)
+      real, allocatable, pinned :: facT(:, :)
+#else
       real, allocatable    :: facT(:, :) !wall temperatures on surfaces and between layers (1=outdoors,end=indoors)
+#endif
       real, allocatable    :: facTdash(:, :)!temperature gradient dT/dz
       !fluxes
+#if defined(_GPU)
+      real, allocatable, pinned :: facef(:)
+#else
       real, allocatable    :: facef(:) !evaporative flux on facets [W/m2] (single processor)
+#endif
       real, allocatable    :: facefi(:) !time integrated latent heat flux [J/m2] (used in modEB)
       real, allocatable    :: facefsum(:) !evaporative flux on facets [W/m2] (sum over all processors)
+#if defined(_GPU)
+      real, allocatable, pinned :: fachf(:)
+#else
       real, allocatable    :: fachf(:) !heat flux on facets [Km/s] (single processor)
+#endif
       real, allocatable    :: fachfi(:) !time integrated heat flux [Km]
       real, allocatable    :: fachfsum(:) !heat flux on facets [Km/s] (sum over all processors)
       !GR
+#if defined(_GPU)
+      real, allocatable, pinned :: facf(:, :)
+      real, allocatable, pinned :: fachurel(:)
+#else
       real, allocatable    :: facf(:, :) !dependence of stomatal resistance/soil resistance
       real, allocatable    :: fachurel(:) !relative humidity at ground surface
+#endif
       real, allocatable    :: facwsoil(:) !soil moisture of facets
       real, allocatable    :: faccth(:) !sum of all transfer coefficients of the facet, used in Penman Moneith, unused
+#if defined(_GPU)
+      real, allocatable, pinned :: facqsat(:)
+#else
       real, allocatable    :: facqsat(:) !saturation absoulute humidity at facet temperature
+#endif
 
       !misc
       integer, allocatable :: typeloc(:) !array to match the walltype to sequential integers for indexing

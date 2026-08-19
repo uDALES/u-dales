@@ -35,13 +35,16 @@ program uDALES
   use tests_cuda,        only : run_cuda_selftests_if_requested
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT, &
+                                TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE,TEST_IBM_WALLFUN
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
-  use modboundary,       only : initboundary,boundary,grwdamp,halos
+  use modboundary,       only : initboundary,boundary,grwdamp
 #if defined(_GPU)
   use modboundary,       only : halos_device
+#else
+  use modboundary,       only : halos
 #endif
   use modthermodynamics, only : initthermodynamics,thermodynamics
   use modsubgrid,        only : initsubgrid,subgrid
@@ -67,7 +70,7 @@ program uDALES
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
-  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge
+  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge,tests_ibm_wallfun
   implicit none
 
   real    :: stime
@@ -192,10 +195,12 @@ program uDALES
 
     call nudge          ! nudge top cells of fields to enforce steady-state
 
+    call ibmwallfun     ! immersed boundary forcing: only shear forces.
+
 #if defined(_GPU)
     call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
 #endif
-    write(6,'(A,F10.6)')'(advection to nudge) time = ', MPI_Wtime() - stime
+    write(6,'(A,F10.6)')'(advection to ibmwallfun) time = ', MPI_Wtime() - stime
 
     stime = MPI_Wtime()
 #if defined(_GPU)
@@ -203,7 +208,6 @@ program uDALES
 #endif
     write(6,'(A,F10.6)')'updateHost time = ', MPI_Wtime() - stime
 
-    call ibmwallfun     ! immersed boundary forcing: only shear forces.
     call periodicEBcorr
 
     call masscorr       ! correct pred. velocity pup to get correct mass flow
@@ -315,6 +319,8 @@ contains
         test_failed = .not. tests_ibm_cell_lookup()
       case (TEST_NUDGE)
         test_failed = .not. tests_nudge()
+      case (TEST_IBM_WALLFUN)
+        test_failed = .not. tests_ibm_wallfun()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

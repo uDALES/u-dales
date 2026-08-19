@@ -20,7 +20,7 @@ module tests
   implicit none
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, &
-            tests_ibm_cell_lookup, tests_nudge
+            tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun
 
 contains
 
@@ -882,5 +882,476 @@ contains
     end function check_halos
 
   end function tests_nudge
+
+
+  !> Check the host IBM wall functions against expectations derived
+  !! independently of how they are written.
+  !!
+  !! tests_cuda.f90 already compares the device port against these routines, but
+  !! that comparison is symmetric: a mistake present in both sides passes it, and
+  !! it cannot run at all without a GPU. What follows instead asserts properties
+  !! the routines must have whatever their implementation:
+  !!
+  !!   - a correction that must vanish (no solid neighbours, or a constant field)
+  !!   - a single face whose value is worked out by hand
+  !!   - accumulation rather than assignment
+  !!   - locality: only listed boundary points move
+  !!   - conservation: the per-facet totals and the field tendencies account for
+  !!     the same flux
+  !!
+  !! Returns .true. if all checks pass.
+  logical function tests_ibm_wallfun()
+#if defined(_GPU)
+    ! The host wall functions this checks are not compiled into a GPU release
+    ! build, and on a GPU debug build the solver does not use them, so there is
+    ! nothing here to exercise. The device port is covered by
+    ! tests_cuda.f90::test_ibm_wallfunmom and test_ibm_wallfunheat.
+    implicit none
+
+    if (myid == 0) then
+      write(*, '(A)') 'FAIL: runmode 1008 checks the host IBM wall functions.'
+      write(*, '(A)') '  Run it against a CPU build (build/cpu/<type>/u-dales).'
+      write(*, '(A)') '  The device port is covered by the CUDA self-tests.'
+    end if
+    tests_ibm_wallfun = .false.
+#else
+    use modglobal, only : runmode, ib, ie, ih, jb, je, jh, kb, ke, kh, &
+                          libm, iwallmom, ltempeq, lmoist, lwritefac, iwallmoist, &
+                          dx, dy, dzh, dx2i, nfcts, xhat, &
+                          totheatflux, totqflux
+    use modfields, only : initfields, u0, v0, w0, thl0, qt0, qtp, pres0, up, thlp
+    use initfac,   only : faclGR, facqsat, fachurel, facf, facT
+    use modsubgrid,     only : initsubgrid
+    use modsubgriddata, only : ekh
+    use initfac,   only : readfacetfiles
+    use modibm,    only : initibm, createmasks, mask_c, &
+                          diffc_corr, wallfunmom, wallfunheat, &
+                          fac_tau_raw, fac_pres_raw, &
+                          bound_info_u, bound_info_c
+
+    implicit none
+
+    real, parameter :: ek_uniform = 0.25
+    logical :: all_passed
+    integer :: i, j, k
+    real    :: expected, got, tol, vol, flux_sum, delta_sum
+
+    real, allocatable :: mask_c_save(:,:,:)
+    real, allocatable :: thlp_before(:,:,:), up_before(:,:,:)
+    real, allocatable :: qtp_before(:,:,:)
+    logical, allocatable :: faclGR_save(:)
+    real, allocatable :: facqsat_save(:), fachurel_save(:), facf_save(:,:)
+    logical :: saved_lmoist
+    integer :: saved_iwallmoist
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_ibm_wallfun: HOST IBM WALL FUNCTION TESTS'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    all_passed = .true.
+
+    if (.not. libm) then
+      if (myid == 0) write(*, '(A)') 'FAIL: this runmode needs a case with libm = .true.'
+      tests_ibm_wallfun = .false.
+      return
+    end if
+
+    ! execute_runmode_actions runs before the solver builds any of this, so the
+    ! geometry has to be set up here, as the other IBM runmodes do.
+    call initfields
+    call initsubgrid      ! allocates ekm and ekh, which the corrections read
+    call readfacetfiles
+    call initibm
+    call createmasks
+
+    if (bound_info_c%nbndptsrank < 1) then
+      if (myid == 0) write(*, '(A)') 'FAIL: no cell-centred boundary points on this rank'
+      tests_ibm_wallfun = .false.
+      return
+    end if
+
+    allocate(mask_c_save, source=mask_c)
+    allocate(thlp_before(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(up_before(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+
+    tol = 1.e-10
+
+    ! ---------------------------------------------------------------- 1
+    ! No solid neighbours anywhere: nothing to cancel, so no correction.
+    ! This is what a mask test written the wrong way round fails.
+    mask_c = 1.
+    ekh = ek_uniform
+    call fill_ramp(thl0)
+    thlp = 0.
+    call diffc_corr(thl0, thlp, ih, jh, kh)
+    if (maxval(abs(thlp)) > tol) then
+      call report('correction applied with no solid neighbours', maxval(abs(thlp)))
+      all_passed = .false.
+    end if
+
+    ! ---------------------------------------------------------------- 2
+    ! Every neighbour solid but a constant field: every difference is zero, so
+    ! the correction is zero whatever the coefficients are.
+    mask_c = 0.
+    thl0 = 17.
+    thlp = 0.
+    call diffc_corr(thl0, thlp, ih, jh, kh)
+    if (maxval(abs(thlp)) > tol) then
+      call report('correction applied to a constant field', maxval(abs(thlp)))
+      all_passed = .false.
+    end if
+
+    ! ---------------------------------------------------------------- 3
+    ! One isolated solid neighbour in +x, uniform diffusivity, unit jump.
+    ! By hand: rhs = -0.5*(ekh + ekh)*(1 - 0)*dx2i = -ek_uniform*dx2i.
+    i = bound_info_c%bndpts_loc(1,1)
+    j = bound_info_c%bndpts_loc(1,2)
+    k = bound_info_c%bndpts_loc(1,3)
+    mask_c = 1.
+    mask_c(i+1,j,k) = 0.
+    ekh = ek_uniform
+    thl0 = 0.
+    thl0(i+1,j,k) = 1.
+    thlp = 0.
+    call diffc_corr(thl0, thlp, ih, jh, kh)
+    expected = -ek_uniform * dx2i
+    got = thlp(i,j,k)
+    if (abs(got - expected) > tol * max(1., abs(expected))) then
+      if (myid == 0) write(*,'(A,ES14.6,A,ES14.6)') &
+        'FAIL: single-face correction got ', got, ' expected ', expected
+      all_passed = .false.
+    end if
+
+    ! ---------------------------------------------------------------- 4
+    ! Accumulates into rhs rather than assigning to it.
+    thlp = 0.
+    call diffc_corr(thl0, thlp, ih, jh, kh)
+    call diffc_corr(thl0, thlp, ih, jh, kh)
+    if (abs(thlp(i,j,k) - 2.*expected) > tol * max(1., abs(expected))) then
+      call report('correction assigns instead of accumulating', thlp(i,j,k))
+      all_passed = .false.
+    end if
+
+    ! ---------------------------------------------------------------- 5
+    ! Only listed boundary points move. Marks every listed cell, then checks
+    ! that nothing outside the marks changed.
+    mask_c = 0.
+    call fill_ramp(thl0)
+    thlp = 0.
+    call diffc_corr(thl0, thlp, ih, jh, kh)
+    if (.not. only_boundary_points_touched()) all_passed = .false.
+
+    mask_c = mask_c_save
+
+    ! ---------------------------------------------------------------- 6
+    ! Momentum: a fluid at rest exerts no stress, and reports none.
+    if (iwallmom > 1 .and. bound_info_u%nfctsecsrank > 0) then
+      u0 = 0.; v0 = 0.; w0 = 0.
+      up = 0.
+      call wallfunmom(xhat, up, bound_info_u)
+      if (maxval(abs(up)) > tol) then
+        call report('stress produced by a fluid at rest', maxval(abs(up)))
+        all_passed = .false.
+      end if
+      if (allocated(fac_tau_raw)) then
+        if (maxval(abs(fac_tau_raw)) > tol) then
+          call report('facet stress reported for a fluid at rest', maxval(abs(fac_tau_raw)))
+          all_passed = .false.
+        end if
+      end if
+
+      ! ------------------------------------------------------------- 7
+      ! The wall stress opposes the flow, and the momentum it removes from the
+      ! field equals the momentum it reports on the facets. The second is a
+      ! cross-check between two outputs written under different indexing, so an
+      ! error in either scatter breaks it.
+      call fill_ramp(u0); call fill_ramp(v0); call fill_ramp(w0)
+      u0 = u0 + 1.
+      call fill_ramp(thl0)
+      thl0 = thl0 + 290.
+      up = 0.
+      up_before = up
+      call wallfunmom(xhat, up, bound_info_u)
+
+      if (.not. stress_opposes_flow()) all_passed = .false.
+
+      if (allocated(fac_tau_raw)) then
+        delta_sum = 0.
+        do k = kb, ke+kh
+          vol = dx*dy*dzh(k)
+          do j = jb, je
+            do i = ib, ie
+              delta_sum = delta_sum + (up(i,j,k) - up_before(i,j,k)) * vol
+            end do
+          end do
+        end do
+        flux_sum = sum(fac_tau_raw)
+        if (abs(delta_sum + flux_sum) > 1.e-6 * max(1., abs(flux_sum))) then
+          if (myid == 0) write(*,'(A,ES14.6,A,ES14.6)') &
+            'FAIL: momentum removed ', -delta_sum, ' but facets report ', flux_sum
+          all_passed = .false.
+        end if
+      end if
+    end if
+
+    ! ---------------------------------------------------------------- 8
+    ! Heat: the same conservation cross-check, plus the pressure accumulator
+    ! recomputed here directly from the section list.
+    if ((ltempeq .or. lmoist .or. lwritefac) .and. bound_info_c%nfctsecsrank > 0) then
+      call fill_ramp(u0); call fill_ramp(v0); call fill_ramp(w0)
+      u0 = u0 + 1.
+      call fill_ramp(thl0); thl0 = thl0 + 290.
+      call fill_ramp(pres0)
+      if (lmoist) call fill_ramp(qt0)
+      thlp = 0.
+      thlp_before = thlp
+      totheatflux = 0.
+      call wallfunheat
+
+      if (ltempeq) then
+        delta_sum = 0.
+        do k = kb, ke+kh
+          vol = dx*dy*dzh(k)
+          do j = jb, je
+            do i = ib, ie
+              delta_sum = delta_sum + (thlp(i,j,k) - thlp_before(i,j,k)) * vol
+            end do
+          end do
+        end do
+        if (abs(delta_sum + totheatflux) > 1.e-6 * max(1., abs(totheatflux))) then
+          if (myid == 0) write(*,'(A,ES14.6,A,ES14.6)') &
+            'FAIL: heat removed ', -delta_sum, ' but totheatflux is ', totheatflux
+          all_passed = .false.
+        end if
+      end if
+
+      if (allocated(fac_pres_raw)) then
+        if (.not. pressure_accumulator_matches()) all_passed = .false.
+      end if
+    end if
+
+    ! ---------------------------------------------------------------- 9
+    ! The moisture wall function. Reached only for green-roof facets with
+    ! iwallmoist = 2, a combination no case in the suite has, so it is set up
+    ! here. What is asserted are properties of the flux itself rather than its
+    ! formula: it only ever adds moisture, it is exactly zero at equilibrium,
+    ! and what leaves the field is what totqflux reports.
+    if (allocated(faclGR) .and. allocated(facqsat) .and. bound_info_c%nfctsecsrank > 0) then
+      allocate(faclGR_save, source=faclGR)
+      allocate(facqsat_save, source=facqsat)
+      allocate(fachurel_save, source=fachurel)
+      allocate(facf_save, source=facf)
+      allocate(qtp_before(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+      saved_lmoist     = lmoist
+      saved_iwallmoist = iwallmoist
+
+      lmoist     = .true.
+      iwallmoist = 2
+      faclGR     = .true.
+      fachurel   = 1.0     ! saturated soil, so the bare-soil term is qtair-qwall
+      facf(:,4)  = 200.
+      facf(:,5)  = 50.
+      facqsat    = 0.02
+
+      ! Air and surface far enough apart that every section gets a non-zero
+      ! heat transfer coefficient, which is what opens the moisture branch.
+      call fill_ramp(u0); call fill_ramp(v0); call fill_ramp(w0)
+      u0 = u0 + 1.
+      call fill_ramp(thl0); thl0 = thl0 + 290.
+      if (allocated(facT)) facT(:,1) = 300.
+
+      ! (a) Equilibrium: air already at the surface humidity, saturated soil.
+      !     Both terms of the flux vanish, so nothing may move.
+      qt0 = 0.02
+      qtp = 0.
+      totqflux = 0.
+      call wallfunheat
+      if (maxval(abs(qtp)) > tol .or. abs(totqflux) > tol) then
+        call report('moisture flux at equilibrium', max(maxval(abs(qtp)), abs(totqflux)))
+        all_passed = .false.
+      end if
+
+      ! (b) Air wetter than the surface. The flux is a min(0., .) so it must
+      !     clamp: a green roof never condenses moisture out of the air here.
+      qt0 = 0.05
+      qtp = 0.
+      totqflux = 0.
+      call wallfunheat
+      if (maxval(abs(qtp)) > tol .or. abs(totqflux) > tol) then
+        call report('moisture removed from air wetter than the surface', maxval(abs(qtp)))
+        all_passed = .false.
+      end if
+
+      ! (c) Air drier than the surface: evaporation, so the tendency may only
+      !     add moisture, and it must balance what totqflux reports.
+      qt0 = 0.001
+      qtp = 0.
+      qtp_before = qtp
+      totqflux = 0.
+      call wallfunheat
+      if (maxval(abs(qtp)) <= tol) then
+        call report('no moisture flux from a drying surface', maxval(abs(qtp)))
+        all_passed = .false.
+      end if
+      if (minval(qtp) < -tol) then
+        call report('evaporation removed moisture somewhere', minval(qtp))
+        all_passed = .false.
+      end if
+      delta_sum = 0.
+      do k = kb, ke+kh
+        vol = dx*dy*dzh(k)
+        do j = jb, je
+          do i = ib, ie
+            delta_sum = delta_sum + (qtp(i,j,k) - qtp_before(i,j,k)) * vol
+          end do
+        end do
+      end do
+      if (abs(delta_sum + totqflux) > 1.e-6 * max(1., abs(totqflux))) then
+        if (myid == 0) write(*,'(A,ES14.6,A,ES14.6)') &
+          'FAIL: moisture added ', -delta_sum, ' but totqflux is ', totqflux
+        all_passed = .false.
+      end if
+
+      ! (d) With no green-roof facets the branch must not run at all.
+      faclGR = .false.
+      qtp = 0.
+      totqflux = 0.
+      call wallfunheat
+      if (maxval(abs(qtp)) > tol .or. abs(totqflux) > tol) then
+        call report('moisture flux without a green roof', maxval(abs(qtp)))
+        all_passed = .false.
+      end if
+
+      lmoist     = saved_lmoist
+      iwallmoist = saved_iwallmoist
+      faclGR     = faclGR_save
+      facqsat    = facqsat_save
+      fachurel   = fachurel_save
+      facf       = facf_save
+      deallocate(faclGR_save, facqsat_save, fachurel_save, facf_save, qtp_before)
+    end if
+
+    mask_c = mask_c_save
+    deallocate(mask_c_save, thlp_before, up_before)
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)') 'ALL TESTS PASSED: tests_ibm_wallfun'
+      else
+        write(*, '(A)') 'TESTS FAILED: tests_ibm_wallfun'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_ibm_wallfun = all_passed
+
+    return
+
+  contains
+
+    subroutine report(what, value)
+      character(len=*), intent(in) :: what
+      real, intent(in) :: value
+      if (myid == 0) write(*,'(A,A,A,ES12.4)') 'FAIL: ', what, ', worst ', value
+    end subroutine report
+
+    !> A field that varies in all three directions, so no stencil neighbour
+    !! coincides with another.
+    subroutine fill_ramp(a)
+      real, intent(out) :: a(:,:,:)
+      integer :: p, q, r
+      do r = 1, size(a,3)
+        do q = 1, size(a,2)
+          do p = 1, size(a,1)
+            a(p,q,r) = 0.125*p - 0.0625*q + 0.03125*r
+          end do
+        end do
+      end do
+    end subroutine fill_ramp
+
+    logical function only_boundary_points_touched()
+      integer :: m, p, q, r
+      integer, allocatable :: listed(:,:,:)
+
+      only_boundary_points_touched = .true.
+      allocate(listed(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      listed = 0
+      do m = 1, bound_info_c%nbndptsrank
+        listed(bound_info_c%bndpts_loc(m,1), &
+               bound_info_c%bndpts_loc(m,2), &
+               bound_info_c%bndpts_loc(m,3)) = 1
+      end do
+
+      do r = kb, ke+kh
+        do q = jb-jh, je+jh
+          do p = ib-ih, ie+ih
+            if (listed(p,q,r) == 0 .and. abs(thlp(p,q,r)) > tol) then
+              if (myid == 0) write(*,'(A,3I6)') &
+                'FAIL: correction written outside the boundary point list at ', p, q, r
+              only_boundary_points_touched = .false.
+              deallocate(listed)
+              return
+            end if
+          end do
+        end do
+      end do
+      deallocate(listed)
+    end function only_boundary_points_touched
+
+    logical function stress_opposes_flow()
+      integer :: p, q, r
+      real    :: delta
+
+      stress_opposes_flow = .true.
+      do r = kb, ke+kh
+        do q = jb, je
+          do p = ib, ie
+            delta = up(p,q,r) - up_before(p,q,r)
+            if (abs(delta) <= tol) cycle
+            if (delta * u0(p,q,r) > 0.) then
+              if (myid == 0) write(*,'(A,3I6,A,ES12.4,A,ES12.4)') &
+                'FAIL: wall stress adds momentum at ', p, q, r, ' delta ', delta, ' u ', u0(p,q,r)
+              stress_opposes_flow = .false.
+              return
+            end if
+          end do
+        end do
+      end do
+    end function stress_opposes_flow
+
+    !> fac_pres is a plain area-weighted sum of pres0 over the sections, with no
+    !! wall-function physics in it, so it can be recomputed here outright.
+    logical function pressure_accumulator_matches()
+      use decomp_2d, only : zstart
+      integer :: sec, p, q, r
+      real, allocatable :: ref(:)
+      real :: worst
+
+      pressure_accumulator_matches = .true.
+      allocate(ref(1:nfcts))
+      ref = 0.
+      do sec = 1, bound_info_c%nfctsecsrank
+        p = bound_info_c%secbndpts_loc(sec,1) - zstart(1) + 1
+        q = bound_info_c%secbndpts_loc(sec,2) - zstart(2) + 1
+        r = bound_info_c%secbndpts_loc(sec,3) - zstart(3) + 1
+        ref(bound_info_c%secfacids_loc(sec)) = ref(bound_info_c%secfacids_loc(sec)) &
+                                             + pres0(p,q,r) * bound_info_c%secareas_loc(sec)
+      end do
+
+      worst = maxval(abs(ref - fac_pres_raw))
+      if (worst > 1.e-8 * max(1., maxval(abs(ref)))) then
+        if (myid == 0) write(*,'(A,ES12.4)') 'FAIL: facet pressure accumulator, worst ', worst
+        pressure_accumulator_matches = .false.
+      end if
+      deallocate(ref)
+    end function pressure_accumulator_matches
+
+#endif
+
+  end function tests_ibm_wallfun
 
 end module tests

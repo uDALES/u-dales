@@ -152,6 +152,16 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/ibm_cell_lookup/run_test.sh"
+      - label: "supported: ibm wall function integration"
+        class: supported
+        kind: integration
+        component: ibm
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/ibm_wallfun/run_test.sh"
       - label: "supported: nudge integration"
         class: supported
         kind: integration

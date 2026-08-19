@@ -1,0 +1,91 @@
+&RUN
+runmode      = 1008
+iexpnr       = 101
+runtime      = 1.1
+trestart     = 1000.
+dtmax        = 0.1
+ladaptive    = .false.
+lrandomize   = .false.
+nprocx       = 1
+nprocy       = 1
+libm         = .true.
+/
+
+&DOMAIN
+itot         = 64
+jtot         = 64
+ktot         = 64
+xlen         = 64
+ylen         = 64
+/
+
+&PHYSICS
+ps           = 101500.
+igrw_damp    = 0
+lbuoyancy    = .true.
+ltempeq      = .true.
+luvolflowr   = .true.
+uflowrate    = 1.5
+/
+
+&DYNAMICS
+ipoiss       = 0
+iadv_thl     = 2
+iadv_sv      = 7
+/
+
+&BC
+wtsurf       = 0.
+wqsurf       = 0.
+thls         = 295.
+thl_top      = 285.
+BCbotT       = 2
+BCtopT       = 2
+BCxs         = 2
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&WALLS
+nfcts = 320
+nsolpts_u = 34816
+nsolpts_v = 32768
+nsolpts_w = 36864
+nsolpts_c = 32768
+nbndpts_u = 8192
+nbndpts_v = 8192
+nbndpts_w = 8192
+nbndpts_c = 8192
+nfctsecs_u = 6546
+nfctsecs_v = 12950
+nfctsecs_w = 5856
+nfctsecs_c = 11848
+iwalltemp    = 2
+/
+
+&SCALARS
+nsv          = 1
+lscasrcl     = .true.
+nscasrcl     = 1
+/
+
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 0.5
+fieldvars    = 'u0,v0,w0,p0,th,s1'
+ltdump       = .true.
+lxytdump     = .true.
+tstatstart   = 0.0
+tstatsdump   = 0.5
+tsample      = 0.1
+/
+
+&INPS
+zsize        = 64
+u0           = 1.5
+thl0         = 290.
+facT         = 295
+stl_file     = geom.101.STL
+/

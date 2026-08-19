@@ -311,9 +311,12 @@
       "case_id": 64,
       "base_case": "tests/cases/064",
       "namelist": "tests/integration/gpu/namelists/namoptions.064.seb",
+      "overrides": [
+        "tests/integration/gpu/fixtures/Tfacinit.inp.064"
+      ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["surface-energy-balance", "sparse-view-factors", "periodic-EB-correction", "thermal-and-moisture-walls"],
+      "required_outputs": ["fielddump", "tdump", "xytdump", "facEB", "facT"],
+      "coverage": ["surface-energy-balance", "sparse-view-factors", "periodic-EB-correction", "thermal-and-moisture-walls", "facet-heat-flux-handover"],
       "timeout_seconds": 900
     },
     {
@@ -497,6 +500,15 @@
       "src/modpois.f90:poisson": ["dry-poisson-fft", "thermo-scalar-wall"],
       "src/modpois.f90:tderive": ["dry-poisson-fft", "thermo-scalar-wall"],
       "src/modforces.f90:nudge": ["debug-device-selftests", "nudging"],
+      "src/modibm.f90:diffu_corr_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],
+      "src/modibm.f90:diffv_corr_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],
+      "src/modibm.f90:diffw_corr_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],
+      "src/modibm.f90:diffc_corr_device": ["debug-device-selftests", "ibm-scalar-wall"],
+      "src/modibm.f90:wallfunmom_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],
+      "src/modibm.f90:wallfunheat_device": ["debug-device-selftests", "ibm-scalar-wall", "surface-energy-balance"],
+      "src/modibm.f90:scatter_flux_device": ["ibm-scalar-wall", "surface-energy-balance"],
+      "src/modibm.f90:copy_tendency_device": ["ibm-scalar-wall", "ibm-reconstruction"],
+      "src/modibm.f90:accumulate_delta_device": ["ibm-scalar-wall", "ibm-reconstruction"],
       "src/modscalsource.f90:scalsource": ["thermo-scalar-wall", "ibm-scalar-wall", "scalar-point-two-rank-x", "scalar-line-two-rank-y"],
       "src/modtstep.f90:tstep_integrate": ["dry-poisson-fft", "thermo-scalar-wall", "one-equation-sgs"],
       "src/heatpump.f90:heatpump": ["debug-device-selftests", "heatpump"]

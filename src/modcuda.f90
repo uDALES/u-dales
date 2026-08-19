@@ -4,15 +4,15 @@ module modcuda
 #if defined(UDALES_DEBUG)
    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
 #endif
-   use modglobal,      only: itot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
+   use modglobal,      only: itot, jtot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
                              dx2, dxi, dx2i, dxi5, dxiq, dy2, dyi, dy2i, dyi5, dyiq, dxf, dxhi, &
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
                              ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, ltrees, lscasrc, lscasrcl, &
                              BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
-                             lnudge, lnudgevel, &
+                             lnudge, lnudgevel, libm, nfcts, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
-                             xh, &
+                             xh, xf, yh, yf, zh, zf, &
                              eps1, numol, prandtlmoli, prandtlturb, grav, fkar2
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
@@ -28,6 +28,7 @@ module modcuda
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
                              cn, cm, ch1, ch2, ce1, ce2, dampmin, prandtli, c_vreman
    use modsurfdata,    only: thvs
+   use initfac,        only: facT, fachf, facef, facqsat, fachurel, facf
    use modinletdata,   only: u0driver
    use decomp_2d,      only: zstart
    implicit none
@@ -49,7 +50,8 @@ module modcuda
    real, device, allocatable :: dzf_d(:), dzf2_d(:), dzfi_d(:), dzfi5_d(:), dzfiq_d(:), dzh_d(:), dzhi_d(:), dzh2i_d(:), dzhiq_d(:), &
                                 dzfc_d(:), dzfci_d(:), dzhci_d(:), dxfc_d(:), dxfci_d(:), dxhci_d(:), &
                                 dxf_d(:), dxhi_d(:), &
-                                xh_d(:), u0av_d(:), v0av_d(:), ug_d(:), vg_d(:), whls_d(:), thl0av_d(:), qt0av_d(:), tsc_d(:), &
+                                xh_d(:), xf_d(:), yh_d(:), yf_d(:), zh_d(:), zf_d(:), &
+                                u0av_d(:), v0av_d(:), ug_d(:), vg_d(:), whls_d(:), thl0av_d(:), qt0av_d(:), tsc_d(:), &
                                 dpdxl_d(:), dpdyl_d(:), thvh_d(:), thlpcar_d(:), &
                                 dudxls_d(:), dudyls_d(:), dvdxls_d(:), dvdyls_d(:), dthldxls_d(:), dthldyls_d(:), dqtdxls_d(:), dqtdyls_d(:), dqtdtls_d(:), &
                                 uprof_d(:), vprof_d(:), thlprof_d(:), qtprof_d(:)
@@ -71,6 +73,24 @@ module modcuda
    real, device, allocatable :: dummyNO_d(:,:,:), dummyNO2_d(:,:,:), dummyO3_d(:,:,:)
 
    real, device, allocatable :: scalar_source_tendency_d(:,:,:,:)
+
+   ! IBM facet quantities that cross the bus inside the time loop. They are
+   ! declared here, rather than in modibm, so that the transfers can live in the
+   ! four update routines below: modibm already uses modcuda, so the reverse
+   ! dependency would be circular. The IBM geometry that never changes stays in
+   ! modibm and is transferred once by init_ibm_device.
+   real, device, allocatable :: facT1_d(:)                  ! outdoor surface temperature
+   ! Green-roof properties. The energy balance rewrites all of these whenever it
+   ! solves, so they are refreshed alongside facT rather than mirrored once.
+   real, device, allocatable :: facqsat_d(:), fachurel_d(:), facf_d(:,:)
+   real, device, allocatable :: fachf_d(:), facef_d(:)      ! energy balance accumulators
+   real, device, allocatable :: fac_tau_d(:)                ! momentum, one direction at a time
+   real, device, allocatable :: fac_htc_d(:), fac_cth_d(:), fac_pres_d(:), fac_pres2_d(:)
+
+   ! Pinned staging for the facet transfers. Automatic arrays cannot be pinned,
+   ! so these are held at module level to keep every loop-time copy pinned.
+   real, allocatable, pinned :: fac_stage(:), fachf_stage(:), facef_stage(:)
+   logical :: lfacets_on_device = .false.
 
    contains
       subroutine initCUDA
@@ -296,7 +316,17 @@ module modcuda
          eps1_d   = eps1
          zstart_d = zstart
          allocate (xh_d(ib:itot+ih))
+         allocate (xf_d(ib:itot+ih))
+         allocate (yh_d(jb:jtot+jh))
+         allocate (yf_d(jb:jtot+jh))
+         allocate (zh_d(kb:ke+kh))
+         allocate (zf_d(kb:ke+kh))
          xh_d = xh
+         xf_d = xf
+         yh_d = yh
+         yf_d = yf
+         zh_d = zh
+         zf_d = zf
 
          ltempeq_d      = ltempeq
          lles_d         = lles
@@ -332,6 +362,12 @@ module modcuda
             csz_d = csz
          end if
 
+         if (libm .and. nfcts > 0) then
+            allocate(fac_stage(1:nfcts))
+            allocate(fachf_stage(0:nfcts))
+            allocate(facef_stage(1:nfcts))
+         end if
+
       end subroutine initCUDA
 
       subroutine exitCUDA
@@ -362,7 +398,7 @@ module modcuda
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. any(iadv_sv(1:nsv) == iadv_upw) .or. (iadv_thl == iadv_kappa)) then
             deallocate(dxfci_d, dzfci_d)
          end if
-         deallocate(xh_d)
+         deallocate(xh_d, xf_d, yh_d, yf_d, zh_d, zf_d)
          deallocate(ekm_d, ekh_d)
          if (lsmagorinsky .or. loneeqn) then
             deallocate(damp_d)
@@ -371,9 +407,46 @@ module modcuda
          deallocate(dthvdz_d)
       end subroutine exitCUDA
 
+      !> Refresh the facet properties the IBM wall functions read.
+      subroutine updateFacetPropsDevice
+         use modglobal, only : nfcts, lEB, rk3step
+         implicit none
+
+         if (lfacets_on_device .and. .not. lEB) return
+         if (lfacets_on_device .and. rk3step /= 1) return
+
+         if (allocated(facT1_d))    facT1_d    = facT(0:nfcts,1)
+         if (allocated(facqsat_d))  facqsat_d  = facqsat(0:nfcts)
+         if (allocated(fachurel_d)) fachurel_d = fachurel(0:nfcts)
+         if (allocated(facf_d))     facf_d     = facf(0:nfcts,1:5)
+
+         lfacets_on_device = .true.
+      end subroutine updateFacetPropsDevice
+
+      !> Drain the energy balance accumulators the IBM wall functions filled.
+      subroutine updateFacFluxHost
+         use modglobal, only : nfcts, lEB
+         implicit none
+
+         if (.not. lEB) return
+
+         if (allocated(fachf_d) .and. allocated(fachf)) then
+            fachf_stage = fachf_d
+            fachf(0:nfcts) = fachf(0:nfcts) + fachf_stage
+            fachf_d = 0.
+         end if
+         if (allocated(facef_d) .and. allocated(facef)) then
+            facef_stage = facef_d
+            facef(1:nfcts) = facef(1:nfcts) + facef_stage
+            facef_d = 0.
+         end if
+      end subroutine updateFacFluxHost
+
       subroutine updateDevice
          implicit none
          integer :: n
+
+         call updateFacetPropsDevice
 
          u0_d = u0
          v0_d = v0
@@ -534,6 +607,9 @@ module modcuda
 
       subroutine updateHost
          implicit none
+
+         call updateFacFluxHost
+
          up = up_d
          vp = vp_d
          wp = wp_d

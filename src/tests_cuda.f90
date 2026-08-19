@@ -19,8 +19,10 @@ module tests_cuda
                         thl0_d, thlm_d, thl0c_d, qt0_d, qtm_d, sv0_d, svm_d, &
                         thlp_d, thlpc_d, pup_d, up_d, u0driver_d, wp_d, &
                         vp_d, qtp_d, svp_d, u0av_d, v0av_d, thl0av_d, qt0av_d, sv0av_d, &
-                        uprof_d, vprof_d, thlprof_d, qtprof_d, svprof_d
-   use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, &
+                        uprof_d, vprof_d, thlprof_d, qtprof_d, svprof_d, &
+                        ekm_d, ekh_d, pres0_d, fachf_d, facef_d, updateFacFluxHost, &
+                        facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice
+   use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, pres0, &
                          thl0, thlm, thl0c, qt0, qtm, sv0, svm, thlp, wp, &
                          up, vp, qtp, svp, &
                          u0av, v0av, thl0av, qt0av, sv0av, &
@@ -29,10 +31,26 @@ module tests_cuda
                          ihc, jhc, khc, dxhci, dxfc, dxfci, dxi, dyi, &
                          dzhci, dzfc, dzfci, dzfi, eps1, &
                          lheatpump, lfan_hp, nhppoints, ltempeq, &
-                         lmoist, lnudge, lnudgevel, tnudge, nnudge
+                         lmoist, lnudge, lnudgevel, tnudge, nnudge, &
+                         iwallmom, nfcts, xhat, yhat, zhat, &
+                         totheatflux, totqflux, lEB, rk3step, iwallmoist
    use modforces,   only : nudge
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
                            thl_dot_hp, w_hp_exhaust
+   use initfac,     only : fachf, facef, facT, facqsat, fachurel, facf, faclGR
+   use modibm,      only : mask_u, mask_v, mask_w, mask_c, &
+                           mask_u_d, mask_v_d, mask_w_d, mask_c_d, &
+                           bndpts_u_d, bndpts_v_d, bndpts_w_d, bndpts_c_d, &
+                           bound_info_u, bound_info_v, bound_info_w, bound_info_c, &
+                           diffu_corr, diffv_corr, diffw_corr, diffc_corr, &
+                           diffu_corr_device, diffv_corr_device, diffw_corr_device, &
+                           diffc_corr_device, &
+                           wallfunmom, wallfunmom_dir_device, fac_tau_d, fac_tau_raw, &
+                           bound_info_type, &
+                           wallfunheat, wallfunheat_dir_device, bound_info_c, faclGR_d, &
+                           fac_htc_raw, fac_cth_raw, fac_pres_raw, fac_pres2_raw, &
+                           fac_htc_d, fac_cth_d, fac_pres_d, fac_pres2_d
+   use modsubgriddata, only : ekm, ekh
    use modinletdata, only : u0driver
    use modmpi,   only : myid
 
@@ -67,6 +85,12 @@ contains
          call test_periodic_device_halos
          call test_heatpump_scatter
          call test_nudge_profiles
+         call test_ibm_device_geometry
+         call test_ibm_diff_corr
+         call test_ibm_wallfunmom
+         call test_ibm_wallfunheat
+         call test_facflux_handover
+         call test_facet_props_refresh
          write(*,'(A,I0)') 'CUDA device self-tests passed. rank=', myid
       case ('', '0', 'false', 'FALSE', 'no', 'NO', 'off', 'OFF')
          return
@@ -891,6 +915,8 @@ contains
       integer :: saved_nhppoints, saved_nhppoints_local
       real    :: saved_thl_dot, saved_w_exhaust
       real, allocatable :: thlp_h(:,:,:), wm_h(:,:,:), w0_h(:,:,:), wp_h(:,:,:)
+      integer, allocatable :: saved_ids_h(:,:)
+      logical :: had_ids
       real    :: expected_thlp, tolerance
       integer :: i, j, k
 
@@ -911,8 +937,19 @@ contains
       nhppoints_local = 1
       thl_dot_hp      = thl_dot
       w_hp_exhaust    = w_exhaust
-      if (allocated(idhppts_local_d)) deallocate(idhppts_local_d)
-      allocate(idhppts_local_d(1, 3))
+      ! The run's real point list is kept in place and only its first row is
+      ! borrowed. Neither destroying it nor swapping it for another allocation
+      ! is safe: init_heatpump is the only thing that builds it and does not run
+      ! again, and re-pointing the module array between kernel launches leaves
+      ! the accelerator using the allocation it saw first. Writing through the
+      ! existing allocation keeps that identity fixed.
+      had_ids = allocated(idhppts_local_d)
+      if (had_ids) then
+         allocate(saved_ids_h(size(idhppts_local_d,1), size(idhppts_local_d,2)))
+         saved_ids_h = idhppts_local_d
+      else
+         allocate(idhppts_local_d(1, 3))
+      end if
       idhppts_local_d(1, 1) = test_i
       idhppts_local_d(1, 2) = test_j
       idhppts_local_d(1, 3) = test_k
@@ -962,7 +999,14 @@ contains
       end if
 
       deallocate(wp_h, w0_h, wm_h, thlp_h)
-      deallocate(idhppts_local_d)
+      if (had_ids) then
+         idhppts_local_d = saved_ids_h
+         deallocate(saved_ids_h)
+      else
+         ! Nothing to put back: with no points on this rank nhppoints_local
+         ! restores to zero and heatpump returns before reading the list.
+         deallocate(idhppts_local_d)
+      end if
 
       lheatpump       = saved_lheatpump
       ltempeq         = saved_ltempeq
@@ -1190,6 +1234,742 @@ contains
       if (lmoist)  qtprof_d  = qtprof
       if (nsv > 0) svprof_d  = svprof
    end subroutine test_nudge_profiles
+
+   !> Verify the IBM geometry mirrored onto the device by init_ibm_device.
+   !!
+   !! The mirrors are written once and then only read, so the failure this
+   !! guards against is a silent one: a mask or point list that was never
+   !! transferred reads as zeros on the device and simply switches off the
+   !! wall-function corrections at those points instead of producing an error.
+   !! Bounds are compared as well as values: the kernels index these from ib-ih
+   !! and kb-kh, and a device array allocated over the wrong extent still copies
+   !! and still runs, it just reads the wrong cells.
+   subroutine test_ibm_device_geometry
+      implicit none
+
+      ! Bounds are inquired on the module arrays themselves. Passing them to a
+      ! helper with declared bounds would make the comparison vacuous, because
+      ! the dummy would impose the bounds being checked for.
+      if (allocated(mask_u_d)) then
+         call check_bounds('mask_u', lbound(mask_u_d), ubound(mask_u_d), lbound(mask_u), ubound(mask_u))
+         call check_mask('mask_u', mask_u, mask_u_d)
+      end if
+      if (allocated(mask_v_d)) then
+         call check_bounds('mask_v', lbound(mask_v_d), ubound(mask_v_d), lbound(mask_v), ubound(mask_v))
+         call check_mask('mask_v', mask_v, mask_v_d)
+      end if
+      if (allocated(mask_w_d)) then
+         call check_bounds('mask_w', lbound(mask_w_d), ubound(mask_w_d), lbound(mask_w), ubound(mask_w))
+         call check_mask('mask_w', mask_w, mask_w_d)
+      end if
+      if (allocated(mask_c_d)) then
+         call check_bounds('mask_c', lbound(mask_c_d), ubound(mask_c_d), lbound(mask_c), ubound(mask_c))
+         call check_mask('mask_c', mask_c, mask_c_d)
+      end if
+
+      if (allocated(bndpts_u_d)) &
+         call check_bndpts('bndpts_u', bound_info_u%bndpts_loc, bndpts_u_d, bound_info_u%nbndptsrank)
+      if (allocated(bndpts_v_d)) &
+         call check_bndpts('bndpts_v', bound_info_v%bndpts_loc, bndpts_v_d, bound_info_v%nbndptsrank)
+      if (allocated(bndpts_w_d)) &
+         call check_bndpts('bndpts_w', bound_info_w%bndpts_loc, bndpts_w_d, bound_info_w%nbndptsrank)
+      if (allocated(bndpts_c_d)) &
+         call check_bndpts('bndpts_c', bound_info_c%bndpts_loc, bndpts_c_d, bound_info_c%nbndptsrank)
+
+   contains
+
+      subroutine check_bounds(name, lo_d, hi_d, lo_h, hi_h)
+         implicit none
+         character(len=*), intent(in) :: name
+         integer, intent(in) :: lo_d(3), hi_d(3), lo_h(3), hi_h(3)
+
+         if (any(lo_d /= lo_h) .or. any(hi_d /= hi_h)) then
+            call fail_cuda_selftest('ibm device geometry bounds '//name)
+         end if
+      end subroutine check_bounds
+
+      subroutine check_mask(name, host, dev)
+         implicit none
+         character(len=*), intent(in) :: name
+         real, intent(in) :: host(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+         real, device, intent(in) :: dev(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+         real, allocatable :: back(:,:,:)
+
+         allocate(back(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         back = dev
+         if (any(back /= host)) call fail_cuda_selftest('ibm device geometry '//name)
+         deallocate(back)
+      end subroutine check_mask
+
+      subroutine check_bndpts(name, host, dev, npts)
+         implicit none
+         character(len=*), intent(in) :: name
+         integer, intent(in) :: npts
+         integer, intent(in) :: host(npts,3)
+         integer, device, intent(in) :: dev(npts,3)
+         integer, allocatable :: back(:,:)
+
+         if (npts == 0) return
+         allocate(back(npts,3))
+         back = dev
+         if (any(back /= host)) call fail_cuda_selftest('ibm device geometry '//name)
+         deallocate(back)
+      end subroutine check_bndpts
+
+   end subroutine test_ibm_device_geometry
+
+   !> Compare the device diff*_corr routines against the host originals.
+   !!
+   !! The masks are synthesised rather than taken from the case geometry. Real
+   !! geometries are not neutral: on the IBM test case only the i+, i- and k-
+   !! neighbour branches ever fire, so a port that mishandled the j or k+ terms
+   !! would compare equal and pass. A checkerboard of solid cells makes all six
+   !! branches live for a large share of the boundary points, independently of
+   !! which case this runs under.
+   !!
+   !! Also asserts what lets the device loops omit atomics: that the entries of
+   !! each bndpts list are distinct cells. If a cell were listed twice the host
+   !! loop would apply both corrections and the device loop would lose one.
+   subroutine test_ibm_diff_corr
+      implicit none
+
+      real, allocatable :: u0_s(:,:,:), v0_s(:,:,:), w0_s(:,:,:)
+      real, allocatable :: up_s(:,:,:), vp_s(:,:,:), wp_s(:,:,:)
+      real, allocatable :: thl0_s(:,:,:), thlp_s(:,:,:), ekm_s(:,:,:), ekh_s(:,:,:)
+      real, allocatable :: mask_u_s(:,:,:), mask_v_s(:,:,:), mask_w_s(:,:,:), mask_c_s(:,:,:)
+
+      if (.not. allocated(mask_u_d)) return
+      if (.not. allocated(bndpts_u_d)) return
+
+      call check_distinct('bndpts_u', bound_info_u%bndpts_loc, bound_info_u%nbndptsrank)
+      call check_distinct('bndpts_v', bound_info_v%bndpts_loc, bound_info_v%nbndptsrank)
+      call check_distinct('bndpts_w', bound_info_w%bndpts_loc, bound_info_w%nbndptsrank)
+      if (allocated(bndpts_c_d)) &
+         call check_distinct('bndpts_c', bound_info_c%bndpts_loc, bound_info_c%nbndptsrank)
+
+      ! The self-tests run before the time loop, so everything touched here has
+      ! to be handed back exactly as it was found, on both host and device.
+      allocate(u0_s, source=u0); allocate(v0_s, source=v0); allocate(w0_s, source=w0)
+      allocate(up_s, source=up); allocate(vp_s, source=vp); allocate(wp_s, source=wp)
+      allocate(ekm_s, source=ekm); allocate(ekh_s, source=ekh)
+      allocate(mask_u_s, source=mask_u)
+      allocate(mask_v_s, source=mask_v)
+      allocate(mask_w_s, source=mask_w)
+
+      call checkerboard(mask_u); call checkerboard(mask_v); call checkerboard(mask_w)
+      mask_u_d = mask_u; mask_v_d = mask_v; mask_w_d = mask_w
+
+      call seed(u0, 1.); call seed(v0, 2.); call seed(w0, 3.)
+      call seed(up, 4.); call seed(vp, 5.); call seed(wp, 6.)
+      call seed(ekm, 7.); call seed(ekh, 8.)
+      ekm = 0.5 + 0.01*ekm   ! diffusivities are positive and O(1)
+      ekh = 0.5 + 0.01*ekh
+
+      u0_d = u0; v0_d = v0; w0_d = w0
+      up_d = up; vp_d = vp; wp_d = wp
+      ekm_d = ekm; ekh_d = ekh
+
+      call diffu_corr
+      call diffu_corr_device
+      call compare('diffu_corr', up, up_d, up_s, ih, kh)
+
+      call diffv_corr
+      call diffv_corr_device
+      call compare('diffv_corr', vp, vp_d, vp_s, ih, kh)
+
+      call diffw_corr
+      call diffw_corr_device
+      call compare('diffw_corr', wp, wp_d, wp_s, ih, kh)
+
+      if (allocated(bndpts_c_d) .and. ltempeq) then
+         allocate(thl0_s, source=thl0); allocate(thlp_s, source=thlp)
+         allocate(mask_c_s, source=mask_c)
+         call checkerboard(mask_c)
+         mask_c_d = mask_c
+         call seed(thl0, 9.); call seed(thlp, 10.)
+         thl0_d = thl0; thlp_d = thlp
+         call diffc_corr(thl0, thlp, ih, jh, kh)
+         call diffc_corr_device(thl0_d, thlp_d, ih, jh, kh)
+         call compare('diffc_corr thl', thlp, thlp_d, thlp_s, ih, kh)
+         thl0 = thl0_s; thlp = thlp_s; mask_c = mask_c_s
+         thl0_d = thl0; thlp_d = thlp; mask_c_d = mask_c
+         deallocate(thl0_s, thlp_s, mask_c_s)
+      end if
+
+      u0 = u0_s; v0 = v0_s; w0 = w0_s
+      up = up_s; vp = vp_s; wp = wp_s
+      ekm = ekm_s; ekh = ekh_s
+      mask_u = mask_u_s; mask_v = mask_v_s; mask_w = mask_w_s
+      u0_d = u0; v0_d = v0; w0_d = w0
+      up_d = up; vp_d = vp; wp_d = wp
+      ekm_d = ekm; ekh_d = ekh
+      mask_u_d = mask_u; mask_v_d = mask_v; mask_w_d = mask_w
+      deallocate(u0_s, v0_s, w0_s, up_s, vp_s, wp_s, ekm_s, ekh_s)
+      deallocate(mask_u_s, mask_v_s, mask_w_s)
+
+   contains
+
+      !> Mark a repeating subset of cells solid, so that every one of the six
+      !! neighbour tests in the diff*_corr routines is true somewhere.
+      subroutine checkerboard(msk)
+         implicit none
+         real, intent(out) :: msk(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+         integer :: i, j, k
+
+         do k = kb-kh, ke+kh
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  if (modulo(i + j + k, 3) == 0) then
+                     msk(i,j,k) = 0.
+                  else
+                     msk(i,j,k) = 1.
+                  end if
+               end do
+            end do
+         end do
+      end subroutine checkerboard
+
+      !> Fill a with a value that varies in all three directions, so that every
+      !! stencil neighbour a correction reads is distinct.
+      subroutine seed(a, offset)
+         implicit none
+         real, intent(inout) :: a(:,:,:)
+         real, intent(in)    :: offset
+         integer :: i, j, k
+
+         do k = 1, size(a,3)
+            do j = 1, size(a,2)
+               do i = 1, size(a,1)
+                  a(i,j,k) = offset + 0.125*i - 0.0625*j + 0.03125*k
+               end do
+            end do
+         end do
+      end subroutine seed
+
+      !> Compare device against host, and refuse to pass if neither moved.
+      subroutine compare(name, host, dev, before, hi, hk)
+         implicit none
+         character(len=*), intent(in) :: name
+         integer, intent(in) :: hi, hk
+         real, intent(in) :: host(ib-hi:ie+hi,jb-jh:je+jh,kb:ke+hk)
+         real, device, intent(in) :: dev(ib-hi:ie+hi,jb-jh:je+jh,kb:ke+hk)
+         real, intent(in) :: before(ib-hi:ie+hi,jb-jh:je+jh,kb:ke+hk)
+         real, allocatable :: back(:,:,:)
+         real :: worst, scale
+
+         allocate(back(ib-hi:ie+hi,jb-jh:je+jh,kb:ke+hk))
+         back = dev
+         if (any(back /= back)) call fail_cuda_selftest('ibm diff_corr '//name//' device produced NaN')
+
+         ! A routine that corrected nothing would agree with any port of itself.
+         if (maxval(abs(host - before)) == 0.) then
+            call fail_cuda_selftest('ibm diff_corr applied no correction: '//name)
+         end if
+
+         worst = maxval(abs(back - host))
+         scale = max(1., maxval(abs(host)))
+         ! Not required to be exact: the device compiler may contract these
+         ! expressions into FMAs where the host compiler does not.
+         if (worst > 1.e-10 * scale) then
+            write(*,'(A,A,A,ES12.4)') 'ibm diff_corr mismatch ', name, ' worst ', worst
+            call fail_cuda_selftest('ibm diff_corr '//name)
+         end if
+         deallocate(back)
+      end subroutine compare
+
+      !> Assert no cell appears twice in a boundary-point list.
+      subroutine check_distinct(name, pts, npts)
+         implicit none
+         character(len=*), intent(in) :: name
+         integer, intent(in) :: npts
+         integer, intent(in) :: pts(npts,3)
+         integer, allocatable :: seen(:,:,:)
+         integer :: n
+
+         if (npts <= 1) return
+         allocate(seen(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         seen = 0
+         do n = 1, npts
+            if (seen(pts(n,1),pts(n,2),pts(n,3)) /= 0) then
+               call fail_cuda_selftest('ibm boundary points not distinct: '//name)
+            end if
+            seen(pts(n,1),pts(n,2),pts(n,3)) = n
+         end do
+         deallocate(seen)
+      end subroutine check_distinct
+
+   end subroutine test_ibm_diff_corr
+
+   !> Compare the device wallfunmom against the host original.
+   !!
+   !! Run for all three staggered directions on a seeded velocity and
+   !! temperature field. The per-facet stress accumulator is compared as well as
+   !! the tendency, because it is the one output written under a different
+   !! indexing (by facet, not by cell) and so has its own way of going wrong.
+   !!
+   !! The comparison tolerance is looser than for diff_corr: the device sums
+   !! into rhs and fac_tau with atomics, so contributions from sections sharing
+   !! a cell or a facet arrive in an order that varies between runs.
+   subroutine test_ibm_wallfunmom
+      implicit none
+
+      real, allocatable :: u0_s(:,:,:), v0_s(:,:,:), w0_s(:,:,:), thl0_s(:,:,:)
+      real, allocatable :: up_s(:,:,:), vp_s(:,:,:), wp_s(:,:,:)
+
+      if (.not. allocated(fac_tau_d)) return
+      if (iwallmom <= 1) return
+
+      allocate(u0_s, source=u0); allocate(v0_s, source=v0); allocate(w0_s, source=w0)
+      allocate(thl0_s, source=thl0)
+      allocate(up_s, source=up); allocate(vp_s, source=vp); allocate(wp_s, source=wp)
+
+      call seed_wf(u0, 1.); call seed_wf(v0, 2.); call seed_wf(w0, 3.)
+      thl0 = 290. + 0.5*thl0_s*0.  ! uniform enough to keep the stability branch finite
+      call seed_wf(thl0, 290.)
+      up = 0.; vp = 0.; wp = 0.
+
+      u0_d = u0; v0_d = v0; w0_d = w0; thl0_d = thl0
+      up_d = up; vp_d = vp; wp_d = wp
+
+      call one_direction(1, xhat, bound_info_u, up, up_d)
+      call one_direction(2, yhat, bound_info_v, vp, vp_d)
+      call one_direction(3, zhat, bound_info_w, wp, wp_d)
+
+      u0 = u0_s; v0 = v0_s; w0 = w0_s; thl0 = thl0_s
+      up = up_s; vp = vp_s; wp = wp_s
+      u0_d = u0; v0_d = v0; w0_d = w0; thl0_d = thl0
+      up_d = up; vp_d = vp; wp_d = wp
+      deallocate(u0_s, v0_s, w0_s, thl0_s, up_s, vp_s, wp_s)
+
+   contains
+
+      subroutine one_direction(dirsel, dirvec, bi, rhs, rhs_d)
+         implicit none
+         integer, intent(in) :: dirsel
+         real, intent(in) :: dirvec(3)
+         type(bound_info_type), intent(inout) :: bi
+         real, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+         real, device, intent(inout) :: rhs_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+
+         real, allocatable :: back(:,:,:), host_tau(:), dev_tau(:)
+         real :: worst, scale
+         character(len=1) :: tag
+
+         if (bi%nfctsecsrank < 1) return
+         tag = 'u'
+         if (dirsel == 2) tag = 'v'
+         if (dirsel == 3) tag = 'w'
+
+         rhs = 0.
+         rhs_d = rhs
+         call wallfunmom(dirvec, rhs, bi)
+         call wallfunmom_dir_device(dirsel, rhs_d)
+         call checkCUDA(cudaDeviceSynchronize(), 'wallfunmom self-test synchronization')
+
+         ! A direction that produced no stress anywhere would agree with any
+         ! port of itself, so refuse to pass on that.
+         if (maxval(abs(rhs)) == 0.) then
+            call fail_cuda_selftest('ibm wallfunmom produced no tendency: '//tag)
+         end if
+
+         allocate(back(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+         back = rhs_d
+         if (any(back /= back)) call fail_cuda_selftest('ibm wallfunmom '//tag//' device produced NaN')
+         if (any(rhs /= rhs)) call fail_cuda_selftest('ibm wallfunmom '//tag//' host produced NaN')
+         worst = maxval(abs(back - rhs))
+         scale = max(1., maxval(abs(rhs)))
+         if (worst > 1.e-8 * scale) then
+            write(*,'(A,A,A,ES12.4,A,ES12.4)') 'ibm wallfunmom mismatch ', tag, ' worst ', worst, &
+                 ' scale ', scale
+            call fail_cuda_selftest('ibm wallfunmom '//tag)
+         end if
+         deallocate(back)
+
+         allocate(host_tau(nfcts), dev_tau(nfcts))
+         host_tau = fac_tau_raw
+         dev_tau  = fac_tau_d
+         worst = maxval(abs(dev_tau - host_tau))
+         scale = max(1., maxval(abs(host_tau)))
+         if (worst > 1.e-8 * scale) then
+            write(*,'(A,A,A,ES12.4)') 'ibm wallfunmom fac_tau mismatch ', tag, ' worst ', worst
+            call fail_cuda_selftest('ibm wallfunmom fac_tau '//tag)
+         end if
+         deallocate(host_tau, dev_tau)
+      end subroutine one_direction
+
+      subroutine seed_wf(a, offset)
+         implicit none
+         real, intent(inout) :: a(:,:,:)
+         real, intent(in)    :: offset
+         integer :: i, j, k
+
+         do k = 1, size(a,3)
+            do j = 1, size(a,2)
+               do i = 1, size(a,1)
+                  a(i,j,k) = offset + 0.03125*i - 0.015625*j + 0.0078125*k
+               end do
+            end do
+         end do
+      end subroutine seed_wf
+
+   end subroutine test_ibm_wallfunmom
+
+   !> Compare the device wallfunheat against the host original.
+   !!
+   !! Checks both tendencies, the two whole-domain flux sums, and all four
+   !! per-facet accumulators. The pressure pair is worth its own comparison
+   !! because it is accumulated before the lskipsec test, so it covers sections
+   !! the rest of the routine never reaches.
+   subroutine test_ibm_wallfunheat
+      implicit none
+
+      real, allocatable :: u0_s(:,:,:), v0_s(:,:,:), w0_s(:,:,:)
+      real, allocatable :: thl0_s(:,:,:), qt0_s(:,:,:), pres0_s(:,:,:)
+      real, allocatable :: thlp_s(:,:,:), qtp_s(:,:,:)
+      real, allocatable :: back(:,:,:)
+      real, allocatable :: h_htc(:), h_cth(:), h_pres(:), h_pres2(:)
+      real :: host_totheat, host_totq, dev_totheat, dev_totq
+      real :: save_totheat, save_totq
+      real, allocatable :: fachf_s(:), facef_s(:)
+      logical, allocatable :: faclGR_s(:)
+      real, allocatable :: facqsat_s(:), fachurel_s(:)
+      integer :: saved_iwallmoist
+
+      if (.not. allocated(fac_htc_d)) return
+      if (bound_info_c%nfctsecsrank < 1) return
+
+      allocate(u0_s, source=u0); allocate(v0_s, source=v0); allocate(w0_s, source=w0)
+      allocate(thl0_s, source=thl0); allocate(pres0_s, source=pres0)
+      allocate(thlp_s, source=thlp)
+      if (lmoist) then
+         allocate(qt0_s, source=qt0); allocate(qtp_s, source=qtp)
+      end if
+      save_totheat = totheatflux
+      save_totq    = totqflux
+      ! Both wall functions add into the energy balance accumulators when lEB is
+      ! set, on the host and on the device. Neither is reset by anything before
+      ! the run proper, so the test has to put both back itself: the device side
+      ! now carries its total across the Runge-Kutta stages and would otherwise
+      ! deliver this test's contribution into the first real time step.
+      if (allocated(fachf)) allocate(fachf_s, source=fachf)
+      if (allocated(facef)) allocate(facef_s, source=facef)
+
+      ! No case in the suite has a green-roof facet, so the moisture wall
+      ! function would otherwise compare zero against zero. Turning every facet
+      ! into a green roof, on both sides, makes the branch actually run.
+      saved_iwallmoist = iwallmoist
+      if (lmoist .and. allocated(faclGR) .and. allocated(facqsat)) then
+         allocate(faclGR_s, source=faclGR)
+         allocate(facqsat_s, source=facqsat)
+         allocate(fachurel_s, source=fachurel)
+         iwallmoist = 2
+         faclGR   = .true.
+         facqsat  = 0.02
+         fachurel = 1.0
+         if (allocated(faclGR_d))   faclGR_d   = faclGR
+         if (allocated(facqsat_d))  facqsat_d  = facqsat
+         if (allocated(fachurel_d)) fachurel_d = fachurel
+         if (allocated(facf_d))     facf_d     = facf
+      end if
+
+      call seed_wh(u0, 1.); call seed_wh(v0, 2.); call seed_wh(w0, 3.)
+      call seed_wh(thl0, 290.); call seed_wh(pres0, 5.)
+      thlp = 0.
+      if (lmoist) then
+         call seed_wh(qt0, 0.01)
+         qtp = 0.
+      end if
+
+      u0_d = u0; v0_d = v0; w0_d = w0
+      thl0_d = thl0; pres0_d = pres0; thlp_d = thlp
+      if (lmoist) then
+         qt0_d = qt0; qtp_d = qtp
+      end if
+
+      totheatflux = 0.
+      totqflux    = 0.
+      call wallfunheat
+      host_totheat = totheatflux
+      host_totq    = totqflux
+      allocate(h_htc, source=fac_htc_raw)
+      allocate(h_cth, source=fac_cth_raw)
+      allocate(h_pres, source=fac_pres_raw)
+      allocate(h_pres2, source=fac_pres2_raw)
+
+      totheatflux = 0.
+      totqflux    = 0.
+      call wallfunheat_dir_device
+      call checkCUDA(cudaDeviceSynchronize(), 'wallfunheat self-test synchronization')
+      dev_totheat = totheatflux
+      dev_totq    = totqflux
+
+      ! The pressure accumulator is non-zero for any geometry at all, so it is
+      ! the one that proves the loop ran.
+      if (maxval(abs(h_pres)) == 0.) call fail_cuda_selftest('ibm wallfunheat saw no sections')
+
+      allocate(back(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+      back = thlp_d
+      call cmp3('wallfunheat thlp', back, thlp)
+      if (lmoist) then
+         ! A moisture branch that produced nothing would agree with any port of
+         ! itself, so refuse to pass on that.
+         if (allocated(faclGR_s) .and. maxval(abs(qtp)) == 0.) then
+            call fail_cuda_selftest('ibm wallfunheat produced no moisture tendency')
+         end if
+         back = qtp_d
+         call cmp3('wallfunheat qtp', back, qtp)
+      end if
+      deallocate(back)
+
+      call cmp1('wallfunheat fac_pres',  fac_pres_d,  h_pres)
+      call cmp1('wallfunheat fac_pres2', fac_pres2_d, h_pres2)
+      call cmp1('wallfunheat fac_htc',   fac_htc_d,   h_htc)
+      call cmp1('wallfunheat fac_cth',   fac_cth_d,   h_cth)
+      call cmp0('wallfunheat totheatflux', dev_totheat, host_totheat)
+      call cmp0('wallfunheat totqflux',    dev_totq,    host_totq)
+
+      u0 = u0_s; v0 = v0_s; w0 = w0_s; thl0 = thl0_s; pres0 = pres0_s; thlp = thlp_s
+      u0_d = u0; v0_d = v0; w0_d = w0
+      thl0_d = thl0; pres0_d = pres0; thlp_d = thlp
+      if (lmoist) then
+         qt0 = qt0_s; qtp = qtp_s
+         qt0_d = qt0; qtp_d = qtp
+         deallocate(qt0_s, qtp_s)
+      end if
+      totheatflux = save_totheat
+      totqflux    = save_totq
+      if (allocated(fachf_s)) then
+         fachf = fachf_s
+         deallocate(fachf_s)
+      end if
+      if (allocated(facef_s)) then
+         facef = facef_s
+         deallocate(facef_s)
+      end if
+      if (allocated(fachf_d)) fachf_d = 0.
+      if (allocated(facef_d)) facef_d = 0.
+      iwallmoist = saved_iwallmoist
+      if (allocated(faclGR_s)) then
+         faclGR = faclGR_s; facqsat = facqsat_s; fachurel = fachurel_s
+         if (allocated(faclGR_d))   faclGR_d   = faclGR
+         if (allocated(facqsat_d))  facqsat_d  = facqsat
+         if (allocated(fachurel_d)) fachurel_d = fachurel
+         deallocate(faclGR_s, facqsat_s, fachurel_s)
+      end if
+      deallocate(u0_s, v0_s, w0_s, thl0_s, pres0_s, thlp_s)
+      deallocate(h_htc, h_cth, h_pres, h_pres2)
+
+   contains
+
+      subroutine seed_wh(a, offset)
+         implicit none
+         real, intent(inout) :: a(:,:,:)
+         real, intent(in)    :: offset
+         integer :: i, j, k
+
+         do k = 1, size(a,3)
+            do j = 1, size(a,2)
+               do i = 1, size(a,1)
+                  a(i,j,k) = offset + 0.03125*i - 0.015625*j + 0.0078125*k
+               end do
+            end do
+         end do
+      end subroutine seed_wh
+
+      subroutine cmp3(name, dev, host)
+         implicit none
+         character(len=*), intent(in) :: name
+         real, intent(in) :: dev(:,:,:), host(:,:,:)
+         real :: worst, scale
+
+         if (any(dev /= dev)) call fail_cuda_selftest('ibm '//name//' device produced NaN')
+         if (any(host /= host)) call fail_cuda_selftest('ibm '//name//' host produced NaN')
+         worst = maxval(abs(dev - host))
+         scale = max(1., maxval(abs(host)))
+         if (worst > 1.e-8 * scale) then
+            write(*,'(A,A,A,ES12.4)') 'ibm ', name, ' mismatch worst ', worst
+            call fail_cuda_selftest('ibm '//name)
+         end if
+      end subroutine cmp3
+
+      subroutine cmp1(name, dev, host)
+         implicit none
+         character(len=*), intent(in) :: name
+         real, device, intent(in) :: dev(:)
+         real, intent(in) :: host(:)
+         real, allocatable :: b(:)
+         real :: worst, scale
+
+         allocate(b(size(host)))
+         b = dev
+         if (any(b /= b)) call fail_cuda_selftest('ibm '//name//' device produced NaN')
+         if (any(host /= host)) call fail_cuda_selftest('ibm '//name//' host produced NaN')
+         worst = maxval(abs(b - host))
+         scale = max(1., maxval(abs(host)))
+         if (worst > 1.e-8 * scale) then
+            write(*,'(A,A,A,ES12.4)') 'ibm ', name, ' mismatch worst ', worst
+            call fail_cuda_selftest('ibm '//name)
+         end if
+         deallocate(b)
+      end subroutine cmp1
+
+      subroutine cmp0(name, dev, host)
+         implicit none
+         character(len=*), intent(in) :: name
+         real, intent(in) :: dev, host
+
+         if (dev /= dev .or. host /= host) call fail_cuda_selftest('ibm '//name//' is NaN')
+         if (abs(dev - host) > 1.e-8 * max(1., abs(host))) then
+            write(*,'(A,A,A,ES14.6,A,ES14.6)') 'ibm ', name, ' mismatch dev ', dev, ' host ', host
+            call fail_cuda_selftest('ibm '//name)
+         end if
+      end subroutine cmp0
+
+   end subroutine test_ibm_wallfunheat
+
+   !> Verify how the energy balance accumulators reach the host.
+   !!
+   !! The handover must happen on EVERY Runge-Kutta stage, and must clear the
+   !! device copy as it goes. It is tempting to accumulate on the device and
+   !! deliver once per step, but intqH in modEB resets fachf and facef at the
+   !! end of every stage, outside its own rk3step == 3 test, so the host array
+   !! holds one stage when the reduction reads it. Delivering three stages at
+   !! once makes the facet heat flux three times too large.
+   !!
+   !! That is not a hypothetical: it shipped, and a manual CPU/GPU comparison
+   !! found it. This test and the facEB comparison in the surface-energy-balance
+   !! parity case are the two things that now stand between it and a rerun.
+   subroutine test_facflux_handover
+      implicit none
+
+      real, parameter :: probe = 3.25
+      real, allocatable :: fachf_s(:), facef_s(:), back(:)
+      integer :: saved_rk3step, stage
+
+      if (.not. lEB) return
+      if (.not. allocated(fachf_d)) return
+      if (.not. allocated(fachf)) return
+
+      allocate(fachf_s, source=fachf)
+      if (allocated(facef)) allocate(facef_s, source=facef)
+      saved_rk3step = rk3step
+      allocate(back(0:nfcts))
+
+      do stage = 1, 3
+         rk3step = stage
+
+         ! One stage's contribution must arrive on the host, whichever stage.
+         fachf = 0.
+         fachf_d = probe
+         call updateFacFluxHost
+         if (maxval(abs(fachf(0:nfcts) - probe)) > 64.*epsilon(1.)*probe) then
+            call fail_cuda_selftest('facflux not handed over on every stage')
+         end if
+
+         ! And the device copy must be cleared, so the next stage starts from
+         ! zero instead of carrying this stage forward.
+         back = fachf_d
+         if (any(back /= 0.)) call fail_cuda_selftest('facflux device not reset on handover')
+
+         ! With nothing new on the device, a further handover adds nothing.
+         call updateFacFluxHost
+         if (maxval(abs(fachf(0:nfcts) - probe)) > 64.*epsilon(1.)*probe) then
+            call fail_cuda_selftest('facflux counted twice')
+         end if
+      end do
+
+      deallocate(back)
+      rk3step = saved_rk3step
+      fachf = fachf_s
+      deallocate(fachf_s)
+      if (allocated(facef_s)) then
+         facef = facef_s
+         deallocate(facef_s)
+      end if
+      fachf_d = 0.
+      if (allocated(facef_d)) facef_d = 0.
+
+   end subroutine test_facflux_handover
+
+   !> Verify that the facet properties on the device follow the host.
+   !!
+   !! facT, facqsat, fachurel and facf are all rewritten by the energy balance
+   !! during the run. Mirroring them once at initialisation leaves the wall
+   !! functions running the whole simulation on initial-condition values, which
+   !! no single-call comparison can detect: the device and host agree perfectly
+   !! on any one call and disagree only because a refresh never happened.
+   !!
+   !! So this perturbs the host arrays and checks the refresh picks the change
+   !! up, which is the property that actually matters.
+   subroutine test_facet_props_refresh
+      implicit none
+
+      real, allocatable :: facT_s(:,:), facqsat_s(:), fachurel_s(:), facf_s(:,:)
+      real, allocatable :: back(:)
+      integer :: saved_rk3step
+
+      if (.not. lEB) return
+      if (.not. allocated(facT1_d)) return
+
+      allocate(facT_s, source=facT)
+      allocate(back(0:nfcts))
+      saved_rk3step = rk3step
+      rk3step = 1
+
+      ! Move the host value, then ask for the refresh the time loop would do.
+      facT(0:nfcts,1) = facT(0:nfcts,1) + 7.5
+      call updateFacetPropsDevice
+      back = facT1_d
+      if (maxval(abs(back - facT(0:nfcts,1))) > 64.*epsilon(1.)*maxval(abs(facT(0:nfcts,1)))) then
+         call fail_cuda_selftest('facet property facT is stale on the device')
+      end if
+
+      if (allocated(facqsat_d) .and. allocated(facqsat)) then
+         allocate(facqsat_s, source=facqsat)
+         allocate(fachurel_s, source=fachurel)
+         allocate(facf_s, source=facf)
+
+         facqsat(0:nfcts)  = facqsat(0:nfcts) + 0.125
+         fachurel(0:nfcts) = fachurel(0:nfcts) + 0.0625
+         facf(0:nfcts,4)   = facf(0:nfcts,4) + 11.
+         facf(0:nfcts,5)   = facf(0:nfcts,5) + 13.
+         call updateFacetPropsDevice
+
+         back = facqsat_d
+         if (maxval(abs(back - facqsat(0:nfcts))) > 1.e-10) &
+            call fail_cuda_selftest('facet property facqsat is stale on the device')
+         back = fachurel_d
+         if (maxval(abs(back - fachurel(0:nfcts))) > 1.e-10) &
+            call fail_cuda_selftest('facet property fachurel is stale on the device')
+         call check_facf_column(4)
+         call check_facf_column(5)
+
+         facqsat = facqsat_s; fachurel = fachurel_s; facf = facf_s
+         deallocate(facqsat_s, fachurel_s, facf_s)
+      end if
+
+      facT = facT_s
+      deallocate(facT_s)
+      rk3step = 1
+      call updateFacetPropsDevice
+      rk3step = saved_rk3step
+      deallocate(back)
+
+   contains
+
+      subroutine check_facf_column(col)
+         implicit none
+         integer, intent(in) :: col
+         real, allocatable :: b2(:,:)
+         allocate(b2(0:nfcts,5))
+         b2 = facf_d
+         if (maxval(abs(b2(0:nfcts,col) - facf(0:nfcts,col))) > 1.e-10) then
+            call fail_cuda_selftest('facet property facf is stale on the device')
+         end if
+         deallocate(b2)
+      end subroutine check_facf_column
+
+   end subroutine test_facet_props_refresh
 
    subroutine fail_cuda_selftest(name)
       implicit none
