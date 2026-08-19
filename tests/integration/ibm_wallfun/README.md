@@ -29,19 +29,30 @@ own, derived without reference to how they are written.
 | 9 | The moisture wall function: zero flux at equilibrium, clamped when the air is wetter than the surface, moisture only ever added when it is drier, and nothing at all without a green roof. |
 | 10 | `dxdydzfi` and `dxdydzhi` are each the reciprocal of their own cell volume. Asserted as a definition rather than by recomputing the same product, so the check and the code cannot share a mistake. |
 | 11 | `local_coords` returns an orthonormal frame, orthogonal to the facet normal, unchanged when the velocity is scaled, and invalid for a wall-normal velocity. |
+| 12 | The per-section wall-function cache against the expressions it replaced: wall distance, rank-local indices, trilinear offsets and roughness terms, compared exactly. On a GPU build `tests_cuda.f90` checks the device mirrors against the same cache; this half needs no GPU. |
 
-## Two vertical grids
+## Three passes
 
-The runmode is executed twice: once on the case's own uniform vertical grid,
-and once with `prof.inp.stretched`, a geometrically stretched grid of the same
-depth.
+The runmode is executed three times, because no single configuration can make
+every check able to fail.
 
-The stretched pass is not redundant. On a uniform grid `dzf` and `dzh` are equal
-at every level, so `dxdydzfi` and `dxdydzhi` hold identical values - a swap
+**uniform** - the case's own grid, `tests/cases/101`.
+
+**stretched** - the same case with `prof.inp.stretched`, a geometrically
+stretched vertical grid of the same depth. On a uniform grid `dzf` and `dzh` are
+equal at every level, so `dxdydzfi` and `dxdydzhi` hold identical values: a swap
 between them, or either built from the wrong spacing, changes nothing. Every
 other case in the repository is uniform as well, the CPU-GPU parity matrix
-included, so on a uniform grid alone nothing anywhere would catch it. Checks 7,
-8 and 10 can only fail on the stretched pass.
+included, so without this pass nothing anywhere would catch it. Checks 7, 8 and
+10 can only fail here.
+
+**reconstruction** - `tests/cases/100`, with `namoptions.1008.reconstruction`
+and a uniform `Tfacinit.inp.reconstruction`. In case 101 every facet section has
+`log(bnddst/z0) = log(0.5/0.05) > 1`, so all of them take the simple stencil and
+the reconstruction path never runs at all - no trilinear interpolation, no
+reconstruction offset on the wall distance, no trilinear cache entries. Case 100
+has sections as close as 0.07 from their facet, which do reconstruct. The
+interpolation half of checks 7 and 12 can only fail here.
 
 ## Running
 
@@ -67,6 +78,9 @@ Each check was confirmed to fail when the corresponding behaviour is broken:
 | facet pressure accumulated without the area weight | 8 |
 | `dxdydzfi` built from `dzh` | 7 and 10, stretched grid only |
 | `local_coords` normalisation removed | 11 |
+| trilinear stencil built on the wrong staggered grids | 12, reconstruction pass only |
+| reconstruction offset dropped from the wall distance | 12, reconstruction pass only |
+| cache column mislabelled, or an index left global | 12 |
 
-The two entries marked "stretched grid only" pass on the uniform grid. That is
-the reason the second pass exists.
+The entries marked "pass only" are the reason there is more than one pass: each
+one passes on every other configuration.

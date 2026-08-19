@@ -926,6 +926,7 @@ contains
     use initfac,   only : readfacetfiles
     use modibm,    only : initibm, createmasks, mask_c, &
                           diffc_corr, wallfunmom, wallfunheat, local_coords, &
+                          check_wallfun_cache, &
                           fac_tau_raw, fac_pres_raw, &
                           bound_info_u, bound_info_c
 
@@ -937,6 +938,7 @@ contains
     real    :: expected, got, tol, vol, flux_sum, delta_sum
     real    :: span(3), strm(3), span2(3), strm2(3), uv(3)
     logical :: frame_valid, frame_valid2
+    character(len=128) :: cache_problem
 
     real, allocatable :: mask_c_save(:,:,:)
     real, allocatable :: thlp_before(:,:,:), up_before(:,:,:)
@@ -1303,6 +1305,20 @@ contains
         call report('local_coords accepted a wall-normal velocity', 0.)
         all_passed = .false.
       end if
+    end if
+
+    ! ---------------------------------------------------------------- 12
+    ! The per-section cache the wall functions read, against the expressions it
+    ! replaced. The comparison lives in modibm, next to the arrays; this drives
+    ! it. It is exact, so any difference is a plumbing error - a stencil on the
+    ! wrong staggered grid, a cache column read under the wrong name, an index
+    ! left global. On a GPU build the device mirrors are checked against the
+    ! same cache by tests_cuda.f90; this half needs no GPU and so runs where the
+    ! device tests cannot.
+    call check_wallfun_cache(cache_problem)
+    if (cache_problem /= '') then
+      call report(trim(cache_problem), 0.)
+      all_passed = .false.
     end if
 
     mask_c = mask_c_save

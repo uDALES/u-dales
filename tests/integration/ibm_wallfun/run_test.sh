@@ -80,7 +80,9 @@ if [ -z "${NPROCS:-}" ]; then
 fi
 
 PROF_STRETCHED="${PROF_STRETCHED:-${SCRIPT_DIR}/prof.inp.stretched}"
-CASE_EXPNR="${NAMELIST##*.}"
+REC_CASE_SOURCE="${REC_CASE_SOURCE:-${REPO_ROOT}/tests/cases/100}"
+REC_NAMELIST_SOURCE="${REC_NAMELIST_SOURCE:-${SCRIPT_DIR}/namoptions.1008.reconstruction}"
+REC_TFACINIT="${REC_TFACINIT:-${SCRIPT_DIR}/Tfacinit.inp.reconstruction}"
 
 # Run once per vertical grid. The case ships a uniform one, where dzf and dzh
 # are equal at every level - so the cell-volume reciprocals dxdydzfi and
@@ -90,9 +92,21 @@ CASE_EXPNR="${NAMELIST##*.}"
 # nothing anywhere would catch it. The stretched pass is what makes the
 # cell-volume checks, and the momentum and heat conservation cross-checks,
 # able to fail.
+# $1 label, $2 case directory, $3 namelist source, $4 vertical grid override
+# or empty, $5 Tfacinit override or empty.
 run_one () {
     variant="$1"
-    prof_override="$2"
+    case_dir="$2"
+    namelist_src="$3"
+    prof_override="$4"
+    tfac_override="$5"
+
+    expnr="${namelist_src##*.}"
+    case "$expnr" in
+        [0-9][0-9][0-9]) ;;
+        *) expnr="$(awk -F= '/^[[:space:]]*iexpnr[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' "$namelist_src")" ;;
+    esac
+    namelist="namoptions.${expnr}"
 
     if [ -n "$TMPDIR_PARENT" ]; then
         RUN_DIR="$(mktemp -d "${TMPDIR_PARENT%/}/ibm_wallfun-XXXXXX")"
@@ -100,29 +114,32 @@ run_one () {
         RUN_DIR="$(mktemp -d)"
     fi
 
-    cp -r "$CASE_SOURCE"/. "$RUN_DIR"/
-    cp "$NAMELIST_SOURCE" "$RUN_DIR/$NAMELIST"
-    if [ -n "$prof_override" ]; then
-        if [ ! -f "$prof_override" ]; then
-            echo "ERROR: vertical grid override not found: $prof_override"
+    cp -r "$case_dir"/. "$RUN_DIR"/
+    cp "$namelist_src" "$RUN_DIR/$namelist"
+    for pair in "prof.inp.${expnr}|$prof_override" "Tfacinit.inp.${expnr}|$tfac_override"; do
+        dest="${pair%%|*}"
+        src="${pair#*|}"
+        [ -n "$src" ] || continue
+        if [ ! -f "$src" ]; then
+            echo "ERROR: override not found: $src"
             rm -rf "$RUN_DIR"
             return 1
         fi
-        cp "$prof_override" "$RUN_DIR/prof.inp.${CASE_EXPNR}"
-    fi
+        cp "$src" "$RUN_DIR/$dest"
+    done
 
     echo "=========================================="
-    echo "Running TEST_IBM_WALLFUN (${variant} vertical grid)"
+    echo "Running TEST_IBM_WALLFUN (${variant})"
     echo "=========================================="
     echo "MPI processes: $NPROCS"
     echo "Executable:    $UDALES_BUILD"
-    echo "Case source:   $(basename "$CASE_SOURCE")"
+    echo "Case source:   $(basename "$case_dir")"
     echo "Run directory: $RUN_DIR"
-    echo "Namelist:      $NAMELIST"
+    echo "Namelist:      $namelist"
     echo "=========================================="
     echo ""
 
-    ( cd "$RUN_DIR" && "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$NPROCS" "$UDALES_BUILD" "$NAMELIST" )
+    ( cd "$RUN_DIR" && "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$NPROCS" "$UDALES_BUILD" "$namelist" )
     rc=$?
 
     rm -rf "$RUN_DIR"
@@ -130,9 +147,12 @@ run_one () {
 }
 
 EXIT_CODE=0
-run_one uniform "" || EXIT_CODE=$?
+run_one "uniform vertical grid" "$CASE_SOURCE" "$NAMELIST_SOURCE" "" "" || EXIT_CODE=$?
 if [ "$EXIT_CODE" -eq 0 ]; then
-    run_one stretched "$PROF_STRETCHED" || EXIT_CODE=$?
+    run_one "stretched vertical grid" "$CASE_SOURCE" "$NAMELIST_SOURCE" "$PROF_STRETCHED" "" || EXIT_CODE=$?
+fi
+if [ "$EXIT_CODE" -eq 0 ]; then
+    run_one "reconstruction" "$REC_CASE_SOURCE" "$REC_NAMELIST_SOURCE" "" "$REC_TFACINIT" || EXIT_CODE=$?
 fi
 
 echo ""
