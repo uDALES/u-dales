@@ -917,15 +917,15 @@ contains
 #else
     use modglobal, only : runmode, ib, ie, ih, jb, je, jh, kb, ke, kh, &
                           libm, iwallmom, ltempeq, lmoist, lwritefac, iwallmoist, &
-                          dx, dy, dzh, dx2i, nfcts, xhat, &
-                          totheatflux, totqflux
+                          dx, dy, dzf, dzh, dxdydzfi, dxdydzhi, dx2i, nfcts, xhat, &
+                          zhat, vec0, eps1, totheatflux, totqflux
     use modfields, only : initfields, u0, v0, w0, thl0, qt0, qtp, pres0, up, thlp
     use initfac,   only : faclGR, facqsat, fachurel, facf, facT
     use modsubgrid,     only : initsubgrid
     use modsubgriddata, only : ekh
     use initfac,   only : readfacetfiles
     use modibm,    only : initibm, createmasks, mask_c, &
-                          diffc_corr, wallfunmom, wallfunheat, &
+                          diffc_corr, wallfunmom, wallfunheat, local_coords, &
                           fac_tau_raw, fac_pres_raw, &
                           bound_info_u, bound_info_c
 
@@ -935,6 +935,8 @@ contains
     logical :: all_passed
     integer :: i, j, k
     real    :: expected, got, tol, vol, flux_sum, delta_sum
+    real    :: span(3), strm(3), span2(3), strm2(3), uv(3)
+    logical :: frame_valid, frame_valid2
 
     real, allocatable :: mask_c_save(:,:,:)
     real, allocatable :: thlp_before(:,:,:), up_before(:,:,:)
@@ -1081,7 +1083,10 @@ contains
       if (allocated(fac_tau_raw)) then
         delta_sum = 0.
         do k = kb, ke+kh
-          vol = dx*dy*dzh(k)
+          ! dzf, matching wallfunmom. This read dzh until the cell-volume
+          ! reciprocals went in; the two are equal on the uniform vertical grid
+          ! every case in the suite uses, so the check could not tell them apart.
+          vol = dx*dy*dzf(k)
           do j = jb, je
             do i = ib, ie
               delta_sum = delta_sum + (up(i,j,k) - up_before(i,j,k)) * vol
@@ -1232,6 +1237,72 @@ contains
       fachurel   = fachurel_save
       facf       = facf_save
       deallocate(faclGR_save, facqsat_save, fachurel_save, facf_save, qtp_before)
+    end if
+
+    ! ---------------------------------------------------------------- 10
+    ! The cell-volume reciprocals. Each is pinned to its own spacing, which no
+    ! other check here can do: dzf and dzh are equal on the uniform vertical
+    ! grid every case in the suite has, so a swap between dxdydzfi and dxdydzhi
+    ! is invisible to the conservation tests above and to the CPU-GPU
+    ! comparison. Asserted as a definition rather than by recomputing the same
+    ! product, so the two sides cannot share a mistake.
+    do k = kb, ke+kh
+      if (abs(dxdydzfi(k)*(dx*dy*dzf(k)) - 1.) > 1.e-13) then
+        call report('dxdydzfi is not 1/(dx*dy*dzf)', dxdydzfi(k)*(dx*dy*dzf(k)) - 1.)
+        all_passed = .false.
+        exit
+      end if
+    end do
+    do k = kb, ke+kh
+      if (abs(dxdydzhi(k)*(dx*dy*dzh(k)) - 1.) > 1.e-13) then
+        call report('dxdydzhi is not 1/(dx*dy*dzh)', dxdydzhi(k)*(dx*dy*dzh(k)) - 1.)
+        all_passed = .false.
+        exit
+      end if
+    end do
+
+    ! ---------------------------------------------------------------- 11
+    ! local_coords normalises by a reciprocal rather than by three divisions.
+    ! What has to hold is not the arithmetic but the frame: span and strm unit
+    ! length and mutually orthogonal, both orthogonal to the normal, and both
+    ! unchanged when the velocity is scaled. The last one is what a normalisation
+    ! that silently stopped normalising would fail.
+    uv = (/1.7, -0.9, 0.4/)
+    call local_coords(uv, zhat, span, strm, frame_valid)
+    if (.not. frame_valid) then
+      call report('local_coords rejected a velocity across the wall', 0.)
+      all_passed = .false.
+    else
+      if (abs(norm2(span) - 1.) > 1.e-13) then
+        call report('local_coords span is not a unit vector', norm2(span) - 1.)
+        all_passed = .false.
+      end if
+      if (abs(norm2(strm) - 1.) > 1.e-13) then
+        call report('local_coords strm is not a unit vector', norm2(strm) - 1.)
+        all_passed = .false.
+      end if
+      if (abs(dot_product(span, strm)) > 1.e-13 .or. &
+          abs(dot_product(span, zhat)) > 1.e-13 .or. &
+          abs(dot_product(strm, zhat)) > 1.e-13) then
+        call report('local_coords frame is not orthogonal', &
+                    max(abs(dot_product(span, strm)), abs(dot_product(span, zhat))))
+        all_passed = .false.
+      end if
+
+      call local_coords(1000.*uv, zhat, span2, strm2, frame_valid2)
+      if (.not. frame_valid2 .or. maxval(abs(span2 - span)) > 1.e-13 &
+                             .or. maxval(abs(strm2 - strm)) > 1.e-13) then
+        call report('local_coords frame changed when the velocity was scaled', &
+                    max(maxval(abs(span2 - span)), maxval(abs(strm2 - strm))))
+        all_passed = .false.
+      end if
+
+      ! A velocity straight into the wall has no tangential direction at all.
+      call local_coords(zhat, zhat, span2, strm2, frame_valid2)
+      if (frame_valid2) then
+        call report('local_coords accepted a wall-normal velocity', 0.)
+        all_passed = .false.
+      end if
     end if
 
     mask_c = mask_c_save

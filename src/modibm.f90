@@ -42,7 +42,7 @@ module modibm
    ! and tests_cuda.f90 (which checks the device port against them) can drive
    ! them directly.
 #if !defined(_GPU) || defined(UDALES_DEBUG)
-   public :: wallfunmom, wallfunheat, &
+   public :: wallfunmom, wallfunheat, local_coords, &
              diffu_corr, diffv_corr, diffw_corr, diffc_corr, &
              fac_tau_raw, fac_htc_raw, fac_cth_raw, fac_pres_raw, fac_pres2_raw
 #endif
@@ -56,7 +56,7 @@ module modibm
              init_ibm_device, &
              diffu_corr_device, diffv_corr_device, diffw_corr_device, diffc_corr_device, &
              wallfunmom_dir_device, &
-             wallfunheat_dir_device, faclGR_d
+             wallfunheat_dir_device, faclGR_d, check_ibm_section_cache
 #endif
 
     abstract interface
@@ -94,23 +94,37 @@ module modibm
    ! Facet-section geometry, one set per staggered direction. The prefix is the
    ! section set; recids_<x> is the cell on the <x> grid that the reconstruction
    ! point falls in, so u_recids_v_d is "for the u sections, the v-grid cell".
-   real,    device, allocatable :: u_secareas_d(:), u_bnddst_d(:), u_recpts_d(:,:)
-   integer, device, allocatable :: u_secfacids_d(:), u_secbndpts_d(:,:)
+   !
+   ! None of this changes once the facet files are read, so the arrays hold the
+   ! precomputed form the kernels use rather than the form the host keeps. See
+   ! mirror_sections, which builds them, for what each one holds. recpts is not
+   ! mirrored at all: it is only needed to build _secdist_d and _recw_d.
+   !
+   ! Column layout of the two caches.
+   integer, parameter :: RECW_U = 1, RECW_V = 4, RECW_W = 7, RECW_C = 10, RECW_N = 12
+   integer, parameter :: WFC_LOGDZ = 1, WFC_LOGZH = 2, WFC_COEF = 3, &
+                         WFC_CM = 4, WFC_CH = 5, WFC_CTMNEU = 6, WFC_N = 6
+   real,    device, allocatable :: u_secareas_d(:), u_secdist_d(:)
+   real,    device, allocatable :: u_recw_d(:,:), u_wfc_d(:,:)
+   integer, device, allocatable :: u_secfacids_d(:), u_secbndloc_d(:,:)
    integer, device, allocatable :: u_recids_u_d(:,:), u_recids_v_d(:,:), u_recids_w_d(:,:), u_recids_c_d(:,:)
    logical, device, allocatable :: u_lskipsec_d(:), u_lcomprec_d(:)
 
-   real,    device, allocatable :: v_secareas_d(:), v_bnddst_d(:), v_recpts_d(:,:)
-   integer, device, allocatable :: v_secfacids_d(:), v_secbndpts_d(:,:)
+   real,    device, allocatable :: v_secareas_d(:), v_secdist_d(:)
+   real,    device, allocatable :: v_recw_d(:,:), v_wfc_d(:,:)
+   integer, device, allocatable :: v_secfacids_d(:), v_secbndloc_d(:,:)
    integer, device, allocatable :: v_recids_u_d(:,:), v_recids_v_d(:,:), v_recids_w_d(:,:), v_recids_c_d(:,:)
    logical, device, allocatable :: v_lskipsec_d(:), v_lcomprec_d(:)
 
-   real,    device, allocatable :: w_secareas_d(:), w_bnddst_d(:), w_recpts_d(:,:)
-   integer, device, allocatable :: w_secfacids_d(:), w_secbndpts_d(:,:)
+   real,    device, allocatable :: w_secareas_d(:), w_secdist_d(:)
+   real,    device, allocatable :: w_recw_d(:,:), w_wfc_d(:,:)
+   integer, device, allocatable :: w_secfacids_d(:), w_secbndloc_d(:,:)
    integer, device, allocatable :: w_recids_u_d(:,:), w_recids_v_d(:,:), w_recids_w_d(:,:), w_recids_c_d(:,:)
    logical, device, allocatable :: w_lskipsec_d(:), w_lcomprec_d(:)
 
-   real,    device, allocatable :: c_secareas_d(:), c_bnddst_d(:), c_recpts_d(:,:)
-   integer, device, allocatable :: c_secfacids_d(:), c_secbndpts_d(:,:)
+   real,    device, allocatable :: c_secareas_d(:), c_secdist_d(:)
+   real,    device, allocatable :: c_recw_d(:,:), c_wfc_d(:,:)
+   integer, device, allocatable :: c_secfacids_d(:), c_secbndloc_d(:,:)
    integer, device, allocatable :: c_recids_u_d(:,:), c_recids_v_d(:,:), c_recids_w_d(:,:), c_recids_c_d(:,:)
    logical, device, allocatable :: c_lskipsec_d(:), c_lcomprec_d(:)
 
@@ -437,16 +451,16 @@ module modibm
      end if
 
      if (iwallmom > 1) then
-     call mirror_sections(bound_info_u, u_secareas_d, u_bnddst_d, u_recpts_d, &
-                          u_secfacids_d, u_secbndpts_d, &
+     call mirror_sections(bound_info_u, u_secareas_d, u_secdist_d, u_recw_d, u_wfc_d, &
+                          u_secfacids_d, u_secbndloc_d, &
                           u_recids_u_d, u_recids_v_d, u_recids_w_d, u_recids_c_d, &
                           u_lskipsec_d, u_lcomprec_d)
-     call mirror_sections(bound_info_v, v_secareas_d, v_bnddst_d, v_recpts_d, &
-                          v_secfacids_d, v_secbndpts_d, &
+     call mirror_sections(bound_info_v, v_secareas_d, v_secdist_d, v_recw_d, v_wfc_d, &
+                          v_secfacids_d, v_secbndloc_d, &
                           v_recids_u_d, v_recids_v_d, v_recids_w_d, v_recids_c_d, &
                           v_lskipsec_d, v_lcomprec_d)
-     call mirror_sections(bound_info_w, w_secareas_d, w_bnddst_d, w_recpts_d, &
-                          w_secfacids_d, w_secbndpts_d, &
+     call mirror_sections(bound_info_w, w_secareas_d, w_secdist_d, w_recw_d, w_wfc_d, &
+                          w_secfacids_d, w_secbndloc_d, &
                           w_recids_u_d, w_recids_v_d, w_recids_w_d, w_recids_c_d, &
                           w_lskipsec_d, w_lcomprec_d)
 
@@ -466,8 +480,8 @@ module modibm
      ! The heat wall function works on the cell-centred sections, which exist
      ! under a different condition from the momentum ones.
      if (allocated(bound_info_c%secareas_loc) .and. bound_info_c%nfctsecsrank > 0) then
-       call mirror_sections(bound_info_c, c_secareas_d, c_bnddst_d, c_recpts_d, &
-                            c_secfacids_d, c_secbndpts_d, &
+       call mirror_sections(bound_info_c, c_secareas_d, c_secdist_d, c_recw_d, c_wfc_d, &
+                            c_secfacids_d, c_secbndloc_d, &
                             c_recids_u_d, c_recids_v_d, c_recids_w_d, c_recids_c_d, &
                             c_lskipsec_d, c_lcomprec_d)
        call validate_ibm_sections('c', bound_info_c)
@@ -506,16 +520,51 @@ module modibm
 
    end subroutine init_ibm_device
 
-   !> Copy one bound_info's per-rank section arrays onto the device.
-   subroutine mirror_sections(bi, areas, dst, rec, facids, bndpts, &
+   !> Copy one bound_info's per-rank section arrays onto the device, in the form
+   !! the kernels want rather than the form the host keeps.
+   !!
+   !! The section geometry is fixed once the facet files are read, so anything
+   !! the wall functions would otherwise derive from it on every Runge-Kutta
+   !! stage is derived here instead:
+   !!
+   !!   dst    the full wall distance. For a reconstructed section the host adds
+   !!          the offset from the boundary point to the reconstruction point on
+   !!          every call, at the cost of a square root and three grid lookups.
+   !!   bndloc the boundary point as rank-local (i,j,k), and rids_* likewise, so
+   !!          zstart never enters a kernel.
+   !!   recw   the trilinear offsets xd, yd, zd for the u, v, w and c stencils.
+   !!          These are what trilinear_interp computes from the grid arrays and
+   !!          the reconstruction point, three divisions and six grid lookups per
+   !!          stencil, and they never change.
+   !!   wfc    the roughness terms: log(dist/z0), log(z0/z0h), fkar2/logdz**2,
+   !!          the two b1*sqdz products the unstable branch needs, and the whole
+   !!          neutral transfer coefficient (fkar/logdz)**2. Between them these
+   !!          are every logarithm and every square root the transfer
+   !!          coefficients evaluated; under iwallmom = 3 the coefficient is now
+   !!          a single load.
+   !!
+   !! The expressions are written exactly as the host writes them, in the same
+   !! association, so precomputing them changes no bits.
+   subroutine mirror_sections(bi, areas, dst, recw, wfc, facids, bndloc, &
                               rids_u, rids_v, rids_w, rids_c, skip, comp)
+     use modglobal, only : xf, yf, zf, xh, yh, zh, eps1, fkar, fkar2
+     use initfac,   only : facz0, facz0h
+     use decomp_2d, only : zstart
      implicit none
      type(bound_info_type), intent(in) :: bi
-     real,    device, allocatable, intent(out) :: areas(:), dst(:), rec(:,:)
-     integer, device, allocatable, intent(out) :: facids(:), bndpts(:,:)
+     real,    device, allocatable, intent(out) :: areas(:), dst(:), recw(:,:), wfc(:,:)
+     integer, device, allocatable, intent(out) :: facids(:), bndloc(:,:)
      integer, device, allocatable, intent(out) :: rids_u(:,:), rids_v(:,:), rids_w(:,:), rids_c(:,:)
      logical, device, allocatable, intent(out) :: skip(:), comp(:)
-     integer :: n
+
+     real, parameter :: b1 = 9.4
+     real, parameter :: dm = 7.4
+     real, parameter :: dh = 5.3
+
+     integer :: n, sec, fac
+     real    :: d, z0, z0h, logdz, sqdz
+     real,    allocatable :: dst_h(:), recw_h(:,:), wfc_h(:,:)
+     integer, allocatable :: bndloc_h(:,:), ru_h(:,:), rv_h(:,:), rw_h(:,:), rc_h(:,:)
 
      n = bi%nfctsecsrank
 
@@ -524,19 +573,108 @@ module modibm
      ! callers skip the direction entirely.
      if (n < 1) return
 
-     allocate(areas(n));    areas  = bi%secareas_loc
-     allocate(dst(n));      dst    = bi%bnddst_loc
-     allocate(rec(n,3));    rec    = bi%recpts_loc
-     allocate(facids(n));   facids = bi%secfacids_loc
-     allocate(bndpts(n,3)); bndpts = bi%secbndpts_loc
-     allocate(rids_u(n,3)); rids_u = bi%recids_u_loc
-     allocate(rids_v(n,3)); rids_v = bi%recids_v_loc
-     allocate(rids_w(n,3)); rids_w = bi%recids_w_loc
-     allocate(rids_c(n,3)); rids_c = bi%recids_c_loc
-     allocate(skip(n));     skip   = bi%lskipsec_loc
-     allocate(comp(n));     comp   = bi%lcomprec_loc
+     allocate(dst_h(n), recw_h(n,RECW_N), wfc_h(n,WFC_N))
+     allocate(bndloc_h(n,3), ru_h(n,3), rv_h(n,3), rw_h(n,3), rc_h(n,3))
+
+     recw_h = 0.
+     wfc_h  = 0.
+
+     do sec = 1, n
+       fac = bi%secfacids_loc(sec)
+
+       bndloc_h(sec,1) = bi%secbndpts_loc(sec,1) - zstart(1) + 1
+       bndloc_h(sec,2) = bi%secbndpts_loc(sec,2) - zstart(2) + 1
+       bndloc_h(sec,3) = bi%secbndpts_loc(sec,3) - zstart(3) + 1
+
+       ru_h(sec,:) = bi%recids_u_loc(sec,:) - zstart + 1
+       rv_h(sec,:) = bi%recids_v_loc(sec,:) - zstart + 1
+       rw_h(sec,:) = bi%recids_w_loc(sec,:) - zstart + 1
+       rc_h(sec,:) = bi%recids_c_loc(sec,:) - zstart + 1
+
+       if (bi%lcomprec_loc(sec) .or. lnorec) then
+         ! The reconstruction point is not used, and recids_* may never have
+         ! been set, so the offsets are left at zero.
+         d = bi%bnddst_loc(sec)
+       else
+         d = bi%bnddst_loc(sec) + norm2((/bi%recpts_loc(sec,1) - xf(bi%secbndpts_loc(sec,1)), &
+                                          bi%recpts_loc(sec,2) - yf(bi%secbndpts_loc(sec,2)), &
+                                          bi%recpts_loc(sec,3) - zf(bi%secbndpts_loc(sec,3))/))
+
+         call cell_offsets(bi%recids_u_loc(sec,:), xh, yf, zf, bi%recpts_loc(sec,:), &
+                           recw_h(sec,RECW_U:RECW_U+2))
+         call cell_offsets(bi%recids_v_loc(sec,:), xf, yh, zf, bi%recpts_loc(sec,:), &
+                           recw_h(sec,RECW_V:RECW_V+2))
+         call cell_offsets(bi%recids_w_loc(sec,:), xf, yf, zh, bi%recpts_loc(sec,:), &
+                           recw_h(sec,RECW_W:RECW_W+2))
+         call cell_offsets(bi%recids_c_loc(sec,:), xf, yf, zf, bi%recpts_loc(sec,:), &
+                           recw_h(sec,RECW_C:RECW_C+2))
+       end if
+       dst_h(sec) = d
+
+       ! Skipped sections never reach the wall function, and lskipsec already
+       ! covers facz0 < eps1, so the logarithm below is always well defined.
+       if (bi%lskipsec_loc(sec)) cycle
+       z0 = facz0(fac)
+       if (z0 < eps1) cycle
+
+       logdz = log(d/z0)
+       wfc_h(sec,WFC_LOGDZ) = logdz
+       ! The kernels test logdz > 1. before touching anything else, so for a
+       ! section that fails it the rest of the row stays zero.
+       if (logdz <= 1.) cycle
+
+       ! Only the stability paths read logzh, and a zero heat roughness makes it
+       ! non-finite there on the host too; left at zero rather than propagating
+       ! an infinity out of initialisation.
+       z0h = facz0h(fac)
+       if (z0h > 0.) wfc_h(sec,WFC_LOGZH) = log(z0/z0h)
+
+       sqdz = sqrt(d/z0)
+       wfc_h(sec,WFC_COEF) = fkar2/(logdz**2)
+       wfc_h(sec,WFC_CM)   = (dm*fkar2)/(logdz**2)*b1*sqdz
+       wfc_h(sec,WFC_CH)   = (dh*fkar2)/(logdz**2)*b1*sqdz
+       ! mom_transfer_coef_neutral in full. Kept as its own column rather than
+       ! reusing WFC_COEF: the two are the same number mathematically but not
+       ! bitwise, because one squares a rounded quotient and the other divides
+       ! by a rounded square, and the host writes it this way.
+       wfc_h(sec,WFC_CTMNEU) = (fkar/logdz)**2
+     end do
+
+     allocate(areas(n));         areas  = bi%secareas_loc
+     allocate(dst(n));           dst    = dst_h
+     allocate(recw(n,RECW_N));   recw   = recw_h
+     allocate(wfc(n,WFC_N));     wfc    = wfc_h
+     allocate(facids(n));        facids = bi%secfacids_loc
+     allocate(bndloc(n,3));      bndloc = bndloc_h
+     allocate(rids_u(n,3));      rids_u = ru_h
+     allocate(rids_v(n,3));      rids_v = rv_h
+     allocate(rids_w(n,3));      rids_w = rw_h
+     allocate(rids_c(n,3));      rids_c = rc_h
+     allocate(skip(n));          skip   = bi%lskipsec_loc
+     allocate(comp(n));          comp   = bi%lcomprec_loc
+
+     deallocate(dst_h, recw_h, wfc_h, bndloc_h, ru_h, rv_h, rw_h, rc_h)
 
    end subroutine mirror_sections
+
+
+   !> Normalised offsets of a point within its containing grid cell.
+   !!
+   !! cell holds global indices and the grid arrays are indexed by them, exactly
+   !! as trilinear_interp_var does; the expression matches trilinear_interp.
+   subroutine cell_offsets(cell, xgrid, ygrid, zgrid, p, d)
+     use modglobal, only : ib, jb, kb, itot, jtot, ktot, ih, jh, kh
+     implicit none
+     integer, intent(in)  :: cell(3)
+     real,    intent(in)  :: xgrid(ib:itot+ih), ygrid(jb:jtot+jh), zgrid(kb:ktot+kh)
+     real,    intent(in)  :: p(3)
+     real,    intent(out) :: d(3)
+
+     d(1) = (p(1) - xgrid(cell(1))) / (xgrid(cell(1)+1) - xgrid(cell(1)))
+     d(2) = (p(2) - ygrid(cell(2))) / (ygrid(cell(2)+1) - ygrid(cell(2)))
+     d(3) = (p(3) - zgrid(cell(3))) / (zgrid(cell(3)+1) - zgrid(cell(3)))
+
+   end subroutine cell_offsets
 
 
    !> Check, once, the index bounds that the host routines assert per step.
@@ -570,6 +708,146 @@ module modibm
 
    end subroutine validate_ibm_sections
 
+   !> Compare the per-section caches against the expressions they replaced.
+   !!
+   !! Everything mirror_sections precomputes was, until it was hoisted out of
+   !! the time loop, evaluated inside the wall-function kernels on every
+   !! Runge-Kutta stage. The expressions below are those kernels', written out
+   !! again here rather than shared with the producer, so that the two can
+   !! disagree: a swapped stencil grid, a mislabelled cache column or a wrong
+   !! index base then shows up as a mismatch instead of as a quietly wrong wall
+   !! stress. They are compared exactly, because both sides evaluate the same
+   !! expression on the same host.
+   !!
+   !! problem comes back empty when everything agrees, and otherwise names the
+   !! section set and the quantity that did not.
+   subroutine check_ibm_section_cache(problem)
+     implicit none
+     character(len=*), intent(out) :: problem
+
+     problem = ''
+     if (allocated(u_secdist_d)) &
+       call check_one('u', bound_info_u, bound_info_u%nfctsecsrank, &
+                      u_secdist_d, u_recw_d, u_wfc_d, u_secbndloc_d, &
+                      u_recids_u_d, u_recids_v_d, u_recids_w_d, u_recids_c_d)
+     if (allocated(v_secdist_d)) &
+       call check_one('v', bound_info_v, bound_info_v%nfctsecsrank, &
+                      v_secdist_d, v_recw_d, v_wfc_d, v_secbndloc_d, &
+                      v_recids_u_d, v_recids_v_d, v_recids_w_d, v_recids_c_d)
+     if (allocated(w_secdist_d)) &
+       call check_one('w', bound_info_w, bound_info_w%nfctsecsrank, &
+                      w_secdist_d, w_recw_d, w_wfc_d, w_secbndloc_d, &
+                      w_recids_u_d, w_recids_v_d, w_recids_w_d, w_recids_c_d)
+     if (allocated(c_secdist_d)) &
+       call check_one('c', bound_info_c, bound_info_c%nfctsecsrank, &
+                      c_secdist_d, c_recw_d, c_wfc_d, c_secbndloc_d, &
+                      c_recids_u_d, c_recids_v_d, c_recids_w_d, c_recids_c_d)
+
+   contains
+
+     subroutine check_one(tag, bi, n, dst, recw, wfc, bndloc, ru, rv, rw, rc)
+       use modglobal, only : xf, yf, zf, xh, yh, zh, eps1, fkar, fkar2
+       use initfac,   only : facz0, facz0h
+       use decomp_2d, only : zstart
+       implicit none
+       character(len=*), intent(in) :: tag
+       type(bound_info_type), intent(in) :: bi
+       integer, intent(in) :: n
+       real,    device, intent(in) :: dst(n), recw(n,RECW_N), wfc(n,WFC_N)
+       integer, device, intent(in) :: bndloc(n,3)
+       integer, device, intent(in) :: ru(n,3), rv(n,3), rw(n,3), rc(n,3)
+
+       real, parameter :: b1 = 9.4
+       real, parameter :: dm = 7.4
+       real, parameter :: dh = 5.3
+
+       integer :: sec, fac
+       real    :: d, z0, z0h, logdz, sqdz, want(WFC_N), wantw(RECW_N)
+       real,    allocatable :: dst_b(:), recw_b(:,:), wfc_b(:,:)
+       integer, allocatable :: bnd_b(:,:), ru_b(:,:), rv_b(:,:), rw_b(:,:), rc_b(:,:)
+
+       if (problem /= '') return
+       if (n < 1) return
+
+       allocate(dst_b(n), recw_b(n,RECW_N), wfc_b(n,WFC_N))
+       allocate(bnd_b(n,3), ru_b(n,3), rv_b(n,3), rw_b(n,3), rc_b(n,3))
+       dst_b = dst; recw_b = recw; wfc_b = wfc
+       bnd_b = bndloc; ru_b = ru; rv_b = rv; rw_b = rw; rc_b = rc
+
+       do sec = 1, n
+         fac = bi%secfacids_loc(sec)
+
+         if (any(bnd_b(sec,:) /= bi%secbndpts_loc(sec,:) - zstart + 1)) &
+           call flag(tag, 'boundary point')
+         if (any(ru_b(sec,:) /= bi%recids_u_loc(sec,:) - zstart + 1)) call flag(tag, 'u reconstruction cell')
+         if (any(rv_b(sec,:) /= bi%recids_v_loc(sec,:) - zstart + 1)) call flag(tag, 'v reconstruction cell')
+         if (any(rw_b(sec,:) /= bi%recids_w_loc(sec,:) - zstart + 1)) call flag(tag, 'w reconstruction cell')
+         if (any(rc_b(sec,:) /= bi%recids_c_loc(sec,:) - zstart + 1)) call flag(tag, 'c reconstruction cell')
+
+         wantw = 0.
+         if (bi%lcomprec_loc(sec) .or. lnorec) then
+           d = bi%bnddst_loc(sec)
+         else
+           d = bi%bnddst_loc(sec) + norm2((/bi%recpts_loc(sec,1) - xf(bi%secbndpts_loc(sec,1)), &
+                                            bi%recpts_loc(sec,2) - yf(bi%secbndpts_loc(sec,2)), &
+                                            bi%recpts_loc(sec,3) - zf(bi%secbndpts_loc(sec,3))/))
+           ! The grid each stencil is staggered on, restated.
+           wantw(RECW_U:RECW_U+2) = offsets(bi%recids_u_loc(sec,:), xh, yf, zf, bi%recpts_loc(sec,:))
+           wantw(RECW_V:RECW_V+2) = offsets(bi%recids_v_loc(sec,:), xf, yh, zf, bi%recpts_loc(sec,:))
+           wantw(RECW_W:RECW_W+2) = offsets(bi%recids_w_loc(sec,:), xf, yf, zh, bi%recpts_loc(sec,:))
+           wantw(RECW_C:RECW_C+2) = offsets(bi%recids_c_loc(sec,:), xf, yf, zf, bi%recpts_loc(sec,:))
+         end if
+         if (dst_b(sec) /= d) call flag(tag, 'wall distance')
+         if (any(recw_b(sec,:) /= wantw)) call flag(tag, 'trilinear offsets')
+
+         want = 0.
+         z0 = facz0(fac)
+         if (.not. bi%lskipsec_loc(sec) .and. z0 >= eps1) then
+           logdz = log(d/z0)
+           want(WFC_LOGDZ) = logdz
+           if (logdz > 1.) then
+             z0h = facz0h(fac)
+             if (z0h > 0.) want(WFC_LOGZH) = log(z0/z0h)
+             sqdz = sqrt(d/z0)
+             want(WFC_COEF) = fkar2/(logdz**2)
+             want(WFC_CM)   = (dm*fkar2)/(logdz**2)*b1*sqdz
+             want(WFC_CH)   = (dh*fkar2)/(logdz**2)*b1*sqdz
+             want(WFC_CTMNEU) = (fkar/logdz)**2
+           end if
+         end if
+         if (any(wfc_b(sec,:) /= want)) call flag(tag, 'roughness terms')
+
+         if (problem /= '') exit
+       end do
+
+       deallocate(dst_b, recw_b, wfc_b, bnd_b, ru_b, rv_b, rw_b, rc_b)
+
+     end subroutine check_one
+
+     !> Normalised offsets within the containing cell, as trilinear_interp had them.
+     function offsets(cell, xgrid, ygrid, zgrid, p)
+       use modglobal, only : ib, jb, kb, itot, jtot, ktot, ih, jh, kh
+       implicit none
+       integer, intent(in) :: cell(3)
+       real,    intent(in) :: xgrid(ib:itot+ih), ygrid(jb:jtot+jh), zgrid(kb:ktot+kh)
+       real,    intent(in) :: p(3)
+       real :: offsets(3)
+
+       offsets(1) = (p(1) - xgrid(cell(1))) / (xgrid(cell(1)+1) - xgrid(cell(1)))
+       offsets(2) = (p(2) - ygrid(cell(2))) / (ygrid(cell(2)+1) - ygrid(cell(2)))
+       offsets(3) = (p(3) - zgrid(cell(3))) / (zgrid(cell(3)+1) - zgrid(cell(3)))
+     end function offsets
+
+     subroutine flag(tag, what)
+       implicit none
+       character(len=*), intent(in) :: tag, what
+
+       if (problem == '') problem = 'ibm section cache ('//tag//'): '//what
+     end subroutine flag
+
+   end subroutine check_ibm_section_cache
+
+
 
    !> Device counterpart of wallfunmom, for one staggered direction.
    !!
@@ -583,47 +861,56 @@ module modibm
    !! Both scatters need atomics. Several facet sections can share one boundary
    !! point, and many share a facet, so neither rhs nor fac_tau is written by a
    !! single iteration only.
+   !!
+   !! Everything the host recomputes per section from fixed geometry - the local
+   !! indices, the wall distance, the trilinear offsets and the roughness terms
+   !! - is read from the caches mirror_sections builds. What is left depends on
+   !! the solution: the interpolation, the local frame and the stress.
    subroutine wallfunmom_device(align, rhs, nsec, nfct, &
-                                secareas, secfacids, secbndpts, bnddst, recpts, &
+                                secareas, secfacids, secbndloc, secdist, recw, wfc, &
                                 recids_u, recids_v, recids_w, recids_c, &
                                 lskipsec, lcomprec, fac_tau)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, &
-                           dx, dy, iwallmom, eps1, fkar, fkar2, grav, prandtlturb
-     use modcuda,   only : u0_d, v0_d, w0_d, thl0_d, dzf_d, &
-                           xh_d, xf_d, yh_d, yf_d, zh_d, zf_d
-     use decomp_2d, only : zstart
+                           iwallmom, eps1, grav, prandtlturb
+     use modcuda,   only : u0_d, v0_d, w0_d, thl0_d, dxdydzfi_d
      implicit none
 
      integer, intent(in) :: align, nsec, nfct
      real,    device, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
-     real,    device, intent(in)    :: secareas(nsec), bnddst(nsec), recpts(nsec,3)
-     integer, device, intent(in)    :: secfacids(nsec), secbndpts(nsec,3)
+     real,    device, intent(in)    :: secareas(nsec), secdist(nsec)
+     real,    device, intent(in)    :: recw(nsec,RECW_N), wfc(nsec,WFC_N)
+     integer, device, intent(in)    :: secfacids(nsec), secbndloc(nsec,3)
      integer, device, intent(in)    :: recids_u(nsec,3), recids_v(nsec,3)
      integer, device, intent(in)    :: recids_w(nsec,3), recids_c(nsec,3)
      logical, device, intent(in)    :: lskipsec(nsec), lcomprec(nsec)
      real,    device, intent(inout) :: fac_tau(nfct)
 
-     integer :: sec, fac, i, j, k, zs1, zs2, zs3, iwm
+     integer :: sec, fac, i, j, k, iwm
      logical :: norec
-     real    :: area, dist, stress, stress_dir, vol, momvol, Tair, utan, ctm
-     real    :: ux, uy, uz, nx, ny, nz, sx, sy, sz, tx, ty, tz, smag
-     real    :: xrec, yrec, zrec, a_is, sig
-     real    :: dxr, dyr, dzr
+     real    :: area, dist, stress, stress_dir, momvol, Tair, utan, ctm
+     real    :: ux, uy, uz, nx, ny, nz, sx, sy, sz, tx, ty, tz, smagi
+     real    :: a_is, sig, logdz
 
      if (nsec < 1) return
 
      ! Hoisted: reading these from inside the region would pull whole modules,
      ! and bound_info in particular, into the kernel parameter space.
-     zs1 = zstart(1); zs2 = zstart(2); zs3 = zstart(3)
      norec = lnorec
      iwm = iwallmom
 
      !$acc parallel loop default(present) &
-     !$acc   private(fac, i, j, k, area, dist, stress, stress_dir, vol, momvol, &
+     !$acc   private(fac, i, j, k, area, dist, stress, stress_dir, momvol, &
      !$acc           Tair, utan, ctm, ux, uy, uz, nx, ny, nz, sx, sy, sz, &
-     !$acc           tx, ty, tz, smag, xrec, yrec, zrec, a_is, sig, dxr, dyr, dzr)
+     !$acc           tx, ty, tz, smagi, a_is, sig, logdz)
      do sec = 1, nsec
        if (lskipsec(sec)) cycle
+
+       ! log(dist/z0) is fixed geometry, so it is read rather than computed, and
+       ! the test it gates is hoisted above the interpolation: the host tests it
+       ! afterwards, but the interpolation has no side effect, so a section that
+       ! fails here skips the whole gather instead of only the stress.
+       logdz = wfc(sec,WFC_LOGDZ)
+       if (logdz <= 1.) cycle
 
        area = secareas(sec)
        fac  = secfacids(sec)
@@ -631,10 +918,11 @@ module modibm
        ny   = facnorm_d(fac,2)
        nz   = facnorm_d(fac,3)
 
-       i = secbndpts(sec,1) - zs1 + 1
-       j = secbndpts(sec,2) - zs2 + 1
-       k = secbndpts(sec,3) - zs3 + 1
+       i = secbndloc(sec,1)
+       j = secbndloc(sec,2)
+       k = secbndloc(sec,3)
 
+       dist = secdist(sec)
        Tair = 0.
        if (lcomprec(sec) .or. norec) then
          ! Velocity at the boundary point itself.
@@ -661,39 +949,32 @@ module modibm
            if (iwm == 2) Tair = 0.5 * (thl0_d(i,j,k  )*mask_c_d(i,j,k  )*(2.-mask_c_d(i,j,k-1)) &
                                     +  thl0_d(i,j,k-1)*mask_c_d(i,j,k-1)*(2.-mask_c_d(i,j,k  )))
          end select
-         dist = bnddst(sec)
        else
-         xrec = recpts(sec,1)
-         yrec = recpts(sec,2)
-         zrec = recpts(sec,3)
          ux = trilinear_device(u0_d, recids_u(sec,1), recids_u(sec,2), recids_u(sec,3), &
-                               xh_d, yf_d, zf_d, xrec, yrec, zrec, zs1, zs2, zs3)
+                               recw(sec,RECW_U), recw(sec,RECW_U+1), recw(sec,RECW_U+2))
          uy = trilinear_device(v0_d, recids_v(sec,1), recids_v(sec,2), recids_v(sec,3), &
-                               xf_d, yh_d, zf_d, xrec, yrec, zrec, zs1, zs2, zs3)
+                               recw(sec,RECW_V), recw(sec,RECW_V+1), recw(sec,RECW_V+2))
          uz = trilinear_device(w0_d, recids_w(sec,1), recids_w(sec,2), recids_w(sec,3), &
-                               xf_d, yf_d, zh_d, xrec, yrec, zrec, zs1, zs2, zs3)
+                               recw(sec,RECW_W), recw(sec,RECW_W+1), recw(sec,RECW_W+2))
          if (iwm == 2) &
            Tair = trilinear_device(thl0_d, recids_c(sec,1), recids_c(sec,2), recids_c(sec,3), &
-                                   xf_d, yf_d, zf_d, xrec, yrec, zrec, zs1, zs2, zs3)
-         dxr = xrec - xf_d(secbndpts(sec,1))
-         dyr = yrec - yf_d(secbndpts(sec,2))
-         dzr = zrec - zf_d(secbndpts(sec,3))
-         dist = bnddst(sec) + sqrt(dxr*dxr + dyr*dyr + dzr*dzr)
+                                   recw(sec,RECW_C), recw(sec,RECW_C+1), recw(sec,RECW_C+2))
        end if
-
-       if (log(dist/facz0_d(fac)) <= 1.) cycle
 
        if (abs(ux) < eps1 .and. abs(uy) < eps1 .and. abs(uz) < eps1) cycle
 
        ! local_coords: span = norm x uvec, normalised; strm = span x norm.
+       ! One reciprocal and three multiplies rather than three divisions, which
+       ! is what local_coords does on the host too - in double precision on a
+       ! 1:64 FP64 device a division is not a cheap operation.
        sx = ny*uz - nz*uy
        sy = nz*ux - nx*uz
        sz = nx*uy - ny*ux
        if (abs(sx) < eps1 .and. abs(sy) < eps1 .and. abs(sz) < eps1) cycle
-       smag = sqrt(sx*sx + sy*sy + sz*sz)
-       sx = sx / smag
-       sy = sy / smag
-       sz = sz / smag
+       smagi = 1./sqrt(sx*sx + sy*sy + sz*sz)
+       sx = sx * smagi
+       sy = sy * smagi
+       sz = sz * smagi
        tx = sy*nz - sz*ny
        ty = sz*nx - sx*nz
        tz = sx*ny - sy*nx
@@ -702,10 +983,12 @@ module modibm
 
        ctm = 0.
        if (iwm == 2) then
-         ctm = mom_transfer_coef_stability_device(utan, dist, facz0_d(fac), facz0h_d(fac), &
-                                                  Tair, facT1_d(fac), grav, fkar2, prandtlturb)
+         ctm = mom_transfer_coef_stability_device(utan, dist, Tair, facT1_d(fac), &
+                                                  logdz, wfc(sec,WFC_LOGZH), wfc(sec,WFC_COEF), &
+                                                  wfc(sec,WFC_CM), wfc(sec,WFC_CH), &
+                                                  grav, prandtlturb)
        else if (iwm == 3) then
-         ctm = (fkar / log(dist / facz0_d(fac)))**2
+         ctm = wfc(sec,WFC_CTMNEU)
        end if
 
        stress = ctm * utan**2
@@ -731,8 +1014,7 @@ module modibm
 
        stress_dir = sign(stress_dir, sig)
 
-       vol = dx*dy*dzf_d(k)
-       momvol = stress_dir * area / vol
+       momvol = stress_dir * area * dxdydzfi_d(k)
 
        !$acc atomic update
        rhs(i,j,k) = rhs(i,j,k) - momvol
@@ -743,39 +1025,21 @@ module modibm
      !$acc end parallel loop
 
    end subroutine wallfunmom_device
-
    !> Trilinear interpolation of a device field at a reconstruction point.
    !!
-   !! ci, cj, ck are global indices of the containing cell; the grid arrays are
-   !! passed assumed-size so that they are indexed from their own first element
-   !! rather than needing itot and jtot inside device code.
-   real function trilinear_device(var, ci, cj, ck, xgrid, ygrid, zgrid, x, y, z, zs1, zs2, zs3)
+   !! i, j, k are the rank-local indices of the containing cell and xd, yd, zd
+   !! the normalised offsets within it. Both are precomputed per section, so
+   !! this is an eight-point gather and nothing else: the grid arrays, the
+   !! global-to-local shift and the three divisions the offsets cost are all
+   !! resolved once, at initialisation.
+   real function trilinear_device(var, i, j, k, xd, yd, zd)
      !$acc routine seq
      use modcuda, only : ib_d, ie_d, jb_d, je_d, kb_d, ke_d, ih_d, jh_d, kh_d
      implicit none
 
      real, device, intent(in) :: var(ib_d-ih_d:ie_d+ih_d, jb_d-jh_d:je_d+jh_d, kb_d-kh_d:ke_d+kh_d)
-     integer, value, intent(in) :: ci, cj, ck, zs1, zs2, zs3
-     real, device, intent(in) :: xgrid(*), ygrid(*), zgrid(*)
-     real,    value, intent(in) :: x, y, z
-
-     integer :: i, j, k
-     real    :: xd, yd, zd, x0, y0, z0, x1, y1, z1
-
-     i = ci - zs1 + 1
-     j = cj - zs2 + 1
-     k = ck - zs3 + 1
-
-     x0 = xgrid(ci - ib_d + 1)
-     x1 = xgrid(ci - ib_d + 2)
-     y0 = ygrid(cj - jb_d + 1)
-     y1 = ygrid(cj - jb_d + 2)
-     z0 = zgrid(ck - kb_d + 1)
-     z1 = zgrid(ck - kb_d + 2)
-
-     xd = (x - x0) / (x1 - x0)
-     yd = (y - y0) / (y1 - y0)
-     zd = (z - z0) / (z1 - z0)
+     integer, value, intent(in) :: i, j, k
+     real,    value, intent(in) :: xd, yd, zd
 
      trilinear_device = var(i  ,j  ,k  ) * (1-xd)*(1-yd)*(1-zd) + &
                         var(i+1,j  ,k  ) * (  xd)*(1-yd)*(1-zd) + &
@@ -788,38 +1052,37 @@ module modibm
 
    end function trilinear_device
 
-   !> Device copy of mom_transfer_coef_stability. The module constants it needs
-   !! are passed in rather than used, so that the routine carries no module
-   !! state into the kernel.
-   real function mom_transfer_coef_stability_device(utan, dist, z0, z0h, Tair, Tsurf, &
-                                                    grav_in, fkar2_in, prandtlturb_in)
+   !> Device copy of mom_transfer_coef_stability.
+   !!
+   !! The roughness terms are passed in already evaluated, from the per-section
+   !! cache built at initialisation: logdz = log(dist/z0), logzh = log(z0/z0h),
+   !! coef = fkar2/logdz**2, and cmfac, chfac the two (d*fkar2)/logdz**2*b1*sqdz
+   !! products. None of them depends on the solution, and together they are the
+   !! only logarithms and the only square root the original routine evaluated.
+   !! The remaining module constants are passed rather than used, so the routine
+   !! carries no module state into the kernel.
+   real function mom_transfer_coef_stability_device(utan, dist, Tair, Tsurf, &
+                                                    logdz, logzh, coef, cmfac, chfac, &
+                                                    grav_in, prandtlturb_in)
      !$acc routine seq
      implicit none
-     real, value, intent(in) :: utan, dist, z0, z0h, Tair, Tsurf
-     real, value, intent(in) :: grav_in, fkar2_in, prandtlturb_in
+     real, value, intent(in) :: utan, dist, Tair, Tsurf
+     real, value, intent(in) :: logdz, logzh, coef, cmfac, chfac
+     real, value, intent(in) :: grav_in, prandtlturb_in
 
      real, parameter :: b1 = 9.4
      real, parameter :: b2 = 4.7
-     real, parameter :: dm = 7.4
-     real, parameter :: dh = 5.3
-     real :: dT, Ribl0, logdz, logdzh, logzh, sqdz, Ribl1, Fm, Fh, cm, ch, M
+     real :: dT, Ribl0, Ribl1, Fm, Fh, M
 
      dT = Tair - Tsurf
      Ribl0 = grav_in * dist * dT / (Tsurf * utan**2)
-
-     logdz  = log(dist/z0)
-     logdzh = log(dist/z0h)
-     logzh  = log(z0/z0h)
-     sqdz   = sqrt(dist/z0)
 
      if (Ribl0 > 0.) then
         Fm = 1./(1. + b2*Ribl0)**2
         Fh = Fm
      else
-        cm = (dm*fkar2_in)/(logdz**2)*b1*sqdz
-        ch = (dh*fkar2_in)/(logdz**2)*b1*sqdz
-        Fm = 1. - (b1*Ribl0)/(1. + cm*sqrt(abs(Ribl0)))
-        Fh = 1. - (b1*Ribl0)/(1. + ch*sqrt(abs(Ribl0)))
+        Fm = 1. - (b1*Ribl0)/(1. + cmfac*sqrt(abs(Ribl0)))
+        Fh = 1. - (b1*Ribl0)/(1. + chfac*sqrt(abs(Ribl0)))
      end if
 
      M = prandtlturb_in*logdz*sqrt(Fm)/Fh
@@ -829,11 +1092,10 @@ module modibm
      if (Ribl1 > 0.) then
         Fm = 1./(1. + b2*Ribl1)**2
      else
-        cm = (dm*fkar2_in)/(logdz**2)*b1*sqdz
-        Fm = 1. - (b1*Ribl1)/(1. + cm*sqrt(abs(Ribl1)))
+        Fm = 1. - (b1*Ribl1)/(1. + cmfac*sqrt(abs(Ribl1)))
      end if
 
-     mom_transfer_coef_stability_device = fkar2_in/(logdz**2)*Fm
+     mom_transfer_coef_stability_device = coef*Fm
 
    end function mom_transfer_coef_stability_device
 
@@ -862,17 +1124,20 @@ module modibm
      select case (dirsel)
      case (1)
        call wallfunmom_device(1, rhs, bound_info_u%nfctsecsrank, nfcts, &
-                              u_secareas_d, u_secfacids_d, u_secbndpts_d, u_bnddst_d, u_recpts_d, &
+                              u_secareas_d, u_secfacids_d, u_secbndloc_d, u_secdist_d, &
+                              u_recw_d, u_wfc_d, &
                               u_recids_u_d, u_recids_v_d, u_recids_w_d, u_recids_c_d, &
                               u_lskipsec_d, u_lcomprec_d, fac_tau_d)
      case (2)
        call wallfunmom_device(2, rhs, bound_info_v%nfctsecsrank, nfcts, &
-                              v_secareas_d, v_secfacids_d, v_secbndpts_d, v_bnddst_d, v_recpts_d, &
+                              v_secareas_d, v_secfacids_d, v_secbndloc_d, v_secdist_d, &
+                              v_recw_d, v_wfc_d, &
                               v_recids_u_d, v_recids_v_d, v_recids_w_d, v_recids_c_d, &
                               v_lskipsec_d, v_lcomprec_d, fac_tau_d)
      case (3)
        call wallfunmom_device(3, rhs, bound_info_w%nfctsecsrank, nfcts, &
-                              w_secareas_d, w_secfacids_d, w_secbndpts_d, w_bnddst_d, w_recpts_d, &
+                              w_secareas_d, w_secfacids_d, w_secbndloc_d, w_secdist_d, &
+                              w_recw_d, w_wfc_d, &
                               w_recids_u_d, w_recids_v_d, w_recids_w_d, w_recids_c_d, &
                               w_lskipsec_d, w_lcomprec_d, fac_tau_d)
      end select
@@ -896,25 +1161,24 @@ module modibm
    !! with iwalltemp = 2, which sets both every iteration - the two agree; where
    !! it is not, this contributes zero instead of an arbitrary carried value.
    subroutine wallfunheat_device(nsec, nfct, hflux_sec, qflux_sec, &
-                                 secareas, secfacids, secbndpts, bnddst, recpts, &
+                                 secareas, secfacids, secbndloc, secdist, recw, wfc, &
                                  recids_u, recids_v, recids_w, recids_c, &
                                  lskipsec, lcomprec, &
                                  f_htc, f_cth, f_pres, f_pres2, f_hf, f_ef, &
                                  totheat_out, totq_out)
      use modglobal,  only : ib, ie, ih, jb, je, jh, kb, ke, kh, &
-                            dx, dy, eps1, fkar2, grav, prandtlturb, &
+                            eps1, grav, prandtlturb, &
                             ltempeq, lmoist, iwalltemp, iwallmoist, lEB
-     use modcuda,    only : u0_d, v0_d, w0_d, thl0_d, qt0_d, pres0_d, dzh_d, &
-                            xh_d, xf_d, yh_d, yf_d, zh_d, zf_d
+     use modcuda,    only : u0_d, v0_d, w0_d, thl0_d, qt0_d, pres0_d, dxdydzhi_d
      use modibmdata, only : bctfxm, bctfxp, bctfyp, bctfz, &
                             bcqfxm, bcqfxp, bcqfyp, bcqfym, bcqfz
-     use decomp_2d,  only : zstart
      implicit none
 
      integer, intent(in) :: nsec, nfct
      real,    device, intent(out)   :: hflux_sec(nsec), qflux_sec(nsec)
-     real,    device, intent(in)    :: secareas(nsec), bnddst(nsec), recpts(nsec,3)
-     integer, device, intent(in)    :: secfacids(nsec), secbndpts(nsec,3)
+     real,    device, intent(in)    :: secareas(nsec), secdist(nsec)
+     real,    device, intent(in)    :: recw(nsec,RECW_N), wfc(nsec,WFC_N)
+     integer, device, intent(in)    :: secfacids(nsec), secbndloc(nsec,3)
      integer, device, intent(in)    :: recids_u(nsec,3), recids_v(nsec,3)
      integer, device, intent(in)    :: recids_w(nsec,3), recids_c(nsec,3)
      logical, device, intent(in)    :: lskipsec(nsec), lcomprec(nsec)
@@ -922,25 +1186,23 @@ module modibm
      real,    device, intent(inout) :: f_hf(0:nfct), f_ef(nfct)
      real,    intent(out) :: totheat_out, totq_out
 
-     integer :: sec, fac, i, j, k, zs1, zs2, zs3, iwt, iwq
+     integer :: sec, fac, i, j, k, iwt, iwq
      logical :: norec, ltemp, lmoi, leb_l
      real    :: area, dist, Tair, qtair, utan, cth, htc, flux
-     real    :: ux, uy, uz, nx, ny, nz, sx, sy, sz, tx, ty, tz, smag
-     real    :: xrec, yrec, zrec, dxr, dyr, dzr, p0
+     real    :: ux, uy, uz, nx, ny, nz, sx, sy, sz, tx, ty, tz, smagi
+     real    :: p0
      real    :: cveg, hurel, qwall, resa, resc, ress
-     real    :: dT, Ribl0, Ribl1, logdz, logzh, sqdz, Fm, Fh, cmv, chv, Mst, dTrough
+     real    :: dT, Ribl0, Ribl1, logdz, logzh, coef, cmfac, chfac
+     real    :: Fm, Fh, Mst, dTrough
      real    :: totheat, totq
 
      real, parameter :: b1 = 9.4
      real, parameter :: b2 = 4.7
-     real, parameter :: dm = 7.4
-     real, parameter :: dh = 5.3
 
      totheat_out = 0.
      totq_out    = 0.
      if (nsec < 1) return
 
-     zs1 = zstart(1); zs2 = zstart(2); zs3 = zstart(3)
      norec = lnorec
      iwt   = iwalltemp
      iwq   = iwallmoist
@@ -960,20 +1222,17 @@ module modibm
 
      !$acc parallel loop default(present) reduction(+:totheat,totq) &
      !$acc   private(fac, i, j, k, area, dist, Tair, qtair, utan, cth, htc, flux, &
-     !$acc           ux, uy, uz, nx, ny, nz, sx, sy, sz, tx, ty, tz, smag, &
-     !$acc           xrec, yrec, zrec, dxr, dyr, dzr, p0, cveg, hurel, qwall, &
-     !$acc           resa, resc, ress, dT, Ribl0, Ribl1, logdz, logzh, sqdz, &
-     !$acc           Fm, Fh, cmv, chv, Mst, dTrough)
+     !$acc           ux, uy, uz, nx, ny, nz, sx, sy, sz, tx, ty, tz, smagi, &
+     !$acc           p0, cveg, hurel, qwall, resa, resc, ress, &
+     !$acc           dT, Ribl0, Ribl1, logdz, logzh, coef, cmfac, chfac, &
+     !$acc           Fm, Fh, Mst, dTrough)
      do sec = 1, nsec
        fac  = secfacids(sec)
        area = secareas(sec)
-       nx   = facnorm_d(fac,1)
-       ny   = facnorm_d(fac,2)
-       nz   = facnorm_d(fac,3)
 
-       i = secbndpts(sec,1) - zs1 + 1
-       j = secbndpts(sec,2) - zs2 + 1
-       k = secbndpts(sec,3) - zs3 + 1
+       i = secbndloc(sec,1)
+       j = secbndloc(sec,2)
+       k = secbndloc(sec,3)
 
        ! Accumulated for every section, including the skipped ones, as on the host.
        p0 = pres0_d(i,j,k)
@@ -984,6 +1243,18 @@ module modibm
 
        if (lskipsec(sec)) cycle
 
+       ! log(dist/z0) is fixed geometry, so it is read rather than computed, and
+       ! the test it gates is hoisted above the interpolation: the host tests it
+       ! afterwards, but the interpolation has no side effect, so a section that
+       ! fails here skips the whole gather instead of only the flux.
+       logdz = wfc(sec,WFC_LOGDZ)
+       if (logdz <= 1.) cycle
+
+       nx = facnorm_d(fac,1)
+       ny = facnorm_d(fac,2)
+       nz = facnorm_d(fac,3)
+
+       dist  = secdist(sec)
        qtair = 0.
        if (lcomprec(sec) .or. norec) then
          ux = 0.5 * (u0_d(i,j,k) + u0_d(i+1,j,k))
@@ -994,39 +1265,30 @@ module modibm
          ! qt0 is always allocated and so is read unconditionally there. qtair
          ! is used only inside the moisture branch, so the two still agree.
          if (lmoi) qtair = qt0_d(i,j,k)
-         dist  = bnddst(sec)
        else
-         xrec = recpts(sec,1)
-         yrec = recpts(sec,2)
-         zrec = recpts(sec,3)
          ux = trilinear_device(u0_d, recids_u(sec,1), recids_u(sec,2), recids_u(sec,3), &
-                               xh_d, yf_d, zf_d, xrec, yrec, zrec, zs1, zs2, zs3)
+                               recw(sec,RECW_U), recw(sec,RECW_U+1), recw(sec,RECW_U+2))
          uy = trilinear_device(v0_d, recids_v(sec,1), recids_v(sec,2), recids_v(sec,3), &
-                               xf_d, yh_d, zf_d, xrec, yrec, zrec, zs1, zs2, zs3)
+                               recw(sec,RECW_V), recw(sec,RECW_V+1), recw(sec,RECW_V+2))
          uz = trilinear_device(w0_d, recids_w(sec,1), recids_w(sec,2), recids_w(sec,3), &
-                               xf_d, yf_d, zh_d, xrec, yrec, zrec, zs1, zs2, zs3)
+                               recw(sec,RECW_W), recw(sec,RECW_W+1), recw(sec,RECW_W+2))
          Tair = trilinear_device(thl0_d, recids_c(sec,1), recids_c(sec,2), recids_c(sec,3), &
-                                 xf_d, yf_d, zf_d, xrec, yrec, zrec, zs1, zs2, zs3)
+                                 recw(sec,RECW_C), recw(sec,RECW_C+1), recw(sec,RECW_C+2))
          if (lmoi) &
            qtair = trilinear_device(qt0_d, recids_c(sec,1), recids_c(sec,2), recids_c(sec,3), &
-                                    xf_d, yf_d, zf_d, xrec, yrec, zrec, zs1, zs2, zs3)
-         dxr = xrec - xf_d(secbndpts(sec,1))
-         dyr = yrec - yf_d(secbndpts(sec,2))
-         dzr = zrec - zf_d(secbndpts(sec,3))
-         dist = bnddst(sec) + sqrt(dxr*dxr + dyr*dyr + dzr*dzr)
+                                    recw(sec,RECW_C), recw(sec,RECW_C+1), recw(sec,RECW_C+2))
        end if
 
-       if (log(dist/facz0_d(fac)) <= 1.) cycle
        if (abs(ux) < eps1 .and. abs(uy) < eps1 .and. abs(uz) < eps1) cycle
 
        sx = ny*uz - nz*uy
        sy = nz*ux - nx*uz
        sz = nx*uy - ny*ux
        if (abs(sx) < eps1 .and. abs(sy) < eps1 .and. abs(sz) < eps1) cycle
-       smag = sqrt(sx*sx + sy*sy + sz*sz)
-       sx = sx / smag
-       sy = sy / smag
-       sz = sz / smag
+       smagi = 1./sqrt(sx*sx + sy*sy + sz*sz)
+       sx = sx * smagi
+       sy = sy * smagi
+       sz = sz * smagi
        tx = sy*nz - sz*ny
        ty = sz*nx - sx*nz
        tz = sx*ny - sy*nx
@@ -1055,20 +1317,22 @@ module modibm
          else if (iwt == 2) then
            ! heat_transfer_coef_flux, inlined. It returns three values, which is
            ! awkward to carry across a routine seq boundary, and it has a single
-           ! call site.
+           ! call site. The four roughness terms below are read from wfc rather
+           ! than rebuilt: they cost two logarithms, a square root and three
+           ! divisions, and none of them depends on the solution.
+           logzh = wfc(sec,WFC_LOGZH)
+           coef  = wfc(sec,WFC_COEF)
+           cmfac = wfc(sec,WFC_CM)
+           chfac = wfc(sec,WFC_CH)
+
            dT = Tair - facT1_d(fac)
            Ribl0 = grav * dist * dT / (facT1_d(fac) * utan**2)
-           logdz  = log(dist/facz0_d(fac))
-           logzh  = log(facz0_d(fac)/facz0h_d(fac))
-           sqdz   = sqrt(dist/facz0_d(fac))
            if (Ribl0 > 0.) then
              Fm = 1./(1. + b2*Ribl0)**2
              Fh = Fm
            else
-             cmv = (dm*fkar2)/(logdz**2)*b1*sqdz
-             chv = (dh*fkar2)/(logdz**2)*b1*sqdz
-             Fm = 1. - (b1*Ribl0)/(1. + cmv*sqrt(abs(Ribl0)))
-             Fh = 1. - (b1*Ribl0)/(1. + chv*sqrt(abs(Ribl0)))
+             Fm = 1. - (b1*Ribl0)/(1. + cmfac*sqrt(abs(Ribl0)))
+             Fh = 1. - (b1*Ribl0)/(1. + chfac*sqrt(abs(Ribl0)))
            end if
            Mst = prandtlturb*logdz*sqrt(Fm)/Fh
            Ribl1 = Ribl0 - Ribl0*prandtlturb*logzh/(prandtlturb*logzh + Mst)
@@ -1076,14 +1340,12 @@ module modibm
              Fm = 1./(1. + b2*Ribl1)**2
              Fh = Fm
            else
-             cmv = (dm*fkar2)/(logdz**2)*b1*sqdz
-             chv = (dh*fkar2)/(logdz**2)*b1*sqdz
-             Fm = 1. - (b1*Ribl1)/(1. + cmv*sqrt(abs(Ribl1)))
-             Fh = 1. - (b1*Ribl1)/(1. + chv*sqrt(abs(Ribl1)))
+             Fm = 1. - (b1*Ribl1)/(1. + cmfac*sqrt(abs(Ribl1)))
+             Fh = 1. - (b1*Ribl1)/(1. + chfac*sqrt(abs(Ribl1)))
            end if
            Mst = prandtlturb*logdz*sqrt(Fm)/Fh
            dTrough = dT*1./(prandtlturb*logzh/Mst + 1.)
-           cth = fkar2/(logdz*logdz)*Fh/prandtlturb
+           cth = coef*Fh/prandtlturb
            flux = abs(utan)*cth*dTrough
            if (abs(abs(utan)*dT) > 0.) then
              htc = flux / (abs(utan)*dT)
@@ -1097,7 +1359,7 @@ module modibm
            f_htc(fac) = f_htc(fac) + htc * area
          end if
 
-         hflux_sec(sec) = flux * area / (dx*dy*dzh_d(k))
+         hflux_sec(sec) = flux * area * dxdydzhi_d(k)
 
          totheat = totheat + flux*area
 
@@ -1136,7 +1398,7 @@ module modibm
 
            totq = totq + flux*area
 
-           qflux_sec(sec) = flux * area / (dx*dy*dzh_d(k))
+           qflux_sec(sec) = flux * area * dxdydzhi_d(k)
 
            if (leb_l) then
              !$acc atomic update
@@ -1157,27 +1419,25 @@ module modibm
    !! A separate pass so that wallfunheat_device is handed neither thlp nor qtp.
    !! Neither exists on the device unless its own switch is set, and passing an
    !! unallocated device array faults the kernel even where no branch reads it.
-   subroutine scatter_flux_device(nsec, qtp_dev, qflux_sec, secbndpts)
+   subroutine scatter_flux_device(nsec, qtp_dev, qflux_sec, secbndloc)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
-     use decomp_2d, only : zstart
      implicit none
 
      integer, intent(in) :: nsec
      real,    device, intent(inout) :: qtp_dev(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
      real,    device, intent(in)    :: qflux_sec(nsec)
-     integer, device, intent(in)    :: secbndpts(nsec,3)
+     integer, device, intent(in)    :: secbndloc(nsec,3)
 
-     integer :: sec, i, j, k, zs1, zs2, zs3
+     integer :: sec, i, j, k
 
      if (nsec < 1) return
-     zs1 = zstart(1); zs2 = zstart(2); zs3 = zstart(3)
 
      !$acc parallel loop default(present) private(i, j, k)
      do sec = 1, nsec
        if (qflux_sec(sec) == 0.) cycle
-       i = secbndpts(sec,1) - zs1 + 1
-       j = secbndpts(sec,2) - zs2 + 1
-       k = secbndpts(sec,3) - zs3 + 1
+       i = secbndloc(sec,1)
+       j = secbndloc(sec,2)
+       k = secbndloc(sec,3)
        !$acc atomic update
        qtp_dev(i,j,k) = qtp_dev(i,j,k) - qflux_sec(sec)
      end do
@@ -1209,16 +1469,17 @@ module modibm
      ! updateFacFluxHost zeroes them when it hands them over.
 
      call wallfunheat_device(bound_info_c%nfctsecsrank, nfcts, hflux_sec_d, qflux_sec_d, &
-                             c_secareas_d, c_secfacids_d, c_secbndpts_d, c_bnddst_d, c_recpts_d, &
+                             c_secareas_d, c_secfacids_d, c_secbndloc_d, c_secdist_d, &
+                             c_recw_d, c_wfc_d, &
                              c_recids_u_d, c_recids_v_d, c_recids_w_d, c_recids_c_d, &
                              c_lskipsec_d, c_lcomprec_d, &
                              fac_htc_d, fac_cth_d, fac_pres_d, fac_pres2_d, fachf_d, facef_d, &
                              totheat, totq)
 
      if (ltempeq) call scatter_flux_device(bound_info_c%nfctsecsrank, thlp_d, &
-                                          hflux_sec_d, c_secbndpts_d)
+                                          hflux_sec_d, c_secbndloc_d)
      if (lmoist)  call scatter_flux_device(bound_info_c%nfctsecsrank, qtp_d, &
-                                          qflux_sec_d, c_secbndpts_d)
+                                          qflux_sec_d, c_secbndloc_d)
 
      totheatflux = totheatflux + totheat
      totqflux    = totqflux + totq
@@ -2643,7 +2904,7 @@ module modibm
 #if !defined(_GPU) || defined(UDALES_DEBUG)
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
-                           dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
+                           dxdydzfi, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
      use modfields, only : u0, v0, w0, thl0
      use initfac,   only : facT, facz0, facz0h, facnorm, faca
      use decomp_2d, only : zstart
@@ -2654,7 +2915,7 @@ module modibm
      type(bound_info_type) :: bound_info
 
      integer i, j, k, sec, fac
-     real dist, stress, stress_dir, area, vol, momvol, Tair, &
+     real dist, stress, stress_dir, area, momvol, Tair, &
           utan, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, strm, span, stressvec
      logical :: valid
@@ -2766,8 +3027,9 @@ module modibm
 
        stress_dir = sign(stress_dir, dot_product(uvec, dir))
 
-       vol = dx*dy*dzf(k)
-       momvol = stress_dir * area / vol
+       ! dxdydzfi is 1/(dx*dy*dzf(k)), formed once in initglobal. The device
+       ! kernel multiplies by the same array, so the two stay bit-identical.
+       momvol = stress_dir * area * dxdydzfi(k)
        rhs(i,j,k) = rhs(i,j,k) - momvol
        fac_tau_loc(fac) = fac_tau_loc(fac) + stress_dir * area ! output stresses on facets
      end do
@@ -2794,7 +3056,7 @@ module modibm
 
 
    subroutine wallfunheat
-     use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzh, &
+     use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dxdydzhi, &
                            xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
@@ -2903,7 +3165,7 @@ module modibm
          ! flux [Km/s]
          ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
-         thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzh(k))
+         thlp(i,j,k) = thlp(i,j,k) - flux * area * dxdydzhi(k)
 
          totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets (unconditional, mirrors totqflux; decouples periodicEBcorr from lEB)
 
@@ -2943,7 +3205,7 @@ module modibm
          ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
          ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
          totqflux = totqflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
-         qtp(i,j,k) = qtp(i,j,k) - flux * area / (dx*dy*dzh(k))
+         qtp(i,j,k) = qtp(i,j,k) - flux * area * dxdydzhi(k)
 
          if (lEB) then
            facef(fac) = facef(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
@@ -3216,7 +3478,9 @@ module modibm
        strm = 0.
        valid = .false.
      else
-       span = span / norm2(span)
+       ! One reciprocal and three multiplies rather than three divisions; the
+       ! device kernel normalises the same way, so the two agree bit for bit.
+       span = span * (1./norm2(span))
        valid = .true.
      end if
      strm = cross_product(span, norm)

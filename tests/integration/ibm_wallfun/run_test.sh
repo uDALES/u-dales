@@ -79,34 +79,61 @@ if [ -z "${NPROCS:-}" ]; then
     NPROCS="$((NPROCX * NPROCY))"
 fi
 
-if [ -n "$TMPDIR_PARENT" ]; then
-    RUN_DIR="$(mktemp -d "${TMPDIR_PARENT%/}/ibm_wallfun-XXXXXX")"
-else
-    RUN_DIR="$(mktemp -d)"
+PROF_STRETCHED="${PROF_STRETCHED:-${SCRIPT_DIR}/prof.inp.stretched}"
+CASE_EXPNR="${NAMELIST##*.}"
+
+# Run once per vertical grid. The case ships a uniform one, where dzf and dzh
+# are equal at every level - so the cell-volume reciprocals dxdydzfi and
+# dxdydzhi hold identical values and a swap between them, or either one built
+# from the wrong spacing, is invisible. Every other case in the suite is uniform
+# too, including the CPU-GPU parity matrix, so without the stretched pass
+# nothing anywhere would catch it. The stretched pass is what makes the
+# cell-volume checks, and the momentum and heat conservation cross-checks,
+# able to fail.
+run_one () {
+    variant="$1"
+    prof_override="$2"
+
+    if [ -n "$TMPDIR_PARENT" ]; then
+        RUN_DIR="$(mktemp -d "${TMPDIR_PARENT%/}/ibm_wallfun-XXXXXX")"
+    else
+        RUN_DIR="$(mktemp -d)"
+    fi
+
+    cp -r "$CASE_SOURCE"/. "$RUN_DIR"/
+    cp "$NAMELIST_SOURCE" "$RUN_DIR/$NAMELIST"
+    if [ -n "$prof_override" ]; then
+        if [ ! -f "$prof_override" ]; then
+            echo "ERROR: vertical grid override not found: $prof_override"
+            rm -rf "$RUN_DIR"
+            return 1
+        fi
+        cp "$prof_override" "$RUN_DIR/prof.inp.${CASE_EXPNR}"
+    fi
+
+    echo "=========================================="
+    echo "Running TEST_IBM_WALLFUN (${variant} vertical grid)"
+    echo "=========================================="
+    echo "MPI processes: $NPROCS"
+    echo "Executable:    $UDALES_BUILD"
+    echo "Case source:   $(basename "$CASE_SOURCE")"
+    echo "Run directory: $RUN_DIR"
+    echo "Namelist:      $NAMELIST"
+    echo "=========================================="
+    echo ""
+
+    ( cd "$RUN_DIR" && "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$NPROCS" "$UDALES_BUILD" "$NAMELIST" )
+    rc=$?
+
+    rm -rf "$RUN_DIR"
+    return $rc
+}
+
+EXIT_CODE=0
+run_one uniform "" || EXIT_CODE=$?
+if [ "$EXIT_CODE" -eq 0 ]; then
+    run_one stretched "$PROF_STRETCHED" || EXIT_CODE=$?
 fi
-trap 'rm -rf "$RUN_DIR"' EXIT
-
-cp -r "$CASE_SOURCE"/. "$RUN_DIR"/
-cp "$NAMELIST_SOURCE" "$RUN_DIR/$NAMELIST"
-
-cd "$RUN_DIR" || exit 1
-
-echo "=========================================="
-echo "Running TEST_IBM_WALLFUN"
-echo "=========================================="
-echo "MPI processes: $NPROCS"
-echo "Executable:    $UDALES_BUILD"
-echo "Case source:   $(basename "$CASE_SOURCE")"
-echo "Run directory: $RUN_DIR"
-echo "Namelist:      $NAMELIST"
-echo "=========================================="
-echo ""
-
-# Run the test
-"$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$NPROCS" "$UDALES_BUILD" "$NAMELIST"
-
-# Capture exit code
-EXIT_CODE=$?
 
 echo ""
 echo "=========================================="

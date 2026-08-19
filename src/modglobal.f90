@@ -505,6 +505,8 @@ module modglobal
   real, allocatable, pinned :: dzhi(:)
   real, allocatable, pinned :: dzh2i(:)
   real, allocatable, pinned :: dzhiq(:)
+  real, allocatable, pinned :: dxdydzfi(:)
+  real, allocatable, pinned :: dxdydzhi(:)
   real, allocatable, pinned :: dzfc(:)
   real, allocatable, pinned :: dzfci(:)
   real, allocatable, pinned :: dzhci(:)
@@ -520,6 +522,12 @@ module modglobal
   real, allocatable :: dzhi(:)  !<  1/dzh
   real, allocatable :: dzh2i(:) !<  1/dzh^2
   real, allocatable :: dzhiq(:) !<  0.25*(1/dzh)
+  ! Reciprocal cell volumes. Anything that turns a flux through a face into a
+  ! tendency divides by one of these, so they are formed once here rather than
+  ! per point per Runge-Kutta stage. A single rounding of the true reciprocal,
+  ! not dxi*dyi*dzfi, so the multiply that replaces the division is one operation.
+  real, allocatable :: dxdydzfi(:) !<  1/(dx*dy*dzf)
+  real, allocatable :: dxdydzhi(:) !<  1/(dx*dy*dzh)
   real, allocatable :: dzfc(:)  !<  thickness of full level (extra ghost nodes (used in k-scheme)
   real, allocatable :: dzfci(:) !<  1/dzfc
   real, allocatable :: dzhci(:) !<  1/dzh (extra ghost nodes (used in k-scheme)
@@ -730,6 +738,8 @@ contains
       allocate (dzhi(kb:ke + kh))
       allocate (dzhiq(kb:ke + kh))
       allocate (dzh2i(kb:ke + kh))
+      allocate (dxdydzfi(kb - kh:ke + kh))
+      allocate (dxdydzhi(kb:ke + kh))
       allocate (zh(kb:ke + kh))
       allocate (zf(kb:ke + kh))
 
@@ -854,6 +864,8 @@ contains
 
       dzhi = 1./dzh
       dzfi = 1./dzf
+      dxdydzfi = 1./(dx*dy*dzf)
+      dxdydzhi = 1./(dx*dy*dzh)
       dzf2 = dzf*dzf
       dxhi = 1./dxh
       dxfi = 1./dxf

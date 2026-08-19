@@ -26,6 +26,22 @@ own, derived without reference to how they are written.
 | 6 | A fluid at rest produces no stress and reports none. |
 | 7 | The wall stress opposes the flow, and the momentum removed from the field equals the momentum reported on the facets. The second is a cross-check between two outputs written under different indexing. |
 | 8 | The heat removed from `thlp` equals `totheatflux`, and `fac_pres` is recomputed here directly from the section list. |
+| 9 | The moisture wall function: zero flux at equilibrium, clamped when the air is wetter than the surface, moisture only ever added when it is drier, and nothing at all without a green roof. |
+| 10 | `dxdydzfi` and `dxdydzhi` are each the reciprocal of their own cell volume. Asserted as a definition rather than by recomputing the same product, so the check and the code cannot share a mistake. |
+| 11 | `local_coords` returns an orthonormal frame, orthogonal to the facet normal, unchanged when the velocity is scaled, and invalid for a wall-normal velocity. |
+
+## Two vertical grids
+
+The runmode is executed twice: once on the case's own uniform vertical grid,
+and once with `prof.inp.stretched`, a geometrically stretched grid of the same
+depth.
+
+The stretched pass is not redundant. On a uniform grid `dzf` and `dzh` are equal
+at every level, so `dxdydzfi` and `dxdydzhi` hold identical values - a swap
+between them, or either built from the wrong spacing, changes nothing. Every
+other case in the repository is uniform as well, the CPU-GPU parity matrix
+included, so on a uniform grid alone nothing anywhere would catch it. Checks 7,
+8 and 10 can only fail on the stretched pass.
 
 ## Running
 
@@ -49,3 +65,8 @@ Each check was confirmed to fail when the corresponding behaviour is broken:
 | `rhs - momvol` becomes `rhs + momvol` | 7, both halves |
 | heat scatter scaled by 1.001 | 8 |
 | facet pressure accumulated without the area weight | 8 |
+| `dxdydzfi` built from `dzh` | 7 and 10, stretched grid only |
+| `local_coords` normalisation removed | 11 |
+
+The two entries marked "stretched grid only" pass on the uniform grid. That is
+the reason the second pass exists.

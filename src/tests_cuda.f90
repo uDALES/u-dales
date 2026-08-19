@@ -21,7 +21,8 @@ module tests_cuda
                         vp_d, qtp_d, svp_d, u0av_d, v0av_d, thl0av_d, qt0av_d, sv0av_d, &
                         uprof_d, vprof_d, thlprof_d, qtprof_d, svprof_d, &
                         ekm_d, ekh_d, pres0_d, fachf_d, facef_d, updateFacFluxHost, &
-                        facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice
+                        facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
+                        dxdydzfi_d, dxdydzhi_d
    use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, pres0, &
                          thl0, thlm, thl0c, qt0, qtm, sv0, svm, thlp, wp, &
                          up, vp, qtp, svp, &
@@ -30,6 +31,7 @@ module tests_cuda
    use modglobal, only : ib, ie, jb, je, kb, ke, ih, jh, kh, nsv, &
                          ihc, jhc, khc, dxhci, dxfc, dxfci, dxi, dyi, &
                          dzhci, dzfc, dzfci, dzfi, eps1, &
+                         dx, dy, dzf, dzh, dxdydzfi, dxdydzhi, &
                          lheatpump, lfan_hp, nhppoints, ltempeq, &
                          lmoist, lnudge, lnudgevel, tnudge, nnudge, &
                          iwallmom, nfcts, xhat, yhat, zhat, &
@@ -49,7 +51,8 @@ module tests_cuda
                            bound_info_type, &
                            wallfunheat, wallfunheat_dir_device, bound_info_c, faclGR_d, &
                            fac_htc_raw, fac_cth_raw, fac_pres_raw, fac_pres2_raw, &
-                           fac_htc_d, fac_cth_d, fac_pres_d, fac_pres2_d
+                           fac_htc_d, fac_cth_d, fac_pres_d, fac_pres2_d, &
+                           check_ibm_section_cache
    use modsubgriddata, only : ekm, ekh
    use modinletdata, only : u0driver
    use modmpi,   only : myid
@@ -86,6 +89,8 @@ contains
          call test_heatpump_scatter
          call test_nudge_profiles
          call test_ibm_device_geometry
+         call test_cell_volume_reciprocals
+         call test_ibm_section_cache
          call test_ibm_diff_corr
          call test_ibm_wallfunmom
          call test_ibm_wallfunheat
@@ -1330,6 +1335,56 @@ contains
    !! Also asserts what lets the device loops omit atomics: that the entries of
    !! each bndpts list are distinct cells. If a cell were listed twice the host
    !! loop would apply both corrections and the device loop would lose one.
+   !> The mirrored cell-volume reciprocals.
+   !!
+   !! Two things, because a mirror comparison alone would not be enough. First
+   !! that each device array carries its host array's values. Second that each
+   !! host array really is the reciprocal of its own cell volume - dzf and dzh
+   !! are equal on the uniform vertical grid every case in the suite uses, so a
+   !! swap between the two would survive both the mirror check and the whole
+   !! CPU-GPU parity matrix. The definition is asserted rather than the product
+   !! recomputed, so the two sides cannot share a mistake.
+   subroutine test_cell_volume_reciprocals
+      implicit none
+
+      real, allocatable :: back(:)
+      integer :: k
+
+      allocate(back(kb-kh:ke+kh))
+      back = dxdydzfi_d
+      if (any(back /= dxdydzfi)) call fail_cuda_selftest('dxdydzfi mirror')
+      do k = kb-kh, ke+kh
+         if (abs(back(k)*(dx*dy*dzf(k)) - 1.) > 1.e-13) &
+            call fail_cuda_selftest('dxdydzfi is not 1/(dx*dy*dzf)')
+      end do
+      deallocate(back)
+
+      allocate(back(kb:ke+kh))
+      back = dxdydzhi_d
+      if (any(back /= dxdydzhi)) call fail_cuda_selftest('dxdydzhi mirror')
+      do k = kb, ke+kh
+         if (abs(back(k)*(dx*dy*dzh(k)) - 1.) > 1.e-13) &
+            call fail_cuda_selftest('dxdydzhi is not 1/(dx*dy*dzh)')
+      end do
+      deallocate(back)
+   end subroutine test_cell_volume_reciprocals
+
+   !> The wall-function section caches against the expressions they replaced.
+   !!
+   !! The comparison lives in modibm, next to the arrays, because they are not
+   !! exported; this drives it and reports in the usual way. It is exact: both
+   !! sides evaluate the same expression on the same host, so any difference is
+   !! a plumbing error - a stencil on the wrong staggered grid, a cache column
+   !! read under the wrong name, an index left global.
+   subroutine test_ibm_section_cache
+      implicit none
+
+      character(len=128) :: problem
+
+      call check_ibm_section_cache(problem)
+      if (problem /= '') call fail_cuda_selftest(trim(problem))
+   end subroutine test_ibm_section_cache
+
    subroutine test_ibm_diff_corr
       implicit none
 

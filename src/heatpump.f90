@@ -88,11 +88,11 @@ contains
   end subroutine init_heatpump
 
   subroutine heatpump
-    use modglobal,  only : lheatpump, lfan_hp, nhppoints, ltempeq, dxi, dyi
+    use modglobal,  only : lheatpump, lfan_hp, nhppoints, ltempeq
 #if defined(_GPU)
-    use modcuda,    only : wm_d, w0_d, wp_d, thlp_d, dzfi_d
+    use modcuda,    only : wm_d, w0_d, wp_d, thlp_d, dxdydzfi_d
 #else
-    use modglobal,  only : dzfi
+    use modglobal,  only : dxdydzfi
     use modfields,  only : wm, w0, wp, thlp
 #endif
     implicit none
@@ -115,7 +115,7 @@ contains
         wp_d(i, j, k+1) = 0.
       end if
 
-      thlp_d(i, j, k) = thlp_d(i, j, k) - thl_dot_hp * dxi * dyi * dzfi_d(k)
+      thlp_d(i, j, k) = thlp_d(i, j, k) - thl_dot_hp * dxdydzfi_d(k)
     end do
     !$acc end parallel loop
 #else
@@ -133,7 +133,7 @@ contains
       i = idhppts_local(n,1)
       j = idhppts_local(n,2)
       k = idhppts_local(n,3)
-      thlp(i,j,k) = thlp(i,j,k) - thl_dot_hp * dxi * dyi * dzfi(k) ! [K/s], at cell center k
+      thlp(i,j,k) = thlp(i,j,k) - thl_dot_hp * dxdydzfi(k) ! [K/s], at cell center k
     end do
 #endif
   end subroutine heatpump

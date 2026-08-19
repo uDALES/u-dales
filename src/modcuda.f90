@@ -4,15 +4,16 @@ module modcuda
 #if defined(UDALES_DEBUG)
    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
 #endif
-   use modglobal,      only: itot, jtot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
+   use modglobal,      only: itot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
                              dx2, dxi, dx2i, dxi5, dxiq, dy2, dyi, dy2i, dyi5, dyiq, dxf, dxhi, &
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
+                             dxdydzfi, dxdydzhi, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
                              ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, ltrees, lscasrc, lscasrcl, &
                              BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
                              lnudge, lnudgevel, libm, nfcts, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
-                             xh, xf, yh, yf, zh, zf, &
+                             xh, &
                              eps1, numol, prandtlmoli, prandtlturb, grav, fkar2
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
@@ -49,8 +50,8 @@ module modcuda
 
    real, device, allocatable :: dzf_d(:), dzf2_d(:), dzfi_d(:), dzfi5_d(:), dzfiq_d(:), dzh_d(:), dzhi_d(:), dzh2i_d(:), dzhiq_d(:), &
                                 dzfc_d(:), dzfci_d(:), dzhci_d(:), dxfc_d(:), dxfci_d(:), dxhci_d(:), &
-                                dxf_d(:), dxhi_d(:), &
-                                xh_d(:), xf_d(:), yh_d(:), yf_d(:), zh_d(:), zf_d(:), &
+                                dxf_d(:), dxhi_d(:), dxdydzfi_d(:), dxdydzhi_d(:), &
+                                xh_d(:), &
                                 u0av_d(:), v0av_d(:), ug_d(:), vg_d(:), whls_d(:), thl0av_d(:), qt0av_d(:), tsc_d(:), &
                                 dpdxl_d(:), dpdyl_d(:), thvh_d(:), thlpcar_d(:), &
                                 dudxls_d(:), dudyls_d(:), dvdxls_d(:), dvdyls_d(:), dthldxls_d(:), dthldyls_d(:), dqtdxls_d(:), dqtdyls_d(:), dqtdtls_d(:), &
@@ -159,6 +160,8 @@ module modcuda
          allocate (dzh_d(kb:ke + kh))
          allocate (dzhi_d(kb:ke + kh))
          allocate (dzh2i_d(kb:ke + kh))
+         allocate (dxdydzfi_d(kb - kh:ke + kh))
+         allocate (dxdydzhi_d(kb:ke + kh))
          allocate (dzhiq_d(kb:ke + kh))
          dzf_d   = dzf
          dzf2_d  = dzf2
@@ -167,6 +170,8 @@ module modcuda
          dzfiq_d = dzfiq
          dzh_d   = dzh
          dzhi_d  = dzhi
+         dxdydzfi_d = dxdydzfi
+         dxdydzhi_d = dxdydzhi
          dzh2i_d = dzh2i
          dzhiq_d = dzhiq
 
@@ -315,18 +320,11 @@ module modcuda
          
          eps1_d   = eps1
          zstart_d = zstart
+         ! Only xh is mirrored: the wall-function reconstruction used to need
+         ! the full set, but its trilinear offsets are now precomputed per
+         ! section in modibm, so the grid never enters those kernels.
          allocate (xh_d(ib:itot+ih))
-         allocate (xf_d(ib:itot+ih))
-         allocate (yh_d(jb:jtot+jh))
-         allocate (yf_d(jb:jtot+jh))
-         allocate (zh_d(kb:ke+kh))
-         allocate (zf_d(kb:ke+kh))
          xh_d = xh
-         xf_d = xf
-         yh_d = yh
-         yf_d = yf
-         zh_d = zh
-         zf_d = zf
 
          ltempeq_d      = ltempeq
          lles_d         = lles
@@ -373,6 +371,7 @@ module modcuda
       subroutine exitCUDA
          implicit none
          deallocate(dxf_d, dxhi_d, dzf_d, dzf2_d, dzfi_d, dzfi5_d, dzfiq_d, dzh_d, dzhi_d, dzh2i_d, dzhiq_d, delta_d)
+         deallocate(dxdydzfi_d, dxdydzhi_d)
          deallocate(u0_d, v0_d, w0_d, pres0_d, um_d, vm_d, wm_d, up_d, vp_d, wp_d)
          deallocate(tau_x_d, tau_y_d, tau_z_d, momfluxb_d)
          deallocate(u0av_d, v0av_d, ug_d, vg_d, whls_d, tsc_d)
@@ -398,7 +397,7 @@ module modcuda
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. any(iadv_sv(1:nsv) == iadv_upw) .or. (iadv_thl == iadv_kappa)) then
             deallocate(dxfci_d, dzfci_d)
          end if
-         deallocate(xh_d, xf_d, yh_d, yf_d, zh_d, zf_d)
+         deallocate(xh_d)
          deallocate(ekm_d, ekh_d)
          if (lsmagorinsky .or. loneeqn) then
             deallocate(damp_d)
