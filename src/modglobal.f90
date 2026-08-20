@@ -87,6 +87,7 @@ module modglobal
    integer, parameter :: TEST_PERIODIC_EBCORR = 1009
    integer, parameter :: TEST_MASSCORR = 1010
    integer, parameter :: TEST_IBMNORM = 1011
+   integer, parameter :: TEST_EB = 1012
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
@@ -252,7 +253,10 @@ module modglobal
    real    :: fraction = 1 ! Fraction of excess heat removed by volume sink in periodic energy balance correction.
 
    logical :: lvfsparse = .false. !< whether to read in view factors in sparse format
-   integer :: nnz !< number of non-zero view factors
+   ! Defaulted, because lvfsparse alone decides whether the sparse view
+   ! factors are read and nnz is what says how many. A namelist that sets
+   ! lvfsparse without nnz would otherwise read an undefined count.
+   integer :: nnz = 0 !< number of non-zero view factors
    logical :: lconstW = .false.  ! The evaporated water can be removed from the soil (lconstW=false) or the soil moisture can be assumed as constant in time (lconstW=true)
    logical :: lfacTlyrs = .false.
 !  logical :: ifixuinf   = .true. !dpdxl relaxed to have Uinf 1. dpdx = (1/dt)*(Uh-Uinf)2. d/dt(dpdx) = 1/tau*(Uh-Uinf)

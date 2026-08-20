@@ -434,12 +434,23 @@ module modcuda
       end subroutine exitCUDA
 
       !> Refresh the facet properties the IBM wall functions read.
+      !!
+      !! facT, facqsat, fachurel and facf are rewritten by modEB, and only by
+      !! modEB, on the steps where the energy balance fires - one step in
+      !! dtEB/dt, which is a few hundred at a typical dtEB of 10 s. This used
+      !! to upload all four on every step that reached rk3step == 1, so on the
+      !! order of 99% of the traffic re-sent values the device already held.
+      !!
+      !! lfacetprops_dirty is how modEB says which steps are the real ones. It
+      !! starts set, so the initial-condition values still make the crossing
+      !! whether or not lEB is on, and the flag is cleared here rather than at
+      !! the call site so that no caller can consume it without doing the copy.
       subroutine updateFacetPropsDevice
-         use modglobal, only : nfcts, lEB, rk3step
+         use modglobal, only : nfcts
+         use initfac,   only : lfacetprops_dirty
          implicit none
 
-         if (lfacets_on_device .and. .not. lEB) return
-         if (lfacets_on_device .and. rk3step /= 1) return
+         if (lfacets_on_device .and. .not. lfacetprops_dirty) return
 
          if (allocated(facT1_d))    facT1_d    = facT(0:nfcts,1)
          if (allocated(facqsat_d))  facqsat_d  = facqsat(0:nfcts)
@@ -447,25 +458,46 @@ module modcuda
          if (allocated(facf_d))     facf_d     = facf(0:nfcts,1:5)
 
          lfacets_on_device = .true.
+         lfacetprops_dirty = .false.
       end subroutine updateFacetPropsDevice
 
       !> Drain the energy balance accumulators the IBM wall functions filled.
+      !!
+      !! Two things have to be kept apart here, and conflating them is what
+      !! made this handover go wrong once already.
+      !!
+      !! Clearing the device accumulators is required on EVERY Runge-Kutta
+      !! stage. The wall functions add into them each stage, and intqH in
+      !! modEB clears its host counterparts each stage too, outside its own
+      !! rk3step == 3 test. Let fachf_d run on across the stages and the third
+      !! one delivers the sum of all three: the facet heat flux three times too
+      !! large. That bug shipped once and a manual CPU/GPU comparison found it.
+      !!
+      !! Copying, on the other hand, is only worth doing on the stage that is
+      !! consumed. intqH reduces and time-integrates on the third stage alone
+      !! and throws the first two away untouched, so two crossings in three
+      !! were carrying a value that nothing would ever read. Skipping those is
+      !! safe precisely because the clear above is not skipped with them: the
+      !! host still sees exactly one stage's worth, the same one as before.
       subroutine updateFacFluxHost
-         use modglobal, only : nfcts, lEB
+         use modglobal, only : nfcts, lEB, rk3step
          implicit none
 
          if (.not. lEB) return
 
-         if (allocated(fachf_d) .and. allocated(fachf)) then
-            fachf_stage = fachf_d
-            fachf(0:nfcts) = fachf(0:nfcts) + fachf_stage
-            fachf_d = 0.
+         if (rk3step == 3) then
+            if (allocated(fachf_d) .and. allocated(fachf)) then
+               fachf_stage = fachf_d
+               fachf(0:nfcts) = fachf(0:nfcts) + fachf_stage
+            end if
+            if (allocated(facef_d) .and. allocated(facef)) then
+               facef_stage = facef_d
+               facef(1:nfcts) = facef(1:nfcts) + facef_stage
+            end if
          end if
-         if (allocated(facef_d) .and. allocated(facef)) then
-            facef_stage = facef_d
-            facef(1:nfcts) = facef(1:nfcts) + facef_stage
-            facef_d = 0.
-         end if
+
+         if (allocated(fachf_d)) fachf_d = 0.
+         if (allocated(facef_d)) facef_d = 0.
       end subroutine updateFacFluxHost
 
       subroutine updateDevice
@@ -645,10 +677,13 @@ module modcuda
          end if
       end subroutine updateHostAfterPoiss
 
+      !> Hand the field tendencies back to the host.
+      !!
+      !! The facet flux drain used to be the first thing here. It is called
+      !! from the time loop directly now, just above EB, because that is the
+      !! one consumer and EB runs before this does - see updateFacFluxHost.
       subroutine updateHost
          implicit none
-
-         call updateFacFluxHost
 
          up = up_d
          vp = vp_d

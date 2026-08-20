@@ -29,7 +29,7 @@ program uDALES
 #if defined(_GPU)
   use cudafor
   use modcuda,           only : initCUDA, updateDevice, updateHost, updateDevicePriorPoiss, &
-                                updateHostAfterPoiss, checkCUDA, exitCUDA
+                                updateHostAfterPoiss, updateFacFluxHost, checkCUDA, exitCUDA
 #endif
 #if defined(_GPU) && defined(UDALES_DEBUG)
   use tests_cuda,        only : run_cuda_selftests_if_requested
@@ -37,7 +37,7 @@ program uDALES
   use modglobal,         only : initglobal,rk3step,timeleft
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT, &
                                 TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE,TEST_IBM_WALLFUN, &
-                                TEST_PERIODIC_EBCORR,TEST_MASSCORR,TEST_IBMNORM
+                                TEST_PERIODIC_EBCORR,TEST_MASSCORR,TEST_IBMNORM,TEST_EB
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -72,7 +72,7 @@ program uDALES
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge,tests_ibm_wallfun, &
-                            tests_periodic_ebcorr,tests_masscorr,tests_ibmnorm
+                            tests_periodic_ebcorr,tests_masscorr,tests_ibmnorm,tests_eb
   implicit none
 
   real    :: stime
@@ -210,13 +210,29 @@ program uDALES
 #endif
     write(6,'(A,F10.6)')'(advection to ibmnorm) time = ', MPI_Wtime() - stime
 
+#if defined(_GPU)
+    ! The facet flux accumulators the wall functions filled on the device.
+    !
+    ! This used to ride along inside updateHost, which was fine while EB sat
+    ! below it. EB is above it now, so the one small crossing EB actually
+    ! depends on has to come up with it - and only that one: the energy
+    ! balance never touches a field. Leaving it behind is not a crash but a
+    ! silent loss, the facet heat flux reduced to zero on the GPU and nowhere
+    ! else, which is what the facEB comparison in the surface-energy-balance
+    ! parity case exists to catch.
+    !
+    ! It also means EB no longer depends on updateHost at all, so when
+    ! vegetation_forcing is ported and updateHost goes away, this stays.
+    call updateFacFluxHost
+#endif
+
+    call EB
+
     stime = MPI_Wtime()
 #if defined(_GPU)
     call updateHost
 #endif
     write(6,'(A,F10.6)')'updateHost time = ', MPI_Wtime() - stime
-
-    call EB
 
     call vegetation_forcing
 
@@ -329,6 +345,8 @@ contains
         test_failed = .not. tests_masscorr()
       case (TEST_IBMNORM)
         test_failed = .not. tests_ibmnorm()
+      case (TEST_EB)
+        test_failed = .not. tests_eb()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

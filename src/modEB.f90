@@ -412,10 +412,35 @@ contains
 
   end subroutine updateGR
 
+  !> Energy balance on every facet.
+  !!
+  !! This one stays on the host, deliberately, and the reasons are worth
+  !! writing down because every other routine in this part of the time loop
+  !! has gone the other way.
+  !!
+  !!   - It is not field work. Nothing here is indexed by (i,j,k); the whole
+  !!     routine walks facet arrays, and nfcts is in the hundreds where the
+  !!     grid is in the millions.
+  !!   - The body runs on rank 0 only, between two MPI collectives - the
+  !!     all-reduce in intqH that gathers a facet split across ranks, and the
+  !!     broadcast at the end that hands the new temperatures back. MPI here
+  !!     is not CUDA-aware, so a device-side solve would have to come down for
+  !!     the reduction and go back up after the broadcast, on the one step in
+  !!     dtEB where there is any work at all.
+  !!   - The largest input is the view-factor matrix vf, nfcts by nfcts. On a
+  !!     case big enough for the dense calclw loop to cost anything, mirroring
+  !!     it would be hundreds of megabytes of device memory for a matrix-vector
+  !!     product evaluated once per dtEB.
+  !!
+  !! What the port of this routine consists of, then, is not moving arithmetic
+  !! to the device but making the facet arrays cross the bus only when they
+  !! carry something new: see updateFacFluxHost and updateFacetPropsDevice in
+  !! modcuda, and lfacetprops_dirty in initfac, which this routine sets.
   subroutine EB
     !calculates the energy balance for every facet
     use modglobal, only: nfcts, boltz, tEB, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv, timee, dtEB, tnextEB, rk3step, rhoa, cp, lEB, lwriteEBfiles,nfaclyrs
-    use initfac, only: faclam, faccp, netsw, facem, fachfi, facT, facLWin, faca,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd
+    use initfac, only: faclam, faccp, netsw, facem, fachfi, facT, facLWin, faca,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd, &
+                       lfacetprops_dirty
     use modmpi, only: myid, comm3d, mpierr, MY_REAL
     use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
     real  :: ca = 0., cb = 0.
@@ -548,6 +573,15 @@ contains
       call MPI_BCAST(facf(0:nfcts, 1:5), (nfcts + 1)*5, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(fachurel(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
       !call MPI_BCAST(facwsoil(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
+
+      ! Every rank now holds new facT, facqsat, facf and fachurel, so a GPU
+      ! run has to refresh its mirror of them before the wall functions read
+      ! them again. This is the only place in the time loop where they move,
+      ! which is what makes gating the refresh on this flag safe: set it here
+      ! and the mirror follows, on the roughly one step in dtEB/dt where there
+      ! is anything to follow. It is set outside the myid == 0 test on purpose
+      ! - the broadcasts above are what make the other ranks dirty too.
+      lfacetprops_dirty = .true.
     end if !time>tnextEB
 
   end subroutine EB

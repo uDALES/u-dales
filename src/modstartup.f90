@@ -723,7 +723,8 @@ module modstartup
                               ipoiss,POISS_FFT2D,&
                               lydump,lytdump,luoutflowr,lvoutflowr,&
                               lhdriver,lqdriver,lsdriver,ltrees,lEB,itree_mode,&
-                              TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
+                              TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,&
+                              lvfsparse,nnz,iexpnr
       use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
       use modglobal,   only : idriver
       implicit none
@@ -936,6 +937,32 @@ module modstartup
 
        if ((lvoutflowr) .and. (nprocy > 1)) then
           write(*, *) "Error: constant y outflow only possible for nprocy = 1."
+          stop 1
+       end if
+
+       ! nnz is how many lines of vfsparse.inp.xxx get read, and nothing else
+       ! bounds that loop. Left unset it is zero, so the file is opened, no
+       ! entry is read, and the energy balance runs with the facets unable to
+       ! see each other - only the sky term survives. That is a silent loss of
+       ! physics, not a crash, and it went unnoticed in a shipped case: on a
+       ! geometry with sky view factors down to 0.53, roughly half of some
+       ! facets' incoming longwave simply went missing.
+       !
+       ! Both preprocessors write nnz alongside the sparse file, so a namelist
+       ! without it is stale rather than deliberate. Refuse to start.
+       if (lEB .and. lvfsparse .and. (nnz <= 0)) then
+          if (myid == 0) then
+             ! cexpnr is not built until initglobal, which runs after this, so
+             ! the experiment number is printed from iexpnr directly.
+             write(0, '(A)')      'ERROR: lvfsparse = .true. requires nnz > 0 in &ENERGYBALANCE.'
+             write(0, '(A,I3.3,A)') '  nnz is the number of entries to read from vfsparse.inp.', iexpnr, ','
+             write(0, '(A,I0)')   '  and its current value is ', nnz
+             write(0, '(A)')      '  With nnz <= 0 no view factor is read and the facets do not'
+             write(0, '(A)')      '  exchange longwave at all, which no later check would catch.'
+             write(0, '(A)')      '  The preprocessing writes nnz into the namelist; rerun it, or'
+             write(0, '(A,I3.3)') '  set nnz to the number of lines in vfsparse.inp.', iexpnr
+          end if
+          call MPI_FINALIZE(mpierr)
           stop 1
        end if
 

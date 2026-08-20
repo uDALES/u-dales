@@ -21,7 +21,7 @@ module tests
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, &
             tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun, &
-            tests_periodic_ebcorr, tests_masscorr, tests_ibmnorm
+            tests_periodic_ebcorr, tests_masscorr, tests_ibmnorm, tests_eb
 
 contains
 
@@ -2919,5 +2919,727 @@ contains
     end subroutine report
 
   end function tests_ibmnorm
+
+
+  !> Properties of the facet energy balance, modEB::EB and its helpers.
+  !!
+  !! EB is the one routine in this part of the time loop that deliberately
+  !! stays on the host, so there is no device branch to compare against and no
+  !! symmetric test to write. What is checked here instead are properties the
+  !! routine has to hold on its own, chosen so that each one fails for a
+  !! different reason:
+  !!
+  !!   - intqH keeps the facet fluxes on the third Runge-Kutta stage only, and
+  !!     clears them on every stage. This is the contract that lets modcuda's
+  !!     updateFacFluxHost skip two crossings in three, so it is checked here
+  !!     rather than assumed there. Over two ranks it also shows the flux is
+  !!     the reduced one and the time integral lives on rank 0 alone.
+  !!   - The energy balance fires only on the third stage and only once the
+  !!     next EB time has arrived, and sets lfacetprops_dirty exactly when it
+  !!     rewrites the facet properties. That flag is what the GPU mirror now
+  !!     follows, so a run that never sets it would leave the wall functions on
+  !!     initial-condition temperatures for the whole simulation.
+  !!   - A facet whose surface is in equilibrium does not move. Uniform layer
+  !!     temperatures with the net surface flux exactly balancing the emitted
+  !!     longwave is a fixed point of the scheme, and almost any slip in the
+  !!     matrix assembly, the inverse or the two matmuls destroys it.
+  !!   - The surface energy balance closes: the conducted flux out of the
+  !!     surface equals what went in, minus what was radiated. This uses only
+  !!     faclam, facTdash and the forcing the test itself set, so it is the
+  !!     physics rather than a second copy of the algebra.
+  !!   - The innermost layer is held fixed, which is what the last row of the
+  !!     system is for.
+  !!   - calclw agrees with itself: the sparse and dense view-factor paths are
+  !!     two separate loops that must produce the same incoming longwave.
+  !!
+  !! Every check has a negative control that deliberately breaks it, and the
+  !! controls are themselves asserted to fire - a control that cannot fail
+  !! proves nothing about the check beside it.
+  logical function tests_eb()
+    use modglobal, only : runmode, nfcts, nfaclyrs, lEB, lvfsparse, nnz, boltz, &
+                          timee, tnextEB, tEB, rk3step, dt, cp, rhoa, &
+                          lwriteEBfiles, lconstW
+    use modEB,     only : EB, initEB, intqH, calclw
+    use initfac,   only : readfacetfiles
+    use initfac,   only : facT, facTdash, faclam, faccp, facd, facem, faca, &
+                          facets, faclGR, netsw, facLWin, svf, vf, vfsparse, &
+                          ivfsparse, jvfsparse, fachf, facef, fachfi, facefi, &
+                          fachfsum, facefsum, facwsoil, lfacetprops_dirty
+    use modmpi,    only : nprocs
+
+    implicit none
+
+    real, parameter :: T0     = 300.        !< uniform starting temperature [K]
+    real, parameter :: probeH = 0.375       !< per-rank sensible flux probe
+    real, parameter :: probeE = 0.125       !< per-rank latent flux probe
+    real, parameter :: dt_lcl = 0.25        !< time step used for the integral
+    real, parameter :: span   = 20.         !< seconds between energy balances
+    real, parameter :: extraQ = 250.        !< net heating on top of balance
+    real, parameter :: H0     = 40.         !< sensible flux fed through fachfi
+    real, parameter :: E0     = 15.         !< latent flux fed through facefi
+
+    logical :: all_passed, control_fired, layered
+    integer :: n, j, stage, nlive
+    real    :: rank_sum, want, got, tol, resid, scale, worst
+    real    :: moved, lhs, rhs, dsum, dshare, ab_n, bb1
+
+    ! Saved state. EB is destructive: it rewrites the temperatures, resets the
+    ! integrated fluxes and advances the energy balance clock.
+    real,    allocatable :: facT_s(:,:), facTdash_s(:,:), netsw_s(:), svf_s(:)
+    real,    allocatable :: facLWin_s(:), fachfi_s(:), facefi_s(:), facwsoil_s(:)
+    real,    allocatable :: fachf_s(:), facef_s(:), vfsparse_s(:)
+    real,    allocatable :: faclam_s(:,:), faccp_s(:,:), facd_s(:,:)
+    logical, allocatable :: faclGR_s(:)
+    real,    allocatable :: facT_old(:,:), lw_sparse(:), lw_dense(:)
+    real,    allocatable :: told(:), tdold(:)
+    real                 :: timee_s, tnextEB_s, tEB_s, dt_s
+    integer              :: rk3step_s
+    logical              :: lvfsparse_s, lwriteEBfiles_s, lconstW_s
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_eb: FACET ENERGY BALANCE TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    if (.not. lEB) then
+      if (myid == 0) then
+        write(*, '(A)') 'FAIL: this runmode needs lEB = .true. in the namelist.'
+        write(*, '(A)') '  Without it EB returns immediately and every check below is vacuous.'
+      end if
+      tests_eb = .false.
+      return
+    end if
+
+    ! The runmode dispatch happens before the facet files are read and before
+    ! initEB builds the layer system, so this entry point does both itself.
+    ! The netCDF side is switched off first: writing facT.xxx.nc and
+    ! facEB.xxx.nc from a test would leave meaningless records behind, and
+    ! none of the properties below depend on the output.
+    lwriteEBfiles = .false.
+    call readfacetfiles
+    call initEB
+
+    if (nfcts < 1 .or. .not. allocated(facT)) then
+      if (myid == 0) write(*, '(A)') 'FAIL: no facets to test'
+      tests_eb = .false.
+      return
+    end if
+
+    all_passed = .true.
+
+    ! The radiative environment, the integrated fluxes and the temperature
+    ! gradient are allocated on rank 0 alone - initfac keeps them there because
+    ! that is where the energy balance is solved. Everything the wall functions
+    ! read, facT among it, exists on every rank. So the setup below happens on
+    ! rank 0, EB itself is called collectively for its broadcasts, and the
+    ! checks split accordingly.
+    allocate(facT_s,   source=facT)
+    allocate(fachf_s,  source=fachf)
+    allocate(facef_s,  source=facef)
+    allocate(faclGR_s, source=faclGR)
+    allocate(facT_old(1:nfcts,1:nfaclyrs+1))
+    allocate(told(1:nfaclyrs+1), tdold(1:nfaclyrs+1))
+    if (myid == 0) then
+      allocate(facTdash_s, source=facTdash)
+      allocate(netsw_s,    source=netsw)
+      allocate(svf_s,      source=svf)
+      allocate(facLWin_s,  source=facLWin)
+      allocate(fachfi_s,   source=fachfi)
+      allocate(facefi_s,   source=facefi)
+      allocate(facwsoil_s, source=facwsoil)
+      allocate(faclam_s,   source=faclam)
+      allocate(faccp_s,    source=faccp)
+      allocate(facd_s,     source=facd)
+      if (allocated(vfsparse)) allocate(vfsparse_s, source=vfsparse)
+    end if
+
+    ! Give the wall a real profile before anything else runs.
+    !
+    ! Every wall type in the shipped case has identical layers - same
+    ! thickness, same heat capacity, same conductivity all the way through - so
+    ! a routine that indexes the wrong layer produces exactly the right answer
+    ! and no check here can tell. That is not hypothetical: a mutation reading
+    ! faclam(n,2) where the linearisation wants faclam(n,1) survived every
+    ! check below until this was added.
+    !
+    ! The assertion afterwards is the part that matters. It is what makes the
+    ! layer-indexed checks able to fail at all, so if the profile ever comes
+    ! out flat the test says so rather than passing on a degenerate wall.
+    if (myid == 0) then
+      do n = 1, nfcts
+        do j = 1, nfaclyrs
+          facd(n,j)  = facd(n,j)  * (1. + 0.30 * real(j - 1))
+          faccp(n,j) = faccp(n,j) * (1. + 0.20 * real(j - 1))
+        end do
+        do j = 1, nfaclyrs + 1
+          faclam(n,j) = faclam(n,j) * (1. + 0.40 * real(j - 1))
+        end do
+      end do
+
+      layered = .false.
+      do n = 1, nfcts
+        if (.not. live(n)) cycle
+        if (faclam(n,1) /= faclam(n,2) .and. facd(n,1) /= facd(n,2) .and. &
+            faccp(n,1) /= faccp(n,2)) layered = .true.
+      end do
+      if (.not. layered) then
+        write(*, '(A)') 'FAIL: the wall layers are identical, so nothing here can'
+        write(*, '(A)') '  detect a routine that reads the wrong one.'
+        all_passed = .false.
+      end if
+    end if
+
+    timee_s         = timee
+    tnextEB_s       = tnextEB
+    tEB_s           = tEB
+    dt_s            = dt
+    rk3step_s       = rk3step
+    lvfsparse_s     = lvfsparse
+    lwriteEBfiles_s = lwriteEBfiles
+    lconstW_s       = lconstW
+
+    ! ------------------------------------------------------------------
+    ! 1. intqH: which stage is kept, and what is cleared
+    ! ------------------------------------------------------------------
+    ! The per-rank probe is rank-dependent, so a routine that integrated the
+    ! local flux instead of the reduced one lands on a different number on
+    ! every rank but the first.
+    rank_sum = 0.5 * real(nprocs) * real(nprocs + 1)
+    dt = dt_lcl
+    if (myid == 0) then
+      fachfi = 0.
+      facefi = 0.
+    end if
+
+    do stage = 1, 3
+      fachf(1:nfcts) = probeH * real(myid + 1)
+      facef(1:nfcts) = probeE * real(myid + 1)
+      rk3step = stage
+      call intqH
+
+      ! Cleared on every stage, whichever stage it was: the device mirror in
+      ! modcuda relies on this to justify clearing fachf_d three times a step
+      ! while copying it once.
+      if (maxval(abs(fachf(1:nfcts))) /= 0. .or. maxval(abs(facef(1:nfcts))) /= 0.) then
+        call fail('intqH left a facet flux behind on stage', stage)
+      end if
+      if (maxval(abs(fachfsum(1:nfcts))) /= 0. .or. maxval(abs(facefsum(1:nfcts))) /= 0.) then
+        call fail('intqH left a reduced facet flux behind on stage', stage)
+      end if
+
+      ! And integrated on the third stage alone. The integral is rank 0's:
+      ! initfac does not even allocate fachfi anywhere else.
+      if (myid == 0) then
+        if (stage < 3) then
+          want = 0.
+        else
+          want = dt_lcl * probeH * rank_sum
+        end if
+        got = maxval(abs(fachfi(1:nfcts)))
+        if (abs(got - want) > 1.e-12 * max(1., want)) then
+          write(*,'(A,I0,A,ES23.15,A,ES23.15)') &
+            'FAIL: fachfi after stage ', stage, ' is ', got, ', expected ', want
+          all_passed = .false.
+        end if
+        got = maxval(abs(facefi(1:nfcts)))
+        want = 0.
+        if (stage == 3) want = dt_lcl * probeE * rank_sum
+        if (abs(got - want) > 1.e-12 * max(1., want)) then
+          write(*,'(A,I0,A,ES23.15,A,ES23.15)') &
+            'FAIL: facefi after stage ', stage, ' is ', got, ', expected ', want
+          all_passed = .false.
+        end if
+      end if
+    end do
+
+    ! Control: had intqH integrated on every stage, rank 0 would now hold three
+    ! times as much. Assert the two numbers really are distinguishable, so a
+    ! silently zero probe cannot make the check above pass for free.
+    if (myid == 0) then
+      control_fired = abs(3. * dt_lcl * probeH * rank_sum - dt_lcl * probeH * rank_sum) > &
+                      1.e-9 * dt_lcl * probeH * rank_sum
+      if (.not. control_fired) call fail('control: the stage-count probe cannot fire', 0)
+    end if
+
+    ! Control: the reduced flux and the rank-local one must differ, or the
+    ! two-rank pass proves nothing about the all-reduce.
+    if (myid == 0) then
+      if (nprocs > 1) then
+        control_fired = abs(rank_sum - 1.) > 1.e-9
+        if (.not. control_fired) call fail('control: the reduction probe cannot fire', 0)
+      else
+        write(*, '(A)') 'NOTE: on one rank the reduced and local facet fluxes coincide;'
+        write(*, '(A)') '      the two-rank pass of run_test.sh is what separates them.'
+      end if
+    end if
+
+    ! ------------------------------------------------------------------
+    ! 2. When EB fires, and what it tells the GPU mirror
+    ! ------------------------------------------------------------------
+    call quiesce
+    lfacetprops_dirty = .false.
+
+    ! Not on the first two stages, however late it is.
+    timee   = 1000.
+    tnextEB = 100.
+    tEB     = timee - span
+    facT(1:nfcts,1) = T0
+    do stage = 1, 2
+      rk3step = stage
+      call EB
+      if (maxval(abs(facT(1:nfcts,1) - T0)) /= 0.) then
+        call fail('EB moved the surface temperature on stage', stage)
+      end if
+      if (lfacetprops_dirty) then
+        call fail('EB marked the facet properties dirty on stage', stage)
+      end if
+    end do
+
+    ! Not on the third stage either, until the next EB time has arrived.
+    rk3step = 3
+    tnextEB = timee + 100.
+    call EB
+    if (maxval(abs(facT(1:nfcts,1) - T0)) /= 0.) then
+      call fail('EB ran before its next time had arrived', 0)
+    end if
+    if (lfacetprops_dirty) then
+      call fail('EB marked the facet properties dirty before it ran', 0)
+    end if
+
+    ! And then it does, and says so.
+    tnextEB = timee - 1.
+    tEB     = timee - span
+    call EB
+    if (.not. lfacetprops_dirty) then
+      call fail('EB rewrote the facet properties without marking them dirty', 0)
+    end if
+
+    ! ------------------------------------------------------------------
+    ! 3. Equilibrium is a fixed point
+    ! ------------------------------------------------------------------
+    ! With no sky and no view factors the incoming longwave is zero, so a
+    ! facet radiating boltz*em*T^4 and absorbing exactly that in shortwave is
+    ! in balance; the layers are uniform, so nothing conducts either.
+    nlive = 0
+    do n = 1, nfcts
+      if (live(n)) nlive = nlive + 1
+    end do
+    if (nlive < 1) then
+      if (myid == 0) write(*, '(A)') 'FAIL: no facet with a positive area and a real wall type'
+      all_passed = .false.
+    end if
+
+    call quiesce
+    worst = 0.
+    if (myid == 0) then
+      do n = 1, nfcts
+        netsw(n) = boltz * facem(n) * T0**4
+      end do
+    end if
+    call fire
+    do n = 1, nfcts
+      if (.not. live(n)) cycle
+      worst = max(worst, maxval(abs(facT(n,1:nfaclyrs+1) - T0)))
+    end do
+    if (worst > 1.e-8) then
+      if (myid == 0) write(*,'(A,ES23.15,A)') &
+        'FAIL: a balanced facet drifted by ', worst, ' K, expected a fixed point'
+      all_passed = .false.
+    end if
+
+    ! Control: the same setup with the surface flux 1% out must move, or the
+    ! check above would pass on a routine that ignored its forcing entirely.
+    call quiesce
+    if (myid == 0) then
+      do n = 1, nfcts
+        netsw(n) = 1.01 * boltz * facem(n) * T0**4
+      end do
+    end if
+    call fire
+    control_fired = .false.
+    do n = 1, nfcts
+      if (.not. live(n)) cycle
+      if (abs(facT(n,1) - T0) > 1.e-6) control_fired = .true.
+    end do
+    if (.not. control_fired) then
+      call fail('control: a 1% flux imbalance left the facets unmoved', 0)
+    end if
+
+    ! ------------------------------------------------------------------
+    ! 4. The surface energy balance closes, and the inside is held
+    ! ------------------------------------------------------------------
+    ! Heat the facet hard enough that the surface really moves, and drive all
+    ! four terms of the net flux: shortwave, longwave, sensible and latent.
+    call quiesce
+    if (myid == 0) then
+      do n = 1, nfcts
+        netsw(n) = boltz * facem(n) * T0**4 + extraQ
+        if (faca(n) > 0.) fachfi(n) = H0 * span * faca(n) / (rhoa * cp)
+        facefi(n) = E0
+      end do
+    end if
+    facT_old = facT(1:nfcts,1:nfaclyrs+1)
+    call fire
+
+    worst = 0.
+    do n = 1, nfcts
+      if (.not. live(n)) cycle
+      worst = max(worst, abs(facT(n,nfaclyrs+1) - T0))
+    end do
+    if (worst > 1.e-9) then
+      if (myid == 0) write(*,'(A,ES23.15,A)') &
+        'FAIL: the innermost layer moved by ', worst, ' K, it is meant to be held'
+      all_passed = .false.
+    end if
+
+    control_fired = .false.
+    do n = 1, nfcts
+      if (.not. live(n)) cycle
+      if (facT(n,1) - T0 > 1.e-3) control_fired = .true.
+      if (facT(n,1) < T0 - 1.e-9) then
+        call fail('a facet cooled under a net heat gain, facet', n)
+      end if
+    end do
+    if (.not. control_fired) then
+      call fail('control: net heating did not warm any surface', 0)
+    end if
+
+    ! facTdash is not broadcast, so the closure is rank 0's to check.
+    if (myid == 0) then
+      worst = 0.
+      do n = 1, nfcts
+        if (.not. live(n)) cycle
+        resid = surface_residual(n, 1, 0.)
+        scale = max(abs(netsw(n)), abs(faclam(n,1) * facTdash(n,1)), 1.)
+        worst = max(worst, abs(resid) / scale)
+      end do
+      if (worst > 1.e-10) then
+        write(*,'(A,ES23.15)') 'FAIL: the surface energy balance does not close, worst ', worst
+        all_passed = .false.
+      end if
+
+      ! Control 1: the linearisation is around the OLD surface temperature.
+      ! Using the new one has to break the closure, which also shows the
+      ! surface moved far enough for the two to be told apart.
+      worst = 0.
+      do n = 1, nfcts
+        if (.not. live(n)) cycle
+        resid = surface_residual(n, 2, 0.)
+        scale = max(abs(netsw(n)), abs(faclam(n,1) * facTdash(n,1)), 1.)
+        worst = max(worst, abs(resid) / scale)
+      end do
+      if (worst < 1.e-8) then
+        call fail('control: old and new surface temperatures are indistinguishable', 0)
+      end if
+
+      ! Control 2: dropping the sensible heat term must break it too, or the
+      ! closure would be blind to how fachfi enters.
+      worst = 0.
+      do n = 1, nfcts
+        if (.not. live(n)) cycle
+        resid = surface_residual(n, 1, H0)
+        scale = max(abs(netsw(n)), abs(faclam(n,1) * facTdash(n,1)), 1.)
+        worst = max(worst, abs(resid) / scale)
+      end do
+      if (worst < 1.e-8) then
+        call fail('control: the sensible heat term does not reach the closure', 0)
+      end if
+
+      ! --------------------------------------------------------------
+      ! The conduction relation, layer by layer
+      ! --------------------------------------------------------------
+      ! Rows two and below of the system say the mean gradient across a layer
+      ! is the temperature jump over its thickness:
+      !
+      !     (T'(j) + T'(j+1))/2 = (T(j+1) - T(j))/facd(n,j)
+      !
+      ! One equation per layer, naming facd(n,j) explicitly, needing neither
+      ! the inverse nor any of C, D or E. Everything above this constrains the
+      ! surface row and the held inner row and nothing in between, so a routine
+      ! that assembled every layer from facd(n,1) passed the whole file. This
+      ! is what catches that.
+      worst = 0.
+      moved = 0.
+      do n = 1, nfcts
+        if (.not. live(n)) cycle
+        do j = 1, nfaclyrs
+          if (facd(n,j) <= 0.) cycle
+          resid = 0.5*(facTdash(n,j) + facTdash(n,j+1)) &
+                  - (facT(n,j+1) - facT(n,j))/facd(n,j)
+          scale = max(abs(facTdash(n,j)), abs(facTdash(n,j+1)), 1.)
+          worst = max(worst, abs(resid)/scale)
+        end do
+        do j = 2, nfaclyrs
+          moved = max(moved, abs(facT(n,j) - facT_old(n,j)))
+        end do
+      end do
+      if (worst > 1.e-10) then
+        write(*,'(A,ES23.15)') 'FAIL: the conduction relation does not hold, worst ', worst
+        all_passed = .false.
+      end if
+      if (moved < 1.e-6) then
+        call fail('control: no interior layer moved, so the relation above is trivial', 0)
+      end if
+
+      ! --------------------------------------------------------------
+      ! Energy conservation over the step
+      ! --------------------------------------------------------------
+      ! Summing the layer equations telescopes the conductive terms and leaves
+      !
+      !   d(stored heat)/dt = flux in at the surface - flux out at the back
+      !
+      ! which in the scheme's own discrete form is
+      !
+      !   sum_j cp_j d_j (dT_j + dT_j+1)/2 + sum_j cp_j d_j^2 (dT'_j - dT'_j+1)/12
+      !     = tEB ( -lam_1 T'_1 + lam_end T'_end )
+      !
+      ! The left side is the stored heat written as a sum over layers rather
+      ! than as matrix rows, so it names faccp(n,j) and facd(n,j) for every j.
+      ! This is the only check here that sees C and D at all.
+      !
+      ! T' at the old temperatures comes from the same two relations by forward
+      ! substitution, with this step's forcing - not from a matrix inverse.
+      worst  = 0.
+      dshare = 0.
+      do n = 1, nfcts
+        if (.not. live(n)) cycle
+
+        told(1:nfaclyrs+1) = facT_old(n,1:nfaclyrs+1)
+        ab_n = boltz*facem(n)*told(1)**3/faclam(n,1)
+        bb1  = -(netsw(n) + facLWin(n) + H0 + E0)/faclam(n,1)
+        tdold(1) = bb1 + ab_n*told(1)
+        do j = 1, nfaclyrs
+          if (facd(n,j) <= 0.) then
+            tdold(j+1) = -tdold(j)
+          else
+            tdold(j+1) = 2.*(told(j+1) - told(j))/facd(n,j) - tdold(j)
+          end if
+        end do
+
+        lhs  = 0.
+        dsum = 0.
+        do j = 1, nfaclyrs
+          lhs = lhs + faccp(n,j)*facd(n,j)/2. &
+                      * ((facT(n,j) - told(j)) + (facT(n,j+1) - told(j+1)))
+          dsum = dsum + faccp(n,j)*facd(n,j)**2/12. &
+                      * ((facTdash(n,j) - tdold(j)) - (facTdash(n,j+1) - tdold(j+1)))
+        end do
+
+        rhs = 0.
+        do j = 1, nfaclyrs
+          rhs = rhs - faclam(n,j)*facTdash(n,j) + faclam(n,j+1)*facTdash(n,j+1)
+        end do
+        rhs = rhs * span
+
+        scale = max(abs(lhs + dsum), abs(rhs), 1.)
+        worst = max(worst, abs((lhs + dsum) - rhs)/scale)
+        dshare = max(dshare, abs(dsum)/max(abs(lhs), 1.e-30))
+      end do
+      if (worst > 1.e-9) then
+        write(*,'(A,ES23.15)') 'FAIL: the step does not conserve energy, worst ', worst
+        all_passed = .false.
+      end if
+      ! The gradient correction has to carry enough weight for a mistake in it
+      ! to show. If it is negligible the identity above is really only testing
+      ! the heat capacity term.
+      if (dshare < 1.e-3) then
+        call fail('control: the gradient correction is negligible in the balance', 0)
+      end if
+    end if
+
+    ! ------------------------------------------------------------------
+    ! 5. calclw: the sparse and dense paths are the same calculation
+    ! ------------------------------------------------------------------
+    if (myid == 0 .and. lvfsparse .and. nnz > 0 .and. allocated(vfsparse)) then
+      allocate(lw_sparse(1:nfcts), lw_dense(1:nfcts))
+      ! quiesce blanked the radiative environment; put the case's own view
+      ! factors and sky view back, or both paths would agree on zero.
+      svf(1:nfcts)      = svf_s(1:nfcts)
+      vfsparse(1:nnz)   = vfsparse_s(1:nnz)
+      do n = 1, nfcts
+        facT(n,1) = 280. + real(mod(n, 11))
+      end do
+
+      call calclw
+      lw_sparse = facLWin(1:nfcts)
+
+      allocate(vf(1:nfcts,1:nfcts)); vf = 0.
+      do n = 1, nnz
+        vf(ivfsparse(n), jvfsparse(n)) = vf(ivfsparse(n), jvfsparse(n)) + vfsparse(n)
+      end do
+      lvfsparse = .false.
+      call calclw
+      lw_dense = facLWin(1:nfcts)
+
+      tol = 1.e-11 * max(1., maxval(abs(lw_sparse)))
+      if (maxval(abs(lw_dense - lw_sparse)) > tol) then
+        if (myid == 0) write(*,'(A,ES23.15)') &
+          'FAIL: sparse and dense calclw disagree by ', maxval(abs(lw_dense - lw_sparse))
+        all_passed = .false.
+      end if
+
+      ! Control: drop the largest view factor from the dense matrix. If that
+      ! does not change the answer, the comparison above is between two arrays
+      ! that never depended on the view factors at all.
+      n = maxloc(abs(vfsparse(1:nnz)), 1)
+      vf(ivfsparse(n), jvfsparse(n)) = 0.
+      call calclw
+      if (maxval(abs(facLWin(1:nfcts) - lw_sparse)) <= tol) then
+        call fail('control: removing a view factor changed no incoming longwave', 0)
+      end if
+
+      lvfsparse = .true.
+      deallocate(vf)
+      deallocate(lw_sparse, lw_dense)
+    else if (myid == 0) then
+      write(*, '(A)') 'FAIL: this runmode needs sparse view factors.'
+      write(*, '(A)') '  Set lvfsparse = .true. and nnz to the line count of'
+      write(*, '(A)') '  vfsparse.inp.xxx, or the calclw cross-check between the'
+      write(*, '(A)') '  sparse and dense paths cannot run at all.'
+      all_passed = .false.
+    end if
+
+    ! ------------------------------------------------------------------
+    ! Restore everything EB touched.
+    ! ------------------------------------------------------------------
+    facT     = facT_s
+    fachf    = fachf_s
+    facef    = facef_s
+    faclGR   = faclGR_s
+    fachfsum = 0.
+    facefsum = 0.
+    if (myid == 0) then
+      facTdash = facTdash_s
+      netsw    = netsw_s
+      svf      = svf_s
+      facLWin  = facLWin_s
+      fachfi   = fachfi_s
+      facefi   = facefi_s
+      facwsoil = facwsoil_s
+      faclam   = faclam_s
+      faccp    = faccp_s
+      facd     = facd_s
+      if (allocated(vfsparse_s)) vfsparse = vfsparse_s
+    end if
+
+    timee             = timee_s
+    tnextEB           = tnextEB_s
+    tEB               = tEB_s
+    dt                = dt_s
+    rk3step           = rk3step_s
+    lvfsparse         = lvfsparse_s
+    lwriteEBfiles     = lwriteEBfiles_s
+    lconstW           = lconstW_s
+    ! Left dirty on purpose: this test moved the facet properties around, so a
+    ! GPU build must refresh its mirror before the wall functions read them.
+    lfacetprops_dirty = .true.
+
+    deallocate(facT_s, fachf_s, facef_s, faclGR_s, facT_old, told, tdold)
+    if (myid == 0) then
+      deallocate(facTdash_s, netsw_s, svf_s, facLWin_s, fachfi_s, facefi_s)
+      deallocate(facwsoil_s, faclam_s, faccp_s, facd_s)
+      if (allocated(vfsparse_s)) deallocate(vfsparse_s)
+    end if
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)') 'ALL TESTS PASSED: tests_eb'
+        write(*, '(A,I0,A,I0,A)') '  Stage contract, fixed point, surface closure and calclw over ', &
+                                  nfcts, ' facet(s) on ', nprocs, ' rank(s)'
+      else
+        write(*, '(A)') 'TESTS FAILED: tests_eb'
+        write(*, '(A)') '  One or more checks did not pass'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_eb = all_passed
+
+  contains
+
+    !> A facet the energy balance actually solves for.
+    !!
+    !! facets and faca are on every rank; the wall properties are not, so the
+    !! conductivity test can only be applied where faclam exists.
+    logical function live(idx)
+      integer, intent(in) :: idx
+      live = (facets(idx) >= -100) .and. (faca(idx) > 0.)
+      if (live .and. myid == 0) live = (faclam(idx,1) > 0.)
+    end function live
+
+    subroutine fail(msg, idx)
+      character(len=*), intent(in) :: msg
+      integer,          intent(in) :: idx
+      if (idx == 0) then
+        write(*,'(A,I0,A,A)') 'FAIL on rank ', myid, ': ', msg
+      else
+        write(*,'(A,I0,A,A,1X,I0)') 'FAIL on rank ', myid, ': ', msg, idx
+      end if
+      all_passed = .false.
+    end subroutine fail
+
+    !> Put the facets into a clean, quiet state: uniform temperature, no
+    !! radiative environment, no green roofs, no accumulated flux.
+    subroutine quiesce
+      integer :: nn
+      do nn = 1, nfcts
+        facT(nn,1:nfaclyrs+1) = T0
+      end do
+      faclGR   = .false.
+      lconstW  = .true.
+      fachf    = 0.
+      facef    = 0.
+      fachfsum = 0.
+      facefsum = 0.
+      if (myid == 0) then
+        svf     = 0.
+        netsw   = 0.
+        facLWin = 0.
+        fachfi  = 0.
+        facefi  = 0.
+        if (allocated(vfsparse)) vfsparse = 0.
+      end if
+      dt      = dt_lcl
+      timee   = 1000.
+      rk3step = 3
+    end subroutine quiesce
+
+    !> Run one energy balance over `span` seconds of accumulated flux.
+    subroutine fire
+      tEB     = timee - span
+      tnextEB = timee - 1.
+      rk3step = 3
+      call EB
+    end subroutine fire
+
+    !> Residual of the surface energy balance for facet n.
+    !!
+    !! Row one of the system is lam1*dT/dz = LWout - (SW + LWin + H + E), with
+    !! the outgoing longwave linearised as boltz*em*Told^3*Tnew. Everything on
+    !! the right is either set by this test or read back from the facet, so
+    !! this is the physics and not a second copy of the matrix algebra.
+    !!
+    !! variant 2 uses the new surface temperature in the linearisation instead
+    !! of the old one; drop_h subtracts a sensible heat flux that should be
+    !! there. Both are negative controls.
+    real function surface_residual(idx, variant, drop_h)
+      integer, intent(in) :: idx, variant
+      real,    intent(in) :: drop_h
+      real :: lwout, influx, tcube
+
+      if (variant == 2) then
+        tcube = facT(idx,1)**3
+      else
+        tcube = facT_old(idx,1)**3
+      end if
+      lwout  = boltz * facem(idx) * tcube * facT(idx,1)
+      influx = netsw(idx) + facLWin(idx) + (H0 - drop_h) + E0
+      surface_residual = faclam(idx,1) * facTdash(idx,1) - lwout + influx
+    end function surface_residual
+
+  end function tests_eb
 
 end module tests

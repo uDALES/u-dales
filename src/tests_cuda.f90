@@ -45,7 +45,7 @@ module tests_cuda
    use modforces,   only : nudge, periodicEBcorr, masscorr, calcfluidvolumes
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
                            thl_dot_hp, w_hp_exhaust
-   use initfac,     only : fachf, facef, facT, facqsat, fachurel, facf, faclGR
+   use initfac,     only : fachf, facef, facT, facqsat, fachurel, facf, faclGR, lfacetprops_dirty
    use modibm,      only : mask_u, mask_v, mask_w, mask_c, &
                            mask_u_d, mask_v_d, mask_w_d, mask_c_d, &
                            bndpts_u_d, bndpts_v_d, bndpts_w_d, bndpts_c_d, &
@@ -1899,22 +1899,37 @@ contains
 
    !> Verify how the energy balance accumulators reach the host.
    !!
-   !! The handover must happen on EVERY Runge-Kutta stage, and must clear the
-   !! device copy as it goes. It is tempting to accumulate on the device and
-   !! deliver once per step, but intqH in modEB resets fachf and facef at the
-   !! end of every stage, outside its own rk3step == 3 test, so the host array
-   !! holds one stage when the reduction reads it. Delivering three stages at
-   !! once makes the facet heat flux three times too large.
+   !! There are two properties here and keeping them apart is the whole point,
+   !! because conflating them is what made this handover go wrong once already.
    !!
-   !! That is not a hypothetical: it shipped, and a manual CPU/GPU comparison
-   !! found it. This test and the facEB comparison in the surface-energy-balance
-   !! parity case are the two things that now stand between it and a rerun.
+   !! The device accumulators must be cleared on EVERY Runge-Kutta stage. The
+   !! wall functions add into them each stage; let them run on and the third
+   !! stage delivers the sum of all three, which is the facet heat flux three
+   !! times too large. That bug shipped, and a manual CPU/GPU comparison found
+   !! it. This test and the facEB comparison in the surface-energy-balance
+   !! parity case are what stand between it and a rerun.
+   !!
+   !! The copy belongs on the third stage alone. intqH in modEB reduces and
+   !! time-integrates there, and clears its host arrays at the end of every
+   !! stage regardless of which one it was - so whatever the first two stages
+   !! hand over is discarded untouched, and copying it is two crossings in
+   !! three spent on a value nothing reads. That claim about intqH is not
+   !! taken on trust here: tests.f90::tests_eb checks it against the routine
+   !! itself on a CPU build.
+   !!
+   !! The last block is the one that ties the two together. It plays three
+   !! stages through the way a time step does - the wall functions add their
+   !! share to whatever the device already holds, the handover follows, intqH
+   !! clears the host - and asserts that what the third stage leaves for the
+   !! reduction is one stage's worth. Drop the clear from the discarded stages
+   !! and it arrives at three times that.
    subroutine test_facflux_handover
       implicit none
 
       real, parameter :: probe = 3.25
       real, allocatable :: fachf_s(:), facef_s(:), back(:)
       integer :: saved_rk3step, stage
+      real    :: consumed
 
       if (.not. lEB) return
       if (.not. allocated(fachf_d)) return
@@ -1928,25 +1943,52 @@ contains
       do stage = 1, 3
          rk3step = stage
 
-         ! One stage's contribution must arrive on the host, whichever stage.
          fachf = 0.
          fachf_d = probe
          call updateFacFluxHost
-         if (maxval(abs(fachf(0:nfcts) - probe)) > 64.*epsilon(1.)*probe) then
-            call fail_cuda_selftest('facflux not handed over on every stage')
+
+         if (stage == 3) then
+            ! The consumed stage has to arrive.
+            if (maxval(abs(fachf(0:nfcts) - probe)) > 64.*epsilon(1.)*probe) then
+               call fail_cuda_selftest('facflux not handed over on the consumed stage')
+            end if
+         else
+            ! The discarded stages must not cross the bus at all.
+            if (maxval(abs(fachf(0:nfcts))) /= 0.) then
+               call fail_cuda_selftest('facflux crossed on a stage intqH discards')
+            end if
          end if
 
-         ! And the device copy must be cleared, so the next stage starts from
-         ! zero instead of carrying this stage forward.
+         ! And the device copy must be cleared on every stage, so the next one
+         ! starts from zero instead of carrying this one forward.
          back = fachf_d
          if (any(back /= 0.)) call fail_cuda_selftest('facflux device not reset on handover')
 
          ! With nothing new on the device, a further handover adds nothing.
          call updateFacFluxHost
-         if (maxval(abs(fachf(0:nfcts) - probe)) > 64.*epsilon(1.)*probe) then
-            call fail_cuda_selftest('facflux counted twice')
+         if (stage == 3) then
+            if (maxval(abs(fachf(0:nfcts) - probe)) > 64.*epsilon(1.)*probe) then
+               call fail_cuda_selftest('facflux counted twice')
+            end if
          end if
       end do
+
+      ! One time step, played through.
+      fachf   = 0.
+      fachf_d = 0.
+      consumed = -1.
+      do stage = 1, 3
+         rk3step = stage
+         back = fachf_d               ! whatever the handover left there
+         back = back + probe          ! what the wall functions add this stage
+         fachf_d = back
+         call updateFacFluxHost
+         if (stage == 3) consumed = maxval(abs(fachf(0:nfcts)))
+         fachf = 0.                   ! intqH clears the host at every stage
+      end do
+      if (abs(consumed - probe) > 64.*epsilon(1.)*probe) then
+         call fail_cuda_selftest('the reduction would read the wrong number of stages')
+      end if
 
       deallocate(back)
       rk3step = saved_rk3step
@@ -1971,6 +2013,16 @@ contains
    !!
    !! So this perturbs the host arrays and checks the refresh picks the change
    !! up, which is the property that actually matters.
+   !!
+   !! The refresh is now gated on lfacetprops_dirty, which modEB sets on the
+   !! steps where the energy balance actually rewrites these four arrays - one
+   !! step in dtEB/dt, rather than every step as before. That makes two
+   !! properties to check, not one: the refresh must follow the host when the
+   !! flag is set, and it must genuinely skip when it is not. A gate that never
+   !! skips saves nothing; a gate that never follows leaves the wall functions
+   !! on initial-condition temperatures for the whole run. The half of the
+   !! contract that lives in modEB - that the flag is set exactly when those
+   !! arrays move - is checked by tests.f90::tests_eb on a CPU build.
    subroutine test_facet_props_refresh
       implicit none
 
@@ -1984,10 +2036,10 @@ contains
       allocate(facT_s, source=facT)
       allocate(back(0:nfcts))
       saved_rk3step = rk3step
-      rk3step = 1
 
       ! Move the host value, then ask for the refresh the time loop would do.
       facT(0:nfcts,1) = facT(0:nfcts,1) + 7.5
+      lfacetprops_dirty = .true.
       call updateFacetPropsDevice
       back = facT1_d
       if (maxval(abs(back - facT(0:nfcts,1))) > 64.*epsilon(1.)*maxval(abs(facT(0:nfcts,1)))) then
@@ -2003,6 +2055,7 @@ contains
          fachurel(0:nfcts) = fachurel(0:nfcts) + 0.0625
          facf(0:nfcts,4)   = facf(0:nfcts,4) + 11.
          facf(0:nfcts,5)   = facf(0:nfcts,5) + 13.
+         lfacetprops_dirty = .true.
          call updateFacetPropsDevice
 
          back = facqsat_d
@@ -2018,9 +2071,18 @@ contains
          deallocate(facqsat_s, fachurel_s, facf_s)
       end if
 
+      ! The gate is real: a change made without the flag must not cross.
+      facT(0:nfcts,1) = facT(0:nfcts,1) + 3.25
+      lfacetprops_dirty = .false.
+      call updateFacetPropsDevice
+      back = facT1_d
+      if (maxval(abs(back - facT(0:nfcts,1))) < 1.) then
+         call fail_cuda_selftest('the facet property refresh ignores its dirty flag')
+      end if
+
       facT = facT_s
       deallocate(facT_s)
-      rk3step = 1
+      lfacetprops_dirty = .true.
       call updateFacetPropsDevice
       rk3step = saved_rk3step
       deallocate(back)

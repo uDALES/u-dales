@@ -34,6 +34,21 @@
       public :: readfacetfiles,qsat,dqsatdT,netsw
       save
 
+      !> Set whenever the energy balance rewrites the facet properties the
+      !! wall functions read: facT, facqsat, fachurel and facf.
+      !!
+      !! Only modEB writes those four during a run, and only on the steps
+      !! where the energy balance actually fires - once every dtEB, which is
+      !! hundreds of time steps apart at a typical dtEB. The GPU mirror in
+      !! modcuda used to be refreshed on every step regardless, so almost all
+      !! of that traffic carried values the device already held. This flag is
+      !! how the mirror learns which steps are the ones that matter.
+      !!
+      !! It starts set so the first refresh always happens, whether or not
+      !! the energy balance is switched on: readfacetfiles is the other
+      !! writer, and it runs before the time loop.
+      logical :: lfacetprops_dirty = .true.
+
       !integer, allocatable :: block(:, :) !block coordinates and facet Nr corresponding to block faces
       !facet properties
       logical, allocatable :: faclGR(:) !logic array, is it a green (vegetated) facet?
