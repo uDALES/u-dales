@@ -172,6 +172,16 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/nudge/run_test.sh"
+      - label: "supported: periodic energy balance correction integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/periodic_ebcorr/run_test.sh"
       - label: "supported: mpi operators integration"
         class: supported
         kind: integration

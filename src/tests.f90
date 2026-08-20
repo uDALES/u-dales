@@ -20,7 +20,8 @@ module tests
   implicit none
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, &
-            tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun
+            tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun, &
+            tests_periodic_ebcorr
 
 contains
 
@@ -1440,5 +1441,406 @@ contains
 #endif
 
   end function tests_ibm_wallfun
+
+
+  !> Check the periodic energy-balance correction against the physics it claims.
+  !!
+  !! periodicEBcorr removes, over the volume above the canopy and through the
+  !! top level, the heat and moisture the facets put into the air over a
+  !! periodic domain. The routine writes that out as three coupled scalars
+  !! (R_theta_scaled, phi_theta_t and the M count behind them), so comparing
+  !! against those expressions would only restate the code. What follows
+  !! instead asserts the properties they exist to produce:
+  !!
+  !!   - the column-integrated tendency equals the domain-mean flux
+  !!     tot_Tflux/(xlen*ylen), whatever sinkbase and fraction are. This is the
+  !!     closure the scaling by ke/M exists to preserve, and it is what breaks
+  !!     if M miscounts the levels;
+  !!   - of that total, exactly (1-fraction) leaves through the top level and
+  !!     the rest through the volume sink - the Grylls (2021) split;
+  !!   - the flux entering is the sum over ranks, not the local contribution,
+  !!     so the MPI_ALLREDUCE has to be there;
+  !!   - support: nothing at or below sinkbase moves, and nothing outside
+  !!     ib:ie, jb:je moves, halo cells included;
+  !!   - the tendency is accumulated, is linear in the flux, and is switched off
+  !!     by lperiodicEBcorr, ltempeq and lmoist.
+  !!
+  !! The column integral is only the domain-mean flux on a uniform vertical
+  !! grid: the ke/M scaling weights levels by count, not by depth. That is a
+  !! property of the scheme rather than of this port, so the test checks the
+  !! grid is uniform and says so if it is not, instead of hiding the
+  !! assumption.
+  !!
+  !! This exercises the host branch. The device kernels are covered by
+  !! tests_cuda.f90::test_periodic_ebcorr, which runs under
+  !! UDALES_RUN_CUDA_SELFTEST on a Debug GPU build.
+  !! Returns .true. if all checks pass, .false. otherwise.
+  logical function tests_periodic_ebcorr()
+    use modglobal, only : runmode, ib, ie, jb, je, kb, ke, ih, jh, kh, &
+                          ltempeq, lmoist, lperiodicEBcorr, sinkbase, fraction, &
+                          totheatflux, totqflux, xlen, ylen, dzf, zh
+    use modfields, only : initfields, thlp, qtp
+    use modforces, only : periodicEBcorr
+    use modmpi,    only : nprocs
+
+    implicit none
+
+    real, parameter :: initial_p = 2.
+
+    logical :: all_passed, saved_lperiodicEBcorr, saved_ltempeq, saved_lmoist
+    integer :: saved_sinkbase, k
+    real    :: saved_fraction, saved_totheatflux, saved_totqflux
+    real    :: unit_flux, mean_flux, tol
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_periodic_ebcorr: PERIODIC ENERGY BALANCE CORRECTION TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+#if defined(_GPU)
+    ! periodicEBcorr writes the device-resident tendencies in a GPU build, so
+    ! the host arrays this test inspects would never change. Say so explicitly
+    ! rather than reporting an unexplained numeric mismatch, and do not pass
+    ! vacuously.
+    if (myid == 0) then
+      write(*, '(A)') 'FAIL: runmode 1009 exercises the host branch of periodicEBcorr.'
+      write(*, '(A)') '  Run it against a CPU build (build/cpu/<type>/u-dales).'
+      write(*, '(A)') '  The device kernels are covered by tests_cuda.f90::test_periodic_ebcorr,'
+      write(*, '(A)') '  run with UDALES_RUN_CUDA_SELFTEST=1 on a Debug GPU build.'
+    end if
+    tests_periodic_ebcorr = .false.
+    return
+#endif
+
+    call initfields
+
+    all_passed = .true.
+
+    ! Two levels have to sit above sinkbase for the top-level split to be
+    ! separable from the volume sink, and one below it for the support check.
+    if (ke - kb < 3) then
+      if (myid == 0) write(*, '(A)') 'FAIL: need at least four vertical levels to test'
+      tests_periodic_ebcorr = .false.
+      return
+    end if
+
+    if (kb /= 1) then
+      if (myid == 0) write(*, '(A)') 'FAIL: the ke/M scaling assumes kb = 1'
+      tests_periodic_ebcorr = .false.
+      return
+    end if
+
+    if (maxval(abs(dzf(kb:ke) - dzf(kb))) > 1.e-12 * dzf(kb) .or. &
+        abs(zh(ke+1) - (ke - kb + 1) * dzf(kb)) > 1.e-12 * zh(ke+1)) then
+      if (myid == 0) then
+        write(*, '(A)') 'FAIL: this runmode needs a uniform vertical grid.'
+        write(*, '(A)') '  The ke/M scaling weights levels by count, not by depth,'
+        write(*, '(A)') '  so the column integral below is only the mean flux when dzf is constant.'
+      end if
+      tests_periodic_ebcorr = .false.
+      return
+    end if
+
+    saved_lperiodicEBcorr = lperiodicEBcorr
+    saved_ltempeq         = ltempeq
+    saved_lmoist          = lmoist
+    saved_sinkbase        = sinkbase
+    saved_fraction        = fraction
+    saved_totheatflux     = totheatflux
+    saved_totqflux        = totqflux
+
+    lperiodicEBcorr = .true.
+    ltempeq         = .true.
+    lmoist          = .true.
+
+    ! Rank-dependent, so a routine that used the local flux instead of the
+    ! reduced one gets a different answer on every rank but the first. The
+    ! ranks contribute 1, 2, ... nprocs units, summing to nprocs(nprocs+1)/2.
+    unit_flux = xlen * ylen
+    mean_flux = 0.5 * real(nprocs) * real(nprocs + 1)
+
+    ! 1. Column closure: whatever sinkbase and fraction are, the vertically
+    !    integrated tendency is the domain-mean flux.
+    if (.not. check_closure(2,        0.5, mean_flux)) all_passed = .false.
+    if (.not. check_closure(ke/2,     0.5, mean_flux)) all_passed = .false.
+    if (.not. check_closure(ke-2,     0.5, mean_flux)) all_passed = .false.
+    if (.not. check_closure(2,        1.0, mean_flux)) all_passed = .false.
+    if (.not. check_closure(2,        0.1, mean_flux)) all_passed = .false.
+
+    ! 2. Linear in the flux: doubling what came in doubles what goes out. An
+    !    additive constant anywhere in the scaling survives check 1 only if it
+    !    is zero, but it would survive a single-amplitude check trivially.
+    if (.not. check_closure_amplitude(2, 0.5, 2., 2. * mean_flux)) all_passed = .false.
+    if (.not. check_closure_amplitude(2, 0.5, 0., 0.)) all_passed = .false.
+
+    ! 3. The Grylls split: (1-fraction) of the total leaves through the top
+    !    level, the rest through the volume sink. Read off as the excess the
+    !    top level carries over the level below it, which the routine never
+    !    forms.
+    if (.not. check_split(2,    0.5)) all_passed = .false.
+    if (.not. check_split(ke/2, 0.25)) all_passed = .false.
+    if (.not. check_split(2,    1.0)) all_passed = .false.
+
+    ! 4. Support and shape.
+    sinkbase = ke/2
+    fraction = 0.5
+    call apply(unit_flux * real(myid + 1), unit_flux * real(myid + 1))
+
+    tol = 1.e-12 * max(1., abs(mean_flux))
+
+    ! Levels at and below sinkbase are untouched.
+    do k = kb, sinkbase
+      if (abs(thlp(ib,jb,k) - initial_p) > tol) then
+        call report_scalar('thlp below sinkbase', thlp(ib,jb,k) - initial_p)
+        all_passed = .false.
+      end if
+      if (abs(qtp(ib,jb,k) - initial_p) > tol) then
+        call report_scalar('qtp below sinkbase', qtp(ib,jb,k) - initial_p)
+        all_passed = .false.
+      end if
+    end do
+
+    ! Every level above it is touched, so the loop bound is not off by one at
+    ! the bottom either.
+    do k = sinkbase+1, ke
+      if (abs(thlp(ib,jb,k) - initial_p) <= tol) then
+        call report_scalar('thlp level above sinkbase left untouched', real(k))
+        all_passed = .false.
+      end if
+    end do
+
+    ! Horizontally uniform over the interior, and nothing outside ib:ie, jb:je
+    ! moves. The host branch loops over the interior only, so an explicit-loop
+    ! port that spanned the halos - the opposite of the mistake nudge invites -
+    ! would diverge here.
+    do k = kb, ke
+      if (maxval(abs(thlp(ib:ie,jb:je,k) - thlp(ib,jb,k))) > tol) then
+        call report_scalar('thlp not horizontally uniform', &
+                           maxval(abs(thlp(ib:ie,jb:je,k) - thlp(ib,jb,k))))
+        all_passed = .false.
+      end if
+      if (maxval(abs(qtp(ib:ie,jb:je,k) - qtp(ib,jb,k))) > tol) then
+        call report_scalar('qtp not horizontally uniform', &
+                           maxval(abs(qtp(ib:ie,jb:je,k) - qtp(ib,jb,k))))
+        all_passed = .false.
+      end if
+    end do
+
+    if (.not. check_untouched('thlp halo', thlp)) all_passed = .false.
+    if (.not. check_untouched('qtp halo',  qtp )) all_passed = .false.
+
+    ! ke+kh sits above the loop bound and must stay put.
+    if (kh > 0) then
+      if (maxval(abs(thlp(ib:ie,jb:je,ke+1:ke+kh) - initial_p)) > tol) then
+        call report_scalar('thlp above ke', &
+                           maxval(abs(thlp(ib:ie,jb:je,ke+1:ke+kh) - initial_p)))
+        all_passed = .false.
+      end if
+    end if
+
+    ! 5. Heat and moisture follow the same algebra, so equal fluxes must give
+    !    equal tendencies. Catches a copy-paste slip between the two branches.
+    if (maxval(abs(thlp(ib:ie,jb:je,kb:ke) - qtp(ib:ie,jb:je,kb:ke))) > tol) then
+      call report_scalar('heat and moisture tendencies differ', &
+                         maxval(abs(thlp(ib:ie,jb:je,kb:ke) - qtp(ib:ie,jb:je,kb:ke))))
+      all_passed = .false.
+    end if
+
+    ! 6. Switches. Each must silence its own field and leave the other alone.
+    ltempeq = .false.
+    lmoist  = .true.
+    call apply(unit_flux, unit_flux)
+    if (maxval(abs(thlp - initial_p)) > tol) then
+      call report_scalar('ltempeq off still moved thlp', maxval(abs(thlp - initial_p)))
+      all_passed = .false.
+    end if
+    if (maxval(abs(qtp - initial_p)) <= tol) then
+      call report_scalar('ltempeq off also silenced qtp', 0.)
+      all_passed = .false.
+    end if
+
+    ltempeq = .true.
+    lmoist  = .false.
+    call apply(unit_flux, unit_flux)
+    if (maxval(abs(qtp - initial_p)) > tol) then
+      call report_scalar('lmoist off still moved qtp', maxval(abs(qtp - initial_p)))
+      all_passed = .false.
+    end if
+    if (maxval(abs(thlp - initial_p)) <= tol) then
+      call report_scalar('lmoist off also silenced thlp', 0.)
+      all_passed = .false.
+    end if
+
+    lmoist          = .true.
+    lperiodicEBcorr = .false.
+    call apply(unit_flux, unit_flux)
+    if (maxval(abs(thlp - initial_p)) > tol .or. maxval(abs(qtp - initial_p)) > tol) then
+      call report_scalar('disabled', max(maxval(abs(thlp - initial_p)), &
+                                         maxval(abs(qtp - initial_p))))
+      all_passed = .false.
+    end if
+
+    lperiodicEBcorr = saved_lperiodicEBcorr
+    ltempeq         = saved_ltempeq
+    lmoist          = saved_lmoist
+    sinkbase        = saved_sinkbase
+    fraction        = saved_fraction
+    totheatflux     = saved_totheatflux
+    totqflux        = saved_totqflux
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)') 'ALL TESTS PASSED: tests_periodic_ebcorr'
+        write(*, '(A,I0,A)') '  Column closure, Grylls split, support and switches over ', &
+                             nprocs, ' rank(s)'
+      else
+        write(*, '(A)') 'TESTS FAILED: tests_periodic_ebcorr'
+        write(*, '(A)') '  One or more checks did not pass'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_periodic_ebcorr = all_passed
+
+  contains
+
+    !> Reset the tendencies, set the per-rank fluxes and run the correction.
+    subroutine apply(heat, moist)
+      real, intent(in) :: heat, moist
+
+      thlp = initial_p
+      qtp  = initial_p
+      totheatflux = heat
+      totqflux    = moist
+      call periodicEBcorr
+
+    end subroutine apply
+
+    !> Depth-weighted column integral of the tendency in an interior column.
+    real function column_integral(field)
+      real, intent(in) :: field(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      integer :: kk
+
+      column_integral = 0.
+      do kk = kb, ke
+        column_integral = column_integral + (field(ib,jb,kk) - initial_p) * dzf(kk)
+      end do
+
+    end function column_integral
+
+    !> The column integral must be the domain-mean flux, at unit amplitude.
+    logical function check_closure(base, frac, want)
+      integer, intent(in) :: base
+      real,    intent(in) :: frac, want
+
+      check_closure = check_closure_amplitude(base, frac, 1., want)
+
+    end function check_closure
+
+    !> As check_closure, with the per-rank flux scaled by amplitude.
+    logical function check_closure_amplitude(base, frac, amplitude, want)
+      integer, intent(in) :: base
+      real,    intent(in) :: frac, amplitude, want
+      real :: got, ctol
+
+      check_closure_amplitude = .true.
+      sinkbase = base
+      fraction = frac
+      call apply(amplitude * unit_flux * real(myid + 1), &
+                 amplitude * unit_flux * real(myid + 1))
+      ctol = 1.e-12 * max(1., abs(want))
+
+      got = column_integral(thlp)
+      if (abs(got - want) > ctol) then
+        write(*,'(A,I0,A,I0,A,F6.3,A,ES23.15,A,ES23.15)') 'FAIL on rank ', myid, &
+             ': periodicEBcorr heat closure at sinkbase ', base, ', fraction ', frac, &
+             ': integral ', got, ' expected ', want
+        check_closure_amplitude = .false.
+      end if
+
+      got = column_integral(qtp)
+      if (abs(got - want) > ctol) then
+        write(*,'(A,I0,A,I0,A,F6.3,A,ES23.15,A,ES23.15)') 'FAIL on rank ', myid, &
+             ': periodicEBcorr moisture closure at sinkbase ', base, ', fraction ', frac, &
+             ': integral ', got, ' expected ', want
+        check_closure_amplitude = .false.
+      end if
+
+    end function check_closure_amplitude
+
+    !> The top level must carry (1-fraction) of the total on its own.
+    !!
+    !! Both ke and ke-1 receive the volume sink, so their difference isolates
+    !! the top-level term without reference to how the routine forms it.
+    logical function check_split(base, frac)
+      integer, intent(in) :: base
+      real,    intent(in) :: frac
+      real :: got, want, stol
+
+      check_split = .true.
+      sinkbase = base
+      fraction = frac
+      call apply(unit_flux * real(myid + 1), unit_flux * real(myid + 1))
+
+      want = (1. - frac) * mean_flux
+      stol = 1.e-12 * max(1., abs(mean_flux))
+
+      got = (thlp(ib,jb,ke) - thlp(ib,jb,ke-1)) * dzf(ke)
+      if (abs(got - want) > stol) then
+        write(*,'(A,I0,A,F6.3,A,ES23.15,A,ES23.15)') 'FAIL on rank ', myid, &
+             ': periodicEBcorr heat top-level share at fraction ', frac, &
+             ': got ', got, ' expected ', want
+        check_split = .false.
+      end if
+
+      got = (qtp(ib,jb,ke) - qtp(ib,jb,ke-1)) * dzf(ke)
+      if (abs(got - want) > stol) then
+        write(*,'(A,I0,A,F6.3,A,ES23.15,A,ES23.15)') 'FAIL on rank ', myid, &
+             ': periodicEBcorr moisture top-level share at fraction ', frac, &
+             ': got ', got, ' expected ', want
+        check_split = .false.
+      end if
+
+    end function check_split
+
+    !> Assert the lateral halo faces still hold their initial value.
+    logical function check_untouched(label, field)
+      character(len=*), intent(in) :: label
+      real, intent(in) :: field(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real :: worst
+
+      check_untouched = .true.
+      worst = 0.
+
+      if (ih > 0) then
+        worst = max(worst, maxval(abs(field(ib-ih:ib-1,   :, kb:ke) - initial_p)))
+        worst = max(worst, maxval(abs(field(ie+1:ie+ih,   :, kb:ke) - initial_p)))
+      end if
+      if (jh > 0) then
+        worst = max(worst, maxval(abs(field(:, jb-jh:jb-1, kb:ke) - initial_p)))
+        worst = max(worst, maxval(abs(field(:, je+1:je+jh, kb:ke) - initial_p)))
+      end if
+
+      if (worst > tol) then
+        call report_scalar(label, worst)
+        check_untouched = .false.
+      end if
+
+    end function check_untouched
+
+    !> Print one failing quantity with its rank.
+    subroutine report_scalar(label, value)
+      character(len=*), intent(in) :: label
+      real,             intent(in) :: value
+
+      write(*,'(A,I0,A,A,A,ES23.15)') 'FAIL on rank ', myid, ': periodicEBcorr ', &
+           trim(label), ' = ', value
+
+    end subroutine report_scalar
+
+  end function tests_periodic_ebcorr
 
 end module tests

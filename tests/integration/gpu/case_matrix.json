@@ -500,6 +500,7 @@
       "src/modpois.f90:poisson": ["dry-poisson-fft", "thermo-scalar-wall"],
       "src/modpois.f90:tderive": ["dry-poisson-fft", "thermo-scalar-wall"],
       "src/modforces.f90:nudge": ["debug-device-selftests", "nudging"],
+      "src/modforces.f90:periodicEBcorr": ["debug-device-selftests", "surface-energy-balance"],
       "src/modibm.f90:diffu_corr_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],
       "src/modibm.f90:diffv_corr_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],
       "src/modibm.f90:diffw_corr_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],

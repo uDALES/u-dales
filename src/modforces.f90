@@ -1109,20 +1109,29 @@ module modforces
 ! ! sink acts above buildings
   !
   ! use initfac, only :  max_height_index
-  use modfields, only : thlp, qtp
   !use modglobal, only: ltempeq, lperiodicEBcorr, ib, ie, jb, je, kb, ke, imax, jtot
   use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, ke,&
-                          itot, jtot, totheatflux,sinkbase, totqflux, &
+                          totheatflux,sinkbase, totqflux, &
                           zh, fraction,xlen,ylen,dzf
+#if defined(_GPU)
+  use modcuda, only : thlp_d, qtp_d
+#else
+  use modfields, only : thlp, qtp
+#endif
   use modmpi, only : comm3d, mpierr, MY_REAL, MPI_SUM
   !
   integer :: i, j, k, M
-  real :: tot_Tflux, tot_qflux, latent_heat_out,R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t  !, !tot_qflux !, sink_points
+  real :: tot_Tflux, tot_qflux, R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t  !, !tot_qflux !, sink_points
   !
   !write(*,*) 'lperiodicEBcorr ', lperiodicEBcorr
   !write(*,*) 'fraction', fraction
   if (lperiodicEBcorr .eqv. .false.) return
 
+  ! The scalar preamble stays on the host in both builds. totheatflux and
+  ! totqflux are host scalars in a GPU run as well - wallfunheat_dir_device
+  ! folds the device reduction into them - so the MPI_ALLREDUCE below needs
+  ! neither a device pointer nor a CUDA-aware MPI. Only the tendency loops,
+  ! which touch whole fields, have anything to gain from the device.
   !
   !call MPI_ALLREDUCE(bctfluxsum,   tot_Tflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
   !call MPI_ALLREDUCE(bcqfluxsum,   tot_qflux,1,MY_REAL,MPI_SUM,comm3d,mpierr)
@@ -1148,12 +1157,33 @@ module modforces
   R_theta_scaled = R_theta * ke/(M) ! [Ks^-1]The forcing is scaled up beacuse we do not apply it to the whole volume, only to points above the canopy. We add one to sinkbase to be above the buildings and add 1 to (ke-(sinkbase+1)) to correctly count the points.
   R_q_scaled = R_q * ke/(M)
   !phi_theta_t = 0 ! For debugging the flux profile !(1-fraction)*H_proj! The heat flux out the top of the domain.
-  phi_theta_t = (1-fraction)*tot_Tflux/(xlen*ylen*dzf(ke)) ![Ks^-1]    
+  phi_theta_t = (1-fraction)*tot_Tflux/(xlen*ylen*dzf(ke)) ![Ks^-1]
   phi_q_t = (1-fraction)*tot_qflux/(xlen*ylen*dzf(ke))
   !phi_theta_t = (1-fraction)*H_proj
   !phi_q_t = (1-fraction)*E_proj
 
    if (ltempeq) then
+#if defined(_GPU)
+     ! Same two accumulations in the same order as the host branch, so the top
+     ! level still receives R_theta_scaled before phi_theta_t.
+     !$acc parallel loop collapse(3) default(present)
+     do k = sinkbase +1, ke
+       do j = jb, je
+         do i = ib, ie
+           thlp_d(i,j,k) = thlp_d(i,j,k) + R_theta_scaled
+         end do
+       end do
+     end do
+     !$acc end parallel loop
+
+     !$acc parallel loop collapse(2) default(present)
+     do j = jb, je
+       do i = ib, ie
+         thlp_d(i,j,ke) = thlp_d(i,j,ke) + phi_theta_t
+       end do
+     end do
+     !$acc end parallel loop
+#else
      do i = ib,ie
        do j = jb,je
          do k = sinkbase +1 , ke!max_height_index +1 , ke ! Only apply the correction over the volume above the buidlings
@@ -1170,11 +1200,31 @@ module modforces
         thlp(i,j,ke) = thlp(i,j,ke) + phi_theta_t
       end do
     end do
+#endif
   end if
   !
   !
   !
   if (lmoist) then
+#if defined(_GPU)
+    !$acc parallel loop collapse(3) default(present)
+    do k = sinkbase +1, ke
+      do j = jb, je
+        do i = ib, ie
+          qtp_d(i,j,k) = qtp_d(i,j,k) + R_q_scaled
+        end do
+      end do
+    end do
+    !$acc end parallel loop
+
+    !$acc parallel loop collapse(2) default(present)
+    do j = jb, je
+      do i = ib, ie
+        qtp_d(i,j,ke) = qtp_d(i,j,ke) + phi_q_t
+      end do
+    end do
+    !$acc end parallel loop
+#else
     do i = ib,ie
        do j = jb,je
         do k = sinkbase +1,ke ! Only apply the correction over the volume above the buidlings
@@ -1184,12 +1234,12 @@ module modforces
         end do
       end do
     end do
-    latent_heat_out = (1-fraction)*tot_qflux/(itot*jtot*(zh(ke+1)-zh(ke)))
      do i = ib,ie
        do j = jb,je
         qtp(i,j,ke) = qtp(i,j,ke) + phi_q_t
       end do
     end do
+#endif
   end if
   !
   !write(*,*) 'fraction', fraction

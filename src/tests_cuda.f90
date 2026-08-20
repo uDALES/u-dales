@@ -35,8 +35,9 @@ module tests_cuda
                          lheatpump, lfan_hp, nhppoints, ltempeq, &
                          lmoist, lnudge, lnudgevel, tnudge, nnudge, &
                          iwallmom, nfcts, xhat, yhat, zhat, &
-                         totheatflux, totqflux, lEB, rk3step, iwallmoist
-   use modforces,   only : nudge
+                         totheatflux, totqflux, lEB, rk3step, iwallmoist, &
+                         lperiodicEBcorr, sinkbase, fraction, xlen, ylen, zh
+   use modforces,   only : nudge, periodicEBcorr
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
                            thl_dot_hp, w_hp_exhaust
    use initfac,     only : fachf, facef, facT, facqsat, fachurel, facf, faclGR
@@ -55,7 +56,7 @@ module tests_cuda
                            check_ibm_section_cache
    use modsubgriddata, only : ekm, ekh
    use modinletdata, only : u0driver
-   use modmpi,   only : myid
+   use modmpi,   only : myid, nprocs
 
    implicit none
    private
@@ -88,6 +89,7 @@ contains
          call test_periodic_device_halos
          call test_heatpump_scatter
          call test_nudge_profiles
+         call test_periodic_ebcorr
          call test_ibm_device_geometry
          call test_cell_volume_reciprocals
          call test_ibm_section_cache
@@ -2025,6 +2027,189 @@ contains
       end subroutine check_facf_column
 
    end subroutine test_facet_props_refresh
+
+   !> Check the OpenACC periodicEBcorr kernels against the physics they encode.
+   !!
+   !! The host branch is covered by tests.f90::tests_periodic_ebcorr, which runs
+   !! the same closure argument on a CPU build. Repeating it here rather than
+   !! diffing the two branches keeps the check independent of the host: a slip
+   !! shared by both sides would pass a symmetric comparison.
+   !!
+   !! The three mistakes this port invites are covered explicitly. The host
+   !! branch loops over the interior only, so a device loop that spanned the
+   !! halos - the opposite of what nudge needs - is caught by the halo check.
+   !! The tendency is applied by two separate kernels, so dropping the top-level
+   !! one, or aiming it at the wrong level, is caught by the closure and the
+   !! split. And both kernels accumulate, so an assignment is caught by starting
+   !! from a non-zero baseline.
+   subroutine test_periodic_ebcorr
+      implicit none
+
+      real, parameter :: initial_p = 2.
+
+      logical :: saved_lperiodicEBcorr, uniform
+      integer :: saved_sinkbase, i, j, k
+      real    :: saved_fraction, saved_totheatflux, saved_totqflux
+      real    :: unit_flux, mean_flux, tol, colsum, want
+      real, allocatable :: thlp_h(:,:,:), qtp_h(:,:,:)
+
+      if (.not. ltempeq) return
+      if (.not. allocated(thlp_d)) return
+      if (kb /= 1) return
+
+      ! Two levels above sinkbase to separate the top-level term from the
+      ! volume sink, one below it for the support check.
+      if (ke - kb < 3) return
+
+      ! The ke/M scaling weights levels by count rather than by depth, so the
+      ! column integral is the domain-mean flux only on a uniform grid. The
+      ! support and halo checks below do not depend on that, so they run either
+      ! way.
+      uniform = maxval(abs(dzf(kb:ke) - dzf(kb))) <= 1.e-12 * dzf(kb) .and. &
+                abs(zh(ke+1) - real(ke - kb + 1) * dzf(kb)) <= 1.e-12 * zh(ke+1)
+
+      saved_lperiodicEBcorr = lperiodicEBcorr
+      saved_sinkbase        = sinkbase
+      saved_fraction        = fraction
+      saved_totheatflux     = totheatflux
+      saved_totqflux        = totqflux
+
+      allocate(thlp_h(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      if (lmoist) allocate(qtp_h(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+
+      lperiodicEBcorr = .true.
+      sinkbase        = ke/2
+      fraction        = 0.5
+
+      ! Rank-dependent, so a correction built from the local flux instead of
+      ! the reduced one lands on a different answer on every rank but the
+      ! first. The ranks contribute 1, 2, ... nprocs units.
+      unit_flux = xlen * ylen
+      mean_flux = 0.5 * real(nprocs) * real(nprocs + 1)
+      tol       = 1.e-12 * max(1., abs(mean_flux))
+
+      call run_correction(1.)
+
+      if (uniform) then
+         ! The column-integrated tendency is the domain-mean flux: what the
+         ! facets put in is what the correction takes out.
+         colsum = 0.
+         do k = kb, ke
+            colsum = colsum + (thlp_h(ib,jb,k) - initial_p) * dzf(k)
+         end do
+         if (abs(colsum - mean_flux) > tol) call fail_cuda_selftest('periodicEBcorr column closure')
+
+         ! Of that, (1-fraction) leaves through the top level. Both ke and ke-1
+         ! carry the volume sink, so their difference isolates the top-level
+         ! term without restating how the kernel forms it.
+         want = (1. - fraction) * mean_flux
+         if (abs((thlp_h(ib,jb,ke) - thlp_h(ib,jb,ke-1)) * dzf(ke) - want) > tol) &
+            call fail_cuda_selftest('periodicEBcorr top-level share')
+      end if
+
+      ! Nothing at or below sinkbase moves, anywhere in the plane.
+      do k = kb, sinkbase
+         do j = jb-jh, je+jh
+            do i = ib-ih, ie+ih
+               if (abs(thlp_h(i,j,k) - initial_p) > tol) &
+                  call fail_cuda_selftest('periodicEBcorr below sinkbase')
+            end do
+         end do
+      end do
+
+      ! Nothing above ke moves either: the kernels stop at the top level.
+      do k = ke+1, ke+kh
+         do j = jb-jh, je+jh
+            do i = ib-ih, ie+ih
+               if (abs(thlp_h(i,j,k) - initial_p) > tol) &
+                  call fail_cuda_selftest('periodicEBcorr above ke')
+            end do
+         end do
+      end do
+
+      ! Above sinkbase: the interior is updated and horizontally uniform, the
+      ! halo is untouched.
+      do k = sinkbase+1, ke
+         do j = jb-jh, je+jh
+            do i = ib-ih, ie+ih
+               if (i < ib .or. i > ie .or. j < jb .or. j > je) then
+                  if (abs(thlp_h(i,j,k) - initial_p) > tol) &
+                     call fail_cuda_selftest('periodicEBcorr halo')
+               else
+                  if (abs(thlp_h(i,j,k) - initial_p) <= tol) &
+                     call fail_cuda_selftest('periodicEBcorr level not updated')
+                  if (abs(thlp_h(i,j,k) - thlp_h(ib,jb,k)) > tol) &
+                     call fail_cuda_selftest('periodicEBcorr horizontal uniformity')
+               end if
+            end do
+         end do
+      end do
+
+      ! Heat and moisture run the same algebra on equal fluxes, so a copy-paste
+      ! slip between the two kernel pairs shows up as a difference.
+      if (lmoist) then
+         if (maxval(abs(thlp_h - qtp_h)) > tol) &
+            call fail_cuda_selftest('periodicEBcorr heat and moisture differ')
+      end if
+
+      ! Linear in the flux: doubling what came in doubles what goes out.
+      if (uniform) then
+         call run_correction(2.)
+         colsum = 0.
+         do k = kb, ke
+            colsum = colsum + (thlp_h(ib,jb,k) - initial_p) * dzf(k)
+         end do
+         if (abs(colsum - 2. * mean_flux) > tol) &
+            call fail_cuda_selftest('periodicEBcorr flux linearity')
+      end if
+
+      ! No flux, no tendency: nothing is added on top of the scaling.
+      call run_correction(0.)
+      if (maxval(abs(thlp_h - initial_p)) > tol) &
+         call fail_cuda_selftest('periodicEBcorr zero flux')
+
+      ! Switched off, the routine must not touch the device fields at all.
+      lperiodicEBcorr = .false.
+      call run_correction(1.)
+      if (maxval(abs(thlp_h - initial_p)) > tol) &
+         call fail_cuda_selftest('periodicEBcorr disabled')
+      if (lmoist) then
+         if (maxval(abs(qtp_h - initial_p)) > tol) &
+            call fail_cuda_selftest('periodicEBcorr disabled moisture')
+      end if
+
+      deallocate(thlp_h)
+      if (allocated(qtp_h)) deallocate(qtp_h)
+
+      lperiodicEBcorr = saved_lperiodicEBcorr
+      sinkbase        = saved_sinkbase
+      fraction        = saved_fraction
+      totheatflux     = saved_totheatflux
+      totqflux        = saved_totqflux
+
+      ! Restore the device state the rest of the run expects.
+      thlp_d = thlp
+      if (lmoist) qtp_d = qtp
+
+   contains
+
+      !> Reset the device tendencies, set the per-rank flux and run the
+      !! correction, leaving the result in thlp_h and qtp_h.
+      subroutine run_correction(amplitude)
+         real, intent(in) :: amplitude
+
+         thlp_d = initial_p
+         if (lmoist) qtp_d = initial_p
+         totheatflux = amplitude * unit_flux * real(myid + 1)
+         totqflux    = amplitude * unit_flux * real(myid + 1)
+         call periodicEBcorr
+         call checkCUDA(cudaDeviceSynchronize(), 'periodicEBcorr self-test synchronization')
+         thlp_h = thlp_d
+         if (lmoist) qtp_h = qtp_d
+
+      end subroutine run_correction
+
+   end subroutine test_periodic_ebcorr
 
    subroutine fail_cuda_selftest(name)
       implicit none
