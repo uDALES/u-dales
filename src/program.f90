@@ -37,7 +37,7 @@ program uDALES
   use modglobal,         only : initglobal,rk3step,timeleft
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT, &
                                 TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE,TEST_IBM_WALLFUN, &
-                                TEST_PERIODIC_EBCORR,TEST_MASSCORR
+                                TEST_PERIODIC_EBCORR,TEST_MASSCORR,TEST_IBMNORM
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -72,7 +72,7 @@ program uDALES
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge,tests_ibm_wallfun, &
-                            tests_periodic_ebcorr,tests_masscorr
+                            tests_periodic_ebcorr,tests_masscorr,tests_ibmnorm
   implicit none
 
   real    :: stime
@@ -203,18 +203,18 @@ program uDALES
 
     call masscorr       ! correct pred. velocity pup to get correct mass flow
 
+    call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
+
 #if defined(_GPU)
     call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
 #endif
-    write(6,'(A,F10.6)')'(advection to masscorr) time = ', MPI_Wtime() - stime
+    write(6,'(A,F10.6)')'(advection to ibmnorm) time = ', MPI_Wtime() - stime
 
     stime = MPI_Wtime()
 #if defined(_GPU)
     call updateHost
 #endif
     write(6,'(A,F10.6)')'updateHost time = ', MPI_Wtime() - stime
-
-    call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
 
     call EB
 
@@ -327,6 +327,8 @@ contains
         test_failed = .not. tests_periodic_ebcorr()
       case (TEST_MASSCORR)
         test_failed = .not. tests_masscorr()
+      case (TEST_IBMNORM)
+        test_failed = .not. tests_ibmnorm()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

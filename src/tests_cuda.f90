@@ -58,7 +58,12 @@ module tests_cuda
                            wallfunheat, wallfunheat_dir_device, bound_info_c, faclGR_d, &
                            fac_htc_raw, fac_cth_raw, fac_pres_raw, fac_pres2_raw, &
                            fac_htc_d, fac_cth_d, fac_pres_d, fac_pres2_d, &
-                           check_ibm_section_cache
+                           check_ibm_section_cache, &
+                           solid, advecc2nd_corr_conservative, advecc2nd_corr_liberal, &
+                           solid_info_type, solid_info_u, solid_info_v, solid_info_w, solid_info_c, &
+                           solpts_u_d, solpts_v_d, solpts_w_d, solpts_c_d, &
+                           solid_device, solid_masked_device, &
+                           advecc2nd_corr_conservative_device, advecc2nd_corr_liberal_device
    use modsubgriddata, only : ekm, ekh
    use modinletdata, only : u0driver
    use modmpi,   only : myid, nprocs, nprocy, comm3d, mpierr, MY_REAL, MPI_SUM, MPI_INTEGER
@@ -101,6 +106,7 @@ contains
          call test_cell_volume_reciprocals
          call test_ibm_section_cache
          call test_ibm_diff_corr
+         call test_ibmnorm
          call test_ibm_wallfunmom
          call test_ibm_wallfunheat
          call test_facflux_handover
@@ -2684,6 +2690,253 @@ contains
       end subroutine check_shape_v
 
    end subroutine test_masscorr
+
+   !> Compare the device ibmnorm kernels against the host originals.
+   !!
+   !! The host routines are property-tested separately by tests.f90's runmode
+   !! 1011, so what is left for the port is that it reproduces them, which is
+   !! what this checks - the same shape as test_ibm_diff_corr, on the same
+   !! checkerboard geometry so that every branch in the six-neighbour tests is
+   !! taken somewhere.
+   !!
+   !! The solid lists are checked for repeats first. A sequential loop tolerates
+   !! a cell appearing twice; one thread per point does not.
+   subroutine test_ibmnorm
+      implicit none
+
+      real, allocatable :: u0_s(:,:,:), v0_s(:,:,:), w0_s(:,:,:)
+      real, allocatable :: um_s(:,:,:), vm_s(:,:,:), wm_s(:,:,:)
+      real, allocatable :: up_s(:,:,:), vp_s(:,:,:), wp_s(:,:,:)
+      real, allocatable :: thl0_s(:,:,:), thlm_s(:,:,:), thlp_s(:,:,:)
+      real, allocatable :: mask_c_s(:,:,:)
+
+      if (.not. allocated(solpts_u_d)) return
+
+      call check_distinct_solid('solpts_u', solid_info_u)
+      call check_distinct_solid('solpts_v', solid_info_v)
+      call check_distinct_solid('solpts_w', solid_info_w)
+      if (allocated(solpts_c_d)) call check_distinct_solid('solpts_c', solid_info_c)
+
+      ! The self-tests run before the time loop, so everything touched here has
+      ! to be handed back exactly as it was found, on both host and device.
+      allocate(u0_s, source=u0); allocate(v0_s, source=v0); allocate(w0_s, source=w0)
+      allocate(um_s, source=um); allocate(vm_s, source=vm); allocate(wm_s, source=wm)
+      allocate(up_s, source=up); allocate(vp_s, source=vp); allocate(wp_s, source=wp)
+
+      call seed_field(um, 1.); call seed_field(vm, 2.); call seed_field(wm, 3.)
+      call seed_field(up, 4.); call seed_field(vp, 5.); call seed_field(wp, 6.)
+      um_d = um; vm_d = vm; wm_d = wm
+      up_d = up; vp_d = vp; wp_d = wp
+
+      call solid(solid_info_u, um, up, 0., ih, jh, kh)
+      call solid_device(solpts_u_d, solid_info_u%nsolptsrank, um_d, up_d, 0., ih, jh, kh)
+      call cmp_m('solid u var', um, um_d, um_s)
+      call cmp_p('solid u rhs', up, up_d, up_s)
+
+      call solid(solid_info_v, vm, vp, 0., ih, jh, kh)
+      call solid_device(solpts_v_d, solid_info_v%nsolptsrank, vm_d, vp_d, 0., ih, jh, kh)
+      call cmp_m('solid v var', vm, vm_d, vm_s)
+      call cmp_p('solid v rhs', vp, vp_d, vp_s)
+
+      call solid(solid_info_w, wm, wp, 0., ih, jh, kh)
+      call solid_device(solpts_w_d, solid_info_w%nsolptsrank, wm_d, wp_d, 0., ih, jh, kh)
+      call cmp_m('solid w var', wm, wm_d, wm_s)
+      call cmp_p('solid w rhs', wp, wp_d, wp_s)
+
+      if (allocated(solpts_c_d) .and. ltempeq) then
+         allocate(thl0_s, source=thl0)
+         allocate(thlm_s, source=thlm)
+         allocate(thlp_s, source=thlp)
+         allocate(mask_c_s, source=mask_c)
+
+         ! The mask has to agree with the solid list: a cell is solid exactly
+         ! when it is listed. The solver builds it that way - createmasks runs
+         ! solid over the same list - and the port depends on it, because a
+         ! solid point whose neighbour were also listed would be read by the
+         ! host after that neighbour had been updated in place and by the
+         ! device before. An arbitrary mask would make the two differ for a
+         ! reason that cannot arise in a real run.
+         call mask_from_solid(mask_c, solid_info_c)
+         mask_c_d = mask_c
+
+         call seed_field(thlm, 7.); call seed_field(thlp, 8.)
+         thlm_d = thlm; thlp_d = thlp
+         call solid(solid_info_c, thlm, thlp, 300., ih, jh, kh, mask_c)
+         call solid_masked_device(solpts_c_d, solid_info_c%nsolptsrank, thlm_d, thlp_d, 300., ih, jh, kh)
+         call cmp_m('solid masked var', thlm, thlm_d, thlm_s)
+         call cmp_p('solid masked rhs', thlp, thlp_d, thlp_s)
+
+         if (allocated(bndpts_c_d)) then
+            ! The advection corrections only read the mask and write the
+            ! tendency at boundary points, so they carry none of the in-place
+            ! neighbour dependency solid has and a checkerboard is safe here.
+            ! It is also necessary: case geometries are often uniform in one
+            ! direction, and then the faces normal to it are never solid and
+            ! two of the six branches are never taken.
+            call checkerboard_mask(mask_c)
+            mask_c_d = mask_c
+
+            call seed_field(u0, 9.); call seed_field(v0, 10.); call seed_field(w0, 11.)
+            u0_d = u0; v0_d = v0; w0_d = w0
+
+            call seed_field(thl0, 12.)
+            thl0_d = thl0
+            call seed_field(thlp, 13.)
+            thlp_d = thlp
+            call advecc2nd_corr_conservative(thl0, thlp)
+            call advecc2nd_corr_conservative_device(thl0_d, thlp_d)
+            call cmp_p('advecc2nd_corr_conservative', thlp, thlp_d, thlp_s)
+
+            call seed_field(thlp, 13.)
+            thlp_d = thlp
+            call advecc2nd_corr_liberal(thl0, thlp)
+            call advecc2nd_corr_liberal_device(thl0_d, thlp_d)
+            call cmp_p('advecc2nd_corr_liberal', thlp, thlp_d, thlp_s)
+         end if
+
+         mask_c = mask_c_s
+         thl0 = thl0_s; thlm = thlm_s; thlp = thlp_s
+         mask_c_d = mask_c
+         thl0_d = thl0; thlm_d = thlm; thlp_d = thlp
+         deallocate(thl0_s, thlm_s, thlp_s, mask_c_s)
+      end if
+
+      u0 = u0_s; v0 = v0_s; w0 = w0_s
+      um = um_s; vm = vm_s; wm = wm_s
+      up = up_s; vp = vp_s; wp = wp_s
+      u0_d = u0; v0_d = v0; w0_d = w0
+      um_d = um; vm_d = vm; wm_d = wm
+      up_d = up; vp_d = vp; wp_d = wp
+      deallocate(u0_s, v0_s, w0_s, um_s, vm_s, wm_s, up_s, vp_s, wp_s)
+
+   contains
+
+      !> Fill a field with a value that varies in all three directions.
+      subroutine seed_field(a, offset)
+         implicit none
+         real, intent(inout) :: a(:,:,:)
+         real, intent(in)    :: offset
+         integer :: i, j, k
+
+         do k = 1, size(a,3)
+            do j = 1, size(a,2)
+               do i = 1, size(a,1)
+                  a(i,j,k) = offset + 0.125*i - 0.0625*j + 0.03125*k
+               end do
+            end do
+         end do
+      end subroutine seed_field
+
+      !> Mark a repeating subset of cells solid, so that every one of the six
+      !! neighbour tests in the advection corrections is true somewhere.
+      subroutine checkerboard_mask(msk)
+         implicit none
+         real, intent(out) :: msk(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+         integer :: i, j, k
+
+         do k = kb-kh, ke+kh
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  if (modulo(i + j + k, 3) == 0) then
+                     msk(i,j,k) = 0.
+                  else
+                     msk(i,j,k) = 1.
+                  end if
+               end do
+            end do
+         end do
+      end subroutine checkerboard_mask
+
+      !> Build the mask the solid list implies: zero at a listed cell, one
+      !! elsewhere. This is what createmasks produces in a real run.
+      subroutine mask_from_solid(msk, info)
+         implicit none
+         real, intent(out) :: msk(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+         type(solid_info_type), intent(in) :: info
+         integer :: n
+
+         msk = 1.
+         msk(:,:,kb-kh) = 0.
+         do n = 1, info%nsolptsrank
+            msk(info%solpts_loc(n,1),info%solpts_loc(n,2),info%solpts_loc(n,3)) = 0.
+         end do
+      end subroutine mask_from_solid
+
+      !> Compare a previous-step field, which spans kb-kh upwards.
+      subroutine cmp_m(name, host, dev, before)
+         implicit none
+         character(len=*), intent(in) :: name
+         real, intent(in) :: host  (ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+         real, device, intent(in) :: dev(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+         real, intent(in) :: before(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+         real, allocatable :: back(:,:,:)
+
+         allocate(back(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         back = dev
+         call verify(name, host, back, before)
+         deallocate(back)
+      end subroutine cmp_m
+
+      !> Compare a tendency, which spans kb upwards.
+      subroutine cmp_p(name, host, dev, before)
+         implicit none
+         character(len=*), intent(in) :: name
+         real, intent(in) :: host  (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+         real, device, intent(in) :: dev(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+         real, intent(in) :: before(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+         real, allocatable :: back(:,:,:)
+
+         allocate(back(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+         back = dev
+         call verify(name, host, back, before)
+         deallocate(back)
+      end subroutine cmp_p
+
+      !> Device against host, refusing to pass if the routine did nothing.
+      subroutine verify(name, host, back, before)
+         implicit none
+         character(len=*), intent(in) :: name
+         real, intent(in) :: host(:,:,:), back(:,:,:), before(:,:,:)
+         real :: worst, scale
+
+         if (any(back /= back)) call fail_cuda_selftest('ibmnorm '//name//' device produced NaN')
+
+         ! A routine that changed nothing would agree with any port of itself.
+         if (maxval(abs(host - before)) == 0.) then
+            call fail_cuda_selftest('ibmnorm changed nothing: '//name)
+         end if
+
+         worst = maxval(abs(back - host))
+         scale = max(1., maxval(abs(host)))
+         ! Not required to be exact: the device compiler may contract these
+         ! expressions into FMAs where the host compiler does not.
+         if (worst > 1.e-10 * scale) then
+            write(*,'(A,A,A,ES12.4)') 'ibmnorm mismatch ', name, ' worst ', worst
+            call fail_cuda_selftest('ibmnorm '//name)
+         end if
+      end subroutine verify
+
+      !> Assert no cell appears twice in a solid list.
+      subroutine check_distinct_solid(name, info)
+         implicit none
+         character(len=*), intent(in) :: name
+         type(solid_info_type), intent(in) :: info
+         integer, allocatable :: seen(:,:,:)
+         integer :: n
+
+         if (info%nsolptsrank <= 1) return
+         allocate(seen(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         seen = 0
+         do n = 1, info%nsolptsrank
+            if (seen(info%solpts_loc(n,1),info%solpts_loc(n,2),info%solpts_loc(n,3)) /= 0) then
+               call fail_cuda_selftest('ibmnorm solid points not distinct: '//name)
+            end if
+            seen(info%solpts_loc(n,1),info%solpts_loc(n,2),info%solpts_loc(n,3)) = n
+         end do
+         deallocate(seen)
+      end subroutine check_distinct_solid
+
+   end subroutine test_ibmnorm
 
    subroutine fail_cuda_selftest(name)
       implicit none

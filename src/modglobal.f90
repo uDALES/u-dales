@@ -86,6 +86,7 @@ module modglobal
    integer, parameter :: TEST_IBM_WALLFUN = 1008
    integer, parameter :: TEST_PERIODIC_EBCORR = 1009
    integer, parameter :: TEST_MASSCORR = 1010
+   integer, parameter :: TEST_IBMNORM = 1011
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start

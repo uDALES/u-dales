@@ -44,15 +44,20 @@ module modibm
 #if !defined(_GPU) || defined(UDALES_DEBUG)
    public :: wallfunmom, wallfunheat, local_coords, check_wallfun_cache, &
              diffu_corr, diffv_corr, diffw_corr, diffc_corr, &
+             solid, advecc2nd_corr_conservative, advecc2nd_corr_liberal, &
              fac_tau_raw, fac_htc_raw, fac_cth_raw, fac_pres_raw, fac_pres2_raw
 #endif
    public :: bound_info_type, bound_info_u, bound_info_v, bound_info_w, bound_info_c
+   public :: solid_info_type, solid_info_u, solid_info_v, solid_info_w, solid_info_c
 #if defined(_GPU)
    ! Re-exported from modcuda so that the self-tests can reach them by their
    ! usual name.
    public :: fac_tau_d, fac_htc_d, fac_cth_d, fac_pres_d, fac_pres2_d, fachf_d, facef_d
    public :: mask_u_d, mask_v_d, mask_w_d, mask_c_d, &
              bndpts_u_d, bndpts_v_d, bndpts_w_d, bndpts_c_d, &
+             solpts_u_d, solpts_v_d, solpts_w_d, solpts_c_d, &
+             solid_device, solid_masked_device, &
+             advecc2nd_corr_conservative_device, advecc2nd_corr_liberal_device, &
              init_ibm_device, &
              diffu_corr_device, diffv_corr_device, diffw_corr_device, diffc_corr_device, &
              wallfunmom_dir_device, &
@@ -97,6 +102,10 @@ module modibm
    ! components a kernel cannot reach, so they are mirrored as flat arrays in
    ! the same way heatpump mirrors idhppts_local.
    integer, device, allocatable :: bndpts_u_d(:,:), bndpts_v_d(:,:), bndpts_w_d(:,:), bndpts_c_d(:,:)
+   ! Solid points, one list per staggered location. ibmnorm pins the field
+   ! inside the solid at these, so the lists are mirrored once alongside the
+   ! boundary points they complement.
+   integer, device, allocatable :: solpts_u_d(:,:), solpts_v_d(:,:), solpts_w_d(:,:), solpts_c_d(:,:)
 
    ! Facet-section geometry, one set per staggered direction. The prefix is the
    ! section set; recids_<x> is the cell on the <x> grid that the reconstruction
@@ -449,6 +458,23 @@ module modibm
      end if
 
      ! The point lists are 1-based on the host, so these bounds match directly.
+     if (allocated(solid_info_u%solpts_loc) .and. solid_info_u%nsolptsrank > 0) then
+       allocate(solpts_u_d(solid_info_u%nsolptsrank,3))
+       solpts_u_d = solid_info_u%solpts_loc
+     end if
+     if (allocated(solid_info_v%solpts_loc) .and. solid_info_v%nsolptsrank > 0) then
+       allocate(solpts_v_d(solid_info_v%nsolptsrank,3))
+       solpts_v_d = solid_info_v%solpts_loc
+     end if
+     if (allocated(solid_info_w%solpts_loc) .and. solid_info_w%nsolptsrank > 0) then
+       allocate(solpts_w_d(solid_info_w%nsolptsrank,3))
+       solpts_w_d = solid_info_w%solpts_loc
+     end if
+     if (allocated(solid_info_c%solpts_loc) .and. solid_info_c%nsolptsrank > 0) then
+       allocate(solpts_c_d(solid_info_c%nsolptsrank,3))
+       solpts_c_d = solid_info_c%solpts_loc
+     end if
+
      if (allocated(bound_info_u%bndpts_loc) .and. bound_info_u%nbndptsrank > 0) then
        allocate(bndpts_u_d(bound_info_u%nbndptsrank,3))
        bndpts_u_d = bound_info_u%bndpts_loc
@@ -2334,15 +2360,290 @@ module modibm
    end subroutine plane_line_intersection
 
 
+#if defined(_GPU)
+   !> Device counterpart of solid without a mask.
+   !!
+   !! Pins the field and kills the tendency inside the solid. One thread per
+   !! solid point, and the points are distinct, so nothing races.
+   subroutine solid_device(solpts, npts, var, rhs, val, hi, hj, hk)
+     use modglobal, only : ib, ie, jb, je, kb, ke
+     implicit none
+
+     integer, intent(in) :: npts, hi, hj, hk
+     integer, device, intent(in)    :: solpts(npts,3)
+     real   , device, intent(inout) :: var(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)
+     real   , device, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
+     real   ,         intent(in)    :: val
+
+     integer :: i, j, k, n
+
+     if (npts < 1) return
+
+     !$acc parallel loop default(present) private(i, j, k)
+     do n = 1, npts
+       i = solpts(n,1)
+       j = solpts(n,2)
+       k = solpts(n,3)
+       var(i,j,k) = val
+       rhs(i,j,k) = 0.
+     end do
+     !$acc end parallel loop
+
+   end subroutine solid_device
+
+
+   !> Device counterpart of solid with a mask.
+   !!
+   !! Same as solid_device, except that a solid point with fluid neighbours
+   !! takes their mean instead of val, which is the zero-flux condition the
+   !! second-order scalar advection needs. Only fluid neighbours are read, and
+   !! the loop writes solid points alone, so the neighbour values cannot change
+   !! underneath it however the points are ordered - which is what lets the
+   !! host's sequential loop become a parallel one.
+   !!
+   !! The sums are accumulated in registers in the host's order, so the two
+   !! branches agree bit for bit rather than merely closely.
+   subroutine solid_masked_device(solpts, npts, var, rhs, val, hi, hj, hk)
+     use modglobal, only : ib, ie, jb, je, kb, ke, eps1
+     implicit none
+
+     integer, intent(in) :: npts, hi, hj, hk
+     integer, device, intent(in)    :: solpts(npts,3)
+     real   , device, intent(inout) :: var(ib-hi:ie+hi,jb-hj:je+hj,kb-hk:ke+hk)
+     real   , device, intent(inout) :: rhs(ib-hi:ie+hi,jb-hj:je+hj,kb   :ke+hk)
+     real   ,         intent(in)    :: val
+
+     integer :: i, j, k, n
+     real    :: vsum, rsum, count
+
+     if (npts < 1) return
+
+     !$acc parallel loop default(present) private(i, j, k, vsum, rsum, count)
+     do n = 1, npts
+       i = solpts(n,1)
+       j = solpts(n,2)
+       k = solpts(n,3)
+
+       vsum  = val
+       rsum  = 0.
+       count = 0
+
+       ! Attempt to set zero flux BC
+       if (abs(mask_c_d(i,j+1,k) - 1.) < eps1) then ! fluid neighbour
+         count = count + 1
+         vsum = vsum + var(i,j+1,k)
+         rsum = rsum + rhs(i,j+1,k)
+       end if
+
+       if (abs(mask_c_d(i,j-1,k) - 1.) < eps1) then
+         count = count + 1
+         vsum = vsum + var(i,j-1,k)
+         rsum = rsum + rhs(i,j-1,k)
+       end if
+
+       if (abs(mask_c_d(i,j,k+1) - 1.) < eps1) then
+         count = count + 1
+         vsum = vsum + var(i,j,k+1)
+         rsum = rsum + rhs(i,j,k+1)
+       end if
+
+       if (abs(mask_c_d(i,j,k-1) - 1.) < eps1) then
+         count = count + 1
+         vsum = vsum + var(i,j,k-1)
+         rsum = rsum + rhs(i,j,k-1)
+       end if
+
+       if (abs(mask_c_d(i+1,j,k) - 1.) < eps1) then
+         count = count + 1
+         vsum = vsum + var(i+1,j,k)
+         rsum = rsum + rhs(i+1,j,k)
+       end if
+
+       if (abs(mask_c_d(i-1,j,k) - 1.) < eps1) then
+         count = count + 1
+         vsum = vsum + var(i-1,j,k)
+         rsum = rsum + rhs(i-1,j,k)
+       end if
+
+       if (count > 0) then
+         var(i,j,k) = (vsum - val) / count
+         rhs(i,j,k) = rsum / count
+       else
+         var(i,j,k) = vsum
+         rhs(i,j,k) = rsum
+       end if
+     end do
+     !$acc end parallel loop
+
+   end subroutine solid_masked_device
+
+
+   !> Device counterpart of advecc2nd_corr_conservative.
+   subroutine advecc2nd_corr_conservative_device(var, rhs)
+     use modglobal, only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh, dxi5, dyi5
+     use modcuda,   only : u0_d, v0_d, w0_d, dzf_d, dzhi_d, dzfi5_d
+     implicit none
+
+     real, device, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+     real, device, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
+
+     integer :: i, j, k, n, npts
+
+     if (.not. allocated(bndpts_c_d)) return
+     npts = bound_info_c%nbndptsrank
+     if (npts < 1) return
+
+     !$acc parallel loop default(present) private(i, j, k)
+     do n = 1, npts
+       i = bndpts_c_d(n,1)
+       j = bndpts_c_d(n,2)
+       k = bndpts_c_d(n,3)
+
+       if ((abs(mask_u_d(i+1,j,k)) < eps1) .or. (abs(mask_c_d(i+1,j,k)) < eps1)) then
+         rhs(i,j,k) = rhs(i,j,k) + u0_d(i+1,j,k)*(var(i+1,j,k) + var(i,j,k))*dxi5
+       end if
+
+       if ((abs(mask_u_d(i,j,k)) < eps1) .or. (abs(mask_c_d(i-1,j,k)) < eps1)) then
+         rhs(i,j,k) = rhs(i,j,k) - u0_d(i,j,k)*(var(i-1,j,k) + var(i,j,k))*dxi5
+       end if
+
+       if ((abs(mask_v_d(i,j+1,k)) < eps1) .or. (abs(mask_c_d(i,j+1,k)) < eps1)) then
+         rhs(i,j,k) = rhs(i,j,k) + v0_d(i,j+1,k)*(var(i,j+1,k) + var(i,j,k))*dyi5
+       end if
+
+       if ((abs(mask_v_d(i,j,k)) < eps1) .or. (abs(mask_c_d(i,j-1,k)) < eps1)) then
+         rhs(i,j,k) = rhs(i,j,k) - v0_d(i,j,k)*(var(i,j-1,k) + var(i,j,k))*dyi5
+       end if
+
+       if ((abs(mask_w_d(i,j,k+1)) < eps1) .or. (abs(mask_c_d(i,j,k+1)) < eps1)) then
+         rhs(i,j,k) = rhs(i,j,k) + w0_d(i,j,k+1)*(var(i,j,k+1)*dzf_d(k) + var(i,j,k)*dzf_d(k+1))*dzhi_d(k+1)*dzfi5_d(k)
+       end if
+
+       if ((abs(mask_w_d(i,j,k)) < eps1) .or. (abs(mask_c_d(i,j,k-1)) < eps1)) then
+         rhs(i,j,k) = rhs(i,j,k) - w0_d(i,j,k)*(var(i,j,k-1)*dzf_d(k) + var(i,j,k)*dzf_d(k-1))*dzhi_d(k)*dzfi5_d(k)
+       end if
+     end do
+     !$acc end parallel loop
+
+   end subroutine advecc2nd_corr_conservative_device
+
+
+   !> Device counterpart of advecc2nd_corr_liberal.
+   subroutine advecc2nd_corr_liberal_device(var, rhs)
+     use modglobal, only : eps1, ib, ie, ih, jb, je, jh, kb, ke, kh, dxi5, dyi5
+     use modcuda,   only : u0_d, v0_d, w0_d, dzf_d, dzhi_d, dzfi5_d
+     implicit none
+
+     real, device, intent(in)    :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+     real, device, intent(inout) :: rhs(ib-ih:ie+ih,jb-jh:je+jh,kb   :ke+kh)
+
+     integer :: i, j, k, n, npts
+
+     if (.not. allocated(bndpts_c_d)) return
+     npts = bound_info_c%nbndptsrank
+     if (npts < 1) return
+
+     !$acc parallel loop default(present) private(i, j, k)
+     do n = 1, npts
+       i = bndpts_c_d(n,1)
+       j = bndpts_c_d(n,2)
+       k = bndpts_c_d(n,3)
+
+       if (abs(mask_c_d(i+1,j,k)) < eps1) then ! var(i+1) is solid
+         rhs(i,j,k) = rhs(i,j,k) + u0_d(i+1,j,k)*(var(i+1,j,k) + var(i,j,k))*dxi5 &
+                                 - u0_d(i+1,j,k)*(var(i  ,j,k) + var(i,j,k))*dxi5
+       end if
+
+       if (abs(mask_c_d(i-1,j,k)) < eps1) then ! var(i-1) is solid
+         rhs(i,j,k) = rhs(i,j,k) - u0_d(i,j,k)*(var(i-1,j,k) + var(i,j,k))*dxi5 &
+                                 + u0_d(i,j,k)*(var(i  ,j,k) + var(i,j,k))*dxi5
+       end if
+
+       if (abs(mask_c_d(i,j+1,k)) < eps1) then ! var(j+1) is solid
+         rhs(i,j,k) = rhs(i,j,k) + v0_d(i,j+1,k)*(var(i,j+1,k) + var(i,j,k))*dyi5 &
+                                 - v0_d(i,j+1,k)*(var(i,j  ,k) + var(i,j,k))*dyi5
+       end if
+
+       if (abs(mask_c_d(i,j-1,k)) < eps1) then ! var(j-1) is solid
+         rhs(i,j,k) = rhs(i,j,k) - v0_d(i,j,k)*(var(i,j-1,k) + var(i,j,k))*dyi5 &
+                                 + v0_d(i,j,k)*(var(i,j  ,k) + var(i,j,k))*dyi5
+       end if
+
+       if (abs(mask_c_d(i,j,k+1)) < eps1) then ! var(k+1) is solid
+         rhs(i,j,k) = rhs(i,j,k) + w0_d(i,j,k+1)*(var(i,j,k+1)*dzf_d(k) + var(i,j,k)*dzf_d(k+1))*dzhi_d(k+1)*dzfi5_d(k) &
+                                 - w0_d(i,j,k+1)*(var(i,j,k  )*dzf_d(k) + var(i,j,k)*dzf_d(k+1))*dzhi_d(k+1)*dzfi5_d(k)
+       end if
+
+       if (abs(mask_c_d(i,j,k-1)) < eps1) then ! var(k-1) is solid
+         rhs(i,j,k) = rhs(i,j,k) - w0_d(i,j,k)*(var(i,j,k-1)*dzf_d(k) + var(i,j,k)*dzf_d(k-1))*dzhi_d(k)*dzfi5_d(k) &
+                                 + w0_d(i,j,k)*(var(i,j,k  )*dzf_d(k) + var(i,j,k)*dzf_d(k-1))*dzhi_d(k)*dzfi5_d(k)
+       end if
+     end do
+     !$acc end parallel loop
+
+   end subroutine advecc2nd_corr_liberal_device
+#endif
+
+
    subroutine ibmnorm
      use modglobal,   only : ih, jh, kh, ihc, jhc, khc, nsv, dzf, zh, kb, ke, kh, nsv, libm, ltempeq, lmoist, iadv_sv, iadv_cd2, iadv_thl, lconservativeibm
-     use modfields,   only : um, vm, wm, thlm, qtm, svm, up, vp, wp, thlp, qtp, svp, thl0, qt0, sv0, thl0av
+     use modfields,   only : thl0av
+#if defined(_GPU)
+     use modcuda,     only : um_d, vm_d, wm_d, thlm_d, qtm_d, svm_d, &
+                             up_d, vp_d, wp_d, thlp_d, qtp_d, svp_d, &
+                             thl0_d, qt0_d, sv0_d
+#else
+     use modfields,   only : um, vm, wm, thlm, qtm, svm, up, vp, wp, thlp, qtp, svp, thl0, qt0, sv0
      use modboundary, only : halos
+#endif
 
      integer n
+     real    solid_thl
 
      if (.not. libm) return
 
+     ! The interior temperature the solid points are pinned to. A column mean
+     ! over host arrays either way: thl0av is a k-profile the host owns, so
+     ! there is nothing here for the device to do.
+     solid_thl = sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1)
+
+#if defined(_GPU)
+     ! Set internal velocities to zero
+     call solid_device(solpts_u_d, solid_info_u%nsolptsrank, um_d, up_d, 0., ih, jh, kh)
+     call solid_device(solpts_v_d, solid_info_v%nsolptsrank, vm_d, vp_d, 0., ih, jh, kh)
+     call solid_device(solpts_w_d, solid_info_w%nsolptsrank, wm_d, wp_d, 0., ih, jh, kh)
+
+     if (ltempeq) then
+        call solid_masked_device(solpts_c_d, solid_info_c%nsolptsrank, thlm_d, thlp_d, solid_thl, ih, jh, kh)
+        if (iadv_thl == iadv_cd2) then
+          if (lconservativeibm) then
+            call advecc2nd_corr_conservative_device(thl0_d, thlp_d)
+          else
+            call advecc2nd_corr_liberal_device(thl0_d, thlp_d)
+          end if
+        end if
+     end if
+
+     if (lmoist) then
+       call solid_masked_device(solpts_c_d, solid_info_c%nsolptsrank, qtm_d, qtp_d, 0., ih, jh, kh)
+       if (lconservativeibm) then
+         call advecc2nd_corr_conservative_device(qt0_d, qtp_d)
+       else
+         call advecc2nd_corr_liberal_device(qt0_d, qtp_d)
+       end if
+     end if
+
+     do n=1,nsv
+        call solid_masked_device(solpts_c_d, solid_info_c%nsolptsrank, svm_d(:,:,:,n), svp_d(:,:,:,n), 0., ihc, jhc, khc)
+        if (iadv_sv(n) == iadv_cd2) then
+          if (lconservativeibm) then
+            call advecc2nd_corr_conservative_device(sv0_d(:,:,:,n), svp_d(:,:,:,n))
+          else
+            call advecc2nd_corr_liberal_device(sv0_d(:,:,:,n), svp_d(:,:,:,n))
+          end if
+        end if
+     end do
+#else
      ! Set internal velocities to zero
      call solid(solid_info_u, um, up, 0., ih, jh, kh)
      call solid(solid_info_v, vm, vp, 0., ih, jh, kh)
@@ -2352,7 +2653,7 @@ module modibm
      ! Solid value does not matter when using second order scheme
      ! Set interior to a constant and boundary to average of fluid neighbours
      if (ltempeq) then
-        call solid(solid_info_c, thlm, thlp, sum(thl0av(kb:ke)*dzf(kb:ke))/zh(ke+1), ih, jh, kh, mask_c)
+        call solid(solid_info_c, thlm, thlp, solid_thl, ih, jh, kh, mask_c)
         if (iadv_thl == iadv_cd2) then
           if (lconservativeibm) then
             call advecc2nd_corr_conservative(thl0, thlp)
@@ -2381,6 +2682,7 @@ module modibm
           end if
         end if
      end do
+#endif
 
    end subroutine ibmnorm
 

@@ -479,16 +479,22 @@ module modcuda
          w0_d = w0
          pres0_d = pres0
 
-         ! masscorr reduces um and vm on the device before updateHost hands the
-         ! stage over, so those mirrors have to be current by this point. The
-         ! host is the last writer: ibmnorm zeroes um at solid points and
-         ! boundary rewrites it afterwards - for a profile or driver inlet at
-         ! the interior plane i = ib, not only in the halo. Nothing else on the
-         ! device reads um or vm before updateDevicePriorPoiss refreshes them,
-         ! so the copy is made only for the controllers that do read them, and a
-         ! run without flow forcing pays nothing.
-         if ((.not. linoutflow) .and. (luoutflowr .or. luvolflowr)) um_d = um
-         if ((.not. linoutflow) .and. (lvoutflowr .or. lvvolflowr)) vm_d = vm
+         ! The previous-step fields, moved here from updateDevicePriorPoiss.
+         ! masscorr reduces um and vm, and ibmnorm pins all six inside the
+         ! solid, both before updateHost hands the stage over - so the mirrors
+         ! have to be current by this point rather than half a stage later. The
+         ! host is the last writer: boundary applies the lateral and top
+         ! conditions at the end of the previous step, for a profile or driver
+         ! inlet at the interior plane i = ib and not only in the halo. Nothing
+         ! on the host writes them again before updateDevicePriorPoiss, which
+         ! is why that routine no longer copies them and the total traffic is
+         ! unchanged.
+         um_d = um
+         vm_d = vm
+         wm_d = wm
+         if (ltempeq) thlm_d = thlm
+         if (lmoist)  qtm_d  = qtm
+         if (nsv > 0) svm_d  = svm
 
          call initfield<<<griddim,blockdim>>>(up_d, 0., ih, jh, kh)
          call checkCUDA( cudaGetLastError(), 'initfield up_d' )
@@ -568,9 +574,9 @@ module modcuda
          up_d = up
          vp_d = vp
          wp_d = wp
-         um_d = um
-         vm_d = vm
-         wm_d = wm
+         ! um, vm and wm are copied by updateDevice now: ibmnorm writes them on
+         ! the device, so re-copying the host's stale versions here would undo
+         ! it. Nothing on the host writes them in between.
          u0_d = u0
          v0_d = v0
          w0_d = w0
@@ -587,18 +593,15 @@ module modcuda
 
          if (ltempeq) then
             thl0_d = thl0
-            thlm_d = thlm
             thlp_d = thlp
             if (iadv_thl == iadv_kappa) thl0c_d = thl0c
          end if
          if (lmoist) then
             qt0_d = qt0
-            qtm_d = qtm
             qtp_d = qtp
          end if
          if (nsv>0) then
             sv0_d = sv0
-            svm_d = svm
             svp_d = svp
          end if
          if (loneeqn) then
@@ -673,6 +676,19 @@ module modcuda
          end if
          ekm = ekm_d
          ekh = ekh_d
+
+         ! vegetation_forcing is the one host routine left in this window that
+         ! reads the previous-step fields, and it reads them at the neighbours
+         ! of every tree point - which can be a solid cell that ibmnorm has just
+         ! pinned on the device. Nothing else here needs them, so a run without
+         ! trees pays nothing.
+         if (ltrees) then
+            um = um_d
+            vm = vm_d
+            wm = wm_d
+            if (ltempeq) thlm = thlm_d
+            if (lmoist)  qtm  = qtm_d
+         end if
       end subroutine updateHost
 
       !> Rank-local fluid-cell column sums of a device field, for avexy_ibm.

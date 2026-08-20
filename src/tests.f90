@@ -21,7 +21,7 @@ module tests
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, &
             tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun, &
-            tests_periodic_ebcorr, tests_masscorr
+            tests_periodic_ebcorr, tests_masscorr, tests_ibmnorm
 
 contains
 
@@ -2332,5 +2332,592 @@ contains
     end subroutine report
 
   end function tests_masscorr
+
+
+  !> Check the host routines ibmnorm is built from against the conditions they
+  !! are supposed to impose.
+  !!
+  !! ibmnorm does three things: it pins the velocity and its tendency to zero
+  !! inside the solid, it pins the scalars to a fixed interior value except at
+  !! solid cells with fluid neighbours, where it imposes zero flux instead, and
+  !! it removes the advective flux the second-order scheme sent across solid
+  !! faces. Each is stated as a property here rather than compared against the
+  !! expression that produces it:
+  !!
+  !!   - a solid velocity point ends at exactly zero, and nothing else moves;
+  !!   - a solid scalar point walled in on all six sides takes the interior
+  !!     value, and one with fluid neighbours takes their mean instead - so a
+  !!     constant field stays constant across the boundary, which is what zero
+  !!     flux means, and the interior value cannot influence it;
+  !!   - the liberal advection correction vanishes on a constant field, for any
+  !!     velocity, because that is the flux it exists to cancel;
+  !!   - both corrections vanish when the velocity does, are linear in the
+  !!     scalar, and move only boundary points.
+  !!
+  !! The parallel port relies on the point lists holding no cell twice, since a
+  !! repeat would be two threads writing one cell, so that is checked too.
+  !!
+  !! This exercises the host branch. The device kernels are covered by
+  !! tests_cuda.f90::test_ibmnorm, which runs under UDALES_RUN_CUDA_SELFTEST on
+  !! a Debug GPU build.
+  !! Returns .true. if all checks pass, .false. otherwise.
+  logical function tests_ibmnorm()
+    use modglobal, only : runmode, ib, ie, ih, jb, je, jh, kb, ke, kh, &
+                          libm, eps1, dxi, dyi, dxi5, dyi5, dzf, dzhi, dzfi, dzfi5
+    use modfields, only : initfields, u0, v0, w0, thl0, thlp, thlm
+    use initfac,   only : readfacetfiles
+    use modibm,    only : initibm, createmasks, mask_c, mask_u, mask_v, mask_w, solid, &
+                          advecc2nd_corr_conservative, advecc2nd_corr_liberal, &
+                          solid_info_type, solid_info_u, solid_info_c, &
+                          bound_info_c
+
+    implicit none
+
+    real, parameter :: interior = 300., constant_field = 7.5
+
+    logical :: all_passed
+    integer :: i, j, k, n, nsol, buried
+    real    :: worst, tol
+    type(solid_info_type) :: si
+    real, allocatable :: mask_save(:,:,:), thlp_save(:,:,:)
+    real, allocatable :: corr_a(:,:,:), corr_b(:,:,:)
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_ibmnorm: HOST IBM NORMAL-VELOCITY TESTS'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+#if defined(_GPU)
+    ! The host routines this checks are not compiled into a GPU release build,
+    ! and on a GPU debug build the solver does not use them, so there is
+    ! nothing here to exercise. The device port is covered by
+    ! tests_cuda.f90::test_ibmnorm.
+    if (myid == 0) then
+      write(*, '(A)') 'FAIL: runmode 1011 checks the host IBM normal-velocity routines.'
+      write(*, '(A)') '  Run it against a CPU build (build/cpu/<type>/u-dales).'
+      write(*, '(A)') '  The device port is covered by the CUDA self-tests.'
+    end if
+    tests_ibmnorm = .false.
+    return
+#endif
+
+    if (.not. libm) then
+      if (myid == 0) write(*, '(A)') 'FAIL: this runmode needs a case with libm = .true.'
+      tests_ibmnorm = .false.
+      return
+    end if
+
+    call initfields
+    call readfacetfiles
+    call initibm
+    call createmasks
+
+    all_passed = .true.
+    tol = 1.e-12
+
+    ! ---------------------------------------------------------------- 1
+    ! No cell may appear twice in a solid list. The device port runs one
+    ! thread per point, so a repeat would be two threads writing one cell -
+    ! harmless in a sequential loop, a race in a parallel one.
+    if (.not. check_distinct('solid_info_u', solid_info_u)) all_passed = .false.
+    if (.not. check_distinct('solid_info_c', solid_info_c)) all_passed = .false.
+
+    ! And the mask has to agree with the list: a cell is solid exactly when it
+    ! is listed. The masked branch reads its neighbours in place, so the host's
+    ! sequential loop and a one-thread-per-point port agree only while no
+    ! listed cell is another's neighbour - which this invariant guarantees.
+    worst = 0.
+    do n = 1, solid_info_c%nsolptsrank
+      i = solid_info_c%solpts_loc(n,1)
+      j = solid_info_c%solpts_loc(n,2)
+      k = solid_info_c%solpts_loc(n,3)
+      worst = max(worst, abs(mask_c(i,j,k)))
+    end do
+    if (worst > 0.) then
+      call report('a listed solid point is not masked solid', worst)
+      all_passed = .false.
+    end if
+
+    ! ---------------------------------------------------------------- 2
+    ! Velocity: solid points go to exactly zero, and nothing else moves.
+    call fill(u0, 1.); call fill(thlp, 2.)
+    allocate(thlp_save, source=thlp)
+    call solid(solid_info_u, u0, thlp, 0., ih, jh, kh)
+
+    worst = 0.
+    do n = 1, solid_info_u%nsolptsrank
+      i = solid_info_u%solpts_loc(n,1)
+      j = solid_info_u%solpts_loc(n,2)
+      k = solid_info_u%solpts_loc(n,3)
+      worst = max(worst, abs(u0(i,j,k)), abs(thlp(i,j,k)))
+    end do
+    if (worst > 0.) then
+      call report('solid velocity point not exactly zero', worst)
+      all_passed = .false.
+    end if
+    if (.not. check_local('solid velocity', thlp, thlp_save, solid_info_u)) all_passed = .false.
+    deallocate(thlp_save)
+
+    ! ---------------------------------------------------------------- 3
+    ! Scalars, on a mask the test owns so that a walled-in point exists. The
+    ! interior of the block is solid, and (ib+1,jb+1,kb+1) sits inside it with
+    ! all six neighbours solid as well.
+    allocate(mask_save, source=mask_c)
+    call build_block(si, buried)
+
+    if (buried == 0) then
+      if (myid == 0) write(*, '(A)') 'FAIL: could not place a walled-in point on this rank'
+      tests_ibmnorm = .false.
+      return
+    end if
+
+    ! A constant field must survive: every solid point with a fluid neighbour
+    ! takes their mean, which for a constant field is the constant. This is
+    ! what zero flux across the boundary means.
+    thlm = constant_field
+    thlp = 0.
+    call solid(si, thlm, thlp, interior, ih, jh, kh, mask_c)
+
+    worst = 0.
+    do n = 1, si%nsolptsrank
+      i = si%solpts_loc(n,1)
+      j = si%solpts_loc(n,2)
+      k = si%solpts_loc(n,3)
+      if (n == buried) cycle
+      if (fluid_neighbours(i,j,k) > 0) worst = max(worst, abs(thlm(i,j,k) - constant_field))
+    end do
+    if (worst > tol) then
+      call report('constant scalar not preserved across the boundary', worst)
+      all_passed = .false.
+    end if
+
+    ! The walled-in point has no fluid neighbour, so it takes the interior
+    ! value instead - exactly, and with a zero tendency.
+    i = si%solpts_loc(buried,1)
+    j = si%solpts_loc(buried,2)
+    k = si%solpts_loc(buried,3)
+    if (abs(thlm(i,j,k) - interior) > 0. .or. abs(thlp(i,j,k)) > 0.) then
+      call report('walled-in point did not take the interior value', &
+                  max(abs(thlm(i,j,k) - interior), abs(thlp(i,j,k))))
+      all_passed = .false.
+    end if
+
+    ! ---------------------------------------------------------------- 4
+    ! A solid point with fluid neighbours takes their mean, so the interior
+    ! value must not reach it. Run again with a different one and compare.
+    thlm = constant_field
+    thlp = 0.
+    call solid(si, thlm, thlp, interior + 100., ih, jh, kh, mask_c)
+
+    worst = 0.
+    do n = 1, si%nsolptsrank
+      i = si%solpts_loc(n,1)
+      j = si%solpts_loc(n,2)
+      k = si%solpts_loc(n,3)
+      if (fluid_neighbours(i,j,k) > 0) worst = max(worst, abs(thlm(i,j,k) - constant_field))
+    end do
+    if (worst > tol) then
+      call report('interior value leaked into a point with fluid neighbours', worst)
+      all_passed = .false.
+    end if
+
+    ! And the mean itself, on a field that varies, worked out independently.
+    call fill(thlm, 3.)
+    thlp = 0.
+    if (.not. check_neighbour_mean(si)) all_passed = .false.
+
+    mask_c = mask_save
+    deallocate(mask_save)
+    if (allocated(si%solpts_loc)) deallocate(si%solpts_loc)
+
+    ! ---------------------------------------------------------------- 5
+    ! Advection corrections, against the case's own boundary points.
+    if (bound_info_c%nbndptsrank < 1) then
+      if (myid == 0) write(*, '(A)') 'FAIL: no cell-centred boundary points on this rank'
+      tests_ibmnorm = .false.
+      return
+    end if
+
+    allocate(corr_a(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(corr_b(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+
+    ! No velocity, no flux to cancel: both variants must do nothing at all.
+    u0 = 0.; v0 = 0.; w0 = 0.
+    call fill(thl0, 4.)
+    thlp = 0.
+    call advecc2nd_corr_conservative(thl0, thlp)
+    if (maxval(abs(thlp)) > 0.) then
+      call report('conservative correction at zero velocity', maxval(abs(thlp)))
+      all_passed = .false.
+    end if
+    thlp = 0.
+    call advecc2nd_corr_liberal(thl0, thlp)
+    if (maxval(abs(thlp)) > 0.) then
+      call report('liberal correction at zero velocity', maxval(abs(thlp)))
+      all_passed = .false.
+    end if
+
+    ! A constant scalar has no advective flux to cancel whatever the velocity
+    ! is, because the liberal correction replaces the solid value with the
+    ! fluid one and the two are equal.
+    call fill(u0, 5.); call fill(v0, 6.); call fill(w0, 7.)
+    thl0 = constant_field
+    thlp = 0.
+    call advecc2nd_corr_liberal(thl0, thlp)
+    if (maxval(abs(thlp)) > tol) then
+      call report('liberal correction on a constant field', maxval(abs(thlp)))
+      all_passed = .false.
+    end if
+
+    ! Linear in the scalar: every term carries one factor of it.
+    call fill(thl0, 8.)
+    thlp = 0.
+    call advecc2nd_corr_conservative(thl0, thlp)
+    corr_a = thlp
+    thl0 = 2. * thl0
+    thlp = 0.
+    call advecc2nd_corr_conservative(thl0, thlp)
+    corr_b = thlp
+    worst = maxval(abs(corr_b - 2.*corr_a))
+    if (worst > 1.e-10 * max(1., maxval(abs(corr_a)))) then
+      call report('conservative correction is not linear in the scalar', worst)
+      all_passed = .false.
+    end if
+    if (maxval(abs(corr_a)) == 0.) then
+      call report('conservative correction was zero, so nothing was tested', 0.)
+      all_passed = .false.
+    end if
+
+    call fill(thl0, 8.)
+    thlp = 0.
+    call advecc2nd_corr_liberal(thl0, thlp)
+    corr_a = thlp
+    thl0 = 2. * thl0
+    thlp = 0.
+    call advecc2nd_corr_liberal(thl0, thlp)
+    worst = maxval(abs(thlp - 2.*corr_a))
+    if (worst > 1.e-10 * max(1., maxval(abs(corr_a)))) then
+      call report('liberal correction is not linear in the scalar', worst)
+      all_passed = .false.
+    end if
+    if (maxval(abs(corr_a)) == 0.) then
+      call report('liberal correction was zero, so nothing was tested', 0.)
+      all_passed = .false.
+    end if
+
+    ! Only boundary points move.
+    if (.not. check_local_bnd('conservative', corr_b)) all_passed = .false.
+    if (.not. check_local_bnd('liberal', corr_a)) all_passed = .false.
+
+    ! ---------------------------------------------------------------- 6
+    ! The value itself, from a closed form the routines do not use. The
+    ! liberal variant replaces the solid neighbour with the cell's own value,
+    ! so what it adds across a solid face is the velocity there times the jump
+    ! the scheme saw - which collapses to one term per face instead of two.
+    call fill(thl0, 8.)
+    thlp = 0.
+    call advecc2nd_corr_liberal(thl0, thlp)
+    if (.not. check_liberal_value(thl0, thlp)) all_passed = .false.
+
+    ! And the conservative variant removes the flux itself, so on a constant
+    ! field it leaves that constant times the velocity divergence over the
+    ! solid faces alone.
+    thl0 = constant_field
+    thlp = 0.
+    call advecc2nd_corr_conservative(thl0, thlp)
+    if (.not. check_conservative_value(constant_field, thlp)) all_passed = .false.
+
+    deallocate(corr_a, corr_b)
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)') 'ALL TESTS PASSED: tests_ibmnorm'
+        write(*, '(A)') '  Velocity pinning, the scalar boundary condition and both corrections'
+      else
+        write(*, '(A)') 'TESTS FAILED: tests_ibmnorm'
+        write(*, '(A)') '  One or more checks did not pass'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_ibmnorm = all_passed
+
+  contains
+
+    !> Fill a field with a value that varies in all three directions.
+    subroutine fill(a, offset)
+      real, intent(inout) :: a(:,:,:)
+      real, intent(in)    :: offset
+      integer :: ii, jj, kk
+
+      do kk = 1, size(a,3)
+        do jj = 1, size(a,2)
+          do ii = 1, size(a,1)
+            a(ii,jj,kk) = offset + 0.125*ii - 0.0625*jj + 0.03125*kk
+          end do
+        end do
+      end do
+
+    end subroutine fill
+
+    !> Number of fluid neighbours of a cell, read off mask_c.
+    integer function fluid_neighbours(ii, jj, kk)
+      integer, intent(in) :: ii, jj, kk
+
+      fluid_neighbours = 0
+      if (abs(mask_c(ii,jj+1,kk) - 1.) < eps1) fluid_neighbours = fluid_neighbours + 1
+      if (abs(mask_c(ii,jj-1,kk) - 1.) < eps1) fluid_neighbours = fluid_neighbours + 1
+      if (abs(mask_c(ii,jj,kk+1) - 1.) < eps1) fluid_neighbours = fluid_neighbours + 1
+      if (abs(mask_c(ii,jj,kk-1) - 1.) < eps1) fluid_neighbours = fluid_neighbours + 1
+      if (abs(mask_c(ii+1,jj,kk) - 1.) < eps1) fluid_neighbours = fluid_neighbours + 1
+      if (abs(mask_c(ii-1,jj,kk) - 1.) < eps1) fluid_neighbours = fluid_neighbours + 1
+
+    end function fluid_neighbours
+
+    !> Mark a 3x3x3 block solid and return the index of its walled-in centre.
+    !!
+    !! The case's own geometry need not contain a cell with six solid
+    !! neighbours, and the interior value is only reachable through one, so the
+    !! test builds a block rather than hoping to find one.
+    subroutine build_block(info, centre)
+      type(solid_info_type), intent(out) :: info
+      integer, intent(out) :: centre
+      integer :: i0, j0, k0, ii, jj, kk, m
+
+      centre = 0
+      i0 = (ib + ie)/2
+      j0 = (jb + je)/2
+      k0 = kb + 2
+      if (i0-1 < ib .or. i0+1 > ie .or. j0-1 < jb .or. j0+1 > je .or. k0+1 > ke) return
+
+      mask_c = 1.
+      info%nsolptsrank = 27
+      allocate(info%solpts_loc(27,3))
+      m = 0
+      do kk = k0-1, k0+1
+        do jj = j0-1, j0+1
+          do ii = i0-1, i0+1
+            m = m + 1
+            info%solpts_loc(m,1) = ii
+            info%solpts_loc(m,2) = jj
+            info%solpts_loc(m,3) = kk
+            mask_c(ii,jj,kk) = 0.
+            if (ii == i0 .and. jj == j0 .and. kk == k0) centre = m
+          end do
+        end do
+      end do
+
+    end subroutine build_block
+
+    !> The mean over fluid neighbours, worked out here rather than read back.
+    logical function check_neighbour_mean(info)
+      type(solid_info_type), intent(in) :: info
+      real, allocatable :: before(:,:,:)
+      real    :: want, got, count, deviation
+      integer :: m, ii, jj, kk
+
+      check_neighbour_mean = .true.
+      allocate(before, source=thlm)
+      call solid(info, thlm, thlp, interior, ih, jh, kh, mask_c)
+
+      deviation = 0.
+      do m = 1, info%nsolptsrank
+        ii = info%solpts_loc(m,1)
+        jj = info%solpts_loc(m,2)
+        kk = info%solpts_loc(m,3)
+        count = fluid_neighbours(ii,jj,kk)
+        if (count == 0) cycle
+        want = 0.
+        if (abs(mask_c(ii,jj+1,kk) - 1.) < eps1) want = want + before(ii,jj+1,kk)
+        if (abs(mask_c(ii,jj-1,kk) - 1.) < eps1) want = want + before(ii,jj-1,kk)
+        if (abs(mask_c(ii,jj,kk+1) - 1.) < eps1) want = want + before(ii,jj,kk+1)
+        if (abs(mask_c(ii,jj,kk-1) - 1.) < eps1) want = want + before(ii,jj,kk-1)
+        if (abs(mask_c(ii+1,jj,kk) - 1.) < eps1) want = want + before(ii+1,jj,kk)
+        if (abs(mask_c(ii-1,jj,kk) - 1.) < eps1) want = want + before(ii-1,jj,kk)
+        want = want / count
+        got  = thlm(ii,jj,kk)
+        deviation = max(deviation, abs(got - want))
+      end do
+
+      if (deviation > 1.e-10) then
+        call report('solid point is not the mean of its fluid neighbours', deviation)
+        check_neighbour_mean = .false.
+      end if
+      deallocate(before)
+
+    end function check_neighbour_mean
+
+    !> Assert no cell appears twice in a solid list.
+    logical function check_distinct(label, info)
+      character(len=*), intent(in) :: label
+      type(solid_info_type), intent(in) :: info
+      integer, allocatable :: seen(:,:,:)
+      integer :: m
+
+      check_distinct = .true.
+      if (info%nsolptsrank <= 1) return
+
+      allocate(seen(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      seen = 0
+      do m = 1, info%nsolptsrank
+        if (seen(info%solpts_loc(m,1),info%solpts_loc(m,2),info%solpts_loc(m,3)) /= 0) then
+          call report(label//' lists a cell twice', real(m))
+          check_distinct = .false.
+          exit
+        end if
+        seen(info%solpts_loc(m,1),info%solpts_loc(m,2),info%solpts_loc(m,3)) = m
+      end do
+      deallocate(seen)
+
+    end function check_distinct
+
+    !> Assert only the listed solid points differ from the saved field.
+    logical function check_local(label, got, before, info)
+      character(len=*), intent(in) :: label
+      real, intent(in) :: got   (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real, intent(in) :: before(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      type(solid_info_type), intent(in) :: info
+      real, allocatable :: diff(:,:,:)
+      integer :: m
+
+      check_local = .true.
+      allocate(diff(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+      diff = got - before
+      do m = 1, info%nsolptsrank
+        if (info%solpts_loc(m,3) > ke+kh) cycle
+        diff(info%solpts_loc(m,1),info%solpts_loc(m,2),info%solpts_loc(m,3)) = 0.
+      end do
+      if (maxval(abs(diff)) > 0.) then
+        call report(label//' moved a cell that is not a solid point', maxval(abs(diff)))
+        check_local = .false.
+      end if
+      deallocate(diff)
+
+    end function check_local
+
+    !> The liberal correction, one term per solid face rather than two.
+    logical function check_liberal_value(var, got)
+      real, intent(in) :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+      real, intent(in) :: got(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real    :: want, worst, scale
+      integer :: m, ii, jj, kk
+
+      check_liberal_value = .true.
+      worst = 0.
+      scale = 0.
+      do m = 1, bound_info_c%nbndptsrank
+        ii = bound_info_c%bndpts_loc(m,1)
+        jj = bound_info_c%bndpts_loc(m,2)
+        kk = bound_info_c%bndpts_loc(m,3)
+
+        want = 0.
+        if (abs(mask_c(ii+1,jj,kk)) < eps1) &
+          want = want + u0(ii+1,jj,kk)*(var(ii+1,jj,kk) - var(ii,jj,kk))*dxi5
+        if (abs(mask_c(ii-1,jj,kk)) < eps1) &
+          want = want - u0(ii,jj,kk)*(var(ii-1,jj,kk) - var(ii,jj,kk))*dxi5
+        if (abs(mask_c(ii,jj+1,kk)) < eps1) &
+          want = want + v0(ii,jj+1,kk)*(var(ii,jj+1,kk) - var(ii,jj,kk))*dyi5
+        if (abs(mask_c(ii,jj-1,kk)) < eps1) &
+          want = want - v0(ii,jj,kk)*(var(ii,jj-1,kk) - var(ii,jj,kk))*dyi5
+        if (abs(mask_c(ii,jj,kk+1)) < eps1) &
+          want = want + w0(ii,jj,kk+1)*(var(ii,jj,kk+1) - var(ii,jj,kk))*dzf(kk)*dzhi(kk+1)*dzfi5(kk)
+        if (abs(mask_c(ii,jj,kk-1)) < eps1) &
+          want = want - w0(ii,jj,kk)*(var(ii,jj,kk-1) - var(ii,jj,kk))*dzf(kk)*dzhi(kk)*dzfi5(kk)
+
+        worst = max(worst, abs(got(ii,jj,kk) - want))
+        scale = max(scale, abs(want))
+      end do
+
+      if (worst > 1.e-10 * max(1., scale)) then
+        call report('liberal correction does not match the flux it replaces', worst)
+        check_liberal_value = .false.
+      end if
+      if (scale == 0.) then
+        call report('liberal correction was zero, so nothing was tested', 0.)
+        check_liberal_value = .false.
+      end if
+
+    end function check_liberal_value
+
+    !> The conservative correction on a constant field: the constant times the
+    !! velocity divergence taken over the solid faces alone.
+    logical function check_conservative_value(c, got)
+      real, intent(in) :: c
+      real, intent(in) :: got(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real    :: want, worst, scale
+      integer :: m, ii, jj, kk
+
+      check_conservative_value = .true.
+      worst = 0.
+      scale = 0.
+      do m = 1, bound_info_c%nbndptsrank
+        ii = bound_info_c%bndpts_loc(m,1)
+        jj = bound_info_c%bndpts_loc(m,2)
+        kk = bound_info_c%bndpts_loc(m,3)
+
+        want = 0.
+        if ((abs(mask_u(ii+1,jj,kk)) < eps1) .or. (abs(mask_c(ii+1,jj,kk)) < eps1)) &
+          want = want + c*u0(ii+1,jj,kk)*dxi
+        if ((abs(mask_u(ii,jj,kk)) < eps1) .or. (abs(mask_c(ii-1,jj,kk)) < eps1)) &
+          want = want - c*u0(ii,jj,kk)*dxi
+        if ((abs(mask_v(ii,jj+1,kk)) < eps1) .or. (abs(mask_c(ii,jj+1,kk)) < eps1)) &
+          want = want + c*v0(ii,jj+1,kk)*dyi
+        if ((abs(mask_v(ii,jj,kk)) < eps1) .or. (abs(mask_c(ii,jj-1,kk)) < eps1)) &
+          want = want - c*v0(ii,jj,kk)*dyi
+        if ((abs(mask_w(ii,jj,kk+1)) < eps1) .or. (abs(mask_c(ii,jj,kk+1)) < eps1)) &
+          want = want + c*w0(ii,jj,kk+1)*dzfi(kk)
+        if ((abs(mask_w(ii,jj,kk)) < eps1) .or. (abs(mask_c(ii,jj,kk-1)) < eps1)) &
+          want = want - c*w0(ii,jj,kk)*dzfi(kk)
+
+        worst = max(worst, abs(got(ii,jj,kk) - want))
+        scale = max(scale, abs(want))
+      end do
+
+      if (worst > 1.e-10 * max(1., scale)) then
+        call report('conservative correction is not the solid-face flux', worst)
+        check_conservative_value = .false.
+      end if
+      if (scale == 0.) then
+        call report('conservative correction was zero, so nothing was tested', 0.)
+        check_conservative_value = .false.
+      end if
+
+    end function check_conservative_value
+
+    !> Assert only cell-centred boundary points carry a correction.
+    logical function check_local_bnd(label, corr)
+      character(len=*), intent(in) :: label
+      real, intent(in) :: corr(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real, allocatable :: diff(:,:,:)
+      integer :: m
+
+      check_local_bnd = .true.
+      allocate(diff(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+      diff = corr
+      do m = 1, bound_info_c%nbndptsrank
+        diff(bound_info_c%bndpts_loc(m,1),bound_info_c%bndpts_loc(m,2),bound_info_c%bndpts_loc(m,3)) = 0.
+      end do
+      if (maxval(abs(diff)) > 0.) then
+        call report(label//' correction reached beyond the boundary points', maxval(abs(diff)))
+        check_local_bnd = .false.
+      end if
+      deallocate(diff)
+
+    end function check_local_bnd
+
+    !> Print one failing quantity with its rank.
+    subroutine report(label, value)
+      character(len=*), intent(in) :: label
+      real,             intent(in) :: value
+
+      write(*,'(A,I0,A,A,A,ES23.15)') 'FAIL on rank ', myid, ': ibmnorm ', &
+           trim(label), ' = ', value
+
+    end subroutine report
+
+  end function tests_ibmnorm
 
 end module tests
