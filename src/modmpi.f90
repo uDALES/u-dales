@@ -620,6 +620,7 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
     return
   end subroutine slabsum
 
+  !> Fluid-cell mean of var over each xy plane, reduced across ranks.
   subroutine avexy_ibm(aver,var,ib,ie,jb,je,kb,ke,kh,II,IIs,lnan)
     implicit none
 
@@ -628,18 +629,49 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
     real    :: var(ib:ie,jb:je,kb:ke+kh)
     integer :: II(ib:ie,jb:je,kb:ke+kh)
     integer :: IIs(kb:ke+kh)
-    integer :: IId(kb:ke+kh)
     real    :: averl(kb:ke+kh)
-    real    :: avers(kb:ke+kh)
+    real    :: averl_kb_nomask
     integer :: k
     logical :: lnan
 
     averl       = 0.
-    avers       = 0.
 
     do k=kb,ke+kh
       averl(k) = sum(var(ib:ie,jb:je,k)*II(ib:ie,jb:je,k))
     enddo
+
+    ! Only avexy_ibm_finish uses this, and only when the lowest level is
+    ! entirely solid, so it is formed only in that case - as it was when the
+    ! substitution lived inside the reduction.
+    averl_kb_nomask = 0.
+    if ((.not. lnan) .and. (IIs(kb)==0)) then
+      averl_kb_nomask = sum(var(ib:ie,jb:je,kb))
+    end if
+
+    call avexy_ibm_finish(aver,averl,averl_kb_nomask,kb,ke,kh,IIs,lnan)
+
+    return
+  end subroutine avexy_ibm
+
+  !> Reduce per-rank column sums across ranks and divide by the fluid count.
+  !!
+  !! Split out of avexy_ibm so that the host and the GPU share one owner for
+  !! the reduction and for the all-solid lowest level: the device path forms
+  !! averl with an OpenACC reduction and then calls this unchanged, so the two
+  !! cannot drift apart.
+  subroutine avexy_ibm_finish(aver,averl,averl_kb_nomask,kb,ke,kh,IIs,lnan)
+    implicit none
+
+    integer :: kb,ke,kh
+    real    :: aver(kb:ke+kh)
+    real    :: averl(kb:ke+kh)
+    real    :: averl_kb_nomask
+    integer :: IIs(kb:ke+kh)
+    integer :: IId(kb:ke+kh)
+    real    :: avers(kb:ke+kh)
+    logical :: lnan
+
+    avers       = 0.
 
     IId = IIs
 
@@ -647,7 +679,7 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
     ! should not be necessary but value at kb is used in modthermo so reasonable value must
     ! be assigned. Potentially should leave as before and only account for in modthermo...
     if ((.not. lnan) .and. (IId(kb)==0)) then
-      averl(kb) = sum(var(ib:ie,jb:je,kb))
+      averl(kb) = averl_kb_nomask
       IId(kb) = IId(ke)
     end if
 
@@ -661,7 +693,7 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
     endwhere
 
     return
-  end subroutine avexy_ibm
+  end subroutine avexy_ibm_finish
 
   subroutine slabsumi(aver,iis,iif,var,ib,ie,jb,je,kb,ke,ibs,ies,jbs,jes,kbs,kes)
     implicit none
@@ -729,9 +761,23 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
 
     sumproc = sum(var(ib:ie,jb:je,kb:ke)*II(ib:ie,jb:je,kb:ke), DIM=2)
 
-    call MPI_ALLREDUCE(sumproc(ib:ie,kb:ke), sumy(ib:ie,kb:ke), (ke-kb+1)*(ie-ib+1), MY_REAL,MPI_SUM, comm3d,mpierr)
+    call sum_ibm_reduce(sumy, sumproc, (ke-kb+1)*(ie-ib+1))
 
     end subroutine sumy_ibm
+
+    !> All-reduce a rank-local plane sum over the whole communicator.
+    !!
+    !! sumy_ibm, sumx_ibm and the device paths in masscorr all end here, so the
+    !! element count is written once rather than once per caller.
+    subroutine sum_ibm_reduce(total, local, n)
+      implicit none
+      integer                 :: n
+      real                    :: total(n)
+      real                    :: local(n)
+
+      call MPI_ALLREDUCE(local, total, n, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+    end subroutine sum_ibm_reduce
 
 
     subroutine sumx_ibm(sumx,var,ib,ie,jb,je,kb,ke,II)
@@ -749,7 +795,7 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
 
      sumproc = sum(var(ib:ie,jb:je,kb:ke)*II(ib:ie,jb:je,kb:ke), DIM=1)
 
-     call MPI_ALLREDUCE(sumproc(jb:je,kb:ke), sumx(jb:je,kb:ke), (ke-kb+1)*(je-jb+1), MY_REAL,MPI_SUM, comm3d,mpierr)
+     call sum_ibm_reduce(sumx, sumproc, (ke-kb+1)*(je-jb+1))
 
      end subroutine sumx_ibm
 

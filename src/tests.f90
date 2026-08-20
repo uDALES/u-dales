@@ -21,7 +21,7 @@ module tests
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, &
             tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun, &
-            tests_periodic_ebcorr
+            tests_periodic_ebcorr, tests_masscorr
 
 contains
 
@@ -1842,5 +1842,495 @@ contains
     end subroutine report_scalar
 
   end function tests_periodic_ebcorr
+
+
+  !> Check the flow-rate controllers against the rate they are supposed to hit.
+  !!
+  !! masscorr diagnoses how far the predicted velocity is from the prescribed
+  !! flow rate and adds a uniform defect to the tendency to close the gap. The
+  !! diagnosis is spread over three quantities the routine forms internally
+  !! (uoutflow, uflowrateold, udef), so comparing against those would restate
+  !! the code. What follows instead measures the rate the routine claims to
+  !! set - independently, with its own reduction - and asserts:
+  !!
+  !!   - after the call, the achieved rate equals uflowrate (or vflowrate).
+  !!     This is the whole contract, and it holds for every branch;
+  !!   - a second call is a no-op, because the first one already met the
+  !!     target. This catches a defect that is right once but not consistent
+  !!     with what the correction actually applies;
+  !!   - the rate is the global one, so each rank is given a different field
+  !!     and every rank is checked against the same answer;
+  !!   - u and v are independent, the correction is uniform over ib:ie, jb:je,
+  !!     kb:ke and touches nothing else, and linoutflow or all four switches
+  !!     off is a genuine no-op.
+  !!
+  !! Two mask phases. The volume branches average over the fluid cells, so they
+  !! run first against the real IBM masks. The outflow branches divide by an
+  !! outlet area that calcfluidvolumes derives from IIc while the branch itself
+  !! masks with IIu or IIv; the two agree only when the outlet plane is clear,
+  !! so the second phase sets every mask to one and recomputes the areas. That
+  !! is the configuration those branches are written for - "Assumes ie=itot",
+  !! with no mention of blocks at the outlet.
+  !!
+  !! This exercises the host branch. The device kernels are covered by
+  !! tests_cuda.f90::test_masscorr, which runs under UDALES_RUN_CUDA_SELFTEST
+  !! on a Debug GPU build.
+  !! Returns .true. if all checks pass, .false. otherwise.
+  logical function tests_masscorr()
+    use modglobal, only : runmode, ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, &
+                          libm, dy, dxf, dzf, zh, rslabs, &
+                          linoutflow, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+                          uflowrate, vflowrate, rk3coef, rk3coefi
+    use modfields, only : initfields, um, up, vm, vp, udef, vdef, uouttot, &
+                          uoutarea, voutarea, IIc, IIu, IIv, IIcs, IIus, IIvs
+    use modforces, only : masscorr, calcfluidvolumes
+    use initfac,   only : readfacetfiles
+    use modibm,    only : initibm, createmasks
+    use modmpi,    only : nprocy, MPI_SUM
+
+    implicit none
+
+    real, parameter :: rk3_test = 3., target_u = 1.25, target_v = -0.75
+
+    logical :: all_passed
+    integer :: k
+    real    :: tol, got
+    real, allocatable :: up_save(:,:,:), vp_save(:,:,:)
+    integer, allocatable :: IIc_save(:,:,:), IIu_save(:,:,:), IIv_save(:,:,:)
+    integer, allocatable :: IIcs_save(:), IIus_save(:), IIvs_save(:)
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_masscorr: FLOW RATE CORRECTION TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+#if defined(_GPU)
+    ! masscorr writes the device-resident tendencies in a GPU build, so the
+    ! host arrays this test inspects would never change. Say so explicitly
+    ! rather than reporting an unexplained numeric mismatch, and do not pass
+    ! vacuously.
+    if (myid == 0) then
+      write(*, '(A)') 'FAIL: runmode 1010 exercises the host branch of masscorr.'
+      write(*, '(A)') '  Run it against a CPU build (build/cpu/<type>/u-dales).'
+      write(*, '(A)') '  The device kernels are covered by tests_cuda.f90::test_masscorr,'
+      write(*, '(A)') '  run with UDALES_RUN_CUDA_SELFTEST=1 on a Debug GPU build.'
+    end if
+    tests_masscorr = .false.
+    return
+#endif
+
+    call initfields
+    if (libm) then
+      call readfacetfiles
+      call initibm
+    end if
+    call createmasks
+    call calcfluidvolumes
+
+    all_passed = .true.
+    tol        = 1.e-10
+
+    ! The volume branches divide each level by its fluid-cell count, and
+    ! avexy_ibm returns a sentinel where that count is zero. A fully solid
+    ! level would put -999. into the target, so say so rather than chase the
+    ! resulting mismatch.
+    do k = kb, ke
+      if (IIus(k) == 0 .or. IIvs(k) == 0) then
+        if (myid == 0) write(*, '(A,I0,A)') &
+          'FAIL: level ', k, ' is entirely solid; this runmode needs a case with none'
+        tests_masscorr = .false.
+        return
+      end if
+    end do
+
+    rk3coef  = rk3_test
+    rk3coefi = 1. / rk3_test
+    uflowrate = target_u
+    vflowrate = target_v
+    linoutflow = .false.
+
+    allocate(up_save(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(vp_save(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+
+    ! ---------------------------------------------------------------- 1
+    ! Volume branches, against the real masks.
+    call set_flags(.false., .true., .false., .false.)
+    call fill_fields
+    call masscorr
+    got = volume_rate(um, up, IIu, IIus)
+    if (abs(got - target_u) > tol) then
+      call report('u volume rate not reached', got - target_u)
+      all_passed = .false.
+    end if
+    ! The v tendency must not have moved: the u branch owns only u.
+    if (maxval(abs(vp - vp_save)) > tol) then
+      call report('u volume branch moved vp', maxval(abs(vp - vp_save)))
+      all_passed = .false.
+    end if
+    ! Support: outside ib:ie, jb:je, kb:ke nothing is touched.
+    if (.not. check_support('u volume', up, up_save)) all_passed = .false.
+    ! Uniform: the same defect everywhere in the interior.
+    if (.not. check_uniform('u volume', up, up_save)) all_passed = .false.
+
+    ! ---------------------------------------------------------------- 2
+    ! Idempotent: the target is already met, so the second call adds nothing.
+    up_save = up
+    call masscorr
+    if (abs(udef) > tol) then
+      call report('u volume defect not zero on the second call', udef)
+      all_passed = .false.
+    end if
+    if (maxval(abs(up - up_save)) > tol) then
+      call report('u volume second call moved up', maxval(abs(up - up_save)))
+      all_passed = .false.
+    end if
+
+    ! ---------------------------------------------------------------- 3
+    call set_flags(.false., .false., .false., .true.)
+    call fill_fields
+    call masscorr
+    got = volume_rate(vm, vp, IIv, IIvs)
+    if (abs(got - target_v) > tol) then
+      call report('v volume rate not reached', got - target_v)
+      all_passed = .false.
+    end if
+    if (maxval(abs(up - up_save)) > tol) then
+      call report('v volume branch moved up', maxval(abs(up - up_save)))
+      all_passed = .false.
+    end if
+    if (.not. check_support('v volume', vp, vp_save)) all_passed = .false.
+    if (.not. check_uniform('v volume', vp, vp_save)) all_passed = .false.
+
+    vp_save = vp
+    call masscorr
+    if (abs(vdef) > tol) then
+      call report('v volume defect not zero on the second call', vdef)
+      all_passed = .false.
+    end if
+
+    ! ---------------------------------------------------------------- 4
+    ! Outflow branches, with the outlet planes clear. Save the masks first so
+    ! the switch checks below still run against something realistic.
+    allocate(IIc_save,  source=IIc)
+    allocate(IIu_save,  source=IIu)
+    allocate(IIv_save,  source=IIv)
+    allocate(IIcs_save, source=IIcs)
+    allocate(IIus_save, source=IIus)
+    allocate(IIvs_save, source=IIvs)
+    IIc = 1 ; IIu = 1 ; IIv = 1
+    IIcs = nint(rslabs) ; IIus = nint(rslabs) ; IIvs = nint(rslabs)
+    call calcfluidvolumes
+
+    call set_flags(.true., .false., .false., .false.)
+    call fill_fields
+    call masscorr
+    got = outlet_rate_u(um, up)
+    if (abs(got - target_u) > tol) then
+      call report('u outflow rate not reached', got - target_u)
+      all_passed = .false.
+    end if
+    if (.not. check_support('u outflow', up, up_save)) all_passed = .false.
+    if (.not. check_uniform('u outflow', up, up_save)) all_passed = .false.
+
+    ! uouttot is read by the outflow boundary conditions and is the outlet mass
+    ! flow of the tendency before the correction, so it is checked against the
+    ! saved field rather than the corrected one.
+    got = rk3_test * plane_sum_u(up_save) 
+    if (abs(uouttot - got) > tol * max(1., abs(got))) then
+      call report('uouttot', uouttot - got)
+      all_passed = .false.
+    end if
+
+    up_save = up
+    call masscorr
+    if (abs(udef) > tol) then
+      call report('u outflow defect not zero on the second call', udef)
+      all_passed = .false.
+    end if
+
+    ! ---------------------------------------------------------------- 5
+    ! The v outlet is a row of constant j, so it lives on one rank once the
+    ! domain is split in y and the branch, which all-reduces over every rank,
+    ! would add up one row per rank. That is a property of the scheme, so the
+    ! check runs only where the row is whole.
+    if (nprocy == 1) then
+      call set_flags(.false., .false., .true., .false.)
+      call fill_fields
+      call masscorr
+      got = outlet_rate_v(vm, vp)
+      if (abs(got - target_v) > tol) then
+        call report('v outflow rate not reached', got - target_v)
+        all_passed = .false.
+      end if
+      if (.not. check_support('v outflow', vp, vp_save)) all_passed = .false.
+      if (.not. check_uniform('v outflow', vp, vp_save)) all_passed = .false.
+
+      vp_save = vp
+      call masscorr
+      if (abs(vdef) > tol) then
+        call report('v outflow defect not zero on the second call', vdef)
+        all_passed = .false.
+      end if
+    else if (myid == 0) then
+      write(*, '(A)') '  skipped: v outflow branch needs nprocy = 1'
+    end if
+
+    IIc = IIc_save ; IIu = IIu_save ; IIv = IIv_save
+    IIcs = IIcs_save ; IIus = IIus_save ; IIvs = IIvs_save
+    call calcfluidvolumes
+
+    ! ---------------------------------------------------------------- 6
+    ! Switches. Every branch off, and linoutflow on with every branch set.
+    call set_flags(.false., .false., .false., .false.)
+    call fill_fields
+    call masscorr
+    if (maxval(abs(up - up_save)) > tol .or. maxval(abs(vp - vp_save)) > tol) then
+      call report('all switches off', max(maxval(abs(up - up_save)), &
+                                          maxval(abs(vp - vp_save))))
+      all_passed = .false.
+    end if
+
+    call set_flags(.true., .true., .true., .true.)
+    linoutflow = .true.
+    call fill_fields
+    call masscorr
+    if (maxval(abs(up - up_save)) > tol .or. maxval(abs(vp - vp_save)) > tol) then
+      call report('linoutflow', max(maxval(abs(up - up_save)), &
+                                    maxval(abs(vp - vp_save))))
+      all_passed = .false.
+    end if
+    linoutflow = .false.
+    call set_flags(.false., .false., .false., .false.)
+
+    deallocate(up_save, vp_save)
+    deallocate(IIc_save, IIu_save, IIv_save, IIcs_save, IIus_save, IIvs_save)
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)') 'ALL TESTS PASSED: tests_masscorr'
+        write(*, '(A)') '  Volume and outflow branches, both directions, over the fluid cells'
+      else
+        write(*, '(A)') 'TESTS FAILED: tests_masscorr'
+        write(*, '(A)') '  One or more checks did not pass'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_masscorr = all_passed
+
+  contains
+
+    subroutine set_flags(uout, uvol, vout, vvol)
+      logical, intent(in) :: uout, uvol, vout, vvol
+
+      luoutflowr = uout
+      luvolflowr = uvol
+      lvoutflowr = vout
+      lvvolflowr = vvol
+
+    end subroutine set_flags
+
+    !> Give every rank a different field, so a missing all-reduce shows up.
+    !!
+    !! zstart(2) offsets the rank-local j onto the global grid, so the pattern
+    !! is a single global field split across ranks rather than the same field
+    !! repeated - the latter would let a rank-local reduction pass.
+    subroutine fill_fields
+      integer :: i, j, kk
+
+      do kk = kb-kh, ke+kh
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            um(i,j,kk) = 0.5 + 0.01*real(i) - 0.003*real(j + zstart(2) - 1) + 0.007*real(kk)
+            vm(i,j,kk) = -0.2 + 0.004*real(i) + 0.006*real(j + zstart(2) - 1) - 0.002*real(kk)
+          end do
+        end do
+      end do
+      do kk = kb, ke+kh
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            up(i,j,kk) = 0.02*real(i) + 0.05*real(j + zstart(2) - 1) - 0.01*real(kk)
+            vp(i,j,kk) = -0.03*real(i) + 0.01*real(j + zstart(2) - 1) + 0.04*real(kk)
+          end do
+        end do
+      end do
+
+      up_save = up
+      vp_save = vp
+
+    end subroutine fill_fields
+
+    !> Fluid-volume mean of m + rk3coef*p, the rate the volume branch targets.
+    !!
+    !! Formed here from the definition rather than by calling avexy_ibm, so a
+    !! change of sign or of weighting inside masscorr cannot cancel out.
+    real function volume_rate(m, p, II, IIs)
+      real,    intent(in) :: m(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+      real,    intent(in) :: p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      integer, intent(in) :: II(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)
+      integer, intent(in) :: IIs(kb:ke+khc)
+      real    :: local(kb:ke), total(kb:ke)
+      integer :: i, j, kk
+
+      local = 0.
+      do kk = kb, ke
+        do j = jb, je
+          do i = ib, ie
+            local(kk) = local(kk) + (m(i,j,kk) + rk3coef*p(i,j,kk)) * II(i,j,kk)
+          end do
+        end do
+      end do
+
+      call MPI_ALLREDUCE(local, total, ke-kb+1, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+      volume_rate = 0.
+      do kk = kb, ke
+        volume_rate = volume_rate + (total(kk) / IIs(kk)) * dzf(kk)
+      end do
+      volume_rate = volume_rate / zh(ke+1)
+
+    end function volume_rate
+
+    !> Outlet-plane mean of m + rk3coef*p for the u branch.
+    real function outlet_rate_u(m, p)
+      real, intent(in) :: m(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+      real, intent(in) :: p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real    :: local(kb:ke), total(kb:ke)
+      integer :: j, kk
+
+      local = 0.
+      do kk = kb, ke
+        do j = jb, je
+          local(kk) = local(kk) + (m(ie,j,kk) + rk3coef*p(ie,j,kk)) * IIu(ie,j,kk) * dy
+        end do
+      end do
+
+      call MPI_ALLREDUCE(local, total, ke-kb+1, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+      outlet_rate_u = 0.
+      do kk = kb, ke
+        outlet_rate_u = outlet_rate_u + total(kk) * dzf(kk)
+      end do
+      outlet_rate_u = outlet_rate_u / uoutarea
+
+    end function outlet_rate_u
+
+    !> Outlet-plane sum of one field for the u branch, without the area divide.
+    real function plane_sum_u(p)
+      real, intent(in) :: p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real    :: local(kb:ke), total(kb:ke)
+      integer :: j, kk
+
+      local = 0.
+      do kk = kb, ke
+        do j = jb, je
+          local(kk) = local(kk) + p(ie,j,kk) * IIu(ie,j,kk) * dy
+        end do
+      end do
+
+      call MPI_ALLREDUCE(local, total, ke-kb+1, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+      plane_sum_u = 0.
+      do kk = kb, ke
+        plane_sum_u = plane_sum_u + total(kk) * dzf(kk)
+      end do
+
+    end function plane_sum_u
+
+    !> Outlet-row mean of m + rk3coef*p for the v branch.
+    real function outlet_rate_v(m, p)
+      real, intent(in) :: m(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+      real, intent(in) :: p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real    :: local(kb:ke), total(kb:ke)
+      integer :: i, kk
+
+      local = 0.
+      do kk = kb, ke
+        do i = ib, ie
+          local(kk) = local(kk) + (m(i,je,kk) + rk3coef*p(i,je,kk)) * IIv(i,je,kk) * dxf(1)
+        end do
+      end do
+
+      call MPI_ALLREDUCE(local, total, ke-kb+1, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+      outlet_rate_v = 0.
+      do kk = kb, ke
+        outlet_rate_v = outlet_rate_v + total(kk) * dzf(kk)
+      end do
+      outlet_rate_v = outlet_rate_v / voutarea
+
+    end function outlet_rate_v
+
+    !> Assert that nothing outside ib:ie, jb:je, kb:ke moved.
+    logical function check_support(label, got, before)
+      character(len=*), intent(in) :: label
+      real, intent(in) :: got   (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real, intent(in) :: before(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real    :: worst
+      integer :: i, j, kk
+
+      check_support = .true.
+      worst = 0.
+      do kk = kb, ke+kh
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            if (i < ib .or. i > ie .or. j < jb .or. j > je .or. kk > ke) then
+              worst = max(worst, abs(got(i,j,kk) - before(i,j,kk)))
+            end if
+          end do
+        end do
+      end do
+
+      if (worst > tol) then
+        call report(label//' correction reached outside the interior', worst)
+        check_support = .false.
+      end if
+
+    end function check_support
+
+    !> Assert the interior moved by one and the same amount, and that it moved.
+    logical function check_uniform(label, got, before)
+      character(len=*), intent(in) :: label
+      real, intent(in) :: got   (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real, intent(in) :: before(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+      real    :: delta, worst
+      integer :: i, j, kk
+
+      check_uniform = .true.
+      delta = got(ib,jb,kb) - before(ib,jb,kb)
+      worst = 0.
+      do kk = kb, ke
+        do j = jb, je
+          do i = ib, ie
+            worst = max(worst, abs((got(i,j,kk) - before(i,j,kk)) - delta))
+          end do
+        end do
+      end do
+
+      if (worst > tol) then
+        call report(label//' correction is not uniform', worst)
+        check_uniform = .false.
+      end if
+      if (abs(delta) <= tol) then
+        call report(label//' correction was zero, so nothing was tested', delta)
+        check_uniform = .false.
+      end if
+
+    end function check_uniform
+
+    !> Print one failing quantity with its rank.
+    subroutine report(label, value)
+      character(len=*), intent(in) :: label
+      real,             intent(in) :: value
+
+      write(*,'(A,I0,A,A,A,ES23.15)') 'FAIL on rank ', myid, ': masscorr ', &
+           trim(label), ' = ', value
+
+    end subroutine report
+
+  end function tests_masscorr
 
 end module tests

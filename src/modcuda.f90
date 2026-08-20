@@ -12,6 +12,7 @@ module modcuda
                              ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, ltrees, lscasrc, lscasrcl, &
                              BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
                              lnudge, lnudgevel, libm, nfcts, &
+                             linoutflow, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xh, &
                              eps1, numol, prandtlmoli, prandtlturb, grav, fkar2
@@ -23,7 +24,7 @@ module modcuda
                              dpdxl, dpdyl, thv0h, thvh, thlpcar, &
                              dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls, &
                              uprof, vprof, thlprof, qtprof, svprof, &
-                             IIc, scalar_source_tendency
+                             IIc, IIu, IIv, scalar_source_tendency
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
@@ -68,10 +69,10 @@ module modcuda
    real, device, allocatable :: dthvdz_d(:,:,:)
    real, device, allocatable :: ekm_d(:,:,:), ekh_d(:,:,:), sbshr_d(:,:,:), sbbuo_d(:,:,:), sbdiss_d(:,:,:), zlt_d(:,:,:), damp_d(:,:,:)
    real, device, allocatable :: thv0h_d(:,:,:)
-   real, device, allocatable :: IIc_d(:,:,:)
-
    real, device, allocatable :: dumu_d(:,:,:), duml_d(:,:,:)
    real, device, allocatable :: dummyNO_d(:,:,:), dummyNO2_d(:,:,:), dummyO3_d(:,:,:)
+
+   integer, device, allocatable :: IIc_d(:,:,:), IIu_d(:,:,:), IIv_d(:,:,:)
 
    real, device, allocatable :: scalar_source_tendency_d(:,:,:,:)
 
@@ -91,6 +92,13 @@ module modcuda
    ! Pinned staging for the facet transfers. Automatic arrays cannot be pinned,
    ! so these are held at module level to keep every loop-time copy pinned.
    real, allocatable, pinned :: fac_stage(:), fachf_stage(:), facef_stage(:)
+
+   ! The mass correction reduces one column of per-level sums per call. MPI is
+   ! not CUDA-aware, so that column has to reach the host before the
+   ! all-reduce: col_d holds it on the device and col_stage is the pinned
+   ! landing site. Automatic arrays cannot be pinned, hence module scope.
+   real, device, allocatable :: col_d(:)
+   real, allocatable, pinned :: col_stage(:)
    logical :: lfacets_on_device = .false.
 
    contains
@@ -366,6 +374,22 @@ module modcuda
             allocate(facef_stage(1:nfcts))
          end if
 
+         ! Only the flow-rate controllers masscorr can actually run need the
+         ! masks and the staging column, so an unforced run pays for neither.
+         if ((.not. linoutflow) .and. &
+             (luoutflowr .or. luvolflowr .or. lvoutflowr .or. lvvolflowr)) then
+            allocate(col_d(kb:ke+kh))
+            allocate(col_stage(kb:ke+kh))
+            if (luoutflowr .or. luvolflowr) then
+               allocate(IIu_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
+               IIu_d = IIu
+            end if
+            if (lvoutflowr .or. lvvolflowr) then
+               allocate(IIv_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
+               IIv_d = IIv
+            end if
+         end if
+
       end subroutine initCUDA
 
       subroutine exitCUDA
@@ -404,6 +428,9 @@ module modcuda
          end if
          if (lsmagorinsky) deallocate(csz_d)
          deallocate(dthvdz_d)
+         if (allocated(col_d)) deallocate(col_d, col_stage)
+         if (allocated(IIu_d)) deallocate(IIu_d)
+         if (allocated(IIv_d)) deallocate(IIv_d)
       end subroutine exitCUDA
 
       !> Refresh the facet properties the IBM wall functions read.
@@ -451,6 +478,17 @@ module modcuda
          v0_d = v0
          w0_d = w0
          pres0_d = pres0
+
+         ! masscorr reduces um and vm on the device before updateHost hands the
+         ! stage over, so those mirrors have to be current by this point. The
+         ! host is the last writer: ibmnorm zeroes um at solid points and
+         ! boundary rewrites it afterwards - for a profile or driver inlet at
+         ! the interior plane i = ib, not only in the halo. Nothing else on the
+         ! device reads um or vm before updateDevicePriorPoiss refreshes them,
+         ! so the copy is made only for the controllers that do read them, and a
+         ! run without flow forcing pays nothing.
+         if ((.not. linoutflow) .and. (luoutflowr .or. luvolflowr)) um_d = um
+         if ((.not. linoutflow) .and. (lvoutflowr .or. lvvolflowr)) vm_d = vm
 
          call initfield<<<griddim,blockdim>>>(up_d, 0., ih, jh, kh)
          call checkCUDA( cudaGetLastError(), 'initfield up_d' )
@@ -636,6 +674,136 @@ module modcuda
          ekm = ekm_d
          ekh = ekh_d
       end subroutine updateHost
+
+      !> Rank-local fluid-cell column sums of a device field, for avexy_ibm.
+      !!
+      !! Forms the same averl the host branch of avexy_ibm forms, on the
+      !! device, and then hands it to avexy_ibm_finish. Only the column crosses
+      !! the bus: MPI is not CUDA-aware, so the all-reduce has to happen on the
+      !! host, and the normalization stays with avexy_ibm_finish so the two
+      !! paths cannot drift apart.
+      !!
+      !! kzb is the lower z bound of var, because the tendencies start at kb
+      !! and the previous-step fields at kb-kh. An explicit-shape device dummy
+      !! takes the address of the first element, so getting this wrong would
+      !! silently read the array shifted by kh levels; call sites pass
+      !! lbound(var,3).
+      subroutine avexy_ibm_device(aver, var, kzb, II, IIs, lnan)
+         use modmpi, only : avexy_ibm_finish
+         implicit none
+
+         integer,         intent(in)  :: kzb
+         real   , device, intent(in)  :: var(ib-ih:ie+ih,jb-jh:je+jh,kzb:ke+kh)
+         integer, device, intent(in)  :: II (ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)
+         real   ,         intent(out) :: aver(kb:ke+kh)
+         integer,         intent(in)  :: IIs(kb:ke+kh)
+         logical,         intent(in)  :: lnan
+
+         real    :: s, averl_kb_nomask
+         integer :: i, j, k
+
+         !$acc parallel loop gang default(present) private(s)
+         do k = kb, ke+kh
+           s = 0.
+           !$acc loop vector collapse(2) reduction(+:s)
+           do j = jb, je
+             do i = ib, ie
+               s = s + var(i,j,k)*II(i,j,k)
+             end do
+           end do
+           col_d(k) = s
+         end do
+         !$acc end parallel loop
+
+         ! Only needed when the lowest level is entirely solid, exactly as on
+         ! the host, so the extra pass is not paid for otherwise.
+         averl_kb_nomask = 0.
+         if ((.not. lnan) .and. (IIs(kb) == 0)) then
+           s = 0.
+           !$acc parallel loop collapse(2) default(present) reduction(+:s)
+           do j = jb, je
+             do i = ib, ie
+               s = s + var(i,j,kb)
+             end do
+           end do
+           !$acc end parallel loop
+           averl_kb_nomask = s
+         end if
+
+         col_stage = col_d
+         call avexy_ibm_finish(aver, col_stage, averl_kb_nomask, kb, ke, kh, IIs, lnan)
+
+      end subroutine avexy_ibm_device
+
+      !> Rank-local fluid-cell sum over j on the i = iplane column, weighted.
+      !!
+      !! The device counterpart of the sumy_ibm call in the u outflow branch of
+      !! masscorr, whose i range there is the single outlet plane. weight is
+      !! applied to var before the mask, in the association the host expression
+      !! uses. kzb is the lower z bound of var; see avexy_ibm_device.
+      subroutine sumy_ibm_column_device(total, var, kzb, II, iplane, weight)
+         use modmpi, only : sum_ibm_reduce
+         implicit none
+
+         integer,         intent(in)  :: kzb
+         real   , device, intent(in)  :: var(ib-ih:ie+ih,jb-jh:je+jh,kzb:ke+kh)
+         integer, device, intent(in)  :: II (ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)
+         integer,         intent(in)  :: iplane
+         real   ,         intent(in)  :: weight
+         real   ,         intent(out) :: total(kb:ke)
+
+         real    :: s
+         integer :: j, k
+
+         !$acc parallel loop gang default(present) private(s)
+         do k = kb, ke
+           s = 0.
+           !$acc loop vector reduction(+:s)
+           do j = jb, je
+             s = s + (var(iplane,j,k)*weight)*II(iplane,j,k)
+           end do
+           col_d(k) = s
+         end do
+         !$acc end parallel loop
+
+         col_stage(kb:ke) = col_d(kb:ke)
+         call sum_ibm_reduce(total, col_stage(kb:ke), ke-kb+1)
+
+      end subroutine sumy_ibm_column_device
+
+      !> Rank-local fluid-cell sum over i on the j = jplane column, weighted.
+      !!
+      !! The device counterpart of the sumx_ibm call in the v outflow branch of
+      !! masscorr. kzb is the lower z bound of var; see avexy_ibm_device.
+      subroutine sumx_ibm_column_device(total, var, kzb, II, jplane, weight)
+         use modmpi, only : sum_ibm_reduce
+         implicit none
+
+         integer,         intent(in)  :: kzb
+         real   , device, intent(in)  :: var(ib-ih:ie+ih,jb-jh:je+jh,kzb:ke+kh)
+         integer, device, intent(in)  :: II (ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)
+         integer,         intent(in)  :: jplane
+         real   ,         intent(in)  :: weight
+         real   ,         intent(out) :: total(kb:ke)
+
+         real    :: s
+         integer :: i, k
+
+         !$acc parallel loop gang default(present) private(s)
+         do k = kb, ke
+           s = 0.
+           !$acc loop vector reduction(+:s)
+           do i = ib, ie
+             s = s + (var(i,jplane,k)*weight)*II(i,jplane,k)
+           end do
+           col_d(k) = s
+         end do
+         !$acc end parallel loop
+
+         col_stage(kb:ke) = col_d(kb:ke)
+         call sum_ibm_reduce(total, col_stage(kb:ke), ke-kb+1)
+
+      end subroutine sumx_ibm_column_device
 
       subroutine checkCUDA(istat, kernelname)
          implicit none

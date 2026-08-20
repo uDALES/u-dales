@@ -37,7 +37,7 @@ program uDALES
   use modglobal,         only : initglobal,rk3step,timeleft
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT, &
                                 TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE,TEST_IBM_WALLFUN, &
-                                TEST_PERIODIC_EBCORR
+                                TEST_PERIODIC_EBCORR,TEST_MASSCORR
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -72,7 +72,7 @@ program uDALES
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge,tests_ibm_wallfun, &
-                            tests_periodic_ebcorr
+                            tests_periodic_ebcorr,tests_masscorr
   implicit none
 
   real    :: stime
@@ -199,25 +199,20 @@ program uDALES
 
     call ibmwallfun     ! immersed boundary forcing: only shear forces.
 
+    call periodicEBcorr
+
+    call masscorr       ! correct pred. velocity pup to get correct mass flow
+
 #if defined(_GPU)
     call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
 #endif
-    write(6,'(A,F10.6)')'(advection to ibmwallfun) time = ', MPI_Wtime() - stime
-
-    ! Writes the device-resident tendencies in a GPU build, so it has to run
-    ! before updateHost hands thlp and qtp over: updateDevicePriorPoiss copies
-    ! the host arrays straight back afterwards and would drop the correction.
-    ! On a CPU build updateHost is not compiled at all, so the call order the
-    ! host sees is unchanged.
-    call periodicEBcorr
+    write(6,'(A,F10.6)')'(advection to masscorr) time = ', MPI_Wtime() - stime
 
     stime = MPI_Wtime()
 #if defined(_GPU)
     call updateHost
 #endif
     write(6,'(A,F10.6)')'updateHost time = ', MPI_Wtime() - stime
-
-    call masscorr       ! correct pred. velocity pup to get correct mass flow
 
     call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
 
@@ -330,6 +325,8 @@ contains
         test_failed = .not. tests_ibm_wallfun()
       case (TEST_PERIODIC_EBCORR)
         test_failed = .not. tests_periodic_ebcorr()
+      case (TEST_MASSCORR)
+        test_failed = .not. tests_masscorr()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

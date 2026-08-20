@@ -144,9 +144,15 @@ module modfields
    real, allocatable :: cth(:,:,:)     !< heat transfer coefficient
 
   !tg3315 added variables (statistics, masking and others)
+#if defined(_GPU)
+  integer, allocatable, pinned     :: IIc(:,:,:)
+  integer, allocatable, pinned     :: IIu(:,:,:)
+  integer, allocatable, pinned     :: IIv(:,:,:)
+#else
   integer, allocatable :: IIc(:,:,:)        !< Masking matrix for blocks at cell centres
   integer, allocatable :: IIu(:,:,:)        !< Masking matrix for blocks at x-direction half cells
   integer, allocatable :: IIv(:,:,:)        !< Masking matrix for blocks at y-direction half cells
+#endif
   integer, allocatable :: IIw(:,:,:)        !< Masking matrix for blocks at z-direction half cells
   integer, allocatable :: IIuw(:,:,:)       !< Masking matrix for blocks at x-and z-direction half cells
   integer, allocatable :: IIvw(:,:,:)       !< Masking matrix for blocks at y- and z-direction half cells

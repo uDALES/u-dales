@@ -22,22 +22,27 @@ module tests_cuda
                         uprof_d, vprof_d, thlprof_d, qtprof_d, svprof_d, &
                         ekm_d, ekh_d, pres0_d, fachf_d, facef_d, updateFacFluxHost, &
                         facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
-                        dxdydzfi_d, dxdydzhi_d
+                        dxdydzfi_d, dxdydzhi_d, &
+                        col_d, col_stage, IIu_d, IIv_d
    use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, pres0, &
                          thl0, thlm, thl0c, qt0, qtm, sv0, svm, thlp, wp, &
                          up, vp, qtp, svp, &
                          u0av, v0av, thl0av, qt0av, sv0av, &
-                         uprof, vprof, thlprof, qtprof, svprof
+                         uprof, vprof, thlprof, qtprof, svprof, &
+                         IIc, IIu, IIv, IIcs, IIus, IIvs, &
+                         uoutarea, voutarea, udef, vdef, uouttot
    use modglobal, only : ib, ie, jb, je, kb, ke, ih, jh, kh, nsv, &
                          ihc, jhc, khc, dxhci, dxfc, dxfci, dxi, dyi, &
                          dzhci, dzfc, dzfci, dzfi, eps1, &
-                         dx, dy, dzf, dzh, dxdydzfi, dxdydzhi, &
+                         dx, dy, dxf, dzf, dzh, zh, rslabs, dxdydzfi, dxdydzhi, &
                          lheatpump, lfan_hp, nhppoints, ltempeq, &
                          lmoist, lnudge, lnudgevel, tnudge, nnudge, &
                          iwallmom, nfcts, xhat, yhat, zhat, &
                          totheatflux, totqflux, lEB, rk3step, iwallmoist, &
-                         lperiodicEBcorr, sinkbase, fraction, xlen, ylen, zh
-   use modforces,   only : nudge, periodicEBcorr
+                         lperiodicEBcorr, sinkbase, fraction, xlen, ylen, &
+                         linoutflow, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
+                         uflowrate, vflowrate, rk3coef, rk3coefi
+   use modforces,   only : nudge, periodicEBcorr, masscorr, calcfluidvolumes
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
                            thl_dot_hp, w_hp_exhaust
    use initfac,     only : fachf, facef, facT, facqsat, fachurel, facf, faclGR
@@ -56,7 +61,8 @@ module tests_cuda
                            check_ibm_section_cache
    use modsubgriddata, only : ekm, ekh
    use modinletdata, only : u0driver
-   use modmpi,   only : myid, nprocs
+   use modmpi,   only : myid, nprocs, nprocy, comm3d, mpierr, MY_REAL, MPI_SUM, MPI_INTEGER
+   use decomp_2d, only : zstart
 
    implicit none
    private
@@ -90,6 +96,7 @@ contains
          call test_heatpump_scatter
          call test_nudge_profiles
          call test_periodic_ebcorr
+         call test_masscorr
          call test_ibm_device_geometry
          call test_cell_volume_reciprocals
          call test_ibm_section_cache
@@ -2210,6 +2217,473 @@ contains
       end subroutine run_correction
 
    end subroutine test_periodic_ebcorr
+
+   !> Check the OpenACC flow-rate correction against the rate it must produce.
+   !!
+   !! The host branch is covered by tests.f90::tests_masscorr on a CPU build.
+   !! Repeating the argument here rather than diffing the two branches keeps
+   !! the check independent: a mistake shared by both sides passes a symmetric
+   !! comparison.
+   !!
+   !! Two phases, as on the host. The first uses whatever masks the case has,
+   !! so a device reduction that dropped the fluid-cell mask is caught wherever
+   !! the case has solid cells. The second clears the masks, which is the only
+   !! configuration in which the outlet-plane branches can hit their target -
+   !! the area they divide by comes from IIc while the branch masks with IIu or
+   !! IIv, and those agree only when the outlet is clear.
+   !!
+   !! Every case gets all four branches, whatever its namelist asks for: the
+   !! test allocates the mask mirrors and the staging column that initCUDA
+   !! leaves out when a controller is off, and gives back exactly what it took.
+   subroutine test_masscorr
+      implicit none
+
+      real, parameter :: rk3_test = 3., target_u = 1.25, target_v = -0.75
+
+      logical :: saved_linoutflow, saved_uout, saved_vout, saved_uvol, saved_vvol
+      logical :: mine_col, mine_IIu, mine_IIv
+      real    :: saved_rk3coef, saved_rk3coefi, saved_uflowrate, saved_vflowrate
+      real    :: saved_udef, saved_vdef, saved_uouttot
+      real    :: got
+      integer :: k
+      real, allocatable :: um_h(:,:,:), vm_h(:,:,:)
+      real, allocatable :: up_h(:,:,:), vp_h(:,:,:)
+      real, allocatable :: up_ref(:,:,:), vp_ref(:,:,:)
+      integer, allocatable :: IIc_save(:,:,:), IIu_save(:,:,:), IIv_save(:,:,:)
+      integer, allocatable :: IIcs_save(:), IIus_save(:), IIvs_save(:)
+
+      if (.not. allocated(up_d)) return
+
+      ! initCUDA allocates these only for the controllers the namelist turns
+      ! on. Borrow or create whatever is missing so every branch is reachable,
+      ! and remember which ones to hand back.
+      mine_col = .not. allocated(col_d)
+      if (mine_col) then
+         allocate(col_d(kb:ke+kh))
+         allocate(col_stage(kb:ke+kh))
+      end if
+      mine_IIu = .not. allocated(IIu_d)
+      if (mine_IIu) then
+         allocate(IIu_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
+         IIu_d = IIu
+      end if
+      mine_IIv = .not. allocated(IIv_d)
+      if (mine_IIv) then
+         allocate(IIv_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
+         IIv_d = IIv
+      end if
+
+      saved_linoutflow = linoutflow
+      saved_uout       = luoutflowr
+      saved_vout       = lvoutflowr
+      saved_uvol       = luvolflowr
+      saved_vvol       = lvvolflowr
+      saved_rk3coef    = rk3coef
+      saved_rk3coefi   = rk3coefi
+      saved_uflowrate  = uflowrate
+      saved_vflowrate  = vflowrate
+      ! masscorr leaves these behind, and uouttot is read by the outflow
+      ! boundary conditions during the first step - boundary only recomputes
+      ! it at the end of that step, after the damage would be done.
+      saved_udef       = udef
+      saved_vdef       = vdef
+      saved_uouttot    = uouttot
+
+      linoutflow = .false.
+      rk3coef    = rk3_test
+      rk3coefi   = 1. / rk3_test
+      uflowrate  = target_u
+      vflowrate  = target_v
+
+      allocate(um_h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(vm_h(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+      allocate(up_h(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+      allocate(vp_h(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+      allocate(up_ref(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+      allocate(vp_ref(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+
+      allocate(IIc_save,  source=IIc)
+      allocate(IIu_save,  source=IIu)
+      allocate(IIv_save,  source=IIv)
+      allocate(IIcs_save, source=IIcs)
+      allocate(IIus_save, source=IIus)
+      allocate(IIvs_save, source=IIvs)
+
+      ! Phase 1: a mask the test punches itself rather than whatever the case
+      ! happens to carry. Most GPU cases run with libm off, where every mask is
+      ! one and a device reduction that ignored the mask entirely would agree
+      ! with a correct one - the check has to make its own solid cells to have
+      ! anything to say.
+      call punch_mask
+      IIu_d = IIu
+      IIv_d = IIv
+
+      call set_flags(.false., .true., .false., .false.)
+      call run_correction
+      got = volume_rate(um_h, up_h, IIu, IIus)
+      if (abs(got - target_u) > tolerance_for(target_u)) &
+         call fail_cuda_selftest('masscorr u volume rate, masked')
+      if (maxval(abs(vp_h - vp_ref)) > 1.e-12) &
+         call fail_cuda_selftest('masscorr u volume branch moved vp')
+      call check_shape('masscorr u volume, masked')
+
+      call set_flags(.false., .false., .false., .true.)
+      call run_correction
+      got = volume_rate(vm_h, vp_h, IIv, IIvs)
+      if (abs(got - target_v) > tolerance_for(target_v)) &
+         call fail_cuda_selftest('masscorr v volume rate, masked')
+      if (maxval(abs(up_h - up_ref)) > 1.e-12) &
+         call fail_cuda_selftest('masscorr v volume branch moved up')
+      call check_shape_v('masscorr v volume, masked')
+
+      ! Phase 2: outlet planes clear, so every branch can reach its target.
+      IIc = 1 ; IIu = 1 ; IIv = 1
+      IIcs = nint(rslabs) ; IIus = nint(rslabs) ; IIvs = nint(rslabs)
+      IIu_d = IIu
+      IIv_d = IIv
+      call calcfluidvolumes
+
+      call set_flags(.false., .true., .false., .false.)
+      call run_correction
+      got = volume_rate(um_h, up_h, IIu, IIus)
+      if (abs(got - target_u) > tolerance_for(target_u)) &
+         call fail_cuda_selftest('masscorr u volume rate, clear masks')
+      call check_shape('masscorr u volume, clear masks')
+
+      ! Already on target, so nothing more may be added. A defect that is right
+      ! once but inconsistent with the correction applied fails here.
+      up_ref = up_h
+      call rerun_correction
+      if (abs(udef) > 1.e-12) call fail_cuda_selftest('masscorr u volume second call defect')
+      if (maxval(abs(up_h - up_ref)) > 1.e-12) &
+         call fail_cuda_selftest('masscorr u volume second call moved up')
+
+      call set_flags(.false., .false., .false., .true.)
+      call run_correction
+      got = volume_rate(vm_h, vp_h, IIv, IIvs)
+      if (abs(got - target_v) > tolerance_for(target_v)) &
+         call fail_cuda_selftest('masscorr v volume rate, clear masks')
+      call check_shape_v('masscorr v volume, clear masks')
+
+      call set_flags(.true., .false., .false., .false.)
+      call run_correction
+      got = outlet_rate_u(um_h, up_h)
+      if (abs(got - target_u) > tolerance_for(target_u)) &
+         call fail_cuda_selftest('masscorr u outflow rate')
+      call check_shape('masscorr u outflow')
+      ! uouttot feeds the outflow boundary conditions and is the outlet mass
+      ! flow of the tendency before the correction, not after it.
+      got = rk3_test * plane_sum_u(up_ref)
+      if (abs(uouttot - got) > tolerance_for(got)) &
+         call fail_cuda_selftest('masscorr uouttot')
+
+      ! The v outlet is a row of constant j, which lives on one rank once the
+      ! domain is split in y while the branch all-reduces over every rank.
+      if (nprocy == 1) then
+         call set_flags(.false., .false., .true., .false.)
+         call run_correction
+         got = outlet_rate_v(vm_h, vp_h)
+         if (abs(got - target_v) > tolerance_for(target_v)) &
+            call fail_cuda_selftest('masscorr v outflow rate')
+         call check_shape_v('masscorr v outflow')
+      end if
+
+      ! Switches: nothing on, and linoutflow overriding everything.
+      call set_flags(.false., .false., .false., .false.)
+      call run_correction
+      if (maxval(abs(up_h - up_ref)) > 1.e-12 .or. maxval(abs(vp_h - vp_ref)) > 1.e-12) &
+         call fail_cuda_selftest('masscorr all switches off')
+
+      call set_flags(.true., .true., .true., .true.)
+      linoutflow = .true.
+      call run_correction
+      if (maxval(abs(up_h - up_ref)) > 1.e-12 .or. maxval(abs(vp_h - vp_ref)) > 1.e-12) &
+         call fail_cuda_selftest('masscorr linoutflow')
+
+      IIc = IIc_save ; IIu = IIu_save ; IIv = IIv_save
+      IIcs = IIcs_save ; IIus = IIus_save ; IIvs = IIvs_save
+      call calcfluidvolumes
+      deallocate(IIc_save, IIu_save, IIv_save, IIcs_save, IIus_save, IIvs_save)
+
+      linoutflow = saved_linoutflow
+      luoutflowr = saved_uout
+      lvoutflowr = saved_vout
+      luvolflowr = saved_uvol
+      lvvolflowr = saved_vvol
+      rk3coef    = saved_rk3coef
+      rk3coefi   = saved_rk3coefi
+      uflowrate  = saved_uflowrate
+      vflowrate  = saved_vflowrate
+      udef       = saved_udef
+      vdef       = saved_vdef
+      uouttot    = saved_uouttot
+
+      deallocate(um_h, vm_h, up_h, vp_h, up_ref, vp_ref)
+
+      ! Give back exactly what was borrowed, and restore the device state the
+      ! rest of the run expects.
+      if (mine_IIv) deallocate(IIv_d)
+      if (mine_IIu) deallocate(IIu_d)
+      if (.not. mine_IIu) IIu_d = IIu
+      if (.not. mine_IIv) IIv_d = IIv
+      if (mine_col) deallocate(col_d, col_stage)
+      up_d = up
+      vp_d = vp
+      um_d = um
+      vm_d = vm
+
+   contains
+
+      !> Zero a deterministic third of the interior cells and recount.
+      !!
+      !! IIus and IIvs are the global fluid-cell count per level, so they come
+      !! from an all-reduce of the rank-local count: getting them from anywhere
+      !! else would make the target agree with a wrong reduction.
+      subroutine punch_mask
+         integer :: i, j, kk, jg
+         integer :: countu(kb:ke), countv(kb:ke)
+         integer :: totalu(kb:ke), totalv(kb:ke)
+
+         IIu = 1
+         IIv = 1
+         countu = 0
+         countv = 0
+
+         do kk = kb, ke
+            do j = jb, je
+               jg = j + zstart(2) - 1
+               do i = ib, ie
+                  if (mod(i + 2*jg + 3*kk, 3) == 0) IIu(i,j,kk) = 0
+                  if (mod(i + 3*jg + 2*kk, 3) == 0) IIv(i,j,kk) = 0
+                  countu(kk) = countu(kk) + IIu(i,j,kk)
+                  countv(kk) = countv(kk) + IIv(i,j,kk)
+               end do
+            end do
+         end do
+
+         call MPI_ALLREDUCE(countu, totalu, ke-kb+1, MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+         call MPI_ALLREDUCE(countv, totalv, ke-kb+1, MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+
+         IIus = nint(rslabs)
+         IIvs = nint(rslabs)
+         do kk = kb, ke
+            if (totalu(kk) == 0 .or. totalv(kk) == 0) &
+               call fail_cuda_selftest('masscorr test mask left a level empty')
+            IIus(kk) = totalu(kk)
+            IIvs(kk) = totalv(kk)
+         end do
+
+      end subroutine punch_mask
+
+      subroutine set_flags(uout, uvol, vout, vvol)
+         logical, intent(in) :: uout, uvol, vout, vvol
+
+         luoutflowr = uout
+         luvolflowr = uvol
+         lvoutflowr = vout
+         lvvolflowr = vvol
+
+      end subroutine set_flags
+
+      real function tolerance_for(want)
+         real, intent(in) :: want
+
+         tolerance_for = 1.e-10 * max(1., abs(want))
+
+      end function tolerance_for
+
+      !> Fill the device fields, run masscorr and read the tendencies back.
+      !!
+      !! zstart(2) puts the rank-local j onto the global grid, so the ranks
+      !! hold different slabs of one field rather than the same field each: a
+      !! reduction that stayed rank-local would otherwise pass.
+      subroutine run_correction
+         integer :: i, j, kk
+
+         do kk = kb-kh, ke+kh
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  um_h(i,j,kk) = 0.5 + 0.01*real(i) - 0.003*real(j + zstart(2) - 1) + 0.007*real(kk)
+                  vm_h(i,j,kk) = -0.2 + 0.004*real(i) + 0.006*real(j + zstart(2) - 1) - 0.002*real(kk)
+               end do
+            end do
+         end do
+         do kk = kb, ke+kh
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  up_ref(i,j,kk) = 0.02*real(i) + 0.05*real(j + zstart(2) - 1) - 0.01*real(kk)
+                  vp_ref(i,j,kk) = -0.03*real(i) + 0.01*real(j + zstart(2) - 1) + 0.04*real(kk)
+               end do
+            end do
+         end do
+
+         um_d = um_h
+         vm_d = vm_h
+         up_d = up_ref
+         vp_d = vp_ref
+
+         call rerun_correction
+
+      end subroutine run_correction
+
+      !> Run masscorr again on whatever the device already holds.
+      subroutine rerun_correction
+
+         call masscorr
+         call checkCUDA(cudaDeviceSynchronize(), 'masscorr self-test synchronization')
+         up_h = up_d
+         vp_h = vp_d
+
+      end subroutine rerun_correction
+
+      !> Fluid-volume mean of m + rk3coef*p, formed from the definition.
+      real function volume_rate(m, p, II, IIs)
+         real,    intent(in) :: m(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+         real,    intent(in) :: p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+         integer, intent(in) :: II(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)
+         integer, intent(in) :: IIs(kb:ke+khc)
+         real    :: local(kb:ke), total(kb:ke)
+         integer :: i, j, kk
+
+         local = 0.
+         do kk = kb, ke
+            do j = jb, je
+               do i = ib, ie
+                  local(kk) = local(kk) + (m(i,j,kk) + rk3coef*p(i,j,kk)) * II(i,j,kk)
+               end do
+            end do
+         end do
+
+         call MPI_ALLREDUCE(local, total, ke-kb+1, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+         volume_rate = 0.
+         do kk = kb, ke
+            volume_rate = volume_rate + (total(kk) / IIs(kk)) * dzf(kk)
+         end do
+         volume_rate = volume_rate / zh(ke+1)
+
+      end function volume_rate
+
+      !> Outlet-plane mean of m + rk3coef*p for the u branch.
+      real function outlet_rate_u(m, p)
+         real, intent(in) :: m(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+         real, intent(in) :: p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+         real    :: local(kb:ke), total(kb:ke)
+         integer :: j, kk
+
+         local = 0.
+         do kk = kb, ke
+            do j = jb, je
+               local(kk) = local(kk) + (m(ie,j,kk) + rk3coef*p(ie,j,kk)) * IIu(ie,j,kk) * dy
+            end do
+         end do
+
+         call MPI_ALLREDUCE(local, total, ke-kb+1, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+         outlet_rate_u = 0.
+         do kk = kb, ke
+            outlet_rate_u = outlet_rate_u + total(kk) * dzf(kk)
+         end do
+         outlet_rate_u = outlet_rate_u / uoutarea
+
+      end function outlet_rate_u
+
+      !> Outlet-plane sum of one field for the u branch, without the area.
+      real function plane_sum_u(p)
+         real, intent(in) :: p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+         real    :: local(kb:ke), total(kb:ke)
+         integer :: j, kk
+
+         local = 0.
+         do kk = kb, ke
+            do j = jb, je
+               local(kk) = local(kk) + p(ie,j,kk) * IIu(ie,j,kk) * dy
+            end do
+         end do
+
+         call MPI_ALLREDUCE(local, total, ke-kb+1, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+         plane_sum_u = 0.
+         do kk = kb, ke
+            plane_sum_u = plane_sum_u + total(kk) * dzf(kk)
+         end do
+
+      end function plane_sum_u
+
+      !> Outlet-row mean of m + rk3coef*p for the v branch.
+      real function outlet_rate_v(m, p)
+         real, intent(in) :: m(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+         real, intent(in) :: p(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+         real    :: local(kb:ke), total(kb:ke)
+         integer :: i, kk
+
+         local = 0.
+         do kk = kb, ke
+            do i = ib, ie
+               local(kk) = local(kk) + (m(i,je,kk) + rk3coef*p(i,je,kk)) * IIv(i,je,kk) * dxf(1)
+            end do
+         end do
+
+         call MPI_ALLREDUCE(local, total, ke-kb+1, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+         outlet_rate_v = 0.
+         do kk = kb, ke
+            outlet_rate_v = outlet_rate_v + total(kk) * dzf(kk)
+         end do
+         outlet_rate_v = outlet_rate_v / voutarea
+
+      end function outlet_rate_v
+
+      !> The u correction must be one constant over ib:ie, jb:je, kb:ke, and
+      !! must reach nothing outside it.
+      subroutine check_shape(label)
+         character(len=*), intent(in) :: label
+         real    :: delta
+         integer :: i, j, kk
+
+         delta = up_h(ib,jb,kb) - up_ref(ib,jb,kb)
+         if (abs(delta) <= 1.e-12) call fail_cuda_selftest(label//': correction was zero')
+         do kk = kb, ke+kh
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  if (i < ib .or. i > ie .or. j < jb .or. j > je .or. kk > ke) then
+                     if (abs(up_h(i,j,kk) - up_ref(i,j,kk)) > 1.e-12) &
+                        call fail_cuda_selftest(label//': reached outside the interior')
+                  else
+                     if (abs((up_h(i,j,kk) - up_ref(i,j,kk)) - delta) > 1.e-12) &
+                        call fail_cuda_selftest(label//': not uniform')
+                  end if
+               end do
+            end do
+         end do
+
+      end subroutine check_shape
+
+      !> As check_shape, for the v tendency.
+      subroutine check_shape_v(label)
+         character(len=*), intent(in) :: label
+         real    :: delta
+         integer :: i, j, kk
+
+         delta = vp_h(ib,jb,kb) - vp_ref(ib,jb,kb)
+         if (abs(delta) <= 1.e-12) call fail_cuda_selftest(label//': correction was zero')
+         do kk = kb, ke+kh
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  if (i < ib .or. i > ie .or. j < jb .or. j > je .or. kk > ke) then
+                     if (abs(vp_h(i,j,kk) - vp_ref(i,j,kk)) > 1.e-12) &
+                        call fail_cuda_selftest(label//': reached outside the interior')
+                  else
+                     if (abs((vp_h(i,j,kk) - vp_ref(i,j,kk)) - delta) > 1.e-12) &
+                        call fail_cuda_selftest(label//': not uniform')
+                  end if
+               end do
+            end do
+         end do
+
+      end subroutine check_shape_v
+
+   end subroutine test_masscorr
 
    subroutine fail_cuda_selftest(name)
       implicit none

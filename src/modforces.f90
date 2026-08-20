@@ -315,6 +315,30 @@ module modforces
     ! Reserved for the freestream potential-temperature controller.
   end subroutine fixthetainf
 
+#if defined(_GPU)
+  !> var(ib:ie,jb:je,kb:ke) += delta, matching the host correction loop.
+  subroutine add_uniform_device(var, delta)
+    use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
+    implicit none
+
+    real, device, intent(inout) :: var(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+    real,         intent(in)    :: delta
+
+    integer :: i, j, k
+
+    !$acc parallel loop collapse(3) default(present)
+    do k = kb, ke
+      do j = jb, je
+        do i = ib, ie
+          var(i,j,k) = var(i,j,k) + delta
+        end do
+      end do
+    end do
+    !$acc end parallel loop
+
+  end subroutine add_uniform_device
+#endif
+
   subroutine masscorr
     !> correct the velocities to get prescribed flow rate
 
@@ -322,9 +346,15 @@ module modforces
                           uflowrate,vflowrate,linoutflow,&
                           luoutflowr,lvoutflowr,luvolflowr,lvvolflowr,&
                           rk3coef,rk3coefi
-    use modfields, only : um,up,vm,vp,uouttot,udef,vdef,&
-                          uoutarea,voutarea,IIu,IIv,IIus,IIvs
+    use modfields, only : udef,vdef,uouttot,&
+                          uoutarea,voutarea,IIus,IIvs
+#if defined(_GPU)
+    use modcuda,   only : um_d,up_d,vm_d,vp_d,IIu_d,IIv_d, &
+                          avexy_ibm_device,sumy_ibm_column_device,sumx_ibm_column_device
+#else
+    use modfields, only : um,up,vm,vp,IIu,IIv
     use modmpi,    only : sumy_ibm,sumx_ibm,avexy_ibm !, myid, nprocs
+#endif
     implicit none
 
     real, dimension(kb:ke+kh)     :: uvol
@@ -338,7 +368,10 @@ module modforces
 
     real                          uoutflow,voutflow,&
                                   uflowrateold,vflowrateold
-    integer                       i,j,k
+    integer                       k
+#if !defined(_GPU)
+    integer                       i,j
+#endif
 
     if ((.not.linoutflow) .and. (luoutflowr)) then
 
@@ -349,8 +382,13 @@ module modforces
       uoutold = 0.
 
       ! integrate u fixed at outlet ie along y
+#if defined(_GPU)
+      call sumy_ibm_column_device(uout,    up_d, lbound(up_d,3), IIu_d, ie, dy)  ! u tendency at previous time step
+      call sumy_ibm_column_device(uoutold, um_d, lbound(um_d,3), IIu_d, ie, dy)  ! u at previous time step
+#else
       call sumy_ibm(uout,up(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u tendency at previous time step
       call sumy_ibm(uoutold,um(ie,jb:je,kb:ke)*dy,ie,ie,jb,je,kb,ke,IIu(ie,jb:je,kb:ke))  ! u at previous time step
+#endif
 
       ! integrate u in z
       do k=kb,ke
@@ -368,13 +406,7 @@ module modforces
       ! flow correction to match outflow rate
       udef = uflowrate - (uoutflow + uflowrateold)
 
-      do k = kb,ke
-        do j = jb,je
-            do i = ib,ie
-              up(i,j,k) = up(i,j,k) + udef*rk3coefi
-            end do
-        end do
-      end do
+      call correct_u(udef*rk3coefi)
 
       ! bss116 calculate uouttot which is used in modboundary.
       ! this really should be in the routine directly!
@@ -388,8 +420,13 @@ module modforces
       uvolold = 0.
 
       ! Assumes equidistant grid
+#if defined(_GPU)
+      call avexy_ibm_device(uvol(kb:ke+kh),    up_d, lbound(up_d,3), IIu_d, IIus(kb:ke+kh), .false.)
+      call avexy_ibm_device(uvolold(kb:ke+kh), um_d, lbound(um_d,3), IIu_d, IIus(kb:ke+kh), .false.)
+#else
       call avexy_ibm(uvol(kb:ke+kh),up(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
       call avexy_ibm(uvolold(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
+#endif
 
       ! average over fluid volume
       uoutflow = rk3coef*sum(uvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
@@ -398,13 +435,7 @@ module modforces
       ! flow correction to match outflow rate
       udef = uflowrate - (uoutflow + uflowrateold)
 
-      do k = kb,ke
-        do j = jb,je
-            do i = ib,ie
-              up(i,j,k) = up(i,j,k) + udef*rk3coefi
-            end do
-        end do
-      end do
+      call correct_u(udef*rk3coefi)
 
     end if
 
@@ -423,8 +454,15 @@ module modforces
       !       voutold(k) = sum(vm(ib:ie,je,k)*IIv(ib:ie,je,k)*dxf(ib:ie))  ! v at previous time step
       !    end do
       ! end if
-      call sumy_ibm(vout,vp(ib:je,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v tendency at previous time step
-      call sumy_ibm(voutold,vm(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v at previous time step
+      ! The outlet plane for v is a row of constant j, so this sums over i.
+      ! voutletarea, which produces the voutarea below, sums the same way.
+#if defined(_GPU)
+      call sumx_ibm_column_device(vout,    vp_d, lbound(vp_d,3), IIv_d, je, dxf(1))  ! v tendency at previous time step
+      call sumx_ibm_column_device(voutold, vm_d, lbound(vm_d,3), IIv_d, je, dxf(1))  ! v at previous time step
+#else
+      call sumx_ibm(vout,vp(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v tendency at previous time step
+      call sumx_ibm(voutold,vm(ib:ie,je,kb:ke)*dxf(1),ib,ie,je,je,kb,ke,IIv(ib:ie,je,kb:ke))  ! v at previous time step
+#endif
 
       ! integrate v in z
       do k=kb,ke
@@ -442,13 +480,7 @@ module modforces
       ! flow correction to match outflow rate
       vdef = vflowrate - (voutflow + vflowrateold)
 
-      do k = kb,ke
-        do j = jb,je
-            do i = ib,ie
-              vp(i,j,k) = vp(i,j,k) + vdef*rk3coefi
-            end do
-        end do
-      end do
+      call correct_v(vdef*rk3coefi)
 
     elseif ((.not.linoutflow) .and. (lvvolflowr)) then
 
@@ -458,8 +490,13 @@ module modforces
       vvolold = 0.
 
       ! Assumes equidistant grid
+#if defined(_GPU)
+      call avexy_ibm_device(vvol(kb:ke+kh),    vp_d, lbound(vp_d,3), IIv_d, IIvs(kb:ke+kh), .false.)
+      call avexy_ibm_device(vvolold(kb:ke+kh), vm_d, lbound(vm_d,3), IIv_d, IIvs(kb:ke+kh), .false.)
+#else
       call avexy_ibm(vvol(kb:ke+kh),vp(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
       call avexy_ibm(vvolold(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
+#endif
 
       ! average over fluid volume
       voutflow = rk3coef*sum(vvol(kb:ke)*dzf(kb:ke)) / zh(ke+1)
@@ -467,15 +504,48 @@ module modforces
 
       ! flow correction to match outflow rate
       vdef = vflowrate - (voutflow + vflowrateold)
+
+      call correct_v(vdef*rk3coefi)
+
+    end if
+
+  contains
+
+    !> Apply the same defect to every interior u cell.
+    subroutine correct_u(delta)
+      real, intent(in) :: delta
+
+#if defined(_GPU)
+      call add_uniform_device(up_d, delta)
+#else
       do k = kb,ke
         do j = jb,je
             do i = ib,ie
-              vp(i,j,k) = vp(i,j,k) + vdef*rk3coefi
+              up(i,j,k) = up(i,j,k) + delta
             end do
         end do
       end do
+#endif
 
-    end if
+    end subroutine correct_u
+
+    !> Apply the same defect to every interior v cell.
+    subroutine correct_v(delta)
+      real, intent(in) :: delta
+
+#if defined(_GPU)
+      call add_uniform_device(vp_d, delta)
+#else
+      do k = kb,ke
+        do j = jb,je
+            do i = ib,ie
+              vp(i,j,k) = vp(i,j,k) + delta
+            end do
+        end do
+      end do
+#endif
+
+    end subroutine correct_v
 
   end subroutine masscorr
 
