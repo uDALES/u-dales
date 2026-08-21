@@ -38,7 +38,8 @@ program uDALES
   use modglobal,         only : initglobal,rk3step,timeleft
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT, &
                                 TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE,TEST_IBM_WALLFUN, &
-                                TEST_PERIODIC_EBCORR,TEST_MASSCORR,TEST_IBMNORM,TEST_EB
+                                TEST_PERIODIC_EBCORR,TEST_MASSCORR,TEST_IBMNORM,TEST_EB, &
+                                TEST_VEGETATION
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -54,6 +55,9 @@ program uDALES
   use modpois,           only : initpois,poisson
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
   use vegetation,        only : init_vegetation, vegetation_forcing
+#if defined(_GPU)
+  use vegetation,        only : updateVegDiagHost
+#endif
   ! Purifier forcing is not yet supported by the GPU execution path.
   ! use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
@@ -71,9 +75,13 @@ program uDALES
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
+#if defined(_GPU)
+  use modstatsdump,    only : statsdump_will_sample
+#endif
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge,tests_ibm_wallfun, &
-                            tests_periodic_ebcorr,tests_masscorr,tests_ibmnorm,tests_eb
+                            tests_periodic_ebcorr,tests_masscorr,tests_ibmnorm,tests_eb, &
+                            tests_vegetation
   implicit none
 
   real    :: stime
@@ -231,13 +239,18 @@ program uDALES
 
     call EB
 
+    ! Ahead of updateHost now, not behind it. On a GPU build every loop in here
+    ! runs on the device against the mirrors ibmnorm has just pinned, so the
+    ! previous-step fields no longer have to come down for it - which is what
+    ! the ltrees block updateHost used to carry. On a CPU build nothing moved:
+    ! updateHost does not exist there, and the order against EB is unchanged.
+    call vegetation_forcing
+
     stime = MPI_Wtime()
 #if defined(_GPU)
     call updateHost
 #endif
     write(6,'(A,F10.6)')'updateHost time = ', MPI_Wtime() - stime
-
-    call vegetation_forcing
 
 #if defined(_GPU)
     call updateDevicePriorPoiss
@@ -282,6 +295,15 @@ program uDALES
     call checksim
 
     call fielddump
+
+#if defined(_GPU)
+    ! The tree tendencies stay on the device between samples. statsdump reads
+    ! them under ltreedump only, and only on the steps it samples, so ask it
+    ! rather than draining every step - the same shape as the facet integrals
+    ! above. updateVegDiagHost is itself a no-op without ltreedump, so the
+    ! predicate never has to know about trees.
+    if (statsdump_will_sample()) call updateVegDiagHost
+#endif
 
     call statsdump
 
@@ -350,6 +372,8 @@ contains
         test_failed = .not. tests_ibmnorm()
       case (TEST_EB)
         test_failed = .not. tests_eb()
+      case (TEST_VEGETATION)
+        test_failed = .not. tests_vegetation()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

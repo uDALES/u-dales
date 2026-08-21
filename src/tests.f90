@@ -21,7 +21,8 @@ module tests
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, &
             tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun, &
-            tests_periodic_ebcorr, tests_masscorr, tests_ibmnorm, tests_eb
+            tests_periodic_ebcorr, tests_masscorr, tests_ibmnorm, tests_eb, &
+            tests_vegetation
 
 contains
 
@@ -3681,5 +3682,473 @@ contains
     end function surface_residual
 
   end function tests_eb
+
+  !> Validate the vegetation forcing against the equations it implements.
+  !!
+  !! Two things happened to vegetation_forcing when it was ported: every loop
+  !! moved onto the device, and the time-independent part of the canopy energy
+  !! balance was folded into a startup cache so that the per-step loop carries
+  !! no exponentials and three divisions instead of six. Neither may move the
+  !! physics, so what this test compares against is not the new code rearranged
+  !! but the original expressions written out from the raw vegetation
+  !! properties: the Beer-Lambert extinction with both its exponentials, the
+  !! saturation-curve slope, the aerodynamic resistance in the form
+  !! r_a = 130*sqrt(lsize/sqrt(wind2)), and the decoupling factor as
+  !! omega = 1/(1 + 2*(gam/(s + 2*gam))*(rs/r_a)). If the cache or the folded
+  !! divisions changed anything at all, it shows here.
+  !!
+  !! It also pins:
+  !!   - the momentum drag on all three staggered face lists, and that nothing
+  !!     outside those lists moves, which is what an index slip would do;
+  !!   - qt = qtR + qtA, so the diagnostic split stays exhaustive;
+  !!   - qe + qh = q_av_leaf, the absorbed radiation going somewhere;
+  !!   - the mode dispatch, by running legacy and sveg over the same fields and
+  !!     requiring each to match its own reference and to differ from the other;
+  !!   - drag-only mode leaving heat and moisture untouched;
+  !!   - scalar deposition, per scalar component.
+  !!
+  !! The shipped vegetation cases give every point the same properties, taken
+  !! from one set of namelist values, so a per-point mix-up would reproduce the
+  !! right answer everywhere. The setup below therefore gives lad, rs, lsize,
+  !! ud, dec and sveg a bounded per-point profile and asserts it is not flat
+  !! before trusting any of the comparisons.
+  !!
+  !! This exercises the host branch. The device kernels are covered by
+  !! tests_cuda.f90::test_vegetation_forcing, which runs under
+  !! UDALES_RUN_CUDA_SELFTEST on a Debug GPU build.
+  !! Returns .true. if all checks pass, .false. otherwise.
+  logical function tests_vegetation()
+    use modglobal,  only : runmode, ib, ie, jb, je, kb, ke, ih, jh, kh, nsv, &
+                           ltrees, itree_mode, TREE_MODE_DRAG_ONLY, &
+                           TREE_MODE_SVEG, TREE_MODE_LEGACY_SEB, &
+                           ltempeq, lmoist, Qstar, dzf, pref0, rlv, cp, rv, rd, rhoa
+    use modfields,  only : initfields, um, vm, wm, up, vp, wp, &
+                           thlm, qtm, thlp, qtp, svm, svp
+    use vegetation, only : init_vegetation, init_vegetation_cache, vegetation_forcing, &
+                           veg, vegp, sveg, vegetation_ready, &
+                           npts_u, npts_v, npts_w, ijk_u, ijk_v, ijk_w, &
+                           dcoef_u, dcoef_v, dcoef_w, veg_up, veg_vp, veg_wp
+    use modmpi,     only : MPI_SUM
+
+    implicit none
+
+    real, parameter :: reltol = 1.e-11   !< reassociation only; the arithmetic is double
+
+    logical :: all_passed
+    integer :: m, n, i, j, k, mf, npts
+    real    :: mine(1), everyone(1)
+    real    :: want, got, spread
+    real    :: ref_qt, ref_thl, ref_qtR, ref_qtA, ref_om, ref_q
+    real    :: drag, uu, vv, ww
+    real, allocatable :: legacy_qt(:), legacy_thl(:), legacy_om(:)
+    logical, allocatable :: hit(:,:,:)
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_vegetation: CANOPY DRAG AND ENERGY BALANCE TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+#if defined(_GPU)
+    ! vegetation_forcing writes the device-resident tendencies in a GPU build,
+    ! so the host arrays this test inspects would never change. Say so rather
+    ! than reporting an unexplained mismatch, and do not pass vacuously.
+    if (myid == 0) then
+      write(*, '(A)') 'FAIL: runmode 1013 exercises the host branch of vegetation_forcing.'
+      write(*, '(A)') '  Run it against a CPU build (build/cpu/<type>/u-dales).'
+      write(*, '(A)') '  The device kernels are covered by tests_cuda.f90::test_vegetation_forcing,'
+      write(*, '(A)') '  run with UDALES_RUN_CUDA_SELFTEST=1 on a Debug GPU build.'
+    end if
+    tests_vegetation = .false.
+    return
+#endif
+
+    if (.not. ltrees) then
+      if (myid == 0) then
+        write(*, '(A)') 'FAIL: this runmode needs ltrees = .true. in the namelist.'
+        write(*, '(A)') '  Without it init_vegetation returns immediately and every check is vacuous.'
+      end if
+      tests_vegetation = .false.
+      return
+    end if
+
+    if (nsv < 1) then
+      if (myid == 0) then
+        write(*, '(A)') 'FAIL: this runmode needs nsv >= 1 in the namelist.'
+        write(*, '(A)') '  The scalar deposition loop is one of the things under test.'
+      end if
+      tests_vegetation = .false.
+      return
+    end if
+
+    all_passed = .true.
+
+    ! The runmode dispatch happens before initfields and before
+    ! init_vegetation, so this entry point does both itself. Heat and moisture
+    ! are forced on: the canopy energy balance is skipped without them.
+    ltempeq = .true.
+    lmoist  = .true.
+    call initfields
+
+    itree_mode = TREE_MODE_LEGACY_SEB
+    call init_vegetation
+
+    ! init_vegetation broadcasts and barriers, and it is called once per mode
+    ! below, so no rank may leave early. A rank whose subdomain holds no
+    ! vegetation runs every collective and skips only the per-point checks; it
+    ! is the global count that has to be non-zero.
+    npts = veg%npts
+    if (.not. vegetation_ready) npts = 0
+    ! Counted through a real buffer: every other reduction in this file uses
+    ! one, and MPI_ALLREDUCE has no explicit interface here.
+    mine(1) = real(npts)
+    call MPI_ALLREDUCE(mine, everyone, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+    if (everyone(1) < 1.) then
+      if (myid == 0) write(*, '(A)') 'FAIL: no vegetation points anywhere in the domain'
+      tests_vegetation = .false.
+      return
+    end if
+
+    allocate(legacy_qt(max(1,npts)), legacy_thl(max(1,npts)), legacy_om(max(1,npts)))
+    allocate(hit(ib:ie, jb:je, kb:ke))
+
+    call vary_properties
+    call seed_fields
+    call vegetation_forcing
+
+    ! ----------------------------------------------------------------------
+    ! 1. Momentum drag on the three staggered face lists.
+    ! ----------------------------------------------------------------------
+    mine(1) = real(npts_u + npts_v + npts_w)
+    call MPI_ALLREDUCE(mine, everyone, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+    if (everyone(1) < 1.) call vfail('control: no staggered vegetation faces in the domain', 0)
+
+    do mf = 1, npts_u
+      i = ijk_u(mf,1); j = ijk_u(mf,2); k = ijk_u(mf,3)
+      uu = um(i,j,k)
+      vv = 0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i-1,j,k) + vm(i-1,j+1,k))
+      ww = 0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i-1,j,k) + wm(i-1,j,k+1))
+      drag = -dcoef_u(mf)*uu*sqrt(uu*uu + vv*vv + ww*ww)
+      if (.not. agrees(veg_up(mf), drag)) call vfail('u drag', mf)
+      if (.not. agrees(up(i,j,k), drag)) call vfail('u drag scattered into up', mf)
+    end do
+
+    do mf = 1, npts_v
+      i = ijk_v(mf,1); j = ijk_v(mf,2); k = ijk_v(mf,3)
+      vv = vm(i,j,k)
+      uu = 0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j-1,k) + um(i+1,j-1,k))
+      ww = 0.25*(wm(i,j,k) + wm(i,j,k+1) + wm(i,j-1,k) + wm(i,j-1,k+1))
+      drag = -dcoef_v(mf)*vv*sqrt(vv*vv + uu*uu + ww*ww)
+      if (.not. agrees(veg_vp(mf), drag)) call vfail('v drag', mf)
+      if (.not. agrees(vp(i,j,k), drag)) call vfail('v drag scattered into vp', mf)
+    end do
+
+    do mf = 1, npts_w
+      i = ijk_w(mf,1); j = ijk_w(mf,2); k = ijk_w(mf,3)
+      ww = wm(i,j,k)
+      uu = 0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j,k-1) + um(i+1,j,k-1))
+      vv = 0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i,j,k-1) + vm(i,j+1,k-1))
+      drag = -dcoef_w(mf)*ww*sqrt(ww*ww + uu*uu + vv*vv)
+      if (.not. agrees(veg_wp(mf), drag)) call vfail('w drag', mf)
+      if (.not. agrees(wp(i,j,k), drag)) call vfail('w drag scattered into wp', mf)
+    end do
+
+    ! Nothing outside the face lists moved. Checked over the whole declared
+    ! extent, halos included: a list built or indexed one cell off would still
+    ! reproduce every value the loops above compare.
+    call untouched_outside(up, npts_u, ijk_u, 'up')
+    call untouched_outside(vp, npts_v, ijk_v, 'vp')
+    call untouched_outside(wp, npts_w, ijk_w, 'wp')
+
+    ! ----------------------------------------------------------------------
+    ! 2. Canopy energy balance, legacy Beer-Lambert mode.
+    ! ----------------------------------------------------------------------
+    call check_canopy('legacy')
+
+    do m = 1, npts
+      legacy_qt(m)  = vegp%qt(m)
+      legacy_thl(m) = vegp%thl(m)
+      legacy_om(m)  = vegp%omega(m)
+    end do
+
+    ! ----------------------------------------------------------------------
+    ! 3. Scalar deposition, one check per component.
+    ! ----------------------------------------------------------------------
+    do m = 1, npts
+      i = veg%ijk(m,1); j = veg%ijk(m,2); k = veg%ijk(m,3)
+      do n = 1, nsv
+        want = -svm(i,j,k,n) * veg%lad(m) * veg%ud(m)
+        if (.not. agrees(vegp%sv(m,n), want)) call vfail('scalar deposition', m)
+        if (.not. agrees(svp(i,j,k,n), want)) call vfail('deposition scattered into svp', m)
+      end do
+    end do
+
+    ! ----------------------------------------------------------------------
+    ! 4. sveg mode: the radiation comes from sveg.inp, not from Qstar and the
+    !    cumulative LAI. Both must match their own reference, and they must not
+    !    agree with each other - otherwise the mode switch does nothing and
+    !    check_canopy would pass either way.
+    ! ----------------------------------------------------------------------
+    itree_mode = TREE_MODE_SVEG
+    call init_vegetation
+    call vary_properties
+    call seed_fields
+    call vegetation_forcing
+    call check_canopy('sveg')
+
+    spread = 0.
+    do m = 1, npts
+      spread = max(spread, abs(vegp%qt(m) - legacy_qt(m)))
+      spread = max(spread, abs(vegp%thl(m) - legacy_thl(m)))
+    end do
+    if (npts > 0 .and. spread <= 0.) then
+      call vfail('control: legacy and sveg radiation give identical tendencies', 0)
+    end if
+
+    ! ----------------------------------------------------------------------
+    ! 5. Drag-only mode: the canopy loop must not run at all, but the momentum
+    !    drag must still be applied.
+    ! ----------------------------------------------------------------------
+    itree_mode = TREE_MODE_DRAG_ONLY
+    call init_vegetation
+    call vary_properties
+    call seed_fields
+    call vegetation_forcing
+
+    do m = 1, npts
+      if (vegp%qt(m) /= 0.)  call vfail('drag-only mode moved qt', m)
+      if (vegp%thl(m) /= 0.) call vfail('drag-only mode moved thl', m)
+    end do
+    if (any(thlp /= 0.)) call vfail('drag-only mode wrote thlp', 0)
+    if (any(qtp  /= 0.)) call vfail('drag-only mode wrote qtp', 0)
+
+    spread = 0.
+    do mf = 1, npts_u
+      spread = max(spread, abs(veg_up(mf)))
+    end do
+    if (npts_u > 0 .and. spread <= 0.) call vfail('control: drag-only mode applied no drag either', 0)
+
+    deallocate(legacy_qt, legacy_thl, legacy_om, hit)
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)') 'tests_vegetation: PASSED'
+      else
+        write(*, '(A)') 'tests_vegetation: FAILED'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_vegetation = all_passed
+
+  contains
+
+    subroutine vfail(msg, idx)
+      character(len=*), intent(in) :: msg
+      integer,          intent(in) :: idx
+      if (idx == 0) then
+        write(*,'(A,I0,A,A)') 'FAIL on rank ', myid, ': ', msg
+      else
+        write(*,'(A,I0,A,A,1X,I0)') 'FAIL on rank ', myid, ': ', msg, idx
+      end if
+      all_passed = .false.
+    end subroutine vfail
+
+    !> Relative comparison, absolute near zero.
+    logical function agrees(a, b)
+      real, intent(in) :: a, b
+      agrees = abs(a - b) <= reltol*max(1.e-30, abs(b))
+    end function agrees
+
+    !> Give the vegetation points properties that actually differ.
+    !!
+    !! Bounded and non-monotone, so no point ends up with a degenerate lad or a
+    !! resistance large enough to drive the whole canopy term to zero. The face
+    !! drag coefficients are deliberately left alone: they were built from the
+    !! original lad in init_vegetation and are read straight out of dcoef_u/v/w
+    !! by both the routine and the checks above, so the two paths stay
+    !! independent.
+    subroutine vary_properties
+      integer :: mm
+      real    :: lo, hi
+
+      Qstar = 550.
+      do mm = 1, veg%npts
+        veg%lad(mm)   = 0.60 + 0.40*sin(0.90*real(mm))
+        veg%rs(mm)    = 60.0 + 30.0*sin(0.53*real(mm) + 1.)
+        veg%lsize(mm) = 0.15 + 0.08*sin(0.31*real(mm) + 2.)
+        veg%ud(mm)    = 2.0e-4*(1.5 + sin(0.77*real(mm) + 3.))
+        veg%dec(mm)   = 0.35 + 0.15*sin(0.19*real(mm) + 4.)
+        sveg(mm)      = 250. + 120.*sin(0.61*real(mm) + 5.)
+      end do
+      call init_vegetation_cache
+
+      ! The comparisons below are only meaningful if the points differ. A case
+      ! whose vegetation is uniform would let a per-point index slip reproduce
+      ! every value, so refuse to report a pass on one.
+      if (veg%npts > 1) then
+        lo = minval(veg%lad(1:veg%npts)); hi = maxval(veg%lad(1:veg%npts))
+        if (hi - lo <= 0.) call vfail('control: leaf area density is flat across points', 0)
+        lo = minval(veg%rs(1:veg%npts)); hi = maxval(veg%rs(1:veg%npts))
+        if (hi - lo <= 0.) call vfail('control: stomatal resistance is flat across points', 0)
+        lo = minval(sveg(1:veg%npts)); hi = maxval(sveg(1:veg%npts))
+        if (hi - lo <= 0.) call vfail('control: absorbed shortwave is flat across points', 0)
+      end if
+      if (Qstar <= 0.) call vfail('control: Qstar is zero, so legacy radiation vanishes', 0)
+    end subroutine vary_properties
+
+    !> Spatially varying previous-step fields, and cleared tendencies.
+    subroutine seed_fields
+      integer :: nn
+      call seed3(um,   0.80, 0.60)
+      call seed3(vm,  -0.30, 0.50)
+      call seed3(wm,   0.20, 0.40)
+      call seed3(thlm, 292.0, 3.0)
+      call seed3(qtm,  0.009, 0.002)
+      do nn = 1, nsv
+        call seed3(svm(:,:,:,nn), 1.0 + 0.5*real(nn), 0.4)
+      end do
+      up = 0.; vp = 0.; wp = 0.; thlp = 0.; qtp = 0.; svp = 0.
+    end subroutine seed_fields
+
+    !> Fill a field with a bounded, index-dependent pattern.
+    !!
+    !! Assumed-shape, so the index origin is lost - which does not matter: the
+    !! checks read the same array back through the same indices, and all this
+    !! has to do is make neighbouring cells differ.
+    subroutine seed3(a, base, amp)
+      real, intent(inout) :: a(:,:,:)
+      real, intent(in)    :: base, amp
+      integer :: i1, i2, i3
+      do i3 = 1, size(a,3)
+        do i2 = 1, size(a,2)
+          do i1 = 1, size(a,1)
+            a(i1,i2,i3) = base + amp*sin(0.70*real(i1) + 0.30*real(i2) + 0.11*real(i3))
+          end do
+        end do
+      end do
+    end subroutine seed3
+
+    !> Every cell outside the point list must still hold exactly zero.
+    subroutine untouched_outside(fld, nlist, list, label)
+      real,             intent(in) :: fld(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh)
+      integer,          intent(in) :: nlist
+      integer,          intent(in) :: list(:,:)
+      character(len=*), intent(in) :: label
+      integer :: ii, jj, kk, mm
+
+      hit = .false.
+      do mm = 1, nlist
+        hit(list(mm,1), list(mm,2), list(mm,3)) = .true.
+      end do
+
+      do kk = kb, ke+kh
+        do jj = jb-jh, je+jh
+          do ii = ib-ih, ie+ih
+            if (ii >= ib .and. ii <= ie .and. jj >= jb .and. jj <= je .and. &
+                kk >= kb .and. kk <= ke) then
+              if (hit(ii,jj,kk)) cycle
+            end if
+            if (fld(ii,jj,kk) /= 0.) then
+              call vfail(label//' moved outside the vegetation face list at k =', kk)
+              return
+            end if
+          end do
+        end do
+      end do
+    end subroutine untouched_outside
+
+    !> Compare the canopy tendencies against the original expressions.
+    subroutine check_canopy(label)
+      character(len=*), intent(in) :: label
+      integer :: mm
+
+      do mm = 1, veg%npts
+        call canopy_reference(mm, ref_qt, ref_thl, ref_qtR, ref_qtA, ref_om, ref_q)
+
+        if (.not. agrees(vegp%omega(mm), ref_om)) call vfail(label//': decoupling factor', mm)
+        if (.not. agrees(vegp%qt(mm),    ref_qt))  call vfail(label//': moisture tendency', mm)
+        if (.not. agrees(vegp%thl(mm),   ref_thl)) call vfail(label//': heat tendency', mm)
+        if (.not. agrees(vegp%qtR(mm),   ref_qtR)) call vfail(label//': radiative moisture share', mm)
+        if (.not. agrees(vegp%qtA(mm),   ref_qtA)) call vfail(label//': aerodynamic moisture share', mm)
+
+        ! The split is exhaustive.
+        if (.not. agrees(vegp%qt(mm), vegp%qtR(mm) + vegp%qtA(mm))) then
+          call vfail(label//': qt is not qtR + qtA', mm)
+        end if
+
+        ! And the absorbed radiation all goes somewhere: qe + qh = q_av_leaf,
+        ! recovered from the two tendencies through their own scalings.
+        want = ref_q
+        got  = vegp%qt(mm)*(rhoa*rlv)/veg%lad(mm) + vegp%thl(mm)*(rhoa*cp)/veg%lad(mm)
+        if (.not. agrees(got, want)) call vfail(label//': canopy energy does not close', mm)
+      end do
+
+      ! A canopy that absorbs nothing would satisfy every line above trivially.
+      spread = 0.
+      do mm = 1, veg%npts
+        spread = max(spread, abs(vegp%thl(mm)))
+      end do
+      if (veg%npts > 0 .and. spread <= 0.) then
+        call vfail('control: '//label//' produced no heat tendency at all', 0)
+      end if
+    end subroutine check_canopy
+
+    !> The canopy energy balance as it was written before the cache.
+    !!
+    !! Deliberately verbose and division-heavy: this is the reference the
+    !! folded form has to reproduce, so it keeps slope_sat, r_a and gam
+    !! explicit rather than sharing anything with vegetation.f90.
+    subroutine canopy_reference(mm, o_qt, o_thl, o_qtR, o_qtA, o_om, o_q)
+      integer, intent(in)  :: mm
+      real,    intent(out) :: o_qt, o_thl, o_qtR, o_qtA, o_om, o_q
+      integer :: ii, jj, kk
+      real :: ladv, decv, clai, rn_top, rn_bot, q_av_leaf
+      real :: e_sat, e_vap, d_vap, slope_sat, r_a, omega, qe, qh, gam
+      real :: lsizev, rsv, wind2
+
+      ii = veg%ijk(mm,1); jj = veg%ijk(mm,2); kk = veg%ijk(mm,3)
+
+      ladv = veg%lad(mm)
+      gam  = (cp*pref0*rv)/(rlv*rd)
+
+      if (itree_mode == TREE_MODE_SVEG) then
+        q_av_leaf = sveg(mm) / max(ladv, 1.0e-12)
+      else
+        decv = veg%dec(mm)
+        clai = veg%laiv(mm)
+        rn_top = Qstar * exp(-decv * (clai - ladv * dzf(kk)))
+        rn_bot = Qstar * exp(-decv * clai)
+        q_av_leaf = (rn_top - rn_bot) / (dzf(kk) * max(ladv, 1.0e-12))
+      end if
+
+      lsizev = max(veg%lsize(mm), 1.0e-6)
+      rsv    = max(veg%rs(mm), 1.0e-6)
+
+      e_sat = 610.8*exp((17.27*(thlm(ii,jj,kk)-273.15))/(thlm(ii,jj,kk)-35.85))
+      e_vap = (qtm(ii,jj,kk) * pref0) / (0.378 * qtm(ii,jj,kk) + 0.622)
+      d_vap = max(e_sat - e_vap, 0.)
+      slope_sat = (4098*e_sat)/((thlm(ii,jj,kk)-35.85)**2)
+
+      wind2 = max((0.5*(um(ii,jj,kk)+um(ii+1,jj,kk)))**2 &
+                +(0.5*(vm(ii,jj,kk)+vm(ii,jj+1,kk)))**2 &
+                +(0.5*(wm(ii,jj,kk)+wm(ii,jj,kk+1)))**2, 1.0e-12)
+      r_a = 130*sqrt(lsizev / sqrt(wind2))
+
+      omega = 1/(1 + 2*(gam/(slope_sat+2*gam)) * (rsv/r_a))
+      qe = omega*(slope_sat/(slope_sat+2*gam))*q_av_leaf + (1-omega)*(1/(gam*rsv))*rhoa*cp*d_vap
+      qh = q_av_leaf - qe
+
+      o_om  = omega
+      o_qtR = ladv*(omega*(slope_sat/(slope_sat+2*gam))*q_av_leaf)/(rhoa*rlv)
+      o_qtA = ladv*((1-omega)*(1/(gam*rsv))*rhoa*cp*d_vap)/(rhoa*rlv)
+      o_qt  = ladv*qe/(rhoa*rlv)
+      o_thl = ladv*qh/(rhoa*cp)
+      o_q   = q_av_leaf
+    end subroutine canopy_reference
+
+  end function tests_vegetation
 
 end module tests

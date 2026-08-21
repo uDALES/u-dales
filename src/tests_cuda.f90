@@ -42,7 +42,8 @@ module tests_cuda
                          totheatflux, totqflux, lEB, rk3step, iwallmoist, &
                          lperiodicEBcorr, sinkbase, fraction, xlen, ylen, &
                          linoutflow, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
-                         uflowrate, vflowrate, rk3coef, rk3coefi, dt
+                         uflowrate, vflowrate, rk3coef, rk3coefi, dt, &
+                         ltrees, ltreedump
    use modforces,   only : nudge, periodicEBcorr, masscorr, calcfluidvolumes
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
                            thl_dot_hp, w_hp_exhaust
@@ -67,6 +68,13 @@ module tests_cuda
                            solid_device, solid_masked_device, &
                            advecc2nd_corr_conservative_device, advecc2nd_corr_liberal_device
    use modsubgriddata, only : ekm, ekh
+   use vegetation,   only : veg, vegp, vegetation_ready, &
+                            npts_u, npts_v, npts_w, veg_up, veg_vp, veg_wp, &
+                            veg_up_d, veg_vp_d, veg_wp_d, &
+                            vegp_qt_d, vegp_qtR_d, vegp_qtA_d, vegp_thl_d, &
+                            vegp_omega_d, vegp_sv_d, &
+                            vegetation_forcing_device, vegetation_forcing_host, &
+                            updateVegDiagHost
    use modinletdata, only : u0driver
    use modmpi,   only : myid, nprocs, nprocy, comm3d, mpierr, MY_REAL, MPI_SUM, MPI_INTEGER
    use decomp_2d, only : zstart
@@ -113,6 +121,7 @@ contains
          call test_ibm_wallfunheat
          call test_facflux_handover
          call test_facet_props_refresh
+         call test_vegetation_forcing
          write(*,'(A,I0)') 'CUDA device self-tests passed. rank=', myid
       case ('', '0', 'false', 'FALSE', 'no', 'NO', 'off', 'OFF')
          return
@@ -3002,6 +3011,276 @@ contains
       end subroutine check_distinct_solid
 
    end subroutine test_ibmnorm
+
+
+   !> Compare the device vegetation forcing against the host branch it replaced.
+   !!
+   !! Both branches are compiled into a Debug GPU build, so this feeds them the
+   !! same previous-step fields and requires the same answer - the drag on all
+   !! three staggered face lists, the canopy tendencies, the scalar deposition,
+   !! and the scatter into up/vp/wp/thlp/qtp/svp, compared over the whole
+   !! declared extent so a misplaced write cannot hide in a halo.
+   !!
+   !! It also pins two contracts the port depends on:
+   !!   - the device tendency diagnostics are assigned, not accumulated. The
+   !!     host clears them through reset_vegetation_sources every step; the
+   !!     device has no such pass, and relies on every loop writing every
+   !!     element. Running the kernels twice without clearing must therefore
+   !!     change nothing.
+   !!   - updateVegDiagHost lands exactly what the device holds, which is what
+   !!     statsdump reads under ltreedump.
+   !!
+   !! Skipped on a case without vegetation, like the other configuration-gated
+   !! self-tests here.
+   subroutine test_vegetation_forcing
+      implicit none
+
+      real, parameter :: tol = 1.e-10
+
+      real, allocatable :: um_s(:,:,:), vm_s(:,:,:), wm_s(:,:,:)
+      real, allocatable :: thlm_s(:,:,:), qtm_s(:,:,:), svm_s(:,:,:,:)
+      real, allocatable :: up_s(:,:,:), vp_s(:,:,:), wp_s(:,:,:)
+      real, allocatable :: thlp_s(:,:,:), qtp_s(:,:,:), svp_s(:,:,:,:)
+      real, allocatable :: dev3(:,:,:), dev4(:,:,:,:)
+      real, allocatable :: host_up(:), host_vp(:), host_wp(:)
+      real, allocatable :: host_qt(:), host_qtR(:), host_qtA(:), host_thl(:), host_om(:)
+      real, allocatable :: host_sv(:,:)
+      real, allocatable :: dev1(:), dev1b(:), dev2(:,:)
+      integer :: m, n, npts
+
+      if (.not. ltrees) return
+      if (.not. vegetation_ready) return
+      npts = veg%npts
+      if (npts < 1) return
+
+      allocate(um_s,   source=um)
+      allocate(vm_s,   source=vm)
+      allocate(wm_s,   source=wm)
+      allocate(up_s,   source=up)
+      allocate(vp_s,   source=vp)
+      allocate(wp_s,   source=wp)
+      if (ltempeq) then
+         allocate(thlm_s, source=thlm)
+         allocate(thlp_s, source=thlp)
+      end if
+      if (lmoist) then
+         allocate(qtm_s, source=qtm)
+         allocate(qtp_s, source=qtp)
+      end if
+      if (nsv > 0) then
+         allocate(svm_s, source=svm)
+         allocate(svp_s, source=svp)
+      end if
+
+      call seed_vegetation_inputs
+
+      ! ---- device branch -------------------------------------------------
+      um_d = um
+      vm_d = vm
+      wm_d = wm
+      up_d = up
+      vp_d = vp
+      wp_d = wp
+      if (ltempeq) then
+         thlm_d = thlm
+         thlp_d = thlp
+      end if
+      if (lmoist) then
+         qtm_d = qtm
+         qtp_d = qtp
+      end if
+      if (nsv > 0) then
+         svm_d = svm
+         svp_d = svp
+      end if
+
+      call vegetation_forcing_device
+
+      allocate(dev1(max(1,npts)), dev1b(max(1,npts)))
+      allocate(host_qt(max(1,npts)), host_qtR(max(1,npts)), host_qtA(max(1,npts)))
+      allocate(host_thl(max(1,npts)), host_om(max(1,npts)))
+      allocate(host_sv(max(1,npts), max(1,nsv)))
+      if (npts_u > 0) allocate(host_up(npts_u))
+      if (npts_v > 0) allocate(host_vp(npts_v))
+      if (npts_w > 0) allocate(host_wp(npts_w))
+
+      ! The idempotence contract: a second pass over unchanged inputs, with the
+      ! fields put back but the diagnostics deliberately left alone, must leave
+      ! the diagnostics where they were. An accumulating kernel doubles here.
+      dev1 = vegp_qt_d
+      up_d = up
+      vp_d = vp
+      wp_d = wp
+      if (ltempeq) thlp_d = thlp
+      if (lmoist)  qtp_d  = qtp
+      if (nsv > 0) svp_d  = svp
+      call vegetation_forcing_device
+      ! Brought down before comparing: a device array may only appear in a
+      ! whole-array assignment here, never inside an expression.
+      dev1b = vegp_qt_d
+      if (maxval(abs(dev1b - dev1)) > tol*max(1.e-30, maxval(abs(dev1)))) then
+         call fail_cuda_selftest('the device vegetation tendencies accumulate across calls')
+      end if
+
+      ! ---- host branch, same inputs --------------------------------------
+      call vegetation_forcing_host
+
+      ! ---- per-point comparisons -----------------------------------------
+      if (npts_u > 0) then
+         host_up = veg_up
+         deallocate(dev1b); allocate(dev1b(npts_u))
+         dev1b = veg_up_d
+         call same1('u drag', dev1b, host_up)
+      end if
+      if (npts_v > 0) then
+         host_vp = veg_vp
+         deallocate(dev1b); allocate(dev1b(npts_v))
+         dev1b = veg_vp_d
+         call same1('v drag', dev1b, host_vp)
+      end if
+      if (npts_w > 0) then
+         host_wp = veg_wp
+         deallocate(dev1b); allocate(dev1b(npts_w))
+         dev1b = veg_wp_d
+         call same1('w drag', dev1b, host_wp)
+      end if
+      deallocate(dev1b); allocate(dev1b(max(1,npts)))
+
+      host_qt  = vegp%qt
+      host_qtR = vegp%qtR
+      host_qtA = vegp%qtA
+      host_thl = vegp%thl
+      host_om  = vegp%omega
+      dev1 = vegp_qt_d;    call same1('canopy qt',    dev1, host_qt)
+      dev1 = vegp_qtR_d;   call same1('canopy qtR',   dev1, host_qtR)
+      dev1 = vegp_qtA_d;   call same1('canopy qtA',   dev1, host_qtA)
+      dev1 = vegp_thl_d;   call same1('canopy thl',   dev1, host_thl)
+      dev1 = vegp_omega_d; call same1('canopy omega', dev1, host_om)
+
+      if (nsv > 0) then
+         host_sv = vegp%sv
+         allocate(dev2(npts, max(1,nsv)))
+         dev2 = vegp_sv_d
+         do n = 1, nsv
+            call same1('scalar deposition', dev2(:,n), host_sv(:,n))
+         end do
+         deallocate(dev2)
+      end if
+
+      ! ---- scattered fields, whole declared extent ------------------------
+      ! The tendencies start at kb, not kb-kh, on both sides.
+      allocate(dev3(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      dev3 = up_d; call same3('up', dev3, up)
+      dev3 = vp_d; call same3('vp', dev3, vp)
+      dev3 = wp_d; call same3('wp', dev3, wp)
+      if (ltempeq) then
+         dev3 = thlp_d; call same3('thlp', dev3, thlp)
+      end if
+      if (lmoist) then
+         dev3 = qtp_d; call same3('qtp', dev3, qtp)
+      end if
+      deallocate(dev3)
+
+      if (nsv > 0) then
+         allocate(dev4(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb:ke+khc, nsv))
+         dev4 = svp_d
+         do n = 1, nsv
+            if (maxval(abs(dev4(:,:,:,n) - svp(:,:,:,n))) > &
+                tol*max(1.e-30, maxval(abs(svp(:,:,:,n))))) then
+               call fail_cuda_selftest('device and host svp disagree after vegetation forcing')
+            end if
+         end do
+         deallocate(dev4)
+      end if
+
+      ! ---- the diagnostic drain ------------------------------------------
+      if (ltreedump) then
+         vegp%qt = 0.; vegp%qtR = 0.; vegp%qtA = 0.; vegp%thl = 0.; vegp%omega = 0.
+         if (nsv > 0) vegp%sv = 0.
+         if (npts_u > 0) veg_up = 0.
+         if (npts_v > 0) veg_vp = 0.
+         if (npts_w > 0) veg_wp = 0.
+
+         call updateVegDiagHost
+
+         if (lmoist) then
+            call same1('drained qt', vegp%qt, host_qt)
+            call same1('drained qtR', vegp%qtR, host_qtR)
+            call same1('drained qtA', vegp%qtA, host_qtA)
+            call same1('drained omega', vegp%omega, host_om)
+         end if
+         if (ltempeq) call same1('drained thl', vegp%thl, host_thl)
+         do n = 1, nsv
+            call same1('drained scalar deposition', vegp%sv(:,n), host_sv(:,n))
+         end do
+         if (npts_u > 0) call same1('drained u drag', veg_up, host_up)
+         if (npts_v > 0) call same1('drained v drag', veg_vp, host_vp)
+         if (npts_w > 0) call same1('drained w drag', veg_wp, host_wp)
+      end if
+
+      ! ---- restore -------------------------------------------------------
+      um = um_s; vm = vm_s; wm = wm_s
+      up = up_s; vp = vp_s; wp = wp_s
+      if (ltempeq) then
+         thlm = thlm_s; thlp = thlp_s
+      end if
+      if (lmoist) then
+         qtm = qtm_s; qtp = qtp_s
+      end if
+      if (nsv > 0) then
+         svm = svm_s; svp = svp_s
+      end if
+
+   contains
+
+      !> Bounded, index-dependent previous-step fields and cleared tendencies.
+      subroutine seed_vegetation_inputs
+         integer :: i, j, k, nn
+         do k = kb-kh, ke+kh
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  um(i,j,k) = 0.80 + 0.60*sin(0.70*real(i) + 0.30*real(j) + 0.11*real(k))
+                  vm(i,j,k) = -0.30 + 0.50*sin(0.23*real(i) + 0.61*real(j) + 0.17*real(k))
+                  wm(i,j,k) = 0.20 + 0.40*sin(0.41*real(i) + 0.13*real(j) + 0.53*real(k))
+                  if (ltempeq) thlm(i,j,k) = 292. + 3.0*sin(0.19*real(i) + 0.29*real(j) + 0.37*real(k))
+                  if (lmoist)  qtm(i,j,k)  = 0.009 + 0.002*sin(0.31*real(i) + 0.47*real(j) + 0.07*real(k))
+               end do
+            end do
+         end do
+         do nn = 1, nsv
+            do k = kb-khc, ke+khc
+               do j = jb-jhc, je+jhc
+                  do i = ib-ihc, ie+ihc
+                     svm(i,j,k,nn) = 1.0 + 0.5*real(nn) &
+                                   + 0.4*sin(0.43*real(i) + 0.11*real(j) + 0.27*real(k))
+                  end do
+               end do
+            end do
+         end do
+         up = 0.; vp = 0.; wp = 0.
+         if (ltempeq) thlp = 0.
+         if (lmoist)  qtp  = 0.
+         if (nsv > 0) svp  = 0.
+      end subroutine seed_vegetation_inputs
+
+      subroutine same1(label, a, b)
+         character(len=*), intent(in) :: label
+         real,             intent(in) :: a(:), b(:)
+         if (size(a) < 1) return
+         if (maxval(abs(a - b)) > tol*max(1.e-30, maxval(abs(b)))) then
+            call fail_cuda_selftest('device and host vegetation disagree: '//label)
+         end if
+      end subroutine same1
+
+      subroutine same3(label, a, b)
+         character(len=*), intent(in) :: label
+         real,             intent(in) :: a(:,:,:), b(:,:,:)
+         if (maxval(abs(a - b)) > tol*max(1.e-30, maxval(abs(b)))) then
+            call fail_cuda_selftest('device and host vegetation disagree: '//label)
+         end if
+      end subroutine same3
+
+   end subroutine test_vegetation_forcing
 
    subroutine fail_cuda_selftest(name)
       implicit none

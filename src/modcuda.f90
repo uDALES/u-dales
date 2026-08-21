@@ -711,9 +711,10 @@ module modcuda
 
       !> Hand the field tendencies back to the host.
       !!
-      !! The facet flux drain used to be the first thing here. It is called
-      !! from the time loop directly now, just above EB, because that is the
-      !! one consumer and EB runs before this does - see updateFacFluxHost.
+      !! What is left here is what the host diagnostics and modboundary read
+      !! after the pressure step: the tendencies, the wall stresses, the eddy
+      !! viscosities. The facet drain and the tree diagnostics both left, each
+      !! to a call site gated on the step its one consumer actually runs.
       subroutine updateHost
          implicit none
 
@@ -744,18 +745,11 @@ module modcuda
          ekm = ekm_d
          ekh = ekh_d
 
-         ! vegetation_forcing is the one host routine left in this window that
-         ! reads the previous-step fields, and it reads them at the neighbours
-         ! of every tree point - which can be a solid cell that ibmnorm has just
-         ! pinned on the device. Nothing else here needs them, so a run without
-         ! trees pays nothing.
-         if (ltrees) then
-            um = um_d
-            vm = vm_d
-            wm = wm_d
-            if (ltempeq) thlm = thlm_d
-            if (lmoist)  qtm  = qtm_d
-         end if
+         ! The previous-step fields used to be dragged down here for
+         ! vegetation_forcing, which read them at the neighbours of every tree
+         ! point. That routine runs on the device now and ahead of this one, so
+         ! nothing left in this window reads them and a tree run costs the same
+         ! as any other.
       end subroutine updateHost
 
       !> Rank-local fluid-cell column sums of a device field, for avexy_ibm.

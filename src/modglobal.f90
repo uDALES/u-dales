@@ -88,6 +88,7 @@ module modglobal
    integer, parameter :: TEST_MASSCORR = 1010
    integer, parameter :: TEST_IBMNORM = 1011
    integer, parameter :: TEST_EB = 1012
+   integer, parameter :: TEST_VEGETATION = 1013
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start

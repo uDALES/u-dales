@@ -36,6 +36,8 @@
       "ibm-scalar-wall",
       "ibm-reconstruction",
       "vegetation",
+      "vegetation-sveg",
+      "vegetation-deposition",
       "surface-energy-balance",
       "heatpump"
     ],
@@ -64,6 +66,8 @@
       "ibm-scalar-wall",
       "ibm-reconstruction",
       "vegetation",
+      "vegetation-sveg",
+      "vegetation-deposition",
       "surface-energy-balance",
       "heatpump",
       "dry-two-rank-x",
@@ -307,6 +311,31 @@
       "timeout_seconds": 900
     },
     {
+      "name": "vegetation-sveg",
+      "case_id": 526,
+      "base_case": "tests/cases/526",
+      "namelist": "tests/integration/gpu/namelists/namoptions.526.sveg",
+      "nprocs": 1,
+      "required_outputs": ["tdump", "treedump"],
+      "coverage": ["vegetation", "tree-forcing", "tree-sveg-radiation", "tree-output"],
+      "namelist_assertions": {"ltrees": true, "itree_mode": 2},
+      "timeout_seconds": 900
+    },
+    {
+      "name": "vegetation-deposition",
+      "case_id": 526,
+      "base_case": "tests/cases/526",
+      "namelist": "tests/integration/gpu/namelists/namoptions.526.deposition",
+      "overrides": [
+        "tests/integration/gpu/fixtures/scalar.inp.526"
+      ],
+      "nprocs": 1,
+      "required_outputs": ["tdump", "treedump"],
+      "coverage": ["vegetation", "tree-forcing", "tree-scalar-deposition", "tree-output"],
+      "namelist_assertions": {"ltrees": true, "nsv": 1},
+      "timeout_seconds": 900
+    },
+    {
       "name": "surface-energy-balance",
       "case_id": 64,
       "base_case": "tests/cases/064",
@@ -521,6 +550,9 @@
       "src/modscalsource.f90:scalsource": ["thermo-scalar-wall", "ibm-scalar-wall", "scalar-point-two-rank-x", "scalar-line-two-rank-y"],
       "src/modtstep.f90:tstep_integrate": ["dry-poisson-fft", "thermo-scalar-wall", "one-equation-sgs"],
       "src/modcuda.f90:integrateFacFluxDevice": ["debug-device-selftests", "surface-energy-balance"],
+      "src/vegetation.f90:vegetation_forcing_device": ["debug-device-selftests", "vegetation", "vegetation-sveg"],
+      "src/vegetation.f90:vegetation_canopy_device": ["debug-device-selftests", "vegetation", "vegetation-sveg"],
+      "src/vegetation.f90:vegetation_deposition_device": ["debug-device-selftests", "vegetation-deposition"],
     "src/heatpump.f90:heatpump": ["debug-device-selftests", "heatpump"]
     }
   }
