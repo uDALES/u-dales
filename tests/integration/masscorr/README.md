@@ -112,9 +112,9 @@ Applied to the device kernels:
 
 Running on the device moved `masscorr` ahead of `updateHost`, and there it
 reduces `um_d` and `vm_d` — which no update routine had written by that point
-in the stage. `updateDevicePriorPoiss` refreshes them, but only later in the
-same stage, so on the first stage of a run they held whatever the allocation
-left behind. Case 064 diverged on step one with a Courant number of 2×10⁷
+in the stage. The only refresh at the time came from `updateDevicePriorPoiss`
+(since removed), and that ran later in the same stage, so on the first stage of
+a run they held whatever the allocation left behind. Case 064 diverged on step one with a Courant number of 2×10⁷
 against a divergence of 2×10⁻⁸: a uniform, divergence-free velocity, which is
 exactly what a wrong `udef` adds.
 

@@ -28,7 +28,7 @@ program uDALES
   use modmpi,            only : initmpi,exitmpi,starttimer
 #if defined(_GPU)
   use cudafor
-  use modcuda,           only : initCUDA, updateDevice, updateHost, updateDevicePriorPoiss, &
+  use modcuda,           only : initCUDA, updateDevice, updateHost, &
                                 updateHostAfterPoiss, integrateFacFluxDevice, &
                                 updateFacIntegralsHost, checkCUDA, exitCUDA
 #endif
@@ -252,9 +252,15 @@ program uDALES
 #endif
     write(6,'(A,F10.6)')'updateHost time = ', MPI_Wtime() - stime
 
-#if defined(_GPU)
-    call updateDevicePriorPoiss
-#endif
+    ! updateDevicePriorPoiss used to sit here, re-uploading what updateHost had
+    ! just brought down plus the fields updateDevice had already sent at the
+    ! top of the stage. Once vegetation_forcing moved onto the device there was
+    ! no host work left between the two to justify it: nothing on the host
+    ! writes any of those fields in this window, and nothing on the device
+    ! writes u0/v0/w0/pres0/thl0/thl0c/qt0/sv0 either, so both halves of the
+    ! round trip carried the value they already held. The inlet profiles and
+    ! the driver plane were the exception - that routine was their only upload
+    ! - and they are copied by updateDevice now.
 
     call heatpump
 

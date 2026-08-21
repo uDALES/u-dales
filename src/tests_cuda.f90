@@ -24,7 +24,7 @@ module tests_cuda
                         integrateFacFluxDevice, updateFacIntegralsHost, &
                         facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
                         dxdydzfi_d, dxdydzhi_d, &
-                        col_d, col_stage, IIu_d, IIv_d
+                        col_d, col_stage, IIu_d, IIv_d, updateDevice
    use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, pres0, &
                          thl0, thlm, thl0c, qt0, qtm, sv0, svm, thlp, wp, &
                          up, vp, qtp, svp, &
@@ -43,7 +43,9 @@ module tests_cuda
                          lperiodicEBcorr, sinkbase, fraction, xlen, ylen, &
                          linoutflow, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                          uflowrate, vflowrate, rk3coef, rk3coefi, dt, &
-                         ltrees, ltreedump
+                         ltrees, ltreedump, &
+                         BCxm, BCym, BCxm_periodic, BCxm_profile, BCxm_driver, &
+                         BCym_periodic, BCym_profile
    use modforces,   only : nudge, periodicEBcorr, masscorr, calcfluidvolumes
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
                            thl_dot_hp, w_hp_exhaust
@@ -122,6 +124,7 @@ contains
          call test_facflux_handover
          call test_facet_props_refresh
          call test_vegetation_forcing
+         call test_bc_profile_upload
          write(*,'(A,I0)') 'CUDA device self-tests passed. rank=', myid
       case ('', '0', 'false', 'FALSE', 'no', 'NO', 'off', 'OFF')
          return
@@ -521,7 +524,13 @@ contains
          end do
       end do
 
-      u0driver_d = u0driver
+      ! Guarded: initdriver allocates the host array under idriver alone, so
+      ! on every case in the matrix there is nothing here to copy from.
+      if (allocated(u0driver)) then
+         u0driver_d = u0driver
+      else
+         u0driver_d = 0.
+      end if
       deallocate(up_h, pup_h)
    end subroutine test_driver_inlet_boundary
 
@@ -3281,6 +3290,128 @@ contains
       end subroutine same3
 
    end subroutine test_vegetation_forcing
+
+
+   !> Pin the inlet uploads that moved out of updateDevicePriorPoiss.
+   !!
+   !! That routine was the only place copying uprof, vprof and u0driver for the
+   !! profile and driver inlets: the nudging guard in updateDevice reaches them
+   !! only when velocity nudging happens to be on as well. Deleting the routine
+   !! therefore had to move those three, and this is what says so - it puts a
+   !! sentinel in each host array, runs the real updateDevice, and reads the
+   !! mirror back.
+   !!
+   !! BCxm and BCym are switched here rather than taken from the case, and
+   !! lnudge is forced off so the nudging arm cannot mask the BC one. Each
+   !! guard is checked against its own axis and against the other, so a guard
+   !! written on the wrong variable fails rather than passing by symmetry.
+   !!
+   !! The driver arm matters most. No case in the GPU matrix sets idriver, so
+   !! u0driver_d has no parity coverage at all and this is the only thing that
+   !! exercises its upload. initdriver allocates the host array under idriver
+   !! alone, so where it is missing the test allocates it and gives it back.
+   subroutine test_bc_profile_upload
+      implicit none
+
+      real, parameter :: sentinel_u = 7.125, sentinel_v = -3.5, sentinel_d = 11.75
+
+      real, allocatable :: uprof_s(:), vprof_s(:), u0driver_s(:,:)
+      real, allocatable :: back1(:), back2(:,:)
+      integer :: saved_BCxm, saved_BCym
+      logical :: saved_lnudge, faked_driver
+
+      if (.not. allocated(uprof_d)) return
+      if (.not. allocated(vprof_d)) return
+
+      allocate(uprof_s, source=uprof)
+      allocate(vprof_s, source=vprof)
+      allocate(back1(lbound(uprof,1):ubound(uprof,1)))
+      allocate(back2(jb-jh:je+jh, kb-kh:ke+kh))
+
+      saved_BCxm   = BCxm
+      saved_BCym   = BCym
+      saved_lnudge = lnudge
+      lnudge       = .false.
+
+      ! --- x profile inlet: uprof crosses, vprof must not ------------------
+      uprof   = sentinel_u
+      vprof   = sentinel_v
+      uprof_d = 0.
+      vprof_d = 0.
+      BCxm    = BCxm_profile
+      BCym    = BCym_periodic
+      call updateDevice
+
+      back1 = uprof_d
+      if (any(back1 /= sentinel_u)) then
+         call fail_cuda_selftest('updateDevice did not upload uprof for a profile inlet')
+      end if
+      back1 = vprof_d
+      if (any(back1 /= 0.)) then
+         call fail_cuda_selftest('the x inlet guard uploaded vprof as well')
+      end if
+
+      ! --- y profile inlet: the mirror image -------------------------------
+      uprof_d = 0.
+      vprof_d = 0.
+      BCxm    = BCxm_periodic
+      BCym    = BCym_profile
+      call updateDevice
+
+      back1 = vprof_d
+      if (any(back1 /= sentinel_v)) then
+         call fail_cuda_selftest('updateDevice did not upload vprof for a profile inlet')
+      end if
+      back1 = uprof_d
+      if (any(back1 /= 0.)) then
+         call fail_cuda_selftest('the y inlet guard uploaded uprof as well')
+      end if
+
+      ! --- driver inlet -----------------------------------------------------
+      faked_driver = .not. allocated(u0driver)
+      if (faked_driver) then
+         allocate(u0driver(jb-jh:je+jh, kb-kh:ke+kh))
+      else
+         allocate(u0driver_s, source=u0driver)
+      end if
+
+      u0driver   = sentinel_d
+      u0driver_d = 0.
+      BCxm       = BCxm_driver
+      BCym       = BCym_periodic
+      call updateDevice
+
+      back2 = u0driver_d
+      if (any(back2 /= sentinel_d)) then
+         call fail_cuda_selftest('updateDevice did not upload u0driver for a driver inlet')
+      end if
+
+      ! --- put everything back ---------------------------------------------
+      if (faked_driver) then
+         deallocate(u0driver)
+         u0driver_d = 0.
+      else
+         u0driver   = u0driver_s
+         u0driver_d = u0driver
+         deallocate(u0driver_s)
+      end if
+
+      uprof   = uprof_s
+      vprof   = vprof_s
+      uprof_d = uprof
+      vprof_d = vprof
+      BCxm    = saved_BCxm
+      BCym    = saved_BCym
+      lnudge  = saved_lnudge
+
+      ! updateDevice cleared the facet dirty flag on the way through. Set it
+      ! again so the first real call copies the facet properties exactly as it
+      ! would have without this test.
+      lfacetprops_dirty = .true.
+
+      deallocate(uprof_s, vprof_s, back1, back2)
+
+   end subroutine test_bc_profile_upload
 
    subroutine fail_cuda_selftest(name)
       implicit none

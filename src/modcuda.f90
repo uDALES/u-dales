@@ -543,16 +543,12 @@ module modcuda
          w0_d = w0
          pres0_d = pres0
 
-         ! The previous-step fields, moved here from updateDevicePriorPoiss.
-         ! masscorr reduces um and vm, and ibmnorm pins all six inside the
-         ! solid, both before updateHost hands the stage over - so the mirrors
-         ! have to be current by this point rather than half a stage later. The
+         ! The previous-step fields. masscorr reduces um and vm, and ibmnorm
+         ! pins all six inside the solid, both before updateHost hands the
+         ! stage over - so the mirrors have to be current by this point. The
          ! host is the last writer: boundary applies the lateral and top
          ! conditions at the end of the previous step, for a profile or driver
-         ! inlet at the interior plane i = ib and not only in the halo. Nothing
-         ! on the host writes them again before updateDevicePriorPoiss, which
-         ! is why that routine no longer copies them and the total traffic is
-         ! unchanged.
+         ! inlet at the interior plane i = ib and not only in the halo.
          um_d = um
          vm_d = vm
          wm_d = wm
@@ -577,10 +573,19 @@ module modcuda
          u0av_d = u0av
          v0av_d = v0av
 
-         if (lnudge .and. lnudgevel) then
-            uprof_d = uprof
-            vprof_d = vprof
-         end if
+         ! The inlet profiles and the driver plane. updateDevicePriorPoiss
+         ! used to be the only place that copied these for the BC paths: the
+         ! nudging guard on its own leaves them behind whenever a profile or
+         ! driver inlet is used without velocity nudging.
+         !
+         ! Both host writers run earlier in this same iteration: timedep fills
+         ! uprof and vprof at the top of the loop, and drivergen fills
+         ! u0driver from inside boundary at the end of the previous one.
+         ! Nothing rewrites them between here and bcpup, which is the only
+         ! reader, so the value that lands is the one that used to.
+         if ((lnudge .and. lnudgevel) .or. BCxm == BCxm_profile) uprof_d = uprof
+         if ((lnudge .and. lnudgevel) .or. BCym == BCym_profile) vprof_d = vprof
+         if (BCxm == BCxm_driver) u0driver_d = u0driver
 
          if (loneeqn) then
             e12m_d = e12m
@@ -633,47 +638,6 @@ module modcuda
 
          dthvdz_d = dthvdz
       end subroutine updateDevice
-
-      subroutine updateDevicePriorPoiss
-         up_d = up
-         vp_d = vp
-         wp_d = wp
-         ! um, vm and wm are copied by updateDevice now: ibmnorm writes them on
-         ! the device, so re-copying the host's stale versions here would undo
-         ! it. Nothing on the host writes them in between.
-         u0_d = u0
-         v0_d = v0
-         w0_d = w0
-         pres0_d = pres0
-         if (BCxm == BCxm_profile) then
-           uprof_d = uprof
-         end if
-         if (BCxm == BCxm_driver) then
-           u0driver_d = u0driver
-         end if
-         if (BCym == BCym_profile) then
-           vprof_d = vprof
-         end if
-
-         if (ltempeq) then
-            thl0_d = thl0
-            thlp_d = thlp
-            if (iadv_thl == iadv_kappa) thl0c_d = thl0c
-         end if
-         if (lmoist) then
-            qt0_d = qt0
-            qtp_d = qtp
-         end if
-         if (nsv>0) then
-            sv0_d = sv0
-            svp_d = svp
-         end if
-         if (loneeqn) then
-            e12m_d = e12m
-            e120_d = e120
-            e12p_d = e12p
-         end if
-      end subroutine updateDevicePriorPoiss
 
       subroutine updateHostAfterPoiss
          implicit none

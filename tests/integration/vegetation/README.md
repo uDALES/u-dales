@@ -79,10 +79,12 @@ doing. The operation count falls by only 140 rather than 300 because the
 diagnostic drain adds about 160 sub-megabyte copies in their place - 8 sparse
 arrays on each of the 20 sampling steps.
 
-Host-to-device traffic is untouched: `updateDevicePriorPoiss` still runs, and
-with `vegetation_forcing` gone from the window it now sits directly after
-`updateHost` with no host work between them. Removing it is the next step, not
-this one.
+Host-to-device traffic was untouched by this change: `updateDevicePriorPoiss`
+still ran, and with `vegetation_forcing` gone from the window it sat directly
+after `updateHost` with no host work between them. That is what made it
+removable, which was the next change rather than this one - it took host-to-
+device down from 9,492.0 MB to 6,522.6 MB on the same case, and its guard is
+`tests_cuda.f90::test_bc_profile_upload`.
 
 ## What this test pins
 
