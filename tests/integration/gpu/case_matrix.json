@@ -520,7 +520,8 @@
       "src/modibm.f90:accumulate_delta_device": ["ibm-scalar-wall", "ibm-reconstruction"],
       "src/modscalsource.f90:scalsource": ["thermo-scalar-wall", "ibm-scalar-wall", "scalar-point-two-rank-x", "scalar-line-two-rank-y"],
       "src/modtstep.f90:tstep_integrate": ["dry-poisson-fft", "thermo-scalar-wall", "one-equation-sgs"],
-      "src/heatpump.f90:heatpump": ["debug-device-selftests", "heatpump"]
+      "src/modcuda.f90:integrateFacFluxDevice": ["debug-device-selftests", "surface-energy-balance"],
+    "src/heatpump.f90:heatpump": ["debug-device-selftests", "heatpump"]
     }
   }
 }

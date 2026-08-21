@@ -26,7 +26,8 @@ module modibm
 #if defined(_GPU)
    use modcuda, only : facT1_d, fachf_d, facef_d, fac_tau_d, &
                        fac_htc_d, fac_cth_d, fac_pres_d, fac_pres2_d, fac_stage, &
-                       facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice
+                       facqsat_d, fachurel_d, facf_d, fachfi_d, facefi_d, &
+                       updateFacetPropsDevice
 #endif
    use modibmdata
    !use wf_uno
@@ -550,6 +551,12 @@ module modibm
        allocate(fachf_d(0:nfcts), facef_d(nfcts))
        fachf_d = 0.
        facef_d = 0.
+       ! The per-rank time integrals of the two above. They live here across
+       ! the whole interval between energy balances, which is what keeps the
+       ! accumulators off the bus entirely - see integrateFacFluxDevice.
+       allocate(fachfi_d(0:nfcts), facefi_d(nfcts))
+       fachfi_d = 0.
+       facefi_d = 0.
        if (bound_info_c%nfctsecsrank > 0) then
          allocate(qflux_sec_d(bound_info_c%nfctsecsrank))
          allocate(hflux_sec_d(bound_info_c%nfctsecsrank))

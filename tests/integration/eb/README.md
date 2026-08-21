@@ -34,51 +34,76 @@ new. That is `updateFacFluxHost` and `updateFacetPropsDevice` in `modcuda`, and
 
 ## Where EB sits in the time loop
 
-`EB` runs above `updateHost`, immediately after `ibmnorm`, with its own
-`updateFacFluxHost` call just before it:
+`EB` runs above `updateHost`, immediately after `ibmnorm`:
 
 ```
 call ibmnorm
   cudaDeviceSynchronize
-  updateFacFluxHost      ! the facet flux accumulators, and nothing else
+  integrateFacFluxDevice                        ! every stage, no traffic
+  if (eb_will_run()) updateFacIntegralsHost     ! one step in dtEB/dt
 call EB
-  updateHost             ! the field tendencies
+  updateHost                                    ! the field tendencies
 call vegetation_forcing
 ```
 
-The drain used to sit inside `updateHost`, which was fine while `EB` came
-after it. Moving `EB` up without moving the drain with it does not crash —
-`intqH` reduces a `fachf` that is still zero, so the facet sensible and latent
-heat fluxes are simply absent from the energy balance on the GPU and present
-everywhere else. Measured on the parity case, `facEB:hf` came out as 0.0
-against a CPU reference of −103.75 W/m², carrying a 103.7 error into `dTdz`.
-The `facEB` comparison in `surface-energy-balance` catches it, and that is the
-only thing that does.
+**Nothing crosses the bus per step.** `fachf_d` and `facef_d` are integrated
+into `fachfi_d`/`facefi_d` on the device and cleared each stage; the totals
+come down only when the balance actually fires. That works because the time
+integral is per-rank:
 
-Splitting them this way also means `EB` no longer depends on `updateHost` at
-all: it needs one crossing of `2*nfcts` doubles and never touches a field. When
-`vegetation_forcing` is ported and `updateHost` goes away, this arrangement
-survives unchanged.
+```
+sum_steps dt * (sum_ranks fachf) == sum_ranks (sum_steps dt * fachf)
+```
+
+The two sums commute and `dt` is identical on every rank, so each rank
+integrates its own partial flux with no communication at all, and the single
+`MPI_ALLREDUCE` moves from twice per step to once per `dtEB`.
+
+Measured with nsys on the parity case over 31 steps at `dtEB = 10 s`:
+device-to-host memcpy operations **3,146 → 3,090**, which is exactly the 62
+per-step drains (2 arrays × 31 steps) replaced by 6 event drains (2 arrays × 3
+energy balances).
+
+Two traps live here, and both are recorded because both are silent rather than
+loud:
+
+- **The drain used to sit inside `updateHost`.** Moving `EB` above it without
+  moving the drain does not crash — `intqH` reduces a `fachf` that is still
+  zero, so the facet heat fluxes are simply absent from the energy balance on
+  the GPU and present everywhere else. Measured, `facEB:hf` came out as 0.0
+  against a CPU reference of −103.75 W/m², carrying a 103.7 error into `dTdz`.
+- **The clear is not optional even though the copy is.** The wall functions
+  add into the accumulators every stage; let them run on and the third stage
+  integrates the sum of all three, which is the facet heat flux three times
+  too large. That bug shipped once.
+
+`EB` now depends on `updateHost` not at all, so this arrangement survives
+unchanged when `vegetation_forcing` is ported and `updateHost` goes away.
 
 ## What this test pins
 
-1. **`intqH`'s stage contract.** The facet fluxes are reduced and integrated on
-   the third Runge–Kutta stage only, and cleared on every stage. This is what
-   lets `updateFacFluxHost` copy `fachf_d` once a step instead of three times,
-   so it is checked against the routine rather than assumed at the call site.
-   The time integral is kept on rank 0, which is where `initfac` allocates
-   `fachfi` at all.
-2. **When the energy balance fires, and what it tells the GPU mirror.** Not on
+1. **`intqH`'s stage contract, and that it communicates nothing.** The facet
+   fluxes are integrated on the third Runge–Kutta stage only and cleared on
+   every stage. The integral is *local*, so the probe is rank-dependent and
+   every rank checks its own number — a routine that reduced here would leave
+   the same total on all of them, which the two-rank pass catches on both.
+2. **The reduction, once, when the balance fires.** Every rank is given a
+   distinct local integral and the result is checked on both sides: normalised
+   to a flux on rank 0, where the division by `tEB` and `faca` happens, and as
+   the raw reduced total elsewhere — which also pins that the reduction is an
+   all-reduce and that the normalisation is rank 0's alone. The local
+   integrals must come back reset, or the next interval double-counts.
+3. **When the energy balance fires, and what it tells the GPU mirror.** Not on
    the first two stages however late it is; not on the third until `tnextEB`
    has arrived; and when it does fire it sets `lfacetprops_dirty`. That flag is
    the other half of the contract `tests_cuda.f90::test_facet_props_refresh`
    checks from the device side.
-3. **Equilibrium is a fixed point.** Uniform layer temperatures with the net
+4. **Equilibrium is a fixed point.** Uniform layer temperatures with the net
    surface flux exactly balancing the emitted longwave must leave the facet
    where it was. Nothing conducts and nothing radiates on net, so the scheme
    has to return its input — and almost any slip in the matrix assembly, the
    inverse or the two matmuls destroys that.
-4. **The surface energy balance closes.** Row one of the system says
+5. **The surface energy balance closes.** Row one of the system says
 
    ```
    faclam(n,1)*facTdash(n,1) = boltz*facem(n)*Told^3*Tnew - (SW + LWin + H + E)
@@ -87,9 +112,9 @@ survives unchanged.
    which the test checks against `faclam`, the returned `facTdash`, and the
    four flux terms it set itself. That is the physics rather than a second copy
    of the algebra: it never builds A, B, C, D or E.
-5. **The innermost layer is held.** The last row of the system exists to pin
+6. **The innermost layer is held.** The last row of the system exists to pin
    it, so `facT(n,nfaclyrs+1)` must not move.
-6. **`calclw` agrees with itself.** The sparse and dense view-factor paths are
+7. **`calclw` agrees with itself.** The sparse and dense view-factor paths are
    two separate loops that must produce the same incoming longwave. The test
    builds the dense matrix from the sparse triplets and runs both.
 
@@ -113,7 +138,9 @@ cannot fail says nothing about the check beside it.
 
 ## Mutation testing
 
-The checks were run against fourteen deliberate faults in `modEB`, all caught:
+The checks were run against fourteen deliberate faults in `modEB` when the
+balance was first written, and against twelve more when the flux integration
+moved to the device. All twenty-six are caught. The original fourteen:
 
 | # | Fault | Caught by |
 |---|---|---|
@@ -131,6 +158,24 @@ The checks were run against fourteen deliberate faults in `modEB`, all caught:
 | 12 | `DM` gradient correction halved | energy conservation |
 | 13 | `EM` uses `faclam(n,m)` on both faces | energy conservation |
 | 14 | Forcing loses half its `tEB` scaling | fixed point drifts |
+
+The twelve added with the per-rank integral — eight against the host contract
+and four against the device one:
+
+| # | Fault | Caught by |
+|---|---|---|
+| 15 | `intqH` integrates on every stage | `fachfi` after stage 1 |
+| 16 | `intqH` stops clearing the accumulators | flux left behind on stage 1 |
+| 17 | `intqH` integrates without `dt` | `fachfi` after stage 3 |
+| 18 | `EB` does not reset the per-rank integrals | integrals not reset |
+| 19 | `EB` reduces the wrong array | reduced heat flux wrong |
+| 20 | `EB` normalises the raw integral, not the reduced one | reduced heat flux wrong |
+| 21 | `eb_will_run` ignores `tnextEB` | ran before its time |
+| 22 | `eb_will_run` ignores the stage | moved the surface on stage 1 |
+| 23 | Device kernel integrates on every stage | `facEB` parity |
+| 24 | Device kernel stops clearing the accumulators | `facEB` parity |
+| 25 | Download leaves the device integral in place | `facEB` parity |
+| 26 | Download runs every step, not just on EB events | `facEB` parity |
 
 Faults 10 to 13 are why the test imposes a layered wall profile before it
 starts. **Every wall type in the shipped case has identical layers** — same

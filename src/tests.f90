@@ -3041,13 +3041,13 @@ contains
     allocate(faclGR_s, source=faclGR)
     allocate(facT_old(1:nfcts,1:nfaclyrs+1))
     allocate(told(1:nfaclyrs+1), tdold(1:nfaclyrs+1))
+    allocate(fachfi_s, source=fachfi)
+    allocate(facefi_s, source=facefi)
     if (myid == 0) then
       allocate(facTdash_s, source=facTdash)
       allocate(netsw_s,    source=netsw)
       allocate(svf_s,      source=svf)
       allocate(facLWin_s,  source=facLWin)
-      allocate(fachfi_s,   source=fachfi)
-      allocate(facefi_s,   source=facefi)
       allocate(facwsoil_s, source=facwsoil)
       allocate(faclam_s,   source=faclam)
       allocate(faccp_s,    source=faccp)
@@ -3101,17 +3101,17 @@ contains
     lconstW_s       = lconstW
 
     ! ------------------------------------------------------------------
-    ! 1. intqH: which stage is kept, and what is cleared
+    ! 1. intqH: which stage is kept, what is cleared, and what is NOT summed
     ! ------------------------------------------------------------------
-    ! The per-rank probe is rank-dependent, so a routine that integrated the
-    ! local flux instead of the reduced one lands on a different number on
-    ! every rank but the first.
+    ! intqH communicates nothing. Each rank integrates its own partial flux,
+    ! and the sum over ranks happens once per energy balance instead of twice
+    ! per step - see phase 2. So the probe is rank-dependent and every rank
+    ! checks its OWN number: a routine that reduced here would leave the same
+    ! total on all of them, which the two-rank pass catches on both.
     rank_sum = 0.5 * real(nprocs) * real(nprocs + 1)
     dt = dt_lcl
-    if (myid == 0) then
-      fachfi = 0.
-      facefi = 0.
-    end if
+    fachfi = 0.
+    facefi = 0.
 
     do stage = 1, 3
       fachf(1:nfcts) = probeH * real(myid + 1)
@@ -3119,64 +3119,95 @@ contains
       rk3step = stage
       call intqH
 
-      ! Cleared on every stage, whichever stage it was: the device mirror in
-      ! modcuda relies on this to justify clearing fachf_d three times a step
-      ! while copying it once.
+      ! Cleared on every stage, whichever stage it was. The device side relies
+      ! on this to justify clearing fachf_d three times a step while
+      ! integrating once - and letting it run on instead is what delivers the
+      ! facet heat flux three times too large.
       if (maxval(abs(fachf(1:nfcts))) /= 0. .or. maxval(abs(facef(1:nfcts))) /= 0.) then
         call fail('intqH left a facet flux behind on stage', stage)
       end if
-      if (maxval(abs(fachfsum(1:nfcts))) /= 0. .or. maxval(abs(facefsum(1:nfcts))) /= 0.) then
-        call fail('intqH left a reduced facet flux behind on stage', stage)
-      end if
 
-      ! And integrated on the third stage alone. The integral is rank 0's:
-      ! initfac does not even allocate fachfi anywhere else.
-      if (myid == 0) then
-        if (stage < 3) then
-          want = 0.
-        else
-          want = dt_lcl * probeH * rank_sum
-        end if
-        got = maxval(abs(fachfi(1:nfcts)))
-        if (abs(got - want) > 1.e-12 * max(1., want)) then
-          write(*,'(A,I0,A,ES23.15,A,ES23.15)') &
-            'FAIL: fachfi after stage ', stage, ' is ', got, ', expected ', want
-          all_passed = .false.
-        end if
-        got = maxval(abs(facefi(1:nfcts)))
+      ! Integrated on the third stage alone, and locally.
+      if (stage < 3) then
         want = 0.
-        if (stage == 3) want = dt_lcl * probeE * rank_sum
-        if (abs(got - want) > 1.e-12 * max(1., want)) then
-          write(*,'(A,I0,A,ES23.15,A,ES23.15)') &
-            'FAIL: facefi after stage ', stage, ' is ', got, ', expected ', want
-          all_passed = .false.
-        end if
+      else
+        want = dt_lcl * probeH * real(myid + 1)
+      end if
+      got = maxval(abs(fachfi(1:nfcts)))
+      if (abs(got - want) > 1.e-12 * max(1., want)) then
+        write(*,'(A,I0,A,I0,A,ES23.15,A,ES23.15)') &
+          'FAIL on rank ', myid, ': fachfi after stage ', stage, ' is ', got, &
+          ', expected ', want
+        all_passed = .false.
+      end if
+      want = 0.
+      if (stage == 3) want = dt_lcl * probeE * real(myid + 1)
+      got = maxval(abs(facefi(1:nfcts)))
+      if (abs(got - want) > 1.e-12 * max(1., want)) then
+        write(*,'(A,I0,A,I0,A,ES23.15,A,ES23.15)') &
+          'FAIL on rank ', myid, ': facefi after stage ', stage, ' is ', got, &
+          ', expected ', want
+        all_passed = .false.
       end if
     end do
 
-    ! Control: had intqH integrated on every stage, rank 0 would now hold three
-    ! times as much. Assert the two numbers really are distinguishable, so a
-    ! silently zero probe cannot make the check above pass for free.
-    if (myid == 0) then
-      control_fired = abs(3. * dt_lcl * probeH * rank_sum - dt_lcl * probeH * rank_sum) > &
-                      1.e-9 * dt_lcl * probeH * rank_sum
-      if (.not. control_fired) call fail('control: the stage-count probe cannot fire', 0)
-    end if
+    ! Control: had intqH integrated on every stage it would now hold three
+    ! times as much. Assert the two numbers are distinguishable, so a silently
+    ! zero probe cannot make the check above pass for free.
+    control_fired = abs(3. * dt_lcl * probeH - dt_lcl * probeH) > 1.e-9 * dt_lcl * probeH
+    if (.not. control_fired) call fail('control: the stage-count probe cannot fire', 0)
 
-    ! Control: the reduced flux and the rank-local one must differ, or the
-    ! two-rank pass proves nothing about the all-reduce.
+    ! ------------------------------------------------------------------
+    ! 2. EB sums the per-rank integrals, once, when it fires
+    ! ------------------------------------------------------------------
+    ! This is the collective that intqH no longer does. Give every rank a
+    ! distinct local integral and check what comes out the other side:
+    !
+    !   - on rank 0, normalised to a flux, since that is where the balance is
+    !     solved and where the division by tEB and faca happens;
+    !   - elsewhere the raw reduced total, which also pins that the reduction
+    !     is an all-reduce and that the normalisation is rank 0's alone;
+    !   - and the local integrals are reset everywhere, or the next interval
+    !     would double-count.
+    call quiesce
+    fachfi(1:nfcts) = probeH * real(myid + 1)
+    facefi(1:nfcts) = probeE * real(myid + 1)
+    call fire
+
     if (myid == 0) then
-      if (nprocs > 1) then
-        control_fired = abs(rank_sum - 1.) > 1.e-9
-        if (.not. control_fired) call fail('control: the reduction probe cannot fire', 0)
-      else
-        write(*, '(A)') 'NOTE: on one rank the reduced and local facet fluxes coincide;'
-        write(*, '(A)') '      the two-rank pass of run_test.sh is what separates them.'
+      worst = 0.
+      do n = 1, nfcts
+        if (.not. live(n)) cycle
+        want = (probeH * rank_sum) / span / faca(n) * rhoa * cp
+        worst = max(worst, abs(fachfsum(n) - want) / max(1., abs(want)))
+      end do
+      if (worst > 1.e-12) then
+        write(*,'(A,ES23.15)') 'FAIL: the reduced facet heat flux is wrong, worst ', worst
+        all_passed = .false.
+      end if
+    else
+      want = probeH * rank_sum
+      got  = maxval(abs(fachfsum(1:nfcts)))
+      if (abs(got - want) > 1.e-12 * max(1., want)) then
+        write(*,'(A,I0,A,ES23.15,A,ES23.15)') &
+          'FAIL on rank ', myid, ': reduced facet heat flux is ', got, ', expected ', want
+        all_passed = .false.
       end if
     end if
 
+    if (maxval(abs(fachfi(1:nfcts))) /= 0. .or. maxval(abs(facefi(1:nfcts))) /= 0.) then
+      call fail('EB did not reset the per-rank flux integrals', 0)
+    end if
+
+    ! Control: with one rank the reduced total and the local one coincide, so
+    ! the reduction is untested. Say so rather than implying otherwise.
+    if (myid == 0 .and. nprocs == 1) then
+      write(*, '(A)') 'NOTE: on one rank the reduced and local facet fluxes coincide;'
+      write(*, '(A)') '      the two-rank pass of run_test.sh is what separates them.'
+    end if
+
     ! ------------------------------------------------------------------
-    ! 2. When EB fires, and what it tells the GPU mirror
+    ! 3. When EB fires, and what it tells the GPU mirror
     ! ------------------------------------------------------------------
     call quiesce
     lfacetprops_dirty = .false.
@@ -3217,7 +3248,7 @@ contains
     end if
 
     ! ------------------------------------------------------------------
-    ! 3. Equilibrium is a fixed point
+    ! 4. Equilibrium is a fixed point
     ! ------------------------------------------------------------------
     ! With no sky and no view factors the incoming longwave is zero, so a
     ! facet radiating boltz*em*T^4 and absorbing exactly that in shortwave is
@@ -3268,7 +3299,7 @@ contains
     end if
 
     ! ------------------------------------------------------------------
-    ! 4. The surface energy balance closes, and the inside is held
+    ! 5. The surface energy balance closes, and the inside is held
     ! ------------------------------------------------------------------
     ! Heat the facet hard enough that the surface really moves, and drive all
     ! four terms of the net flux: shortwave, longwave, sensible and latent.
@@ -3276,6 +3307,14 @@ contains
     if (myid == 0) then
       do n = 1, nfcts
         netsw(n) = boltz * facem(n) * T0**4 + extraQ
+      end do
+    end if
+    ! The whole contribution is put on rank 0 and the other ranks contribute
+    ! nothing, so the reduced total is exactly H0 once normalised. Phase 2 is
+    ! where the reduction itself is tested; here it only has to be predictable,
+    ! and faca lives on rank 0 alone so no other rank could size its share.
+    if (myid == 0) then
+      do n = 1, nfcts
         if (faca(n) > 0.) fachfi(n) = H0 * span * faca(n) / (rhoa * cp)
         facefi(n) = E0
       end do
@@ -3450,7 +3489,7 @@ contains
     end if
 
     ! ------------------------------------------------------------------
-    ! 5. calclw: the sparse and dense paths are the same calculation
+    ! 6. calclw: the sparse and dense paths are the same calculation
     ! ------------------------------------------------------------------
     if (myid == 0 .and. lvfsparse .and. nnz > 0 .and. allocated(vfsparse)) then
       allocate(lw_sparse(1:nfcts), lw_dense(1:nfcts))
@@ -3508,6 +3547,8 @@ contains
     fachf    = fachf_s
     facef    = facef_s
     faclGR   = faclGR_s
+    fachfi   = fachfi_s
+    facefi   = facefi_s
     fachfsum = 0.
     facefsum = 0.
     if (myid == 0) then
@@ -3515,8 +3556,6 @@ contains
       netsw    = netsw_s
       svf      = svf_s
       facLWin  = facLWin_s
-      fachfi   = fachfi_s
-      facefi   = facefi_s
       facwsoil = facwsoil_s
       faclam   = faclam_s
       faccp    = faccp_s
@@ -3537,8 +3576,9 @@ contains
     lfacetprops_dirty = .true.
 
     deallocate(facT_s, fachf_s, facef_s, faclGR_s, facT_old, told, tdold)
+    deallocate(fachfi_s, facefi_s)
     if (myid == 0) then
-      deallocate(facTdash_s, netsw_s, svf_s, facLWin_s, fachfi_s, facefi_s)
+      deallocate(facTdash_s, netsw_s, svf_s, facLWin_s)
       deallocate(facwsoil_s, faclam_s, faccp_s, facd_s)
       if (allocated(vfsparse_s)) deallocate(vfsparse_s)
     end if
@@ -3592,14 +3632,14 @@ contains
       lconstW  = .true.
       fachf    = 0.
       facef    = 0.
+      fachfi   = 0.
+      facefi   = 0.
       fachfsum = 0.
       facefsum = 0.
       if (myid == 0) then
         svf     = 0.
         netsw   = 0.
         facLWin = 0.
-        fachfi  = 0.
-        facefi  = 0.
         if (allocated(vfsparse)) vfsparse = 0.
       end if
       dt      = dt_lcl
@@ -3636,7 +3676,7 @@ contains
         tcube = facT_old(idx,1)**3
       end if
       lwout  = boltz * facem(idx) * tcube * facT(idx,1)
-      influx = netsw(idx) + facLWin(idx) + (H0 - drop_h) + E0
+      influx = netsw(idx) + facLWin(idx) + (H0 - drop_h) + E0   ! fachfsum, facefsum
       surface_residual = faclam(idx,1) * facTdash(idx,1) - lwout + influx
     end function surface_residual
 

@@ -30,7 +30,7 @@ module modcuda
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
                              cn, cm, ch1, ch2, ce1, ce2, dampmin, prandtli, c_vreman
    use modsurfdata,    only: thvs
-   use initfac,        only: facT, fachf, facef, facqsat, fachurel, facf
+   use initfac,        only: facT, fachf, facef, fachfi, facefi, facqsat, fachurel, facf
    use modinletdata,   only: u0driver
    use decomp_2d,      only: zstart
    implicit none
@@ -86,6 +86,9 @@ module modcuda
    ! solves, so they are refreshed alongside facT rather than mirrored once.
    real, device, allocatable :: facqsat_d(:), fachurel_d(:), facf_d(:,:)
    real, device, allocatable :: fachf_d(:), facef_d(:)      ! energy balance accumulators
+   ! ... and their per-rank time integrals, which stay on the device between
+   ! energy balances so that nothing has to cross the bus per step.
+   real, device, allocatable :: fachfi_d(:), facefi_d(:)
    real, device, allocatable :: fac_tau_d(:)                ! momentum, one direction at a time
    real, device, allocatable :: fac_htc_d(:), fac_cth_d(:), fac_pres_d(:), fac_pres2_d(:)
 
@@ -461,44 +464,73 @@ module modcuda
          lfacetprops_dirty = .false.
       end subroutine updateFacetPropsDevice
 
-      !> Drain the energy balance accumulators the IBM wall functions filled.
+      !> Integrate the energy balance accumulators on the device. Nothing copies.
       !!
-      !! Two things have to be kept apart here, and conflating them is what
-      !! made this handover go wrong once already.
+      !! The wall functions add into fachf_d and facef_d on every Runge-Kutta
+      !! stage; only the third is kept, because that is the one intqH used to
+      !! reduce and time-integrate before clearing its host arrays regardless
+      !! of the stage. So the third stage is integrated into fachfi_d and every
+      !! stage is cleared.
       !!
-      !! Clearing the device accumulators is required on EVERY Runge-Kutta
-      !! stage. The wall functions add into them each stage, and intqH in
-      !! modEB clears its host counterparts each stage too, outside its own
-      !! rk3step == 3 test. Let fachf_d run on across the stages and the third
-      !! one delivers the sum of all three: the facet heat flux three times too
-      !! large. That bug shipped once and a manual CPU/GPU comparison found it.
+      !! Clearing on every stage is not optional. Let fachf_d run on across the
+      !! stages and the third one carries the sum of all three: the facet heat
+      !! flux three times too large. That bug shipped once and a manual CPU/GPU
+      !! comparison found it.
       !!
-      !! Copying, on the other hand, is only worth doing on the stage that is
-      !! consumed. intqH reduces and time-integrates on the third stage alone
-      !! and throws the first two away untouched, so two crossings in three
-      !! were carrying a value that nothing would ever read. Skipping those is
-      !! safe precisely because the clear above is not skipped with them: the
-      !! host still sees exactly one stage's worth, the same one as before.
-      subroutine updateFacFluxHost
-         use modglobal, only : nfcts, lEB, rk3step
+      !! The point of integrating here rather than on the host is that this
+      !! whole routine is now free of traffic. The time integral is per-rank -
+      !! summing over steps and summing over ranks commute, and dt is the same
+      !! on every rank - so it can accumulate on the device across the hundreds
+      !! of steps between energy balances, and only the total needs to come
+      !! down. See updateFacIntegralsHost.
+      subroutine integrateFacFluxDevice
+         use modglobal, only : nfcts, lEB, rk3step, dt
+         implicit none
+         integer :: n
+
+         if (.not. lEB) return
+         if (.not. allocated(fachf_d)) return
+
+         if (rk3step == 3) then
+            !$acc parallel loop default(present)
+            do n = 1, nfcts
+               fachfi_d(n) = fachfi_d(n) + dt*fachf_d(n)
+               facefi_d(n) = facefi_d(n) + dt*facef_d(n)
+            end do
+            !$acc end parallel loop
+         end if
+
+         fachf_d = 0.
+         facef_d = 0.
+      end subroutine integrateFacFluxDevice
+
+      !> Bring the per-rank facet flux integrals down, for the energy balance.
+      !!
+      !! The one crossing the energy balance needs, and it happens only on the
+      !! steps where the balance actually fires - one in dtEB/dt, a few hundred
+      !! at a typical dtEB. Call it under modEB::eb_will_run so the decision
+      !! here and the decision inside EB cannot drift apart.
+      !!
+      !! The device copies are cleared as they are read: nothing looks at them
+      !! again until the next accumulation, and the host side is assigned
+      !! rather than added to, so the interval starts clean on both sides.
+      subroutine updateFacIntegralsHost
+         use modglobal, only : nfcts, lEB
          implicit none
 
          if (.not. lEB) return
 
-         if (rk3step == 3) then
-            if (allocated(fachf_d) .and. allocated(fachf)) then
-               fachf_stage = fachf_d
-               fachf(0:nfcts) = fachf(0:nfcts) + fachf_stage
-            end if
-            if (allocated(facef_d) .and. allocated(facef)) then
-               facef_stage = facef_d
-               facef(1:nfcts) = facef(1:nfcts) + facef_stage
-            end if
+         if (allocated(fachfi_d) .and. allocated(fachfi)) then
+            fachf_stage = fachfi_d
+            fachfi(0:nfcts) = fachf_stage
+            fachfi_d = 0.
          end if
-
-         if (allocated(fachf_d)) fachf_d = 0.
-         if (allocated(facef_d)) facef_d = 0.
-      end subroutine updateFacFluxHost
+         if (allocated(facefi_d) .and. allocated(facefi)) then
+            facef_stage = facefi_d
+            facefi(1:nfcts) = facef_stage
+            facefi_d = 0.
+         end if
+      end subroutine updateFacIntegralsHost
 
       subroutine updateDevice
          implicit none

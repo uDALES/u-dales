@@ -27,7 +27,7 @@ module modEB
   use mpi
 
   implicit none
-  public :: EB, initEB, intqH, updateGR
+  public :: EB, initEB, intqH, updateGR, eb_will_run
 
   integer :: nstatT=2, nstatEB=6, ncidT, ncidEB, nrecT=0, nrecEB=0
   character(80), allocatable :: ncstatT(:,:), ncstatEB(:,:)
@@ -217,33 +217,52 @@ contains
     !And  we  are  done.
   end function gaussji
 
-  subroutine intqH !time integration of heat and latent heat from facets
+  !> Whether the energy balance does its work on this call.
+  !!
+  !! EB's own guard and the time loop's decision about whether to bring the
+  !! facet flux integrals down have to agree exactly, so they read this rather
+  !! than repeating the condition. See modcuda::updateFacIntegralsHost.
+  logical function eb_will_run()
+    use modglobal, only : lEB, rk3step, timee, tnextEB
+    implicit none
+
+    eb_will_run = lEB .and. (rk3step .eq. 3) .and. (timee .ge. tnextEB)
+
+  end function eb_will_run
+
+  !> Time integration of heat and latent heat from facets.
+  !!
+  !! Each rank integrates its own partial flux, and nothing is communicated.
+  !! A facet can be split across ranks, so the total has to be summed over them
+  !! eventually - but summing over ranks and summing over steps commute, and dt
+  !! is the same on every rank, so
+  !!
+  !!   sum_steps dt * (sum_ranks fachf)  ==  sum_ranks (sum_steps dt * fachf)
+  !!
+  !! and the reduction that used to run twice per step now runs once per energy
+  !! balance, in EB. On a GPU build the integral accumulates on the device
+  !! instead, in modcuda::integrateFacFluxDevice, so the accumulators never
+  !! cross the bus at all.
+  !!
+  !! Only the third Runge-Kutta stage counts, and the accumulators are cleared
+  !! on every stage - the wall functions refill them each time.
+  subroutine intqH
     use modglobal, only:nfcts, dt, rk3step, lEB
-    use initfac, only:fachfsum, fachf, fachfi, facef, facefi, facefsum
-    use modmpi, only:myid, comm3d, mpierr, mpi_sum, my_real
+    use initfac, only:fachf, fachfi, facef, facefi
     integer :: n
 
     if (.not. lEB) return
 
+#if !defined(_GPU)
     if (rk3step .eq. 3) then
-      !sum over all processors since a facet can be split onto more than one processor
-      fachfsum = 0.
-      facefsum = 0.
-      call MPI_ALLREDUCE(fachf(1:nfcts), fachfsum(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
-      call MPI_ALLREDUCE(facef(1:nfcts), facefsum(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
-
-      if (myid == 0) then
-        !time summation of total facet heatlux (will be divided by dtEB in EB to get time mean flux)
-        do n = 1, nfcts
-          fachfi(n) = fachfi(n) + dt*fachfsum(n) !sum up the fluxes over time
-          facefi(n) = facefi(n) + dt*facefsum(n)
-        end do
-      end if
+      do n = 1, nfcts
+        fachfi(n) = fachfi(n) + dt*fachf(n)
+        facefi(n) = facefi(n) + dt*facef(n)
+      end do
     end if
     fachf = 0.
-    fachfsum = 0.
-    facefsum = 0.
     facef = 0.
+#endif
   end subroutine intqH
 
   subroutine initEB
@@ -378,7 +397,7 @@ contains
     ! E = max(0,(1-vegetation%) * rhoa * (qa-qsat(TGR)*hu) * (1/(rs+ra))
 
     use modglobal, only:nfcts, rlv, rlvi, rhoa, wfc, wwilt, rsmin, GRLAI, tEB, rsmax, lconstW
-    use initfac, only:netSW, fachurel, faclGR, facwsoil, facf, facT, facefi, facqsat, facd, faca, qsat
+    use initfac, only:netSW, fachurel, faclGR, facwsoil, facf, facT, facefsum, facqsat, facd, faca, qsat
 
     integer :: n
     real :: dum
@@ -389,10 +408,10 @@ contains
         !yet actually the moisture flux is needed for water budget, i.e. currently many operations cancel each other e.g. X*Lv/Lv
         !facefi is the sum over all gridcells of a facet, thus has to be averaged by dividing by number of cells in that facet
         !units of facefi are kgW/kgA*m/s
-        facefi(n) = facefi(n)/tEB/faca(n)*rhoa*rlv !mean heat flux since last EB calculation (time average)
+        facefsum(n) = facefsum(n)/tEB/faca(n)*rhoa*rlv !mean heat flux since last EB calculation (time average)
 
         if (.not. lconstW) then !remove water from soil
-          facwsoil(n) = max(facwsoil(n) + facefi(n)*tEB*rlvi/facd(n, 1), 0.) !ils13, careful this assumes water only being present in the first layer!!!
+          facwsoil(n) = max(facwsoil(n) + facefsum(n)*tEB*rlvi/facd(n, 1), 0.) !ils13, careful this assumes water only being present in the first layer!!!
         end if
 
         !update canopy resistance used in wf_gr
@@ -440,8 +459,8 @@ contains
     !calculates the energy balance for every facet
     use modglobal, only: nfcts, boltz, tEB, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv, timee, dtEB, tnextEB, rk3step, rhoa, cp, lEB, lwriteEBfiles,nfaclyrs
     use initfac, only: faclam, faccp, netsw, facem, fachfi, facT, facLWin, faca,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd, &
-                       lfacetprops_dirty
-    use modmpi, only: myid, comm3d, mpierr, MY_REAL
+                       fachfsum, facefsum, lfacetprops_dirty
+    use modmpi, only: myid, comm3d, mpierr, MY_REAL, MPI_SUM
     use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
     real  :: ca = 0., cb = 0.
     real  :: ab = 0.
@@ -451,7 +470,16 @@ contains
     !calculate latent heat flux from vegetation and soil
     call intqH
     !calculate energy balance, update facet temperature and soil moisture
-    if ((rk3step .eq. 3) .and. (timee .ge. tnextEB)) then
+    if (eb_will_run()) then
+
+      ! The one collective the energy balance needs. Every rank has been
+      ! integrating its own partial flux since the last call - see intqH - so
+      ! the sum over ranks happens here, once per dtEB, instead of twice per
+      ! step. On a GPU build the integrals were brought down just before this
+      ! call, by modcuda::updateFacIntegralsHost under the same eb_will_run
+      ! test.
+      call MPI_ALLREDUCE(fachfi(1:nfcts), fachfsum(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
+      call MPI_ALLREDUCE(facefi(1:nfcts), facefsum(1:nfcts), nfcts, MY_REAL, MPI_SUM, comm3d, mpierr)
 
       if (myid .eq. 0) then
         tEB = timee - tEB !time since last calculation of energy balance
@@ -467,7 +495,7 @@ contains
 
         !get time mean, facet area mean sensible heat flux
         do n = 1, nfcts
-          fachfi(n) = fachfi(n)/tEB/faca(n)*rhoa*cp !mean heat flux since last EB calculation (time average)
+          fachfsum(n) = fachfsum(n)/tEB/faca(n)*rhoa*cp !mean heat flux since last EB calculation (time average)
           !since fachf is the sum over all cells making up a facet we need to divide by the number of cells, assuming a given density to convert to W/m2
         end do
 
@@ -486,7 +514,7 @@ contains
           !calculate wallflux and update surface temperature
           !! define time dependent fluxes
           ab = boltz*facem(n)*(facT(n, 1)**3)/faclam(n, 1) ! ab*T is the Stefan-Boltzman law
-          bb(1) = -(netsw(n) + facLWin(n) + fachfi(n) + facefi(n))/faclam(n, 1) !net surface flux
+          bb(1) = -(netsw(n) + facLWin(n) + fachfsum(n) + facefsum(n))/faclam(n, 1) !net surface flux
 
           !!define the matrices to solve wall heat flux
           !! CREATE MATRICES BASED ON WALL PROPERTIES
@@ -545,8 +573,8 @@ contains
             varsEB(:,1) = netsw(1:nfcts)
             varsEB(:,2) = facLWin(1:nfcts)
             varsEB(:,3) = boltz*facem(1:nfcts)*facT(1:nfcts,1)**4
-            varsEB(:,4) = fachfi(1:nfcts)
-            varsEB(:,5) = facefi(1:nfcts)
+            varsEB(:,4) = fachfsum(1:nfcts)
+            varsEB(:,5) = facefsum(1:nfcts)
             varsEB(:,6) = facwsoil(1:nfcts)
             ! add longwave out
             call writestat_nc(ncidEB,1,tncstatEB,(/timee/),nrecEB,.true.)
@@ -560,11 +588,14 @@ contains
         tnextEB = NINT((timee + dtEB))*1.0  !rounded to nearest integer  (e.g. if current time is 10.013s and dtEb=10s, then the next energy balance will be calculated at t>=20s)
         !write (*, *) "time, time next EB", timee, tnextEB
 
-        do n = 1, nfcts
-          fachfi(n) = 0.
-          facefi(n) = 0.
-        end do
       end if !myid==0
+
+      ! Start the next interval clean. These are per-rank integrals, so every
+      ! rank resets its own; the device copies were cleared as they were read.
+      do n = 1, nfcts
+        fachfi(n) = 0.
+        facefi(n) = 0.
+      end do
 
       !write (*, *) "bcasting facT"
       call MPI_BCAST(facT(0:nfcts, 1:nfaclyrs+1), (nfaclyrs+1)*(nfcts + 1), MY_REAL, 0, comm3d, mpierr)

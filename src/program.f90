@@ -29,7 +29,8 @@ program uDALES
 #if defined(_GPU)
   use cudafor
   use modcuda,           only : initCUDA, updateDevice, updateHost, updateDevicePriorPoiss, &
-                                updateHostAfterPoiss, updateFacFluxHost, checkCUDA, exitCUDA
+                                updateHostAfterPoiss, integrateFacFluxDevice, &
+                                updateFacIntegralsHost, checkCUDA, exitCUDA
 #endif
 #if defined(_GPU) && defined(UDALES_DEBUG)
   use tests_cuda,        only : run_cuda_selftests_if_requested
@@ -57,7 +58,7 @@ program uDALES
   ! use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
   use initfac,           only : readfacetfiles
-  use modEB,             only : initEB,EB
+  use modEB,             only : initEB,EB,eb_will_run
   use moddriver,         only : initdriver
   use modadvection,      only : advection
   use modtstep,          only : tstep_update,tstep_integrate
@@ -212,18 +213,20 @@ program uDALES
 
 #if defined(_GPU)
     ! The facet flux accumulators the wall functions filled on the device.
+    ! Integrating them costs no traffic at all: the time integral is per-rank,
+    ! so it accumulates on the device across the hundreds of steps between
+    ! energy balances and only the total ever comes down.
+    call integrateFacFluxDevice
+
+    ! And that total comes down only on the steps where the balance fires.
+    ! Both this and EB's own guard read eb_will_run, so they cannot drift: if
+    ! the copy were skipped on a firing step the balance would silently run on
+    ! zero facet heat flux, on the GPU and nowhere else, which is what the
+    ! facEB comparison in the surface-energy-balance parity case catches.
     !
-    ! This used to ride along inside updateHost, which was fine while EB sat
-    ! below it. EB is above it now, so the one small crossing EB actually
-    ! depends on has to come up with it - and only that one: the energy
-    ! balance never touches a field. Leaving it behind is not a crash but a
-    ! silent loss, the facet heat flux reduced to zero on the GPU and nowhere
-    ! else, which is what the facEB comparison in the surface-energy-balance
-    ! parity case exists to catch.
-    !
-    ! It also means EB no longer depends on updateHost at all, so when
-    ! vegetation_forcing is ported and updateHost goes away, this stays.
-    call updateFacFluxHost
+    ! Neither of these depends on updateHost, so EB survives unchanged when
+    ! vegetation_forcing is ported and updateHost goes away.
+    if (eb_will_run()) call updateFacIntegralsHost
 #endif
 
     call EB

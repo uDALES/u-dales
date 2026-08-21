@@ -20,7 +20,8 @@ module tests_cuda
                         thlp_d, thlpc_d, pup_d, up_d, u0driver_d, wp_d, &
                         vp_d, qtp_d, svp_d, u0av_d, v0av_d, thl0av_d, qt0av_d, sv0av_d, &
                         uprof_d, vprof_d, thlprof_d, qtprof_d, svprof_d, &
-                        ekm_d, ekh_d, pres0_d, fachf_d, facef_d, updateFacFluxHost, &
+                        ekm_d, ekh_d, pres0_d, fachf_d, facef_d, fachfi_d, facefi_d, &
+                        integrateFacFluxDevice, updateFacIntegralsHost, &
                         facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
                         dxdydzfi_d, dxdydzhi_d, &
                         col_d, col_stage, IIu_d, IIv_d
@@ -41,11 +42,12 @@ module tests_cuda
                          totheatflux, totqflux, lEB, rk3step, iwallmoist, &
                          lperiodicEBcorr, sinkbase, fraction, xlen, ylen, &
                          linoutflow, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
-                         uflowrate, vflowrate, rk3coef, rk3coefi
+                         uflowrate, vflowrate, rk3coef, rk3coefi, dt
    use modforces,   only : nudge, periodicEBcorr, masscorr, calcfluidvolumes
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
                            thl_dot_hp, w_hp_exhaust
-   use initfac,     only : fachf, facef, facT, facqsat, fachurel, facf, faclGR, lfacetprops_dirty
+   use initfac,     only : fachf, facef, fachfi, facefi, facT, facqsat, fachurel, facf, faclGR, &
+                           lfacetprops_dirty
    use modibm,      only : mask_u, mask_v, mask_w, mask_c, &
                            mask_u_d, mask_v_d, mask_w_d, mask_c_d, &
                            bndpts_u_d, bndpts_v_d, bndpts_w_d, bndpts_c_d, &
@@ -1897,109 +1899,110 @@ contains
 
    end subroutine test_ibm_wallfunheat
 
-   !> Verify how the energy balance accumulators reach the host.
+   !> Verify how the energy balance accumulators become a time integral.
    !!
-   !! There are two properties here and keeping them apart is the whole point,
+   !! There are three properties and keeping them apart is the whole point,
    !! because conflating them is what made this handover go wrong once already.
    !!
-   !! The device accumulators must be cleared on EVERY Runge-Kutta stage. The
-   !! wall functions add into them each stage; let them run on and the third
-   !! stage delivers the sum of all three, which is the facet heat flux three
-   !! times too large. That bug shipped, and a manual CPU/GPU comparison found
-   !! it. This test and the facEB comparison in the surface-energy-balance
-   !! parity case are what stand between it and a rerun.
+   !! The accumulators must be cleared on EVERY Runge-Kutta stage. The wall
+   !! functions add into them each stage; let them run on and the third stage
+   !! integrates the sum of all three, which is the facet heat flux three times
+   !! too large. That bug shipped, and a manual CPU/GPU comparison found it.
    !!
-   !! The copy belongs on the third stage alone. intqH in modEB reduces and
-   !! time-integrates there, and clears its host arrays at the end of every
-   !! stage regardless of which one it was - so whatever the first two stages
-   !! hand over is discarded untouched, and copying it is two crossings in
-   !! three spent on a value nothing reads. That claim about intqH is not
-   !! taken on trust here: tests.f90::tests_eb checks it against the routine
-   !! itself on a CPU build.
+   !! Only the third stage is integrated, because that is the stage intqH kept
+   !! back when it did this on the host. tests.f90::tests_eb checks that claim
+   !! against intqH itself on a CPU build.
    !!
-   !! The last block is the one that ties the two together. It plays three
-   !! stages through the way a time step does - the wall functions add their
-   !! share to whatever the device already holds, the handover follows, intqH
-   !! clears the host - and asserts that what the third stage leaves for the
-   !! reduction is one stage's worth. Drop the clear from the discarded stages
-   !! and it arrives at three times that.
+   !! And the integration costs no traffic. The time integral is per-rank -
+   !! summing over steps and summing over ranks commute, and dt is the same on
+   !! every rank - so it accumulates on the device across the hundreds of steps
+   !! between energy balances, and only the total comes down. What this test
+   !! asserts about that is the arithmetic: after three stages the integral is
+   !! one stage's worth times dt, not three.
    subroutine test_facflux_handover
       implicit none
 
       real, parameter :: probe = 3.25
-      real, allocatable :: fachf_s(:), facef_s(:), back(:)
+      real, allocatable :: fachf_s(:), facef_s(:), fachfi_s(:), facefi_s(:)
+      real, allocatable :: back(:)
       integer :: saved_rk3step, stage
-      real    :: consumed
+      real    :: saved_dt, want
 
       if (.not. lEB) return
       if (.not. allocated(fachf_d)) return
-      if (.not. allocated(fachf)) return
+      if (.not. allocated(fachfi_d)) return
+      if (.not. allocated(fachfi)) return
 
       allocate(fachf_s, source=fachf)
       if (allocated(facef)) allocate(facef_s, source=facef)
+      allocate(fachfi_s, source=fachfi)
+      if (allocated(facefi)) allocate(facefi_s, source=facefi)
       saved_rk3step = rk3step
+      saved_dt      = dt
+      dt = 0.25
       allocate(back(0:nfcts))
 
+      ! One time step, played through the way the loop runs it: the wall
+      ! functions add their share to whatever is on the device, the integration
+      ! follows, and nothing crosses the bus.
+      fachfi_d = 0.
+      facefi_d = 0.
       do stage = 1, 3
          rk3step = stage
-
-         fachf = 0.
-         fachf_d = probe
-         call updateFacFluxHost
-
-         if (stage == 3) then
-            ! The consumed stage has to arrive.
-            if (maxval(abs(fachf(0:nfcts) - probe)) > 64.*epsilon(1.)*probe) then
-               call fail_cuda_selftest('facflux not handed over on the consumed stage')
-            end if
-         else
-            ! The discarded stages must not cross the bus at all.
-            if (maxval(abs(fachf(0:nfcts))) /= 0.) then
-               call fail_cuda_selftest('facflux crossed on a stage intqH discards')
-            end if
-         end if
-
-         ! And the device copy must be cleared on every stage, so the next one
-         ! starts from zero instead of carrying this one forward.
-         back = fachf_d
-         if (any(back /= 0.)) call fail_cuda_selftest('facflux device not reset on handover')
-
-         ! With nothing new on the device, a further handover adds nothing.
-         call updateFacFluxHost
-         if (stage == 3) then
-            if (maxval(abs(fachf(0:nfcts) - probe)) > 64.*epsilon(1.)*probe) then
-               call fail_cuda_selftest('facflux counted twice')
-            end if
-         end if
-      end do
-
-      ! One time step, played through.
-      fachf   = 0.
-      fachf_d = 0.
-      consumed = -1.
-      do stage = 1, 3
-         rk3step = stage
-         back = fachf_d               ! whatever the handover left there
-         back = back + probe          ! what the wall functions add this stage
+         back = fachf_d              ! whatever the last stage left there
+         back = back + probe         ! what the wall functions add this stage
          fachf_d = back
-         call updateFacFluxHost
-         if (stage == 3) consumed = maxval(abs(fachf(0:nfcts)))
-         fachf = 0.                   ! intqH clears the host at every stage
+         call integrateFacFluxDevice
+
+         ! Cleared on every stage, whichever it was.
+         back = fachf_d
+         if (any(back /= 0.)) call fail_cuda_selftest('facflux device not reset after integration')
       end do
-      if (abs(consumed - probe) > 64.*epsilon(1.)*probe) then
-         call fail_cuda_selftest('the reduction would read the wrong number of stages')
+
+      ! Three stages in, one stage out. A missing clear lands here at three
+      ! times the value; an ungated integration lands at six.
+      back = fachfi_d
+      want = dt * probe
+      if (maxval(abs(back(1:nfcts) - want)) > 64.*epsilon(1.)*want) then
+         call fail_cuda_selftest('the facet flux integral counted the wrong number of stages')
+      end if
+
+      ! And the integral reaches the host only when it is asked for, exactly
+      ! once, leaving the device side clean for the next interval.
+      fachfi = 0.
+      call updateFacIntegralsHost
+      if (maxval(abs(fachfi(1:nfcts) - want)) > 64.*epsilon(1.)*want) then
+         call fail_cuda_selftest('the facet flux integral did not reach the host')
+      end if
+      back = fachfi_d
+      if (any(back /= 0.)) call fail_cuda_selftest('facflux integral not reset on handover')
+
+      ! A second call with nothing new must not add to what the host holds:
+      ! the download assigns rather than accumulates, so the interval cannot
+      ! be counted twice.
+      call updateFacIntegralsHost
+      if (maxval(abs(fachfi(1:nfcts))) /= 0.) then
+         call fail_cuda_selftest('facflux integral counted twice')
       end if
 
       deallocate(back)
       rk3step = saved_rk3step
-      fachf = fachf_s
-      deallocate(fachf_s)
+      dt      = saved_dt
+      fachf   = fachf_s
+      fachfi  = fachfi_s
+      deallocate(fachf_s, fachfi_s)
       if (allocated(facef_s)) then
          facef = facef_s
          deallocate(facef_s)
       end if
-      fachf_d = 0.
-      if (allocated(facef_d)) facef_d = 0.
+      if (allocated(facefi_s)) then
+         facefi = facefi_s
+         deallocate(facefi_s)
+      end if
+      fachf_d  = 0.
+      fachfi_d = 0.
+      if (allocated(facef_d))  facef_d  = 0.
+      if (allocated(facefi_d)) facefi_d = 0.
 
    end subroutine test_facflux_handover
 

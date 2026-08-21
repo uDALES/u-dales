@@ -180,10 +180,16 @@
            allocate (facef(1:nfcts)); facef = 0.
            allocate (fachfsum(1:nfcts)); fachfsum = 0.
            allocate (facefsum(1:nfcts)); facefsum = 0.
+           ! The time integrals are per-rank now, so they are allocated on
+           ! every rank rather than only where the energy balance is solved.
+           ! Summing over steps and summing over ranks commute, and dt is the
+           ! same everywhere, so each rank can integrate its own partial flux
+           ! with no communication and no transfer - and the reduction that
+           ! used to run twice per step runs once per energy balance instead.
+           allocate (fachfi(0:nfcts)); fachfi = 0.
+           allocate (facefi(1:nfcts)); facefi = 0.
            if (myid==0) then
              allocate (facTdash(1:nfcts,nfaclyrs+1)); facTdash = 0.
-             allocate (fachfi(0:nfcts)); fachfi = 0.
-             allocate (facefi(1:nfcts)); facefi = 0.
              allocate (facwsoil(0:nfcts)); facwsoil = 0;
              allocate (svf(1:nfcts)); svf = 0.
              allocate (netsw(1:nfcts)); netsw = 0.
