@@ -86,40 +86,34 @@ module modfields
 #endif
 
 #if defined(_GPU)
-  real, allocatable, pinned         :: up(:,:,:)
-  real, allocatable, pinned         :: vp(:,:,:)
-  real, allocatable, pinned         :: wp(:,:,:)
   real, allocatable, pinned, target :: p(:,:,:)
 #else
+  real, allocatable,         target :: p(:,:,:)         !< difference between p at previous and new step (p = P_new - P_old) or the pressure correction
+#endif
+
+  ! The tendencies below are declared the same way for both builds, without
+  ! `pinned`. On a GPU build they never cross the bus: they are produced and
+  ! consumed entirely on the device, and page-locking host memory that nothing
+  ! copies only takes pages away from the operating system for the whole run.
   real, allocatable                 :: up(:,:,:)        !<   tendency of um
   real, allocatable                 :: vp(:,:,:)        !<   tendency of vm
   real, allocatable                 :: wp(:,:,:)        !<   tendency of wm
-  real, allocatable,         target :: p(:,:,:)         !< difference between p at previous and new step (p = P_new - P_old) or the pressure correction
-#endif
   real, allocatable,         target :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:) !< prediction of the velocity fields, not yet divergence free
-#if defined(_GPU)
-  real, allocatable, pinned         :: thlp(:,:,:)
-  real, allocatable, pinned         :: thlpc(:,:,:)
-  real, allocatable, pinned         :: e12p(:,:,:)
-  real, allocatable, pinned         :: qtp(:,:,:)
-#else
   real, allocatable                 :: thlp(:,:,:)      !<   tendency of thlm
   real, allocatable                 :: thlpc(:,:,:)     !<   tendency of thlm
   real, allocatable                 :: e12p(:,:,:)      !<   tendency of e12m
   real, allocatable                 :: qtp(:,:,:)       !<   tendency of qtm
-#endif
 
 #if defined(_GPU)
   real, allocatable, pinned         :: svm(:,:,:,:)
   real, allocatable, pinned, target :: sv0(:,:,:,:)
-  real, allocatable, pinned         :: svp(:,:,:,:)
   real, allocatable, pinned         :: scalar_source_tendency(:,:,:,:)
 #else
   real, allocatable                 :: svm(:,:,:,:)     !<  scalar sv(n) at time step t-1
   real, allocatable,         target :: sv0(:,:,:,:)     !<  scalar sv(n) at time step t
-  real, allocatable                 :: svp(:,:,:,:)     !<  tendency of sv(n)
   real, allocatable                 :: scalar_source_tendency(:,:,:,:)    !<  tendency of sv(n) due to scalar sources
 #endif
+  real, allocatable                 :: svp(:,:,:,:)     !<  tendency of sv(n)
   real, allocatable :: svpp(:,:,:,:)
 
 #if defined(_GPU)
@@ -133,13 +127,11 @@ module modfields
 
   real, allocatable :: shear(:,:,:,:)   !<   wall shear (last rank indicates the type of shear componenten (uym, uyp, etc.)
 
-#if defined(_GPU)
-  real, allocatable, pinned         :: momfluxb(:,:,:)
-  real, allocatable, pinned         :: tfluxb(:,:,:)
-#else
+  ! Wall-flux accumulators. They cross the bus once, at the allocation in
+  ! initCUDA, and then stay on the device for the rest of the run - the same
+  ! running total the host keeps - so there is nothing here worth pinning.
   real, allocatable                 :: momfluxb(:,:,:) !< fields for the wallfluxes of total momentum
   real, allocatable                 :: tfluxb(:,:,:)  !< heat
-#endif
    real, allocatable :: qfluxb(:,:,:)  !< and moisture
    real, allocatable :: cth(:,:,:)     !< heat transfer coefficient
 

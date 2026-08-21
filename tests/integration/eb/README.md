@@ -34,7 +34,7 @@ new. That is `updateFacFluxHost` and `updateFacetPropsDevice` in `modcuda`, and
 
 ## Where EB sits in the time loop
 
-`EB` runs above `updateHost`, immediately after `ibmnorm`:
+`EB` runs immediately after `ibmnorm`:
 
 ```
 call ibmnorm
@@ -42,9 +42,12 @@ call ibmnorm
   integrateFacFluxDevice                        ! every stage, no traffic
   if (eb_will_run()) updateFacIntegralsHost     ! one step in dtEB/dt
 call EB
-  updateHost                                    ! the field tendencies
-call vegetation_forcing
+call vegetation_forcing                         ! on the device
 ```
+
+`updateHost` used to sit between the last two lines. It has since gone: with
+`vegetation_forcing` on the device nothing in this window runs on the host, so
+the whole handover moved to `updateHostAfterPoiss`.
 
 **Nothing crosses the bus per step.** `fachf_d` and `facef_d` are integrated
 into `fachfi_d`/`facefi_d` on the device and cleared each stage; the totals
@@ -77,8 +80,9 @@ loud:
   integrates the sum of all three, which is the facet heat flux three times
   too large. That bug shipped once.
 
-`EB` now depends on `updateHost` not at all, so this arrangement survives
-unchanged when `vegetation_forcing` is ported and `updateHost` goes away.
+`EB` depended on `updateHost` not at all, which is why this arrangement
+survived unchanged when `vegetation_forcing` was ported and `updateHost` was
+folded into `updateHostAfterPoiss`.
 
 ## What this test pins
 

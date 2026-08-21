@@ -28,7 +28,7 @@ program uDALES
   use modmpi,            only : initmpi,exitmpi,starttimer
 #if defined(_GPU)
   use cudafor
-  use modcuda,           only : initCUDA, updateDevice, updateHost, &
+  use modcuda,           only : initCUDA, updateDevice, &
                                 updateHostAfterPoiss, integrateFacFluxDevice, &
                                 updateFacIntegralsHost, checkCUDA, exitCUDA
 #endif
@@ -231,36 +231,24 @@ program uDALES
     ! the copy were skipped on a firing step the balance would silently run on
     ! zero facet heat flux, on the GPU and nowhere else, which is what the
     ! facEB comparison in the surface-energy-balance parity case catches.
-    !
-    ! Neither of these depends on updateHost, so EB survives unchanged when
-    ! vegetation_forcing is ported and updateHost goes away.
     if (eb_will_run()) call updateFacIntegralsHost
 #endif
 
     call EB
 
-    ! Ahead of updateHost now, not behind it. On a GPU build every loop in here
-    ! runs on the device against the mirrors ibmnorm has just pinned, so the
-    ! previous-step fields no longer have to come down for it - which is what
-    ! the ltrees block updateHost used to carry. On a CPU build nothing moved:
-    ! updateHost does not exist there, and the order against EB is unchanged.
+    ! On a GPU build every loop in here runs on the device, against the mirrors
+    ! ibmnorm has just pinned. That is what let the whole handover below go:
+    ! this was the last routine in the window reading the previous-step fields
+    ! on the host, and it read them at the neighbours of every tree point.
     call vegetation_forcing
 
-    stime = MPI_Wtime()
-#if defined(_GPU)
-    call updateHost
-#endif
-    write(6,'(A,F10.6)')'updateHost time = ', MPI_Wtime() - stime
-
-    ! updateDevicePriorPoiss used to sit here, re-uploading what updateHost had
-    ! just brought down plus the fields updateDevice had already sent at the
-    ! top of the stage. Once vegetation_forcing moved onto the device there was
-    ! no host work left between the two to justify it: nothing on the host
-    ! writes any of those fields in this window, and nothing on the device
-    ! writes u0/v0/w0/pres0/thl0/thl0c/qt0/sv0 either, so both halves of the
-    ! round trip carried the value they already held. The inlet profiles and
-    ! the driver plane were the exception - that routine was their only upload
-    ! - and they are copied by updateDevice now.
+    ! updateHost and updateDevicePriorPoiss used to sit here, one after the
+    ! other, and between them they moved most of the state in the model across
+    ! the bus twice a stage. Nothing runs on the host between EB and the
+    ! pressure step any more, so there is nothing here to hand over: the six
+    ! fields that still have a host reader come down in updateHostAfterPoiss
+    ! instead, and the inlet profiles the upload used to carry are sent by
+    ! updateDevice at the top of the stage.
 
     call heatpump
 

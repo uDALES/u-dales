@@ -202,10 +202,17 @@ module modcuda
          allocate(vp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
          allocate(wp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
 
-         allocate(tau_x_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-         allocate(tau_y_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-         allocate(tau_z_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-         allocate(momfluxb_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         ! Seeded once here rather than every stage. bottom rewrites the three
+         ! stresses whole before anything reads them, so their seed only has to
+         ! be defined - but momfluxb is different: the wall functions add into
+         ! it and nothing ever clears it, on either the host or the device, so
+         ! it carries a running total for the whole run. Uploading the host
+         ! copy every stage used to be what carried that total across; now it
+         ! simply stays on the device, which is what the host does too.
+         allocate(tau_x_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh));    tau_x_d    = tau_x
+         allocate(tau_y_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh));    tau_y_d    = tau_y
+         allocate(tau_z_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh));    tau_z_d    = tau_z
+         allocate(momfluxb_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); momfluxb_d = momfluxb
 
          allocate(u0av_d(kb:ke+kh))
          allocate(v0av_d(kb:ke+kh))
@@ -256,7 +263,7 @@ module modcuda
                allocate(thl0c_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc))
                allocate(thlpc_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
             end if
-            allocate(thl_flux_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+            allocate(thl_flux_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl_flux_d = thl_flux
             allocate(thv0h_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(thvh_d(kb:ke+kh))
             allocate(thl0av_d(kb:ke+kh))
@@ -269,7 +276,8 @@ module modcuda
             dthldxls_d = dthldxls
             dthldyls_d = dthldyls
 
-            allocate(tfluxb_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+            ! An accumulator like momfluxb - see the comment above.
+            allocate(tfluxb_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); tfluxb_d = tfluxb
          end if
 
          if (lmoist) then
@@ -565,11 +573,6 @@ module modcuda
          call initfield<<<griddim,blockdim>>>(wp_d, 0., ih, jh, kh)
          call checkCUDA( cudaGetLastError(), 'initfield wp_d' )
 
-         tau_x_d = tau_x
-         tau_y_d = tau_y
-         tau_z_d = tau_z
-         momfluxb_d = momfluxb
-
          u0av_d = u0av
          v0av_d = v0av
 
@@ -605,8 +608,6 @@ module modcuda
                call checkCUDA( cudaGetLastError(), 'initfield thlpc_d' )
             end if
 
-            thl_flux_d = thl_flux
-
             thv0h_d    = thv0h
             thvh_d     = thvh
             thl0av_d   = thl0av
@@ -614,8 +615,6 @@ module modcuda
             if (ltrees .and. lmoist) then
                thlpcar_d = thlpcar
             end if
-
-            tfluxb_d = tfluxb
          end if
 
          if (lmoist) then
@@ -671,50 +670,29 @@ module modcuda
             e120 = e120_d
             e12m = e12m_d
          end if
-      end subroutine updateHostAfterPoiss
 
-      !> Hand the field tendencies back to the host.
-      !!
-      !! What is left here is what the host diagnostics and modboundary read
-      !! after the pressure step: the tendencies, the wall stresses, the eddy
-      !! viscosities. The facet drain and the tree diagnostics both left, each
-      !! to a call site gated on the step its one consumer actually runs.
-      subroutine updateHost
-         implicit none
-
-         up = up_d
-         vp = vp_d
-         wp = wp_d
+         ! What updateHost used to bring down half a stage earlier. It ran
+         ! before poisson because vegetation_forcing needed the fields there;
+         ! once that moved onto the device, everything left in that routine
+         ! either had no host reader at all - the tendencies, momfluxb, tfluxb -
+         ! or had one that runs past this point:
+         !
+         !   ekm, ekh           checksim, statsdump, boundary's fluxtop,
+         !                      writerestartfiles
+         !   tau_x/y/z          fielddump, when named in fieldvars
+         !   thl_flux           the same
+         !
+         ! Nothing writes any of them on the device between there and here -
+         ! subgrid and bottom produce them before, poisson and tstep_integrate
+         ! do not touch them, and halos_device exchanges only the prognostic
+         ! fields - so the values are the ones updateHost used to hand over.
+         ekm = ekm_d
+         ekh = ekh_d
          tau_x = tau_x_d
          tau_y = tau_y_d
          tau_z = tau_z_d
-         momfluxb = momfluxb_d
-         if (loneeqn) then
-            e12m = e12m_d
-            e120 = e120_d
-            e12p = e12p_d
-         end if
-         if (ltempeq) then
-            thlp = thlp_d
-            if (iadv_thl == iadv_kappa) thlpc = thlpc_d
-            thl_flux = thl_flux_d
-            tfluxb = tfluxb_d
-         end if
-         if (lmoist) then
-            qtp = qtp_d
-         end if
-         if (nsv>0) then
-            svp = svp_d
-         end if
-         ekm = ekm_d
-         ekh = ekh_d
-
-         ! The previous-step fields used to be dragged down here for
-         ! vegetation_forcing, which read them at the neighbours of every tree
-         ! point. That routine runs on the device now and ahead of this one, so
-         ! nothing left in this window reads them and a tree run costs the same
-         ! as any other.
-      end subroutine updateHost
+         if (ltempeq) thl_flux = thl_flux_d
+      end subroutine updateHostAfterPoiss
 
       !> Rank-local fluid-cell column sums of a device field, for avexy_ibm.
       !!

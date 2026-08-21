@@ -127,13 +127,17 @@ a real precompute, it just loses to the cache hierarchy.
 
 ## One thing that is not covered
 
-`updateHost` hands `um`, `vm`, `wm`, `thlm` and `qtm` back for `ltrees` runs,
-because `vegetation_forcing` reads them at the neighbours of every tree point
-and one of those can be a solid cell that `ibmnorm` has just pinned on the
-device. Removing that handover does **not** fail the `vegetation` case, even
+`updateHost` used to hand `um`, `vm`, `wm`, `thlm` and `qtm` back for `ltrees`
+runs, because `vegetation_forcing` read them at the neighbours of every tree
+point and one of those can be a solid cell that `ibmnorm` has just pinned on
+the device. Removing that handover did **not** fail the `vegetation` case, even
 though it has both `ltrees` and `libm`: its trees evidently do not sit against
-a solid cell. The handover is kept because the reordering it compensates for is
-real, but it rests on inspection rather than on a test.
+a solid cell — so the guard rested on inspection rather than on a test.
+
+That is moot now. `vegetation_forcing` runs on the device and reads the
+mirrors directly, so there is no handover left to get wrong; the reordering it
+compensated for is handled by `ibmnorm` and the reader being on the same side
+of the bus.
 
 ## Requirements
 

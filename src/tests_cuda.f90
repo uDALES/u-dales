@@ -24,13 +24,16 @@ module tests_cuda
                         integrateFacFluxDevice, updateFacIntegralsHost, &
                         facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
                         dxdydzfi_d, dxdydzhi_d, &
-                        col_d, col_stage, IIu_d, IIv_d, updateDevice
+                        col_d, col_stage, IIu_d, IIv_d, updateDevice, &
+                        updateHostAfterPoiss, tau_x_d, tau_y_d, tau_z_d, &
+                        thl_flux_d, momfluxb_d, tfluxb_d
    use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, pres0, &
                          thl0, thlm, thl0c, qt0, qtm, sv0, svm, thlp, wp, &
                          up, vp, qtp, svp, &
                          u0av, v0av, thl0av, qt0av, sv0av, &
                          uprof, vprof, thlprof, qtprof, svprof, &
                          IIc, IIu, IIv, IIcs, IIus, IIvs, &
+                         tau_x, tau_y, tau_z, thl_flux, momfluxb, tfluxb, &
                          uoutarea, voutarea, udef, vdef, uouttot
    use modglobal, only : ib, ie, jb, je, kb, ke, ih, jh, kh, nsv, &
                          ihc, jhc, khc, dxhci, dxfc, dxfci, dxi, dyi, &
@@ -125,6 +128,7 @@ contains
          call test_facet_props_refresh
          call test_vegetation_forcing
          call test_bc_profile_upload
+         call test_post_poisson_handover
          write(*,'(A,I0)') 'CUDA device self-tests passed. rank=', myid
       case ('', '0', 'false', 'FALSE', 'no', 'NO', 'off', 'OFF')
          return
@@ -3412,6 +3416,135 @@ contains
       deallocate(uprof_s, vprof_s, back1, back2)
 
    end subroutine test_bc_profile_upload
+
+
+   !> Pin the two contracts left behind by folding updateHost away.
+   !!
+   !! updateHost used to run before the pressure step and bring down eighteen
+   !! fields. Ten of them had no host reader at all in a GPU build and were
+   !! dropped; the six that do have one now come down in updateHostAfterPoiss,
+   !! which is what the second half of this checks. Nothing writes them on the
+   !! device in between, so the values have to be the ones the device holds.
+   !!
+   !! The first half is the trap. momfluxb and tfluxb are accumulators - the
+   !! wall functions add into them and nothing ever clears them, on either side
+   !! - so the download/upload round trip was what carried their running total
+   !! across stages. Dropping the download alone would have frozen them at
+   !! whatever the host last held. Both halves went, and initCUDA seeds the
+   !! device copies once, which leaves them accumulating on the device exactly
+   !! as they do on the host. That only holds while updateDevice keeps its
+   !! hands off them, which is what this asserts.
+   subroutine test_post_poisson_handover
+      implicit none
+
+      real, parameter :: sent_mom = 41.5, sent_tf  = -17.25
+      real, parameter :: sent_ekm = 3.125, sent_ekh = 6.375
+      real, parameter :: sent_tx = 11.5, sent_ty = -22.25, sent_tz = 33.75
+      real, parameter :: sent_hf = -44.125
+
+      real, allocatable :: ekm_s(:,:,:), ekh_s(:,:,:)
+      real, allocatable :: tau_x_s(:,:,:), tau_y_s(:,:,:), tau_z_s(:,:,:)
+      real, allocatable :: thl_flux_s(:,:,:)
+      real, allocatable :: momfluxb_s(:,:,:), tfluxb_s(:,:,:)
+      real, allocatable :: mom_dev(:,:,:), tf_dev(:,:,:), back(:,:,:)
+
+      if (.not. allocated(momfluxb_d)) return
+      if (.not. allocated(ekm_d)) return
+
+      allocate(back(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+
+      allocate(ekm_s,      source=ekm)
+      allocate(ekh_s,      source=ekh)
+      allocate(tau_x_s,    source=tau_x)
+      allocate(tau_y_s,    source=tau_y)
+      allocate(tau_z_s,    source=tau_z)
+      allocate(momfluxb_s, source=momfluxb)
+      if (ltempeq) then
+         allocate(thl_flux_s, source=thl_flux)
+         allocate(tfluxb_s,   source=tfluxb)
+      end if
+
+      ! What the device currently holds, so the accumulators can be handed back
+      ! untouched: the run continues from here.
+      allocate(mom_dev(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      mom_dev = momfluxb_d
+      if (ltempeq) then
+         allocate(tf_dev(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+         tf_dev = tfluxb_d
+      end if
+
+      ! Make every mirror updateDevice uploads agree with the host, so that the
+      ! updateHostAfterPoiss call below is an identity for everything except
+      ! the six fields under test.
+      call updateDevice
+
+      ! --- the accumulators survive updateDevice ---------------------------
+      momfluxb_d = sent_mom
+      momfluxb   = sent_mom + 1.
+      if (ltempeq) then
+         tfluxb_d = sent_tf
+         tfluxb   = sent_tf + 1.
+      end if
+
+      call updateDevice
+
+      back = momfluxb_d
+      if (any(back /= sent_mom)) then
+         call fail_cuda_selftest('updateDevice overwrote the momentum flux accumulator')
+      end if
+      if (ltempeq) then
+         back = tfluxb_d
+         if (any(back /= sent_tf)) then
+            call fail_cuda_selftest('updateDevice overwrote the heat flux accumulator')
+         end if
+      end if
+
+      ! --- updateHostAfterPoiss brings the six survivors down ---------------
+      ekm_d   = sent_ekm ; ekm   = 0.
+      ekh_d   = sent_ekh ; ekh   = 0.
+      tau_x_d = sent_tx  ; tau_x = 0.
+      tau_y_d = sent_ty  ; tau_y = 0.
+      tau_z_d = sent_tz  ; tau_z = 0.
+      if (ltempeq) then
+         thl_flux_d = sent_hf ; thl_flux = 0.
+      end if
+
+      call updateHostAfterPoiss
+
+      if (any(ekm   /= sent_ekm)) call fail_cuda_selftest('updateHostAfterPoiss did not bring down ekm')
+      if (any(ekh   /= sent_ekh)) call fail_cuda_selftest('updateHostAfterPoiss did not bring down ekh')
+      if (any(tau_x /= sent_tx))  call fail_cuda_selftest('updateHostAfterPoiss did not bring down tau_x')
+      if (any(tau_y /= sent_ty))  call fail_cuda_selftest('updateHostAfterPoiss did not bring down tau_y')
+      if (any(tau_z /= sent_tz))  call fail_cuda_selftest('updateHostAfterPoiss did not bring down tau_z')
+      if (ltempeq) then
+         if (any(thl_flux /= sent_hf)) then
+            call fail_cuda_selftest('updateHostAfterPoiss did not bring down thl_flux')
+         end if
+      end if
+
+      ! --- put everything back ---------------------------------------------
+      ekm   = ekm_s   ; ekm_d   = ekm
+      ekh   = ekh_s   ; ekh_d   = ekh
+      tau_x = tau_x_s ; tau_x_d = tau_x
+      tau_y = tau_y_s ; tau_y_d = tau_y
+      tau_z = tau_z_s ; tau_z_d = tau_z
+      momfluxb   = momfluxb_s
+      momfluxb_d = mom_dev
+      if (ltempeq) then
+         thl_flux   = thl_flux_s ; thl_flux_d = thl_flux
+         tfluxb     = tfluxb_s
+         tfluxb_d   = tf_dev
+         deallocate(thl_flux_s, tfluxb_s, tf_dev)
+      end if
+
+      ! updateDevice cleared the facet dirty flag on the way through. Set it
+      ! again so the first real call copies the facet properties exactly as it
+      ! would have without this test.
+      lfacetprops_dirty = .true.
+
+      deallocate(ekm_s, ekh_s, tau_x_s, tau_y_s, tau_z_s, momfluxb_s, mom_dev, back)
+
+   end subroutine test_post_poisson_handover
 
    subroutine fail_cuda_selftest(name)
       implicit none

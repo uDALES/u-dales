@@ -85,18 +85,13 @@
 #endif
       real, allocatable    :: facTdash(:, :)!temperature gradient dT/dz
       !fluxes
-#if defined(_GPU)
-      real, allocatable, pinned :: facef(:)
-#else
+      ! facef and fachf below are not pinned: the wall functions fill facef_d
+      ! and fachf_d on the device and integrateFacFluxDevice consumes them
+      ! there, so on a GPU build the host copies are never written or read.
       real, allocatable    :: facef(:) !evaporative flux on facets [W/m2] (single processor)
-#endif
       real, allocatable    :: facefi(:) !time integrated latent heat flux [J/m2] (used in modEB)
       real, allocatable    :: facefsum(:) !evaporative flux on facets [W/m2] (sum over all processors)
-#if defined(_GPU)
-      real, allocatable, pinned :: fachf(:)
-#else
       real, allocatable    :: fachf(:) !heat flux on facets [Km/s] (single processor)
-#endif
       real, allocatable    :: fachfi(:) !time integrated heat flux [Km]
       real, allocatable    :: fachfsum(:) !heat flux on facets [Km/s] (sum over all processors)
       !GR
