@@ -25,7 +25,7 @@ program uDALES
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
   use mpi
-  use modmpi,            only : initmpi,exitmpi,starttimer
+  use modmpi,            only : initmpi,exitmpi,starttimer,myid
 #if defined(_GPU)
   use cudafor
   use modcuda,           only : initCUDA, updateDevice, &
@@ -43,12 +43,7 @@ program uDALES
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
-  use modboundary,       only : initboundary,boundary,grwdamp
-#if defined(_GPU)
-  use modboundary,       only : halos_device
-#else
-  use modboundary,       only : halos
-#endif
+  use modboundary,       only : initboundary,boundary,grwdamp,exchange_halos
   use modthermodynamics, only : initthermodynamics,thermodynamics
   use modsubgrid,        only : initsubgrid,subgrid
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,nudge,masscorr,shiftedPBCs,periodicEBcorr
@@ -167,57 +162,68 @@ program uDALES
   call starttimer
   do while ((timeleft>0) .or. (rk3step < 3))
 
+    ! Any routine added to this loop must have its GPU data transfers addressed:
+    ! nothing between updateDevice and updateHostAfterPoiss may read host fields.
+
+    stime = MPI_Wtime()
+
     call tstep_update
+    call print_time('tstep_update')
 
     call timedep
+    call print_time('timedep')
 
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
-    stime = MPI_Wtime()
 #if defined(_GPU)
     call updateDevice
 #endif
-    write(6,'(A,F10.6)')'updateDevice time = ', MPI_Wtime() - stime
-
-    stime = MPI_Wtime()
+    call print_time('updateDevice')
 
     call advection ! includes predicted pressure gradient term
+    call print_time('advection')
 
     call shiftedPBCs
+    call print_time('shiftedPBCs')
 
     call subgrid
+    call print_time('subgrid')
 
 !-----------------------------------------------------
 !   3.3   THE SURFACE LAYER
 !-----------------------------------------------------
 
     call bottom
+    call print_time('bottom')
 
 !-----------------------------------------------------
 !   3.4   REMAINING TERMS
 !-----------------------------------------------------
 
     call coriolis       !remaining terms of ns equation
+    call print_time('coriolis')
 
     call forces         !remaining terms of ns equation
+    call print_time('forces')
 
     call lstend         !large scale forcings
+    call print_time('lstend')
 
     call nudge          ! nudge top cells of fields to enforce steady-state
+    call print_time('nudge')
 
     call ibmwallfun     ! immersed boundary forcing: only shear forces.
+    call print_time('ibmwallfun')
 
     call periodicEBcorr
+    call print_time('periodicEBcorr')
 
     call masscorr       ! correct pred. velocity pup to get correct mass flow
+    call print_time('masscorr')
 
     call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
-
-#if defined(_GPU)
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
-#endif
-    write(6,'(A,F10.6)')'(advection to ibmnorm) time = ', MPI_Wtime() - stime
+    call print_time('ibmnorm')
 
 #if defined(_GPU)
     ! The facet flux accumulators the wall functions filled on the device.
@@ -233,62 +239,55 @@ program uDALES
     ! facEB comparison in the surface-energy-balance parity case catches.
     if (eb_will_run()) call updateFacIntegralsHost
 #endif
+    call print_time('Additional EB traffic')
 
     call EB
+    call print_time('EB')
 
-    ! On a GPU build every loop in here runs on the device, against the mirrors
-    ! ibmnorm has just pinned. That is what let the whole handover below go:
-    ! this was the last routine in the window reading the previous-step fields
-    ! on the host, and it read them at the neighbours of every tree point.
     call vegetation_forcing
-
-    ! updateHost and updateDevicePriorPoiss used to sit here, one after the
-    ! other, and between them they moved most of the state in the model across
-    ! the bus twice a stage. Nothing runs on the host between EB and the
-    ! pressure step any more, so there is nothing here to hand over: the six
-    ! fields that still have a host reader come down in updateHostAfterPoiss
-    ! instead, and the inlet profiles the upload used to carry are sent by
-    ! updateDevice at the top of the stage.
+    call print_time('vegetation_forcing')
 
     call heatpump
+    call print_time('heatpump')
 
     call scalsource     ! adds continuous forces in specified region of domain
+    call print_time('scalsource')
 
 !------------------------------------------------------
 !   3.4   EXECUTE ADD ONS
 !------------------------------------------------------
     call fixuinf2
+    call print_time('fixuinf2')
     call fixuinf1
+    call print_time('fixuinf1')
 
 !-----------------------------------------------------------------------
 !   3.5  PRESSURE FLUCTUATIONS, TIME INTEGRATION AND BOUNDARY CONDITIONS
 !-----------------------------------------------------------------------
     call grwdamp        !damping at top of the model
+    call print_time('grwdamp')
 
-    stime = MPI_Wtime()
     call poisson
-#if defined(_GPU)
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program' )
-#endif
-    write(6,'(A,F10.6)')'poisson time = ', MPI_Wtime() - stime
+    call print_time('poisson')
 
     ! call purifiers      !placing need to be checked; Not GPU compatible yet
 
     call tstep_integrate
+    call print_time('tstep_integrate')
 
-#if defined(_GPU)
-    call halos_device
-#else
-    call halos
-#endif
+    call exchange_halos
+    call print_time('exchange_halos')
 
 #if defined(_GPU)
     call updateHostAfterPoiss
 #endif
+    call print_time('updateHostAfterPoiss')
 
     call checksim
+    call print_time('checksim')
 
     call fielddump
+    call print_time('fielddump')
 
 #if defined(_GPU)
     ! The tree tendencies stay on the device between samples. statsdump reads
@@ -298,22 +297,26 @@ program uDALES
     ! predicate never has to know about trees.
     if (statsdump_will_sample()) call updateVegDiagHost
 #endif
+    call print_time('updateVegDiagHost')
 
     call statsdump
+    call print_time('statsdump')
 
     call boundary
+    call print_time('boundary')
 
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
 !-----------------------------------------------------
     call thermodynamics
+    call print_time('thermodynamics')
 
 !-----------------------------------------------------
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
 
     call writerestartfiles
-
+    call print_time('writerestartfiles')
   end do
 !-------------------------------------------------------
 !             END OF TIME LOOP
@@ -337,6 +340,17 @@ program uDALES
   call exitmpi
 
 contains
+  subroutine print_time(routine_name)
+    implicit none
+    character(len=*), intent(in) :: routine_name
+#if defined(_GPU)
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program print_time for ' // trim(routine_name) )
+#endif
+    write(6,'(A,I0,3A,F10.6,A)')'Rank:',myid,': Time taken by ', trim(routine_name), ' : ', MPI_Wtime() - stime, ' seconds'
+
+    stime = MPI_Wtime()
+  end subroutine print_time
+
   subroutine execute_runmode_actions
     logical :: test_failed
     logical :: invalid_runmode

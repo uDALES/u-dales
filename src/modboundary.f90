@@ -26,7 +26,7 @@ module modboundary
    implicit none
    save
    private
-   public :: initboundary, boundary, grwdamp, ksp, tqaver, halos, bcp, bcpup, closurebc
+   public :: initboundary, boundary, grwdamp, ksp, tqaver, exchange_halos, halos, bcp, bcpup, closurebc
 #if defined(_GPU)
    public :: halos_device
 #if defined(UDALES_DEBUG)
@@ -70,6 +70,14 @@ contains
    !>
    !! Fill halo cells, including ghost cells outside domain
    ! Needs to be called before divergence is calculated
+   subroutine exchange_halos
+    implicit none
+#if defined(_GPU)
+    call halos_device
+#else
+    call halos
+#endif
+   end subroutine exchange_halos
    subroutine halos
       use modglobal, only : ihc, jhc, khc, nsv, &
                             BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, &
