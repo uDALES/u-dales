@@ -89,6 +89,7 @@ module modglobal
    integer, parameter :: TEST_IBMNORM = 1011
    integer, parameter :: TEST_EB = 1012
    integer, parameter :: TEST_VEGETATION = 1013
+   integer, parameter :: TEST_CHECKSIM = 1014
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
@@ -515,6 +516,7 @@ module modglobal
   real, allocatable, pinned :: dzhiq(:)
   real, allocatable, pinned :: dxdydzfi(:)
   real, allocatable, pinned :: dxdydzhi(:)
+  real, allocatable, pinned :: dvcell(:)
   real, allocatable, pinned :: dzfc(:)
   real, allocatable, pinned :: dzfci(:)
   real, allocatable, pinned :: dzhci(:)
@@ -536,6 +538,13 @@ module modglobal
   ! not dxi*dyi*dzfi, so the multiply that replaces the division is one operation.
   real, allocatable :: dxdydzfi(:) !<  1/(dx*dy*dzf)
   real, allocatable :: dxdydzhi(:) !<  1/(dx*dy*dzh)
+  ! ... and the volume itself, for the traffic in the other direction: chkdiv
+  ! integrates a divergence over the cells rather than dividing by them, so it
+  ! wants the product and would otherwise form it per cell per call. Not the
+  ! reciprocal of dxdydzfi, which would be a second rounding of a rounded
+  ! value; it is dx*dy*dzf in that association, which is what the loop it
+  ! replaces evaluated.
+  real, allocatable :: dvcell(:)   !<  dx*dy*dzf, the cell volume
   real, allocatable :: dzfc(:)  !<  thickness of full level (extra ghost nodes (used in k-scheme)
   real, allocatable :: dzfci(:) !<  1/dzfc
   real, allocatable :: dzhci(:) !<  1/dzh (extra ghost nodes (used in k-scheme)
@@ -748,6 +757,7 @@ contains
       allocate (dzh2i(kb:ke + kh))
       allocate (dxdydzfi(kb - kh:ke + kh))
       allocate (dxdydzhi(kb:ke + kh))
+      allocate (dvcell(kb - kh:ke + kh))
       allocate (zh(kb:ke + kh))
       allocate (zf(kb:ke + kh))
 
@@ -874,6 +884,7 @@ contains
       dzfi = 1./dzf
       dxdydzfi = 1./(dx*dy*dzf)
       dxdydzhi = 1./(dx*dy*dzh)
+      dvcell   = dx*dy*dzf
       dzf2 = dzf*dzf
       dxhi = 1./dxh
       dxfi = 1./dxf

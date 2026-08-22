@@ -22,7 +22,7 @@ module tests
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, &
             tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun, &
             tests_periodic_ebcorr, tests_masscorr, tests_ibmnorm, tests_eb, &
-            tests_vegetation
+            tests_vegetation, tests_checksim
 
 contains
 
@@ -4150,5 +4150,421 @@ contains
     end subroutine canopy_reference
 
   end function tests_vegetation
+
+  !> Check the host branch of the checksim diagnostics.
+  !!
+  !! checksim itself only prints, so what is tested here are the three
+  !! rank-local reductions it prints - courant_local, diffnr_local and
+  !! div_local - plus the diffusion-number geometry cache they were rewritten
+  !! around. Each is driven with a state whose answer follows from the grid
+  !! rather than from re-running the loop, so a transcription error in the port
+  !! cannot be reproduced by the expectation.
+  !!
+  !! What each group of checks is for:
+  !!
+  !!   - diffnrgeom is asserted equal, bit for bit, to the expression it
+  !!     replaced. The point of caching it was that the printed diffusion
+  !!     number must not move, and only exact equality says that.
+  !!
+  !!   - A single spike in one field, with everything else zero, isolates one
+  !!     term of a sum: the maximum is then that term alone and can be written
+  !!     down. Placed at each bound of the reduction box in turn, it also pins
+  !!     the loop extent, and a matching spike placed just outside the box
+  !!     asserts the loop stops where it should. A port that reduces over the
+  !!     halo passes an interior-only comparison.
+  !!
+  !!   - div_local reads i+1, j+1 and k+1, so its spikes are planted at ie+1,
+  !!     je+1 and ke+1: the cell that sees them is the last interior one. A
+  !!     port written u0(i) - u0(i-1), or one that stops at ie-1, reads zero
+  !!     there and returns nothing.
+  !!
+  !!   - The ramp gives every cell the same divergence, so the volume integral
+  !!     is a cell count times a known value. That is the check that fails when
+  !!     the sum covers one plane too few, which no single-spike test can see.
+  !!
+  !! This exercises the host branch. The device kernels are covered by
+  !! tests_cuda.f90::test_checksim_reductions, which runs under
+  !! UDALES_RUN_CUDA_SELFTEST on a Debug GPU build.
+  !! Returns .true. if all checks pass, .false. otherwise.
+  logical function tests_checksim()
+    use modglobal,      only : runmode, ib, ie, jb, je, kb, ke, &
+                               dx, dy, dxi, dyi, dy2i, dxhi, dzhi, dzf, dzfi, dzh, dxh2i, dvcell
+    use modfields,      only : initfields, um, vm, wm, u0, v0, w0
+    use modsubgrid,     only : initsubgrid
+    use modsubgriddata, only : ekm, ekh
+    use modchecksim,    only : initchecksim, courant_local, diffnr_local, div_local, diffnrgeom
+
+    implicit none
+
+    real, parameter :: spike = 2., alpha = 0.5, dtm = 0.25
+
+    logical :: all_passed
+    integer :: i, j, k, ni, nj
+    real    :: got, want, gotmax, gottot, dzfsum
+    real    :: dxi_save, dyi_save, dx_save, dy_save
+    real, allocatable :: dxhi_save(:), dzhi_save(:), dzf_save(:), dzfi_save(:), dv_save(:), geom_save(:,:)
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_checksim: COURANT, DIFFUSION AND DIVERGENCE TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+#if defined(_GPU)
+    ! Under _GPU the three reductions read the device fields, so seeding the
+    ! host arrays this test writes would leave them looking at whatever the
+    ! device happens to hold. Say so rather than reporting an unexplained
+    ! mismatch, and do not pass vacuously.
+    if (myid == 0) then
+      write(*, '(A)') 'FAIL: runmode 1014 exercises the host branch of the checksim reductions.'
+      write(*, '(A)') '  Run it against a CPU build (build/cpu/<type>/u-dales).'
+      write(*, '(A)') '  The device kernels are covered by tests_cuda.f90::test_checksim_reductions,'
+      write(*, '(A)') '  run with UDALES_RUN_CUDA_SELFTEST=1 on a Debug GPU build.'
+    end if
+    tests_checksim = .false.
+    return
+#endif
+
+    call initfields
+    call initsubgrid
+    call initchecksim
+
+    all_passed = .true.
+    ni = ie - ib + 1
+    nj = je - jb + 1
+
+    ! ---- the diffusion-number geometry cache --------------------------------
+    ! Exact equality, not a tolerance: the whole justification for precomputing
+    ! this was that it is the same arithmetic in the same order.
+    do k = kb, ke
+      do i = ib, ie
+        want = 1/dzh(k)**2 + dxh2i(i) + dy2i
+        if (diffnrgeom(i,k) /= want) then
+          write(*,'(A,I0,A,I0,A,I0,A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, &
+               ': diffnrgeom(', i, ',', k, ') = ', diffnrgeom(i,k), ' want ', want
+          all_passed = .false.
+        end if
+      end do
+    end do
+
+    ! Same, for the cell volume modglobal builds. This one is not claimed to be
+    ! bit-identical to the div*dx*dy*dzf(k) it replaces - see div_local - but it
+    ! must be the product of exactly those three, so a cache built from dzh, or
+    ! from dzfi, is caught.
+    do k = kb, ke
+      want = dx*dy*dzf(k)
+      if (dvcell(k) /= want) then
+        write(*,'(A,I0,A,I0,A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, &
+             ': dvcell(', k, ') = ', dvcell(k), ' want ', want
+        all_passed = .false.
+      end if
+    end do
+
+    ! ---- make every grid factor distinct ------------------------------------
+    ! Every case in the repository has dx = dy and a uniform grid in x, and all
+    ! but one has a uniform grid in z. On such a grid dxhi(i) equals dyi,
+    ! dxhi(i) equals dxhi(ib), and dzhi, dzfi and dzf are constant in k - so a
+    ! loop that pairs the v term with the x spacing, or reads any of these at a
+    ! fixed index, returns exactly the right answer and no assertion below can
+    ! fail. Substituting values that differ in every position is what makes the
+    ! pairing and the indexing load-bearing.
+    !
+    ! dzfi is deliberately not the reciprocal of dzf, and dxi not that of dx:
+    ! div_local uses one of each pair for the gradient and the other for the
+    ! cell volume, and on a consistent grid a kernel that confuses them is
+    ! invisible.
+    !
+    ! This runs after the exactness check above, which has to see the grid
+    ! initchecksim actually built, and everything is restored before returning.
+    allocate(dxhi_save(lbound(dxhi,1):ubound(dxhi,1))) ; dxhi_save = dxhi
+    allocate(dzhi_save(lbound(dzhi,1):ubound(dzhi,1))) ; dzhi_save = dzhi
+    allocate(dzf_save (lbound(dzf ,1):ubound(dzf ,1))) ; dzf_save  = dzf
+    allocate(dzfi_save(lbound(dzfi,1):ubound(dzfi,1))) ; dzfi_save = dzfi
+    allocate(dv_save  (lbound(dvcell,1):ubound(dvcell,1))) ; dv_save   = dvcell
+    allocate(geom_save(lbound(diffnrgeom,1):ubound(diffnrgeom,1), &
+                       lbound(diffnrgeom,2):ubound(diffnrgeom,2)))
+    geom_save = diffnrgeom
+    dxi_save = dxi ; dyi_save = dyi ; dx_save = dx ; dy_save = dy
+
+    ! Strictly increasing, and exact in binary: no two indices can collide, so
+    ! reading any of these one index off is always visible. A cyclic pattern
+    ! would not be - with a period of seven and a 64-wide domain, dxhi(ib) and
+    ! dxhi(ie) come out equal and a kernel pinned to ib passes.
+    do i = lbound(dxhi,1), ubound(dxhi,1)
+      dxhi(i) = 0.375 + 0.0078125*real(i - lbound(dxhi,1))
+    end do
+    do k = lbound(dzhi,1), ubound(dzhi,1)
+      dzhi(k) = 0.75 + 0.0078125*real(k - lbound(dzhi,1))
+    end do
+    do k = lbound(dzf,1), ubound(dzf,1)
+      dzf(k) = 1.5 + 0.0078125*real(k - lbound(dzf,1))
+    end do
+    do k = lbound(dzfi,1), ubound(dzfi,1)
+      dzfi(k) = 0.25 + 0.00390625*real(k - lbound(dzfi,1))
+    end do
+    do k = lbound(dvcell,1), ubound(dvcell,1)
+      dvcell(k) = 2.5 + 0.0078125*real(k - lbound(dvcell,1))
+    end do
+    do k = lbound(diffnrgeom,2), ubound(diffnrgeom,2)
+      do i = lbound(diffnrgeom,1), ubound(diffnrgeom,1)
+        diffnrgeom(i,k) = 1.25 + 0.0078125*real( &
+          (k - lbound(diffnrgeom,2))*(ubound(diffnrgeom,1) - lbound(diffnrgeom,1) + 1) &
+          + (i - lbound(diffnrgeom,1)))
+      end do
+    end do
+    dxi = 0.25 ; dyi = 0.5 ; dx = 3. ; dy = 5.
+
+    ! ---- the Courant number -------------------------------------------------
+    um = 0. ; vm = 0. ; wm = 0.
+    call courant_local(dtm, got)
+    if (.not. same('courant of a field at rest', got, 0.)) all_passed = .false.
+
+    ! One term at a time, so each grid factor is pinned separately. A port that
+    ! pairs vm with dzhi, say, reproduces neither of these.
+    if (.not. courant_spike('courant um', 1, ie, je, ke, dxhi(ie))) all_passed = .false.
+    if (.not. courant_spike('courant vm', 2, ie, je, ke, dyi     )) all_passed = .false.
+    if (.not. courant_spike('courant wm', 3, ie, je, ke, dzhi(ke))) all_passed = .false.
+
+    ! The same spike at every bound of the reduction box, so no face of it can
+    ! be missing.
+    if (.not. courant_spike('courant corner ib,jb,kb', 1, ib, jb, kb, dxhi(ib))) all_passed = .false.
+    if (.not. courant_spike('courant corner ie,jb,kb', 1, ie, jb, kb, dxhi(ie))) all_passed = .false.
+    if (.not. courant_spike('courant corner ib,je,kb', 1, ib, je, kb, dxhi(ib))) all_passed = .false.
+    if (.not. courant_spike('courant corner ib,jb,ke', 1, ib, jb, ke, dxhi(ib))) all_passed = .false.
+
+    ! ... and just outside every one of those bounds, where it must be ignored.
+    if (.not. courant_poison('courant below ib', ib-1, jb,   kb  )) all_passed = .false.
+    if (.not. courant_poison('courant above ie', ie+1, jb,   kb  )) all_passed = .false.
+    if (.not. courant_poison('courant below jb', ib,   jb-1, kb  )) all_passed = .false.
+    if (.not. courant_poison('courant above je', ib,   je+1, kb  )) all_passed = .false.
+    if (.not. courant_poison('courant below kb', ib,   jb,   kb-1)) all_passed = .false.
+    if (.not. courant_poison('courant above ke', ib,   jb,   ke+1)) all_passed = .false.
+
+    ! The time step has to multiply the whole expression, not one term of it.
+    um = 0. ; vm = 0. ; wm = 0.
+    um(ie,je,ke) = spike
+    call courant_local(2.*dtm, got)
+    if (.not. same('courant scales with dt', got, spike*dxhi(ie)*(2.*dtm))) all_passed = .false.
+
+    ! ---- the diffusion number -----------------------------------------------
+    ekm = 0. ; ekh = 0.
+    call diffnr_local(dtm, got)
+    if (.not. same('diffusion number of zero viscosity', got, 0.)) all_passed = .false.
+
+    ! ekm and ekh are checked one at a time with the other zeroed, so dropping
+    ! either from the max is caught. A run whose Prandtl number is below one is
+    ! limited by ekh, and that is the term a port is most likely to lose.
+    if (.not. diffnr_spike('diffusion ekm', .true.,  ie, je, ke)) all_passed = .false.
+    if (.not. diffnr_spike('diffusion ekh', .false., ie, je, ke)) all_passed = .false.
+    if (.not. diffnr_spike('diffusion ekm at ib,jb,kb', .true.,  ib, jb, kb)) all_passed = .false.
+    if (.not. diffnr_spike('diffusion ekh at ib,jb,kb', .false., ib, jb, kb)) all_passed = .false.
+
+    if (.not. diffnr_poison('diffusion below ib', ib-1, jb,   kb  )) all_passed = .false.
+    if (.not. diffnr_poison('diffusion above ie', ie+1, jb,   kb  )) all_passed = .false.
+    if (.not. diffnr_poison('diffusion below jb', ib,   jb-1, kb  )) all_passed = .false.
+    if (.not. diffnr_poison('diffusion above je', ib,   je+1, kb  )) all_passed = .false.
+    if (.not. diffnr_poison('diffusion below kb', ib,   jb,   kb-1)) all_passed = .false.
+    if (.not. diffnr_poison('diffusion above ke', ib,   jb,   ke+1)) all_passed = .false.
+
+    ekm = 0. ; ekh = 0.
+    ekm(ie,je,ke) = spike
+    call diffnr_local(2.*dtm, got)
+    if (.not. same('diffusion number scales with dt', got, spike*diffnrgeom(ie,ke)*(2.*dtm))) all_passed = .false.
+
+    ! ---- the divergence -----------------------------------------------------
+    u0 = 0. ; v0 = 0. ; w0 = 0.
+    call div_local(gotmax, gottot)
+    if (.not. same('divmax of a divergence-free field', gotmax, 0.)) all_passed = .false.
+    if (.not. same('divtot of a divergence-free field', gottot, 0.)) all_passed = .false.
+
+    ! The forward neighbour, planted one cell past the top of the box. The cell
+    ! that sees it is the last interior one, so a backward difference or a loop
+    ! that stops one short both return zero here.
+    u0 = 0. ; v0 = 0. ; w0 = 0.
+    u0(ie+1,je,ke) = spike
+    call div_local(gotmax, gottot)
+    if (.not. same('divmax from u0(ie+1)', gotmax, spike*dxi)) all_passed = .false.
+    if (.not. same('divtot from u0(ie+1)', gottot, (spike*dxi)*dvcell(ke))) all_passed = .false.
+
+    u0 = 0. ; v0 = 0. ; w0 = 0.
+    v0(ie,je+1,ke) = spike
+    call div_local(gotmax, gottot)
+    if (.not. same('divmax from v0(je+1)', gotmax, spike*dyi)) all_passed = .false.
+    if (.not. same('divtot from v0(je+1)', gottot, (spike*dyi)*dvcell(ke))) all_passed = .false.
+
+    u0 = 0. ; v0 = 0. ; w0 = 0.
+    w0(ie,je,ke+1) = spike
+    call div_local(gotmax, gottot)
+    if (.not. same('divmax from w0(ke+1)', gotmax, spike*dzfi(ke))) all_passed = .false.
+    if (.not. same('divtot from w0(ke+1)', gottot, (spike*dzfi(ke))*dvcell(ke))) all_passed = .false.
+
+    ! The sign is not free: a divergence built the other way round must come
+    ! back negative in the integral, even though the maximum is an absolute one.
+    ! The spike goes at ib, not ie: at ie the cell below it sees an equal and
+    ! opposite divergence and the two cancel in the integral, whereas at ib
+    ! that partner cell is outside the box. Which also pins the lower i bound.
+    u0 = 0. ; v0 = 0. ; w0 = 0.
+    u0(ib,je,ke) = spike
+    call div_local(gotmax, gottot)
+    if (.not. same('divmax from u0(ib)',  gotmax,  spike*dxi)) all_passed = .false.
+    if (.not. same('divtot from u0(ib)',  gottot, -(spike*dxi)*dvcell(ke))) all_passed = .false.
+
+    ! A ramp in x gives every cell the same divergence, so the volume integral
+    ! is a cell count times a known value: the check that the sum covers the
+    ! whole box and not one plane fewer.
+    do k = lbound(u0,3), ubound(u0,3)
+      do j = lbound(u0,2), ubound(u0,2)
+        do i = lbound(u0,1), ubound(u0,1)
+          u0(i,j,k) = alpha*(i - ib)
+        end do
+      end do
+    end do
+    v0 = 0. ; w0 = 0.
+    dzfsum = 0.
+    do k = kb, ke
+      dzfsum = dzfsum + dvcell(k)
+    end do
+    call div_local(gotmax, gottot)
+    ! Every cell holds the same divergence exactly - alpha and the index
+    ! differences are both exact in binary - so the maximum is exact too. The
+    ! integral is not: it is a running sum of ni*nj*nk terms, and the loop adds
+    ! them in an order the closed form below does not reproduce. Hence a
+    ! tolerance that scales with the term count. It is still four orders of
+    ! magnitude tighter than the 1/nk error a missing plane would cause.
+    if (.not. same('divmax of a uniform ramp', gotmax, alpha*dxi)) all_passed = .false.
+    if (.not. nearly('divtot of a uniform ramp', gottot, &
+                    (alpha*dxi)*dzfsum*real(ni)*real(nj), &
+                    real(ni)*real(nj)*real(ke-kb+1))) all_passed = .false.
+
+    dxhi = dxhi_save ; dzhi = dzhi_save ; dzf = dzf_save ; dzfi = dzfi_save
+    diffnrgeom = geom_save ; dvcell = dv_save
+    dxi = dxi_save ; dyi = dyi_save ; dx = dx_save ; dy = dy_save
+    deallocate(geom_save, dv_save, dzfi_save, dzf_save, dzhi_save, dxhi_save)
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)')      'ALL TESTS PASSED: tests_checksim'
+        write(*, '(A,I0,A,I0,A,I0,A)') '  Reduction box ', ni, ' x ', nj, ' x ', ke-kb+1, ' cells per rank'
+      else
+        write(*, '(A)') 'TESTS FAILED: tests_checksim'
+        write(*, '(A)') '  One or more checks did not pass'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_checksim = all_passed
+
+  contains
+
+    !> Assert a scalar matches to within a few ulps of its own magnitude.
+    logical function same(label, got, want)
+      character(len=*), intent(in) :: label
+      real,             intent(in) :: got, want
+      real :: tol
+
+      tol  = 64. * epsilon(1.) * max(1., abs(want))
+      same = abs(got - want) <= tol
+      if (.not. same) then
+        write(*,'(A,I0,3A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, ': checksim ', &
+             trim(label), ' got ', got, ' want ', want
+      end if
+
+    end function same
+
+    !> Assert a scalar matches within the rounding a sum of terms can accrue.
+    !!
+    !! Sequential summation of n terms carries a worst-case relative error of
+    !! order n*epsilon, so the tolerance is scaled by the term count rather
+    !! than fixed: a bound that holds on a 64^3 box and on a 256^3 one.
+    logical function nearly(label, got, want, terms)
+      character(len=*), intent(in) :: label
+      real,             intent(in) :: got, want, terms
+      real :: tol
+
+      tol    = 8. * terms * epsilon(1.) * max(1., abs(want))
+      nearly = abs(got - want) <= tol
+      if (.not. nearly) then
+        write(*,'(A,I0,3A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, ': checksim ', &
+             trim(label), ' got ', got, ' want ', want
+      end if
+
+    end function nearly
+
+    !> Put a single positive value in one momentum field - which selects um,
+    !! vm or wm - and assert the maximum Courant number is that value times
+    !! want_factor, the grid factor that term is supposed to carry.
+    logical function courant_spike(label, which, is, js, ks, want_factor)
+      character(len=*), intent(in) :: label
+      integer,          intent(in) :: which, is, js, ks
+      real,             intent(in) :: want_factor
+      real :: got
+
+      um = 0. ; vm = 0. ; wm = 0.
+      select case (which)
+      case (1) ; um(is,js,ks) = spike
+      case (2) ; vm(is,js,ks) = spike
+      case (3) ; wm(is,js,ks) = spike
+      end select
+
+      call courant_local(dtm, got)
+      courant_spike = same(label, got, spike*want_factor*dtm)
+
+    end function courant_spike
+
+    !> Put a large value outside the reduction box and assert it is not seen.
+    logical function courant_poison(label, is, js, ks)
+      character(len=*), intent(in) :: label
+      integer,          intent(in) :: is, js, ks
+      real :: got
+
+      um = 0. ; vm = 0. ; wm = 0.
+      um(is,js,ks) = 1.e6
+      vm(is,js,ks) = 1.e6
+      wm(is,js,ks) = 1.e6
+
+      call courant_local(dtm, got)
+      courant_poison = same(label, got, 0.)
+
+    end function courant_poison
+
+    !> Put a single positive value in ekm (lekm) or ekh and assert the maximum
+    !! diffusion number is that value times the cached geometry factor.
+    logical function diffnr_spike(label, lekm, is, js, ks)
+      character(len=*), intent(in) :: label
+      logical,          intent(in) :: lekm
+      integer,          intent(in) :: is, js, ks
+      real :: got
+
+      ekm = 0. ; ekh = 0.
+      if (lekm) then
+        ekm(is,js,ks) = spike
+      else
+        ekh(is,js,ks) = spike
+      end if
+
+      call diffnr_local(dtm, got)
+      diffnr_spike = same(label, got, spike*diffnrgeom(is,ks)*dtm)
+
+    end function diffnr_spike
+
+    !> Put a large viscosity outside the reduction box and assert it is not seen.
+    logical function diffnr_poison(label, is, js, ks)
+      character(len=*), intent(in) :: label
+      integer,          intent(in) :: is, js, ks
+      real :: got
+
+      ekm = 0. ; ekh = 0.
+      ekm(is,js,ks) = 1.e6
+      ekh(is,js,ks) = 1.e6
+
+      call diffnr_local(dtm, got)
+      diffnr_poison = same(label, got, 0.)
+
+    end function diffnr_poison
+
+  end function tests_checksim
+
 
 end module tests

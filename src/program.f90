@@ -39,7 +39,7 @@ program uDALES
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT, &
                                 TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE,TEST_IBM_WALLFUN, &
                                 TEST_PERIODIC_EBCORR,TEST_MASSCORR,TEST_IBMNORM,TEST_EB, &
-                                TEST_VEGETATION
+                                TEST_VEGETATION,TEST_CHECKSIM
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -76,7 +76,7 @@ program uDALES
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge,tests_ibm_wallfun, &
                             tests_periodic_ebcorr,tests_masscorr,tests_ibmnorm,tests_eb, &
-                            tests_vegetation
+                            tests_vegetation,tests_checksim
   implicit none
 
   real    :: stime
@@ -278,13 +278,18 @@ program uDALES
     call exchange_halos
     call print_time('exchange_halos')
 
+    ! Above updateHostAfterPoiss, not below it: the three reductions behind
+    ! checksim read the device fields now, and tstep_integrate and the halo
+    ! exchange have already left them current. Sitting inside the device-only
+    ! stretch of the loop is also what makes the rule at the top of the loop
+    ! apply to it, so a host read added here would break loudly.
+    call checksim
+    call print_time('checksim')
+
 #if defined(_GPU)
     call updateHostAfterPoiss
 #endif
     call print_time('updateHostAfterPoiss')
-
-    call checksim
-    call print_time('checksim')
 
     call fielddump
     call print_time('fielddump')
@@ -382,6 +387,8 @@ contains
         test_failed = .not. tests_eb()
       case (TEST_VEGETATION)
         test_failed = .not. tests_vegetation()
+      case (TEST_CHECKSIM)
+        test_failed = .not. tests_checksim()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

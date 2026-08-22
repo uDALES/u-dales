@@ -7,7 +7,7 @@ module modcuda
    use modglobal,      only: itot, ib, ie, jb, je, kb, ke, ih, jh, kh, ihc, jhc, khc, &
                              dx2, dxi, dx2i, dxi5, dxiq, dy2, dyi, dy2i, dyi5, dyiq, dxf, dxhi, &
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
-                             dxdydzfi, dxdydzhi, &
+                             dxdydzfi, dxdydzhi, dvcell, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
                              ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, ltrees, lscasrc, lscasrcl, &
                              BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
@@ -51,7 +51,7 @@ module modcuda
 
    real, device, allocatable :: dzf_d(:), dzf2_d(:), dzfi_d(:), dzfi5_d(:), dzfiq_d(:), dzh_d(:), dzhi_d(:), dzh2i_d(:), dzhiq_d(:), &
                                 dzfc_d(:), dzfci_d(:), dzhci_d(:), dxfc_d(:), dxfci_d(:), dxhci_d(:), &
-                                dxf_d(:), dxhi_d(:), dxdydzfi_d(:), dxdydzhi_d(:), &
+                                dxf_d(:), dxhi_d(:), dxdydzfi_d(:), dxdydzhi_d(:), dvcell_d(:), &
                                 xh_d(:), &
                                 u0av_d(:), v0av_d(:), ug_d(:), vg_d(:), whls_d(:), thl0av_d(:), qt0av_d(:), tsc_d(:), &
                                 dpdxl_d(:), dpdyl_d(:), thvh_d(:), thlpcar_d(:), &
@@ -173,6 +173,7 @@ module modcuda
          allocate (dzh2i_d(kb:ke + kh))
          allocate (dxdydzfi_d(kb - kh:ke + kh))
          allocate (dxdydzhi_d(kb:ke + kh))
+         allocate (dvcell_d(kb - kh:ke + kh))
          allocate (dzhiq_d(kb:ke + kh))
          dzf_d   = dzf
          dzf2_d  = dzf2
@@ -183,6 +184,7 @@ module modcuda
          dzhi_d  = dzhi
          dxdydzfi_d = dxdydzfi
          dxdydzhi_d = dxdydzhi
+         dvcell_d   = dvcell
          dzh2i_d = dzh2i
          dzhiq_d = dzhiq
 
@@ -406,7 +408,7 @@ module modcuda
       subroutine exitCUDA
          implicit none
          deallocate(dxf_d, dxhi_d, dzf_d, dzf2_d, dzfi_d, dzfi5_d, dzfiq_d, dzh_d, dzhi_d, dzh2i_d, dzhiq_d, delta_d)
-         deallocate(dxdydzfi_d, dxdydzhi_d)
+         deallocate(dxdydzfi_d, dxdydzhi_d, dvcell_d)
          deallocate(u0_d, v0_d, w0_d, pres0_d, um_d, vm_d, wm_d, up_d, vp_d, wp_d)
          deallocate(tau_x_d, tau_y_d, tau_z_d, momfluxb_d)
          deallocate(u0av_d, v0av_d, ug_d, vg_d, whls_d, tsc_d)
@@ -677,7 +679,7 @@ module modcuda
          ! either had no host reader at all - the tendencies, momfluxb, tfluxb -
          ! or had one that runs past this point:
          !
-         !   ekm, ekh           checksim, statsdump, boundary's fluxtop,
+         !   ekm, ekh           statsdump, boundary's fluxtop,
          !                      writerestartfiles
          !   tau_x/y/z          fielddump, when named in fieldvars
          !   thl_flux           the same

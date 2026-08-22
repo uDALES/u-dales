@@ -23,7 +23,7 @@ module tests_cuda
                         ekm_d, ekh_d, pres0_d, fachf_d, facef_d, fachfi_d, facefi_d, &
                         integrateFacFluxDevice, updateFacIntegralsHost, &
                         facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
-                        dxdydzfi_d, dxdydzhi_d, &
+                        dxdydzfi_d, dxdydzhi_d, dvcell_d, dxhi_d, dzhi_d, dzf_d, dzfi_d, &
                         col_d, col_stage, IIu_d, IIv_d, updateDevice, &
                         updateHostAfterPoiss, tau_x_d, tau_y_d, tau_z_d, &
                         thl_flux_d, momfluxb_d, tfluxb_d
@@ -38,7 +38,7 @@ module tests_cuda
    use modglobal, only : ib, ie, jb, je, kb, ke, ih, jh, kh, nsv, &
                          ihc, jhc, khc, dxhci, dxfc, dxfci, dxi, dyi, &
                          dzhci, dzfc, dzfci, dzfi, eps1, &
-                         dx, dy, dxf, dzf, dzh, zh, rslabs, dxdydzfi, dxdydzhi, &
+                         dx, dy, dxf, dxhi, dzf, dzh, dzhi, zh, rslabs, dxdydzfi, dxdydzhi, dvcell, &
                          lheatpump, lfan_hp, nhppoints, ltempeq, &
                          lmoist, lnudge, lnudgevel, tnudge, nnudge, &
                          iwallmom, nfcts, xhat, yhat, zhat, &
@@ -50,6 +50,8 @@ module tests_cuda
                          BCxm, BCym, BCxm_periodic, BCxm_profile, BCxm_driver, &
                          BCym_periodic, BCym_profile
    use modforces,   only : nudge, periodicEBcorr, masscorr, calcfluidvolumes
+   use modchecksim, only : courant_local, diffnr_local, div_local, &
+                           diffnrgeom, diffnrgeom_d
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
                            thl_dot_hp, w_hp_exhaust
    use initfac,     only : fachf, facef, fachfi, facefi, facT, facqsat, fachurel, facf, faclGR, &
@@ -129,6 +131,7 @@ contains
          call test_vegetation_forcing
          call test_bc_profile_upload
          call test_post_poisson_handover
+         call test_checksim_reductions
          write(*,'(A,I0)') 'CUDA device self-tests passed. rank=', myid
       case ('', '0', 'false', 'FALSE', 'no', 'NO', 'off', 'OFF')
          return
@@ -1404,6 +1407,17 @@ contains
       do k = kb, ke+kh
          if (abs(back(k)*(dx*dy*dzh(k)) - 1.) > 1.e-13) &
             call fail_cuda_selftest('dxdydzhi is not 1/(dx*dy*dzh)')
+      end do
+      deallocate(back)
+
+      ! The volume itself, which chkdiv integrates over. Exact equality, not a
+      ! tolerance: it is meant to be the same product in the same association
+      ! as the expression it replaced, not merely close to it.
+      allocate(back(kb-kh:ke+kh))
+      back = dvcell_d
+      if (any(back /= dvcell)) call fail_cuda_selftest('dvcell mirror')
+      do k = kb-kh, ke+kh
+         if (back(k) /= dx*dy*dzf(k)) call fail_cuda_selftest('dvcell is not dx*dy*dzf')
       end do
       deallocate(back)
    end subroutine test_cell_volume_reciprocals
@@ -3545,6 +3559,381 @@ contains
       deallocate(ekm_s, ekh_s, tau_x_s, tau_y_s, tau_z_s, momfluxb_s, mom_dev, back)
 
    end subroutine test_post_poisson_handover
+
+
+   !> Check the device branch of the checksim reductions against a host
+   !! reference built from the same seed.
+   !!
+   !! The three reductions are the whole of what modchecksim computes, and
+   !! under _GPU they read the device fields, so runmode 1014 - which drives
+   !! the host branch - cannot reach them. This is their only coverage outside
+   !! a full parity run.
+   !!
+   !! The reference is an explicit host loop over the same seed function, not a
+   !! call to the host branch, which is not compiled in this build at all. What
+   !! it pins:
+   !!
+   !!   - Every grid factor. dxhi, dzhi and dzfi vary with the index only on a
+   !!     stretched grid, which no GPU case uses, so the seed varies in all
+   !!     three directions instead and the reference multiplies each term by
+   !!     the factor it is supposed to carry.
+   !!
+   !!   - The reduction box. The Courant and diffusion fields are poisoned
+   !!     everywhere outside ib..ie, jb..je, kb..ke, so a kernel that reduces
+   !!     over the halo returns the poison rather than a slightly wrong number.
+   !!
+   !!   - The forward reach in div_local, which is the one place a device loop
+   !!     reads past the box on purpose. It is checked twice: once with the
+   !!     poison confined to the cells div never reads, and once with a single
+   !!     spike at ie+1, je+1 and ke+1 in turn.
+   !!
+   !!   - That diffnrgeom_d holds the cache initchecksim built. The reference
+   !!     reads the host diffnrgeom, so a mirror that was never uploaded, or
+   !!     uploaded transposed, gives the wrong answer rather than none.
+   !!
+   !! The device fields are saved and restored, because the self-tests run
+   !! between initCUDA and the time loop and the run continues afterwards.
+   subroutine test_checksim_reductions
+      implicit none
+
+      real, parameter :: dtm = 0.25, spike = 2., poison = 1.e6
+
+      real, allocatable :: sa(:,:,:), sb(:,:,:), sc(:,:,:)   ! saved device state
+      real, allocatable :: ta(:,:,:), tb(:,:,:), tc(:,:,:)   ! staging for the seed
+      real, allocatable :: dxhi_save(:), dzhi_save(:), dzf_save(:), dzfi_save(:), dv_save(:)
+      real, allocatable :: geom_save(:,:)
+      real    :: dxi_save, dyi_save, dx_save, dy_save
+      real    :: got, gotmax, gottot, ref, refmax, reftot
+      integer :: i, j, k
+
+      if (.not. allocated(um_d)) return
+      if (.not. allocated(diffnrgeom)) call fail_cuda_selftest('checksim geometry cache not built')
+
+      allocate(sa(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(sb(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(sc(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(ta(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(tb(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(tc(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+
+      ! ---- make every grid factor distinct ------------------------------------
+      ! Every GPU parity case runs on a grid that is uniform in all three
+      ! directions and has dx = dy. There dxhi(i) equals dyi and every one of
+      ! dxhi, dzhi, dzfi, dzf and the geometry cache is constant, so a kernel
+      ! that pairs the v term with the x spacing, or reads any of them at a
+      ! fixed index, gives exactly the right answer. Substituting values that
+      ! differ in every position is what makes the pairing and the indexing
+      ! load-bearing here, in the absence of an anisotropic or stretched case.
+      !
+      ! dzfi is deliberately not the reciprocal of dzf, and dxi not that of dx,
+      ! because div_local uses one of each pair for the gradient and the other
+      ! for the cell volume.
+      !
+      ! The scalars reach the kernels as implicit firstprivate copies taken
+      ! from the host at launch, so setting the host value is enough; the
+      ! arrays need their device mirrors set too. Both are restored below.
+      allocate(dxhi_save(lbound(dxhi,1):ubound(dxhi,1))) ; dxhi_save = dxhi
+      allocate(dzhi_save(lbound(dzhi,1):ubound(dzhi,1))) ; dzhi_save = dzhi
+      allocate(dzf_save (lbound(dzf ,1):ubound(dzf ,1))) ; dzf_save  = dzf
+      allocate(dzfi_save(lbound(dzfi,1):ubound(dzfi,1))) ; dzfi_save = dzfi
+      allocate(dv_save  (lbound(dvcell,1):ubound(dvcell,1))) ; dv_save   = dvcell
+      allocate(geom_save(lbound(diffnrgeom,1):ubound(diffnrgeom,1), &
+                         lbound(diffnrgeom,2):ubound(diffnrgeom,2)))
+      geom_save = diffnrgeom
+      dxi_save = dxi ; dyi_save = dyi ; dx_save = dx ; dy_save = dy
+
+      ! Strictly increasing, and exact in binary: no two indices can collide,
+      ! so reading any of these one index off is always visible. A cyclic
+      ! pattern would not be - with a period of seven and a 64-wide domain,
+      ! dxhi(ib) and dxhi(ie) come out equal and a kernel pinned to ib passes.
+      do i = lbound(dxhi,1), ubound(dxhi,1)
+         dxhi(i) = 0.375 + 0.0078125*real(i - lbound(dxhi,1))
+      end do
+      do k = lbound(dzhi,1), ubound(dzhi,1)
+         dzhi(k) = 0.75 + 0.0078125*real(k - lbound(dzhi,1))
+      end do
+      do k = lbound(dzf,1), ubound(dzf,1)
+         dzf(k) = 1.5 + 0.0078125*real(k - lbound(dzf,1))
+      end do
+      do k = lbound(dzfi,1), ubound(dzfi,1)
+         dzfi(k) = 0.25 + 0.00390625*real(k - lbound(dzfi,1))
+      end do
+      do k = lbound(dvcell,1), ubound(dvcell,1)
+         dvcell(k) = 2.5 + 0.0078125*real(k - lbound(dvcell,1))
+      end do
+      do k = lbound(diffnrgeom,2), ubound(diffnrgeom,2)
+         do i = lbound(diffnrgeom,1), ubound(diffnrgeom,1)
+            diffnrgeom(i,k) = 1.25 + 0.0078125*real( &
+              (k - lbound(diffnrgeom,2))*(ubound(diffnrgeom,1) - lbound(diffnrgeom,1) + 1) &
+              + (i - lbound(diffnrgeom,1)))
+         end do
+      end do
+      dxi = 0.25 ; dyi = 0.5 ; dx = 3. ; dy = 5.
+
+      dxhi_d = dxhi ; dzhi_d = dzhi ; dzf_d = dzf ; dzfi_d = dzfi
+      diffnrgeom_d = diffnrgeom ; dvcell_d = dvcell
+
+      ! ---- the Courant number -------------------------------------------------
+      sa = um_d ; sb = vm_d ; sc = wm_d
+
+      call seed_box(ta, 1, poison)
+      call seed_box(tb, 2, poison)
+      call seed_box(tc, 3, poison)
+      um_d = ta ; vm_d = tb ; wm_d = tc
+
+      ref = 0.
+      do k = kb, ke
+         do j = jb, je
+            do i = ib, ie
+               ref = max(ref, (ta(i,j,k)*dxhi(i) + tb(i,j,k)*dyi + tc(i,j,k)*dzhi(k))*dtm)
+            end do
+         end do
+      end do
+
+      call courant_local(dtm, got)
+      if (.not. matches(got, ref, 1.)) call fail_cuda_selftest('checksim courant_local')
+
+      um_d = sa ; vm_d = sb ; wm_d = sc
+
+      ! ---- the diffusion number -----------------------------------------------
+      sa = ekm_d ; sb = ekh_d
+
+      ! Positive, as a diffusivity is, and different in ekm and ekh so that
+      ! whichever term the kernel drops changes the answer.
+      call seed_box(ta, 4, poison)
+      call seed_box(tb, 5, poison)
+      do k = kb, ke
+         do j = jb, je
+            do i = ib, ie
+               ta(i,j,k) = abs(ta(i,j,k)) + 0.5
+               tb(i,j,k) = abs(tb(i,j,k)) + 1.5
+            end do
+         end do
+      end do
+      ekm_d = ta ; ekh_d = tb
+
+      ref = 0.
+      do k = kb, ke
+         do j = jb, je
+            do i = ib, ie
+               ref = max(ref, ta(i,j,k)*diffnrgeom(i,k)*dtm, &
+                              tb(i,j,k)*diffnrgeom(i,k)*dtm)
+            end do
+         end do
+      end do
+
+      call diffnr_local(dtm, got)
+      if (.not. matches(got, ref, 1.)) call fail_cuda_selftest('checksim diffnr_local')
+
+      ! ekh alone, with ekm zeroed, so a kernel that keeps only ekm returns
+      ! zero here rather than a number that happens to be close.
+      ekm_d = 0.
+      ref = 0.
+      do k = kb, ke
+         do j = jb, je
+            do i = ib, ie
+               ref = max(ref, tb(i,j,k)*diffnrgeom(i,k)*dtm)
+            end do
+         end do
+      end do
+      call diffnr_local(dtm, got)
+      if (.not. matches(got, ref, 1.)) call fail_cuda_selftest('checksim diffnr_local ekh term')
+
+      ekm_d = sa ; ekh_d = sb
+
+      ! ---- the divergence -----------------------------------------------------
+      sa = u0_d ; sb = v0_d ; sc = w0_d
+
+      ! No poison this time: div_local reads i+1, j+1 and k+1 on purpose, so
+      ! the seed covers the whole declared extent and the reference reads the
+      ! same cells the kernel is entitled to.
+      call seed_all(ta, 6)
+      call seed_all(tb, 7)
+      call seed_all(tc, 8)
+      u0_d = ta ; v0_d = tb ; w0_d = tc
+
+      call div_reference(ta, tb, tc, refmax, reftot)
+      call div_local(gotmax, gottot)
+      if (.not. matches(gotmax, refmax, 1.)) call fail_cuda_selftest('checksim div_local divmax')
+      if (.not. sums_to(gottot, reftot)) call fail_cuda_selftest('checksim div_local divtot')
+
+      ! Now poison only what div_local must never read - one cell short of the
+      ! forward neighbours it must. Both results have to be unchanged.
+      call poison_unread(ta, poison)
+      call poison_unread(tb, poison)
+      call poison_unread(tc, poison)
+      u0_d = ta ; v0_d = tb ; w0_d = tc
+      call div_local(gotmax, gottot)
+      if (.not. matches(gotmax, refmax, 1.)) call fail_cuda_selftest('checksim div_local reads outside its box')
+      if (.not. sums_to(gottot, reftot)) call fail_cuda_selftest('checksim div_local sums outside its box')
+
+      ! The forward reach itself: one spike per direction, everything else
+      ! zero, so the cell that sees it is the last interior one. A backward
+      ! difference, or a loop stopping at ie-1, returns nothing here.
+      if (.not. div_spike(1, spike*dxi     )) call fail_cuda_selftest('checksim div_local u0 at ie+1')
+      if (.not. div_spike(2, spike*dyi     )) call fail_cuda_selftest('checksim div_local v0 at je+1')
+      if (.not. div_spike(3, spike*dzfi(ke))) call fail_cuda_selftest('checksim div_local w0 at ke+1')
+
+      u0_d = sa ; v0_d = sb ; w0_d = sc
+
+      dxhi = dxhi_save ; dzhi = dzhi_save ; dzf = dzf_save ; dzfi = dzfi_save
+      diffnrgeom = geom_save ; dvcell = dv_save
+      dxi = dxi_save ; dyi = dyi_save ; dx = dx_save ; dy = dy_save
+      dxhi_d = dxhi ; dzhi_d = dzhi ; dzf_d = dzf ; dzfi_d = dzfi
+      diffnrgeom_d = diffnrgeom ; dvcell_d = dvcell
+
+      deallocate(geom_save, dv_save, dzfi_save, dzf_save, dzhi_save, dxhi_save)
+      deallocate(tc, tb, ta, sc, sb, sa)
+
+   contains
+
+      !> Deterministic, exactly representable seed. Varies in all three
+      !! directions so no grid factor can be swapped for another unnoticed.
+      real function seed_at(n, i, j, k)
+         implicit none
+         integer, intent(in) :: n, i, j, k
+
+         seed_at = 0.125*real(modulo(i*7 + j*13 + k*29 + n*5, 17)) - 1.
+
+      end function seed_at
+
+      !> Seed the reduction box and poison everything outside it.
+      subroutine seed_box(a, n, bad)
+         implicit none
+         real,    intent(out) :: a(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+         integer, intent(in)  :: n
+         real,    intent(in)  :: bad
+         integer :: i, j, k
+
+         a = bad
+         do k = kb, ke
+            do j = jb, je
+               do i = ib, ie
+                  a(i,j,k) = seed_at(n, i, j, k)
+               end do
+            end do
+         end do
+
+      end subroutine seed_box
+
+      !> Seed the whole declared extent, halos included.
+      subroutine seed_all(a, n)
+         implicit none
+         real,    intent(out) :: a(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+         integer, intent(in)  :: n
+         integer :: i, j, k
+
+         do k = kb-kh, ke+kh
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  a(i,j,k) = seed_at(n, i, j, k)
+               end do
+            end do
+         end do
+
+      end subroutine seed_all
+
+      !> Overwrite every cell div_local has no business reading, leaving the
+      !! forward neighbours at ie+1, je+1 and ke+1 alone.
+      subroutine poison_unread(a, bad)
+         implicit none
+         real, intent(inout) :: a(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+         real, intent(in)    :: bad
+         integer :: i, j, k
+
+         do k = kb-kh, ke+kh
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  if (i < ib .or. i > ie+1 .or. &
+                      j < jb .or. j > je+1 .or. &
+                      k < kb .or. k > ke+1) a(i,j,k) = bad
+               end do
+            end do
+         end do
+
+      end subroutine poison_unread
+
+      !> The divergence reduction, written out here rather than called, so a
+      !! transcription error in the kernel cannot be reproduced by its own
+      !! reference.
+      subroutine div_reference(au, av, aw, dmax, dtot)
+         implicit none
+         real, intent(in)  :: au(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+         real, intent(in)  :: av(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+         real, intent(in)  :: aw(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+         real, intent(out) :: dmax, dtot
+         real    :: d
+         integer :: i, j, k
+
+         dmax = 0.
+         dtot = 0.
+         do k = kb, ke
+            do j = jb, je
+               do i = ib, ie
+                  d = (au(i+1,j,k) - au(i,j,k))*dxi + &
+                      (av(i,j+1,k) - av(i,j,k))*dyi + &
+                      (aw(i,j,k+1) - aw(i,j,k))*dzfi(k)
+                  dmax = max(dmax, abs(d))
+                  dtot = dtot + d*dvcell(k)
+               end do
+            end do
+         end do
+
+      end subroutine div_reference
+
+      !> One spike just past the top of the box in the direction given, with
+      !! every field otherwise zero. want is the divergence the single cell
+      !! that sees it must report.
+      logical function div_spike(which, want)
+         implicit none
+         integer, intent(in) :: which
+         real,    intent(in) :: want
+
+         u0_d = 0. ; v0_d = 0. ; w0_d = 0.
+         ta = 0.
+         select case (which)
+         case (1) ; ta(ie+1,je,ke) = spike ; u0_d = ta
+         case (2) ; ta(ie,je+1,ke) = spike ; v0_d = ta
+         case (3) ; ta(ie,je,ke+1) = spike ; w0_d = ta
+         end select
+
+         call div_local(gotmax, gottot)
+         div_spike = matches(gotmax, abs(want), 1.) .and. &
+                     matches(gottot, want*dvcell(ke), 1.)
+
+      end function div_spike
+
+      !> Equal to within a few ulps of the larger of want and floor.
+      logical function matches(got, want, floor)
+         implicit none
+         real, intent(in) :: got, want, floor
+
+         matches = abs(got - want) <= 64.*epsilon(1.)*max(floor, abs(want))
+         if (.not. matches) then
+            write(*,'(A,I0,A,ES22.14,A,ES22.14)') 'checksim self-test rank ', myid, &
+                 ': got ', got, ' want ', want
+         end if
+
+      end function matches
+
+      !> Equal to within the rounding a sum over the reduction box can accrue.
+      !! The device adds the terms in scheduler order and the host reference
+      !! sequentially, so the two agree to order n*epsilon, not to the last bit.
+      logical function sums_to(got, want)
+         implicit none
+         real, intent(in) :: got, want
+         real :: terms
+
+         terms   = real(ie-ib+1)*real(je-jb+1)*real(ke-kb+1)
+         sums_to = abs(got - want) <= 8.*terms*epsilon(1.)*max(1., abs(want))
+         if (.not. sums_to) then
+            write(*,'(A,I0,A,ES22.14,A,ES22.14)') 'checksim self-test rank ', myid, &
+                 ': sum got ', got, ' want ', want
+         end if
+
+      end function sums_to
+
+   end subroutine test_checksim_reductions
 
    subroutine fail_cuda_selftest(name)
       implicit none
