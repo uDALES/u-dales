@@ -39,7 +39,10 @@
       "vegetation-sveg",
       "vegetation-deposition",
       "surface-energy-balance",
-      "heatpump"
+      "heatpump",
+      "fielddump-stress-fields",
+      "statsdump-averages",
+      "statsdump-slices"
     ],
     "mpi": [
       "dry-two-rank-x",
@@ -70,6 +73,9 @@
       "vegetation-deposition",
       "surface-energy-balance",
       "heatpump",
+      "fielddump-stress-fields",
+      "statsdump-averages",
+      "statsdump-slices",
       "dry-two-rank-x",
       "dry-two-rank-y",
       "scalar-point-two-rank-x",
@@ -362,6 +368,47 @@
       "coverage": ["heat-pump-temperature-tendency", "heat-pump-fan-velocity"],
       "namelist_assertions": {"lheatpump": true, "lfan_hp": true, "nhppoints": 1, "ltempeq": true},
       "timeout_seconds": 180
+    },
+    {
+      "name": "fielddump-stress-fields",
+      "case_id": 101,
+      "base_case": "tests/cases/101",
+      "namelist": "tests/integration/gpu/namelists/namoptions.101.fielddump-stress",
+      "nprocs": 1,
+      "required_outputs": ["fielddump"],
+      "coverage": ["fielddump-wall-stress", "fielddump-heat-flux", "fielddump-divergence"],
+      "namelist_assertions": {"libm": true, "ltempeq": true},
+      "timeout_seconds": 600
+    },
+    {
+      "name": "statsdump-averages",
+      "case_id": 101,
+      "base_case": "tests/cases/101",
+      "namelist": "tests/integration/gpu/namelists/namoptions.101.statsdump-averages",
+      "overrides": [
+        "tests/integration/gpu/fixtures/statsdump/scalar.inp.101",
+        "tests/integration/gpu/fixtures/statsdump/prof.inp.101"
+      ],
+      "nprocs": 1,
+      "required_outputs": ["ydump", "ytdump", "xydump", "xytdump", "mintdump"],
+      "coverage": ["statsdump-y-average", "statsdump-y-time-average", "statsdump-xy-average", "statsdump-minimum"],
+      "namelist_assertions": {"lydump": true, "lytdump": true, "lxydump": true, "lmintdump": true, "lmoist": true, "nsv": 3},
+      "timeout_seconds": 600
+    },
+    {
+      "name": "statsdump-slices",
+      "case_id": 101,
+      "base_case": "tests/cases/101",
+      "namelist": "tests/integration/gpu/namelists/namoptions.101.statsdump-slices",
+      "overrides": [
+        "tests/integration/gpu/fixtures/scalar_sources/scalarsourcel.inp.1.101",
+        "tests/integration/gpu/fixtures/statsdump/prof.inp.101"
+      ],
+      "nprocs": 1,
+      "required_outputs": ["kslicedump", "islicedump", "jslicedump"],
+      "coverage": ["statsdump-k-slice", "statsdump-i-slice", "statsdump-j-slice"],
+      "namelist_assertions": {"lkslicedump": true, "lislicedump": true, "ljslicedump": true, "lmoist": true},
+      "timeout_seconds": 600
     },
     {
       "name": "scalar-point-two-rank-x",

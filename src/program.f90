@@ -33,6 +33,9 @@ program uDALES
                                 updateFacIntegralsHost, checkCUDA, exitCUDA
 #endif
 #if defined(_GPU) && defined(UDALES_DEBUG)
+  use modcuda,           only : assertHostMatchesDevice
+#endif
+#if defined(_GPU) && defined(UDALES_DEBUG)
   use tests_cuda,        only : run_cuda_selftests_if_requested
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
@@ -291,6 +294,14 @@ program uDALES
 #endif
     call print_time('updateHostAfterPoiss')
 
+#if defined(_GPU) && defined(UDALES_DEBUG)
+    ! Every host field fielddump can read must still be the one the device
+    ! holds. These transfers are becoming conditional, and the failure mode of
+    ! a wrong condition is a dump quietly written from the previous step, so
+    ! the check is here rather than left to a parity comparison that only some
+    ! configurations would notice.
+    call assertHostMatchesDevice('fielddump')
+#endif
     call fielddump
     call print_time('fielddump')
 
@@ -304,6 +315,9 @@ program uDALES
 #endif
     call print_time('updateVegDiagHost')
 
+#if defined(_GPU) && defined(UDALES_DEBUG)
+    call assertHostMatchesDevice('statsdump')
+#endif
     call statsdump
     call print_time('statsdump')
 

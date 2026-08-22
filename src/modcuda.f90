@@ -696,6 +696,109 @@ module modcuda
          if (ltempeq) thl_flux = thl_flux_d
       end subroutine updateHostAfterPoiss
 
+#if defined(UDALES_DEBUG)
+      !> Abort if any host field has drifted from the device copy it mirrors.
+      !!
+      !! Every field updateHostAfterPoiss brings down is compared, bit for bit,
+      !! against its device mirror. Called from the time loop immediately before
+      !! each routine that reads those host fields, so the question it answers
+      !! is exactly the one that matters: at the moment fielddump or statsdump
+      !! runs, is the host copy the one the device holds?
+      !!
+      !! This exists because the transfers are on their way to becoming
+      !! conditional - pulled only on the steps where a dump actually reads
+      !! them. Every way that can go wrong produces the same symptom: a dump
+      !! silently writes the previous step's values, on a configuration nobody
+      !! runs in CI, with no error anywhere. Bit equality turns that into a
+      !! named abort in the Debug parity runs.
+      !!
+      !! Placement is load-bearing. It has to run before boundary, which writes
+      !! the top and lateral planes of the prognostic fields on the host and so
+      !! makes host and device legitimately differ until the next updateDevice.
+      !!
+      !! Debug builds only, and it copies everything down a second time, so it
+      !! is not cheap - but the GPU parity cases are 64^3 and run in a second.
+      subroutine assertHostMatchesDevice(label)
+         use modmpi, only : myid
+         implicit none
+
+         character(len=*), intent(in) :: label
+         integer :: n
+
+         call check3(label, 'u0',    u0,    u0_d)
+         call check3(label, 'v0',    v0,    v0_d)
+         call check3(label, 'w0',    w0,    w0_d)
+         call check3(label, 'um',    um,    um_d)
+         call check3(label, 'vm',    vm,    vm_d)
+         call check3(label, 'wm',    wm,    wm_d)
+         call check3(label, 'pres0', pres0, pres0_d)
+
+         if (ltempeq) then
+            call check3(label, 'thl0', thl0, thl0_d)
+            call check3(label, 'thlm', thlm, thlm_d)
+            if (iadv_thl == iadv_kappa) call check3(label, 'thl0c', thl0c, thl0c_d)
+         end if
+
+         if (lmoist) then
+            call check3(label, 'qt0', qt0, qt0_d)
+            call check3(label, 'qtm', qtm, qtm_d)
+         end if
+
+         do n = 1, nsv
+            call check3(label, 'sv0', sv0(:,:,:,n), sv0_d(:,:,:,n))
+            call check3(label, 'svm', svm(:,:,:,n), svm_d(:,:,:,n))
+         end do
+
+         if (loneeqn) then
+            call check3(label, 'e120', e120, e120_d)
+            call check3(label, 'e12m', e12m, e12m_d)
+         end if
+
+         call check3(label, 'ekm',   ekm,   ekm_d)
+         call check3(label, 'ekh',   ekh,   ekh_d)
+         call check3(label, 'tau_x', tau_x, tau_x_d)
+         call check3(label, 'tau_y', tau_y, tau_y_d)
+         call check3(label, 'tau_z', tau_z, tau_z_d)
+         if (ltempeq) call check3(label, 'thl_flux', thl_flux, thl_flux_d)
+
+      contains
+
+         !> Bring one device field down into scratch and require exact equality.
+         !!
+         !! Exact, not a tolerance: the host copy was produced by copying this
+         !! same device array, so anything other than equality means the copy
+         !! did not happen this step. A tolerance would let a field that is
+         !! merely one step stale, and therefore close, pass unnoticed.
+         subroutine check3(where, name, host, dev)
+            implicit none
+            character(len=*), intent(in) :: where, name
+            real,             intent(in) :: host(:,:,:)
+            real, device,     intent(in) :: dev(:,:,:)
+
+            real, allocatable :: back(:,:,:)
+            integer :: bad
+            real    :: worst
+
+            allocate(back(size(dev,1), size(dev,2), size(dev,3)))
+            back = dev
+
+            bad = count(back /= host)
+            if (bad > 0) then
+               worst = maxval(abs(back - host))
+               write(*,'(A,I0,7A,I0,A,I0,A,ES12.4)') 'Stale host field on rank ', myid, &
+                    ': ', trim(name), ' differs from ', trim(name), '_d at ', trim(where), &
+                    ' - ', bad, ' of ', size(host), ' elements, worst ', worst
+               deallocate(back)
+               error stop 1
+            end if
+
+            deallocate(back)
+
+         end subroutine check3
+
+      end subroutine assertHostMatchesDevice
+#endif
+
       !> Rank-local fluid-cell column sums of a device field, for avexy_ibm.
       !!
       !! Forms the same averl the host branch of avexy_ibm forms, on the

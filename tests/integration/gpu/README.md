@@ -11,13 +11,13 @@ been stable for a suitable period.
 
 ## What is implemented
 
-`case_matrix.json` defines 22 deterministic cases and five selections:
+`case_matrix.json` defines 30 deterministic cases and five selections:
 
 | Selection | Cases | Intended use |
 | --- | --- | --- |
 | `smoke` | four 8 x 8 x 8 cases | Debug development and trusted pull requests |
 | `scalar-sources` | two serial and two two-rank cases | scalar-source parity and global positioning |
-| `nightly` | 17 serial cases | single-GPU scheduled regression |
+| `nightly` | 25 serial cases | single-GPU scheduled regression |
 | `mpi` | dry and scalar-source two-rank X/Y cases | manually dispatched two-GPU check |
 | `full` | nightly plus X, Y, and 2 x 2 MPI | manual four-GPU validation |
 
@@ -46,6 +46,17 @@ The current coverage is:
 - vegetation forcing and tree output
 - surface energy balance, sparse view factors, and periodic EB correction
 - two-rank X and Y decompositions and a four-rank 2 x 2 decomposition
+- the `fielddump` variables no other case requests: the wall stresses `tau_x`,
+  `tau_y` and `tau_z`, the heat flux `thl_flux`, and the post-correction
+  divergence `div`. Without this case those four transfers could be dropped
+  entirely and every other case would still pass. `div` is there for the code
+  path only - after the pressure correction it sits at round-off, so it cannot
+  detect a stale velocity field
+- the `statsdump` modes no other case enables: `lydump`, `lytdump`, `lxydump`
+  and `lmintdump` in one case, `lkslicedump`, `lislicedump` and `ljslicedump`
+  in another. Both carry moisture and the averages case carries three scalars,
+  because several `ytdump` statistics are written whether or not the physics
+  that assigns them is enabled
 
 Every Debug GPU smoke/MPI run must also emit a CUDA device-suite marker from
 every MPI rank. The opt-in `src/tests_cuda.f90` suite checks the extended-halo
@@ -64,7 +75,7 @@ contains cases that do so. The runner enables the suite with
 
 The `ported_routines` contract in `case_matrix.json` is checked against the
 current Fortran source. At present it maps all 48 production CUDA global/device
-routines (including device functions) and all 18 subroutines containing
+routines (including device functions) and all 45 subroutines containing
 executable OpenACC regions to one or more parity cases or to the Debug device
 suite. Matrix validation fails when a new ported routine has no declared test,
 a deleted routine leaves a stale entry, a mapped test does not exist, or a
