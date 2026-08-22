@@ -32,7 +32,10 @@ module modfielddump
   use modfields, only : ncname, ncname1, ncname2
   implicit none
   private
-  PUBLIC :: initfielddump, fielddump,exitfielddump
+  PUBLIC :: initfielddump, fielddump, exitfielddump
+#if defined(_GPU)
+  PUBLIC :: fielddump_will_sample
+#endif
   save
   !NetCDF variables
   integer :: ncid,nrec = 0
@@ -377,6 +380,22 @@ contains
      ! call define_nc( ncid2, nvar, ncname2)
 
   end subroutine initfielddump
+
+#if defined(_GPU)
+  !> Will the next call to fielddump write a record?
+  logical function fielddump_will_sample()
+    use modglobal, only : timee, tnextfielddump, lfielddump, rk3step
+    implicit none
+
+    fielddump_will_sample = .false.
+
+    if (.not. lfielddump) return
+    if (.not. ((timee >= tnextfielddump) .or. (rk3step == 0))) return
+    if (rk3step /= 3 .and. rk3step /= 0) return
+
+    fielddump_will_sample = .true.
+  end function fielddump_will_sample
+#endif
 
   !> Do fielddump. Collect data to truncated (2 byte) integers, and write them to file
   subroutine fielddump

@@ -31,7 +31,10 @@ module modstatsdump
   use modmpi, only : myid
   implicit none
   private
-  PUBLIC :: initstatsdump,statsdump,exitstatsdump,statsdump_will_sample
+  PUBLIC :: initstatsdump,statsdump,exitstatsdump
+#if defined(_GPU)
+  PUBLIC :: statsdump_will_sample
+#endif
   save
 
   !NetCDF variables
@@ -631,15 +634,8 @@ contains
   !> Generate and write statistics into NetCDF file format
   !-------------------------
 
+#if defined(_GPU)
   !> Will the next statsdump call take a sample?
-  !!
-  !! statsdump samples on the third Runge-Kutta stage, once tsamplep has
-  !! reached tsample, and tsamplep is advanced nowhere else - so this can be
-  !! asked before the call and answered exactly. The GPU path uses it to bring
-  !! the tree diagnostics down on sample steps only, instead of every step.
-  !!
-  !! The tsamplep == 0 arm mirrors the first-call special case below, where a
-  !! run with tsample <= dt treats the just-completed step as a valid sample.
   logical function statsdump_will_sample()
     use modglobal, only : timee, tstatstart, rk3step, dt, tsample, &
                           lytdump, lydump, lxydump, lxytdump, ltdump, lmintdump, &
@@ -654,8 +650,8 @@ contains
     if (rk3step /= 3) return
 
     statsdump_will_sample = (tsamplep >= tsample) .or. (tsamplep == 0. .and. tsample <= dt)
-
   end function statsdump_will_sample
+#endif
 
   subroutine statsdump
 

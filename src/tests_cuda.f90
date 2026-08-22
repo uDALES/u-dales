@@ -25,7 +25,8 @@ module tests_cuda
                         facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
                         dxdydzfi_d, dxdydzhi_d, dvcell_d, dxhi_d, dzhi_d, dzf_d, dzfi_d, &
                         col_d, col_stage, IIu_d, IIv_d, updateDevice, &
-                        updateHostAfterPoiss, tau_x_d, tau_y_d, tau_z_d, &
+                        updateHostForFielddump, updateHostForStatsdump, &
+                        updateHostForUnportedRoutines, tau_x_d, tau_y_d, tau_z_d, &
                         thl_flux_d, momfluxb_d, tfluxb_d
    use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, pres0, &
                          thl0, thlm, thl0c, qt0, qtm, sv0, svm, thlp, wp, &
@@ -3436,7 +3437,8 @@ contains
    !!
    !! updateHost used to run before the pressure step and bring down eighteen
    !! fields. Ten of them had no host reader at all in a GPU build and were
-   !! dropped; the six that do have one now come down in updateHostAfterPoiss,
+   !! dropped; the six that do have one now come down in the post-Poisson
+   !! handover,
    !! which is what the second half of this checks. Nothing writes them on the
    !! device in between, so the values have to be the ones the device holds.
    !!
@@ -3488,7 +3490,7 @@ contains
       end if
 
       ! Make every mirror updateDevice uploads agree with the host, so that the
-      ! updateHostAfterPoiss call below is an identity for everything except
+      ! handover calls below are an identity for everything except
       ! the six fields under test.
       call updateDevice
 
@@ -3513,7 +3515,7 @@ contains
          end if
       end if
 
-      ! --- updateHostAfterPoiss brings the six survivors down ---------------
+      ! --- the handover brings the six survivors down -----------------------
       ekm_d   = sent_ekm ; ekm   = 0.
       ekh_d   = sent_ekh ; ekh   = 0.
       tau_x_d = sent_tx  ; tau_x = 0.
@@ -3523,10 +3525,17 @@ contains
          thl_flux_d = sent_hf ; thl_flux = 0.
       end if
 
-      call updateHostAfterPoiss
+      ! The post-Poisson handover is four routines now, one per reader, and
+      ! between them they still have to bring the whole set down. Called in the
+      ! order the time loop calls them, so the pull bookkeeping is exercised
+      ! the way it runs: whichever routine reaches a field first fetches it and
+      ! the others leave it alone.
+      call updateHostForFielddump
+      call updateHostForStatsdump
+      call updateHostForUnportedRoutines
 
-      if (any(ekm   /= sent_ekm)) call fail_cuda_selftest('updateHostAfterPoiss did not bring down ekm')
-      if (any(ekh   /= sent_ekh)) call fail_cuda_selftest('updateHostAfterPoiss did not bring down ekh')
+      if (any(ekm   /= sent_ekm)) call fail_cuda_selftest('the handover did not bring down ekm')
+      if (any(ekh   /= sent_ekh)) call fail_cuda_selftest('the handover did not bring down ekh')
 
       ! The stresses and the heat flux are pulled only when fielddump names
       ! them, so both directions are asserted: brought down when there is a
@@ -3574,10 +3583,10 @@ contains
 
          if (fielddump_wants(code)) then
             if (any(host /= sentinel)) &
-               call fail_cuda_selftest('updateHostAfterPoiss did not bring down '//name)
+               call fail_cuda_selftest('the handover did not bring down '//name)
          else
             if (any(host /= 0.)) &
-               call fail_cuda_selftest('updateHostAfterPoiss brought down '//name//' with no reader')
+               call fail_cuda_selftest('the handover brought down '//name//' with no reader')
          end if
 
       end subroutine check_gated

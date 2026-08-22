@@ -896,7 +896,11 @@ contains
       vegp%omega  = veg_stage_c
     end if
 
-    do n = 1, nsv
+    ! Only the first two species. statsdump accumulates tr_sv1t and tr_sv2t
+    ! and has no third, so components above two would cross the bus for a
+    ! reader that does not exist. If a tr_sv3t is ever added, this bound and
+    ! that accumulator have to move together.
+    do n = 1, min(nsv, 2)
       veg_stage_c   = vegp_sv_d(:,n)
       vegp%sv(:,n)  = veg_stage_c
     end do

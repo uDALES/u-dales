@@ -46,6 +46,9 @@ contains
     use modmpi,    only : cmyidx,cmyidy,myid,slabsum,excjs,comm3d
     use modsubgriddata, only : ekm
     use modinletdata, only   : nstepread
+#if defined(_GPU)
+    use modcuda,   only : updateHostForRestart
+#endif
 
     implicit none
     logical :: lexitnow = .false.
@@ -76,6 +79,16 @@ contains
 
     if (((timee>=tnextrestart)) .or. ((lexitnow) .or. (nstepread == nstore+1))) then
       tnextrestart = tnextrestart+trestart
+
+#if defined(_GPU)
+      ! Inside the guard, so the restart schedule is evaluated once: asking the
+      ! same question from the time loop would mean repeating the inquire and
+      ! the broadcast above on every step. Everything the loop's other readers
+      ! already brought down this step is left alone - including the boundary
+      ! conditions boundary has since written on the host, which is what
+      ! belongs in a restart file.
+      call updateHostForRestart
+#endif
 
       name = 'initd        _   _   .'
       write (name(6:13)  ,'(i8.8)') ntrun

@@ -105,6 +105,42 @@ module modcuda
    real, allocatable, pinned :: col_stage(:)
    logical :: lfacets_on_device = .false.
 
+   ! Bookkeeping for the post-Poisson handover.
+   !
+   ! Four routines below pull fields down for four different readers, and the
+   ! sets overlap: fielddump and the restart both want u0, statsdump and the
+   ! unported host routines both want ekm. Each field is pulled at most once
+   ! per step, and which routine got there first does not matter - so rather
+   ! than each routine carrying conditions about what the others already did,
+   ! every transfer goes through a pull_ routine and is skipped if the field is
+   ! already current. The dedup is then structural: listing a field in two
+   ! routines is harmless, and adding a reader cannot silently double a copy.
+   !
+   ! updateDevice clears the flags, which is the one point in the step where
+   ! every host field has just been handed to the device.
+   ! The rule that governs which of them may be conditional: updateDevice
+   ! uploads sixteen of these fields back from the host on every stage, so if
+   ! one of those is not pulled this step, the host's stale copy is written
+   ! over the device's current one and the solution itself is wrong - not just
+   ! a dump. Those sixteen therefore belong in updateHostForUnportedRoutines,
+   ! which runs unconditionally, and only ekm, ekh, tau_x, tau_y, tau_z and
+   ! thl_flux - the six updateDevice does not upload - can be pulled on demand.
+   ! assertRoundTripPulled below holds the two lists to that.
+   integer, parameter :: F_U0 = 1, F_V0 = 2, F_W0 = 3, &
+                         F_UM = 4, F_VM = 5, F_WM = 6, &
+                         F_PRES0 = 7, F_THL0 = 8, F_THLM = 9, F_THL0C = 10, &
+                         F_QT0 = 11, F_QTM = 12, F_SV0 = 13, F_SVM = 14, &
+                         F_E120 = 15, F_E12M = 16, F_EKM = 17, F_EKH = 18, &
+                         F_TAUX = 19, F_TAUY = 20, F_TAUZ = 21, F_THLFLUX = 22, &
+                         F_COUNT = 22
+   logical :: pulled(F_COUNT) = .false.
+#if defined(UDALES_DEBUG)
+   ! The round-trip invariant only holds inside the time loop. Initialisation
+   ! and the device self-tests call updateDevice with nothing pulled, quite
+   ! legitimately, so program.f90 arms the check once the loop is about to run.
+   logical :: lcheck_round_trip = .false.
+#endif
+
    contains
       subroutine initCUDA
          implicit none
@@ -543,29 +579,93 @@ module modcuda
          end if
       end subroutine updateFacIntegralsHost
 
+#if defined(UDALES_DEBUG)
+      !> Every field updateDevice is about to upload must have been pulled.
+      !!
+      !! updateDevice writes the host copy of sixteen fields onto the device.
+      !! If one of them was not brought down during the step just finishing,
+      !! that upload replaces a current device value with a stale host one, and
+      !! the error is in the solution rather than in an output file - it shows
+      !! up as a slow divergence with nothing pointing at the cause.
+      !!
+      !! So the list here is the list of uploads in updateDevice, and it has to
+      !! be kept beside it: adding an upload without adding the field to
+      !! updateHostForUnportedRoutines is exactly the mistake this catches.
+      !! Which is not hypothetical - pres0 was left out of that routine on the
+      !! first attempt at this split, on the grounds that its only readers are
+      !! the three that have their own routines.
+      !!
+      !! Inert until enableRoundTripCheck arms it, because initialisation and
+      !! the device self-tests both call updateDevice with nothing pulled.
+      subroutine assertRoundTripPulled
+         use modmpi, only : myid
+         implicit none
+
+         if (.not. lcheck_round_trip) return
+
+         call need(F_U0, 'u0') ; call need(F_V0, 'v0') ; call need(F_W0, 'w0')
+         call need(F_UM, 'um') ; call need(F_VM, 'vm') ; call need(F_WM, 'wm')
+         call need(F_PRES0, 'pres0')
+         if (ltempeq) then
+            call need(F_THL0, 'thl0') ; call need(F_THLM, 'thlm')
+            if (iadv_thl == iadv_kappa) call need(F_THL0C, 'thl0c')
+         end if
+         if (lmoist) then
+            call need(F_QT0, 'qt0') ; call need(F_QTM, 'qtm')
+         end if
+         if (nsv > 0) then
+            call need(F_SV0, 'sv0') ; call need(F_SVM, 'svm')
+         end if
+         if (loneeqn) then
+            call need(F_E120, 'e120') ; call need(F_E12M, 'e12m')
+         end if
+
+      contains
+
+         subroutine need(id, name)
+            implicit none
+            integer,          intent(in) :: id
+            character(len=*), intent(in) :: name
+
+            if (.not. pulled(id)) then
+               write(*,'(A,I0,3A)') 'Round-trip field not pulled on rank ', myid, ': ', &
+                    trim(name), ' is about to be uploaded from a host copy this step never fetched.'
+               error stop 1
+            end if
+
+         end subroutine need
+
+      end subroutine assertRoundTripPulled
+
+      !> Arm the round-trip check. Called once, as the time loop starts.
+      subroutine enableRoundTripCheck
+         implicit none
+         lcheck_round_trip = .true.
+      end subroutine enableRoundTripCheck
+#endif
+
       subroutine updateDevice
          implicit none
          integer :: n
 
+#if defined(UDALES_DEBUG)
+         call assertRoundTripPulled
+#endif
+
+         ! Everything the host holds is about to be on the device, so nothing
+         ! is pulled yet for the step this starts. See the declaration.
+         pulled = .false.
+
          call updateFacetPropsDevice
+
+         um_d = um
+         vm_d = vm
+         wm_d = wm
 
          u0_d = u0
          v0_d = v0
          w0_d = w0
          pres0_d = pres0
-
-         ! The previous-step fields. masscorr reduces um and vm, and ibmnorm
-         ! pins all six inside the solid, both before updateHost hands the
-         ! stage over - so the mirrors have to be current by this point. The
-         ! host is the last writer: boundary applies the lateral and top
-         ! conditions at the end of the previous step, for a profile or driver
-         ! inlet at the interior plane i = ib and not only in the halo.
-         um_d = um
-         vm_d = vm
-         wm_d = wm
-         if (ltempeq) thlm_d = thlm
-         if (lmoist)  qtm_d  = qtm
-         if (nsv > 0) svm_d  = svm
 
          call initfield<<<griddim,blockdim>>>(up_d, 0., ih, jh, kh)
          call checkCUDA( cudaGetLastError(), 'initfield up_d' )
@@ -601,6 +701,7 @@ module modcuda
          end if
 
          if (ltempeq) then
+            thlm_d = thlm
             thl0_d = thl0
             call initfield<<<griddim,blockdim>>>(thlp_d, 0., ih, jh, kh)
             call checkCUDA( cudaGetLastError(), 'initfield thlp_d' )
@@ -621,6 +722,7 @@ module modcuda
          end if
 
          if (lmoist) then
+            qtm_d  = qtm
             qt0_d = qt0
             call initfield<<<griddim,blockdim>>>(qtp_d, 0., ih, jh, kh)
             call checkCUDA( cudaGetLastError(), 'initfield qtp_d' )
@@ -629,6 +731,7 @@ module modcuda
          end if
 
          if (nsv>0) then
+            svm_d  = svm
             sv0_d = sv0
             do n = 1, nsv
                call initfield<<<griddim,blockdim>>>(svp_d(:, :, :, n), 0., ihc, jhc, khc)
@@ -641,27 +744,313 @@ module modcuda
          dthvdz_d = dthvdz
       end subroutine updateDevice
 
-      subroutine updateHostAfterPoiss
+      ! One routine per field rather than one generic helper taking the pair as
+      ! arguments. The generic version was written first and cost 130 seconds on
+      ! a 256^3 run: an assumed-shape dummy turns a whole-array device-to-host
+      ! assignment into a descriptor copy, and a 137 MB field cannot afford
+      ! that. With no dummies the compiler sees exactly the assignment it saw
+      ! before this split existed.
+
+      subroutine pull_u0
          implicit none
+         if (pulled(F_U0)) return
          u0 = u0_d
+         pulled(F_U0) = .true.
+      end subroutine pull_u0
+
+      subroutine pull_v0
+         implicit none
+         if (pulled(F_V0)) return
          v0 = v0_d
+         pulled(F_V0) = .true.
+      end subroutine pull_v0
+
+      subroutine pull_w0
+         implicit none
+         if (pulled(F_W0)) return
          w0 = w0_d
+         pulled(F_W0) = .true.
+      end subroutine pull_w0
+
+      subroutine pull_um
+         implicit none
+         if (pulled(F_UM)) return
          um = um_d
+         pulled(F_UM) = .true.
+      end subroutine pull_um
+
+      subroutine pull_vm
+         implicit none
+         if (pulled(F_VM)) return
          vm = vm_d
+         pulled(F_VM) = .true.
+      end subroutine pull_vm
+
+      subroutine pull_wm
+         implicit none
+         if (pulled(F_WM)) return
          wm = wm_d
+         pulled(F_WM) = .true.
+      end subroutine pull_wm
+
+      subroutine pull_pres0
+         implicit none
+         if (pulled(F_PRES0)) return
          pres0 = pres0_d
+         pulled(F_PRES0) = .true.
+      end subroutine pull_pres0
+
+      subroutine pull_thl0
+         implicit none
+         if (pulled(F_THL0)) return
+         thl0 = thl0_d
+         pulled(F_THL0) = .true.
+      end subroutine pull_thl0
+
+      subroutine pull_thlm
+         implicit none
+         if (pulled(F_THLM)) return
+         thlm = thlm_d
+         pulled(F_THLM) = .true.
+      end subroutine pull_thlm
+
+      subroutine pull_thl0c
+         implicit none
+         if (pulled(F_THL0C)) return
+         thl0c = thl0c_d
+         pulled(F_THL0C) = .true.
+      end subroutine pull_thl0c
+
+      subroutine pull_qt0
+         implicit none
+         if (pulled(F_QT0)) return
+         qt0 = qt0_d
+         pulled(F_QT0) = .true.
+      end subroutine pull_qt0
+
+      subroutine pull_qtm
+         implicit none
+         if (pulled(F_QTM)) return
+         qtm = qtm_d
+         pulled(F_QTM) = .true.
+      end subroutine pull_qtm
+
+      subroutine pull_sv0
+         implicit none
+         if (pulled(F_SV0)) return
+         sv0 = sv0_d
+         pulled(F_SV0) = .true.
+      end subroutine pull_sv0
+
+      subroutine pull_svm
+         implicit none
+         if (pulled(F_SVM)) return
+         svm = svm_d
+         pulled(F_SVM) = .true.
+      end subroutine pull_svm
+
+      subroutine pull_e120
+         implicit none
+         if (pulled(F_E120)) return
+         e120 = e120_d
+         pulled(F_E120) = .true.
+      end subroutine pull_e120
+
+      subroutine pull_e12m
+         implicit none
+         if (pulled(F_E12M)) return
+         e12m = e12m_d
+         pulled(F_E12M) = .true.
+      end subroutine pull_e12m
+
+      subroutine pull_ekm
+         implicit none
+         if (pulled(F_EKM)) return
+         ekm = ekm_d
+         pulled(F_EKM) = .true.
+      end subroutine pull_ekm
+
+      subroutine pull_ekh
+         implicit none
+         if (pulled(F_EKH)) return
+         ekh = ekh_d
+         pulled(F_EKH) = .true.
+      end subroutine pull_ekh
+
+      subroutine pull_tau_x
+         implicit none
+         if (pulled(F_TAUX)) return
+         tau_x = tau_x_d
+         pulled(F_TAUX) = .true.
+      end subroutine pull_tau_x
+
+      subroutine pull_tau_y
+         implicit none
+         if (pulled(F_TAUY)) return
+         tau_y = tau_y_d
+         pulled(F_TAUY) = .true.
+      end subroutine pull_tau_y
+
+      subroutine pull_tau_z
+         implicit none
+         if (pulled(F_TAUZ)) return
+         tau_z = tau_z_d
+         pulled(F_TAUZ) = .true.
+      end subroutine pull_tau_z
+
+      subroutine pull_thl_flux
+         implicit none
+         if (pulled(F_THLFLUX)) return
+         thl_flux = thl_flux_d
+         pulled(F_THLFLUX) = .true.
+      end subroutine pull_thl_flux
+
+      !> Bring down what fielddump is about to read.
+      !!
+      !! Called only on the steps fielddump writes, so the fields that exist
+      !! for it alone - the wall stresses and the heat flux - cross the bus a
+      !! handful of times a run rather than on every stage.
+      !!
+      !! u0, v0 and w0 are unconditional because fielddump forms div from them
+      !! before it looks at fieldvars at all. Everything else is asked for by
+      !! name, through fielddump's own predicate, so a field cannot be pulled
+      !! under one condition and read under another.
+      subroutine updateHostForFielddump
+         implicit none
+
+         call pull_u0
+         call pull_v0
+         call pull_w0
+
+         if (fielddump_wants('p0')) call pull_pres0
+         if (ltempeq .and. fielddump_wants('th')) call pull_thl0
+         if (lmoist  .and. fielddump_wants('qt')) call pull_qt0
+
+         ! sv0 comes down whole, so any one of the five scalar codes is enough.
+         if (nsv > 0) then
+            if (fielddump_wants('s1') .or. fielddump_wants('s2') .or. &
+                fielddump_wants('s3') .or. fielddump_wants('s4') .or. &
+                fielddump_wants('s5')) call pull_sv0
+         end if
+
+         if (fielddump_wants('tx')) call pull_tau_x
+         if (fielddump_wants('ty')) call pull_tau_y
+         if (fielddump_wants('tz')) call pull_tau_z
+         if (ltempeq .and. fielddump_wants('hf')) call pull_thl_flux
+
+      end subroutine updateHostForFielddump
+
+      !> Bring down what statsdump is about to read.
+      !!
+      !! Called only on the steps statsdump samples. statsdump reads the
+      !! previous-stage fields, not the current ones - um rather than u0 - plus
+      !! both eddy diffusivities and the pressure. It does not read u0, v0 or
+      !! w0: the only statistics that would are in tkestats, which is reached
+      !! from genstats, whose one call site is commented out.
+      !!
+      !! The tree diagnostics statsdump also reads are handed over by
+      !! vegetation's own updateVegDiagHost, called beside this one under the
+      !! same predicate. They cannot be folded in here, because vegetation
+      !! reaches modcuda and the reverse would be a cycle.
+      subroutine updateHostForStatsdump
+         implicit none
+
+         call pull_um
+         call pull_vm
+         call pull_wm
+         call pull_pres0
+         call pull_ekm
+         call pull_ekh
+
+         if (ltempeq) call pull_thlm
+         if (lmoist)  call pull_qtm
+         if (nsv > 0) call pull_svm
+
+      end subroutine updateHostForStatsdump
+
+      !> Bring down what writerestartfiles is about to write.
+      !!
+      !! Called from inside that routine's own guard rather than from the time
+      !! loop, so the restart schedule is evaluated once. Reproducing it here
+      !! would mean repeating a filesystem inquire and an MPI broadcast every
+      !! step to answer a question the writer already asks.
+      !!
+      !! By that point boundary has written the top and lateral planes of these
+      !! fields on the host, which is what belongs in a restart - and the pull
+      !! routines leave them alone, because updateHostForUnportedRoutines
+      !! already marked them pulled earlier in the same step. Everything here
+      !! is therefore a no-op today; the routine exists so that when that
+      !! unconditional pull goes away, the restart keeps working. ql0 and ql0h
+      !! are also written to the restart and are absent on purpose:
+      !! thermodynamics produces them on the host and there is no device copy
+      !! to fetch.
+      subroutine updateHostForRestart
+         implicit none
+
+         call pull_u0
+         call pull_v0
+         call pull_w0
+         call pull_pres0
+         call pull_ekm
+
+         if (ltempeq) call pull_thl0
+         if (lmoist)  call pull_qt0
+         if (nsv > 0) call pull_sv0
+         if (loneeqn) call pull_e120
+
+      end subroutine updateHostForRestart
+
+      !> Bring down what the host routines still in the loop are about to use.
+      !!
+      !! This is not a bin of leftovers, it is the correctness path. boundary
+      !! writes the top, bottom and lateral planes of every prognostic field on
+      !! the host, and thermodynamics reads thl0 and qt0 and writes ql0, thv0h
+      !! and the slab averages - and the next updateDevice uploads all of it
+      !! back. Skip a field here and the device gets the previous step's value
+      !! for it, so this runs on every stage and cannot be made conditional.
+      !!
+      !! It is also the one routine in this group that shrinks. Every entry
+      !! below leaves when the routine that needs it is ported, and once
+      !! boundary and thermodynamics are on the device the routine goes with
+      !! them - unlike the three above, which survive a fully ported loop
+      !! because their readers write files from host memory.
+      !!
+      !! ekm and ekh are here for boundary's fluxtop and fluxtopscal, which
+      !! take them as the diffusivity for a flux-type top boundary.
+      !!
+      !! pres0 is here for a different reason. Its only host readers are
+      !! statsdump, fielddump and the restart, all of which have their own
+      !! routine - but updateDevice uploads it, so leaving it to them would put
+      !! a stale pressure back on the device on every step between samples.
+      !! The same argument keeps thlm, qtm and svm here even though boundary's
+      !! writes to them are the only thing downstream that touches them.
+      subroutine updateHostForUnportedRoutines
+         implicit none
+
+         call pull_u0
+         call pull_v0
+         call pull_w0
+         call pull_um
+         call pull_vm
+         call pull_wm
+         call pull_pres0
+         call pull_ekm
+         call pull_ekh
+
          if (ltempeq) then
-            thl0 = thl0_d
-            thlm = thlm_d
-            if (iadv_thl == iadv_kappa) thl0c = thl0c_d
+            call pull_thl0
+            call pull_thlm
+            if (iadv_thl == iadv_kappa) call pull_thl0c
          end if
+
          if (lmoist) then
-            qt0 = qt0_d
-            qtm = qtm_d
+            call pull_qt0
+            call pull_qtm
          end if
-         if (nsv>0) then
-            sv0 = sv0_d
-            svm = svm_d
+
+         if (nsv > 0) then
+            call pull_sv0
+            call pull_svm
 #if defined(UDALES_DEBUG)
             if (.not. all(ieee_is_finite(sv0(ib:ie, jb:je, kb:ke, 1:nsv)))) then
                write(*,*) 'Non-finite scalar value detected after the GPU pressure step.'
@@ -669,66 +1058,36 @@ module modcuda
             end if
 #endif
          end if
+
          if (loneeqn) then
-            e120 = e120_d
-            e12m = e12m_d
+            call pull_e120
+            call pull_e12m
          end if
 
-         ! What updateHost used to bring down half a stage earlier. It ran
-         ! before poisson because vegetation_forcing needed the fields there;
-         ! once that moved onto the device, everything left in that routine
-         ! either had no host reader at all - the tendencies, momfluxb, tfluxb -
-         ! or had one that runs past this point:
-         !
-         !   ekm, ekh           statsdump, boundary's fluxtop,
-         !                      writerestartfiles
-         !   tau_x/y/z          fielddump, when named in fieldvars
-         !   thl_flux           the same
-         !
-         ! Nothing writes any of them on the device between there and here -
-         ! subgrid and bottom produce them before, poisson and tstep_integrate
-         ! do not touch them, and halos_device exchanges only the prognostic
-         ! fields - so the values are the ones updateHost used to hand over.
-         ekm = ekm_d
-         ekh = ekh_d
-
-         ! The wall stresses and the heat flux have exactly one host reader
-         ! between here and the next updateDevice, and it only looks at them
-         ! when they are named in fieldvars. Asking the consumer, rather than
-         ! copying unconditionally, is worth four whole fields per step: on a
-         ! 256^3 run with the usual fieldvars that measured 8.9 of the 46.5
-         ! seconds this routine spends, for values nothing ever reads.
-         !
-         ! The condition is fielddump's own, not a restatement of it, so the
-         ! transfer and the read cannot disagree - and under UDALES_DEBUG
-         ! assertHostMatchesDevice checks the same fields under the same
-         ! predicate, which turns a mistake here into a named abort rather than
-         ! a dump quietly written from the previous step.
-         if (fielddump_wants('tx')) tau_x = tau_x_d
-         if (fielddump_wants('ty')) tau_y = tau_y_d
-         if (fielddump_wants('tz')) tau_z = tau_z_d
-         if (ltempeq .and. fielddump_wants('hf')) thl_flux = thl_flux_d
-      end subroutine updateHostAfterPoiss
+      end subroutine updateHostForUnportedRoutines
 
 #if defined(UDALES_DEBUG)
-      !> Abort if any host field has drifted from the device copy it mirrors.
+      !> Abort if a host field a reader is about to use has drifted from the
+      !! device copy it mirrors.
       !!
-      !! Every field updateHostAfterPoiss brings down is compared, bit for bit,
-      !! against its device mirror. Called from the time loop immediately before
-      !! each routine that reads those host fields, so the question it answers
-      !! is exactly the one that matters: at the moment fielddump or statsdump
-      !! runs, is the host copy the one the device holds?
+      !! Called from the time loop immediately before fielddump and before
+      !! statsdump, and asks the question that matters at that moment: is every
+      !! field this reader will look at the one the device holds?
       !!
-      !! This exists because the transfers are on their way to becoming
-      !! conditional - pulled only on the steps where a dump actually reads
-      !! them. Every way that can go wrong produces the same symptom: a dump
-      !! silently writes the previous step's values, on a configuration nobody
-      !! runs in CI, with no error anywhere. Bit equality turns that into a
-      !! named abort in the Debug parity runs.
+      !! The lists below are written from what the reader reads. They are a
+      !! second derivation of the lists in updateHostForFielddump and
+      !! updateHostForStatsdump, on purpose - a check that shares its
+      !! derivation with the thing it checks cannot catch a wrong list. The two
+      !! have to agree, and when they do not this aborts naming the field.
+      !!
+      !! What it is defending against: those transfers are conditional now, and
+      !! every way a condition can be wrong has the same symptom - a dump
+      !! quietly written from the previous step, on a configuration nobody
+      !! runs, with no error anywhere.
       !!
       !! Placement is load-bearing. It has to run before boundary, which writes
-      !! the top and lateral planes of the prognostic fields on the host and so
-      !! makes host and device legitimately differ until the next updateDevice.
+      !! the top and lateral planes on the host and so makes host and device
+      !! legitimately differ until the next updateDevice.
       !!
       !! Debug builds only, and it copies everything down a second time, so it
       !! is not cheap - but the GPU parity cases are 64^3 and run in a second.
@@ -739,48 +1098,56 @@ module modcuda
          character(len=*), intent(in) :: label
          integer :: n
 
-         call check3(label, 'u0',    u0,    u0_d)
-         call check3(label, 'v0',    v0,    v0_d)
-         call check3(label, 'w0',    w0,    w0_d)
-         call check3(label, 'um',    um,    um_d)
-         call check3(label, 'vm',    vm,    vm_d)
-         call check3(label, 'wm',    wm,    wm_d)
-         call check3(label, 'pres0', pres0, pres0_d)
+         select case (label)
 
-         if (ltempeq) then
-            call check3(label, 'thl0', thl0, thl0_d)
-            call check3(label, 'thlm', thlm, thlm_d)
-            if (iadv_thl == iadv_kappa) call check3(label, 'thl0c', thl0c, thl0c_d)
-         end if
+         case ('fielddump')
+            ! div is formed from these before fieldvars is consulted at all.
+            call check3(label, 'u0', u0, u0_d)
+            call check3(label, 'v0', v0, v0_d)
+            call check3(label, 'w0', w0, w0_d)
 
-         if (lmoist) then
-            call check3(label, 'qt0', qt0, qt0_d)
-            call check3(label, 'qtm', qtm, qtm_d)
-         end if
+            if (fielddump_wants('p0')) call check3(label, 'pres0', pres0, pres0_d)
+            if (ltempeq .and. fielddump_wants('th')) call check3(label, 'thl0', thl0, thl0_d)
+            if (lmoist  .and. fielddump_wants('qt')) call check3(label, 'qt0',  qt0,  qt0_d)
 
-         do n = 1, nsv
-            call check3(label, 'sv0', sv0(:,:,:,n), sv0_d(:,:,:,n))
-            call check3(label, 'svm', svm(:,:,:,n), svm_d(:,:,:,n))
-         end do
+            if (nsv > 0) then
+               if (fielddump_wants('s1') .or. fielddump_wants('s2') .or. &
+                   fielddump_wants('s3') .or. fielddump_wants('s4') .or. &
+                   fielddump_wants('s5')) then
+                  do n = 1, nsv
+                     call check3(label, 'sv0', sv0(:,:,:,n), sv0_d(:,:,:,n))
+                  end do
+               end if
+            end if
 
-         if (loneeqn) then
-            call check3(label, 'e120', e120, e120_d)
-            call check3(label, 'e12m', e12m, e12m_d)
-         end if
+            if (fielddump_wants('tx')) call check3(label, 'tau_x', tau_x, tau_x_d)
+            if (fielddump_wants('ty')) call check3(label, 'tau_y', tau_y, tau_y_d)
+            if (fielddump_wants('tz')) call check3(label, 'tau_z', tau_z, tau_z_d)
+            if (ltempeq .and. fielddump_wants('hf')) &
+               call check3(label, 'thl_flux', thl_flux, thl_flux_d)
 
-         call check3(label, 'ekm',   ekm,   ekm_d)
-         call check3(label, 'ekh',   ekh,   ekh_d)
+         case ('statsdump')
+            ! The previous-stage fields, both diffusivities and the pressure.
+            call check3(label, 'um', um, um_d)
+            call check3(label, 'vm', vm, vm_d)
+            call check3(label, 'wm', wm, wm_d)
+            call check3(label, 'pres0', pres0, pres0_d)
+            call check3(label, 'ekm', ekm, ekm_d)
+            call check3(label, 'ekh', ekh, ekh_d)
 
-         ! Only where a reader exists. These four are pulled when fielddump
-         ! names them and not otherwise, so requiring them to match on a run
-         ! that never asked for them would fail on the transfer being correctly
-         ! skipped. The predicate is fielddump's, so what is checked here is
-         ! that everything fielddump will read is current.
-         if (fielddump_wants('tx')) call check3(label, 'tau_x', tau_x, tau_x_d)
-         if (fielddump_wants('ty')) call check3(label, 'tau_y', tau_y, tau_y_d)
-         if (fielddump_wants('tz')) call check3(label, 'tau_z', tau_z, tau_z_d)
-         if (ltempeq .and. fielddump_wants('hf')) &
-            call check3(label, 'thl_flux', thl_flux, thl_flux_d)
+            if (ltempeq) call check3(label, 'thlm', thlm, thlm_d)
+            if (lmoist)  call check3(label, 'qtm',  qtm,  qtm_d)
+            if (nsv > 0) then
+               do n = 1, nsv
+                  call check3(label, 'svm', svm(:,:,:,n), svm_d(:,:,:,n))
+               end do
+            end if
+
+         case default
+            write(*,'(3A)') 'assertHostMatchesDevice: no field list for reader ', trim(label), '.'
+            error stop 1
+
+         end select
 
       contains
 

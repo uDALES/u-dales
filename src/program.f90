@@ -29,13 +29,12 @@ program uDALES
 #if defined(_GPU)
   use cudafor
   use modcuda,           only : initCUDA, updateDevice, &
-                                updateHostAfterPoiss, integrateFacFluxDevice, &
+                                updateHostForFielddump, updateHostForStatsdump, &
+                                updateHostForUnportedRoutines, integrateFacFluxDevice, &
                                 updateFacIntegralsHost, checkCUDA, exitCUDA
 #endif
 #if defined(_GPU) && defined(UDALES_DEBUG)
-  use modcuda,           only : assertHostMatchesDevice
-#endif
-#if defined(_GPU) && defined(UDALES_DEBUG)
+  use modcuda,           only : assertHostMatchesDevice, enableRoundTripCheck
   use tests_cuda,        only : run_cuda_selftests_if_requested
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
@@ -72,8 +71,9 @@ program uDALES
   use modchecksim,     only : initchecksim,checksim
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
-  use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
+  use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump
 #if defined(_GPU)
+  use modfielddump,    only : fielddump_will_sample
   use modstatsdump,    only : statsdump_will_sample
 #endif
   use modtimedep,      only : inittimedep,timedep
@@ -162,11 +162,19 @@ program uDALES
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
+#if defined(_GPU) && defined(UDALES_DEBUG)
+  ! From here on, every field updateDevice uploads has to have been brought
+  ! down during the step. Armed now rather than at initialisation, because the
+  ! device self-tests call updateDevice with nothing pulled.
+  call enableRoundTripCheck
+#endif
+
   call starttimer
   do while ((timeleft>0) .or. (rk3step < 3))
 
     ! Any routine added to this loop must have its GPU data transfers addressed:
-    ! nothing between updateDevice and updateHostAfterPoiss may read host fields.
+    ! nothing between updateDevice and the post-Poisson handover may read host
+    ! fields.
 
     stime = MPI_Wtime()
 
@@ -281,45 +289,49 @@ program uDALES
     call exchange_halos
     call print_time('exchange_halos')
 
-    ! Above updateHostAfterPoiss, not below it: the three reductions behind
-    ! checksim read the device fields now, and tstep_integrate and the halo
-    ! exchange have already left them current. Sitting inside the device-only
-    ! stretch of the loop is also what makes the rule at the top of the loop
-    ! apply to it, so a host read added here would break loudly.
     call checksim
     call print_time('checksim')
 
 #if defined(_GPU)
-    call updateHostAfterPoiss
+    if (fielddump_will_sample()) call updateHostForFielddump
 #endif
-    call print_time('updateHostAfterPoiss')
+    call print_time('updateHostForFielddump')
 
 #if defined(_GPU) && defined(UDALES_DEBUG)
     ! Every host field fielddump can read must still be the one the device
-    ! holds. These transfers are becoming conditional, and the failure mode of
-    ! a wrong condition is a dump quietly written from the previous step, so
-    ! the check is here rather than left to a parity comparison that only some
+    ! holds. The transfers above are conditional, and the failure mode of a
+    ! wrong condition is a dump quietly written from the previous step, so the
+    ! check is here rather than left to a parity comparison that only some
     ! configurations would notice.
-    call assertHostMatchesDevice('fielddump')
+    if (fielddump_will_sample()) call assertHostMatchesDevice('fielddump')
 #endif
+
     call fielddump
     call print_time('fielddump')
 
 #if defined(_GPU)
-    ! The tree tendencies stay on the device between samples. statsdump reads
-    ! them under ltreedump only, and only on the steps it samples, so ask it
-    ! rather than draining every step - the same shape as the facet integrals
-    ! above. updateVegDiagHost is itself a no-op without ltreedump, so the
-    ! predicate never has to know about trees.
-    if (statsdump_will_sample()) call updateVegDiagHost
+    if (statsdump_will_sample()) then
+       call updateHostForStatsdump
+       call updateVegDiagHost
+    end if
 #endif
-    call print_time('updateVegDiagHost')
+    call print_time('updateHostForStatsdump')
 
 #if defined(_GPU) && defined(UDALES_DEBUG)
-    call assertHostMatchesDevice('statsdump')
+    if (statsdump_will_sample()) call assertHostMatchesDevice('statsdump')
 #endif
+
     call statsdump
     call print_time('statsdump')
+
+#if defined(_GPU)
+    ! And what the host routines still left in the loop need, which is every
+    ! prognostic field, on every stage. boundary writes their boundary planes
+    ! and thermodynamics reads and derives from them, and the next updateDevice
+    ! uploads the result - so this one is correctness, not output.
+    call updateHostForUnportedRoutines
+#endif
+    call print_time('updateHostForUnportedRoutines')
 
     call boundary
     call print_time('boundary')
