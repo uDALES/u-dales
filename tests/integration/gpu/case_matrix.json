@@ -41,6 +41,7 @@
       "surface-energy-balance",
       "heatpump",
       "fielddump-stress-fields",
+      "fielddump-stress-partial",
       "statsdump-averages",
       "statsdump-slices"
     ],
@@ -74,6 +75,7 @@
       "surface-energy-balance",
       "heatpump",
       "fielddump-stress-fields",
+      "fielddump-stress-partial",
       "statsdump-averages",
       "statsdump-slices",
       "dry-two-rank-x",
@@ -377,6 +379,17 @@
       "nprocs": 1,
       "required_outputs": ["fielddump"],
       "coverage": ["fielddump-wall-stress", "fielddump-heat-flux", "fielddump-divergence"],
+      "namelist_assertions": {"libm": true, "ltempeq": true},
+      "timeout_seconds": 600
+    },
+    {
+      "name": "fielddump-stress-partial",
+      "case_id": 101,
+      "base_case": "tests/cases/101",
+      "namelist": "tests/integration/gpu/namelists/namoptions.101.fielddump-stress-partial",
+      "nprocs": 1,
+      "required_outputs": ["fielddump"],
+      "coverage": ["fielddump-partial-stress-selection"],
       "namelist_assertions": {"libm": true, "ltempeq": true},
       "timeout_seconds": 600
     },

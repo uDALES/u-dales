@@ -952,4 +952,49 @@ contains
       deallocate (dsv, dzf, dzh, zh, zf, delta)
    end subroutine exitglobal
 
+   !> Number of variables named in fieldvars.
+   !!
+   !! fieldvars is a comma-separated list of two-character codes, so token n
+   !! occupies characters 3n-2:3n-1 and the count follows from the length.
+   integer function fieldvars_count()
+      implicit none
+
+      fieldvars_count = (len(trim(fieldvars)) + 1)/3
+
+   end function fieldvars_count
+
+   !> Does fielddump read this field on this run?
+   !!
+   !! Answers for the consumer, not for any particular transfer: fielddump
+   !! reads a field exactly when fielddump is on and the field is named in
+   !! fieldvars. The transfers that feed it and the debug check that they
+   !! happened both ask through here, so a field cannot be pulled under one
+   !! condition and read under another.
+   !!
+   !! It lives here rather than in modfielddump because modcuda has to be able
+   !! to ask, and modfielddump reaches modcuda through modibm - the other
+   !! direction would be a circular dependency. fieldvars and lfielddump are
+   !! modglobal's own, so this is where the string is parsed.
+   !!
+   !! Valid only once initfielddump has run, which is where lfielddump is
+   !! cleared if fieldvars turns out to be empty. Everything in the time loop
+   !! is past that point.
+   logical function fielddump_wants(code)
+      implicit none
+
+      character(len=2), intent(in) :: code
+      integer :: n
+
+      fielddump_wants = .false.
+      if (.not. lfielddump) return
+
+      do n = 1, fieldvars_count()
+         if (fieldvars(3*n-2:3*n-1) == code) then
+            fielddump_wants = .true.
+            return
+         end if
+      end do
+
+   end function fielddump_wants
+
 end module modglobal

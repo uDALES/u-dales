@@ -39,7 +39,7 @@ module tests_cuda
                          ihc, jhc, khc, dxhci, dxfc, dxfci, dxi, dyi, &
                          dzhci, dzfc, dzfci, dzfi, eps1, &
                          dx, dy, dxf, dxhi, dzf, dzh, dzhi, zh, rslabs, dxdydzfi, dxdydzhi, dvcell, &
-                         lheatpump, lfan_hp, nhppoints, ltempeq, &
+                         lheatpump, lfan_hp, nhppoints, ltempeq, fielddump_wants, &
                          lmoist, lnudge, lnudgevel, tnudge, nnudge, &
                          iwallmom, nfcts, xhat, yhat, zhat, &
                          totheatflux, totqflux, lEB, rk3step, iwallmoist, &
@@ -3527,14 +3527,18 @@ contains
 
       if (any(ekm   /= sent_ekm)) call fail_cuda_selftest('updateHostAfterPoiss did not bring down ekm')
       if (any(ekh   /= sent_ekh)) call fail_cuda_selftest('updateHostAfterPoiss did not bring down ekh')
-      if (any(tau_x /= sent_tx))  call fail_cuda_selftest('updateHostAfterPoiss did not bring down tau_x')
-      if (any(tau_y /= sent_ty))  call fail_cuda_selftest('updateHostAfterPoiss did not bring down tau_y')
-      if (any(tau_z /= sent_tz))  call fail_cuda_selftest('updateHostAfterPoiss did not bring down tau_z')
-      if (ltempeq) then
-         if (any(thl_flux /= sent_hf)) then
-            call fail_cuda_selftest('updateHostAfterPoiss did not bring down thl_flux')
-         end if
-      end if
+
+      ! The stresses and the heat flux are pulled only when fielddump names
+      ! them, so both directions are asserted: brought down when there is a
+      ! reader, and left alone when there is not. The host sentinel is already
+      ! zero, so the negative half costs nothing, and it is the only check
+      ! anywhere that the guard really skips rather than merely being written
+      ! down. The parity matrix exercises both branches - fielddump-stress-
+      ! fields asks for all four, every other case asks for none.
+      call check_gated('tx', tau_x, sent_tx, 'tau_x')
+      call check_gated('ty', tau_y, sent_ty, 'tau_y')
+      call check_gated('tz', tau_z, sent_tz, 'tau_z')
+      if (ltempeq) call check_gated('hf', thl_flux, sent_hf, 'thl_flux')
 
       ! --- put everything back ---------------------------------------------
       ekm   = ekm_s   ; ekm_d   = ekm
@@ -3557,6 +3561,26 @@ contains
       lfacetprops_dirty = .true.
 
       deallocate(ekm_s, ekh_s, tau_x_s, tau_y_s, tau_z_s, momfluxb_s, mom_dev, back)
+
+   contains
+
+      !> Assert a fielddump-gated field was pulled exactly when it has a reader.
+      subroutine check_gated(code, host, sentinel, name)
+         implicit none
+         character(len=2), intent(in) :: code
+         real,             intent(in) :: host(:,:,:)
+         real,             intent(in) :: sentinel
+         character(len=*), intent(in) :: name
+
+         if (fielddump_wants(code)) then
+            if (any(host /= sentinel)) &
+               call fail_cuda_selftest('updateHostAfterPoiss did not bring down '//name)
+         else
+            if (any(host /= 0.)) &
+               call fail_cuda_selftest('updateHostAfterPoiss brought down '//name//' with no reader')
+         end if
+
+      end subroutine check_gated
 
    end subroutine test_post_poisson_handover
 

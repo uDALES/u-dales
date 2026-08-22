@@ -55,7 +55,8 @@ contains
  !> Initializing fielddump. Read out the namelist, initializing the variables
   subroutine initfielddump
     use modmpi,    only : mpierr,comm3d,mpi_logical,mpi_integer,cmyidx,cmyidy,mpi_character
-    use modglobal, only : cexpnr,kb,ke,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,kh
+    use modglobal, only : cexpnr,kb,ke,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,kh, &
+                          fieldvars_count
     use modstat_nc,only : open_nc, define_nc,ncinfo,writestat_dims_nc
     use modfields, only : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,div,tau_x,tau_y,tau_z,thl_flux !, p, dudx, dvdy, dwdz, up, vp, wp, pup, pvp, pwp
     ! use modpois, only : dpupdx, dpvpdy, dpwpdz, rhs, xyzrt, Fxyz, Fxy
@@ -65,7 +66,7 @@ contains
 
     !type(domainptr), dimension(nvar) :: pfields
 
-    nvar = (LEN(trim(fieldvars))+1)/3
+    nvar = fieldvars_count()
 
     if (nvar == 0) then
       lfielddump = .false.

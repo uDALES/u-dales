@@ -11,13 +11,13 @@ been stable for a suitable period.
 
 ## What is implemented
 
-`case_matrix.json` defines 30 deterministic cases and five selections:
+`case_matrix.json` defines 31 deterministic cases and five selections:
 
 | Selection | Cases | Intended use |
 | --- | --- | --- |
 | `smoke` | four 8 x 8 x 8 cases | Debug development and trusted pull requests |
 | `scalar-sources` | two serial and two two-rank cases | scalar-source parity and global positioning |
-| `nightly` | 25 serial cases | single-GPU scheduled regression |
+| `nightly` | 26 serial cases | single-GPU scheduled regression |
 | `mpi` | dry and scalar-source two-rank X/Y cases | manually dispatched two-GPU check |
 | `full` | nightly plus X, Y, and 2 x 2 MPI | manual four-GPU validation |
 
@@ -52,6 +52,11 @@ The current coverage is:
   entirely and every other case would still pass. `div` is there for the code
   path only - after the pressure correction it sits at round-off, so it cannot
   detect a stale velocity field
+- a second fielddump case asking for `ty` and `tz` but not `tx` or `hf`. Those
+  four transfers are conditional on fielddump naming them, and with only a case
+  that asks for all four, a transfer keyed to the wrong code is invisible -
+  every code is then either wanted everywhere or nowhere. The partial selection
+  is what tells them apart
 - the `statsdump` modes no other case enables: `lydump`, `lytdump`, `lxydump`
   and `lmintdump` in one case, `lkslicedump`, `lislicedump` and `ljslicedump`
   in another. Both carry moisture and the averages case carries three scalars,
