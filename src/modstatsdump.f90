@@ -65,6 +65,62 @@ module modstatsdump
   real    :: tsamplep,tstatsdumpp
 
 
+  ! The sampled statistics. These were locals of statsdump, allocated on entry
+  ! and freed on return: 42 arrays of (ib:ie,jb:je,kb:ke+kh), 6 GB per call at
+  ! 256^3, served by mmap and returned by munmap, so every call re-faulted every
+  ! page. They are allocated and zeroed once in initstatsdump instead.
+  !
+  ! Zeroing once is enough because the guards that decide what gets written -
+  ! nsv, ltempeq, lmoist, ltdump - are namelist constants. The written element
+  ! set is the same on every sample, so whatever is unwritten on the first call
+  ! is unwritten on all of them and stays at the zero set here. That is the same
+  ! value the per-call zeroing used to re-establish. Nothing carries state across
+  ! calls: the only self-reference is wc(i,j,k) = wc(i,j,k-1), which reads the
+  ! previous iteration of the same ascending loop, and avexy_ibm and avey_ibm
+  ! never write to their var argument.
+  real, allocatable     :: thlk(:,:,:)
+  real, allocatable     :: qtk(:,:,:)
+  real, allocatable     :: uik(:,:,:)
+  real, allocatable     :: wik(:,:,:)
+  real, allocatable     :: vjk(:,:,:)
+  real, allocatable     :: wjk(:,:,:)
+  real, allocatable     :: uij(:,:,:)
+  real, allocatable     :: vij(:,:,:)
+  real, allocatable     :: uc(:,:,:)
+  real, allocatable     :: vc(:,:,:)
+  real, allocatable     :: wc(:,:,:)
+  real, allocatable     :: thlsgs(:,:,:)
+  real, allocatable     :: qtsgs(:,:,:)
+  real, allocatable     :: usgs(:,:,:)
+  real, allocatable     :: vsgs(:,:,:)
+  real, allocatable     :: wsgs(:,:,:)
+  real, allocatable     :: sv1k(:,:,:)
+  real, allocatable     :: sv2k(:,:,:)
+  real, allocatable     :: sv3k(:,:,:)
+  real, allocatable     :: sv4k(:,:,:)
+  real, allocatable     :: sv1sgs(:,:,:)
+  real, allocatable     :: sv2sgs(:,:,:)
+  real, allocatable     :: sv3sgs(:,:,:)
+  real, allocatable     :: sv4sgs(:,:,:)
+  real, allocatable     :: wpsv1p(:,:,:)
+  real, allocatable     :: wpsv2p(:,:,:)
+  real, allocatable     :: wpsv3p(:,:,:)
+  real, allocatable     :: wpsv4p(:,:,:)
+  real, allocatable     :: sv1psv1pt(:,:,:)
+  real, allocatable     :: sv2psv2pt(:,:,:)
+  real, allocatable     :: sv3psv3pt(:,:,:)
+  real, allocatable     :: sv4psv4pt(:,:,:)
+  real, allocatable     :: PSS(:,:,:)
+  real, allocatable     :: upwptik(:,:,:)
+  real, allocatable     :: vpwptjk(:,:,:)
+  real, allocatable     :: upvptij(:,:,:)
+  real, allocatable     :: wpthlptk(:,:,:)
+  real, allocatable     :: thlpthlpt(:,:,:)
+  real, allocatable     :: upuptc(:,:,:)
+  real, allocatable     :: vpvptc(:,:,:)
+  real, allocatable     :: wpwptc(:,:,:)
+  real, allocatable     :: tketc(:,:,:)
+
 contains
 
   !--------------------------
@@ -73,7 +129,7 @@ contains
 
   subroutine initstatsdump
     use modmpi,   only : mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyidx,cmyidy
-    use modglobal,only : imax,jmax,cexpnr,ifnamopt,fname_options,kb,ke,&
+    use modglobal,only : imax,jmax,cexpnr,ifnamopt,fname_options,kb,ke,kh,ib,ie,ih,jb,je,jh,&
                          lkslicedump,lislicedump,ljslicedump,ltreedump,islice,islicerank,isliceloc,jslice,jslicerank,jsliceloc,&
                          tsample,tstatsdump
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
@@ -82,8 +138,71 @@ contains
     implicit none
     integer :: ierr
 
+
     namelist/NAMSTATSDUMP/ &
          lydump,tsample,klow,khigh,tstatsdump,lytdump,ltkedump,lxydump,lxytdump,ltdump,ltreedump,lmintdump    ! maybe removed; NAMSTATSDUMP is not in use anymore
+
+    ! Several of these are allocated over kb:ke+kh and accumulated over that
+    ! whole range, but only ever computed over kb:ke - the scalar and SGS
+    ! interpolations in statsdump run do k=kb,ke. Others are assigned under
+    ! if (nsv>0) through if (nsv>3) or if (ltempeq) and read unconditionally.
+    ! Either way the untouched elements reach a running mean as whatever the
+    ! allocator last left there, which under -Ktrap=inv,ovf is a SIGFPE inside
+    ! statsdump rather than a wrong number - and one that comes and goes with
+    ! unrelated changes, since it depends on what the heap happens to hold.
+    !
+    ! Zeroing here covers every element of every array for the whole run. See
+    ! the declarations at module scope for why once is enough.
+    allocate(thlk(ib:ie,jb:je,kb:ke+kh))
+    allocate(qtk(ib:ie,jb:je,kb:ke+kh))
+    allocate(uik(ib:ie,jb:je,kb:ke+kh))
+    allocate(wik(ib:ie,jb:je,kb:ke+kh))
+    allocate(vjk(ib:ie,jb:je,kb:ke+kh))
+    allocate(wjk(ib:ie,jb:je,kb:ke+kh))
+    allocate(uij(ib:ie,jb:je,kb:ke+kh))
+    allocate(vij(ib:ie,jb:je,kb:ke+kh))
+    allocate(uc(ib:ie,jb:je,kb:ke+kh))
+    allocate(vc(ib:ie,jb:je,kb:ke+kh))
+    allocate(wc(ib:ie,jb:je,kb:ke+kh))
+    allocate(thlsgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(qtsgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(usgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(vsgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(wsgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(sv1k(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv2k(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv3k(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv4k(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv1sgs(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv2sgs(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv3sgs(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv4sgs(ib:ie,jb:je,kb:ke+kh))
+    allocate(wpsv1p(ib:ie,jb:je,kb:ke+kh))
+    allocate(wpsv2p(ib:ie,jb:je,kb:ke+kh))
+    allocate(wpsv3p(ib:ie,jb:je,kb:ke+kh))
+    allocate(wpsv4p(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv1psv1pt(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv2psv2pt(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv3psv3pt(ib:ie,jb:je,kb:ke+kh))
+    allocate(sv4psv4pt(ib:ie,jb:je,kb:ke+kh))
+    allocate(PSS(ib:ie,jb:je,kb:ke+kh))
+    allocate(upwptik(ib:ie,jb:je,kb:ke+kh))
+    allocate(vpwptjk(ib:ie,jb:je,kb:ke+kh))
+    allocate(upvptij(ib:ie,jb:je,kb:ke+kh))
+    allocate(wpthlptk(ib:ie,jb:je,kb:ke+kh))
+    allocate(thlpthlpt(ib:ie,jb:je,kb:ke+kh))
+    allocate(upuptc(ib:ie,jb:je,kb:ke+kh))
+    allocate(vpvptc(ib:ie,jb:je,kb:ke+kh))
+    allocate(wpwptc(ib:ie,jb:je,kb:ke+kh))
+    allocate(tketc(ib:ie,jb:je,kb:ke+kh))
+    wpsv1p=0.;wpsv2p=0.;wpsv3p=0.;wpsv4p=0.
+    sv1psv1pt=0.;sv2psv2pt=0.;sv3psv3pt=0.;sv4psv4pt=0.
+    thlk=0.;qtk=0.;uik=0.;wik=0.;vjk=0.;wjk=0.;uij=0.;vij=0.
+    uc=0.;vc=0.;wc=0.;thlsgs=0.;qtsgs=0.;usgs=0.;vsgs=0.;wsgs=0.
+    sv1k=0.;sv2k=0.;sv3k=0.;sv4k=0.
+    sv1sgs=0.;sv2sgs=0.;sv3sgs=0.;sv4sgs=0.;PSS=0.
+    upwptik=0.;vpwptjk=0.;upvptij=0.;wpthlptk=0.;thlpthlpt=0.
+    upuptc=0.;vpvptc=0.;wpwptc=0.;tketc=0.
 
     allocate(ncstaty(nstaty,4))
     allocate(ncstatyt(nstatyt,4))
@@ -587,17 +706,6 @@ contains
  ! real, dimension(ib:ie,jb:je,kb:ke+kh)     :: vc
  ! real, dimension(ib:ie,jb:je,kb:ke+kh)     :: wc
 
-  real, allocatable     :: thlk(:,:,:)
-  real, allocatable     :: qtk(:,:,:)
-  real, allocatable     :: uik(:,:,:)
-  real, allocatable     :: wik(:,:,:)
-  real, allocatable     :: vjk(:,:,:)
-  real, allocatable     :: wjk(:,:,:)
-  real, allocatable     :: uij(:,:,:)
-  real, allocatable     :: vij(:,:,:)
-  real, allocatable     :: uc(:,:,:)
-  real, allocatable     :: vc(:,:,:)
-  real, allocatable     :: wc(:,:,:)
 
   ! SGS fluxes
   ! real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: thlsgs
@@ -606,11 +714,6 @@ contains
   ! real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: vsgs
   ! real, dimension(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)     :: wsgs
 
-  real, allocatable     :: thlsgs(:,:,:)
-  real, allocatable     :: qtsgs(:,:,:)
-  real, allocatable     :: usgs(:,:,:)
-  real, allocatable     :: vsgs(:,:,:)
-  real, allocatable     :: wsgs(:,:,:)
 
   ! t-averaged fields
   ! real, dimension(ib:ie,jb:je,kb:ke+kh)        :: sv1k
@@ -626,23 +729,6 @@ contains
   ! real, dimension(ib:ie,jb:je,kb:ke+kh)        :: sv3sgs
   ! real, dimension(ib:ie,jb:je,kb:ke+kh)        :: sv4sgs
 
-  real, allocatable     :: sv1k(:,:,:)
-  real, allocatable     :: sv2k(:,:,:)
-  real, allocatable     :: sv3k(:,:,:)
-  real, allocatable     :: sv4k(:,:,:)
-  real, allocatable     :: sv1sgs(:,:,:)
-  real, allocatable     :: sv2sgs(:,:,:)
-  real, allocatable     :: sv3sgs(:,:,:)
-  real, allocatable     :: sv4sgs(:,:,:)
-  real, allocatable     :: wpsv1p(:,:,:)
-  real, allocatable     :: wpsv2p(:,:,:)
-  real, allocatable     :: wpsv3p(:,:,:)
-  real, allocatable     :: wpsv4p(:,:,:)
-  real, allocatable     :: sv1psv1pt(:,:,:)
-  real, allocatable     :: sv2psv2pt(:,:,:)
-  real, allocatable     :: sv3psv3pt(:,:,:)
-  real, allocatable     :: sv4psv4pt(:,:,:)
-  real, allocatable     :: PSS(:,:,:)
   real, allocatable     :: tr_now(:,:,:)
 
   ! real, dimension(ib:ie,jb:je,kb:ke+kh)        :: upwptik
@@ -655,15 +741,6 @@ contains
   ! real, dimension(ib:ie,jb:je,kb:ke+kh)        :: wpwptc
   ! real, dimension(ib:ie,jb:je,kb:ke+kh)        :: tketc
 
-  real, allocatable     :: upwptik(:,:,:)
-  real, allocatable     :: vpwptjk(:,:,:)
-  real, allocatable     :: upvptij(:,:,:)
-  real, allocatable     :: wpthlptk(:,:,:)
-  real, allocatable     :: thlpthlpt(:,:,:)
-  real, allocatable     :: upuptc(:,:,:)
-  real, allocatable     :: vpvptc(:,:,:)
-  real, allocatable     :: wpwptc(:,:,:)
-  real, allocatable     :: tketc(:,:,:)
 
   ! y-averaged fields
   real, dimension(ib:ie,kb:ke)                 :: uy
@@ -773,95 +850,18 @@ contains
   ! the allocations and the zeroing, so two calls in three paid for all of it.
   if (.not. rk3step==3)  return
 
-  allocate(thlk(ib:ie,jb:je,kb:ke+kh))
-  allocate(qtk(ib:ie,jb:je,kb:ke+kh))
-  allocate(uik(ib:ie,jb:je,kb:ke+kh))
-  allocate(wik(ib:ie,jb:je,kb:ke+kh))
-  allocate(vjk(ib:ie,jb:je,kb:ke+kh))
-  allocate(wjk(ib:ie,jb:je,kb:ke+kh))
-  allocate(uij(ib:ie,jb:je,kb:ke+kh))
-  allocate(vij(ib:ie,jb:je,kb:ke+kh))
-  allocate(uc(ib:ie,jb:je,kb:ke+kh))
-  allocate(vc(ib:ie,jb:je,kb:ke+kh))
-  allocate(wc(ib:ie,jb:je,kb:ke+kh))
-
-  allocate(thlsgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-  allocate(qtsgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-  allocate(usgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-  allocate(vsgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-  allocate(wsgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-
-  allocate(sv1k(ib:ie,jb:je,kb:ke+kh))
-  allocate(sv2k(ib:ie,jb:je,kb:ke+kh))
-  allocate(sv3k(ib:ie,jb:je,kb:ke+kh))
-  allocate(sv4k(ib:ie,jb:je,kb:ke+kh))
-  allocate(sv1sgs(ib:ie,jb:je,kb:ke+kh))
-  allocate(sv2sgs(ib:ie,jb:je,kb:ke+kh))
-  allocate(sv3sgs(ib:ie,jb:je,kb:ke+kh))
-  allocate(sv4sgs(ib:ie,jb:je,kb:ke+kh))
-  allocate(wpsv1p(ib:ie,jb:je,kb:ke+kh))
-  allocate(wpsv2p(ib:ie,jb:je,kb:ke+kh))
-  allocate(wpsv3p(ib:ie,jb:je,kb:ke+kh))
-  allocate(wpsv4p(ib:ie,jb:je,kb:ke+kh))
-  allocate(sv1psv1pt(ib:ie,jb:je,kb:ke+kh))
-  allocate(sv2psv2pt(ib:ie,jb:je,kb:ke+kh))
-  allocate(sv3psv3pt(ib:ie,jb:je,kb:ke+kh))
-  allocate(sv4psv4pt(ib:ie,jb:je,kb:ke+kh))
-  allocate(PSS(ib:ie,jb:je,kb:ke+kh))
-
-  allocate(upwptik(ib:ie,jb:je,kb:ke+kh))
-  allocate(vpwptjk(ib:ie,jb:je,kb:ke+kh))
-  allocate(upvptij(ib:ie,jb:je,kb:ke+kh))
-  allocate(wpthlptk(ib:ie,jb:je,kb:ke+kh))
-  allocate(thlpthlpt(ib:ie,jb:je,kb:ke+kh))
-  allocate(upuptc(ib:ie,jb:je,kb:ke+kh))
-  allocate(vpvptc(ib:ie,jb:je,kb:ke+kh))
-  allocate(wpwptc(ib:ie,jb:je,kb:ke+kh))
-  allocate(tketc(ib:ie,jb:je,kb:ke+kh))
 
   ! thlk=0.;qtk=0.;uik=0.;wik=0.;vjk=0.;wjk=0.;uij=0.;vij=0.;uc=0.;vc=0.;wc=0.;thlsgs=0.;qtsgs=0.;usgs=0.;vsgs=0.;wsgs=0.;sv1k=0.;sv2k=0.;sv3k=0.;sv4k=0.;sv1sgs=0.;sv2sgs=0.;sv3sgs=0.;sv4sgs=0.;wpsv1p=0.;wpsv2p=0.
   ! wpsv3p=0.;wpsv4p=0.;sv1psv1pt=0.;sv2psv2pt=0.;sv3psv3pt=0.;sv4psv4pt=0.;PSS=0.;upwptik=0.;vpwptjk=0.;upvptij=0.;wpthlptk=0.;thlpthlpt=0.;upuptc=0.;vpvptc=0.;wpwptc=0.;tketc=0.
   ! upwptyik=0.;wpthlptyk=0.;wpqtptyk=0.;wpsv1ptyk=0.;wpsv2ptyk=0.;wpsv3ptyk=0.;uwtyik=0.;wthltyk=0.;wqttyk=0.;wsv1tyk=0.;wsv2tyk=0.;wsv3tyk=0.;upuptyc=0.;wpwptyc=0.;thlpthlpty=0.
   ! qtpqtpty=0.;sv1psv1pty=0.;sv2psv2pty=0.;sv3psv3pty=0.
 
-  ! Every sampled field is allocated over kb:ke+kh and accumulated over that
-  ! whole range, but several are only ever computed over kb:ke - the scalar
-  ! and SGS interpolations below run do k=kb,ke, not kb,ke+kh. The top level
-  ! is therefore read on every sample without ever having been written.
-  !
-  ! Whatever the allocator last left there is then multiplied into a running
-  ! mean. On the NVHPC build, where -Ktrap=inv,ovf is on in every build type,
-  ! that surfaces as a SIGFPE inside statsdump rather than as a wrong number -
-  ! and because it depends on what the heap happens to hold, it appears and
-  ! disappears with unrelated changes elsewhere in the program.
-  !
-  ! The first two lines of the block below were already here for eight of
-  ! these arrays, which is how the same problem was patched the last time it
-  ! bit. The rest cover the others.
-  !
   ! For one-timestep diagnostics with dump intervals no larger than dt,
   ! treat the just-completed step as a valid first sample immediately
   ! instead of waiting for a second call to statsdump.
   if (tsamplep == 0. .and. tsample <= dt) tsamplep = dt
   if (tstatsdumpp == 0. .and. tsample <= dt) tstatsdumpp = dt
 
-  ! Only the two blocks below read any of this, and they run on a sample or a
-  ! dump step, not on every step. Zeroing 43 arrays of (ib:ie,jb:je,kb:ke+kh)
-  ! is 4.7 GB of first-touch page faults - about 1.6 s at 256^3 - so doing it
-  ! unconditionally cost that on every call, sample or not. It is still every
-  ! array in full: which ones strictly need it depends on nsv, ltempeq and
-  ! lmoist in ways the writers and the readers below do not agree on, so the
-  ! condition here is when, not which.
-  if (tsamplep >= tsample .or. tstatsdumpp >= tstatsdump) then
-    wpsv1p=0.;wpsv2p=0.;wpsv3p=0.;wpsv4p=0.
-    sv1psv1pt=0.;sv2psv2pt=0.;sv3psv3pt=0.;sv4psv4pt=0.
-    thlk=0.;qtk=0.;uik=0.;wik=0.;vjk=0.;wjk=0.;uij=0.;vij=0.
-    uc=0.;vc=0.;wc=0.;thlsgs=0.;qtsgs=0.;usgs=0.;vsgs=0.;wsgs=0.
-    sv1k=0.;sv2k=0.;sv3k=0.;sv4k=0.
-    sv1sgs=0.;sv2sgs=0.;sv3sgs=0.;sv4sgs=0.;PSS=0.
-    upwptik=0.;vpwptjk=0.;upvptij=0.;wpthlptk=0.;thlpthlpt=0.
-    upuptc=0.;vpvptc=0.;wpwptc=0.;tketc=0.
-  end if
 
   if (tsamplep >= tsample) then
 
@@ -1789,10 +1789,6 @@ contains
 
     endif
 
-  deallocate(thlk,qtk,uik,wik,vjk,wjk,uij,vij,uc,vc,wc)
-  deallocate(thlsgs,qtsgs,usgs,vsgs,wsgs)
-  deallocate(sv1k,sv2k,sv3k,sv4k,sv1sgs,sv2sgs,sv3sgs,sv4sgs,PSS,wpsv1p,wpsv2p,wpsv3p,wpsv4p,sv1psv1pt,sv2psv2pt,sv3psv3pt,sv4psv4pt)
-  deallocate(upwptik,vpwptjk,upvptij,wpthlptk,thlpthlpt,upuptc,vpvptc,wpwptc,tketc)
 
   end subroutine statsdump
 
@@ -2213,6 +2209,12 @@ contains
   subroutine exitstatsdump
       use modstat_nc, only : exitstat_nc
     implicit none
+
+    deallocate(thlk,qtk,uik,wik,vjk,wjk,uij,vij,uc,vc,wc)
+    deallocate(thlsgs,qtsgs,usgs,vsgs,wsgs)
+    deallocate(sv1k,sv2k,sv3k,sv4k,sv1sgs,sv2sgs,sv3sgs,sv4sgs,PSS,wpsv1p,wpsv2p,wpsv3p,wpsv4p,sv1psv1pt,sv2psv2pt,sv3psv3pt,sv4psv4pt)
+    deallocate(upwptik,vpwptjk,upvptij,wpthlptk,thlpthlpt,upuptc,vpvptc,wpwptc,tketc)
+
 
 !       if (lydump) then
 !         call exitstat_nc(ncid)
