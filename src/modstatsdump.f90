@@ -767,6 +767,12 @@ contains
   if (.not.(lytdump .or. lydump .or. lxydump .or. lxytdump .or. ltdump .or. lmintdump &
     .or. lkslicedump .or. lislicedump .or. ljslicedump .or. ltreedump)) return
 
+  ! Nothing below does anything on the first two RK substeps, and everything
+  ! below allocates 45 locals of (ib:ie,jb:je,kb:ke+kh) - 6 GB per call at
+  ! 256^3 - only to free them again on return. This guard used to sit under
+  ! the allocations and the zeroing, so two calls in three paid for all of it.
+  if (.not. rk3step==3)  return
+
   allocate(thlk(ib:ie,jb:je,kb:ke+kh))
   allocate(qtk(ib:ie,jb:je,kb:ke+kh))
   allocate(uik(ib:ie,jb:je,kb:ke+kh))
@@ -829,25 +835,33 @@ contains
   ! and because it depends on what the heap happens to hold, it appears and
   ! disappears with unrelated changes elsewhere in the program.
   !
-  ! The two lines below were already here for eight of these arrays, which is
-  ! how the same problem was patched the last time it bit. This covers the
-  ! rest of them.
-  wpsv1p=0.;wpsv2p=0.;wpsv3p=0.;wpsv4p=0.
-  sv1psv1pt=0.;sv2psv2pt=0.;sv3psv3pt=0.;sv4psv4pt=0.
-  thlk=0.;qtk=0.;uik=0.;wik=0.;vjk=0.;wjk=0.;uij=0.;vij=0.
-  uc=0.;vc=0.;wc=0.;thlsgs=0.;qtsgs=0.;usgs=0.;vsgs=0.;wsgs=0.
-  sv1k=0.;sv2k=0.;sv3k=0.;sv4k=0.
-  sv1sgs=0.;sv2sgs=0.;sv3sgs=0.;sv4sgs=0.;PSS=0.
-  upwptik=0.;vpwptjk=0.;upvptij=0.;wpthlptk=0.;thlpthlpt=0.
-  upuptc=0.;vpvptc=0.;wpwptc=0.;tketc=0.
-
-  if (.not. rk3step==3)  return
-
+  ! The first two lines of the block below were already here for eight of
+  ! these arrays, which is how the same problem was patched the last time it
+  ! bit. The rest cover the others.
+  !
   ! For one-timestep diagnostics with dump intervals no larger than dt,
   ! treat the just-completed step as a valid first sample immediately
   ! instead of waiting for a second call to statsdump.
   if (tsamplep == 0. .and. tsample <= dt) tsamplep = dt
   if (tstatsdumpp == 0. .and. tsample <= dt) tstatsdumpp = dt
+
+  ! Only the two blocks below read any of this, and they run on a sample or a
+  ! dump step, not on every step. Zeroing 43 arrays of (ib:ie,jb:je,kb:ke+kh)
+  ! is 4.7 GB of first-touch page faults - about 1.6 s at 256^3 - so doing it
+  ! unconditionally cost that on every call, sample or not. It is still every
+  ! array in full: which ones strictly need it depends on nsv, ltempeq and
+  ! lmoist in ways the writers and the readers below do not agree on, so the
+  ! condition here is when, not which.
+  if (tsamplep >= tsample .or. tstatsdumpp >= tstatsdump) then
+    wpsv1p=0.;wpsv2p=0.;wpsv3p=0.;wpsv4p=0.
+    sv1psv1pt=0.;sv2psv2pt=0.;sv3psv3pt=0.;sv4psv4pt=0.
+    thlk=0.;qtk=0.;uik=0.;wik=0.;vjk=0.;wjk=0.;uij=0.;vij=0.
+    uc=0.;vc=0.;wc=0.;thlsgs=0.;qtsgs=0.;usgs=0.;vsgs=0.;wsgs=0.
+    sv1k=0.;sv2k=0.;sv3k=0.;sv4k=0.
+    sv1sgs=0.;sv2sgs=0.;sv3sgs=0.;sv4sgs=0.;PSS=0.
+    upwptik=0.;vpwptjk=0.;upvptij=0.;wpthlptk=0.;thlpthlpt=0.
+    upuptc=0.;vpvptc=0.;wpwptc=0.;tketc=0.
+  end if
 
   if (tsamplep >= tsample) then
 
