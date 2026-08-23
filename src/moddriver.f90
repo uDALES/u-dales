@@ -516,12 +516,22 @@ contains
     use modglobal, only : runtime,timee,tdriverstart,tdriverstart_cold,jb,je,jh,kb,ke,kh,cexpnr,ltempeq,lmoist,driverstore,dtdriver,nsv,driverid,cdriverid,btime,lwarmstart
     use modfields, only : u0, v0, w0, thl0, qt0, sv0
     use modinletdata, only : nstepreaddriver
+#if defined(_GPU)
+    use modcuda,   only : updateHostForDriverDump
+#endif
     implicit none
     integer :: IOS
     integer :: filesizet, filesizev, filesizes
     character(15) :: name
     logical :: lexist
     real, allocatable :: arraysizetest(:,:)
+
+#if defined(_GPU)
+    ! The planes below live on the device between here and the last
+    ! updateDevice. boundary_device calls drivergen at the same point in the
+    ! sequence the host path did, so what lands here is what used to.
+    call updateHostForDriverDump
+#endif
 
     allocate(arraysizetest(jb-jh:je+jh,kb-kh:ke+kh))
 

@@ -11,7 +11,9 @@ module modcuda
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
                              ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, ltrees, lscasrc, lscasrcl, &
                              BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
-                             lnudge, lnudgevel, libm, nfcts, &
+                             lnudge, lnudgevel, libm, nfcts, ladaptive, idriver, &
+                             BCxT, BCxT_profile, BCyT, BCyT_profile, &
+                             BCxq, BCxq_profile, BCyq, BCyq_profile, &
                              linoutflow, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xh, &
@@ -24,7 +26,7 @@ module modcuda
                              u0av, v0av, thl0av, qt0av, sv0av, dthvdz, ug, vg, whls, tsc, &
                              dpdxl, dpdyl, thv0h, thvh, thlpcar, &
                              dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls, &
-                             uprof, vprof, thlprof, qtprof, svprof, &
+                             uprof, vprof, thlprof, qtprof, svprof, e12prof, &
                              IIc, IIu, IIv, scalar_source_tendency
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
@@ -32,7 +34,9 @@ module modcuda
                              cn, cm, ch1, ch2, ce1, ce2, dampmin, prandtli, c_vreman
    use modsurfdata,    only: thvs
    use initfac,        only: facT, fachf, facef, fachfi, facefi, facqsat, fachurel, facf
-   use modinletdata,   only: u0driver
+   use modinletdata,   only: u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver, &
+                             thl0driver, thlmdriver, qt0driver, qtmdriver, &
+                             sv0driver, svmdriver
    use decomp_2d,      only: zstart
    implicit none
    save
@@ -57,9 +61,26 @@ module modcuda
                                 u0av_d(:), v0av_d(:), ug_d(:), vg_d(:), whls_d(:), thl0av_d(:), qt0av_d(:), tsc_d(:), &
                                 dpdxl_d(:), dpdyl_d(:), thvh_d(:), thlpcar_d(:), &
                                 dudxls_d(:), dudyls_d(:), dvdxls_d(:), dvdyls_d(:), dthldxls_d(:), dthldyls_d(:), dqtdxls_d(:), dqtdyls_d(:), dqtdtls_d(:), &
-                                uprof_d(:), vprof_d(:), thlprof_d(:), qtprof_d(:)
+                                uprof_d(:), vprof_d(:), thlprof_d(:), qtprof_d(:), e12prof_d(:)
 
    real, device, allocatable :: delta_d(:, :), csz_d(:,:), sv0av_d(:,:), svprof_d(:,:), u0driver_d(:,:)
+
+   ! The rest of the driver inlet planes. Small - one j-k plane each - and
+   ! only allocated for a run that reads a driver file, but the boundary
+   ! conditions that use them are on the device now, so they have to be too.
+   real, device, allocatable :: umdriver_d(:,:), v0driver_d(:,:), vmdriver_d(:,:), &
+                                w0driver_d(:,:), wmdriver_d(:,:), &
+                                thl0driver_d(:,:), thlmdriver_d(:,:), &
+                                qt0driver_d(:,:), qtmdriver_d(:,:)
+   real, device, allocatable :: sv0driver_d(:,:,:), svmdriver_d(:,:,:)
+
+   ! Staging for the recycle plane a driver-generation run records. The
+   ! plane is gathered on the device into one of these and crosses the bus
+   ! contiguously; the alternative, a strided section copy, would be a
+   ! two-dimensional transfer eight bytes wide. Two shapes because the
+   ! scalars carry a wider halo than the momentum fields.
+   real, device, allocatable :: plane_d(:,:), planec_d(:,:)
+   real, allocatable, pinned :: plane_stage(:,:), planec_stage(:,:)
 
    real, device, allocatable :: u0_d(:,:,:), v0_d(:,:,:), w0_d(:,:,:), pres0_d(:,:,:), e120_d(:,:,:), thl0_d(:,:,:), thl0c_d(:,:,:), qt0_d(:,:,:), sv0_d(:,:,:,:)
    real, device, allocatable :: up_d(:,:,:), vp_d(:,:,:), wp_d(:,:,:), e12p_d(:,:,:), thlp_d(:,:,:), thlpc_d(:,:,:), qtp_d(:,:,:), svp_d(:,:,:,:)
@@ -134,6 +155,13 @@ module modcuda
                          F_TAUX = 19, F_TAUY = 20, F_TAUZ = 21, F_THLFLUX = 22, &
                          F_COUNT = 22
    logical :: pulled(F_COUNT) = .false.
+   ! Names for the two assertions below, in id order. Kept beside the
+   ! parameters rather than spelled out at each call site, so that a field
+   ! added to one list cannot be reported under another one's name.
+   character(len=8), parameter :: pulled_name(F_COUNT) = [ character(len=8) :: &
+      'u0', 'v0', 'w0', 'um', 'vm', 'wm', 'pres0', 'thl0', 'thlm', 'thl0c', &
+      'qt0', 'qtm', 'sv0', 'svm', 'e120', 'e12m', 'ekm', 'ekh', &
+      'tau_x', 'tau_y', 'tau_z', 'thl_flux' ]
 #if defined(UDALES_DEBUG)
    ! The round-trip invariant only holds inside the time loop. Initialisation
    ! and the device self-tests call updateDevice with nothing pulled, quite
@@ -284,7 +312,27 @@ module modcuda
          allocate(vprof_d(kb:ke+kh))
          allocate(u0driver_d(jb-jh:je+jh,kb-kh:ke+kh))
 
+         ! The remaining driver planes, for a run that reads one. u0driver_d
+         ! above stays unconditional because the device self-tests use it as
+         ! scratch for the driver pressure kernel.
+         if (BCxm == BCxm_driver) call allocDriverPlanesDevice
+
+         ! And the staging for a run that records one.
+         if (idriver == 1) then
+            allocate(plane_d(jb-jh:je+jh,kb-kh:ke+kh))
+            allocate(plane_stage(jb-jh:je+jh,kb-kh:ke+kh))
+            if (nsv > 0) then
+               allocate(planec_d(jb-jhc:je+jhc,kb-khc:ke+khc))
+               allocate(planec_stage(jb-jhc:je+jhc,kb-khc:ke+khc))
+            end if
+         end if
+
          if (loneeqn) then
+            ! Set once: the inlet turbulence profile is read at startup and
+            ! nothing in the loop writes it, unlike uprof and vprof which
+            ! timedep can move.
+            allocate(e12prof_d(kb:ke+kh))
+            e12prof_d = e12prof
             allocate(e120_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(e12m_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(e12p_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
@@ -339,7 +387,11 @@ module modcuda
             allocate(svm_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc,nsv))
             allocate(svp_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc,nsv))
             allocate(sv0av_d(kb:ke+khc,nsv))
+            ! Set once, for the same reason as e12prof_d above: timedep has
+            ! no scalar profile to interpolate, so this was being uploaded
+            ! unchanged on every stage of every step.
             allocate(svprof_d(kb:ke+kh,nsv))
+            svprof_d = svprof
             if (nsv==3 .and. lchem) then
                allocate(dummyNO_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
                allocate(dummyNO2_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
@@ -353,8 +405,12 @@ module modcuda
             end if
          end if
 
-         allocate(ekm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-         allocate(ekh_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+         ! Seeded, not left as whatever the allocation returned. subgrid
+         ! writes the interior before anything reads it, but nothing writes the
+         ! outer halo columns until closurebc and the halo exchange do, and the
+         ! host copies are a defined starting point for both.
+         allocate(ekm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); ekm_d = ekm
+         allocate(ekh_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); ekh_d = ekh
          allocate(dthvdz_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
 
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
@@ -451,7 +507,10 @@ module modcuda
          deallocate(u0av_d, v0av_d, ug_d, vg_d, whls_d, tsc_d)
          deallocate(dpdxl_d, dpdyl_d, dudxls_d, dudyls_d, dvdxls_d, dvdyls_d)
          deallocate(uprof_d, vprof_d, u0driver_d)
-         if (loneeqn) deallocate(e120_d, e12m_d, e12p_d, sbshr_d, sbbuo_d, sbdiss_d, zlt_d)
+         if (BCxm == BCxm_driver) call deallocDriverPlanesDevice
+         if (allocated(plane_d)) deallocate(plane_d, plane_stage)
+         if (allocated(planec_d)) deallocate(planec_d, planec_stage)
+         if (loneeqn) deallocate(e120_d, e12m_d, e12p_d, sbshr_d, sbbuo_d, sbdiss_d, zlt_d, e12prof_d)
          if (ltempeq) then
             deallocate(thl0_d, thlm_d, thlp_d, thl_flux_d)
             if (iadv_thl == iadv_kappa) deallocate(thl0c_d, thlpc_d)
@@ -603,39 +662,75 @@ module modcuda
 
          if (.not. lcheck_round_trip) return
 
-         call need(F_U0, 'u0') ; call need(F_V0, 'v0') ; call need(F_W0, 'w0')
-         call need(F_UM, 'um') ; call need(F_VM, 'vm') ; call need(F_WM, 'wm')
-         call need(F_PRES0, 'pres0')
+         call need(F_U0) ; call need(F_V0) ; call need(F_W0)
+         call need(F_UM) ; call need(F_VM) ; call need(F_WM)
+         call need(F_PRES0)
          if (ltempeq) then
-            call need(F_THL0, 'thl0') ; call need(F_THLM, 'thlm')
-            if (iadv_thl == iadv_kappa) call need(F_THL0C, 'thl0c')
+            call need(F_THL0) ; call need(F_THLM)
+            if (iadv_thl == iadv_kappa) call need(F_THL0C)
          end if
          if (lmoist) then
-            call need(F_QT0, 'qt0') ; call need(F_QTM, 'qtm')
+            call need(F_QT0) ; call need(F_QTM)
          end if
          if (nsv > 0) then
-            call need(F_SV0, 'sv0') ; call need(F_SVM, 'svm')
+            call need(F_SV0) ; call need(F_SVM)
          end if
          if (loneeqn) then
-            call need(F_E120, 'e120') ; call need(F_E12M, 'e12m')
+            call need(F_E120) ; call need(F_E12M)
          end if
 
       contains
 
-         subroutine need(id, name)
+         subroutine need(id)
             implicit none
-            integer,          intent(in) :: id
-            character(len=*), intent(in) :: name
+            integer, intent(in) :: id
 
             if (.not. pulled(id)) then
                write(*,'(A,I0,3A)') 'Round-trip field not pulled on rank ', myid, ': ', &
-                    trim(name), ' is about to be uploaded from a host copy this step never fetched.'
+                    trim(pulled_name(id)), &
+                    ' is about to be uploaded from a host copy this step never fetched.'
                error stop 1
             end if
 
          end subroutine need
 
       end subroutine assertRoundTripPulled
+
+      !> Nothing may still be marked current where the correctness path starts.
+      !!
+      !! updateHostForUnportedRoutines fetches through the pull routines, and
+      !! those skip a field already marked current - which fielddump and
+      !! statsdump mark several of them, earlier in the same step. What makes
+      !! that safe is that boundary_device clears the bitmap after it writes,
+      !! so by the time the handover runs nothing is marked and every transfer
+      !! in it actually happens.
+      !!
+      !! That is a dependency on one line at the end of a routine in another
+      !! module, and it is invisible from here. Delete it and the parity cases
+      !! with a lateral inlet fail while the rest pass, because
+      !! reassure_fluxtop_boundary happens to re-apply the flux-type top
+      !! conditions and hides the others - a symptom that points nowhere. This
+      !! names it instead.
+      subroutine assertNothingPulled
+         use modmpi, only : myid
+         implicit none
+         integer :: id
+
+         if (.not. lcheck_round_trip) return
+
+         do id = 1, F_COUNT
+            if (pulled(id)) then
+               write(*,'(3A,I0,A)') 'Host field ', trim(pulled_name(id)), &
+                    ' is still marked current on rank ', myid, &
+                    ' where the post-boundary handover starts.'
+               write(*,'(A)') 'The device has written past the host since it was &
+                    &fetched, so the pull that follows will skip it and updateDevice &
+                    &will upload a stale copy. invalidateHostFields is what clears this.'
+               error stop 1
+            end if
+         end do
+
+      end subroutine assertNothingPulled
 
       !> Arm the round-trip check. Called once, as the time loop starts.
       subroutine enableRoundTripCheck
@@ -689,8 +784,16 @@ module modcuda
          ! u0driver from inside boundary at the end of the previous one.
          ! Nothing rewrites them between here and bcpup, which is the only
          ! reader, so the value that lands is the one that used to.
-         if ((lnudge .and. lnudgevel) .or. BCxm == BCxm_profile) uprof_d = uprof
-         if ((lnudge .and. lnudgevel) .or. BCym == BCym_profile) vprof_d = vprof
+         ! Both, not one each: the x profile inlet sets v from vprof and the
+         ! y profile inlet sets u from uprof, so either one needs the pair.
+         if ((lnudge .and. lnudgevel) .or. BCxm == BCxm_profile .or. BCym == BCym_profile) then
+            uprof_d = uprof
+            vprof_d = vprof
+         end if
+         ! u0driver and the eleven planes beside it are uploaded by
+         ! updateDriverPlanesDevice, which boundary_device calls right after
+         ! drivergen rewrites them. Kept here as well because bcpup reads
+         ! u0driver_d earlier in the step than boundary runs.
          if (BCxm == BCxm_driver) u0driver_d = u0driver
 
          if (loneeqn) then
@@ -715,7 +818,7 @@ module modcuda
             thv0h_d    = thv0h
             thvh_d     = thvh
             thl0av_d   = thl0av
-            if (lnudge) thlprof_d = thlprof
+            if (lnudge .or. BCxT == BCxT_profile .or. BCyT == BCyT_profile) thlprof_d = thlprof
             if (ltrees .and. lmoist) then
                thlpcar_d = thlpcar
             end if
@@ -727,7 +830,7 @@ module modcuda
             call initfield<<<griddim,blockdim>>>(qtp_d, 0., ih, jh, kh)
             call checkCUDA( cudaGetLastError(), 'initfield qtp_d' )
             qt0av_d = qt0av
-            if (lnudge) qtprof_d = qtprof
+            if (lnudge .or. BCxq == BCxq_profile .or. BCyq == BCyq_profile) qtprof_d = qtprof
          end if
 
          if (nsv>0) then
@@ -738,7 +841,6 @@ module modcuda
                call checkCUDA( cudaGetLastError(), 'initfield svp_d' )
             end do
             sv0av_d = sv0av
-            if (lnudge) svprof_d = svprof
          end if
 
          dthvdz_d = dthvdz
@@ -975,15 +1077,16 @@ module modcuda
       !! would mean repeating a filesystem inquire and an MPI broadcast every
       !! step to answer a question the writer already asks.
       !!
-      !! By that point boundary has written the top and lateral planes of these
-      !! fields on the host, which is what belongs in a restart - and the pull
-      !! routines leave them alone, because updateHostForUnportedRoutines
-      !! already marked them pulled earlier in the same step. Everything here
-      !! is therefore a no-op today; the routine exists so that when that
-      !! unconditional pull goes away, the restart keeps working. ql0 and ql0h
-      !! are also written to the restart and are absent on purpose:
-      !! thermodynamics produces them on the host and there is no device copy
-      !! to fetch.
+      !! By that point boundary has applied the top and lateral planes on the
+      !! device and updateHostForUnportedRoutines has fetched the result, which
+      !! is what belongs in a restart - so the prognostic fields here are
+      !! no-ops and the routine exists for when that unconditional pull goes
+      !! away. ekm is not a no-op: it left updateHostForUnportedRoutines when
+      !! boundary stopped needing it on the host, and a restart written on a
+      !! step nothing else sampled would otherwise carry the eddy viscosity
+      !! from the last time statsdump ran. ql0 and ql0h are also written to the
+      !! restart and are absent on purpose: thermodynamics produces them on the
+      !! host and there is no device copy to fetch.
       subroutine updateHostForRestart
          implicit none
 
@@ -1002,30 +1105,45 @@ module modcuda
 
       !> Bring down what the host routines still in the loop are about to use.
       !!
-      !! This is not a bin of leftovers, it is the correctness path. boundary
-      !! writes the top, bottom and lateral planes of every prognostic field on
-      !! the host, and thermodynamics reads thl0 and qt0 and writes ql0, thv0h
-      !! and the slab averages - and the next updateDevice uploads all of it
-      !! back. Skip a field here and the device gets the previous step's value
-      !! for it, so this runs on every stage and cannot be made conditional.
+      !! This is not a bin of leftovers, it is the correctness path.
+      !! thermodynamics reads thl0 and qt0 and writes ql0, thv0h and the slab
+      !! averages, on the host - and the next updateDevice uploads every field
+      !! below back. Skip one here and the device gets the previous step's
+      !! value for it, so this runs on every stage and cannot be conditional.
       !!
       !! It is also the one routine in this group that shrinks. Every entry
       !! below leaves when the routine that needs it is ported, and once
-      !! boundary and thermodynamics are on the device the routine goes with
-      !! them - unlike the three above, which survive a fully ported loop
-      !! because their readers write files from host memory.
+      !! thermodynamics is on the device the routine goes with it - unlike the
+      !! three above, which survive a fully ported loop because their readers
+      !! write files from host memory.
       !!
-      !! ekm and ekh are here for boundary's fluxtop and fluxtopscal, which
-      !! take them as the diffusivity for a flux-type top boundary.
+      !! ekm and ekh were unconditional here, for boundary's fluxtop and
+      !! fluxtopscal. boundary applies those on the device now, and the one
+      !! host reader left is tstep_update, which limits the timestep by the
+      !! diffusion number and so needs both fields at the top of the next
+      !! iteration - but only when the timestep is adaptive. On a fixed
+      !! timestep two of the largest arrays in the model stop crossing the bus
+      !! every stage; on an adaptive one they still do, and porting
+      !! tstep_update's reduction is what changes that. It is the same
+      !! reduction checksim already runs on the device.
+      !!
+      !! Not a saving worth guessing at: dropping them outright passes every
+      !! parity case with a fixed timestep and fails ibm-reconstruction, the
+      !! one adaptive case, by two parts in a thousand - because a stale
+      !! diffusivity moves dt, and a moved dt moves the whole solution.
       !!
       !! pres0 is here for a different reason. Its only host readers are
       !! statsdump, fielddump and the restart, all of which have their own
       !! routine - but updateDevice uploads it, so leaving it to them would put
       !! a stale pressure back on the device on every step between samples.
-      !! The same argument keeps thlm, qtm and svm here even though boundary's
-      !! writes to them are the only thing downstream that touches them.
+      !! The same argument keeps um, vm, wm, thlm, qtm and svm here even though
+      !! nothing downstream of this point reads them at all.
       subroutine updateHostForUnportedRoutines
          implicit none
+
+#if defined(UDALES_DEBUG)
+         call assertNothingPulled
+#endif
 
          call pull_u0
          call pull_v0
@@ -1034,8 +1152,10 @@ module modcuda
          call pull_vm
          call pull_wm
          call pull_pres0
-         call pull_ekm
-         call pull_ekh
+         if (ladaptive) then
+            call pull_ekm
+            call pull_ekh
+         end if
 
          if (ltempeq) then
             call pull_thl0
@@ -1066,6 +1186,247 @@ module modcuda
 
       end subroutine updateHostForUnportedRoutines
 
+      !> Mirror the driver inlet planes that boundary_device reads.
+      !!
+      !! Allocated from initCUDA, which runs after initdriver, so the host
+      !! shapes are already known. The optional groups follow the host: a run
+      !! can drive momentum from a file without driving temperature, moisture
+      !! or the scalars, and then those planes do not exist on either side.
+      subroutine allocDriverPlanesDevice
+         implicit none
+
+         allocate(umdriver_d(jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(v0driver_d(jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(vmdriver_d(jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(w0driver_d(jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(wmdriver_d(jb-jh:je+jh,kb-kh:ke+kh))
+
+         if (allocated(thl0driver)) then
+            allocate(thl0driver_d(jb-jh:je+jh,kb-kh:ke+kh))
+            allocate(thlmdriver_d(jb-jh:je+jh,kb-kh:ke+kh))
+         end if
+         if (allocated(qt0driver)) then
+            allocate(qt0driver_d(jb-jh:je+jh,kb-kh:ke+kh))
+            allocate(qtmdriver_d(jb-jh:je+jh,kb-kh:ke+kh))
+         end if
+         if (allocated(sv0driver)) then
+            allocate(sv0driver_d(jb-jhc:je+jhc,kb-khc:ke+khc,1:nsv))
+            allocate(svmdriver_d(jb-jhc:je+jhc,kb-khc:ke+khc,1:nsv))
+         end if
+
+      end subroutine allocDriverPlanesDevice
+
+      subroutine deallocDriverPlanesDevice
+         implicit none
+
+         deallocate(umdriver_d, v0driver_d, vmdriver_d, w0driver_d, wmdriver_d)
+         if (allocated(thl0driver_d)) deallocate(thl0driver_d, thlmdriver_d)
+         if (allocated(qt0driver_d))  deallocate(qt0driver_d, qtmdriver_d)
+         if (allocated(sv0driver_d))  deallocate(sv0driver_d, svmdriver_d)
+
+      end subroutine deallocDriverPlanesDevice
+
+      !> Send the driver inlet planes up, after drivergen has rewritten them.
+      !!
+      !! Called from boundary_device at the point drivergen returns, which is
+      !! the only thing that writes them. Twelve j-k planes is a few hundred
+      !! kilobytes against the hundred-odd megabytes a prognostic field costs,
+      !! and it happens on the first and last stage of a step rather than on
+      !! all three - so the driver inlet stays on the device for what it is
+      !! worth to keep it there.
+      subroutine updateDriverPlanesDevice
+         implicit none
+
+         u0driver_d = u0driver
+         umdriver_d = umdriver
+         v0driver_d = v0driver
+         vmdriver_d = vmdriver
+         w0driver_d = w0driver
+         wmdriver_d = wmdriver
+
+         if (allocated(thl0driver_d)) then
+            thl0driver_d = thl0driver
+            thlmdriver_d = thlmdriver
+         end if
+         if (allocated(qt0driver_d)) then
+            qt0driver_d = qt0driver
+            qtmdriver_d = qtmdriver
+         end if
+         if (allocated(sv0driver_d)) then
+            sv0driver_d = sv0driver
+            svmdriver_d = svmdriver
+         end if
+
+      end subroutine updateDriverPlanesDevice
+
+      !> Bring down the recycle plane writedriverfile is about to write.
+      !!
+      !! The plane, not the fields. Fetching u0, v0, w0, thl0, qt0 and sv0
+      !! whole is what this did first, and on a 256^3 generation run with
+      !! three scalars that is 1.1 GB a record - 3.6 seconds over a run that
+      !! records thirty-six of them, which is more than the whole of boundary
+      !! costs. Each plane is gathered on the device into a contiguous buffer
+      !! instead and crosses as half a megabyte.
+      !!
+      !! Called from inside writedriverfile's own guards, the way
+      !! updateHostForRestart is - but forced, rather than routed through the
+      !! pull routines. It runs from the middle of boundary_device, after the
+      !! top conditions have been applied on the device and before the lateral
+      !! ones, because that is where the host path read these fields. The
+      !! bitmap has no way to say "current as of here", so the flags are left
+      !! alone and boundary_device clears all of them when it finishes.
+      !!
+      !! The i indices are writedriverfile's: it takes u from the recycle
+      !! plane itself and everything else from the plane below it.
+      subroutine updateHostForDriverDump
+         use modinletdata, only : irecydriver
+         implicit none
+         integer :: i, n
+
+         i = irecydriver
+         call gatherPlane_u0(i)
+         u0(i, :, :) = plane_stage
+
+         i = irecydriver - 1
+         call gatherPlane_v0(i)
+         v0(i, :, :) = plane_stage
+         call gatherPlane_w0(i)
+         w0(i, :, :) = plane_stage
+
+         if (ltempeq) then
+            call gatherPlane_thl0(i)
+            thl0(i, :, :) = plane_stage
+         end if
+         if (lmoist) then
+            call gatherPlane_qt0(i)
+            qt0(i, :, :) = plane_stage
+         end if
+         do n = 1, nsv
+            call gatherPlane_sv0(i, n)
+            sv0(i, :, :, n) = planec_stage
+         end do
+
+      end subroutine updateHostForDriverDump
+
+      ! One gather per field, for the reason the pull routines are one per
+      ! field: a device dummy argument would put a descriptor between the
+      ! kernel and the array.
+
+      subroutine gatherPlane_u0(i)
+         implicit none
+         integer, intent(in) :: i
+         integer :: j, k
+
+         !$acc parallel loop collapse(2) default(present)
+         do k = kb - kh, ke + kh
+            do j = jb - jh, je + jh
+               plane_d(j, k) = u0_d(i, j, k)
+            end do
+         end do
+         !$acc end parallel loop
+         plane_stage = plane_d
+      end subroutine gatherPlane_u0
+
+      subroutine gatherPlane_v0(i)
+         implicit none
+         integer, intent(in) :: i
+         integer :: j, k
+
+         !$acc parallel loop collapse(2) default(present)
+         do k = kb - kh, ke + kh
+            do j = jb - jh, je + jh
+               plane_d(j, k) = v0_d(i, j, k)
+            end do
+         end do
+         !$acc end parallel loop
+         plane_stage = plane_d
+      end subroutine gatherPlane_v0
+
+      subroutine gatherPlane_w0(i)
+         implicit none
+         integer, intent(in) :: i
+         integer :: j, k
+
+         !$acc parallel loop collapse(2) default(present)
+         do k = kb - kh, ke + kh
+            do j = jb - jh, je + jh
+               plane_d(j, k) = w0_d(i, j, k)
+            end do
+         end do
+         !$acc end parallel loop
+         plane_stage = plane_d
+      end subroutine gatherPlane_w0
+
+      subroutine gatherPlane_thl0(i)
+         implicit none
+         integer, intent(in) :: i
+         integer :: j, k
+
+         !$acc parallel loop collapse(2) default(present)
+         do k = kb - kh, ke + kh
+            do j = jb - jh, je + jh
+               plane_d(j, k) = thl0_d(i, j, k)
+            end do
+         end do
+         !$acc end parallel loop
+         plane_stage = plane_d
+      end subroutine gatherPlane_thl0
+
+      subroutine gatherPlane_qt0(i)
+         implicit none
+         integer, intent(in) :: i
+         integer :: j, k
+
+         !$acc parallel loop collapse(2) default(present)
+         do k = kb - kh, ke + kh
+            do j = jb - jh, je + jh
+               plane_d(j, k) = qt0_d(i, j, k)
+            end do
+         end do
+         !$acc end parallel loop
+         plane_stage = plane_d
+      end subroutine gatherPlane_qt0
+
+      subroutine gatherPlane_sv0(i, n)
+         implicit none
+         integer, intent(in) :: i, n
+         integer :: j, k
+
+         !$acc parallel loop collapse(2) default(present)
+         do k = kb - khc, ke + khc
+            do j = jb - jhc, je + jhc
+               planec_d(j, k) = sv0_d(i, j, k, n)
+            end do
+         end do
+         !$acc end parallel loop
+         planec_stage = planec_d
+      end subroutine gatherPlane_sv0
+
+      !> The device has written past what the host holds.
+      !!
+      !! boundary_device applies the top, bottom and lateral conditions on the
+      !! device, and it runs after fielddump and statsdump have already pulled
+      !! their fields down. Those copies were current when they were made and
+      !! are not any more - they are missing the boundary planes. Clearing the
+      !! bitmap is what makes updateHostForUnportedRoutines fetch them again
+      !! rather than skip them as already pulled, and skipping them is exactly
+      !! the failure the bitmap would otherwise introduce: updateDevice would
+      !! then upload a host copy with no boundary condition in it, and the
+      !! error would be in the solution rather than in a file.
+      !!
+      !! All of them, not only the fifteen boundary_device writes. A list of
+      !! exactly those fifteen would spare pres0, ekm and ekh a second fetch on
+      !! the steps statsdump samples - about a third of a second on a 256^3 run
+      !! of five thousand steps - at the price of a list that has to be revised
+      !! every time a branch is added to boundary, with a stale device field
+      !! and no error message as the failure mode. The blanket clear is the
+      !! statement that the device has moved on, which is what actually
+      !! happened.
+      subroutine invalidateHostFields
+         implicit none
+         pulled = .false.
+      end subroutine invalidateHostFields
+
 #if defined(UDALES_DEBUG)
       !> Abort if a host field a reader is about to use has drifted from the
       !! device copy it mirrors.
@@ -1085,9 +1446,9 @@ module modcuda
       !! quietly written from the previous step, on a configuration nobody
       !! runs, with no error anywhere.
       !!
-      !! Placement is load-bearing. It has to run before boundary, which writes
-      !! the top and lateral planes on the host and so makes host and device
-      !! legitimately differ until the next updateDevice.
+      !! Placement is load-bearing. It has to run before boundary, which
+      !! applies the top and lateral planes on the device and so makes host and
+      !! device legitimately differ until the pull that follows it.
       !!
       !! Debug builds only, and it copies everything down a second time, so it
       !! is not cheap - but the GPU parity cases are 64^3 and run in a second.
@@ -1142,6 +1503,20 @@ module modcuda
                   call check3(label, 'svm', svm(:,:,:,n), svm_d(:,:,:,n))
                end do
             end if
+
+         case ('tstep_update')
+            ! The adaptive timestep is chosen on the host from the previous
+            ! step's velocities and diffusivities, before updateDevice runs.
+            ! um, vm and wm come down every stage because updateDevice uploads
+            ! them again; ekm and ekh come down for this reader alone, which is
+            ! why they are the pair most likely to be dropped by someone
+            ! reading updateHostForUnportedRoutines and seeing no reader left
+            ! in the loop below it.
+            call check3(label, 'um', um, um_d)
+            call check3(label, 'vm', vm, vm_d)
+            call check3(label, 'wm', wm, wm_d)
+            call check3(label, 'ekm', ekm, ekm_d)
+            call check3(label, 'ekh', ekh, ekh_d)
 
          case default
             write(*,'(3A)') 'assertHostMatchesDevice: no field list for reader ', trim(label), '.'

@@ -7,7 +7,8 @@ module tests_cuda
    use modadvection, only : advecc_kappa_reset_cuda, advecc_kappa_ducdx_cuda, &
                             advecc_kappa_dvcdy_cuda, advecc_kappa_dwcdz_cuda, &
                             advecc_kappa_add_cuda, advecc_upw_cuda, rlim_cuda
-   use modboundary,  only : bcpup_pup_BCxm_driver_cuda, &
+   use modboundary,  only : boundary, boundary_device, &
+                            bcpup_pup_BCxm_driver_cuda, &
                             xm_periodic_device, xT_periodic_device, &
                             xq_periodic_device, xs_periodic_device, &
                             ym_periodic_device, yT_periodic_device, &
@@ -19,7 +20,10 @@ module tests_cuda
                         thl0_d, thlm_d, thl0c_d, qt0_d, qtm_d, sv0_d, svm_d, &
                         thlp_d, thlpc_d, pup_d, up_d, u0driver_d, wp_d, &
                         vp_d, qtp_d, svp_d, u0av_d, v0av_d, thl0av_d, qt0av_d, sv0av_d, &
-                        uprof_d, vprof_d, thlprof_d, qtprof_d, svprof_d, &
+                        uprof_d, vprof_d, thlprof_d, qtprof_d, svprof_d, e12prof_d, &
+                        allocDriverPlanesDevice, deallocDriverPlanesDevice, &
+                        updateHostForDriverDump, plane_d, plane_stage, &
+                        planec_d, planec_stage, &
                         ekm_d, ekh_d, pres0_d, fachf_d, facef_d, fachfi_d, facefi_d, &
                         integrateFacFluxDevice, updateFacIntegralsHost, &
                         facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
@@ -32,7 +36,7 @@ module tests_cuda
                          thl0, thlm, thl0c, qt0, qtm, sv0, svm, thlp, wp, &
                          up, vp, qtp, svp, &
                          u0av, v0av, thl0av, qt0av, sv0av, &
-                         uprof, vprof, thlprof, qtprof, svprof, &
+                         uprof, vprof, thlprof, qtprof, svprof, e12prof, vouttot, &
                          IIc, IIu, IIv, IIcs, IIus, IIvs, &
                          tau_x, tau_y, tau_z, thl_flux, momfluxb, tfluxb, &
                          uoutarea, voutarea, udef, vdef, uouttot
@@ -49,7 +53,18 @@ module tests_cuda
                          uflowrate, vflowrate, rk3coef, rk3coefi, dt, &
                          ltrees, ltreedump, &
                          BCxm, BCym, BCxm_periodic, BCxm_profile, BCxm_driver, &
-                         BCym_periodic, BCym_profile
+                         BCym_periodic, BCym_profile, &
+                         BCxT, BCxT_periodic, BCxT_profile, BCxT_driver, &
+                         BCyT, BCyT_periodic, BCyT_profile, &
+                         BCxq, BCxq_periodic, BCxq_profile, BCxq_driver, &
+                         BCyq, BCyq_periodic, BCyq_profile, &
+                         BCxs, BCxs_periodic, BCxs_profile, BCxs_driver, BCxs_custom, &
+                         BCys, BCys_periodic, &
+                         BCtopm, BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
+                         BCtopT, BCtopT_flux, BCtopT_value, &
+                         BCtopq, BCtopq_flux, BCtopq_value, &
+                         BCtops, BCtops_flux, BCtops_value, &
+                         Uinf, Vinf, idriver, lchunkread, iadv_thl, iadv_kappa
    use modforces,   only : nudge, periodicEBcorr, masscorr, calcfluidvolumes
    use modchecksim, only : courant_local, diffnr_local, div_local, &
                            diffnrgeom, diffnrgeom_d
@@ -75,7 +90,8 @@ module tests_cuda
                            solpts_u_d, solpts_v_d, solpts_w_d, solpts_c_d, &
                            solid_device, solid_masked_device, &
                            advecc2nd_corr_conservative_device, advecc2nd_corr_liberal_device
-   use modsubgriddata, only : ekm, ekh
+   use modsubgriddata, only : ekm, ekh, loneeqn
+   use modsurfdata,  only : wttop, wqtop, wsvtop, thl_top, qt_top, sv_top
    use vegetation,   only : veg, vegp, vegetation_ready, &
                             npts_u, npts_v, npts_w, veg_up, veg_vp, veg_wp, &
                             veg_up_d, veg_vp_d, veg_wp_d, &
@@ -83,7 +99,9 @@ module tests_cuda
                             vegp_omega_d, vegp_sv_d, &
                             vegetation_forcing_device, vegetation_forcing_host, &
                             updateVegDiagHost
-   use modinletdata, only : u0driver
+   use modinletdata, only : u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver, &
+                            thl0driver, thlmdriver, qt0driver, qtmdriver, &
+                            sv0driver, svmdriver, irecydriver
    use modmpi,   only : myid, nprocs, nprocy, comm3d, mpierr, MY_REAL, MPI_SUM, MPI_INTEGER
    use decomp_2d, only : zstart
 
@@ -131,6 +149,8 @@ contains
          call test_facet_props_refresh
          call test_vegetation_forcing
          call test_bc_profile_upload
+         call test_boundary_conditions
+         call test_driver_plane_handover
          call test_post_poisson_handover
          call test_checksim_reductions
          write(*,'(A,I0)') 'CUDA device self-tests passed. rank=', myid
@@ -3320,10 +3340,16 @@ contains
    !! sentinel in each host array, runs the real updateDevice, and reads the
    !! mirror back.
    !!
-   !! BCxm and BCym are switched here rather than taken from the case, and
-   !! lnudge is forced off so the nudging arm cannot mask the BC one. Each
-   !! guard is checked against its own axis and against the other, so a guard
-   !! written on the wrong variable fails rather than passing by symmetry.
+   !! The switches are set here rather than taken from the case, and lnudge is
+   !! forced off so the nudging arm cannot mask the BC one. Each guard is
+   !! checked in the configuration that needs it and in one that does not, so
+   !! a guard that is simply always true fails rather than passing.
+   !!
+   !! uprof and vprof travel together, for either inlet. That is not symmetry
+   !! for its own sake: xmi_profile sets v at the inlet from vprof and
+   !! ymi_profile sets u from uprof, so a guard that uploaded only the profile
+   !! named after its own axis would leave the other one at whatever the last
+   !! nudging step put there.
    !!
    !! The driver arm matters most. No case in the GPU matrix sets idriver, so
    !! u0driver_d has no parity coverage at all and this is the only thing that
@@ -3334,9 +3360,12 @@ contains
 
       real, parameter :: sentinel_u = 7.125, sentinel_v = -3.5, sentinel_d = 11.75
 
+      real, parameter :: sentinel_T = 297.25, sentinel_q = 0.015625
+
       real, allocatable :: uprof_s(:), vprof_s(:), u0driver_s(:,:)
+      real, allocatable :: thlprof_s(:), qtprof_s(:)
       real, allocatable :: back1(:), back2(:,:)
-      integer :: saved_BCxm, saved_BCym
+      integer :: saved_BCxm, saved_BCym, saved_BCxT, saved_BCyT, saved_BCxq, saved_BCyq
       logical :: saved_lnudge, faked_driver
 
       if (.not. allocated(uprof_d)) return
@@ -3346,15 +3375,41 @@ contains
       allocate(vprof_s, source=vprof)
       allocate(back1(lbound(uprof,1):ubound(uprof,1)))
       allocate(back2(jb-jh:je+jh, kb-kh:ke+kh))
+      if (allocated(thlprof_d)) allocate(thlprof_s, source=thlprof)
+      if (allocated(qtprof_d))  allocate(qtprof_s,  source=qtprof)
 
       saved_BCxm   = BCxm
       saved_BCym   = BCym
+      saved_BCxT   = BCxT
+      saved_BCyT   = BCyT
+      saved_BCxq   = BCxq
+      saved_BCyq   = BCyq
       saved_lnudge = lnudge
       lnudge       = .false.
+      BCxT         = BCxT_periodic
+      BCyT         = BCyT_periodic
+      BCxq         = BCxq_periodic
+      BCyq         = BCyq_periodic
 
-      ! --- x profile inlet: uprof crosses, vprof must not ------------------
+      ! --- neither inlet: nothing crosses ----------------------------------
       uprof   = sentinel_u
       vprof   = sentinel_v
+      uprof_d = 0.
+      vprof_d = 0.
+      BCxm    = BCxm_periodic
+      BCym    = BCym_periodic
+      call updateDevice
+
+      back1 = uprof_d
+      if (any(back1 /= 0.)) then
+         call fail_cuda_selftest('uprof was uploaded with no profile inlet and no nudging')
+      end if
+      back1 = vprof_d
+      if (any(back1 /= 0.)) then
+         call fail_cuda_selftest('vprof was uploaded with no profile inlet and no nudging')
+      end if
+
+      ! --- x profile inlet: both profiles cross ----------------------------
       uprof_d = 0.
       vprof_d = 0.
       BCxm    = BCxm_profile
@@ -3366,8 +3421,8 @@ contains
          call fail_cuda_selftest('updateDevice did not upload uprof for a profile inlet')
       end if
       back1 = vprof_d
-      if (any(back1 /= 0.)) then
-         call fail_cuda_selftest('the x inlet guard uploaded vprof as well')
+      if (any(back1 /= sentinel_v)) then
+         call fail_cuda_selftest('the x inlet guard left vprof behind, which xmi_profile reads')
       end if
 
       ! --- y profile inlet: the mirror image -------------------------------
@@ -3382,8 +3437,65 @@ contains
          call fail_cuda_selftest('updateDevice did not upload vprof for a profile inlet')
       end if
       back1 = uprof_d
-      if (any(back1 /= 0.)) then
-         call fail_cuda_selftest('the y inlet guard uploaded uprof as well')
+      if (any(back1 /= sentinel_u)) then
+         call fail_cuda_selftest('the y inlet guard left uprof behind, which ymi_profile reads')
+      end if
+      BCym = BCym_periodic
+
+      ! --- the temperature and moisture inlet profiles ---------------------
+      if (allocated(thlprof_d)) then
+         thlprof   = sentinel_T
+         thlprof_d = 0.
+         call updateDevice
+         back1 = thlprof_d
+         if (any(back1 /= 0.)) then
+            call fail_cuda_selftest('thlprof was uploaded with no profile inlet and no nudging')
+         end if
+
+         BCxT = BCxT_profile
+         call updateDevice
+         back1 = thlprof_d
+         if (any(back1 /= sentinel_T)) then
+            call fail_cuda_selftest('updateDevice did not upload thlprof for an x profile inlet')
+         end if
+
+         BCxT = BCxT_periodic
+         BCyT = BCyT_profile
+         thlprof_d = 0.
+         call updateDevice
+         back1 = thlprof_d
+         if (any(back1 /= sentinel_T)) then
+            call fail_cuda_selftest('updateDevice did not upload thlprof for a y profile inlet')
+         end if
+         BCyT = BCyT_periodic
+      end if
+
+      if (allocated(qtprof_d)) then
+         qtprof   = sentinel_q
+         qtprof_d = 0.
+         call updateDevice
+         back1 = qtprof_d
+         if (any(back1 /= 0.)) then
+            call fail_cuda_selftest('qtprof was uploaded with no profile inlet and no nudging')
+         end if
+
+         BCxq = BCxq_profile
+         call updateDevice
+         back1 = qtprof_d
+         if (any(back1 /= sentinel_q)) then
+            call fail_cuda_selftest('updateDevice did not upload qtprof for an x profile inlet')
+         end if
+
+         BCxq = BCxq_periodic
+         BCyq = BCyq_profile
+         qtprof_d = 0.
+         call updateDevice
+         back1 = qtprof_d
+         if (any(back1 /= sentinel_q)) then
+            call fail_cuda_selftest('updateDevice did not upload qtprof for a y profile inlet')
+         end if
+         BCxq = BCxq_periodic
+         BCyq = BCyq_periodic
       end if
 
       ! --- driver inlet -----------------------------------------------------
@@ -3417,10 +3529,24 @@ contains
 
       uprof   = uprof_s
       vprof   = vprof_s
+      if (allocated(thlprof_s)) then
+         thlprof   = thlprof_s
+         thlprof_d = thlprof
+         deallocate(thlprof_s)
+      end if
+      if (allocated(qtprof_s)) then
+         qtprof   = qtprof_s
+         qtprof_d = qtprof
+         deallocate(qtprof_s)
+      end if
       uprof_d = uprof
       vprof_d = vprof
       BCxm    = saved_BCxm
       BCym    = saved_BCym
+      BCxT    = saved_BCxT
+      BCyT    = saved_BCyT
+      BCxq    = saved_BCxq
+      BCyq    = saved_BCyq
       lnudge  = saved_lnudge
 
       ! updateDevice cleared the facet dirty flag on the way through. Set it
@@ -3431,6 +3557,622 @@ contains
       deallocate(uprof_s, vprof_s, back1, back2)
 
    end subroutine test_bc_profile_upload
+
+   !> Compare boundary against boundary_device, branch by branch.
+   !!
+   !! The port of boundary is a large one - thirty-odd small kernels, most of
+   !! them writing a single plane - and the ways it can be wrong are all quiet:
+   !! a ghost level left at the previous step's value, an index range that
+   !! covers the momentum halo where the host covers the scalar one, a
+   !! sequential dependence parallelised away. None of that shows up as a
+   !! crash, and a parity case only sees it if the branch is one that case
+   !! happens to select.
+   !!
+   !! So this drives both implementations from the same seeded fields and
+   !! requires them to agree, walking the branches rather than the
+   !! configurations: six passes cover every top condition, every lateral
+   !! inlet and every outflow, in a build whose namelist selects one of them.
+   !!
+   !! Only the host side is saved and put back. The device copies do not need
+   !! restoring, because every field written here is one updateDevice uploads
+   !! from the host on the first stage of the loop, which is the next thing
+   !! that runs.
+   subroutine test_boundary_conditions
+      implicit none
+
+      integer :: s_BCxm, s_BCym, s_BCxT, s_BCyT, s_BCxq, s_BCyq, s_BCxs, s_BCys
+      integer :: s_BCtopm, s_BCtopT, s_BCtopq, s_BCtops, s_rk3step, s_idriver
+      real    :: s_rk3coef, s_uouttot, s_vouttot
+      real    :: s_wttop, s_wqtop, s_thl_top, s_qt_top, s_Uinf, s_Vinf
+      logical :: s_lchunkread, driver_here
+
+      real, allocatable :: h_u0(:,:,:), h_um(:,:,:), h_v0(:,:,:), h_vm(:,:,:), &
+                           h_w0(:,:,:), h_wm(:,:,:), h_thl0(:,:,:), h_thlm(:,:,:), &
+                           h_thl0c(:,:,:), h_qt0(:,:,:), h_qtm(:,:,:), &
+                           h_e120(:,:,:), h_e12m(:,:,:)
+      real, allocatable :: h_sv0(:,:,:,:), h_svm(:,:,:,:)
+      real, allocatable :: h_ekm(:,:,:), h_ekh(:,:,:)
+      real, allocatable :: s_wsvtop(:), s_sv_top(:)
+      real, allocatable :: s_uprof(:), s_vprof(:), s_thlprof(:), s_qtprof(:), &
+                           s_e12prof(:), s_svprof(:,:)
+      integer :: k, n
+
+      call snapshot_host
+
+      s_BCxm = BCxm ; s_BCym = BCym ; s_BCxT = BCxT ; s_BCyT = BCyT
+      s_BCxq = BCxq ; s_BCyq = BCyq ; s_BCxs = BCxs ; s_BCys = BCys
+      s_BCtopm = BCtopm ; s_BCtopT = BCtopT ; s_BCtopq = BCtopq ; s_BCtops = BCtops
+      s_rk3step = rk3step ; s_rk3coef = rk3coef ; s_idriver = idriver
+      s_uouttot = uouttot ; s_vouttot = vouttot ; s_lchunkread = lchunkread
+      s_wttop = wttop ; s_wqtop = wqtop ; s_thl_top = thl_top ; s_qt_top = qt_top
+      s_Uinf = Uinf ; s_Vinf = Vinf
+      if (allocated(wsvtop)) then
+         allocate(s_wsvtop(size(wsvtop))) ; s_wsvtop = wsvtop
+      end if
+      if (allocated(sv_top)) then
+         allocate(s_sv_top(size(sv_top))) ; s_sv_top = sv_top
+      end if
+
+      ! Non-zero fluxes and values throughout, so that a branch that silently
+      ! reduced to "copy the level below" would be caught rather than agree.
+      rk3step = 3
+      rk3coef = 0.375
+      idriver = 0
+      lchunkread = .false.
+      wttop = -2.5e-3 ; wqtop = 1.25e-4
+      thl_top = 291.5 ; qt_top = 6.25e-3
+      Uinf = 1.5 ; Vinf = -0.75
+      if (allocated(wsvtop)) wsvtop = 3.125e-3
+      if (allocated(sv_top)) sv_top = 0.625
+
+      ! The inlet profiles the lateral conditions read. They are given values
+      ! here rather than taken from the case, because a case that never uses a
+      ! profile inlet leaves them at zero and a routine that read the wrong one
+      ! would then agree with one that read the right one.
+      allocate(s_uprof, source=uprof) ; allocate(s_vprof, source=vprof)
+      do k = lbound(uprof,1), ubound(uprof,1)
+         uprof(k) =  1.25 + 0.03125*real(k)
+         vprof(k) = -0.50 + 0.015625*real(k)
+      end do
+      uprof_d = uprof ; vprof_d = vprof
+
+      if (allocated(thlprof_d)) then
+         allocate(s_thlprof, source=thlprof)
+         do k = lbound(thlprof,1), ubound(thlprof,1)
+            thlprof(k) = 289.0 + 0.0625*real(k)
+         end do
+         thlprof_d = thlprof
+      end if
+      if (allocated(qtprof_d)) then
+         allocate(s_qtprof, source=qtprof)
+         do k = lbound(qtprof,1), ubound(qtprof,1)
+            qtprof(k) = 0.25 + 0.0078125*real(k)
+         end do
+         qtprof_d = qtprof
+      end if
+      if (allocated(e12prof_d)) then
+         allocate(s_e12prof, source=e12prof)
+         do k = lbound(e12prof,1), ubound(e12prof,1)
+            e12prof(k) = 0.125 + 0.00390625*real(k)
+         end do
+         e12prof_d = e12prof
+      end if
+      if (allocated(svprof_d)) then
+         allocate(s_svprof, source=svprof)
+         do n = 1, nsv
+            do k = lbound(svprof,1), ubound(svprof,1)
+               svprof(k,n) = 0.5*real(n) + 0.03125*real(k)
+            end do
+         end do
+         svprof_d = svprof
+      end if
+
+      ! Both eddy diffusivities are read by the flux-type top conditions and
+      ! written by nothing here. They are given values rather than inherited:
+      ! initCUDA allocates the device copies without seeding them, and the host
+      ! copies hold whatever initsubgrid left, which on some cases is small
+      ! enough to make the flux term swamp the field it is added to.
+      do k = kb-kh, ke+kh
+         ekm(:,:,k) = 0.25  + 0.0078125*real(k - kb)
+         ekh(:,:,k) = 0.125 + 0.00390625*real(k - kb)
+      end do
+      ekm_d = ekm
+      ekh_d = ekh
+
+      ! 1. Zero-flux top, flux-type scalar tops, everything periodic sideways.
+      BCtopm = BCtopm_freeslip
+      BCtopT = BCtopT_flux ; BCtopq = BCtopq_flux ; BCtops = BCtops_flux
+      BCxm = BCxm_periodic ; BCxT = BCxT_periodic ; BCxq = BCxq_periodic ; BCxs = BCxs_periodic
+      BCym = BCym_periodic ; BCyT = BCyT_periodic ; BCyq = BCyq_periodic ; BCys = BCys_periodic
+      call run_case('freeslip-flux-tops')
+
+      ! 2. Fixed-velocity top and fixed-value scalar tops.
+      BCtopm = BCtopm_noslip
+      BCtopT = BCtopT_value ; BCtopq = BCtopq_value ; BCtops = BCtops_value
+      call run_case('noslip-value-tops')
+
+      ! 3. Pressure top, which leaves w to modpois, with the x profile inlet
+      !    and the convective outflow it implies.
+      BCtopm = BCtopm_pressure
+      BCtopT = BCtopT_flux ; BCtopq = BCtopq_flux ; BCtops = BCtops_flux
+      BCxm = BCxm_profile ; BCxT = BCxT_profile ; BCxq = BCxq_profile ; BCxs = BCxs_profile
+      call run_case('x-profile-inlet')
+
+      ! 4. The same in y.
+      BCxm = BCxm_periodic ; BCxT = BCxT_periodic ; BCxq = BCxq_periodic ; BCxs = BCxs_periodic
+      BCym = BCym_profile ; BCyT = BCyT_profile ; BCyq = BCyq_profile ; BCys = 2
+      call run_case('y-profile-inlet')
+
+      ! 5. The single-column scalar inlet, which is the one branch that has to
+      !    find its own j rather than being handed a range.
+      BCym = BCym_periodic ; BCyT = BCyT_periodic ; BCyq = BCyq_periodic ; BCys = BCys_periodic
+      BCxs = BCxs_custom
+      call run_case('x-custom-scalar-inlet')
+
+      ! 6. The driver inlet, if this run is not itself reading a driver file.
+      !    When it is, the planes hold data the first step needs and the run
+      !    exercises the branch anyway.
+      BCxs = BCxs_periodic
+      driver_here = .not. allocated(u0driver)
+      if (driver_here) then
+         call open_driver_planes
+         BCxm = BCxm_driver ; BCxT = BCxT_driver ; BCxq = BCxq_driver ; BCxs = BCxs_driver
+         call run_case('x-driver-inlet')
+         call close_driver_planes
+      end if
+
+      BCxm = s_BCxm ; BCym = s_BCym ; BCxT = s_BCxT ; BCyT = s_BCyT
+      BCxq = s_BCxq ; BCyq = s_BCyq ; BCxs = s_BCxs ; BCys = s_BCys
+      BCtopm = s_BCtopm ; BCtopT = s_BCtopT ; BCtopq = s_BCtopq ; BCtops = s_BCtops
+      rk3step = s_rk3step ; rk3coef = s_rk3coef ; idriver = s_idriver
+      uouttot = s_uouttot ; vouttot = s_vouttot ; lchunkread = s_lchunkread
+      wttop = s_wttop ; wqtop = s_wqtop ; thl_top = s_thl_top ; qt_top = s_qt_top
+      Uinf = s_Uinf ; Vinf = s_Vinf
+      if (allocated(s_wsvtop)) wsvtop = s_wsvtop
+      if (allocated(s_sv_top)) sv_top = s_sv_top
+
+      uprof = s_uprof ; vprof = s_vprof
+      uprof_d = uprof ; vprof_d = vprof
+      if (allocated(s_thlprof)) then
+         thlprof = s_thlprof ; thlprof_d = thlprof
+      end if
+      if (allocated(s_qtprof)) then
+         qtprof = s_qtprof ; qtprof_d = qtprof
+      end if
+      if (allocated(s_e12prof)) then
+         e12prof = s_e12prof ; e12prof_d = e12prof
+      end if
+      if (allocated(s_svprof)) then
+         svprof = s_svprof ; svprof_d = svprof
+      end if
+
+      call restore_host
+
+   contains
+
+      subroutine snapshot_host
+         implicit none
+
+         allocate(h_u0, source=u0) ; allocate(h_um, source=um)
+         allocate(h_v0, source=v0) ; allocate(h_vm, source=vm)
+         allocate(h_w0, source=w0) ; allocate(h_wm, source=wm)
+         allocate(h_thl0, source=thl0) ; allocate(h_thlm, source=thlm)
+         allocate(h_thl0c, source=thl0c)
+         allocate(h_qt0, source=qt0) ; allocate(h_qtm, source=qtm)
+         allocate(h_ekm, source=ekm) ; allocate(h_ekh, source=ekh)
+         if (allocated(e120)) then
+            allocate(h_e120, source=e120) ; allocate(h_e12m, source=e12m)
+         end if
+         if (nsv > 0) then
+            allocate(h_sv0, source=sv0) ; allocate(h_svm, source=svm)
+         end if
+      end subroutine snapshot_host
+
+      subroutine restore_host
+         implicit none
+
+         u0 = h_u0 ; um = h_um ; v0 = h_v0 ; vm = h_vm ; w0 = h_w0 ; wm = h_wm
+         thl0 = h_thl0 ; thlm = h_thlm ; thl0c = h_thl0c
+         qt0 = h_qt0 ; qtm = h_qtm
+
+         ! The device copies of the diffusivities go back too. Everything else
+         ! written here is uploaded again by the first updateDevice of the
+         ! loop; these two are not - nothing uploads them, so a seeded value
+         ! left behind would survive into the run wherever subgrid does not
+         ! write, which is every halo cell.
+         ekm = h_ekm ; ekh = h_ekh
+         ekm_d = ekm ; ekh_d = ekh
+         if (allocated(h_e120)) then
+            e120 = h_e120 ; e12m = h_e12m
+         end if
+         if (allocated(h_sv0)) then
+            sv0 = h_sv0 ; svm = h_svm
+         end if
+      end subroutine restore_host
+
+      !> Deterministic, dyadic and distinct per field.
+      !!
+      !! Increments are negative powers of two so that the halving and doubling
+      !! the value-type conditions do is exact, and every field gets its own
+      !! offset so that a routine writing into the wrong one cannot pass.
+      subroutine seed_fields
+         implicit none
+         integer :: i, j, k, n
+
+         do k = kb-kh, ke+kh
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  u0(i,j,k)   =  1.0  + at(i,j,k)
+                  um(i,j,k)   =  2.0  + at(i,j,k)
+                  v0(i,j,k)   =  3.0  + at(i,j,k)
+                  vm(i,j,k)   =  4.0  + at(i,j,k)
+                  w0(i,j,k)   =  5.0  + at(i,j,k)
+                  wm(i,j,k)   =  6.0  + at(i,j,k)
+                  thl0(i,j,k) = 290.0 + at(i,j,k)
+                  thlm(i,j,k) = 291.0 + at(i,j,k)
+                  qt0(i,j,k)  =  0.5  + at(i,j,k)
+                  qtm(i,j,k)  =  0.75 + at(i,j,k)
+               end do
+            end do
+         end do
+
+         if (allocated(e120)) then
+            do k = kb-kh, ke+kh
+               do j = jb-jh, je+jh
+                  do i = ib-ih, ie+ih
+                     e120(i,j,k) = 7.0 + at(i,j,k)
+                     e12m(i,j,k) = 8.0 + at(i,j,k)
+                  end do
+               end do
+            end do
+         end if
+
+         do k = kb-khc, ke+khc
+            do j = jb-jhc, je+jhc
+               do i = ib-ihc, ie+ihc
+                  thl0c(i,j,k) = 292.0 + at(i,j,k)
+                  do n = 1, nsv
+                     sv0(i,j,k,n) = 0.25*real(n) + 9.0  + at(i,j,k)
+                     svm(i,j,k,n) = 0.25*real(n) + 10.0 + at(i,j,k)
+                  end do
+               end do
+            end do
+         end do
+
+         u0_d = u0 ; um_d = um ; v0_d = v0 ; vm_d = vm ; w0_d = w0 ; wm_d = wm
+         if (allocated(thl0_d)) then
+            thl0_d = thl0 ; thlm_d = thlm
+         end if
+         if (allocated(thl0c_d)) thl0c_d = thl0c
+         if (allocated(qt0_d)) then
+            qt0_d = qt0 ; qtm_d = qtm
+         end if
+         if (allocated(e120_d)) then
+            e120_d = e120 ; e12m_d = e12m
+         end if
+         if (allocated(sv0_d)) then
+            sv0_d = sv0 ; svm_d = svm
+         end if
+      end subroutine seed_fields
+
+      real function at(i, j, k)
+         implicit none
+         integer, intent(in) :: i, j, k
+
+         at = 0.125*real(i) + 0.0625*real(j + zstart(2) - 1) + 0.03125*real(k)
+      end function at
+
+      subroutine run_case(label)
+         implicit none
+         character(len=*), intent(in) :: label
+         integer :: n
+
+         call seed_fields
+
+         call boundary
+         call boundary_device
+         call checkCUDA(cudaDeviceSynchronize(), 'boundary device self-test: '//label)
+
+         call check3(label, 'u0', u0, u0_d, ib-ih, jb-jh, kb-kh)
+         call check3(label, 'um', um, um_d, ib-ih, jb-jh, kb-kh)
+         call check3(label, 'v0', v0, v0_d, ib-ih, jb-jh, kb-kh)
+         call check3(label, 'vm', vm, vm_d, ib-ih, jb-jh, kb-kh)
+         call check3(label, 'w0', w0, w0_d, ib-ih, jb-jh, kb-kh)
+         call check3(label, 'wm', wm, wm_d, ib-ih, jb-jh, kb-kh)
+         ! On the physics switches, not on what is allocated. The host applies
+         ! the top conditions to temperature and moisture whether or not the
+         ! run solves for them; the device routines return instead, which is
+         ! the same choice every other _device twin in modboundary makes and
+         ! costs nothing because nothing reads a field the run does not solve.
+         ! Allocation is not the same question: an earlier self-test assigns
+         ! into thl0_d unguarded, and Fortran allocates on assignment.
+         if (ltempeq) then
+            call check3(label, 'thl0', thl0, thl0_d, ib-ih, jb-jh, kb-kh)
+            call check3(label, 'thlm', thlm, thlm_d, ib-ih, jb-jh, kb-kh)
+            if (iadv_thl == iadv_kappa) &
+               call check3(label, 'thl0c', thl0c, thl0c_d, ib-ihc, jb-jhc, kb-khc)
+         end if
+         if (lmoist) then
+            call check3(label, 'qt0', qt0, qt0_d, ib-ih, jb-jh, kb-kh)
+            call check3(label, 'qtm', qtm, qtm_d, ib-ih, jb-jh, kb-kh)
+         end if
+         if (loneeqn) then
+            call check3(label, 'e120', e120, e120_d, ib-ih, jb-jh, kb-kh)
+            call check3(label, 'e12m', e12m, e12m_d, ib-ih, jb-jh, kb-kh)
+         end if
+         if (nsv > 0) then
+            do n = 1, nsv
+               call check3(label, 'sv0', sv0(:,:,:,n), sv0_d(:,:,:,n), ib-ihc, jb-jhc, kb-khc)
+               call check3(label, 'svm', svm(:,:,:,n), svm_d(:,:,:,n), ib-ihc, jb-jhc, kb-khc)
+            end do
+         end if
+      end subroutine run_case
+
+      !> Require host and device to agree, and say where they do not.
+      !!
+      !! The lower bounds travel as arguments because an assumed-shape dummy
+      !! renumbers them from one, and a report that named the wrong cell would
+      !! send the next reader to the wrong branch.
+      subroutine check3(label, name, host, dev, lbi, lbj, lbk)
+         implicit none
+         character(len=*), intent(in) :: label, name
+         real,             intent(in) :: host(:,:,:)
+         real, device,     intent(in) :: dev(:,:,:)
+         integer,          intent(in) :: lbi, lbj, lbk
+
+         real, allocatable :: back(:,:,:)
+         real :: worst, scale
+         integer :: at3(3)
+
+         allocate(back(size(dev,1), size(dev,2), size(dev,3)))
+         back = dev
+
+         worst = maxval(abs(back - host))
+         scale = max(1., maxval(abs(host)))
+         if (worst > 1.e-12*scale) then
+            at3 = maxloc(abs(back - host))
+            write(*,'(4A)') 'boundary parity: ', trim(name), ' differs at ', trim(label)
+            write(*,'(A,I0,A,I0,A,I0,A,ES22.14,A,ES22.14,A,I0)') &
+                 '  worst cell (i,j,k) = (', at3(1) + lbi - 1, ', ', at3(2) + lbj - 1, &
+                 ', ', at3(3) + lbk - 1, ')  host ', host(at3(1), at3(2), at3(3)), &
+                 '  device ', back(at3(1), at3(2), at3(3)), '  differing cells ', &
+                 count(abs(back - host) > 1.e-12*scale)
+            deallocate(back)
+            call fail_cuda_selftest('boundary '//trim(label)//' '//trim(name))
+         end if
+
+         deallocate(back)
+      end subroutine check3
+
+      !> Give the driver branch planes to read, on both sides.
+      subroutine open_driver_planes
+         implicit none
+         integer :: j, k, n
+
+         allocate(u0driver(jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(umdriver(jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(v0driver(jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(vmdriver(jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(w0driver(jb-jh:je+jh,kb-kh:ke+kh))
+         allocate(wmdriver(jb-jh:je+jh,kb-kh:ke+kh))
+         if (ltempeq) then
+            allocate(thl0driver(jb-jh:je+jh,kb-kh:ke+kh))
+            allocate(thlmdriver(jb-jh:je+jh,kb-kh:ke+kh))
+         end if
+         if (lmoist) then
+            allocate(qt0driver(jb-jh:je+jh,kb-kh:ke+kh))
+            allocate(qtmdriver(jb-jh:je+jh,kb-kh:ke+kh))
+         end if
+         if (nsv > 0) then
+            allocate(sv0driver(jb-jhc:je+jhc,kb-khc:ke+khc,1:nsv))
+            allocate(svmdriver(jb-jhc:je+jhc,kb-khc:ke+khc,1:nsv))
+         end if
+
+         do k = kb-kh, ke+kh
+            do j = jb-jh, je+jh
+               u0driver(j,k) = 1.5  + at(0,j,k)
+               umdriver(j,k) = 2.5  + at(0,j,k)
+               v0driver(j,k) = 3.5  + at(0,j,k)
+               vmdriver(j,k) = 4.5  + at(0,j,k)
+               w0driver(j,k) = 5.5  + at(0,j,k)
+               wmdriver(j,k) = 6.5  + at(0,j,k)
+               if (ltempeq) then
+                  thl0driver(j,k) = 293.5 + at(0,j,k)
+                  thlmdriver(j,k) = 294.5 + at(0,j,k)
+               end if
+               if (lmoist) then
+                  qt0driver(j,k) = 0.875 + at(0,j,k)
+                  qtmdriver(j,k) = 0.9375 + at(0,j,k)
+               end if
+            end do
+         end do
+         do n = 1, nsv
+            do k = kb-khc, ke+khc
+               do j = jb-jhc, je+jhc
+                  sv0driver(j,k,n) = 11.0 + 0.25*real(n) + at(0,j,k)
+                  svmdriver(j,k,n) = 12.0 + 0.25*real(n) + at(0,j,k)
+               end do
+            end do
+         end do
+
+         call allocDriverPlanesDevice
+      end subroutine open_driver_planes
+
+      subroutine close_driver_planes
+         implicit none
+
+         call deallocDriverPlanesDevice
+         deallocate(u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver)
+         if (allocated(thl0driver)) deallocate(thl0driver, thlmdriver)
+         if (allocated(qt0driver))  deallocate(qt0driver, qtmdriver)
+         if (allocated(sv0driver))  deallocate(sv0driver, svmdriver)
+      end subroutine close_driver_planes
+
+   end subroutine test_boundary_conditions
+
+   !> Check that the driver recording plane comes down, and the right one.
+   !!
+   !! A driver-generation run records one i-plane of each prognostic field
+   !! every dtdriver, and the plane is now gathered on the device rather than
+   !! the whole field being fetched. Nothing else covers it: the parity
+   !! harness compares netCDF outputs and a driver file is raw binary, and no
+   !! case in the matrix sets idriver at all.
+   !!
+   !! What it would catch is the pair of mistakes this rewrite could make -
+   !! gathering the plane below the one writedriverfile writes, or handing
+   !! back a buffer that was never filled. The device planes are given values
+   !! the host does not have, so a routine that quietly did nothing leaves the
+   !! sentinel behind.
+   subroutine test_driver_plane_handover
+      implicit none
+
+      integer :: i, j, k, n, saved_irecy
+      logical :: made_plane, made_planec
+      real, parameter :: sentinel = -98765.
+      real, allocatable :: want(:,:), got(:,:)
+      real, allocatable :: s_u0(:,:), s_v0(:,:), s_w0(:,:), s_thl0(:,:), s_qt0(:,:)
+      real, allocatable :: s_sv0(:,:,:)
+
+      ! The recycle plane and the one below it both have to be inside the
+      ! domain, which they are for any iplane a real run would use.
+      saved_irecy = irecydriver
+      irecydriver = ib + 1
+
+      made_plane = .not. allocated(plane_d)
+      if (made_plane) then
+         allocate(plane_d(jb-jh:je+jh, kb-kh:ke+kh))
+         allocate(plane_stage(jb-jh:je+jh, kb-kh:ke+kh))
+      end if
+      made_planec = (nsv > 0) .and. (.not. allocated(planec_d))
+      if (made_planec) then
+         allocate(planec_d(jb-jhc:je+jhc, kb-khc:ke+khc))
+         allocate(planec_stage(jb-jhc:je+jhc, kb-khc:ke+khc))
+      end if
+
+      allocate(want(jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(got (jb-jh:je+jh, kb-kh:ke+kh))
+
+      ! Keep what is about to be overwritten on the host.
+      allocate(s_u0,  source=u0(irecydriver, :, :))
+      allocate(s_v0,  source=v0(irecydriver-1, :, :))
+      allocate(s_w0,  source=w0(irecydriver-1, :, :))
+      if (ltempeq) allocate(s_thl0, source=thl0(irecydriver-1, :, :))
+      if (lmoist)  allocate(s_qt0,  source=qt0(irecydriver-1, :, :))
+      if (nsv > 0) allocate(s_sv0,  source=sv0(irecydriver-1, :, :, :))
+
+      call check_plane(irecydriver,   10., 'u0')
+      call check_plane(irecydriver-1, 20., 'v0')
+      call check_plane(irecydriver-1, 30., 'w0')
+      if (ltempeq) call check_plane(irecydriver-1, 40., 'thl0')
+      if (lmoist)  call check_plane(irecydriver-1, 50., 'qt0')
+      do n = 1, nsv
+         call check_plane_sv(irecydriver-1, 60. + real(n), n)
+      end do
+
+      ! Put the host back. The device copies are restored by the first
+      ! updateDevice of the loop, which uploads every field touched here.
+      u0(irecydriver, :, :)   = s_u0
+      v0(irecydriver-1, :, :) = s_v0
+      w0(irecydriver-1, :, :) = s_w0
+      if (allocated(s_thl0)) thl0(irecydriver-1, :, :) = s_thl0
+      if (allocated(s_qt0))  qt0(irecydriver-1, :, :)  = s_qt0
+      if (allocated(s_sv0))  sv0(irecydriver-1, :, :, :) = s_sv0
+
+      if (made_planec) deallocate(planec_d, planec_stage)
+      if (made_plane)  deallocate(plane_d, plane_stage)
+      deallocate(want, got)
+      irecydriver = saved_irecy
+
+   contains
+
+      !> Put a pattern on one device plane, sentinel the host, and fetch.
+      !!
+      !! Each field is written and read one at a time, so a gather that named
+      !! the wrong array would return the previous field's pattern rather than
+      !! one that happens to look plausible.
+      subroutine check_plane(iplane, base, name)
+         implicit none
+         integer,          intent(in) :: iplane
+         real,             intent(in) :: base
+         character(len=*), intent(in) :: name
+
+         do k = kb - kh, ke + kh
+            do j = jb - jh, je + jh
+               want(j, k) = base + 0.125*real(j + zstart(2) - 1) + 0.03125*real(k)
+            end do
+         end do
+
+         ! The pattern goes onto the device through the host copy and a
+         ! whole-array upload, then the host plane is overwritten. Writing the
+         ! device plane directly would be a strided host-to-device section
+         ! assignment, which is exactly the transfer this rewrite exists to
+         ! avoid and not something the test should depend on.
+         select case (name)
+         case ('u0')
+            u0(iplane, :, :) = want ; u0_d = u0 ; u0(iplane, :, :) = sentinel
+         case ('v0')
+            v0(iplane, :, :) = want ; v0_d = v0 ; v0(iplane, :, :) = sentinel
+         case ('w0')
+            w0(iplane, :, :) = want ; w0_d = w0 ; w0(iplane, :, :) = sentinel
+         case ('thl0')
+            thl0(iplane, :, :) = want ; thl0_d = thl0 ; thl0(iplane, :, :) = sentinel
+         case ('qt0')
+            qt0(iplane, :, :) = want ; qt0_d = qt0 ; qt0(iplane, :, :) = sentinel
+         case default
+            call fail_cuda_selftest('driver plane self-test: unknown field '//trim(name))
+         end select
+
+         call updateHostForDriverDump
+
+         select case (name)
+         case ('u0')
+            got = u0(iplane, :, :)
+         case ('v0')
+            got = v0(iplane, :, :)
+         case ('w0')
+            got = w0(iplane, :, :)
+         case ('thl0')
+            got = thl0(iplane, :, :)
+         case ('qt0')
+            got = qt0(iplane, :, :)
+         end select
+
+         if (any(got /= want)) then
+            call fail_cuda_selftest('driver plane '//trim(name))
+         end if
+      end subroutine check_plane
+
+      subroutine check_plane_sv(iplane, base, species)
+         implicit none
+         integer, intent(in) :: iplane, species
+         real,    intent(in) :: base
+
+         real, allocatable :: wantc(:,:), gotc(:,:)
+
+         allocate(wantc(jb-jhc:je+jhc, kb-khc:ke+khc))
+         allocate(gotc (jb-jhc:je+jhc, kb-khc:ke+khc))
+
+         do k = kb - khc, ke + khc
+            do j = jb - jhc, je + jhc
+               wantc(j, k) = base + 0.125*real(j + zstart(2) - 1) + 0.03125*real(k)
+            end do
+         end do
+
+         sv0(iplane, :, :, species) = wantc
+         sv0_d = sv0
+         sv0(iplane, :, :, species) = sentinel
+
+         call updateHostForDriverDump
+
+         gotc = sv0(iplane, :, :, species)
+         if (any(gotc /= wantc)) then
+            call fail_cuda_selftest('driver plane sv0')
+         end if
+
+         deallocate(wantc, gotc)
+      end subroutine check_plane_sv
+
+   end subroutine test_driver_plane_handover
 
 
    !> Pin the two contracts left behind by folding updateHost away.

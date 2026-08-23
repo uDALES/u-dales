@@ -38,6 +38,9 @@ program uDALES
   use tests_cuda,        only : run_cuda_selftests_if_requested
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
+#if defined(_GPU) && defined(UDALES_DEBUG)
+  use modglobal,         only : ladaptive
+#endif
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT, &
                                 TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE,TEST_IBM_WALLFUN, &
                                 TEST_PERIODIC_EBCORR,TEST_MASSCORR,TEST_IBMNORM,TEST_EB, &
@@ -45,7 +48,7 @@ program uDALES
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
-  use modboundary,       only : initboundary,boundary,grwdamp,exchange_halos
+  use modboundary,       only : initboundary,boundary,boundary_conditions,grwdamp,exchange_halos
   use modthermodynamics, only : initthermodynamics,thermodynamics
   use modsubgrid,        only : initsubgrid,subgrid
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,nudge,masscorr,shiftedPBCs,periodicEBcorr
@@ -177,6 +180,16 @@ program uDALES
     ! fields.
 
     stime = MPI_Wtime()
+
+#if defined(_GPU) && defined(UDALES_DEBUG)
+    ! tstep_update is the one host routine left above updateDevice that reads
+    ! fields rather than clocks, and with an adaptive timestep what it reads
+    ! decides dt - so a stale copy here does not corrupt an output, it moves
+    ! the whole solution. ladaptive is the condition because that is when it
+    ! reads them at all; which fields it reads is stated in modcuda, so the
+    ! two lists can disagree and be caught.
+    if (ladaptive) call assertHostMatchesDevice('tstep_update')
+#endif
 
     call tstep_update
     call print_time('tstep_update')
@@ -324,17 +337,22 @@ program uDALES
     call statsdump
     call print_time('statsdump')
 
+    ! Above the handover, not below it, now that it runs on the device: the
+    ! boundary planes go on before the host copies are taken, rather than being
+    ! written into host memory afterwards and carried back up by the next
+    ! updateDevice. It ends by clearing the pull bitmap, because fielddump and
+    ! statsdump have already fetched some of these fields further up.
+    call boundary_conditions
+    call print_time('boundary_conditions')
+
 #if defined(_GPU)
     ! And what the host routines still left in the loop need, which is every
-    ! prognostic field, on every stage. boundary writes their boundary planes
-    ! and thermodynamics reads and derives from them, and the next updateDevice
-    ! uploads the result - so this one is correctness, not output.
+    ! prognostic field, on every stage. thermodynamics reads and derives from
+    ! them, and the next updateDevice uploads the result - so this one is
+    ! correctness, not output.
     call updateHostForUnportedRoutines
 #endif
     call print_time('updateHostForUnportedRoutines')
-
-    call boundary
-    call print_time('boundary')
 
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
