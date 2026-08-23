@@ -22,7 +22,7 @@ module tests
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, &
             tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun, &
             tests_periodic_ebcorr, tests_masscorr, tests_ibmnorm, tests_eb, &
-            tests_vegetation, tests_checksim
+            tests_vegetation, tests_checksim, tests_driver_planes
 
 contains
 
@@ -4565,6 +4565,495 @@ contains
     end function diffnr_poison
 
   end function tests_checksim
+
+
+  !> drivergen must leave every driver inlet plane current, in the one call.
+  !!
+  !! This is the host half of the invariant the GPU driver inlet rests on.
+  !! initCUDA mirrors the twelve planes onto the device and fills them there
+  !! and then - see modcuda.f90::allocDriverPlanesDevice - because by the time
+  !! it runs, initdriver has read the driver file and the boundary call in the
+  !! initialisation sequence has run drivergen over it. One upload at that
+  !! point is a complete upload only if drivergen really does write all twelve
+  !! planes, which is what the passes below pin down.
+  !!
+  !! The last pass is the reason the fill cannot be left to the time loop.
+  !! drivergen writes the m planes only on rk3step 0 or 3, and boundary_device
+  !! uploads on exactly those stages for that reason, so nothing uploads a
+  !! complete set until the end of the first step. Allocating the device
+  !! planes without filling them left the first two stages of the first step
+  !! reading whatever the allocation landed on: case 452 came out of its first
+  !! step with a divergence of 4.33 against 2.7E-13 on the host.
+  !!
+  !! Both readers are covered. With lchunkread off, drivergen indexes the
+  !! whole record set directly. With it on, only a window of chunkread_size
+  !! records is resident, slot 0 carries the last record of the previous
+  !! window over, and drivergen maps the global record x to a slot with
+  !!
+  !!     xc = mod(x, chunkread_size)
+  !!     if (xc == 0) xc = x - (chunkreadctr - 2)*chunkread_size
+  !!
+  !! which is its own way to be wrong. The chunk passes below put the window
+  !! on the second chunk as well as the first, so the carry-over slot and the
+  !! non-zero (chunkreadctr - 2) term both have to be right - on the first
+  !! chunk that term is zero and the correction is indistinguishable from
+  !! xc = x. Nothing about the transfer changes between the two: the record
+  !! store never goes to the device, only the twelve planes drivergen builds
+  !! from it, so the chunk boundary is invisible on the far side.
+  !!
+  !! The store is built here rather than read from a file, so the expected
+  !! values follow from the interpolation arithmetic instead of from a fixture
+  !! that would have to be regenerated with the code it checks. Every record
+  !! is linear in the record index and every time below is a dyadic fraction,
+  !! so the interpolated answer is exact and the tolerance only absorbs the
+  !! rotation.
+  !!
+  !! Returns .true. if all checks pass, .false. otherwise.
+  logical function tests_driver_planes()
+    use modglobal,    only : runmode, jb, je, jh, kb, ke, kh, jhc, khc, nsv, &
+                             ltempeq, lmoist, idriver, driverstore, lchunkread, &
+                             lhdriver, lqdriver, lsdriver, timee, btime, runtime, &
+                             rk3step, lwarmstart, driverid, chunkread_size
+    use modinletdata, only : storetdriver, &
+                             storeu0driver, storeumdriver, storev0driver, storevmdriver, &
+                             storew0driver, storewmdriver, storethl0driver, storethlmdriver, &
+                             storeqt0driver, storeqtmdriver, storesv0driver, storesvmdriver, &
+                             u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver, &
+                             thl0driver, thlmdriver, qt0driver, qtmdriver, &
+                             sv0driver, svmdriver, u0driverrot, v0driverrot, &
+                             iangle, nstepreaddriver, &
+                             chunkreadctr, chunkread_s, chunkread_e
+    use moddriver,    only : drivergen
+    use decomp_2d,    only : zstart
+
+    implicit none
+
+    ! Eight records in two windows of four, so that the chunk passes can put
+    ! the window on either one.
+    integer, parameter :: nrec = 8, chunk = 4
+    real,    parameter :: t_first = 0.25, dt_rec = 0.5
+    real,    parameter :: c_u0 = 1., c_v0 = 3., c_w0 = 5., &
+                          c_thl0 = 7., c_qt0 = 9., c_sv0 = 11.
+    real,    parameter :: sentinel = -8888., poison = -7777.
+    real,    parameter :: tol = 1e-12
+
+    logical :: all_passed
+    integer :: nreport
+
+    ! A wrong plane is wrong at every point of it, and there are thousands.
+    ! Name the first few and count the rest.
+    nreport = 0
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_driver_planes: DRIVER INLET PLANE GENERATION TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    ! Do not pass vacuously on a namelist that switches the optional groups
+    ! off - those are three of the twelve planes.
+    if (.not. ltempeq .or. .not. lmoist .or. nsv < 1) then
+      if (myid == 0) then
+        write(*, '(A)') 'FAIL: this runmode needs ltempeq, lmoist and nsv > 0 to cover'
+        write(*, '(A)') '  the temperature, moisture and scalar driver planes.'
+      end if
+      tests_driver_planes = .false.
+      return
+    end if
+
+    ! Stand in for initdriver, which program.f90 runs long after this point
+    ! and which would want a driver file on disk.
+    idriver     = 2
+    lchunkread  = .false.
+    lhdriver    = .true.
+    lqdriver    = .true.
+    lsdriver    = .true.
+    lwarmstart  = .false.
+    driverid    = 0
+    btime       = 0.
+    runtime     = 4.
+    nstepreaddriver = 0
+    iangle      = 0.
+    chunkread_size = chunk
+
+    all_passed = .true.
+
+    ! ---- the whole record set resident -----------------------------------
+    lchunkread = .false.
+    call alloc_store(1, nrec)
+    call fill_store(0)
+
+    ! rk3step 0 is the stage the initialisation-sequence call to boundary runs
+    ! drivergen on, and the one whose result initCUDA uploads.
+    rk3step = 0
+    all_passed = one_pass('on a record',            1.25,  3.  ) .and. all_passed
+    all_passed = one_pass('before the first',       0.125, 1.  ) .and. all_passed
+    all_passed = one_pass('interpolated forward',   0.375, 1.25) .and. all_passed
+    all_passed = one_pass('interpolated backward',  0.625, 1.75) .and. all_passed
+
+    ! With an inflow angle, which is applied to u and v after the
+    ! interpolation and before the m planes are taken. A copy made ahead of
+    ! the rotation would leave um and u0 disagreeing.
+    iangle = 0.375
+    all_passed = one_pass('rotated inlet', 1.25, 3.) .and. all_passed
+    iangle = 0.
+
+    ! rk3step 3 is the stage the time loop uploads on.
+    rk3step = 3
+    all_passed = one_pass('last stage', 1.75, 4.) .and. all_passed
+
+    all_passed = m_planes_held() .and. all_passed
+    call drop_store
+
+    ! ---- a window of the record set resident -----------------------------
+    ! readdriverfile_chunk leaves chunkreadctr one past the window it just
+    ! read, which is what drivergen's slot arithmetic is written against, so
+    ! that is what is set here. The file reading itself is not exercised -
+    ! what it produces is, which is the state below.
+    lchunkread = .true.
+    rk3step    = 0
+
+    ! First window: records 1 to 4 in slots 1 to 4. Slot 0 would hold the
+    ! record before the window, which does not exist here, so it is poisoned -
+    ! no pass below has any business reading it.
+    call alloc_store(0, chunk)
+    call fill_store(0)
+    call poison_slot(0)
+    chunkreadctr = 2
+    chunkread_s  = 1
+    chunkread_e  = chunk
+    all_passed = one_pass('chunk 1, on a record',           1.25,  3.  ) .and. all_passed
+    all_passed = one_pass('chunk 1, before the first',      0.125, 1.  ) .and. all_passed
+    all_passed = one_pass('chunk 1, interpolated forward',  0.375, 1.25) .and. all_passed
+    all_passed = one_pass('chunk 1, interpolated backward', 0.625, 1.75) .and. all_passed
+    ! x = 4 is a multiple of chunkread_size, so mod gives 0 and the correction
+    ! runs. On this window its (chunkreadctr - 2) term is zero.
+    all_passed = one_pass('chunk 1, last of the window',    1.75,  4.  ) .and. all_passed
+    call drop_store
+
+    ! Second window: records 5 to 8 in slots 1 to 4, with record 4 carried
+    ! over into slot 0.
+    call alloc_store(0, chunk)
+    call fill_store(chunk)
+    chunkreadctr = 3
+    chunkread_s  = chunk + 1
+    chunkread_e  = nrec
+    all_passed = one_pass('chunk 2, on a record',           2.25,  5.  ) .and. all_passed
+    ! Interpolating back across the window boundary: the older of the two
+    ! records is the carry-over in slot 0, and nothing else reaches it.
+    all_passed = one_pass('chunk 2, across the boundary',   2.125, 4.75) .and. all_passed
+    all_passed = one_pass('chunk 2, interpolated forward',  2.375, 5.25) .and. all_passed
+    ! x = 8, so mod gives 0 again - but here the correction's
+    ! (chunkreadctr - 2)*chunkread_size term is 4, not 0, and dropping it
+    ! would index slot 8 of a window that only has four.
+    all_passed = one_pass('chunk 2, last of the window',    3.75,  8.  ) .and. all_passed
+    call drop_store
+    lchunkread = .false.
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)') 'tests_driver_planes: PASSED'
+      else
+        write(*, '(A,I0,A)') 'tests_driver_planes: FAILED (', nreport, ' points reported)'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_driver_planes = all_passed
+
+  contains
+
+    !> The value stored for field c at record n, at (j,k).
+    !!
+    !! Linear in n, so linear interpolation between any two records is exact
+    !! and the expected answer is the same expression at a fractional index.
+    !! The global j is what stops a plane gathered for the other rank from
+    !! passing on a two-rank run.
+    real function stored(c, j, k, xn)
+      real,    intent(in) :: c, xn
+      integer, intent(in) :: j, k
+
+      stored = 0.125*real(j + zstart(2) - 1) + 0.03125*real(k) + c + xn
+    end function stored
+
+    !> The record store, with slots lo..hi. For the whole-set reader that is
+    !! 1..driverstore; for the chunk reader it is 0..chunkread_size, where
+    !! slot 0 carries the record before the window.
+    subroutine alloc_store(lo, hi)
+      integer, intent(in) :: lo, hi
+      integer :: m
+
+      allocate(storetdriver(1:nrec))
+      do m = 1, nrec
+        storetdriver(m) = t_first + real(m - 1)*dt_rec
+      end do
+      driverstore = nrec
+
+      allocate(storeu0driver (jb-jh:je+jh, kb-kh:ke+kh, lo:hi))
+      allocate(storev0driver (jb-jh:je+jh, kb-kh:ke+kh, lo:hi))
+      allocate(storew0driver (jb-jh:je+jh, kb-kh:ke+kh, lo:hi))
+      allocate(storethl0driver(jb-jh:je+jh, kb-kh:ke+kh, lo:hi))
+      allocate(storeqt0driver(jb-jh:je+jh, kb-kh:ke+kh, lo:hi))
+      allocate(storesv0driver(jb-jhc:je+jhc, kb-khc:ke+khc, 1:nsv, lo:hi))
+
+      ! drivergen takes the m planes from the 0 planes it has just built, not
+      ! from the store. Poison the m store so that sourcing them from the file
+      ! instead would show up as an m plane that does not match its 0 plane.
+      allocate(storeumdriver (jb-jh:je+jh, kb-kh:ke+kh, lo:hi))
+      allocate(storevmdriver (jb-jh:je+jh, kb-kh:ke+kh, lo:hi))
+      allocate(storewmdriver (jb-jh:je+jh, kb-kh:ke+kh, lo:hi))
+      allocate(storethlmdriver(jb-jh:je+jh, kb-kh:ke+kh, lo:hi))
+      allocate(storeqtmdriver(jb-jh:je+jh, kb-kh:ke+kh, lo:hi))
+      allocate(storesvmdriver(jb-jhc:je+jhc, kb-khc:ke+khc, 1:nsv, lo:hi))
+      storeumdriver  = poison
+      storevmdriver  = poison
+      storewmdriver  = poison
+      storethlmdriver = poison
+      storeqtmdriver = poison
+      storesvmdriver = poison
+
+      call alloc_planes
+    end subroutine alloc_store
+
+    !> Put global record base + m into slot m, over whatever slots exist.
+    !!
+    !! base is 0 for the whole-set reader and for the first window, and
+    !! chunkread_s - 1 for a later window - so slot 0 of the second window
+    !! holds the last record of the first, which is what
+    !! readdriverfile_chunk carries over.
+    subroutine fill_store(base)
+      integer, intent(in) :: base
+      integer :: j, k, m, n
+
+      do m = lbound(storeu0driver, 3), ubound(storeu0driver, 3)
+        do k = kb-kh, ke+kh
+          do j = jb-jh, je+jh
+            storeu0driver  (j,k,m) = stored(c_u0,   j, k, real(base + m))
+            storev0driver  (j,k,m) = stored(c_v0,   j, k, real(base + m))
+            storew0driver  (j,k,m) = stored(c_w0,   j, k, real(base + m))
+            storethl0driver(j,k,m) = stored(c_thl0, j, k, real(base + m))
+            storeqt0driver (j,k,m) = stored(c_qt0,  j, k, real(base + m))
+          end do
+        end do
+        do n = 1, nsv
+          do k = kb-khc, ke+khc
+            do j = jb-jhc, je+jhc
+              storesv0driver(j,k,n,m) = stored(c_sv0 + 0.5*real(n), j, k, real(base + m))
+            end do
+          end do
+        end do
+      end do
+    end subroutine fill_store
+
+    !> Make one slot unreadable, for a slot no pass should reach.
+    subroutine poison_slot(m)
+      integer, intent(in) :: m
+
+      storeu0driver  (:,:,m)   = poison
+      storev0driver  (:,:,m)   = poison
+      storew0driver  (:,:,m)   = poison
+      storethl0driver(:,:,m)   = poison
+      storeqt0driver (:,:,m)   = poison
+      storesv0driver (:,:,:,m) = poison
+    end subroutine poison_slot
+
+    subroutine alloc_planes
+      allocate(u0driver  (jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(umdriver  (jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(v0driver  (jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(vmdriver  (jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(w0driver  (jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(wmdriver  (jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(thl0driver(jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(thlmdriver(jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(qt0driver (jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(qtmdriver (jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(sv0driver (jb-jhc:je+jhc, kb-khc:ke+khc, 1:nsv))
+      allocate(svmdriver (jb-jhc:je+jhc, kb-khc:ke+khc, 1:nsv))
+      allocate(u0driverrot(jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(v0driverrot(jb-jh:je+jh, kb-kh:ke+kh))
+    end subroutine alloc_planes
+
+    subroutine drop_store
+      deallocate(storetdriver)
+      deallocate(storeu0driver, storev0driver, storew0driver, &
+                 storethl0driver, storeqt0driver, storesv0driver)
+      deallocate(storeumdriver, storevmdriver, storewmdriver, &
+                 storethlmdriver, storeqtmdriver, storesvmdriver)
+      deallocate(u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver, &
+                 thl0driver, thlmdriver, qt0driver, qtmdriver, &
+                 sv0driver, svmdriver, u0driverrot, v0driverrot)
+    end subroutine drop_store
+
+    subroutine sentinel_planes
+      u0driver = sentinel ; umdriver = sentinel
+      v0driver = sentinel ; vmdriver = sentinel
+      w0driver = sentinel ; wmdriver = sentinel
+      thl0driver = sentinel ; thlmdriver = sentinel
+      qt0driver = sentinel ; qtmdriver = sentinel
+      sv0driver = sentinel ; svmdriver = sentinel
+    end subroutine sentinel_planes
+
+    !> One drivergen call at time t, whose answer is record index xn.
+    !!
+    !! Three separate claims: that the 0 planes hold the interpolated record,
+    !! that the m planes hold the same thing, and that nothing was left at the
+    !! sentinel. The last is what makes a plane nobody thought to check here
+    !! still able to fail.
+    logical function one_pass(label, t, xn)
+      character(len=*), intent(in) :: label
+      real,             intent(in) :: t, xn
+
+      real    :: ca, sa, eu, ev
+      integer :: j, k, n
+
+      call sentinel_planes
+      timee = t
+      call drivergen
+
+      ca = cos(iangle)
+      sa = sin(iangle)
+      one_pass = .true.
+
+      do k = kb-kh, ke+kh
+        do j = jb-jh, je+jh
+          eu = stored(c_u0, j, k, xn)
+          ev = stored(c_v0, j, k, xn)
+          one_pass = near(label, 'u0driver',   u0driver(j,k),   eu*ca - ev*sa) .and. one_pass
+          one_pass = near(label, 'v0driver',   v0driver(j,k),   ev*ca + eu*sa) .and. one_pass
+          one_pass = near(label, 'w0driver',   w0driver(j,k),   stored(c_w0,   j, k, xn)) .and. one_pass
+          one_pass = near(label, 'thl0driver', thl0driver(j,k), stored(c_thl0, j, k, xn)) .and. one_pass
+          one_pass = near(label, 'qt0driver',  qt0driver(j,k),  stored(c_qt0,  j, k, xn)) .and. one_pass
+
+          ! The m planes are a straight copy, so exact equality is the claim.
+          one_pass = same(label, 'umdriver',  umdriver(j,k),  u0driver(j,k))   .and. one_pass
+          one_pass = same(label, 'vmdriver',  vmdriver(j,k),  v0driver(j,k))   .and. one_pass
+          one_pass = same(label, 'wmdriver',  wmdriver(j,k),  w0driver(j,k))   .and. one_pass
+          one_pass = same(label, 'thlmdriver', thlmdriver(j,k), thl0driver(j,k)) .and. one_pass
+          one_pass = same(label, 'qtmdriver', qtmdriver(j,k), qt0driver(j,k))  .and. one_pass
+        end do
+      end do
+
+      do n = 1, nsv
+        do k = kb-khc, ke+khc
+          do j = jb-jhc, je+jhc
+            one_pass = near(label, 'sv0driver', sv0driver(j,k,n), &
+                            stored(c_sv0 + 0.5*real(n), j, k, xn)) .and. one_pass
+            one_pass = same(label, 'svmdriver', svmdriver(j,k,n), sv0driver(j,k,n)) .and. one_pass
+          end do
+        end do
+      end do
+
+      one_pass = no_sentinel(label) .and. one_pass
+    end function one_pass
+
+    !> Every one of the twelve planes must have been written.
+    logical function no_sentinel(label)
+      character(len=*), intent(in) :: label
+
+      no_sentinel = .true.
+      no_sentinel = written(label, 'u0driver',   any(u0driver   == sentinel)) .and. no_sentinel
+      no_sentinel = written(label, 'umdriver',   any(umdriver   == sentinel)) .and. no_sentinel
+      no_sentinel = written(label, 'v0driver',   any(v0driver   == sentinel)) .and. no_sentinel
+      no_sentinel = written(label, 'vmdriver',   any(vmdriver   == sentinel)) .and. no_sentinel
+      no_sentinel = written(label, 'w0driver',   any(w0driver   == sentinel)) .and. no_sentinel
+      no_sentinel = written(label, 'wmdriver',   any(wmdriver   == sentinel)) .and. no_sentinel
+      no_sentinel = written(label, 'thl0driver', any(thl0driver == sentinel)) .and. no_sentinel
+      no_sentinel = written(label, 'thlmdriver', any(thlmdriver == sentinel)) .and. no_sentinel
+      no_sentinel = written(label, 'qt0driver',  any(qt0driver  == sentinel)) .and. no_sentinel
+      no_sentinel = written(label, 'qtmdriver',  any(qtmdriver  == sentinel)) .and. no_sentinel
+      no_sentinel = written(label, 'sv0driver',  any(sv0driver  == sentinel)) .and. no_sentinel
+      no_sentinel = written(label, 'svmdriver',  any(svmdriver  == sentinel)) .and. no_sentinel
+    end function no_sentinel
+
+    logical function written(label, name, left)
+      character(len=*), intent(in) :: label, name
+      logical,          intent(in) :: left
+
+      written = .not. left
+      if (left) then
+        nreport = nreport + 1
+        if (nreport <= 20 .and. myid == 0) then
+          write(*,'(A,I0,A,A,A,A)') 'FAIL on rank ', myid, ': ', name, &
+               ' left unwritten at ', label
+        end if
+      end if
+    end function written
+
+    !> The m planes move only on rk3step 0 and 3.
+    !!
+    !! Which is why boundary_device uploads on exactly those stages, and why
+    !! the first fill has to come from initCUDA rather than from the loop:
+    !! the first two stages of the first step never upload at all.
+    logical function m_planes_held()
+      real, allocatable :: keep_um(:,:), keep_thlm(:,:)
+      real, allocatable :: keep_svm(:,:,:)
+
+      m_planes_held = .true.
+
+      rk3step = 3
+      timee   = 1.25
+      call drivergen
+      allocate(keep_um,   source=umdriver)
+      allocate(keep_thlm, source=thlmdriver)
+      allocate(keep_svm,  source=svmdriver)
+
+      rk3step = 1
+      timee   = 1.75
+      call drivergen
+
+      if (any(umdriver /= keep_um) .or. any(thlmdriver /= keep_thlm) .or. &
+          any(svmdriver /= keep_svm)) then
+        nreport = nreport + 1
+        if (myid == 0) write(*,'(A,I0,A)') 'FAIL on rank ', myid, &
+             ': the m driver planes moved on rk3step 1'
+        m_planes_held = .false.
+      end if
+
+      ! And the 0 planes did move, so the pass above is not passing because
+      ! drivergen did nothing at all.
+      if (all(u0driver == keep_um)) then
+        nreport = nreport + 1
+        if (myid == 0) write(*,'(A,I0,A)') 'FAIL on rank ', myid, &
+             ': the 0 driver planes did not move on rk3step 1'
+        m_planes_held = .false.
+      end if
+
+      deallocate(keep_um, keep_thlm, keep_svm)
+      rk3step = 0
+    end function m_planes_held
+
+    logical function near(label, name, got, want)
+      character(len=*), intent(in) :: label, name
+      real,             intent(in) :: got, want
+
+      near = abs(got - want) <= tol*max(1., abs(want))
+      if (.not. near) then
+        nreport = nreport + 1
+        if (nreport <= 20 .and. myid == 0) then
+          write(*,'(A,I0,A,A,A,A,A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, &
+               ': ', name, ' at ', label, ' = ', got, ' want ', want
+        end if
+      end if
+    end function near
+
+    logical function same(label, name, got, want)
+      character(len=*), intent(in) :: label, name
+      real,             intent(in) :: got, want
+
+      same = got == want
+      if (.not. same) then
+        nreport = nreport + 1
+        if (nreport <= 20 .and. myid == 0) then
+          write(*,'(A,I0,A,A,A,A,A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, &
+               ': ', name, ' at ', label, ' = ', got, ' want ', want
+        end if
+      end if
+    end function same
+
+  end function tests_driver_planes
 
 
 end module tests

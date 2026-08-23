@@ -312,9 +312,10 @@ module modcuda
          allocate(vprof_d(kb:ke+kh))
          allocate(u0driver_d(jb-jh:je+jh,kb-kh:ke+kh))
 
-         ! The remaining driver planes, for a run that reads one. u0driver_d
-         ! above stays unconditional because the device self-tests use it as
-         ! scratch for the driver pressure kernel.
+         ! The remaining driver planes, for a run that reads one, filled as
+         ! they are allocated - see allocDriverPlanesDevice for why the two
+         ! are one step. u0driver_d above stays unconditional because the
+         ! device self-tests use it as scratch for the driver pressure kernel.
          if (BCxm == BCxm_driver) call allocDriverPlanesDevice
 
          ! And the staging for a run that records one.
@@ -790,11 +791,19 @@ module modcuda
             uprof_d = uprof
             vprof_d = vprof
          end if
-         ! u0driver and the eleven planes beside it are uploaded by
-         ! updateDriverPlanesDevice, which boundary_device calls right after
-         ! drivergen rewrites them. Kept here as well because bcpup reads
-         ! u0driver_d earlier in the step than boundary runs.
-         if (BCxm == BCxm_driver) u0driver_d = u0driver
+         ! The driver inlet planes are deliberately not here. drivergen is the
+         ! only thing that writes them, and every call to it is paired with an
+         ! upload: the ones in readinitfiles by the fill inside
+         ! allocDriverPlanesDevice, which initCUDA runs afterwards, and the one
+         ! in boundary_device by the updateDriverPlanesDevice beside it. So
+         ! u0driver_d is already current when bcpup reads it, on the first
+         ! stage of the first step as much as on any later one.
+         !
+         ! Re-uploading u0driver_d alone here would cost nothing, but it would
+         ! put back the thing that made this hard to read the first time: with
+         ! u0 arriving by a second route and the other eleven planes not, a
+         ! missing fill showed up as a wrong inlet in v, w, thl and qt while u
+         ! looked right. Twelve planes wrong together is a legible failure.
 
          if (loneeqn) then
             e12m_d = e12m
@@ -1186,14 +1195,37 @@ module modcuda
 
       end subroutine updateHostForUnportedRoutines
 
-      !> Mirror the driver inlet planes that boundary_device reads.
+      !> Mirror the driver inlet planes that boundary_device reads, and fill them.
       !!
       !! Allocated from initCUDA, which runs after initdriver, so the host
       !! shapes are already known. The optional groups follow the host: a run
       !! can drive momentum from a file without driving temperature, moisture
       !! or the scalars, and then those planes do not exist on either side.
+      !!
+      !! The fill is part of allocating rather than a second call at the call
+      !! site because there is no point in the run at which these may be read
+      !! unfilled, and one caller forgetting is not a state worth being able
+      !! to represent. By the time initCUDA runs the host planes are already
+      !! complete: initdriver has read the driver file and the boundary call
+      !! in the initialisation sequence has run drivergen over it at rk3step
+      !! 0, which is the step that writes the m planes as well as the 0 ones.
+      !!
+      !! Leaving the fill to the loop does not work. boundary_device calls
+      !! updateDriverPlanesDevice only on the stage drivergen itself runs on,
+      !! the last of the three, so the first two stages of the first step
+      !! would read whatever the allocation happened to land on. updateDevice
+      !! uploads u0driver_d for bcpup and nothing else, so u0 was the one
+      !! inlet field that came out right: case 452 left its first step with a
+      !! divergence of 4.33 against 2.7E-13 for the same case on the host, a
+      !! 40 K temperature anomaly at the inlet, and never recovered.
       subroutine allocDriverPlanesDevice
          implicit none
+
+         ! initdriver allocates the host planes under idriver .and. ibrank,
+         ! and xmi_driver_device only runs under ibrank too. On a rank that
+         ! does not own the inlet there is nothing to mirror and nothing that
+         ! would read the mirror.
+         if (.not. allocated(u0driver)) return
 
          allocate(umdriver_d(jb-jh:je+jh,kb-kh:ke+kh))
          allocate(v0driver_d(jb-jh:je+jh,kb-kh:ke+kh))
@@ -1214,10 +1246,15 @@ module modcuda
             allocate(svmdriver_d(jb-jhc:je+jhc,kb-khc:ke+khc,1:nsv))
          end if
 
+         call updateDriverPlanesDevice
+
       end subroutine allocDriverPlanesDevice
 
       subroutine deallocDriverPlanesDevice
          implicit none
+
+         ! Nothing was allocated on a rank that does not own the inlet.
+         if (.not. allocated(umdriver_d)) return
 
          deallocate(umdriver_d, v0driver_d, vmdriver_d, w0driver_d, wmdriver_d)
          if (allocated(thl0driver_d)) deallocate(thl0driver_d, thlmdriver_d)
@@ -1229,13 +1266,16 @@ module modcuda
       !> Send the driver inlet planes up, after drivergen has rewritten them.
       !!
       !! Called from boundary_device at the point drivergen returns, which is
-      !! the only thing that writes them. Twelve j-k planes is a few hundred
-      !! kilobytes against the hundred-odd megabytes a prognostic field costs,
-      !! and it happens on the first and last stage of a step rather than on
-      !! all three - so the driver inlet stays on the device for what it is
-      !! worth to keep it there.
+      !! the only thing that writes them, and from allocDriverPlanesDevice for
+      !! the first fill. Twelve j-k planes is a few hundred kilobytes against
+      !! the hundred-odd megabytes a prognostic field costs, and it happens on
+      !! the first and last stage of a step rather than on all three - so the
+      !! driver inlet stays on the device for what it is worth to keep it there.
       subroutine updateDriverPlanesDevice
          implicit none
+
+         ! The mirror only exists on the ranks that own the inlet.
+         if (.not. allocated(umdriver_d)) return
 
          u0driver_d = u0driver
          umdriver_d = umdriver

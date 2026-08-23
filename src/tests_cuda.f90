@@ -22,6 +22,10 @@ module tests_cuda
                         vp_d, qtp_d, svp_d, u0av_d, v0av_d, thl0av_d, qt0av_d, sv0av_d, &
                         uprof_d, vprof_d, thlprof_d, qtprof_d, svprof_d, e12prof_d, &
                         allocDriverPlanesDevice, deallocDriverPlanesDevice, &
+                        updateDriverPlanesDevice, &
+                        umdriver_d, v0driver_d, vmdriver_d, w0driver_d, wmdriver_d, &
+                        thl0driver_d, thlmdriver_d, qt0driver_d, qtmdriver_d, &
+                        sv0driver_d, svmdriver_d, &
                         updateHostForDriverDump, plane_d, plane_stage, &
                         planec_d, planec_stage, &
                         ekm_d, ekh_d, pres0_d, fachf_d, facef_d, fachfi_d, facefi_d, &
@@ -127,6 +131,9 @@ contains
 
       select case (trim(adjustl(request)))
       case ('1', 'true', 'TRUE', 'yes', 'YES', 'on', 'ON')
+         ! First, before anything here has had a chance to write a device
+         ! driver plane: its opening pass reads them as initCUDA left them.
+         call test_driver_plane_seed
          call test_initfield_extended_halos
          call test_kappa_limiter
          call test_kappa_scalar_advection
@@ -163,6 +170,268 @@ contains
          error stop 1
       end select
    end subroutine run_cuda_selftests_if_requested
+
+   !> The driver inlet planes have to be live on the device when initCUDA
+   !! returns, not from the first stage that happens to run drivergen.
+   !!
+   !! What this is about: boundary_device uploads the twelve planes from
+   !! updateDriverPlanesDevice only on the stage drivergen itself runs on,
+   !! which is the last of the three. Allocating them without filling them
+   !! leaves the first two stages of the first step reading whatever the
+   !! allocation landed on. Case 452 left its first step with a divergence of
+   !! 4.33 against 2.7E-13 for the same case on the host, a 40 K anomaly at
+   !! the inlet, and never recovered.
+   !!
+   !! It took as long as it did to place because updateDevice used to upload
+   !! u0driver_d on its own, for bcpup, so u0 was the one inlet field that
+   !! still came out right while v, w, thl and qt were wrong. That copy is
+   !! gone - test_bc_profile_upload holds it gone - so a regression here now
+   !! shows up in all twelve planes at once.
+   !!
+   !! Two passes, because neither covers the ground the other does.
+   !!
+   !! The first is the invariant itself, read in place. These self-tests run
+   !! from program.f90 immediately after initCUDA and before the time loop,
+   !! so on a run that reads a driver file the device planes must already
+   !! equal the host ones. No case in the GPU matrix sets BCxm to the driver
+   !! inlet - this pass is what a real driver run built with UDALES_DEBUG
+   !! gets, and it is the check that fires on the actual bug.
+   !!
+   !! The second builds the situation on any case at all, driver or not: put
+   !! a pattern on the host planes, tear the device side down, and ask for it
+   !! back. Allocation is the only thing that runs in between, so the pattern
+   !! returns only if allocating fills. That is what keeps the matrix honest
+   !! about a routine none of its cases calls.
+   subroutine test_driver_plane_seed
+      implicit none
+
+      logical :: made_host, had_device
+      real, allocatable :: got2(:, :), got3(:, :, :)
+      real, allocatable :: s_u0(:, :), s_um(:, :), s_v0(:, :), s_vm(:, :), &
+                           s_w0(:, :), s_wm(:, :), s_thl0(:, :), s_thlm(:, :), &
+                           s_qt0(:, :), s_qtm(:, :)
+      real, allocatable :: s_sv0(:, :, :), s_svm(:, :, :)
+
+      allocate(got2(jb-jh:je+jh, kb-kh:ke+kh))
+      if (nsv > 0) allocate(got3(jb-jhc:je+jhc, kb-khc:ke+khc, 1:nsv))
+
+      ! Pass one: as initCUDA left them.
+      if (BCxm == BCxm_driver .and. allocated(u0driver)) then
+         if (.not. allocated(umdriver_d)) then
+            call fail_cuda_selftest('driver plane seed: no device mirror after initCUDA')
+         end if
+         call check_planes('as initCUDA left them')
+      end if
+
+      ! Pass two: through the allocation path, on whatever case this is.
+      made_host = .not. allocated(u0driver)
+      had_device = allocated(umdriver_d)
+
+      if (made_host) then
+         call make_host_planes
+      else
+         allocate(s_u0, source=u0driver)
+         allocate(s_um, source=umdriver)
+         allocate(s_v0, source=v0driver)
+         allocate(s_vm, source=vmdriver)
+         allocate(s_w0, source=w0driver)
+         allocate(s_wm, source=wmdriver)
+         if (allocated(thl0driver)) then
+            allocate(s_thl0, source=thl0driver)
+            allocate(s_thlm, source=thlmdriver)
+         end if
+         if (allocated(qt0driver)) then
+            allocate(s_qt0, source=qt0driver)
+            allocate(s_qtm, source=qtmdriver)
+         end if
+         if (allocated(sv0driver)) then
+            allocate(s_sv0, source=sv0driver)
+            allocate(s_svm, source=svmdriver)
+         end if
+      end if
+
+      call pattern_host
+
+      if (had_device) call deallocDriverPlanesDevice
+      call allocDriverPlanesDevice
+      if (.not. allocated(umdriver_d)) then
+         call fail_cuda_selftest('driver plane seed: allocation skipped with host planes present')
+      end if
+      call check_planes('through allocDriverPlanesDevice')
+
+      ! Put the run back the way it was found. The device side is rebuilt
+      ! from the restored host planes, so the loop sees what initCUDA left.
+      call deallocDriverPlanesDevice
+      if (made_host) then
+         call drop_host_planes
+      else
+         u0driver = s_u0
+         umdriver = s_um
+         v0driver = s_v0
+         vmdriver = s_vm
+         w0driver = s_w0
+         wmdriver = s_wm
+         if (allocated(s_thl0)) thl0driver = s_thl0
+         if (allocated(s_thlm)) thlmdriver = s_thlm
+         if (allocated(s_qt0))  qt0driver  = s_qt0
+         if (allocated(s_qtm))  qtmdriver  = s_qtm
+         if (allocated(s_sv0))  sv0driver  = s_sv0
+         if (allocated(s_svm))  svmdriver  = s_svm
+         call allocDriverPlanesDevice
+      end if
+
+      ! u0driver_d outlives the driver planes - initCUDA allocates it on
+      ! every case because the driver pressure kernel self-test needs the
+      ! scratch. Leave it holding what it held.
+      if (allocated(u0driver)) then
+         u0driver_d = u0driver
+      else
+         u0driver_d = 0.
+      end if
+
+      if (allocated(got3)) deallocate(got3)
+      deallocate(got2)
+
+   contains
+
+      !> Every plane the host has must be on the device, and must match.
+      !!
+      !! Gated on the host being allocated rather than on the device copy,
+      !! so a group that failed to be allocated at all fails here instead of
+      !! quietly skipping its own check.
+      subroutine check_planes(label)
+         character(len=*), intent(in) :: label
+
+         ! Fetched here rather than inside one2 so that no device array is
+         ! ever a dummy argument: an assumed-shape device dummy copies the
+         ! descriptor instead of the data.
+         got2 = u0driver_d ; call one2(label, 'u0driver', u0driver)
+         got2 = umdriver_d ; call one2(label, 'umdriver', umdriver)
+         got2 = v0driver_d ; call one2(label, 'v0driver', v0driver)
+         got2 = vmdriver_d ; call one2(label, 'vmdriver', vmdriver)
+         got2 = w0driver_d ; call one2(label, 'w0driver', w0driver)
+         got2 = wmdriver_d ; call one2(label, 'wmdriver', wmdriver)
+
+         if (allocated(thl0driver)) then
+            if (.not. allocated(thl0driver_d)) then
+               call fail_cuda_selftest('driver plane seed: thl0driver_d missing ' // label)
+            end if
+            got2 = thl0driver_d ; call one2(label, 'thl0driver', thl0driver)
+            got2 = thlmdriver_d ; call one2(label, 'thlmdriver', thlmdriver)
+         end if
+         if (allocated(qt0driver)) then
+            if (.not. allocated(qt0driver_d)) then
+               call fail_cuda_selftest('driver plane seed: qt0driver_d missing ' // label)
+            end if
+            got2 = qt0driver_d ; call one2(label, 'qt0driver', qt0driver)
+            got2 = qtmdriver_d ; call one2(label, 'qtmdriver', qtmdriver)
+         end if
+         if (allocated(sv0driver)) then
+            if (.not. allocated(sv0driver_d)) then
+               call fail_cuda_selftest('driver plane seed: sv0driver_d missing ' // label)
+            end if
+            got3 = sv0driver_d ; call one3(label, 'sv0driver', sv0driver)
+            got3 = svmdriver_d ; call one3(label, 'svmdriver', svmdriver)
+         end if
+      end subroutine check_planes
+
+      !> Require the plane just fetched into got2 to be what the host holds.
+      !!
+      !! Exact equality: these arrive by straight copy, so anything other
+      !! than the same bits is a plane that was not copied.
+      subroutine one2(label, name, host)
+         character(len=*), intent(in) :: label, name
+         real, intent(in) :: host(jb-jh:je+jh, kb-kh:ke+kh)
+
+         if (any(got2 /= host)) then
+            call fail_cuda_selftest('driver plane seed: ' // name // ' ' // label)
+         end if
+      end subroutine one2
+
+      subroutine one3(label, name, host)
+         character(len=*), intent(in) :: label, name
+         real, intent(in) :: host(jb-jhc:je+jhc, kb-khc:ke+khc, 1:nsv)
+
+         if (any(got3 /= host)) then
+            call fail_cuda_selftest('driver plane seed: ' // name // ' ' // label)
+         end if
+      end subroutine one3
+
+      !> Stand in for initdriver on a case that does not read a driver file.
+      !!
+      !! The optional groups follow the same switches initdriver reads, so
+      !! the thermodynamic cases in the matrix exercise the branches of
+      !! allocDriverPlanesDevice that a momentum-only run would not.
+      subroutine make_host_planes
+         allocate(u0driver(jb-jh:je+jh, kb-kh:ke+kh))
+         allocate(umdriver(jb-jh:je+jh, kb-kh:ke+kh))
+         allocate(v0driver(jb-jh:je+jh, kb-kh:ke+kh))
+         allocate(vmdriver(jb-jh:je+jh, kb-kh:ke+kh))
+         allocate(w0driver(jb-jh:je+jh, kb-kh:ke+kh))
+         allocate(wmdriver(jb-jh:je+jh, kb-kh:ke+kh))
+         if (ltempeq) then
+            allocate(thl0driver(jb-jh:je+jh, kb-kh:ke+kh))
+            allocate(thlmdriver(jb-jh:je+jh, kb-kh:ke+kh))
+         end if
+         if (lmoist) then
+            allocate(qt0driver(jb-jh:je+jh, kb-kh:ke+kh))
+            allocate(qtmdriver(jb-jh:je+jh, kb-kh:ke+kh))
+         end if
+         if (nsv > 0) then
+            allocate(sv0driver(jb-jhc:je+jhc, kb-khc:ke+khc, 1:nsv))
+            allocate(svmdriver(jb-jhc:je+jhc, kb-khc:ke+khc, 1:nsv))
+         end if
+      end subroutine make_host_planes
+
+      subroutine drop_host_planes
+         deallocate(u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver)
+         if (allocated(thl0driver)) deallocate(thl0driver, thlmdriver)
+         if (allocated(qt0driver))  deallocate(qt0driver, qtmdriver)
+         if (allocated(sv0driver))  deallocate(sv0driver, svmdriver)
+      end subroutine drop_host_planes
+
+      !> A distinct pattern per plane, so a plane filled from the wrong
+      !! source is a failure rather than a coincidence. The global j keeps a
+      !! two-rank run from passing on a plane gathered for the other rank.
+      subroutine pattern_host
+         integer :: j, k, n
+         real :: base
+
+         do k = kb - kh, ke + kh
+            do j = jb - jh, je + jh
+               base = 0.125*real(j + zstart(2) - 1) + 0.03125*real(k)
+               u0driver(j, k) = base + 1.
+               umdriver(j, k) = base + 2.
+               v0driver(j, k) = base + 3.
+               vmdriver(j, k) = base + 4.
+               w0driver(j, k) = base + 5.
+               wmdriver(j, k) = base + 6.
+               if (allocated(thl0driver)) then
+                  thl0driver(j, k) = base + 7.
+                  thlmdriver(j, k) = base + 8.
+               end if
+               if (allocated(qt0driver)) then
+                  qt0driver(j, k) = base + 9.
+                  qtmdriver(j, k) = base + 10.
+               end if
+            end do
+         end do
+
+         if (allocated(sv0driver)) then
+            do n = 1, nsv
+               do k = kb - khc, ke + khc
+                  do j = jb - jhc, je + jhc
+                     base = 0.125*real(j + zstart(2) - 1) + 0.03125*real(k) &
+                            + 0.5*real(n)
+                     sv0driver(j, k, n) = base + 11.
+                     svmdriver(j, k, n) = base + 12.
+                  end do
+               end do
+            end do
+         end if
+      end subroutine pattern_host
+
+   end subroutine test_driver_plane_seed
 
    !> Verify that initfield writes every cell in the extended scalar halos.
    subroutine test_initfield_extended_halos
@@ -3351,14 +3620,29 @@ contains
    !! named after its own axis would leave the other one at whatever the last
    !! nudging step put there.
    !!
-   !! The driver arm matters most. No case in the GPU matrix sets idriver, so
-   !! u0driver_d has no parity coverage at all and this is the only thing that
-   !! exercises its upload. initdriver allocates the host array under idriver
-   !! alone, so where it is missing the test allocates it and gives it back.
+   !! The driver arm is the inverse of the other three: updateDevice must
+   !! leave u0driver_d alone. drivergen is the only thing that writes the host
+   !! planes, and every call to it is already paired with an upload - the ones
+   !! in readinitfiles by the fill inside allocDriverPlanesDevice, which
+   !! initCUDA runs after them, and the one in boundary_device by the
+   !! updateDriverPlanesDevice beside it - so a copy here would be dead.
+   !!
+   !! It would also be worse than dead. With u0 arriving by a second route and
+   !! the other eleven planes not, a missing fill reads as a wrong inlet in v,
+   !! w, thl and qt while u looks right, and that is what made case 452 hard
+   !! to place. Twelve planes wrong together is a legible failure. The
+   !! liveness this arm used to stand for is asserted directly, and better, by
+   !! test_driver_plane_seed.
+   !!
+   !! No case in the GPU matrix sets idriver, and initdriver allocates the
+   !! host array under idriver alone, so where it is missing the test
+   !! allocates it and gives it back.
    subroutine test_bc_profile_upload
       implicit none
 
       real, parameter :: sentinel_u = 7.125, sentinel_v = -3.5, sentinel_d = 11.75
+      ! Left on the device side of the driver plane, to be found there after.
+      real, parameter :: untouched_d = -4.0625
 
       real, parameter :: sentinel_T = 297.25, sentinel_q = 0.015625
 
@@ -3498,7 +3782,7 @@ contains
          BCyq = BCyq_periodic
       end if
 
-      ! --- driver inlet -----------------------------------------------------
+      ! --- driver inlet, which must NOT be uploaded here ---------------------
       faked_driver = .not. allocated(u0driver)
       if (faked_driver) then
          allocate(u0driver(jb-jh:je+jh, kb-kh:ke+kh))
@@ -3506,15 +3790,17 @@ contains
          allocate(u0driver_s, source=u0driver)
       end if
 
+      ! A value on the host that updateDevice would bring over if it copied,
+      ! and a different one on the device that has to survive if it does not.
       u0driver   = sentinel_d
-      u0driver_d = 0.
+      u0driver_d = untouched_d
       BCxm       = BCxm_driver
       BCym       = BCym_periodic
       call updateDevice
 
       back2 = u0driver_d
-      if (any(back2 /= sentinel_d)) then
-         call fail_cuda_selftest('updateDevice did not upload u0driver for a driver inlet')
+      if (any(back2 /= untouched_d)) then
+         call fail_cuda_selftest('updateDevice uploaded a driver plane - the fill belongs to allocDriverPlanesDevice')
       end if
 
       ! --- put everything back ---------------------------------------------
