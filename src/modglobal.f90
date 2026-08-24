@@ -91,6 +91,7 @@ module modglobal
    integer, parameter :: TEST_VEGETATION = 1013
    integer, parameter :: TEST_CHECKSIM = 1014
    integer, parameter :: TEST_DRIVER_PLANES = 1015
+   integer, parameter :: TEST_THERMODYNAMICS = 1016
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start

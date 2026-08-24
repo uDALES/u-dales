@@ -30,12 +30,12 @@ program uDALES
   use cudafor
   use modcuda,           only : initCUDA, updateDevice, &
                                 updateHostForFielddump, updateHostForStatsdump, &
-                                updateHostForUnportedRoutines, integrateFacFluxDevice, &
+                                updateHostForTimestep, integrateFacFluxDevice, &
                                 updateFacIntegralsHost, checkCUDA, exitCUDA
-#endif
-#if defined(_GPU) && defined(UDALES_DEBUG)
-  use modcuda,           only : assertHostMatchesDevice, enableRoundTripCheck
+#if defined(UDALES_DEBUG)
+  use modcuda,           only : assertHostMatchesDevice, enableHandoverCheck
   use tests_cuda,        only : run_cuda_selftests_if_requested
+#endif
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
 #if defined(_GPU) && defined(UDALES_DEBUG)
@@ -44,12 +44,13 @@ program uDALES
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT, &
                                 TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE,TEST_IBM_WALLFUN, &
                                 TEST_PERIODIC_EBCORR,TEST_MASSCORR,TEST_IBMNORM,TEST_EB, &
-                                TEST_VEGETATION,TEST_CHECKSIM,TEST_DRIVER_PLANES
+                                TEST_VEGETATION,TEST_CHECKSIM,TEST_DRIVER_PLANES, &
+                                TEST_THERMODYNAMICS
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
   use modboundary,       only : initboundary,boundary,boundary_conditions,grwdamp,exchange_halos
-  use modthermodynamics, only : initthermodynamics,thermodynamics
+  use modthermodynamics, only : initthermodynamics,thermodynamics_step
   use modsubgrid,        only : initsubgrid,subgrid
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
@@ -82,7 +83,8 @@ program uDALES
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge,tests_ibm_wallfun, &
                             tests_periodic_ebcorr,tests_masscorr,tests_ibmnorm,tests_eb, &
-                            tests_vegetation,tests_checksim,tests_driver_planes
+                            tests_vegetation,tests_checksim,tests_driver_planes, &
+                            tests_thermodynamics
   implicit none
 
   real    :: stime
@@ -157,19 +159,19 @@ program uDALES
 
 #if defined(_GPU)
   call initCUDA
-#endif
-#if defined(_GPU) && defined(UDALES_DEBUG)
+#if defined(UDALES_DEBUG)
   call run_cuda_selftests_if_requested
+#endif
 #endif
 
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
 #if defined(_GPU) && defined(UDALES_DEBUG)
-  ! From here on, every field updateDevice uploads has to have been brought
-  ! down during the step. Armed now rather than at initialisation, because the
-  ! device self-tests call updateDevice with nothing pulled.
-  call enableRoundTripCheck
+  ! From here on, the post-boundary handover has to find the pull bitmap
+  ! clear. Armed now rather than at initialisation, because the device
+  ! self-tests reach the pull routines with nothing cleared.
+  call enableHandoverCheck
 #endif
 
   call starttimer
@@ -346,18 +348,17 @@ program uDALES
     call print_time('boundary_conditions')
 
 #if defined(_GPU)
-    ! And what the host routines still left in the loop need, which is every
-    ! prognostic field, on every stage. thermodynamics reads and derives from
-    ! them, and the next updateDevice uploads the result - so this one is
-    ! correctness, not output.
-    call updateHostForUnportedRoutines
+    ! And the five fields tstep_update reads on the host at the top of the
+    ! next iteration, when the timestep is adaptive. The only fields left that
+    ! cross the bus for correctness rather than for output.
+    call updateHostForTimestep
 #endif
-    call print_time('updateHostForUnportedRoutines')
+    call print_time('updateHostForTimestep')
 
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
 !-----------------------------------------------------
-    call thermodynamics
+    call thermodynamics_step
     call print_time('thermodynamics')
 
 !-----------------------------------------------------
@@ -435,6 +436,8 @@ contains
         test_failed = .not. tests_checksim()
       case (TEST_DRIVER_PLANES)
         test_failed = .not. tests_driver_planes()
+      case (TEST_THERMODYNAMICS)
+        test_failed = .not. tests_thermodynamics()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

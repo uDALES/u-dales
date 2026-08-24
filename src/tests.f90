@@ -22,7 +22,8 @@ module tests
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, &
             tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun, &
             tests_periodic_ebcorr, tests_masscorr, tests_ibmnorm, tests_eb, &
-            tests_vegetation, tests_checksim, tests_driver_planes
+            tests_vegetation, tests_checksim, tests_driver_planes, &
+            tests_thermodynamics
 
 contains
 
@@ -5054,6 +5055,443 @@ contains
     end function same
 
   end function tests_driver_planes
+
+  !> Pin the facts about thermodynamics that the GPU port had to reproduce.
+  !!
+  !! Deliberately not a re-derivation of the physics. tests_cuda.f90's
+  !! test_thermodynamics_device already drives the host routine and the device
+  !! routine over one seed and requires everything they produce to agree, so
+  !! it catches any disagreement between the two - and nothing that both get
+  !! wrong together. This is exactly that blind spot: five facts about the
+  !! host routine that are odd enough that someone would reasonably change
+  !! one, where the device kernels are written to match rather than to be
+  !! right.
+  !!
+  !! The first is the one that matters. thermo writes ql0 one k level low.
+  !! Its ql dummy is declared kb:ke+kh while its qt and thl dummies are
+  !! declared kb-kh:ke+kh - the commented-out declarations above the routine
+  !! show ql being left behind when the other two were widened - and the first
+  !! call passes the whole of ql0, whose own lower bound is kb-kh. Explicit
+  !! shape means sequence association, so dummy level kb lands on actual level
+  !! kb-kh: the saturation computed from level k is stored at level k-kh, and
+  !! ql0's top level is never written at all. ql0h is unaffected, because its
+  !! lower bound is kb and the second call is aligned.
+  !!
+  !! That shift reaches ql0av, calthv and the ql field in a fielddump, so it
+  !! is not cosmetic - but correcting it is a physics change to the CPU solver
+  !! and belongs in its own commit. Until then thermo_device declares its
+  !! dummies character for character the same way, so the two shift together
+  !! and stay comparable. If this test starts failing because the host was
+  !! corrected, the device declaration has to be corrected in the same commit.
+  logical function tests_thermodynamics()
+    use modglobal,  only : runmode, ib, ie, ih, jb, je, jh, kb, ke, kh, &
+                           ltempeq, lmoist, timee, &
+                           dzf, dzh, eps1, es0, at, bt, rd, rv, rlv, cp, tmelt
+    use modfields,  only : initfields, &
+                           u0, v0, thl0, qt0, ql0, ql0h, thl0h, qt0h, thv0h, dthvdz, &
+                           presf, exnf
+    use modsurfdata,only : thls, qts
+    use modthermodynamics, only : thermodynamics, initthermodynamics
+    use initfac,    only : readfacetfiles
+    use modibm,     only : initibm, createmasks
+
+    implicit none
+
+    real, parameter :: sentinel = -6543.
+    ! Every comparison below is between two evaluations of the same expression
+    ! on the same host, so the slack is for the compiler's freedom to keep an
+    ! intermediate in a wider register, not for a numerical difference.
+    real, parameter :: tol = 1e-12
+
+    real, allocatable :: presf_seed(:), exnf_seed(:)
+    logical :: all_passed
+    integer :: i, j, k, nreport
+    real    :: want, got
+
+    nreport = 0
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_thermodynamics: HOST THERMODYNAMICS CONTRACT TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    ! Four of the five checks are about the moist branches. Fail rather than
+    ! pass vacuously on a namelist that switches them off.
+    if (.not. ltempeq .or. .not. lmoist) then
+      if (myid == 0) then
+        write(*, '(A)') 'FAIL: this runmode needs ltempeq and lmoist - four of'
+        write(*, '(A)') '  the five checks are about the saturated branches.'
+      end if
+      tests_thermodynamics = .false.
+      return
+    end if
+    if (qts <= 0.) then
+      if (myid == 0) then
+        write(*, '(A)') 'FAIL: qts must be set in &BC. fromztop divides by a'
+        write(*, '(A)') '  surface virtual temperature built from it.'
+      end if
+      tests_thermodynamics = .false.
+      return
+    end if
+
+    call initfields
+    call initthermodynamics
+    call readfacetfiles
+    call initibm
+    call createmasks
+
+    allocate(presf_seed(kb:ke+kh), exnf_seed(kb:ke+kh))
+
+    all_passed = .true.
+
+    ! ---- the state the first saturation pass sees -------------------------
+    !
+    ! timee is set away from zero so that the leading diagfld does not run.
+    ! That is what makes the reference computable: the first thermo then reads
+    ! exactly the column seeded here, where after a diagfld it would read one
+    ! this test cannot reproduce without reimplementing fromztop.
+    timee = 1.
+    do k = kb, ke+kh
+      presf_seed(k) = 101500. - 100.*real(k-kb)
+      exnf_seed(k)  = 1. - 0.0009765625*real(k-kb)
+    end do
+    presf = presf_seed
+    exnf  = exnf_seed
+
+    call seed_fields
+
+    ql0  = sentinel
+    ql0h = sentinel
+    ! The halo columns of thv0h, which the saturated branch of calthv does not
+    ! write - see check 5.
+    thv0h = sentinel
+
+    call thermodynamics
+
+    if (.not. check_saturation_shift()) all_passed = .false.
+    if (.not. check_dim_is_max())       all_passed = .false.
+    if (.not. check_half_levels())      all_passed = .false.
+    if (.not. check_dthvdz())           all_passed = .false.
+    if (.not. check_thv0h_halo_moist()) all_passed = .false.
+
+    ! ---- and the branch a moist namelist cannot otherwise reach -----------
+    lmoist = .false.
+    thv0h  = sentinel
+    call thermodynamics
+    if (.not. check_thv0h_halo_dry()) all_passed = .false.
+    lmoist = .true.
+
+    if (myid == 0) then
+      if (all_passed) then
+        write(*, '(A)') 'tests_thermodynamics: PASS'
+      else
+        write(*, '(A)') 'tests_thermodynamics: FAIL'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    deallocate(presf_seed, exnf_seed)
+    tests_thermodynamics = all_passed
+
+  contains
+
+    !> A profile with a real vertical gradient and a horizontal pattern.
+    !!
+    !! qt0 alternates by level between one value no saturation specific
+    !! humidity reaches and one every plausible value sits below, so both arms
+    !! of the saturated test are taken and neither is near its threshold.
+    subroutine seed_fields
+      implicit none
+      integer :: ii, jj, kk
+
+      do kk = kb-kh, ke+kh
+        do jj = jb-jh, je+jh
+          do ii = ib-ih, ie+ih
+            u0(ii,jj,kk)   =  1.0 + wiggle(ii,jj,kk)
+            v0(ii,jj,kk)   = -0.5 + wiggle(ii,jj,kk)
+            thl0(ii,jj,kk) = 290. + 0.25*real(kk-kb) + wiggle(ii,jj,kk)
+            if (modulo(kk,2) == 0) then
+              qt0(ii,jj,kk) = 0.03125    + 0.00390625*wiggle(ii,jj,kk)
+            else
+              qt0(ii,jj,kk) = 0.00390625 + 0.00048828125*wiggle(ii,jj,kk)
+            end if
+          end do
+        end do
+      end do
+
+    end subroutine seed_fields
+
+    real function wiggle(ii, jj, kk)
+      implicit none
+      integer, intent(in) :: ii, jj, kk
+
+      wiggle = 0.0625*real(modulo(ii*7 + jj*13 + kk*29, 9)) - 0.25
+
+    end function wiggle
+
+    !> thermo's saturation deficit, spelled the way thermo spells it.
+    real function sat_deficit(thl, qt, pressure, exner)
+      implicit none
+      real, intent(in) :: thl, qt, pressure, exner
+
+      real :: tl, es, qs, qsl, b1
+
+      tl = thl*exner
+      if (tl<100.0) tl = 100.0
+      es  = es0*exp(at*(tl-tmelt)/(tl-bt))
+      qsl = rd/rv*es/(pressure-(1-rd/rv)*es)
+      b1  = rlv**2/(tl**2*cp*rv)
+      qs  = qsl*(1.+b1*qt)/(1.+b1*qsl)
+      sat_deficit = dim(qt-qs, 0.)
+
+    end function sat_deficit
+
+    !> The saturation computed from level k is stored at level k-kh.
+    logical function check_saturation_shift()
+      implicit none
+
+      check_saturation_shift = .true.
+      nreport = 0
+
+      do k = kb, ke+kh
+        do j = jb, je
+          do i = ib, ie
+            want = sat_deficit(thl0(i,j,k), qt0(i,j,k), presf_seed(k), exnf_seed(k))
+            got  = ql0(i,j,k-kh)
+            if (abs(got - want) > tol*max(1e-6, abs(want))) then
+              call flag('ql0 at the shifted level', i, j, k-kh, got, want)
+              check_saturation_shift = .false.
+            end if
+          end do
+        end do
+      end do
+
+      ! The top level is the other half of the same fact: the loop runs to
+      ! ke+kh on a dummy that starts one level low, so nothing reaches it.
+      do j = jb, je
+        do i = ib, ie
+          if (ql0(i,j,ke+kh) /= sentinel) then
+            call flag('ql0 top level written', i, j, ke+kh, ql0(i,j,ke+kh), sentinel)
+            check_saturation_shift = .false.
+          end if
+        end do
+      end do
+
+      ! And ql0h is not shifted, so every level of it is written.
+      do k = kb, ke+kh
+        do j = jb, je
+          do i = ib, ie
+            if (ql0h(i,j,k) == sentinel) then
+              call flag('ql0h level not written', i, j, k, ql0h(i,j,k), sentinel)
+              check_saturation_shift = .false.
+            end if
+          end do
+        end do
+      end do
+
+      call verdict('saturation is stored one level low', check_saturation_shift)
+
+    end function check_saturation_shift
+
+    !> dim(x,0.) and max(x,0.) agree on the values this field produces.
+    !!
+    !! thermo_device spells the clamp as max because DIM has no guaranteed
+    !! device runtime, and the standard defines DIM(x,y) as x-y when x is
+    !! greater and zero otherwise - which is what MAX(x-y,0) evaluates to.
+    !! Written down here so the substitution is not a claim about the compiler.
+    logical function check_dim_is_max()
+      implicit none
+
+      real :: d, x
+
+      check_dim_is_max = .true.
+      nreport = 0
+
+      do k = kb, ke+kh
+        do j = jb, je
+          do i = ib, ie
+            x = qt0(i,j,k) - (qt0(i,j,k) - ql0(i,j,k-kh))
+            d = dim(x, 0.)
+            if (d /= max(x, 0.)) then
+              call flag('dim and max disagree', i, j, k, d, max(x, 0.))
+              check_dim_is_max = .false.
+            end if
+          end do
+        end do
+      end do
+
+      call verdict('dim(x,0.) is max(x,0.)', check_dim_is_max)
+
+    end function check_dim_is_max
+
+    !> calc_halflev interpolates by cell height and overrides the surface.
+    logical function check_half_levels()
+      implicit none
+
+      check_half_levels = .true.
+      nreport = 0
+
+      do j = jb, je
+        do i = ib, ie
+          if (thl0h(i,j,kb) /= thls) then
+            call flag('thl0h surface override', i, j, kb, thl0h(i,j,kb), thls)
+            check_half_levels = .false.
+          end if
+          if (qt0h(i,j,kb) /= qts) then
+            call flag('qt0h surface override', i, j, kb, qt0h(i,j,kb), qts)
+            check_half_levels = .false.
+          end if
+        end do
+      end do
+
+      do k = kb+1, ke+kh
+        do j = jb, je
+          do i = ib, ie
+            want = (thl0(i,j,k)*dzf(k-1)+thl0(i,j,k-1)*dzf(k))/(2*dzh(k))
+            if (abs(thl0h(i,j,k) - want) > tol*max(1e-6, abs(want))) then
+              call flag('thl0h interpolation', i, j, k, thl0h(i,j,k), want)
+              check_half_levels = .false.
+            end if
+            want = (qt0(i,j,k)*dzf(k-1)+qt0(i,j,k-1)*dzf(k))/(2*dzh(k))
+            if (abs(qt0h(i,j,k) - want) > tol*max(1e-6, abs(want))) then
+              call flag('qt0h interpolation', i, j, k, qt0h(i,j,k), want)
+              check_half_levels = .false.
+            end if
+          end do
+        end do
+      end do
+
+      call verdict('half levels interpolate and take the surface at kb', check_half_levels)
+
+    end function check_half_levels
+
+    !> The eps1 clamp reaches every level it is applied to, and no other.
+    !!
+    !! The lowest level is where this bites: calthv writes a hard zero there
+    !! and the clamp then turns it into +eps1, because sign(eps1, 0.) is
+    !! +eps1. subgrid divides by dthvdz, so a level left at zero would be a
+    !! division by zero rather than a small number - which is the whole point
+    !! of the clamp and the reason the device kernel applies it over the same
+    !! range rather than over the range it writes.
+    logical function check_dthvdz()
+      implicit none
+
+      check_dthvdz = .true.
+      nreport = 0
+
+      do j = jb, je
+        do i = ib, ie
+          if (dthvdz(i,j,kb) /= eps1) then
+            call flag('dthvdz at kb is not the clamped zero', i, j, kb, dthvdz(i,j,kb), eps1)
+            check_dthvdz = .false.
+          end if
+        end do
+      end do
+
+      do k = kb, ke
+        do j = jb, je
+          do i = ib, ie
+            if (abs(dthvdz(i,j,k)) < eps1) then
+              call flag('dthvdz below the clamp', i, j, k, dthvdz(i,j,k), eps1)
+              check_dthvdz = .false.
+            end if
+          end do
+        end do
+      end do
+
+      ! ke+kh is outside the clamp's range and outside the range calthv
+      ! writes, so it keeps the whole-array zero.
+      do j = jb, je
+        do i = ib, ie
+          if (dthvdz(i,j,ke+kh) /= 0.) then
+            call flag('dthvdz above the clamp', i, j, ke+kh, dthvdz(i,j,ke+kh), 0.)
+            check_dthvdz = .false.
+          end if
+        end do
+      end do
+
+      call verdict('dthvdz is clamped over kb to ke and nowhere else', check_dthvdz)
+
+    end function check_dthvdz
+
+    !> The saturated branch writes the interior of thv0h and not its halo.
+    logical function check_thv0h_halo_moist()
+      implicit none
+
+      check_thv0h_halo_moist = .true.
+      nreport = 0
+
+      do k = kb, ke+kh
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            if (i >= ib .and. i <= ie .and. j >= jb .and. j <= je) cycle
+            if (thv0h(i,j,k) /= sentinel) then
+              call flag('moist calthv wrote a thv0h halo cell', i, j, k, thv0h(i,j,k), sentinel)
+              check_thv0h_halo_moist = .false.
+            end if
+          end do
+        end do
+      end do
+
+      call verdict('the saturated branch leaves the thv0h halo alone', check_thv0h_halo_moist)
+
+    end function check_thv0h_halo_moist
+
+    !> The unsaturated branch assigns thv0h whole, halo included.
+    logical function check_thv0h_halo_dry()
+      implicit none
+
+      check_thv0h_halo_dry = .true.
+      nreport = 0
+
+      do k = kb, ke+kh
+        do j = jb-jh, je+jh
+          do i = ib-ih, ie+ih
+            if (thv0h(i,j,k) /= thl0h(i,j,k)) then
+              call flag('dry calthv did not copy thl0h', i, j, k, thv0h(i,j,k), thl0h(i,j,k))
+              check_thv0h_halo_dry = .false.
+            end if
+          end do
+        end do
+      end do
+
+      call verdict('the unsaturated branch copies thl0h including the halo', check_thv0h_halo_dry)
+
+    end function check_thv0h_halo_dry
+
+    !> Name the first few failures and count the rest: a wrong level is wrong
+    !! at every point of it, and there are tens of thousands.
+    subroutine flag(what, ii, jj, kk, g, w)
+      implicit none
+      character(len=*), intent(in) :: what
+      integer,          intent(in) :: ii, jj, kk
+      real,             intent(in) :: g, w
+
+      nreport = nreport + 1
+      if (nreport <= 20 .and. myid == 0) then
+        write(*, '(A,A,A,I0,A,I0,A,I0,A,ES22.14,A,ES22.14)') '  FAIL: ', trim(what), &
+             ' at (', ii, ',', jj, ',', kk, ') got ', g, ' want ', w
+      end if
+
+    end subroutine flag
+
+    subroutine verdict(what, passed)
+      implicit none
+      character(len=*), intent(in) :: what
+      logical,          intent(in) :: passed
+
+      if (myid /= 0) return
+      if (passed) then
+        write(*, '(A,A)') '  ok: ', trim(what)
+      else
+        write(*, '(A,A,A,I0,A)') '  FAILED: ', trim(what), ' (', nreport, ' points)'
+      end if
+
+    end subroutine verdict
+
+  end function tests_thermodynamics
 
 
 end module tests

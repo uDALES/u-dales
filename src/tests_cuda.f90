@@ -32,14 +32,19 @@ module tests_cuda
                         integrateFacFluxDevice, updateFacIntegralsHost, &
                         facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
                         dxdydzfi_d, dxdydzhi_d, dvcell_d, dxhi_d, dzhi_d, dzf_d, dzfi_d, &
-                        col_d, col_stage, IIu_d, IIv_d, updateDevice, &
+                        col_d, col_stage, IIu_d, IIv_d, IIw_d, IIc_d, updateDevice, &
+                        ql0_d, ql0h_d, thl0h_d, qt0h_d, thv0h_d, dthvdz_d, &
+                        presf_d, presh_d, exnf_d, exnh_d, &
                         updateHostForFielddump, updateHostForStatsdump, &
-                        updateHostForUnportedRoutines, tau_x_d, tau_y_d, tau_z_d, &
+                        updateHostForTimestep, uploadPrognosticFieldsDevice, &
+                        tau_x_d, tau_y_d, tau_z_d, &
                         thl_flux_d, momfluxb_d, tfluxb_d
    use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, pres0, &
                          thl0, thlm, thl0c, qt0, qtm, sv0, svm, thlp, wp, &
                          up, vp, qtp, svp, &
-                         u0av, v0av, thl0av, qt0av, sv0av, &
+                         u0av, v0av, thl0av, qt0av, ql0av, sv0av, &
+                         ql0, ql0h, thl0h, qt0h, thv0h, dthvdz, &
+                         presf, presh, exnf, exnh, thvh, thvf, rhof, &
                          uprof, vprof, thlprof, qtprof, svprof, e12prof, vouttot, &
                          IIc, IIu, IIv, IIcs, IIus, IIvs, &
                          tau_x, tau_y, tau_z, thl_flux, momfluxb, tfluxb, &
@@ -70,6 +75,7 @@ module tests_cuda
                          BCtops, BCtops_flux, BCtops_value, &
                          Uinf, Vinf, idriver, lchunkread, iadv_thl, iadv_kappa
    use modforces,   only : nudge, periodicEBcorr, masscorr, calcfluidvolumes
+   use modthermodynamics, only : thermodynamics, thermodynamics_device
    use modchecksim, only : courant_local, diffnr_local, div_local, &
                            diffnrgeom, diffnrgeom_d
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
@@ -160,6 +166,7 @@ contains
          call test_driver_plane_handover
          call test_post_poisson_handover
          call test_checksim_reductions
+         call test_thermodynamics_device
          write(*,'(A,I0)') 'CUDA device self-tests passed. rank=', myid
       case ('', '0', 'false', 'FALSE', 'no', 'NO', 'off', 'OFF')
          return
@@ -948,7 +955,10 @@ contains
    subroutine test_x_moisture_periodic
       implicit none
 
-      if (.not. allocated(qt0_d)) return
+      ! lmoist, not allocated(qt0_d): qt0_d exists for a run with temperature
+      ! and no moisture too, because the virtual-temperature reduction reads
+      ! it, and qtm_d - which this seeds - does not.
+      if (.not. lmoist) return
 
       call prepare_standard_device(qt0_d, 210., 'x')
       call prepare_standard_device(qtm_d, 220., 'x')
@@ -961,7 +971,7 @@ contains
    subroutine test_y_moisture_periodic
       implicit none
 
-      if (.not. allocated(qt0_d)) return
+      if (.not. lmoist) return
 
       call prepare_standard_device(qt0_d, 210., 'y')
       call prepare_standard_device(qtm_d, 220., 'y')
@@ -1231,10 +1241,10 @@ contains
          thlm_d = thlm
       end if
       if (allocated(thl0c_d)) thl0c_d = thl0c
-      if (allocated(qt0_d)) then
-         qt0_d = qt0
-         qtm_d = qtm
-      end if
+      ! Asked separately: qt0_d is allocated whenever there is a temperature
+      ! equation and qtm_d only when there is moisture.
+      if (allocated(qt0_d)) qt0_d = qt0
+      if (allocated(qtm_d)) qtm_d = qtm
       if (allocated(sv0_d)) then
          sv0_d = sv0
          svm_d = svm
@@ -3859,10 +3869,11 @@ contains
    !! configurations: six passes cover every top condition, every lateral
    !! inlet and every outflow, in a build whose namelist selects one of them.
    !!
-   !! Only the host side is saved and put back. The device copies do not need
-   !! restoring, because every field written here is one updateDevice uploads
-   !! from the host on the first stage of the loop, which is the next thing
-   !! that runs.
+   !! The host side is saved and put back, and the device side is then
+   !! re-uploaded from it. That upload used to be free - updateDevice did it
+   !! on the first stage of the loop, which is the next thing that runs - and
+   !! it is not any more, because nothing uploads a prognostic field during a
+   !! run. Leaving it out would carry the seed values below into the run.
    subroutine test_boundary_conditions
       implicit none
 
@@ -4061,19 +4072,20 @@ contains
          thl0 = h_thl0 ; thlm = h_thlm ; thl0c = h_thl0c
          qt0 = h_qt0 ; qtm = h_qtm
 
-         ! The device copies of the diffusivities go back too. Everything else
-         ! written here is uploaded again by the first updateDevice of the
-         ! loop; these two are not - nothing uploads them, so a seeded value
-         ! left behind would survive into the run wherever subgrid does not
-         ! write, which is every halo cell.
          ekm = h_ekm ; ekh = h_ekh
-         ekm_d = ekm ; ekh_d = ekh
          if (allocated(h_e120)) then
             e120 = h_e120 ; e12m = h_e12m
          end if
          if (allocated(h_sv0)) then
             sv0 = h_sv0 ; svm = h_svm
          end if
+
+         ! And the device, from the host copies just restored. The
+         ! diffusivities are not in that list - subgrid rewrites the interior
+         ! but nothing writes the outer halo columns, so a seed left there
+         ! would survive into the run.
+         call uploadPrognosticFieldsDevice
+         ekm_d = ekm ; ekh_d = ekh
       end subroutine restore_host
 
       !> Deterministic, dyadic and distinct per field.
@@ -4130,9 +4142,8 @@ contains
             thl0_d = thl0 ; thlm_d = thlm
          end if
          if (allocated(thl0c_d)) thl0c_d = thl0c
-         if (allocated(qt0_d)) then
-            qt0_d = qt0 ; qtm_d = qtm
-         end if
+         if (allocated(qt0_d)) qt0_d = qt0
+         if (allocated(qtm_d)) qtm_d = qtm
          if (allocated(e120_d)) then
             e120_d = e120 ; e12m_d = e12m
          end if
@@ -4355,14 +4366,16 @@ contains
          call check_plane_sv(irecydriver-1, 60. + real(n), n)
       end do
 
-      ! Put the host back. The device copies are restored by the first
-      ! updateDevice of the loop, which uploads every field touched here.
+      ! Put the host back, then the device from it. Nothing uploads a
+      ! prognostic field during a run any more, so a plane left seeded here
+      ! would be the plane the run continues from.
       u0(irecydriver, :, :)   = s_u0
       v0(irecydriver-1, :, :) = s_v0
       w0(irecydriver-1, :, :) = s_w0
       if (allocated(s_thl0)) thl0(irecydriver-1, :, :) = s_thl0
       if (allocated(s_qt0))  qt0(irecydriver-1, :, :)  = s_qt0
       if (allocated(s_sv0))  sv0(irecydriver-1, :, :, :) = s_sv0
+      call uploadPrognosticFieldsDevice
 
       if (made_planec) deallocate(planec_d, planec_stage)
       if (made_plane)  deallocate(plane_d, plane_stage)
@@ -4461,14 +4474,18 @@ contains
    end subroutine test_driver_plane_handover
 
 
-   !> Pin the two contracts left behind by folding updateHost away.
+   !> Pin the three contracts left behind by folding updateHost away.
    !!
    !! updateHost used to run before the pressure step and bring down eighteen
    !! fields. Ten of them had no host reader at all in a GPU build and were
    !! dropped; the six that do have one now come down in the post-Poisson
    !! handover,
-   !! which is what the second half of this checks. Nothing writes them on the
+   !! which is what the third part of this checks. Nothing writes them on the
    !! device in between, so the values have to be the ones the device holds.
+   !!
+   !! The second part is the other direction, and it is what porting
+   !! thermodynamics left behind: updateDevice uploads no prognostic field at
+   !! all any more, so a host copy that has drifted cannot reach the device.
    !!
    !! The first half is the trap. momfluxb and tfluxb are accumulators - the
    !! wall functions add into them and nothing ever clears them, on either side
@@ -4485,6 +4502,11 @@ contains
       real, parameter :: sent_ekm = 3.125, sent_ekh = 6.375
       real, parameter :: sent_tx = 11.5, sent_ty = -22.25, sent_tz = 33.75
       real, parameter :: sent_hf = -44.125
+      ! A value on the device that has to survive updateDevice, and a
+      ! different one on the host that must not reach it.
+      real, parameter :: untouched = -6.0625
+
+      real, allocatable :: u0_s(:,:,:), u0_dev(:,:,:), thl0_s(:,:,:), thl0_dev(:,:,:)
 
       real, allocatable :: ekm_s(:,:,:), ekh_s(:,:,:)
       real, allocatable :: tau_x_s(:,:,:), tau_y_s(:,:,:), tau_z_s(:,:,:)
@@ -4517,10 +4539,43 @@ contains
          tf_dev = tfluxb_d
       end if
 
-      ! Make every mirror updateDevice uploads agree with the host, so that the
-      ! handover calls below are an identity for everything except
-      ! the six fields under test.
+      ! Clear the pull bitmap, so the handover calls below actually transfer
+      ! rather than skipping fields an earlier reader marked current.
       call updateDevice
+
+      ! --- updateDevice uploads no prognostic field -------------------------
+      !
+      ! This is the contract porting thermodynamics bought. With no host
+      ! routine left in the loop that writes a prognostic field, updateDevice
+      ! stopped uploading fifteen of them and the unconditional pull that had
+      ! to answer it went too. Putting one of those uploads back would restore
+      ! the whole cost with nothing failing anywhere, so the absence is
+      ! asserted rather than described - the same way the driver planes' is.
+      allocate(u0_s, source=u0)
+      allocate(u0_dev(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)) ; u0_dev = u0_d
+      u0_d = untouched ; u0 = untouched + 1.
+      if (ltempeq) then
+         allocate(thl0_s, source=thl0)
+         allocate(thl0_dev(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)) ; thl0_dev = thl0_d
+         thl0_d = untouched ; thl0 = untouched + 1.
+      end if
+
+      call updateDevice
+
+      back = u0_d
+      if (any(back /= untouched)) then
+         call fail_cuda_selftest('updateDevice uploaded u0 - the device has owned it since initCUDA')
+      end if
+      if (ltempeq) then
+         back = thl0_d
+         if (any(back /= untouched)) then
+            call fail_cuda_selftest('updateDevice uploaded thl0 - the device has owned it since initCUDA')
+         end if
+         thl0 = thl0_s ; thl0_d = thl0_dev
+         deallocate(thl0_s, thl0_dev)
+      end if
+      u0 = u0_s ; u0_d = u0_dev
+      deallocate(u0_s, u0_dev)
 
       ! --- the accumulators survive updateDevice ---------------------------
       momfluxb_d = sent_mom
@@ -4560,7 +4615,7 @@ contains
       ! the others leave it alone.
       call updateHostForFielddump
       call updateHostForStatsdump
-      call updateHostForUnportedRoutines
+      call updateHostForTimestep
 
       if (any(ekm   /= sent_ekm)) call fail_cuda_selftest('the handover did not bring down ekm')
       if (any(ekh   /= sent_ekh)) call fail_cuda_selftest('the handover did not bring down ekh')
@@ -4995,6 +5050,278 @@ contains
       end function sums_to
 
    end subroutine test_checksim_reductions
+
+   !> The device thermodynamics against the host thermodynamics, driven from
+   !! one seed.
+   !!
+   !! Not kernel by kernel. thermodynamics is a chain - the slab averages feed
+   !! the hydrostatic column, the column feeds saturation, saturation feeds
+   !! the virtual temperature and the virtual temperature feeds the last two
+   !! averages - so a kernel checked against a hand-written reference would
+   !! pin its own arithmetic and say nothing about the wiring. Both
+   !! implementations are run over the same fields and everything the routine
+   !! produces has to agree: six 3D fields and thirteen profiles.
+   !!
+   !! Not bit-exact, and it cannot be. The slab averages are where the two
+   !! differ by construction - the host sums a plane in array order and the
+   !! device sums it as a tree - and every profile downstream inherits that.
+   !! What the tolerance has to catch is a wrong index, a skipped level, a
+   !! dropped branch or a stale upload, and each of those moves a field by a
+   !! fraction of itself rather than by an ulp.
+   !!
+   !! On a run with no temperature equation it asserts something different and
+   !! just as useful: that skipping the temperature branches is exact. The
+   !! device path does not run them, the host path runs all of them, and they
+   !! agree only because nothing writes thl0, qt0 or ql0 in that
+   !! configuration. The seed below deliberately leaves those three alone
+   !! there, since seeding them would assume away the thing being claimed.
+   subroutine test_thermodynamics_device
+      implicit none
+
+      ! Relative to the largest element of the field, not to each element, so
+      ! that a cell whose value is a cancellation of two large ones does not
+      ! set the bar. 1e-10 is four orders above the reduction noise and eight
+      ! below anything a wrong index would produce.
+      real, parameter :: reltol = 1.e-10
+
+      real, allocatable :: h_u0(:,:,:), h_v0(:,:,:), h_thl0(:,:,:), h_qt0(:,:,:), h_sv0(:,:,:,:)
+      real, allocatable :: d_u0(:,:,:), d_v0(:,:,:), d_thl0(:,:,:), d_qt0(:,:,:), d_sv0(:,:,:,:)
+      real, allocatable :: h_ql0(:,:,:), h_ql0h(:,:,:), h_thl0h(:,:,:), h_qt0h(:,:,:)
+      real, allocatable :: h_thv0h(:,:,:), h_dthvdz(:,:,:)
+      real, allocatable :: d_ql0(:,:,:), d_ql0h(:,:,:), d_thl0h(:,:,:), d_qt0h(:,:,:)
+      real, allocatable :: d_thv0h(:,:,:), d_dthvdz(:,:,:)
+      real, allocatable :: g_ql0(:,:,:), g_ql0h(:,:,:), g_thl0h(:,:,:), g_qt0h(:,:,:)
+      real, allocatable :: g_thv0h(:,:,:), g_dthvdz(:,:,:)
+
+      real, dimension(kb:ke+kh) :: h_u0av, h_v0av, h_thl0av, h_qt0av, h_ql0av
+      real, dimension(kb:ke+kh) :: h_presf, h_presh, h_exnf, h_exnh, h_thvh, h_thvf, h_rhof
+      real, dimension(kb:ke+kh) :: g_u0av, g_v0av, g_thl0av, g_qt0av, g_ql0av
+      real, dimension(kb:ke+kh) :: g_presf, g_presh, g_exnf, g_exnh, g_thvh, g_thvf, g_rhof
+      real, allocatable :: h_sv0av(:,:), g_sv0av(:,:)
+
+      integer :: i, j, k, n
+
+      ! ---- what has to go back, from wherever it currently lives ----------
+      allocate(h_u0, source=u0) ; allocate(h_v0, source=v0)
+      allocate(h_thl0, source=thl0) ; allocate(h_qt0, source=qt0)
+      allocate(h_ql0, source=ql0) ; allocate(h_ql0h, source=ql0h)
+      allocate(h_thl0h, source=thl0h) ; allocate(h_qt0h, source=qt0h)
+      allocate(h_thv0h, source=thv0h) ; allocate(h_dthvdz, source=dthvdz)
+      allocate(h_sv0av, source=sv0av)
+      if (nsv > 0) allocate(h_sv0, source=sv0)
+
+      allocate(d_u0, source=u0) ; d_u0 = u0_d
+      allocate(d_v0, source=v0) ; d_v0 = v0_d
+      allocate(d_dthvdz, source=dthvdz) ; d_dthvdz = dthvdz_d
+      if (nsv > 0) then
+         allocate(d_sv0, source=sv0) ; d_sv0 = sv0_d
+      end if
+      if (allocated(qt0_d)) then
+         allocate(d_qt0, source=qt0) ; d_qt0 = qt0_d
+      end if
+      if (ltempeq) then
+         allocate(d_thl0, source=thl0) ; d_thl0 = thl0_d
+         allocate(d_ql0, source=ql0) ; d_ql0 = ql0_d
+         allocate(d_ql0h, source=ql0h) ; d_ql0h = ql0h_d
+         allocate(d_thl0h, source=thl0h) ; d_thl0h = thl0h_d
+         allocate(d_qt0h, source=qt0h) ; d_qt0h = qt0h_d
+         allocate(d_thv0h, source=thv0h) ; d_thv0h = thv0h_d
+      end if
+
+      h_u0av = u0av ; h_v0av = v0av ; h_thl0av = thl0av
+      h_qt0av = qt0av ; h_ql0av = ql0av
+      h_presf = presf ; h_presh = presh ; h_exnf = exnf ; h_exnh = exnh
+      h_thvh = thvh ; h_thvf = thvf ; h_rhof = rhof
+
+      ! ---- seed both sides identically ------------------------------------
+      call seed_inputs
+      u0_d = u0 ; v0_d = v0
+      if (nsv > 0) sv0_d = sv0
+      if (ltempeq) then
+         thl0_d = thl0
+         qt0_d  = qt0
+      end if
+
+      ! ---- the device path -------------------------------------------------
+      call thermodynamics_device
+
+      if (ltempeq) then
+         allocate(g_ql0, source=ql0) ; g_ql0 = ql0_d
+         allocate(g_ql0h, source=ql0h) ; g_ql0h = ql0h_d
+         allocate(g_thl0h, source=thl0h) ; g_thl0h = thl0h_d
+         allocate(g_qt0h, source=qt0h) ; g_qt0h = qt0h_d
+         allocate(g_thv0h, source=thv0h) ; g_thv0h = thv0h_d
+      end if
+      allocate(g_dthvdz, source=dthvdz) ; g_dthvdz = dthvdz_d
+
+      g_u0av = u0av ; g_v0av = v0av ; g_thl0av = thl0av
+      g_qt0av = qt0av ; g_ql0av = ql0av
+      g_presf = presf ; g_presh = presh ; g_exnf = exnf ; g_exnh = exnh
+      g_thvh = thvh ; g_thvf = thvf ; g_rhof = rhof
+      allocate(g_sv0av, source=sv0av)
+
+      ! ---- the host path, from the same starting profiles ------------------
+      !
+      ! The column has to be handed back before the reference runs. The first
+      ! saturation pass reads presf and exnf from the previous call, so a host
+      ! run started on the column the device run just produced would be
+      ! solving a different problem and the comparison would mean nothing.
+      u0av = h_u0av ; v0av = h_v0av ; thl0av = h_thl0av
+      qt0av = h_qt0av ; ql0av = h_ql0av
+      presf = h_presf ; presh = h_presh ; exnf = h_exnf ; exnh = h_exnh
+      thvh = h_thvh ; thvf = h_thvf ; rhof = h_rhof
+      sv0av = h_sv0av
+
+      call thermodynamics
+
+      ! ---- and the comparison ---------------------------------------------
+      if (ltempeq) then
+         call chk3('ql0',    ql0,    g_ql0)
+         call chk3('ql0h',   ql0h,   g_ql0h)
+         call chk3('thl0h',  thl0h,  g_thl0h)
+         call chk3('qt0h',   qt0h,   g_qt0h)
+         call chk3('thv0h',  thv0h,  g_thv0h)
+      end if
+      call chk3('dthvdz', dthvdz, g_dthvdz)
+
+      call chk1('u0av',   u0av,   g_u0av)
+      call chk1('v0av',   v0av,   g_v0av)
+      call chk1('thl0av', thl0av, g_thl0av)
+      call chk1('qt0av',  qt0av,  g_qt0av)
+      call chk1('ql0av',  ql0av,  g_ql0av)
+      call chk1('presf',  presf,  g_presf)
+      call chk1('presh',  presh,  g_presh)
+      call chk1('exnf',   exnf,   g_exnf)
+      call chk1('exnh',   exnh,   g_exnh)
+      call chk1('thvh',   thvh,   g_thvh)
+      call chk1('thvf',   thvf,   g_thvf)
+      call chk1('rhof',   rhof,   g_rhof)
+      do n = 1, nsv
+         call chk1('sv0av', sv0av(kb:ke+kh,n), g_sv0av(kb:ke+kh,n))
+      end do
+
+      ! ---- put everything back --------------------------------------------
+      u0 = h_u0 ; v0 = h_v0 ; thl0 = h_thl0 ; qt0 = h_qt0
+      ql0 = h_ql0 ; ql0h = h_ql0h ; thl0h = h_thl0h ; qt0h = h_qt0h
+      thv0h = h_thv0h ; dthvdz = h_dthvdz
+      if (nsv > 0) sv0 = h_sv0
+
+      u0av = h_u0av ; v0av = h_v0av ; thl0av = h_thl0av
+      qt0av = h_qt0av ; ql0av = h_ql0av
+      presf = h_presf ; presh = h_presh ; exnf = h_exnf ; exnh = h_exnh
+      thvh = h_thvh ; thvf = h_thvf ; rhof = h_rhof
+      sv0av = h_sv0av
+
+      u0_d = d_u0 ; v0_d = d_v0 ; dthvdz_d = d_dthvdz
+      if (allocated(d_sv0)) sv0_d = d_sv0
+      if (allocated(d_qt0)) qt0_d = d_qt0
+      if (ltempeq) then
+         thl0_d  = d_thl0
+         ql0_d   = d_ql0   ; ql0h_d = d_ql0h
+         thl0h_d = d_thl0h ; qt0h_d = d_qt0h
+         thv0h_d = d_thv0h
+         presf_d = presf ; presh_d = presh
+         exnf_d  = exnf  ; exnh_d  = exnh
+      end if
+
+   contains
+
+      !> Deterministic, exactly representable and far from every branch.
+      !!
+      !! qt0 alternates between two values that no plausible saturation
+      !! specific humidity sits between, so both arms of calthv's saturated
+      !! test are taken and neither can be flipped by the last bit of a slab
+      !! average. thl0 rises with height so the finite differences calthv
+      !! forms are nowhere near zero, which is what its chi_sat denominator
+      !! divides by.
+      !!
+      !! thl0 and qt0 are left alone when there is no temperature equation:
+      !! the claim under test there is that they do not move, and seeding them
+      !! would be assuming it away.
+      subroutine seed_inputs
+         implicit none
+
+         do k = kb-kh, ke+kh
+            do j = jb-jh, je+jh
+               do i = ib-ih, ie+ih
+                  u0(i,j,k) =  1.0  + wiggle(i,j,k)
+                  v0(i,j,k) = -0.5  + wiggle(i,j,k)
+               end do
+            end do
+         end do
+
+         if (ltempeq) then
+            do k = kb-kh, ke+kh
+               do j = jb-jh, je+jh
+                  do i = ib-ih, ie+ih
+                     thl0(i,j,k) = 290. + 0.25*real(k-kb) + wiggle(i,j,k)
+                     if (modulo(k,2) == 0) then
+                        qt0(i,j,k) = 0.03125    + 0.00390625*wiggle(i,j,k)
+                     else
+                        qt0(i,j,k) = 0.00390625 + 0.00048828125*wiggle(i,j,k)
+                     end if
+                  end do
+               end do
+            end do
+         end if
+
+         do n = 1, nsv
+            do k = kb-khc, ke+khc
+               do j = jb-jhc, je+jhc
+                  do i = ib-ihc, ie+ihc
+                     sv0(i,j,k,n) = 0.5*real(n) + wiggle(i,j,k)
+                  end do
+               end do
+            end do
+         end do
+
+      end subroutine seed_inputs
+
+      real function wiggle(i, j, k)
+         implicit none
+         integer, intent(in) :: i, j, k
+
+         wiggle = 0.0625*real(modulo(i*7 + j*13 + k*29, 9)) - 0.25
+
+      end function wiggle
+
+      !> Agreement over a whole 3D field, to a fraction of its own scale.
+      subroutine chk3(name, want, got)
+         implicit none
+         character(len=*), intent(in) :: name
+         real,             intent(in) :: want(:,:,:), got(:,:,:)
+
+         real :: scale, worst
+
+         scale = maxval(abs(want))
+         worst = maxval(abs(got - want))
+         if (worst > reltol*max(scale, tiny(1.))) then
+            write(*,'(A,I0,3A,ES12.4,A,ES12.4)') 'thermodynamics self-test rank ', myid, &
+                 ': ', trim(name), ' device vs host worst ', worst, ' scale ', scale
+            call fail_cuda_selftest('thermodynamics_device disagrees with thermodynamics')
+         end if
+
+      end subroutine chk3
+
+      !> The same, for a profile.
+      subroutine chk1(name, want, got)
+         implicit none
+         character(len=*), intent(in) :: name
+         real,             intent(in) :: want(:), got(:)
+
+         real :: scale, worst
+
+         scale = maxval(abs(want))
+         worst = maxval(abs(got - want))
+         if (worst > reltol*max(scale, tiny(1.))) then
+            write(*,'(A,I0,3A,ES12.4,A,ES12.4)') 'thermodynamics self-test rank ', myid, &
+                 ': ', trim(name), ' device vs host worst ', worst, ' scale ', scale
+            call fail_cuda_selftest('thermodynamics_device disagrees with thermodynamics')
+         end if
+
+      end subroutine chk1
+
+   end subroutine test_thermodynamics_device
 
    subroutine fail_cuda_selftest(name)
       implicit none

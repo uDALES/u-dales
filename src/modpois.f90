@@ -977,7 +977,7 @@ contains
     use modboundary, only: bcp
 #if defined(_GPU)
      use cudafor
-     use modcuda,    only: griddim, blockdim, checkCUDA, pres0_d
+     use modcuda,    only: griddim, blockdim, checkCUDA, pres0_d, IIc_d, avexy_ibm_device
 #endif
     implicit none
     integer :: i, j, k
@@ -1009,9 +1009,16 @@ contains
     if (BCtopm .eq. BCtopm_pressure) then
       ! Get out the slab averaged dp/dz = <rhw>
 #if defined(_GPU)
-      p = p_d
-#endif
+      ! Reduced on the device. This used to fetch the whole pressure
+      ! correction to average one column of it - a full field across the bus
+      ! on every stage of every step of a run with a pressure top - and the
+      ! fluid-cell masks it needs are resident now that diagfld's slab
+      ! averages are on the device.
+      call avexy_ibm_device(pij(kb:ke+kh), p_d, lbound(p_d,3), &
+                            IIc_d, IIcs(kb:ke+kh), .false.)
+#else
       call avexy_ibm(pij(kb:ke+kh),p(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+#endif
 
 #if defined(_GPU)
       call tderive_update_wptop_cuda<<<griddim,blockdim>>>(pij(ke))

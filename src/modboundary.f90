@@ -2644,7 +2644,8 @@ contains
      use m_halo,       only : halo_exchange
 #if defined(_GPU)
      use cudafor
-     use modcuda,      only : pup_d, pvp_d, pwp_d, griddim, blockdim, checkCUDA
+     use modcuda,      only : pup_d, pvp_d, pwp_d, griddim, blockdim, checkCUDA, &
+                              pres0_d, IIc_d, avexy_ibm_device
 #else
      use modfields,    only : pup, pvp, pwp, up, vp, wp, um, vm, wm, u0, v0, uprof, vprof
      use modinletdata, only : u0driver
@@ -2678,7 +2679,18 @@ contains
 #endif
 
        case(BCtopm_pressure)
+#if defined(_GPU)
+         ! On the device, not from the host copy. This read the host pres0 for
+         ! as long as something brought pres0 down on every stage for the host
+         ! thermodynamics; nothing does since thermodynamics was ported, and a
+         ! stale slab mean here is a wrong top boundary on the pressure
+         ! predictor - which is where the parity cases with a pressure top
+         ! diverged when the unconditional pull went away.
+         call avexy_ibm_device(pres0ij(kb:ke+kh), pres0_d, lbound(pres0_d,3), &
+                               IIc_d, IIcs(kb:ke+kh), .false.)
+#else
          call avexy_ibm(pres0ij(kb:ke+kh),pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+#endif
 
 #if defined(_GPU)
          call bcpup_pwp_BCtopm_pressure_cuda<<<griddim,blockdim>>>(rk3coefi, pres0ij(ke))

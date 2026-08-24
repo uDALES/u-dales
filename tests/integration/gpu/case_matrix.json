@@ -518,7 +518,8 @@
   ],
   "unsupported_gpu_options": {
     "ipoiss": [2],
-    "lpurif": [true]
+    "lpurif": [true],
+    "lqlnr": [true]
   },
   "ported_routines": {
     "cuda": {
@@ -654,7 +655,12 @@
       "src/vegetation.f90:vegetation_forcing_device": ["debug-device-selftests", "vegetation", "vegetation-sveg"],
       "src/vegetation.f90:vegetation_canopy_device": ["debug-device-selftests", "vegetation", "vegetation-sveg"],
       "src/vegetation.f90:vegetation_deposition_device": ["debug-device-selftests", "vegetation-deposition"],
-    "src/heatpump.f90:heatpump": ["debug-device-selftests", "heatpump"]
+    "src/heatpump.f90:heatpump": ["debug-device-selftests", "heatpump"],
+      "src/modcuda.f90:avexy_ibm_c_device": ["debug-device-selftests", "thermo-scalar-wall", "chemistry"],
+      "src/modthermodynamics.f90:thermo_device": ["debug-device-selftests", "thermo-scalar-wall", "nudging"],
+      "src/modthermodynamics.f90:calc_halflev_device": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa", "stability-wall"],
+      "src/modthermodynamics.f90:calthv_device": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa", "stability-wall"],
+      "src/modthermodynamics.f90:avexy_thv0_device": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa", "stability-wall"]
     }
   }
 }

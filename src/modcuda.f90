@@ -14,12 +14,12 @@ module modcuda
                              lnudge, lnudgevel, libm, nfcts, ladaptive, idriver, &
                              BCxT, BCxT_profile, BCyT, BCyT_profile, &
                              BCxq, BCxq_profile, BCyq, BCyq_profile, &
-                             linoutflow, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xh, &
                              eps1, numol, prandtlmoli, prandtlturb, grav, fkar2, &
                              fielddump_wants
    use modfields,      only: u0, v0, w0, pres0, e120, thl0, thl0c, qt0, sv0, &
+                             ql0, ql0h, thl0h, qt0h, presf, presh, exnf, exnh, IIw, &
                              up, vp, wp, e12p, thlp, thlpc, qtp, svp, &
                              um, vm, wm, e12m, thlm, qtm, svm, &
                              tau_x, tau_y, tau_z, thl_flux, momfluxb, tfluxb, &
@@ -91,10 +91,18 @@ module modcuda
    real, device, allocatable :: dthvdz_d(:,:,:)
    real, device, allocatable :: ekm_d(:,:,:), ekh_d(:,:,:), sbshr_d(:,:,:), sbbuo_d(:,:,:), sbdiss_d(:,:,:), zlt_d(:,:,:), damp_d(:,:,:)
    real, device, allocatable :: thv0h_d(:,:,:)
+
+   ! What thermodynamics derives on the device, and the hydrostatic columns
+   ! its kernels read. ql0_d and qt0_d exist for a dry-but-thermal run too,
+   ! because the virtual temperature the thvf reduction forms is the full
+   ! moist expression whether or not lmoist is on: nothing writes ql0 or qt0
+   ! then, but thl0 moves and the product does with it.
+   real, device, allocatable :: ql0_d(:,:,:), ql0h_d(:,:,:), thl0h_d(:,:,:), qt0h_d(:,:,:)
+   real, device, allocatable :: presf_d(:), presh_d(:), exnf_d(:), exnh_d(:)
    real, device, allocatable :: dumu_d(:,:,:), duml_d(:,:,:)
    real, device, allocatable :: dummyNO_d(:,:,:), dummyNO2_d(:,:,:), dummyO3_d(:,:,:)
 
-   integer, device, allocatable :: IIc_d(:,:,:), IIu_d(:,:,:), IIv_d(:,:,:)
+   integer, device, allocatable :: IIc_d(:,:,:), IIu_d(:,:,:), IIv_d(:,:,:), IIw_d(:,:,:)
 
    real, device, allocatable :: scalar_source_tendency_d(:,:,:,:)
 
@@ -139,21 +147,23 @@ module modcuda
    !
    ! updateDevice clears the flags, which is the one point in the step where
    ! every host field has just been handed to the device.
-   ! The rule that governs which of them may be conditional: updateDevice
-   ! uploads sixteen of these fields back from the host on every stage, so if
-   ! one of those is not pulled this step, the host's stale copy is written
-   ! over the device's current one and the solution itself is wrong - not just
-   ! a dump. Those sixteen therefore belong in updateHostForUnportedRoutines,
-   ! which runs unconditionally, and only ekm, ekh, tau_x, tau_y, tau_z and
-   ! thl_flux - the six updateDevice does not upload - can be pulled on demand.
-   ! assertRoundTripPulled below holds the two lists to that.
+   !
+   ! Every transfer here is on demand now. It was not: updateDevice used to
+   ! upload sixteen of these fields back from the host on every stage, so a
+   ! field not pulled during the step had its stale host copy written over the
+   ! device's current one and the error landed in the solution rather than in
+   ! a file. That was the price of thermodynamics running on the host, and it
+   ! is what porting thermodynamics bought back - updateDevice no longer
+   ! uploads a single prognostic field, so nothing here is load-bearing for
+   ! correctness beyond the reader that asks for it.
    integer, parameter :: F_U0 = 1, F_V0 = 2, F_W0 = 3, &
                          F_UM = 4, F_VM = 5, F_WM = 6, &
                          F_PRES0 = 7, F_THL0 = 8, F_THLM = 9, F_THL0C = 10, &
                          F_QT0 = 11, F_QTM = 12, F_SV0 = 13, F_SVM = 14, &
                          F_E120 = 15, F_E12M = 16, F_EKM = 17, F_EKH = 18, &
                          F_TAUX = 19, F_TAUY = 20, F_TAUZ = 21, F_THLFLUX = 22, &
-                         F_COUNT = 22
+                         F_QL0 = 23, F_QL0H = 24, &
+                         F_COUNT = 24
    logical :: pulled(F_COUNT) = .false.
    ! Names for the two assertions below, in id order. Kept beside the
    ! parameters rather than spelled out at each call site, so that a field
@@ -161,12 +171,15 @@ module modcuda
    character(len=8), parameter :: pulled_name(F_COUNT) = [ character(len=8) :: &
       'u0', 'v0', 'w0', 'um', 'vm', 'wm', 'pres0', 'thl0', 'thlm', 'thl0c', &
       'qt0', 'qtm', 'sv0', 'svm', 'e120', 'e12m', 'ekm', 'ekh', &
-      'tau_x', 'tau_y', 'tau_z', 'thl_flux' ]
+      'tau_x', 'tau_y', 'tau_z', 'thl_flux', 'ql0', 'ql0h' ]
 #if defined(UDALES_DEBUG)
-   ! The round-trip invariant only holds inside the time loop. Initialisation
-   ! and the device self-tests call updateDevice with nothing pulled, quite
+   ! The bitmap invariant only holds inside the time loop. Initialisation and
+   ! the device self-tests reach the pull routines with nothing cleared, quite
    ! legitimately, so program.f90 arms the check once the loop is about to run.
-   logical :: lcheck_round_trip = .false.
+   ! It was called the round-trip check while updateDevice uploaded the host
+   ! copies back and there was a round trip to check; what it guards now is
+   ! the one-way post-boundary handover.
+   logical :: lcheck_handover = .false.
 #endif
 
    contains
@@ -369,7 +382,6 @@ module modcuda
          end if
 
          if (lmoist) then
-            allocate(qt0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(qtm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(qtp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(qt0av_d(kb:ke+kh))
@@ -397,8 +409,6 @@ module modcuda
                allocate(dummyNO_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
                allocate(dummyNO2_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
                allocate(dummyO3_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-               allocate(IIc_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-               IIc_d = IIc
             end if
             if (lscasrc .or. lscasrcl) then
                allocate(scalar_source_tendency_d(ib:ie,jb:je,kb:ke,nsv))
@@ -413,6 +423,39 @@ module modcuda
          allocate(ekm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); ekm_d = ekm
          allocate(ekh_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); ekh_d = ekh
          allocate(dthvdz_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+
+         ! What thermodynamics owns on the device, seeded from the host copies
+         ! rather than left as whatever the allocation returned. readinitfiles
+         ! runs the host thermodynamics once, before this point, so every one
+         ! of these already holds the value the first stage of the first step
+         ! expects to read - which for presf and exnf is not a convenience but
+         ! the definition: thermodynamics' first saturation pass runs before
+         ! diagfld rebuilds them, so it reads the previous call's profiles, and
+         ! at the first stage the previous call is the one in readinitfiles.
+         !
+         ! dthvdz_d and thv0h_d are seeded for a narrower reason: subgrid and
+         ! the buoyancy term read them on the first stage of the first step,
+         ! which is before the first calthv writes them.
+         dthvdz_d = dthvdz
+         if (ltempeq) then
+            allocate(thl0h_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); thl0h_d = thl0h
+            allocate(qt0h_d (ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); qt0h_d  = qt0h
+            allocate(ql0_d  (ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); ql0_d   = ql0
+            allocate(ql0h_d (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh));    ql0h_d  = ql0h
+            allocate(presf_d(kb:ke+kh)); presf_d = presf
+            allocate(presh_d(kb:ke+kh)); presh_d = presh
+            allocate(exnf_d (kb:ke+kh)); exnf_d  = exnf
+            allocate(exnh_d (kb:ke+kh)); exnh_d  = exnh
+            thv0h_d = thv0h
+         end if
+
+         ! qt0 is read by the thvf reduction whether or not there is moisture,
+         ! and nothing writes it when there is none - so it is allocated for
+         ! the wider condition and seeded here, once, for the narrower case.
+         if (ltempeq .or. lmoist) then
+            allocate(qt0_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
+            if (.not. lmoist) qt0_d = qt0
+         end if
 
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
             allocate(dumu_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
@@ -481,23 +524,76 @@ module modcuda
             allocate(facef_stage(1:nfcts))
          end if
 
-         ! Only the flow-rate controllers masscorr can actually run need the
-         ! masks and the staging column, so an unforced run pays for neither.
-         if ((.not. linoutflow) .and. &
-             (luoutflowr .or. luvolflowr .or. lvoutflowr .or. lvvolflowr)) then
-            allocate(col_d(kb:ke+kh))
-            allocate(col_stage(kb:ke+kh))
-            if (luoutflowr .or. luvolflowr) then
-               allocate(IIu_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-               IIu_d = IIu
-            end if
-            if (lvoutflowr .or. lvvolflowr) then
-               allocate(IIv_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc))
-               IIv_d = IIv
-            end if
+         ! The fluid-cell masks and the staging column for every rank-local
+         ! reduction on the device. These used to be conditional on masscorr's
+         ! flow-rate controllers, which were the only readers; diagfld's slab
+         ! averages are on the device now and they run on every stage of every
+         ! configuration, so u, v and c are unconditional. Four integer masks
+         ! is real memory - about 70 MB each at 256^3 - but the host already
+         ! carries seven of them, and the alternative is bringing three
+         ! prognostic fields down per stage to average them there.
+         allocate(col_d(kb:ke+kh))
+         allocate(col_stage(kb:ke+kh))
+         allocate(IIu_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)); IIu_d = IIu
+         allocate(IIv_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)); IIv_d = IIv
+         allocate(IIc_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)); IIc_d = IIc
+         ! The w mask has one reader, the thvh average, and that only exists
+         ! when there is a temperature to average.
+         if (ltempeq) then
+            allocate(IIw_d(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)); IIw_d = IIw
          end if
 
+         call uploadPrognosticFieldsDevice
+
       end subroutine initCUDA
+
+      !> The one and only upload of the prognostic fields.
+      !!
+      !! updateDevice used to do this at the top of every stage. That is what
+      !! made the host copies authoritative and forced the unconditional pull
+      !! that answered it, and it was necessary for exactly as long as
+      !! thermodynamics ran on the host. Every writer in the loop is on the
+      !! device now, so the handover happens once, from initCUDA, and the
+      !! device holds these from there until exitCUDA - nothing uploads them
+      !! again during the run.
+      !!
+      !! Which also means a field left out of this list is not merely stale, it
+      !! is never initialised at all, on a run of any length and in every
+      !! configuration that allocates it. That is a loud failure rather than a
+      !! quiet one, and it is why one upload is enough.
+      !!
+      !! It is a routine rather than a block inside initCUDA because the device
+      !! self-tests seed these arrays and have to put them back, and there is
+      !! no longer a per-stage upload to do it for them.
+      subroutine uploadPrognosticFieldsDevice
+         implicit none
+
+         um_d = um
+         vm_d = vm
+         wm_d = wm
+         u0_d = u0
+         v0_d = v0
+         w0_d = w0
+         pres0_d = pres0
+         if (loneeqn) then
+            e120_d = e120
+            e12m_d = e12m
+         end if
+         if (ltempeq) then
+            thl0_d = thl0
+            thlm_d = thlm
+            if (iadv_thl == iadv_kappa) thl0c_d = thl0c
+         end if
+         ! qt0_d is allocated for a run with temperature and no moisture too;
+         ! qtm_d is not.
+         if (ltempeq .or. lmoist) qt0_d = qt0
+         if (lmoist) qtm_d = qtm
+         if (nsv > 0) then
+            sv0_d = sv0
+            svm_d = svm
+         end if
+
+      end subroutine uploadPrognosticFieldsDevice
 
       subroutine exitCUDA
          implicit none
@@ -519,11 +615,13 @@ module modcuda
             deallocate(dthldxls_d, dthldyls_d)
             deallocate(tfluxb_d)
          end if
-         if (lmoist) deallocate(qt0_d, qtm_d, qtp_d, qt0av_d, qtprof_d, dqtdxls_d, dqtdyls_d, dqtdtls_d)
+         if (lmoist) deallocate(qtm_d, qtp_d, qt0av_d, qtprof_d, dqtdxls_d, dqtdyls_d, dqtdtls_d)
+         if (ltempeq .or. lmoist) deallocate(qt0_d)
+         if (ltempeq) deallocate(thl0h_d, qt0h_d, ql0_d, ql0h_d, presf_d, presh_d, exnf_d, exnh_d)
          if (nsv>0) then
             deallocate(sv0_d, svm_d, svp_d, sv0av_d, svprof_d)
             if (lscasrc .or. lscasrcl) deallocate(scalar_source_tendency_d)
-            if (nsv==3 .and. lchem) deallocate(dummyNO_d, dummyNO2_d, dummyO3_d, IIc_d)
+            if (nsv==3 .and. lchem) deallocate(dummyNO_d, dummyNO2_d, dummyO3_d)
          end if
          if (any(iadv_sv(1:nsv) == iadv_kappa) .or. (iadv_thl == iadv_kappa)) then
             deallocate(dumu_d, duml_d, dxhci_d, dxfc_d, dzhci_d, dzfc_d)
@@ -538,9 +636,9 @@ module modcuda
          end if
          if (lsmagorinsky) deallocate(csz_d)
          deallocate(dthvdz_d)
-         if (allocated(col_d)) deallocate(col_d, col_stage)
-         if (allocated(IIu_d)) deallocate(IIu_d)
-         if (allocated(IIv_d)) deallocate(IIv_d)
+         deallocate(col_d, col_stage)
+         deallocate(IIu_d, IIv_d, IIc_d)
+         if (allocated(IIw_d)) deallocate(IIw_d)
       end subroutine exitCUDA
 
       !> Refresh the facet properties the IBM wall functions read.
@@ -640,71 +738,14 @@ module modcuda
       end subroutine updateFacIntegralsHost
 
 #if defined(UDALES_DEBUG)
-      !> Every field updateDevice is about to upload must have been pulled.
+      !> Nothing may still be marked current where the post-boundary pull starts.
       !!
-      !! updateDevice writes the host copy of sixteen fields onto the device.
-      !! If one of them was not brought down during the step just finishing,
-      !! that upload replaces a current device value with a stale host one, and
-      !! the error is in the solution rather than in an output file - it shows
-      !! up as a slow divergence with nothing pointing at the cause.
-      !!
-      !! So the list here is the list of uploads in updateDevice, and it has to
-      !! be kept beside it: adding an upload without adding the field to
-      !! updateHostForUnportedRoutines is exactly the mistake this catches.
-      !! Which is not hypothetical - pres0 was left out of that routine on the
-      !! first attempt at this split, on the grounds that its only readers are
-      !! the three that have their own routines.
-      !!
-      !! Inert until enableRoundTripCheck arms it, because initialisation and
-      !! the device self-tests both call updateDevice with nothing pulled.
-      subroutine assertRoundTripPulled
-         use modmpi, only : myid
-         implicit none
-
-         if (.not. lcheck_round_trip) return
-
-         call need(F_U0) ; call need(F_V0) ; call need(F_W0)
-         call need(F_UM) ; call need(F_VM) ; call need(F_WM)
-         call need(F_PRES0)
-         if (ltempeq) then
-            call need(F_THL0) ; call need(F_THLM)
-            if (iadv_thl == iadv_kappa) call need(F_THL0C)
-         end if
-         if (lmoist) then
-            call need(F_QT0) ; call need(F_QTM)
-         end if
-         if (nsv > 0) then
-            call need(F_SV0) ; call need(F_SVM)
-         end if
-         if (loneeqn) then
-            call need(F_E120) ; call need(F_E12M)
-         end if
-
-      contains
-
-         subroutine need(id)
-            implicit none
-            integer, intent(in) :: id
-
-            if (.not. pulled(id)) then
-               write(*,'(A,I0,3A)') 'Round-trip field not pulled on rank ', myid, ': ', &
-                    trim(pulled_name(id)), &
-                    ' is about to be uploaded from a host copy this step never fetched.'
-               error stop 1
-            end if
-
-         end subroutine need
-
-      end subroutine assertRoundTripPulled
-
-      !> Nothing may still be marked current where the correctness path starts.
-      !!
-      !! updateHostForUnportedRoutines fetches through the pull routines, and
-      !! those skip a field already marked current - which fielddump and
-      !! statsdump mark several of them, earlier in the same step. What makes
-      !! that safe is that boundary_device clears the bitmap after it writes,
-      !! so by the time the handover runs nothing is marked and every transfer
-      !! in it actually happens.
+      !! updateHostForTimestep fetches through the pull routines, and those
+      !! skip a field already marked current - which fielddump and statsdump
+      !! mark several of them, earlier in the same step. What makes that safe
+      !! is that boundary_device clears the bitmap after it writes, so by the
+      !! time the handover runs nothing is marked and every transfer in it
+      !! actually happens.
       !!
       !! That is a dependency on one line at the end of a routine in another
       !! module, and it is invisible from here. Delete it and the parity cases
@@ -717,7 +758,7 @@ module modcuda
          implicit none
          integer :: id
 
-         if (.not. lcheck_round_trip) return
+         if (.not. lcheck_handover) return
 
          do id = 1, F_COUNT
             if (pulled(id)) then
@@ -733,36 +774,31 @@ module modcuda
 
       end subroutine assertNothingPulled
 
-      !> Arm the round-trip check. Called once, as the time loop starts.
-      subroutine enableRoundTripCheck
+      !> Arm the post-boundary handover check. Called once, as the loop starts.
+      subroutine enableHandoverCheck
          implicit none
-         lcheck_round_trip = .true.
-      end subroutine enableRoundTripCheck
+         lcheck_handover = .true.
+      end subroutine enableHandoverCheck
 #endif
 
       subroutine updateDevice
          implicit none
          integer :: n
 
-#if defined(UDALES_DEBUG)
-         call assertRoundTripPulled
-#endif
-
-         ! Everything the host holds is about to be on the device, so nothing
-         ! is pulled yet for the step this starts. See the declaration.
+         ! The host copies are about to stop being the ones that matter for
+         ! this step: whatever a reader fetched last step is stale from here
+         ! on. See the declaration.
          pulled = .false.
 
          call updateFacetPropsDevice
 
-         um_d = um
-         vm_d = vm
-         wm_d = wm
-
-         u0_d = u0
-         v0_d = v0
-         w0_d = w0
-         pres0_d = pres0
-
+         ! No prognostic field is uploaded here any more. Every routine in the
+         ! loop that writes one runs on the device, thermodynamics included,
+         ! so the device has held the authoritative copy since initCUDA and
+         ! the host copies exist only for the readers that fetch them. What is
+         ! left below is the three tendency resets and the profiles a host
+         ! routine still produces - timedep's inlet profiles and the column
+         ! diagfld rebuilds - which are one column of ke-kb+2 doubles each.
          call initfield<<<griddim,blockdim>>>(up_d, 0., ih, jh, kh)
          call checkCUDA( cudaGetLastError(), 'initfield up_d' )
 
@@ -806,25 +842,23 @@ module modcuda
          ! looked right. Twelve planes wrong together is a legible failure.
 
          if (loneeqn) then
-            e12m_d = e12m
-            e120_d = e120
             call initfield<<<griddim,blockdim>>>(e12p_d, 0., ih, jh, kh)
             call checkCUDA( cudaGetLastError(), 'initfield e12p_d' )
          end if
 
          if (ltempeq) then
-            thlm_d = thlm
-            thl0_d = thl0
             call initfield<<<griddim,blockdim>>>(thlp_d, 0., ih, jh, kh)
             call checkCUDA( cudaGetLastError(), 'initfield thlp_d' )
 
             if (iadv_thl == iadv_kappa) then
-               thl0c_d = thl0c
                call initfield<<<griddim,blockdim>>>(thlpc_d, 0., ihc, jhc, khc)
                call checkCUDA( cudaGetLastError(), 'initfield thlpc_d' )
             end if
 
-            thv0h_d    = thv0h
+            ! thvh and thl0av come from the column diagfld rebuilds at the end
+            ! of the previous stage; thv0h and dthvdz used to come from here
+            ! too and do not any more, because calthv writes them straight onto
+            ! the device beside these.
             thvh_d     = thvh
             thl0av_d   = thl0av
             if (lnudge .or. BCxT == BCxT_profile .or. BCyT == BCyT_profile) thlprof_d = thlprof
@@ -834,8 +868,6 @@ module modcuda
          end if
 
          if (lmoist) then
-            qtm_d  = qtm
-            qt0_d = qt0
             call initfield<<<griddim,blockdim>>>(qtp_d, 0., ih, jh, kh)
             call checkCUDA( cudaGetLastError(), 'initfield qtp_d' )
             qt0av_d = qt0av
@@ -843,16 +875,12 @@ module modcuda
          end if
 
          if (nsv>0) then
-            svm_d  = svm
-            sv0_d = sv0
             do n = 1, nsv
                call initfield<<<griddim,blockdim>>>(svp_d(:, :, :, n), 0., ihc, jhc, khc)
                call checkCUDA( cudaGetLastError(), 'initfield svp_d' )
             end do
             sv0av_d = sv0av
          end if
-
-         dthvdz_d = dthvdz
       end subroutine updateDevice
 
       ! One routine per field rather than one generic helper taking the pair as
@@ -946,6 +974,20 @@ module modcuda
          pulled(F_QTM) = .true.
       end subroutine pull_qtm
 
+      subroutine pull_ql0
+         implicit none
+         if (pulled(F_QL0)) return
+         ql0 = ql0_d
+         pulled(F_QL0) = .true.
+      end subroutine pull_ql0
+
+      subroutine pull_ql0h
+         implicit none
+         if (pulled(F_QL0H)) return
+         ql0h = ql0h_d
+         pulled(F_QL0H) = .true.
+      end subroutine pull_ql0h
+
       subroutine pull_sv0
          implicit none
          if (pulled(F_SV0)) return
@@ -1036,6 +1078,7 @@ module modcuda
          if (fielddump_wants('p0')) call pull_pres0
          if (ltempeq .and. fielddump_wants('th')) call pull_thl0
          if (lmoist  .and. fielddump_wants('qt')) call pull_qt0
+         if (ltempeq .and. fielddump_wants('ql')) call pull_ql0
 
          ! sv0 comes down whole, so any one of the five scalar codes is enough.
          if (nsv > 0) then
@@ -1087,15 +1130,15 @@ module modcuda
       !! step to answer a question the writer already asks.
       !!
       !! By that point boundary has applied the top and lateral planes on the
-      !! device and updateHostForUnportedRoutines has fetched the result, which
-      !! is what belongs in a restart - so the prognostic fields here are
-      !! no-ops and the routine exists for when that unconditional pull goes
-      !! away. ekm is not a no-op: it left updateHostForUnportedRoutines when
-      !! boundary stopped needing it on the host, and a restart written on a
-      !! step nothing else sampled would otherwise carry the eddy viscosity
-      !! from the last time statsdump ran. ql0 and ql0h are also written to the
-      !! restart and are absent on purpose: thermodynamics produces them on the
-      !! host and there is no device copy to fetch.
+      !! device and thermodynamics has derived from the result, which is what
+      !! belongs in a restart.
+      !!
+      !! Every line below is load-bearing. It did not use to be: the prognostic
+      !! fields were fetched unconditionally on every stage for the host
+      !! thermodynamics, so listing them here was insurance for a transfer that
+      !! had already happened. Nothing brings them down unconditionally any
+      !! more, so on a step no dump sampled this is the only thing standing
+      !! between the restart file and the values the run started from.
       subroutine updateHostForRestart
          implicit none
 
@@ -1105,95 +1148,74 @@ module modcuda
          call pull_pres0
          call pull_ekm
 
-         if (ltempeq) call pull_thl0
+         if (ltempeq) then
+            call pull_thl0
+            call pull_ql0
+            call pull_ql0h
+         end if
          if (lmoist)  call pull_qt0
          if (nsv > 0) call pull_sv0
          if (loneeqn) call pull_e120
 
       end subroutine updateHostForRestart
 
-      !> Bring down what the host routines still in the loop are about to use.
+      !> Bring down what tstep_update reads at the top of the next iteration.
       !!
-      !! This is not a bin of leftovers, it is the correctness path.
-      !! thermodynamics reads thl0 and qt0 and writes ql0, thv0h and the slab
-      !! averages, on the host - and the next updateDevice uploads every field
-      !! below back. Skip one here and the device gets the previous step's
-      !! value for it, so this runs on every stage and cannot be conditional.
+      !! All that is left of the post-Poisson correctness path. Its predecessor,
+      !! updateHostForUnportedRoutines, fetched fifteen fields on every stage
+      !! because thermodynamics ran on the host and updateDevice uploaded the
+      !! result back; thermodynamics is on the device now, so that whole round
+      !! trip is gone and what remains is one host reader.
       !!
-      !! It is also the one routine in this group that shrinks. Every entry
-      !! below leaves when the routine that needs it is ported, and once
-      !! thermodynamics is on the device the routine goes with it - unlike the
-      !! three above, which survive a fully ported loop because their readers
-      !! write files from host memory.
+      !! tstep_update chooses the adaptive timestep from the previous step's
+      !! velocities and both eddy diffusivities, and it runs above updateDevice
+      !! at the top of the next iteration, so it is the one routine that reads
+      !! a field on the host between the device writing it and the device
+      !! reading it again. A stale copy here does not corrupt an output, it
+      !! moves dt - and a moved dt moves the whole solution.
       !!
-      !! ekm and ekh were unconditional here, for boundary's fluxtop and
-      !! fluxtopscal. boundary applies those on the device now, and the one
-      !! host reader left is tstep_update, which limits the timestep by the
-      !! diffusion number and so needs both fields at the top of the next
-      !! iteration - but only when the timestep is adaptive. On a fixed
-      !! timestep two of the largest arrays in the model stop crossing the bus
-      !! every stage; on an adaptive one they still do, and porting
-      !! tstep_update's reduction is what changes that. It is the same
-      !! reduction checksim already runs on the device.
+      !! ladaptive is the condition because that is when it reads them at all.
+      !! On a fixed timestep nothing crosses the bus here, which is the point:
+      !! um, vm, wm, ekm and ekh are five of the largest arrays in the model.
       !!
       !! Not a saving worth guessing at: dropping them outright passes every
       !! parity case with a fixed timestep and fails ibm-reconstruction, the
-      !! one adaptive case, by two parts in a thousand - because a stale
-      !! diffusivity moves dt, and a moved dt moves the whole solution.
-      !!
-      !! pres0 is here for a different reason. Its only host readers are
-      !! statsdump, fielddump and the restart, all of which have their own
-      !! routine - but updateDevice uploads it, so leaving it to them would put
-      !! a stale pressure back on the device on every step between samples.
-      !! The same argument keeps um, vm, wm, thlm, qtm and svm here even though
-      !! nothing downstream of this point reads them at all.
-      subroutine updateHostForUnportedRoutines
+      !! one adaptive case, by two parts in a thousand.
+      subroutine updateHostForTimestep
          implicit none
 
 #if defined(UDALES_DEBUG)
          call assertNothingPulled
 #endif
 
-         call pull_u0
-         call pull_v0
-         call pull_w0
+         if (.not. ladaptive) return
+
          call pull_um
          call pull_vm
          call pull_wm
-         call pull_pres0
-         if (ladaptive) then
-            call pull_ekm
-            call pull_ekh
-         end if
+         call pull_ekm
+         call pull_ekh
 
-         if (ltempeq) then
-            call pull_thl0
-            call pull_thlm
-            if (iadv_thl == iadv_kappa) call pull_thl0c
-         end if
+      end subroutine updateHostForTimestep
 
-         if (lmoist) then
-            call pull_qt0
-            call pull_qtm
-         end if
+      !> Send the hydrostatic column diagfld just rebuilt up to the device.
+      !!
+      !! Four columns of ke-kb+2 doubles, which is nothing, and they are what
+      !! the saturation and virtual-temperature kernels read. Uploaded from
+      !! inside diagfld rather than from updateDevice because thermodynamics'
+      !! first saturation pass runs before diagfld in the same call and has to
+      !! see the previous call's profiles, exactly as the host does.
+      subroutine updateThermoProfilesDevice
+         implicit none
 
-         if (nsv > 0) then
-            call pull_sv0
-            call pull_svm
-#if defined(UDALES_DEBUG)
-            if (.not. all(ieee_is_finite(sv0(ib:ie, jb:je, kb:ke, 1:nsv)))) then
-               write(*,*) 'Non-finite scalar value detected after the GPU pressure step.'
-               error stop 1
-            end if
-#endif
-         end if
+         if (.not. allocated(presf_d)) return
 
-         if (loneeqn) then
-            call pull_e120
-            call pull_e12m
-         end if
+         presf_d = presf
+         presh_d = presh
+         exnf_d  = exnf
+         exnh_d  = exnh
 
-      end subroutine updateHostForUnportedRoutines
+      end subroutine updateThermoProfilesDevice
 
       !> Mirror the driver inlet planes that boundary_device reads, and fill them.
       !!
@@ -1448,11 +1470,11 @@ module modcuda
       !! device, and it runs after fielddump and statsdump have already pulled
       !! their fields down. Those copies were current when they were made and
       !! are not any more - they are missing the boundary planes. Clearing the
-      !! bitmap is what makes updateHostForUnportedRoutines fetch them again
-      !! rather than skip them as already pulled, and skipping them is exactly
-      !! the failure the bitmap would otherwise introduce: updateDevice would
-      !! then upload a host copy with no boundary condition in it, and the
-      !! error would be in the solution rather than in a file.
+      !! bitmap is what makes updateHostForTimestep and the restart fetch them
+      !! again rather than skip them as already pulled, and skipping them is
+      !! exactly the failure the bitmap would otherwise introduce: the adaptive
+      !! timestep would be chosen from velocities with no boundary condition in
+      !! them, and a restart written on the same step would record them.
       !!
       !! All of them, not only the fifteen boundary_device writes. A list of
       !! exactly those fifteen would spare pres0, ekm and ekh a second fetch on
@@ -1510,6 +1532,7 @@ module modcuda
             if (fielddump_wants('p0')) call check3(label, 'pres0', pres0, pres0_d)
             if (ltempeq .and. fielddump_wants('th')) call check3(label, 'thl0', thl0, thl0_d)
             if (lmoist  .and. fielddump_wants('qt')) call check3(label, 'qt0',  qt0,  qt0_d)
+            if (ltempeq .and. fielddump_wants('ql')) call check3(label, 'ql0',  ql0,  ql0_d)
 
             if (nsv > 0) then
                if (fielddump_wants('s1') .or. fielddump_wants('s2') .or. &
@@ -1547,11 +1570,10 @@ module modcuda
          case ('tstep_update')
             ! The adaptive timestep is chosen on the host from the previous
             ! step's velocities and diffusivities, before updateDevice runs.
-            ! um, vm and wm come down every stage because updateDevice uploads
-            ! them again; ekm and ekh come down for this reader alone, which is
-            ! why they are the pair most likely to be dropped by someone
-            ! reading updateHostForUnportedRoutines and seeing no reader left
-            ! in the loop below it.
+            ! All five come down for this reader and no other, in
+            ! updateHostForTimestep, and only when the timestep is adaptive -
+            ! so a wrong condition there is invisible on every fixed-timestep
+            ! case, and this is what names it.
             call check3(label, 'um', um, um_d)
             call check3(label, 'vm', vm, vm_d)
             call check3(label, 'wm', wm, wm_d)
@@ -1661,6 +1683,64 @@ module modcuda
          call avexy_ibm_finish(aver, col_stage, averl_kb_nomask, kb, ke, kh, IIs, lnan)
 
       end subroutine avexy_ibm_device
+
+      !> avexy_ibm_device for a field carrying the scalar halo.
+      !!
+      !! sv0 is the only one, and it needs its own routine rather than a wider
+      !! dummy on the one above because an explicit-shape device dummy takes
+      !! the address of the first element: pass sv0_d to a dummy declared with
+      !! the momentum halo and, whenever ihc differs from ih, every index is
+      !! wrong by a margin that grows with k.
+      !!
+      !! The k loop still stops at ke+kh, not ke+khc, which is what the host
+      !! does. There the truncation is an accident of sequence association -
+      !! avexy_ibm's aver dummy is declared kb:ke+kh and the caller hands it a
+      !! kb:ke+khc slice - and the tail level of sv0av keeps the zero diagfld
+      !! wrote before the reduction. Here it is written down.
+      subroutine avexy_ibm_c_device(aver, var, kzb, II, IIs, lnan)
+         use modmpi, only : avexy_ibm_finish
+         implicit none
+
+         integer,         intent(in)  :: kzb
+         real   , device, intent(in)  :: var(ib-ihc:ie+ihc,jb-jhc:je+jhc,kzb:ke+khc)
+         integer, device, intent(in)  :: II (ib-ihc:ie+ihc,jb-jhc:je+jhc,kb:ke+khc)
+         real   ,         intent(out) :: aver(kb:ke+kh)
+         integer,         intent(in)  :: IIs(kb:ke+kh)
+         logical,         intent(in)  :: lnan
+
+         real    :: s, averl_kb_nomask
+         integer :: i, j, k
+
+         !$acc parallel loop gang default(present) private(s)
+         do k = kb, ke+kh
+           s = 0.
+           !$acc loop vector collapse(2) reduction(+:s)
+           do j = jb, je
+             do i = ib, ie
+               s = s + var(i,j,k)*II(i,j,k)
+             end do
+           end do
+           col_d(k) = s
+         end do
+         !$acc end parallel loop
+
+         averl_kb_nomask = 0.
+         if ((.not. lnan) .and. (IIs(kb) == 0)) then
+           s = 0.
+           !$acc parallel loop collapse(2) default(present) reduction(+:s)
+           do j = jb, je
+             do i = ib, ie
+               s = s + var(i,j,kb)
+             end do
+           end do
+           !$acc end parallel loop
+           averl_kb_nomask = s
+         end if
+
+         col_stage = col_d
+         call avexy_ibm_finish(aver, col_stage, averl_kb_nomask, kb, ke, kh, IIs, lnan)
+
+      end subroutine avexy_ibm_c_device
 
       !> Rank-local fluid-cell sum over j on the i = iplane column, weighted.
       !!
