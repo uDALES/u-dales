@@ -23,7 +23,7 @@ module tests
             tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun, &
             tests_periodic_ebcorr, tests_masscorr, tests_ibmnorm, tests_eb, &
             tests_vegetation, tests_checksim, tests_driver_planes, &
-            tests_thermodynamics
+            tests_thermodynamics, tests_tstep
 
 contains
 
@@ -5492,6 +5492,305 @@ contains
     end subroutine verdict
 
   end function tests_thermodynamics
+
+
+  !> The two rank-local reductions that choose the adaptive time step.
+  !!
+  !! tstep_limits is what tstep_update evaluates over the interior of the
+  !! domain before it picks dt; everything else in that routine is scalar
+  !! bookkeeping over clocks and counters. Driving the reduction directly is
+  !! what lets a test see the answer at all - through tstep_update it is
+  !! visible only as a shift in dt, after an all-reduce, a division by a
+  !! namelist Courant number and a min against two other limits.
+  !!
+  !! What it pins, over and above the equivalent checks on modchecksim's pair,
+  !! which look like the same two numbers and are not:
+  !!
+  !!   - The absolute values. tstep_update takes |u|, |v| and |w|; checksim's
+  !!     Courant number does not. A port that drops them reports a negative
+  !!     maximum as zero, which on a flow with a strong downdraught and a weak
+  !!     updraught gives a Courant number several times too small and a dt
+  !!     several times too large - a run that goes unstable rather than one
+  !!     that is quietly a little wrong.
+  !!
+  !!   - The grid factors this pair carries, which are the cell-centred dxi
+  !!     and dyi and the half-level dzh, not checksim's dxhi and dzhi.
+  !!
+  !!   - That the geometry cache is exactly the expression it replaced, and
+  !!     that the diffusion term reads it at k.
+  !!
+  !!   - That the two numbers are independent: a velocity must not move the
+  !!     diffusion number and a diffusivity must not move the Courant number.
+  !!     They come out of one fused loop, so a reduction variable used for both
+  !!     is a real way to get this wrong and would otherwise show up only as an
+  !!     over-small dt on a run with a large viscosity.
+  logical function tests_tstep()
+    use modglobal,      only : runmode, ib, ie, jb, je, kb, ke, &
+                               dxi, dyi, dx2i, dy2i, dzh, dzh2i
+    use modfields,      only : initfields, um, vm, wm
+    use modsubgrid,     only : initsubgrid
+    use modsubgriddata, only : ekm, ekh
+    use modtstep,       only : inittstep, tstep_limits, diffgeom
+
+    implicit none
+
+    real, parameter :: spike = 2., dtm = 0.25, poison = 1.e6
+
+    logical :: all_passed
+    integer :: i, j, k
+    real    :: cour, diff, want
+    real    :: dxi_save, dyi_save
+    real, allocatable :: dzh_save(:), geom_save(:)
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_tstep: ADAPTIVE TIME STEP LIMITS TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+#if defined(_GPU)
+    ! Under _GPU tstep_limits reduces over the device fields, so seeding the
+    ! host arrays this test writes would leave it looking at whatever the
+    ! device happens to hold. Say so rather than reporting an unexplained
+    ! mismatch, and do not pass vacuously.
+    if (myid == 0) then
+      write(*, '(A)') 'FAIL: runmode 1017 exercises the host branch of tstep_limits.'
+      write(*, '(A)') '  Run it against a CPU build (build/cpu/<type>/u-dales).'
+      write(*, '(A)') '  The device kernel is covered by tests_cuda.f90::test_tstep_limits,'
+      write(*, '(A)') '  run with UDALES_RUN_CUDA_SELFTEST=1 on a Debug GPU build.'
+    end if
+    tests_tstep = .false.
+    return
+#endif
+
+    call initfields
+    call initsubgrid
+    call inittstep
+
+    all_passed = .true.
+
+    ! ---- the geometry cache -------------------------------------------------
+    ! Exact equality, not a tolerance: the whole justification for precomputing
+    ! this was that it is the same arithmetic in the same order, so that the
+    ! diffusion number, and with it dt, does not move by a single bit.
+    do k = kb, ke
+      want = dzh2i(k) + dx2i + dy2i
+      if (diffgeom(k) /= want) then
+        write(*,'(A,I0,A,I0,A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, &
+             ': diffgeom(', k, ') = ', diffgeom(k), ' want ', want
+        all_passed = .false.
+      end if
+    end do
+
+    ! ---- make every grid factor distinct ------------------------------------
+    ! Every case in the repository has dx = dy, and all but one a uniform grid
+    ! in z. There dxi equals dyi and dzh is constant in k, so a loop that pairs
+    ! the v term with the x spacing, or reads dzh at a fixed index, returns
+    ! exactly the right answer and no assertion below can fail. Substituting
+    ! values that differ in every position is what makes the pairing and the
+    ! indexing load-bearing.
+    !
+    ! The cache is substituted rather than rebuilt from the new dzh2i, so that
+    ! it varies in k independently of dzh: a diffusion term that reached for
+    ! the Courant number's spacing instead would otherwise still agree.
+    !
+    ! This runs after the exactness check above, which has to see the grid
+    ! inittstep actually built, and everything is restored before returning.
+    allocate(dzh_save (lbound(dzh,1):ubound(dzh,1)))           ; dzh_save  = dzh
+    allocate(geom_save(lbound(diffgeom,1):ubound(diffgeom,1))) ; geom_save = diffgeom
+    dxi_save = dxi ; dyi_save = dyi
+
+    ! Strictly increasing, and exact in binary: no two indices can collide, so
+    ! reading either of these one index off is always visible. A cyclic pattern
+    ! would not be - with a period of seven and a 64-deep domain, dzh(kb) and
+    ! dzh(ke) come out equal and a kernel pinned to kb passes.
+    do k = lbound(dzh,1), ubound(dzh,1)
+      dzh(k) = 0.75 + 0.0078125*real(k - lbound(dzh,1))
+    end do
+    do k = lbound(diffgeom,1), ubound(diffgeom,1)
+      diffgeom(k) = 1.25 + 0.0078125*real(k - lbound(diffgeom,1))
+    end do
+    dxi = 0.25 ; dyi = 0.5
+
+    ! ---- the Courant number -------------------------------------------------
+    call zero_all
+    call tstep_limits(dtm, cour, diff)
+    if (.not. same('courant of a field at rest', cour, 0.)) all_passed = .false.
+    if (.not. same('diffusion number of zero viscosity', diff, 0.)) all_passed = .false.
+
+    ! One term at a time, so each grid factor is pinned separately. A port that
+    ! pairs vm with 1/dzh, say, reproduces none of these.
+    if (.not. cour_spike('courant um', 1, ie, je, ke,  spike*dxi       )) all_passed = .false.
+    if (.not. cour_spike('courant vm', 2, ie, je, ke,  spike*dyi       )) all_passed = .false.
+    if (.not. cour_spike('courant wm', 3, ie, je, ke,  spike/dzh(ke)   )) all_passed = .false.
+
+    ! The absolute values, one per term. Without them each of these comes back
+    ! zero, because the reduction starts at zero and a negative contribution
+    ! never displaces it.
+    if (.not. cour_spike('courant |um|', 1, ie, je, ke, spike*dxi,     -spike)) all_passed = .false.
+    if (.not. cour_spike('courant |vm|', 2, ie, je, ke, spike*dyi,     -spike)) all_passed = .false.
+    if (.not. cour_spike('courant |wm|', 3, ie, je, ke, spike/dzh(ke), -spike)) all_passed = .false.
+
+    ! The same spike at every bound of the reduction box, so no face of it can
+    ! be missing. wm, because its factor is the one that varies with k.
+    if (.not. cour_spike('courant corner ib,jb,kb', 3, ib, jb, kb, spike/dzh(kb))) all_passed = .false.
+    if (.not. cour_spike('courant corner ie,jb,kb', 3, ie, jb, kb, spike/dzh(kb))) all_passed = .false.
+    if (.not. cour_spike('courant corner ib,je,kb', 3, ib, je, kb, spike/dzh(kb))) all_passed = .false.
+    if (.not. cour_spike('courant corner ib,jb,ke', 3, ib, jb, ke, spike/dzh(ke))) all_passed = .false.
+
+    ! ... and just outside every one of those bounds, where it must be ignored.
+    if (.not. poison_at('below ib', ib-1, jb,   kb  )) all_passed = .false.
+    if (.not. poison_at('above ie', ie+1, jb,   kb  )) all_passed = .false.
+    if (.not. poison_at('below jb', ib,   jb-1, kb  )) all_passed = .false.
+    if (.not. poison_at('above je', ib,   je+1, kb  )) all_passed = .false.
+    if (.not. poison_at('below kb', ib,   jb,   kb-1)) all_passed = .false.
+    if (.not. poison_at('above ke', ib,   jb,   ke+1)) all_passed = .false.
+
+    ! ---- the diffusion number -----------------------------------------------
+    ! ekm and ekh one at a time with the other zeroed, so dropping either from
+    ! the max is caught. A run whose Prandtl number is below one is limited by
+    ! ekh, and that is the term a port is most likely to lose.
+    if (.not. diff_spike('diffusion ekm', .true.,  ie, je, ke)) all_passed = .false.
+    if (.not. diff_spike('diffusion ekh', .false., ie, je, ke)) all_passed = .false.
+    if (.not. diff_spike('diffusion ekm at ib,jb,kb', .true.,  ib, jb, kb)) all_passed = .false.
+    if (.not. diff_spike('diffusion ekh at ib,jb,kb', .false., ib, jb, kb)) all_passed = .false.
+
+    ! ---- the two numbers are independent ------------------------------------
+    ! One loop produces both, so a single reduction variable serving both terms
+    ! passes every check above and fails these two.
+    call zero_all
+    um(ie,je,ke) = spike
+    call tstep_limits(dtm, cour, diff)
+    if (.not. same('a velocity does not move the diffusion number', diff, 0.)) all_passed = .false.
+    call zero_all
+    ekm(ie,je,ke) = spike
+    call tstep_limits(dtm, cour, diff)
+    if (.not. same('a diffusivity does not move the courant number', cour, 0.)) all_passed = .false.
+
+    ! ---- the time step ------------------------------------------------------
+    ! It multiplies the whole of each expression, and both of them. The
+    ! solver's loop used to multiply every cell by dt inside the maximum and
+    ! now multiplies the maximum once; these say the answer is the same, and
+    ! at exact equality, because that claim is a bit-for-bit one.
+    call zero_all
+    um(ie,je,ke) = spike
+    ekh(ib,jb,kb) = spike
+    call tstep_limits(2.*dtm, cour, diff)
+    if (cour /= (spike*dxi)*(2.*dtm)) then
+      write(*,'(A,I0,A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, &
+           ': tstep courant scales with dt, got ', cour, ' want ', (spike*dxi)*(2.*dtm)
+      all_passed = .false.
+    end if
+    if (diff /= (spike*diffgeom(kb))*(2.*dtm)) then
+      write(*,'(A,I0,A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, &
+           ': tstep diffusion scales with dt, got ', diff, ' want ', (spike*diffgeom(kb))*(2.*dtm)
+      all_passed = .false.
+    end if
+
+    dzh = dzh_save ; diffgeom = geom_save
+    dxi = dxi_save ; dyi = dyi_save
+    deallocate(geom_save, dzh_save)
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)') 'ALL TESTS PASSED: tests_tstep'
+        write(*, '(A,I0,A,I0,A,I0,A)') '  Reduction box ', ie-ib+1, ' x ', je-jb+1, &
+             ' x ', ke-kb+1, ' cells per rank'
+      else
+        write(*, '(A)') 'TESTS FAILED: tests_tstep'
+        write(*, '(A)') '  One or more checks did not pass'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_tstep = all_passed
+
+  contains
+
+    !> Clear everything the reduction reads, halos included.
+    subroutine zero_all
+      um = 0. ; vm = 0. ; wm = 0. ; ekm = 0. ; ekh = 0.
+    end subroutine zero_all
+
+    !> Assert a scalar matches to within a few ulps of its own magnitude.
+    logical function same(label, got, want)
+      character(len=*), intent(in) :: label
+      real,             intent(in) :: got, want
+      real :: tol
+
+      tol  = 64. * epsilon(1.) * max(1., abs(want))
+      same = abs(got - want) <= tol
+      if (.not. same) then
+        write(*,'(A,I0,3A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, ': tstep ', &
+             trim(label), ' got ', got, ' want ', want
+      end if
+
+    end function same
+
+    !> Put one value in um, vm or wm - which selects it - and assert the
+    !! Courant number is want, the grid factor that term is supposed to carry
+    !! times the value planted. val defaults to spike; pass a negative one to
+    !! drive the absolute value.
+    logical function cour_spike(label, which, is, js, ks, want, val)
+      character(len=*), intent(in) :: label
+      integer,          intent(in) :: which, is, js, ks
+      real,             intent(in) :: want
+      real, optional,   intent(in) :: val
+      real :: put
+
+      put = spike
+      if (present(val)) put = val
+
+      call zero_all
+      select case (which)
+      case (1) ; um(is,js,ks) = put
+      case (2) ; vm(is,js,ks) = put
+      case (3) ; wm(is,js,ks) = put
+      end select
+
+      call tstep_limits(dtm, cour, diff)
+      cour_spike = same(label, cour, want*dtm)
+
+    end function cour_spike
+
+    !> Put a single positive value in ekm (lekm) or ekh and assert the
+    !! diffusion number is that value times the cached geometry factor at ks.
+    logical function diff_spike(label, lekm, is, js, ks)
+      character(len=*), intent(in) :: label
+      logical,          intent(in) :: lekm
+      integer,          intent(in) :: is, js, ks
+
+      call zero_all
+      if (lekm) then
+        ekm(is,js,ks) = spike
+      else
+        ekh(is,js,ks) = spike
+      end if
+
+      call tstep_limits(dtm, cour, diff)
+      diff_spike = same(label, diff, spike*diffgeom(ks)*dtm)
+
+    end function diff_spike
+
+    !> Put a large value in all five fields outside the reduction box and
+    !! assert neither number sees it.
+    logical function poison_at(label, is, js, ks)
+      character(len=*), intent(in) :: label
+      integer,          intent(in) :: is, js, ks
+
+      call zero_all
+      um(is,js,ks) = poison ; vm(is,js,ks) = poison ; wm(is,js,ks) = poison
+      ekm(is,js,ks) = poison ; ekh(is,js,ks) = poison
+
+      call tstep_limits(dtm, cour, diff)
+      poison_at = same('courant ' // label, cour, 0.)
+      poison_at = same('diffusion ' // label, diff, 0.) .and. poison_at
+
+    end function poison_at
+
+  end function tests_tstep
 
 
 end module tests

@@ -651,6 +651,7 @@
       "src/modibm.f90:accumulate_delta_device": ["ibm-scalar-wall", "ibm-reconstruction"],
       "src/modscalsource.f90:scalsource": ["thermo-scalar-wall", "ibm-scalar-wall", "scalar-point-two-rank-x", "scalar-line-two-rank-y"],
       "src/modtstep.f90:tstep_integrate": ["dry-poisson-fft", "thermo-scalar-wall", "one-equation-sgs"],
+      "src/modtstep.f90:tstep_limits": ["debug-device-selftests", "ibm-reconstruction", "vegetation-deposition"],
       "src/modcuda.f90:integrateFacFluxDevice": ["debug-device-selftests", "surface-energy-balance"],
       "src/vegetation.f90:vegetation_forcing_device": ["debug-device-selftests", "vegetation", "vegetation-sveg"],
       "src/vegetation.f90:vegetation_canopy_device": ["debug-device-selftests", "vegetation", "vegetation-sveg"],

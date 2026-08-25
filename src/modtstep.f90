@@ -43,21 +43,167 @@
 
 
 module modtstep
+#if defined(_GPU)
+  use cudafor
+#endif
   implicit none
+  private
+  public :: inittstep, tstep_update, tstep_integrate
+  ! tstep_limits is the only part of this module with both a host and a device
+  ! implementation, so the tests drive it directly: reaching it through
+  ! tstep_update would mean reproducing the Runge-Kutta counter, the spinup
+  ! flag and an MPI communicator in order to read one number back out of dt.
+  ! diffgeom is exposed for the same reason - tests.f90 asserts the cache
+  ! against the expression it replaced. Public on every build rather than
+  ! behind the usual test guard, because tests.f90 compiles its host-branch
+  ! checks in a GPU build too, where they only report that the runmode belongs
+  ! on a CPU binary.
+  public :: tstep_limits, diffgeom
+#if defined(_GPU) && defined(UDALES_DEBUG)
+  ! The device mirror as well, so tests_cuda.f90 can substitute a cache whose
+  ! value differs at every k. Every GPU case runs on a grid that is uniform in
+  ! z, which makes the real cache constant and a kernel that reads it at a
+  ! fixed index indistinguishable from one that indexes it properly.
+  public :: diffgeom_d
+#endif
+
+  !> Geometry factor of the diffusion number, dzh2i(k) + dx2i + dy2i.
+  !!
+  !! It depends on the grid alone, so it is built once in inittstep rather than
+  !! per cell per call. Two adds a cell is not much beside the five arrays the
+  !! loop streams, but the loop runs over every interior cell of the domain on
+  !! every time step and the array costs ke-kb+1 reals - two kilobytes on the
+  !! 256^3 grid, against the 671 megabytes of um, vm, wm, ekm and ekh it is
+  !! read alongside.
+  !!
+  !! The terms are combined in the order the original expression used, so the
+  !! cached value is bit-identical to it and the diffusion number, and with it
+  !! the adaptive time step and the whole solution, does not move.
+  !!
+  !! Not modchecksim's diffnrgeom, which looks like the same quantity and is
+  !! not: that one is 1/dzh(k)**2 + dxh2i(i) + dy2i, formed from the half-level
+  !! spacing in x and from a separate rounding of the reciprocal in z. They
+  !! agree only on a grid uniform in x, and only to the last bit even there.
+  !!
+  !! It is derived once for both paths - the host loop reads it and the device
+  !! mirror is a straight copy - so the two cannot drift apart, and the device
+  !! kernel needs no mirror of dx2i or dy2i.
+  !!
+  !! The k extent is the loop's own, kb:ke, so it is indexed exactly as dzh2i
+  !! was and a kernel reaching into the halo has nothing to read.
+#if defined(_GPU)
+  real, allocatable, pinned :: diffgeom(:)
+  real, device, allocatable :: diffgeom_d(:)
+#else
+  real, allocatable :: diffgeom(:)
+#endif
+
   save
   contains
 
-    subroutine tstep_update
-      use modglobal, only : ib,ie,jb,je,rk3step,timee,dtmax,dt,ntimee,ntrun,courant,diffnr,&
-                            kb,ke,dxi,dx2i,dyi,dy2i,dzh,dt_lim,ladaptive,timeleft,lwarmstart,&
-                            dzh2i,rk3coef,rk3coefi
-      use modfields, only : um,vm,wm
+    !> Build the diffusion-number geometry. See the declaration for why.
+    !!
+    !! Called from program.f90 as soon as initglobal has the grid, and before
+    !! the runmode tests run, so a test that drives tstep_limits gets the same
+    !! cache the solver does. Idempotent, so a test may call it again after
+    !! substituting a grid of its own.
+    subroutine inittstep
+      use modglobal, only : kb,ke,dzh2i,dx2i,dy2i
+      implicit none
+      integer :: k
+
+      if (.not. allocated(diffgeom)) allocate(diffgeom(kb:ke))
+      do k = kb, ke
+        diffgeom(k) = dzh2i(k) + dx2i + dy2i
+      end do
+#if defined(_GPU)
+      if (.not. allocated(diffgeom_d)) allocate(diffgeom_d(kb:ke))
+      diffgeom_d = diffgeom
+#endif
+
+    end subroutine inittstep
+
+    !> Rank-local Courant and diffusion numbers over the cells this rank owns.
+    !!
+    !! Split out of tstep_update so that the loop, which is the only part with
+    !! a host and a device form, can be driven by the tests without a
+    !! communicator or a Runge-Kutta counter, and so that the two reductions it
+    !! feeds stay in one place.
+    !!
+    !! One loop for both numbers, as the host code always had it: they read
+    !! disjoint arrays, so fusing them saves no traffic, but it saves a second
+    !! pass over the index space and a second kernel launch.
+    !!
+    !! dtm multiplies each maximum rather than every cell, which is one
+    !! multiply instead of five million and gives the same answer to the last
+    !! bit: rounding is monotonic and dtm is a time step, so it is never
+    !! negative, and max(fl(a*dtm), fl(b*dtm)) is fl(max(a,b)*dtm). The zero
+    !! the reductions start from survives the move too, since 0*dtm is 0.
+    !!
+    !! The 1e-5 floor the normal branch of tstep_update puts under the
+    !! diffusion number is applied by that branch afterwards rather than seeded
+    !! here, for the same reason: max(1e-5, max_c(x_c*dtm)) is
+    !! max(1e-5, (max_c x_c)*dtm), so the floor commutes with the hoist, and it
+    !! belongs to the caller that wants it - the spinup branch does not.
+    !!
+    !! The division by dzh is left as a division rather than a multiply by
+    !! dzhi. The two differ in the last bit, and the number this produces
+    !! chooses dt; a last-bit change to dt moves the whole trajectory.
+    subroutine tstep_limits(dtm, courtotl, diffnrtotl)
+      use modglobal,      only : ib,ie,jb,je,kb,ke,dxi,dyi
+#if defined(_GPU)
+      use modcuda,        only : um_d,vm_d,wm_d,ekm_d,ekh_d,dzh_d
+#else
+      use modglobal,      only : dzh
+      use modfields,      only : um,vm,wm
       use modsubgriddata, only : ekm,ekh
+#endif
+      implicit none
+
+      real, intent(in)  :: dtm
+      real, intent(out) :: courtotl, diffnrtotl
+      integer           :: i, j, k
+
+      courtotl   = 0.
+      diffnrtotl = 0.
+#if defined(_GPU)
+      !$acc parallel loop collapse(3) default(present) &
+      !$acc   reduction(max:courtotl) reduction(max:diffnrtotl)
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            courtotl = max(courtotl, abs(um_d(i,j,k))*dxi + abs(vm_d(i,j,k))*dyi &
+                                                          + abs(wm_d(i,j,k))/dzh_d(k))
+            diffnrtotl = max(diffnrtotl, ekm_d(i,j,k)*diffgeom_d(k), &
+                                         ekh_d(i,j,k)*diffgeom_d(k) )
+          end do
+        end do
+      end do
+      !$acc end parallel loop
+#else
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            courtotl = max(courtotl, abs(um(i,j,k))*dxi + abs(vm(i,j,k))*dyi &
+                                                        + abs(wm(i,j,k))/dzh(k))
+            diffnrtotl = max(diffnrtotl, ekm(i,j,k)*diffgeom(k), &
+                                         ekh(i,j,k)*diffgeom(k) )
+          end do
+        end do
+      end do
+#endif
+      courtotl   = courtotl*dtm
+      diffnrtotl = diffnrtotl*dtm
+
+    end subroutine tstep_limits
+
+    subroutine tstep_update
+      use modglobal, only : rk3step,timee,dtmax,dt,ntimee,ntrun,courant,diffnr,&
+                            dt_lim,ladaptive,timeleft,lwarmstart,&
+                            rk3coef,rk3coefi
       use modmpi,    only : comm3d,mpierr,mpi_max,my_real !,myid
       implicit none
 
-      integer       :: i, j, k
-      ! integer :: imin, kmin ! Required by the commented Peclet diagnostic below.
       real,save     :: courtot=-1.,diffnrtot=-1.
       real          :: courtotl,courold,diffnrtotl,diffnrold
       ! logical,save  :: spinup=.true.
@@ -75,18 +221,7 @@ module modtstep
           if (ladaptive) then
             courold = courtot
             diffnrold = diffnrtot
-            courtotl=0.
-            diffnrtotl = 0.
-            do k=kb,ke
-              do j=jb,je
-                do i=ib,ie
-                  courtotl = max(courtotl,(abs(um(i,j,k))*dxi + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
-                  ! diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(1/dzh(k)**2 + dxh2i(i) + dy2i)*dt )
-                  diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt, &
-                                                ekh(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt )
-                end do
-              end do
-            end do
+            call tstep_limits(dt, courtotl, diffnrtotl)
             call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
             call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
             if ( diffnrold>0) then
@@ -112,22 +247,13 @@ module modtstep
         else  !spinup = .false.
 
           if (ladaptive) then
-            courtotl=0.
-            diffnrtotl = 1e-5
-            do k=kb,ke
-              do j=jb,je
-                do i=ib,ie
-                  courtotl = max(courtotl,(abs(um(i,j,k))*dxi + abs(vm(i,j,k))*dyi + abs(wm(i,j,k))/dzh(k))*dt)
-                  diffnrtotl = max(diffnrtotl,  ekm(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt,&
-                                                ekh(i,j,k)*(dzh2i(k) + dx2i + dy2i)*dt )
-                  ! if (diffnrtotl ==  ekh(i,j,k)*(dzh2i(k) + dxh2i(i) + dy2i)*dt) then
-                    ! imin = i
-                    ! kmin = k
-                  ! end if
-                end do
-              end do
-            end do
-            ! write(6,*) 'Peclet criterion at proc,i,k = ', myid,imin,kmin
+            call tstep_limits(dt, courtotl, diffnrtotl)
+            ! The floor the loop used to be seeded with. It commutes with the
+            ! hoisted dt - see tstep_limits - and it is applied before the
+            ! all-reduce because that is where it was, and because the maximum
+            ! over the ranks of the floored values is the floor of the maximum
+            ! either way.
+            diffnrtotl = max(diffnrtotl, 1e-5)
 
             call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
             call MPI_ALLREDUCE(diffnrtotl,diffnrtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)

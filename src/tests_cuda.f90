@@ -31,12 +31,12 @@ module tests_cuda
                         ekm_d, ekh_d, pres0_d, fachf_d, facef_d, fachfi_d, facefi_d, &
                         integrateFacFluxDevice, updateFacIntegralsHost, &
                         facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
-                        dxdydzfi_d, dxdydzhi_d, dvcell_d, dxhi_d, dzhi_d, dzf_d, dzfi_d, &
+                        dxdydzfi_d, dxdydzhi_d, dvcell_d, dxhi_d, dzhi_d, dzh_d, dzf_d, dzfi_d, &
                         col_d, col_stage, IIu_d, IIv_d, IIw_d, IIc_d, updateDevice, &
                         ql0_d, ql0h_d, thl0h_d, qt0h_d, thv0h_d, dthvdz_d, &
                         presf_d, presh_d, exnf_d, exnh_d, &
                         updateHostForFielddump, updateHostForStatsdump, &
-                        updateHostForTimestep, uploadPrognosticFieldsDevice, &
+                        uploadPrognosticFieldsDevice, &
                         tau_x_d, tau_y_d, tau_z_d, &
                         thl_flux_d, momfluxb_d, tfluxb_d
    use modfields, only : u0, v0, w0, um, vm, wm, e120, e12m, pres0, &
@@ -78,6 +78,7 @@ module tests_cuda
    use modthermodynamics, only : thermodynamics, thermodynamics_device
    use modchecksim, only : courant_local, diffnr_local, div_local, &
                            diffnrgeom, diffnrgeom_d
+   use modtstep,    only : tstep_limits, diffgeom, diffgeom_d
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
                            thl_dot_hp, w_hp_exhaust
    use initfac,     only : fachf, facef, fachfi, facefi, facT, facqsat, fachurel, facf, faclGR, &
@@ -166,6 +167,7 @@ contains
          call test_driver_plane_handover
          call test_post_poisson_handover
          call test_checksim_reductions
+         call test_tstep_limits
          call test_thermodynamics_device
          write(*,'(A,I0)') 'CUDA device self-tests passed. rank=', myid
       case ('', '0', 'false', 'FALSE', 'no', 'NO', 'off', 'OFF')
@@ -4608,14 +4610,13 @@ contains
          thl_flux_d = sent_hf ; thl_flux = 0.
       end if
 
-      ! The post-Poisson handover is four routines now, one per reader, and
-      ! between them they still have to bring the whole set down. Called in the
-      ! order the time loop calls them, so the pull bookkeeping is exercised
-      ! the way it runs: whichever routine reaches a field first fetches it and
-      ! the others leave it alone.
+      ! The post-Poisson handover is one routine per reader now, and between
+      ! them they still have to bring the whole set down. Called in the order
+      ! the time loop calls them, so the pull bookkeeping is exercised the way
+      ! it runs: whichever routine reaches a field first fetches it and the
+      ! others leave it alone.
       call updateHostForFielddump
       call updateHostForStatsdump
-      call updateHostForTimestep
 
       if (any(ekm   /= sent_ekm)) call fail_cuda_selftest('the handover did not bring down ekm')
       if (any(ekh   /= sent_ekh)) call fail_cuda_selftest('the handover did not bring down ekh')
@@ -5050,6 +5051,263 @@ contains
       end function sums_to
 
    end subroutine test_checksim_reductions
+
+   !> Check the device branch of the adaptive time step limits against a host
+   !! reference built from the same seed.
+   !!
+   !! tstep_limits is the whole of what tstep_update evaluates over the
+   !! domain, and under _GPU it reduces over the device fields, so runmode
+   !! 1017 - which drives the host branch - cannot reach it. This is its only
+   !! coverage outside a full parity run, and a parity run only sees it
+   !! indirectly: a wrong reduction moves dt, and every field then differs
+   !! everywhere for a reason the comparison cannot name.
+   !!
+   !! The reference is an explicit host loop over the same seed, not a call to
+   !! the host branch, which is not compiled in this build at all. What it
+   !! pins:
+   !!
+   !!   - The absolute values, which this pair takes and modchecksim's does
+   !!     not. The seed is signed and the negative half of it is where the
+   !!     Courant maximum lands, so a kernel without them returns a number
+   !!     from the wrong cell rather than one that is slightly off.
+   !!
+   !!   - Every grid factor. dxi, dyi and dzh are equal or constant on every
+   !!     grid a GPU case runs on, so the seed varies in all three directions
+   !!     instead and the reference multiplies each term by the factor it is
+   !!     supposed to carry.
+   !!
+   !!   - The reduction box. Both fields are poisoned everywhere outside
+   !!     ib..ie, jb..je, kb..ke, so a kernel that reduces over the halo
+   !!     returns the poison rather than a slightly wrong number.
+   !!
+   !!   - That diffgeom_d holds the cache inittstep built, indexed at k. The
+   !!     reference reads the host diffgeom, so a mirror that was never
+   !!     uploaded gives the wrong answer rather than none.
+   !!
+   !!   - That one fused loop still produces two independent numbers.
+   !!
+   !! The device fields are saved and restored, because the self-tests run
+   !! between initCUDA and the time loop and the run continues afterwards.
+   subroutine test_tstep_limits
+      implicit none
+
+      real, parameter :: dtm = 0.25, spike = 2., poison = 1.e6
+
+      real, allocatable :: sa(:,:,:), sb(:,:,:), sc(:,:,:), sd(:,:,:), se(:,:,:)
+      real, allocatable :: ta(:,:,:), tb(:,:,:), tc(:,:,:), td(:,:,:), te(:,:,:)
+      real, allocatable :: dzh_save(:), geom_save(:)
+      real    :: dxi_save, dyi_save
+      real    :: cour, diff, refc, refd
+      integer :: i, j, k
+
+      if (.not. allocated(um_d)) return
+      if (.not. allocated(diffgeom)) call fail_cuda_selftest('tstep geometry cache not built')
+
+      allocate(sa(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(sb(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(sc(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(sd(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(se(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(ta(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(tb(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(tc(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(td(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(te(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+
+      ! sa..se hold the state the run left on the device and are not touched
+      ! again until the restore at the end; ta..te are the staging buffers.
+      sa = um_d ; sb = vm_d ; sc = wm_d ; sd = ekm_d ; se = ekh_d
+
+      ! ---- make every grid factor distinct ---------------------------------
+      ! Every GPU parity case runs on a grid that is uniform in all three
+      ! directions and has dx = dy. There dxi equals dyi and dzh and the
+      ! geometry cache are constant, so a kernel that pairs the v term with
+      ! the x spacing, or reads either array at a fixed index, gives exactly
+      ! the right answer. Substituting values that differ in every position is
+      ! what makes the pairing and the indexing load-bearing here.
+      !
+      ! The cache is substituted rather than rebuilt from the new dzh, so that
+      ! it varies in k independently of dzh: a diffusion term that reached for
+      ! the Courant number's spacing instead would otherwise still agree.
+      !
+      ! dxi and dyi reach the kernel as implicit firstprivate copies taken
+      ! from the host at launch, so setting the host value is enough; the
+      ! arrays need their device mirrors set too. Both are restored below.
+      allocate(dzh_save (lbound(dzh,1):ubound(dzh,1)))           ; dzh_save  = dzh
+      allocate(geom_save(lbound(diffgeom,1):ubound(diffgeom,1))) ; geom_save = diffgeom
+      dxi_save = dxi ; dyi_save = dyi
+
+      do k = lbound(dzh,1), ubound(dzh,1)
+         dzh(k) = 0.75 + 0.0078125*real(k - lbound(dzh,1))
+      end do
+      do k = lbound(diffgeom,1), ubound(diffgeom,1)
+         diffgeom(k) = 1.25 + 0.0078125*real(k - lbound(diffgeom,1))
+      end do
+      dxi = 0.25 ; dyi = 0.5
+
+      dzh_d = dzh ; diffgeom_d = diffgeom
+
+      ! ---- both numbers, over a signed seed ---------------------------------
+      call seed_box(ta, 1, poison)
+      call seed_box(tb, 2, poison)
+      call seed_box(tc, 3, poison)
+      um_d = ta ; vm_d = tb ; wm_d = tc
+
+      ! Positive, as a diffusivity is, and different in ekm and ekh so that
+      ! whichever term the kernel drops changes the answer.
+      call seed_box(td, 4, poison)
+      call seed_box(te, 5, poison)
+      do k = kb, ke
+         do j = jb, je
+            do i = ib, ie
+               td(i,j,k) = abs(td(i,j,k)) + 0.5
+               te(i,j,k) = abs(te(i,j,k)) + 1.5
+            end do
+         end do
+      end do
+      ekm_d = td ; ekh_d = te
+
+      refc = 0. ; refd = 0.
+      do k = kb, ke
+         do j = jb, je
+            do i = ib, ie
+               refc = max(refc, abs(ta(i,j,k))*dxi + abs(tb(i,j,k))*dyi &
+                                                   + abs(tc(i,j,k))/dzh(k))
+               refd = max(refd, td(i,j,k)*diffgeom(k), te(i,j,k)*diffgeom(k))
+            end do
+         end do
+      end do
+      refc = refc*dtm ; refd = refd*dtm
+
+      call tstep_limits(dtm, cour, diff)
+      if (.not. matches(cour, refc)) call fail_cuda_selftest('tstep_limits courant')
+      if (.not. matches(diff, refd)) call fail_cuda_selftest('tstep_limits diffusion')
+
+      ! ---- the absolute values ----------------------------------------------
+      ! Every velocity strictly negative, so the reduction starting at zero
+      ! never leaves it unless each term is taken in magnitude. A kernel
+      ! missing any one of the three abs calls reports a number built from the
+      ! other two.
+      do k = kb, ke
+         do j = jb, je
+            do i = ib, ie
+               ta(i,j,k) = -abs(ta(i,j,k)) - 0.5
+               tb(i,j,k) = -abs(tb(i,j,k)) - 0.5
+               tc(i,j,k) = -abs(tc(i,j,k)) - 0.5
+            end do
+         end do
+      end do
+      um_d = ta ; vm_d = tb ; wm_d = tc
+
+      refc = 0.
+      do k = kb, ke
+         do j = jb, je
+            do i = ib, ie
+               refc = max(refc, abs(ta(i,j,k))*dxi + abs(tb(i,j,k))*dyi &
+                                                   + abs(tc(i,j,k))/dzh(k))
+            end do
+         end do
+      end do
+      refc = refc*dtm
+
+      call tstep_limits(dtm, cour, diff)
+      if (.not. matches(cour, refc)) call fail_cuda_selftest('tstep_limits absolute values')
+
+      ! ---- ekh alone ---------------------------------------------------------
+      ! With ekm zeroed, a kernel that keeps only ekm returns zero here rather
+      ! than a number that happens to be close. A run whose Prandtl number is
+      ! below one is limited by ekh, and that is the term a port is most likely
+      ! to lose.
+      ekm_d = 0.
+      refd = 0.
+      do k = kb, ke
+         do j = jb, je
+            do i = ib, ie
+               refd = max(refd, te(i,j,k)*diffgeom(k))
+            end do
+         end do
+      end do
+      refd = refd*dtm
+      call tstep_limits(dtm, cour, diff)
+      if (.not. matches(diff, refd)) call fail_cuda_selftest('tstep_limits ekh term')
+
+      ! ---- the two numbers are independent -----------------------------------
+      ! One loop produces both, so a single reduction variable serving both
+      ! terms passes everything above and fails these two.
+      um_d = 0. ; vm_d = 0. ; wm_d = 0. ; ekm_d = 0. ; ekh_d = 0.
+      ta = 0. ; ta(ie,je,ke) = spike
+      um_d = ta
+      call tstep_limits(dtm, cour, diff)
+      if (.not. matches(cour, spike*dxi*dtm)) &
+         call fail_cuda_selftest('tstep_limits courant from a single spike')
+      if (.not. matches(diff, 0.)) &
+         call fail_cuda_selftest('tstep_limits a velocity moved the diffusion number')
+
+      um_d = 0.
+      ta = 0. ; ta(ie,je,ke) = spike
+      ekm_d = ta
+      call tstep_limits(dtm, cour, diff)
+      if (.not. matches(diff, spike*diffgeom(ke)*dtm)) &
+         call fail_cuda_selftest('tstep_limits diffusion from a single spike')
+      if (.not. matches(cour, 0.)) &
+         call fail_cuda_selftest('tstep_limits a diffusivity moved the courant number')
+
+      ! ---- put everything back -----------------------------------------------
+      dzh = dzh_save ; diffgeom = geom_save
+      dxi = dxi_save ; dyi = dyi_save
+      dzh_d = dzh ; diffgeom_d = diffgeom
+
+      um_d = sa ; vm_d = sb ; wm_d = sc ; ekm_d = sd ; ekh_d = se
+
+      deallocate(geom_save, dzh_save)
+      deallocate(te, td, tc, tb, ta, se, sd, sc, sb, sa)
+
+   contains
+
+      !> Deterministic, exactly representable seed. Varies in all three
+      !! directions so no grid factor can be swapped for another unnoticed,
+      !! and signed, so the absolute values are load-bearing.
+      real function seed_at(n, i, j, k)
+         implicit none
+         integer, intent(in) :: n, i, j, k
+
+         seed_at = 0.125*real(modulo(i*7 + j*13 + k*29 + n*5, 17)) - 1.
+
+      end function seed_at
+
+      !> Seed the reduction box and poison everything outside it.
+      subroutine seed_box(a, n, bad)
+         implicit none
+         real,    intent(out) :: a(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+         integer, intent(in)  :: n
+         real,    intent(in)  :: bad
+         integer :: i, j, k
+
+         a = bad
+         do k = kb, ke
+            do j = jb, je
+               do i = ib, ie
+                  a(i,j,k) = seed_at(n, i, j, k)
+               end do
+            end do
+         end do
+
+      end subroutine seed_box
+
+      !> Equal to within a few ulps of the larger of want and one.
+      logical function matches(got, want)
+         implicit none
+         real, intent(in) :: got, want
+
+         matches = abs(got - want) <= 64.*epsilon(1.)*max(1., abs(want))
+         if (.not. matches) then
+            write(*,'(A,I0,A,ES22.14,A,ES22.14)') 'tstep self-test rank ', myid, &
+                 ': got ', got, ' want ', want
+         end if
+
+      end function matches
+
+   end subroutine test_tstep_limits
 
    !> The device thermodynamics against the host thermodynamics, driven from
    !! one seed.

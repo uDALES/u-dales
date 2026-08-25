@@ -11,7 +11,7 @@ module modcuda
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
                              ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, ltrees, lscasrc, lscasrcl, &
                              BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
-                             lnudge, lnudgevel, libm, nfcts, ladaptive, idriver, &
+                             lnudge, lnudgevel, libm, nfcts, idriver, &
                              BCxT, BCxT_profile, BCyT, BCyT_profile, &
                              BCxq, BCxq_profile, BCyq, BCyq_profile, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
@@ -738,21 +738,29 @@ module modcuda
       end subroutine updateFacIntegralsHost
 
 #if defined(UDALES_DEBUG)
-      !> Nothing may still be marked current where the post-boundary pull starts.
+      !> Nothing may still be marked current once boundary has run.
       !!
-      !! updateHostForTimestep fetches through the pull routines, and those
-      !! skip a field already marked current - which fielddump and statsdump
-      !! mark several of them, earlier in the same step. What makes that safe
-      !! is that boundary_device clears the bitmap after it writes, so by the
-      !! time the handover runs nothing is marked and every transfer in it
-      !! actually happens.
+      !! The one reader left below boundary is writerestartfiles, and it
+      !! fetches through the pull routines, which skip a field already marked
+      !! current - which fielddump and statsdump mark several of them, earlier
+      !! in the same step. What makes that safe is that boundary_device clears
+      !! the bitmap after it writes, so by the time the restart is written
+      !! nothing is marked and every transfer in it actually happens.
       !!
       !! That is a dependency on one line at the end of a routine in another
-      !! module, and it is invisible from here. Delete it and the parity cases
-      !! with a lateral inlet fail while the rest pass, because
-      !! reassure_fluxtop_boundary happens to re-apply the flux-type top
-      !! conditions and hides the others - a symptom that points nowhere. This
-      !! names it instead.
+      !! module, and it is invisible from here. Delete it and a restart written
+      !! on a step a dump also sampled records velocities with no boundary
+      !! condition in them, silently, on the one step in a thousand where the
+      !! two schedules coincide - and on no step at all in the parity matrix,
+      !! which does not compare restart files. This names it instead.
+      !!
+      !! Called from the time loop rather than from inside the restart writer,
+      !! so that it runs on every step: the invariant belongs to the boundary
+      !! clear, and asserting it only where its beneficiary happens to run
+      !! would check it once in a thousand steps. It used to be the first line
+      !! of the post-boundary handover, which fetched what the host
+      !! tstep_update read; that handover is gone, because tstep_update reduces
+      !! on the device now, and this outlived it.
       subroutine assertNothingPulled
          use modmpi, only : myid
          implicit none
@@ -1159,45 +1167,6 @@ module modcuda
 
       end subroutine updateHostForRestart
 
-      !> Bring down what tstep_update reads at the top of the next iteration.
-      !!
-      !! All that is left of the post-Poisson correctness path. Its predecessor,
-      !! updateHostForUnportedRoutines, fetched fifteen fields on every stage
-      !! because thermodynamics ran on the host and updateDevice uploaded the
-      !! result back; thermodynamics is on the device now, so that whole round
-      !! trip is gone and what remains is one host reader.
-      !!
-      !! tstep_update chooses the adaptive timestep from the previous step's
-      !! velocities and both eddy diffusivities, and it runs above updateDevice
-      !! at the top of the next iteration, so it is the one routine that reads
-      !! a field on the host between the device writing it and the device
-      !! reading it again. A stale copy here does not corrupt an output, it
-      !! moves dt - and a moved dt moves the whole solution.
-      !!
-      !! ladaptive is the condition because that is when it reads them at all.
-      !! On a fixed timestep nothing crosses the bus here, which is the point:
-      !! um, vm, wm, ekm and ekh are five of the largest arrays in the model.
-      !!
-      !! Not a saving worth guessing at: dropping them outright passes every
-      !! parity case with a fixed timestep and fails ibm-reconstruction, the
-      !! one adaptive case, by two parts in a thousand.
-      subroutine updateHostForTimestep
-         implicit none
-
-#if defined(UDALES_DEBUG)
-         call assertNothingPulled
-#endif
-
-         if (.not. ladaptive) return
-
-         call pull_um
-         call pull_vm
-         call pull_wm
-         call pull_ekm
-         call pull_ekh
-
-      end subroutine updateHostForTimestep
-
       !> Send the hydrostatic column diagfld just rebuilt up to the device.
       !!
       !! Four columns of ke-kb+2 doubles, which is nothing, and they are what
@@ -1470,11 +1439,10 @@ module modcuda
       !! device, and it runs after fielddump and statsdump have already pulled
       !! their fields down. Those copies were current when they were made and
       !! are not any more - they are missing the boundary planes. Clearing the
-      !! bitmap is what makes updateHostForTimestep and the restart fetch them
-      !! again rather than skip them as already pulled, and skipping them is
-      !! exactly the failure the bitmap would otherwise introduce: the adaptive
-      !! timestep would be chosen from velocities with no boundary condition in
-      !! them, and a restart written on the same step would record them.
+      !! bitmap is what makes the restart fetch them again rather than skip
+      !! them as already pulled, and skipping them is exactly the failure the
+      !! bitmap would otherwise introduce: a restart written on that step would
+      !! record velocities with no boundary condition in them.
       !!
       !! All of them, not only the fifteen boundary_device writes. A list of
       !! exactly those fifteen would spare pres0, ekm and ekh a second fetch on
@@ -1566,19 +1534,6 @@ module modcuda
                   call check3(label, 'svm', svm(:,:,:,n), svm_d(:,:,:,n))
                end do
             end if
-
-         case ('tstep_update')
-            ! The adaptive timestep is chosen on the host from the previous
-            ! step's velocities and diffusivities, before updateDevice runs.
-            ! All five come down for this reader and no other, in
-            ! updateHostForTimestep, and only when the timestep is adaptive -
-            ! so a wrong condition there is invisible on every fixed-timestep
-            ! case, and this is what names it.
-            call check3(label, 'um', um, um_d)
-            call check3(label, 'vm', vm, vm_d)
-            call check3(label, 'wm', wm, wm_d)
-            call check3(label, 'ekm', ekm, ekm_d)
-            call check3(label, 'ekh', ekh, ekh_d)
 
          case default
             write(*,'(3A)') 'assertHostMatchesDevice: no field list for reader ', trim(label), '.'

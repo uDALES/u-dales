@@ -30,22 +30,20 @@ program uDALES
   use cudafor
   use modcuda,           only : initCUDA, updateDevice, &
                                 updateHostForFielddump, updateHostForStatsdump, &
-                                updateHostForTimestep, integrateFacFluxDevice, &
+                                integrateFacFluxDevice, &
                                 updateFacIntegralsHost, checkCUDA, exitCUDA
 #if defined(UDALES_DEBUG)
-  use modcuda,           only : assertHostMatchesDevice, enableHandoverCheck
+  use modcuda,           only : assertHostMatchesDevice, enableHandoverCheck, &
+                                assertNothingPulled
   use tests_cuda,        only : run_cuda_selftests_if_requested
 #endif
 #endif
   use modglobal,         only : initglobal,rk3step,timeleft
-#if defined(_GPU) && defined(UDALES_DEBUG)
-  use modglobal,         only : ladaptive
-#endif
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT, &
                                 TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE,TEST_IBM_WALLFUN, &
                                 TEST_PERIODIC_EBCORR,TEST_MASSCORR,TEST_IBMNORM,TEST_EB, &
                                 TEST_VEGETATION,TEST_CHECKSIM,TEST_DRIVER_PLANES, &
-                                TEST_THERMODYNAMICS
+                                TEST_THERMODYNAMICS,TEST_TSTEP
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -66,7 +64,7 @@ program uDALES
   use modEB,             only : initEB,EB,eb_will_run
   use moddriver,         only : initdriver
   use modadvection,      only : advection
-  use modtstep,          only : tstep_update,tstep_integrate
+  use modtstep,          only : inittstep,tstep_update,tstep_integrate
   use modscalsource,     only : createscals,scalsource,exitscals
 
 !----------------------------------------------------------------
@@ -84,7 +82,7 @@ program uDALES
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge,tests_ibm_wallfun, &
                             tests_periodic_ebcorr,tests_masscorr,tests_ibmnorm,tests_eb, &
                             tests_vegetation,tests_checksim,tests_driver_planes, &
-                            tests_thermodynamics
+                            tests_thermodynamics,tests_tstep
   implicit none
 
   real    :: stime
@@ -102,6 +100,10 @@ program uDALES
   call checkinitvalues
 
   call initglobal
+
+  ! The grid is all it needs, and it is wanted before the runmode tests so that
+  ! a test driving tstep_limits sees the cache the solver uses.
+  call inittstep
 
   ! Execute tests if needed
   call execute_runmode_actions
@@ -178,20 +180,11 @@ program uDALES
   do while ((timeleft>0) .or. (rk3step < 3))
 
     ! Any routine added to this loop must have its GPU data transfers addressed:
-    ! nothing between updateDevice and the post-Poisson handover may read host
-    ! fields.
+    ! nothing in it may read a host field. Nothing crosses the bus here for
+    ! correctness any more - only for output, on the steps a dump or a restart
+    ! asks, and each of those has its own updateHostFor... routine.
 
     stime = MPI_Wtime()
-
-#if defined(_GPU) && defined(UDALES_DEBUG)
-    ! tstep_update is the one host routine left above updateDevice that reads
-    ! fields rather than clocks, and with an adaptive timestep what it reads
-    ! decides dt - so a stale copy here does not corrupt an output, it moves
-    ! the whole solution. ladaptive is the condition because that is when it
-    ! reads them at all; which fields it reads is stated in modcuda, so the
-    ! two lists can disagree and be caught.
-    if (ladaptive) call assertHostMatchesDevice('tstep_update')
-#endif
 
     call tstep_update
     call print_time('tstep_update')
@@ -313,11 +306,6 @@ program uDALES
     call print_time('updateHostForFielddump')
 
 #if defined(_GPU) && defined(UDALES_DEBUG)
-    ! Every host field fielddump can read must still be the one the device
-    ! holds. The transfers above are conditional, and the failure mode of a
-    ! wrong condition is a dump quietly written from the previous step, so the
-    ! check is here rather than left to a parity comparison that only some
-    ! configurations would notice.
     if (fielddump_will_sample()) call assertHostMatchesDevice('fielddump')
 #endif
 
@@ -339,21 +327,12 @@ program uDALES
     call statsdump
     call print_time('statsdump')
 
-    ! Above the handover, not below it, now that it runs on the device: the
-    ! boundary planes go on before the host copies are taken, rather than being
-    ! written into host memory afterwards and carried back up by the next
-    ! updateDevice. It ends by clearing the pull bitmap, because fielddump and
-    ! statsdump have already fetched some of these fields further up.
     call boundary_conditions
     call print_time('boundary_conditions')
 
-#if defined(_GPU)
-    ! And the five fields tstep_update reads on the host at the top of the
-    ! next iteration, when the timestep is adaptive. The only fields left that
-    ! cross the bus for correctness rather than for output.
-    call updateHostForTimestep
+#if defined(_GPU) && defined(UDALES_DEBUG)
+    call assertNothingPulled
 #endif
-    call print_time('updateHostForTimestep')
 
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
@@ -438,6 +417,8 @@ contains
         test_failed = .not. tests_driver_planes()
       case (TEST_THERMODYNAMICS)
         test_failed = .not. tests_thermodynamics()
+      case (TEST_TSTEP)
+        test_failed = .not. tests_tstep()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default
