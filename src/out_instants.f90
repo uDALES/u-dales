@@ -103,8 +103,12 @@ module instant
         end if
       end if
 
+      ! Instantaneous dumps follow the absolute schedule tinstantstart + n*tinstantdump,
+      ! also across warm starts: the first dump of a restarted run is the first
+      ! schedule instant at or after btime, so the output times of chained runs
+      ! stay on the same grid.
       if (tinstantstart .le. btime) then
-        tnextinstantdump = btime
+        tnextinstantdump = tinstantstart + ceiling((btime - tinstantstart)/tinstantdump)*tinstantdump
       else
         tnextinstantdump = tinstantstart
       end if

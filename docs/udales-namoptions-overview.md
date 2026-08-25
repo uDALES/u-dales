@@ -284,6 +284,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | tsample | 5. | `REAL` | Sample time for statistics. | [s] |
 | tstatsdump | 10000. | `REAL` | Output time for statistics. | [s] |
 | tstatstart | 0. | `REAL` | Time from which statistics computation or data sampling starts. | [s] |
+| tstatsgap | 0. | `REAL` | If > 0, time-averaged statistics are written on a fixed absolute schedule: dumps at `tstatstart + n*(tstatsdump + tstatsgap)` (n = 1, 2, ...), each averaging the `tstatsdump` seconds preceding it; no sampling during the gap. The schedule is kept across warm starts. E.g. `tstatstart = 21600`, `tstatsdump = 900`, `tstatsgap = 13500` gives 15-min means ending at t = 36000, 50400, ... | [s] |
 | ltdump | .false. | .true. or .false. | Switch to output time-averaged statistics. | - |
 | lydump | .false. | .true. or .false. | Switch to output y-averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lytdump | .false. | .true. or .false. | Switch to output y- and time- averaged statistics. *Only functional if x-direction is not parallelised.* | - |

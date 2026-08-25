@@ -29,7 +29,7 @@ module stats
                          ltdump, lxytdump, lxydump, lytdump, lydump, ltreedump, &
                          ib, ie, ih, jb, je, jh, kb, ke, kh, jtot, &
                          dxf, dzf, dzfi, dxhi, dzhi, dzh2i, dyi, dzhiq, &
-                         timee, tstatsdump, tstatstart, tstatsgap, tsample, dt, runtime, &
+                         timee, tstatsdump, tstatstart, tstatsgap, tsample, dt, runtime, btime, &
                          k1, JNO2
   use modfields,  only : um, vm, wm, pres0, thlm, qtm, svm, &
                          IIu, IIus, IIut, IIv, IIvs, IIvt, IIw, IIws, IIwt, IIc, IIcs, IIct, &
@@ -314,18 +314,41 @@ module stats
   contains
     subroutine stats_init
       implicit none
+      integer :: nperiod
+      real    :: tperiod
 
       lstatsdump = ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump
       lstatstavgdump = ltdump .or. lxytdump .or. lytdump
       
       if(.not.(lstatsdump .or. ltreedump)) return
 
+      ! With tstatsgap > 0 the time-averaged statistics follow a fixed, absolute
+      ! schedule: dumps at tstatstart + n*(tstatsdump + tstatsgap), n = 1, 2, ...,
+      ! each averaging the tstatsdump seconds that precede it (gap first, averaging
+      ! window last). E.g. tstatstart = 21600, tstatsdump = 900, tstatsgap = 13500
+      ! gives 15-min means ending exactly at t = 36000, 50400, 64800, ...
+      ! The schedule is anchored to absolute time, so a warm-started run keeps the
+      ! same dump instants: tstatstart is advanced here to the first averaging
+      ! window that (at least half) lies after the restart time btime.
+      if (tstatsgap > 0.) then
+        tperiod    = tstatsdump + tstatsgap
+        tstatstart = tstatstart + tstatsgap          ! start of the first averaging window
+        if (btime > tstatstart) then
+          nperiod    = floor((btime - tstatstart)/tperiod)
+          tstatstart = tstatstart + nperiod*tperiod  ! window containing or preceding btime
+          if (tstatstart + 0.5*tstatsdump < btime) tstatstart = tstatstart + tperiod
+        end if
+        if (myid==0) write(*,'(a,f12.2,a,f12.2)') &
+          ' stats: tstatsgap > 0, first averaging window starts at t = ', tstatstart, &
+          ', first dump at t = ', tstatstart + tstatsdump
+      end if
+
       if( (lstatstavgdump .or. ltreedump) &
-          .and. runtime <= tstatstart + tstatsdump ) then
+          .and. runtime + btime <= tstatstart + tstatsdump ) then
         if(myid==0) then
-          write(*,*) "ERROR: no time-averaged statistics file will be written as runtime <= tstatstart + tstatsdump. &
-                      &Note that runtime must be greater than tstatstart + tstatsdump for writing time-averaged statistics files."
-          write(*,*) "You have used runtime = ", runtime, ", tstatstart = ", tstatstart, ", and &
+          write(*,*) "ERROR: no time-averaged statistics file will be written as runtime + btime <= tstatstart + tstatsdump. &
+                      &Note that runtime + btime must be greater than tstatstart + tstatsdump for writing time-averaged statistics files."
+          write(*,*) "You have used runtime = ", runtime, ", btime = ", btime, ", tstatstart = ", tstatstart, ", and &
                      &tstatsdump = ", tstatsdump
           write(*,*) "Either correct the time settings or change all time-averaged stats writing flags to false."
           stop 1
@@ -606,7 +629,12 @@ module stats
         tsamplep = dt
 
         if(tstatsgap>0.) then
+          ! next averaging window starts after the gap, at tstatstart + tstatsgap
+          ! relative to this dump (see stats_init); the current step does not
+          ! belong to it, so the accumulation counters start from zero.
           tstatstart = tstatstart + tstatsdump + tstatsgap
+          tstatsdumpp = 0.
+          tsamplep = 0.
           !! note that if tstatsgap is used, stats_xy and stats_y will also be not written during the gap duration as the entire stats_main is skipped for the duration of the gap.
         end if
 
