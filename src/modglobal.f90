@@ -93,6 +93,7 @@ module modglobal
    integer, parameter :: TEST_DRIVER_PLANES = 1015
    integer, parameter :: TEST_THERMODYNAMICS = 1016
    integer, parameter :: TEST_TSTEP = 1017
+   integer, parameter :: TEST_TIMEDEP = 1018
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start

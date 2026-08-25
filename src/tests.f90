@@ -23,7 +23,7 @@ module tests
             tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun, &
             tests_periodic_ebcorr, tests_masscorr, tests_ibmnorm, tests_eb, &
             tests_vegetation, tests_checksim, tests_driver_planes, &
-            tests_thermodynamics, tests_tstep
+            tests_thermodynamics, tests_tstep, tests_timedep
 
 contains
 
@@ -5791,6 +5791,359 @@ contains
     end function poison_at
 
   end function tests_tstep
+
+  !> Time interpolation of the prescribed surface fluxes and nudging profiles.
+  !!
+  !! timedep itself is four interpolations and a bracket search, and every one
+  !! of them is invisible from the outside: the surface fluxes reach the
+  !! solution through a wall function, the nudging profiles through a tendency
+  !! divided by tnudge, and both are then integrated. A parity case can tell
+  !! that something moved; only this can tell that it moved to the right value
+  !! at the right time.
+  !!
+  !! Neither routine is called through timedep here. timedep is a dispatcher
+  !! over four switches and calling it would mean staging all four tables to
+  !! test any one of them, with the two energy-balance branches needing an
+  !! initialised facet set on top of that.
+  !!
+  !! There is no input file in a runmode test, so the tables are installed
+  !! directly. That is also what makes the checks below sharp: the tables read
+  !! from a file are smooth in k and in t, and a smooth table hides a
+  !! transposed index. Every entry here differs from every other one.
+  !!
+  !! What it pins:
+  !!
+  !!   - The bracket. The search walks down from the last entry and takes the
+  !!     first whose time has passed, so an interval boundary belongs to the
+  !!     interval above it. Off by one and the whole forcing runs one interval
+  !!     early or late, which on a diurnal file is hours.
+  !!
+  !!   - The endpoints, exactly. At a table time fac is zero and the result is
+  !!     the table entry itself, bit for bit - a + 0*(b - a) is a in IEEE
+  !!     arithmetic for any finite a and b. So these are checked with /=, and
+  !!     an interpolation rewritten as (1-fac)*a + fac*b, which is the obvious
+  !!     tidy-up and is not the same expression, fails them.
+  !!
+  !!   - The freeze, and where it starts. The bracket search returns the last
+  !!     index once timee reaches the last table time, and the guard then
+  !!     writes nothing - so the last column is never installed, and what
+  !!     stands from there on is the interpolated value from the step before.
+  !!     In a run that is the last column to within one step, which is why
+  !!     this has never mattered; it is still not the same thing, and a port
+  !!     that clamped to the last column instead would pass every other check
+  !!     here. A run longer than its forcing file is the normal case, not an
+  !!     edge case.
+  !!
+  !!   - That each of the five fluxes and each of the four profiles carries its
+  !!     own column of the table, at its own level. Five scalars of the same
+  !!     magnitude interpolated in one routine is exactly the shape a
+  !!     copy-paste error survives in.
+  logical function tests_timedep()
+    use modglobal,  only : runmode, kb, ke, kh, timee
+    use modfields,  only : initfields, thlprof, qtprof, uprof, vprof
+    use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
+    use modtimedep, only : timedepsurf, timedepnudge, &
+                           ltimedepsurf, ntimedepsurf, ltimedepnudge, ntimedepnudge, &
+                           timeflux, bctfxmt, bctfxpt, bctfymt, bctfypt, bctfzt, &
+                           timenudge, thlproft, qtproft, uproft, vproft
+
+    implicit none
+
+    ! Three entries: enough for two intervals, so that the bracket search has
+    ! to choose rather than having one answer. The times are not evenly spaced
+    ! and not integers, so a fac formed from the wrong pair of entries lands
+    ! somewhere visibly wrong rather than nearly right.
+    integer, parameter :: nt = 3
+    real,    parameter :: t1 = 0., t2 = 10., t3 = 25.
+
+    logical :: all_passed
+    real    :: fac
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_timedep: TIME-DEPENDENT FORCING TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    call initfields
+
+    all_passed = .true.
+
+    ! ---- surface fluxes -----------------------------------------------------
+    ltimedepsurf = .true.
+    ntimedepsurf = nt
+    allocate(timeflux(nt), bctfxmt(nt), bctfxpt(nt), bctfymt(nt), bctfypt(nt), bctfzt(nt))
+
+    timeflux = [ t1, t2, t3 ]
+    ! One decade apart between the five, so a flux that ends up in the wrong
+    ! variable is off by a factor of ten rather than by a few percent, and
+    ! every entry differs from every other one in the table.
+    bctfxmt = [  1.,  2.,  4. ]
+    bctfxpt = [ 10., 20., 40. ]
+    bctfymt = [ 100., 200., 400. ]
+    bctfypt = [ 1000., 2000., 4000. ]
+    bctfzt  = [ 10000., 20000., 40000. ]
+
+    ! At the first table time. fac is zero, so this is the exact first entry
+    ! and also the first bracket - the search must not run off the bottom.
+    timee = t1
+    call timedepsurf
+    all_passed = surf_exact('t = t1', 1) .and. all_passed
+
+    ! Inside the first interval, at a fraction that is not a half: a fac
+    ! formed as 0.5, or from the second interval's width, misses.
+    timee = t1 + 0.25*(t2 - t1)
+    call timedepsurf
+    all_passed = surf_interp('inside first interval', 1, 0.25) .and. all_passed
+
+    ! Exactly on the interior table time. The search takes the interval above,
+    ! so this is entry 2 with fac = 0, not entry 1 with fac = 1. Both give the
+    ! same number here, which is the point: it is the one time the two
+    ! bracketings agree, so the check that separates them is the one below.
+    timee = t2
+    call timedepsurf
+    all_passed = surf_exact('t = t2', 2) .and. all_passed
+
+    ! Inside the second interval. The two intervals have different widths, so
+    ! a fac divided by the wrong one is wrong here even at the same offset.
+    timee = t2 + 0.25*(t3 - t2)
+    call timedepsurf
+    all_passed = surf_interp('inside second interval', 2, 0.25) .and. all_passed
+
+    ! At the last table time, and past it, nothing is written at all - the
+    ! search returns ntimedepsurf and the guard stops there. Poison first, so
+    ! a routine that ran anyway and happened to land on the last column is not
+    ! mistaken for one that correctly did nothing.
+    bctfxm = -1. ; bctfxp = -1. ; bctfym = -1. ; bctfyp = -1. ; bctfz = -1.
+    timee = t3
+    call timedepsurf
+    all_passed = surf_frozen('at last table time') .and. all_passed
+
+    timee = t3 + 1000.
+    call timedepsurf
+    all_passed = surf_frozen('past last table time') .and. all_passed
+
+    ! ---- nudging profiles ---------------------------------------------------
+    ltimedepnudge = .true.
+    ntimedepnudge = nt
+    allocate(timenudge(nt))
+    allocate(thlproft(kb:ke+kh,nt), qtproft(kb:ke+kh,nt), &
+             uproft  (kb:ke+kh,nt), vproft (kb:ke+kh,nt))
+
+    timenudge = [ t1, t2, t3 ]
+    call fill_tables
+
+    timee = t1
+    call timedepnudge
+    all_passed = prof_exact('t = t1', 1) .and. all_passed
+
+    timee = t1 + 0.25*(t2 - t1)
+    call timedepnudge
+    all_passed = prof_interp('inside first interval', 1, 0.25) .and. all_passed
+
+    timee = t2
+    call timedepnudge
+    all_passed = prof_exact('t = t2', 2) .and. all_passed
+
+    ! Not a round fraction and not the same one as above, so the second
+    ! interval is genuinely a second case.
+    fac = 0.75
+    timee = t2 + fac*(t3 - t2)
+    call timedepnudge
+    all_passed = prof_interp('inside second interval', 2, fac) .and. all_passed
+
+    ! Frozen from the last table time onwards, as for the fluxes, and poisoned
+    ! first for the same reason.
+    thlprof = -1. ; qtprof = -2. ; uprof = -3. ; vprof = -4.
+    timee = t3
+    call timedepnudge
+    all_passed = prof_frozen('at last table time') .and. all_passed
+
+    timee = t3 + 1000.
+    call timedepnudge
+    all_passed = prof_frozen('past last table time') .and. all_passed
+
+    ! ---- the switches are respected ----------------------------------------
+    ! Both routines return before touching anything when their own switch is
+    ! off. A run that sets one of the four is the normal way to use this
+    ! module, so a port that interpolates unconditionally would overwrite the
+    ! profiles readinitfiles produced with whatever the table held.
+    ltimedepsurf  = .false.
+    ltimedepnudge = .false.
+    bctfxm = 7. ; thlprof = 7. ; uprof = 7.
+    timee = t1 + 0.25*(t2 - t1)
+    call timedepsurf
+    call timedepnudge
+    all_passed = same('bctfxm untouched with ltimedepsurf off', bctfxm, 7.) .and. all_passed
+    all_passed = same('thlprof untouched with ltimedepnudge off', thlprof(kb), 7.) .and. all_passed
+    all_passed = same('uprof untouched with ltimedepnudge off', uprof(kb), 7.) .and. all_passed
+
+    deallocate(timeflux, bctfxmt, bctfxpt, bctfymt, bctfypt, bctfzt)
+    deallocate(timenudge, thlproft, qtproft, uproft, vproft)
+
+    if (myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      if (all_passed) then
+        write(*, '(A)') 'ALL TESTS PASSED: tests_timedep'
+        write(*, '(A,I0,A,I0,A)') '  ', nt, ' table entries over ', ke+kh-kb+1, ' levels'
+      else
+        write(*, '(A)') 'TESTS FAILED: tests_timedep'
+        write(*, '(A)') '  One or more checks did not pass'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_timedep = all_passed
+
+  contains
+
+    !> A table entry that is unique in k, in t and across the four fields.
+    !!
+    !! Linear in k so that a level read at a fixed index, or off by one, is
+    !! wrong everywhere rather than only in the interior; the four fields are
+    !! separated by a decade so a swapped pair is unmistakable; and the t
+    !! dependence is not the same shape as the k dependence, so a transposed
+    !! subscript cannot land on the right number.
+    real function entry_at(field, k, t)
+      integer, intent(in) :: field, k, t
+
+      entry_at = (10.**field) * (1. + 0.125*(k - kb)) * (1. + 0.5*(t - 1))
+
+    end function entry_at
+
+    subroutine fill_tables
+      integer :: kk, tt
+      do tt = 1, nt
+        do kk = kb, ke+kh
+          thlproft(kk,tt) = entry_at(1, kk, tt)
+          qtproft (kk,tt) = entry_at(2, kk, tt)
+          uproft  (kk,tt) = entry_at(3, kk, tt)
+          vproft  (kk,tt) = entry_at(4, kk, tt)
+        end do
+      end do
+    end subroutine fill_tables
+
+    !> Assert a scalar matches to within a few ulps of its own magnitude.
+    logical function same(label, got, want)
+      character(len=*), intent(in) :: label
+      real,             intent(in) :: got, want
+      real :: tol
+
+      tol  = 64. * epsilon(1.) * max(1., abs(want))
+      same = abs(got - want) <= tol
+      if (.not. same) then
+        write(*,'(A,I0,3A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, ': timedep ', &
+             trim(label), ' got ', got, ' want ', want
+      end if
+
+    end function same
+
+    !> Assert a scalar is bit for bit the value given.
+    logical function identical(label, got, want)
+      character(len=*), intent(in) :: label
+      real,             intent(in) :: got, want
+
+      identical = (got == want)
+      if (.not. identical) then
+        write(*,'(A,I0,3A,ES22.14,A,ES22.14)') 'FAIL on rank ', myid, ': timedep ', &
+             trim(label), ' got ', got, ' want exactly ', want
+      end if
+
+    end function identical
+
+    !> Every flux is exactly table entry t.
+    logical function surf_exact(label, t)
+      character(len=*), intent(in) :: label
+      integer,          intent(in) :: t
+
+      surf_exact = identical('bctfxm ' // label, bctfxm, bctfxmt(t))
+      surf_exact = identical('bctfxp ' // label, bctfxp, bctfxpt(t)) .and. surf_exact
+      surf_exact = identical('bctfym ' // label, bctfym, bctfymt(t)) .and. surf_exact
+      surf_exact = identical('bctfyp ' // label, bctfyp, bctfypt(t)) .and. surf_exact
+      surf_exact = identical('bctfz '  // label, bctfz,  bctfzt(t))  .and. surf_exact
+
+    end function surf_exact
+
+    !> Nothing was written: every flux still holds the poison put there.
+    logical function surf_frozen(label)
+      character(len=*), intent(in) :: label
+
+      surf_frozen = same('bctfxm frozen ' // label, bctfxm, -1.)
+      surf_frozen = same('bctfxp frozen ' // label, bctfxp, -1.) .and. surf_frozen
+      surf_frozen = same('bctfym frozen ' // label, bctfym, -1.) .and. surf_frozen
+      surf_frozen = same('bctfyp frozen ' // label, bctfyp, -1.) .and. surf_frozen
+      surf_frozen = same('bctfz frozen '  // label, bctfz,  -1.) .and. surf_frozen
+
+    end function surf_frozen
+
+    !> Every flux is entry t blended a fraction f of the way towards t+1.
+    logical function surf_interp(label, t, f)
+      character(len=*), intent(in) :: label
+      integer,          intent(in) :: t
+      real,             intent(in) :: f
+
+      surf_interp = same('bctfxm ' // label, bctfxm, bctfxmt(t) + f*(bctfxmt(t+1) - bctfxmt(t)))
+      surf_interp = same('bctfxp ' // label, bctfxp, bctfxpt(t) + f*(bctfxpt(t+1) - bctfxpt(t))) .and. surf_interp
+      surf_interp = same('bctfym ' // label, bctfym, bctfymt(t) + f*(bctfymt(t+1) - bctfymt(t))) .and. surf_interp
+      surf_interp = same('bctfyp ' // label, bctfyp, bctfypt(t) + f*(bctfypt(t+1) - bctfypt(t))) .and. surf_interp
+      surf_interp = same('bctfz '  // label, bctfz,  bctfzt(t)  + f*(bctfzt(t+1)  - bctfzt(t)))  .and. surf_interp
+
+    end function surf_interp
+
+    !> Every profile is exactly column t of its own table, level by level.
+    logical function prof_exact(label, t)
+      character(len=*), intent(in) :: label
+      integer,          intent(in) :: t
+      integer :: kk
+
+      prof_exact = .true.
+      do kk = kb, ke+kh
+        prof_exact = identical('thlprof ' // label, thlprof(kk), thlproft(kk,t)) .and. prof_exact
+        prof_exact = identical('qtprof '  // label, qtprof(kk),  qtproft(kk,t))  .and. prof_exact
+        prof_exact = identical('uprof '   // label, uprof(kk),   uproft(kk,t))   .and. prof_exact
+        prof_exact = identical('vprof '   // label, vprof(kk),   vproft(kk,t))   .and. prof_exact
+      end do
+
+    end function prof_exact
+
+    !> Nothing was written: every profile still holds the poison put there.
+    logical function prof_frozen(label)
+      character(len=*), intent(in) :: label
+      integer :: kk
+
+      prof_frozen = .true.
+      do kk = kb, ke+kh
+        prof_frozen = same('thlprof frozen ' // label, thlprof(kk), -1.) .and. prof_frozen
+        prof_frozen = same('qtprof frozen '  // label, qtprof(kk),  -2.) .and. prof_frozen
+        prof_frozen = same('uprof frozen '   // label, uprof(kk),   -3.) .and. prof_frozen
+        prof_frozen = same('vprof frozen '   // label, vprof(kk),   -4.) .and. prof_frozen
+      end do
+
+    end function prof_frozen
+
+    !> Every profile is column t blended a fraction f towards column t+1.
+    logical function prof_interp(label, t, f)
+      character(len=*), intent(in) :: label
+      integer,          intent(in) :: t
+      real,             intent(in) :: f
+      integer :: kk
+
+      prof_interp = .true.
+      do kk = kb, ke+kh
+        prof_interp = same('thlprof ' // label, thlprof(kk), &
+                           thlproft(kk,t) + f*(thlproft(kk,t+1) - thlproft(kk,t))) .and. prof_interp
+        prof_interp = same('qtprof ' // label, qtprof(kk), &
+                           qtproft(kk,t) + f*(qtproft(kk,t+1) - qtproft(kk,t))) .and. prof_interp
+        prof_interp = same('uprof ' // label, uprof(kk), &
+                           uproft(kk,t) + f*(uproft(kk,t+1) - uproft(kk,t))) .and. prof_interp
+        prof_interp = same('vprof ' // label, vprof(kk), &
+                           vproft(kk,t) + f*(vproft(kk,t+1) - vproft(kk,t))) .and. prof_interp
+      end do
+
+    end function prof_interp
+
+  end function tests_timedep
 
 
 end module tests

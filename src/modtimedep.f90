@@ -32,11 +32,26 @@
 module modtimedep
 
 use mpi
+#if defined(_GPU)
+use cudafor
+#endif
 
 implicit none
 private
-public :: inittimedep, timedep, ltimedep, ltimedepsurf, ltimedepnudge, ltimedeplw, ltimedepsw, &
+public :: inittimedep, timedep, timedep_step, ltimedep, ltimedepsurf, ltimedepnudge, ltimedeplw, ltimedepsw, &
           ntimedepsurf, ntimedepnudge, ntimedeplw, ntimedepsw, exittimedep
+! The interpolation tables and the two routines that read them, for
+! tests.f90::tests_timedep. A runmode test has no input file to read, so the
+! tables are what it has to stage; the interpolation is what it is testing.
+! Public unconditionally rather than under UDALES_DEBUG because tests.f90 is
+! compiled into the Release build too.
+public :: timedepsurf, timedepnudge
+public :: timeflux, bctfxmt, bctfxpt, bctfymt, bctfypt, bctfzt
+public :: timenudge, thlproft, qtproft, uproft, vproft
+#if defined(_GPU) && defined(UDALES_DEBUG)
+public :: timedepnudge_device
+public :: thlproft_d, qtproft_d, uproft_d, vproft_d
+#endif
 
 save
 ! switches for timedependent surface fluxes and large scale forcings
@@ -60,10 +75,24 @@ save
   !real, allocatable     :: bctfzft (:)
 
   real, allocatable     :: timenudge (:)
+#if defined(_GPU)
+  ! Pinned because they are handed to the device, once, from inittimedep. The
+  ! bracket search stays on the host and reads timenudge there, so that one is
+  ! not mirrored and not pinned.
+  real, allocatable, pinned :: thlproft (:,:)
+  real, allocatable, pinned :: qtproft (:,:)
+  real, allocatable, pinned :: uproft (:,:)
+  real, allocatable, pinned :: vproft (:,:)
+  real, device, allocatable :: thlproft_d (:,:)
+  real, device, allocatable :: qtproft_d (:,:)
+  real, device, allocatable :: uproft_d (:,:)
+  real, device, allocatable :: vproft_d (:,:)
+#else
   real, allocatable     :: thlproft (:,:)
   real, allocatable     :: qtproft (:,:)
   real, allocatable     :: uproft (:,:)
   real, allocatable     :: vproft (:,:)
+#endif
 
   real, allocatable     :: timelw (:)
   real, allocatable     :: skyLWt (:)
@@ -201,6 +230,26 @@ contains
       call MPI_BCAST(uproft,   (kmax+1)*ntimedepnudge,MY_REAL,0,comm3d,mpierr)
       call MPI_BCAST(vproft,   (kmax+1)*ntimedepnudge,MY_REAL,0,comm3d,mpierr)
 
+#if defined(_GPU)
+      ! The tables go up once and stay. Nothing writes them after this point -
+      ! they are the file, broadcast - so the per-stage interpolation reads
+      ! them where it runs and the loop moves nothing across the bus for the
+      ! nudging profiles at all. Four columns of kmax+1 per table entry, which
+      ! at the sizes these files are written for is tens of kilobytes.
+      !
+      ! Allocated here rather than from initCUDA because they are this
+      ! module's state and initCUDA has not run yet - the device context is
+      ! created on first use, exactly as inittstep's geometry cache relies on.
+      allocate(thlproft_d(kb:ke+kh,ntimedepnudge))
+      allocate(qtproft_d (kb:ke+kh,ntimedepnudge))
+      allocate(uproft_d  (kb:ke+kh,ntimedepnudge))
+      allocate(vproft_d  (kb:ke+kh,ntimedepnudge))
+      thlproft_d = thlproft
+      qtproft_d  = qtproft
+      uproft_d   = uproft
+      vproft_d   = vproft
+#endif
+
       deallocate(height)
 
     end if
@@ -279,9 +328,24 @@ contains
     call MPI_BCAST(ltimedeplw,1,MPI_LOGICAL,0,comm3d,mpierr)
     call MPI_BCAST(ltimedepsw,1,MPI_LOGICAL,0,comm3d,mpierr)
 
+    ! The host one, deliberately, in a GPU build too: initCUDA has not run,
+    ! so uprof_d and the rest do not exist yet, and what this call is for is
+    ! to leave the host profiles holding the t = 0 interpolation for initCUDA
+    ! to hand over. From the first stage onwards timedep_step takes over and
+    ! writes the device copies instead.
     call timedep
 
   end subroutine inittimedep
+
+  !> The one the time loop calls.
+  subroutine timedep_step
+    implicit none
+#if defined(_GPU)
+    call timedep_device
+#else
+    call timedep
+#endif
+  end subroutine timedep_step
 
   subroutine timedep
 
@@ -391,6 +455,111 @@ contains
 
   end subroutine timedepnudge
 
+#if defined(_GPU)
+  !> timedep for a run whose profiles live on the device.
+  !!
+  !! Three of the four parts are the host ones, unchanged, and that is not an
+  !! omission.
+  !!
+  !! timedepsurf writes five scalars in modibmdata. The wall-function kernel
+  !! that reads them is an OpenACC region in a host routine, so the scalars
+  !! reach it as implicit firstprivate, captured at launch - the value a stage
+  !! sees is the one this routine wrote at the top of that stage, with nothing
+  !! to copy and no second copy to keep in step. The compiler says so: the
+  !! wall-function kernel's -Minfo line reads
+  !! "Generating implicit firstprivate(...,bctfxm,...,bctfxp,bctfyp,...,bctfz,...)".
+  !! Deleting the call here would not break a copy; it would stop the flux
+  !! changing with time, and runmode 1018 is what covers the interpolation -
+  !! no case in the repository combines iwalltemp = 1 with libm, so the wall
+  !! function never reads a moving flux in any test on either device.
+  !!
+  !! timedeplw and timedepsw feed the energy balance. That runs on the host,
+  !! reads skyLW and netsw there, and both routines already restrict
+  !! themselves to the stage the balance fires on.
+  !!
+  !! Only the nudging profiles have a device copy, so only they differ.
+  subroutine timedep_device
+    implicit none
+
+    if (.not. ltimedep) return
+
+    call timedepsurf
+    call timedepnudge_device
+    call timedeplw
+    call timedepsw
+
+  end subroutine timedep_device
+
+  !> timedepnudge writing the device profiles.
+  !!
+  !! The split follows the shape of the host routine rather than fighting it.
+  !! The bracket search is a walk over ntimedepnudge scalars against timee and
+  !! stays here, on the host, where timee lives; t and fac then reach the
+  !! kernels as implicit firstprivate, so no clause names them - a private
+  !! clause on either would hand every thread an uninitialised copy.
+  !!
+  !! The arithmetic is the host expression, operand for operand, so the only
+  !! room left between the two is fused-multiply-add contraction. Nothing is
+  !! precomputed out of it: the obvious candidates are the table differences,
+  !! which cost as much memory again to save four subtractions per level, and
+  !! the reciprocal of the bracket width, which would turn a division into a
+  !! multiplication and move the profile - and the profile is what the nudging
+  !! tendency and the inlet are built from.
+  !!
+  !! Three kernels rather than one because thlprof_d and qtprof_d only exist
+  !! under ltempeq and lmoist. Their launches are what this routine costs -
+  !! the work itself is one column - and the trade is against the four
+  !! unconditional column uploads updateDevice used to do on every stage of
+  !! every run, ltimedep or not, which are now gone.
+  subroutine timedepnudge_device
+    use modglobal, only : timee, kb, ke, kh, ltempeq, lmoist
+    use modcuda,   only : uprof_d, vprof_d, thlprof_d, qtprof_d
+
+    implicit none
+    integer t, k
+    real fac
+
+    if(.not.(ltimedepnudge)) return
+
+    !---- interpolate ----
+    do t=ntimedepnudge,1,-1
+      if (timee .ge. timenudge(t)) then
+        exit
+      endif
+    end do
+
+    if (t .ne. ntimedepnudge) then
+      fac = (timee - timenudge(t)) / (timenudge(t+1) - timenudge(t))
+
+      !$acc parallel loop default(present)
+      do k = kb, ke+kh
+        uprof_d(k) = uproft_d(k,t) + fac * (uproft_d(k,t+1) - uproft_d(k,t))
+        vprof_d(k) = vproft_d(k,t) + fac * (vproft_d(k,t+1) - vproft_d(k,t))
+      end do
+      !$acc end parallel loop
+
+      if (ltempeq) then
+        !$acc parallel loop default(present)
+        do k = kb, ke+kh
+          thlprof_d(k) = thlproft_d(k,t) + fac * (thlproft_d(k,t+1) - thlproft_d(k,t))
+        end do
+        !$acc end parallel loop
+      end if
+
+      if (lmoist) then
+        !$acc parallel loop default(present)
+        do k = kb, ke+kh
+          qtprof_d(k) = qtproft_d(k,t) + fac * (qtproft_d(k,t+1) - qtproft_d(k,t))
+        end do
+        !$acc end parallel loop
+      end if
+    end if
+
+  return
+
+  end subroutine timedepnudge_device
+#endif
+
   subroutine timedeplw
     use modglobal,    only : timee, skyLW, rk3step, tnextEB
 
@@ -469,6 +638,9 @@ contains
 
     if (ltimedepnudge) then
       deallocate(timenudge, thlproft, qtproft, uproft, vproft)
+#if defined(_GPU)
+      deallocate(thlproft_d, qtproft_d, uproft_d, vproft_d)
+#endif
     end if
 
   end subroutine

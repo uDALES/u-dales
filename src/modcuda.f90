@@ -9,11 +9,8 @@ module modcuda
                              dzf, dzf2, dzfi, dzfi5, dzfiq, dzh, dzhi, dzh2i, dzhiq, &
                              dxdydzfi, dxdydzhi, dvcell, &
                              dzfc, dzfci, dzhci, dxfc, dxfci, dxhci, delta, &
-                             ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, ltrees, lscasrc, lscasrcl, &
-                             BCxm, BCxm_profile, BCxm_driver, BCym, BCym_profile, &
-                             lnudge, lnudgevel, libm, nfcts, idriver, &
-                             BCxT, BCxT_profile, BCyT, BCyT_profile, &
-                             BCxq, BCxq_profile, BCyq, BCyq_profile, &
+                             ltempeq, lmoist, nsv, lchem, lles, lbuoyancy, lscasrc, lscasrcl, &
+                             BCxm, BCxm_driver, libm, nfcts, idriver, &
                              iadv_sv, iadv_thl, iadv_kappa, iadv_upw, &
                              xh, &
                              eps1, numol, prandtlmoli, prandtlturb, grav, fkar2, &
@@ -321,8 +318,19 @@ module modcuda
          dvdxls_d = dvdxls
          dvdyls_d = dvdyls
 
-         allocate(uprof_d(kb:ke+kh))
-         allocate(vprof_d(kb:ke+kh))
+         ! Seeded here and then owned by the device, like e12prof_d below.
+         ! readinitfiles fills the host pair and inittimedep interpolates it
+         ! to t = 0, both before this point; from the first stage onwards the
+         ! only writer is timedepnudge_device, and it writes these.
+         !
+         ! Unconditional rather than under the readers' guards. updateDevice
+         ! used to upload the pair per stage under
+         ! (lnudge .and. lnudgevel) .or. BCxm_profile .or. BCym_profile, and
+         ! that list had already been wrong once - it has to name every
+         ! consumer of a profile inlet, and there is no reason to keep paying
+         ! attention to it for one column.
+         allocate(uprof_d(kb:ke+kh)); uprof_d = uprof
+         allocate(vprof_d(kb:ke+kh)); vprof_d = vprof
          allocate(u0driver_d(jb-jh:je+jh,kb-kh:ke+kh))
 
          ! The remaining driver planes, for a run that reads one, filled as
@@ -368,8 +376,12 @@ module modcuda
             allocate(thv0h_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(thvh_d(kb:ke+kh))
             allocate(thl0av_d(kb:ke+kh))
-            allocate(thlprof_d(kb:ke+kh))
+            allocate(thlprof_d(kb:ke+kh)); thlprof_d = thlprof
 
+            ! readinitfiles is the only writer of thlpcar, and it has run by
+            ! now, so this seed is the whole of it. updateDevice used to
+            ! repeat the copy per stage under ltrees .and. lmoist, which was
+            ! dead the moment it was written.
             allocate(thlpcar_d(kb:ke+kh))
             allocate(dthldxls_d(kb:ke+kh))
             allocate(dthldyls_d(kb:ke+kh))
@@ -385,7 +397,7 @@ module modcuda
             allocate(qtm_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
             allocate(qtp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
             allocate(qt0av_d(kb:ke+kh))
-            allocate(qtprof_d(kb:ke+kh))
+            allocate(qtprof_d(kb:ke+kh)); qtprof_d = qtprof
 
             allocate(dqtdxls_d(kb:ke+kh))
             allocate(dqtdyls_d(kb:ke+kh))
@@ -544,6 +556,14 @@ module modcuda
          end if
 
          call uploadPrognosticFieldsDevice
+
+         ! The tendencies start empty, exactly as initfields starts the host
+         ! ones - allocate(up(...)) ; up=0. and so on. This used to be done by
+         ! the updateDevice at the top of the first stage; now that the clear
+         ! belongs to the end of a stage, the first stage has no stage before
+         ! it to have done it, and advection would accumulate into whatever
+         ! the allocation returned.
+         call resetTendenciesDevice
 
       end subroutine initCUDA
 
@@ -789,9 +809,27 @@ module modcuda
       end subroutine enableHandoverCheck
 #endif
 
+      !> Send the host's share of the slab averages back up. That is all.
+      !!
+      !! The name is older than what the routine does. It used to upload
+      !! sixteen prognostic fields per stage, because the host held the
+      !! authoritative copy of anything a host routine wrote; each port took
+      !! one more away, and with timedep's profiles gone nothing here uploads
+      !! a field that any routine in the loop produces. The tendency resets
+      !! went to resetTendenciesDevice, where the host does the same work.
+      !!
+      !! What is left is the six slab averages - u0av, v0av, thl0av, qt0av,
+      !! sv0av and thvh - plus the pull bitmap and a facet copy its own dirty
+      !! flag suppresses. Those six are the only host-to-device transfers left
+      !! in the time loop, and they are not there because something is
+      !! unported: avexy_ibm_device reduces over the domain on the device, but
+      !! the sum across ranks in the middle of it is an MPI_ALLREDUCE, and the
+      !! host is where that happens - so the finished column exists on the host
+      !! and has to go back up. One column of ke-kb+2 doubles each; twelve
+      !! kilobytes a stage at 256^3. Removing them means reducing across ranks
+      !! from device memory, not porting another routine.
       subroutine updateDevice
          implicit none
-         integer :: n
 
          ! The host copies are about to stop being the ones that matter for
          ! this step: whatever a reader fetched last step is stale from here
@@ -800,13 +838,75 @@ module modcuda
 
          call updateFacetPropsDevice
 
-         ! No prognostic field is uploaded here any more. Every routine in the
-         ! loop that writes one runs on the device, thermodynamics included,
-         ! so the device has held the authoritative copy since initCUDA and
-         ! the host copies exist only for the readers that fetch them. What is
-         ! left below is the three tendency resets and the profiles a host
-         ! routine still produces - timedep's inlet profiles and the column
-         ! diagfld rebuilds - which are one column of ke-kb+2 doubles each.
+         u0av_d = u0av
+         v0av_d = v0av
+
+         ! The inlet profiles are not here any more. They are seeded once by
+         ! initCUDA and written after that only by timedepnudge_device, on the
+         ! device, so there is nothing left for this routine to upload: the
+         ! host copies stop advancing at initialisation and nothing reads them.
+         !
+         ! The driver inlet planes are deliberately not here either. drivergen
+         ! is the only thing that writes them, and every call to it is paired
+         ! with an upload: the ones in readinitfiles by the fill inside
+         ! allocDriverPlanesDevice, which initCUDA runs afterwards, and the
+         ! one in boundary_device by the updateDriverPlanesDevice beside it.
+         ! So u0driver_d is already current when bcpup reads it, on the first
+         ! stage of the first step as much as on any later one.
+         !
+         ! Re-uploading u0driver_d alone here would cost nothing, but it would
+         ! put back the thing that made this hard to read the first time: with
+         ! u0 arriving by a second route and the other eleven planes not, a
+         ! missing fill showed up as a wrong inlet in v, w, thl and qt while u
+         ! looked right. Twelve planes wrong together is a legible failure.
+
+         if (ltempeq) then
+            ! thvh and thl0av come from the column diagfld rebuilds at the end
+            ! of the previous stage; thv0h and dthvdz used to come from here
+            ! too and do not any more, because calthv writes them straight onto
+            ! the device beside these.
+            thvh_d     = thvh
+            thl0av_d   = thl0av
+         end if
+
+         if (lmoist) then
+            qt0av_d = qt0av
+         end if
+
+         if (nsv>0) then
+            sv0av_d = sv0av
+         end if
+      end subroutine updateDevice
+
+      !> Clear the tendency accumulators, once per Runge-Kutta stage.
+      !!
+      !! Called from the end of tstep_integrate, which is where the host does
+      !! the same thing, and for the same reason: advection and everything
+      !! after it add into these, so the stage that is finishing has to leave
+      !! them empty for the stage that follows. Having the two implementations
+      !! zero them at the same point in the step is the whole reason this is a
+      !! routine - it used to happen at the top of the next stage, inside
+      !! updateDevice, which is the same instant in the sequence and a
+      !! different place in the source.
+      !!
+      !! Safe to move because nothing between the end of tstep_integrate and
+      !! the next advection touches a tendency: exchange_halos, checksim, the
+      !! dumps, boundary_conditions, thermodynamics and the restart writer all
+      !! read prognostic fields. Every routine that does add into one -
+      !! coriolis, forces, lstend, nudge, the wall functions, masscorr,
+      !! grwdamp and bcpup - runs between updateDevice and poisson.
+      !!
+      !! thlpc_d is here and is not in the host's list, which is not an
+      !! oversight on either side. advection assigns thlpc from thlp before it
+      !! accumulates, on both, so the interior never needs clearing; what the
+      !! host relies on instead is the thlpc = 0. initfields does at
+      !! allocation, because advecc_kappa_add writes the halo as well and only
+      !! the interior is copied back. Zeroing it per stage is what the device
+      !! has always done and costs one kernel on a kappa run.
+      subroutine resetTendenciesDevice
+         implicit none
+         integer :: n
+
          call initfield<<<griddim,blockdim>>>(up_d, 0., ih, jh, kh)
          call checkCUDA( cudaGetLastError(), 'initfield up_d' )
 
@@ -815,39 +915,6 @@ module modcuda
 
          call initfield<<<griddim,blockdim>>>(wp_d, 0., ih, jh, kh)
          call checkCUDA( cudaGetLastError(), 'initfield wp_d' )
-
-         u0av_d = u0av
-         v0av_d = v0av
-
-         ! The inlet profiles and the driver plane. updateDevicePriorPoiss
-         ! used to be the only place that copied these for the BC paths: the
-         ! nudging guard on its own leaves them behind whenever a profile or
-         ! driver inlet is used without velocity nudging.
-         !
-         ! Both host writers run earlier in this same iteration: timedep fills
-         ! uprof and vprof at the top of the loop, and drivergen fills
-         ! u0driver from inside boundary at the end of the previous one.
-         ! Nothing rewrites them between here and bcpup, which is the only
-         ! reader, so the value that lands is the one that used to.
-         ! Both, not one each: the x profile inlet sets v from vprof and the
-         ! y profile inlet sets u from uprof, so either one needs the pair.
-         if ((lnudge .and. lnudgevel) .or. BCxm == BCxm_profile .or. BCym == BCym_profile) then
-            uprof_d = uprof
-            vprof_d = vprof
-         end if
-         ! The driver inlet planes are deliberately not here. drivergen is the
-         ! only thing that writes them, and every call to it is paired with an
-         ! upload: the ones in readinitfiles by the fill inside
-         ! allocDriverPlanesDevice, which initCUDA runs afterwards, and the one
-         ! in boundary_device by the updateDriverPlanesDevice beside it. So
-         ! u0driver_d is already current when bcpup reads it, on the first
-         ! stage of the first step as much as on any later one.
-         !
-         ! Re-uploading u0driver_d alone here would cost nothing, but it would
-         ! put back the thing that made this hard to read the first time: with
-         ! u0 arriving by a second route and the other eleven planes not, a
-         ! missing fill showed up as a wrong inlet in v, w, thl and qt while u
-         ! looked right. Twelve planes wrong together is a legible failure.
 
          if (loneeqn) then
             call initfield<<<griddim,blockdim>>>(e12p_d, 0., ih, jh, kh)
@@ -862,24 +929,11 @@ module modcuda
                call initfield<<<griddim,blockdim>>>(thlpc_d, 0., ihc, jhc, khc)
                call checkCUDA( cudaGetLastError(), 'initfield thlpc_d' )
             end if
-
-            ! thvh and thl0av come from the column diagfld rebuilds at the end
-            ! of the previous stage; thv0h and dthvdz used to come from here
-            ! too and do not any more, because calthv writes them straight onto
-            ! the device beside these.
-            thvh_d     = thvh
-            thl0av_d   = thl0av
-            if (lnudge .or. BCxT == BCxT_profile .or. BCyT == BCyT_profile) thlprof_d = thlprof
-            if (ltrees .and. lmoist) then
-               thlpcar_d = thlpcar
-            end if
          end if
 
          if (lmoist) then
             call initfield<<<griddim,blockdim>>>(qtp_d, 0., ih, jh, kh)
             call checkCUDA( cudaGetLastError(), 'initfield qtp_d' )
-            qt0av_d = qt0av
-            if (lnudge .or. BCxq == BCxq_profile .or. BCyq == BCyq_profile) qtprof_d = qtprof
          end if
 
          if (nsv>0) then
@@ -887,9 +941,9 @@ module modcuda
                call initfield<<<griddim,blockdim>>>(svp_d(:, :, :, n), 0., ihc, jhc, khc)
                call checkCUDA( cudaGetLastError(), 'initfield svp_d' )
             end do
-            sv0av_d = sv0av
          end if
-      end subroutine updateDevice
+
+      end subroutine resetTendenciesDevice
 
       ! One routine per field rather than one generic helper taking the pair as
       ! arguments. The generic version was written first and cost 130 seconds on

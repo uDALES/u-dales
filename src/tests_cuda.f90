@@ -33,6 +33,7 @@ module tests_cuda
                         facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
                         dxdydzfi_d, dxdydzhi_d, dvcell_d, dxhi_d, dzhi_d, dzh_d, dzf_d, dzfi_d, &
                         col_d, col_stage, IIu_d, IIv_d, IIw_d, IIc_d, updateDevice, &
+                        e12p_d, resetTendenciesDevice, &
                         ql0_d, ql0h_d, thl0h_d, qt0h_d, thv0h_d, dthvdz_d, &
                         presf_d, presh_d, exnf_d, exnh_d, &
                         updateHostForFielddump, updateHostForStatsdump, &
@@ -141,6 +142,10 @@ contains
          ! First, before anything here has had a chance to write a device
          ! driver plane: its opening pass reads them as initCUDA left them.
          call test_driver_plane_seed
+         ! Also near the top, and for the same kind of reason: everything
+         ! below it that drives a wall function, vegetation, masscorr or the
+         ! boundary conditions adds into a tendency.
+         call test_tendency_reset
          call test_initfield_extended_halos
          call test_kappa_limiter
          call test_kappa_scalar_advection
@@ -162,7 +167,8 @@ contains
          call test_facflux_handover
          call test_facet_props_refresh
          call test_vegetation_forcing
-         call test_bc_profile_upload
+         call test_profile_ownership
+         call test_timedep_nudge_device
          call test_boundary_conditions
          call test_driver_plane_handover
          call test_post_poisson_handover
@@ -194,7 +200,7 @@ contains
    !! It took as long as it did to place because updateDevice used to upload
    !! u0driver_d on its own, for bcpup, so u0 was the one inlet field that
    !! still came out right while v, w, thl and qt were wrong. That copy is
-   !! gone - test_bc_profile_upload holds it gone - so a regression here now
+   !! gone - test_profile_ownership holds it gone - so a regression here now
    !! shows up in all twelve planes at once.
    !!
    !! Two passes, because neither covers the ground the other does.
@@ -3612,48 +3618,135 @@ contains
    end subroutine test_vegetation_forcing
 
 
-   !> Pin the inlet uploads that moved out of updateDevicePriorPoiss.
+   !> The tendency accumulators start empty, and resetTendenciesDevice is what
+   !! empties them.
    !!
-   !! That routine was the only place copying uprof, vprof and u0driver for the
-   !! profile and driver inlets: the nudging guard in updateDevice reaches them
-   !! only when velocity nudging happens to be on as well. Deleting the routine
-   !! therefore had to move those three, and this is what says so - it puts a
-   !! sentinel in each host array, runs the real updateDevice, and reads the
-   !! mirror back.
+   !! Two arms. The first is initCUDA's seed. The clear moved out of
+   !! updateDevice, which ran at the top of a stage, into
+   !! resetTendenciesDevice, which runs at the end of one - so the first stage
+   !! of the run has no stage before it to have cleared anything, and initCUDA
+   !! calls the routine once to stand in for that. Take that call away and the
+   !! first advection accumulates into whatever cudaMalloc returned. Deleting
+   !! it fails this arm on every smoke case; it fails the parity comparison on
+   !! two of the four, because whether the allocation comes back dirty is not
+   !! something the run controls. So this is the arm that names it, and the
+   !! comparison is the arm that cannot be relied on to.
    !!
-   !! The switches are set here rather than taken from the case, and lnudge is
-   !! forced off so the nudging arm cannot mask the BC one. Each guard is
-   !! checked in the configuration that needs it and in one that does not, so
-   !! a guard that is simply always true fails rather than passing.
+   !! The second arm is the routine itself, over the halos as well as the
+   !! interior. Not decoration: advecc_kappa_add writes the halo of thlpc_d,
+   !! and the kappa tendencies carry the wider ihc, jhc, khc.
    !!
-   !! uprof and vprof travel together, for either inlet. That is not symmetry
-   !! for its own sake: xmi_profile sets v at the inlet from vprof and
-   !! ymi_profile sets u from uprof, so a guard that uploaded only the profile
-   !! named after its own axis would leave the other one at whatever the last
-   !! nudging step put there.
+   !! It runs near the top of the list because everything below it that drives
+   !! a wall function, vegetation, masscorr or the boundary conditions adds
+   !! into a tendency. It leaves them zeroed, which is what initCUDA left, so
+   !! the tests after it start where they would have.
+   subroutine test_tendency_reset
+      implicit none
+
+      real, parameter :: poison = 1.e6
+
+      real, allocatable :: back(:,:,:), backc(:,:,:)
+      integer :: n
+
+      if (.not. allocated(up_d)) return
+
+      allocate(back (ib-ih:ie+ih,   jb-jh:je+jh,   kb:ke+kh))
+      allocate(backc(ib-ihc:ie+ihc, jb-jhc:je+jhc, kb:ke+khc))
+
+      call all_clear('initCUDA left a tendency non-zero')
+
+      up_d = poison
+      vp_d = poison
+      wp_d = poison
+      if (loneeqn) e12p_d = poison
+      if (ltempeq) then
+         thlp_d = poison
+         if (iadv_thl == iadv_kappa) thlpc_d = poison
+      end if
+      if (lmoist) qtp_d = poison
+      if (nsv > 0) then
+         do n = 1, nsv
+            svp_d(:,:,:,n) = poison
+         end do
+      end if
+
+      call resetTendenciesDevice
+      call all_clear('resetTendenciesDevice left a tendency non-zero')
+
+      deallocate(back, backc)
+
+   contains
+
+      subroutine all_clear(what)
+         character(len=*), intent(in) :: what
+         integer :: m
+
+         back = up_d ; if (any(back /= 0.)) call fail_cuda_selftest(what//': up')
+         back = vp_d ; if (any(back /= 0.)) call fail_cuda_selftest(what//': vp')
+         back = wp_d ; if (any(back /= 0.)) call fail_cuda_selftest(what//': wp')
+         if (loneeqn) then
+            back = e12p_d ; if (any(back /= 0.)) call fail_cuda_selftest(what//': e12p')
+         end if
+         if (ltempeq) then
+            back = thlp_d ; if (any(back /= 0.)) call fail_cuda_selftest(what//': thlp')
+            if (iadv_thl == iadv_kappa) then
+               backc = thlpc_d ; if (any(backc /= 0.)) call fail_cuda_selftest(what//': thlpc')
+            end if
+         end if
+         if (lmoist) then
+            back = qtp_d ; if (any(back /= 0.)) call fail_cuda_selftest(what//': qtp')
+         end if
+         do m = 1, nsv
+            backc = svp_d(:,:,:,m) ; if (any(backc /= 0.)) call fail_cuda_selftest(what//': svp')
+         end do
+
+      end subroutine all_clear
+
+   end subroutine test_tendency_reset
+
+   !> The nudging and inlet profiles are the device's, from initCUDA onwards.
    !!
-   !! The driver arm is the inverse of the other three: updateDevice must
-   !! leave u0driver_d alone. drivergen is the only thing that writes the host
-   !! planes, and every call to it is already paired with an upload - the ones
-   !! in readinitfiles by the fill inside allocDriverPlanesDevice, which
-   !! initCUDA runs after them, and the one in boundary_device by the
-   !! updateDriverPlanesDevice beside it - so a copy here would be dead.
+   !! This replaces the test that pinned the opposite. updateDevice used to
+   !! upload uprof, vprof, thlprof and qtprof on every stage, under a guard
+   !! naming each consumer of a profile inlet, because timedep wrote them on
+   !! the host and the loop had to fetch the result. timedepnudge_device
+   !! writes the device copies directly now, so the host copies stop advancing
+   !! at initialisation and an upload here would put a stale profile back -
+   !! silently, and only on a run with time-dependent nudging, which is the
+   !! one configuration where the profile is not constant.
    !!
-   !! It would also be worse than dead. With u0 arriving by a second route and
-   !! the other eleven planes not, a missing fill reads as a wrong inlet in v,
-   !! w, thl and qt while u looks right, and that is what made case 452 hard
-   !! to place. Twelve planes wrong together is a legible failure. The
-   !! liveness this arm used to stand for is asserted directly, and better, by
-   !! test_driver_plane_seed.
+   !! Two arms, and the first is what makes the second mean anything:
    !!
-   !! No case in the GPU matrix sets idriver, and initdriver allocates the
-   !! host array under idriver alone, so where it is missing the test
-   !! allocates it and gives it back.
-   subroutine test_bc_profile_upload
+   !!   - The device copies agree with the host ones on entry. Nothing has run
+   !!     but initCUDA and the self-tests before this one, so this is
+   !!     initCUDA's seed - the handover that replaced the per-stage upload -
+   !!     and it also catches an earlier self-test that failed to restore.
+   !!
+   !!   - updateDevice leaves all four alone. A sentinel goes on the device and
+   !!     a different value on the host, so a copy in either direction is
+   !!     visible; the host values are the ones put back at the end.
+   !!
+   !! The driver plane arm is unchanged and is the same assertion for the same
+   !! reason: drivergen is the only writer of the host planes and every call
+   !! to it is already paired with an upload - the ones in readinitfiles by the
+   !! fill inside allocDriverPlanesDevice, which initCUDA runs after them, and
+   !! the one in boundary_device by the updateDriverPlanesDevice beside it. A
+   !! copy here would be dead, and worse than dead: with u0 arriving by a
+   !! second route and the other eleven planes not, a missing fill reads as a
+   !! wrong inlet in v, w, thl and qt while u looks right, which is what made
+   !! case 452 hard to place. The liveness it used to stand for is asserted
+   !! directly by test_driver_plane_seed.
+   !!
+   !! No case in the GPU matrix sets idriver, and initdriver allocates the host
+   !! array under idriver alone, so where it is missing the test allocates it
+   !! and gives it back.
+   subroutine test_profile_ownership
       implicit none
 
       real, parameter :: sentinel_u = 7.125, sentinel_v = -3.5, sentinel_d = 11.75
-      ! Left on the device side of the driver plane, to be found there after.
+      ! Left on the device side, to be found there after.
+      real, parameter :: untouched_u = -1.25, untouched_v = 2.75
+      real, parameter :: untouched_T = 301.5, untouched_q = 0.03125
       real, parameter :: untouched_d = -4.0625
 
       real, parameter :: sentinel_T = 297.25, sentinel_q = 0.015625
@@ -3661,137 +3754,76 @@ contains
       real, allocatable :: uprof_s(:), vprof_s(:), u0driver_s(:,:)
       real, allocatable :: thlprof_s(:), qtprof_s(:)
       real, allocatable :: back1(:), back2(:,:)
-      integer :: saved_BCxm, saved_BCym, saved_BCxT, saved_BCyT, saved_BCxq, saved_BCyq
-      logical :: saved_lnudge, faked_driver
+      logical :: faked_driver
 
       if (.not. allocated(uprof_d)) return
       if (.not. allocated(vprof_d)) return
 
-      allocate(uprof_s, source=uprof)
-      allocate(vprof_s, source=vprof)
       allocate(back1(lbound(uprof,1):ubound(uprof,1)))
       allocate(back2(jb-jh:je+jh, kb-kh:ke+kh))
+
+      ! --- initCUDA's seed --------------------------------------------------
+      back1 = uprof_d
+      if (any(back1 /= uprof)) then
+         call fail_cuda_selftest('uprof_d does not hold the host profile initCUDA seeded it with')
+      end if
+      back1 = vprof_d
+      if (any(back1 /= vprof)) then
+         call fail_cuda_selftest('vprof_d does not hold the host profile initCUDA seeded it with')
+      end if
+      if (allocated(thlprof_d)) then
+         back1 = thlprof_d
+         if (any(back1 /= thlprof)) then
+            call fail_cuda_selftest('thlprof_d does not hold the host profile initCUDA seeded it with')
+         end if
+      end if
+      if (allocated(qtprof_d)) then
+         back1 = qtprof_d
+         if (any(back1 /= qtprof)) then
+            call fail_cuda_selftest('qtprof_d does not hold the host profile initCUDA seeded it with')
+         end if
+      end if
+
+      allocate(uprof_s, source=uprof)
+      allocate(vprof_s, source=vprof)
       if (allocated(thlprof_d)) allocate(thlprof_s, source=thlprof)
       if (allocated(qtprof_d))  allocate(qtprof_s,  source=qtprof)
 
-      saved_BCxm   = BCxm
-      saved_BCym   = BCym
-      saved_BCxT   = BCxT
-      saved_BCyT   = BCyT
-      saved_BCxq   = BCxq
-      saved_BCyq   = BCyq
-      saved_lnudge = lnudge
-      lnudge       = .false.
-      BCxT         = BCxT_periodic
-      BCyT         = BCyT_periodic
-      BCxq         = BCxq_periodic
-      BCyq         = BCyq_periodic
-
-      ! --- neither inlet: nothing crosses ----------------------------------
+      ! --- updateDevice must not touch any of them --------------------------
       uprof   = sentinel_u
       vprof   = sentinel_v
-      uprof_d = 0.
-      vprof_d = 0.
-      BCxm    = BCxm_periodic
-      BCym    = BCym_periodic
-      call updateDevice
-
-      back1 = uprof_d
-      if (any(back1 /= 0.)) then
-         call fail_cuda_selftest('uprof was uploaded with no profile inlet and no nudging')
-      end if
-      back1 = vprof_d
-      if (any(back1 /= 0.)) then
-         call fail_cuda_selftest('vprof was uploaded with no profile inlet and no nudging')
-      end if
-
-      ! --- x profile inlet: both profiles cross ----------------------------
-      uprof_d = 0.
-      vprof_d = 0.
-      BCxm    = BCxm_profile
-      BCym    = BCym_periodic
-      call updateDevice
-
-      back1 = uprof_d
-      if (any(back1 /= sentinel_u)) then
-         call fail_cuda_selftest('updateDevice did not upload uprof for a profile inlet')
-      end if
-      back1 = vprof_d
-      if (any(back1 /= sentinel_v)) then
-         call fail_cuda_selftest('the x inlet guard left vprof behind, which xmi_profile reads')
-      end if
-
-      ! --- y profile inlet: the mirror image -------------------------------
-      uprof_d = 0.
-      vprof_d = 0.
-      BCxm    = BCxm_periodic
-      BCym    = BCym_profile
-      call updateDevice
-
-      back1 = vprof_d
-      if (any(back1 /= sentinel_v)) then
-         call fail_cuda_selftest('updateDevice did not upload vprof for a profile inlet')
-      end if
-      back1 = uprof_d
-      if (any(back1 /= sentinel_u)) then
-         call fail_cuda_selftest('the y inlet guard left uprof behind, which ymi_profile reads')
-      end if
-      BCym = BCym_periodic
-
-      ! --- the temperature and moisture inlet profiles ---------------------
+      uprof_d = untouched_u
+      vprof_d = untouched_v
       if (allocated(thlprof_d)) then
          thlprof   = sentinel_T
-         thlprof_d = 0.
-         call updateDevice
-         back1 = thlprof_d
-         if (any(back1 /= 0.)) then
-            call fail_cuda_selftest('thlprof was uploaded with no profile inlet and no nudging')
-         end if
-
-         BCxT = BCxT_profile
-         call updateDevice
-         back1 = thlprof_d
-         if (any(back1 /= sentinel_T)) then
-            call fail_cuda_selftest('updateDevice did not upload thlprof for an x profile inlet')
-         end if
-
-         BCxT = BCxT_periodic
-         BCyT = BCyT_profile
-         thlprof_d = 0.
-         call updateDevice
-         back1 = thlprof_d
-         if (any(back1 /= sentinel_T)) then
-            call fail_cuda_selftest('updateDevice did not upload thlprof for a y profile inlet')
-         end if
-         BCyT = BCyT_periodic
+         thlprof_d = untouched_T
       end if
-
       if (allocated(qtprof_d)) then
          qtprof   = sentinel_q
-         qtprof_d = 0.
-         call updateDevice
-         back1 = qtprof_d
-         if (any(back1 /= 0.)) then
-            call fail_cuda_selftest('qtprof was uploaded with no profile inlet and no nudging')
-         end if
+         qtprof_d = untouched_q
+      end if
 
-         BCxq = BCxq_profile
-         call updateDevice
-         back1 = qtprof_d
-         if (any(back1 /= sentinel_q)) then
-            call fail_cuda_selftest('updateDevice did not upload qtprof for an x profile inlet')
-         end if
+      call updateDevice
 
-         BCxq = BCxq_periodic
-         BCyq = BCyq_profile
-         qtprof_d = 0.
-         call updateDevice
-         back1 = qtprof_d
-         if (any(back1 /= sentinel_q)) then
-            call fail_cuda_selftest('updateDevice did not upload qtprof for a y profile inlet')
+      back1 = uprof_d
+      if (any(back1 /= untouched_u)) then
+         call fail_cuda_selftest('updateDevice uploaded uprof - timedepnudge_device owns it now')
+      end if
+      back1 = vprof_d
+      if (any(back1 /= untouched_v)) then
+         call fail_cuda_selftest('updateDevice uploaded vprof - timedepnudge_device owns it now')
+      end if
+      if (allocated(thlprof_d)) then
+         back1 = thlprof_d
+         if (any(back1 /= untouched_T)) then
+            call fail_cuda_selftest('updateDevice uploaded thlprof - timedepnudge_device owns it now')
          end if
-         BCxq = BCxq_periodic
-         BCyq = BCyq_periodic
+      end if
+      if (allocated(qtprof_d)) then
+         back1 = qtprof_d
+         if (any(back1 /= untouched_q)) then
+            call fail_cuda_selftest('updateDevice uploaded qtprof - timedepnudge_device owns it now')
+         end if
       end if
 
       ! --- driver inlet, which must NOT be uploaded here ---------------------
@@ -3806,8 +3838,6 @@ contains
       ! and a different one on the device that has to survive if it does not.
       u0driver   = sentinel_d
       u0driver_d = untouched_d
-      BCxm       = BCxm_driver
-      BCym       = BCym_periodic
       call updateDevice
 
       back2 = u0driver_d
@@ -3827,6 +3857,8 @@ contains
 
       uprof   = uprof_s
       vprof   = vprof_s
+      uprof_d = uprof
+      vprof_d = vprof
       if (allocated(thlprof_s)) then
          thlprof   = thlprof_s
          thlprof_d = thlprof
@@ -3837,15 +3869,6 @@ contains
          qtprof_d = qtprof
          deallocate(qtprof_s)
       end if
-      uprof_d = uprof
-      vprof_d = vprof
-      BCxm    = saved_BCxm
-      BCym    = saved_BCym
-      BCxT    = saved_BCxT
-      BCyT    = saved_BCyT
-      BCxq    = saved_BCxq
-      BCyq    = saved_BCyq
-      lnudge  = saved_lnudge
 
       ! updateDevice cleared the facet dirty flag on the way through. Set it
       ! again so the first real call copies the facet properties exactly as it
@@ -3854,7 +3877,279 @@ contains
 
       deallocate(uprof_s, vprof_s, back1, back2)
 
-   end subroutine test_bc_profile_upload
+   end subroutine test_profile_ownership
+
+   !> Drive timedepnudge_device against a host reference over a staged table.
+   !!
+   !! runmode 1018 covers the interpolation, but only the host routine: under
+   !! _GPU the loop calls timedep_device and the profiles that matter are the
+   !! device ones, which that runmode cannot see. This is the device branch's
+   !! coverage away from a full parity run, and a parity run reaches it only
+   !! through a nudging tendency divided by tnudge and then integrated.
+   !!
+   !! The table is staged here rather than read, so every entry can be made
+   !! unique in k, in t and across the four profiles: linear in k so a level
+   !! read at a fixed index is wrong everywhere, a decade apart between the
+   !! four so a profile written into the wrong target is unmistakable, and a t
+   !! dependence of a different shape so a transposed subscript cannot land on
+   !! the right number.
+   !!
+   !! What it pins beyond the arithmetic:
+   !!
+   !!   - Which target each of the three kernels writes. thlprof_d and
+   !!     qtprof_d exist only under ltempeq and lmoist, so they are separate
+   !!     launches, and separate launches are where a copy-paste lands.
+   !!
+   !!   - The endpoints, bit for bit. At a table time fac is zero and
+   !!     a + 0*(b - a) is a exactly, contracted into an fma or not. So those
+   !!     are checked with /=, and the interior with a tolerance.
+   !!
+   !!   - The bracket, which is host code shared with the runmode test but
+   !!     reached here through the device path, and the freeze - which starts
+   !!     at the last table time, not after it, so the last column is never
+   !!     installed.
+   !!
+   !! Everything is put back: the four device profiles, and - if the case had
+   !! a table of its own - the four tables, timenudge, ltimedepnudge,
+   !! ntimedepnudge and timee. A case with ltimedepnudge already on is the one
+   !! that most needs this to be exact, since the run continues afterwards
+   !! with whatever is left here, and the timedep-nudging parity case is what
+   !! says so: the first version of this test reallocated timenudge without
+   !! restoring it, and that case failed on the wrong nudging target while
+   !! every self-test still reported a pass.
+   subroutine test_timedep_nudge_device
+      use modglobal,  only : timee, ltempeq, lmoist
+      use modtimedep, only : timedepnudge_device, ltimedepnudge, ntimedepnudge, &
+                             timenudge, &
+                             thlproft_d, qtproft_d, uproft_d, vproft_d
+      implicit none
+
+      integer, parameter :: nt = 3
+      real,    parameter :: t1 = 0., t2 = 10., t3 = 25.
+      real,    parameter :: frozen_u = -3., frozen_v = -4.
+
+      logical :: saved_switch, had_tables
+      integer :: saved_nt
+      real    :: saved_timee
+      real, allocatable :: timenudge_s(:)
+      real, allocatable :: thlt_s(:,:), qtt_s(:,:), ut_s(:,:), vt_s(:,:)
+      real, allocatable :: uprof_s(:), vprof_s(:), thlprof_s(:), qtprof_s(:)
+      real, allocatable :: stage(:,:)
+      real, allocatable :: back(:)
+
+      if (.not. allocated(uprof_d)) return
+
+      allocate(back(kb:ke+kh))
+      allocate(uprof_s(kb:ke+kh)) ; uprof_s = uprof_d
+      allocate(vprof_s(kb:ke+kh)) ; vprof_s = vprof_d
+      if (allocated(thlprof_d)) then
+         allocate(thlprof_s(kb:ke+kh)) ; thlprof_s = thlprof_d
+      end if
+      if (allocated(qtprof_d)) then
+         allocate(qtprof_s(kb:ke+kh)) ; qtprof_s = qtprof_d
+      end if
+
+      saved_switch = ltimedepnudge
+      saved_nt     = ntimedepnudge
+      saved_timee  = timee
+
+      ! A case that reads a real table has one here already. Take it away and
+      ! give it back, rather than skipping the test on exactly the case whose
+      ! run depends on this routine. Everything the run needs afterwards is
+      ! saved: the four tables and timenudge, which is what the bracket search
+      ! reads - reallocating that one and leaving it uninitialised sends the
+      ! rest of the run to the wrong table entry, which is a wrong nudging
+      ! target and nothing else, and no assertion anywhere would say so.
+      had_tables = allocated(uproft_d)
+      if (had_tables) then
+         allocate(thlt_s(kb:ke+kh,saved_nt)) ; thlt_s = thlproft_d
+         allocate(qtt_s (kb:ke+kh,saved_nt)) ; qtt_s  = qtproft_d
+         allocate(ut_s  (kb:ke+kh,saved_nt)) ; ut_s   = uproft_d
+         allocate(vt_s  (kb:ke+kh,saved_nt)) ; vt_s   = vproft_d
+         allocate(timenudge_s, source=timenudge)
+         deallocate(thlproft_d, qtproft_d, uproft_d, vproft_d)
+         deallocate(timenudge)
+      end if
+
+      ltimedepnudge = .true.
+      ntimedepnudge = nt
+      allocate(timenudge(nt))
+      timenudge = [ t1, t2, t3 ]
+
+      ! Staged through a local rather than through the module's own host
+      ! tables. Those belong to the case, are already allocated wherever there
+      ! is one, and the device is the only side this test reads.
+      allocate(stage(kb:ke+kh,nt))
+      allocate(thlproft_d(kb:ke+kh,nt), qtproft_d(kb:ke+kh,nt), &
+               uproft_d  (kb:ke+kh,nt), vproft_d (kb:ke+kh,nt))
+      call stage_table(1) ; thlproft_d = stage
+      call stage_table(2) ; qtproft_d  = stage
+      call stage_table(3) ; uproft_d   = stage
+      call stage_table(4) ; vproft_d   = stage
+
+      ! At the first and the interior table time the result is that column
+      ! exactly; on the interior one that also says the bracket went up rather
+      ! than down. The last table time is not one of these - see the freeze
+      ! below.
+      timee = t1 ; call timedepnudge_device ; call check_exact('t = t1', 1)
+      timee = t2 ; call timedepnudge_device ; call check_exact('t = t2', 2)
+
+      ! Inside each interval, at different fractions and over intervals of
+      ! different widths, so a fac divided by the wrong one is caught.
+      timee = t1 + 0.25*(t2 - t1) ; call timedepnudge_device
+      call check_interp('inside first interval', 1, 0.25)
+      timee = t2 + 0.75*(t3 - t2) ; call timedepnudge_device
+      call check_interp('inside second interval', 2, 0.75)
+
+      ! From the last table time onwards nothing is written at all: the search
+      ! returns ntimedepnudge and the guard stops there, so the last column is
+      ! never installed and the profile keeps the value the step before left.
+      ! Poisoned first, so a kernel that ran anyway and happened to land on the
+      ! last column is not mistaken for one that correctly did nothing.
+      uprof_d = frozen_u
+      vprof_d = frozen_v
+      timee = t3
+      call timedepnudge_device
+      back = uprof_d
+      if (any(back /= frozen_u)) then
+         call fail_cuda_selftest('timedepnudge_device wrote uprof at the last table time')
+      end if
+      back = vprof_d
+      if (any(back /= frozen_v)) then
+         call fail_cuda_selftest('timedepnudge_device wrote vprof at the last table time')
+      end if
+
+      timee = t3 + 1000.
+      call timedepnudge_device
+      back = uprof_d
+      if (any(back /= frozen_u)) then
+         call fail_cuda_selftest('timedepnudge_device wrote uprof past the end of the table')
+      end if
+      back = vprof_d
+      if (any(back /= frozen_v)) then
+         call fail_cuda_selftest('timedepnudge_device wrote vprof past the end of the table')
+      end if
+
+      ! And nothing at all with the switch off.
+      ltimedepnudge = .false.
+      timee = t1 + 0.25*(t2 - t1)
+      call timedepnudge_device
+      back = uprof_d
+      if (any(back /= frozen_u)) then
+         call fail_cuda_selftest('timedepnudge_device ran with ltimedepnudge off')
+      end if
+
+      ! --- put everything back ----------------------------------------------
+      deallocate(thlproft_d, qtproft_d, uproft_d, vproft_d)
+      deallocate(timenudge)
+      deallocate(stage)
+
+      if (had_tables) then
+         allocate(timenudge, source=timenudge_s)
+         allocate(thlproft_d(kb:ke+kh,saved_nt), qtproft_d(kb:ke+kh,saved_nt), &
+                  uproft_d  (kb:ke+kh,saved_nt), vproft_d (kb:ke+kh,saved_nt))
+         thlproft_d = thlt_s ; qtproft_d = qtt_s
+         uproft_d   = ut_s   ; vproft_d  = vt_s
+         deallocate(thlt_s, qtt_s, ut_s, vt_s, timenudge_s)
+      end if
+
+      ltimedepnudge = saved_switch
+      ntimedepnudge = saved_nt
+      timee         = saved_timee
+
+      uprof_d = uprof_s ; vprof_d = vprof_s
+      if (allocated(thlprof_s)) thlprof_d = thlprof_s
+      if (allocated(qtprof_s))  qtprof_d  = qtprof_s
+
+   contains
+
+      !> Fill the staging buffer with one profile's table.
+      subroutine stage_table(field)
+         integer, intent(in) :: field
+         integer :: kk, tt
+
+         do tt = 1, nt
+            do kk = kb, ke+kh
+               stage(kk,tt) = entry_at(field, kk, tt)
+            end do
+         end do
+
+      end subroutine stage_table
+
+      !> Unique in k, in t and across the four profiles. See the header.
+      real function entry_at(field, kk, tt)
+         integer, intent(in) :: field, kk, tt
+
+         entry_at = (10.**field) * (1. + 0.125*(kk - kb)) * (1. + 0.5*(tt - 1))
+
+      end function entry_at
+
+      !> Every profile is exactly column t of its own table.
+      subroutine check_exact(label, t)
+         character(len=*), intent(in) :: label
+         integer,          intent(in) :: t
+
+         call exact_col('uprof '   // label, uprof_d, 3, t)
+         call exact_col('vprof '   // label, vprof_d, 4, t)
+         if (ltempeq .and. allocated(thlprof_d)) call exact_col('thlprof ' // label, thlprof_d, 1, t)
+         if (lmoist  .and. allocated(qtprof_d))  call exact_col('qtprof '  // label, qtprof_d,  2, t)
+
+      end subroutine check_exact
+
+      subroutine exact_col(label, dev, field, t)
+         character(len=*), intent(in) :: label
+         real, device,     intent(in) :: dev(kb:ke+kh)
+         integer,          intent(in) :: field, t
+         integer :: kk
+
+         back = dev
+         do kk = kb, ke+kh
+            if (back(kk) /= entry_at(field, kk, t)) then
+               write(*,'(A,I0,3A,I0,A,ES22.14,A,ES22.14)') 'timedep self-test rank ', myid, &
+                    ': ', trim(label), ' k = ', kk, ' got ', back(kk), &
+                    ' want exactly ', entry_at(field, kk, t)
+               call fail_cuda_selftest('timedepnudge_device missed a table entry: '//trim(label))
+            end if
+         end do
+
+      end subroutine exact_col
+
+      !> Every profile is column t blended a fraction f towards column t+1.
+      subroutine check_interp(label, t, f)
+         character(len=*), intent(in) :: label
+         integer,          intent(in) :: t
+         real,             intent(in) :: f
+
+         call interp_col('uprof '   // label, uprof_d, 3, t, f)
+         call interp_col('vprof '   // label, vprof_d, 4, t, f)
+         if (ltempeq .and. allocated(thlprof_d)) call interp_col('thlprof ' // label, thlprof_d, 1, t, f)
+         if (lmoist  .and. allocated(qtprof_d))  call interp_col('qtprof '  // label, qtprof_d,  2, t, f)
+
+      end subroutine check_interp
+
+      subroutine interp_col(label, dev, field, t, f)
+         character(len=*), intent(in) :: label
+         real, device,     intent(in) :: dev(kb:ke+kh)
+         integer,          intent(in) :: field, t
+         real,             intent(in) :: f
+         integer :: kk
+         real    :: a, b, want
+
+         back = dev
+         do kk = kb, ke+kh
+            a = entry_at(field, kk, t)
+            b = entry_at(field, kk, t+1)
+            want = a + f*(b - a)
+            if (abs(back(kk) - want) > 64.*epsilon(1.)*max(1., abs(want))) then
+               write(*,'(A,I0,3A,I0,A,ES22.14,A,ES22.14)') 'timedep self-test rank ', myid, &
+                    ': ', trim(label), ' k = ', kk, ' got ', back(kk), ' want ', want
+               call fail_cuda_selftest('timedepnudge_device interpolated wrongly: '//trim(label))
+            end if
+         end do
+
+      end subroutine interp_col
+
+   end subroutine test_timedep_nudge_device
 
    !> Compare boundary against boundary_device, branch by branch.
    !!

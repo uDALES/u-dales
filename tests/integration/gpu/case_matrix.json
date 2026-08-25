@@ -21,6 +21,7 @@
       "dry-poisson-fft",
       "thermo-scalar-wall",
       "nudging",
+      "timedep-nudging",
       "temperature-kappa",
       "one-equation-sgs",
       "fixed-surface-fluxes",
@@ -55,6 +56,7 @@
       "dry-poisson-fft",
       "thermo-scalar-wall",
       "nudging",
+      "timedep-nudging",
       "temperature-kappa",
       "one-equation-sgs",
       "fixed-surface-fluxes",
@@ -126,6 +128,22 @@
       "required_outputs": ["fielddump", "tdump", "xytdump"],
       "coverage": ["profile-nudging", "velocity-nudging", "thermodynamic-nudging", "scalar-nudging"],
       "namelist_assertions": {"lnudge": true, "lnudgevel": true, "nnudge": 1, "tnudge": 1.0, "ltempeq": true, "lmoist": true, "nsv": 1},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "timedep-nudging",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.timedep-nudging",
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103",
+        "tests/integration/gpu/fixtures/scalar.inp.103",
+        "tests/integration/gpu/fixtures/timedepnudge.inp.103"
+      ],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["time-dependent-nudging", "profile-nudging", "velocity-nudging", "thermodynamic-nudging"],
+      "namelist_assertions": {"ltimedepnudge": true, "ntimedepnudge": 3, "lnudge": true, "lnudgevel": true, "ltempeq": true, "lmoist": true},
       "timeout_seconds": 180
     },
     {
@@ -651,6 +669,7 @@
       "src/modibm.f90:accumulate_delta_device": ["ibm-scalar-wall", "ibm-reconstruction"],
       "src/modscalsource.f90:scalsource": ["thermo-scalar-wall", "ibm-scalar-wall", "scalar-point-two-rank-x", "scalar-line-two-rank-y"],
       "src/modtstep.f90:tstep_integrate": ["dry-poisson-fft", "thermo-scalar-wall", "one-equation-sgs"],
+      "src/modtimedep.f90:timedepnudge_device": ["debug-device-selftests", "timedep-nudging"],
       "src/modtstep.f90:tstep_limits": ["debug-device-selftests", "ibm-reconstruction", "vegetation-deposition"],
       "src/modcuda.f90:integrateFacFluxDevice": ["debug-device-selftests", "surface-energy-balance"],
       "src/vegetation.f90:vegetation_forcing_device": ["debug-device-selftests", "vegetation", "vegetation-sveg"],

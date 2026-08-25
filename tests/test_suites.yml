@@ -262,6 +262,16 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/tstep/run_test.sh"
+      - label: "supported: time-dependent forcing integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/timedep/run_test.sh"
       - label: "supported: mpi operators integration"
         class: supported
         kind: integration

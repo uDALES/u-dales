@@ -1,0 +1,121 @@
+&RUN
+iexpnr       = 103
+runtime      = 40.0
+trestart     = 1000.
+dtmax        = 0.25
+ladaptive    = .false.
+lrandomize   = .false.
+libm         = .false.
+nprocx       = 1
+nprocy       = 1
+/
+
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 1.0
+fieldvars    = 'u0,v0,w0,p0,th,qt,s1'
+ltdump       = .true.
+lxytdump     = .true.
+tstatstart   = 0.0
+tstatsdump   = 1.0
+tsample      = 0.25
+/
+
+&DOMAIN
+itot         = 8
+jtot         = 8
+ktot         = 8
+xlen         = 8
+ylen         = 8
+/
+
+&PHYSICS
+! Profile nudging: relaxes levels kb+nnudge..ke towards the prescribed
+! profiles. nnudge > 0 so the case covers both the nudged region and the
+! untouched region below it.
+!
+! The settings below are not arbitrary. prof.inp supplies both the initial state
+! and the nudging target, so the tendency starts at zero and only grows as dpdx
+! and the fixed-temperature wall drive the flow away from the profile. With the
+! 2 s runtime and tnudge = 10 used by the other 103 variants the term stays far
+! below the 1e-6 parity tolerance and this case passes even with the nudge
+! kernels deleted. runtime = 40 with tnudge = 1 was chosen by testing against
+! deliberately broken ports: at these values, removing any one of the velocity,
+! temperature, moisture or scalar nudging kernels makes this case fail.
+!
+! tnudge must stay comfortably above dtmax (0.25). tnudge = 0.05 relaxes faster
+! than the timestep and the run diverges with a floating-point exception.
+lnudge       = .true.
+lnudgevel    = .true.
+tnudge       = 1.0
+nnudge       = 1
+! The nudging target moves in time, which is the whole point of this variant.
+! timedepnudge.inp.103 has three entries, at 0, 20 and 40 s, so the run spans
+! two intervals and the bracket search has to choose between them rather than
+! having one answer; the last entry is at the end of the run, so the freeze
+! past the end of the table is reached in the final steps too.
+!
+! Column 1 is prof.inp.103 exactly, so the run starts where the plain nudging
+! case does and the tendency starts at zero. Columns 2 and 3 drift away, and
+! the drift grows with height as well as with time - a profile taken from the
+! wrong table entry, or read at the wrong level, is wrong at every level
+! rather than nearly right at most of them.
+ltimedepnudge = .true.
+ntimedepnudge = 3
+lbuoyancy    = .true.
+ltempeq      = .true.
+lmoist       = .true.
+ps           = 101500.
+igrw_damp    = 0
+/
+
+&DYNAMICS
+ipoiss       = 0
+iadv_thl     = 2
+iadv_qt      = 2
+iadv_sv      = 7
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&BC
+! ltimedepsurf is deliberately not set here. The five fluxes it interpolates
+! are read by the facet wall function under iwalltemp = 1, and this case has
+! libm = .false. and so no facets. No case in the matrix combines the two, on
+! the GPU or the CPU, which is a gap that predates this variant; the
+! interpolation itself is covered by runmode 1018.
+BCbotT       = 2
+wtsurf       = 0.
+! A surface moisture flux is required for this case to cover the moisture
+! nudging branch: with wqsurf = 0 qt is conserved, qt0av stays equal to qtprof,
+! and (qt0av - qtprof) is identically zero. 5.e-5 is still not enough - it moves
+! qtxyt by 7.9e-7, just under the 1e-6 tolerance. 5.e-4 moves it by 7.9e-6.
+wqsurf       = 5.e-4
+thls         = 292.
+thl_top      = 289.
+qt_top       = 0.004
+qts          = 0.006
+z0           = 0.01
+z0h          = 0.000067
+/
+
+&WALLS
+lbottom      = .true.
+/
+
+&SCALARS
+! One scalar so the svp nudging branch is exercised. No scalar source: this
+! case is about the nudging tendency, and enabling lscasrc would additionally
+! require the scalarsourcep input fixture.
+nsv          = 1
+/
+
+&INPS
+zsize        = 8
+u0           = 2
+thl0         = 288.
+qt0          = 0.005
+dpdx         = 0.0001
+/

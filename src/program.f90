@@ -43,7 +43,7 @@ program uDALES
                                 TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE,TEST_IBM_WALLFUN, &
                                 TEST_PERIODIC_EBCORR,TEST_MASSCORR,TEST_IBMNORM,TEST_EB, &
                                 TEST_VEGETATION,TEST_CHECKSIM,TEST_DRIVER_PLANES, &
-                                TEST_THERMODYNAMICS,TEST_TSTEP
+                                TEST_THERMODYNAMICS,TEST_TSTEP,TEST_TIMEDEP
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -78,11 +78,11 @@ program uDALES
   use modfielddump,    only : fielddump_will_sample
   use modstatsdump,    only : statsdump_will_sample
 #endif
-  use modtimedep,      only : inittimedep,timedep
+  use modtimedep,      only : inittimedep,timedep_step
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge,tests_ibm_wallfun, &
                             tests_periodic_ebcorr,tests_masscorr,tests_ibmnorm,tests_eb, &
                             tests_vegetation,tests_checksim,tests_driver_planes, &
-                            tests_thermodynamics,tests_tstep
+                            tests_thermodynamics,tests_tstep,tests_timedep
   implicit none
 
   real    :: stime
@@ -189,7 +189,7 @@ program uDALES
     call tstep_update
     call print_time('tstep_update')
 
-    call timedep
+    call timedep_step
     call print_time('timedep')
 
 !-----------------------------------------------------
@@ -419,6 +419,8 @@ contains
         test_failed = .not. tests_thermodynamics()
       case (TEST_TSTEP)
         test_failed = .not. tests_tstep()
+      case (TEST_TIMEDEP)
+        test_failed = .not. tests_timedep()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

@@ -313,7 +313,8 @@ module modtstep
                                  e120_d, e12m_d, e12p_d, &
                                  thlp_d, thlm_d, thl0_d, thl0c_d, &
                                  qtp_d, qtm_d, qt0_d, &
-                                 svp_d, svm_d, sv0_d, dpdxl_d
+                                 svp_d, svm_d, sv0_d, dpdxl_d, &
+                                 resetTendenciesDevice
 #else
      use modfields,       only : up, vp, wp, um, vm, wm, u0, v0, w0, &
                                  e120, e12m, e12p, &
@@ -482,7 +483,18 @@ module modtstep
       end if
 
 
-#if !defined(_GPU)
+      ! The stage that is finishing empties the accumulators for the one that
+      ! follows: advection and everything down to poisson add into these. Both
+      ! implementations do it here, which they did not before the device one
+      ! was split out of updateDevice - that ran at the top of the next stage,
+      ! the same instant in the sequence and a different place to look.
+      !
+      ! The device list carries thlpc_d and the host list does not. See
+      ! resetTendenciesDevice; the host equivalent is the thlpc = 0. that
+      ! initfields does once, at allocation.
+#if defined(_GPU)
+      call resetTendenciesDevice
+#else
       up=0.
       vp=0.
       wp=0.
