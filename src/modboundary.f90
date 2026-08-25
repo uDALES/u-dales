@@ -490,11 +490,6 @@ contains
    !! planes are on the device first and the host copies are fetched with them
    !! already in place.
    !!
-   !! That reordering is what makes the invalidateHostFields call at the end
-   !! load-bearing: fielddump and statsdump have pulled their fields down
-   !! before this point, and those copies stop matching the device the moment
-   !! the kernels below run.
-   !!
    !! uouttot and vouttot stay on the host. They reduce u0av and v0av, which
    !! thermodynamics produces on the host anyway, and they are two scalars
    !! over ktot levels - there is nothing here for a kernel to do.
@@ -514,7 +509,7 @@ contains
                                  rk3step, lchunkread
       use modfields,      only : u0av, v0av, uouttot, vouttot
       use modsubgriddata, only : loneeqn
-      use modcuda,        only : invalidateHostFields, updateDriverPlanesDevice
+      use modcuda,        only : updateDriverPlanesDevice
       use moddriver,      only : drivergen, driverchunkread
       use modinletdata,   only : ubulk, vbulk
       implicit none
@@ -742,11 +737,6 @@ contains
        if ((BCyq .ne. BCyq_periodic) .and. lmoist ) call yqo_convective_device
        if ((BCys .ne. BCys_periodic) .and. nsv > 0) call yso_convective_device
      end if
-
-     ! Everything the host holds of these fields is now one boundary condition
-     ! behind the device. Nothing downstream may skip a transfer on the grounds
-     ! that it already has the field.
-     call invalidateHostFields
 
    end subroutine boundary_device
 #endif

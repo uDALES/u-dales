@@ -162,21 +162,16 @@ module modcuda
                          F_QL0 = 23, F_QL0H = 24, &
                          F_COUNT = 24
    logical :: pulled(F_COUNT) = .false.
-   ! Names for the two assertions below, in id order. Kept beside the
-   ! parameters rather than spelled out at each call site, so that a field
-   ! added to one list cannot be reported under another one's name.
-   character(len=8), parameter :: pulled_name(F_COUNT) = [ character(len=8) :: &
-      'u0', 'v0', 'w0', 'um', 'vm', 'wm', 'pres0', 'thl0', 'thlm', 'thl0c', &
-      'qt0', 'qtm', 'sv0', 'svm', 'e120', 'e12m', 'ekm', 'ekh', &
-      'tau_x', 'tau_y', 'tau_z', 'thl_flux', 'ql0', 'ql0h' ]
 #if defined(UDALES_DEBUG)
-   ! The bitmap invariant only holds inside the time loop. Initialisation and
-   ! the device self-tests reach the pull routines with nothing cleared, quite
-   ! legitimately, so program.f90 arms the check once the loop is about to run.
-   ! It was called the round-trip check while updateDevice uploaded the host
-   ! copies back and there was a round trip to check; what it guards now is
-   ! the one-way post-boundary handover.
-   logical :: lcheck_handover = .false.
+   ! Neither assertion below means anything before the time loop starts.
+   ! Initialisation and the device self-tests reach the pull routines with the
+   ! bitmap uncleared and with host and device deliberately out of step - the
+   ! self-tests poison one side and compare - so both checks stay inert until
+   ! program.f90 arms them, which it does once the loop is about to run.
+   !
+   ! The asserts test this themselves rather than their call sites testing it,
+   ! so a routine reached from a self-test cannot fire one by accident.
+   logical :: lchecks_armed = .false.
 #endif
 
    contains
@@ -758,76 +753,20 @@ module modcuda
       end subroutine updateFacIntegralsHost
 
 #if defined(UDALES_DEBUG)
-      !> Nothing may still be marked current once boundary has run.
-      !!
-      !! The one reader left below boundary is writerestartfiles, and it
-      !! fetches through the pull routines, which skip a field already marked
-      !! current - which fielddump and statsdump mark several of them, earlier
-      !! in the same step. What makes that safe is that boundary_device clears
-      !! the bitmap after it writes, so by the time the restart is written
-      !! nothing is marked and every transfer in it actually happens.
-      !!
-      !! That is a dependency on one line at the end of a routine in another
-      !! module, and it is invisible from here. Delete it and a restart written
-      !! on a step a dump also sampled records velocities with no boundary
-      !! condition in them, silently, on the one step in a thousand where the
-      !! two schedules coincide - and on no step at all in the parity matrix,
-      !! which does not compare restart files. This names it instead.
-      !!
-      !! Called from the time loop rather than from inside the restart writer,
-      !! so that it runs on every step: the invariant belongs to the boundary
-      !! clear, and asserting it only where its beneficiary happens to run
-      !! would check it once in a thousand steps. It used to be the first line
-      !! of the post-boundary handover, which fetched what the host
-      !! tstep_update read; that handover is gone, because tstep_update reduces
-      !! on the device now, and this outlived it.
-      subroutine assertNothingPulled
-         use modmpi, only : myid
+      !> Arm the host/device assertions. Called once, as the loop starts.
+      subroutine enableDeviceHostChecks
          implicit none
-         integer :: id
-
-         if (.not. lcheck_handover) return
-
-         do id = 1, F_COUNT
-            if (pulled(id)) then
-               write(*,'(3A,I0,A)') 'Host field ', trim(pulled_name(id)), &
-                    ' is still marked current on rank ', myid, &
-                    ' where the post-boundary handover starts.'
-               write(*,'(A)') 'The device has written past the host since it was &
-                    &fetched, so the pull that follows will skip it and updateDevice &
-                    &will upload a stale copy. invalidateHostFields is what clears this.'
-               error stop 1
-            end if
-         end do
-
-      end subroutine assertNothingPulled
-
-      !> Arm the post-boundary handover check. Called once, as the loop starts.
-      subroutine enableHandoverCheck
-         implicit none
-         lcheck_handover = .true.
-      end subroutine enableHandoverCheck
+         lchecks_armed = .true.
+      end subroutine enableDeviceHostChecks
 #endif
 
-      !> Send the host's share of the slab averages back up. That is all.
+      !> Send the six slab averages the host reduces back up to the device.
       !!
-      !! The name is older than what the routine does. It used to upload
-      !! sixteen prognostic fields per stage, because the host held the
-      !! authoritative copy of anything a host routine wrote; each port took
-      !! one more away, and with timedep's profiles gone nothing here uploads
-      !! a field that any routine in the loop produces. The tendency resets
-      !! went to resetTendenciesDevice, where the host does the same work.
-      !!
-      !! What is left is the six slab averages - u0av, v0av, thl0av, qt0av,
-      !! sv0av and thvh - plus the pull bitmap and a facet copy its own dirty
-      !! flag suppresses. Those six are the only host-to-device transfers left
-      !! in the time loop, and they are not there because something is
-      !! unported: avexy_ibm_device reduces over the domain on the device, but
-      !! the sum across ranks in the middle of it is an MPI_ALLREDUCE, and the
-      !! host is where that happens - so the finished column exists on the host
-      !! and has to go back up. One column of ke-kb+2 doubles each; twelve
-      !! kilobytes a stage at 256^3. Removing them means reducing across ranks
-      !! from device memory, not porting another routine.
+      !! No prognostic field crosses here any more. These six are the only
+      !! host-to-device transfers left in the time loop, and not because
+      !! something is unported: avexy_ibm_device reduces over the domain on the
+      !! device, but the rank sum in the middle of it is an MPI_ALLREDUCE, so
+      !! the finished column only ever exists on the host.
       subroutine updateDevice
          implicit none
 
@@ -841,30 +780,7 @@ module modcuda
          u0av_d = u0av
          v0av_d = v0av
 
-         ! The inlet profiles are not here any more. They are seeded once by
-         ! initCUDA and written after that only by timedepnudge_device, on the
-         ! device, so there is nothing left for this routine to upload: the
-         ! host copies stop advancing at initialisation and nothing reads them.
-         !
-         ! The driver inlet planes are deliberately not here either. drivergen
-         ! is the only thing that writes them, and every call to it is paired
-         ! with an upload: the ones in readinitfiles by the fill inside
-         ! allocDriverPlanesDevice, which initCUDA runs afterwards, and the
-         ! one in boundary_device by the updateDriverPlanesDevice beside it.
-         ! So u0driver_d is already current when bcpup reads it, on the first
-         ! stage of the first step as much as on any later one.
-         !
-         ! Re-uploading u0driver_d alone here would cost nothing, but it would
-         ! put back the thing that made this hard to read the first time: with
-         ! u0 arriving by a second route and the other eleven planes not, a
-         ! missing fill showed up as a wrong inlet in v, w, thl and qt while u
-         ! looked right. Twelve planes wrong together is a legible failure.
-
          if (ltempeq) then
-            ! thvh and thl0av come from the column diagfld rebuilds at the end
-            ! of the previous stage; thv0h and dthvdz used to come from here
-            ! too and do not any more, because calthv writes them straight onto
-            ! the device beside these.
             thvh_d     = thvh
             thl0av_d   = thl0av
          end if
@@ -1121,15 +1037,6 @@ module modcuda
       end subroutine pull_thl_flux
 
       !> Bring down what fielddump is about to read.
-      !!
-      !! Called only on the steps fielddump writes, so the fields that exist
-      !! for it alone - the wall stresses and the heat flux - cross the bus a
-      !! handful of times a run rather than on every stage.
-      !!
-      !! u0, v0 and w0 are unconditional because fielddump forms div from them
-      !! before it looks at fieldvars at all. Everything else is asked for by
-      !! name, through fielddump's own predicate, so a field cannot be pulled
-      !! under one condition and read under another.
       subroutine updateHostForFielddump
          implicit none
 
@@ -1154,20 +1061,13 @@ module modcuda
          if (fielddump_wants('tz')) call pull_tau_z
          if (ltempeq .and. fielddump_wants('hf')) call pull_thl_flux
 
+#if defined(UDALES_DEBUG)
+         call assertHostMatchesDevice('fielddump')
+#endif
+
       end subroutine updateHostForFielddump
 
       !> Bring down what statsdump is about to read.
-      !!
-      !! Called only on the steps statsdump samples. statsdump reads the
-      !! previous-stage fields, not the current ones - um rather than u0 - plus
-      !! both eddy diffusivities and the pressure. It does not read u0, v0 or
-      !! w0: the only statistics that would are in tkestats, which is reached
-      !! from genstats, whose one call site is commented out.
-      !!
-      !! The tree diagnostics statsdump also reads are handed over by
-      !! vegetation's own updateVegDiagHost, called beside this one under the
-      !! same predicate. They cannot be folded in here, because vegetation
-      !! reaches modcuda and the reverse would be a cycle.
       subroutine updateHostForStatsdump
          implicit none
 
@@ -1182,27 +1082,17 @@ module modcuda
          if (lmoist)  call pull_qtm
          if (nsv > 0) call pull_svm
 
+#if defined(UDALES_DEBUG)
+         call assertHostMatchesDevice('statsdump')
+#endif
+
       end subroutine updateHostForStatsdump
 
       !> Bring down what writerestartfiles is about to write.
-      !!
-      !! Called from inside that routine's own guard rather than from the time
-      !! loop, so the restart schedule is evaluated once. Reproducing it here
-      !! would mean repeating a filesystem inquire and an MPI broadcast every
-      !! step to answer a question the writer already asks.
-      !!
-      !! By that point boundary has applied the top and lateral planes on the
-      !! device and thermodynamics has derived from the result, which is what
-      !! belongs in a restart.
-      !!
-      !! Every line below is load-bearing. It did not use to be: the prognostic
-      !! fields were fetched unconditionally on every stage for the host
-      !! thermodynamics, so listing them here was insurance for a transfer that
-      !! had already happened. Nothing brings them down unconditionally any
-      !! more, so on a step no dump sampled this is the only thing standing
-      !! between the restart file and the values the run started from.
       subroutine updateHostForRestart
          implicit none
+
+         call invalidateHostFieldPulls
 
          call pull_u0
          call pull_v0
@@ -1218,6 +1108,10 @@ module modcuda
          if (lmoist)  call pull_qt0
          if (nsv > 0) call pull_sv0
          if (loneeqn) call pull_e120
+
+#if defined(UDALES_DEBUG)
+         call assertHostMatchesDevice('restart')
+#endif
 
       end subroutine updateHostForRestart
 
@@ -1506,10 +1400,10 @@ module modcuda
       !! and no error message as the failure mode. The blanket clear is the
       !! statement that the device has moved on, which is what actually
       !! happened.
-      subroutine invalidateHostFields
+      subroutine invalidateHostFieldPulls
          implicit none
          pulled = .false.
-      end subroutine invalidateHostFields
+      end subroutine invalidateHostFieldPulls
 
 #if defined(UDALES_DEBUG)
       !> Abort if a host field a reader is about to use has drifted from the
@@ -1542,6 +1436,8 @@ module modcuda
 
          character(len=*), intent(in) :: label
          integer :: n
+
+         if (.not. lchecks_armed) return
 
          select case (label)
 
@@ -1588,6 +1484,30 @@ module modcuda
                   call check3(label, 'svm', svm(:,:,:,n), svm_d(:,:,:,n))
                end do
             end if
+
+         case ('restart')
+            ! Exactly what updateHostForRestart fetches, in the same order and
+            ! under the same guards. The two lists are the same list written
+            ! twice, which is the one thing wrong with this check - a field
+            ! added to the pull without being added here is not caught.
+            call check3(label, 'u0', u0, u0_d)
+            call check3(label, 'v0', v0, v0_d)
+            call check3(label, 'w0', w0, w0_d)
+            call check3(label, 'pres0', pres0, pres0_d)
+            call check3(label, 'ekm', ekm, ekm_d)
+
+            if (ltempeq) then
+               call check3(label, 'thl0', thl0, thl0_d)
+               call check3(label, 'ql0',  ql0,  ql0_d)
+               call check3(label, 'ql0h', ql0h, ql0h_d)
+            end if
+            if (lmoist) call check3(label, 'qt0', qt0, qt0_d)
+            if (nsv > 0) then
+               do n = 1, nsv
+                  call check3(label, 'sv0', sv0(:,:,:,n), sv0_d(:,:,:,n))
+               end do
+            end if
+            if (loneeqn) call check3(label, 'e120', e120, e120_d)
 
          case default
             write(*,'(3A)') 'assertHostMatchesDevice: no field list for reader ', trim(label), '.'

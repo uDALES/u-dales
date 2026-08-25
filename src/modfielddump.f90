@@ -32,10 +32,7 @@ module modfielddump
   use modfields, only : ncname, ncname1, ncname2
   implicit none
   private
-  PUBLIC :: initfielddump, fielddump, exitfielddump
-#if defined(_GPU)
-  PUBLIC :: fielddump_will_sample
-#endif
+  PUBLIC :: initfielddump, fielddump_will_sample, fielddump, exitfielddump
   save
   !NetCDF variables
   integer :: ncid,nrec = 0
@@ -381,7 +378,6 @@ contains
 
   end subroutine initfielddump
 
-#if defined(_GPU)
   !> Will the next call to fielddump write a record?
   logical function fielddump_will_sample()
     use modglobal, only : timee, tnextfielddump, lfielddump, rk3step
@@ -395,11 +391,10 @@ contains
 
     fielddump_will_sample = .true.
   end function fielddump_will_sample
-#endif
 
   !> Do fielddump. Collect data to truncated (2 byte) integers, and write them to file
   subroutine fielddump
-    use modfields, only : u0,v0,w0,div,dudx,dvdy,dwdz  !ILS13 21.04.2015 changed to u0 from um  etc
+    use modfields, only : u0,v0,w0,div !,dudx,dvdy,dwdz
     use modglobal, only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,timee,&
                           tfielddump, tnextfielddump, lfielddump, rk3step,dyi,dxfi,dzhi
     !use modmpi,    only : myid,cmyid
@@ -410,18 +405,15 @@ contains
     real, allocatable :: vars(:,:,:,:)
     integer i,j,k,n
 
-    if (.not. ((timee>=tnextfielddump) .or. (rk3step==0))) return
-
-    if (.not. lfielddump) return
-
-    if (rk3step/=3 .and. rk3step/=0) return
+    if (.not. fielddump_will_sample()) return
 
     do k=kb,ke
       do j=jb,je
         do i=ib,ie
-          dudx(i,j,k) = (u0(i+1,j,k) - u0(i,j,k) )*dxfi(i)
-          dvdy(i,j,k) = (v0(i,j+1,k) - v0(i,j,k) )*dyi
-          dwdz(i,j,k) = (w0(i,j,k+1) - w0(i,j,k) )*dzhi(k)
+          !! need to be uncommented when dudx, dvdy, dwdz are added to fieldvars
+          ! dudx(i,j,k) = (u0(i+1,j,k) - u0(i,j,k) )*dxfi(i)
+          ! dvdy(i,j,k) = (v0(i,j+1,k) - v0(i,j,k) )*dyi
+          ! dwdz(i,j,k) = (w0(i,j,k+1) - w0(i,j,k) )*dzhi(k)
           div(i,j,k) = (u0(i+1,j,k) - u0(i,j,k) )*dxfi(i) + &
             (v0(i,j+1,k) - v0(i,j,k) )*dyi + &
             (w0(i,j,k+1) - w0(i,j,k) )*dzhi(k)

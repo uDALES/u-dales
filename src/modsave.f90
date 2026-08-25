@@ -81,12 +81,6 @@ contains
       tnextrestart = tnextrestart+trestart
 
 #if defined(_GPU)
-      ! Inside the guard, so the restart schedule is evaluated once: asking the
-      ! same question from the time loop would mean repeating the inquire and
-      ! the broadcast above on every step. Everything the loop's other readers
-      ! already brought down this step is left alone - including the boundary
-      ! conditions boundary has since written on the host, which is what
-      ! belongs in a restart file.
       call updateHostForRestart
 #endif
 

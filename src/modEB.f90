@@ -462,13 +462,33 @@ contains
                        fachfsum, facefsum, lfacetprops_dirty
     use modmpi, only: myid, comm3d, mpierr, MY_REAL, MPI_SUM
     use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
+#if defined(_GPU)
+    use modcuda,    only :integrateFacFluxDevice, updateFacIntegralsHost
+#endif
     real  :: ca = 0., cb = 0.
     real  :: ab = 0.
     integer :: n, m,i,j
 
     if (.not. (lEB)) return
+
+#if defined(_GPU)
+    ! The facet flux accumulators the wall functions filled on the device.
+    ! Integrating them costs no traffic at all: the time integral is per-rank,
+    ! so it accumulates on the device across the hundreds of steps between
+    ! energy balances and only the total ever comes down.
+    call integrateFacFluxDevice
+
+    ! And that total comes down only on the steps where the balance fires.
+    ! Both this and EB's own guard read eb_will_run, so they cannot drift: if
+    ! the copy were skipped on a firing step the balance would silently run on
+    ! zero facet heat flux, on the GPU and nowhere else, which is what the
+    ! facEB comparison in the surface-energy-balance parity case catches.
+    if (eb_will_run()) call updateFacIntegralsHost
+#endif
+
     !calculate latent heat flux from vegetation and soil
     call intqH
+
     !calculate energy balance, update facet temperature and soil moisture
     if (eb_will_run()) then
 

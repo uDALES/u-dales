@@ -24,6 +24,7 @@
       "timedep-nudging",
       "temperature-kappa",
       "one-equation-sgs",
+      "restart-handover",
       "fixed-surface-fluxes",
       "stability-wall",
       "active-forcing",
@@ -59,6 +60,7 @@
       "timedep-nudging",
       "temperature-kappa",
       "one-equation-sgs",
+      "restart-handover",
       "fixed-surface-fluxes",
       "stability-wall",
       "active-forcing",
@@ -168,6 +170,22 @@
       "required_outputs": ["fielddump", "tdump", "xytdump"],
       "coverage": ["one-equation-SGS", "TKE-advection", "TKE-sources", "TKE-diffusion", "TKE-integration"],
       "namelist_assertions": {"loneeqn": true, "lvreman": false, "iadv_tke": 2},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "restart-handover",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.restart-handover",
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103",
+        "tests/integration/gpu/fixtures/scalar.inp.103",
+        "tests/integration/gpu/fixtures/scalar_sources/scalarsourcep.inp.1.103"
+      ],
+      "nprocs": 1,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["restart-pull-handover", "restart-during-run", "one-equation-SGS", "thermodynamics", "moisture"],
+      "namelist_assertions": {"trestart": 0.5, "runtime": 2.0, "lfielddump": true, "tfielddump": 1.0, "loneeqn": true, "ltempeq": true, "lmoist": true, "nsv": 1},
       "timeout_seconds": 180
     },
     {

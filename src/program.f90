@@ -30,11 +30,9 @@ program uDALES
   use cudafor
   use modcuda,           only : initCUDA, updateDevice, &
                                 updateHostForFielddump, updateHostForStatsdump, &
-                                integrateFacFluxDevice, &
-                                updateFacIntegralsHost, checkCUDA, exitCUDA
+                                exitCUDA
 #if defined(UDALES_DEBUG)
-  use modcuda,           only : assertHostMatchesDevice, enableHandoverCheck, &
-                                assertNothingPulled
+  use modcuda,           only : enableDeviceHostChecks
   use tests_cuda,        only : run_cuda_selftests_if_requested
 #endif
 #endif
@@ -61,7 +59,7 @@ program uDALES
   ! use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
   use initfac,           only : readfacetfiles
-  use modEB,             only : initEB,EB,eb_will_run
+  use modEB,             only : initEB,EB
   use moddriver,         only : initdriver
   use modadvection,      only : advection
   use modtstep,          only : inittstep,tstep_update,tstep_integrate
@@ -101,8 +99,6 @@ program uDALES
 
   call initglobal
 
-  ! The grid is all it needs, and it is wanted before the runmode tests so that
-  ! a test driving tstep_limits sees the cache the solver uses.
   call inittstep
 
   ! Execute tests if needed
@@ -163,28 +159,26 @@ program uDALES
   call initCUDA
 #if defined(UDALES_DEBUG)
   call run_cuda_selftests_if_requested
+  call enableDeviceHostChecks
 #endif
 #endif
 
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
-#if defined(_GPU) && defined(UDALES_DEBUG)
-  ! From here on, the post-boundary handover has to find the pull bitmap
-  ! clear. Armed now rather than at initialisation, because the device
-  ! self-tests reach the pull routines with nothing cleared.
-  call enableHandoverCheck
-#endif
-
   call starttimer
   do while ((timeleft>0) .or. (rk3step < 3))
+
+    stime = MPI_Wtime()
 
     ! Any routine added to this loop must have its GPU data transfers addressed:
     ! nothing in it may read a host field. Nothing crosses the bus here for
     ! correctness any more - only for output, on the steps a dump or a restart
     ! asks, and each of those has its own updateHostFor... routine.
-
-    stime = MPI_Wtime()
+#if defined(_GPU)
+    call updateDevice
+#endif
+    call print_time('updateDevice')
 
     call tstep_update
     call print_time('tstep_update')
@@ -195,10 +189,6 @@ program uDALES
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
-#if defined(_GPU)
-    call updateDevice
-#endif
-    call print_time('updateDevice')
 
     call advection ! includes predicted pressure gradient term
     call print_time('advection')
@@ -243,22 +233,6 @@ program uDALES
 
     call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
     call print_time('ibmnorm')
-
-#if defined(_GPU)
-    ! The facet flux accumulators the wall functions filled on the device.
-    ! Integrating them costs no traffic at all: the time integral is per-rank,
-    ! so it accumulates on the device across the hundreds of steps between
-    ! energy balances and only the total ever comes down.
-    call integrateFacFluxDevice
-
-    ! And that total comes down only on the steps where the balance fires.
-    ! Both this and EB's own guard read eb_will_run, so they cannot drift: if
-    ! the copy were skipped on a firing step the balance would silently run on
-    ! zero facet heat flux, on the GPU and nowhere else, which is what the
-    ! facEB comparison in the surface-energy-balance parity case catches.
-    if (eb_will_run()) call updateFacIntegralsHost
-#endif
-    call print_time('Additional EB traffic')
 
     call EB
     call print_time('EB')
@@ -305,34 +279,22 @@ program uDALES
 #endif
     call print_time('updateHostForFielddump')
 
-#if defined(_GPU) && defined(UDALES_DEBUG)
-    if (fielddump_will_sample()) call assertHostMatchesDevice('fielddump')
-#endif
-
     call fielddump
     call print_time('fielddump')
 
 #if defined(_GPU)
     if (statsdump_will_sample()) then
-       call updateHostForStatsdump
        call updateVegDiagHost
+       call updateHostForStatsdump
     end if
 #endif
     call print_time('updateHostForStatsdump')
-
-#if defined(_GPU) && defined(UDALES_DEBUG)
-    if (statsdump_will_sample()) call assertHostMatchesDevice('statsdump')
-#endif
 
     call statsdump
     call print_time('statsdump')
 
     call boundary_conditions
     call print_time('boundary_conditions')
-
-#if defined(_GPU) && defined(UDALES_DEBUG)
-    call assertNothingPulled
-#endif
 
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
@@ -343,9 +305,9 @@ program uDALES
 !-----------------------------------------------------
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
-
     call writerestartfiles
     call print_time('writerestartfiles')
+
   end do
 !-------------------------------------------------------
 !             END OF TIME LOOP
@@ -370,6 +332,9 @@ program uDALES
 
 contains
   subroutine print_time(routine_name)
+#if defined(_GPU)
+    use modcuda, only : checkCUDA
+#endif
     implicit none
     character(len=*), intent(in) :: routine_name
 #if defined(_GPU)

@@ -1,0 +1,97 @@
+&RUN
+iexpnr       = 103
+runtime      = 2.0
+! The point of this variant. Every other case in the matrix leaves trestart
+! above its own runtime, so writerestartfiles never fires and
+! updateHostForRestart - twelve pulls and the assertion that guards them - has
+! never executed in any test on any device.
+!
+! 0.5 against runtime 2.0 gives four restarts, and tfielddump = 1.0 puts two of
+! them on steps a dump also samples. That coincidence is the whole hazard: the
+! dump marks fields as current, boundary_device then writes the device copies,
+! and a restart that trusted those marks would record velocities with no
+! boundary condition in them. It is also why it has stayed hidden - at the
+! usual trestart it is one step in a thousand, and compare_outputs does not
+! compare restart files, so only the debug assertion can see it.
+trestart     = 0.5
+dtmax        = 0.25
+ladaptive    = .false.
+lrandomize   = .false.
+libm         = .false.
+nprocx       = 1
+nprocy       = 1
+/
+
+&OUTPUT
+lfielddump   = .true.
+tfielddump   = 1.0
+fieldvars    = 'u0,v0,w0,p0,th,qt,s1'
+ltdump       = .true.
+lxytdump     = .true.
+tstatstart   = 0.0
+tstatsdump   = 1.0
+tsample      = 0.25
+/
+
+&DOMAIN
+itot         = 8
+jtot         = 8
+ktot         = 8
+xlen         = 8
+ylen         = 8
+/
+
+&PHYSICS
+lbuoyancy    = .true.
+ltempeq      = .true.
+lmoist       = .true.
+ps           = 101500.
+igrw_damp    = 0
+/
+
+&DYNAMICS
+ipoiss       = 0
+iadv_thl     = 2
+iadv_tke     = 2
+iadv_qt      = 2
+iadv_sv      = 7
+/
+
+&NAMSUBGRID
+! One-equation rather than Vreman, so e120 is allocated and the restart pull
+! list is complete: u0, v0, w0, pres0, ekm, thl0, ql0, ql0h, qt0, sv0 and e120
+! are all live in this one case. Vreman is covered by every other 103 variant.
+lvreman      = .false.
+lsmagorinsky = .false.
+loneeqn      = .true.
+/
+
+&BC
+BCbotT       = 2
+wtsurf       = 0.
+wqsurf       = 0.
+thls         = 292.
+thl_top      = 289.
+qt_top       = 0.004
+qts          = 0.006
+z0           = 0.01
+z0h          = 0.000067
+/
+
+&WALLS
+lbottom      = .true.
+/
+
+&SCALARS
+nsv          = 1
+lscasrc      = .true.
+nscasrc      = 1
+/
+
+&INPS
+zsize        = 8
+u0           = 2
+thl0         = 288.
+qt0          = 0.005
+dpdx         = 0.0001
+/
