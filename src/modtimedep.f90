@@ -249,13 +249,18 @@ contains
     end if !ltimedeplw
 
     if (ltimedepsw) then
-      allocate(timesw(1:ntimedepsw))
-      allocate(netswt(1:nfcts, 1:ntimedepsw))
-
-      timesw = 0.
-      netswt = 0.
-
+      ! The shortwave history netswt(nfcts, ntimedepsw) is only ever used by rank 0:
+      ! timedepsw (the time interpolation) returns immediately on all other ranks and
+      ! the interpolated netsw feeds the facet energy balance, which rank 0 evaluates
+      ! alone (modEB) before broadcasting the facet temperatures. Holding the table on
+      ! every rank costs nfcts*ntimedepsw*8 bytes per rank (1 GB for a city-scale case
+      ! with a diurnal forcing) for no purpose, so it is read and kept on rank 0 only.
       if (myid == 0) then
+        allocate(timesw(1:ntimedepsw))
+        allocate(netswt(1:nfcts, 1:ntimedepsw))
+        timesw = 0.
+        netswt = 0.
+
         ! Read shortwave
         open (ifinput,file='timedepsw.inp.'//cexpnr)
         read (ifinput,'(a80)') chmess ! first line is a description of the file
@@ -268,9 +273,6 @@ contains
         !write(*,*) "read timedepsw"
 
       end if !myid==0
-
-      call MPI_BCAST(timesw, ntimedepsw, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(netswt, ntimedepsw*nfcts, MY_REAL, 0, comm3d, mpierr)
 
     end if ! timedepsw
 
