@@ -396,7 +396,7 @@ contains
   subroutine fielddump
     use modfields, only : u0,v0,w0,div !,dudx,dvdy,dwdz
     use modglobal, only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,timee,&
-                          tfielddump, tnextfielddump, lfielddump, rk3step,dyi,dxfi,dzhi
+                          tfielddump, tnextfielddump, rk3step,dyi,dxfi,dzhi
     !use modmpi,    only : myid,cmyid
     !use modsubgriddata, only : ekm,sbshr
     use modstat_nc, only : writestat_nc

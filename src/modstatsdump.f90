@@ -667,7 +667,7 @@ contains
                                umt,vmt,sv1t,sv2t,sv3t,sv4t,sv1tk,sv2tk,sv3tk,sv4tk,wsv1tk,wsv2tk,wsv3tk,wsv4tk,&
                                sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt,PSSt,& !,sv1max,sv2max,sv3max,sv4max
                                ncstattr,tr_ut,tr_vt,tr_wt,tr_thlt,tr_qtt,tr_qtRt,tr_qtAt,tr_sv1t,PSSt,tr_sv2t,tr_omegat
-  use modglobal,        only : ib,ie,ih,jb,je,dyi,jh,ke,kb,kh,rk3step,&
+  use modglobal,        only : ib,ie,jb,je,dyi,ke,kb,kh,rk3step,&
                                timee,tsample,tstatsdump,tstatstart,imax,jmax,dzf,&
                                ltempeq,dxf,dzf,dzh2i,&
                                lkslicedump,lislicedump,ljslicedump,lchem,dzhi,dzfi,dzhiq,dxhi,lmoist,nsv,&

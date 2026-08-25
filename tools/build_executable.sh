@@ -60,21 +60,6 @@ esac
 
 if [ $system == "icl" ]
 then
-    # NOTE (2026-07): The line below no longer loads reliably on CX3. It mixes
-    # three toolchain years (intel/2025a, netCDF built with iimpi-2023a, FFTW
-    # built with intel-2021a). From a pristine shell Lmod silently collapses the
-    # whole stack down to the 2021a toolchain (FFTW-intel-2021a pins it), so you
-    # actually get ifort 2021.2 and intel/2025a is a no-op. But if the session
-    # already has the 2025a toolchain loaded, Lmod cannot downgrade
-    # intel-compilers 2025->2021 in one transaction and aborts with
-    # "intel/2025a cannot be loaded", leaving nothing loaded. Replaced with a
-    # self-consistent 2021a Intel stack (the version it resolved to anyway),
-    # which loads regardless of prior session state.
-    # NOTE (2026-07): CMake and git must use GCCcore-10.3.0 to match intel/2021a.
-    # Using GCCcore-13.3.0 variants (CMake/3.29.3, git/2.45.1) causes Lmod to
-    # swap GCCcore-10.3.0 -> 13.3.0, which then prevents cURL/7.76.0-GCCcore-10.3.0
-    # and zlib/1.2.11-GCCcore-10.3.0 (deps of netCDF/HDF5) from loading, producing
-    # "dependent module(s) are not currently loaded" warnings.
     # module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
     module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a CMake/3.20.1-GCCcore-10.3.0 git/2.32.0-GCCcore-10.3.0-nodocs
     FC=mpiifort
@@ -107,7 +92,11 @@ then
 
 elif [ $system == "common" ]
 then
-    FC=
+    if [ -x /usr/bin/mpif90 ]; then
+        FC=/usr/bin/mpif90
+    else
+        FC=
+    fi
     NETCDF_DIR=
     NETCDF_FORTRAN_DIR=
 
@@ -152,6 +141,33 @@ fi
 
 if [ -n "$FC" ]; then
     cmake_args+=("-DCMAKE_Fortran_COMPILER=$FC")
+fi
+
+# A build directory remembers the compiler it was configured with. Hand it a
+# different one and cmake deletes the cache and re-runs configure by itself -
+# and CMAKE_BUILD_TYPE goes with it, because a command-line -D is a write into
+# that cache rather than a standing instruction. The re-run does not re-read the
+# command line, so it takes the "No build type selected, default to Release"
+# branch in CMakeLists.txt, and a Release binary appears in a directory named
+# debug with one STATUS line to say so.
+#
+# Notice the change here, where it can still be acted on, and clear the cache
+# ourselves. cmake then configures once, from this command line, with the build
+# type that was actually asked for. CMakeFiles goes too: its objects were built
+# by the old compiler.
+cmake_cache="$path_to_build_dir/CMakeCache.txt"
+if [ -n "$FC" ] && [ -f "$cmake_cache" ]; then
+    # The cache records this as STRING when it arrived by -D, FILEPATH when
+    # cmake found it itself and UNINITIALIZED when -D carried no type, so the
+    # pattern must not anchor on any one of them.
+    cached_fc="$(sed -n 's/^CMAKE_Fortran_COMPILER:[^=]*=//p' "$cmake_cache")"
+    if [ -n "$cached_fc" ] && [ "$cached_fc" != "$FC" ]; then
+        echo "Fortran compiler changed for this build directory:"
+        echo "  cached:    $cached_fc"
+        echo "  requested: $FC"
+        echo "Clearing the cmake cache so the build type survives the reconfigure."
+        rm -rf "$cmake_cache" "$path_to_build_dir/CMakeFiles"
+    fi
 fi
 
 cmake "${cmake_args[@]}" "$repo_root" 2>&1 | tee -a "$path_to_build_dir/config.log"

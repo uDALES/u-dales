@@ -45,7 +45,14 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     # `dble(...)` and `1d0` literal software-emulated quad precision that was then
     # truncated straight back to real(8) on assignment.
     set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -fdefault-double-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow -std=f2008 -cpp" CACHE STRING "Fortran flags" FORCE)
-    set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -finit-real=nan -fcheck=all -Wall -Wextra -Wuninitialized -Warray-bounds -Wconversion" CACHE STRING "Fortran debug flags" FORCE)
+    # -Wno-compare-reals: -Wextra flags every REAL equality test, and most of the
+    # ones here are deliberate. tests.f90 asserts that a precomputed value is bit
+    # for bit what it replaced, that an interpolation endpoint is exactly the
+    # table entry, and that a device array was left untouched - all of which are
+    # /= or == on purpose and would be destroyed by a tolerance. Sixty-nine
+    # warnings that must all be ignored teach the reader to ignore the whole
+    # build log, which is what an unused variable then hides in.
+    set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -finit-real=nan -fcheck=all -Wall -Wextra -Wuninitialized -Warray-bounds -Wconversion -Wno-compare-reals" CACHE STRING "Fortran debug flags" FORCE)
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3" CACHE STRING "Fortran release flags" FORCE)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     # FIXME: `-heap-arrays 10` required as using Intel Fortran

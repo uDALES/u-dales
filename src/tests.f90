@@ -921,7 +921,7 @@ contains
     use modglobal, only : runmode, ib, ie, ih, jb, je, jh, kb, ke, kh, &
                           libm, iwallmom, ltempeq, lmoist, lwritefac, iwallmoist, &
                           dx, dy, dzf, dzh, dxdydzfi, dxdydzhi, dx2i, nfcts, xhat, &
-                          zhat, vec0, eps1, totheatflux, totqflux
+                          zhat, totheatflux, totqflux
     use modfields, only : initfields, u0, v0, w0, thl0, qt0, qtp, pres0, up, thlp
     use initfac,   only : faclGR, facqsat, fachurel, facf, facT
     use modsubgrid,     only : initsubgrid
@@ -2378,7 +2378,7 @@ contains
     real, parameter :: interior = 300., constant_field = 7.5
 
     logical :: all_passed
-    integer :: i, j, k, n, nsol, buried
+    integer :: i, j, k, n, buried
     real    :: worst, tol
     type(solid_info_type) :: si
     real, allocatable :: mask_save(:,:,:), thlp_save(:,:,:)
@@ -5537,7 +5537,7 @@ contains
     real, parameter :: spike = 2., dtm = 0.25, poison = 1.e6
 
     logical :: all_passed
-    integer :: i, j, k
+    integer :: k
     real    :: cour, diff, want
     real    :: dxi_save, dyi_save
     real, allocatable :: dzh_save(:), geom_save(:)

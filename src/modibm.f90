@@ -3287,7 +3287,6 @@ module modibm
                            dxdydzfi, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
      use modfields, only : u0, v0, w0, thl0
      use initfac,   only : facT, facnorm, faca
-     use decomp_2d, only : zstart
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
 
      real, intent(in)    :: dir(3)
@@ -3432,7 +3431,7 @@ module modibm
 
 
    subroutine wallfunheat
-     use modglobal, only : ib, ie, jb, je, dxdydzhi, &
+     use modglobal, only : dxdydzhi, &
                            xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca

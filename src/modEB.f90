@@ -457,7 +457,7 @@ contains
   !! modcuda, and lfacetprops_dirty in initfac, which this routine sets.
   subroutine EB
     !calculates the energy balance for every facet
-    use modglobal, only: nfcts, boltz, tEB, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv, timee, dtEB, tnextEB, rk3step, rhoa, cp, lEB, lwriteEBfiles,nfaclyrs
+    use modglobal, only: nfcts, boltz, tEB, BM,CM,DM,EM,FM,GM,HM, inAM, bb,w, dumv, timee, dtEB, tnextEB, rhoa, cp, lEB, lwriteEBfiles,nfaclyrs
     use initfac, only: faclam, faccp, netsw, facem, fachfi, facT, facLWin, faca,facefi,facf,facets,facTdash,facqsat,facwsoil,facf,fachurel,facd, &
                        fachfsum, facefsum, lfacetprops_dirty
     use modmpi, only: myid, comm3d, mpierr, MY_REAL, MPI_SUM
