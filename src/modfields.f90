@@ -857,7 +857,7 @@ contains
     allocate(tfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(qfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(cth(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(wall(ib:ie,jb:je,kb:ke,5))
+    allocate(wall(ib:ie,jb:je,kb:ke,5)); wall = 0   ! written to restart files: initialise so they are reproducible
     momfluxb=0.;tfluxb=0.;qfluxb=0.;cth=0.
     shear=0.
 
