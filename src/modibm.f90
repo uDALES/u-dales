@@ -48,6 +48,12 @@ module modibm
              solid, advecc2nd_corr_conservative, advecc2nd_corr_liberal, &
              fac_tau_raw, fac_htc_raw, fac_cth_raw, fac_pres_raw, fac_pres2_raw
 #endif
+   public :: stress_diag_wanted, hflux_diag_wanted
+#if defined(_GPU) && defined(UDALES_DEBUG)
+   ! For tests_cuda.f90::test_stress_gate, which drives both kernels directly
+   ! to pin that the wanted-flags are honoured inside them.
+   public :: bottom_set_tau_cuda, bottom_update_tau_cuda
+#endif
    public :: bound_info_type, bound_info_u, bound_info_v, bound_info_w, bound_info_c
    public :: solid_info_type, solid_info_u, solid_info_v, solid_info_w, solid_info_c
 #if defined(_GPU)
@@ -3119,6 +3125,42 @@ module modibm
 #endif
 
 
+   !> Does the wall-stress diagnostic have a reader this run?
+   !!
+   !! tau_x, tau_y and tau_z exist for exactly one consumer: fielddump, when
+   !! fieldvars names tx, ty or tz. Nothing else reads them - not statsdump,
+   !! not the restart, not the facet outputs, which accumulate their own
+   !! fac_tau on the sections. Yet building them costs real bandwidth every
+   !! Runge-Kutta stage: bottom snapshots the three tendencies before its wall
+   !! function and diffs them after, and ibmwallfun does the same around each
+   !! momentum direction - about forty full-field passes per stage between
+   !! them, roughly 2 s of a 75 s run at 256^3, spent producing numbers nothing
+   !! reads in a run that does not dump stresses.
+   !!
+   !! So every producer asks this first, on the host and device branches alike
+   !! - gating only one side would make the parity comparison dump a computed
+   !! field against a stale one. Both sides of the guard are exercised
+   !! end to end: fielddump-stress-fields and -partial in the GPU matrix run
+   !! with it true, every other case with it false, and
+   !! tests_cuda.f90::test_stress_gate pins that the kernels honour the flags.
+   !!
+   !! Any of the three components requests all three. They travel through one
+   !! snapshot kernel, and a run that wants tx but not ty is not a case worth
+   !! a per-component guard - the pulls stay per-component regardless.
+   logical function stress_diag_wanted()
+     use modglobal, only : fielddump_wants
+     implicit none
+     stress_diag_wanted = fielddump_wants('tx') .or. fielddump_wants('ty') &
+                          .or. fielddump_wants('tz')
+   end function stress_diag_wanted
+
+   !> The same question for the wall heat flux diagnostic, thl_flux.
+   logical function hflux_diag_wanted()
+     use modglobal, only : fielddump_wants
+     implicit none
+     hflux_diag_wanted = fielddump_wants('hf')
+   end function hflux_diag_wanted
+
    subroutine ibmwallfun
      use modglobal, only : libm, iwallmom, xhat, yhat, zhat, ltempeq, lmoist, &
                            ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, nfcts, lwritefac, dt, dtfac, tfac, tnextfac
@@ -3133,24 +3175,33 @@ module modibm
 
      real, allocatable :: rhs(:,:,:)
      integer n
+     logical :: ltau, lhf
 
       if (.not. libm) return
 
+      ! See stress_diag_wanted: the snapshot/delta pairs around each wall
+      ! function exist only to feed fielddump's stress fields, and they cost
+      ! full-field passes every stage. The wall functions themselves, the
+      ! facet reductions and the diffusion corrections are physics and run
+      ! regardless.
+      ltau = stress_diag_wanted()
+      lhf  = hflux_diag_wanted()
+
 #if defined(_GPU)
       if (iwallmom > 1) then
-        call copy_tendency_device(rhs_ibm_d, up_d)
+        if (ltau) call copy_tendency_device(rhs_ibm_d, up_d)
         call wallfunmom_dir_device(1, up_d)
-        call accumulate_delta_device(tau_x_d, up_d, rhs_ibm_d)
+        if (ltau) call accumulate_delta_device(tau_x_d, up_d, rhs_ibm_d)
         call reduce_fac_tau_device(1)
 
-        call copy_tendency_device(rhs_ibm_d, vp_d)
+        if (ltau) call copy_tendency_device(rhs_ibm_d, vp_d)
         call wallfunmom_dir_device(2, vp_d)
-        call accumulate_delta_device(tau_y_d, vp_d, rhs_ibm_d)
+        if (ltau) call accumulate_delta_device(tau_y_d, vp_d, rhs_ibm_d)
         call reduce_fac_tau_device(2)
 
-        call copy_tendency_device(rhs_ibm_d, wp_d)
+        if (ltau) call copy_tendency_device(rhs_ibm_d, wp_d)
         call wallfunmom_dir_device(3, wp_d)
-        call accumulate_delta_device(tau_z_d, wp_d, rhs_ibm_d)
+        if (ltau) call accumulate_delta_device(tau_z_d, wp_d, rhs_ibm_d)
         call reduce_fac_tau_device(3)
       end if
 
@@ -3159,11 +3210,11 @@ module modibm
       call diffw_corr_device
 
       if (ltempeq .or. lmoist .or. lwritefac) then
-        if (ltempeq) call copy_tendency_device(rhs_ibm_d, thlp_d)
+        if (ltempeq .and. lhf) call copy_tendency_device(rhs_ibm_d, thlp_d)
         totheatflux = 0.
         totqflux = 0.
         call wallfunheat_dir_device
-        if (ltempeq) call accumulate_delta_device(thl_flux_d, thlp_d, rhs_ibm_d)
+        if (ltempeq .and. lhf) call accumulate_delta_device(thl_flux_d, thlp_d, rhs_ibm_d)
         if (ltempeq) call diffc_corr_device(thl0_d, thlp_d, ih, jh, kh)
         if (lmoist)  call diffc_corr_device(qt0_d, qtp_d, ih, jh, kh)
         call reduce_fac_heat_device
@@ -3174,20 +3225,20 @@ module modibm
       end do
 #else
 
-      allocate(rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+      if (ltau .or. lhf) allocate(rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
 
       if (iwallmom > 1) then
-        rhs = up
+        if (ltau) rhs = up
         call wallfunmom(xhat, up, bound_info_u)
-        tau_x(:,:,kb:ke+kh) = tau_x(:,:,kb:ke+kh) + (up - rhs)
+        if (ltau) tau_x(:,:,kb:ke+kh) = tau_x(:,:,kb:ke+kh) + (up - rhs)
 
-        rhs = vp
+        if (ltau) rhs = vp
         call wallfunmom(yhat, vp, bound_info_v)
-        tau_y(:,:,kb:ke+kh) = tau_y(:,:,kb:ke+kh) + (vp - rhs)
+        if (ltau) tau_y(:,:,kb:ke+kh) = tau_y(:,:,kb:ke+kh) + (vp - rhs)
 
-        rhs = wp
+        if (ltau) rhs = wp
         call wallfunmom(zhat, wp, bound_info_w)
-        tau_z(:,:,kb:ke+kh) = tau_z(:,:,kb:ke+kh) + (wp - rhs)
+        if (ltau) tau_z(:,:,kb:ke+kh) = tau_z(:,:,kb:ke+kh) + (wp - rhs)
 
         ! mom_flux_sum = sum(tau_x(ib:ie,jb:je,kb+1:ke) + tau_y(ib:ie,jb:je,kb+1:ke) + tau_z(ib:ie,jb:je,kb+1:ke))
         ! call MPI_ALLREDUCE(mom_flux_sum, mom_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
@@ -3210,11 +3261,11 @@ module modibm
       call diffw_corr
 
       if (ltempeq .or. lmoist .or. lwritefac) then
-        rhs = thlp
+        if (lhf) rhs = thlp
         totheatflux = 0 ! Reset total heat flux to zero so we only account for that in this step.
         totqflux = 0
         call wallfunheat
-        thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
+        if (lhf) thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
         if (ltempeq) call diffc_corr(thl0, thlp, ih, jh, kh)
         if (lmoist)  call diffc_corr(qt0, qtp, ih, jh, kh)
 
@@ -3238,7 +3289,7 @@ module modibm
         call diffc_corr(sv0(:,:,:,n), svp(:,:,:,n), ihc, jhc, khc)
       end do
 
-      deallocate(rhs)
+      if (allocated(rhs)) deallocate(rhs)
 #endif
 
       if (lwritefac .and. rk3step==3) then
@@ -3948,7 +3999,11 @@ module modibm
 
 
 #if defined(_GPU)
-   attributes(global) subroutine bottom_set_tau_cuda
+   !> The flags arrive as arguments because the e12 bottom-plane copy in here
+   !! is physics and the tau snapshot is diagnostics: the kernel always runs,
+   !! and the two wanted-flags decide whether the snapshot loops inside it do.
+   !! See stress_diag_wanted.
+   attributes(global) subroutine bottom_set_tau_cuda(ltau, lhf)
       use modcuda, only : ih_d, jh_d, kh_d, ie_d, je_d, kb_d, ke_d, &
                           loneeqn_d, ltempeq_d, &
                           e120_d, e12m_d, up_d, vp_d, wp_d, thlp_d, &
@@ -3956,6 +4011,7 @@ module modibm
                           tidandstride
       implicit none
 
+      logical, value, intent(in) :: ltau, lhf
       integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
 
       call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
@@ -3971,17 +4027,19 @@ module modibm
          end if
       end if
 
-      do k = tidz, ke_d + kh_d, stridez
-         do j = tidy - jh_d, je_d + jh_d, stridey
-            do i = tidx - ih_d, ie_d + ih_d, stridex
-               tau_x_d(i,j,k) = up_d(i,j,k)
-               tau_y_d(i,j,k) = vp_d(i,j,k)
-               tau_z_d(i,j,k) = wp_d(i,j,k)
+      if (ltau) then
+         do k = tidz, ke_d + kh_d, stridez
+            do j = tidy - jh_d, je_d + jh_d, stridey
+               do i = tidx - ih_d, ie_d + ih_d, stridex
+                  tau_x_d(i,j,k) = up_d(i,j,k)
+                  tau_y_d(i,j,k) = vp_d(i,j,k)
+                  tau_z_d(i,j,k) = wp_d(i,j,k)
+               end do
             end do
          end do
-      end do
+      end if
 
-      if (ltempeq_d) then
+      if (ltempeq_d .and. lhf) then
          do k = tidz, ke_d + kh_d, stridez
             do j = tidy - jh_d, je_d + jh_d, stridey
                do i = tidx - ih_d, ie_d + ih_d, stridex
@@ -4064,7 +4122,7 @@ module modibm
       end if
    end subroutine bottom_update_svp_cuda
 
-   attributes(global) subroutine bottom_update_tau_cuda
+   attributes(global) subroutine bottom_update_tau_cuda(ltau, lhf)
       use modcuda, only : ih_d, jh_d, kh_d, ie_d, je_d, ke_d, &
                           ltempeq_d, &
                           up_d, vp_d, wp_d, thlp_d, &
@@ -4072,21 +4130,24 @@ module modibm
                           tidandstride
       implicit none
 
+      logical, value, intent(in) :: ltau, lhf
       integer :: i, j, k, tidx, tidy, tidz, stridex, stridey, stridez
 
       call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
-      do k = tidz, ke_d + kh_d, stridez
-         do j = tidy - jh_d, je_d + jh_d, stridey
-            do i = tidx - ih_d, ie_d + ih_d, stridex
-               tau_x_d(i,j,k) = up_d(i,j,k) - tau_x_d(i,j,k)
-               tau_y_d(i,j,k) = vp_d(i,j,k) - tau_y_d(i,j,k)
-               tau_z_d(i,j,k) = wp_d(i,j,k) - tau_z_d(i,j,k)
+      if (ltau) then
+         do k = tidz, ke_d + kh_d, stridez
+            do j = tidy - jh_d, je_d + jh_d, stridey
+               do i = tidx - ih_d, ie_d + ih_d, stridex
+                  tau_x_d(i,j,k) = up_d(i,j,k) - tau_x_d(i,j,k)
+                  tau_y_d(i,j,k) = vp_d(i,j,k) - tau_y_d(i,j,k)
+                  tau_z_d(i,j,k) = wp_d(i,j,k) - tau_z_d(i,j,k)
+               end do
             end do
          end do
-      end do
+      end if
 
-      if (ltempeq_d) then
+      if (ltempeq_d .and. lhf) then
          do k = tidz, ke_d + kh_d, stridez
             do j = tidy - jh_d, je_d + jh_d, stridey
                do i = tidx - ih_d, ie_d + ih_d, stridex
@@ -4118,19 +4179,28 @@ module modibm
 #endif
       implicit none
       integer :: i, j, m
+      logical :: ltau, lhf
+
+      ! Both branches ask, so a run that dumps stresses computes them on both
+      ! sides of the parity comparison and a run that does not skips them on
+      ! both. See stress_diag_wanted.
+      ltau = stress_diag_wanted()
+      lhf  = hflux_diag_wanted()
 
 #if defined(_GPU)
-      call bottom_set_tau_cuda<<<griddim,blockdim>>>
+      call bottom_set_tau_cuda<<<griddim,blockdim>>>(ltau, lhf)
       call checkCUDA( cudaGetLastError(), 'bottom_set_tau_cuda' )
 #else
       e120(:, :, kb - 1) = e120(:, :, kb)
       e12m(:, :, kb - 1) = e12m(:, :, kb)
       ! wm(:, :, kb) = 0. ! SO moved to modboundary
       ! w0(:, :, kb) = 0.
-      tau_x(:,:,kb:ke+kh) = up
-      tau_y(:,:,kb:ke+kh) = vp
-      tau_z(:,:,kb:ke+kh) = wp
-      thl_flux(:,:,kb:ke+kh) = thlp
+      if (ltau) then
+         tau_x(:,:,kb:ke+kh) = up
+         tau_y(:,:,kb:ke+kh) = vp
+         tau_z(:,:,kb:ke+kh) = wp
+      end if
+      if (lhf) thl_flux(:,:,kb:ke+kh) = thlp
 #endif
 
       if (lbottom) then
@@ -4247,13 +4317,15 @@ module modibm
       end if
 
 #if defined(_GPU)
-      call bottom_update_tau_cuda<<<griddim,blockdim>>>
+      call bottom_update_tau_cuda<<<griddim,blockdim>>>(ltau, lhf)
       call checkCUDA( cudaGetLastError(), 'bottom_update_tau_cuda' )
 #else
-      tau_x(:,:,kb:ke+kh) = up - tau_x(:,:,kb:ke+kh)
-      tau_y(:,:,kb:ke+kh) = vp - tau_y(:,:,kb:ke+kh)
-      tau_z(:,:,kb:ke+kh) = wp - tau_z(:,:,kb:ke+kh)
-      thl_flux(:,:,kb:ke+kh) = thlp - thl_flux(:,:,kb:ke+kh)
+      if (ltau) then
+         tau_x(:,:,kb:ke+kh) = up - tau_x(:,:,kb:ke+kh)
+         tau_y(:,:,kb:ke+kh) = vp - tau_y(:,:,kb:ke+kh)
+         tau_z(:,:,kb:ke+kh) = wp - tau_z(:,:,kb:ke+kh)
+      end if
+      if (lhf) thl_flux(:,:,kb:ke+kh) = thlp - thl_flux(:,:,kb:ke+kh)
 #endif
 
       return

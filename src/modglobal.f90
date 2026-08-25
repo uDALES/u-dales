@@ -983,6 +983,25 @@ contains
    !! Valid only once initfielddump has run, which is where lfielddump is
    !! cleared if fieldvars turns out to be empty. Everything in the time loop
    !! is past that point.
+   !!
+   !! THIS FUNCTION IS AN INTERFACE CONTRACT. A rewrite of fielddump may
+   !! replace everything behind it - fieldvars, the codes, how a user selects
+   !! output - but must keep a function of this name and meaning on top of the
+   !! new mechanism, because the producers of on-demand diagnostics ask it
+   !! whether to do the work at all. As of this writing: the gated pulls and
+   !! the host/device asserts in modcuda, and stress_diag_wanted and
+   !! hflux_diag_wanted in modibm, which switch the tau_x/y/z and thl_flux
+   !! accumulation in bottom and ibmwallfun on and off - on the host and
+   !! device branches alike.
+   !!
+   !! The failure mode of bypassing it instead is silent: if fielddump selects
+   !! from a new registry while this still parses the old string, a run that
+   !! dumps stresses gates the producers closed and writes stale tau - on both
+   !! sides of the CPU/GPU parity comparison, which therefore passes. No test
+   !! can see that from inside, because producer and consumer would each be
+   !! self-consistent. One oracle, asked by both, is what makes the
+   !! disagreement unrepresentable. After any rewrite, run one case with
+   !! fieldvars naming tx and confirm the dumped tau is not identically zero.
    logical function fielddump_wants(code)
       implicit none
 

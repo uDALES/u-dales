@@ -92,6 +92,7 @@ module tests_cuda
                            diffu_corr_device, diffv_corr_device, diffw_corr_device, &
                            diffc_corr_device, &
                            wallfunmom, wallfunmom_dir_device, fac_tau_d, fac_tau_raw, &
+                           bottom_set_tau_cuda, bottom_update_tau_cuda, &
                            bound_info_type, &
                            wallfunheat, wallfunheat_dir_device, bound_info_c, faclGR_d, &
                            fac_htc_raw, fac_cth_raw, fac_pres_raw, fac_pres2_raw, &
@@ -164,6 +165,7 @@ contains
          call test_ibmnorm
          call test_ibm_wallfunmom
          call test_ibm_wallfunheat
+         call test_stress_gate
          call test_facflux_handover
          call test_facet_props_refresh
          call test_vegetation_forcing
@@ -3703,6 +3705,137 @@ contains
       end subroutine all_clear
 
    end subroutine test_tendency_reset
+
+   !> The wall-stress diagnostic kernels honour their wanted-flags.
+   !!
+   !! What makes this worth a test of its own: the guard fails symmetrically.
+   !! stress_diag_wanted is asked on the host and device branches alike, so a
+   !! guard that is wrongly false skips the computation on both sides of the
+   !! parity comparison - both dump the same stale field, the comparison
+   !! passes, and the stress output is quietly wrong. No end-to-end case can
+   !! see that. What can be pinned is the plumbing between the guard and the
+   !! work: that a flag passed into the kernels as .false. really suppresses
+   !! the tau and thl_flux loops, that .true. really runs them, and that the
+   !! two flags act on their own fields and not each other's.
+   !!
+   !! The kernels are driven directly with both polarities, which is why they
+   !! are public under UDALES_DEBUG. Everything written is restored, including
+   !! the kb-1 plane of e120, which bottom_set_tau_cuda writes as physics
+   !! whenever the one-equation model is on - that write must survive the
+   !! gate, and asserting it here is what pins the flags to the diagnostics
+   !! alone.
+   subroutine test_stress_gate
+      implicit none
+
+      real, parameter :: mark_x = 3.25, mark_y = -7.5, mark_z = 11.125, mark_h = 0.4375
+
+      real, allocatable :: sx(:,:,:), sy(:,:,:), sz(:,:,:), sh(:,:,:)
+      real, allocatable :: e12plane(:,:)
+      real, allocatable :: back(:,:,:), up_h(:,:,:), thlp_h(:,:,:)
+      logical :: has_hf
+
+      if (.not. allocated(tau_x_d)) return
+
+      has_hf = ltempeq .and. allocated(thl_flux_d)
+
+      allocate(sx(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(sy(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(sz(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(back(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+      allocate(up_h(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      allocate(thlp_h(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      sx = tau_x_d ; sy = tau_y_d ; sz = tau_z_d
+      if (has_hf) then
+         allocate(sh(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+         sh = thl_flux_d
+      end if
+      if (allocated(e120_d)) then
+         allocate(e12plane(ib-ih:ie+ih, jb-jh:je+jh))
+         e12plane = e120_d(:, :, kb-1)
+      end if
+      up_h   = up_d
+      if (has_hf) thlp_h = thlp_d
+
+      ! --- both gates closed: nothing moves --------------------------------
+      tau_x_d = mark_x ; tau_y_d = mark_y ; tau_z_d = mark_z
+      if (has_hf) thl_flux_d = mark_h
+
+      call bottom_set_tau_cuda<<<griddim,blockdim>>>(.false., .false.)
+      call checkCUDA( cudaGetLastError(), 'bottom_set_tau_cuda gate test' )
+      call bottom_update_tau_cuda<<<griddim,blockdim>>>(.false., .false.)
+      call checkCUDA( cudaGetLastError(), 'bottom_update_tau_cuda gate test' )
+
+      back = tau_x_d
+      if (any(back /= mark_x)) call fail_cuda_selftest('the tau kernels wrote tau_x with the gate closed')
+      back = tau_y_d
+      if (any(back /= mark_y)) call fail_cuda_selftest('the tau kernels wrote tau_y with the gate closed')
+      back = tau_z_d
+      if (any(back /= mark_z)) call fail_cuda_selftest('the tau kernels wrote tau_z with the gate closed')
+      if (has_hf) then
+         back = thl_flux_d
+         if (any(back /= mark_h)) call fail_cuda_selftest('the tau kernels wrote thl_flux with the gate closed')
+      end if
+
+      ! --- tau open, heat closed: the snapshot lands, thl_flux stands ------
+      call bottom_set_tau_cuda<<<griddim,blockdim>>>(.true., .false.)
+      call checkCUDA( cudaGetLastError(), 'bottom_set_tau_cuda gate test' )
+
+      back = tau_x_d
+      if (any(back(:, :, kb:ke+kh) /= up_h)) &
+         call fail_cuda_selftest('the set kernel did not snapshot up into tau_x with the gate open')
+      ! The loops start at kb: the plane below is not theirs to touch.
+      if (any(back(:, :, kb-kh:kb-1) /= mark_x)) &
+         call fail_cuda_selftest('the set kernel wrote the kb-1 plane of tau_x')
+      if (has_hf) then
+         back = thl_flux_d
+         if (any(back /= mark_h)) call fail_cuda_selftest('the tau gate moved thl_flux')
+      end if
+
+      ! --- heat open, tau closed: the mirror image -------------------------
+      if (has_hf) then
+         call bottom_set_tau_cuda<<<griddim,blockdim>>>(.false., .true.)
+         call checkCUDA( cudaGetLastError(), 'bottom_set_tau_cuda gate test' )
+         back = thl_flux_d
+         if (any(back(:, :, kb:ke+kh) /= thlp_h)) &
+            call fail_cuda_selftest('the set kernel did not snapshot thlp into thl_flux with the gate open')
+         back = tau_x_d
+         if (any(back(:, :, kb:ke+kh) /= up_h)) &
+            call fail_cuda_selftest('the heat gate moved tau_x')
+      end if
+
+      ! --- both open: the diff of an unchanged tendency is exactly zero ----
+      call bottom_update_tau_cuda<<<griddim,blockdim>>>(.true., .true.)
+      call checkCUDA( cudaGetLastError(), 'bottom_update_tau_cuda gate test' )
+      back = tau_x_d
+      if (any(back(:, :, kb:ke+kh) /= 0.)) &
+         call fail_cuda_selftest('set then update over an unchanged up did not give tau_x = 0')
+      if (has_hf) then
+         back = thl_flux_d
+         if (any(back(:, :, kb:ke+kh) /= 0.)) &
+            call fail_cuda_selftest('set then update over an unchanged thlp did not give thl_flux = 0')
+      end if
+
+      ! --- the e12 bottom plane is physics and must survive the gate -------
+      ! With the one-equation model on, the closed-gate calls above must
+      ! still have copied e120(kb) into e120(kb-1): that line is the bottom
+      ! boundary condition, not a diagnostic.
+      if (allocated(e120_d)) then
+         back(:, :, kb) = e120_d(:, :, kb)
+         back(:, :, kb+1) = e120_d(:, :, kb-1)
+         if (any(back(:, :, kb) /= back(:, :, kb+1))) &
+            call fail_cuda_selftest('the closed gate suppressed the e12 bottom-plane copy, which is physics')
+         e120_d(:, :, kb-1) = e12plane
+      end if
+
+      ! --- put everything back ---------------------------------------------
+      tau_x_d = sx ; tau_y_d = sy ; tau_z_d = sz
+      if (has_hf) thl_flux_d = sh
+
+      deallocate(sx, sy, sz, back, up_h, thlp_h)
+      if (allocated(sh)) deallocate(sh)
+      if (allocated(e12plane)) deallocate(e12plane)
+
+   end subroutine test_stress_gate
 
    !> The nudging and inlet profiles are the device's, from initCUDA onwards.
    !!
