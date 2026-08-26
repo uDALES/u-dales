@@ -1091,7 +1091,8 @@ module modstartup
             end do
          end do
 
-         do j = j, je
+         thv0 = 0.
+         do j = jb, je
             do i = ib, ie
                do k = kb, ke + kh
                   thv0(i, j, k) = (thl0(i, j, k) + rlv*ql0(i, j, k)/(cp)) &
@@ -1637,6 +1638,12 @@ module modstartup
             !write (*, *) "doing warmstart"
             call readrestartfiles
 
+            ! The restart files hold levels kb..ke+kh only; the ghost level kb-1 is used by
+            ! calc_halflev below (and by the cold start, which mirrors it), so set it here
+            ! instead of leaving uninitialised memory that can raise a floating-point trap.
+            thl0(:, :, kb - 1) = thl0(:, :, kb)
+            qt0(:, :, kb - 1)  = qt0(:, :, kb)
+
             ! average initial profiles
             call avexy_ibm(u_init(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
             call avexy_ibm(v_init(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
@@ -1785,13 +1792,7 @@ module modstartup
             end do
             end do
 
-            ! jb, not j: this read "do j = j, je" - the loop started from
-            ! wherever the loop above had left j, which is je, so thv0 was
-            ! formed for one j-row and left uninitialised for the rest. On the
-            ! CPU build that is a quiet NaN that the first thermodynamics call
-            ! overwrites before anything reads thvf; on the GPU Debug build
-            ! -Minit-real=snan makes the avexy_ibm below trap on it, which is
-            ! how the restart round-trip test found it on its first run.
+            thv0 = 0.
             do j = jb, je
             do i = ib, ie
             do k = kb, ke + kh
