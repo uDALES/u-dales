@@ -1145,6 +1145,14 @@ module modstartup
             svm = sv0 ! What if nsv=0?
             e12m = e120
 
+            ! The kappa scheme advects thl through its wide-halo copy thl0c, which the
+            ! cold start fills from the profile but the restart files do not carry; it is
+            ! only refreshed in tstep_integrate, after the first advection. Fill its
+            ! interior here so the first substep of a warm start advects the restarted
+            ! field instead of the allocation value (zero); the halo exchange below
+            ! completes the ihc-wide halo.
+            if (ltempeq) thl0c(ib:ie, jb:je, kb:ke) = thl0(ib:ie, jb:je, kb:ke)
+
             ! Exchange the halos, as the cold start does once its fields are built.
             ! The restart files carry the one-cell halo only; the outer cells of the
             ! scalars (ihc = 2, and the kappa scheme reads i-2 on the upwind face) would
