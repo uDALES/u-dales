@@ -1144,6 +1144,16 @@ module modstartup
             qtm = qt0
             svm = sv0 ! What if nsv=0?
             e12m = e120
+
+            ! Exchange the halos, as the cold start does once its fields are built.
+            ! The restart files carry the one-cell halo only; the outer cells of the
+            ! scalars (ihc = 2, and the kappa scheme reads i-2 on the upwind face) would
+            ! otherwise hold their allocation value until the loop's own exchange, which
+            ! runs after the first advection, so a warm start diverged from the run it
+            ! continued at the west boundary: by 1e-11 on a smooth scalar and 5e-5 once the
+            ! limiter had a rough field to switch on.
+            call halos
+
             ekm(:, :, :) = numol
             ekh(:, :, :) = numol*prandtlmoli !tg3315 added because wttop using ekh in modboundary which is called in startup
 
