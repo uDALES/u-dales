@@ -1,0 +1,87 @@
+&RUN
+iexpnr = 103
+! run_restart_roundtrip.py drives this namelist four times: cold on the CPU and
+! on the GPU, then warm on each build from the restart its own cold run wrote
+! at trestart. The warm copies are derived from this file by the script - it
+! sets lwarmstart, startfile and runtime - so those three are spelled out here
+! to be substituted rather than appended.
+!
+! runtime 2.0 with trestart 1.0 gives a restart at t = 1 and another at t = 2.
+! The warm runs start from the first and run to t = 2, where all four runs
+! have a fielddump record (tfielddump 0.5) and a second restart with the same
+! step count, so the whole state can be compared, not only the dumped fields.
+lwarmstart = .false.
+startfile = ''
+runtime = 2.0
+trestart = 1.0
+dtmax = 0.25
+ladaptive = .false.
+lrandomize = .true.
+irandom = 43
+randu = 0.01
+libm = .false.
+nprocx = 1
+nprocy = 1
+/
+&OUTPUT
+lfielddump = .true.
+tfielddump = 0.5
+fieldvars = 'u0,v0,w0,p0,th,qt,s1'
+ltdump = .true.
+lxytdump = .true.
+tstatstart = 0.0
+tstatsdump = 1.0
+tsample = 0.25
+/
+&DOMAIN
+itot = 8
+jtot = 8
+ktot = 8
+xlen = 8
+ylen = 8
+/
+&PHYSICS
+lbuoyancy = .true.
+ltempeq = .true.
+lmoist = .true.
+ps = 101500.
+igrw_damp = 0
+/
+&DYNAMICS
+ipoiss = 0
+iadv_thl = 2
+iadv_qt = 2
+/
+&NAMSUBGRID
+lvreman = .true.
+/
+&BC
+! Fixed-flux bottom for heat, moisture and the scalar, and the neutral wall
+! function for momentum. Chosen so that nothing in the run is an atomic: no
+! IBM, and BCbotm = 3 rather than the default 2, whose wall function sums its
+! total heat flux with atomicadd. Without atomics the same binary is bit
+! reproducible, and the cold-versus-warm comparisons below demand exactly
+! that - a restart that changed a single bit would fail them.
+BCbotm = 3
+BCbotT = 1
+BCbotq = 1
+BCbots = 1
+wtsurf = 0.015
+wqsurf = 0.00002
+wsvsurfdum = 0.002
+thls = 288.
+qts = 0.005
+z0 = 0.01
+z0h = 0.000067
+/
+&WALLS
+lbottom = .true.
+iwalltemp = 1
+/
+&SCALARS
+nsv = 1
+! The scalar field lives in its own restart file, inits, and is read back
+! only under lreadscal. Without it the warm run would start the scalar from
+! scalar.inp and the round trip could not be exact.
+lreadscal = .true.
+/

@@ -87,10 +87,42 @@ a deleted routine leaves a stale entry, a mapped test does not exist, or a
 namelist no longer selects the option asserted by its case. It also rejects the
 explicitly unsupported GPU configurations `ipoiss=2` and `lpurif=.true.`.
 
+## Restart round trip
+
+`run_restart_roundtrip.py` is the one test here that is not a single run per
+build. It runs `namoptions.103.restart-roundtrip` cold on the CPU and on the
+GPU, then warm on each build from the restart that build's own cold run wrote
+at `trestart`, and compares four ways: cold CPU against cold GPU (restart files
+included), warm CPU against warm GPU, and cold against warm on each build at
+the end time - the last field-dump record and the restart written there. On
+the CPU that comparison is bit for bit: the case has no atomics, so a
+difference of one bit is a lost or mis-restored piece of state. On the GPU it
+is to 1e-11, because a warm start forms the slab averages with the host
+reduction while the continuing run formed them on the device, and the two sum
+in a different order. A restart that lost state would lose it identically on
+both builds, which is why warm-versus-warm parity alone is not enough. No
+restart fixture is committed; the files live and die in the run directory.
+
+This test found two defects on its first runs: a `do j = j, je` typo that
+left `thv0` uninitialised on a warm start, and a missing halo exchange on the
+warm-start path that left the scalars' outer halo unfilled for the first step.
+
+```bash
+python tests/integration/gpu/run_restart_roundtrip.py --require-debug-selftest
+```
+
+It takes the same executable, work-root and summary options as
+`run_gpu_tests.py`, and reads only the tolerances from the matrix.
+
 ## Comparison contract
 
-`compare_outputs.py` compares every variable in every required NetCDF output,
-not a hand-selected list. It fails when:
+`compare_outputs.py` compares every variable in every required output, not a
+hand-selected list. Outputs are NetCDF, except the restart files: the
+`initd` and `inits` prefixes select a reader for the Fortran unformatted
+format `modsave::writerestartfiles` produces, which names each record after
+the array it holds and compares it under the same rules - integer records
+exactly, real ones under the tolerance a NetCDF variable of that name would
+get. It fails when:
 
 - a required output is missing
 - the CPU and GPU file sets differ

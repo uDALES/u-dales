@@ -1708,6 +1708,18 @@ module modstartup
             qtm = qt0
             svm = sv0 ! What if nsv=0?
             e12m = e120
+
+            ! Exchange the halos, as the cold start does after it builds its
+            ! fields. The restart file carries the one-cell halo only, so the
+            ! outer cells of the scalars - ihc is 2, and the kappa scheme reads
+            ! i-2 on the upwind face - would otherwise hold their allocation
+            ! value until the loop's own exchange, which runs after the first
+            ! advection. A warm start then differed from the run it continued
+            ! at the west boundary, by 1e-11 on a smooth scalar and 5e-5 once
+            ! the limiter had a rough field to switch on, and the restart
+            ! round-trip test is what noticed.
+            call halos
+
             ekm(:, :, :) = numol
             ekh(:, :, :) = numol*prandtlmoli !tg3315 added because wttop using ekh in modboundary which is called in startup
 
@@ -1773,7 +1785,14 @@ module modstartup
             end do
             end do
 
-            do j = j, je
+            ! jb, not j: this read "do j = j, je" - the loop started from
+            ! wherever the loop above had left j, which is je, so thv0 was
+            ! formed for one j-row and left uninitialised for the rest. On the
+            ! CPU build that is a quiet NaN that the first thermodynamics call
+            ! overwrites before anything reads thvf; on the GPU Debug build
+            ! -Minit-real=snan makes the avexy_ibm below trap on it, which is
+            ! how the restart round-trip test found it on its first run.
+            do j = jb, je
             do i = ib, ie
             do k = kb, ke + kh
                thv0(i, j, k) = (thl0(i, j, k) + rlv*ql0(i, j, k)/(cp)) &

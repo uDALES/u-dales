@@ -72,6 +72,12 @@ nfctsecs_w = 202
 nfctsecs_c = 5011
 iwalltemp = 2
 iwallmoist = 2
+! Facet stresses, pressures and transfer coefficients to fac.064.nc every
+! dtfac. This is the one case that can write them - it ships facetarea.inp -
+! and until it did, the reduce / time-average / write path behind lwritefac had
+! no CPU/GPU comparison at all. Two records in an 11 s run.
+lwritefac = .true.
+dtfac = 5.
 /
 
 &ENERGYBALANCE

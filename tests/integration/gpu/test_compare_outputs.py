@@ -16,7 +16,8 @@ from unittest.mock import patch
 import netCDF4
 import numpy as np
 
-from compare_outputs import compare_output_directories
+from compare_outputs import _output_files, _read_fortran_records, compare_output_directories
+from run_restart_roundtrip import first_restart, warm_namelist
 from run_gpu_tests import (
     CUDA_SELFTEST_FAIL,
     CUDA_SELFTEST_PASS,
@@ -195,6 +196,159 @@ class TestGpuOutputComparator(unittest.TestCase):
             failures = _validate_output_assertions(case, run_dir, "GPU")
 
             self.assertTrue(any("peak xt=8.5" in failure for failure in failures))
+
+    # ---- restart files -------------------------------------------------------
+    #
+    # The writer's layout is fixed in modsave::writerestartfiles; these build
+    # files of that shape directly, with the 4-byte record markers gfortran and
+    # nvfortran both emit, so the reader is tested without a solver run and
+    # without a binary fixture in the repository.
+
+    @staticmethod
+    def _fortran_file(path: Path, records: list[np.ndarray], marker_bytes: int = 4) -> None:
+        marker_dtype = "<i4" if marker_bytes == 4 else "<i8"
+        with path.open("wb") as handle:
+            for record in records:
+                payload = np.ascontiguousarray(record).tobytes()
+                marker = np.array([len(payload)], dtype=marker_dtype).tobytes()
+                handle.write(marker + payload + marker)
+
+    @classmethod
+    def _restart_pair(cls, root: Path, case_id: int, *, perturb: Optional[str] = None,
+                      nudge: float = 0.0) -> tuple[Path, Path]:
+        rng = np.random.default_rng(7)
+        cells, halo_cells = 4 * 4 * 4, 6 * 6 * 5
+        base = {
+            "mindist": rng.random(cells),
+            "wall": rng.integers(0, 9, size=5 * cells).astype("<i4"),
+        }
+        for name in ("u0", "v0", "w0", "pres0", "thl0", "e120", "ekm", "qt0", "ql0", "ql0h"):
+            base[name] = rng.random(halo_cells)
+        base["time"] = np.array([2.5, 0.25])
+        sv = {"sv0": rng.random(halo_cells * 2), "time": np.array([2.5])}
+
+        dirs = []
+        for side in ("cpu", "gpu"):
+            side_dir = root / side
+            side_dir.mkdir()
+            main = {k: v.copy() for k, v in base.items()}
+            scal = {k: v.copy() for k, v in sv.items()}
+            if side == "gpu" and perturb is not None:
+                target = scal if perturb == "sv0" else main
+                if target[perturb].dtype.kind == "i":
+                    target[perturb][0] += 1
+                else:
+                    target[perturb][0] += nudge
+            cls._fortran_file(side_dir / f"initd00000010_000_000.{case_id:03d}", list(main.values()))
+            cls._fortran_file(side_dir / f"inits00000010_000_000.{case_id:03d}", list(scal.values()))
+            dirs.append(side_dir)
+        return dirs[0], dirs[1]
+
+    def test_restart_files_compare_record_by_record(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cpu, gpu = self._restart_pair(Path(tmp), 103)
+            result = compare_output_directories(cpu, gpu, 103, ["initd", "inits"], {})
+            self.assertTrue(result.passed, result.failures)
+            self.assertEqual(result.files_compared, 2)
+            names = sorted(r["variable"] for r in result.variable_results if r["file"].startswith("initd"))
+            self.assertEqual(names, sorted(["mindist", "wall", "u0", "v0", "w0", "pres0", "thl0",
+                                            "e120", "ekm", "qt0", "ql0", "ql0h", "time"]))
+
+    def test_restart_real_record_outside_tolerance_is_named(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cpu, gpu = self._restart_pair(Path(tmp), 103, perturb="u0", nudge=1.0e-3)
+            result = compare_output_directories(cpu, gpu, 103, ["initd", "inits"], {})
+            self.assertFalse(result.passed)
+            self.assertTrue(any("initd00000010_000_000.103:u0" in f for f in result.failures), result.failures)
+
+    def test_restart_integer_record_must_match_exactly(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cpu, gpu = self._restart_pair(Path(tmp), 103, perturb="wall")
+            result = compare_output_directories(cpu, gpu, 103, ["initd"], {})
+            self.assertFalse(result.passed)
+            self.assertTrue(any(":wall" in f for f in result.failures), result.failures)
+
+    def test_restart_scalar_file_is_compared_too(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cpu, gpu = self._restart_pair(Path(tmp), 103, perturb="sv0", nudge=1.0e-3)
+            result = compare_output_directories(cpu, gpu, 103, ["initd", "inits"], {})
+            self.assertFalse(result.passed)
+            self.assertTrue(any("inits00000010_000_000.103:sv0" in f for f in result.failures), result.failures)
+
+    def test_restart_time_record_uses_the_time_tolerance(self) -> None:
+        # The matrix pins time at 1e-12. A 1e-9 shift in (timee, dt) is inside
+        # the default tolerance and must still fail under the override.
+        with tempfile.TemporaryDirectory() as tmp:
+            cpu, gpu = self._restart_pair(Path(tmp), 103, perturb="time", nudge=1.0e-9)
+            loose = compare_output_directories(cpu, gpu, 103, ["initd"], {})
+            self.assertTrue(loose.passed, loose.failures)
+            tight = compare_output_directories(
+                cpu, gpu, 103, ["initd"],
+                {"variables": {"time": {"atol": 1e-12, "rtol": 1e-12}}},
+            )
+            self.assertFalse(tight.passed)
+            self.assertTrue(any(":time" in f for f in tight.failures), tight.failures)
+
+    def test_restart_reader_rejects_foreign_record_markers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "initd00000010_000_000.103"
+            self._fortran_file(path, [np.arange(4.0)], marker_bytes=8)
+            with self.assertRaises(ValueError):
+                _read_fortran_records(path)
+            truncated = Path(tmp) / "initd00000011_000_000.103"
+            self._fortran_file(truncated, [np.arange(4.0)])
+            truncated.write_bytes(truncated.read_bytes()[:-3])
+            with self.assertRaises(ValueError):
+                _read_fortran_records(truncated)
+
+    # ---- restart round trip ---------------------------------------------------
+
+    def test_warm_namelist_substitutes_rather_than_appends(self) -> None:
+        cold = (
+            "&RUN\niexpnr = 103\nlwarmstart = .false.\nstartfile = ''\n"
+            "runtime = 2.0\ntrestart = 1.0\n/\n"
+        )
+        warm = warm_namelist(cold, "initd00000004_000_000.103", 1.0)
+        self.assertIn("lwarmstart = .true.", warm)
+        self.assertIn("startfile = 'initd00000004_000_000.103'", warm)
+        # runtime is relative to the restart time on a warm start
+        self.assertIn("runtime = 1", warm)
+        self.assertEqual(warm.count("lwarmstart"), 1)
+        self.assertEqual(warm.count("runtime"), 1)
+        with self.assertRaises(ValueError):
+            warm_namelist("&RUN\nruntime = 2.0\n/\n", "x", 1.0)
+
+    def test_first_restart_picks_the_earliest_step_and_its_companions(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            for name in ("initd00000008_000_000.103", "inits00000008_000_000.103",
+                         "initd00000004_000_000.103", "inits00000004_000_000.103",
+                         "fielddump.000.000.103.nc"):
+                (run_dir / name).write_bytes(b"")
+            earliest, companions = first_restart(run_dir, 103)
+            self.assertEqual(earliest.name, "initd00000004_000_000.103")
+            self.assertEqual(sorted(p.name for p in companions),
+                             ["initd00000004_000_000.103", "inits00000004_000_000.103"])
+            with self.assertRaises(FileNotFoundError):
+                first_restart(run_dir / "empty", 103)
+
+    def test_output_prefix_prefers_exact_file_over_glob(self) -> None:
+        # fac.064.nc, facEB.064.nc and facT.064.nc are three different outputs
+        # that share a prefix. "fac" must name only its own file, while a
+        # prefix with no exact file, like fielddump, still finds its
+        # rank-suffixed one through the glob.
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            for name in ("fac.064.nc", "facEB.064.nc", "facT.064.nc",
+                         "fielddump.000.000.064.nc"):
+                (run_dir / name).write_bytes(b"")
+            self.assertEqual(sorted(_output_files(run_dir, "fac", 64)), ["fac.064.nc"])
+            self.assertEqual(sorted(_output_files(run_dir, "facEB", 64)), ["facEB.064.nc"])
+            self.assertEqual(
+                sorted(_output_files(run_dir, "fielddump", 64)),
+                ["fielddump.000.000.064.nc"],
+            )
+            self.assertEqual(_output_files(run_dir, "initd", 64), {})
 
     def test_allows_values_inside_absolute_and_relative_tolerance(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

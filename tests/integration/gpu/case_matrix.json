@@ -183,8 +183,8 @@
         "tests/integration/gpu/fixtures/scalar_sources/scalarsourcep.inp.1.103"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["restart-pull-handover", "restart-during-run", "one-equation-SGS", "thermodynamics", "moisture"],
+      "required_outputs": ["fielddump", "tdump", "xytdump", "initd", "inits"],
+      "coverage": ["restart-pull-handover", "restart-during-run", "restart-file-parity", "one-equation-SGS", "thermodynamics", "moisture"],
       "namelist_assertions": {"trestart": 0.5, "runtime": 2.0, "lfielddump": true, "tfielddump": 1.0, "loneeqn": true, "ltempeq": true, "lmoist": true, "nsv": 1},
       "timeout_seconds": 180
     },
@@ -388,8 +388,9 @@
         "tests/integration/gpu/fixtures/Tfacinit.inp.064"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump", "facEB", "facT"],
-      "coverage": ["surface-energy-balance", "sparse-view-factors", "periodic-EB-correction", "thermal-and-moisture-walls", "facet-heat-flux-handover"],
+      "required_outputs": ["fielddump", "tdump", "xytdump", "facEB", "facT", "fac"],
+      "coverage": ["surface-energy-balance", "sparse-view-factors", "periodic-EB-correction", "thermal-and-moisture-walls", "facet-heat-flux-handover", "facet-stress-output"],
+      "namelist_assertions": {"lwritefac": true},
       "timeout_seconds": 900
     },
     {
