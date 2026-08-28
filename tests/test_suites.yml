@@ -200,6 +200,16 @@ groups:
           - "v2.2.0"
           - "{branch_b}"
           - "{build_type}"
+      - label: "experimental: warmstart facet continuity integration"
+        class: experimental
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/warmstart_facets/run_test.sh"
       - label: "experimental: mpi averaging regression"
         class: experimental
         kind: regression
