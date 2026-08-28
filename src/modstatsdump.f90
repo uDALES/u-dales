@@ -31,7 +31,7 @@ module modstatsdump
   use modmpi, only : myid
   implicit none
   private
-  PUBLIC :: initstatsdump,statsdump,exitstatsdump
+  PUBLIC :: initstatsdump,statsdump,exitstatsdump,compute_sgs_fluxes
   save
 
   !NetCDF variables
@@ -83,6 +83,22 @@ contains
 
     namelist/NAMSTATSDUMP/ &
          lydump,tsample,klow,khigh,tstatsdump,lytdump,ltkedump,lxydump,lxytdump,ltdump,ltreedump,lmintdump    ! maybe removed; NAMSTATSDUMP is not in use anymore
+
+    !> The TKE-budget path is inoperative: the call to genstats is commented out
+    !  in statsdump and nusgsav/disssgsav are never accumulated, so tkedump would
+    !  be written full of zeros. Abort rather than emit a plausible-looking but
+    !  meaningless file. See issue #352 for the repair.
+    if (ltkedump) then
+      if (myid == 0) then
+        write(0, *) 'ERROR: ltkedump is disabled'
+        write(0, *) 'The TKE-budget statistics path is not operational: genstats is'
+        write(0, *) 'not called and nusgsav/disssgsav are never accumulated, so'
+        write(0, *) 'tkedump.'//cexpnr//'.nc would contain zeros only.'
+        write(0, *) 'Set ltkedump = .false. See uDALES issue #352.'
+      end if
+      call MPI_FINALIZE(mpierr)
+      stop 1
+    end if
 
     allocate(ncstaty(nstaty,4))
     allocate(ncstatyt(nstatyt,4))
@@ -180,10 +196,10 @@ contains
 
       call ncinfo(ncstatyt( 15,:),'uwyt'      ,'Kinematic mom. flux'       ,'m^2/s^2' ,'m0mt')
       call ncinfo(ncstatyt( 16,:),'wthlyt'    ,'Kinematic heat flux'       ,'K m/s'   ,'t0mt')
-      call ncinfo(ncstatyt( 17,:),'wqtyt'     ,'Kinematic moisture flux'   ,'K m/s'   ,'t0mt')
-      call ncinfo(ncstatyt( 18,:),'wsca1yt'   ,'Kinematic scalar flux'     ,'K m/s'   ,'t0mt')
-      call ncinfo(ncstatyt( 19,:),'wsca2yt'   ,'Kinematic scalar flux'     ,'K m/s'   ,'t0mt')
-      call ncinfo(ncstatyt( 20,:),'wsca3yt'   ,'Kinematic scalar flux'     ,'K m/s'   ,'t0mt')
+      call ncinfo(ncstatyt( 17,:),'wqtyt'     ,'Kinematic moisture flux'   ,'kg/kg m/s','t0mt')
+      call ncinfo(ncstatyt( 18,:),'wsca1yt'   ,'Kinematic scalar flux'     ,'kg/m^2 s','t0mt')
+      call ncinfo(ncstatyt( 19,:),'wsca2yt'   ,'Kinematic scalar flux'     ,'kg/m^2 s','t0mt')
+      call ncinfo(ncstatyt( 20,:),'wsca3yt'   ,'Kinematic scalar flux'     ,'kg/m^2 s','t0mt')
 
       call ncinfo(ncstatyt( 21,:),'upupyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0tt')
       call ncinfo(ncstatyt( 22,:),'wpwpyt'     ,'mom. variance'            ,'m^2/s^2' ,'t0tt')
@@ -194,7 +210,7 @@ contains
       call ncinfo(ncstatyt( 27,:),'sca3tpsca3pyt','scalar. variance'       ,'M^2'     ,'t0tt')
 
       call ncinfo(ncstatyt( 28,:),'usgsyt'    ,'SGS mom. flux'             ,'m^2/s^2' ,'m0mt')
-      call ncinfo(ncstatyt( 29,:),'wsgsyt'    ,'SGS mom. flux'             ,'m^2/s^2' ,'t0mt')
+      call ncinfo(ncstatyt( 29,:),'wsgsyt'    ,'SGS normal stress'         ,'m^2/s^2' ,'t0tt')
       call ncinfo(ncstatyt( 30,:),'thlsgsyt'  ,'SGS heat flux'             ,'K m/s'   ,'t0mt')
       call ncinfo(ncstatyt( 31,:),'qtsgsyt'   ,'SGS moisture flux'         ,'kg/kg m/s','t0mt')
       call ncinfo(ncstatyt( 32,:),'sca1sgsyt' ,'SGS scalar flux'           ,'M m/s'   ,'t0mt')
@@ -224,7 +240,7 @@ contains
       call ncinfo(ncstatxy( 6,:),'pxy'     ,'Pressure'                    ,'m^2/s^2','tt'  )
       call ncinfo(ncstatxy( 7,:),'upwpxy'  ,'Mom. flux'                   ,'m^2/s^2','mt'  )
       call ncinfo(ncstatxy( 8,:),'wpthlpxy','Heat flux'                   ,'Km/s'   ,'mt'  )
-      call ncinfo(ncstatxy( 9,:),'vpwpxy'  ,'Mom. flux'                   ,'Km/s'   ,'mt'  )
+      call ncinfo(ncstatxy( 9,:),'vpwpxy'  ,'Mom. flux'                   ,'m^2/s^2','mt'  )
       call ncinfo(ncstatxy(10,:),'usgsxy'  ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
       call ncinfo(ncstatxy(11,:),'thlsgsxy','SGS heat flux'               ,'Km/s'   ,'mt'  )
       call ncinfo(ncstatxy(12,:),'vsgsxy'  ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
@@ -263,7 +279,7 @@ contains
       call ncinfo(ncstatxyt( 15,:),'wwxyt'     ,'Kinematic mom. flux'         ,'m^2/s^2','mt'  )
       call ncinfo(ncstatxyt( 16,:),'usgsxyt'   ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
       call ncinfo(ncstatxyt( 17,:),'thlsgsxyt' ,'SGS heat flux'               ,'K m/s'  ,'mt'  )
-      call ncinfo(ncstatxyt( 18,:),'vsgsxyt'   ,'SGS mom. flux'               ,'K m/s'  ,'mt'  )
+      call ncinfo(ncstatxyt( 18,:),'vsgsxyt'   ,'SGS mom. flux'               ,'m^2/s^2','mt'  )
       call ncinfo(ncstatxyt( 19,:),'thlpthlptxy','Temp. variance'             ,'K^2'    ,'tt'  )
       call ncinfo(ncstatxyt( 20,:),'upuptxyc'  ,'u variance'                  ,'m^2/s^2','tt'  )
       call ncinfo(ncstatxyt( 21,:),'vpvptxyc'  ,'v variance'                  ,'m^2/s^2','tt'  )
@@ -318,10 +334,10 @@ contains
       call ncinfo(ncstatt(27,:),'sca3psca3pt','Concentration variance 3'  ,'g^2/m^6','tttt'  )
       call ncinfo(ncstatt(28,:),'sca4psca4pt','Concentration variance 4'  ,'g^2/m^6','tttt'  )
 
-      call ncinfo(ncstatt(29,:),'sv1sgs'   ,'SGS flux 1'                  ,'gm/s'   ,'ttmt'  )
-      call ncinfo(ncstatt(30,:),'sv2sgs'   ,'SGS flux 2'                  ,'gm/s'   ,'ttmt'  )
-      call ncinfo(ncstatt(31,:),'sv3sgs'   ,'SGS flux 3'                  ,'gm/s'   ,'ttmt'  )
-      call ncinfo(ncstatt(32,:),'sv4sgs'   ,'SGS flux 4'                  ,'gm/s'   ,'ttmt'  )
+      call ncinfo(ncstatt(29,:),'sv1sgs'   ,'SGS flux 1'                  ,'g/m^2 s','ttmt'  )
+      call ncinfo(ncstatt(30,:),'sv2sgs'   ,'SGS flux 2'                  ,'g/m^2 s','ttmt'  )
+      call ncinfo(ncstatt(31,:),'sv3sgs'   ,'SGS flux 3'                  ,'g/m^2 s','ttmt'  )
+      call ncinfo(ncstatt(32,:),'sv4sgs'   ,'SGS flux 4'                  ,'g/m^2 s','ttmt'  )
 
       ! call ncinfo(ncstatt(33,:),'sca1t_max','Max concentration field 1'   ,'g/m^3'  ,'tttt'  )
       ! call ncinfo(ncstatt(34,:),'sca2t_max','Max concentration field 2'   ,'g/m^3'  ,'tttt'  )
@@ -394,10 +410,10 @@ contains
 
       tkename(9:11) = cexpnr
       call ncinfo(tncstattke(1,:),'time' ,'Time'                                 ,'s'       ,'time')
-      call ncinfo(ncstattke( 1,:),'p_b'  ,'p_bant production or consumption term', 'm^2/s^3','tt'  )
-      call ncinfo(ncstattke( 2,:),'t_p'  ,'total viscous transport (?)'          , 'm^2/s^3','tt'  )
+      call ncinfo(ncstattke( 1,:),'p_b'  ,'Production/destruction by buoyancy'   , 'm^2/s^3','tt'  )
+      call ncinfo(ncstattke( 2,:),'t_p'  ,'Transport by pressure fluctuations'   , 'm^2/s^3','tt'  )
       call ncinfo(ncstattke( 3,:),'adv'  ,'Advection by mean wind'               , 'm^2/s^3','tt'  )
-      call ncinfo(ncstattke( 4,:),'t_t'  ,'Total turb???'                        , 'm^2/s^3','tt'  )
+      call ncinfo(ncstattke( 4,:),'t_t'  ,'Transport by turb. vel. fluctuations' , 'm^2/s^3','tt'  )
       call ncinfo(ncstattke( 5,:),'t_sgs','total SGS  term'                      , 'm^2/s^3','tt'  )
       call ncinfo(ncstattke( 6,:),'p_t'  ,'Shear production term'                , 'm^2/s^3','tt'  )
       call ncinfo(ncstattke( 7,:),'t_v'  ,'Resolved viscous dissipation term'    , 'm^2/s^3','tt'  )
@@ -525,17 +541,16 @@ contains
                                umt,vmt,sv1t,sv2t,sv3t,sv4t,sv1tk,sv2tk,sv3tk,sv4tk,wsv1tk,wsv2tk,wsv3tk,wsv4tk,&
                                sv1sgst,sv2sgst,sv3sgst,sv4sgst,qtt,pt,PSSt,& !,sv1max,sv2max,sv3max,sv4max
                                ncstattr,tr_ut,tr_vt,tr_wt,tr_thlt,tr_qtt,tr_qtRt,tr_qtAt,tr_sv1t,PSSt,tr_sv2t,tr_omegat
-  use modglobal,        only : ib,ie,ih,jb,je,dyi,jh,ke,kb,kh,rk3step,&
+  use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,&
                                timee,tsample,tstatsdump,tstatstart,imax,jmax,dzf,&
-                               ltempeq,dxf,dzf,dzh2i,&
-                               lkslicedump,lislicedump,ljslicedump,lchem,dzhi,dzfi,dzhiq,dxhi,lmoist,nsv,&
+                               ltempeq,dxf,dzf,&
+                               lkslicedump,lislicedump,ljslicedump,lchem,dzhi,dxhi,lmoist,nsv,&
                                k1,JNO2,lchem,kslice,isliceloc,jsliceloc,islicerank,jslicerank,&
                                ltreedump
 !  use modsubgriddata,   only : ekm,sbshr
   use modstat_nc,       only : writestat_nc,writestat_1D_nc
   use modmpi,           only : myid,avey_ibm,&
                                avexy_ibm
-  use modsubgrid,       only : ekh,ekm
   use modstatistics,    only : genstats,tkestats
   use vegetation,       only : vegp, npts_u, npts_v, npts_w, ijk_u, ijk_v, ijk_w, veg_up, veg_vp, veg_wp
   ! use, intrinsic :: ieee_arithmetic
@@ -732,8 +747,8 @@ contains
 
   real, allocatable :: field(:,:), varsy(:,:,:),varsyt(:,:,:),varstke(:,:),varsxy(:,:),&
                        varkslice(:,:,:),varislice(:,:,:),varjslice(:,:,:),varsxyt(:,:),varst(:,:,:,:),varstr(:,:,:,:),varsmint(:,:,:,:)
-  real    :: tstatsdumppi,emom
-  integer :: i,j,k
+  real    :: tstatsdumppi
+  integer :: i,j,k,n
 
   if (timee < tstatstart) return
 
@@ -830,33 +845,12 @@ contains
               wc(i,j,k) = 0.5*        (wm(i,j,k+1)        + wm(i,j,k))
             end if
 
-            ! SGS fluxes
-            ! interps ekm to cell corner (uw)
-            emom = ( dzf(k-1) * ( ekm(i,j,k)*dxf(i-1)  + ekm(i-1,j,k)*dxf(i) )  + &
-                     dzf(k)   * ( ekm(i,j,k-1)*dxf(i-1) + ekm(i-1,j,k-1)*dxf(i) ) )*dxhi(i) * dzhiq(k)
-            usgs(i,j,k)  = emom * ( (um(i,j,k)-um(i,j,k-1)) *dzhi(k) &
-                        +(wm(i,j,k)-wm(i-1,j,k))  *dxhi(i))
-
-            ! interps ekm to cell corner (vw)
-            emom = ( dzf(k-1) * ( ekm(i,j,k)  + ekm(i,j-1,k) )  + &
-                     dzf(k)   * ( ekm(i,j,k-1) + ekm(i,j-1,k-1) ) ) * dzhiq(k)
-
-            vsgs(i,j,k)  = emom * ( (vm(i,j,k)-vm(i,j,k-1)) *dzhi(k) &
-                        +(wm(i,j,k)-wm(i,j-1,k))  *dyi)
-
          end do
        end do
      end do
 
-     do k=kb,ke
-       do j=jb,je
-         do i=ib,ie
-           wsgs(i,j,k) = ( ekm(i,j,k) * (wm(i,j,k+1)-wm(i,j,k)) *dzfi(k) &
-                     -ekm(i,j,k-1)* (wm(i,j,k)-wm(i,j,k-1)) *dzfi(k-1) ) * 2. &
-                     * dzhi(k) ! tg3315 check this
-         end do
-       end do
-     end do
+     !> SGS fluxes
+     call compute_sgs_fluxes(usgs,vsgs,wsgs,thlsgs,qtsgs,sv1sgs,sv2sgs,sv3sgs,sv4sgs)
 
     if (ltempeq) then
       do k=kb,ke+kh
@@ -865,11 +859,6 @@ contains
               thlk(i,j,k) = 0.5*dzhi(k)*(thlm(i,j,k)*dzf(k-1) + thlm(i,j,k-1)*dzf(k))
           end do
         end do
-      end do
-      do k=kb,ke
-        !> SGS fluxes
-        thlsgs(:,:,k) = 0.5 * (dzf(k-1)*ekh(:,:,k) + dzf(k)*ekh(:,:,k-1)) &
-                        * (thlm(:,:,k)-thlm(:,:,k-1)) * dzh2i(k)
       end do
     end if
 
@@ -881,24 +870,15 @@ contains
           end do
         end do
       end do
-      do k=kb,ke
-        !> SGS fluxes
-        qtsgs(:,:,k) = 0.5 * (dzf(k-1)*ekh(:,:,k) + dzf(k)*ekh(:,:,k-1)) &
-                        * (qtm(:,:,k)-qtm(:,:,k-1)) * dzh2i(k)
-      end do
     end if
 
     if (nsv>0) then
-      do k=kb,ke
+      do k=kb,ke+kh
         do j=jb,je
           do i=ib,ie
               sv1k(i,j,k) = 0.5*dzhi(k)*(svm(i,j,k,1)*dzf(k-1) + svm(i,j,k-1,1)*dzf(k))
           end do
         end do
-      end do
-      do k=kb,ke
-        sv1sgs(ib:ie,jb:je,k) = 0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
-                        * (svm(ib:ie,jb:je,k,1)-svm(ib:ie,jb:je,k-1,1)) * dzh2i(k)
       end do
     end if
 
@@ -910,10 +890,6 @@ contains
           end do
         end do
       end do
-      do k=kb,ke
-        sv2sgs(ib:ie,jb:je,k) = 0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
-                        * (svm(ib:ie,jb:je,k,2)-svm(ib:ie,jb:je,k-1,2)) * dzh2i(k)
-      end do
     end if
 
     if (nsv>2) then
@@ -924,10 +900,6 @@ contains
           end do
         end do
       end do
-      do k=kb,ke
-        sv3sgs(ib:ie,jb:je,k) = 0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
-                        * (svm(ib:ie,jb:je,k,3)-svm(ib:ie,jb:je,k-1,3)) * dzh2i(k)
-      end do
     end if
 
     if (nsv>3) then
@@ -937,10 +909,6 @@ contains
               sv4k(i,j,k) = 0.5*dzhi(k)*(svm(i,j,k,4)*dzf(k-1) + svm(i,j,k-1,4)*dzf(k))
           end do
         end do
-      end do
-      do k=kb,ke
-        sv4sgs(ib:ie,jb:je,k) = 0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
-                        * (svm(ib:ie,jb:je,k,4)-svm(ib:ie,jb:je,k-1,4)) * dzh2i(k)
       end do
     end if
 
@@ -971,7 +939,7 @@ contains
         call avey_ibm(wy,wm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
         call avey_ibm(uwyik,uik(ib:ie,jb:je,kb:ke)*wik(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
         call avey_ibm(usgsy,usgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIuw(ib:ie,jb:je,kb:ke),IIuwt(ib:ie,kb:ke))
-        call avey_ibm(wsgsy,wsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
+        call avey_ibm(wsgsy,wsgs(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
         if (ltempeq) then
           call avey_ibm(thly,thlm(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIc(ib:ie,jb:je,kb:ke),IIct(ib:ie,kb:ke))
           call avey_ibm(wthlyk,wm(ib:ie,jb:je,kb:ke)*thlk(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIwt(ib:ie,kb:ke))
@@ -1041,17 +1009,23 @@ contains
         !> Spatial averages of mean quantities
         call avexy_ibm(uxy(kb:ke+kh),um(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
         call avexy_ibm(vxy(kb:ke+kh),vm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-        call avexy_ibm(wxy(kb:ke+kh),wm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+        ! The w-located averages below pass lnan=.true. so that the masked bottom
+        ! level reports -999. The lnan=.false. branch in avexy_ibm replaces the
+        ! masked kb level by an unmasked local sum divided by the fluid-point
+        ! count at ke; it exists only because modthermodynamics needs a finite
+        ! value at kb, and modibm sets IIw/IIuw/IIvw(:,:,kb)=0 for every IBM run,
+        ! so it would otherwise corrupt kb of every SGS profile.
+        call avexy_ibm(wxy(kb:ke+kh),wm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
         if (ltempeq) then
           call avexy_ibm(thlxy(kb:ke+kh),thlm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-          call avexy_ibm(thlsgsxy(kb:ke+kh),thlsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+          call avexy_ibm(thlsgsxy(kb:ke+kh),thlsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
         end if
         if (lmoist) then
           call avexy_ibm(qtxy(kb:ke+kh),qtm(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
         end if
         call avexy_ibm(pxy(kb:ke+kh),pres0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-        call avexy_ibm(usgsxy(kb:ke+kh),usgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-        call avexy_ibm(vsgsxy(kb:ke+kh),vsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
+        call avexy_ibm(usgsxy(kb:ke+kh),usgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
+        call avexy_ibm(vsgsxy(kb:ke+kh),vsgs(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
 
       end if ! lxydump .or. lxytdump
 
@@ -1076,6 +1050,20 @@ contains
 
         if (ltempeq) then
           wpthlpxyk = wthlxyk - wxy*thlxyk
+        end if
+
+        !> These are differences of averages, so a masked level (-999.) in either
+        !  operand produces a meaningless product. Restore the sentinel.
+        where (IIuws(kb:ke+kh)==0)
+          upwpxyik = -999.
+        endwhere
+        where (IIvws(kb:ke+kh)==0)
+          vpwpxyjk = -999.
+        endwhere
+        if (ltempeq) then
+          where (IIws(kb:ke+kh)==0)
+            wpthlpxyk = -999.
+          endwhere
         end if
 
       end if ! lxydump
@@ -1643,6 +1631,16 @@ contains
           varst(:,:,:,31) = sv3sgst(ib:ie,jb:je,kb:ke)
           varst(:,:,:,32) = sv4sgst(ib:ie,jb:je,kb:ke)
 
+          !> The SGS scalar fluxes live at the w-levels and are computed with the
+          !  interior formula everywhere, so solid and wall-adjacent faces hold a
+          !  value the solver never used. Flag them with the same -999. convention
+          !  the masked averages (avey_ibm/avexy_ibm) use.
+          do n=29,32
+            where (IIw(ib:ie,jb:je,kb:ke)==0)
+              varst(:,:,:,n) = -999.
+            endwhere
+          end do
+
           ! varst(:,:,:,33) = sv1max(ib:ie,jb:je,kb:ke)
           ! varst(:,:,:,34) = sv2max(ib:ie,jb:je,kb:ke)
           ! varst(:,:,:,35) = sv3max(ib:ie,jb:je,kb:ke)
@@ -1735,6 +1733,124 @@ contains
 
   end subroutine statsdump
 
+  !--------------------------------------------------------------------------
+  !> Subgrid-scale (SGS) fluxes used by the statistics output.
+  !!
+  !! Extracted from statsdump so that the in-solver test TEST_SGS_STATS
+  !! (runmode 1006, see tests.f90) exercises exactly the same stencils the
+  !! solver writes out, rather than a copy that can silently drift.
+  !!
+  !! Sign convention: the returned quantities ARE the physical SGS fluxes,
+  !! i.e. usgs = <u'w'>_sgs = -K_m*(du/dz + dw/dx), and therefore carry the
+  !! same sign as the resolved fluxes written alongside them in the same
+  !! files. The corresponding diffusion terms in modsubgrid add +d/dz(K_m*..)
+  !! to the tendency, so the flux is minus that quantity.
+  !!
+  !! Time-level note: subgrid computes ekm/ekh from the state at the input of
+  !! RK substep 3, whereas statsdump is called with um/vm/wm/thlm/qtm/svm at
+  !! the output of that substep. The resulting O(dt) inconsistency is
+  !! negligible for statistics; it is deliberate and should not be "fixed"
+  !! by moving either call.
+  !--------------------------------------------------------------------------
+  subroutine compute_sgs_fluxes(usgs,vsgs,wsgs,thlsgs,qtsgs,sv1sgs,sv2sgs,sv3sgs,sv4sgs)
+    use modglobal,  only : ib,ie,ih,jb,je,jh,kb,ke,kh,dxf,dxhi,dyi,dzf,dzfi,dzhi,dzhiq,dzh2i,&
+                           ltempeq,lmoist,nsv
+    use modfields,  only : um,vm,wm,thlm,qtm,svm
+    use modsubgrid, only : ekh,ekm
+    implicit none
+
+    real, intent(out) :: usgs  (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+    real, intent(out) :: vsgs  (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+    real, intent(out) :: wsgs  (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+    real, intent(out) :: thlsgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+    real, intent(out) :: qtsgs (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+    real, intent(out) :: sv1sgs(ib:ie,jb:je,kb:ke+kh)
+    real, intent(out) :: sv2sgs(ib:ie,jb:je,kb:ke+kh)
+    real, intent(out) :: sv3sgs(ib:ie,jb:je,kb:ke+kh)
+    real, intent(out) :: sv4sgs(ib:ie,jb:je,kb:ke+kh)
+
+    real    :: emom
+    integer :: i,j,k
+
+    usgs = 0.; vsgs = 0.; wsgs = 0.; thlsgs = 0.; qtsgs = 0.
+    sv1sgs = 0.; sv2sgs = 0.; sv3sgs = 0.; sv4sgs = 0.
+
+    !> Momentum fluxes at the cell corners (uw and vw)
+    do k=kb,ke+kh
+      do j=jb,je
+        do i=ib,ie
+
+          ! interps ekm to cell corner (uw)
+          emom = ( dzf(k-1) * ( ekm(i,j,k)*dxf(i-1)  + ekm(i-1,j,k)*dxf(i) )  + &
+                   dzf(k)   * ( ekm(i,j,k-1)*dxf(i-1) + ekm(i-1,j,k-1)*dxf(i) ) )*dxhi(i) * dzhiq(k)
+          usgs(i,j,k)  = -emom * ( (um(i,j,k)-um(i,j,k-1)) *dzhi(k) &
+                      +(wm(i,j,k)-wm(i-1,j,k))  *dxhi(i))
+
+          ! interps ekm to cell corner (vw)
+          emom = ( dzf(k-1) * ( ekm(i,j,k)  + ekm(i,j-1,k) )  + &
+                   dzf(k)   * ( ekm(i,j,k-1) + ekm(i,j-1,k-1) ) ) * dzhiq(k)
+
+          vsgs(i,j,k)  = -emom * ( (vm(i,j,k)-vm(i,j,k-1)) *dzhi(k) &
+                      +(wm(i,j,k)-wm(i,j-1,k))  *dyi)
+
+        end do
+      end do
+    end do
+
+    !> Normal stress tau_33 = -2*K_m*dw/dz, which lives at the cell centre
+    do k=kb,ke
+      do j=jb,je
+        do i=ib,ie
+          wsgs(i,j,k) = -2. * ekm(i,j,k) * (wm(i,j,k+1)-wm(i,j,k)) * dzfi(k)
+        end do
+      end do
+    end do
+
+    !> Scalar fluxes at the w-levels
+    if (ltempeq) then
+      do k=kb,ke+kh
+        thlsgs(:,:,k) = -0.5 * (dzf(k-1)*ekh(:,:,k) + dzf(k)*ekh(:,:,k-1)) &
+                        * (thlm(:,:,k)-thlm(:,:,k-1)) * dzh2i(k)
+      end do
+    end if
+
+    if (lmoist) then
+      do k=kb,ke+kh
+        qtsgs(:,:,k) = -0.5 * (dzf(k-1)*ekh(:,:,k) + dzf(k)*ekh(:,:,k-1)) &
+                        * (qtm(:,:,k)-qtm(:,:,k-1)) * dzh2i(k)
+      end do
+    end if
+
+    if (nsv>0) then
+      do k=kb,ke+kh
+        sv1sgs(ib:ie,jb:je,k) = -0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
+                        * (svm(ib:ie,jb:je,k,1)-svm(ib:ie,jb:je,k-1,1)) * dzh2i(k)
+      end do
+    end if
+
+    if (nsv>1) then
+      do k=kb,ke+kh
+        sv2sgs(ib:ie,jb:je,k) = -0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
+                        * (svm(ib:ie,jb:je,k,2)-svm(ib:ie,jb:je,k-1,2)) * dzh2i(k)
+      end do
+    end if
+
+    if (nsv>2) then
+      do k=kb,ke+kh
+        sv3sgs(ib:ie,jb:je,k) = -0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
+                        * (svm(ib:ie,jb:je,k,3)-svm(ib:ie,jb:je,k-1,3)) * dzh2i(k)
+      end do
+    end if
+
+    if (nsv>3) then
+      do k=kb,ke+kh
+        sv4sgs(ib:ie,jb:je,k) = -0.5 * (dzf(k-1)*ekh(ib:ie,jb:je,k) + dzf(k)*ekh(ib:ie,jb:je,k-1)) &
+                        * (svm(ib:ie,jb:je,k,4)-svm(ib:ie,jb:je,k-1,4)) * dzh2i(k)
+      end do
+    end if
+
+  end subroutine compute_sgs_fluxes
+
   !> Expand a sparse face-staggered vegetation field into a full 3D array.
   !! Takes explicit npts/ijk so it can be used for u-, v- or w-faces.
   subroutine veg_to_3d_face(npts, ijk, field_sparse, field_3d)
@@ -1810,6 +1926,7 @@ contains
 
   real, dimension(ib:ie,jb:je,kb:ke)  :: disssgsfl     ! average subgrid visc. * average rate of strain squared : 2*<nu_t>*<Sij>*<Sij>
   real, dimension(ib:ie,jb:je,kb:ke)  :: dissresav     ! average resolved dissipation: 2*nu*<Sij'*Sij'> = 2*nu*( <Sij*Sij> - <Sij>*<Sij> )
+  real, dimension(ib:ie,jb:je,kb:ke)  :: strainav2     ! rate of strain squared of the mean field: <Sij>*<Sij>
     real, dimension(ib:ie,jb:je,kb:ke)  :: tke           ! tke = 0.5*<ui'ui'>
     real, dimension(ib:ie,jb:je,kb:ke)  :: mke           ! = <ui>d/dxj(<ui><uj>) + <ui>d/dxj(<ui'uj'>) = <ui>d/dxj(<ui*uj>)
     real, dimension(ib-1:ie+1,jb-1:je+1,kb:ke)    :: dummyx
@@ -1817,7 +1934,6 @@ contains
     real, dimension(ib:ie,  jb  :je,  kb:ke+1)  :: dummyz
 
   integer i,j,k,ip,im,jp,jm,kp,km
-  real strainav2
 
     ! Tvav = (Tvm - <ui>*d/dxj(<Sij>)  ) + 2*nu*<Sij'Sij'>
     ! Tvm = Tvmx + Tvmy + Tvmz -> therefore: subtraction, then interpolation,
@@ -1882,12 +1998,12 @@ contains
                              -numol * (wav(i,j,k)-wav(i,j,km)) *dzfi(km) ) * 2. &
                              * dzhi(k))
 
-               strainav2 =  ( &
+               strainav2(i,j,k) =  ( &
                             ((uav(ip,j,k)-uav(i,j,k))    *dxfi(i)     )**2    + &
                             ((vav(i,jp,k)-vav(i,j,k))    *dyi         )**2    + &
                             ((wav(i,j,kp)-wav(i,j,k))    *dzfi(k)     )**2    )
 
-               strainav2 = strainav2 + 0.125 * ( &
+               strainav2(i,j,k) = strainav2(i,j,k) + 0.125 * ( &
                             ((wav(i,j,kp)-wav(im,j,kp))   *dxhi(i)     + &
                             (uav(i,j,kp)-uav(i,j,k))      *dzhi(kp)  )**2    + &
                             ((wav(i,j,k)-wav(im,j,k))     *dxhi(i)     + &
@@ -1897,7 +2013,7 @@ contains
                             ((wav(ip,j,kp)-wav(i,j,kp))   *dxhi(ip)     + &
                             (uav(ip,j,kp)-uav(ip,j,k))    *dzhi(kp)  )**2    )
 
-               strainav2 = strainav2 + 0.125 * ( &
+               strainav2(i,j,k) = strainav2(i,j,k) + 0.125 * ( &
                             ((uav(i,jp,k)-uav(i,j,k))     *dyi     + &
                             (vav(i,jp,k)-vav(im,jp,k))    *dxhi(i)        )**2    + &
                             ((uav(i,j,k)-uav(i,jm,k))     *dyi     + &
@@ -1907,7 +2023,7 @@ contains
                             ((uav(ip,jp,k)-uav(ip,j,k))   *dyi     + &
                             (vav(ip,jp,k)-vav(i,jp,k))    *dxhi(ip)       )**2    )
 
-               strainav2 = strainav2 + 0.125 * ( &
+               strainav2(i,j,k) = strainav2(i,j,k) + 0.125 * ( &
                            ((vav(i,j,kp)-vav(i,j,k))    *dzhi(kp) + &
                            (wav(i,j,kp)-wav(i,jm,kp))   *dyi        )**2    + &
                            ((vav(i,j,k)-vav(i,j,km))    *dzhi(k)+ &
@@ -1917,7 +2033,7 @@ contains
                            ((vav(i,jp,kp)-vav(i,jp,k))  *dzhi(kp) + &
                            (wav(i,jp,kp)-wav(i,j,kp))   *dyi        )**2    )
 
-               dissresav(i,j,k) = 2.*numol  *(strain2av(i,j,k) - strainav2)  !resolved dissipation
+               dissresav(i,j,k) = 2.*numol  *(strain2av(i,j,k) - strainav2(i,j,k))  !resolved dissipation
 
           end do
         end do
@@ -1998,7 +2114,7 @@ contains
      !---------------------------------------
 
              ! Mean SGS dissipation
-             disssgsfl(i,j,k) = 2.*nusgsav(i,j,k)*strainav2 ! = 2*<nu_sgs>*<sij>*<sij>
+             disssgsfl(i,j,k) = 2.*nusgsav(i,j,k)*strainav2(i,j,k) ! = 2*<nu_sgs>*<sij>*<sij>
 
 
              ! TKE
@@ -2013,8 +2129,8 @@ contains
                               0.5*( (tsgsmy1(i,j,k) -  vav(i,j,k) *tsgsmy2(i,j,k)) + &
                               (tsgsmy1(i,jp,k) - vav(i,jp,k)*tsgsmy2(i,jp,k))) &
                               + & ! = <2*nu_t*SijSij> - <2*nu_t*Sij>*<Sij>
-                              0.5*( (tsgsmz1(i,j,k) -  vav(i,j,k) *tsgsmz2(i,j,k)) + &
-                              (tsgsmz1(i,j,kp) - vav(i,j,kp)*tsgsmz2(i,j,kp))) &
+                              0.5*( (tsgsmz1(i,j,k) -  wav(i,j,k) *tsgsmz2(i,j,k)) + &
+                              (tsgsmz1(i,j,kp) - wav(i,j,kp)*tsgsmz2(i,j,kp))) &
                               + disssgsav(i,j,k) - disssgsfl(i,j,k)
              ! -2*<nu_t'Sij'>*<Sij>  should still be added!
 
@@ -2071,7 +2187,6 @@ contains
                                upvpav(i, jp,k) *(vav(i,jp,k)-vav(im,jp,k))*dxhi(i) + &
                                upvpav(ip,jp,k) *(vav(ip,jp,k)-vav(i,jp,k))*dxhi(ip)) + & ! <u'v'>*d<v>/dx
                                0.5 *(vpvpav(i,j,k)+vpvpav(i,jp,k))*(vav(i,jp,k)-vav(i,j,k))*dyi + & ! <v'v'>*d<v>/dy
-                               0.5 *(vpvpav(i,j,k)+vpvpav(i,jp,k))*(vav(i,jp,k)-vav(i,j,k))*dyi + & ! <v'v'>*d<v>/dy
                                0.25*(vpwpav(i,j ,k ) *(vav(i,j ,k )-vav(i,j,km))*dzhi(k) + &
                                vpwpav(i,j ,kp) *(vav(i,j ,kp)-vav(i,j ,k))*dzhi(kp) + &
                                vpwpav(i,jp,k ) *(vav(i,jp,k)-vav(i,jp,km))*dzhi(k) + &
@@ -2082,8 +2197,8 @@ contains
                                upwpav(ip,j,kp) *(wav(ip,j,kp)-wav(i,j,kp))*dxhi(ip)) + & ! <u'w'>*d<w>/dx
                                0.25*(vpwpav(i,j,k)  *(wav(i,j, k )-wav(i,jm,k ) )*dyi + &
                                vpwpav(i,jp,k) *(wav(i,jp,k )-wav(i,j, k ) )*dyi + &
-                               vpwpav(ip,j,k) *(wav(i,j, kp)-wav(i,jm,kp) )*dyi + &
-                               vpwpav(ip,jp,k)*(wav(i,jp,kp)-wav(i,j, kp) )*dyi) + & ! <v'w'>*d<w>/dy
+                               vpwpav(i,j,kp) *(wav(i,j, kp)-wav(i,jm,kp) )*dyi + &
+                               vpwpav(i,jp,kp)*(wav(i,jp,kp)-wav(i,j, kp) )*dyi) + & ! <v'w'>*d<w>/dy
                                0.5 *(wpwpav(i,j,k)+wpwpav(i,j,kp))*(wav(i,j,kp)-wav(i,j,k))*dzfi(k) ) ! <w'w'>*d<w>/dz
 
              ! Mean kinetic energy term (expected to be small).
