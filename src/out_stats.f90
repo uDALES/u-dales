@@ -58,6 +58,7 @@ module stats
   character(80)              :: timeVar(1,4)
   character(80), allocatable :: tVars(:,:), xytVars(:,:), xyVars(:,:), ytVars(:,:), yVars(:,:), treeVars(:,:)
   integer                    :: tVarsCount, xytVarsCount, xyVarsCount, ytVarsCount, yVarsCount, treeVarsCount
+  logical                    :: lstatsprepared = .false.  !< accumulators allocated and files created (done lazily at tstatstart)
   integer                    :: ctrt,    ncidt,    nrect, &
                                 ctrxyt,  ncidxyt,  nrecxyt, &
                                 ctrxy,   ncidxy,   nrecxy, &
@@ -362,6 +363,16 @@ module stats
       tstatsdumpp = 0.
       dumpcount = 0
       call ncinfo(timeVar( 1,:), 'time', 'Time', 's', 'time')
+    end subroutine stats_init
+
+    !> Allocate the accumulators and create the NetCDF files. Called from stats_main the
+    !> first time the sampling window is reached (timee >= tstatstart) rather than at
+    !> start-up, so a run that stops before its first window - a chain link cut at the
+    !> walltime, a short test - neither holds the accumulators nor leaves empty files.
+    subroutine stats_prepare
+      implicit none
+      if (lstatsprepared) return
+      lstatsprepared = .true.
 
       if(lstatsdump) then
         call stats_allocate_interp_and_sgs_vel
@@ -493,7 +504,7 @@ module stats
         
         deallocate(treeVars)
       end if
-    end subroutine stats_init
+    end subroutine stats_prepare
 
 
     subroutine stats_main
@@ -502,6 +513,8 @@ module stats
       if (timee < tstatstart) return
       if (.not. rk3step==3)  return
       if(.not.(lstatsdump .or. ltreedump)) return
+
+      if (.not. lstatsprepared) call stats_prepare
 
       ! For one-timestep diagnostics with dump intervals no larger than dt,
       ! treat the just-completed step as a valid first sample immediately
@@ -2202,6 +2215,7 @@ module stats
       use modstat_nc, only : exitstat_nc
       implicit none
       if(.not.(lstatsdump .or. ltreedump)) return
+      if(.not. lstatsprepared) return
 
       if (lstatsdump) then
         deallocate(uik,wik,vjk,wjk,uij,vij,uc,vc,wc,usgs,vsgs,wsgs)
