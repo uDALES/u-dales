@@ -260,6 +260,11 @@ module modglobal
    integer :: njslice      = 0        !<  number of j-slices
    character(50) :: slicevars = ''    !<  list of variables to be output in slices
 
+   ! Time-averaged statistics on the same planes as the instantaneous slices (see out_stats)
+   logical :: ltislicedump = .false.  !<  switch to output the time-averaged statistics on the yz-planes islice(1:nislice)
+   logical :: ltjslicedump = .false.  !<  switch to output the time-averaged statistics on the xz-planes jslice(1:njslice)
+   logical :: ltkslicedump = .false.  !<  switch to output the time-averaged statistics on the xy-planes kslice(1:nkslice)
+
    ! Outputting instantaneous probes sampled at every tsample
    logical :: lprobedump   = .false.  !<  switch to output probe (point) time series every tsample
    integer :: iprobe(1000) = 0        !<  i indices of probe points

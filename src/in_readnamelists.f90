@@ -124,6 +124,7 @@ use mpi
       lfielddump, fieldvars, &
       ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, ltkedump, &
       slicevars, lkslicedump, kslice, nkslice, lislicedump, islice, nislice, ljslicedump, jslice, njslice, &
+      ltislicedump, ltjslicedump, ltkslicedump, &
       probevars, lprobedump, nprobe, &
       tinstantstart, tinstantdump, tstatsdump, tsample, tstatstart, tstatsgap, tcheck
    namelist/TREES/ &
@@ -642,6 +643,9 @@ contains
       call MPI_BCAST(lislicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ljslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lkslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ltislicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ltjslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ltkslicedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lmintdump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ltdump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ltkedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)

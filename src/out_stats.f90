@@ -27,7 +27,9 @@
 module stats
   use modglobal,  only : cexpnr, ltempeq, lmoist, lchem, nsv, rk3step, &
                          ltdump, lxytdump, lxydump, lytdump, lydump, ltreedump, &
-                         ib, ie, ih, jb, je, jh, kb, ke, kh, jtot, &
+                         ltislicedump, ltjslicedump, ltkslicedump, &
+                         islice, nislice, jslice, njslice, kslice, nkslice, &
+                         ib, ie, ih, jb, je, jh, kb, ke, kh, itot, jtot, xf, xh, yf, yh, zf, zh, &
                          dxf, dzf, dzfi, dxhi, dzhi, dzh2i, dyi, dzhiq, &
                          timee, tstatsdump, tstatstart, tstatsgap, tsample, dt, runtime, btime, &
                          k1, JNO2
@@ -36,8 +38,10 @@ module stats
                          IIuw, IIuws, IIuwt, IIvw, IIvws, IIuv, IIuvs
   use modsubgrid, only : ekh, ekm
   use vegetation, only : veg, vegp, npts_u, npts_v, npts_w, ijk_u, ijk_v, ijk_w, veg_up, veg_vp, veg_wp
-  use modmpi,     only : cmyidx, myid, myidy, spatial_avg
-  use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset
+  use modmpi,     only : cmyidx, cmyidy, myid, myidx, myidy, spatial_avg
+  use decomp_2d,  only : zstart, zend
+  use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset, writeoffset_1dx
+  use netcdf
 
   implicit none
   private
@@ -48,6 +52,12 @@ module stats
   real    :: tsamplep, tstatsdumpp, tstatsdumppi
 
   logical :: lstatsdump, lstatstavgdump
+  logical :: ltavgslice   !< any time-averaged slice output (ltislicedump, ltjslicedump, ltkslicedump)
+  logical :: ltavg3d      !< any output built from the 3-D time-average accumulators (stats_t or slices)
+  character(80) :: filenametis, filenametjs, filenametks
+  integer :: ncidtis, nrectis, ncidtjs, nrectjs, ncidtks, nrectks
+  integer :: local_ntislice = 0   !< number of islice planes inside this rank's x-range
+  integer :: local_ntjslice = 0   !< number of jslice planes inside this rank's y-range
   
   character(80)              :: filenamet
   character(80)              :: filenamexyt
@@ -318,8 +328,15 @@ module stats
       integer :: nperiod
       real    :: tperiod
 
-      lstatsdump = ltdump .or. lxytdump .or. lxydump .or. lytdump .or. lydump
-      lstatstavgdump = ltdump .or. lxytdump .or. lytdump
+      ltavgslice = ltislicedump .or. ltjslicedump .or. ltkslicedump
+      ltavg3d    = ltdump .or. ltavgslice
+      lstatsdump = ltavg3d .or. lxytdump .or. lxydump .or. lytdump .or. lydump
+      lstatstavgdump = ltavg3d .or. lxytdump .or. lytdump
+
+      ! the time-averaged slices reuse the plane positions of the instantaneous slices
+      call stats_validate_slice_inputs(ltislicedump, nislice, islice, 'islice')
+      call stats_validate_slice_inputs(ltjslicedump, njslice, jslice, 'jslice')
+      call stats_validate_slice_inputs(ltkslicedump, nkslice, kslice, 'kslice')
       
       if(.not.(lstatsdump .or. ltreedump)) return
 
@@ -379,7 +396,7 @@ module stats
         if (ltempeq) call stats_allocate_interp_and_sgs_temp
         if (lmoist)  call stats_allocate_interp_and_sgs_moist
       end if
-      if(ltdump .or. lytdump .or. lydump) then
+      if(ltavg3d .or. lytdump .or. lydump) then
         if (nsv>0)   call stats_allocate_interp_and_sgs_scalar
       end if
 
@@ -389,12 +406,13 @@ module stats
         if (ltempeq) call stats_allocate_tavg_temp
         if (lmoist)  call stats_allocate_tavg_moist
       end if
-      if(ltdump .or. lytdump) then
+      if(ltavg3d .or. lytdump) then
         if (nsv>0)   call stats_allocate_tavg_scalar
       end if
 
-      !> Generate time averaged NetCDF: stats_t.xxx.xxx.xxx.nc
-      if (ltdump) then
+      !> Variable table of the outputs built from the 3-D accumulators, shared by
+      !> stats_t.xxx.xxx.nc and the time-averaged slice files; kept for the writers.
+      if (ltavg3d) then
         !> Total numbers of variables to be written
         tVarsCount = 14
         if (ltempeq) tVarsCount = tVarsCount + 6
@@ -409,10 +427,11 @@ module stats
         if (lmoist)  call stats_ncdescription_tavg_moist
         if (nsv>0)   call stats_ncdescription_tavg_scalar
         if ((lchem) .and. (nsv>2)) call stats_init_tavg_PSS
-        
-        call stats_createnc_tavg
 
-        deallocate(tVars)
+        if (ltdump)       call stats_createnc_tavg
+        if (ltislicedump) call stats_createnc_tislice
+        if (ltjslicedump) call stats_createnc_tjslice
+        if (ltkslicedump) call stats_createnc_tkslice
       end if
 
       !> Generate time, y and x averaged NetCDF: stats_xyt.xxx.nc
@@ -530,7 +549,7 @@ module stats
           if (ltempeq) call stats_interpolate_and_sgs_temp
           if (lmoist)  call stats_interpolate_and_sgs_moist
         end if
-        if(ltdump .or. lytdump .or. lydump) then
+        if(ltavg3d .or. lytdump .or. lydump) then
           if (nsv>0)   call stats_interpolate_and_sgs_scalar
         end if
 
@@ -539,10 +558,10 @@ module stats
           if (ltempeq) call stats_compute_tavg_temp
           if (lmoist)  call stats_compute_tavg_moist
         end if
-        if(ltdump .or. lytdump) then
+        if(ltavg3d .or. lytdump) then
           if (nsv>0) call stats_compute_tavg_scalar
         end if
-        if(ltdump) then
+        if(ltavg3d) then
           if ((lchem) .and. (nsv>2)) call stats_compute_tavg_PSS
         end if
 
@@ -597,12 +616,11 @@ module stats
         
         if(ltdump) then
           if (myidy == 0) call writestat_nc(ncidt, 'time', timee, nrect, .true.)
-          call stats_write_tavg_vel
-          if (ltempeq) call stats_write_tavg_temp
-          if (lmoist)  call stats_write_tavg_moist
-          if (nsv>0)   call stats_write_tavg_scalar
-          if ((lchem) .and. (nsv>2)) call stats_write_tavg_PSS
+          call stats_write_tavg
         end if
+        if (ltislicedump) call stats_write_tavg_islice
+        if (ltjslicedump) call stats_write_tavg_jslice
+        if (ltkslicedump) call stats_write_tavg_kslice
 
         if(lxytdump) then
           call stats_compute_xytavg_vel
@@ -656,10 +674,10 @@ module stats
           if (ltempeq) call stats_reset_tavg_temp
           if (lmoist)  call stats_reset_tavg_moist
         end if
-        if(ltdump .or. lytdump) then
+        if(ltavg3d .or. lytdump) then
           if (nsv>0)   call stats_reset_tavg_scalar
         end if
-        if(ltdump) then
+        if(ltavg3d) then
           if ((lchem) .and. (nsv>2)) call stats_reset_tavg_PSS
         end if
         if (ltreedump) then
@@ -1953,62 +1971,306 @@ module stats
 
 
     !! ## %% Time averaged statistics writing routines 
-    subroutine stats_write_tavg_vel
+    !> Fill fld with the time-averaged quantity `name` of the variable table,
+    !> evaluated from the accumulators. The one place holding every expression,
+    !> used by the 3-D writer and by the slice writers so that a slice is an
+    !> exact sub-array of stats_t.
+    subroutine stats_tavg_field(name, fld)
       implicit none
-      call writeoffset(ncidt, 'u', ut(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'v', vt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'w', wt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'p', pt(:,:,kb:ke), nrect, xdim, ydim, zdim)
+      character(*), intent(in)  :: name
+      real,         intent(out) :: fld(ib:ie, jb:je, kb:ke)
+      integer :: n
 
-      call writeoffset(ncidt, 'upwp', uwtik(:,:,kb:ke) - utik(:,:,kb:ke)*wtik(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'vpwp', vwtjk(:,:,kb:ke) - vtjk(:,:,kb:ke)*wtjk(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'upvp', uvtij(:,:,kb:ke) - utij(:,:,kb:ke)*vtij(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      
-      call writeoffset(ncidt, 'upup', uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'vpvp', vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'wpwp', wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'tke' , 0.5*( (uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke)) + (vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke)) + (wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke)) ) , nrect, xdim, ydim, zdim)
+      select case (name)
+      case ('u');        fld = ut(:,:,kb:ke)
+      case ('v');        fld = vt(:,:,kb:ke)
+      case ('w');        fld = wt(:,:,kb:ke)
+      case ('p');        fld = pt(:,:,kb:ke)
+      case ('upwp');     fld = uwtik(:,:,kb:ke) - utik(:,:,kb:ke)*wtik(:,:,kb:ke)
+      case ('vpwp');     fld = vwtjk(:,:,kb:ke) - vtjk(:,:,kb:ke)*wtjk(:,:,kb:ke)
+      case ('upvp');     fld = uvtij(:,:,kb:ke) - utij(:,:,kb:ke)*vtij(:,:,kb:ke)
+      case ('upup');     fld = uutc(:,:,kb:ke) - utc(:,:,kb:ke)*utc(:,:,kb:ke)
+      case ('vpvp');     fld = vvtc(:,:,kb:ke) - vtc(:,:,kb:ke)*vtc(:,:,kb:ke)
+      case ('wpwp');     fld = wwtc(:,:,kb:ke) - wtc(:,:,kb:ke)*wtc(:,:,kb:ke)
+      case ('tke');      fld = 0.5*( (uutc(:,:,kb:ke)-utc(:,:,kb:ke)*utc(:,:,kb:ke)) &
+                                 + (vvtc(:,:,kb:ke)-vtc(:,:,kb:ke)*vtc(:,:,kb:ke)) &
+                                 + (wwtc(:,:,kb:ke)-wtc(:,:,kb:ke)*wtc(:,:,kb:ke)) )
+      case ('usgs');     fld = usgst(:,:,kb:ke)
+      case ('vsgs');     fld = vsgst(:,:,kb:ke)
+      case ('wsgs');     fld = wsgst(:,:,kb:ke)
+      case ('thl');      fld = thlt(:,:,kb:ke)
+      case ('upthlp');   fld = uthlti(:,:,kb:ke) - ut(:,:,kb:ke)*thlti(:,:,kb:ke)
+      case ('vpthlp');   fld = vthltj(:,:,kb:ke) - vt(:,:,kb:ke)*thltj(:,:,kb:ke)
+      case ('wpthlp');   fld = wthltk(:,:,kb:ke) - wt(:,:,kb:ke)*thltk(:,:,kb:ke)
+      case ('thlpthlp'); fld = thlthlt(:,:,kb:ke) - thlt(:,:,kb:ke)*thlt(:,:,kb:ke)
+      case ('thlsgs');   fld = thlsgst(:,:,kb:ke)
+      case ('qt');       fld = qtt(:,:,kb:ke)
+      case ('wpqtp');    fld = wqttk(:,:,kb:ke) - wt(:,:,kb:ke)*qttk(:,:,kb:ke)
+      case ('qtpqtp');   fld = qtqtt(:,:,kb:ke) - qtt(:,:,kb:ke)*qtt(:,:,kb:ke)
+      case ('qtsgs');    fld = qtsgst(:,:,kb:ke)
+      case ('PSS');      fld = PSSt(:,:,kb:ke)
+      case default
+        do n = 1, nsv
+          if (name == trim(svtname(n))) then
+            fld = svt(:,:,kb:ke,n);                                        return
+          else if (name == trim(upsvptname(n))) then
+            fld = usvti(:,:,kb:ke,n) - ut(:,:,kb:ke)*svti(:,:,kb:ke,n);    return
+          else if (name == trim(vpsvptname(n))) then
+            fld = vsvtj(:,:,kb:ke,n) - vt(:,:,kb:ke)*svtj(:,:,kb:ke,n);    return
+          else if (name == trim(wpsvptname(n))) then
+            fld = wsvtk(:,:,kb:ke,n) - wt(:,:,kb:ke)*svtk(:,:,kb:ke,n);    return
+          else if (name == trim(svpsvptname(n))) then
+            fld = svsvt(:,:,kb:ke,n) - svt(:,:,kb:ke,n)*svt(:,:,kb:ke,n);  return
+          else if (name == trim(svsgsname(n))) then
+            fld = svsgst(:,:,kb:ke,n);                                     return
+          end if
+        end do
+        write(0,*) 'ERROR stats_tavg_field: unknown time-averaged variable ', name
+        stop 1
+      end select
+    end subroutine stats_tavg_field
 
-      call writeoffset(ncidt, 'usgs', usgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'vsgs', vsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'wsgs', wsgst(:,:,kb:ke), nrect, xdim, ydim, zdim)
-    end subroutine stats_write_tavg_vel
-
-    subroutine stats_write_tavg_temp
-      implicit none
-      call writeoffset(ncidt, 'thl'     , thlt(:,:,kb:ke)                                     , nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'upthlp'  , uthlti(:,:,kb:ke) - ut(:,:,kb:ke)*thlti(:,:,kb:ke)  , nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'vpthlp'  , vthltj(:,:,kb:ke) - vt(:,:,kb:ke)*thltj(:,:,kb:ke)  , nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'wpthlp'  , wthltk(:,:,kb:ke) - wt(:,:,kb:ke)*thltk(:,:,kb:ke)  , nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'thlpthlp', thlthlt(:,:,kb:ke) - thlt(:,:,kb:ke)*thlt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'thlsgs'  , thlsgst(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
-    end subroutine stats_write_tavg_temp
-
-    subroutine stats_write_tavg_moist
-      implicit none
-      call writeoffset(ncidt, 'qt'    , qtt(:,:,kb:ke)                                  , nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'wpqtp' , wqttk(:,:,kb:ke) - wt(:,:,kb:ke)*qttk(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'qtpqtp', qtqtt(:,:,kb:ke) - qtt(:,:,kb:ke)*qtt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-      call writeoffset(ncidt, 'qtsgs' , qtsgst(:,:,kb:ke)                               , nrect, xdim, ydim, zdim)
-    end subroutine stats_write_tavg_moist
-
-    subroutine stats_write_tavg_scalar
+    !> Full 3-D time averages: stats_t.xxx.xxx.nc
+    subroutine stats_write_tavg
       implicit none
       integer :: n
-      do n = 1, nsv
-        call writeoffset(ncidt, trim(svtname(n))    , svt(:,:,kb:ke,n)                                      , nrect, xdim, ydim, zdim)
-        call writeoffset(ncidt, trim(upsvptname(n)) , usvti(:,:,kb:ke,n) - ut(:,:,kb:ke)*svti(:,:,kb:ke,n)  , nrect, xdim, ydim, zdim)
-        call writeoffset(ncidt, trim(vpsvptname(n)) , vsvtj(:,:,kb:ke,n) - vt(:,:,kb:ke)*svtj(:,:,kb:ke,n)  , nrect, xdim, ydim, zdim)
-        call writeoffset(ncidt, trim(wpsvptname(n)) , wsvtk(:,:,kb:ke,n) - wt(:,:,kb:ke)*svtk(:,:,kb:ke,n)  , nrect, xdim, ydim, zdim)
-        call writeoffset(ncidt, trim(svpsvptname(n)), svsvt(:,:,kb:ke,n) - svt(:,:,kb:ke,n)*svt(:,:,kb:ke,n), nrect, xdim, ydim, zdim)
-        call writeoffset(ncidt, trim(svsgsname(n))  , svsgst(:,:,kb:ke,n)                                   , nrect, xdim, ydim, zdim)
+      real, allocatable :: fld(:,:,:)
+      allocate(fld(ib:ie, jb:je, kb:ke))
+      do n = 1, tVarsCount
+        call stats_tavg_field(trim(tVars(n,1)), fld)
+        call writeoffset(ncidt, trim(tVars(n,1)), fld, nrect, xdim, ydim, zdim)
       end do
-    end subroutine stats_write_tavg_scalar
+      deallocate(fld)
+    end subroutine stats_write_tavg
 
-    subroutine stats_write_tavg_PSS
+    !> Time averages on the yz-planes islice(1:nislice): stats_islice.xxx.xxx.nc, one file
+    !> per x-block that contains at least one plane, written by its myidy == 0 rank.
+    subroutine stats_write_tavg_islice
       implicit none
-      call writeoffset(ncidt, 'PSS', PSSt(:,:,kb:ke), nrect, xdim, ydim, zdim)
-    end subroutine stats_write_tavg_PSS
+      integer :: n, i, m
+      real, allocatable :: fld(:,:,:), tmp(:,:,:)
+      if (local_ntislice > 0) then   ! this rank holds at least one plane of this orientation
+        allocate(fld(ib:ie, jb:je, kb:ke), tmp(local_ntislice, jb:je, kb:ke))
+        if (myidy == 0) call writestat_nc(ncidtis, 'time', timee, nrectis, .true.)
+        do n = 1, tVarsCount
+          call stats_tavg_field(trim(tVars(n,1)), fld)
+          m = 0
+          do i = 1, nislice
+            if (islice(i) >= zstart(1) .and. islice(i) <= zend(1)) then
+              m = m + 1
+              tmp(m,:,:) = fld(islice(i) - zstart(1) + 1, :, :)
+            end if
+          end do
+          call writeoffset(ncidtis, trim(tVars(n,1)), tmp, nrectis, local_ntislice, ydim, zdim)
+        end do
+        deallocate(fld, tmp)
+      end if
+    end subroutine stats_write_tavg_islice
+
+    !> Time averages on the xz-planes jslice(1:njslice): stats_jslice.xxx.xxx.nc, one file
+    !> per y-block that contains at least one plane, written by its myidx == 0 rank.
+    subroutine stats_write_tavg_jslice
+      implicit none
+      integer :: n, j, m
+      real, allocatable :: fld(:,:,:), tmp(:,:,:)
+      if (local_ntjslice > 0) then   ! this rank holds at least one plane of this orientation
+        allocate(fld(ib:ie, jb:je, kb:ke), tmp(ib:ie, local_ntjslice, kb:ke))
+        if (myidx == 0) call writestat_nc(ncidtjs, 'time', timee, nrectjs, .true.)
+        do n = 1, tVarsCount
+          call stats_tavg_field(trim(tVars(n,1)), fld)
+          m = 0
+          do j = 1, njslice
+            if (jslice(j) >= zstart(2) .and. jslice(j) <= zend(2)) then
+              m = m + 1
+              tmp(:,m,:) = fld(:, jslice(j) - zstart(2) + 1, :)
+            end if
+          end do
+          call writeoffset_1dx(ncidtjs, trim(tVars(n,1)), tmp, nrectjs, xdim, local_ntjslice, zdim)
+        end do
+        deallocate(fld, tmp)
+      end if
+    end subroutine stats_write_tavg_jslice
+
+    !> Time averages on the xy-planes kslice(1:nkslice): stats_kslice.xxx.xxx.nc, one file
+    !> per x-block, written by its myidy == 0 rank.
+    subroutine stats_write_tavg_kslice
+      implicit none
+      integer :: n, k
+      real, allocatable :: fld(:,:,:), tmp(:,:,:)
+      allocate(fld(ib:ie, jb:je, kb:ke), tmp(ib:ie, jb:je, nkslice))
+      if (myidy == 0) call writestat_nc(ncidtks, 'time', timee, nrectks, .true.)
+      do n = 1, tVarsCount
+        call stats_tavg_field(trim(tVars(n,1)), fld)
+        do k = 1, nkslice
+          tmp(:,:,k) = fld(:, :, kslice(k))
+        end do
+        call writeoffset(ncidtks, trim(tVars(n,1)), tmp, nrectks, xdim, ydim, nkslice)
+      end do
+      deallocate(fld, tmp)
+    end subroutine stats_write_tavg_kslice
+
+    !> File creation for the time-averaged slices; same layout and coordinate
+    !> conventions as the instantaneous ins_[ijk]slice files.
+    subroutine stats_createnc_tislice
+      implicit none
+      local_ntislice = count(islice(1:nislice) >= zstart(1) .and. islice(1:nislice) <= zend(1))
+      if (local_ntislice > 0 .and. myidy == 0) then
+        filenametis = 'stats_islice.xxx.xxx.nc'
+        filenametis(14:16) = cmyidx
+        filenametis(18:20) = cexpnr
+        nrectis = 0
+        call open_nc(filenametis, ncidtis, nrectis, n1=local_ntislice, n2=jtot, n3=zdim)
+        if (nrectis == 0) then
+          call define_nc(ncidtis, 1, timeVar)
+          call writestat_dims_nc(ncidtis)
+          call stats_write_islice_xcoord(ncidtis)
+        end if
+        call define_nc(ncidtis, tVarsCount, tVars)
+      end if
+    end subroutine stats_createnc_tislice
+
+    subroutine stats_createnc_tjslice
+      implicit none
+      local_ntjslice = count(jslice(1:njslice) >= zstart(2) .and. jslice(1:njslice) <= zend(2))
+      if (local_ntjslice > 0 .and. myidx == 0) then
+        filenametjs = 'stats_jslice.xxx.xxx.nc'
+        filenametjs(14:16) = cmyidy
+        filenametjs(18:20) = cexpnr
+        nrectjs = 0
+        call open_nc(filenametjs, ncidtjs, nrectjs, n1=itot, n2=local_ntjslice, n3=zdim)
+        if (nrectjs == 0) then
+          call define_nc(ncidtjs, 1, timeVar)
+          call writestat_dims_nc(ncidtjs)
+          call stats_write_jslice_ycoord(ncidtjs)
+        end if
+        call define_nc(ncidtjs, tVarsCount, tVars)
+      end if
+    end subroutine stats_createnc_tjslice
+
+    subroutine stats_createnc_tkslice
+      implicit none
+      if (myidy == 0) then
+        filenametks = 'stats_kslice.xxx.xxx.nc'
+        filenametks(14:16) = cmyidx
+        filenametks(18:20) = cexpnr
+        nrectks = 0
+        call open_nc(filenametks, ncidtks, nrectks, n1=xdim, n2=jtot, n3=nkslice)
+        if (nrectks == 0) then
+          call define_nc(ncidtks, 1, timeVar)
+          call writestat_dims_nc(ncidtks)
+          call stats_write_kslice_zcoord(ncidtks)
+        end if
+        call define_nc(ncidtks, tVarsCount, tVars)
+      end if
+    end subroutine stats_createnc_tkslice
+
+    !> Slice coordinates: the x/y/z dimension of a slice file is the list of plane
+    !> positions on this rank; the global indices are kept as an attribute.
+    subroutine stats_write_islice_xcoord(ncid)
+      implicit none
+      integer, intent(in) :: ncid
+      integer :: varid, ierr, i, m
+      real    :: xcf(local_ntislice), xch(local_ntislice)
+      integer :: idx(local_ntislice)
+      m = 0
+      do i = 1, nislice
+        if (islice(i) >= zstart(1) .and. islice(i) <= zend(1)) then
+          m = m + 1
+          xcf(m) = xf(islice(i)); xch(m) = xh(islice(i)); idx(m) = islice(i)
+        end if
+      end do
+      ierr = nf90_inq_varid(ncid, 'xt', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'islice_indices', idx)
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'x-coordinate of i-slices (cell center)')
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, xcf)
+      end if
+      ierr = nf90_inq_varid(ncid, 'xm', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'islice_indices', idx)
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'x-coordinate of i-slices (cell edge)')
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, xch)
+      end if
+    end subroutine stats_write_islice_xcoord
+
+    subroutine stats_write_jslice_ycoord(ncid)
+      implicit none
+      integer, intent(in) :: ncid
+      integer :: varid, ierr, j, m
+      real    :: ycf(local_ntjslice), ych(local_ntjslice)
+      integer :: idx(local_ntjslice)
+      m = 0
+      do j = 1, njslice
+        if (jslice(j) >= zstart(2) .and. jslice(j) <= zend(2)) then
+          m = m + 1
+          ycf(m) = yf(jslice(j)); ych(m) = yh(jslice(j)); idx(m) = jslice(j)
+        end if
+      end do
+      ierr = nf90_inq_varid(ncid, 'yt', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'jslice_indices', idx)
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'y-coordinate of j-slices (cell center)')
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, ycf)
+      end if
+      ierr = nf90_inq_varid(ncid, 'ym', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'jslice_indices', idx)
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'y-coordinate of j-slices (cell edge)')
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, ych)
+      end if
+    end subroutine stats_write_jslice_ycoord
+
+    subroutine stats_write_kslice_zcoord(ncid)
+      implicit none
+      integer, intent(in) :: ncid
+      integer :: varid, ierr, k
+      real    :: zcf(nkslice), zch(nkslice)
+      do k = 1, nkslice
+        zcf(k) = zf(kslice(k)); zch(k) = zh(kslice(k))
+      end do
+      ierr = nf90_inq_varid(ncid, 'zt', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice(1:nkslice))
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'z-coordinate of k-slices (cell center)')
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, zcf)
+      end if
+      ierr = nf90_inq_varid(ncid, 'zm', varid)
+      if (ierr == nf90_noerr) then
+        ierr = nf90_redef(ncid)
+        ierr = nf90_put_att(ncid, varid, 'kslice_indices', kslice(1:nkslice))
+        ierr = nf90_put_att(ncid, varid, 'long_name', 'z-coordinate of k-slices (cell edge)')
+        ierr = nf90_enddef(ncid)
+        ierr = nf90_put_var(ncid, varid, zch)
+      end if
+    end subroutine stats_write_kslice_zcoord
+
+    subroutine stats_validate_slice_inputs(slice_enabled, n_slice, slice_array, slice_name)
+      implicit none
+      logical,          intent(in) :: slice_enabled
+      integer,          intent(in) :: n_slice
+      integer,          intent(in) :: slice_array(:)
+      character(len=*), intent(in) :: slice_name
+      if (.not. slice_enabled) return
+      if (n_slice <= 0) then
+        write(0, *) 'ERROR: lt', trim(slice_name), 'dump=.true. but n', trim(slice_name), '=', n_slice, ' (must be > 0)'
+        stop 1
+      end if
+      if (count(slice_array(1:n_slice) > 0) /= n_slice) then
+        write(0, *) 'ERROR: n', trim(slice_name), '=', n_slice, ' but only', count(slice_array(1:n_slice) > 0), &
+                    ' valid (>0) entries found in ', trim(slice_name), ' array'
+        stop 1
+      end if
+    end subroutine stats_validate_slice_inputs
 
 
     !! ## %% Time, y and x averaged statistics writing routines 
@@ -2222,7 +2484,7 @@ module stats
         if (ltempeq) deallocate(thli,thlj,thlk,thlsgs)
         if (lmoist)  deallocate(qtk,qtsgs)
       end if
-      if (ltdump .or. lytdump .or. lydump) then
+      if (ltavg3d .or. lytdump .or. lydump) then
         if (nsv>0)   deallocate(svi,svj,svk,svsgs)
       end if
 
@@ -2234,10 +2496,10 @@ module stats
         if (ltempeq) deallocate(thlt,thlti,thltj,thltk,uthlti,vthltj,wthltk,thlthlt,thlsgst)
         if (lmoist)  deallocate(qtt,qttk,wqttk,qtqtt,qtsgst)
       end if
-      if (ltdump .or. lytdump) then
+      if (ltavg3d .or. lytdump) then
         if (nsv>0)   deallocate(svt,svti,svtj,svtk,usvti,vsvtj,wsvtk,svsvt,svsgst)
       end if
-      if (ltdump) then  
+      if (ltavg3d) then
         if (nsv>0)   deallocate(svtname,upsvptname,vpsvptname,wpsvptname,svpsvptname,svsgsname)
         if ((lchem) .and. (nsv>2)) deallocate(PSS,PSSt)
       end if
@@ -2245,6 +2507,10 @@ module stats
       if (ltdump) then
         if (myidy==0) call exitstat_nc(ncidt)
       end if
+      if (ltislicedump .and. local_ntislice > 0 .and. myidy == 0) call exitstat_nc(ncidtis)
+      if (ltjslicedump .and. local_ntjslice > 0 .and. myidx == 0) call exitstat_nc(ncidtjs)
+      if (ltkslicedump .and. myidy == 0) call exitstat_nc(ncidtks)
+      if (ltavg3d) deallocate(tVars)
 
       if (lxytdump) then
         deallocate(uxyt,vxyt,wxyt,pxyt,usgsxyt,vsgsxyt,wsgsxyt)

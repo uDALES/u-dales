@@ -28,6 +28,10 @@ check_existing_variables() {
         echo "Error: Sample file $sample_file not found"
         return 1
     fi
+    if ! command -v ncdump >/dev/null 2>&1; then
+        echo "Error: ncdump not found in PATH; it is needed to detect the staggered variables (load a NetCDF module)" >&2
+        exit 1
+    fi
     
     # Get list of variables in the file
     local available_vars=$(ncdump -h "$sample_file" 2>/dev/null | grep -E "^\s+(int|float|double|byte|char|short|long)" | awk '{print $2}' | sed 's/(.*//' | tr '\n' ',' | sed 's/,$//')
@@ -48,6 +52,19 @@ check_existing_variables() {
     done
     
     echo "$existing_vars"
+}
+
+# List the distinct dump types matching a glob (e.g. "stats_*", "ins_?slice"), whatever the
+# block number of their files: slice files exist only for the blocks that contain a plane,
+# so a ".000." file cannot be assumed.
+list_dump_types() {
+    local pattern="$1"
+    ls ${pattern}.???.${expnr}.nc 2>/dev/null | sed "s/\.[0-9][0-9][0-9]\.${expnr}\.nc$//" | sort -u
+}
+
+# First existing file of a dump type (used as the sample for check_existing_variables)
+first_file_of() {
+    ls ${1}.???.${expnr}.nc 2>/dev/null | head -n 1
 }
 
 if (( $# == 1 )) ; then
@@ -94,19 +111,19 @@ for file in *dump.*.000.${expnr}.nc ; do
     fi
 done
 
-## call loop for ins_jslice*
-for file in ins_?slice.000.${expnr}.nc ; do
-    if [ -f $file ]; then
-        dumps=${file%.000.${expnr}.nc}
-
-        # Skip processing for ins_islice and ins_kslice
-        if [ $dumps == "ins_islice" ] || [ $dumps == "ins_kslice" ]; then
-            continue
-        fi
+## call loop for ins_jslice* and stats_jslice* (one file per y-block, gathered along y)
+for dumps in $(list_dump_types "ins_jslice") $(list_dump_types "stats_jslice") ; do
+    file=$(first_file_of $dumps)
+    if [ -f "$file" ]; then
 
         if [ $dumps == "ins_jslice" ]; then
             echo "Merging $dumps along y-direction."
             proposed_ymparam="ym"
+            ymparam=$(check_existing_variables "$proposed_ymparam" "$file")
+        elif [ $dumps == "stats_jslice" ]; then
+            # time-averaged statistics on xz-planes: same variables (and staggering) as stats_t
+            echo "Merging $dumps along y-direction."
+            proposed_ymparam="v,vpwp,upvp,vsgs,vpthlp,vps1p,vps2p,vps3p,vps4p,ym"
             ymparam=$(check_existing_variables "$proposed_ymparam" "$file")
         else
             ymparam="ym"
@@ -150,14 +167,19 @@ for file in *dump.000.${expnr}.nc ; do
     fi
 done
 
-## call loop for stats_*
-for file in stats_*.000.${expnr}.nc ; do
-    if [ -f $file ]; then
-        dumps=${file%.000.${expnr}.nc}
+## call loop for stats_* (stats_jslice is gathered along y above)
+for dumps in $(list_dump_types "stats_*") ; do
+    file=$(first_file_of $dumps)
+    if [ -f "$file" ]; then
 
-        if [ $dumps == "stats_t" ]; then
+        if [ $dumps == "stats_jslice" ]; then
+            continue
+        fi
+
+        if [ $dumps == "stats_t" ] || [ $dumps == "stats_islice" ] || [ $dumps == "stats_kslice" ]; then
+            # stats_islice/stats_kslice hold the same variables and staggering as stats_t
 	        echo "Merging $dumps along x-direction."	
-            proposed_xmparam="u,upwp,upvp,usgs,upthlp,ups1p,ups2p,ups3p,xm"
+            proposed_xmparam="u,upwp,upvp,usgs,upthlp,ups1p,ups2p,ups3p,ups4p,xm"
             xmparam=$(check_existing_variables "$proposed_xmparam" "$file")
         elif [ $dumps == "stats_yt" ] || [ $dumps == "stats_y" ]; then
 	        echo "Merging $dumps along x-direction."	
@@ -183,14 +205,9 @@ for file in stats_*.000.${expnr}.nc ; do
 done
 
 ## call loop for ins_islice* and ins_kslice* (but not ins_jslice*)
-for file in ins_?slice.000.${expnr}.nc ; do
-    if [ -f $file ]; then
-        dumps=${file%.000.${expnr}.nc}
-
-        # Skip processing for ins_jslice
-        if [ $dumps == "ins_jslice" ]; then
-            continue
-        fi
+for dumps in $(list_dump_types "ins_islice") $(list_dump_types "ins_kslice") ; do
+    file=$(first_file_of $dumps)
+    if [ -f "$file" ]; then
 
         if [ $dumps == "ins_kslice" ]; then
             echo "Merging $dumps along x-direction."
