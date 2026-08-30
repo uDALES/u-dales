@@ -2,8 +2,28 @@
 
 Below we specify the input parameters in the `namoptions` file of your experiment.
 
+## Schema Tooling
+
+The complete JSON schema with parameter definitions, types, defaults, and validation rules is available in [`schemas/udales_input_schema.json`](schemas/udales_input_schema.json). It is intended for tooling, editor support, and validation of machine-generated representations of the namelist interface. Runtime input remains namelist-based.
+
+Tools may represent the namelist structure in JSON like this:
+
+```json
+{
+  "RUN": {
+    "iexpnr": 1,
+    "runtime": 100.0,
+    "lwarmstart": false
+  },
+  "DOMAIN": {
+    "itot": 64,
+    "jtot": 64,
+    "ktot": 64
+  }
+}
+```
+
 <!--
-This list 
 This list refers to the original code-base [DALES](https://github.com/dalesteam/dales). The latest version of the namoptions overview of DALES is documented [here](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf).
 -->
 ## Namelist RUN
@@ -264,7 +284,11 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | tsample | 5. | `REAL` | Sample time for statistics. | [s] |
 | tstatsdump | 10000. | `REAL` | Output time for statistics. | [s] |
 | tstatstart | 0. | `REAL` | Time from which statistics computation or data sampling starts. | [s] |
+| tstatsgap | 0. | `REAL` | If > 0, time-averaged statistics are written on a fixed absolute schedule: dumps at `tstatstart + n*(tstatsdump + tstatsgap)` (n = 1, 2, ...), each averaging the `tstatsdump` seconds preceding it; no sampling during the gap. The schedule is kept across warm starts. E.g. `tstatstart = 21600`, `tstatsdump = 900`, `tstatsgap = 13500` gives 15-min means ending at t = 36000, 50400, ... | [s] |
 | ltdump | .false. | .true. or .false. | Switch to output time-averaged statistics. | - |
+| ltislicedump | .false. | .true. or .false. | Write the time-averaged statistics (same variables and schedule as `ltdump`) only on the yz-planes `islice(1:nislice)`, to `stats_islice.xxx.xxx.nc`. Can be used with or without `ltdump`. | - |
+| ltjslicedump | .false. | .true. or .false. | As `ltislicedump` for the xz-planes `jslice(1:njslice)`, to `stats_jslice.xxx.xxx.nc`. | - |
+| ltkslicedump | .false. | .true. or .false. | As `ltislicedump` for the xy-planes `kslice(1:nkslice)`, to `stats_kslice.xxx.xxx.nc`. | - |
 | lydump | .false. | .true. or .false. | Switch to output y-averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lytdump | .false. | .true. or .false. | Switch to output y- and time- averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lxydump | .false. | .true. or .false. | Switch to output x- and y- averaged statistics. | - |
