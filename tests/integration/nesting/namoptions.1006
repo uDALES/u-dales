@@ -1,0 +1,46 @@
+&RUN
+iexpnr       = 901
+runmode      = 1006
+runtime      = 1.
+trestart     = 1.e9
+dtmax        = 1.
+ladaptive    = .false.
+libm         = .false.
+nprocx       = 1
+nprocy       = 1
+/
+
+&DOMAIN
+itot         = 32
+jtot         = 32
+ktot         = 16
+xlen         = 32.
+ylen         = 32.
+/
+
+&BC
+BCxm         = 4
+BCym         = 3
+/
+
+&DYNAMICS
+ipoiss       = 0
+/
+
+&NESTING
+lnesting        = .true.
+nestfile        = 'nesting_analytic.901.nc'
+nest_guardwidth = 3.
+nest_zonewidth  = 8.
+nest_tau        = 4.
+nest_shape      = 1
+nest_timeinterp = 2
+nest_nwall      = 1
+nest_lparentgeom = .true.
+nest_fluxtol     = 1.e-10
+nest_lfluxassert = .true.
+/
+
+&INPS
+zsize        = 16.
+/
