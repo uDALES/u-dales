@@ -176,9 +176,12 @@ contains
         call fluxtop(v0, ekm, 0.0)
         w0(:, :, ke + 1) = 0.0
         wm(:, :, ke + 1) = 0.0
+        ! Zero flux, matching the momentum condition above: a free-slip lid is
+        ! a symmetry plane, not a place for subgrid energy to leave the domain.
+        ! Same condition as the ground (modibm.f90, subroutine bottom).
         if (loneeqn) then
-          e120(:, :, ke + 1) = e12min
-          e12m(:, :, ke + 1) = e12min
+          e120(:, :, ke + 1) = e120(:, :, ke)
+          e12m(:, :, ke + 1) = e12m(:, :, ke)
         end if
      case(BCtopm_noslip)
         !no-slip = fixed velocity at wall
@@ -188,14 +191,22 @@ contains
         call valuetop(v0, Vinf)
         w0(:, :, ke + 1) = 0.0
         wm(:, :, ke + 1) = 0.0
+        ! Dirichlet, matching the momentum condition above: the subgrid TKE
+        ! goes to zero at a solid wall, and e12min is the floor the one-equation
+        ! model is kept above. This branch previously set no condition at all.
+        if (loneeqn) then
+          e120(:, :, ke + 1) = e12min
+          e12m(:, :, ke + 1) = e12min
+        end if
       case(BCtopm_pressure)
          call fluxtop(um, ekm, 0.0)
          call fluxtop(u0, ekm, 0.0)
          call fluxtop(vm, ekm, 0.0)
          call fluxtop(v0, ekm, 0.0)
+         ! Zero flux: an open top is not a wall. See BCtopm_freeslip above.
          if (loneeqn) then
-           e120(:, :, ke + 1) = e12min
-           e12m(:, :, ke + 1) = e12min
+           e120(:, :, ke + 1) = e120(:, :, ke)
+           e12m(:, :, ke + 1) = e12m(:, :, ke)
          end if
          ! w considered in modpois
       case default
