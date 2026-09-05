@@ -1,0 +1,91 @@
+! Template for the nesting integration matrix I2-I8
+! (docs/udales-nesting-design.md section 10.3).
+!
+! tests/integration/nesting/make_case_fixtures.py substitutes the grid, the
+! zone geometry and whatever else a given case needs; every key a test may
+! change must therefore be PRESENT here, even at its default value, because
+! the substitution is a line rewrite and fails loudly on a missing key.
+!
+! Physics is switched off deliberately: the manufactured parent fields are
+! fixed points of the momentum equation on a free-slip box, so anything the
+! run does to them is the nesting scheme's doing and nothing else.
+
+&RUN
+iexpnr       = 902
+runmode      = 1
+runtime      = 5.
+trestart     = 1.e9
+dtmax        = 0.5
+ladaptive    = .false.
+irandom      = 43
+randu        = 0.
+randthl      = 0.
+krand        = 1
+lrandomize   = .false.
+lwarmstart   = .false.
+startfile    = 'initdlatestx000y000.902'
+libm         = .false.
+lles         = .true.
+nprocx       = 1
+nprocy       = 1
+/
+
+&DOMAIN
+itot         = 32
+jtot         = 32
+ktot         = 16
+xlen         = 32.
+ylen         = 32.
+/
+
+&PHYSICS
+ltempeq      = .false.
+lbuoyancy    = .false.
+lcoriol      = .false.
+lprofforc    = .false.
+igrw_damp    = 0
+dpdx         = 0.
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&DYNAMICS
+ipoiss       = 0
+/
+
+&BC
+BCxm         = 4
+BCym         = 3
+BCbotm       = 1
+BCtopm       = 1
+/
+
+&NAMCHECKSIM
+tcheck       = 0.
+/
+
+&NESTING
+lnesting        = .true.
+nestfile        = ''
+nest_guardwidth = 16.
+nest_zonewidth  = 0.
+nest_tau        = 0.
+nest_shape      = 1
+nest_timeinterp = 2
+nest_nwall      = 1
+nest_lparentgeom = .true.
+nest_fluxtol     = 1.e-10
+nest_lfluxassert = .true.
+/
+
+&OUTPUT
+lfielddump   = .false.
+tfielddump   = 1.e9
+fieldvars    = 'u0,v0,w0'
+/
+
+&INPS
+zsize        = 16.
+/

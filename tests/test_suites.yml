@@ -130,6 +130,194 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
 
+  nesting:
+    suites:
+      - label: "nesting: weights unit runmode 1006 (U1-U7)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1006_weights"
+      - label: "nesting: geometry unit runmode 1007 (U8-U14)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1007_geometry"
+      - label: "nesting: io unit runmode 1008 (U15-U22)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1008_io"
+      - label: "nesting: flux unit runmode 1009 (U23-U28)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1009_flux"
+      - label: "nesting: update unit runmode 1010 (U29-U34)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1010_update"
+      - label: "nesting: abort cases (U13, U22, U27)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_abort_cases"
+      - label: "nesting: reported diagnostics (U14, U22 stagger)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_reported_messages"
+      - label: "nesting: I1 no-op guarantee"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI1NoOpSmallCase"
+          - "TestI1NoOpExistingCase"
+      - label: "nesting: I2 face imposition survives projection"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI2FaceImposition"
+      - label: "nesting: I3 uniform flow"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI3UniformFlow"
+      - label: "nesting: I4 manufactured solenoidal field"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI4ManufacturedSolenoidal"
+      - label: "nesting: I5 decomposition parity"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI5DecompositionParity"
+      - label: "nesting: I6 restart parity"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI6RestartParity"
+      - label: "nesting: I7 zone isolation"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI7ZoneIsolation"
+      - label: "nesting: I8 IBM interaction"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI8IbmInteraction"
+      - label: "nesting: unit runmodes on 1x1/2x1/1x2/2x2"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmodes_on_all_decompositions"
+
   supported-macos:
     includes:
       - python-library
@@ -217,3 +405,4 @@ groups:
     includes:
       - supported
       - experimental
+      - nesting
