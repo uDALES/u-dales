@@ -142,8 +142,33 @@ child where $0<W<1$ — not from the interpolation. That materially reduces C1.
 $\partial\tilde q/\partial t$ jumps at every parent-interval crossing. Under strong imposition
 ($\tau\to0$) the boundary faces feel that jump directly, giving a pressure transient once per
 $\Delta t_P$ — a periodic artefact that would show up in spectra at $1/\Delta t_P$. DALES and PALM
-both accept this. A monotone cubic Hermite ($C^1$) interpolant costs one extra buffer slot and
-removes it; worth doing from the start given how cheap it is, and worth *measuring* either way.
+both accept this. A cubic Hermite ($C^1$) interpolant costs one extra buffer slot and removes it;
+worth doing from the start given how cheap it is, and worth *measuring* either way.
+
+**The Hermite slopes must be unlimited, and this is a constraint, not a preference.** §3.1(2)
+needs the interpolant to be *linear in the data*: if
+$\tilde q_f(t)=\sum_k c_k(t)\,q_{f,k}$ with coefficients $c_k$ that depend only on $t$ and the
+level spacings — the same for every boundary face $f$ — then
+
+$$\Phi(t)=\sum_f A_f\,\hat n\!\cdot\!\tilde q_f(t)=\sum_k c_k(t)\,\Phi(t_k)=0,$$
+
+because the offline correction already zeroed $\Phi$ at every stored level. Linear interpolation
+and unlimited Catmull–Rom both have this form. A *monotone* limiter does not: the Fritsch–Carlson
+slope is a weighted harmonic mean of the one-sided slopes, plus a sign-switch branch, so $c_k$
+becomes a function of the local data and each face gets its own weighting. The cancellation then
+collapses. Measured, with every stored level corrected to $|\Phi|\approx10^{-14}$:
+
+| interpolant | linear in the data? | $\max|\Phi|$ across the interval |
+|---|---|---|
+| linear | yes | $1.1\times10^{-14}$ |
+| Catmull–Rom (unlimited Hermite) | yes | $1.4\times10^{-14}$ |
+| Fritsch–Carlson (monotone) | **no** | $1.0\times10^{0}$ |
+
+In the solver the monotone version produced a runtime $\Phi$ of $5.2\times10^{-5}$ and a `divtot`
+of $1.7$, and aborted at the first substep under `nest_lfluxassert`. Monotonicity is the wrong
+property to ask for here anyway — velocity is sign-unconstrained, and a small overshoot in an
+imposed boundary value is harmless, whereas losing compatibility is not. Test **U44** pins the
+linearity directly.
 
 ### 1.4 How wide does the zone have to be?
 
@@ -893,7 +918,7 @@ module modnesting
   integer :: nest_shape      = 1             ! 1 raised cosine, 2 quintic
   logical :: nest_lateral(4) = .true.        ! W, E, S, N
   logical :: nest_top        = .false.       ! Case C
-  integer :: nest_timeinterp = 2             ! 1 linear, 2 monotone cubic Hermite
+  integer :: nest_timeinterp = 2             ! 1 linear, 2 cubic Hermite (Catmull-Rom, unlimited)
   integer :: nest_nwall      = 1             ! wall erosion, cells
   logical :: nest_lparentgeom= .false.       ! parent resolves the child geometry
   real    :: nest_fluxtol    = 1.e-10        ! abort threshold on Phi

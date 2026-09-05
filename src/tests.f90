@@ -1556,6 +1556,8 @@ contains
     if (.not. u17_time_exact(1)) all_passed = .false.
     if (.not. u17_time_exact(2)) all_passed = .false.
     if (.not. u18_hermite_c1())  all_passed = .false.
+    if (.not. u44_interp_linear(1)) all_passed = .false.
+    if (.not. u44_interp_linear(2)) all_passed = .false.
     if (.not. u19_u21_buffer())  all_passed = .false.
     if (.not. u20_restart())     all_passed = .false.
 
@@ -1740,6 +1742,66 @@ contains
         '   d(target)/dt jump at t = 20: linear ', jlin, ', Hermite ', jher
       call nest_report('U18 Hermite C1 across an interval crossing', u18_hermite_c1)
     end function u18_hermite_c1
+
+    !> U44: the time interpolant must be LINEAR IN THE DATA.
+    !!
+    !! This is the property design section 3.1(2) rests on. The net boundary
+    !! flux Phi is a linear functional of the boundary values, and the offline
+    !! correction makes it zero at every stored level; so if -- and only if --
+    !! the interpolated value is a fixed linear combination of the stored
+    !! levels, with coefficients that depend on the times but NOT on the data,
+    !! does Phi stay zero between levels. Superposition is exactly that
+    !! statement, so test it directly:
+    !!
+    !!     H(alpha*a + beta*b) == alpha*H(a) + beta*H(b)
+    !!
+    !! An unlimited Hermite passes. A monotone (Fritsch-Carlson) limiter fails
+    !! by O(1), which is how the original implementation of this branch broke:
+    !! Phi reached 5.2e-5 at run time and divtot 1.7, and no other test in the
+    !! matrix could see it -- U28 checks the linear mode's result rather than
+    !! its linearity, and I3/I4/I5 all use time-constant boundary data.
+    !!
+    !! Deliberately uses NON-uniform level spacing and sign-changing data:
+    !! a limiter is only active where the one-sided slopes disagree, so data
+    !! that happens to be monotone would let it pass.
+    logical function u44_interp_linear(mode)
+      use modnesting, only : nest_time_interp
+      integer, intent(in) :: mode
+
+      integer, parameter :: NTRY = 64
+      real,    parameter :: h1 = 0.7, h2 = 1.9, h3 = 0.4
+      real,    parameter :: alpha = 1.7, beta = -0.9
+
+      integer :: n, it
+      real    :: a(4), b(4), c(4), th, lhs, rhs, sc, worst
+
+      worst = 0.
+      do n = 1, NTRY
+         ! Deterministic, spread over sign changes and magnitudes so the
+         ! limiter's s1*s2 <= 0 branch is exercised.
+         do it = 1, 4
+            a(it) = sin(1.7*n + 2.3*it) * (1. + 0.5*cos(0.9*n))
+            b(it) = cos(0.6*n - 1.1*it) * (1. + 0.5*sin(1.3*n))
+         end do
+         c = alpha*a + beta*b
+
+         do it = 0, 10
+            th  = 0.1*real(it)
+            lhs = nest_time_interp(c(1), c(2), c(3), c(4), h1, h2, h3, th, mode)
+            rhs = alpha*nest_time_interp(a(1), a(2), a(3), a(4), h1, h2, h3, th, mode) &
+                + beta *nest_time_interp(b(1), b(2), b(3), b(4), h1, h2, h3, th, mode)
+            sc  = max(1., abs(lhs), abs(rhs))
+            worst = max(worst, abs(lhs - rhs)/sc)
+         end do
+      end do
+
+      u44_interp_linear = (worst <= 1.e-12)
+      if (myid == 0) write(*,'(a,i0,a,es12.4)')                             &
+        '   nest_timeinterp = ', mode, ': worst relative superposition '//  &
+        'error ', worst
+      call nest_report('U44 time interpolant is linear in the data', &
+                       u44_interp_linear)
+    end function u44_interp_linear
 
     !> U19: stepping across several parent intervals gives the same target as
     !! a fresh initialisation at the same time (which reads every level

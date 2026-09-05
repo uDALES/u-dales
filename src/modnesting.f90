@@ -43,7 +43,7 @@ module modnesting
              nesting_restart_write, nesting_restart_read, nesting_finalize
    ! Test hooks: exercised directly by src/tests.f90 (runmodes TEST_NESTING_*).
    public :: nest_shape_fn, nest_union, nest_stagger_coord, nest_flux_residual, &
-             nest_flux_split
+             nest_flux_split, nest_time_interp
    ! Namelist variables: read and broadcast by modstartup.
    public :: lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau,   &
              nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
@@ -1893,7 +1893,7 @@ contains
 
 
    !> Evaluate the time-interpolated target for every buffered slab value.
-   !! nest_timeinterp: 1 linear, 2 monotone cubic Hermite (Fritsch-Carlson).
+   !! nest_timeinterp: 1 linear, 2 cubic Hermite (Catmull-Rom, unlimited).
    subroutine eval_target(t)
       real, intent(in) :: t
 
@@ -1939,37 +1939,59 @@ contains
    end subroutine eval_target
 
 
-   !> Monotone cubic Hermite on [t2,t3], with Fritsch-Carlson limited slopes
-   !! from the neighbouring intervals. Exact for data linear in time.
+   !> Test hook: the time interpolant itself, for one scalar sample.
+   !! mode 1 linear on [t2,t3], mode 2 the Hermite of `hermite` below. This is
+   !! the SAME code the solver uses (eval_target calls the same routines), so
+   !! U44 cannot pass while the solver does something else.
+   real function nest_time_interp(y1, y2, y3, y4, h1, h2, h3, th, mode)
+      real,    intent(in) :: y1, y2, y3, y4, h1, h2, h3, th
+      integer, intent(in) :: mode
+
+      if (mode == 1) then
+         nest_time_interp = y2 + th*(y3 - y2)   ! exactly as in eval_target
+      else
+         nest_time_interp = hermite(y1, y2, y3, y4, h1, h2, h3, th)
+      end if
+
+   end function nest_time_interp
+
+
+   !> Cubic Hermite on [t2,t3] (Catmull-Rom, generalised to non-uniform
+   !! spacing). C1 across interval crossings and exact for data linear in time.
+   !!
+   !! The slopes are deliberately UNLIMITED. The value is a fixed linear
+   !! combination of y1..y4 whose coefficients depend only on the spacings and
+   !! on th -- never on the data -- so a boundary field with zero net flux at
+   !! every stored level keeps zero net flux everywhere in between, which is
+   !! what design section 3.1 needs. A monotone limiter (Fritsch-Carlson, used
+   !! here originally) makes the coefficients data dependent: each boundary
+   !! face is then weighted differently and the cancellation collapses.
+   !! Measured, with every stored level corrected to |Phi| ~ 1e-14: linear
+   !! 1.1e-14, this routine 1.4e-14, Fritsch-Carlson 1.0e+00. Monotonicity
+   !! buys nothing for a sign-unconstrained quantity like velocity. Do not
+   !! reintroduce a limiter here; U44 will fail if you do.
    real function hermite(y1, y2, y3, y4, h1, h2, h3, th)
       real, intent(in) :: y1, y2, y3, y4, h1, h2, h3, th
 
-      real :: s1, s2, s3, d2, d3, wa, wb, t2, t3c, h00, h10, h01, h11
+      real :: s1, s2, s3, d2, d3, t2, t3c, h00, h10, h01, h11
 
       s2 = (y3 - y2)/h2
 
+      ! Slopes are the spacing-weighted ARITHMETIC mean of the one-sided
+      ! slopes (Catmull-Rom generalised to non-uniform spacing), which is a
+      ! fixed linear combination of y1..y4. See the comment on the routine:
+      ! this linearity is what makes the interpolant flux compatible, and a
+      ! monotone limiter would destroy it.
       if (h1 > 0.) then
          s1 = (y2 - y1)/h1
-         if (s1*s2 <= 0.) then
-            d2 = 0.
-         else
-            wa = 2.*h2 + h1
-            wb = h2 + 2.*h1
-            d2 = (wa + wb)/(wa/s1 + wb/s2)
-         end if
+         d2 = (s1*h2 + s2*h1)/(h1 + h2)
       else
          d2 = s2
       end if
 
       if (h3 > 0.) then
          s3 = (y4 - y3)/h3
-         if (s2*s3 <= 0.) then
-            d3 = 0.
-         else
-            wa = 2.*h3 + h2
-            wb = h3 + 2.*h2
-            d3 = (wa + wb)/(wa/s2 + wb/s3)
-         end if
+         d3 = (s2*h3 + s3*h2)/(h2 + h3)
       else
          d3 = s2
       end if

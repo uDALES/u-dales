@@ -60,7 +60,7 @@ integer, parameter :: TEST_NESTING_INIT     = 1011
 | `nest_shape` | integer | `1` | 1 raised cosine, 2 quintic |
 | `nest_lateral(4)` | logical | `.true.` | W, E, S, N |
 | `nest_top` | logical | `.false.` | Case C — **not implemented in v1**, must error if `.true.` |
-| `nest_timeinterp` | integer | `2` | 1 linear, 2 monotone cubic Hermite |
+| `nest_timeinterp` | integer | `2` | 1 linear, 2 cubic Hermite (Catmull-Rom). The Hermite slopes MUST stay unlimited: the interpolant has to be linear in the data or it breaks the flux compatibility of design §3.1. |
 | `nest_nwall` | integer | `1` | wall erosion, cells |
 | `nest_lparentgeom` | logical | `.false.` | parent resolves the child geometry |
 | `nest_fluxtol` | real | `1.e-10` | abort threshold on \|Φ\| (normalised, §7) |
