@@ -95,6 +95,9 @@ module modstartup
                                     nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
                                     nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
                                     createmasks, lbottom, lnorec
+      use modnesting,        only : lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau, &
+                                    nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
+                                    nest_lparentgeom, nest_fluxtol, nest_lfluxassert
       use decomp_2d
 
       implicit none
@@ -170,6 +173,10 @@ module modstartup
          lpurif, npurif, Qpu, epu
       namelist/HEATPUMP/ &
          lheatpump, lfan_hp, nhppoints, Q_dot_hp, QH_dot_hp
+      namelist/NESTING/ &
+         lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau, &
+         nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
+         nest_lparentgeom, nest_fluxtol, nest_lfluxassert
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -308,6 +315,15 @@ module modstartup
             stop 1
          endif
          !write (6, HEATPUMP)
+         rewind (ifnamopt)
+
+         read (ifnamopt, NESTING, iostat=ierr)
+         if (ierr > 0) then
+            write(0, *) 'ERROR: Problem in namoptions NESTING'
+            write(0, *) 'iostat error: ', ierr
+            stop 1
+         endif
+         !write (6, NESTING)
          rewind (ifnamopt)
 
          read (ifnamopt, OUTPUT, iostat=ierr)
@@ -608,6 +624,19 @@ module modstartup
       call MPI_BCAST(nhppoints, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(Q_dot_hp, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(QH_dot_hp, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lnesting, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestfile, 256, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_guardwidth, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_zonewidth, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_tau, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_shape, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_lateral, 4, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_top, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_timeinterp, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_nwall, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_lparentgeom, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_fluxtol, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_lfluxassert, 1, MPI_LOGICAL, 0, comm3d, mpierr)
 
       ! ! Allocate and initialize core modules
       ! call initglobal
@@ -716,6 +745,7 @@ module modstartup
                               BCxm_periodic, BCxT_periodic, BCxq_periodic, &
                               BCxm_profile, BCxT_profile, BCxq_profile, &
                               BCxm_driver, BCxT_driver, BCxq_driver, BCxs_driver, &
+                              BCxm_nesting, BCym_nesting, &
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
                               linoutflow,ltempeq,iwalltemp,iwallmom,&
@@ -725,6 +755,7 @@ module modstartup
                               TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
       use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
       use modglobal,   only : idriver
+      use modnesting,  only : lnesting, nest_top, nest_guardwidth, nest_zonewidth, nest_tau
       implicit none
 
       if (mod(jtot, nprocy) /= 0) then
@@ -887,6 +918,15 @@ module modstartup
             if (myid == 0) write (*, *) "inflow-outflow: allowing vertical velocity at top, setting BCtopm = 3"
             BCtopm = BCtopm_pressure
          end if
+
+      case(BCxm_nesting)
+         linoutflow = .true.
+         call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+
+         ! NOTE: deliberately no BCtopm override here, unlike BCxm_profile/BCxm_driver
+         ! above. Nesting uses the rigid lid (design section 3.2, case A) and enforces
+         ! mass compatibility offline (Phi = 0); a leaky lid would let the child
+         ! exchange mass with a fictitious reservoir instead of with its parent.
       end select
 
       select case(BCym)
@@ -921,7 +961,69 @@ module modstartup
            write (*, *) "Warning: allowing vertical velocity at top might be necessary, &
                          &consider setting BCtopm = ", BCtopm_pressure
          end if
+
+      case(BCym_nesting)
+         linoutflow = .true.
+         call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+
+         ! No BCtopm override; see the BCxm_nesting branch above.
        end select
+
+       ! Nesting (docs/udales-nesting-spec.md section 4).
+       if ((.not. lnesting) .and. &
+           ((BCxm .eq. BCxm_nesting) .or. (BCym .eq. BCym_nesting))) then
+          if (myid == 0) then
+             write(0, *) 'ERROR: BCxm = ', BCxm_nesting, ' / BCym = ', BCym_nesting, &
+                         ' select the nesting boundary conditions but lnesting = .false.'
+             write(0, *) 'The parent field would never be imposed. Set lnesting = .true. in &NESTING.'
+          end if
+          stop 1
+       end if
+
+       if (lnesting) then
+          if (ipoiss .ne. POISS_FFT2D) then
+             if (myid == 0) then
+                write(0, *) 'ERROR: lnesting requires ipoiss = ', POISS_FFT2D, ' (POISS_FFT2D).'
+                write(0, *) 'Only that solver supports non-periodic lateral boundaries. ipoiss = ', ipoiss
+             end if
+             stop 1
+          end if
+
+          if ((BCxm .ne. BCxm_nesting) .and. (BCym .ne. BCym_nesting)) then
+             if (myid == 0) then
+                write(0, *) 'ERROR: lnesting requires BCxm = ', BCxm_nesting, ' and/or BCym = ', BCym_nesting
+                write(0, *) 'BCxm and BCym are: ', BCxm, BCym
+             end if
+             stop 1
+          end if
+
+          if (nest_top) then
+             if (myid == 0) write(0, *) 'ERROR: nest_top (nested lid, design case C) is not implemented in v1.'
+             stop 1
+          end if
+
+          if (nest_guardwidth <= 0.) then
+             if (myid == 0) write(0, *) 'ERROR: nest_guardwidth must be > 0; got ', nest_guardwidth
+             stop 1
+          end if
+
+          if (nest_zonewidth < 0.) then
+             if (myid == 0) write(0, *) 'ERROR: nest_zonewidth must be >= 0; got ', nest_zonewidth
+             stop 1
+          end if
+
+          ! The relaxation rate is W/nest_tau, so nest_tau <= 0 means an infinite rate
+          ! wherever W > 0 -- the whole zone becomes Dirichlet and the ramp is defeated.
+          ! It is only meaningful for a pure guard strip (no relaxation width).
+          if ((nest_tau <= 0.) .and. (nest_zonewidth > 0.)) then
+             if (myid == 0) then
+                write(0, *) 'ERROR: nest_tau <= 0 imposes Dirichlet wherever W > 0, which defeats'
+                write(0, *) 'the relaxation ramp. Set nest_tau > 0, or nest_zonewidth = 0 for a'
+                write(0, *) 'pure guard strip. Got nest_tau, nest_zonewidth = ', nest_tau, nest_zonewidth
+             end if
+             stop 1
+          end if
+       end if
 
        if ((lydump .or. lytdump) .and. (nprocx > 1)) then
           write(*, *) "Error: y-averaged statistics not currently implemented for nprocx > 1."

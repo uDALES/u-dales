@@ -81,6 +81,11 @@ module modglobal
    integer, parameter :: TEST_2DCOMP_INIT_EXIT = 1003
    integer, parameter :: TEST_SPARSE_IJK = 1004
    integer, parameter :: TEST_MPI_OPERATORS = 1005
+   integer, parameter :: TEST_NESTING_WEIGHTS = 1006
+   integer, parameter :: TEST_NESTING_GEOMETRY = 1007
+   integer, parameter :: TEST_NESTING_IO = 1008
+   integer, parameter :: TEST_NESTING_FLUX = 1009
+   integer, parameter :: TEST_NESTING_UPDATE = 1010
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
@@ -97,6 +102,7 @@ module modglobal
    integer, parameter :: BCxm_periodic = 1
    integer, parameter :: BCxm_profile = 2
    integer, parameter :: BCxm_driver = 3
+   integer, parameter :: BCxm_nesting = 4 !< imposed/relaxed toward a parent, see modnesting
    ! temperature
    integer, parameter :: BCxT_periodic = 1
    integer, parameter :: BCxT_profile = 2
@@ -120,6 +126,7 @@ module modglobal
    ! momentum
    integer, parameter :: BCym_periodic = 1
    integer, parameter :: BCym_profile = 2
+   integer, parameter :: BCym_nesting = 3 !< imposed/relaxed toward a parent, see modnesting
    ! temperature
    integer, parameter :: BCyT_periodic = 1
    integer, parameter :: BCyT_profile = 2

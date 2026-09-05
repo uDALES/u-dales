@@ -27,6 +27,7 @@ program uDALES
   use modmpi,            only : initmpi,exitmpi,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
+  use modglobal,         only : TEST_NESTING_WEIGHTS,TEST_NESTING_GEOMETRY,TEST_NESTING_IO,TEST_NESTING_FLUX,TEST_NESTING_UPDATE
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -34,7 +35,7 @@ program uDALES
   use modthermodynamics, only : initthermodynamics,thermodynamics
   use modsubgrid,        only : initsubgrid,subgrid
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
-  use modpois,           only : initpois,poisson
+  use modpois,           only : initpois,poisson,p
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
   use vegetation,        only : init_vegetation, vegetation_forcing
   use modpurifiers,      only : createpurifiers,purifiers
@@ -45,6 +46,7 @@ program uDALES
   use modadvection,      only : advection
   use modtstep,          only : tstep_update,tstep_integrate
   use modscalsource,     only : createscals,scalsource
+  use modnesting,        only : nesting_init,nesting_update_target,nesting_apply,nesting_stats
 
 !----------------------------------------------------------------
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
@@ -55,6 +57,8 @@ program uDALES
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators
+  use tests,           only : tests_nesting_weights,tests_nesting_geometry,tests_nesting_io, &
+                              tests_nesting_flux,tests_nesting_update
   implicit none
 
 !----------------------------------------------------------------
@@ -98,6 +102,11 @@ program uDALES
 
   call readinitfiles
 
+  ! After readinitfiles: nesting_init positions the parent buffer on timee,
+  ! and readinitfiles is what assigns it -- 0 on a cold start, the restart
+  ! time on a warm one.
+  call nesting_init
+
   call createscals
 
 !---------------------------------------------------------
@@ -134,6 +143,8 @@ program uDALES
     call tstep_update
 
     call timedep
+
+    call nesting_update_target
 
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
@@ -190,6 +201,13 @@ program uDALES
 !-----------------------------------------------------------------------
     call grwdamp        !damping at top of the model
 
+    ! NOTHING may be inserted between nesting_apply and poisson: nesting_apply
+    ! OVERWRITES up/vp/wp in the relaxation zone rather than adding to them
+    ! (docs/udales-nesting-design.md sections 1.2 and 4), so any tendency added
+    ! after this call would be added on top of the imposed value and would
+    ! silently defeat the imposition inside the zone.
+    call nesting_apply
+
     call poisson
 
     call purifiers      !placing of purifiers here may need to be checked
@@ -203,6 +221,8 @@ program uDALES
     call fielddump
 
     call statsdump
+
+    call nesting_stats(p)
 
     call boundary
 
@@ -252,6 +272,19 @@ contains
         test_failed = .not. tests_mpi_operators()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
+      ! Nesting unit tests, docs/udales-nesting-design.md section 10.1.
+      ! See tests/integration/nesting/README.md for the fixtures and the
+      ! namoptions each runmode expects.
+      case (TEST_NESTING_WEIGHTS)
+        test_failed = .not. tests_nesting_weights()
+      case (TEST_NESTING_GEOMETRY)
+        test_failed = .not. tests_nesting_geometry()
+      case (TEST_NESTING_IO)
+        test_failed = .not. tests_nesting_io()
+      case (TEST_NESTING_FLUX)
+        test_failed = .not. tests_nesting_flux()
+      case (TEST_NESTING_UPDATE)
+        test_failed = .not. tests_nesting_update()
       case default
         write(*,*) 'Unknown runmode:', runmode
         invalid_runmode = .true.
