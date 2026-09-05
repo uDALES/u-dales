@@ -112,3 +112,31 @@ python tests/run_tests.py supported --branch-a <branch_a> --branch-b <branch_b> 
 bash tests/integration/mpi_operators/run_test.sh
 ```
 ```
+
+### CX3 addendum (2026-09, nesting test work)
+
+- The Python venv activation line above needs `module load tools/prod` FIRST,
+  otherwise `Python/3.9.6-GCCcore-11.2.0` is not visible and `python` dies with
+  `libpython3.9.so.1.0: cannot open shared object file`:
+  ```bash
+  module purge && module load tools/prod && module load Python/3.9.6-GCCcore-11.2.0
+  source ~/udales/.venv/bin/activate
+  ```
+- Debug builds (`./tools/build_executable.sh icl debug`) run the in-solver test
+  runmodes fine and are worth using: Intel's `-check bounds` catches array
+  overruns the release build reads straight past. Set
+  `FOR_DISABLE_DIAGNOSTIC_DISPLAY=FALSE` or the `forrtl: severe` message and
+  the traceback are suppressed and you only see exit code 152.
+- In-solver test runmodes take the namoptions file name from `argv[1]`, so a
+  driver can generate namelist variants freely (the nesting driver in
+  `tests/integration/nesting/` does this to vary `nprocx`/`nprocy` and to
+  select the abort cases).
+- The default `python3` on CX3 login nodes is **3.6**, which cannot parse
+  `from __future__ import annotations` and fails at import with
+  `SyntaxError: future feature annotations is not defined`. Any test driver
+  written against modern typing syntax needs the module-loaded 3.9 above --
+  the failure looks like a broken test, not a missing module.
+- Debug builds also carry `-init=snan -fpe0`, so an uninitialised real traps
+  at its first use rather than propagating. Worth running the integration
+  suites against Debug for that alone: it is how the nesting `timee` ordering
+  bug announced itself.
