@@ -1,4 +1,4 @@
-# uDALES nesting — implementation contract (v1)
+# uDALES nesting — implementation contract
 
 Companion to `docs/udales-nesting-design.md`. **This file is normative**: every work package codes
 against the names, shapes and semantics below. Do not change them unilaterally — if something here
@@ -45,6 +45,7 @@ integer, parameter :: TEST_NESTING_GEOMETRY = 1007
 integer, parameter :: TEST_NESTING_IO       = 1008
 integer, parameter :: TEST_NESTING_FLUX     = 1009
 integer, parameter :: TEST_NESTING_UPDATE   = 1010
+integer, parameter :: TEST_NESTING_INIT     = 1011
 ```
 
 ## 4. Namelist `&NESTING` (read in `modstartup`, broadcast to all ranks)
@@ -64,6 +65,8 @@ integer, parameter :: TEST_NESTING_UPDATE   = 1010
 | `nest_lparentgeom` | logical | `.false.` | parent resolves the child geometry |
 | `nest_fluxtol` | real | `1.e-10` | abort threshold on \|Φ\| (normalised, §7) |
 | `nest_lfluxassert` | logical | `.true.` | **on by default** |
+| `nest_lfluxcheckall` | logical | `.false.` | Recompute the flux residual of **every** stored time level from the boundary slabs at init (4 × `ntime` reads on every perimeter rank) instead of validating the residual the writer stored. Off by default; the reader falls back to the recompute on its own for a schema 1 file, or when the file's `fluid_lateral_area` is not this run's. |
+| `nest_linitfromparent` | logical | `.false.` | **Cold start only.** Fill `u0`/`um`, `v0`/`vm`, `w0`/`wm` from the file's full-domain initial-condition block instead of from `prof.inp`. Requires a schema 2 file with `has_initial_condition = 1`; errors otherwise. Ignored, with a message, on a warm start — the restart file already holds a state consistent with the parent and overwriting it would break restart parity. |
 
 `checkinitvalues` must, when `lnesting`:
 1. require `ipoiss == POISS_FFT2D`, else stop;
@@ -74,6 +77,20 @@ integer, parameter :: TEST_NESTING_UPDATE   = 1010
 6. stop if `nest_tau <= 0.` while `nest_zonewidth > 0.` (see the `nest_tau` row above).
 
 ## 5. File format `nesting.inp.<expnr>.nc`
+
+**Two schema versions are normative.** Version 1 is the original file. Version 2 adds
+
+* `flux_residual(time)` — the net boundary flux of the data **as stored**, i.e. *after* any
+  divergence correction — together with the `fluid_lateral_area` attribute giving the area it was
+  summed over, so the solver can validate every stored level at initialisation without re-reading
+  the boundary slabs;
+* an **optional** full-domain initial condition `u_init`/`v_init`/`w_init`, flagged by the
+  `has_initial_condition` attribute, for `nest_linitfromparent`.
+
+**Both versions must load and run.** A version 1 file has neither addition and behaves exactly as
+before: the solver recomputes the residual from the boundary slabs, with a warning, and
+`nest_linitfromparent` is an error against it. Everything version 2 adds is therefore optional on
+read and required only of a file that declares `udales_nesting_schema = 2`.
 
 CDL dimension order below; **Fortran sees the reverse**. The decomposed index is deliberately the
 outermost spatial dimension so a rank's hyperslab is one contiguous run.
@@ -92,6 +109,24 @@ variables:
                                    // Post-correction it is ~1e-16 and carries no information,
                                    // so readers must NOT assume this variable is zero.
 
+  // SCHEMA 2 ONLY, required:
+  double flux_residual(time) ;     // net boundary flux of the data AS STORED, same functional
+                                   // and same sign convention as net_volume_flux. This is what
+                                   // the solver validates at init, normalised by its own total
+                                   // fluid boundary area, instead of re-reading the slabs.
+
+  // SCHEMA 2 ONLY, present iff has_initial_condition = 1:
+  double u_init(xh, yf, zf) ;      u_init:stagger = "xh yf zf" ;
+  double v_init(xf, yh, zf) ;      v_init:stagger = "xf yh zf" ;
+  double w_init(xf, yf, zh) ;      w_init:stagger = "xf yf zh" ;
+                                   // The full child-grid velocity at time(1). Discretely
+                                   // solenoidal on the child grid, with the boundary-normal
+                                   // velocities equal to the (corrected) slab values at that
+                                   // time and w = 0 on the floor and the lid, so a cold start
+                                   // from it begins divergence free and consistent with the
+                                   // imposed boundary. Fortran sees (z, y, x): a rank's (i,j)
+                                   // block is contiguous in z.
+
   // west / east slabs: decomposed index is y
   double u_west (time, yf, zf, nzh) ;   u_west:stagger  = "xh yf zf" ;
   double v_west (time, yh, zf, nz ) ;   v_west:stagger  = "xf yh zf" ;
@@ -105,13 +140,22 @@ variables:
   //  ... u_north, v_north, w_north
 
 // global attributes (all required):
-  :Conventions = "CF-1.8" ;  :udales_nesting_schema = 1 ;
+  :Conventions = "CF-1.8" ;  :udales_nesting_schema = 1 or 2 ;
   :divergence_corrected = 1 ;
   :itot = ; :jtot = ; :ktot = ; :nzone = ; :xlen = ; :ylen = ;
   :parent_model = ; :parent_dx = ; :parent_dt = ;
   :child_origin_x = ; :child_origin_y = ; :rotation_deg = 0. ;
   :created = ; :creator = ; :tool_version = ;
   :child_dt = ;        // OPTIONAL: child timestep; without it the temporal-refinement guard is skipped
+
+// SCHEMA 2 ONLY, both required:
+  :has_initial_condition = 0 or 1 ;   // whether u_init/v_init/w_init are present
+  :fluid_lateral_area = ;             // GEOMETRIC (no density) fluid area of the four lateral
+                                      // boundary faces that flux_residual was summed over. The
+                                      // solver compares it against its own IIu/IIv area and
+                                      // falls back to the full recompute if they disagree, so a
+                                      // mask mismatch between writer and solver is caught rather
+                                      // than trusted.
 ```
 
 **Index conventions.** The west slab covers child cells `i = 1..nzone` (centres) and faces
@@ -127,6 +171,11 @@ matching DALES's `openboundary_divcorr`. uDALES's own Poisson RHS carries no den
 so the two agree exactly while `rhobf == 1`, which is always. Both sides must use the same
 convention or the runtime flux assertion can fire spuriously.
 
+The one place the two conventions cannot be reconciled is the initial-condition block, which is
+projected with the solver's own **density-free** divergence operator: a file carrying an initial
+condition must therefore have `rhobf == rhobh == 1`, and the writer refuses anything else rather
+than storing a field whose boundary flux does not close.
+
 ## 6. `src/modnestingio.f90` — input only, no scheme knowledge
 
 Must not `use modnesting`. Standalone and separately compilable.
@@ -134,14 +183,23 @@ Must not `use modnesting`. Standalone and separately compilable.
 ```fortran
 module modnestingio
   implicit none;  save;  private
-  public :: nestio_open, nestio_validate, nestio_read, nestio_close, nestio_hdr, nestio_header_type
+  public :: nestio_open, nestio_validate, nestio_read, nestio_read_block, &
+            nestio_close, nestio_hdr, nestio_header_type
+
+  !> Schema versions this reader understands. A schema 1 file must keep loading
+  !! and running exactly as before, so everything schema 2 adds is OPTIONAL here.
+  integer, parameter :: NESTIO_SCHEMA_MIN = 1
+  integer, parameter :: NESTIO_SCHEMA_MAX = 2
 
   type nestio_header_type
     integer :: schema = 0, itot = 0, jtot = 0, ktot = 0, nzone = 0, ntime = 0
     real    :: xlen = 0., ylen = 0., rotation_deg = 0.
     logical :: divergence_corrected = .false.
+    logical :: has_flux_residual = .false.      ! schema 2
+    real    :: fluid_lateral_area = 0.          ! schema 2
+    logical :: has_initial_condition = .false.  ! schema 2
     real, allocatable :: time(:), xf(:), xh(:), yf(:), yh(:), zf(:), zh(:)
-    real, allocatable :: rhobf(:), rhobh(:), net_volume_flux(:)
+    real, allocatable :: rhobf(:), rhobh(:), net_volume_flux(:), flux_residual(:)
   end type
   type(nestio_header_type) :: nestio_hdr
 
@@ -156,6 +214,8 @@ module modnestingio
   !! and its two values, then stop 1. The stagger check matters because a file
   !! can have a correct grid and still lay the data out at the wrong staggered
   !! location, which would otherwise be read silently and wrongly.
+  !! When has_initial_condition is set, u_init/v_init/w_init are additionally
+  !! checked for presence, shape and stagger, on the same terms.
   subroutine nestio_validate()
 
   !> Read one time level of one variable, for this rank's range of the
@@ -164,6 +224,16 @@ module modnestingio
   subroutine nestio_read(varname, it, start2, count2, buf, ierr)
     character(len=*), intent(in)  :: varname
     integer,          intent(in)  :: it, start2, count2
+    real,             intent(out) :: buf(:,:,:)
+    integer,          intent(out) :: ierr
+
+  !> Read a rectangular block of one full-domain, time-independent variable
+  !! (u_init/v_init/w_init, schema 2). start2/count2 index y and start3/count3
+  !! index x, 1-based; the whole vertical is read. buf is (nz, count2, count3),
+  !! matching the file's Fortran dimension order (z, y, x).
+  subroutine nestio_read_block(varname, start2, count2, start3, count3, buf, ierr)
+    character(len=*), intent(in)  :: varname
+    integer,          intent(in)  :: start2, count2, start3, count3
     real,             intent(out) :: buf(:,:,:)
     integer,          intent(out) :: ierr
 
@@ -202,8 +272,23 @@ be the same code the solver uses (no duplicated logic):
   !> Net volume flux of the predicted velocity through the domain boundary,
   !! summed over FLUID faces only (IIu/IIv/IIw), MPI-reduced over comm3d,
   !! normalised by the total fluid boundary area so the tolerance is dimensionless.
+  !! This is Phi over all six faces (design section 3.1).
   real function nest_flux_residual(pup, pvp, pwp, rk3coef)
+
+  !> The same quantity, split into the total and the part the LID carries.
+  subroutine nest_flux_split(pup, pvp, pwp, rk3coef, phi_all, phi_lid)
 ```
+
+**What the flux assertion asserts.** `nesting_bcpup` tests `phi_all` under a rigid lid
+(`BCtopm_freeslip`/`BCtopm_noslip`, design case A) and `phi_all - phi_lid` under a leaky one
+(`BCtopm_pressure`, case B). Under a rigid lid `bcpup` forces `w* = 0` at `ke+1`, so `phi_lid` is
+identically zero and the two are the same number. Under a leaky lid the top face is not a datum:
+`bcpup` sets `w*` there from the accumulated pressure and `tderive` adds the matching increment,
+which is exactly the Dirichlet-in-the-mean-mode row the solver pins (design F3). The projection is
+therefore complete for any net flux, `Phi_total = 0` is **not** a solvability requirement, and the
+lid flux is the child breathing against its reservoir rather than an error. What must still vanish
+is the flux through the faces the scheme controls. `nest_lfluxassert` therefore stays on by default
+in both cases.
 
 Zone storage uses `zone_type` (design §9.2). The relaxation update is design §1.2, verbatim:
 

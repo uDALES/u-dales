@@ -66,6 +66,8 @@ from udprep.nesting import (
     NestGrid,
     NestingData,
     apply_divergence_correction,
+    discrete_divergence as _nesting_divergence,
+    initial_fields_from_fields,
     net_volume_flux,
     slabs_from_fields,
     write_nesting_file,
@@ -238,13 +240,11 @@ def discrete_divergence(g: NestGrid, fields: Fields) -> np.ndarray:
     """Cell-centred discrete divergence, the same operator ``fillps`` applies.
 
     Used by the fixture self-check below and by the tests, so that a claim
-    about a manufactured field is verified rather than asserted.
+    about a manufactured field is verified rather than asserted.  It is the
+    production operator of ``udprep.nesting``, so the fixture check and the
+    writer's own projection cannot disagree about what "divergence" means.
     """
-    u, v, w = fields
-    dudx = np.diff(u, axis=0) / g.dx[:, None, None]
-    dvdy = np.diff(v, axis=1) / g.dy[None, :, None]
-    dwdz = np.diff(w, axis=2) / g.dzf[None, None, :]
-    return dudx + dvdy + dwdz
+    return _nesting_divergence(g, *fields)
 
 
 # --------------------------------------------------------------------------- #
@@ -253,8 +253,15 @@ def discrete_divergence(g: NestGrid, fields: Fields) -> np.ndarray:
 
 
 def build_nesting_data(spec: CaseSpec, fieldname: str, times: Sequence[float],
-                       correct: bool = True, **kwargs) -> NestingData:
-    """Cut the twelve zone slabs out of an analytic child field, per time level."""
+                       correct: bool = True, initial: bool = False,
+                       **kwargs) -> NestingData:
+    """Cut the twelve zone slabs out of an analytic child field, per time level.
+
+    With ``initial=True`` the field at the first time is also carried whole, as
+    the schema 2 initial-condition block, so a cold start can be run with
+    ``nest_linitfromparent``.  The correction then projects it (design section
+    10.6 item 4); with ``correct=False`` it is stored exactly as built.
+    """
     g = spec.grid()
     fn = FIELDS[fieldname]
     times = np.asarray(times, dtype=np.float64).reshape(-1)
@@ -265,6 +272,8 @@ def build_nesting_data(spec: CaseSpec, fieldname: str, times: Sequence[float],
         nzone=spec.nzone,
         times=times,
         slabs=slabs,
+        initial_fields=(initial_fields_from_fields(g, *fn(g, float(times[0]), **kwargs))
+                        if initial else None),
         parent_model=f"analytic:{fieldname}",
         parent_dx=spec.dx,
         parent_dt=float(np.min(np.diff(times))) if times.size > 1 else 0.0,
@@ -330,11 +339,12 @@ def render_namoptions(spec: CaseSpec, edits: Optional[Dict[str, str]] = None,
 def write_case(rundir: Path, spec: CaseSpec, fieldname: str,
                times: Sequence[float] = (0.0, 1.0e6),
                edits: Optional[Dict[str, str]] = None,
-               uprof: float = 0.0, correct: bool = True,
+               uprof: float = 0.0, correct: bool = True, initial: bool = False,
                expnr: str = EXPNR, **kwargs) -> NestingData:
     """Write a complete, runnable case directory and return the parent data."""
     rundir.mkdir(parents=True, exist_ok=True)
-    data = build_nesting_data(spec, fieldname, times, correct=correct, **kwargs)
+    data = build_nesting_data(spec, fieldname, times, correct=correct,
+                              initial=initial, **kwargs)
     write_nesting_file(rundir / f"nesting.inp.{expnr}.nc", data, override=True)
     write_profiles(rundir, spec, uprof=uprof, expnr=expnr)
     (rundir / f"namoptions.{expnr}").write_text(

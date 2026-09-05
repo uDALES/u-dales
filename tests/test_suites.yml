@@ -165,7 +165,7 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
           - "NestingUnitRunmodes.test_runmode_1008_io"
-      - label: "nesting: flux unit runmode 1009 (U23-U28)"
+      - label: "nesting: flux unit runmode 1009 (U23-U28, U35-U39)"
         class: supported
         kind: unit
         component: nesting
@@ -187,7 +187,18 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
           - "NestingUnitRunmodes.test_runmode_1010_update"
-      - label: "nesting: abort cases (U13, U22, U27)"
+      - label: "nesting: cold-start init unit runmode 1011 (U40-U43)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1011_init"
+      - label: "nesting: abort cases (U13, U22, U27, schema 2)"
         class: supported
         kind: unit
         component: nesting
@@ -198,7 +209,7 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
           - "NestingUnitRunmodes.test_abort_cases"
-      - label: "nesting: reported diagnostics (U14, U22 stagger)"
+      - label: "nesting: reported diagnostics (U14, schema 2 paths)"
         class: supported
         kind: unit
         component: nesting
@@ -306,6 +317,30 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
           - "TestI8IbmInteraction"
+      - label: "nesting: I9 cold start from the parent"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI9ColdStartFromParent"
+      - label: "nesting: I10 leaky lid (BCtopm_pressure)"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI10LeakyLid"
       - label: "nesting: unit runmodes on 1x1/2x1/1x2/2x2"
         class: experimental
         kind: integration
@@ -317,6 +352,37 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
           - "NestingUnitRunmodes.test_runmodes_on_all_decompositions"
+
+  # V1 "Big Brother" nesting validation (docs/udales-nesting-design.md 10.4).
+  # An on-demand campaign, NOT a gate: this group is deliberately not included
+  # by `all`, `supported` or `nesting`, and must be asked for by name.
+  nesting-validation:
+    suites:
+      - label: "nesting-validation: V1 tiny end-to-end (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v1_tiny.py"
+      - label: "nesting-validation: V1 Big Brother production campaign"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_V1_RUNDIR: "{repo_root}/build/nesting-validation-v1"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_v1.py"
+          - "{repo_root}/build/nesting-validation-v1"
+          - "--preset"
+          - "production"
+          - "--yes"
 
   supported-macos:
     includes:

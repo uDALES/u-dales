@@ -23,11 +23,27 @@ Files written into the target directory:
                                  U18/U19: a field linear in t is reproduced
                                  exactly by every interpolant, so it cannot
                                  distinguish linear from Hermite.
+  nesting_initial.<expnr>.nc     the analytic field with the schema 2 FULL-DOMAIN
+                                 initial-condition block, uncorrected so the block
+                                 is exactly analytic_field() (runmode 1011,
+                                 U35-U37 and the cold-start abort cases).
+  nesting_v1.<expnr>.nc          the corrected field written as SCHEMA 1: no
+                                 flux_residual, no initial condition. The
+                                 backwards-compatibility fixture (U38).
+  assertfire_lying.<expnr>.nc    schema 2, data NOT flux balanced, but with
+                                 flux_residual overwritten with zeros: the cheap
+                                 init check believes it, nest_lfluxcheckall does
+                                 not (U39 and an abort case).
+  assertfire_area.<expnr>.nc     the same, plus a corrupted fluid_lateral_area, so
+                                 the reader must distrust the stored residual and
+                                 fall back to the full recompute -- which aborts.
   bad_schema.<expnr>.nc          header-validation fixtures for U22, each with
   bad_itot.<expnr>.nc            exactly one corrupted header field.
   bad_xlen.<expnr>.nc
   bad_zf.<expnr>.nc
   bad_stagger.<expnr>.nc
+  bad_initdims.<expnr>.nc        an initial-condition block at the wrong shape and
+  bad_initstag.<expnr>.nc        at the wrong stagger (runmode 1011 abort cases).
 """
 
 from __future__ import annotations
@@ -42,6 +58,7 @@ from udprep.nesting import (
     ANALYTIC_COEFFS,
     NestGrid,
     NestingData,
+    analytic_initial_fields,
     analytic_slabs,
     apply_divergence_correction,
     net_volume_flux,
@@ -65,7 +82,7 @@ def grid() -> NestGrid:
     return NestGrid.uniform(ITOT, JTOT, KTOT, XLEN, YLEN, ZSIZE)
 
 
-def _data(times, slab_times=None, corrected=False) -> NestingData:
+def _data(times, slab_times=None, corrected=False, initial=False) -> NestingData:
     g = grid()
     slab_times = times if slab_times is None else slab_times
     data = NestingData(
@@ -73,6 +90,8 @@ def _data(times, slab_times=None, corrected=False) -> NestingData:
         nzone=NZONE,
         times=np.asarray(times, dtype=np.float64),
         slabs=analytic_slabs(g, NZONE, slab_times),
+        initial_fields=(analytic_initial_fields(g, float(np.asarray(slab_times)[0]))
+                        if initial else None),
         parent_model="analytic",
         parent_dx=float(XLEN / ITOT),
         parent_dt=float(np.min(np.diff(times))) if len(times) > 1 else 0.0,
@@ -83,6 +102,7 @@ def _data(times, slab_times=None, corrected=False) -> NestingData:
         apply_divergence_correction(data)
     else:
         data.net_volume_flux = net_volume_flux(data)
+        data.flux_residual = data.net_volume_flux.copy()
     return data
 
 
@@ -93,13 +113,38 @@ def _corrupt(src: Path, dst: Path, **edits) -> None:
     shutil.copy2(src, dst)
     with nc.Dataset(dst, "a") as ds:
         for key, value in edits.items():
-            if key == "zf":
-                ds.variables["zf"][:] = value
+            if key in ("zf", "flux_residual"):
+                ds.variables[key][:] = value
             elif key == "stagger":
                 var, tag = value
                 ds.variables[var].stagger = tag
             else:
                 ds.setncattr(key, value)
+
+
+def _copy_with_dims(src: Path, dst: Path, varname: str, dims) -> None:
+    """Copy a NetCDF file verbatim, redefining one variable's dimensions.
+
+    netCDF4 cannot change a variable's shape in place, so the wrong-shape
+    fixture has to be rebuilt.  Everything except ``varname`` is copied as it
+    stands, so the file differs from a good one in exactly one respect.
+    """
+    import netCDF4 as nc
+
+    with nc.Dataset(src, "r") as a, nc.Dataset(dst, "w", format="NETCDF4") as b:
+        for name, dim in a.dimensions.items():
+            b.createDimension(name, None if dim.isunlimited() else len(dim))
+        for name, var in a.variables.items():
+            newdims = tuple(dims) if name == varname else var.dimensions
+            out = b.createVariable(name, var.datatype, newdims)
+            out.setncatts({k: var.getncattr(k) for k in var.ncattrs()})
+            if name == varname:
+                shape = tuple(len(b.dimensions[d]) for d in newdims)
+                values = np.asarray(var[:], dtype=np.float64)
+                out[:] = np.resize(values, shape)
+            else:
+                out[:] = var[:]
+        b.setncatts({k: a.getncattr(k) for k in a.ncattrs()})
 
 
 def write_all(outdir: Path) -> None:
@@ -125,6 +170,24 @@ def write_all(outdir: Path) -> None:
         override=True,
     )
 
+    # --- schema 2: the full-domain initial condition (runmode 1011) ---
+    initial = outdir / f"nesting_initial.{EXPNR}.nc"
+    write_nesting_file(initial, _data(TIMES, initial=True), override=True)
+
+    # --- schema 1: the backwards-compatibility fixture (U38) ---
+    write_nesting_file(
+        outdir / f"nesting_v1.{EXPNR}.nc", _data(TIMES, corrected=True),
+        override=True, schema=1,
+    )
+
+    # --- a writer that lies about its own residual (U39 and two abort cases) ---
+    for name, area in ((f"assertfire_lying.{EXPNR}.nc", None),
+                       (f"assertfire_area.{EXPNR}.nc", 1.0)):
+        edits = {"flux_residual": np.zeros(len(TIMES))}
+        if area is not None:
+            edits["fluid_lateral_area"] = np.float64(area)
+        _corrupt(analytic, outdir / name, **edits)
+
     zf_bad = grid().zf.copy()
     zf_bad[KTOT // 2] += 0.25
     _corrupt(analytic, outdir / f"bad_schema.{EXPNR}.nc", udales_nesting_schema=np.int32(7))
@@ -132,6 +195,9 @@ def write_all(outdir: Path) -> None:
     _corrupt(analytic, outdir / f"bad_xlen.{EXPNR}.nc", xlen=np.float64(XLEN * 1.5))
     _corrupt(analytic, outdir / f"bad_zf.{EXPNR}.nc", zf=zf_bad)
     _corrupt(analytic, outdir / f"bad_stagger.{EXPNR}.nc", stagger=("u_west", "xf yf zf"))
+    _corrupt(initial, outdir / f"bad_initstag.{EXPNR}.nc", stagger=("u_init", "xf yf zf"))
+    _copy_with_dims(initial, outdir / f"bad_initdims.{EXPNR}.nc",
+                    "u_init", ("xf", "yf", "zf"))
 
 
 def main() -> None:

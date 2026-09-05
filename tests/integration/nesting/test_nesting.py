@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Driver for the in-solver nesting unit tests (runmodes 1006-1010).
+"""Driver for the in-solver nesting unit tests (runmodes 1006-1011).
 
 Builds the fixtures with the production Python writer
 (``tools/python/udprep/nesting.py``), then runs each nesting runmode on
 1x1, 2x1, 1x2 and 2x2 ranks and asserts the exit code. The abort cases
-(U13, U22, U27) are separate invocations that must exit non-zero with a
-specific message, because the routine under test calls ``stop 1``.
+(U13, U22, U27, and the schema-2 cases) are separate invocations that must exit
+non-zero with a specific message, because the routine under test calls
+``stop 1``.
 
 See README.md in this directory for what each runmode covers.
 
@@ -50,8 +51,9 @@ RUNMODES = {
     1006: "weights (U1-U7)",
     1007: "geometry (U8-U14)",
     1008: "io (U15-U22)",
-    1009: "flux (U23-U28)",
+    1009: "flux (U23-U28, U35-U39)",
     1010: "update (U29-U34)",
+    1011: "cold-start init from the parent (U40-U43)",
 }
 
 #: Cases that must abort. Each entry is
@@ -99,6 +101,42 @@ ABORT_CASES = [
         {"nestfile": f"'assertfire.{EXPNR}.nc'"},
         "not flux balanced",
     ),
+    # design 10.6 item 3: nest_lfluxcheckall is what catches a writer whose
+    # stored residual does not describe the data it stored.
+    (
+        "flux: a lying stored residual is caught by nest_lfluxcheckall",
+        1009,
+        {"nestfile": f"'assertfire_lying.{EXPNR}.nc'",
+         "nest_lfluxcheckall": ".true."},
+        "not flux balanced",
+    ),
+    # ... and the reader falls back to the recompute on its own when the fluid
+    # lateral area the file advertises is not this run's.
+    (
+        "flux: an area mismatch forces the full recompute",
+        1009,
+        {"nestfile": f"'assertfire_area.{EXPNR}.nc'"},
+        "does not match this run",
+    ),
+    # design 10.6 item 4: the cold-start switch and its three failure modes.
+    (
+        "init: switch on but the file has no initial-condition block",
+        1011,
+        {"nestfile": f"'nesting_analytic.{EXPNR}.nc'"},
+        "carries no initial-condition block",
+    ),
+    (
+        "init: initial-condition block at the wrong shape",
+        1011,
+        {"nestfile": f"'bad_initdims.{EXPNR}.nc'"},
+        "mismatch in u_init",
+    ),
+    (
+        "init: initial-condition block at the wrong stagger",
+        1011,
+        {"nestfile": f"'bad_initstag.{EXPNR}.nc'"},
+        "u_init stagger: file =",
+    ),
 ]
 
 #: Cases that must succeed and whose output must contain a given string.
@@ -107,6 +145,19 @@ OUTPUT_CASES = [
     ("U14 narrow-zone warning", 1007, {}, "WARNING zone is only"),
     ("U14 wide-zone warning", 1007, {}, "WARNING zone occupies"),
     ("U13 warning half", 1007, {}, "solid points inside the relaxation zone (allowed"),
+    # design 10.6 item 3: the cheap path must say so, and a schema 1 file must
+    # say why it is falling back rather than doing it silently.
+    ("flux: the cheap check reports itself", 1009, {},
+     "flux balanced (from the stored residual, no slab read)"),
+    ("flux: a schema 1 file warns and recomputes", 1009, {},
+     "predates schema 2"),
+    ("flux: the recompute reports itself", 1009, {},
+     "flux balanced (recomputed from the boundary slabs)"),
+    # design 10.6 item 4.
+    ("init: the cold start says where it came from", 1011, {},
+     "cold start initialised from the parent"),
+    ("init: a warm start says it is ignoring the switch", 1011, {},
+     "the restart file wins"),
 ]
 
 
@@ -253,6 +304,9 @@ class NestingUnitRunmodes(unittest.TestCase):
 
     def test_runmode_1010_update(self) -> None:
         self._assert_runmode(1010, "serial", 1, 1)
+
+    def test_runmode_1011_init(self) -> None:
+        self._assert_runmode(1011, "serial", 1, 1)
 
     # -- every runmode on every decomposition: the integration layer ------ #
 

@@ -39,11 +39,17 @@ module modnestingio
   implicit none
   save
   private
-  public :: nestio_open, nestio_validate, nestio_read, nestio_close
+  public :: nestio_open, nestio_validate, nestio_read, nestio_read_block, nestio_close
   public :: nestio_hdr, nestio_header_type, nestio_tread
 
-  !> Schema version this reader understands (global attribute udales_nesting_schema).
-  integer, parameter :: NESTIO_SCHEMA = 1
+  !> Schema versions this reader understands (global attribute
+  !! udales_nesting_schema). Version 1 is the original file; version 2 adds the
+  !! per-time-level post-correction flux_residual (with the fluid_lateral_area
+  !! it was summed over) and the OPTIONAL full-domain initial-condition block
+  !! u_init/v_init/w_init. A version 1 file must keep loading and running
+  !! exactly as before, so everything version 2 adds is optional on read.
+  integer, parameter :: NESTIO_SCHEMA_MIN = 1
+  integer, parameter :: NESTIO_SCHEMA_MAX = 2
 
   !> Relative tolerance used when validating the header against the run.
   real, parameter :: nestio_tol = 1.e-10
@@ -52,8 +58,14 @@ module modnestingio
     integer :: schema = 0, itot = 0, jtot = 0, ktot = 0, nzone = 0, ntime = 0
     real    :: xlen = 0., ylen = 0., rotation_deg = 0.
     logical :: divergence_corrected = .false.
+    !> Schema 2: the file carries flux_residual(time), the residual of the data
+    !! AS STORED, and fluid_lateral_area, the area it was summed over.
+    logical :: has_flux_residual = .false.
+    real    :: fluid_lateral_area = 0.
+    !> Schema 2: the file carries u_init/v_init/w_init on the whole child grid.
+    logical :: has_initial_condition = .false.
     real, allocatable :: time(:), xf(:), xh(:), yf(:), yh(:), zf(:), zh(:)
-    real, allocatable :: rhobf(:), rhobh(:), net_volume_flux(:)
+    real, allocatable :: rhobf(:), rhobh(:), net_volume_flux(:), flux_residual(:)
   end type nestio_header_type
 
   type(nestio_header_type) :: nestio_hdr
@@ -134,6 +146,35 @@ contains
     call nestio_get_var1d('net_volume_flux', nestio_hdr%net_volume_flux, ierr)
     if (ierr /= nf90_noerr) return
 
+    ! --- schema 2 additions, all optional so that schema 1 still loads ---
+    nestio_hdr%has_flux_residual     = .false.
+    nestio_hdr%has_initial_condition = .false.
+    nestio_hdr%fluid_lateral_area    = 0.
+    if (allocated(nestio_hdr%flux_residual)) deallocate(nestio_hdr%flux_residual)
+
+    if (nestio_hdr%schema >= 2) then
+      call nestio_get_var1d('flux_residual', nestio_hdr%flux_residual, ierr)
+      if (ierr /= nf90_noerr) return
+      nestio_hdr%has_flux_residual = .true.
+
+      call nestio_get_att_real('fluid_lateral_area', nestio_hdr%fluid_lateral_area, ierr)
+      if (ierr /= nf90_noerr) return
+
+      call nestio_get_att_int('has_initial_condition', idum, ierr)
+      if (ierr /= nf90_noerr) return
+      nestio_hdr%has_initial_condition = (idum /= 0)
+
+      if (size(nestio_hdr%flux_residual) /= nestio_hdr%ntime) then
+        if (myid == 0) then
+          write(*,'(a,a)') ' modnestingio: flux_residual has the wrong length in ', trim(ncfname)
+          write(*,'(a,i0,a,i0)') '   size = ', size(nestio_hdr%flux_residual), &
+                                 ', ntime = ', nestio_hdr%ntime
+        end if
+        ierr = -1
+        return
+      end if
+    end if
+
     ! --- internal consistency of the file itself ---
     call nestio_get_dim('nz',  nz,  ierr)
     if (ierr /= nf90_noerr) return
@@ -181,7 +222,14 @@ contains
       stop 1
     end if
 
-    call chk_int('udales_nesting_schema', nestio_hdr%schema, NESTIO_SCHEMA)
+    if (nestio_hdr%schema < NESTIO_SCHEMA_MIN .or. nestio_hdr%schema > NESTIO_SCHEMA_MAX) then
+      nerr = nerr + 1
+      if (myid == 0) then
+        write(*,'(a,a,a,i0,a,i0,a,i0)') ' modnestingio: mismatch in ', &
+          'udales_nesting_schema', ': file = ', nestio_hdr%schema, &
+          ', this reader supports ', NESTIO_SCHEMA_MIN, ' to ', NESTIO_SCHEMA_MAX
+      end if
+    end if
     call chk_int('itot', nestio_hdr%itot, itot)
     call chk_int('jtot', nestio_hdr%jtot, jtot)
     call chk_int('ktot', nestio_hdr%ktot, ktot)
@@ -202,6 +250,15 @@ contains
     call chk_stagger('v', 'xf yh zf')
     call chk_stagger('w', 'xf yf zh')
 
+    ! Schema 2 initial-condition block: same stagger contract, plus the shape,
+    ! since a full-domain array read at the wrong stagger would otherwise be one
+    ! plane out in exactly the direction that matters.
+    if (nestio_hdr%has_initial_condition) then
+      call chk_init('u_init', 'xh yf zf', ktot,     jtot,     itot + 1)
+      call chk_init('v_init', 'xf yh zf', ktot,     jtot + 1, itot)
+      call chk_init('w_init', 'xf yf zh', ktot + 1, jtot,     itot)
+    end if
+
     if (nerr > 0) then
       if (myid == 0) then
         write(*,'(a,i0,a,a,a)') ' modnestingio: ', nerr, &
@@ -215,6 +272,66 @@ contains
     end if
 
   contains
+
+    !> Check one initial-condition variable: present, three dimensions in the
+    !! Fortran order (z, y, x) with the lengths the stagger implies, and the
+    !! matching stagger tag.
+    subroutine chk_init(vname, expect, n1, n2, n3)
+      character(len=*), intent(in) :: vname, expect
+      integer,          intent(in) :: n1, n2, n3
+
+      character(len=32) :: got
+      integer :: varid, ndims, i, status, dlen(3)
+      integer :: dimids(NF90_MAX_VAR_DIMS)
+      integer :: want(3)
+
+      want = (/ n1, n2, n3 /)
+
+      status = nf90_inq_varid(ncid, vname, varid)
+      if (status /= nf90_noerr) then
+        nerr = nerr + 1
+        if (myid == 0) write(*,'(a,a,a)') ' modnestingio: mismatch in ', vname, &
+          ': has_initial_condition is set but the variable is absent'
+        return
+      end if
+
+      status = nf90_inquire_variable(ncid, varid, ndims=ndims, dimids=dimids)
+      if (status /= nf90_noerr .or. ndims /= 3) then
+        nerr = nerr + 1
+        if (myid == 0) write(*,'(a,a,a,i0)') ' modnestingio: mismatch in ', vname, &
+          ': expected a 3-dimensional variable, got ndims = ', ndims
+        return
+      end if
+
+      do i = 1, 3
+        status = nf90_inquire_dimension(ncid, dimids(i), len=dlen(i))
+        if (status /= nf90_noerr) dlen(i) = -1
+      end do
+
+      do i = 1, 3
+        if (dlen(i) /= want(i)) then
+          nerr = nerr + 1
+          if (myid == 0) write(*,'(a,a,a,i0,a,i0,a,i0)') ' modnestingio: mismatch in ', &
+            vname, ': dimension ', i, ' is ', dlen(i), ', expected ', want(i)
+          return
+        end if
+      end do
+
+      got = ''
+      status = nf90_get_att(ncid, varid, 'stagger', got)
+      if (status /= nf90_noerr) then
+        nerr = nerr + 1
+        if (myid == 0) write(*,'(a,a,a)') ' modnestingio: MISMATCH ', vname, &
+          ' has no stagger attribute'
+        return
+      end if
+      if (trim(got) /= expect) then
+        nerr = nerr + 1
+        if (myid == 0) write(*,'(a,a,a,a,a,a)') ' modnestingio: MISMATCH ', vname, &
+          ' stagger: file = "', trim(got), '", expected = "', expect//'"'
+      end if
+
+    end subroutine chk_init
 
     !> Check the stagger attribute of one velocity component on all four
     !! lateral slabs against the layout this reader assumes.
@@ -408,6 +525,75 @@ contains
     if (nestio_failed(ierr, 'nf90_get_var('//trim(varname)//')')) return
 
   end subroutine nestio_read
+
+
+  !> Read a rectangular block of one time-independent, full-domain variable
+  !! (u_init/v_init/w_init, schema 2) for this rank. varname is e.g. 'u_init';
+  !! start2/count2 index the y dimension and start3/count3 the x dimension,
+  !! 1-based, and the whole vertical is read. buf is (nz, count2, count3),
+  !! matching the file's Fortran dimension order (z, y, x). ierr /= 0 on failure.
+  !! Called from modnesting::nesting_init for nest_linitfromparent.
+  subroutine nestio_read_block(varname, start2, count2, start3, count3, buf, ierr)
+    character(len=*), intent(in)  :: varname
+    integer,          intent(in)  :: start2, count2, start3, count3
+    real,             intent(out) :: buf(:,:,:)
+    integer,          intent(out) :: ierr
+
+    integer :: varid, ndims, i
+    integer :: dimids(NF90_MAX_VAR_DIMS)
+    integer :: dlen(3), start(3), count(3)
+    real    :: t0
+
+    ierr = nf90_noerr
+
+    if (.not. lopen) then
+      write(*,'(a,i0,a,a)') ' modnestingio (rank ', myid, &
+        '): nestio_read_block called before nestio_open, variable ', trim(varname)
+      ierr = -1
+      return
+    end if
+
+    if (count2 <= 0 .or. count3 <= 0) return
+
+    ierr = nf90_inq_varid(ncid, trim(varname), varid)
+    if (nestio_failed(ierr, 'nf90_inq_varid('//trim(varname)//')')) return
+
+    ierr = nf90_inquire_variable(ncid, varid, ndims=ndims, dimids=dimids)
+    if (nestio_failed(ierr, 'nf90_inquire_variable('//trim(varname)//')')) return
+
+    if (ndims /= 3) then
+      call nestio_abortmsg(varname, 'expected a 3-dimensional variable')
+      ierr = -1
+      return
+    end if
+
+    do i = 1, 3
+      ierr = nf90_inquire_dimension(ncid, dimids(i), len=dlen(i))
+      if (nestio_failed(ierr, 'nf90_inquire_dimension('//trim(varname)//')')) return
+    end do
+
+    if (size(buf,1) /= dlen(1) .or. size(buf,2) /= count2 .or. size(buf,3) /= count3) then
+      call nestio_abortmsg(varname, 'buffer shape does not match the file')
+      ierr = -1
+      return
+    end if
+
+    if (start2 < 1 .or. start2 + count2 - 1 > dlen(2) .or. &
+        start3 < 1 .or. start3 + count3 - 1 > dlen(3)) then
+      call nestio_abortmsg(varname, 'requested block is out of bounds')
+      ierr = -1
+      return
+    end if
+
+    start = (/ 1, start2, start3 /)
+    count = (/ dlen(1), count2, count3 /)
+
+    t0 = MPI_Wtime()
+    ierr = nf90_get_var(ncid, varid, buf, start=start, count=count)
+    nestio_tread = nestio_tread + (MPI_Wtime() - t0)
+    if (nestio_failed(ierr, 'nf90_get_var('//trim(varname)//')')) return
+
+  end subroutine nestio_read_block
 
 
   !> Close the nesting file. Called from modnesting::nesting_finalize.

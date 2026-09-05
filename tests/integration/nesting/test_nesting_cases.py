@@ -20,6 +20,8 @@ the production writer ``tools/python/udprep/nesting.py``.
 | I6 | 100 steps == 50 + restart + 50, bitwise, on and off a parent interval boundary -- **currently fails, see README.md** |
 | I7 | a difference confined to the interior stays out of the zone, and by how much |
 | I8 | facet stresses on a building row at the zone edge, nested versus not |
+| I9 | a cold start with `nest_linitfromparent` starts *at* the parent, divergence free |
+| I10 | `BCtopm_pressure` (design case B) keeps the flux assertion on, and it is correct |
 
 Environment:
   UDALES_BUILD            path to the u-dales executable
@@ -157,6 +159,9 @@ _STATS_PATTERNS = {
     "phi": re.compile(r"modnesting: Phi \(norm\)\s*=\s*(\S+)"),
     "misfit": re.compile(r"modnesting: zone misfit rms \[m/s\]\s*=\s*(\S+)"),
 }
+_PHILID = re.compile(
+    r"modnesting: Phi lid\s*=\s*(\S+)\s+closed faces\s*=\s*(\S+)"
+)
 _GRADP = re.compile(
     r"modnesting: \|grad p\| zone\s*=\s*(\S+)\s+interior\s*=\s*(\S+)\s+ratio\s*=\s*(\S+)"
 )
@@ -183,6 +188,10 @@ def parse_nesting_stats(output: str) -> List[Dict[str, float]]:
                     records.append(current)
                     current = {}
                 current[key] = float(m.group(1))
+        m = _PHILID.search(line)
+        if m:
+            current["phi_lid"] = float(m.group(1))
+            current["phi_closed"] = float(m.group(2))
         m = _GRADP.search(line)
         if m:
             current["gradp_zone"] = float(m.group(1))
@@ -1564,6 +1573,277 @@ class TestI8IbmInteraction(_NestingCase):
         self.assertLess(s["gradp_ratio"], 2.0,
                         "the projection works harder in the zone than in the interior")
 
+
+
+# --------------------------------------------------------------------------- #
+# I9 -- cold start from the parent (design section 10.6 item 4)
+# --------------------------------------------------------------------------- #
+
+
+class TestI9ColdStartFromParent(_NestingCase):
+    """A cold start must be able to begin *at* the parent, not at `prof.inp`.
+
+    The case is the ZONED one, with a real guard strip and ramp, so most of the
+    domain is **not** imposed: what the interior holds is what the initial
+    condition put there and nothing else.
+
+    How "reproduces the parent to round-off at `t = 0`" is established.  A
+    restart file can only be written *after* a step, so the field at `t = 0` is
+    not directly readable from a run.  It is pinned instead in two independent
+    ways:
+
+    * runmode 1011 (U40) reads `u0`/`um`, `v0`/`vm`, `w0`/`wm` straight after
+      `nesting_init` and compares every point against the stored block -- a
+      non-separable analytic 3-D field, on 1x1, 2x1, 1x2 and 2x2.  Measured
+      max error 1.1e-16.
+    * here, end to end: a run whose interior comes from the parent block is
+      required to be **bitwise identical** to a run whose interior comes from a
+      `prof.inp` carrying the same profile.  Two runs of this solver cannot
+      agree bit for bit unless they started from the same bits.
+
+    The parent is `uniform`, which the second construction needs (`prof.inp` is
+    a profile, so only a horizontally uniform field can be expressed both ways).
+    Note that it is *not* a fixed point of the run: `closurebc` gives the ground
+    a no-slip molecular viscosity regardless of `BCbotm`
+    (`src/modboundary.f90:466`), which decelerates the lowest layer by
+    ~3e-5 m/s over the 2 s of the run.  That is physics, it is identical in both
+    runs, and it is why this test compares two runs rather than comparing one
+    run against `U`.
+    """
+
+    SPEC = mcf.ZONED
+    U = 1.0
+    #: (label, uprof, nest_linitfromparent)
+    RUNS = (("from_parent", 0.0, ".true."),
+            ("from_prof_equal", 1.0, ".false."),
+            ("from_prof_zero", 0.0, ".false."))
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.out: Dict[str, str] = {}
+        cls.dirs: Dict[str, Path] = {}
+        cls.data = None
+        for label, uprof, switch in cls.RUNS:
+            run_dir = cls.root / f"i9_{label}"
+            data = mcf.write_case(
+                run_dir, cls.SPEC, "uniform", times=(0.0, 1.0e6),
+                uprof=uprof, U=cls.U, initial=True,
+                edits={"runtime": "2.", "dtmax": "0.5", "trestart": "2.",
+                       "nest_linitfromparent": switch},
+            )
+            cls.data = cls.data or data
+            done = run_solver(run_dir)
+            cls.dirs[label] = run_dir
+            cls.out[label] = (done.stdout or "") + (done.stderr or "")
+            if done.returncode != 0:
+                raise RuntimeError(f"I9 run '{label}' failed\n"
+                                   + _tail("output", cls.out[label]))
+
+    def test_the_stored_block_is_solenoidal(self) -> None:
+        """What the solver reads must already be divergence free on the child grid.
+
+        Checked on the fixture itself, before any solver is involved, so a
+        failure here is the writer's projection and not the reader's.
+        """
+        block = self.data.initial_fields
+        div = mcf.discrete_divergence(
+            self.SPEC.grid(), (block["u"], block["v"], block["w"])
+        )
+        peak = float(np.max(np.abs(div)))
+        print(f"\n[I9] max |div| of the stored initial condition = {peak:.3e}", flush=True)
+        self.assertLessEqual(peak, ROUNDOFF, "the writer stored a divergent initial condition")
+
+    def test_it_is_bitwise_an_equivalent_prof_inp_start(self) -> None:
+        a = read_fortran_records(latest_restart(self.dirs["from_parent"], 0, 0))
+        b = read_fortran_records(latest_restart(self.dirs["from_prof_equal"], 0, 0))
+        self.assertEqual(len(a), len(b), "the two runs wrote different restart records")
+        differing = [name for name, rec in RESTART_FIELDS.items() if a[rec] != b[rec]]
+        worst = 0.0
+        for rec in RESTART_FIELDS.values():
+            x = np.frombuffer(a[rec], dtype="<f8")
+            y = np.frombuffer(b[rec], dtype="<f8")
+            worst = max(worst, float(np.max(np.abs(x - y))))
+        print(f"[I9] parent-initialised vs equivalent prof.inp start: "
+              f"max abs restart difference {worst:.3e}, differing records {differing}",
+              flush=True)
+        self.assertEqual(differing, [],
+                         "the cold start from the parent block is not bit-for-bit the "
+                         "same state as a prof.inp start carrying the same field")
+
+    def test_the_first_projection_is_already_clean(self) -> None:
+        divs = parse_divergence(self.out["from_parent"])
+        self.assertTrue(divs, "the run reported no divergence diagnostics")
+        first, worst = divs[0], max(abs(a) for a, _ in divs)
+        stats = parse_nesting_stats(self.out["from_parent"])
+        control = parse_nesting_stats(self.out["from_prof_zero"])
+        self.assertTrue(stats and control, "no nesting_stats output")
+        gp, gp0 = stats[0]["gradp_interior"], control[0]["gradp_interior"]
+        mis, mis0 = stats[0]["misfit"], control[0]["misfit"]
+        print(f"[I9] first divmax = {first[0]:.3e}, divtot = {first[1]:.3e}; "
+              f"worst divmax over the run = {worst:.3e}", flush=True)
+        print(f"[I9] first substep |grad p|_interior = {gp:.3e} (from prof.inp: "
+              f"{gp0:.3e}); zone misfit {mis:.3e} (from prof.inp: {mis0:.3e})", flush=True)
+        self.assertLessEqual(abs(first[0]), ROUNDOFF,
+                             "the field is not divergence free after the first projection")
+        self.assertLessEqual(worst, ROUNDOFF)
+        # The initial condition is solenoidal AND consistent with the imposed
+        # boundary, so the first projection has nothing of its own to remove.
+        self.assertLess(gp, 1.0e-3 * max(gp0, 1.0e-30),
+                        "the first projection worked as hard as it does from prof.inp, "
+                        "so the initial condition was not consistent with the boundary")
+        # The misfit is measured after a substep has been taken, so it cannot be
+        # at round-off -- the ground's molecular no-slip has already moved the
+        # lowest layer by ~1e-6 m/s (see this class's docstring). It is reported
+        # rather than asserted; what is asserted is the ratio to the control.
+        self.assertLess(mis, 1.0e-3 * max(mis0, 1.0e-30),
+                        "the zone starts as far from the parent as a prof.inp start does")
+
+    def test_the_switch_is_what_did_it(self) -> None:
+        """The control: without the switch the interior starts from `prof.inp`.
+
+        Without this the tests above could pass on a case where `prof.inp`
+        happened to agree with the parent, which would make them vacuous.
+        """
+        f = read_restart_fields(self.dirs["from_prof_zero"], self.SPEC, 1, 1)
+        du = float(np.max(np.abs(interior(f["u0"]) - self.U)))
+        dp = float(np.max(np.abs(interior(f["pres0"]))))
+        g = read_restart_fields(self.dirs["from_parent"], self.SPEC, 1, 1)
+        du_on = float(np.max(np.abs(interior(g["u0"]) - self.U)))
+        print(f"[I9] with the switch off: max|u-U| = {du:.3e}  max|pres0| = {dp:.3e};  "
+              f"with it on: max|u-U| = {du_on:.3e}", flush=True)
+        self.assertGreater(du, 1.0e-3,
+                           "prof.inp and the parent agree, so I9 proves nothing")
+        self.assertLess(du_on, 1.0e-3 * du,
+                        "the switch made no appreciable difference")
+        self.assertIn("cold start initialised from the parent", self.out["from_parent"])
+        self.assertNotIn("cold start initialised from the parent",
+                         self.out["from_prof_zero"])
+
+
+# --------------------------------------------------------------------------- #
+# I10 -- the leaky lid (design case B, section 10.6 item 5)
+# --------------------------------------------------------------------------- #
+
+
+class TestI10LeakyLid(_NestingCase):
+    """`BCtopm_pressure` must run with the flux assertion **on**, and correctly.
+
+    Design section 3.2 case B: `bcpup` sets the predicted lid velocity from the
+    accumulated pressure and `tderive` adds the matching increment, which is
+    exactly the Dirichlet-in-the-mean-mode row the solver pins (F3).  The
+    projection there is complete for any net flux, so `Phi_total = 0` is not a
+    requirement -- the lid flux is the child breathing against its reservoir.
+    What must still vanish is the flux through the faces the scheme controls.
+
+    Making the lid actually breathe takes some care, because the feedback is
+    autonomous and starts from rest: the lid velocity is driven by the
+    horizontal mean of the accumulated pressure at `k = ke`, that mean is
+    proportional to `-Phi_total` through the pin, and with a flux-balanced
+    parent and a cold start both are identically zero for ever.  So the case is
+    warm-started from a restart file whose `pres0` carries a uniform offset --
+    a child arriving with a column-pressure excess, which is precisely the mass
+    excess case B exists to let out.
+
+    The test then requires: the run completes with the assertion on; the lid
+    flux is large enough that the old six-face assertion **would** have fired
+    (otherwise nothing was fixed); the closed faces stay balanced to round-off;
+    and the post-projection divergence stays at round-off, which is case B's
+    substantive claim.
+    """
+
+    SPEC = mcf.BASE
+    DT = 0.125
+    SPINUP_STEPS = 8
+    COMPARE_STEPS = 8
+    #: uniform offset added to `pres0` in the restart file [m2 s-2]
+    POFFSET = 0.5
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        spin = cls.root / "i10_spinup"
+        mcf.write_case(spin, cls.SPEC, "face_forced", times=(0.0, 1.0e6), uprof=1.0,
+                       edits={"dtmax": f"{cls.DT:.10g}",
+                              "runtime": f"{cls.DT * cls.SPINUP_STEPS:.10g}",
+                              "trestart": f"{cls.DT * cls.SPINUP_STEPS:.10g}",
+                              "BCtopm": "3"})
+        done = run_solver(spin)
+        if done.returncode != 0:
+            raise RuntimeError("I10 spin-up failed\n"
+                               + _tail("output", (done.stdout or "") + (done.stderr or "")))
+        source = latest_restart(spin, 0, 0)
+
+        cls.out: Dict[str, str] = {}
+        cls.rc: Dict[str, int] = {}
+        for label, offset in (("breathing", cls.POFFSET), ("control", 0.0)):
+            run_dir = cls.root / f"i10_{label}"
+            mcf.write_case(run_dir, cls.SPEC, "face_forced", times=(0.0, 1.0e6), uprof=1.0,
+                           edits={"dtmax": f"{cls.DT:.10g}",
+                                  "runtime": f"{cls.DT * (cls.SPINUP_STEPS + cls.COMPARE_STEPS):.10g}",
+                                  "trestart": "1.e9",
+                                  "BCtopm": "3",
+                                  "lwarmstart": ".true.",
+                                  "startfile": f"'{source.name}'"})
+            cls._offset_pres0(source, run_dir / source.name, offset)
+            done = run_solver(run_dir)
+            cls.out[label] = (done.stdout or "") + (done.stderr or "")
+            cls.rc[label] = done.returncode
+
+    @classmethod
+    def _offset_pres0(cls, src: Path, dst: Path, offset: float) -> None:
+        """Copy a restart file, adding a uniform offset to the `pres0` record."""
+        records = list(read_fortran_records(src))
+        rec = RESTART_FIELDS["pres0"]
+        arr = np.frombuffer(records[rec], dtype="<f8").copy() + offset
+        records[rec] = arr.tobytes()
+        with dst.open("wb") as fh:
+            for r in records:
+                head = struct.pack("<i", len(r))
+                fh.write(head + r + head)
+
+    def test_the_run_completes_with_the_assertion_on(self) -> None:
+        if self.rc["breathing"] != 0:
+            self.fail("a BCtopm_pressure run still trips the flux assertion\n"
+                      + _tail("output", self.out["breathing"]))
+        self.assertNotIn("boundary flux residual out of tolerance", self.out["breathing"])
+
+    def test_the_lid_breathes_and_the_old_assertion_would_have_fired(self) -> None:
+        stats = parse_nesting_stats(self.out["breathing"])
+        self.assertTrue(stats, "no nesting_stats output")
+        self.assertTrue(all("phi_lid" in s for s in stats),
+                        "nesting_stats does not report the lid flux")
+        worst_lid = max(abs(s["phi_lid"]) for s in stats)
+        worst_all = max(abs(s["phi"]) for s in stats)
+        worst_closed = max(abs(s["phi_closed"]) for s in stats)
+        control = parse_nesting_stats(self.out["control"])
+        control_all = max(abs(s["phi"]) for s in control) if control else 0.0
+        print(f"\n[I10] with a column-pressure offset: max |Phi| (six faces) = "
+              f"{worst_all:.3e}   max |Phi_lid| = {worst_lid:.3e}   "
+              f"max |Phi_closed| = {worst_closed:.3e}", flush=True)
+        print(f"[I10] without the offset (control): max |Phi| = {control_all:.3e}",
+              flush=True)
+        self.assertGreater(worst_lid, 1.0e-6,
+                           "the lid carries no flux, so this case does not exercise case B")
+        # This is the number the pre-fix assertion tested, and it is what used to
+        # force nest_lfluxassert = .false. on every case B run.
+        self.assertGreater(worst_all, 1.0e-10,
+                           "the six-face residual is within tolerance, so the old "
+                           "assertion would not have fired and nothing was fixed")
+        self.assertLessEqual(worst_closed, 1.0e-10,
+                             "the imposed faces are not flux balanced")
+
+    def test_the_projection_is_still_complete(self) -> None:
+        """Case B's substantive claim: the lid realises the flux the pressure
+        implies, so the post-projection divergence stays at round-off -- unlike
+        case A, where an unbalanced flux leaves a source in the top cell layer."""
+        divs = parse_divergence(self.out["breathing"])
+        self.assertTrue(divs, "no divergence diagnostics")
+        worst = max(abs(a) for a, _ in divs)
+        worst_tot = max(abs(b) for _, b in divs)
+        print(f"[I10] max divmax = {worst:.3e}, max divtot = {worst_tot:.3e}", flush=True)
+        self.assertLessEqual(worst, 1.0e-12,
+                             "case B does not leave a divergence-free field")
 
 
 if __name__ == "__main__":

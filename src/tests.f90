@@ -21,7 +21,7 @@ module tests
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators
   public :: tests_nesting_weights, tests_nesting_geometry, tests_nesting_io, &
-            tests_nesting_flux, tests_nesting_update
+            tests_nesting_flux, tests_nesting_update, tests_nesting_init
 
   !> Synthetic solid box used by the nesting IBM subtests (U11-U13, U34).
   !! Defined on GLOBAL indices so that it marks the same physical cells on
@@ -899,6 +899,7 @@ contains
     use modglobal,  only : timee
     use modnesting, only : lnesting, nestfile, nest_tau, nest_timeinterp,  &
                            nest_nwall, nest_fluxtol, nest_lfluxassert,     &
+                           nest_lfluxcheckall, nest_linitfromparent,       &
                            nesting_init, nesting_finalize
 
     character(len=*), intent(in) :: fname
@@ -915,6 +916,10 @@ contains
     nest_nwall       = nwall
     nest_fluxtol     = fluxtol
     nest_lfluxassert = lassert
+    ! pinned, so a subtest exercises the path it names rather than whatever the
+    ! namelist happened to select
+    nest_lfluxcheckall   = .false.
+    nest_linitfromparent = .false.
     timee            = t0
 
     call nesting_init
@@ -1863,10 +1868,11 @@ contains
                            cexpnr, timee
     use modfields,  only : initfields, IIu, IIv, IIw, rhobf, rhobh
     use modibm,     only : createmasks
-    use modnesting, only : nest_flux_residual, nesting_bcpup,               &
-                           nesting_update_target, nestfile, lnesting,       &
-                           nest_fluxtol, nest_lfluxassert, nesting_init,    &
-                           nesting_finalize
+    use modnesting,   only : nest_flux_residual, nest_flux_split, nesting_bcpup, &
+                             nesting_update_target, nestfile, lnesting,          &
+                             nest_fluxtol, nest_lfluxassert, nesting_init,       &
+                             nesting_finalize, nest_lfluxcheckall
+    use modnestingio, only : nestio_hdr, nestio_read
 
     implicit none
 
@@ -1904,6 +1910,15 @@ contains
 
     if (.not. u26_corrected()) all_passed = .false.
     if (.not. u28_linear())    all_passed = .false.
+
+    ! design section 10.6 item 5 -- the lid contribution to Phi
+    if (.not. u35_lid_split())  all_passed = .false.
+    if (.not. u36_closed_lid()) all_passed = .false.
+
+    ! design section 10.6 item 3 -- the stored post-correction residual
+    if (.not. u37_stored_residual()) all_passed = .false.
+    if (.not. u38_schema1_file())    all_passed = .false.
+    if (.not. u39_lying_file())      all_passed = .false.
 
     deallocate(pup, pvp, pwp)
     call nesting_finalize
@@ -2013,21 +2028,13 @@ contains
 
     end subroutine set_boundary_mask
 
-    !> U23/U24/U25: Phi for an imposed face field with an analytically known
-    !! net flux. The reference is summed over GLOBAL indices, so agreeing
-    !! with it on any layout is decomposition invariance.
-    logical function u23_phi(lmasked)
-      logical, intent(in) :: lmasked
+    !> Impose the six-face field of face_val on the predicted velocity.
+    !! ltop selects whether the lid carries data or is closed (w* = 0), which is
+    !! what a rigid lid does in bcpup.
+    subroutine fill_boundary(ltop)
+      logical, intent(in) :: ltop
 
       integer :: i, j, k, ig, jg
-      real    :: phi, num, area, af, ref, tol
-      character(len=48) :: lbl
-
-      if (lmasked) then
-        lbl = 'U25 Phi over fluid faces only (masked)'
-      else
-        lbl = 'U23/U24 Phi against an analytic net flux'
-      end if
 
       ! interior values must not enter Phi
       call nest_fill(pup, 3.1)
@@ -2070,36 +2077,49 @@ contains
         do i = ib - ih, ie + ih
           ig = i + zstart(1) - 1
           jg = j + zstart(2) - 1
-          pwp(i,j,kb)   = face_val(5, ig, jg)/rk3c
-          pwp(i,j,ke+1) = face_val(6, ig, jg)/rk3c
+          pwp(i,j,kb) = face_val(5, ig, jg)/rk3c
+          if (ltop) then
+            pwp(i,j,ke+1) = face_val(6, ig, jg)/rk3c
+          else
+            pwp(i,j,ke+1) = 0.
+          end if
         end do
       end do
 
-      phi = nest_flux_residual(pup, pvp, pwp, rk3c)
+    end subroutine fill_boundary
 
-      ! independent global reference
+    !> Reference Phi over global indices. iset: 1 all six faces, 2 the lid
+    !! alone, 3 the five closed faces. All three are normalised by the SAME
+    !! total fluid boundary area, as nest_flux_split is.
+    real function ref_phi(iset, lmasked)
+      integer, intent(in) :: iset
+      logical, intent(in) :: lmasked
+
+      integer :: ig, jg, k
+      real    :: num, area, af
+
       num  = 0.
       area = 0.
       do k = kb, ke
         af = dy*dzf(k)
         do jg = 1, jtot
           if (face_fluid(1, jg, k, lmasked)) then
-            num  = num - rhobf(k)*face_val(1, jg, k)*af
+            if (iset /= 2) num = num - rhobf(k)*face_val(1, jg, k)*af
             area = area + af
           end if
           if (face_fluid(2, jg, k, lmasked)) then
-            num  = num + rhobf(k)*face_val(2, jg, k)*af
+            if (iset /= 2) num = num + rhobf(k)*face_val(2, jg, k)*af
             area = area + af
           end if
         end do
         af = dx*dzf(k)
         do ig = 1, itot
           if (face_fluid(3, ig, k, lmasked)) then
-            num  = num - rhobf(k)*face_val(3, ig, k)*af
+            if (iset /= 2) num = num - rhobf(k)*face_val(3, ig, k)*af
             area = area + af
           end if
           if (face_fluid(4, ig, k, lmasked)) then
-            num  = num + rhobf(k)*face_val(4, ig, k)*af
+            if (iset /= 2) num = num + rhobf(k)*face_val(4, ig, k)*af
             area = area + af
           end if
         end do
@@ -2108,16 +2128,41 @@ contains
       do jg = 1, jtot
         do ig = 1, itot
           if (face_fluid(5, ig, jg, lmasked)) then
-            num  = num - rhobh(kb)*face_val(5, ig, jg)*af
+            if (iset /= 2) num = num - rhobh(kb)*face_val(5, ig, jg)*af
             area = area + af
           end if
           if (face_fluid(6, ig, jg, lmasked)) then
-            num  = num + rhobh(ke+1)*face_val(6, ig, jg)*af
+            if (iset /= 3) num = num + rhobh(ke+1)*face_val(6, ig, jg)*af
             area = area + af
           end if
         end do
       end do
-      ref = num/area
+
+      ref_phi = num/area
+
+    end function ref_phi
+
+    !> U23/U24/U25: Phi for an imposed face field with an analytically known
+    !! net flux. The reference is summed over GLOBAL indices, so agreeing
+    !! with it on any layout is decomposition invariance.
+    logical function u23_phi(lmasked)
+      logical, intent(in) :: lmasked
+
+      real    :: phi, ref, tol
+      character(len=48) :: lbl
+
+      if (lmasked) then
+        lbl = 'U25 Phi over fluid faces only (masked)'
+      else
+        lbl = 'U23/U24 Phi against an analytic net flux'
+      end if
+
+      call fill_boundary(.true.)
+
+      phi = nest_flux_residual(pup, pvp, pwp, rk3c)
+
+      ! independent global reference
+      ref = ref_phi(1, lmasked)
 
       tol = 1.e-13*max(abs(ref), 1.e-3)
       u23_phi = abs(phi - ref) <= tol
@@ -2170,6 +2215,158 @@ contains
       call nest_verdict('tests_nesting_flux', .false.)
       u27_assert_fires = .false.
     end function u27_assert_fires
+
+
+    !> U35: the lid split of design section 10.6 item 5. phi_all must still be
+    !! the six-face Phi, phi_lid the top face alone, and the difference the five
+    !! closed faces -- each against an independently summed global reference.
+    !! This is what lets the flux assertion stay on under BCtopm_pressure, where
+    !! the lid flux is a free response and not an imposed datum.
+    logical function u35_lid_split()
+      real :: phi_all, phi_lid, r_all, r_lid, r_closed, tol
+
+      call fill_boundary(.true.)
+      call nest_flux_split(pup, pvp, pwp, rk3c, phi_all, phi_lid)
+
+      r_all    = ref_phi(1, .false.)
+      r_lid    = ref_phi(2, .false.)
+      r_closed = ref_phi(3, .false.)
+
+      tol = 1.e-13*max(abs(r_all), abs(r_lid), 1.e-3)
+
+      u35_lid_split = abs(phi_all - r_all) <= tol .and.                     &
+                      abs(phi_lid - r_lid) <= tol .and.                     &
+                      abs((phi_all - phi_lid) - r_closed) <= tol
+
+      if (myid == 0) then
+        write(*,'(a,2es22.14)') ' NESTFLUX phi_all, ref = ', phi_all, r_all
+        write(*,'(a,2es22.14)') ' NESTFLUX phi_lid, ref = ', phi_lid, r_lid
+        write(*,'(a,2es22.14)') ' NESTFLUX closed,  ref = ', phi_all - phi_lid, r_closed
+      end if
+      call nest_report('U35 Phi splits into lid and closed faces', u35_lid_split)
+    end function u35_lid_split
+
+    !> U36: with a rigid lid bcpup sets w* = 0 there, so the lid carries no flux
+    !! at all and the asserted quantity is exactly the old six-face Phi. The
+    !! split must therefore change nothing for design case A.
+    logical function u36_closed_lid()
+      real :: phi_all, phi_lid
+
+      call fill_boundary(.false.)
+      call nest_flux_split(pup, pvp, pwp, rk3c, phi_all, phi_lid)
+
+      u36_closed_lid = (phi_lid == 0.) .and. (abs(phi_all - ref_phi(3, .false.)) <= 1.e-13)
+
+      if (myid == 0) write(*,'(a,es12.4,a,es12.4)') '   phi_lid = ', phi_lid, &
+        ', phi_all = ', phi_all
+      call nest_report('U36 a closed lid contributes nothing to Phi', u36_closed_lid)
+    end function u36_closed_lid
+
+    !> U37: the schema 2 flux_residual is the residual of the data AS STORED.
+    !! Recomputed here from the four boundary-normal slabs, read straight through
+    !! modnestingio, which is exactly the quantity the cheap init-time check
+    !! trusts (design section 10.6 item 3). Rank 0 reads the whole range, so the
+    !! comparison does not depend on the decomposition.
+    logical function u37_stored_residual()
+      use modglobal, only : cexpnr, ktot
+
+      integer :: it, m, kk, d, ierr, nz
+      real    :: num, dmax, aref
+      real, allocatable :: bw(:,:,:), be(:,:,:), bs(:,:,:), bn(:,:,:)
+      logical :: ok
+
+      call nest_reinit('nesting_corrected.'//cexpnr//'.nc', 0., 4., 2, 1, 1.e-10, .true.)
+
+      ok = nestio_hdr%has_flux_residual
+      dmax = 0.
+      aref = 0.
+
+      if (ok .and. myid == 0) then
+        nz = nestio_hdr%nzone
+        allocate(bw(nz + 1, ktot, jtot), be(nz + 1, ktot, jtot))
+        allocate(bs(nz + 1, ktot, itot), bn(nz + 1, ktot, itot))
+        do it = 1, nestio_hdr%ntime
+          call nestio_read('u_west',  it, 1, jtot, bw, ierr)
+          call nestio_read('u_east',  it, 1, jtot, be, ierr)
+          call nestio_read('v_south', it, 1, itot, bs, ierr)
+          call nestio_read('v_north', it, 1, itot, bn, ierr)
+          num = 0.
+          do d = 1, jtot
+            do kk = 1, ktot
+              num = num + (be(nz + 1, kk, d) - bw(1, kk, d))*rhobf(kk)*dy*dzf(kk)
+            end do
+          end do
+          do d = 1, itot
+            do kk = 1, ktot
+              num = num + (bn(nz + 1, kk, d) - bs(1, kk, d))*rhobf(kk)*dx*dzf(kk)
+            end do
+          end do
+          dmax = max(dmax, abs(num - nestio_hdr%flux_residual(it)))
+        end do
+        deallocate(bw, be, bs, bn)
+
+        ! the same slab data give the fluid lateral area the file advertises
+        aref = 2.*real(jtot)*dy*sum(dzf(kb:ke)) + 2.*real(itot)*dx*sum(dzf(kb:ke))
+        ok = ok .and. abs(aref - nestio_hdr%fluid_lateral_area) <= 1.e-12*aref
+      end if
+
+      if (myid == 0) then
+        ok = ok .and. (dmax <= 1.e-12*max(1., aref))
+        write(*,'(a,es12.4)') '   max |stored residual - recomputed| = ', dmax
+        write(*,'(a,2es22.14)') '   fluid lateral area file/ref = ', &
+          nestio_hdr%fluid_lateral_area, aref
+      end if
+
+      u37_stored_residual = nest_all_ranks(ok .or. myid /= 0)
+      call nest_report('U37 stored residual matches the stored slabs', u37_stored_residual)
+    end function u37_stored_residual
+
+    !> U38: a schema 1 file has no stored residual and must still load and pass,
+    !! by the full recompute, with a warning. Backwards compatibility of the file
+    !! format is a hard requirement, so it gets its own subtest.
+    logical function u38_schema1_file()
+      use modglobal, only : cexpnr
+
+      real :: phi
+
+      call nest_reinit('nesting_v1.'//cexpnr//'.nc', 0., 4., 2, 1, 1.e-10, .true.)
+
+      pup = 0.; pvp = 0.; pwp = 0.
+      call nesting_bcpup(pup, pvp, pwp, rk3c)
+      phi = nest_flux_residual(pup, pvp, pwp, rk3c)
+
+      u38_schema1_file = (nestio_hdr%schema == 1) .and.                     &
+                         (.not. nestio_hdr%has_flux_residual) .and.         &
+                         (abs(phi) <= 1.e-10)
+
+      if (myid == 0) write(*,'(a,i0,a,l1,a,es12.4)') '   schema = ', nestio_hdr%schema, &
+        ', has_flux_residual = ', nestio_hdr%has_flux_residual, ', Phi = ', phi
+      call nest_report('U38 a schema 1 file still loads and is checked', u38_schema1_file)
+    end function u38_schema1_file
+
+    !> U39: the cheap check believes the writer. A file whose stored residual
+    !! claims zero while its data do not is accepted at init -- and caught by the
+    !! per-substep assertion in nesting_bcpup instead. The subtest pins that
+    !! trade-off rather than leaving it implied; nest_lfluxcheckall is what
+    !! closes it, and its abort case is in the driver.
+    logical function u39_lying_file()
+      use modglobal, only : cexpnr
+
+      real :: phi
+
+      call nest_reinit('assertfire_lying.'//cexpnr//'.nc', 0., 4., 2, 1, 1.e-10, .false.)
+
+      pup = 0.; pvp = 0.; pwp = 0.
+      call nesting_bcpup(pup, pvp, pwp, rk3c)
+      phi = nest_flux_residual(pup, pvp, pwp, rk3c)
+
+      u39_lying_file = abs(phi) > 1.e-10
+
+      if (myid == 0) write(*,'(a,es12.4)') &
+        '   run-time Phi of the file the cheap check accepted = ', phi
+      call nest_report('U39 the run-time assertion backs up the cheap check', &
+                       u39_lying_file)
+    end function u39_lying_file
 
     !> U28: Phi is a linear functional of the boundary data, so with a target
     !! that is linear in time Phi at the midpoint equals the mean of the
@@ -2601,5 +2798,204 @@ contains
     end function u34_solid
 
   end function tests_nesting_update
+
+  !> Cold-start initialisation of the interior from the parent, design section
+  !! 10.6 item 4. Covers U40-U43.
+  !!
+  !! The fixture nesting_initial.<expnr>.nc carries the analytic field of
+  !! udprep.nesting.analytic_field as its full-domain block, written WITHOUT the
+  !! divergence correction, so every value the reader is supposed to place can be
+  !! predicted here exactly and a transposed, off-by-one or wrongly staggered
+  !! read cannot pass. The abort cases (no block, wrong shape, wrong stagger) are
+  !! separate invocations selected through the nestfile namelist entry, since
+  !! they stop the process.
+  logical function tests_nesting_init()
+    use mpi
+    use modglobal,  only : ib, ie, ih, jb, je, jh, kb, ke, kh, ktot, cexpnr, &
+                           timee, lwarmstart, ierank, jerank
+    use modfields,  only : initfields, u0, um, v0, vm, w0, wm
+    use modibm,     only : createmasks
+    use modnesting, only : lnesting, nestfile, nest_tau, nest_fluxtol,       &
+                           nest_lfluxassert, nest_linitfromparent,           &
+                           nesting_init, nesting_finalize
+
+    implicit none
+
+    real, parameter :: SENTINEL_U = 3.75, SENTINEL_V = -1.25, SENTINEL_W = 0.5
+
+    logical :: all_passed, lwarm_save
+    real, allocatable :: su(:,:,:), sv(:,:,:), sw(:,:,:)
+
+    call nest_banner('tests_nesting_init', 'COLD-START INIT FROM THE PARENT (U40-U43)')
+
+    call initfields
+    call createmasks
+    call nest_set_solids(.false.)
+
+    ! The failure modes -- no block, wrong shape, wrong stagger -- stop the
+    ! process, so the driver runs each of them as its own invocation and selects
+    ! it by pointing nestfile somewhere other than the good fixture.
+    if (index(nestfile, 'nesting_initial') == 0) then
+      tests_nesting_init = u43_init_aborts()
+      return
+    end if
+
+    allocate(su(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+    allocate(sv(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+    allocate(sw(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
+
+    lwarm_save = lwarmstart
+    all_passed = .true.
+
+    if (.not. u40_fills_from_the_block()) all_passed = .false.
+    if (.not. u41_off_leaves_the_fields()) all_passed = .false.
+    if (.not. u42_warmstart_is_not_touched()) all_passed = .false.
+
+    lwarmstart = lwarm_save
+    deallocate(su, sv, sw)
+    call nesting_finalize
+
+    call nest_verdict('tests_nesting_init', all_passed)
+    tests_nesting_init = nest_all_ranks(all_passed)
+
+  contains
+
+    !> Fill the velocity fields with a value nothing in the file can produce and
+    !! remember them, so any point the reader does not write is recognisable.
+    subroutine plant_sentinel()
+      u0 = SENTINEL_U; um = SENTINEL_U
+      v0 = SENTINEL_V; vm = SENTINEL_V
+      w0 = SENTINEL_W; wm = SENTINEL_W
+      su = u0; sv = v0; sw = w0
+    end subroutine plant_sentinel
+
+    !> Re-initialise nesting with the initial-condition switch in a given state.
+    subroutine reinit(fname, lfrom, lwarm)
+      character(len=*), intent(in) :: fname
+      logical,          intent(in) :: lfrom, lwarm
+
+      call nesting_finalize
+      lnesting             = .true.
+      nestfile             = fname
+      nest_tau             = 4.
+      nest_fluxtol         = 1.e30
+      nest_lfluxassert     = .false.
+      nest_linitfromparent = lfrom
+      lwarmstart           = lwarm
+      timee                = 0.
+      call nesting_init
+    end subroutine reinit
+
+    !> Largest deviation of one component from the analytic field over the
+    !! index range the reader is contractually required to fill, MPI-reduced.
+    !! iu/ju/ku extend the local range by one where this rank owns the far face.
+    real function block_error(ivar, q)
+      integer, intent(in) :: ivar
+      real,    intent(in) :: q(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+
+      integer :: i, j, k, iend, jend, kend
+      real    :: x, y, z, d, dmax
+
+      iend = ie
+      jend = je
+      kend = ke
+      if (ivar == 1 .and. ierank) iend = ie + 1
+      if (ivar == 2 .and. jerank) jend = je + 1
+      if (ivar == 3) kend = ke + 1
+
+      dmax = 0.
+      do k = kb, kend
+        do j = jb, jend
+          do i = ib, iend
+            call nest_ref_coord(ivar, i, j, k, x, y, z)
+            d = abs(q(i,j,k) - nest_analytic(ivar, x, y, z, 0.))
+            dmax = max(dmax, d)
+          end do
+        end do
+      end do
+
+      block_error = nest_maxall(dmax)
+
+    end function block_error
+
+    !> U43: nesting_init must stop on a file that cannot serve the switch --
+    !! it has no block, or one at the wrong shape or the wrong stagger. Reaching
+    !! the line after nesting_init is the failure.
+    logical function u43_init_aborts()
+      lnesting             = .true.
+      nest_tau             = 4.
+      nest_fluxtol         = 1.e30
+      nest_lfluxassert     = .false.
+      nest_linitfromparent = .true.
+      lwarmstart           = .false.
+      timee                = 0.
+      if (myid == 0) write(*,'(a,a)')                                       &
+        ' U43: nesting_init must abort on ', trim(nestfile)
+
+      call nesting_init
+
+      call nest_report('U43 cold-start init (init did NOT abort)', .false.)
+      call nest_verdict('tests_nesting_init', .false.)
+      u43_init_aborts = .false.
+    end function u43_init_aborts
+
+    !> U40: with nest_linitfromparent the three components come back as the
+    !! stored block, and the m-level copies are bitwise identical to the 0-level.
+    logical function u40_fills_from_the_block()
+      real :: du, dv, dw
+      logical :: lm
+
+      call plant_sentinel()
+      call reinit('nesting_initial.'//cexpnr//'.nc', .true., .false.)
+
+      du = block_error(1, u0)
+      dv = block_error(2, v0)
+      dw = block_error(3, w0)
+      lm = nest_sumall(real(count(um /= u0) + count(vm /= v0) + count(wm /= w0))) == 0.
+
+      u40_fills_from_the_block = (max(du, dv, dw) <= 1.e-14) .and. lm
+
+      if (myid == 0) then
+        write(*,'(a,3es12.4)') '   max |q - analytic| u/v/w = ', du, dv, dw
+        if (.not. lm) write(*,'(a)') '   the m-level fields differ from the 0-level ones'
+      end if
+      call nest_report('U40 cold start filled from the parent block', &
+                       u40_fills_from_the_block)
+    end function u40_fills_from_the_block
+
+    !> U41: with the switch off nothing is touched, bitwise. The same file is
+    !! used, so this isolates the switch and not the file.
+    logical function u41_off_leaves_the_fields()
+      real :: n
+
+      call plant_sentinel()
+      call reinit('nesting_initial.'//cexpnr//'.nc', .false., .false.)
+
+      n = nest_sumall(real(count(u0 /= su) + count(v0 /= sv) + count(w0 /= sw) + &
+                           count(um /= su) + count(vm /= sv) + count(wm /= sw)))
+      u41_off_leaves_the_fields = (n == 0.)
+      if (myid == 0) write(*,'(a,i0)') '   points changed with the switch off = ', nint(n)
+      call nest_report('U41 switch off leaves the fields bitwise unchanged', &
+                       u41_off_leaves_the_fields)
+    end function u41_off_leaves_the_fields
+
+    !> U42: a warm start already holds a state consistent with the parent, and
+    !! overwriting it would break restart parity (I6). The switch must be
+    !! ignored, not honoured.
+    logical function u42_warmstart_is_not_touched()
+      real :: n
+
+      call plant_sentinel()
+      call reinit('nesting_initial.'//cexpnr//'.nc', .true., .true.)
+
+      n = nest_sumall(real(count(u0 /= su) + count(v0 /= sv) + count(w0 /= sw) + &
+                           count(um /= su) + count(vm /= sv) + count(wm /= sw)))
+      u42_warmstart_is_not_touched = (n == 0.)
+      if (myid == 0) write(*,'(a,i0)') '   points changed on a warm start = ', nint(n)
+      call nest_report('U42 warm start is not overwritten', &
+                       u42_warmstart_is_not_touched)
+    end function u42_warmstart_is_not_touched
+
+  end function tests_nesting_init
 
 end module tests

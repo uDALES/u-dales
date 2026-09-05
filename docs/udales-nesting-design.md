@@ -859,7 +859,7 @@ enough (§7 C6)?
 | File | Change |
 |---|---|
 | `src/modnesting.f90` | **new** — the whole scheme (§9.2) |
-| `src/modglobal.f90` | `BCxm_nesting = 4`, `BCym_nesting = 3`; five `TEST_NESTING_*` runmode constants |
+| `src/modglobal.f90` | `BCxm_nesting = 4`, `BCym_nesting = 3`; six `TEST_NESTING_*` runmode constants |
 | `src/modstartup.f90` | `&NESTING` namelist + broadcasts; `checkinitvalues` guards; `call nesting_init` |
 | `src/program.f90` | three call sites (§4); runmode dispatch for the new tests |
 | `src/modboundary.f90` | `case(BCxm_nesting)`/`case(BCym_nesting)` in `boundary`, in the outflow block, and in `bcpup` — each a thin delegation to `modnesting` |
@@ -898,6 +898,8 @@ module modnesting
   logical :: nest_lparentgeom= .false.       ! parent resolves the child geometry
   real    :: nest_fluxtol    = 1.e-10        ! abort threshold on Phi
   logical :: nest_lfluxassert= .true.        ! assertion ON by default (C2)
+  logical :: nest_lfluxcheckall = .false.    ! recompute Phi from the slabs at init (10.6.3)
+  logical :: nest_linitfromparent = .false.  ! cold start from the full-3D block (10.6.4)
 
   !------------------------------------------------------------- zone geometry
   type zone_type                             ! one per staggered component
@@ -998,11 +1000,11 @@ $\sim10^{-7}$.
 | **M5** | Full path; decomposition, restart and IBM parity. | **I5–I8** |
 | **M6** | Validation campaign. | **V1–V7** |
 
-**Status: M0–M5 complete.** 34 unit assertions across five runmodes on four
-decompositions, 37 Python writer tests, and the 28-test I1–I8 matrix all pass
-against Release (561 s); the matrix also passes against Debug (`-init=snan
--fpe0`), 22 tests with the two I1-vs-baseline comparisons skipped since they
-need a Release binary (1030 s). M5 found one real defect, the `nesting_init`
+**Status: M0–M5 complete, and the §10.6 follow-ups with them.** 43 unit
+assertions across six runmodes on four decompositions, 59 Python writer tests,
+and the I1–I10 matrix all pass against Release; the matrix also passes against
+Debug (`-init=snan -fpe0`), with the two I1-vs-baseline comparisons skipped
+since they need a Release binary. M5 found one real defect, the `nesting_init`
 call order (§9.5), which is fixed. M6 has not been started.
 
 ---
@@ -1081,6 +1083,26 @@ from an analytic field, so this test also pins the writer/reader contract.
 | U33 | stability and monotonicity | for $\Delta t/\tau\in[10^{-3},10^{6}]$, no overshoot, no sign change, no NaN |
 | U34 | solid points untouched | `up` at solid points is unchanged by `nesting_apply` |
 
+**`TEST_NESTING_FLUX = 1009`, continued** — §10.6 items 3 and 5.
+
+| ID | Isolates | Pass criterion |
+|---|---|---|
+| U35 | the lid split | `nest_flux_split` gives $\Phi$, $\Phi_{\rm lid}$ and $\Phi-\Phi_{\rm lid}$ each equal to an independently summed global reference over the six / top / five faces |
+| U36 | a closed lid | with $w^\ast=0$ at the top, $\Phi_{\rm lid}$ is **exactly** zero and the asserted quantity is the old six-face $\Phi$ — so case A is unchanged |
+| U37 | the stored residual is real | `flux_residual` equals the residual recomputed from the four boundary-normal slabs, read straight through `modnestingio`, for every stored level; and `fluid_lateral_area` is this grid's |
+| U38 | schema 1 still works | a schema 1 file loads, warns that it predates schema 2, recomputes, and gives $\Phi=0$ at run time |
+| U39 | what the cheap check costs | a file whose stored residual lies is accepted at init and caught by the per-substep assertion instead — the trade-off is pinned rather than implied. Two abort cases close it: `nest_lfluxcheckall` catches the same file, and an `fluid_lateral_area` mismatch forces the recompute on its own |
+
+**`TEST_NESTING_INIT = 1011`** — cold-start initialisation from the parent (§10.6 item 4). Run on
+1×1, 2×1, 1×2, 2×2.
+
+| ID | Isolates | Pass criterion |
+|---|---|---|
+| U40 | the block is read correctly | every point of `u0/um`, `v0/vm`, `w0/wm` that the reader must fill equals the stored block — a non-separable analytic 3-D field — to round-off, including the far faces `u(ie+1)`, `v(je+1)` and `w(ke+1)` on the ranks that own them. **This is the $t=0$ statement**, and it is made here rather than in an integration test because a restart file can only be written after a step |
+| U41 | the switch is a switch | with `nest_linitfromparent = .false.` and the same file, the fields are **bitwise** unchanged |
+| U42 | warm starts are not touched | with the switch on and `lwarmstart`, the fields are bitwise unchanged and the run says so |
+| U43 | the failure modes abort | switch on with no block; a block at the wrong shape; a block at the wrong stagger — one subtest per case, each its own process |
+
 ### 10.2 Unit — Python (`tools/python/tests/`)
 
 | ID | Isolates | Pass criterion |
@@ -1096,6 +1118,12 @@ from an analytic field, so this test also pins the writer/reader contract.
 | P9 | schema round-trip | write→read reproduces every field and attribute; a missing required attribute is rejected |
 | P10 | refinement guard | spatial ratio >4 or temporal >30 is refused without an explicit override |
 | P11 | container equivalence | the raw-binary and NetCDF back-ends produce byte-identical buffers on read |
+| P12 | the stored residual | `flux_residual` is the residual *after* correction, not before; an uncorrected file stores its real one; `fluid_lateral_area` is written and is the geometric (not $\rho$-weighted) masked area |
+| P13 | the initial-condition block | round-trips bitwise on both back-ends; carries the contract's dimensions and stagger; a wrong stagger, an undeclared block, a declared-but-missing block and a schema 1 file asked to carry one are each rejected |
+| P14 | the projection works | a random closed-box field with $O(1)$ divergence comes back at $<10^{-12}$, on a uniform and on a stretched vertical |
+| P15 | the projection is minimal | every boundary-normal velocity is bitwise unchanged, while the interior demonstrably moves |
+| P16 | idempotence | projecting an already-solenoidal field changes nothing to round-off; an incompatible field is **refused**, not absorbed |
+| P17 | schema 1 compatibility | a schema 1 file writes, validates and reads back with the same slab bits, carries none of the schema 2 items, and an unknown schema is still rejected |
 
 ### 10.3 Integration (`tests/integration/nesting/`)
 
@@ -1109,6 +1137,8 @@ from an analytic field, so this test also pins the writer/reader contract.
 | I6 | **restart parity** | 100 steps vs 50 + restart + 50 | bitwise identical, including mid-parent-interval restarts and restarts exactly on an interval boundary |
 | I7 | **zone isolation** | two runs differing only in the interior, identical in the zone | the difference stays confined as expected; quantifies C1's global pressure response rather than assuming it away |
 | I8 | **IBM interaction** | buildings adjacent to the zone edge | facet stresses on the first building row match a no-nesting reference to a stated tolerance |
+| I9 | **cold start from the parent** | ZONED case, `prof.inp` carrying `u = 0` against a parent carrying `u = U`, run with and without `nest_linitfromparent` | the run is **bitwise identical** to one whose `prof.inp` carries the same field — two runs of this solver cannot agree bit for bit unless they started from the same bits; the first `divmax` is at round-off; the first substep's $\|\mathcal{G}p\|$ in the interior is $4\times10^{-6}$ of the `prof.inp` control's |
+| I10 | **leaky lid** (case B) | `BCtopm_pressure`, warm-started from a restart whose `pres0` carries a uniform offset, with `nest_lfluxassert = .true.` | the run completes; $\Phi_{\rm lid}$ is eight orders of magnitude above `nest_fluxtol`, so the pre-fix assertion **would** have fired; $\Phi$ over the closed faces stays at round-off; `divmax` stays at round-off |
 
 **Why the I4(a) field is exact, not second order.** On the staggered grid $u$
 sits at $(x_h,y_f)$ and $v$ at $(x_f,y_h)$, and $x_h(i)+h/2=x_f(i)$. With
@@ -1166,14 +1196,77 @@ Recorded here rather than in a tracker so they travel with the design.
    `modnesting → modpois → modboundary → modnesting` is avoided — and reports
    $\|\mathcal{G}p\|_{\rm zone}$, $\|\mathcal{G}p\|_{\rm interior}$ and their ratio, plus the
    energy injection split between guard strip and relaxation ramp (accumulated in `nesting_apply`).
-3. **Init recomputes $\Phi$ from the boundary slabs for every stored time** (`4 × ntime` reads on
-   perimeter ranks) because `net_volume_flux` stores the *pre*-correction residual. Unmeasured; may
-   be slow on a production file. Options: store a post-correction residual alongside, or check a
-   sampled subset with the full check behind a flag.
-4. **Cold-start initialisation of `u0`/`um` from the parent is not implemented** — the v1 schema has
-   no full-3D block. Warm starts are unaffected.
-5. **Case B (`BCtopm_pressure`) trips the flux assertion**, correctly: the lid flux enters $\Phi$ per
-   §3.1. Such runs need `nest_lfluxassert = .false.` until Case B is properly supported.
+3. ~~**Init recomputes $\Phi$ from the boundary slabs for every stored time.**~~ **DONE, measured.**
+   Schema 2 stores `flux_residual(time)` — the residual of the data *as stored* — next to the
+   `fluid_lateral_area` it was summed over, and `check_stored_flux` validates that instead of
+   reading anything. The full recompute is kept behind `nest_lfluxcheckall` (default `.false.`) and
+   the reader falls back to it, with a named warning, for a schema 1 file or when the file's fluid
+   lateral area is not this run's — so the cheap path can never silently paper over a writer/solver
+   mask mismatch. Note that §6.1 always asked for "the residual $\Phi(t)$ **left by** the offline
+   correction"; the v1 file stored the residual *before* it instead, so this closes a gap between
+   the contract and the implementation rather than extending the contract.
+
+   **Measured** on CX3, Release build, `nesting_init` timed around `check_stored_flux`, on two
+   13 GB files built by the production writer:
+
+   | Case | full recompute, **cold** | full recompute, cached | stored residual |
+   |---|---|---|---|
+   | $256^2\times128$, $n_z=16$, 256 levels; 17.8 MB read per level, 4.6 GB total, 1024 reads | **35.4 s** | 1.4–1.6 s (0.62 s on 2×2) | **9.6 µs** |
+   | $128^2\times64$, $n_z=8$, 2048 levels; 295 kB read per level, 604 MB total, 8192 reads | **38.7 s** | 1.5–1.7 s (0.70–0.81 s on 2×2) | **12 µs** |
+
+   "Cold" is the first read after the file has left the filesystem client's cache; "cached" is any
+   read after that. **The distinction is the whole story, and it is easy to measure the wrong one**
+   — the first numbers taken here were the cached ones, straight after writing the fixture, and they
+   made the check look cheap. Cold, the two cases cost 130 MB/s and 16 MB/s of *effective*
+   bandwidth respectively: 34 ms per 4.5 MB read in the first, 4.7 ms per 74 kB read in the second.
+   The second is not bandwidth at all, it is ~5 ms of latency per `nf90_get_var` — design §6.2's
+   pathology 2, seen in the wild.
+
+   A production file is worse on both axes. $512^2\times128$, $n_z=16$ with 4000 levels reads
+   35.7 MB per level, 143 GB over 16000 calls; at the cold rates above that is **≈20 minutes** of
+   initialisation before the first timestep, on every restart of every run. The stored residual
+   removes it: ~10 µs, no slab read, cold or warm, and independent of `ntime` in practice.
+4. ~~**Cold-start initialisation of `u0`/`um` from the parent is not implemented.**~~ **DONE.**
+   Schema 2 carries an optional full-domain block `u_init`/`v_init`/`w_init` at the first stored
+   time, and `nest_linitfromparent` (default `.false.`) fills `u0/um`, `v0/vm`, `w0/wm` from it on a
+   **cold start only** — a warm start already holds a consistent state and overwriting it would
+   break restart parity (I6), so the switch is ignored there with a message. The writer makes the
+   block usable rather than merely present: it takes the boundary-normal velocities from the
+   *corrected* slabs at that time, closes the floor and the lid ($w=0$, case A), and then projects
+   the whole 3-D field onto the discretely solenoidal subspace with the solver's own operators —
+   a DCT-II in $x$ and $y$ and a tridiagonal sweep in the stretched vertical, homogeneous Neumann
+   pressure on all six faces, so every boundary-normal velocity survives untouched (F2) and an
+   already-solenoidal parent comes back unchanged (bit for bit when its discrete divergence is
+   exactly zero, to $10^{-15}$ when it is merely at round-off). Errors, not warnings, on: the switch set
+   with no block; a block at the wrong shape; a block at the wrong stagger.
+
+   One constraint fell out of the derivation and is now enforced: the projection uses the solver's
+   **density-free** divergence (F1: `fillps` carries no $\rho$) while the slab flux correction is
+   $\rho$-weighted, so a file carrying an initial condition must have `rhobf == rhobh == 1`. That is
+   always true in uDALES; the writer refuses anything else rather than storing a block whose
+   boundary flux does not close.
+5. ~~**Case B (`BCtopm_pressure`) trips the flux assertion.**~~ **DONE**, and the design's own
+   analysis of §3.2 settles it. Under a leaky lid `bcpup` sets $w^\ast_{ktot+1}$ from the accumulated
+   pressure and `tderive` adds the matching increment $2\langle p\rangle_{ktot}/\Delta z_h$ — which is
+   *exactly* the Dirichlet-in-the-mean-mode row the solver pins (F3). So $\tilde{\mathcal{L}} =
+   \mathcal{DG}$ under the BCs actually applied, the projection is complete for **any** $\Phi$, and
+   $\Phi=0$ is not a solvability requirement in case B at all: the lid flux is the child breathing
+   against its reservoir, not an error. Asserting on the six-face $\Phi$ there was asserting a
+   property the scheme is not required to have.
+
+   `nest_flux_split` therefore reports $\Phi$ and the part the lid carries, and `nesting_bcpup`
+   asserts on the *closed* faces — $\Phi$ under a rigid lid, $\Phi-\Phi_{\rm lid}$ under a leaky one.
+   Under a rigid lid `bcpup` forces $w^\ast=0$ at the top, $\Phi_{\rm lid}$ is identically zero and
+   nothing changes. `nest_lfluxassert` is now on by default in both cases.
+
+   Worth recording, because it made the test hard to write: with a flux-balanced parent and a cold
+   start, case B's lid **never** moves. The lid velocity is driven by $\langle p^{\rm acc}\rangle_{ktot}$,
+   the pin makes that proportional to $-\Phi$, and $\Phi$ is in turn the lid flux — an autonomous
+   linear feedback started from rest, so it stays at round-off for ever ($\Phi_{\rm lid}\sim8\times10^{-18}$
+   measured). The assertion only ever fires when the child *arrives* with a column-pressure excess,
+   which is what I10 constructs by offsetting `pres0` in a restart file: there $\Phi_{\rm lid}=1.0\times10^{-2}$,
+   eight orders of magnitude above `nest_fluxtol`, while $\Phi_{\rm closed}=3\times10^{-17}$ and
+   `divmax` stays at $8.9\times10^{-16}$ — case B's substantive claim, confirmed.
 6. ~~**`nesting_init` ran before `readinitfiles`**~~ **DONE.** It reads `timee`, which
    `readinitfiles` is what assigns; the two calls are now in that order (`program.f90:103-108`).
    Found by I6; see §9.5 for the failure modes it caused. Nothing between the old and new call

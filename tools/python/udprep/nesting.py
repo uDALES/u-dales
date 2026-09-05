@@ -8,7 +8,25 @@ Implements work package W1-PY of the nesting feature:
   the child's lateral boundary vanish on every stored time level (§3.1, §3.3);
 * the **writer/reader** for the file format of ``docs/udales-nesting-spec.md`` §5,
   with schema validation and a refinement-ratio guard;
+* the OPTIONAL **full-domain initial condition** of schema 2 and its
+  **projection** onto the discretely solenoidal subspace, so that a cold start
+  with ``nest_linitfromparent`` begins divergence free (design §10.6 item 4);
 * an **analytic-field generator** used by the in-solver unit tests (U15--U22).
+
+Schema versions
+---------------
+Version 1 is the original file: zone slabs, a grid, provenance, and the
+*pre*-correction ``net_volume_flux``.  Version 2 adds
+
+* ``flux_residual(time)`` -- the residual of the data **as stored**, so the
+  solver can validate every stored level without re-reading the boundary slabs
+  (design §10.6 item 3), together with the ``fluid_lateral_area`` the residual
+  was summed over, so a mask mismatch between writer and solver is caught rather
+  than trusted;
+* ``u_init``/``v_init``/``w_init`` -- the optional full-domain initial condition
+  at ``times[0]``, flagged by ``has_initial_condition``.
+
+Both versions are read, by this module and by ``src/modnestingio.f90``.
 
 Interpolation
 -------------
@@ -60,12 +78,15 @@ __all__ = [
     "ANALYTIC_COEFFS",
     "COMPONENTS",
     "FACES",
+    "INIT_VARIABLES",
     "MAX_SPATIAL_REFINEMENT",
     "MAX_TEMPORAL_REFINEMENT",
     "REQUIRED_GLOBAL_ATTRIBUTES",
+    "REQUIRED_GLOBAL_ATTRIBUTES_V2",
     "SCHEMA_VERSION",
     "SLAB_VARIABLES",
     "STAGGER",
+    "SUPPORTED_SCHEMA_VERSIONS",
     "TOOL_VERSION",
     "FaceMasks",
     "NestGrid",
@@ -73,16 +94,23 @@ __all__ = [
     "NestingRefinementError",
     "NestingSchemaError",
     "analytic_field",
+    "analytic_initial_fields",
     "analytic_slabs",
     "apply_divergence_correction",
     "boundary_faces",
     "check_refinement",
     "conservative_interpolate",
+    "discrete_divergence",
     "fluid_face_area",
+    "fluid_lateral_area",
+    "init_dimensions",
+    "initial_fields_from_fields",
+    "initial_fields_from_parent",
     "interpolate_child_fields",
     "net_volume_flux",
     "nesting_data_from_parent",
     "nesting_filename",
+    "project_initial_condition",
     "read_nesting_file",
     "refinement_ratios",
     "slab_coordinates",
@@ -91,6 +119,7 @@ __all__ = [
     "slab_shape",
     "slabs_from_fields",
     "slabs_from_parent",
+    "sync_initial_condition",
     "validate_nesting_file",
     "write_analytic_nesting_file",
     "write_nesting_file",
@@ -100,12 +129,23 @@ __all__ = [
 # Contract constants (docs/udales-nesting-spec.md §5)
 # --------------------------------------------------------------------------- #
 
-SCHEMA_VERSION = 1
-TOOL_VERSION = "udprep.nesting/1.0"
+#: Schema this writer emits.  Version 2 adds the per-time-level
+#: post-correction ``flux_residual`` and the OPTIONAL full-domain initial
+#: condition (``u_init``/``v_init``/``w_init``); version 1 files have neither
+#: and are still read, by both this module and ``src/modnestingio.f90``.
+SCHEMA_VERSION = 2
+
+#: Schema versions this module can read.
+SUPPORTED_SCHEMA_VERSIONS = (1, 2)
+
+TOOL_VERSION = "udprep.nesting/2.0"
 
 FACES = ("west", "east", "south", "north")
 COMPONENTS = ("u", "v", "w")
 SLAB_VARIABLES = tuple(f"{c}_{f}" for f in FACES for c in COMPONENTS)
+
+#: Full-domain initial-condition variables (schema 2, optional).
+INIT_VARIABLES = tuple(f"{c}_init" for c in COMPONENTS)
 
 #: ``stagger`` attribute required on every slab variable.
 STAGGER = {"u": "xh yf zf", "v": "xf yh zf", "w": "xf yf zh"}
@@ -149,6 +189,12 @@ REQUIRED_GLOBAL_ATTRIBUTES = (
     "created",
     "creator",
     "tool_version",
+)
+
+#: Additional global attributes required by schema 2.
+REQUIRED_GLOBAL_ATTRIBUTES_V2 = REQUIRED_GLOBAL_ATTRIBUTES + (
+    "has_initial_condition",
+    "fluid_lateral_area",
 )
 
 _COORD_VARIABLES = ("xf", "xh", "yf", "yh", "zf", "zh")
@@ -462,6 +508,22 @@ def slab_dimensions(face: str, component: str) -> Tuple[str, str, str]:
     return (span, zdim, zone)
 
 
+def init_dimensions(component: str) -> Tuple[str, str, str]:
+    """CDL dimension names of the full-domain initial-condition variable.
+
+    ``u_init(xh, yf, zf)``, ``v_init(xf, yh, zf)``, ``w_init(xf, yf, zh)`` --
+    each component on its own stagger, in ``(x, y, z)`` CDL order, so Fortran
+    sees ``(z, y, x)`` and a rank's ``(i, j)`` block is contiguous in ``z``.
+    """
+    if component not in COMPONENTS:
+        raise ConfigurationError(f"unknown velocity component {component!r}")
+    return (
+        "xh" if component == "u" else "xf",
+        "yh" if component == "v" else "yf",
+        "zh" if component == "w" else "zf",
+    )
+
+
 def slab_indices(grid: NestGrid, nzone: int, face: str, component: str) -> np.ndarray:
     """Zero-based global indices, along the face normal, of a slab's zone points.
 
@@ -581,6 +643,191 @@ def _check_nzone(grid: NestGrid, nzone: int) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Full-domain initial condition (schema 2)
+# --------------------------------------------------------------------------- #
+
+
+def initial_fields_from_fields(
+    grid: NestGrid, u: np.ndarray, v: np.ndarray, w: np.ndarray
+) -> Dict[str, np.ndarray]:
+    """Validate ``(u, v, w)`` on the child grid as an initial-condition block."""
+    out: Dict[str, np.ndarray] = {}
+    for component, arr in zip(COMPONENTS, (u, v, w)):
+        arr = np.ascontiguousarray(np.asarray(arr, dtype=np.float64))
+        expected = grid.component_shape(component)
+        if arr.shape != expected:
+            raise ConfigurationError(
+                f"initial field {component!r} has shape {arr.shape}, expected {expected}"
+            )
+        out[component] = arr
+    return out
+
+
+def initial_fields_from_parent(
+    parent: NestGrid,
+    parent_u: np.ndarray,
+    parent_v: np.ndarray,
+    parent_w: np.ndarray,
+    child: NestGrid,
+) -> Dict[str, np.ndarray]:
+    """Conservatively interpolate a parent field onto the whole child grid."""
+    return initial_fields_from_fields(
+        child, *interpolate_child_fields(parent, parent_u, parent_v, parent_w, child)
+    )
+
+
+def discrete_divergence(
+    grid: NestGrid, u: np.ndarray, v: np.ndarray, w: np.ndarray
+) -> np.ndarray:
+    """Cell-centred discrete divergence, the operator ``fillps`` applies.
+
+    ``(u[i+1] - u[i])/dx + (v[j+1] - v[j])/dy + (w[k+1] - w[k])/dzf`` on the
+    child grid (``modpois.f90:966-973``), shape ``(itot, jtot, ktot)``.
+    """
+    u = np.asarray(u, dtype=np.float64)
+    v = np.asarray(v, dtype=np.float64)
+    w = np.asarray(w, dtype=np.float64)
+    return (np.diff(u, axis=0) / grid.dx[:, None, None]
+            + np.diff(v, axis=1) / grid.dy[None, :, None]
+            + np.diff(w, axis=2) / grid.dzf[None, None, :])
+
+
+def _dzh(grid: NestGrid) -> np.ndarray:
+    """Spacing between successive cell centres, ``dzh[k] = zf[k] - zf[k-1]``."""
+    out = np.empty(grid.ktot + 1, dtype=np.float64)
+    out[0] = 2.0 * (grid.zf[0] - grid.zh[0])
+    out[1:grid.ktot] = np.diff(grid.zf)
+    out[grid.ktot] = 2.0 * (grid.zh[-1] - grid.zf[-1])
+    return out
+
+
+def _neumann_poisson(grid: NestGrid, rhs: np.ndarray) -> np.ndarray:
+    """Solve ``D G p = rhs`` with homogeneous Neumann on all six faces.
+
+    Diagonalised by a type-II DCT in ``x`` and ``y`` (the cosine transform
+    ``modpois`` uses for non-periodic laterals, ``FFTW_REDFT10``) and solved by
+    a tridiagonal sweep in the stretched vertical.  The constant mode is
+    singular; it is fixed by ``p = 0`` in the bottom layer, which is legitimate
+    exactly when ``rhs`` is compatible -- i.e. when the net boundary flux
+    vanishes, which is what :func:`apply_divergence_correction` enforces.
+    """
+    try:
+        from scipy.fft import dctn, idctn
+    except ImportError as exc:  # pragma: no cover - scipy is a core dependency
+        raise DependencyError(
+            "scipy is required to project the nesting initial condition"
+        ) from exc
+
+    itot, jtot, ktot = rhs.shape
+    dx = float(grid.dx[0])
+    dy = float(grid.dy[0])
+    if not (np.allclose(grid.dx, dx, rtol=1e-12, atol=0.0)
+            and np.allclose(grid.dy, dy, rtol=1e-12, atol=0.0)):
+        raise ConfigurationError("the initial-condition projection needs a uniform x-y grid")
+
+    rhat = dctn(rhs, type=2, norm="ortho", axes=(0, 1))
+
+    kx = np.arange(itot)
+    ky = np.arange(jtot)
+    lam = ((-4.0 / dx**2) * np.sin(np.pi * kx / (2 * itot))**2)[:, None] \
+        + ((-4.0 / dy**2) * np.sin(np.pi * ky / (2 * jtot))**2)[None, :]
+
+    dzf = grid.dzf
+    dzh = _dzh(grid)
+    a = np.zeros(ktot)
+    c = np.zeros(ktot)
+    a[1:] = 1.0 / (dzf[1:] * dzh[1:ktot])
+    c[:-1] = 1.0 / (dzf[:-1] * dzh[1:ktot])
+    b = -(a + c)
+
+    phat = np.empty_like(rhat)
+
+    # Singular (constant) mode: integrate the flux form directly.
+    flux = np.concatenate(([0.0], np.cumsum(dzf * rhat[0, 0, :])))
+    pcol = np.empty(ktot)
+    pcol[0] = 0.0
+    for k in range(1, ktot):
+        pcol[k] = pcol[k - 1] + flux[k] * dzh[k]
+    phat[0, 0, :] = pcol
+
+    # Every other mode: vectorised Thomas sweep over the horizontal modes.
+    sel = np.ones((itot, jtot), dtype=bool)
+    sel[0, 0] = False
+    lam_s = lam[sel]
+    rhs_s = rhat[sel]
+    n = lam_s.size
+    cp = np.empty((n, ktot))
+    dp = np.empty((n, ktot))
+    beta = b[0] + lam_s
+    cp[:, 0] = c[0] / beta
+    dp[:, 0] = rhs_s[:, 0] / beta
+    for k in range(1, ktot):
+        beta = (b[k] + lam_s) - a[k] * cp[:, k - 1]
+        cp[:, k] = c[k] / beta
+        dp[:, k] = (rhs_s[:, k] - a[k] * dp[:, k - 1]) / beta
+    sol = np.empty((n, ktot))
+    sol[:, -1] = dp[:, -1]
+    for k in range(ktot - 2, -1, -1):
+        sol[:, k] = dp[:, k] - cp[:, k] * sol[:, k + 1]
+    phat[sel] = sol
+
+    return idctn(phat, type=2, norm="ortho", axes=(0, 1))
+
+
+def project_initial_condition(
+    grid: NestGrid, fields: Mapping[str, np.ndarray], rtol: float = 1.0e-9
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float, float]:
+    """Project ``(u, v, w)`` onto the discretely solenoidal subspace, in place.
+
+    The boundary-normal velocities on all six faces are **not** touched: the
+    pressure carries homogeneous Neumann conditions, exactly as ``bcp`` applies
+    them in the solver (design finding F2), so the imposed lateral data and the
+    lid survive the projection.  That also means the projection is only solvable
+    when the net boundary flux already vanishes; a residual larger than
+    ``rtol`` times the boundary flux scale is an error, not something to absorb.
+
+    Returns ``(u, v, w, div_before, div_after)``; the arrays are the same
+    objects that were passed in.
+    """
+    u = fields["u"]
+    v = fields["v"]
+    w = fields["w"]
+
+    div = discrete_divergence(grid, u, v, w)
+    before = float(np.max(np.abs(div)))
+
+    # Compatibility: the net boundary flux telescopes out of the divergence sum
+    # and must vanish, or the pure-Neumann system has no solution.  Judge it
+    # against the flux a typical velocity would carry through the whole boundary,
+    # which is the only scale that stays meaningful when the field is already
+    # solenoidal and both sides are at round-off.
+    vol = (grid.dx[:, None, None] * grid.dy[None, :, None] * grid.dzf[None, None, :])
+    net = float(np.sum(vol * div))
+    area = 2.0 * (grid.xlen + grid.ylen) * grid.zsize + 2.0 * grid.xlen * grid.ylen
+    speed = max(float(np.max(np.abs(u))), float(np.max(np.abs(v))),
+                float(np.max(np.abs(w))), np.finfo(np.float64).tiny)
+    if abs(net) > rtol * speed * area:
+        raise ConfigurationError(
+            "the initial condition is not compatible with Neumann pressure: its net "
+            f"boundary flux is {net:g} m3/s, against {rtol * speed * area:g} allowed. "
+            "Run apply_divergence_correction (or sync_initial_condition) first."
+        )
+
+    p = _neumann_poisson(grid, div)
+
+    # Interior faces only, so every boundary-normal velocity is left alone.  The
+    # horizontal spacings are the cell widths because _neumann_poisson has
+    # already required a uniform x-y grid, where they equal the centre spacings;
+    # the vertical uses the centre spacing explicitly, since z may be stretched.
+    u[1:-1, :, :] -= np.diff(p, axis=0) / grid.dx[1:, None, None]
+    v[:, 1:-1, :] -= np.diff(p, axis=1) / grid.dy[None, 1:, None]
+    w[:, :, 1:-1] -= np.diff(p, axis=2) / _dzh(grid)[None, None, 1:grid.ktot]
+
+    after = float(np.max(np.abs(discrete_divergence(grid, u, v, w))))
+    return u, v, w, before, after
+
+
+# --------------------------------------------------------------------------- #
 # The data container
 # --------------------------------------------------------------------------- #
 
@@ -634,6 +881,16 @@ class NestingData:
     rhobf: Optional[np.ndarray] = None
     rhobh: Optional[np.ndarray] = None
     net_volume_flux: Optional[np.ndarray] = None
+    #: Post-correction residual of :func:`net_volume_flux`, one value per time
+    #: level (schema 2).  ``None`` means "recompute it at write time".
+    flux_residual: Optional[np.ndarray] = None
+    #: Geometric fluid area of the four lateral boundary faces the residual was
+    #: summed over.  The solver compares it against its own before trusting
+    #: ``flux_residual`` (docs/udales-nesting-spec.md section 5).
+    fluid_lateral_area: Optional[float] = None
+    #: OPTIONAL full-domain initial condition at ``times[0]``, keyed ``u``/
+    #: ``v``/``w`` at each component's own stagger (schema 2).
+    initial_fields: Optional[Dict[str, np.ndarray]] = None
     divergence_corrected: bool = False
     parent_model: str = "unknown"
     parent_dx: float = 0.0
@@ -665,6 +922,33 @@ class NestingData:
         self.net_volume_flux = np.asarray(self.net_volume_flux, dtype=np.float64).reshape(-1)
         if self.net_volume_flux.size != self.ntime:
             raise ConfigurationError("net_volume_flux must have one value per time level")
+        if self.flux_residual is not None:
+            self.flux_residual = np.asarray(self.flux_residual, dtype=np.float64).reshape(-1)
+            if self.flux_residual.size != self.ntime:
+                raise ConfigurationError("flux_residual must have one value per time level")
+        if self.initial_fields is not None:
+            self.initial_fields = initial_fields_from_fields(
+                self.grid,
+                self.initial_fields["u"],
+                self.initial_fields["v"],
+                self.initial_fields["w"],
+            )
+            # The initial condition is projected with the solver's OWN divergence
+            # operator, which carries no density (design finding F1: `fillps`
+            # differs from the Laplacian in exactly this respect).  The slab flux
+            # correction, in contrast, is rho-weighted, to match DALES's
+            # `openboundary_divcorr`.  The two agree only while rho == 1 -- which
+            # in uDALES is always, since `rhobf`/`rhobh` are set to 1 and never
+            # assigned anywhere else.  Refuse rather than silently produce an
+            # initial condition whose boundary flux does not close.
+            if not (np.allclose(self.rhobf, 1.0, rtol=0.0, atol=1e-12)
+                    and np.allclose(self.rhobh, 1.0, rtol=0.0, atol=1e-12)):
+                raise ConfigurationError(
+                    "a full-domain initial condition needs rhobf == rhobh == 1: it is "
+                    "projected with the solver's density-free divergence operator "
+                    "(design finding F1), which cannot be reconciled with the "
+                    "rho-weighted lateral flux correction"
+                )
         missing = [name for name in SLAB_VARIABLES if name not in self.slabs]
         if missing:
             raise ConfigurationError(f"missing slab variables: {', '.join(missing)}")
@@ -693,6 +977,10 @@ class NestingData:
             rhobf=self.rhobf.copy(),
             rhobh=self.rhobh.copy(),
             net_volume_flux=self.net_volume_flux.copy(),
+            flux_residual=None if self.flux_residual is None else self.flux_residual.copy(),
+            fluid_lateral_area=self.fluid_lateral_area,
+            initial_fields=(None if self.initial_fields is None
+                            else {k: v.copy() for k, v in self.initial_fields.items()}),
             divergence_corrected=self.divergence_corrected,
             parent_model=self.parent_model,
             parent_dx=self.parent_dx,
@@ -713,12 +1001,16 @@ def nesting_data_from_parent(
     nzone: int,
     times: Sequence[float],
     fields: Sequence[Tuple[np.ndarray, np.ndarray, np.ndarray]],
+    initial: bool = False,
     **kwargs: Any,
 ) -> NestingData:
     """Build a :class:`NestingData` by conservative interpolation of a parent.
 
     ``fields`` is a sequence, one entry per time level, of ``(u, v, w)`` parent
-    arrays at their own staggers.  Extra keyword arguments are passed to
+    arrays at their own staggers.  With ``initial=True`` the first time level is
+    additionally interpolated onto the **whole** child grid and carried as the
+    schema-2 initial-condition block, for a cold start with
+    ``nest_linitfromparent``.  Extra keyword arguments are passed to
     :class:`NestingData` (provenance attributes, ``rhobf``, ...).
     """
     times = np.asarray(times, dtype=np.float64).reshape(-1)
@@ -729,6 +1021,10 @@ def nesting_data_from_parent(
     per_time = [slabs_from_parent(parent, *fields[n], child=child, nzone=nzone)
                 for n in range(times.size)]
     slabs = {name: np.stack([s[name] for s in per_time], axis=0) for name in SLAB_VARIABLES}
+    if initial:
+        kwargs.setdefault(
+            "initial_fields", initial_fields_from_parent(parent, *fields[0], child=child)
+        )
     kwargs.setdefault("parent_dx", float(np.min(np.diff(parent.xh))))
     kwargs.setdefault("child_origin_x", float(child.xh[0]))
     kwargs.setdefault("child_origin_y", float(child.yh[0]))
@@ -800,8 +1096,63 @@ def fluid_face_area(data: NestingData, masks: Optional[FaceMasks] = None) -> flo
     ))
 
 
+def fluid_lateral_area(data: NestingData, masks: Optional[FaceMasks] = None) -> float:
+    """Total **geometric** fluid area of the four lateral boundary faces [m2].
+
+    Unlike :func:`fluid_face_area` this carries no density, because it is
+    written to the file for the solver to compare against its own IIu/IIv
+    boundary area before it trusts the stored ``flux_residual``.  The two agree
+    whenever ``rhobf == 1``, which in uDALES is always (design finding F1).
+    """
+    masks = masks or _ALL_FLUID
+    grid = data.grid
+    total = 0.0
+    for face in FACES:
+        span = grid.dy if _FACE_AXIS[face] == 0 else grid.dx
+        area = span[:, None] * grid.dzf[None, :]
+        total += float(np.sum(area * masks.get(grid, face)))
+    return total
+
+
+def sync_initial_condition(
+    data: "NestingData", masks: Optional[FaceMasks] = None, close_lid: bool = True
+) -> Tuple[float, float]:
+    """Make the initial condition consistent with the boundary data, then project.
+
+    Three steps, in this order:
+
+    1. the boundary-normal velocity on the four lateral faces is taken from the
+       (corrected) slabs at ``times[0]``, so the first substep does not see a
+       jump between the stored initial condition and the imposed boundary;
+    2. ``w`` on the floor and the lid is set to zero -- the rigid-lid case A of
+       design section 3.2, which is what v1 supports and what ``boundary``
+       imposes on the child regardless of what the parent did;
+    3. the field is projected (:func:`project_initial_condition`), which leaves
+       every boundary-normal velocity untouched.
+
+    Returns the peak discrete divergence before and after the projection.
+    """
+    if data.initial_fields is None:
+        raise ConfigurationError("this NestingData carries no initial condition")
+    masks = masks or _ALL_FLUID
+    fields = data.initial_fields
+    faces = boundary_faces(data)
+    for face in FACES:
+        component = _FACE_NORMAL_COMPONENT[face]
+        index = -1 if _FACE_UPPER[face] else 0
+        if _FACE_AXIS[face] == 0:
+            fields[component][index, :, :] = faces[face][0]
+        else:
+            fields[component][:, index, :] = faces[face][0]
+    if close_lid:
+        fields["w"][:, :, 0] = 0.0
+        fields["w"][:, :, -1] = 0.0
+    _, _, _, before, after = project_initial_condition(data.grid, fields)
+    return before, after
+
+
 def apply_divergence_correction(
-    data: NestingData, masks: Optional[FaceMasks] = None
+    data: NestingData, masks: Optional[FaceMasks] = None, project_initial: bool = True
 ) -> np.ndarray:
     """Make :math:`\\Phi = 0` on every time level, in place.
 
@@ -811,7 +1162,16 @@ def apply_divergence_correction(
     ``openboundary_divcorr``).  Solid faces are left alone.
 
     The **pre-correction** residual is stored in ``data.net_volume_flux`` and
-    returned; ``data.divergence_corrected`` is set.
+    returned; the **post-correction** one -- which is what the solver validates
+    against at initialisation under schema 2 -- in ``data.flux_residual``, next
+    to the fluid lateral area it was summed over.  ``data.divergence_corrected``
+    is set.
+
+    When ``data.initial_fields`` is present and ``project_initial`` is true, the
+    initial condition is made consistent with the corrected boundary data and
+    then projected onto the discretely solenoidal subspace, so that a cold start
+    from it begins divergence free (:func:`sync_initial_condition`, design
+    section 10.6 item 4).
     """
     masks = masks or _ALL_FLUID
     area = fluid_face_area(data, masks)
@@ -826,7 +1186,11 @@ def apply_divergence_correction(
         mask = masks.get(data.grid, face)
         faces[face] += _FACE_SIGN[face] * delta[:, None, None] * mask[None, :, :]
     data.net_volume_flux = residual
+    data.flux_residual = net_volume_flux(data, masks)
+    data.fluid_lateral_area = fluid_lateral_area(data, masks)
     data.divergence_corrected = True
+    if data.initial_fields is not None and project_initial:
+        sync_initial_condition(data, masks)
     return residual
 
 
@@ -895,11 +1259,11 @@ def _default_creator() -> str:
         return os.environ.get("USER", "unknown")
 
 
-def _global_attributes(data: NestingData) -> Dict[str, Any]:
+def _global_attributes(data: NestingData, schema: int = SCHEMA_VERSION) -> Dict[str, Any]:
     grid = data.grid
     attrs: Dict[str, Any] = {
         "Conventions": "CF-1.8",
-        "udales_nesting_schema": np.int32(SCHEMA_VERSION),
+        "udales_nesting_schema": np.int32(schema),
         "divergence_corrected": np.int32(1 if data.divergence_corrected else 0),
         "itot": np.int32(grid.itot),
         "jtot": np.int32(grid.jtot),
@@ -917,6 +1281,12 @@ def _global_attributes(data: NestingData) -> Dict[str, Any]:
         "creator": data.creator or _default_creator(),
         "tool_version": data.tool_version or TOOL_VERSION,
     }
+    if schema >= 2:
+        attrs["has_initial_condition"] = np.int32(1 if data.initial_fields is not None else 0)
+        area = data.fluid_lateral_area
+        if area is None:
+            area = fluid_lateral_area(data)
+        attrs["fluid_lateral_area"] = np.float64(area)
     if data.child_dt is not None:
         # Optional extension: lets the refinement guard run on a round-tripped
         # file.  Ignored by readers that do not know about it.
@@ -929,6 +1299,7 @@ def write_nesting_file(
     data: NestingData,
     override: bool = False,
     backend: Optional[str] = None,
+    schema: Optional[int] = None,
 ) -> Path:
     """Write ``data`` to ``nesting.inp.<expnr>.nc``, exactly per the contract.
 
@@ -936,23 +1307,45 @@ def write_nesting_file(
     ``'raw'`` (a flat stream of the slab arrays plus a JSON sidecar, design
     §6.3).  Both back-ends store bit-identical values.
 
+    ``schema`` selects the file version: 2 (the default) writes
+    ``flux_residual`` and, when ``data.initial_fields`` is set, the full-domain
+    initial condition; 1 writes neither, which is what the pre-v2 writer
+    produced and what the back-compatibility tests need.
+
     Refuses to write when the refinement ratios are outside the validated range
     (see :func:`check_refinement`) unless ``override`` is ``True``.
     """
     path = Path(path)
     backend = backend or ("raw" if path.suffix in (".dat", ".bin") else "netcdf")
+    schema = SCHEMA_VERSION if schema is None else int(schema)
+    if schema not in SUPPORTED_SCHEMA_VERSIONS:
+        raise ConfigurationError(
+            f"unsupported nesting schema {schema}; this writer emits "
+            f"{SUPPORTED_SCHEMA_VERSIONS}"
+        )
+    if schema < 2 and data.initial_fields is not None:
+        raise ConfigurationError(
+            "a full-domain initial condition needs schema 2; schema 1 has no place to put it"
+        )
     check_refinement(data, override=override)
-    for name, arr in data.slabs.items():
+    arrays = dict(data.slabs)
+    if data.initial_fields is not None:
+        arrays.update({f"{c}_init": a for c, a in data.initial_fields.items()})
+    for name, arr in arrays.items():
         if not np.all(np.isfinite(arr)):
             raise NestingSchemaError(f"{name} contains non-finite values; NaN is an error")
+    if data.flux_residual is None:
+        data.flux_residual = net_volume_flux(data)
+    if data.fluid_lateral_area is None:
+        data.fluid_lateral_area = fluid_lateral_area(data)
     if backend == "raw":
-        return _write_raw(path, data)
+        return _write_raw(path, data, schema)
     if backend != "netcdf":
         raise ConfigurationError(f"unknown nesting file backend {backend!r}")
-    return _write_netcdf(path, data)
+    return _write_netcdf(path, data, schema)
 
 
-def _write_netcdf(path: Path, data: NestingData) -> Path:
+def _write_netcdf(path: Path, data: NestingData, schema: int = SCHEMA_VERSION) -> Path:
     Dataset = _import_dataset()
     grid = data.grid
     with Dataset(path, "w", format="NETCDF4") as ds:
@@ -982,6 +1375,12 @@ def _write_netcdf(path: Path, data: NestingData) -> Path:
         var.units = "kg s-1"
         var.long_name = "net volume flux through the lateral boundary before correction"
         var[:] = data.net_volume_flux
+        if schema >= 2:
+            var = ds.createVariable("flux_residual", "f8", ("time",))
+            var.units = "kg s-1"
+            var.long_name = ("net volume flux through the lateral boundary as stored, "
+                             "i.e. after any divergence correction")
+            var[:] = data.flux_residual
 
         for face in FACES:
             for component in COMPONENTS:
@@ -992,7 +1391,17 @@ def _write_netcdf(path: Path, data: NestingData) -> Path:
                 var.units = "m s-1"
                 var[:] = data.slabs[name]
 
-        for key, value in _global_attributes(data).items():
+        if schema >= 2 and data.initial_fields is not None:
+            for component in COMPONENTS:
+                var = ds.createVariable(f"{component}_init", "f8",
+                                        init_dimensions(component))
+                var.stagger = STAGGER[component]
+                var.units = "m s-1"
+                var.long_name = ("full-domain initial condition at the first stored time, "
+                                 f"velocity component {component}")
+                var[:] = data.initial_fields[component]
+
+        for key, value in _global_attributes(data, schema).items():
             ds.setncattr(key, value)
     return path
 
@@ -1001,14 +1410,14 @@ def _raw_sidecar_path(path: Path) -> Path:
     return path.with_suffix(path.suffix + ".json") if path.suffix else path.with_suffix(".json")
 
 
-def _write_raw(path: Path, data: NestingData) -> Path:
+def _write_raw(path: Path, data: NestingData, schema: int = SCHEMA_VERSION) -> Path:
     """Raw stream back-end: one contiguous ``<f8`` blob plus a JSON sidecar."""
     grid = data.grid
     attrs = {k: (int(v) if isinstance(v, np.integer)
                  else float(v) if isinstance(v, np.floating) else v)
-             for k, v in _global_attributes(data).items()}
+             for k, v in _global_attributes(data, schema).items()}
     sidecar = {
-        "udales_nesting_schema": SCHEMA_VERSION,
+        "udales_nesting_schema": schema,
         "attributes": attrs,
         "coordinates": {name: getattr(grid, name).tolist() for name in _COORD_VARIABLES},
         "time": data.times.tolist(),
@@ -1026,20 +1435,34 @@ def _write_raw(path: Path, data: NestingData) -> Path:
             for face in FACES for component in COMPONENTS
         ],
     }
+    written = [data.slabs[f"{component}_{face}"]
+               for face in FACES for component in COMPONENTS]
+    if schema >= 2:
+        sidecar["flux_residual"] = data.flux_residual.tolist()
+        if data.initial_fields is not None:
+            for component in COMPONENTS:
+                arr = data.initial_fields[component]
+                sidecar["variables"].append({
+                    "name": f"{component}_init",
+                    "dimensions": init_dimensions(component),
+                    "shape": list(arr.shape),
+                    "stagger": STAGGER[component],
+                })
+                written.append(arr)
     _raw_sidecar_path(path).write_text(json.dumps(sidecar, indent=1))
     with open(path, "wb") as stream:
-        for face in FACES:
-            for component in COMPONENTS:
-                arr = data.slabs[f"{component}_{face}"]
-                stream.write(np.ascontiguousarray(arr, dtype="<f8").tobytes(order="C"))
+        for arr in written:
+            stream.write(np.ascontiguousarray(arr, dtype="<f8").tobytes(order="C"))
     return path
 
 
 def _read_raw(path: Path) -> NestingData:
     sidecar = json.loads(_raw_sidecar_path(path).read_text())
-    if int(sidecar.get("udales_nesting_schema", -1)) != SCHEMA_VERSION:
+    schema = int(sidecar.get("udales_nesting_schema", -1))
+    if schema not in SUPPORTED_SCHEMA_VERSIONS:
         raise NestingSchemaError(
-            f"{path}: sidecar schema {sidecar.get('udales_nesting_schema')} != {SCHEMA_VERSION}"
+            f"{path}: sidecar schema {sidecar.get('udales_nesting_schema')} is not one of "
+            f"{SUPPORTED_SCHEMA_VERSIONS}"
         )
     coords = sidecar["coordinates"]
     grid = NestGrid(**{name: np.asarray(coords[name], dtype=np.float64)
@@ -1057,6 +1480,10 @@ def _read_raw(path: Path) -> NestingData:
     if offset != blob.size:
         raise NestingSchemaError(f"{path}: {blob.size - offset} trailing values in the stream")
     attrs = sidecar["attributes"]
+    initial = {c: slabs.pop(f"{c}_init") for c in COMPONENTS} \
+        if f"{COMPONENTS[0]}_init" in slabs else None
+    residual = (np.asarray(sidecar["flux_residual"], dtype=np.float64)
+                if "flux_residual" in sidecar else None)
     return NestingData(
         grid=grid,
         nzone=int(attrs["nzone"]),
@@ -1065,6 +1492,10 @@ def _read_raw(path: Path) -> NestingData:
         rhobf=np.asarray(sidecar["rhobf"], dtype=np.float64),
         rhobh=np.asarray(sidecar["rhobh"], dtype=np.float64),
         net_volume_flux=np.asarray(sidecar["net_volume_flux"], dtype=np.float64),
+        flux_residual=residual,
+        fluid_lateral_area=(float(attrs["fluid_lateral_area"])
+                            if "fluid_lateral_area" in attrs else None),
+        initial_fields=initial,
         divergence_corrected=bool(int(attrs["divergence_corrected"])),
         parent_model=str(attrs["parent_model"]),
         parent_dx=float(attrs["parent_dx"]),
@@ -1085,23 +1516,32 @@ def validate_nesting_file(path: os.PathLike | str) -> Dict[str, Any]:
     Raises :class:`NestingSchemaError` naming the first offending item; returns
     the global attributes on success.  Checked: schema version, every required
     dimension and its size, every required variable with its exact dimension
-    order, the ``stagger`` tag of each slab variable, every required global
-    attribute, ``rotation_deg == 0``, monotone coordinates, and the absence of
-    NaN/missing values.
+    order, the ``stagger`` tag of each slab variable and of the optional
+    initial-condition block, every required global attribute, ``rotation_deg ==
+    0``, monotone coordinates, and the absence of NaN/missing values.
+
+    Both schema 1 and schema 2 are accepted; the schema-2 items are required
+    only of a schema-2 file.
     """
     Dataset = _import_dataset()
     path = Path(path)
     with Dataset(path, "r") as ds:
         attrs = {key: ds.getncattr(key) for key in ds.ncattrs()}
-        missing = [key for key in REQUIRED_GLOBAL_ATTRIBUTES if key not in attrs]
+        if "udales_nesting_schema" not in attrs:
+            raise NestingSchemaError(
+                f"{path.name}: missing required global attribute(s): udales_nesting_schema"
+            )
+        schema = int(attrs["udales_nesting_schema"])
+        if schema not in SUPPORTED_SCHEMA_VERSIONS:
+            raise NestingSchemaError(
+                f"{path.name}: udales_nesting_schema = {schema}, expected one of "
+                f"{SUPPORTED_SCHEMA_VERSIONS}"
+            )
+        required = REQUIRED_GLOBAL_ATTRIBUTES_V2 if schema >= 2 else REQUIRED_GLOBAL_ATTRIBUTES
+        missing = [key for key in required if key not in attrs]
         if missing:
             raise NestingSchemaError(
                 f"{path.name}: missing required global attribute(s): {', '.join(missing)}"
-            )
-        schema = int(attrs["udales_nesting_schema"])
-        if schema != SCHEMA_VERSION:
-            raise NestingSchemaError(
-                f"{path.name}: udales_nesting_schema = {schema}, expected {SCHEMA_VERSION}"
             )
         if float(attrs["rotation_deg"]) != 0.0:
             raise NestingSchemaError(
@@ -1129,11 +1569,22 @@ def validate_nesting_file(path: os.PathLike | str) -> Dict[str, Any]:
         expected_vars: Dict[str, Tuple[str, ...]] = {"time": ("time",),
                                                      "net_volume_flux": ("time",),
                                                      "rhobf": ("zf",), "rhobh": ("zh",)}
+        if schema >= 2:
+            expected_vars["flux_residual"] = ("time",)
         for name in _COORD_VARIABLES:
             expected_vars[name] = (name,)
         for face in FACES:
             for component in COMPONENTS:
                 expected_vars[f"{component}_{face}"] = ("time",) + slab_dimensions(face, component)
+        has_init = schema >= 2 and int(attrs["has_initial_condition"]) != 0
+        if has_init:
+            for component in COMPONENTS:
+                expected_vars[f"{component}_init"] = init_dimensions(component)
+        elif any(f"{c}_init" in ds.variables for c in COMPONENTS):
+            raise NestingSchemaError(
+                f"{path.name}: an initial-condition variable is present but "
+                "has_initial_condition is 0"
+            )
         for name, dims in expected_vars.items():
             if name not in ds.variables:
                 raise NestingSchemaError(f"{path.name}: missing variable {name!r}")
@@ -1148,16 +1599,18 @@ def validate_nesting_file(path: os.PathLike | str) -> Dict[str, Any]:
                 raise NestingSchemaError(
                     f"{path.name}: variable {name} has missing or NaN values, which are an error"
                 )
-        for face in FACES:
-            for component in COMPONENTS:
-                name = f"{component}_{face}"
-                var = ds.variables[name]
-                tag = getattr(var, "stagger", None)
-                if tag != STAGGER[component]:
-                    raise NestingSchemaError(
-                        f"{path.name}: variable {name} has stagger {tag!r}, "
-                        f"expected {STAGGER[component]!r}"
-                    )
+        staggered = [f"{c}_{f}" for f in FACES for c in COMPONENTS]
+        if has_init:
+            staggered += list(INIT_VARIABLES)
+        for name in staggered:
+            component = name.split("_")[0]
+            var = ds.variables[name]
+            tag = getattr(var, "stagger", None)
+            if tag != STAGGER[component]:
+                raise NestingSchemaError(
+                    f"{path.name}: variable {name} has stagger {tag!r}, "
+                    f"expected {STAGGER[component]!r}"
+                )
         for name in ("xh", "yh", "zh", "xf", "yf", "zf"):
             values = np.asarray(ds.variables[name][:], dtype=np.float64)
             if values.size > 1 and not np.all(np.diff(values) > 0.0):
@@ -1196,6 +1649,13 @@ def read_nesting_file(
                            for name in _COORD_VARIABLES})
         slabs = {name: np.ascontiguousarray(np.asarray(ds.variables[name][:], dtype=np.float64))
                  for name in SLAB_VARIABLES}
+        initial = None
+        if all(f"{c}_init" in ds.variables for c in COMPONENTS):
+            initial = {c: np.ascontiguousarray(
+                np.asarray(ds.variables[f"{c}_init"][:], dtype=np.float64))
+                for c in COMPONENTS}
+        residual = (np.asarray(ds.variables["flux_residual"][:], dtype=np.float64)
+                    if "flux_residual" in ds.variables else None)
         return NestingData(
             grid=grid,
             nzone=int(attrs["nzone"]),
@@ -1204,6 +1664,10 @@ def read_nesting_file(
             rhobf=np.asarray(ds.variables["rhobf"][:], dtype=np.float64),
             rhobh=np.asarray(ds.variables["rhobh"][:], dtype=np.float64),
             net_volume_flux=np.asarray(ds.variables["net_volume_flux"][:], dtype=np.float64),
+            flux_residual=residual,
+            fluid_lateral_area=(float(attrs["fluid_lateral_area"])
+                                if "fluid_lateral_area" in attrs else None),
+            initial_fields=initial,
             divergence_corrected=bool(int(attrs["divergence_corrected"])),
             parent_model=str(attrs["parent_model"]),
             parent_dx=float(attrs["parent_dx"]),
@@ -1287,6 +1751,21 @@ def analytic_slabs(
     return slabs
 
 
+def analytic_initial_fields(
+    grid: NestGrid,
+    t: float = 0.0,
+    coeffs: Optional[Mapping[str, Sequence[float]]] = None,
+) -> Dict[str, np.ndarray]:
+    """:func:`analytic_field` on the whole child grid, at each component's stagger."""
+    return {
+        component: analytic_field(
+            component, *np.ix_(*(grid.component_coords(component, ax) for ax in range(3))),
+            t, coeffs,
+        )
+        for component in COMPONENTS
+    }
+
+
 def write_analytic_nesting_file(
     path: os.PathLike | str,
     grid: NestGrid,
@@ -1296,6 +1775,8 @@ def write_analytic_nesting_file(
     correct_divergence: bool = False,
     override: bool = True,
     backend: Optional[str] = None,
+    initial: bool = False,
+    schema: Optional[int] = None,
     **attributes: Any,
 ) -> NestingData:
     """Write a nesting file whose velocities are the analytic field of §10.5.
@@ -1304,6 +1785,9 @@ def write_analytic_nesting_file(
     and, uncorrected, for the flux assertion test U27.  ``correct_divergence``
     is off by default so that every stored value is exactly
     :func:`analytic_field` -- switching it on perturbs the four boundary faces.
+    ``initial=True`` adds the full-domain initial-condition block, also exactly
+    the analytic field when ``correct_divergence`` is off, which is what the
+    cold-start tests read back point by point.
     The refinement guard is off by default (``override=True``) because the
     fixture grids carry no meaningful parent metadata.
 
@@ -1312,6 +1796,11 @@ def write_analytic_nesting_file(
     attributes.setdefault("parent_model", "analytic")
     attributes.setdefault("child_origin_x", float(grid.xh[0]))
     attributes.setdefault("child_origin_y", float(grid.yh[0]))
+    if initial:
+        attributes.setdefault(
+            "initial_fields",
+            analytic_initial_fields(grid, float(np.asarray(times).reshape(-1)[0]), coeffs),
+        )
     data = NestingData(
         grid=grid,
         nzone=nzone,
@@ -1323,5 +1812,6 @@ def write_analytic_nesting_file(
         apply_divergence_correction(data)
     else:
         data.net_volume_flux = net_volume_flux(data)
-    write_nesting_file(path, data, override=override, backend=backend)
+        data.flux_residual = data.net_volume_flux.copy()
+    write_nesting_file(path, data, override=override, backend=backend, schema=schema)
     return data

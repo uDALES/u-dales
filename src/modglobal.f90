@@ -86,6 +86,7 @@ module modglobal
    integer, parameter :: TEST_NESTING_IO = 1008
    integer, parameter :: TEST_NESTING_FLUX = 1009
    integer, parameter :: TEST_NESTING_UPDATE = 1010
+   integer, parameter :: TEST_NESTING_INIT = 1011
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start

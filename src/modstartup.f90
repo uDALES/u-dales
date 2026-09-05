@@ -97,7 +97,8 @@ module modstartup
                                     createmasks, lbottom, lnorec
       use modnesting,        only : lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau, &
                                     nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
-                                    nest_lparentgeom, nest_fluxtol, nest_lfluxassert
+                                    nest_lparentgeom, nest_fluxtol, nest_lfluxassert, &
+                                    nest_lfluxcheckall, nest_linitfromparent
       use decomp_2d
 
       implicit none
@@ -176,7 +177,8 @@ module modstartup
       namelist/NESTING/ &
          lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau, &
          nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
-         nest_lparentgeom, nest_fluxtol, nest_lfluxassert
+         nest_lparentgeom, nest_fluxtol, nest_lfluxassert, &
+         nest_lfluxcheckall, nest_linitfromparent
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -637,6 +639,8 @@ module modstartup
       call MPI_BCAST(nest_lparentgeom, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(nest_fluxtol, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nest_lfluxassert, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_lfluxcheckall, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_linitfromparent, 1, MPI_LOGICAL, 0, comm3d, mpierr)
 
       ! ! Allocate and initialize core modules
       ! call initglobal

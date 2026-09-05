@@ -27,7 +27,7 @@ program uDALES
   use modmpi,            only : initmpi,exitmpi,starttimer
   use modglobal,         only : initglobal,rk3step,timeleft
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
-  use modglobal,         only : TEST_NESTING_WEIGHTS,TEST_NESTING_GEOMETRY,TEST_NESTING_IO,TEST_NESTING_FLUX,TEST_NESTING_UPDATE
+  use modglobal,         only : TEST_NESTING_WEIGHTS,TEST_NESTING_GEOMETRY,TEST_NESTING_IO,TEST_NESTING_FLUX,TEST_NESTING_UPDATE,TEST_NESTING_INIT
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -58,7 +58,7 @@ program uDALES
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators
   use tests,           only : tests_nesting_weights,tests_nesting_geometry,tests_nesting_io, &
-                              tests_nesting_flux,tests_nesting_update
+                              tests_nesting_flux,tests_nesting_update,tests_nesting_init
   implicit none
 
 !----------------------------------------------------------------
@@ -285,6 +285,8 @@ contains
         test_failed = .not. tests_nesting_flux()
       case (TEST_NESTING_UPDATE)
         test_failed = .not. tests_nesting_update()
+      case (TEST_NESTING_INIT)
+        test_failed = .not. tests_nesting_init()
       case default
         write(*,*) 'Unknown runmode:', runmode
         invalid_runmode = .true.

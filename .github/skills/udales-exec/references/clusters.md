@@ -140,3 +140,57 @@ bash tests/integration/mpi_operators/run_test.sh
   at its first use rather than propagating. Worth running the integration
   suites against Debug for that alone: it is how the nesting `timee` ordering
   bug announced itself.
+
+### CX3 addendum (2026-09, V1 nesting validation harness)
+
+- **Measured solver throughput, neutral urban LES with full IBM.** Two sizes of
+  a periodic cube-array case (`iwallmom = 2`, `ipoiss = 0`, `ladaptive`, no
+  temperature/moisture), both on **4 ranks** on a login node:
+  256 x 128 x 64 = 2.10e6 cells, 128 cubes, `nfcts = 7168` -- 65 steps in 24.0 s
+  = **5.7e6 cell-steps/s**, `dt ~ 0.46 s`;
+  256 x 256 x 64 = 4.19e6 cells, 228 cubes, `nfcts = 12992` -- 80 steps in 62.0 s
+  = **5.4e6 cell-steps/s**, mean `dt = 0.379 s`, total Courant number ~1.2.
+  That is about 2x the 2.9e6 cell-steps/s previously recorded for
+  `tests/cases/526`, which carries trees, scalars and energy balance -- so quote
+  a per-case figure, not a universal one.
+- **IBM preprocessing cost scales with the domain, not just the geometry**: the
+  2.10e6-cell case above took 46 s through the legacy `IBM_preproc`, the
+  4.19e6-cell one 143 s.
+- **The IBM preprocessor `f2py` extension is not built in this checkout**;
+  `tools/preprocessing/build/bin/IBM_preproc` is. `UDPrep.ibm.run_all()`
+  defaults to `backend='f2py'` and raises
+  `RuntimeError: ibm_preproc_f2py module not available`; pass
+  `backend='legacy'` (or catch and retry) until
+  `tools/build_preprocessing.sh` has been run. Preprocessing the case above
+  through the legacy executable took 46 s.
+- **`UDPrep.forcing.generate_lscale` can double a mean pressure gradient.** With
+  no forcing switch set it writes `dpdx` into the `pgx` column of `lscale.inp`,
+  while `modstartup` forms `dpdxl(k) = -pgx(k) - dpdx` from `pgx` *and* the
+  `&PHYSICS` `dpdx` (`src/modstartup.f90:2236`). Set one or the other, never
+  both.
+- The solver takes the namelist path from `argv[1]`, so one case directory can
+  hold several namelists (e.g. `namoptions_spinup.<nr>` and `namoptions.<nr>`)
+  and be run in phases; `iexpnr` inside the file names the outputs. Restart
+  files are `initd<ntrun:08d>_<x>_<y>.<nr>` where `ntrun` is the *timestep
+  count*, so under `ladaptive` the name has to be discovered by globbing, not
+  predicted.
+
+### CX3 addendum (2026-09, nesting init-time I/O)
+
+- **Cold versus cached netCDF reads differ by ~25x on RDS, and it is easy to
+  measure the wrong one.** Timing `nesting_init`'s per-time-level flux check on
+  a 13 GB `nesting.inp` written moments earlier gave 1.4 s; the same run an hour
+  later, after the file had left the filesystem client's cache, gave 35 s. Every
+  read after that was 1.5 s again. **Always take the first-touch number**, or
+  say explicitly that the number is a cached one — `dd oflag=nocache
+  conv=notrunc,fdatasync count=0` does *not* evict on this filesystem, and with
+  ~350 GB of free RAM on a login node you cannot churn it out either. The only
+  reliable way found was to let time and other I/O pass.
+- Effective cold rates measured, both from `nf90_get_var` hyperslabs of a
+  NETCDF4 (HDF5) file with an unlimited time dimension: **130 MB/s** for 4.5 MB
+  reads (34 ms each) and **16 MB/s** for 74 kB reads (4.7 ms each). The small
+  case is latency-bound, not bandwidth-bound — about 5 ms per call regardless of
+  size. Sequential whole-file `dd` on the same filesystem sustains 8 GB/s, so do
+  not size an I/O budget from a streaming benchmark.
+- Login nodes here have 64 cores and ~500 GB RAM, so building a multi-GB test
+  fixture in memory is fine; writing 13 GB through `netCDF4` took ~7 s.

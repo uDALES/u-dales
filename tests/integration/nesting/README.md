@@ -2,19 +2,19 @@
 
 Two layers live in this directory:
 
-* **`test_nesting.py`** -- the in-solver unit runmodes 1006-1010 (U1-U34 of
-  `docs/udales-nesting-design.md` section 10.1), which exercise one mechanism
-  at a time through the public test hooks.
-* **`test_nesting_cases.py`** -- the integration matrix I1-I8 of section 10.3,
+* **`test_nesting.py`** -- the in-solver unit runmodes 1006-1011 (U1-U43 of
+  `docs/udales-nesting-design.md` sections 10.1 and 10.6), which exercise one
+  mechanism at a time through the public test hooks.
+* **`test_nesting_cases.py`** -- the integration matrix I1-I10 of section 10.3,
   which runs the whole solver on nested cases built by
   `make_case_fixtures.py`.  See "Integration tests" below.
 
 ---
 
-## Unit tests (runmodes 1006-1010)
+## Unit tests (runmodes 1006-1011)
 
-In-solver unit tests for the one-way nesting feature, implementing the U1-U34
-matrix of `docs/udales-nesting-design.md` section 10.1. They call the
+In-solver unit tests for the one-way nesting feature, implementing the U1-U43
+matrix of `docs/udales-nesting-design.md` sections 10.1 and 10.6. They call the
 production routines of `src/modnesting.f90` and `src/modnestingio.f90` through
 the public test hooks of `docs/udales-nesting-spec.md` section 7 -- nothing
 under test is reimplemented here.
@@ -28,8 +28,9 @@ passed) or 1.
 | 1006 | `tests_nesting_weights` | U1-U7: shape function value/range/monotonicity, C1 and C2 joints with zero slope at both ends, bounded-union bounds/symmetry/degeneracy, the integral identity `int W ds = L_imp + L_rel/2` |
 | 1007 | `tests_nesting_geometry` | U8-U14: stagger coordinates against an independent global formula, zone membership and `sum W` against a serial global reference, IBM masking, wall erosion, the building-free rule, width reporting |
 | 1008 | `tests_nesting_io` | U15-U22: spatial read against the analytic field, per-rank hyperslab equals the full read bitwise, time-interpolation exactness, Hermite C1, buffer roll vs full reload, restart repositioning, header validation |
-| 1009 | `tests_nesting_flux` | U23-U28: `nest_flux_residual` against an analytic net flux, decomposition invariance, fluid-face masking, a corrected file giving `Phi = 0`, the assertion firing on an uncorrected one, linearity of `Phi` in time |
+| 1009 | `tests_nesting_flux` | U23-U28: `nest_flux_residual` against an analytic net flux, decomposition invariance, fluid-face masking, a corrected file giving `Phi = 0`, the assertion firing on an uncorrected one, linearity of `Phi` in time. U35-U39 (section 10.6 items 3 and 5): the lid split of `nest_flux_split`, a closed lid contributing nothing, the stored `flux_residual` against the stored slabs, a schema 1 file still loading, and what the cheap init check costs |
 | 1010 | `tests_nesting_update` | U29-U34: bitwise no-op off zone, Dirichlet limit, linear limit, full-step composition `exp(-W dt/tau)`, stability over `dt/tau` in `[1e-3, 1e6]`, solid points untouched |
+| 1011 | `tests_nesting_init` | U40-U43 (section 10.6 item 4): the cold-start block read back point by point against the analytic field, the switch off leaving the fields bitwise unchanged, a warm start not being touched, and the three abort cases |
 
 ## Running
 
@@ -65,7 +66,12 @@ drift apart. Nothing is committed; the files are regenerated on every run.
 | `nesting_corrected.901.nc` | the same field with the offline divergence correction (U26). |
 | `assertfire.901.nc` | a copy of the uncorrected file, run at the production tolerance so the flux assertion must fire (U27). |
 | `nesting_nonlinear.901.nc` | analytic in space, **non**-linear in time: stored level `n` holds the field at pseudo-time `s_n = t_n^2/t_max`. U18 and U19 need this -- a field linear in `t` is reproduced exactly by every interpolant and so cannot separate linear from Hermite. |
+| `nesting_initial.901.nc` | the analytic field plus the schema 2 **full-domain** initial-condition block, uncorrected, so the block is exactly `analytic_field()` and runmode 1011 can predict every value it reads. |
+| `nesting_v1.901.nc` | the corrected field written as **schema 1**: no `flux_residual`, no initial condition. The backwards-compatibility fixture (U38). |
+| `assertfire_lying.901.nc` | schema 2, data not flux balanced, but with `flux_residual` overwritten with zeros. The cheap init check believes it (U39); `nest_lfluxcheckall` does not (abort case). |
+| `assertfire_area.901.nc` | the same, plus a corrupted `fluid_lateral_area`, so the reader distrusts the stored residual on its own and falls back to the recompute -- which aborts. |
 | `bad_schema/itot/xlen/zf/stagger.901.nc` | one corrupted header item each (U22). |
+| `bad_initdims/bad_initstag.901.nc` | an initial-condition block at the wrong shape and at the wrong stagger (U43). `bad_initdims` has to be rebuilt rather than edited, because netCDF4 cannot change a variable's dimensions in place. |
 
 The case is 32 x 32 x 16 cells over 32 x 32 x 16 m (`dx = dy = dz = 1 m`),
 `nzone = 12`, six parent levels at `t = 0, 10, ..., 50 s`, and
@@ -93,15 +99,26 @@ other's subject.
 
 ## Abort cases
 
-U13, U22 and U27 assert that a routine *stops*, so each runs as its own
-process. They are selected from the namelist, and the driver checks both the
-non-zero exit and the message:
+U13, U22, U27, U39 and U43 assert that a routine *stops*, so each runs as its
+own process. They are selected from the namelist, and the driver checks both
+the non-zero exit and the message:
 
 | Case | Namelist selector | Expected message |
 |---|---|---|
 | U13 | `nest_lparentgeom = .false.` (runmode 1007) | `solid points found inside the relaxation zone` |
 | U22 | `nestfile = 'bad_*.901.nc'` (runmode 1008) | `mismatch in <field>` |
 | U27 | `nestfile = 'assertfire.901.nc'` (runmode 1009) | `not flux balanced` |
+| U39a | `nestfile = 'assertfire_lying.901.nc'`, `nest_lfluxcheckall = .true.` (1009) | `not flux balanced` |
+| U39b | `nestfile = 'assertfire_area.901.nc'` (1009) | `does not match this run` |
+| U43a | `nestfile = 'nesting_analytic.901.nc'` (runmode 1011) | `carries no initial-condition block` |
+| U43b | `nestfile = 'bad_initdims.901.nc'` (1011) | `mismatch in u_init` |
+| U43c | `nestfile = 'bad_initstag.901.nc'` (1011) | `u_init stagger: file =` |
+
+Runmodes 1009 and 1011 select their abort cases the same way 1008 does: 1009 on
+`index(nestfile, 'assertfire') > 0`, 1011 on the file *not* being
+`nesting_initial.<expnr>.nc`.  `nest_reinit` pins `nest_lfluxcheckall` and
+`nest_linitfromparent` to `.false.`, so every in-runmode subtest exercises the
+path it names rather than whatever the namelist happened to select.
 
 ## Known failures and gaps
 
@@ -109,18 +126,9 @@ non-zero exit and the message:
 `build_eroded_mask` used to read `prev(i+di, j+dj, k+dk)` one plane past the
 upper bound at `k = ke+kh`, which aborted a Debug build and silently wiped the
 `k = ke` zone layer in a Release build once `nest_nwall >= 2`. It now clamps
-`k+dk` into `kb-kh:ke+kh` (`src/modnesting.f90:1219-1225`). Runmodes 1006-1010
+`k+dk` into `kb-kh:ke+kh`. Runmodes 1006-1011
 pass against **both** the Release and the Debug build, on 1x1, 2x1, 1x2 and
 2x2, as of this writing.
-
-**U22 stagger tag.** Design section 10.1 asks for a mismatched `stagger`
-attribute to abort. The normative reader contract
-(`docs/udales-nesting-spec.md` section 6) lists the header items
-`nestio_validate` compares and the per-variable `stagger` attribute is not
-among them, and `modnestingio` never reads it. The runmode reports the
-discrepancy as an `INFO` line rather than asserting a requirement the contract
-does not make; the driver checks that the line is still printed. Either the
-spec or the reader needs a decision here.
 
 **U21 prefetch.** `modnesting` has no prefetch on/off switch; `set_interval`
 has an incremental roll-with-read-ahead branch and a full-reload branch. The
@@ -134,10 +142,11 @@ runmode on all four layouts.
 
 ---
 
-# Integration tests (I1-I8)
+# Integration tests (I1-I10)
 
-`test_nesting_cases.py` implements the I1-I8 matrix of
-`docs/udales-nesting-design.md` section 10.3. Where the runmodes above call one
+`test_nesting_cases.py` implements the I1-I10 matrix of
+`docs/udales-nesting-design.md` section 10.3 (I9 and I10 come from section
+10.6 items 4 and 5). Where the runmodes above call one
 routine at a time, these run the **whole solver** on a nested case and check
 the properties the composed scheme is supposed to have.
 
@@ -168,6 +177,8 @@ run directories behind for inspection.
 | I6 | `TestI6RestartParity` | passes (after the `program.f90` fix below) |
 | I7 | `TestI7ZoneIsolation` | passes |
 | I8 | `TestI8IbmInteraction` | passes |
+| I9 | `TestI9ColdStartFromParent` | passes |
+| I10 | `TestI10LeakyLid` | passes |
 
 ## Cases and fixtures
 
@@ -325,6 +336,63 @@ boundary-normal velocity untouched, so C1's global pressure response does not
 move the imposed values at all. Reported alongside: `|grad p|` zone/interior
 ratio 1.06-1.14 and the guard/relaxation energy split.
 
+**I9 -- cold start from the parent** (design section 10.6 item 4). The ZONED
+case, so most of the domain is *not* imposed and what the interior holds is
+what the initial condition put there. `prof.inp` carries `u = 0` while the
+parent carries `u = U`, so the two initialisations are as far apart as the case
+allows.
+
+The `t = 0` claim needs care: a restart file can only be written *after* a
+step, so the field at `t = 0` is not directly readable from a run. It is pinned
+two ways instead. Runmode 1011 (U40) reads `u0`/`um`, `v0`/`vm`, `w0`/`wm`
+straight after `nesting_init` and compares every point against the stored block
+-- a non-separable analytic 3-D field, on all four decompositions; measured max
+error **1.1e-16**. End to end, I9 requires the parent-initialised run to be
+**bitwise identical** to a run whose `prof.inp` carries the same profile:
+measured, all 13 restart records byte-identical, `max abs difference 0.0`. Two
+runs of this solver cannot agree bit for bit unless they started from the same
+bits.
+
+Measured alongside: the stored block's discrete divergence is `0.0`; the first
+`divmax` after the first projection is `3.4e-16` and `divtot` `-2.3e-21`; the
+first substep's `|grad p|` in the interior is `6.0e-06` against `2.2e+01` for
+the `prof.inp` control, and the zone misfit `3.2e-07` against `6.1e-03`. The
+control ends 1500x further from `U` than the parent-initialised run.
+
+One thing that surprised us and is worth not rediscovering: the ZONED uniform
+case is **not** a fixed point of the solver, even with `BCbotm = 1`
+(free-slip) and no IBM. `closurebc` sets `ekm(i,j,kb-1) = 2*numol - ekm(i,j,kb)`
+-- a no-slip *molecular* lower wall -- regardless of `BCbotm`
+(`src/modboundary.f90:466`), which decelerates the lowest layer by about
+`numol * U / dz^2 * t = 3e-5` m/s over the 2 s of the run. That is exactly the
+`2.8e-05` the test prints. It is identical in both runs, which is why I9
+compares two runs rather than comparing one run against `U`. I3 does not see it
+because there `W == 1` everywhere, so every point is re-imposed each substep.
+
+**I10 -- the leaky lid** (design case B, section 10.6 item 5). `BCtopm_pressure`
+with `nest_lfluxassert = .true.`, which before this change was impossible.
+
+Making the lid actually breathe takes construction, and the reason is worth
+recording. The lid velocity is driven by the horizontal mean of the accumulated
+pressure at `k = ke`; the top-row pin makes that mean proportional to `-Phi`;
+and `Phi` is, with a corrected parent, *just* the lid flux. So it is an
+autonomous linear feedback started from rest, and with a flux-balanced parent
+and a cold start it stays at round-off for ever -- measured `Phi_lid = 7.7e-18`
+on a straight cold start, which would have made a naive test pass for entirely
+the wrong reason. I10 therefore warm-starts from a restart file whose `pres0`
+carries a uniform offset of 0.5 m2 s-2: a child arriving with a column-pressure
+excess, which is precisely the mass excess case B exists to let out.
+
+Measured: `max |Phi_lid| = 1.04e-02` (eight orders of magnitude above
+`nest_fluxtol = 1e-10`, so the pre-fix six-face assertion **would** have fired),
+`max |Phi_closed| = 3.0e-17`, `max divmax = 8.9e-16`, `max divtot = 3.6e-15`.
+A control run from the same restart without the offset gives
+`max |Phi| = 7.6e-17`. The divergence numbers are case B's substantive claim:
+because `tderive` realises exactly the lid flux the pin implies, the projection
+is complete for any net flux and leaves nothing behind -- unlike case A, where
+an unbalanced flux would leave a source in the top cell layer (design section
+3.2).
+
 **I8 -- IBM interaction.** `tests/cases/064` is a single 6 m cube in a
 64 x 64 x 64 m box with its windward face at `x = 24 m`, so a `3 + 20 = 23 m`
 zone puts the inner edge exactly one cell upstream of the building --
@@ -358,7 +426,9 @@ suite was deliberately not weakened around either.
 
 `program.f90:79` dispatches `execute_runmode_actions`, so the unit runmodes
 1006-1010 return before `nesting_init` is ever called -- which is why the
-34 unit tests pass against both builds and could never have caught this.
+34 unit tests of the time passed against both builds and could never have
+caught this. (The same is true of runmode 1011, which calls `nesting_init`
+itself.)
 
 `nesting_init` was called from `program.f90:103`. `readinitfiles`, which is
 what assigns `timee` (`src/modstartup.f90:1203` on a cold start, and
@@ -491,14 +561,14 @@ baseline `build/u-dales.baseline` is a Release binary (see above -- you build
 it yourself, it is not in the repository), so comparing a Debug
 build against it would measure the optimisation level rather than the branch.
 
-Measured: **22 tests, 22 pass, 2 skips** (the two I1-vs-baseline tests), in
-1030 s. Before the `program.f90` fix in the section above, every nested case
-(I2-I8) trapped here on `-init=snan`, which is precisely what makes the Debug
-run worth keeping in the loop.
+Before the `program.f90` fix in the section above, every nested case (I2-I8)
+trapped here on `-init=snan`, which is precisely what makes the Debug run worth
+keeping in the loop.
 
 ## Current status
 
-Against `build/release/u-dales` on this branch: **28 tests, 28 pass** (561 s).
-Against `build/debug/u-dales`: **22 tests, 22 pass, 2 skips** (1030 s) -- the
-skips are the two I1-vs-baseline comparisons, which need a Release binary.
-The unit runmodes (1006-1010) pass against both builds.
+Against `build/release/u-dales` on this branch: **35 tests, 35 pass** (439 s).
+Against `build/debug/u-dales`: **29 tests, 29 pass** (954 s), two of which are
+the class-level skips of the two I1-vs-baseline comparisons -- they need a
+Release binary. The unit runmodes (1006-1011) pass against both builds
+(9 driver tests, 334 s Release / 340 s Debug).

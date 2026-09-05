@@ -78,6 +78,8 @@ nest_nwall      = 1
 nest_lparentgeom = .true.
 nest_fluxtol     = 1.e-10
 nest_lfluxassert = .true.
+nest_lfluxcheckall = .false.
+nest_linitfromparent = .false.
 /
 
 &OUTPUT

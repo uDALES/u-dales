@@ -32,7 +32,7 @@
 module modnesting
 
    use modnestingio, only : nestio_open, nestio_validate, nestio_read, &
-                            nestio_close, nestio_hdr, nestio_tread
+                            nestio_read_block, nestio_close, nestio_hdr, nestio_tread
 
    implicit none
    save
@@ -42,11 +42,13 @@ module modnesting
              nesting_boundary, nesting_bcpup, nesting_stats,     &
              nesting_restart_write, nesting_restart_read, nesting_finalize
    ! Test hooks: exercised directly by src/tests.f90 (runmodes TEST_NESTING_*).
-   public :: nest_shape_fn, nest_union, nest_stagger_coord, nest_flux_residual
+   public :: nest_shape_fn, nest_union, nest_stagger_coord, nest_flux_residual, &
+             nest_flux_split
    ! Namelist variables: read and broadcast by modstartup.
    public :: lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau,   &
              nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
-             nest_lparentgeom, nest_fluxtol, nest_lfluxassert
+             nest_lparentgeom, nest_fluxtol, nest_lfluxassert,                &
+             nest_lfluxcheckall, nest_linitfromparent
 
    logical            :: lnesting         = .false.
    character(len=256) :: nestfile         = ''
@@ -61,6 +63,14 @@ module modnesting
    logical            :: nest_lparentgeom = .false.
    real               :: nest_fluxtol     = 1.e-10
    logical            :: nest_lfluxassert = .true.
+   !> Recompute the flux residual of every stored time level from the boundary
+   !! slabs at init, instead of validating the residual the writer stored
+   !! (schema 2). Off by default: the recompute costs 4 x ntime reads on every
+   !! perimeter rank (design section 10.6 item 3).
+   logical            :: nest_lfluxcheckall = .false.
+   !> Cold start only: initialise u0/um, v0/vm and w0/wm from the full-domain
+   !! block of a schema 2 file instead of from prof.inp.
+   logical            :: nest_linitfromparent = .false.
 
    !----------------------------------------------------------------- internals
 
@@ -106,13 +116,15 @@ module modnesting
    integer :: ntime    = 0                  !< number of parent time levels
    integer :: it_lo    = 0                  !< parent level bracketing the current time
    real    :: ttarget  = -1.                !< time the buffer cur(:) was evaluated at
-   real    :: phi_last = 0.
+   real    :: phi_last = 0.            !< last normalised flux residual, all six faces
+   real    :: phi_lid_last = 0.        !< of which the lid contributed this much
    ! Energy injected by the zone forcing since the last nesting_stats call,
    ! split by where it was injected: guard strip (W >= 1) and relaxation ramp
    ! (0 < W < 1). Accumulated in nesting_apply, reported and reset in
    ! nesting_stats (design section 6.4).
-   real    :: einj_guard = 0., einj_relax = 0.                 !< last normalised flux residual
+   real    :: einj_guard = 0., einj_relax = 0.
    real    :: area_bnd = 0.                 !< total FLUID domain-boundary area
+   real    :: area_lat = 0.                 !< FLUID area of the four LATERAL faces only
    real    :: twall0   = 0.                 !< wall clock at the end of nesting_init
    real    :: tread0   = 0.                 !< nestio_tread at the end of nesting_init
    integer :: nsolid_zone = 0               !< solid points found inside the zone
@@ -135,7 +147,7 @@ contains
       use modmpi,    only : myid
 
       integer :: ierr, f
-      real    :: ltot
+      real    :: ltot, tflux
 
       if (.not. lnesting) return
 
@@ -225,13 +237,17 @@ contains
 
       ! ---- the stored input must be divergence corrected (design section 3.3) ----
       area_bnd = fluid_boundary_area()
+      area_lat = fluid_lateral_boundary_area()
       if (area_bnd <= 0.) call nest_abort('no fluid domain-boundary area found')
 
       if (.not. nestio_hdr%divergence_corrected .and. myid == 0) then
          write(*,'(a)') ' modnesting: WARNING the input file is not marked divergence_corrected'
       end if
 
+      tflux = MPI_Wtime()
       call check_stored_flux
+      tflux = MPI_Wtime() - tflux
+      if (myid == 0) write(*,'(a,es12.4,a)') ' modnesting: flux check took ', tflux, ' s'
 
       ! ---- load the first parent time levels ----
       it_lo = 0
@@ -249,6 +265,9 @@ contains
          call eval_target(timee)
       end if
       lrestart_pending = .false.
+
+      ! ---- optional cold-start initialisation from the parent ----
+      call init_from_parent
 
       linit  = .true.
       twall0 = MPI_Wtime()
@@ -466,7 +485,8 @@ contains
    subroutine nesting_bcpup(pup, pvp, pwp, rk3coef)
       use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, &
                             ibrank, ierank, jbrank, jerank,     &
-                            BCxm, BCym, BCxm_nesting, BCym_nesting
+                            BCxm, BCym, BCxm_nesting, BCym_nesting, &
+                            BCtopm, BCtopm_pressure
       use modfields, only : up, vp
       use modmpi,    only : myid
 
@@ -474,7 +494,7 @@ contains
       real, intent(in) :: rk3coef
 
       integer :: i, j, k
-      real    :: rk3coefi
+      real    :: rk3coefi, phi_closed
 
       if (.not. lnesting) return
       if (.not. linit) return
@@ -523,12 +543,23 @@ contains
 
       ! The compatibility condition is a property of the boundary faces only
       ! (design section 3.1) and the solver will not complain on its own (F3).
-      phi_last = nest_flux_residual(pup, pvp, pwp, rk3coef)
+      ! Under a leaky lid the top face is a free response rather than an imposed
+      ! datum, so only the closed faces are asserted on - see nest_flux_split.
+      call nest_flux_split(pup, pvp, pwp, rk3coef, phi_last, phi_lid_last)
 
-      if (nest_lfluxassert .and. abs(phi_last) > nest_fluxtol) then
+      if (BCtopm == BCtopm_pressure) then
+         phi_closed = phi_last - phi_lid_last
+      else
+         phi_closed = phi_last
+      end if
+
+      if (nest_lfluxassert .and. abs(phi_closed) > nest_fluxtol) then
          if (myid == 0) then
-            write(*,'(a,es12.5,a,es12.5)') ' modnesting: flux residual ', phi_last, &
+            write(*,'(a,es12.5,a,es12.5)') ' modnesting: flux residual ', phi_closed, &
                ' exceeds nest_fluxtol = ', nest_fluxtol
+            if (BCtopm == BCtopm_pressure) write(*,'(a,es12.5,a,es12.5)') &
+               '   (total over all six faces ', phi_last, ', of which the lid carries ', &
+               phi_lid_last
          end if
          call nest_abort('normalised boundary flux residual out of tolerance')
       end if
@@ -602,6 +633,8 @@ contains
       if (myid == 0) then
          write(*,'(a,f12.3)')  ' modnesting: t          = ', timee
          write(*,'(a,es12.4)') ' modnesting: Phi (norm) = ', phi_last
+         write(*,'(a,es12.4,a,es12.4)') ' modnesting: Phi lid    = ', phi_lid_last, &
+            '  closed faces = ', phi_last - phi_lid_last
          write(*,'(a,es12.4)') ' modnesting: zone misfit rms [m/s] = ', rmsmis
          write(*,'(a,es12.4,a,es12.4,a,f8.3)') ' modnesting: |grad p| zone = ', gzone, &
             '  interior = ', gint, '  ratio = ', gratio
@@ -840,17 +873,47 @@ contains
    !> Net volume flux of the predicted velocity through the domain boundary over
    !! fluid faces only, MPI-reduced, normalised by total fluid boundary area.
    !! The predicted velocity is rk3coef*p?p (see fillps, modpois.f90:942).
+   !! This is Phi of design section 3.1, over all six faces; nest_flux_split
+   !! additionally reports how much of it the lid carries.
    real function nest_flux_residual(pup, pvp, pwp, rk3coef)
+      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
+
+      real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(in) :: pup, pvp, pwp
+      real, intent(in) :: rk3coef
+
+      real :: phi_lid
+
+      call nest_flux_split(pup, pvp, pwp, rk3coef, nest_flux_residual, phi_lid)
+
+   end function nest_flux_residual
+
+
+   !> Phi (design section 3.1) split into the total over all six domain-boundary
+   !! faces and the part the LID carries, both normalised by the total fluid
+   !! boundary area so the tolerance is dimensionless.
+   !!
+   !! The split is what makes the flux assertion correct under a leaky lid
+   !! (BCtopm_pressure, design case B). There the top face is not a datum: bcpup
+   !! sets w* at ke+1 from the accumulated pressure and tderive adds the matching
+   !! increment, which is exactly the Dirichlet-in-the-mean-mode row the solver
+   !! pins (design F3), so the projection is complete and Phi_total = 0 is NOT a
+   !! requirement -- the lid flux is the child breathing against its reservoir.
+   !! What must still vanish is the flux through the faces the scheme controls,
+   !! phi_all - phi_lid, and that is what nesting_bcpup asserts on. Under a rigid
+   !! lid (freeslip/noslip) bcpup forces w* = 0 there, phi_lid is identically
+   !! zero, and the two are the same number.
+   subroutine nest_flux_split(pup, pvp, pwp, rk3coef, phi_all, phi_lid)
       use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, dx, dy, dzf, &
                             ibrank, ierank, jbrank, jerank
       use modfields, only : IIu, IIv, IIw, rhobf, rhobh
       use modmpi,    only : comm3d, mpierr, my_real, mpi_sum
 
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(in) :: pup, pvp, pwp
-      real, intent(in) :: rk3coef
+      real, intent(in)  :: rk3coef
+      real, intent(out) :: phi_all, phi_lid
 
       integer :: i, j, k
-      real    :: sl(2), sg(2), af
+      real    :: sl(3), sg(3), af
 
       sl = 0.
 
@@ -912,19 +975,22 @@ contains
             if (IIw(i, j, ke + 1) == 1) then
                sl(1) = sl(1) + rhobh(ke + 1)*pwp(i, j, ke + 1)*rk3coef*af
                sl(2) = sl(2) + af
+               sl(3) = sl(3) + rhobh(ke + 1)*pwp(i, j, ke + 1)*rk3coef*af
             end if
          end do
       end do
 
-      call MPI_ALLREDUCE(sl, sg, 2, MY_REAL, MPI_SUM, comm3d, mpierr)
+      call MPI_ALLREDUCE(sl, sg, 3, MY_REAL, MPI_SUM, comm3d, mpierr)
 
       if (sg(2) > 0.) then
-         nest_flux_residual = sg(1)/sg(2)
+         phi_all = sg(1)/sg(2)
+         phi_lid = sg(3)/sg(2)
       else
-         nest_flux_residual = 0.
+         phi_all = 0.
+         phi_lid = 0.
       end if
 
-   end function nest_flux_residual
+   end subroutine nest_flux_split
 
 
    ! ------------------------------------------------------------------ private
@@ -1019,6 +1085,60 @@ contains
       fluid_boundary_area = ag
 
    end function fluid_boundary_area
+
+
+   !> FLUID area of the four LATERAL domain-boundary faces, geometric (no
+   !! density). Compared against the fluid_lateral_area the writer stored, so a
+   !! mask mismatch between writer and solver is caught rather than trusted.
+   real function fluid_lateral_boundary_area()
+      use modglobal, only : ib, ie, jb, je, kb, ke, dx, dy, dzf, &
+                            ibrank, ierank, jbrank, jerank
+      use modfields, only : IIu, IIv
+      use modmpi,    only : comm3d, mpierr, my_real, mpi_sum
+
+      integer :: i, j, k
+      real    :: al, ag, af
+
+      al = 0.
+
+      if (ibrank) then
+         do k = kb, ke
+            af = dy*dzf(k)
+            do j = jb, je
+               if (IIu(ib, j, k) == 1) al = al + af
+            end do
+         end do
+      end if
+      if (ierank) then
+         do k = kb, ke
+            af = dy*dzf(k)
+            do j = jb, je
+               if (IIu(ie + 1, j, k) == 1) al = al + af
+            end do
+         end do
+      end if
+      if (jbrank) then
+         do k = kb, ke
+            af = dx*dzf(k)
+            do i = ib, ie
+               if (IIv(i, jb, k) == 1) al = al + af
+            end do
+         end do
+      end if
+      if (jerank) then
+         do k = kb, ke
+            af = dx*dzf(k)
+            do i = ib, ie
+               if (IIv(i, je + 1, k) == 1) al = al + af
+            end do
+         end do
+      end if
+
+      call MPI_ALLREDUCE(al, ag, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+
+      fluid_lateral_boundary_area = ag
+
+   end function fluid_lateral_boundary_area
 
 
    !> Slab dimensions and this rank's hyperslab of the decomposed index.
@@ -1427,13 +1547,20 @@ contains
 
 
    !> Verify that every stored parent time level is flux balanced.
+   !!
    !! Phi is a linear functional of the boundary data (design section 3.1
    !! item 2), so checking every stored level is sufficient for every
-   !! time-interpolated target. Only the four boundary-normal slabs are read,
-   !! and only on the ranks that own a domain-boundary face, so the cost is a
-   !! perimeter read rather than a full read of the file.
-   !! Note that net_volume_flux in the file is the PRE-correction flux
-   !! (spec section 5) and carries no information about the corrected data.
+   !! time-interpolated target.
+   !!
+   !! A schema 2 file carries flux_residual(time), the residual of the data AS
+   !! STORED, and fluid_lateral_area, the area it was summed over. When the two
+   !! sides agree on that area -- i.e. the writer masked the same boundary faces
+   !! the solver calls solid -- the stored residual is validated directly and no
+   !! slab is read at all. Otherwise, and for a schema 1 file, which stores only
+   !! the PRE-correction net_volume_flux and hence nothing about the corrected
+   !! data, the residual is recomputed from the boundary slabs: 4 x ntime reads
+   !! on every perimeter rank. nest_lfluxcheckall forces the recompute
+   !! unconditionally (design section 10.6 item 3).
    subroutine check_stored_flux
       use modglobal, only : ib, ie, jb, je, kb, ke, dx, dy, dzf, &
                             ibrank, ierank, jbrank, jerank
@@ -1441,9 +1568,49 @@ contains
       use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_sum
 
       integer :: it, i, j, k, ierr
-      real    :: sl, sg, phi, af
-      logical :: lw, le, ls, ln
+      real    :: sl, sg, phi, af, aerr
+      logical :: lw, le, ls, ln, lfull
       real, allocatable :: bw(:,:,:), be(:,:,:), bs(:,:,:), bn(:,:,:)
+
+      ! ---- decide between the cheap check and the full recompute ----
+      lfull = nest_lfluxcheckall
+
+      if (.not. nestio_hdr%has_flux_residual) then
+         if (myid == 0 .and. .not. lfull) write(*,'(a)') &
+            ' modnesting: WARNING the input file predates schema 2 and stores no'// &
+            ' post-correction flux residual; recomputing it from the boundary slabs'
+         lfull = .true.
+      else
+         aerr = abs(nestio_hdr%fluid_lateral_area - area_lat)
+         if (aerr > 1.e-8*max(area_lat, abs(nestio_hdr%fluid_lateral_area), 1.e-30)) then
+            if (myid == 0) then
+               write(*,'(a)') ' modnesting: WARNING the fluid lateral boundary area of the'// &
+                  ' input file does not match this run'
+               write(*,'(a,es22.14,a,es22.14)') '   file = ', nestio_hdr%fluid_lateral_area, &
+                  ', run = ', area_lat
+               write(*,'(a)') '   the stored flux residual cannot be trusted;'// &
+                  ' recomputing it from the boundary slabs'
+            end if
+            lfull = .true.
+         end if
+      end if
+
+      if (.not. lfull) then
+         do it = 1, ntime
+            phi = nestio_hdr%flux_residual(it)/area_bnd
+            if (abs(phi) > nest_fluxtol) then
+               if (myid == 0) then
+                  write(*,'(a,i0,a,es12.5,a,es12.5)') &
+                     ' modnesting: stored flux residual of time level ', it, ' is ', phi, &
+                     ' (normalised), tolerance ', nest_fluxtol
+               end if
+               call nest_abort('the parent file is not flux balanced - rerun the offline correction')
+            end if
+         end do
+         if (myid == 0) write(*,'(a,i0,a)') ' modnesting: ', ntime, &
+            ' stored time levels are flux balanced (from the stored residual, no slab read)'
+         return
+      end if
 
       lw = lface(1) .and. ibrank .and. sl_on(1,1)
       le = lface(2) .and. ierank .and. sl_on(1,2)
@@ -1525,9 +1692,118 @@ contains
       if (allocated(bn)) deallocate(bn)
 
       if (myid == 0) write(*,'(a,i0,a)') ' modnesting: ', ntime, &
-         ' stored time levels are flux balanced'
+         ' stored time levels are flux balanced (recomputed from the boundary slabs)'
 
    end subroutine check_stored_flux
+
+
+   !> Cold-start initialisation of the interior from the parent (design section
+   !! 10.6 item 4). Called at the end of nesting_init, i.e. after readinitfiles
+   !! has filled u0/um from prof.inp, which this then overwrites.
+   !!
+   !! Only a cold start is touched: on a warm start the restart file already
+   !! holds a state consistent with the parent, and overwriting it would break
+   !! restart parity (test I6). The stored block is the field at the FIRST
+   !! stored time and has been made discretely solenoidal on the child grid by
+   !! the writer, with the boundary-normal velocities equal to the slab values
+   !! at that time, so the first projection has nothing to clean up.
+   subroutine init_from_parent
+      use modglobal, only : ib, ie, jb, je, kb, ke, kh, ktot, &
+                            ierank, jerank, timee, lwarmstart, lstratstart
+      use modfields, only : u0, um, v0, vm, w0, wm, u0av, v0av, &
+                            IIu, IIus, IIv, IIvs
+      use modmpi,    only : myid, avexy_ibm
+      use decomp_2d, only : zstart, exchange_halo_z
+
+      integer :: ierr, i, j, k, ni, nj, i0, j0
+      real, allocatable :: buf(:,:,:)
+
+      if (.not. nest_linitfromparent) return
+
+      if (lwarmstart .or. lstratstart) then
+         if (myid == 0) write(*,'(a)') ' modnesting: nest_linitfromparent is set but this'// &
+            ' is a warm start; the restart file wins and the parent block is not read'
+         return
+      end if
+
+      if (.not. nestio_hdr%has_initial_condition) call nest_abort( &
+         'nest_linitfromparent is set but '//trim(nestfile)//' carries no initial-condition'// &
+         ' block (it needs schema 2 with has_initial_condition = 1)')
+
+      if (abs(timee - nestio_hdr%time(1)) > 1.e-8*max(abs(timee), 1.) .and. myid == 0) then
+         write(*,'(a,es12.5,a,es12.5)') ' modnesting: WARNING the initial-condition block is'// &
+            ' stored at t = ', nestio_hdr%time(1), ' but the run starts at t = ', timee
+      end if
+
+      i0 = zstart(1)
+      j0 = zstart(2)
+
+      ! u lives on xh: the east-most rank additionally owns the face at itot+1.
+      ni = ie - ib + 1
+      if (ierank) ni = ni + 1
+      nj = je - jb + 1
+      allocate(buf(ktot, nj, ni))
+      call nestio_read_block('u_init', j0, nj, i0, ni, buf, ierr)
+      if (ierr /= 0) call nest_abort('failed to read u_init from '//trim(nestfile))
+      do i = 1, ni
+         do j = 1, nj
+            do k = 1, ktot
+               u0(ib + i - 1, jb + j - 1, kb + k - 1) = buf(k, j, i)
+            end do
+         end do
+      end do
+      deallocate(buf)
+
+      ! v lives on yh: the north-most rank additionally owns the face at jtot+1.
+      ni = ie - ib + 1
+      nj = je - jb + 1
+      if (jerank) nj = nj + 1
+      allocate(buf(ktot, nj, ni))
+      call nestio_read_block('v_init', j0, nj, i0, ni, buf, ierr)
+      if (ierr /= 0) call nest_abort('failed to read v_init from '//trim(nestfile))
+      do i = 1, ni
+         do j = 1, nj
+            do k = 1, ktot
+               v0(ib + i - 1, jb + j - 1, kb + k - 1) = buf(k, j, i)
+            end do
+         end do
+      end do
+      deallocate(buf)
+
+      ! w lives on zh: every rank owns ktot+1 levels, kb .. ke+1.
+      ni = ie - ib + 1
+      nj = je - jb + 1
+      allocate(buf(ktot + 1, nj, ni))
+      call nestio_read_block('w_init', j0, nj, i0, ni, buf, ierr)
+      if (ierr /= 0) call nest_abort('failed to read w_init from '//trim(nestfile))
+      do i = 1, ni
+         do j = 1, nj
+            do k = 1, ktot + 1
+               w0(ib + i - 1, jb + j - 1, kb + k - 1) = buf(k, j, i)
+            end do
+         end do
+      end do
+      deallocate(buf)
+
+      call exchange_halo_z(u0)
+      call exchange_halo_z(v0)
+      call exchange_halo_z(w0)
+
+      um = u0
+      vm = v0
+      wm = w0
+
+      ! readinitfiles computed these from the prof.inp fields we have just
+      ! replaced, so they would otherwise describe a state the run no longer has.
+      call avexy_ibm(u0av(kb:ke+kh), u0(ib:ie,jb:je,kb:ke+kh), ib, ie, jb, je, kb, ke, kh, &
+                     IIu(ib:ie,jb:je,kb:ke+kh), IIus(kb:ke+kh), .false.)
+      call avexy_ibm(v0av(kb:ke+kh), v0(ib:ie,jb:je,kb:ke+kh), ib, ie, jb, je, kb, ke, kh, &
+                     IIv(ib:ie,jb:je,kb:ke+kh), IIvs(kb:ke+kh), .false.)
+
+      if (myid == 0) write(*,'(a,es12.5)') ' modnesting: cold start initialised from the'// &
+         ' parent initial-condition block at t = ', nestio_hdr%time(1)
+
+   end subroutine init_from_parent
 
 
    !> Read one parent time level into a buffer slot. Levels outside [1,ntime]

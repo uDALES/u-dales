@@ -1,6 +1,6 @@
 &RUN
 iexpnr       = 901
-runmode      = 1009
+runmode      = 1011
 runtime      = 1.
 trestart     = 1.e9
 dtmax        = 1.
@@ -29,7 +29,7 @@ ipoiss       = 0
 
 &NESTING
 lnesting        = .true.
-nestfile        = 'nesting_analytic.901.nc'
+nestfile        = 'nesting_initial.901.nc'
 nest_guardwidth = 3.
 nest_zonewidth  = 8.
 nest_tau        = 4.
@@ -40,6 +40,7 @@ nest_lparentgeom = .true.
 nest_fluxtol     = 1.e-10
 nest_lfluxassert = .true.
 nest_lfluxcheckall = .false.
+nest_linitfromparent = .true.
 /
 
 &INPS

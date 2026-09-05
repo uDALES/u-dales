@@ -1,4 +1,4 @@
-"""Unit tests P1--P11 of the nesting preprocessing (design doc §10.2).
+"""Unit tests P1--P17 of the nesting preprocessing (design doc §10.2, §10.6).
 
 Each test isolates one mechanism of ``udprep.nesting`` and fails only if that
 mechanism is wrong:
@@ -15,6 +15,12 @@ mechanism is wrong:
  P9           schema round-trip
  P10          refinement guard
  P11          container equivalence
+ P12          schema 2: the stored flux_residual is the residual as stored
+ P13          schema 2: the initial-condition block round-trips, both back-ends
+ P14          the initial-condition projection makes the field solenoidal
+ P15          the projection leaves every boundary-normal velocity untouched
+ P16          the projection is a no-op on an already solenoidal field
+ P17          schema 1 still writes, validates and reads (backwards compatibility)
 ============ ============================================================
 """
 
@@ -42,20 +48,28 @@ from exceptions import ConfigurationError  # noqa: E402
 from udprep.nesting import (  # noqa: E402
     COMPONENTS,
     FACES,
+    INIT_VARIABLES,
     REQUIRED_GLOBAL_ATTRIBUTES,
     SCHEMA_VERSION,
     STAGGER,
+    SUPPORTED_SCHEMA_VERSIONS,
     FaceMasks,
     NestGrid,
     NestingData,
     NestingRefinementError,
     NestingSchemaError,
     analytic_field,
+    analytic_initial_fields,
     analytic_slabs,
     apply_divergence_correction,
     boundary_faces,
     conservative_interpolate,
     fluid_face_area,
+    fluid_lateral_area,
+    init_dimensions,
+    initial_fields_from_fields,
+    initial_fields_from_parent,
+    project_initial_condition,
     interpolate_child_fields,
     nesting_data_from_parent,
     nesting_filename,
@@ -68,6 +82,7 @@ from udprep.nesting import (  # noqa: E402
     slab_shape,
     slabs_from_fields,
     slabs_from_parent,
+    sync_initial_condition,
     validate_nesting_file,
     write_analytic_nesting_file,
     write_nesting_file,
@@ -858,6 +873,332 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(back.parent_model, "udales")
         self.assertAlmostEqual(back.parent_dt, 30.0)
         self.assertAlmostEqual(back.parent_dx, float(parent.dx[0]))
+
+
+# --------------------------------------------------------------------------- #
+# P12--P17 -- schema 2: the stored residual and the initial-condition block
+# --------------------------------------------------------------------------- #
+
+
+def closed_box_fields(grid, seed=7):
+    """A random field with zero normal velocity on all six faces.
+
+    Its net boundary flux is exactly zero, which is what the pure-Neumann
+    projection needs, but its interior divergence is large -- so a projection
+    has real work to do and cannot pass by doing nothing.
+    """
+    rng = np.random.default_rng(seed)
+    u, v, w = (rng.normal(size=grid.component_shape(c)) for c in COMPONENTS)
+    u[0, :, :] = u[-1, :, :] = 0.0
+    v[:, 0, :] = v[:, -1, :] = 0.0
+    w[:, :, 0] = w[:, :, -1] = 0.0
+    return u, v, w
+
+
+class TestP12StoredFluxResidual(unittest.TestCase):
+    """P12: `flux_residual` describes the data **as stored**, not before correction.
+
+    This is the whole point of the schema-2 addition: the solver validates
+    against it instead of re-reading `4 x ntime` boundary slabs at
+    initialisation (design section 10.6 item 3), so it has to be the residual of
+    what is actually in the file.
+    """
+
+    def setUp(self):
+        self._tmp = TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+    def test_it_is_the_post_correction_residual(self):
+        data = random_nesting_data(seed=311)
+        before = net_volume_flux(data)
+        apply_divergence_correction(data)
+        after = net_volume_flux(data)
+        self.assertGreater(np.max(np.abs(before)), 1.0)      # not vacuous
+        np.testing.assert_array_equal(data.net_volume_flux, before)
+        np.testing.assert_allclose(data.flux_residual, after, rtol=0, atol=0)
+        scale = fluid_face_area(data)
+        self.assertLess(np.max(np.abs(data.flux_residual)), 1e-12 * scale)
+
+    def test_an_uncorrected_file_stores_its_real_residual(self):
+        data = random_nesting_data(seed=312)
+        path = write_nesting_file(self.tmp / "raw.nc", data)
+        back = read_nesting_file(path)
+        np.testing.assert_allclose(back.flux_residual, net_volume_flux(data),
+                                   rtol=1e-14, atol=0)
+        self.assertGreater(np.max(np.abs(back.flux_residual)), 1.0)
+
+    def test_the_fluid_lateral_area_is_written_and_matches(self):
+        masks = FaceMasks(
+            west=np.ones((6, 5), dtype=bool),
+            east=np.ones((6, 5), dtype=bool),
+            south=np.ones((8, 5), dtype=bool),
+            north=np.ones((8, 5), dtype=bool),
+        )
+        masks.west[2, 1] = False
+        masks.north[5, 3] = False
+        data = random_nesting_data(seed=313)
+        apply_divergence_correction(data, masks)
+        path = write_nesting_file(self.tmp / "masked.nc", data)
+        attrs = validate_nesting_file(path)
+        self.assertAlmostEqual(float(attrs["fluid_lateral_area"]),
+                               fluid_lateral_area(data, masks), places=9)
+        # the geometric area is not the rho-weighted one this grid uses
+        self.assertNotAlmostEqual(fluid_lateral_area(data, masks),
+                                  fluid_face_area(data, masks), places=3)
+
+
+class TestP13InitialConditionRoundTrip(unittest.TestCase):
+    """P13: the full-domain block survives write -> read on both back-ends."""
+
+    def setUp(self):
+        self._tmp = TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+    def _data(self, seed=401):
+        # rhobf == 1: the initial condition is projected with the solver's
+        # density-free divergence operator (design F1), and the writer refuses
+        # to carry a block on a file that claims any other density.
+        data = random_nesting_data(seed=seed, rhobf=None, rhobh=None)
+        data.initial_fields = initial_fields_from_fields(
+            data.grid, *closed_box_fields(data.grid, seed=seed + 1)
+        )
+        return data
+
+    def test_netcdf_round_trip_is_bitwise(self):
+        data = self._data()
+        path = write_nesting_file(self.tmp / "ic.nc", data)
+        attrs = validate_nesting_file(path)
+        self.assertEqual(int(attrs["has_initial_condition"]), 1)
+        back = read_nesting_file(path)
+        self.assertIsNotNone(back.initial_fields)
+        for component in COMPONENTS:
+            self.assertEqual(back.initial_fields[component].tobytes(),
+                             data.initial_fields[component].tobytes(), component)
+
+    def test_raw_backend_stores_the_same_bits(self):
+        data = self._data(seed=402)
+        write_nesting_file(self.tmp / "ic.nc", data)
+        write_nesting_file(self.tmp / "ic.dat", data)
+        a = read_nesting_file(self.tmp / "ic.nc")
+        b = read_nesting_file(self.tmp / "ic.dat")
+        for component in COMPONENTS:
+            self.assertEqual(a.initial_fields[component].tobytes(),
+                             b.initial_fields[component].tobytes(), component)
+        self.assertEqual(a.flux_residual.tobytes(), b.flux_residual.tobytes())
+
+    def test_the_dimensions_and_stagger_are_the_contract(self):
+        data = self._data(seed=403)
+        path = write_nesting_file(self.tmp / "ic.nc", data)
+        with Dataset(path, "r") as ds:
+            for component, name in zip(COMPONENTS, INIT_VARIABLES):
+                var = ds.variables[name]
+                self.assertEqual(tuple(var.dimensions), init_dimensions(component), name)
+                self.assertEqual(var.stagger, STAGGER[component], name)
+
+    def test_a_wrong_stagger_tag_is_rejected(self):
+        data = self._data(seed=404)
+        path = write_nesting_file(self.tmp / "ic.nc", data)
+        with Dataset(path, "a") as ds:
+            ds.variables["u_init"].stagger = "xf yf zf"
+        with self.assertRaises(NestingSchemaError) as ctx:
+            validate_nesting_file(path)
+        self.assertIn("u_init", str(ctx.exception))
+
+    def test_a_block_that_is_not_declared_is_rejected(self):
+        data = self._data(seed=405)
+        path = write_nesting_file(self.tmp / "ic.nc", data)
+        with Dataset(path, "a") as ds:
+            ds.setncattr("has_initial_condition", np.int32(0))
+        with self.assertRaises(NestingSchemaError) as ctx:
+            validate_nesting_file(path)
+        self.assertIn("has_initial_condition", str(ctx.exception))
+
+    def test_a_declared_block_that_is_missing_is_rejected(self):
+        data = random_nesting_data(seed=406)
+        path = write_nesting_file(self.tmp / "none.nc", data)
+        with Dataset(path, "a") as ds:
+            ds.setncattr("has_initial_condition", np.int32(1))
+        with self.assertRaises(NestingSchemaError) as ctx:
+            validate_nesting_file(path)
+        self.assertIn("u_init", str(ctx.exception))
+
+    def test_schema_1_refuses_to_carry_a_block(self):
+        data = self._data(seed=407)
+        with self.assertRaises(ConfigurationError):
+            write_nesting_file(self.tmp / "v1.nc", data, schema=1)
+
+
+class TestP14P16Projection(unittest.TestCase):
+    """P14--P16: the projection of the initial condition (design 10.6 item 4)."""
+
+    def _grid(self, stretched=False):
+        if not stretched:
+            return NestGrid.uniform(12, 10, 6, 24.0, 20.0, 12.0)
+        zh = np.cumsum(np.concatenate(([0.0], np.linspace(1.0, 3.0, 6))))
+        return NestGrid.from_faces(np.linspace(0.0, 24.0, 13),
+                                   np.linspace(0.0, 20.0, 11), zh)
+
+    def test_p14_the_projected_field_is_discretely_solenoidal(self):
+        for stretched in (False, True):
+            with self.subTest(stretched=stretched):
+                grid = self._grid(stretched)
+                fields = dict(zip(COMPONENTS, closed_box_fields(grid, seed=501)))
+                before = np.max(np.abs(discrete_divergence(grid, *fields.values())))
+                _, _, _, b, a = project_initial_condition(grid, fields)
+                self.assertAlmostEqual(b, float(before), places=12)
+                self.assertGreater(b, 1.0)          # not vacuous
+                self.assertLess(a, 1e-12 * max(b, 1.0))
+
+    def test_p15_boundary_normal_velocities_are_untouched(self):
+        grid = self._grid()
+        u, v, w = closed_box_fields(grid, seed=502)
+        # give the lateral faces a non-zero but balanced normal velocity
+        u[0, :, :] = 1.0
+        u[-1, :, :] = 1.0
+        fields = {"u": u, "v": v, "w": w}
+        keep = {k: a.copy() for k, a in fields.items()}
+        project_initial_condition(grid, fields)
+        np.testing.assert_array_equal(fields["u"][0], keep["u"][0])
+        np.testing.assert_array_equal(fields["u"][-1], keep["u"][-1])
+        np.testing.assert_array_equal(fields["v"][:, 0], keep["v"][:, 0])
+        np.testing.assert_array_equal(fields["v"][:, -1], keep["v"][:, -1])
+        np.testing.assert_array_equal(fields["w"][:, :, 0], keep["w"][:, :, 0])
+        np.testing.assert_array_equal(fields["w"][:, :, -1], keep["w"][:, :, -1])
+        # and the interior did move, so the test is not vacuous
+        self.assertGreater(float(np.max(np.abs(fields["v"] - keep["v"]))), 1e-3)
+
+    def test_p16_it_is_a_no_op_on_a_solenoidal_field(self):
+        grid = self._grid()
+        fields = dict(zip(COMPONENTS, closed_box_fields(grid, seed=503)))
+        project_initial_condition(grid, fields)
+        keep = {k: a.copy() for k, a in fields.items()}
+        _, _, _, b, a = project_initial_condition(grid, fields)
+        moved = max(float(np.max(np.abs(fields[k] - keep[k]))) for k in fields)
+        self.assertLess(moved, 1e-12)
+        self.assertLess(a, 1e-12)
+
+    def test_an_incompatible_field_is_refused_not_absorbed(self):
+        grid = self._grid()
+        u, v, w = closed_box_fields(grid, seed=504)
+        u[-1, :, :] += 1.0          # net outflow with nothing to balance it
+        with self.assertRaises(ConfigurationError) as ctx:
+            project_initial_condition(grid, {"u": u, "v": v, "w": w})
+        self.assertIn("net boundary flux", str(ctx.exception))
+
+    def test_sync_takes_the_boundary_from_the_corrected_slabs(self):
+        """The block's lateral faces must be the *corrected* boundary data.
+
+        Otherwise the first substep sees a step change between the stored
+        initial condition and the value `bcpup` imposes.
+        """
+        data = random_nesting_data(seed=505, stretched=False, rhobf=None, rhobh=None)
+        data.initial_fields = initial_fields_from_fields(
+            data.grid, *closed_box_fields(data.grid, seed=506)
+        )
+        apply_divergence_correction(data)
+        faces = boundary_faces(data)
+        block = data.initial_fields
+        np.testing.assert_array_equal(block["u"][0, :, :], faces["west"][0])
+        np.testing.assert_array_equal(block["u"][-1, :, :], faces["east"][0])
+        np.testing.assert_array_equal(block["v"][:, 0, :], faces["south"][0])
+        np.testing.assert_array_equal(block["v"][:, -1, :], faces["north"][0])
+        peak = float(np.max(np.abs(discrete_divergence(data.grid, block["u"],
+                                                       block["v"], block["w"]))))
+        self.assertLess(peak, 1e-12)
+
+    def test_a_non_unit_density_is_refused(self):
+        """The one case where the two flux conventions genuinely disagree."""
+        data = random_nesting_data(seed=508)      # rhobf = 1.2 exp(-z/8000)
+        with self.assertRaises(ConfigurationError) as ctx:
+            NestingData(
+                grid=data.grid, nzone=data.nzone, times=data.times, slabs=data.slabs,
+                rhobf=data.rhobf, rhobh=data.rhobh,
+                initial_fields=initial_fields_from_fields(
+                    data.grid, *closed_box_fields(data.grid, seed=509)),
+            )
+        self.assertIn("rhobf", str(ctx.exception))
+
+    def test_the_analytic_helper_and_the_parent_path_agree(self):
+        parent, child = make_grids(nx=6, ny=6, nz=4, rx=2, ry=2, rz=2)
+        fields = random_parent_fields(parent, seed=507)
+        block = initial_fields_from_parent(parent, *fields, child)
+        full = interpolate_child_fields(parent, *fields, child)
+        for component, arr in zip(COMPONENTS, full):
+            np.testing.assert_array_equal(block[component], arr, component)
+        grid = NestGrid.uniform(6, 5, 4, 12.0, 10.0, 8.0)
+        analytic = analytic_initial_fields(grid, 3.0)
+        for component in COMPONENTS:
+            self.assertEqual(analytic[component].shape, grid.component_shape(component))
+            xs, ys, zs = (grid.component_coords(component, ax) for ax in range(3))
+            np.testing.assert_array_equal(
+                analytic[component], analytic_field(component, *np.ix_(xs, ys, zs), 3.0)
+            )
+
+
+class TestP17SchemaOneCompatibility(unittest.TestCase):
+    """P17: a schema 1 file must still write, validate and read.
+
+    Backwards compatibility of the file format is a hard requirement: files
+    written before schema 2 have no `flux_residual`, no `fluid_lateral_area` and
+    no initial condition, and must load and run exactly as before.
+    """
+
+    def setUp(self):
+        self._tmp = TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+    def test_both_versions_are_supported(self):
+        self.assertEqual(SUPPORTED_SCHEMA_VERSIONS, (1, 2))
+        self.assertEqual(SCHEMA_VERSION, 2)
+
+    def test_a_schema_1_file_has_none_of_the_schema_2_items(self):
+        data = random_nesting_data(seed=601)
+        apply_divergence_correction(data)
+        path = write_nesting_file(self.tmp / "v1.nc", data, schema=1)
+        attrs = validate_nesting_file(path)
+        self.assertEqual(int(attrs["udales_nesting_schema"]), 1)
+        self.assertNotIn("has_initial_condition", attrs)
+        self.assertNotIn("fluid_lateral_area", attrs)
+        with Dataset(path, "r") as ds:
+            self.assertNotIn("flux_residual", ds.variables)
+            for name in INIT_VARIABLES:
+                self.assertNotIn(name, ds.variables)
+
+    def test_a_schema_1_file_reads_back_with_the_same_slabs(self):
+        data = random_nesting_data(seed=602)
+        apply_divergence_correction(data)
+        path = write_nesting_file(self.tmp / "v1.nc", data, schema=1)
+        back = read_nesting_file(path)
+        for name in data.slabs:
+            self.assertEqual(back.slabs[name].tobytes(), data.slabs[name].tobytes(), name)
+        np.testing.assert_array_equal(back.net_volume_flux, data.net_volume_flux)
+        self.assertIsNone(back.flux_residual)
+        self.assertIsNone(back.fluid_lateral_area)
+        self.assertIsNone(back.initial_fields)
+
+    def test_a_schema_1_raw_file_round_trips(self):
+        data = random_nesting_data(seed=603)
+        apply_divergence_correction(data)
+        write_nesting_file(self.tmp / "v1.dat", data, schema=1)
+        back = read_nesting_file(self.tmp / "v1.dat")
+        self.assertIsNone(back.flux_residual)
+        self.assertIsNone(back.initial_fields)
+        for name in data.slabs:
+            self.assertEqual(back.slabs[name].tobytes(), data.slabs[name].tobytes(), name)
+
+    def test_an_unknown_schema_is_still_rejected(self):
+        data = random_nesting_data(seed=604)
+        with self.assertRaises(ConfigurationError):
+            write_nesting_file(self.tmp / "v9.nc", data, schema=9)
+        path = write_nesting_file(self.tmp / "ok.nc", data)
+        with Dataset(path, "a") as ds:
+            ds.setncattr("udales_nesting_schema", np.int32(7))
+        with self.assertRaises(NestingSchemaError) as ctx:
+            validate_nesting_file(path)
+        self.assertIn("udales_nesting_schema", str(ctx.exception))
 
 
 if __name__ == "__main__":  # pragma: no cover
