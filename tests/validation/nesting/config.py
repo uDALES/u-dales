@@ -416,6 +416,41 @@ PRODUCTION = Preset(
     stride=1,
 )
 
+#: V1 rerun sized by the statistics rather than by the compute.
+#:
+#: The first production run (3600 s spin-up, 1800 s window) left the parent's
+#: own half-window spread at 13.6 % above z/h = 2, which is the same size as
+#: the child's TKE deficit there -- so it could not say whether the deficit was
+#: real.  It also finished with the interior TKE still climbing, i.e. the
+#: spin-up had not reached equilibrium, and with the child still decorrelating
+#: from the parent through the first ~700 s of the averaging window.
+#:
+#: This preset triples the spin-up, takes the window out to 10800 s (a 6.8x
+#: longer statistics window once the longer child spin-up is discarded, so the
+#: sampling spread should fall by ~2.6x to about 5 %), and discards the
+#: decorrelation transient.  Everything else is identical to PRODUCTION so the
+#: two runs stay comparable -- in particular dtdump stays at 3 s, since the
+#: parent dump cadence is part of what is under test.
+#:
+#: Costed from the measured rates of run 3990472 on 64 ranks: parent 2.36 s
+#: simulated per s wall while spinning up and 1.96 while dumping, child 6.5x
+#: real time.  Parent 76 + 92 min, child 28 min, builds and analysis ~20 min
+#: -> about 3.8 h against an 8 h walltime.  Field dumps are ~180 GB.
+CONVERGED = Preset(
+    name="converged",
+    itot=256, jtot=256, ktot=64, dx=2.0,
+    building_height=16.0, building_width=16.0, street_width=16.0, edgelength=16.0,
+    geometry="plaza",
+    child_itot=128, child_jtot=128,
+    guardwidth=6.0, zonewidth=18.0, tau=1.0, nzone=12, nwall=1, timeinterp=1,
+    ustar=0.4, u0=3.0, tke0=0.1,
+    spinup=10800.0, production=10800.0, dtdump=3.0, child_spinup=600.0,
+    nprocx=8, nprocy=8, child_nprocx=8, child_nprocy=8,
+    dtmax=0.5,
+    spectra_heights=(8.0, 16.0, 32.0),
+    stride=1,
+)
+
 #: Smoke test: the identical pipeline at a size that runs on a login node in
 #: minutes.  Everything that differs is a number in this object.
 TINY = Preset(
@@ -433,7 +468,7 @@ TINY = Preset(
     stride=1,
 )
 
-PRESETS: Dict[str, Preset] = {p.name: p for p in (TINY, PRODUCTION)}
+PRESETS: Dict[str, Preset] = {p.name: p for p in (TINY, PRODUCTION, CONVERGED)}
 
 
 def get_preset(name: str) -> Preset:

@@ -42,7 +42,7 @@
 set -e
 
 REPO=${UDALES_REPO:-$HOME/udales/u-dales}
-RUNDIR=${UDALES_V1_RUNDIR:-$EPHEMERAL/nesting-v1}
+RUNDIR=${UDALES_V1_RUNDIR:-$EPHEMERAL/nesting-v1-${UDALES_V1_PRESET:-production}}
 
 echo "repo    : $REPO"
 echo "rundir  : $RUNDIR"
@@ -72,7 +72,13 @@ export HDF5_USE_FILE_LOCKING=FALSE
 export MPLCONFIGDIR=${MPLCONFIGDIR:-$RUNDIR/.mpl}
 
 cd "$REPO"
-python tests/validation/nesting/run_v1.py "$RUNDIR" --preset production --yes
+# Which preset: 'production' (the original V1, ~1.5 h) or 'converged'
+# (longer spin-up and window so the statistics can resolve the TKE deficit,
+# ~3.8 h, ~180 GB of dumps).  See config.py for both.
+PRESET=${UDALES_V1_PRESET:-production}
+echo "preset  : $PRESET"
+
+python tests/validation/nesting/run_v1.py "$RUNDIR" --preset "$PRESET" --yes
 
 echo "finished: $(date)"
 echo "results : $RUNDIR/analysis"
