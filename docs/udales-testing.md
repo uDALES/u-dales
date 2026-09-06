@@ -62,22 +62,38 @@ runner. They are skipped -- reported as `SKIP`, never silently dropped -- unless
   (`pip install -e tools/python --no-deps`); no compiled solver, no MPI.
 - `lint` — the compiler warning gate,
   `tests/lint/check_build_warnings.py`. Parses a build log (it does not
-  build) and fails when a `(file, warning class)` count exceeds
-  `tests/lint/build_warnings_baseline.txt`. Included by `supported`. See
-  "Compiler warning gate" in `tests/README.md` for how to produce a log with
-  the CI compiler and how to refresh the baseline.
-- `supported` — the curated merge-gating selection: `python-library` plus
-  the branch-comparison regression harness and the solver/MPI-driven
-  integration suites (IBM sparse input, MPI operators, processor
-  boundaries). These need a compiled uDALES build; the MPI suites read the
-  build path from `UDALES_BUILD` (set per suite by the manifest as
-  `build/<build-type-lower>/u-dales`) and expect `mpiexec` on `PATH`. The
-  regression suite additionally needs `--branch-a`/`--branch-b` (default
-  `master`/`HEAD`) and builds both branches itself.
+  build) and fails when a `(file, warning class)` count exceeds the section
+  of `tests/lint/build_warnings_baseline.txt` recorded for the log's
+  gfortran major version; a major with no recorded section is report-only,
+  and says so. Included by `supported` and `supported-macos`. See "Compiler
+  warning gate" in `tests/README.md` for how to produce a log with the CI
+  compiler and how to refresh the baseline.
+- `nesting-unit` — the in-solver nesting unit runmodes (U1-U43) on one
+  rank, plus the one multi-rank nesting case in CI: decomposition parity on
+  2x2 ranks with a relaxation ramp, `tau > 0` and a cube, oversubscribed on
+  a 2-4 core runner. Included by `supported` and `supported-macos`. Every
+  suite here carries `UDALES_REQUIRE_LAUNCHER=1`: an MPI launcher that
+  cannot start a one-rank job is a failure, not a skip.
+- `supported` — the curated merge-gating selection: `python-library`,
+  `lint` and `nesting-unit`, plus the branch-comparison regression harness,
+  the solver/MPI-driven integration suites (IBM sparse input, MPI operators,
+  processor boundaries), and the nesting no-op guarantee (I1) on a small
+  periodic case against a baseline the driver builds itself from
+  `origin/master` with the compiler and build type of the build under test.
+  These need a compiled uDALES build; the MPI suites read the build path
+  from `UDALES_BUILD` (set per suite by the manifest as
+  `build/<build-type-lower>/u-dales`) and the launcher from `UDALES_MPIEXEC`
+  (then `MPIEXEC`, then `PATH`). The regression suite additionally needs
+  `--branch-a`/`--branch-b` (default `master`/`HEAD`) and builds both
+  branches itself.
 - `supported-macos` — a temporary macOS compatibility selection:
-  `python-library` plus only the IBM sparse-input suite, excluding the
-  branch-comparison regression until an unrelated macOS/Homebrew CMake
-  incompatibility on `master` is fixed.
+  `python-library`, `lint` and `nesting-unit` plus only the IBM sparse-input
+  suite, excluding the branch-comparison regression (and the I1 no-op suite,
+  which builds `master` the same way) until an unrelated macOS/Homebrew
+  CMake incompatibility on `master` is fixed.
+- `nesting` — the rest of the nesting integration matrix (I1 on the existing
+  case 526, I2-I10, I6 on 2x2 with a cube, the unit runmodes on every
+  decomposition), all `platform: hpc`: verified on the cluster, not in CI.
 - `experimental` — coverage not yet in the merge gate: slower
   directshortwave unit/periodic checks, the vegetation-module-vs-`v2.2.0`
   regression, and the MPI averaging regression; also solver/branch-build
@@ -87,7 +103,9 @@ runner. They are skipped -- reported as `SKIP`, never silently dropped -- unless
 `--python` (or `UDALES_TEST_PYTHON`) selects the interpreter used to launch
 child suites; by default it's whatever interpreter you invoked
 `run_tests.py` with, so activate your conda environment or
-`tools/python/.venv` first.
+`tools/python/.venv` first. Temporary files (run directories, the
+matplotlib cache) go under `TMPDIR` when it is set, so on a shared cluster
+point it at scratch.
 
 To run only the Python package tests directly, without the dispatcher, use
 `python -m unittest discover -s tools/python/tests -p "test_*.py"`. This
@@ -104,9 +122,11 @@ notes](udales-development-notes.md) for a `Debug` build, or the
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every push and pull request (a
-`[skip ci]` marker in the head commit message skips it on `push`). It has
-four jobs:
+`.github/workflows/ci.yml` runs on every pull request and on pushes to
+`master` (a `[skip ci]` marker in the head commit message skips it on
+`push`). A feature branch without an open pull request gets no CI run: that
+is one trigger per change, deliberately, so open a draft PR for CI on a
+branch. It has four jobs:
 
 - **`build-and-supported-tests`** — matrix over `os: [ubuntu-latest,
   macos-latest]` × `build-type: [Debug, Release]`. Installs system
@@ -129,11 +149,14 @@ Compiler warnings from each build are summarised by
 summary: it counts warnings by `-W` class, flags known-benign classes
 (`-Wcompare-reals`, `-Wunused-value`, reviewed in #334) versus everything
 else as "review", and lists the actionable warning sites. This step is
-reporting-only and never fails the build — CI doesn't pin compiler versions,
-so warning sets legitimately vary across runner images. The same parser backs
-the local `lint` gate (`summarise_warnings.sh --list`), which *does* fail on a
-warning above the baseline, because the local module stacks pin the compiler.
-Under GitHub Actions that gate degrades to report-only for the reason above.
+reporting-only and never fails the build. The gate is the `lint` suite in
+the test step: it uses the same parser (`summarise_warnings.sh --list`) and
+*does* fail the Debug leg on a warning above the baseline section recorded
+for that runner's gfortran major (13 on `ubuntu-latest`, 16 on
+`macos-latest` as of 2026-09; 12 on CX3). CI doesn't pin compiler versions,
+so when a runner image moves to a major the baseline has not seen, the gate
+turns report-only on that leg and names the missing major, until someone
+records it. The Release legs have no Debug log and report "not applicable".
 
 `.github/workflows/ci-rerun-on-cancel.yml` watches for CI runs that GitHub
 itself cancelled (infra/runner loss, not a genuine test failure) and
@@ -146,10 +169,10 @@ Before requesting review, a pull request should have a green
 `build-and-supported-tests` matrix (all four OS/build-type combinations) and
 a green `python-viz` job — together these run the `supported` (or
 `supported-macos`) test selection plus both visualisation backends. The
-`docs` job should also build cleanly if you touched documentation. Compiler
-warnings are reported but do not gate merging, so a new warning won't fail
-CI — but `tests/run_tests.py lint` does fail on one locally, against a
-gfortran Debug build log, and is the cheapest way to catch it before pushing.
+`docs` job should also build cleanly if you touched documentation. A new
+compiler warning fails the Debug legs through the `lint` suite;
+`tests/run_tests.py lint` against a gfortran Debug build log is the cheapest
+way to catch it before pushing.
 `experimental` and `heavy` suites are not part of the required gate, but are
 worth running locally if your change touches the areas they cover (see
 `tests/test_suites.yml` for what each suite exercises).

@@ -71,6 +71,40 @@ Today, GitHub Actions runs the curated `supported` selection:
   incompatible with the newer Homebrew CMake helper-project path
 - experimental and heavy tests are not part of the required merge gate
 
+CI has a **single trigger per change**: pull requests, and pushes to `master`.
+A push to a feature branch without an open pull request gets no CI run. That
+is deliberate (a branch with a PR used to run the whole four-leg matrix twice
+per push); open a draft PR if you want CI on a branch.
+
+### What is CI-verified and what is HPC-verified
+
+Every suite in `supported` runs on the four CI legs (Ubuntu and macOS, Debug
+and Release), so the claims those suites make are verified on every pull
+request. Suites labelled `platform: hpc` are verified only when someone runs
+them on the cluster with `--platform hpc`; `python tests/run_tests.py all
+--list` shows which is which. For the nesting feature specifically:
+
+- CI-verified: the in-solver unit runmodes (U1-U43) on one rank; the I5
+  decomposition-parity case on 2x2 ranks with a ramp, `tau > 0` and a cube
+  (`tests/cases/064`); and the I1 no-op guarantee on a small periodic case,
+  against a baseline built from `origin/master` by the driver itself
+  (Linux legs only, for the same reason the regression suite is Linux only).
+- HPC-verified only: the unit runmodes on 2x1, 1x2 and 2x2; I2-I4, I7, I9,
+  I10; I5 on the analytic fields; I6 restart parity (one rank, and 2x2 with a
+  cube); I8; and I1 on the existing case 526 with 4 ranks. These are in the
+  `nesting` group, `platform: hpc`.
+
+### MPI launcher failures are failures in the gate
+
+The nesting drivers probe the launcher (`mpiexec -n 1 /bin/true`, after the
+module stack loads) before running anything. Ad hoc, an unusable launcher
+skips the suite, which is the useful behaviour on a laptop without MPI. In
+the merge gate a skip would be a silent pass -- `unittest` exits 0 on a
+skip-only run and `run_tests.py` prints PASS -- so the manifest sets
+`UDALES_REQUIRE_LAUNCHER=1` on every nesting suite under `supported`, and
+under it the probe failure is an error (exit 1) that names the launcher and
+the reason.
+
 For a curated top-level entry point, use `tests/run_tests.py`. The group
 membership lives in `tests/test_suites.yml`:
 
@@ -99,7 +133,8 @@ merge gate the moment the label is honoured.
 
 `tests/lint/check_build_warnings.py` compares the warnings in a build log
 against a recorded baseline, `tests/lint/build_warnings_baseline.txt`. It is in
-the `lint` group, which `supported` includes, so it runs by default.
+the `lint` group, which `supported` and `supported-macos` include, so it runs
+by default, locally and in CI.
 
 ### Why
 
@@ -119,9 +154,17 @@ this check existed the only place that was tested was a push to CI.
   ~17 warnings that were already in `modinlet`, `modpois`, `modstatsdump` and
   friends.
 - The log's provenance, read from CMake's own files next to it: the compiler id
-  (`CMakeFiles/*/CMakeFortranCompiler.cmake`) and the build type
+  and version (`CMakeFiles/*/CMakeFortranCompiler.cmake`) and the build type
   (`CMakeCache.txt`). A Release log is rejected, because the warning flags only
   exist in the Debug configurations.
+- The baseline is recorded **per compiler major version**, because a warning
+  set is a property of a version: gfortran 12 reports `-Wunused-value` in
+  `modstatsdump` where 13 does not. The check *gates* when the log's compiler
+  major has a recorded section and is *report-only*, saying so and naming the
+  recorded majors, when it has not. Recorded as of 2026-09: GNU 12 (CX3,
+  `foss/2023a`, gfortran 12.3.0), GNU 13 (GitHub `ubuntu-latest`, gfortran
+  13.2.0, package `4:13.2.0-7ubuntu1`) and GNU 16 (GitHub `macos-latest`,
+  Homebrew GCC 16.2.0), read from a CI job log with `gh run view <id> --log`.
 - That the log is not older than `src/**/*.f90` or `CMakeLists.txt`.
 
 It does **not** build: a full Debug build is minutes, parsing a log is instant.
@@ -152,9 +195,9 @@ python tests/lint/check_build_warnings.py --log build/debug/build.log
 
 With no `--log` and no `UDALES_BUILD_LOG`, it scans `build/*/build.log` and picks
 the newest usable one, preferring gfortran because that is what CI gates on.
-`./tools/build_executable.sh icl debug` produces an acceptable Intel log — the
-check then runs against Intel's warnings and says so, since an Intel log cannot
-see gfortran's.
+An Intel log (`./tools/build_executable.sh icl debug` writes one) is rejected
+as unparseable rather than passed: the parser keys on gfortran's `[-Wclass]`
+tag, and ifort's `warning #NNNN` would look like a clean build.
 
 ### Updating the baseline
 
@@ -166,18 +209,31 @@ python tests/lint/check_build_warnings.py --update --log build/gnu/build.log
 ```
 
 `--update` refuses an incremental log, since that would silently drop the
-baseline for every file it did not recompile. Commit the diff and say in the
-message why the new entries are acceptable: an entry added there is a warning
-nobody will be told about again.
+baseline for every file it did not recompile. It rewrites only the section
+for the log's compiler major. Commit the diff and say in the message why the
+new entries are acceptable: an entry added there is a warning nobody will be
+told about again.
+
+To record a CI runner's compiler, harvest its Debug build log and name the
+compiler, since there is no build directory next to it:
+
+```bash
+gh run view <run id> -R uDALES/u-dales --log \
+  | grep -P "^ubuntu-latest Debug\tBuild current branch" | cut -f3- \
+  | sed 's/^[0-9T:.Z-]* //' > /tmp/ci-ubuntu-debug.log
+python tests/lint/check_build_warnings.py --update --log /tmp/ci-ubuntu-debug.log --compiler GNU:13.2.0
+```
 
 ### CI
 
-Under GitHub Actions the check runs in report-only mode (exit 0). That is
-deliberate and matches the policy already written into
-`.github/scripts/summarise_warnings.sh`: CI does not pin its compilers, so a
-runner image bump legitimately changes the warning set and would turn CI red on
-an unrelated PR. Locally the compiler *is* pinned by the module stack, so a
-baseline means something. Force the same behaviour anywhere with
+The gate **fails** a CI leg on a new warning when the runner's gfortran major
+is recorded in the baseline (today: 13 on `ubuntu-latest`, 16 on
+`macos-latest`), and is report-only, printing which major is missing, when a
+runner image has moved to a major that is not. The Release legs have no Debug
+log to check; there the gate reports "not applicable" and exits 0, and the
+Debug leg of the same matrix is the one that gates. The separate
+`.github/scripts/summarise_warnings.sh` step stays reporting-only: it is the
+step summary, not the gate. Force report-only anywhere with
 `UDALES_WARNINGS_REPORT_ONLY=1`.
 
 ## Test Manifest Schema
@@ -285,7 +341,8 @@ between multiple components rather than one isolated API.
 - `526/`: also used by `integration/processor_boundaries/` for the vegetation
   decomposition check
 
-To run the direct shortwave reference test:
+To run the direct shortwave reference test (activate whichever venv you
+use -- `tools/python/.venv` is the canonical one, see `AGENTS.md`):
 
 ```bash
 source tools/python/.venv/bin/activate

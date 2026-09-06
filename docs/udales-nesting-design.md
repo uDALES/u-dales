@@ -1216,14 +1216,14 @@ from an analytic field, so this test also pins the writer/reader contract.
 
 | ID | Isolates | Method | Pass criterion |
 |---|---|---|---|
-| I1 | **no-op guarantee** | existing case, `lnesting=.false.` | bitwise identical to the pre-branch binary on a small periodic case. Larger cases cannot be held to bitwise: every FFT is planned with `FFTW_MEASURE` (`modpois.f90:110-191`, `2decomp-fft/src/fft_fftw3.f90:26`), which selects the algorithm by run-time timing, so *the same binary* differs from itself at $\sim5\times10^{-12}$ relative. There, judge against the measured baseline-vs-baseline self-noise. |
+| I1 | **no-op guarantee** | existing case, `lnesting=.false.`; the pre-branch binary is built by the driver from `origin/master` with the compiler and build type of the build under test (`tests/integration/nesting/_baseline.py`), so the small case runs in CI | bitwise identical to the pre-branch binary on a small periodic case. Larger cases cannot be held to bitwise: every FFT is planned with `FFTW_MEASURE` (`modpois.f90:110-191`, `2decomp-fft/src/fft_fftw3.f90:26`), which selects the algorithm by run-time timing, so *the same binary* differs from itself at $\sim5\times10^{-12}$ relative. There, judge against the measured baseline-vs-baseline self-noise. |
 | I2 | **face imposition survives projection** (F2) | impose a known $u$ on the faces, one substep | $u$ at the boundary faces after `poisson`+`tstep_integrate` equals the imposed value to round-off |
 | I3 | **uniform flow** | parent $=(U,0,0)$, full path | field preserved exactly; $\Phi$, `divtot`, `divmax` and $p$ all at round-off |
 | I4 | **manufactured solenoidal field** | two fields, $W\equiv1$. (a) $u=\sin\frac{2\pi x}{L}\cos\frac{2\pi y}{L}$, $v=-\cos\frac{2\pi x}{L}\sin\frac{2\pi y}{L}$, $w=0$; (b) $\psi=\sin\frac{2\pi x}{L}\sin\frac{4\pi y}{L}$, $u=\partial_y\psi$, $v=-\partial_x\psi$ | (a) is *exactly* discretely solenoidal, not $O(h^2)$ — see the note below — so it must sit at round-off on every grid and cannot measure a rate. (b) has genuinely $O(h^2)$ discrete divergence and carries the convergence check: $\|\mathcal{G}p\|$ at second order over three grids at fixed $\Delta t$ |
-| I5 | **decomposition parity** | I3 and I4 on 1×1, 2×1, 1×2, 2×2 | fields agree to $10^{-9}$, mirroring `tests/integration/processor_boundaries/` |
-| I6 | **restart parity** | 100 steps vs 50 + restart + 50 | bitwise identical, including mid-parent-interval restarts and restarts exactly on an interval boundary |
+| I5 | **decomposition parity** | I3 and I4 on 1×1, 2×1, 1×2, 2×2; and, in CI, `tests/cases/064` (a cube) with a 3 m guard, a 20 m ramp and $\tau=4$ s on 1×1 and 2×2 (`TestI5CubeParity2x2`) | fields agree to $10^{-9}$, mirroring `tests/integration/processor_boundaries/`; measured exactly 0 on both |
+| I6 | **restart parity** | 100 steps vs 50 + restart + 50 on one rank; 8 vs 3 + 5 and 5 + 3 on 2×2 ranks with the cube of case 064 (`TestI6CubeRestartParity2x2`) | bitwise identical, including mid-parent-interval restarts and restarts exactly on an interval boundary; on 2×2 all 40 per-rank restart records |
 | I7 | **zone isolation** | two runs differing only in the interior, identical in the zone | the difference stays confined as expected; quantifies C1's global pressure response rather than assuming it away |
-| I8 | **IBM interaction** | buildings adjacent to the zone edge | facet stresses on the first building row match a no-nesting reference to a stated tolerance |
+| I8 | **IBM interaction** | buildings adjacent to the zone edge | facet stresses on the building match a no-nesting reference to a stated tolerance: `tau_y`, `tau_z`, `pres` on the windward face, `tau_x`, `tau_z`, `pres` on the side faces (`tau_x` is identically zero on a face whose normal is $x$) |
 | I9 | **cold start from the parent** | ZONED case, `prof.inp` carrying `u = 0` against a parent carrying `u = U`, run with and without `nest_linitfromparent` | the run is **bitwise identical** to one whose `prof.inp` carries the same field — two runs of this solver cannot agree bit for bit unless they started from the same bits; the first `divmax` is at round-off; the first substep's $\|\mathcal{G}p\|$ in the interior is $4\times10^{-6}$ of the `prof.inp` control's |
 | I10 | **leaky lid** (case B) | `BCtopm_pressure`, warm-started from a restart whose `pres0` carries a uniform offset, with `nest_lfluxassert = .true.` | the run completes; $\Phi_{\rm lid}$ is eight orders of magnitude above `nest_fluxtol`, so the pre-fix assertion **would** have fired; $\Phi$ over the closed faces stays at round-off; `divmax` stays at round-off |
 
@@ -1391,11 +1391,16 @@ The coarse arm (genuine 4 m and 8 m LES parents) runs as job 3994025.
 
 ### 10.6 Wiring
 
-New `nesting` group in `tests/test_suites.yml`: unit runmodes and the Python units as
-`class: supported` (fast, no big fixtures); integration as `class: experimental` until V1 passes;
-system/validation as `heavy`, never in GitHub Actions. Fixtures under `tests/cases/`; the analytic-field
-generator lives in `tools/python/udprep/nesting.py` so the tests and the production writer cannot
-drift apart.
+Two groups in `tests/test_suites.yml`. `nesting-unit` (included by `supported` and
+`supported-macos`, so it runs on all four CI legs): the unit runmodes on one rank, the abort and
+message cases, and the one multi-rank case in CI, I5 on 2×2 with a ramp, $\tau>0$ and a cube. The I1
+small case is in `supported` directly (Linux legs), against a baseline the driver builds from
+`origin/master`. Every suite in the gate carries `UDALES_REQUIRE_LAUNCHER=1`: an unusable MPI
+launcher there is a failure, not a skip. `nesting` holds the rest of the integration matrix as
+`class: experimental`, `platform: hpc` -- verified on the cluster, not in CI; `run_tests.py --list`
+shows which is which. System/validation is `heavy`, never in GitHub Actions. Fixtures under
+`tests/cases/`; the analytic-field generator lives in `tools/python/udprep/nesting.py` so the tests
+and the production writer cannot drift apart.
 
 Ordering note: **U15–U22 and P1–P11 must pass before I3 is attempted.** The uniform-flow test is
 seductive because it exercises everything at once — which also means that when it fails it tells

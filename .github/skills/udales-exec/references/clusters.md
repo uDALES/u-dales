@@ -333,3 +333,25 @@ in precisely that last spanwise row — so a solid-cell census taken on the redu
 arrays differs by ~1 % between the two layouts while the geometries are
 equivalent. Compare `solid_c.txt`, not the reduced mask, when checking that two
 layouts carry the same plan area density.
+
+### CX3 addendum (2026-09, nesting test-suite blockers)
+
+- **GitHub runner compilers, read from a CI job log** (`gh run view <id>
+  -R uDALES/u-dales --log`, run 34050854706): `ubuntu-latest` has gfortran
+  13.2.0 (`4:13.2.0-7ubuntu1`), `macos-latest` Homebrew GCC 16.2.0; both
+  install Open MPI. The local `foss/2023a` recipe above is gfortran 12.3.0, so
+  the three majors report different warning sets (12 flags `-Wunused-value`
+  in `modstatsdump`, 13 and 16 do not) and
+  `tests/lint/build_warnings_baseline.txt` is recorded per major. `gh` needs
+  `-R uDALES/u-dales` here: the worktrees under `$EPHEMERAL` are on another
+  filesystem and git refuses to discover the repo across the mount.
+- **`MPI_Abort(comm, 1)` and `stop 1` both give `mpiexec` exit 1** under Intel
+  MPI 2021.2 and Open MPI 4.1.5, on 1 and 2 ranks (two-line probe program).
+- **A fresh `git worktree` has no submodules**: `cmake` fails with
+  "2decomp-fft does not contain a CMakeLists.txt" until
+  `git submodule update --init --recursive` has run in the worktree.
+  `tools/build_executable.sh icl` also needs `module load tools/prod` before
+  it, or `intel/2021a` is not visible.
+- **Case 064 (64^3, one cube) on the gfortran Debug build, login node:** 1x1
+  ~9.5 s initialisation + ~1.5 s/step; 2x2 (`--oversubscribe`) 16 steps in
+  18 s. That sizing is why the CI parity case runs 4 steps.

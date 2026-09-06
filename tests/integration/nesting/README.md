@@ -41,7 +41,24 @@ python tests/integration/nesting/test_nesting.py
 
 The Python driver builds the fixtures, runs every runmode on 1x1, 2x1, 1x2 and
 2x2 ranks and asserts the exit code, then runs the abort cases and the
-message cases. To run one runmode by hand:
+message cases. Both drivers share `_launch.py`, which is where the launcher,
+the module stack and the scratch directory are chosen; everything is an
+environment variable with a documented default:
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `UDALES_BUILD` | the solver | `build/release/u-dales` |
+| `UDALES_RUNTIME_MODULES` | modules loaded in the run shell (ignored where there is no `module`) | the CX3 Intel 2021a stack; empty string loads nothing |
+| `UDALES_MPIEXEC` | the launcher | `MPIEXEC` (what CI exports), then the `mpiexec` next to `mpiifort`, then `mpiexec` on `PATH` after the modules load |
+| `MPI_LAUNCH_EXTRA_ARGS` | extra launcher arguments | `--oversubscribe` is added for Open MPI |
+| `UDALES_REQUIRE_LAUNCHER` | `1`: an unusable launcher is a failure, not a skip | unset (skip); the manifest sets it for the gate |
+| `UDALES_ABORT_EXIT_CODE` | exit code the abort cases must return | `1` (measured for `MPI_Abort(comm, 1)` and `stop 1` under Intel MPI 2021.2 and Open MPI 4.1.5) |
+| `TMPDIR` | where run directories go (`tempfile.gettempdir()`) | the system default |
+| `UDALES_BASELINE_REF` | ref I1 builds its baseline from | `origin/master` |
+| `UDALES_BASELINE` | a ready-made baseline binary for I1 | unset (build it) |
+| `UDALES_NESTING_KEEP` | keep the run directories | unset |
+
+To run one runmode by hand:
 
 ```bash
 python tests/integration/nesting/make_fixtures.py <rundir>
@@ -106,6 +123,15 @@ the non-zero exit and the message:
 | Case | Namelist selector | Expected message |
 |---|---|---|
 | U13 | `nest_lparentgeom = .false.` (runmode 1007) | `solid points found inside the relaxation zone` |
+
+The driver requires, for each case, the exit code `UDALES_ABORT_EXIT_CODE`
+(default 1 -- see the table above), the message, and **no crash signature**
+(`forrtl: severe`, `Segmentation fault`, `Backtrace for this error`, ...) in
+the output: "any non-zero exit containing the message" would also accept a
+run that printed the message and then died of a bounds error on the way
+out. An exit code of 128 or more is rejected as a signal death whatever the
+configured value. The message cases must exit 0 as well as print their line.
+
 | U22 | `nestfile = 'bad_*.901.nc'` (runmode 1008) | `mismatch in <field>` |
 | U27 | `nestfile = 'assertfire.901.nc'` (runmode 1009) | `not flux balanced` |
 | U39a | `nestfile = 'assertfire_lying.901.nc'`, `nest_lfluxcheckall = .true.` (1009) | `not flux balanced` |
@@ -153,19 +179,22 @@ the properties the composed scheme is supposed to have.
 ```bash
 ./tools/build_executable.sh icl release      # and 'debug' -- run both
 module purge && module load tools/prod && module load Python/3.9.6-GCCcore-11.2.0
-source /rds/general/user/mvr/home/udales/.venv/bin/activate
-UDALES_BUILD=$PWD/build/release/u-dales \
+source ~/udales/.venv/bin/activate           # or tools/python/.venv, see AGENTS.md
+UDALES_BUILD=$PWD/build/release/u-dales TMPDIR=$EPHEMERAL \
   python tests/integration/nesting/test_nesting_cases.py
 ```
 
-Useful environment variables: `UDALES_BUILD`, `UDALES_BASELINE` (the pre-branch
-binary I1 compares against, default `build/u-dales.baseline` -- **not in
-version control**; `build/` is gitignored, so build it yourself with
-`git stash && ./tools/build_executable.sh icl release &&
-cp build/release/u-dales build/u-dales.baseline && git stash pop`, or point
-`UDALES_BASELINE` at one. I1 skips itself if it is missing),
-`UDALES_RUNTIME_MODULES`, `MPIEXEC`, and `UDALES_NESTING_KEEP=1` to leave the
-run directories behind for inspection.
+The environment variables are the ones in the table above. I1's baseline --
+the pre-branch binary it compares against -- is **built by the driver**
+(`_baseline.py`): `UDALES_BASELINE_REF` (default `origin/master`, after a
+`git fetch`) is checked out into a detached worktree under `build/`, its
+`2decomp-fft` submodule initialised, and it is configured with the compiler,
+build type and NetCDF/FFTW/MPI settings read back from the `CMakeCache.txt`
+next to `UDALES_BUILD` (plus `UDALES_CMAKE_ARGS`, which CI exports), so a Debug
+branch build is compared with a Debug baseline and a Release one with a
+Release one. A stamp makes the second call free. `UDALES_BASELINE=<binary>`
+skips the build. The small-case half of I1 runs in CI on the Linux legs this
+way; the case-526 half is `platform: hpc`.
 
 | Test | Class | Verdict |
 |---|---|---|
@@ -174,9 +203,11 @@ run directories behind for inspection.
 | I3 | `TestI3UniformFlow` | passes |
 | I4 | `TestI4ManufacturedSolenoidal` | passes |
 | I5 | `TestI5DecompositionParity` | passes |
+| I5 (CI) | `TestI5CubeParity2x2` | passes: 2x2 == 1x1 **exactly** on `tests/cases/064` with a 3 m guard, a 20 m ramp, `tau = 4 s` and the cube; ~35 s on a gfortran Debug build |
 | I6 | `TestI6RestartParity` | passes (after the `program.f90` fix below) |
+| I6 (2x2) | `TestI6CubeRestartParity2x2` | passes: all 40 restart records over four ranks bitwise, mid-interval and on a parent level, with the cube |
 | I7 | `TestI7ZoneIsolation` | passes |
-| I8 | `TestI8IbmInteraction` | passes |
+| I8 | `TestI8IbmInteraction` | passes, now including `tau_x` on the cube's side faces |
 | I9 | `TestI9ColdStartFromParent` | passes |
 | I10 | `TestI10LeakyLid` | passes |
 
@@ -403,10 +434,16 @@ zone; it does not. The reference is the same case and the same initial
 condition, driven periodically at the same volume flow rate. Energy balance,
 temperature and moisture are off so the comparison is purely mechanical.
 
-Measured on the two windward facets (`fac.064.nc`, `lwritefac = .true.`):
-`tau_y` 3.1e-2, `tau_z` 3.4e-2, `pres` 4.9e-2 relative difference, against a
-stated tolerance of 10 %; the leeward facets differ by 1.0e-2, 8.6e-3 and
-5.1e-3. This is a **modelling** comparison, not an exactness one -- the two
+Measured (`fac.064.nc`, `lwritefac = .true.`), relative to the reference peak
+on each face, against a stated tolerance of 10 %: windward face `tau_y`
+3.1e-2, `tau_z` 3.4e-2, `pres` 4.9e-2; south side `tau_x` 1.6e-2, `tau_z`
+8.0e-2, `pres` 4.1e-2; north side `tau_x` 1.3e-2, `tau_z` 3.6e-2, `pres`
+3.2e-2. `tau_x` -- the streamwise shear -- is identically zero on the
+windward face (its normal load is `pres`), which is why it is judged on the
+side faces; each face is compared on the components it carries, and a
+component whose reference is identically zero fails the test rather than
+passing it. The leeward face is reported (1.0e-2, 8.6e-3, 5.1e-3) but not
+judged. This is a **modelling** comparison, not an exactness one -- the two
 runs have genuinely different boundary conditions -- so the number is printed
 as well as asserted. The nested run's `divmax` is 1.9e-15, `Phi` is 0, and the
 `|grad p|` zone/interior ratio is 0.16: with buildings, the projection works
@@ -549,17 +586,18 @@ already recoverable, at the cost of changing the `initd` record layout.
 
 ## Running against a Debug build
 
-Every test except I1 is self-contained and should be run against both builds:
+Every test is self-contained and should be run against both builds:
 
 ```bash
 UDALES_BUILD=$PWD/build/debug/u-dales \
   python tests/integration/nesting/test_nesting_cases.py
 ```
 
-I1 skips itself when `UDALES_BUILD` looks like a Debug build. The committed
-baseline `build/u-dales.baseline` is a Release binary (see above -- you build
-it yourself, it is not in the repository), so comparing a Debug
-build against it would measure the optimisation level rather than the branch.
+I1 included: its baseline is built with the build type of `UDALES_BUILD`, so a
+Debug run compares Debug with Debug. gfortran's Debug runtime prints
+`At line N of file /abs/path/x.f90` diagnostics, and the baseline is compiled
+from a different tree by construction, so I1's stdout comparison reduces that
+path to the file name before comparing.
 
 Before the `program.f90` fix in the section above, every nested case (I2-I8)
 trapped here on `-init=snan`, which is precisely what makes the Debug run worth
@@ -568,7 +606,9 @@ keeping in the loop.
 ## Current status
 
 Against `build/release/u-dales` on this branch: **35 tests, 35 pass** (439 s).
-Against `build/debug/u-dales`: **29 tests, 29 pass** (954 s), two of which are
-the class-level skips of the two I1-vs-baseline comparisons -- they need a
-Release binary. The unit runmodes (1006-1011) pass against both builds
-(9 driver tests, 334 s Release / 340 s Debug).
+Against `build/debug/u-dales`: **29 tests, 29 pass** (954 s) before I1 learned
+to build its own baseline; with that, I1 runs against Debug too. The unit
+runmodes (1006-1011) pass against both builds (9 driver tests, 334 s
+Release / 340 s Debug). On the gfortran Debug build (`foss/2023a`):
+`TestI5CubeParity2x2` 35 s, `TestI1NoOpSmallCase` 76 s including the baseline
+build, `TestI8IbmInteraction` 72 s, `TestI6CubeRestartParity2x2` 65 s.
