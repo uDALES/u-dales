@@ -1567,7 +1567,6 @@ contains
     if (.not. u44_interp_linear(1)) all_passed = .false.
     if (.not. u44_interp_linear(2)) all_passed = .false.
     if (.not. u19_u21_buffer())  all_passed = .false.
-    if (.not. u20_restart())     all_passed = .false.
 
     deallocate(au, av, aw, bu, bv, bw)
     call nesting_finalize
@@ -1844,38 +1843,6 @@ contains
         nint(nd1), ', reloaded ', nint(nd2)
       call nest_report('U19/U21 buffer roll and full reload', u19_u21_buffer)
     end function u19_u21_buffer
-
-    !> U20: a restart mid-interval reproduces the target of a continuous run
-    !! at the same time, bitwise.
-    logical function u20_restart()
-      use modnesting, only : nesting_restart_write, nesting_restart_read
-
-      real, parameter :: tstar = 33.7
-      integer :: iu, n
-      real    :: t, nd
-
-      call nest_reinit('nesting_nonlinear.'//cexpnr//'.nc', 0., 4., 2, 1, 1.e30, .false.)
-      do n = 1, 20
-        t = min(tstar, 2.5*real(n))
-        call nest_target_at(t, au, av, aw)
-      end do
-      call nest_target_at(tstar, au, av, aw)
-
-      open(newunit=iu, form='unformatted', status='scratch')
-      call nesting_restart_write(iu)
-      rewind(iu)
-
-      call nest_reinit('nesting_nonlinear.'//cexpnr//'.nc', 0., 4., 2, 1, 1.e30, .false.)
-      call nesting_restart_read(iu)
-      close(iu)
-
-      call nest_target_now(bu, bv, bw)
-      nd = nest_target_ndiff(au, av, aw, bu, bv, bw)
-
-      u20_restart = (nd == 0.)
-      if (myid == 0) write(*,'(a,i0)') '   differing targets after restart = ', nint(nd)
-      call nest_report('U20 restart repositioning', u20_restart)
-    end function u20_restart
 
     !> U22: a header field that disagrees with the run must abort with a
     !! message naming the field. One corrupted file per invocation.

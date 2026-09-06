@@ -46,7 +46,7 @@ program uDALES
   use modadvection,      only : advection
   use modtstep,          only : tstep_update,tstep_integrate
   use modscalsource,     only : createscals,scalsource
-  use modnesting,        only : nesting_init,nesting_update_target,nesting_apply,nesting_stats
+  use modnesting,        only : nesting_init,nesting_update_target,nesting_apply,nesting_stats,nesting_finalize
 
 !----------------------------------------------------------------
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
@@ -250,6 +250,7 @@ program uDALES
   call exitfielddump
   call exitstatsdump     !tg3315
   call exit_heatpump
+  call nesting_finalize  ! closes the parent file; a no-op unless lnesting
   !call exitmodules
   !call exittest
   call exitmpi

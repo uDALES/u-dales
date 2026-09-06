@@ -1114,10 +1114,11 @@ deterministic in `timee`, so the reconstructed `it_lo` and target are identical 
 continuous run would have held. Test **I6** verifies this: 100 steps versus 50 + restart + 50 is
 bitwise identical, for both a mid-interval restart and one exactly on a parent level.
 
-`nesting_restart_write`/`nesting_restart_read` exist and are unit tested, but have no call site in
-`modsave`/`modstartup`. Wiring them would pin the buffer state rather than reconstruct it, at the
-cost of changing the `initd` record layout — no benefit for a state that is already exactly
-recoverable.
+There is no nesting restart record. An earlier revision carried `nesting_restart_write`/
+`nesting_restart_read` (and a unit test, U20) against the day the buffer state might be pinned in
+the `initd` file rather than reconstructed; they had no production call site and were removed in
+the 2026-09 review pass, since reconstruction from `timee` is exact and I6 pins it. `nesting_finalize`
+is called from `program.f90` at the end of the run and closes the parent file.
 
 **The call order is load-bearing.** `nesting_init` reads `timee`, and `readinitfiles` is what
 assigns it — `real :: timee` at `modglobal.f90:441` has no initialiser. Calling `nesting_init`

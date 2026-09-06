@@ -40,7 +40,7 @@ module modnesting
 
    public :: nesting_init, nesting_update_target, nesting_apply, &
              nesting_boundary, nesting_bcpup, nesting_stats,     &
-             nesting_restart_write, nesting_restart_read, nesting_finalize
+             nesting_finalize
    ! Test hooks: exercised directly by src/tests.f90 (runmodes TEST_NESTING_*).
    public :: nest_shape_fn, nest_union, nest_stagger_coord, nest_flux_residual, &
              nest_flux_split, nest_time_interp
@@ -115,7 +115,6 @@ module modnesting
    integer :: nzone    = 0                  !< zone thickness in cells, from the file
    integer :: ntime    = 0                  !< number of parent time levels
    integer :: it_lo    = 0                  !< parent level bracketing the current time
-   real    :: ttarget  = -1.                !< time the buffer cur(:) was evaluated at
    real    :: phi_last = 0.            !< last normalised flux residual, all six faces
    real    :: phi_lid_last = 0.        !< of which the lid contributed this much
    ! Energy injected by the zone forcing since the last nesting_stats call,
@@ -129,14 +128,14 @@ module modnesting
    real    :: tread0   = 0.                 !< nestio_tread at the end of nesting_init
    integer :: nsolid_zone = 0               !< solid points found inside the zone
 
-   ! restart state, applied by nesting_init when set by nesting_restart_read
-   logical :: lrestart_pending = .false.
-   integer :: it_lo_restart = 0
-   real    :: t_restart = 0.
-
 contains
 
-   !> Called from program.f90 after createmasks/calcfluidvolumes, before readinitfiles.
+   !> Called from program.f90 AFTER readinitfiles (and after its own
+   !! prerequisites createmasks and calcfluidvolumes). The order is load
+   !! bearing: this routine positions the parent time buffer on timee, and
+   !! readinitfiles is what assigns timee -- 0 on a cold start, the restart time
+   !! on a warm one (design section 9.5). There is no separate restart record:
+   !! the buffer state is reconstructed from timee alone.
    !! Opens and validates the parent file, builds the weights and the three zone
    !! point lists, enforces the building-free rule, checks the stored flux
    !! residuals and loads the first parent time levels.
@@ -251,20 +250,9 @@ contains
 
       ! ---- load the first parent time levels ----
       it_lo = 0
-      if (lrestart_pending) then
-         call set_interval(t_restart)
-         if (it_lo_restart /= it_lo) call nest_abort( &
-            'restart time does not fall in the parent interval stored in the restart file')
-      else
-         call set_interval(timee)
-      end if
+      call set_interval(timee)
       call reload_all
-      if (lrestart_pending) then
-         call eval_target(t_restart)
-      else
-         call eval_target(timee)
-      end if
-      lrestart_pending = .false.
+      call eval_target(timee)
 
       ! ---- optional cold-start initialisation from the parent ----
       call init_from_parent
@@ -720,55 +708,9 @@ contains
 
 
 
-   !> Writes the parent interval index and the buffered times so the buffer can
-   !! be repositioned on restart (design section 9.5).
-   !!
-   !! Not currently wired into modsave: nesting_init reconstructs the buffer
-   !! state exactly from `timee`, which readinitfiles sets to the restart time,
-   !! so a restart needs no stored nesting record. Kept, and exercised by the
-   !! unit tests, so that wiring it later is a change of call site only.
-   subroutine nesting_restart_write(unit)
-      integer, intent(in) :: unit
-
-      if (.not. lnesting) return
-
-      write(unit) it_lo, ttarget, ntime, nzone
-
-   end subroutine nesting_restart_write
-
-
-   !> Not currently wired into modstartup -- see nesting_restart_write. Reads
-   !> the state written by nesting_restart_write.
-   !! When nesting_init has already run the buffer is repositioned immediately,
-   !! otherwise the state is applied at the end of nesting_init.
-   subroutine nesting_restart_read(unit)
-      integer, intent(in) :: unit
-
-      integer :: itl, nt, nz
-      real    :: tt
-
-      if (.not. lnesting) return
-
-      read(unit) itl, tt, nt, nz
-
-      if (linit) then
-         if (nt /= ntime .or. nz /= nzone) call nest_abort( &
-            'restart file was written against a different nesting input file')
-         it_lo = 0
-         call set_interval(tt)
-         call reload_all
-         call eval_target(tt)
-         if (itl /= it_lo) call nest_abort( &
-            'restart time does not fall in the parent interval stored in the restart file')
-      else
-         it_lo_restart    = itl
-         t_restart        = tt
-         lrestart_pending = .true.
-      end if
-
-   end subroutine nesting_restart_read
-
-
+   !> Called from program.f90 at the end of the run (and by the unit tests
+   !! between re-initialisations). Closes the parent file and releases the
+   !! zone lists and slab buffers.
    subroutine nesting_finalize
       integer :: c
 
@@ -1279,10 +1221,12 @@ contains
 
       integer :: kc
 
-      if (.not. sl_on(c,f)) then
-         facval = 0.
-         return
-      end if
+      ! Every rank that imposes a face has that face's slab (setup_slabs marks
+      ! it for every rank overlapping the slab's index range, and the face
+      ! ranks always do). Reaching here without it is an inconsistency between
+      ! the slab layout and the face bookkeeping, not a value to return 0 for.
+      if (.not. sl_on(c,f)) call nest_abort('facval: component '//cmp_name(c)// &
+         ' of face '//trim(fac_name(f))//' is imposed on a rank that holds no slab for it')
 
       kc = min(max(kk, 1), sn2(c,f))
       facval = sbuf(c)%cur(sidx(c, f, m, kc, dloc(c, f, l)))
@@ -1954,8 +1898,6 @@ contains
             end do
          end if
       end do
-
-      ttarget = t
 
    end subroutine eval_target
 
