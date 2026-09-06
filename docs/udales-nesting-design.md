@@ -1261,8 +1261,9 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 parent and child on the *same* grid. That is the right way to start — at $r=1$ the prolongation is
 the identity, so anything the experiment finds is attributable to the scheme rather than to the
 interpolation, and the interpolation has its own unit coverage in P1–P17. But the point of nesting
-is to run the child at *higher* resolution than the parent, and **no end-to-end test has yet done
-that**. V1 and V2 must not be read as validating refinement.
+is to run the child at *higher* resolution than the parent, and **no end-to-end result exists yet
+for that**: the V0 harness is built and validated at tiny scale, but its production run has not
+completed. V1 and V2 must not be read as validating refinement.
 
 V0 above is that test, and it is listed first because it is the most important one outstanding, not
 because it is next in sequence. Two of its results are not predictable from what has been measured

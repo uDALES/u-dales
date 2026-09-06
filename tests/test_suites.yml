@@ -535,6 +535,7 @@ groups:
   supported-macos:
     includes:
       - python-library
+      - nesting-unit
     suites:
       - label: "supported: ibm sparse input integration"
         class: supported
