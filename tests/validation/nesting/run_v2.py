@@ -29,9 +29,21 @@ Usage
     python run_v2.py $EPHEMERAL/v2-tiny --sweep v2-tiny \\
         --parent-dir $EPHEMERAL/v2-tiny/903
 
-Stages are ``child-case``, ``child``, ``analysis`` and ``summary``; ``--only``
-restricts the run to named sweep points, so a single failed child can be redone
-without touching the rest.
+    # C0a: cadence ladder off the same converged parent, same reused reference
+    python run_v2.py $EPHEMERAL/nesting-c0a --sweep c0 \\
+        --parent-dir $EPHEMERAL/nesting-v1-converged/903 \\
+        --reuse-dir $EPHEMERAL/nesting-v1-converged/904 --yes
+
+    # C0b: the sweep's parent does not exist yet -- build it warm-started from
+    # the converged parent's restart files, run it, then the six children
+    python run_v2.py $EPHEMERAL/nesting-c0b --sweep c0b \\
+        --parent-restart-dir $EPHEMERAL/nesting-v1-converged/903 --yes
+
+Stages are ``parent``, ``child-case``, ``child``, ``analysis`` and ``summary``;
+``--only`` restricts the run to named sweep points, so a single failed child can
+be redone without touching the rest.  The ``parent`` stage only does anything
+with ``--parent-restart-dir``: it builds and runs the sweep's parent when
+``--parent-dir`` has no field dumps yet, and is skipped when it has.
 """
 
 from __future__ import annotations
@@ -46,11 +58,12 @@ from typing import Dict, List, Optional
 
 import analyse
 import make_child_case
+import make_parent_case
 import sweep_summary
 from caselib import run_solver
 from config import Sweep, SweepPoint, get_sweep
 
-STAGES = ("child-case", "child", "analysis", "summary")
+STAGES = ("parent", "child-case", "child", "analysis", "summary")
 
 #: Written next to each point's plots.  Deliberately *not* ``v1_metrics.json``:
 #: a V2 point is one child of a sweep, and the sweep summary is the deliverable.
@@ -97,6 +110,15 @@ def _check_reused(point: SweepPoint, casedir: Path) -> Dict[str, object]:
                       ("init_from_parent", bool(p.init_from_parent))):
         if manifest.get(key) != want:
             problems.append(f"{key} = {manifest.get(key)!r} != {want!r}")
+    # The boundary cadence.  Manifests written before C0 carry no 'cadence'
+    # block; for those the median parent dt is the cadence (every level was
+    # used), and adaptive stepping puts it a fraction of a step above nominal
+    # (3.004 s for the converged run), hence the tolerance.
+    cad = manifest.get("cadence")
+    have = (float(cad["seconds"]) if isinstance(cad, dict)
+            else float(manifest.get("parent_dt_median", float("nan"))))
+    if not (abs(have - p.cadence) <= 0.05 * p.cadence):
+        problems.append(f"boundary cadence {have!r} s != {p.cadence!r} s")
     if not list(casedir.glob(f"fielddump.???.???.{p.child_expnr}.nc")):
         problems.append("no field dumps")
     if problems:
@@ -114,17 +136,58 @@ def _disk_estimate(sweep: Sweep) -> str:
         if pt.reuse:
             continue
         p = pt.preset
-        nt = p.production / p.dtdump
+        # Levels stored in the nesting file follow the boundary cadence, the
+        # child's own dumps its dump interval; neither is the parent's.
+        nt_nest = p.production / p.cadence
+        nt_dump = p.production / p.child_dtdump
         # 12 slabs, double precision; the two x-faces carry jtot x ktot x nzone
         # points and the two y-faces itot x ktot x nzone, three components each.
         slab = 3 * 2 * (p.child_itot + p.child_jtot) * p.child_ktot * p.nzone * 8
         dump = 3 * p.child_itot * p.child_jtot * p.child_ktot * 4
-        gb = nt * (slab + dump) / 1e9
+        gb = (nt_nest * slab + nt_dump * dump) / 1e9
         total += gb
-        lines.append(f"    {pt.key:8s} nesting {nt * slab / 1e9:6.1f} GB + dumps "
-                     f"{nt * dump / 1e9:6.1f} GB")
+        lines.append(f"    {pt.key:8s} nesting {nt_nest * slab / 1e9:6.1f} GB "
+                     f"({nt_nest:.0f} levels, held in RAM while cutting) + dumps "
+                     f"{nt_dump * dump / 1e9:6.1f} GB")
     lines.append(f"    {'total':8s} {total:6.1f} GB")
     return "\n".join(lines)
+
+
+def _parent_has_dumps(parent_dir: Path, expnr: str) -> bool:
+    return bool(list(Path(parent_dir).glob(f"fielddump.???.???.{expnr}.nc")))
+
+
+def run_parent(rundir: Path, sweep: Sweep, parent_dir: Path, restart_dir: Path,
+               *, ibm_backend: str, timings: Dict[str, float]) -> None:
+    """Build the sweep's parent warm-started from ``restart_dir`` and run it.
+
+    Only when ``parent_dir`` has no field dumps yet: a parent that has run is
+    reused, exactly as V2 reuses V1's, and never re-run by accident.
+    ``parent_dir`` must be ``rundir / <parent expnr>`` -- ``make_parent_case``
+    names the directory itself.
+    """
+    p = sweep.parent
+    nr = p.parent_expnr
+    if _parent_has_dumps(parent_dir, nr):
+        print(f"    parent {nr} already has field dumps in {parent_dir}; not re-run")
+        return
+    if Path(parent_dir).resolve() != (Path(rundir) / nr).resolve():
+        raise SystemExit(
+            f"--parent-restart-dir builds the parent at {Path(rundir) / nr}, but "
+            f"--parent-dir is {parent_dir}; drop --parent-dir or make them agree")
+    t = time.time()
+    make_parent_case.build(rundir, p, ibm_backend=ibm_backend,
+                           restart_dir=restart_dir)
+    timings["parent-case"] = time.time() - t
+    info = json.loads((Path(parent_dir) / "preset.json").read_text())
+    print(f"    parent case built in {timings['parent-case']:.1f} s, warm start "
+          f"from {info['startfile']} (t = {p.t_start:g} s), {p.production:g} s "
+          f"dumping every {p.dtdump:g} s ({p.production / p.dtdump:.0f} levels)")
+    t = time.time()
+    run_solver(Path(parent_dir), f"namoptions.{nr}", p.nprocx * p.nprocy,
+               Path(parent_dir) / "production.log")
+    timings["parent-production"] = time.time() - t
+    print(f"    parent production finished in {timings['parent-production']:.1f} s")
 
 
 def main() -> int:
@@ -139,7 +202,11 @@ def main() -> int:
                          "(default: alongside --parent-dir)")
     ap.add_argument("--only", default="",
                     help="comma-separated sweep point keys to act on")
-    ap.add_argument("--start-at", default="child-case", choices=STAGES)
+    ap.add_argument("--parent-restart-dir", type=Path, default=None,
+                    help="build and run the sweep's parent first, warm-started "
+                         "from the restart files in this directory, unless "
+                         "--parent-dir already holds its field dumps (C0b)")
+    ap.add_argument("--start-at", default="parent", choices=STAGES)
     ap.add_argument("--stop-after", default="summary", choices=STAGES)
     ap.add_argument("--ibm-backend", default="auto")
     ap.add_argument("--no-plots", action="store_true")
@@ -180,18 +247,25 @@ def main() -> int:
     print()
     (rundir / "sweep_summary.txt").write_text(sweep.summary() + "\n", encoding="ascii")
 
+    t_all = time.time()
+    timings: Dict[str, Dict[str, float]] = {}
+    if wanted("parent") and args.parent_restart_dir is not None:
+        print(f"\n=== parent {sweep.parent.parent_expnr} ({sweep.parent.name})")
+        timings["parent"] = {}
+        run_parent(rundir, sweep, parent_dir, args.parent_restart_dir,
+                   ibm_backend=args.ibm_backend, timings=timings["parent"])
+
     if not (parent_dir / f"namoptions.{sweep.parent.parent_expnr}").exists():
         raise SystemExit(
             f"no parent case at {parent_dir}. V2 reuses the V1 parent rather than "
-            "re-running it -- point --parent-dir at it."
+            "re-running it -- point --parent-dir at it (or, for a sweep whose "
+            "parent warm-starts from another run, pass --parent-restart-dir)."
         )
 
-    t_all = time.time()
     # One accumulated parent Bundle per child window, shared across the points
     # that use it.  Both halves the analysis I/O and guarantees the zone arm is
     # measured against literally the same parent statistics.
     parent_cache: Dict = {}
-    timings: Dict[str, Dict[str, float]] = {}
 
     for pt in points:
         p = pt.preset

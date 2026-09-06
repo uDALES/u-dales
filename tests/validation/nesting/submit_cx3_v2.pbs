@@ -14,6 +14,17 @@
 #
 # (qsub/qstat live in /opt/pbs/bin on CX3.)
 #
+# The same script runs any sweep that reuses the V1 converged parent and child:
+# C0a (config.C0, the cadence ladder off the existing 3 s dumps -- README.md,
+# "C0 -- the cadence discriminator") is
+#
+#     qsub -N udales-nesting-c0a -l walltime=03:00:00 \
+#          -v UDALES_V2_SWEEP=c0,UDALES_V2_RUNDIR=$EPHEMERAL/nesting-c0a \
+#          tests/validation/nesting/submit_cx3_v2.pbs
+#
+# (three 128^2 children at ~40 min each plus the shared analysis; the 8 h below
+# is V2's and is overridden on the command line).
+#
 # ---------------------------------------------------------------------------
 # WHAT THIS DOES NOT DO: it does not run a parent.
 #

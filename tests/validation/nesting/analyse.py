@@ -605,7 +605,11 @@ def run(parent_dir: Path, child_dir: Path, outdir: Path, preset: Preset,
 
     pdump = FieldDump(parent_dir, preset.parent_expnr, preset.dx)
     cdump = FieldDump(child_dir, preset.child_expnr, preset.dx)
-    plev = _levels_in_window(pdump.times, t_offset, t0, t1, preset.stride)
+    # The parent's stride is scaled by the ratio of the two dump intervals so
+    # that both runs are sampled at the same interval (config.Preset
+    # .analysis_parent_stride); identical to preset.stride whenever parent and
+    # child dump at the same rate, which is every preset before C0b.
+    plev = _levels_in_window(pdump.times, t_offset, t0, t1, preset.analysis_parent_stride)
     clev = _levels_in_window(cdump.times, 0.0, t0, t1, preset.stride)
     if len(plev) < 4 or len(clev) < 4:
         raise RuntimeError(
@@ -775,6 +779,12 @@ def _compare(parent: Bundle, child: Bundle, preset: Preset, mask: np.ndarray,
             "nzone": preset.nzone,
             "tau_s": preset.tau,
             "optical_depth": preset.optical_depth,
+            "cadence_s": preset.cadence,
+            "cadence_stride": preset.cadence_stride,
+            "C_dump_at_u0": preset.c_dump_u0,
+            "nest_timeinterp": preset.timeinterp,
+            "parent_dtdump_s": preset.dtdump,
+            "child_dtdump_s": preset.child_dtdump,
             "child_cells": [preset.child_itot, preset.child_jtot],
             "child_extent_m": [preset.child_xlen, preset.child_ylen],
             "interior_cells": preset.interior_cells,

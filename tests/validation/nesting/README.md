@@ -17,6 +17,11 @@ parameter survey, and it is written up in "V2 -- the falsification test" below.
 Read that section, not this one, if V2 is what you came for; the V1 material
 here is its foundation and its vocabulary.
 
+**C0** asks whether that deficit is the **boundary cadence**'s doing at all: the
+3 s dumps cannot carry the band the child was short of, and the review of
+2026-09-06 says so quantitatively.  It is written up in "C0 -- the cadence
+discriminator" below, with its predictions registered before the runs.
+
 **V0** asks the question nesting exists for:
 
 > Does a child at higher resolution than its parent reproduce it?
@@ -149,9 +154,11 @@ sampling.  Two things follow:
 | `run_v0.py` | end-to-end V0 driver: the coarse parents, the four refined children, the per-point analysis and the suite table |
 | `test_v1_tiny.py` | the `tiny` preset as a unittest -- the V1 harness smoke test |
 | `test_v2_tiny.py` | the `v2-tiny` sweep as a unittest -- the V2 harness smoke test, plus the checks on the production sweep's configuration that need no run |
+| `test_c0_tiny.py` | the `c0-tiny` and `c0b-tiny` sweeps as a unittest -- the C0 harness smoke test, plus the production C0 sweeps' configuration and the experiment-number register |
 | `test_v0_tiny.py` | the `v0-tiny` suite as a unittest -- the V0 harness smoke test, plus the coarsening/prolongation invariants and the production suite's configuration |
 | `submit_cx3.pbs` | the V1 production job for CX3, 64 cores / 8 h.  **Review before submitting.** |
 | `submit_cx3_v2.pbs` | the V2 sweep job for CX3, 64 cores / 8 h, reusing the V1 parent.  **Review before submitting.** |
+| `submit_cx3_c0b.pbs` | the C0b job for CX3, 64 cores / 4 h / 128 GB: the fine-cadence parent warm-started from the V1 restart, six children, the table.  **Review before submitting.**  C0a goes through `submit_cx3_v2.pbs` with `UDALES_V2_SWEEP=c0`. |
 | `submit_cx3_v0.pbs` | the V0 refinement job for CX3, 64 cores / 6 h, reusing the V1 parent as both reference and filtered-arm source.  **Review before submitting.** |
 
 Nothing is committed as data: the STL, the IBM sparse inputs, the profiles, the
@@ -1104,6 +1111,182 @@ Those numbers are the *shape* the production table will have, not a preview of
 its content -- and note that at this window length the tiny zone arm moves as
 much as the size arm does, which is exactly the situation the production
 window's 3400 samples exist to resolve.
+
+---
+---
+
+# C0 -- the cadence discriminator
+
+> Is the V1 TKE deficit above the canopy caused by the 3 s boundary cadence?
+
+`nesting-plan-2026-09-06.md` section 0 and 1 (the repo's parent directory) is
+the specification; this section is the operating manual and the pre-registered
+prediction.  V2's zone arm came in with the 8-16 m ratio at `z/h = 2` at
+0.825 / 0.815 / 0.810 for `N_rel = 4 / 9 / 12` -- P1 holds -- but both readings
+of the deficit predicted that, so it discriminates nothing.  What the review of
+2026-09-06 added is a **quantified third reading**: the stored boundary data is
+sampled every 3 s and interpolated linearly, and by Taylor's hypothesis that
+removes every wavelength below `2 U dt` from the imposed field and attenuates
+the octave above it by sinc^4.  Computed from the converged parent's own spectra
+and mean wind, the fraction of each band that survives the boundary at 3 s is
+
+| z/h | U (m/s) | 2 U dt at 3 s | 8-16 m: boundary keeps / child has | 16-32 m | 32-64 m |
+|---|---|---|---|---|---|
+| 0.56 | 1.09 | 6.6 m | 0.62 / **0.99** | 0.87 / 1.00 | 0.96 / 1.02 |
+| 1.06 | 2.16 | 12.9 m | 0.14 / **0.97** | 0.59 / 0.98 | 0.86 / 1.01 |
+| 2.06 | 3.58 | 21.5 m | 0.00 / **0.82** | 0.21 / 0.85 | 0.66 / 0.95 |
+
+The child regenerates most of what the boundary lost, and the residual deficit
+orders band by band and height by height with what was lost.  So the reading
+is: **the loss is at the boundary, the fetch is the recovery**, and V1's
+"fetch, not the boundary treatment" named the recovery and missed the loss.
+
+The dimensionless number is the **dump Courant number** `C_dump = U dt_P / dx_P`
+(`Preset.dump_courant`; `Preset.describe()` prints it at `u0`).  Nothing the
+parent resolved is lost at the boundary when `2 U dt_P <= 4 dx_P`, i.e.
+`C_dump <= 2` at the largest wind in the zone.  V1 ran at 1.6 (z/h = 0.6), 3.2
+(z/h = 1), 5.4 (z/h = 2), about 7.5 at the lid.
+
+## What C0 does
+
+`Preset.cadence` (seconds, default `dtdump`, must be a whole multiple of it)
+is the interval of the boundary data handed to the child.  `make_child_case`
+reads every `cadence / dtdump`-th parent dump level **and never opens the
+rest** -- the levels are read by index from the per-rank dump files, so a 6 s
+child costs half the I/O of a 3 s one -- and everything downstream (`n_use`,
+`runtime`, `t_offset`, `parent_dt`) is taken from the subsampled axis.  The
+manifest records it under `cadence`: `seconds`, `stride`, `parent_dt`,
+`n_levels_dumped`, `n_levels_used`, `C_dump_at_u0`.
+
+Two arms, both `Sweep`s with a single `"cadence"` arm, through `run_v2.py`:
+
+**C0a -- `c0`, coarser cadences from the existing dumps.**  Parent = the
+converged 903 (170 GB of 3 s dumps, reused exactly as V2 reuses it); reference
+= the converged child 904, reused.  Three children: `cad6` (961, 6 s, linear),
+`cad9` (962, 9 s, linear) and `cr3` (963, 3 s, `nest_timeinterp = 2`).  Mode 2
+is now the **unlimited** Catmull-Rom cubic Hermite -- the Fritsch-Carlson
+monotone limiter that broke `Phi = 0` in Finding N1 is gone, and
+`test_c0_tiny` checks that the CR child's `Phi` and `divmax` sit at round-off
+like the linear ones'.  A smoother interpolant cannot restore a band the samples
+do not contain, so CR should move 16-32 m a little and 8-16 m not at all.
+
+**C0b -- `c0b`, the fine-cadence ladder.**  The converged parent left its
+end-of-spin-up restart (`initd00031204_*.903`, t = 10800 s).  `config.C0_FINE`
+(960) **continues** it: `make_parent_case.build(..., restart_dir=...)` symlinks
+the 64 restart files into the new case under the new experiment number
+(`readrestartfiles` builds each rank's file name from `startfile` by overwriting
+the rank fields, so the extension follows the namelist), writes a warm-start
+namelist with `startfile` set, and no spin-up phase; the run is 2400 s with
+`tfielddump = 0.5` (dt is about 0.38 s, so every 1-2 steps; 4800 levels,
+240 GB).  Six children (964-969) are sliced from those dumps at 0.5, 1, 1.5, 3,
+6 and 9 s, linear, each with the 600 s discard and an 1800 s statistics
+window.  One parent realisation drives the whole ladder, so the comparison is
+paired, and the 3 s point cross-checks V1 and C0a.  The children dump every
+3 s as V1's did (`Preset.child_dtdump`); the analysis samples the parent every
+6th level to match (`Preset.analysis_parent_stride`).  `run_v2.py
+--parent-restart-dir` builds and runs the parent first when the run directory
+has no dumps for it, and reuses it when it has.
+
+**Primary metric: the band ratios**, 8-16 m and 16-64 m, at every sampled
+height (`z/h = 0.56, 1.06, 2.06`).  Between the converged run's 1491 s and
+10191 s windows they reproduced to 0.004, so 1800 s is enough for them.  It is
+*not* enough for the profile deficit above `z/h = 2` (the parent's own
+half-window spread at that window length is of the deficit's size), which is
+reported but secondary.  The analysis's bands are section 10.5's; the plan's
+16-32 m prediction is read against the 16-64 m column, where the 32-64 m half
+(0.66 kept at 3 s) dilutes it.
+
+## Pre-registered predictions
+
+8-16 m and 16-32 m band ratios at `z/h = 2`, plus the height at which the
+deficit first exceeds 3 %.  Written before any C0 number existed.
+
+| | 9 s | 6 s | 3 s | 1.5 s | 0.5 s | CR at 3 s |
+|---|---|---|---|---|---|---|
+| cadence causes it | < 0.75 | about 0.78 | 0.82 (V1) | about 0.9 | **>= 0.97** (the z/h = 1 value) | 16-32 m up a little, 8-16 m unchanged |
+| something in the scheme causes it | 0.82 | 0.82 | 0.82 | 0.82 | 0.82 | 0.82 |
+| both | falls with dt | | | | plateau above 0.82, below 0.97 | |
+
+The 1 s point of C0b sits between the 1.5 s and 0.5 s columns (about 0.93 under
+the first row).  `C_dump` at `u0 = 3 m/s`: 13.5, 9, 4.5, 2.25, 1.5, 0.75 for
+9, 6, 3, 1.5, 1, 0.5 s; at the z/h = 2 wind of 3.58 m/s the 0.5 s point is
+0.9 and the 1 s point 1.8, both inside the criterion.
+
+**Decision rule.**  If the 0.5 s point reaches >= 0.97: the cause is cadence;
+design sections 0, 1.3, 6.2, 9.4, 10.5, this README's V1 status and the PR
+text are rewritten, `C_dump <= 2` becomes a stated requirement, the writer
+warns when a file violates it (plan item W5), and the fine parent becomes the
+V1 reference for everything after.  If a plateau remains above 0.82 and below
+0.97: that plateau is the scheme's own deficit, and the next arm is `tau` in
+{0.5, 1, 4} s and the guard width.  If nothing moves, the review's hypothesis
+is refuted and section 10.5 stands as written, minus the word "not".
+
+## Layout
+
+| File | What it adds |
+|---|---|
+| `config.py` | `Preset.cadence`, `child_dtdump`, `cadence_stride`, `dump_courant`, `analysis_parent_stride`; `Sweep.arms`; the `c0`, `c0b`, `c0-tiny`, `c0b-tiny` sweeps and `C0_FINE`; the experiment-number register (C0 owns 960-969) |
+| `make_child_case.py` | subsamples the parent levels before reading; the manifest's `cadence` block |
+| `make_parent_case.py` | `--restart-dir`: a parent warm-started from another run's restart set |
+| `run_v2.py` | the `parent` stage and `--parent-restart-dir`; the reuse guard checks the cadence |
+| `analyse.py` | samples the parent at `analysis_parent_stride` |
+| `sweep_summary.py` | the `ARMS` registry (`zone`, `size`, `cadence`); the per-height band table and `sweep_cadence_bands.png` for the cadence arm |
+| `test_c0_tiny.py` | both tiny sweeps end to end, plus the production sweeps' configuration and the register |
+| `submit_cx3_c0b.pbs` | the C0b job: parent + six children + table, 64 cores / 4 h / 128 GB |
+
+## Running it
+
+Smoke test (about 10 min on a login node, 4 ranks: the tiny V1 parent and
+child, three C0a children, the warm-started 0.5 s parent, three C0b children):
+
+```bash
+module purge && module load tools/prod && module load Python/3.9.6-GCCcore-11.2.0
+source /rds/general/user/mvr/home/udales/.venv/bin/activate
+python tests/validation/nesting/test_c0_tiny.py
+```
+
+`TestC0Configuration` alone needs no solver: the four sweeps' consistency, that
+C0a is the V1 child at other cadences off the V1 parent, that `C0_FINE` is the
+converged parent with only the schedule changed and `t_start = 10800`, that
+960-969 collide with nothing, that a cadence that is not a multiple of `dtdump`
+is refused, and the registration.
+
+Production.  C0a goes through the V2 job with the sweep and run directory
+overridden (the script's own 8 h walltime is overridden on the command line;
+`qsub -v` values may not contain commas):
+
+```bash
+qsub -N udales-nesting-c0a -l walltime=03:00:00 \
+     -v UDALES_V2_SWEEP=c0,UDALES_V2_RUNDIR=$EPHEMERAL/nesting-c0a \
+     tests/validation/nesting/submit_cx3_v2.pbs
+qsub tests/validation/nesting/submit_cx3_c0b.pbs
+```
+
+Results: `$EPHEMERAL/nesting-c0a/analysis/sweep_summary.{md,csv,json}` and
+`$EPHEMERAL/nesting-c0b/analysis/...`; the per-height band table is the
+"Band ratios (child/parent) at every sampled height" block of the Markdown and
+the `band_8_16m@...` / `band_16_64m@...` columns of the CSV, with
+`sweep_cadence_bands.png` next to them.  A single point is redone with
+
+```bash
+python tests/validation/nesting/run_v2.py $EPHEMERAL/nesting-c0b --sweep c0b \
+    --only cad1.5 --start-at child-case --yes
+```
+
+## Cost
+
+C0a: the slab cut reads 1/2, 1/3 and all of the 170 GB (about 5, 4 and 10 min),
+the three children run 1621 s each as V1's did, the four analyses share one
+800 s parent accumulation; about 2.3 h against 3 h.  C0b: `submit_cx3_c0b.pbs`
+carries the sizing -- parent 45 min including 240 GB of dump I/O, slab cuts
+53 min, children 37 min, analysis 12 min, about 2.6 h against 4 h; the 0.5 s
+point holds 47 GB of slabs in RAM, and the writer stores each slab variable
+separately with the correction in place, so `mem=128gb` covers it (V1 measured
+39 GB for a 35 GB file).
+
+## Status
+
+C0_STATUS_PLACEHOLDER
 
 ---
 ---

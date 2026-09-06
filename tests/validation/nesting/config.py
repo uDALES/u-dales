@@ -114,16 +114,16 @@ class Preset:
     tau: float          #: relaxation time [s]
     nzone: int          #: zone thickness stored in the nesting file, in cells
     nwall: int          #: nest_nwall, wall erosion in cells
-    #: nest_timeinterp.  1 = linear, 2 = monotone cubic Hermite.  **Use 1.**
-    #: Mode 2's Fritsch-Carlson slope limiter is a nonlinear function of the
-    #: four buffered levels, so the interpolated boundary field is not a fixed
-    #: linear combination of levels whose net flux is individually zero, and
-    #: the divergence compatibility of design section 3.1 is lost between
-    #: parent levels.  Measured on the tiny preset: mode 2 gives a normalised
-    #: flux residual of 5.2e-5 (nest_fluxtol is 1e-10, so nest_lfluxassert
-    #: aborts the run) and, with the assertion off, divmax = 2.1e-4 and
-    #: divtot = 1.7; mode 1 gives Phi = 8.9e-16 and divmax = 4.0e-16.
-    #: See README.md, "Finding N1".
+    #: nest_timeinterp.  1 = linear, 2 = cubic Hermite with Catmull-Rom slopes
+    #: (``modnesting.f90``, ``nest_interp_time``).  Mode 2 is **unlimited**: the
+    #: interpolant is a fixed linear combination of the four buffered levels,
+    #: so a set of levels whose net flux is individually zero interpolates to
+    #: zero net flux and the divergence compatibility of design section 3.1
+    #: survives between parent levels.  That was not true of the earlier
+    #: Fritsch-Carlson *monotone* Hermite (README.md, "Finding N1": its
+    #: nonlinear slope limiter gave Phi = 5.2e-5 and tripped nest_lfluxassert);
+    #: the limiter is gone, and 2 is now a legitimate choice.  V1/V2 ran 1; C0
+    #: compares the two at the same cadence.
     timeinterp: int
     #: cold-start the child from the parent's own field at times[0]
     #: (nest_linitfromparent + the schema-2 u_init/v_init/w_init block)
@@ -151,6 +151,23 @@ class Preset:
     spectra_heights: Tuple[float, ...] = (8.0, 16.0, 32.0)
     #: keep every n-th dumped level when accumulating statistics
     stride: int = 1
+    #: Cadence of the boundary data handed to the child [s].  ``make_child_case``
+    #: reads every ``cadence / dtdump``-th parent dump level and never touches
+    #: the rest, so the nesting file -- and the I/O of building it -- shrink
+    #: with it.  Must be a positive whole multiple of ``dtdump``.  ``None``
+    #: means ``dtdump``, i.e. every level, which is what everything before C0
+    #: ran at.  C0 sweeps it: by Taylor's hypothesis a boundary sampled every
+    #: ``cadence`` seconds and interpolated linearly carries nothing below the
+    #: wavelength ``2 U cadence``, and the dump Courant number
+    #: ``C_dump = U cadence / dx`` (:meth:`dump_courant`) says whether that is
+    #: below the parent's own filter scale (``C_dump <= 2``) or not.
+    cadence: Optional[float] = None
+    #: Field-dump interval of the **child** [s]; ``None`` means ``dtdump``.  A
+    #: parent dumped at 0.5 s (C0b) does not need children dumping at 0.5 s for
+    #: statistics that were always taken at 3 s; :attr:`analysis_parent_stride`
+    #: keeps parent and child analysed at the same sampling whatever the two
+    #: dump intervals are.  Must be a positive whole multiple of ``dtdump``.
+    child_dtdump: Optional[float] = None
     #: The child window that carved the parent's plaza, when that window is not
     #: this preset's own child.  ``None`` -- the V1 case -- means "this preset
     #: defines the parent geometry itself".  V2 sets it to the V1 child window,
@@ -180,7 +197,59 @@ class Preset:
     parent_expnr: str = "903"
     child_expnr: str = "904"
 
+    def __post_init__(self) -> None:
+        # Frozen, so the two defaults that depend on another field are filled
+        # in here.  ``dataclasses.replace`` passes the *resolved* values on, so
+        # a preset derived from another with a new ``dtdump`` has to set these
+        # explicitly (C0_FINE does).
+        if self.cadence is None:
+            object.__setattr__(self, "cadence", float(self.dtdump))
+        if self.child_dtdump is None:
+            object.__setattr__(self, "child_dtdump", float(self.dtdump))
+
     # -- derived ----------------------------------------------------------- #
+
+    @property
+    def cadence_stride(self) -> int:
+        """Parent dump levels per boundary level: ``round(cadence / dtdump)``."""
+        return max(1, int(round(self.cadence / self.dtdump)))
+
+    @property
+    def child_dump_stride(self) -> int:
+        """Parent dump levels per child dump level."""
+        return max(1, int(round(self.child_dtdump / self.dtdump)))
+
+    @property
+    def analysis_parent_stride(self) -> int:
+        """Stride ``analyse`` applies to the **parent** dumps.
+
+        ``stride`` applies to the child's; the parent's is scaled by the ratio
+        of the two dump intervals so that both runs are sampled at
+        ``stride * child_dtdump`` seconds.  Equal to ``stride`` whenever the
+        two dump intervals agree, which is every preset before C0b.
+        """
+        return self.stride * self.child_dump_stride
+
+    def dump_courant(self, u: float) -> float:
+        """Dump Courant number ``C_dump = u * cadence / dx`` at wind speed ``u``.
+
+        The boundary is sampled every ``cadence`` seconds; with Taylor's
+        hypothesis that removes every wavelength below ``2 u cadence`` from the
+        imposed field.  Nothing the parent resolved is lost when that is at or
+        below its own filter scale ``4 dx``, i.e. ``C_dump <= 2``.  Evaluate it
+        at the largest wind in the zone, not the bulk value.
+        """
+        return u * self.cadence / self.dx
+
+    @property
+    def c_dump_u0(self) -> float:
+        """:meth:`dump_courant` at the preset's initial bulk wind ``u0``.
+
+        A single-number label for a preset, not the criterion: ``u0`` is the
+        initial uniform velocity, and the mean wind aloft in the converged run
+        is above it (3.6 m/s at z/h = 2 against ``u0 = 3``).
+        """
+        return self.dump_courant(self.u0)
 
     @property
     def dy(self) -> float:
@@ -558,7 +627,18 @@ class Preset:
         if self.building_height % self.dx:
             errors.append("building_height is not a whole number of cells")
         if self.timeinterp not in (1, 2):
-            errors.append("timeinterp must be 1 (linear) or 2 (Hermite)")
+            errors.append("timeinterp must be 1 (linear) or 2 (Catmull-Rom Hermite)")
+        for label, value in (("cadence", self.cadence), ("child_dtdump", self.child_dtdump)):
+            if not (value > 0):
+                errors.append(f"{label} = {value} s is not positive")
+            elif abs(value / self.dtdump - round(value / self.dtdump)) > 1.0e-9 \
+                    or round(value / self.dtdump) < 1:
+                errors.append(
+                    f"{label} = {value} s is not a whole multiple of dtdump = "
+                    f"{self.dtdump} s; the parent dumps cannot be subsampled to it"
+                )
+        if self.stride < 1:
+            errors.append(f"stride = {self.stride} must be at least 1")
         if self.nzone > min(self.child_itot, self.child_jtot):
             errors.append(
                 f"nzone = {self.nzone} exceeds the child domain "
@@ -642,16 +722,27 @@ class Preset:
             f"({'nesting_init WARNS above 15 %' if self.zone_fraction_warns else 'no warning'})",
             f"forcing              dpdx = {self.dpdx:.4e} m/s^2 -> ustar = {u:g} m/s",
             f"time interpolation   nest_timeinterp = {self.timeinterp} "
-            f"({'linear' if self.timeinterp == 1 else 'monotone Hermite'})",
+            f"({'linear' if self.timeinterp == 1 else 'Catmull-Rom cubic Hermite, unlimited'})",
             f"child init           {'from the parent block' if self.init_from_parent else 'from prof.inp'}",
             f"schedule             spin-up {self.spinup:g} s, production "
             f"[{self.t_start:g}, {self.t_end:g}] s, dump every {self.dtdump:g} s",
             f"                     child spin-up {self.child_spinup:g} s, statistics over "
             f"{self.production - self.child_spinup:g} s",
+            f"boundary cadence     {self.cadence:g} s = every "
+            f"{self.cadence_stride}{'st' if self.cadence_stride == 1 else 'nd' if self.cadence_stride == 2 else 'rd' if self.cadence_stride == 3 else 'th'} "
+            f"parent dump level ({self.production / self.cadence:.0f} levels); "
+            f"C_dump = u0 * cadence / dx = {self.c_dump_u0:.2f} at u0 = {self.u0:g} m/s "
+            f"({'<= 2, nothing resolved is lost' if self.c_dump_u0 <= 2.0 else '> 2, the parent-resolved band below 2 U cadence is lost at the boundary'})",
+            f"child dumps          every {self.child_dtdump:g} s; analysis samples parent "
+            f"every {self.analysis_parent_stride} level(s), child every {self.stride}",
             f"ranks                parent {self.nprocx} x {self.nprocy}, "
             f"child {self.child_nprocx} x {self.child_nprocy}",
         ]
         return "\n".join(lines)
+
+    def describe(self) -> str:
+        """Alias of :meth:`summary`: the human-readable block, one line per fact."""
+        return self.summary()
 
 
 #: Production experiment: design section 10.4 V1 as costed in the brief.
@@ -735,7 +826,8 @@ class SweepPoint:
 
     key: str
     #: ``"zone"`` (V2a, zone width at fixed child size), ``"size"`` (V2b, child
-    #: size at fixed zone), or both -- the reference point is shared.
+    #: size at fixed zone), ``"cadence"`` (C0, boundary-data cadence at the
+    #: reference child), or several -- the reference point is shared.
     arms: Tuple[str, ...]
     preset: Preset
     #: ``True`` when this child has already been run and is to be reused rather
@@ -765,6 +857,9 @@ class Sweep:
     #: per-point interiors are not the same region; this one is, which
     #: separates "smaller measurement window" from "shorter fetch".
     common_block_cells: int = 0
+    #: The arms this sweep is read along; each must have at least one point.
+    #: ``sweep_summary.ARMS`` says how each is tabulated and plotted.
+    arms: Tuple[str, ...] = ("zone", "size")
 
     def point(self, key: str) -> SweepPoint:
         for p in self.points:
@@ -803,12 +898,17 @@ class Sweep:
                 )
             seen_expnr[q.child_expnr] = pt.key
             # -- what makes the parent reusable ---------------------------- #
+            # Not in the list, because they are the child's business and the
+            # parent's dumps describe the child whatever they are: timeinterp
+            # (how the child interpolates between the levels it is given),
+            # cadence (which of the parent's levels it is given) and
+            # child_dtdump.  C0 sweeps the first two.
             for field in ("itot", "jtot", "ktot", "dx", "building_height",
                           "building_width", "street_width", "edgelength",
                           "geometry", "ustar", "u0", "spinup", "production",
                           "dtdump", "child_spinup", "nprocx", "nprocy", "dtmax",
                           "parent_expnr", "stride", "tau", "guardwidth",
-                          "nwall", "timeinterp", "init_from_parent"):
+                          "nwall", "init_from_parent"):
                 if getattr(q, field) != getattr(base, field):
                     errors.append(
                         f"point {pt.key!r}: {field} = {getattr(q, field)!r} differs from "
@@ -833,10 +933,16 @@ class Sweep:
                         f"common_block_cells = {self.common_block_cells} does not fit "
                         f"inside point {pt.key!r}'s {pt.preset.interior_cells}-cell interior"
                     )
-        if not any(p.arms.count("zone") for p in self.points):
-            errors.append("the sweep has no 'zone' arm")
-        if not any(p.arms.count("size") for p in self.points):
-            errors.append("the sweep has no 'size' arm")
+        if not self.arms:
+            errors.append("the sweep declares no arms")
+        for arm in self.arms:
+            if not any(arm in p.arms for p in self.points):
+                errors.append(f"the sweep has no {arm!r} arm")
+        for pt in self.points:
+            for arm in pt.arms:
+                if arm not in self.arms:
+                    errors.append(f"point {pt.key!r} is in arm {arm!r}, which the "
+                                  f"sweep does not declare ({', '.join(self.arms)})")
         if errors:
             raise ValueError(
                 f"sweep '{self.name}' is inconsistent:\n  " + "\n  ".join(errors)
@@ -852,7 +958,8 @@ class Sweep:
             f"{self.common_block_cells * self.parent.dx / h:.2f}h",
             "",
             f"{'key':10s} {'arms':11s} {'nr':4s} {'child':9s} {'N_imp+N_rel':12s} "
-            f"{'nzone':6s} {'interior':16s} {'zone':22s} {'run':6s}",
+            f"{'nzone':6s} {'interior':16s} {'zone':22s} "
+            f"{'cadence':9s} {'C_dump':7s} {'interp':7s} {'run':6s}",
         ]
         for pt in self.points:
             q = pt.preset
@@ -865,6 +972,8 @@ class Sweep:
                 f"{'clear' if q.building_free_zone else 'BUILDINGS':9s} "
                 f"{100 * q.zone_fraction:4.1f}%  "
                 f"cut {q.n_child_cubes_removed:<3d}  "
+                f"{q.cadence:<5g} s  {q.c_dump_u0:<7.2f} "
+                f"{'linear' if q.timeinterp == 1 else 'CR':7s} "
                 f"{'reuse' if pt.reuse else 'run':6s}"
             )
         return "\n".join(lines)
@@ -1005,7 +1114,131 @@ TINY_SWEEP = Preset(
 V2_TINY = _v2_sweep(TINY_SWEEP, "v2-tiny", zone_cells_ramp=(4, 9, 12),
                     child_sizes=(64, 96))
 
-SWEEPS: Dict[str, Sweep] = {s.name: s for s in (V2_TINY, V2)}
+# --------------------------------------------------------------------------- #
+# C0 -- the cadence discriminator (nesting-plan-2026-09-06.md section 1)
+# --------------------------------------------------------------------------- #
+#
+# Experiment numbers in use across this directory, so a new sweep does not
+# collide with a run already on disk (case directories are named by them):
+#
+#   903 / 904        V1 parent / child (config.PRODUCTION, CONVERGED, TINY, ...)
+#   905-909          V2 children (config.V2, V2_TINY)
+#   911, 912         V0 coarse driving parents; 921-924 V0 children (config.V0)
+#   920-922, 930-931, 940-954   V3 / V4 geometry cases (presets_geometry.py)
+#   960-969          C0: 960 the fine-cadence parent (C0_FINE); 961-963 the C0a
+#                    children (cad6, cad9, cr3); 964-969 the C0b children
+#                    (0.5, 1, 1.5, 3, 6, 9 s)
+#
+# 910 and 913-919 are free but sit between V0's two blocks; C0 takes the next
+# clear decade instead.
+
+
+def _c0_sweep(base: Preset, name: str, *, cadences: Sequence[float],
+              cr_cadences: Sequence[float], expnrs: Sequence[str],
+              reuse_reference: bool) -> Sweep:
+    """A cadence ladder of children off **one** parent, each child otherwise
+    ``base``'s child exactly -- same window, zone, geometry, forcing, init.
+
+    ``reuse_reference``: ``base`` is a child that has already been run (V1's)
+    and is the sweep's ``ref`` point; a point at ``base.cadence`` is then not
+    generated again.  Otherwise every point runs, and the point at
+    ``base.cadence`` *is* ``base`` (so it carries ``base.child_expnr``).
+    ``cr_cadences`` adds Catmull-Rom (``timeinterp = 2``) points; everything
+    else is linear.  ``expnrs`` are consumed in order by the generated points.
+    """
+    nrs = iter(expnrs)
+    points: List[SweepPoint] = []
+    if reuse_reference:
+        points.append(SweepPoint(
+            key="ref", arms=("cadence",), preset=base, reuse=True,
+            note=f"the V1 child: {base.cadence:g} s cadence, linear "
+                 f"(C_dump = {base.c_dump_u0:.2f} at u0)"))
+    for c in cadences:
+        key = f"cad{c:g}"
+        if abs(c - base.cadence) < 1.0e-9:
+            if reuse_reference:
+                continue
+            preset = base
+        else:
+            preset = replace(base, name=f"{name}-{key}", child_expnr=next(nrs),
+                             cadence=float(c), timeinterp=1)
+        points.append(SweepPoint(
+            key=key, arms=("cadence",), preset=preset,
+            note=f"{c:g} s cadence, linear (C_dump = {preset.c_dump_u0:.2f} at u0), "
+                 f"every {preset.cadence_stride} parent level(s)"))
+    for c in cr_cadences:
+        key = f"cr{c:g}"
+        preset = replace(base, name=f"{name}-{key}", child_expnr=next(nrs),
+                         cadence=float(c), timeinterp=2)
+        points.append(SweepPoint(
+            key=key, arms=("cadence",), preset=preset,
+            note=f"{c:g} s cadence, Catmull-Rom cubic in time "
+                 f"(C_dump = {preset.c_dump_u0:.2f} at u0)"))
+    common = min(p.preset.interior_cells for p in points)
+    return Sweep(name=name, parent=base, points=tuple(points),
+                 common_block_cells=common, arms=("cadence",))
+
+
+#: **C0a -- coarser cadences from the existing 3 s dumps.**  The review of
+#: 2026-09-06 attributes the V1 TKE deficit above the canopy not to fetch but
+#: to the 3 s boundary cadence: sampled every ``cadence`` seconds and
+#: interpolated linearly, the boundary carries nothing below ``2 U cadence``
+#: (21.5 m at z/h = 2), which is exactly the band the child was short of.  The
+#: cheap half of the test subsamples the converged parent's dumps to 6 s and
+#: 9 s -- if the cadence causes the deficit these must be *worse* than V1 --
+#: and adds the unlimited Catmull-Rom interpolant at 3 s, which cannot restore
+#: a band the samples do not contain and so should leave 8-16 m unchanged.
+#: Three children through the V2 machinery, off the same 903 bundle, against
+#: the same reused 904 reference.  Pre-registered predictions in README.md.
+C0 = _c0_sweep(CONVERGED, "c0", cadences=(6.0, 9.0), cr_cadences=(3.0,),
+               expnrs=("961", "962", "963"), reuse_reference=True)
+
+#: **C0b -- the fine-cadence ladder.**  The converged parent left its
+#: end-of-spin-up restart (``initd00031204_*.903``, t = 10800 s).  This preset
+#: warm-starts it for 2400 s dumping every 0.5 s (dt is about 0.38 s, so every
+#: 1-2 steps; 4800 levels), and the ladder below slices those dumps to 0.5, 1,
+#: 1.5, 3, 6 and 9 s.  One parent realisation drives all six, so the
+#: comparison is paired, and the 3 s point cross-checks V1 and C0a.  The
+#: children keep the 600 s discard and get an 1800 s window, enough for the
+#: band ratios (reproduced to 0.004 between the 1491 s and 10191 s windows)
+#: though not for the profile deficit -- which is why the band ratios are the
+#: primary metric.  The child dumps every 3 s as V1's did; the analysis samples
+#: the parent every 6th level to match (``analysis_parent_stride``).
+#:
+#: Memory: the slab cut holds the whole nesting file, 9.8 MB per level for the
+#: 128^2 child at nzone = 12, so the 0.5 s point is 47 GB of slabs.  The
+#: writer stores each slab variable separately and the flux correction works
+#: in place, so the peak is that plus one slab (V1 measured 39 GB for a 35 GB
+#: file); mem=128gb holds it.
+C0_FINE = replace(
+    CONVERGED, name="c0-fine", parent_expnr="960", child_expnr="964",
+    production=2400.0, dtdump=0.5, child_spinup=600.0,
+    cadence=0.5, child_dtdump=3.0, stride=1,
+)
+
+C0B = _c0_sweep(C0_FINE, "c0b", cadences=(0.5, 1.0, 1.5, 3.0, 6.0, 9.0),
+                cr_cadences=(), expnrs=("965", "966", "967", "968", "969"),
+                reuse_reference=False)
+
+#: The same two sweeps in minutes, on the ``tiny`` parent (dtdump 3 s, 120 s
+#: window).  ``c0-tiny`` reuses the tiny V1 child as ``ref`` exactly as the
+#: production sweep reuses 904; ``c0b-tiny`` warm-starts a 0.5 s parent from
+#: the tiny spin-up's restart and runs three children off it.
+C0_TINY = _c0_sweep(TINY, "c0-tiny", cadences=(6.0, 9.0), cr_cadences=(3.0,),
+                    expnrs=("961", "962", "963"), reuse_reference=True)
+
+C0_FINE_TINY = replace(
+    TINY, name="c0-fine-tiny", parent_expnr="960", child_expnr="964",
+    production=120.0, dtdump=0.5, child_spinup=40.0,
+    cadence=0.5, child_dtdump=3.0, stride=1,
+)
+
+C0B_TINY = _c0_sweep(C0_FINE_TINY, "c0b-tiny", cadences=(0.5, 1.5, 3.0),
+                     cr_cadences=(), expnrs=("965", "966"),
+                     reuse_reference=False)
+
+SWEEPS: Dict[str, Sweep] = {s.name: s for s in (V2_TINY, V2, C0_TINY, C0,
+                                                 C0B_TINY, C0B)}
 
 
 def get_sweep(name: str) -> Sweep:
@@ -1020,7 +1253,8 @@ def get_sweep(name: str) -> Sweep:
 
 
 PRESETS: Dict[str, Preset] = {p.name: p
-                              for p in (TINY, TINY_SWEEP, PRODUCTION, CONVERGED)}
+                              for p in (TINY, TINY_SWEEP, PRODUCTION, CONVERGED,
+                                        C0_FINE, C0_FINE_TINY)}
 PRESETS.update({pt.preset.name: pt.preset
                 for sweep in SWEEPS.values() for pt in sweep.points})
 

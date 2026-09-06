@@ -134,10 +134,9 @@ def child_sections(preset: Preset, runtime: float) -> "OrderedDict":
             ("nest_zonewidth", preset.zonewidth),
             ("nest_tau", preset.tau),
             ("nest_shape", 1),        # raised cosine
-            # 1 = linear.  Mode 2 (monotone Hermite) is NOT flux safe -- its
-            # Fritsch-Carlson slope limiter is nonlinear in the buffered levels,
-            # so Phi = 0 is not preserved between parent levels.  See config.py
-            # and README.md, "Finding N1".
+            # 1 = linear, 2 = Catmull-Rom cubic Hermite (unlimited, so flux
+            # safe -- the monotone limiter that broke Phi = 0 in Finding N1 is
+            # gone).  See config.Preset.timeinterp.
             ("nest_timeinterp", preset.timeinterp),
             ("nest_nwall", preset.nwall),
             # .false. asserts the design section 5 rule -- no solid points
@@ -157,7 +156,9 @@ def child_sections(preset: Preset, runtime: float) -> "OrderedDict":
         ])),
         ("OUTPUT", OrderedDict([
             ("lfielddump", True),
-            ("tfielddump", preset.dtdump),
+            # The child's own dump interval, not the parent's: a 0.5 s parent
+            # (C0b) drives children whose statistics are still taken at 3 s.
+            ("tfielddump", preset.child_dtdump),
             ("fieldvars", "u0,v0,w0"),
         ])),
         ("INP", OrderedDict([
@@ -346,15 +347,29 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     if driving is None:
         driving = DrivingParent.matched(parent_dir, preset)
     dump = driving.dump
-    times = np.asarray(dump.times, dtype=float)
+    all_times = np.asarray(dump.times, dtype=float)
+    # -- the boundary cadence: which of the parent's levels the child gets -- #
+    # Every ``stride``-th dumped level, chosen BEFORE anything is read: the
+    # loop below reads levels by index, so the levels that are skipped are
+    # never touched and the I/O of the slab cut shrinks with the cadence,
+    # not just the array.  ``times``, ``n_use``, ``runtime``, ``t_offset``
+    # and ``parent_dt`` are all taken from the subsampled axis.
+    stride = preset.cadence_stride
+    levels = np.arange(0, all_times.size, stride)
+    times = all_times[levels]
     if times.size < 4:
         raise RuntimeError(
-            f"the parent wrote only {times.size} field dumps; V1 needs a time series"
+            f"the parent wrote {all_times.size} field dumps, {times.size} at a "
+            f"{preset.cadence:g} s cadence (every {stride}); V1 needs a time series"
         )
     # Stop the child short of the last stored level so the target is always
     # interpolated, never held constant past the end of the record.
     n_use = times.size
     runtime = float(times[-1 - margin_levels] - times[0])
+    parent_dt = float(np.median(np.diff(times)))
+    print(f"[make_child_case] cadence {preset.cadence:g} s: every {stride} of "
+          f"{all_times.size} parent levels -> {n_use} levels, dt_P = {parent_dt:.3f} s, "
+          f"C_dump = {preset.c_dump_u0:.2f} at u0 = {preset.u0:g} m/s")
 
     write_namoptions(
         casedir / f"namoptions.{nr}",
@@ -419,8 +434,8 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     initial_fields = None
     div0 = None
     div_parent0 = None
-    for n in range(n_use):
-        pu, pv, pw = dump.read_level(n)
+    for n, lev in enumerate(levels):
+        pu, pv, pw = dump.read_level(int(lev))
         cu, cv, cw = dump.child_block(pu, pv, pw, pi0, pj0, pni, pnj)
         if n == 0 and preset.init_from_parent:
             # Schema 2's optional full-domain block: the child cold-starts from
@@ -501,11 +516,11 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     data = NestingData(
         grid=grid,
         nzone=nzone,
-        times=times[:n_use] - times[0],
+        times=times - times[0],
         slabs=slabs,
         parent_model=f"udales:{driving.source_expnr}:{preset.name}",
         parent_dx=driving.dx,
-        parent_dt=float(np.median(np.diff(times[:n_use]))),
+        parent_dt=parent_dt,
         child_origin_x=preset.child_origin[0],
         child_origin_y=preset.child_origin[1],
         child_dt=preset.dtmax,
@@ -543,7 +558,22 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         "t_offset": float(times[0]),
         "runtime": runtime,
         "n_parent_levels": int(n_use),
-        "parent_dt_median": float(np.median(np.diff(times[:n_use]))),
+        "parent_dt_median": parent_dt,
+        "cadence": {
+            "seconds": float(preset.cadence),
+            "stride": int(stride),
+            "parent_dt": parent_dt,
+            "dump_dt": float(preset.dtdump),
+            "n_levels_dumped": int(all_times.size),
+            "n_levels_used": int(n_use),
+            "child_dtdump": float(preset.child_dtdump),
+            "C_dump_at_u0": float(preset.c_dump_u0),
+            "u0": float(preset.u0),
+            "note": ("every 'stride'-th parent dump level is read and stored; the "
+                     "others are never opened.  C_dump = u0 * cadence / dx is a "
+                     "label at the initial bulk wind, not the criterion, which is "
+                     "evaluated at the largest wind in the zone"),
+        },
         "stats_start": float(preset.child_spinup),
         "child_i0": preset.child_i0,
         "child_j0": preset.child_j0,
@@ -602,7 +632,9 @@ def main() -> None:
     casedir = build(args.parent_dir, args.outdir, preset, ibm_backend=args.ibm_backend)
     manifest = json.loads((casedir / "manifest.json").read_text())
     print(f"child case written to {casedir}")
-    print(f"  {manifest['n_parent_levels']} parent levels, dt_P = "
+    cad = manifest["cadence"]
+    print(f"  {manifest['n_parent_levels']} parent levels (every {cad['stride']} of "
+          f"{cad['n_levels_dumped']} dumped; cadence {cad['seconds']:g} s), dt_P = "
           f"{manifest['parent_dt_median']:.3f} s, child runtime {manifest['runtime']:.1f} s")
     print(f"  Phi before correction  max |Phi|/A = "
           f"{manifest['flux_residual_before_correction']['max_abs_normalised']:.3e} m/s")

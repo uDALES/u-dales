@@ -453,6 +453,58 @@ groups:
           - "--reuse-dir"
           - "{repo_root}/build/nesting-validation-v1/904"
           - "--yes"
+      - label: "nesting-validation: C0 tiny cadence sweeps (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_c0_tiny.py"
+      # C0a: the V1 child at 6 s and 9 s boundary cadence (and Catmull-Rom at
+      # 3 s), sliced from the V1 parent's existing dumps, against the reused V1
+      # child -- so the V1 production entry has to have run first.  On CX3:
+      #   qsub -v UDALES_V2_SWEEP=c0,UDALES_V2_RUNDIR=$EPHEMERAL/nesting-c0a \
+      #        -l walltime=03:00:00 tests/validation/nesting/submit_cx3_v2.pbs
+      - label: "nesting-validation: C0a cadence sweep off the existing dumps (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_v2.py"
+          - "{repo_root}/build/nesting-validation-c0a"
+          - "--sweep"
+          - "c0"
+          - "--parent-dir"
+          - "{repo_root}/build/nesting-validation-v1/903"
+          - "--reuse-dir"
+          - "{repo_root}/build/nesting-validation-v1/904"
+          - "--yes"
+      # C0b: a parent warm-started from the V1 parent's end-of-spin-up restart,
+      # dumping every 0.5 s, and six children sliced from it at 0.5-9 s.  On CX3
+      # submit tests/validation/nesting/submit_cx3_c0b.pbs instead.
+      - label: "nesting-validation: C0b fine-cadence ladder (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_v2.py"
+          - "{repo_root}/build/nesting-validation-c0b"
+          - "--sweep"
+          - "c0b"
+          - "--parent-restart-dir"
+          - "{repo_root}/build/nesting-validation-v1/903"
+          - "--yes"
       - label: "nesting-validation: V0 tiny refinement suite (harness smoke test)"
         class: experimental
         kind: system

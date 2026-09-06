@@ -28,17 +28,60 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from config import Sweep, get_sweep
+from config import Sweep, SweepPoint, get_sweep
+
+#: How each arm of a sweep is read: its title and reading hint, the abscissa
+#: (a function of the :class:`config.SweepPoint`), and the axis label.  A
+#: sweep declares which arms it has (``Sweep.arms``); this says what they mean.
+ARMS: Dict[str, Dict[str, object]] = {
+    "zone": {
+        "title": "P1 -- zone width at a fixed child size (V2a)",
+        "hint": "read DOWN: if the deficit is fetch limited it should barely move",
+        "short": "P1: zone width",
+        "x": lambda p: p.preset.zonewidth / p.preset.dx,
+        "xlabel": r"$N_{\rm rel}$ [cells]",
+        "xscale": "linear",
+    },
+    "size": {
+        "title": "P2 -- child size at a fixed zone (V2b)",
+        "hint": "read DOWN: less fetch should mean a bigger deficit",
+        "short": "P2: child size",
+        "x": lambda p: p.preset.interior_extent_h,
+        "xlabel": r"interior extent [$h$]",
+        "xscale": "linear",
+    },
+    "cadence": {
+        "title": "C0 -- boundary-data cadence at the reference child",
+        "hint": ("read DOWN: if the cadence causes the deficit, the 8-16 m and "
+                 "16-64 m ratios at z/h = 2 rise towards 1 as the cadence falls "
+                 "(the 0.5 s point reaching the z/h = 1 value, about 0.97) and the "
+                 "Catmull-Rom point moves 16-64 m a little but 8-16 m not at all; "
+                 "if the scheme causes it, every row reads the same"),
+        "short": "C0: cadence",
+        "x": lambda p: p.preset.cadence,
+        "xlabel": "boundary cadence [s]",
+        "xscale": "log",
+    },
+}
+
+
+def _sort_key(arm: str):
+    x = ARMS[arm]["x"]
+    # ties (the same cadence, linear and Catmull-Rom) go linear first
+    return lambda p: (float(x(p)), p.preset.timeinterp)
+
 
 #: Column key -> (header, format).  One place, so the CSV, the Markdown and the
 #: plots cannot disagree about what a column means.
 COLUMNS: Sequence[tuple] = (
     ("key", "point", "{}"),
     ("expnr", "nr", "{}"),
+    ("cadence_s", "cadence [s]", "{:g}"),
+    ("timeinterp", "interp", "{}"),
     ("n_rel_cells", "N_rel", "{}"),
     ("zone_cells", "zone", "{}"),
     ("child_cells", "child", "{}"),
@@ -84,18 +127,49 @@ def _spectral_band(metrics: Dict, band: str, z_over_h: float = 2.0,
     return spectra[name]["bands"].get(band, {}).get("mean_of_ratios")
 
 
+#: The bands tabulated per sampled height for the cadence arm: the two section
+#: 10.5 used, in the order the cadence hypothesis predicts them to recover.
+HEIGHT_BANDS: Sequence[Tuple[str, str]] = (("band_8_16m", "8-16 m"),
+                                           ("band_16_64m", "16-64 m"))
+
+
+def bands_by_height(metrics: Dict) -> Dict[str, Dict[str, object]]:
+    """``mean_of_ratios`` of every band at every sampled height, by height name.
+
+    The whole spectral table of one point, not just the z/h = 2 row: C0's
+    prediction is height-ordered (the lost band is ``2 U cadence``, and ``U``
+    grows with height), so the deliverable is the ratio at each height.
+    """
+    out: Dict[str, Dict[str, object]] = {}
+    for name, sp in sorted(metrics.get("spectra", {}).items(),
+                           key=lambda kv: kv[1]["z_over_h"]):
+        out[name] = {"z_over_h": sp["z_over_h"], "z_m": sp.get("z_m")}
+        for band, b in sp["bands"].items():
+            out[name][band] = b.get("mean_of_ratios")
+            out[name][band + "_n_modes"] = b.get("n_modes")
+    return out
+
+
 def row_from_metrics(key: str, arms: Sequence[str], expnr: str,
                      metrics: Dict, reused: bool) -> Dict[str, object]:
     v2 = metrics["v2"]
     cfg, d, f = v2["configuration"], v2["tke_deficit"], v2["tke_error_vs_fetch"]
     cb = v2["common_block"]
     a = v2["criterion_a"]
+    interp = cfg.get("nest_timeinterp", metrics.get("nest_timeinterp"))
     return {
         "key": key,
         "arms": "+".join(arms),
         "expnr": expnr,
         "reused": reused,
         "preset": metrics["preset"],
+        # ``.get``: metrics written before C0 carry no cadence block; the
+        # parent's dump interval was the cadence then.
+        "cadence_s": cfg.get("cadence_s"),
+        "cadence_stride": cfg.get("cadence_stride"),
+        "c_dump_u0": cfg.get("C_dump_at_u0"),
+        "timeinterp": ({1: "linear", 2: "CR"}.get(interp, interp)),
+        "bands_by_height": bands_by_height(metrics),
         "n_rel_cells": cfg["N_rel_cells"],
         "n_imp_cells": cfg["N_imp_cells"],
         "zone_cells": cfg["zone_cells"],
@@ -171,25 +245,62 @@ def markdown_table(rows: Sequence[Dict[str, object]],
     return "\n".join(out)
 
 
+def _arm_points(sweep: Sweep, arm: str, by_key: Dict[str, Dict[str, object]]
+                ) -> List[SweepPoint]:
+    pts = [p for p in sweep.arm(arm) if p.key in by_key]
+    pts.sort(key=_sort_key(arm))
+    return pts
+
+
+def cadence_band_table(pts: Sequence[SweepPoint],
+                       by_key: Dict[str, Dict[str, object]]) -> str:
+    """The C0 deliverable: the band ratios at **every** sampled height per
+    point, next to the profile deficit above z/h = 2.
+
+    Columns are generated from whatever heights the analysis sampled, so the
+    tiny and production sweeps produce the same shape of table.
+    """
+    heights: Dict[str, float] = {}
+    for p in pts:
+        for name, hb in by_key[p.key].get("bands_by_height", {}).items():
+            heights.setdefault(name, float(hb["z_over_h"]))
+    names = sorted(heights, key=heights.get)
+    columns: List[tuple] = [
+        ("key", "point", "{}"), ("expnr", "nr", "{}"),
+        ("cadence_s", "cadence [s]", "{:g}"), ("timeinterp", "interp", "{}"),
+        ("c_dump_u0", "C_dump(u0)", "{:.2f}"),
+    ]
+    flat_rows: List[Dict[str, object]] = []
+    for name in names:
+        for band, label in HEIGHT_BANDS:
+            columns.append((f"{band}@{name}", f"{label} @ z/h={heights[name]:.2f}",
+                            "{:.3f}"))
+    columns += [("tke_deficit_pct", "dTKE z/h>2 [%]", "{:+.2f}"),
+                ("tke_spread_pct", "spread [%]", "{:.2f}"),
+                ("samples", "samples", "{}")]
+    for p in pts:
+        r = dict(by_key[p.key])
+        for name, hb in r.get("bands_by_height", {}).items():
+            for band, _ in HEIGHT_BANDS:
+                r[f"{band}@{name}"] = hb.get(band)
+        flat_rows.append(r)
+    return markdown_table(flat_rows, columns)
+
+
 def arm_tables(sweep: Sweep, rows: Sequence[Dict[str, object]]) -> str:
-    """The deliverable: the two arms, side by side, with the reference in both."""
+    """The deliverable: every arm of the sweep, with the reference in each."""
     by_key = {r["key"]: r for r in rows}
     out: List[str] = []
-    titles = {
-        "zone": ("P1 -- zone width at a fixed child size (V2a)",
-                 "read DOWN: if the deficit is fetch limited it should barely move"),
-        "size": ("P2 -- child size at a fixed zone (V2b)",
-                 "read DOWN: less fetch should mean a bigger deficit"),
-    }
-    for arm in ("zone", "size"):
-        pts = [p for p in sweep.arm(arm) if p.key in by_key]
-        if arm == "zone":
-            pts.sort(key=lambda p: p.preset.zonewidth)
-        else:
-            pts.sort(key=lambda p: p.preset.child_itot)
-        title, hint = titles[arm]
-        out += [f"### {title}", "", f"*{hint}.*", "",
+    for arm in sweep.arms:
+        spec = ARMS[arm]
+        pts = _arm_points(sweep, arm, by_key)
+        out += [f"### {spec['title']}", "", f"*{spec['hint']}.*", "",
                 markdown_table([by_key[p.key] for p in pts]), ""]
+        if arm == "cadence":
+            out += ["#### Band ratios (child/parent) at every sampled height", "",
+                    "*The pre-registered prediction is on 8-16 m and 16-64 m at "
+                    "z/h = 2; the lower heights say where the deficit starts.*", "",
+                    cadence_band_table(pts, by_key), ""]
     missing = [p.key for p in sweep.points if p.key not in by_key]
     if missing:
         out += [f"**Incomplete:** no metrics for {', '.join(missing)}.", ""]
@@ -197,34 +308,34 @@ def arm_tables(sweep: Sweep, rows: Sequence[Dict[str, object]]) -> str:
 
 
 def verdict(sweep: Sweep, rows: Sequence[Dict[str, object]]) -> Dict[str, object]:
-    """State what the two arms did, without deciding for the reader.
+    """State what each arm did, without deciding for the reader.
 
-    The numbers are ranges and slopes, not a pass or a fail: V2 is a
-    falsification test, and both outcomes are informative.  What is reported is
-    how much the deficit moved along each arm, in units of the parent's own
-    sampling spread, so that "barely moved" is a measurement rather than an
-    impression.
+    The numbers are ranges and slopes, not a pass or a fail: these are
+    falsification tests, and both outcomes are informative.  What is reported
+    is how much the deficit -- and, for the cadence arm, the band ratios --
+    moved along each arm, in units of the parent's own sampling spread, so that
+    "barely moved" is a measurement rather than an impression.
     """
     by_key = {r["key"]: r for r in rows}
 
-    def arm_stats(arm: str, x_of) -> Dict[str, object]:
-        pts = [p for p in sweep.arm(arm) if p.key in by_key]
-        xs, ys, sp, spm = [], [], [], []
+    def arm_stats(arm: str) -> Dict[str, object]:
+        x_of = ARMS[arm]["x"]
+        pts = _arm_points(sweep, arm, by_key)
+        xs, ys, sp, spm, keys = [], [], [], [], []
+        b8, b16 = [], []
         for p in pts:
             r = by_key[p.key]
             if r["tke_deficit_pct"] is None:
                 continue
+            keys.append(p.key)
             xs.append(float(x_of(p)))
             ys.append(float(r["tke_deficit_pct"]))
             sp.append(float(r["tke_spread_pct"] or np.nan))
             spm.append(float(r.get("tke_spread_median_pct") or np.nan))
+            b8.append(r.get("band_8_16"))
+            b16.append(r.get("band_16_64"))
         if len(ys) < 2:
             return {"n_points": len(ys)}
-        order = list(np.argsort(xs))
-        xs = [xs[i] for i in order]
-        ys = [ys[i] for i in order]
-        sp = [sp[i] for i in order]
-        spm = [spm[i] for i in order]
         spread = float(np.nanmean(sp))
         spread_med = float(np.nanmean(spm))
 
@@ -235,26 +346,38 @@ def verdict(sweep: Sweep, rows: Sequence[Dict[str, object]]) -> Dict[str, object
 
         out = {
             "n_points": len(ys),
+            "keys": keys,
             "x": xs, "deficit_pct": ys,
+            "band_8_16_at_z2h": b8,
+            "band_16_64_at_z2h": b16,
             "range_pct": float(max(ys) - min(ys)),
             "mean_spread_pct": spread,
             "median_spread_pct": spread_med,
             "range_in_spreads": in_spreads(spread),
             "range_in_median_spreads": in_spreads(spread_med),
         }
-        out["slope_pct_per_x"] = float(np.polyfit(xs, ys, 1)[0])
+        if len(set(xs)) >= 2:
+            out["slope_pct_per_x"] = float(np.polyfit(xs, ys, 1)[0])
         return out
 
-    zone = arm_stats("zone", lambda p: p.preset.zonewidth / p.preset.dx)
-    size = arm_stats("size", lambda p: p.preset.interior_extent_h)
-    note = ("Both arms measured. Compare `range_in_spreads` (and its more "
-            "robust twin `range_in_median_spreads`, which uses the median "
-            "per-height spread instead of the mean and so is not dragged up by "
-            "the near-lid levels): the fetch "
-            "interpretation of section 10.5 predicts a small number for the zone "
-            "arm and a large one for the size arm. The opposite ordering "
-            "falsifies it and implicates the boundary treatment.")
-    return {"zone_arm": zone, "size_arm": size, "how_to_read": note,
+    notes = {
+        "zone": ("the fetch interpretation of section 10.5 predicts a small "
+                 "`range_in_spreads` for the zone arm"),
+        "size": "and a large one for the size arm; the opposite ordering "
+                "falsifies it and implicates the boundary treatment",
+        "cadence": ("the cadence hypothesis (plan of 2026-09-06, section 0) "
+                    "predicts `band_8_16_at_z2h` and `band_16_64_at_z2h` rising "
+                    "monotonically as `x` (the cadence) falls, reaching about 0.97 "
+                    "at 0.5 s; a plateau above 0.82 and below 0.97 is the scheme's "
+                    "own deficit; no movement refutes the hypothesis"),
+    }
+    out: Dict[str, object] = {f"{arm}_arm": arm_stats(arm) for arm in sweep.arms}
+    out["how_to_read"] = (
+        "Compare `range_in_spreads` (and its more robust twin "
+        "`range_in_median_spreads`, which uses the median per-height spread "
+        "instead of the mean and so is not dragged up by the near-lid levels): "
+        + "; ".join(notes[a] for a in sweep.arms if a in notes) + ".")
+    out.update({
             "confounds": [
                 r["key"] for r in rows if r.get("zone_free") == "NO"],
             "confound_note": (
@@ -274,7 +397,8 @@ def verdict(sweep: Sweep, rows: Sequence[Dict[str, object]]) -> Dict[str, object
                 "no cleared cube reaches the region the statistics are taken "
                 "over, and analyse.run additionally excludes any cell solid in "
                 "either run from both averages."),
-            }
+            })
+    return out
 
 
 def build(rundir: Path, sweep: Sweep, metrics_name: str = "v2_metrics.json"
@@ -303,18 +427,29 @@ def write(outdir: Path, sweep: Sweep, summary: Dict[str, object],
     (outdir / "sweep_summary.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="ascii")
 
-    keys = sorted({k for r in rows for k in r})
+    # Flat CSV: the per-height band table is spread into one column per
+    # (band, height) so nothing nested reaches the file.
+    flat: List[Dict[str, object]] = []
+    for r in rows:
+        f = {k: v for k, v in r.items() if k != "bands_by_height"}
+        for name, hb in (r.get("bands_by_height") or {}).items():
+            for band, _ in HEIGHT_BANDS:
+                f[f"{band}@{name}"] = hb.get(band)
+            f[f"z_over_h@{name}"] = hb.get("z_over_h")
+        flat.append(f)
+    keys = sorted({k for r in flat for k in r})
     with (outdir / "sweep_summary.csv").open("w", encoding="ascii",
                                              newline="\n") as fh:
         fh.write(",".join(keys) + "\n")
-        for r in rows:
+        for r in flat:
             fh.write(",".join(
                 "" if r.get(k) is None else
                 (f"{r[k]:.9g}" if isinstance(r[k], float) else str(r[k]))
                 for k in keys) + "\n")
 
     text = "\n".join([
-        f"# V2 sweep '{sweep.name}' -- the falsification table", "",
+        f"# Sweep '{sweep.name}' ({', '.join(ARMS[a]['short'] for a in sweep.arms)})"
+        " -- the falsification table", "",
         sweep.summary(), "",
         arm_tables(sweep, rows),
         "## How the arms moved", "",
@@ -336,29 +471,31 @@ def _plots(outdir: Path, sweep: Sweep, rows: Sequence[Dict[str, object]]) -> Non
     import matplotlib.pyplot as plt
 
     by_key = {r["key"]: r for r in rows}
-    fig, ax = plt.subplots(1, 2, figsize=(10, 4.2), constrained_layout=True)
-    for a, arm, x_of, xlabel in (
-            (ax[0], "zone", lambda p: p.preset.zonewidth / p.preset.dx,
-             r"$N_{\rm rel}$ [cells]"),
-            (ax[1], "size", lambda p: p.preset.interior_extent_h,
-             r"interior extent [$h$]")):
-        pts = [p for p in sweep.arm(arm)
-               if p.key in by_key and by_key[p.key]["tke_deficit_pct"] is not None]
-        pts.sort(key=x_of)
+    arms = list(sweep.arms)
+    n = len(arms)
+    fig, axes = plt.subplots(1, n, figsize=(5 * n, 4.2), constrained_layout=True,
+                             squeeze=False)
+    for a, arm in zip(axes[0], arms):
+        spec = ARMS[arm]
+        x_of = spec["x"]
+        pts = [p for p in _arm_points(sweep, arm, by_key)
+               if by_key[p.key]["tke_deficit_pct"] is not None]
         x = [x_of(p) for p in pts]
         y = [by_key[p.key]["tke_deficit_pct"] for p in pts]
         e = [by_key[p.key]["tke_spread_pct"] or 0.0 for p in pts]
         clear = [by_key[p.key]["zone_free"] == "yes" for p in pts]
         a.errorbar(x, y, yerr=e, fmt="-", color="k", lw=1.0, capsize=3, zorder=1)
-        for xi, yi, ok in zip(x, y, clear):
-            a.plot([xi], [yi], "o" if ok else "s",
+        for xi, yi, ok, p in zip(x, y, clear, pts):
+            cr = p.preset.timeinterp == 2
+            a.plot([xi], [yi], ("o" if ok else "s") if not cr else "D",
                    color="tab:blue" if ok else "tab:red", zorder=2,
-                   label=("building-free zone" if ok else
-                          "buildings in the zone"))
+                   label=("Catmull-Rom in time" if cr else
+                          "building-free zone" if ok else "buildings in the zone"))
         a.axhline(0.0, color="0.6", lw=0.8)
-        a.set_xlabel(xlabel)
+        a.set_xscale(spec["xscale"])
+        a.set_xlabel(spec["xlabel"])
         a.set_ylabel("resolved-TKE deficit above $z/h=2$ [%]")
-        a.set_title({"zone": "P1: zone width", "size": "P2: child size"}[arm])
+        a.set_title(spec["short"])
         a.grid(alpha=0.3)
         handles, labels = a.get_legend_handles_labels()
         seen: Dict[str, object] = {}
@@ -366,35 +503,76 @@ def _plots(outdir: Path, sweep: Sweep, rows: Sequence[Dict[str, object]]) -> Non
             seen.setdefault(ll, hh)
         if seen:
             a.legend(seen.values(), seen.keys(), fontsize=8)
-    fig.suptitle(f"V2 '{sweep.name}': does the deficit track the zone, "
-                 "or the fetch?")
+    fig.suptitle(f"'{sweep.name}': what does the deficit track?")
     fig.savefig(outdir / "sweep_deficit.png", dpi=130)
     plt.close(fig)
 
-    fig, ax = plt.subplots(1, 2, figsize=(10, 4.2), constrained_layout=True)
-    for a, arm, x_of, xlabel in (
-            (ax[0], "zone", lambda p: p.preset.zonewidth / p.preset.dx,
-             r"$N_{\rm rel}$ [cells]"),
-            (ax[1], "size", lambda p: p.preset.interior_extent_h,
-             r"interior extent [$h$]")):
-        pts = [p for p in sweep.arm(arm) if p.key in by_key]
-        pts.sort(key=x_of)
+    fig, axes = plt.subplots(1, n, figsize=(5 * n, 4.2), constrained_layout=True,
+                             squeeze=False)
+    for a, arm in zip(axes[0], arms):
+        spec = ARMS[arm]
+        x_of = spec["x"]
+        pts = _arm_points(sweep, arm, by_key)
         x = [x_of(p) for p in pts]
         for band, style in (("band_16_64", "o-"), ("band_8_16", "s--"),
                             ("band_large", "^:")):
             xy = [(xi, by_key[p.key][band]) for xi, p in zip(x, pts)
-                  if by_key[p.key][band] is not None]
+                  if by_key[p.key][band] is not None and p.preset.timeinterp == 1]
             if xy:
                 a.plot([q[0] for q in xy], [q[1] for q in xy], style,
                        label=band.replace("band_", "").replace("_", "-") + " m")
+            cr = [(xi, by_key[p.key][band]) for xi, p in zip(x, pts)
+                  if by_key[p.key][band] is not None and p.preset.timeinterp == 2]
+            if cr:
+                a.plot([q[0] for q in cr], [q[1] for q in cr], "D", mfc="none",
+                       color="k", label=f"{band.replace('band_', '').replace('_', '-')} m, CR")
         a.axhline(1.0, color="0.6", lw=0.8)
-        a.set_xlabel(xlabel)
+        a.set_xscale(spec["xscale"])
+        a.set_xlabel(spec["xlabel"])
         a.set_ylabel(r"child/parent spectral ratio at $z/h \approx 2$")
+        a.set_title(spec["short"])
         a.grid(alpha=0.3)
         a.legend(fontsize=8)
-    fig.suptitle("V2: the scale-selective part of the deficit")
+    fig.suptitle(f"'{sweep.name}': the scale-selective part of the deficit")
     fig.savefig(outdir / "sweep_spectra.png", dpi=130)
     plt.close(fig)
+
+    if "cadence" in arms:
+        # The C0 deliverable as a picture: every band at every height against
+        # the cadence, one panel per band.
+        pts = _arm_points(sweep, "cadence", by_key)
+        fig, axes = plt.subplots(1, len(HEIGHT_BANDS), figsize=(5 * len(HEIGHT_BANDS), 4.2),
+                                 constrained_layout=True, squeeze=False)
+        for a, (band, label) in zip(axes[0], HEIGHT_BANDS):
+            heights: Dict[str, float] = {}
+            for p in pts:
+                for name, hb in by_key[p.key].get("bands_by_height", {}).items():
+                    heights.setdefault(name, float(hb["z_over_h"]))
+            for name in sorted(heights, key=heights.get):
+                xy = [(ARMS["cadence"]["x"](p), by_key[p.key]["bands_by_height"][name].get(band))
+                      for p in pts if p.preset.timeinterp == 1
+                      and name in by_key[p.key].get("bands_by_height", {})]
+                xy = [q for q in xy if q[1] is not None]
+                if xy:
+                    a.plot([q[0] for q in xy], [q[1] for q in xy], "o-",
+                           label=f"z/h = {heights[name]:.2f}")
+                cr = [(ARMS["cadence"]["x"](p), by_key[p.key]["bands_by_height"][name].get(band))
+                      for p in pts if p.preset.timeinterp == 2
+                      and name in by_key[p.key].get("bands_by_height", {})]
+                cr = [q for q in cr if q[1] is not None]
+                if cr:
+                    a.plot([q[0] for q in cr], [q[1] for q in cr], "D", mfc="none",
+                           color="k", label=f"z/h = {heights[name]:.2f}, CR")
+            a.axhline(1.0, color="0.6", lw=0.8)
+            a.set_xscale("log")
+            a.set_xlabel(ARMS["cadence"]["xlabel"])
+            a.set_ylabel(f"child/parent ratio, {label}")
+            a.set_title(label)
+            a.grid(alpha=0.3)
+            a.legend(fontsize=8)
+        fig.suptitle(f"C0 '{sweep.name}': band ratios against the boundary cadence")
+        fig.savefig(outdir / "sweep_cadence_bands.png", dpi=130)
+        plt.close(fig)
 
 
 def main() -> None:
