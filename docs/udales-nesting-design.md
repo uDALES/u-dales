@@ -1022,6 +1022,17 @@ mesoscale parent and is explicitly supported, with three consequences.
    V1 carved a plaza out of the parent geometry to achieve it, which worked but was unnecessary,
    and which constrained the child sizes and zone widths a later sweep could reach — a parent
    modified for one child fits only that child. Clear the child instead.
+
+   **A matched-geometry control is not always constructible, and that is a geometric fact rather
+   than an oversight.** Clearing the child requires dropping every cube within the zone depth of a
+   face, so a dropped cube may not occupy more than the building period allows: at V1's spacing
+   that is 26 m of clearance plus an 8 m half-width at each end, against a 32 m period. A regular
+   array satisfies it; a **staggered** array does not, at any child size, because its two column
+   families sit exactly half a period apart, so one family always lands in a blocked window and
+   clearing it would remove buildings from the analysis interior rather than only from the zone.
+   `Preset.validate()` refuses such a configuration rather than silently producing one. The
+   consequence for V4 is that its staggered-parent case has no matched-geometry control of its own
+   and must be judged against the V1 child.
 2. **The imposed near-surface profile will not be in equilibrium with the child's surface.** The
    parent's wind near the ground reflects its own roughness and (absent) canopy; the child's zone
    has only ground roughness, and the interior has buildings. An internal boundary layer must
@@ -1239,8 +1250,8 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 |---|---|---|---|
 | V1 | Does matched LES-to-LES nesting reproduce the parent? | Big Brother: periodic parent, writer dumps zone slabs, sub-domain child at matched resolution | **DONE — §10.5.** Mean flow yes ($0.008\,u_\star$); canopy turbulence yes (1–2 %); above the canopy a real $\approx10\,\%$ resolved-TKE deficit from insufficient fetch |
 | V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,9,12,16\}$ at fixed child size, plus a child-size arm at fixed zone width. The upper ramp is 16 rather than 20 cells because the V1 parent's plaza bounds it; clearing the *child* instead (§9.4) removes that bound for future sweeps | reflection and TKE-damping curves vs width. **Reframed after V1** as a falsification test: if the deficit is fetch-limited rather than boundary-limited, zone width should barely move it. Pair with a child-size sweep at fixed zone width, which measures the fetch directly |
-| V3 | **Parent without buildings** | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against variants with a 0/5/15-cell standoff | the adjustment length (§9.4), and confirmation that a standoff lengthens rather than shortens it |
-| V4 | **Different parent geometry** | parent with a different building layout | interior statistics vs S3; confirms the interior is insensitive to the mismatch beyond the adjustment fetch |
+| V3 | **Parent without buildings** | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against 0/5/15/40-cell standoffs | the adjustment length (§9.4), measured both from the zone edge and from the first building face — the latter is the discriminating one, since a standoff trivially moves the canopy downstream. §9.4 predicts a standoff *lengthens* adjustment; this row exists to test that, and may refute it |
+| V4 | **Different parent geometry** | parent with a different building layout, child identical to V1's | interior statistics against the **V1** child (not against V4's own parent sub-region, which is a different flow); measures whether the interior is insensitive to the mismatch beyond the adjustment fetch |
 | **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | mean profiles and spectra vs a matched-resolution reference. **This is the use case nesting exists for and it is the last one to be tested — see the note below.** |
 | V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | a fetch curve for uDALES, compared against the paper's ≤4/≤30 guidance; **go/no-go on C6** |
 | V6 | Does mass drift over long runs? | 10⁵-step run | `divtot` bounded, not drifting |
