@@ -295,28 +295,36 @@ class _NestingCase(unittest.TestCase):
 
 
 class _I1Base(_NestingCase):
-    """Shared plumbing: run the same directory twice, once per executable."""
+    """Shared plumbing: run the same directory twice, once per executable.
+
+    The baseline is built here, by ``_baseline.ensure_baseline``, from
+    ``UDALES_BASELINE_REF`` (default ``origin/master``) with the compiler,
+    build type and library paths read back from the build under test -- so a
+    Debug branch build is compared against a Debug baseline and a Release one
+    against a Release one, and the test no longer depends on an uncommitted
+    binary.  ``UDALES_BASELINE`` overrides it with a ready-made executable.
+    """
 
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        if not UDALES_BASELINE.is_file():
-            raise unittest.SkipTest(f"baseline executable not found at {UDALES_BASELINE}")
-        # `build/u-dales.baseline` is a Release build.  Comparing a Debug build
-        # against it measures the optimisation level, not the branch, so I1 is
-        # only meaningful for a Release UDALES_BUILD.  Every other test in this
-        # file is self-contained and should be run against both.
-        if "debug" in str(UDALES_BUILD).lower():
-            raise unittest.SkipTest(
-                "I1 compares against the Release baseline build/u-dales.baseline; "
-                f"UDALES_BUILD = {UDALES_BUILD} looks like a Debug build")
+        try:
+            cls.baseline = _baseline.ensure_baseline(UDALES_BUILD)
+        except _baseline.BaselineError as exc:
+            raise RuntimeError(f"I1 has no baseline to compare against: {exc}") from exc
         cls._runs: Dict[str, Tuple[Path, str]] = {}
 
     @staticmethod
     def _filtered_stdout(text: str) -> List[str]:
-        """Drop everything that legitimately varies between two identical runs."""
+        """Drop everything that legitimately varies between two identical runs.
+
+        gfortran's runtime diagnostics ("At line N of file /abs/path/x.f90")
+        embed the source path, and the baseline is compiled from a different
+        tree by construction, so the path is reduced to the file name.
+        """
         drop = re.compile(r"Time of Day|CPU time|Elapsed|wall|WALL|unit =|^\s*$")
-        return [ln.rstrip() for ln in text.splitlines() if not drop.search(ln)]
+        path = re.compile(r"(At line \d+ of file )\S*/")
+        return [path.sub(r"\1", ln.rstrip()) for ln in text.splitlines() if not drop.search(ln)]
 
     @staticmethod
     def _split_divergence(lines: List[str]) -> Tuple[List[str], List[Tuple[float, float]]]:
@@ -369,7 +377,7 @@ class TestI1NoOpSmallCase(_I1Base):
         cls.dirs: Dict[str, Path] = {}
         cls.out: Dict[str, str] = {}
         cls.error: Optional[str] = None
-        for label, exe in (("base_a", UDALES_BASELINE), ("base_b", UDALES_BASELINE),
+        for label, exe in (("base_a", cls.baseline), ("base_b", cls.baseline),
                            ("head", UDALES_BUILD)):
             run_dir = cls.root / f"i1_small_{label}"
             mcf.write_case(
@@ -447,7 +455,7 @@ class TestI1NoOpExistingCase(_I1Base):
         cls.dirs: Dict[str, Path] = {}
         cls.out: Dict[str, str] = {}
         cls.error: Optional[str] = None
-        for label, exe in (("base_a", UDALES_BASELINE), ("base_b", UDALES_BASELINE),
+        for label, exe in (("base_a", cls.baseline), ("base_b", cls.baseline),
                            ("head", UDALES_BUILD)):
             run_dir = cls.root / f"i1_case_{label}"
             shutil.copytree(cls.case_source, run_dir)

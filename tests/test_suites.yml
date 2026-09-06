@@ -156,11 +156,35 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
+      # The no-op guarantee on a small periodic case, against a baseline the
+      # driver builds itself from origin/master with the compiler, build type
+      # and libraries of the build under test (tests/integration/nesting/
+      # _baseline.py) -- the same idea as the regression harness above, in a
+      # detached worktree rather than an in-place checkout. ~1 min of extra
+      # build on a runner. platform: linux for the same reason as the
+      # regression suite: master does not yet configure under Homebrew's CMake.
+      - label: "nesting: I1 no-op guarantee (small case, baseline built from origin/master)"
+        class: supported
+        kind: integration
+        component: nesting
+        platform: linux
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI1NoOpSmallCase"
 
   # The in-solver unit runmodes are class: supported and cost: fast, and they
   # need only what CI already builds, so they belong in the merge gate. They
   # sat in `nesting` -- reachable only from `all` -- which meant CI compiled
   # modnesting and then ran none of it.
+  #
+  # UDALES_REQUIRE_LAUNCHER=1 on every suite here: in the merge gate an MPI
+  # launcher that cannot start a one-rank job is a FAILURE. Without it the
+  # drivers raise SkipTest, a skip-only run exits 0, and run_tests.py prints
+  # PASS for a suite that never ran. Ad-hoc runs (no variable) keep the skip.
   nesting-unit:
     suites:
       - label: "nesting: weights unit runmode 1006 (U1-U7)"
@@ -302,7 +326,6 @@ groups:
         platform: hpc
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
@@ -314,7 +337,6 @@ groups:
         platform: hpc
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
@@ -326,7 +348,6 @@ groups:
         platform: hpc
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
@@ -338,7 +359,6 @@ groups:
         platform: hpc
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
@@ -350,11 +370,21 @@ groups:
         platform: hpc
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
           - "TestI6RestartParity"
+      - label: "nesting: I6 restart parity on 2x2 with a cube"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI6CubeRestartParity2x2"
       - label: "nesting: I7 zone isolation"
         class: experimental
         kind: integration
@@ -362,7 +392,6 @@ groups:
         platform: hpc
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
@@ -374,7 +403,6 @@ groups:
         platform: hpc
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
@@ -386,7 +414,6 @@ groups:
         platform: hpc
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
@@ -398,7 +425,6 @@ groups:
         platform: hpc
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
