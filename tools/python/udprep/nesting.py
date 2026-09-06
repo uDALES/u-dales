@@ -32,21 +32,30 @@ Interpolation
 -------------
 The prolongation is the tensor product of
 
-* piecewise-constant distribution in the two directions **tangential** to the
-  face, so that a parent face flux is shared over the child faces it contains
-  in exact proportion to their areas (the defining property, design §1.3), and
+* a conservative reconstruction in the two directions **tangential** to the
+  face -- by default piecewise **linear** within each parent cell, with the
+  slope from central differences of the neighbouring parent cells (one-sided
+  at the ends and next to a solid cell, zero when both neighbours are solid),
+  no limiter; ``prolongation="constant"`` gives the piecewise-constant
+  distribution of the original scheme.  Either way the child face values
+  integrate to the parent face flux exactly, because the child cells nest in
+  the parent cells (:func:`check_alignment`) and a linear term integrates to
+  zero over the parent cell -- the defining property, design §1.3; and
 * linear interpolation in the direction **normal** to the face, between the two
   bracketing parent faces.
 
-A child face that is coplanar with a parent face therefore takes the parent
-value exactly, and the sum of the child fluxes over a parent face equals the
-parent face flux to round-off.  Because the normal direction is interpolated
-linearly rather than injected, the child target additionally reproduces the
-parent's discrete divergence *cell by cell*, so a discretely solenoidal parent
-gives a discretely solenoidal child target.  The design only requires the
-weaker statement that the divergence integrated over a parent cell is exact;
-this scheme satisfies both, and is second-order rather than first-order in the
-normal direction.
+The sum of the child fluxes over a parent face equals the parent face flux to
+round-off, so :math:`\Phi` and the stored ``flux_residual`` are the same for
+both reconstructions, and the divergence integrated over a parent cell is
+preserved, which is what the design requires.  The **constant** scheme in
+addition reproduces the parent's discrete divergence *cell by cell* and the
+parent value exactly on a coplanar child face; the **linear** scheme gives
+those up in exchange for removing the staircase a piecewise-constant
+prolongation leaves in a sheared profile (a two-level sawtooth of
+:math:`\pm\,\partial_z u\,\Delta z_c/2` at ratio 2, which the V0
+refinement run saw as :math:`\pm 0.1 u_*` in the child's interior mean).
+The interpolant stays linear in the parent data, as the time interpolant
+must (spec §4, ``nest_timeinterp``).
 
 Analytic field
 --------------
@@ -92,6 +101,8 @@ __all__ = [
     "MAX_TEMPORAL_REFINEMENT",
     "OPTIONAL_GLOBAL_ATTRIBUTES",
     "PARENT_DT_RTOL",
+    "PROLONGATIONS",
+    "DEFAULT_PROLONGATION",
     "REQUIRED_GLOBAL_ATTRIBUTES",
     "REQUIRED_GLOBAL_ATTRIBUTES_V2",
     "SCHEMA_VERSION",
@@ -140,6 +151,7 @@ __all__ = [
     "slab_indices",
     "slab_shape",
     "slabs_from_fields",
+    "stagger_masks_from_ibm",
     "slabs_from_parent",
     "stored_coordinates",
     "sync_initial_condition",
@@ -249,6 +261,10 @@ _COORD_VARIABLES = ("xf", "xh", "yf", "yh", "zf", "zh")
 #: relative tolerance.  Loose enough for a parent whose dump times carry
 #: round-off, tight enough to catch a cadence that is simply wrong.
 PARENT_DT_RTOL = 1.0e-2
+
+#: Tangential reconstructions :func:`conservative_interpolate` offers.
+PROLONGATIONS = ("constant", "linear")
+DEFAULT_PROLONGATION = "linear"
 
 #: Snapping tolerance for "this child face is coplanar with a parent face",
 #: relative to the smallest parent spacing.  The same number is the alignment
@@ -550,6 +566,88 @@ def _apply_normal(arr: np.ndarray, axis: int, idx: np.ndarray, wlo: np.ndarray) 
     return lo * w + hi * (1.0 - w)
 
 
+def _along(axis: int, ndim: int, values: np.ndarray) -> np.ndarray:
+    """Reshape a 1-D array so it broadcasts along ``axis`` of an ``ndim`` array."""
+    shape = [1] * ndim
+    shape[axis] = -1
+    return np.asarray(values, dtype=np.float64).reshape(shape)
+
+
+def _tangential_slopes(
+    arr: np.ndarray, axis: int, centres: np.ndarray, mask: Optional[np.ndarray]
+) -> np.ndarray:
+    """Per-parent-cell slope along a cell-centred axis, for the linear reconstruction.
+
+    Central differences of the neighbouring cell values over the distance
+    between their centres; one-sided at the two ends.  With ``mask`` (True
+    where the parent cell is fluid) a solid neighbour is not used: the slope
+    is one-sided from the fluid neighbour, zero when both are solid, and zero
+    in a solid cell itself -- so the near-zero in-building velocity of an IBM
+    parent never leaks into the fluid cell beside it, and the reconstruction
+    there degrades to first order rather than to a wrong slope.  No limiter:
+    the result is linear in ``arr``.
+    """
+    n = arr.shape[axis]
+    slope = np.zeros_like(arr)
+    if n < 2:
+        return slope
+    c = _along(axis, arr.ndim, centres)
+    fwd = np.diff(arr, axis=axis) / np.diff(c, axis=axis)      # between k and k+1
+    interior = [slice(None)] * arr.ndim
+    first = [slice(None)] * arr.ndim
+    last = [slice(None)] * arr.ndim
+    interior[axis] = slice(1, n - 1)
+    first[axis] = slice(0, 1)
+    last[axis] = slice(n - 1, n)
+    head = [slice(None)] * arr.ndim
+    tail = [slice(None)] * arr.ndim
+    head[axis] = slice(0, n - 2)          # fwd[k-1] for interior k
+    tail[axis] = slice(1, n - 1)          # fwd[k]   for interior k
+    if n > 2:
+        span = (np.take(c, np.arange(2, n), axis=axis) - np.take(c, np.arange(0, n - 2), axis=axis))
+        central = (np.take(arr, np.arange(2, n), axis=axis)
+                   - np.take(arr, np.arange(0, n - 2), axis=axis)) / span
+        slope[tuple(interior)] = central
+    slope[tuple(first)] = fwd[tuple(first)]
+    slope[tuple(last)] = fwd[tuple(last)] if n == 2 else np.take(fwd, [n - 2], axis=axis)
+    if mask is not None:
+        fluid = np.asarray(mask, dtype=bool)
+        left = np.zeros_like(fluid)
+        right = np.zeros_like(fluid)
+        left[tuple(interior)] = np.take(fluid, np.arange(0, n - 2), axis=axis)
+        left[tuple(last)] = np.take(fluid, [n - 2], axis=axis)
+        right[tuple(interior)] = np.take(fluid, np.arange(2, n), axis=axis)
+        right[tuple(first)] = np.take(fluid, [1], axis=axis)
+        bwd = np.zeros_like(arr)
+        fwd_full = np.zeros_like(arr)
+        bwd[tuple(interior)] = fwd[tuple(head)]
+        bwd[tuple(last)] = np.take(fwd, [n - 2], axis=axis)
+        fwd_full[tuple(interior)] = fwd[tuple(tail)]
+        fwd_full[tuple(first)] = fwd[tuple(first)]
+        slope = np.where(left & right, slope,
+                         np.where(left, bwd, np.where(right, fwd_full, 0.0)))
+        slope = np.where(fluid, slope, 0.0)
+    return slope
+
+
+def _apply_tangential(
+    arr: np.ndarray,
+    axis: int,
+    idx: np.ndarray,
+    target: np.ndarray,
+    centres: np.ndarray,
+    prolongation: str,
+    mask: Optional[np.ndarray],
+) -> np.ndarray:
+    """Distribute parent cell values onto child points along a tangential axis."""
+    out = np.take(arr, idx, axis=axis)
+    if prolongation == "linear":
+        slope = _tangential_slopes(arr, axis, centres, mask)
+        offset = _along(axis, arr.ndim, target - centres[idx])
+        out = out + np.take(slope, idx, axis=axis) * offset
+    return out
+
+
 def conservative_interpolate(
     parent: NestGrid,
     field: np.ndarray,
@@ -557,6 +655,8 @@ def conservative_interpolate(
     x: np.ndarray,
     y: np.ndarray,
     z: np.ndarray,
+    prolongation: str = DEFAULT_PROLONGATION,
+    parent_mask: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     """Interpolate one parent velocity component onto child faces conservatively.
 
@@ -572,7 +672,17 @@ def conservative_interpolate(
     x, y, z
         Target coordinates, each already at ``component``'s own stagger: face
         coordinates in the component's normal direction, cell-centre
-        coordinates in the other two.
+        coordinates in the other two.  The tangential targets must be the
+        child cell centres (midpoints), which is what makes the linear
+        reconstruction conservative.
+    prolongation
+        ``"linear"`` (default) or ``"constant"``: the tangential
+        reconstruction, see the module docstring.
+    parent_mask
+        Optional fluid mask of the parent at ``field``'s stagger (True =
+        fluid), shape of ``field``; steers the slopes of the linear
+        reconstruction away from solid cells (:func:`_tangential_slopes`).
+        Ignored by the constant scheme.
 
     Returns
     -------
@@ -581,28 +691,71 @@ def conservative_interpolate(
 
     Notes
     -----
-    Piecewise-constant in the two tangential directions (so each parent face
-    flux is shared over the child faces it contains in proportion to their
-    areas) and linear in the normal direction (so the child target reproduces
-    the parent's discrete divergence).  See the module docstring.
+    Conservative in the two tangential directions (each parent face flux is
+    shared over the child faces it contains, to round-off) and linear in the
+    normal direction.  The tangential axes are applied first so the parent
+    mask stays on the parent stagger while it is needed; the three 1-D
+    operators act on separate axes, so the order does not change the result.
     """
     if component not in COMPONENTS:
         raise ConfigurationError(f"unknown velocity component {component!r}")
+    if prolongation not in PROLONGATIONS:
+        raise ConfigurationError(
+            f"unknown prolongation {prolongation!r}; expected one of {PROLONGATIONS}"
+        )
     field = np.asarray(field, dtype=np.float64)
     expected = parent.component_shape(component)
     if field.shape != expected:
         raise ConfigurationError(
             f"parent field for {component!r} has shape {field.shape}, expected {expected}"
         )
+    mask = None
+    if parent_mask is not None and prolongation == "linear":
+        mask = np.asarray(parent_mask, dtype=bool)
+        if mask.shape != expected:
+            raise ConfigurationError(
+                f"parent mask for {component!r} has shape {mask.shape}, expected {expected}"
+            )
+    targets = [np.asarray(t, dtype=np.float64) for t in (x, y, z)]
     out = field
-    for axis, target in enumerate((x, y, z)):
-        target = np.asarray(target, dtype=np.float64)
-        faces = parent.edges(axis)
-        if _IS_FACE[component][axis]:
-            idx, wlo = _normal_map(faces, target)
-            out = _apply_normal(out, axis, idx, wlo)
-        else:
-            out = np.take(out, _tangential_map(faces, target), axis=axis)
+    tangential = [ax for ax in range(3) if not _IS_FACE[component][ax]]
+    normal = [ax for ax in range(3) if _IS_FACE[component][ax]]
+    for axis in tangential:
+        idx = _tangential_map(parent.edges(axis), targets[axis])
+        out = _apply_tangential(out, axis, idx, targets[axis], parent.centres(axis),
+                                prolongation, mask)
+        if mask is not None:
+            mask = np.take(mask, idx, axis=axis)
+    for axis in normal:
+        idx, wlo = _normal_map(parent.edges(axis), targets[axis])
+        out = _apply_normal(out, axis, idx, wlo)
+    return out
+
+
+def stagger_masks_from_ibm(fluid: np.ndarray) -> Dict[str, np.ndarray]:
+    """Fluid masks at the three velocity staggers from a cell-centred IBM mask.
+
+    ``fluid`` has shape ``(itot, jtot, ktot)``, True where the cell is fluid.
+    A face is fluid when both cells it separates are fluid, and a domain
+    boundary face when the one cell behind it is -- the solver's ``IIu``,
+    ``IIv``, ``IIw``.  Use the result as ``parent_masks`` of
+    :func:`slabs_from_parent` and friends.
+    """
+    fluid = np.asarray(fluid, dtype=bool)
+    if fluid.ndim != 3:
+        raise ConfigurationError(
+            f"the IBM mask must be a 3-D (itot, jtot, ktot) array, got shape {fluid.shape}"
+        )
+    out: Dict[str, np.ndarray] = {}
+    for component, axis in zip(COMPONENTS, range(3)):
+        pad = [(0, 0)] * 3
+        pad[axis] = (1, 1)
+        padded = np.pad(fluid, pad, mode="edge")
+        lo = [slice(None)] * 3
+        hi = [slice(None)] * 3
+        lo[axis] = slice(0, fluid.shape[axis] + 1)
+        hi[axis] = slice(1, fluid.shape[axis] + 2)
+        out[component] = padded[tuple(lo)] & padded[tuple(hi)]
     return out
 
 
@@ -613,6 +766,8 @@ def interpolate_child_fields(
     parent_w: np.ndarray,
     child: NestGrid,
     allow_misaligned: Optional[bool] = False,
+    prolongation: str = DEFAULT_PROLONGATION,
+    parent_masks: Optional[Mapping[str, np.ndarray]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Interpolate a full parent velocity field onto the whole child grid.
 
@@ -620,14 +775,17 @@ def interpolate_child_fields(
     itself only ever interpolates the zone slabs (:func:`slabs_from_parent`).
     The grids must nest (:func:`check_alignment`); ``allow_misaligned=True``
     logs the violation and proceeds, ``None`` means the caller has already
-    checked.
+    checked.  ``prolongation`` and ``parent_masks`` (per component, see
+    :func:`stagger_masks_from_ibm`) are passed on.
     """
     if allow_misaligned is not None:
         check_alignment(parent, child, allow_misaligned=allow_misaligned)
     out = []
     for component, pf in zip(COMPONENTS, (parent_u, parent_v, parent_w)):
         coords = [child.component_coords(component, ax) for ax in range(3)]
-        out.append(conservative_interpolate(parent, pf, component, *coords))
+        mask = None if parent_masks is None else parent_masks.get(component)
+        out.append(conservative_interpolate(parent, pf, component, *coords,
+                                            prolongation=prolongation, parent_mask=mask))
     return tuple(out)
 
 
@@ -756,6 +914,8 @@ def slabs_from_parent(
     child: NestGrid,
     nzone: int,
     allow_misaligned: Optional[bool] = False,
+    prolongation: str = DEFAULT_PROLONGATION,
+    parent_masks: Optional[Mapping[str, np.ndarray]] = None,
 ) -> Dict[str, np.ndarray]:
     """Interpolate the parent onto the twelve zone slabs, for one time level.
 
@@ -763,6 +923,9 @@ def slabs_from_parent(
     proportional to the zone rather than to the child domain.  The grids must
     nest (:func:`check_alignment`); ``allow_misaligned=True`` logs the
     violation and proceeds, ``None`` means the caller has already checked.
+    ``prolongation`` and ``parent_masks`` (per component, see
+    :func:`stagger_masks_from_ibm`) are passed on to
+    :func:`conservative_interpolate`.
     """
     _check_nzone(child, nzone)
     if allow_misaligned is not None:
@@ -772,8 +935,10 @@ def slabs_from_parent(
     for face in FACES:
         for component in COMPONENTS:
             coords = slab_coordinates(child, nzone, face, component)
+            mask = None if parent_masks is None else parent_masks.get(component)
             block = conservative_interpolate(
-                parent, parent_fields[component], component, *coords
+                parent, parent_fields[component], component, *coords,
+                prolongation=prolongation, parent_mask=mask,
             )
             slabs[f"{component}_{face}"] = np.ascontiguousarray(
                 block.transpose(_slab_transpose(face))
@@ -818,11 +983,14 @@ def initial_fields_from_parent(
     parent_w: np.ndarray,
     child: NestGrid,
     allow_misaligned: Optional[bool] = False,
+    prolongation: str = DEFAULT_PROLONGATION,
+    parent_masks: Optional[Mapping[str, np.ndarray]] = None,
 ) -> Dict[str, np.ndarray]:
     """Conservatively interpolate a parent field onto the whole child grid."""
     return initial_fields_from_fields(
         child, *interpolate_child_fields(parent, parent_u, parent_v, parent_w, child,
-                                         allow_misaligned=allow_misaligned)
+                                         allow_misaligned=allow_misaligned,
+                                         prolongation=prolongation, parent_masks=parent_masks)
     )
 
 
@@ -1257,6 +1425,8 @@ def nesting_data_from_parent(
     fields: Sequence[Tuple[np.ndarray, np.ndarray, np.ndarray]],
     initial: bool = False,
     allow_misaligned: bool = False,
+    prolongation: str = DEFAULT_PROLONGATION,
+    parent_masks: Optional[Mapping[str, np.ndarray]] = None,
     **kwargs: Any,
 ) -> NestingData:
     """Build a :class:`NestingData` by conservative interpolation of a parent.
@@ -1281,13 +1451,15 @@ def nesting_data_from_parent(
         )
     check_alignment(parent, child, allow_misaligned=allow_misaligned)
     per_time = [slabs_from_parent(parent, *fields[n], child=child, nzone=nzone,
-                                  allow_misaligned=None)
+                                  allow_misaligned=None, prolongation=prolongation,
+                                  parent_masks=parent_masks)
                 for n in range(times.size)]
     slabs = {name: np.stack([s[name] for s in per_time], axis=0) for name in SLAB_VARIABLES}
     if initial:
         kwargs.setdefault(
             "initial_fields",
-            initial_fields_from_parent(parent, *fields[0], child=child, allow_misaligned=None),
+            initial_fields_from_parent(parent, *fields[0], child=child, allow_misaligned=None,
+                                       prolongation=prolongation, parent_masks=parent_masks),
         )
     kwargs.setdefault("parent_dx", float(np.min(np.diff(parent.xh))))
     kwargs.setdefault("parent_dy", float(np.min(np.diff(parent.yh))))

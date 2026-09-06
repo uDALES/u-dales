@@ -60,6 +60,7 @@ from udprep.nesting import (  # noqa: E402
     check_alignment,
     check_refinement,
     check_time_axis,
+    conservative_interpolate,
     correction_report,
     discrete_divergence,
     face_masks_from_ibm,
@@ -76,6 +77,7 @@ from udprep.nesting import (  # noqa: E402
     refinement_ratios_by_axis,
     refinement_verdict,
     slabs_from_parent,
+    stagger_masks_from_ibm,
     stored_coordinates,
     validate_nesting_file,
     verify_stored_residual,
@@ -84,8 +86,10 @@ from udprep.nesting import (  # noqa: E402
 
 from test_nesting import (  # noqa: E402
     closed_box_fields,
+    face_flux_over_parent_cells,
     make_grids,
     random_nesting_data,
+    random_parent_fields,
     solenoidal_parent_fields,
 )
 
@@ -141,9 +145,15 @@ class TestW1Alignment(unittest.TestCase):
         for axis in ("x", "y", "z"):
             self.assertEqual(report[axis], 0.0)
         pu, pv, pw = solenoidal_parent_fields(parent)
-        cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child)
+        cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child, prolongation="constant")
         div = float(np.max(np.abs(discrete_divergence(child, cu, cv, cw))))
         self.assertLess(div, 1e-15)          # the review measured 3e-17
+        # the linear scheme keeps the parent-cell integral, not the cell-wise value
+        cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child, prolongation="linear")
+        vol = child.dx[:, None, None] * child.dy[None, :, None] * child.dzf[None, None, :]
+        per_parent = (discrete_divergence(child, cu, cv, cw) * vol).reshape(
+            8, 2, 6, 2, 6, 2).sum(axis=(1, 3, 5))
+        self.assertLess(float(np.max(np.abs(per_parent))), 1e-12)
 
     def test_ratio_one_and_a_half_is_rejected_on_every_entry_point(self):
         parent = NestGrid.uniform(8, 6, 6, 40.0, 30.0, 30.0)
@@ -193,7 +203,8 @@ class TestW1Alignment(unittest.TestCase):
             with self.subTest(case=label):
                 with self.assertLogs("udprep.nesting", level=logging.WARNING) as logs:
                     cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child,
-                                                          allow_misaligned=True)
+                                                          allow_misaligned=True,
+                                                          prolongation="constant")
                 self.assertTrue(any("not nested" in m for m in logs.output))
                 div = float(np.max(np.abs(discrete_divergence(child, cu, cv, cw))))
                 print(f"\n[W1] {label}: child divmax = {div:.3e} s-1 "
@@ -204,7 +215,8 @@ class TestW1Alignment(unittest.TestCase):
             child = NestGrid.uniform(16, 12, 12, 40.0, 30.0, 30.0)
             with self.assertLogs("udprep.nesting", level=logging.WARNING):
                 cu, cv, cw = interpolate_child_fields(stretched, su, sv, sw, child,
-                                                      allow_misaligned=True)
+                                                      allow_misaligned=True,
+                                                      prolongation="constant")
             div = float(np.max(np.abs(discrete_divergence(child, cu, cv, cw))))
             sscale = velocity_over_spacing(stretched, su, sv, sw)
             print(f"[W1] stretched parent: child divmax = {div:.3e} s-1 "
@@ -749,6 +761,135 @@ class TestW7Tidy(unittest.TestCase):
         self.assertIn("lnesting", SPEC.fields)
         self.assertIs(SPEC.defaults["lnesting"], False)
         self.assertEqual(SPEC.defaults["nest_timeinterp"], 2)
+
+
+# --------------------------------------------------------------------------- #
+# W8 -- piecewise-linear prolongation
+# --------------------------------------------------------------------------- #
+
+
+class TestW8LinearProlongation(unittest.TestCase):
+    """W8: linear within a parent cell, conservative to round-off, no staircase."""
+
+    def test_a_field_linear_in_z_prolongs_without_a_staircase(self):
+        for r in (2, 4):
+            with self.subTest(ratio=r):
+                parent = NestGrid.uniform(4, 4, 8, 40.0, 40.0, 32.0)
+                child = NestGrid.uniform(4 * r, 4 * r, 8 * r, 40.0, 40.0, 32.0)
+                a, b = 1.5, 0.07
+                pu = np.broadcast_to((a + b * parent.zf)[None, None, :],
+                                     parent.component_shape("u")).copy()
+                pv = np.broadcast_to((2.0 - 0.5 * b * parent.zf)[None, None, :],
+                                     parent.component_shape("v")).copy()
+                pw = np.zeros(parent.component_shape("w"))
+                slabs = slabs_from_parent(parent, pu, pv, pw, child=child, nzone=2)
+                # u on the x-faces of the west slab, (yf, zf, nzh); v on the same
+                # slab, (yh, zf, nz): both must be the linear profile at the
+                # child's own zf, to round-off
+                want_u = (a + b * child.zf)[None, :, None]
+                want_v = (2.0 - 0.5 * b * child.zf)[None, :, None]
+                err_u = float(np.max(np.abs(slabs["u_west"] - want_u)))
+                err_v = float(np.max(np.abs(slabs["v_west"] - want_v)))
+                self.assertLess(err_u, 1e-13)
+                self.assertLess(err_v, 1e-13)
+                # and the staircase the constant scheme leaves, for the record
+                const = slabs_from_parent(parent, pu, pv, pw, child=child, nzone=2,
+                                          prolongation="constant")
+                stair = float(np.max(np.abs(const["u_west"] - want_u)))
+                print(f"\n[W8] r = {r}: linear max error {err_u:.1e}, constant staircase "
+                      f"{stair:.4f} m/s = du/dz dz_c (r-1)/2 = {b * child.dzf[0] * (r - 1) / 2:.4f}")
+                self.assertAlmostEqual(stair, b * child.dzf[0] * (r - 1) / 2, places=12)
+
+    def test_fluxes_and_phi_match_the_constant_scheme_to_round_off(self):
+        for ratios in ((2, 3, 2), (4, 1, 2)):
+            with self.subTest(ratios=ratios):
+                parent, child = make_grids(nx=6, ny=6, nz=4, rx=ratios[0], ry=ratios[1],
+                                           rz=ratios[2])
+                fields = [solenoidal_parent_fields(parent, seed=s) for s in (81, 82)]
+                fields[1] = tuple(f + 0.3 * g for f, g in
+                                  zip(fields[1], random_parent_fields(parent, seed=99)))
+                out = {}
+                for scheme in ("constant", "linear"):
+                    data = nesting_data_from_parent(parent, child, 3, [0.0, 10.0], fields,
+                                                    prolongation=scheme)
+                    phi_before = net_volume_flux(data).copy()
+                    apply_divergence_correction(data)
+                    out[scheme] = (phi_before, data.flux_residual.copy(), data)
+                scale = fluid_face_area(out["linear"][2]) * max(
+                    np.max(np.abs(a)) for f in fields for a in f)
+                np.testing.assert_allclose(out["linear"][0], out["constant"][0],
+                                           rtol=0, atol=1e-13 * scale)
+                np.testing.assert_allclose(out["linear"][1], out["constant"][1],
+                                           rtol=0, atol=1e-13 * scale)
+                # every parent-face integral is preserved by the linear scheme
+                for component, pf in zip(COMPONENTS, fields[1]):
+                    coords = [child.component_coords(component, ax) for ax in range(3)]
+                    cf = conservative_interpolate(parent, pf, component, *coords,
+                                                  prolongation="linear")
+                    got = face_flux_over_parent_cells(child, cf, component, ratios)
+                    area = {"u": parent.dy[None, :, None] * parent.dzf[None, None, :],
+                            "v": parent.dx[:, None, None] * parent.dzf[None, None, :],
+                            "w": parent.dx[:, None, None] * parent.dy[None, :, None]}[component]
+                    np.testing.assert_allclose(got, pf * area, rtol=1e-13, atol=1e-13)
+
+    def test_a_solid_neighbour_does_not_pollute_the_slope(self):
+        parent = NestGrid.uniform(6, 6, 4, 60.0, 60.0, 40.0)
+        child = NestGrid.uniform(12, 12, 8, 60.0, 60.0, 40.0)
+        b = 0.1
+        pu = np.broadcast_to((b * parent.yf)[None, :, None], parent.component_shape("u")).copy()
+        fluid = np.ones((6, 6, 4), dtype=bool)
+        fluid[:, 3, :] = False                          # a solid wall across y
+        masks = stagger_masks_from_ibm(fluid)
+        pu[~masks["u"]] = 0.0                           # the IBM parent has u = 0 in the wall
+        coords = [child.component_coords("u", ax) for ax in range(3)]
+        polluted = conservative_interpolate(parent, pu, "u", *coords)
+        guarded = conservative_interpolate(parent, pu, "u", *coords, parent_mask=masks["u"])
+        want = b * child.yf
+        # child cells 4, 5 lie in parent cell 2, the fluid neighbour of the wall
+        self.assertLess(float(np.max(np.abs(guarded[:, 4:6, :] - want[None, 4:6, None]))), 1e-13)
+        self.assertGreater(float(np.max(np.abs(polluted[:, 4:6, :] - want[None, 4:6, None]))), 0.1)
+        np.testing.assert_array_equal(guarded[:, 6:8, :], 0.0)     # the wall itself stays 0
+        # still conservative
+        got = face_flux_over_parent_cells(child, guarded, "u", (2, 2, 2))
+        area = parent.dy[None, :, None] * parent.dzf[None, None, :]
+        np.testing.assert_allclose(got, pu * area, rtol=1e-13, atol=1e-13)
+        # the stagger masks follow the solver's IIu/IIv/IIw rule
+        self.assertFalse(masks["v"][:, 3, :].any() or masks["v"][:, 4, :].any())
+        self.assertTrue(masks["v"][:, 2, :].all() and masks["v"][:, 5, :].all())
+        self.assertEqual(masks["u"].shape, parent.component_shape("u"))
+
+    def test_log_profile_interior_mean_error_constant_vs_linear(self):
+        ustar, kappa, z0 = 0.3, 0.4, 0.1
+        parent = NestGrid.uniform(4, 4, 16, 40.0, 40.0, 32.0)
+        child = NestGrid.uniform(8, 8, 32, 40.0, 40.0, 32.0)
+        profile = lambda z: (ustar / kappa) * np.log(z / z0)       # noqa: E731
+        pu = np.broadcast_to(profile(parent.zf)[None, None, :], parent.component_shape("u")).copy()
+        pv = np.zeros(parent.component_shape("v"))
+        pw = np.zeros(parent.component_shape("w"))
+        truth = profile(child.zf)
+        above = child.zf > 4.0                                     # away from the curved base
+        rms = {}
+        for scheme in ("constant", "linear"):
+            cu, _, _ = interpolate_child_fields(parent, pu, pv, pw, child, prolongation=scheme)
+            err = cu.mean(axis=(0, 1)) - truth
+            rms[scheme] = (float(np.sqrt(np.mean(err ** 2))) / ustar,
+                           float(np.sqrt(np.mean(err[above] ** 2))) / ustar,
+                           float(np.max(np.abs(np.diff(err[above])))) / ustar)
+        print(f"\n[W8] log profile, r = 2, interior mean error in u*: constant rms "
+              f"{rms['constant'][0]:.3f} (above 4 m {rms['constant'][1]:.3f}, sawtooth "
+              f"{rms['constant'][2]:.3f}); linear rms {rms['linear'][0]:.3f} (above 4 m "
+              f"{rms['linear'][1]:.3f}, sawtooth {rms['linear'][2]:.3f})")
+        self.assertLess(rms["linear"][0], 0.6 * rms["constant"][0])
+        self.assertLess(rms["linear"][1], 0.1 * rms["constant"][1])
+        self.assertLess(rms["linear"][2], 0.1 * rms["constant"][2])
+
+    def test_an_unknown_prolongation_is_refused(self):
+        parent, child = make_grids()
+        pu = np.zeros(parent.component_shape("u"))
+        with self.assertRaises(ConfigurationError):
+            conservative_interpolate(parent, pu, "u",
+                                     *[child.component_coords("u", ax) for ax in range(3)],
+                                     prolongation="cubic")
 
 
 if __name__ == "__main__":  # pragma: no cover

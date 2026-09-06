@@ -264,12 +264,17 @@ class TestP2FluxIdentity(unittest.TestCase):
                     np.testing.assert_allclose(got, expected, rtol=1e-13, atol=1e-13)
 
     def test_coplanar_child_faces_reproduce_the_parent_value_exactly(self):
+        # a property of the piecewise-CONSTANT tangential scheme; the linear
+        # one reproduces the parent value as the mean over the parent face
         parent, child = make_grids(rx=3, ry=2, rz=2)
         pu = random_parent_fields(parent, seed=11)[0]
         coords = [child.component_coords("u", ax) for ax in range(3)]
-        cu = conservative_interpolate(parent, pu, "u", *coords)
+        cu = conservative_interpolate(parent, pu, "u", *coords, prolongation="constant")
         expected = np.repeat(np.repeat(pu, 2, axis=1), 2, axis=2)
         np.testing.assert_array_equal(cu[::3], expected)
+        cu = conservative_interpolate(parent, pu, "u", *coords, prolongation="linear")
+        means = cu[::3].reshape(pu.shape[0], pu.shape[1], 2, pu.shape[2], 2).mean(axis=(2, 4))
+        np.testing.assert_allclose(means, pu, rtol=0, atol=1e-13)
 
 
 # --------------------------------------------------------------------------- #
@@ -285,15 +290,18 @@ class TestP3DivergencePreservation(unittest.TestCase):
         parent, child = make_grids(rx=ratios[0], ry=ratios[1], rz=ratios[2])
         pu, pv, pw = solenoidal_parent_fields(parent)
         np.testing.assert_allclose(discrete_divergence(parent, pu, pv, pw), 0.0, atol=1e-12)
-        cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child)
-        fx = face_flux_over_parent_cells(child, cu, "u", ratios)
-        fy = face_flux_over_parent_cells(child, cv, "v", ratios)
-        fz = face_flux_over_parent_cells(child, cw, "w", ratios)
-        net = ((fx[1:, :, :] - fx[:-1, :, :])
-               + (fy[:, 1:, :] - fy[:, :-1, :])
-               + (fz[:, :, 1:] - fz[:, :, :-1]))
-        scale = max(np.max(np.abs(fx)), np.max(np.abs(fy)), np.max(np.abs(fz)))
-        self.assertLess(np.max(np.abs(net)), 1e-12 * scale)
+        for scheme in ("constant", "linear"):
+            with self.subTest(prolongation=scheme):
+                cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child,
+                                                      prolongation=scheme)
+                fx = face_flux_over_parent_cells(child, cu, "u", ratios)
+                fy = face_flux_over_parent_cells(child, cv, "v", ratios)
+                fz = face_flux_over_parent_cells(child, cw, "w", ratios)
+                net = ((fx[1:, :, :] - fx[:-1, :, :])
+                       + (fy[:, 1:, :] - fy[:, :-1, :])
+                       + (fz[:, :, 1:] - fz[:, :, :-1]))
+                scale = max(np.max(np.abs(fx)), np.max(np.abs(fy)), np.max(np.abs(fz)))
+                self.assertLess(np.max(np.abs(net)), 1e-12 * scale)
 
     def test_a_non_solenoidal_parent_is_not_silently_made_solenoidal(self):
         # guards the test above against trivially passing
@@ -316,18 +324,30 @@ class TestP3DivergencePreservation(unittest.TestCase):
 
 
 class TestP4LocalDivergence(unittest.TestCase):
-    """P4: the interpolation creates no divergence inside a parent cell, and the
-    residual converges at second order under parent refinement."""
+    """P4: the piecewise-constant interpolation creates no divergence inside a
+    parent cell, and its residual converges at second order under parent
+    refinement.  The linear reconstruction (W8) keeps only the parent-cell
+    integral (P3): its cell-wise residual is first order in the parent spacing,
+    from the tangential slopes varying across the parent cell."""
 
     def test_child_cell_divergence_equals_its_parent_cell_divergence(self):
         rx, ry, rz = 2, 3, 2
         parent, child = make_grids(rx=rx, ry=ry, rz=rz)
         pu, pv, pw = random_parent_fields(parent, seed=17)
-        cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child)
+        cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child, prolongation="constant")
         div_child = discrete_divergence(child, cu, cv, cw)
         div_parent = discrete_divergence(parent, pu, pv, pw)
         expanded = np.repeat(np.repeat(np.repeat(div_parent, rx, 0), ry, 1), rz, 2)
         np.testing.assert_allclose(div_child, expanded, rtol=1e-11, atol=1e-11)
+        # the linear scheme: not cell by cell, but exactly per parent cell
+        cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child, prolongation="linear")
+        div_child = discrete_divergence(child, cu, cv, cw)
+        self.assertGreater(np.max(np.abs(div_child - expanded)), 1e-3)     # genuinely different
+        vol = child.dx[:, None, None] * child.dy[None, :, None] * child.dzf[None, None, :]
+        per_parent = (div_child * vol).reshape(
+            parent.itot, rx, parent.jtot, ry, parent.ktot, rz).sum(axis=(1, 3, 5))
+        pvol = parent.dx[:, None, None] * parent.dy[None, :, None] * parent.dzf[None, None, :]
+        np.testing.assert_allclose(per_parent, div_parent * pvol, rtol=1e-11, atol=1e-11)
 
     def test_residual_divergence_converges_at_second_order(self):
         # A continuum-solenoidal field with different wavenumbers in x and y, so
@@ -345,22 +365,31 @@ class TestP4LocalDivergence(unittest.TestCase):
                  * np.sin(ky * grid.yh)[None, :, None] * ones)
             return u, v, np.zeros(grid.component_shape("w"))
 
-        errors = []
+        def rms(values):
+            return float(np.sqrt(np.mean(values ** 2)))
+
+        errors = {"constant": [], "linear": []}
         for n in (8, 16, 32):
             parent = NestGrid.uniform(n, n, 4, length, length, 40.0)
             child = NestGrid.uniform(2 * n, 2 * n, 8, length, length, 40.0)
             pu, pv, pw = analytic(parent)
-            cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child)
-            def rms(values):
-                return float(np.sqrt(np.mean(values ** 2)))
-
-            child_residual = rms(discrete_divergence(child, cu, cv, cw))
             parent_residual = rms(discrete_divergence(parent, pu, pv, pw))
-            # the interpolation adds nothing to what the parent sampling already has
-            self.assertAlmostEqual(child_residual, parent_residual, delta=1e-12)
-            errors.append(child_residual)
-        for coarse, fine in zip(errors[:-1], errors[1:]):
+            for scheme in errors:
+                cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child,
+                                                      prolongation=scheme)
+                child_residual = rms(discrete_divergence(child, cu, cv, cw))
+                if scheme == "constant":
+                    # the interpolation adds nothing to what the parent sampling already has
+                    self.assertAlmostEqual(child_residual, parent_residual, delta=1e-12)
+                errors[scheme].append(child_residual)
+        for coarse, fine in zip(errors["constant"][:-1], errors["constant"][1:]):
             self.assertGreater(coarse / fine, 3.6)  # second order is a factor 4
+        ratios = [c / f for c, f in zip(errors["linear"][:-1], errors["linear"][1:])]
+        print("\n[P4] child divergence residual, linear prolongation: "
+              + ", ".join(f"{e:.3e}" for e in errors["linear"])
+              + f" (ratios {ratios[0]:.2f}, {ratios[1]:.2f}: first order, tending to 2)")
+        self.assertGreater(ratios[0], 1.2)
+        self.assertGreater(ratios[1], ratios[0])          # converging, first order
 
 
 # --------------------------------------------------------------------------- #
