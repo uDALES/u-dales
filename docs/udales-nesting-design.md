@@ -1249,7 +1249,7 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 | ID | Question | Method | Deliverable |
 |---|---|---|---|
 | V1 | Does matched LES-to-LES nesting reproduce the parent? | Big Brother: periodic parent, writer dumps zone slabs, sub-domain child at matched resolution | **DONE — §10.5.** Mean flow yes ($0.008\,u_\star$); canopy turbulence yes (1–2 %); above the canopy a real $\approx10\,\%$ resolved-TKE deficit from insufficient fetch |
-| V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,9,12,16\}$ at fixed child size, plus a child-size arm at fixed zone width. The upper ramp is 16 rather than 20 cells because the V1 parent's plaza bounds it; clearing the *child* instead (§9.4) removes that bound for future sweeps | reflection and TKE-damping curves vs width. **Reframed after V1** as a falsification test: if the deficit is fetch-limited rather than boundary-limited, zone width should barely move it. Pair with a child-size sweep at fixed zone width, which measures the fetch directly |
+| V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,9,12,16\}$ at fixed child size, plus a child-size arm (interior $5h$, $9h$, $13h$) at fixed zone width, every child clearing its own zone (§9.4) | **DONE — §10.5.** Zone width moves the deficit by 0.16 % over the whole range (0.03 of a sampling spread); interior extent moves it from $-13.5$ to $-9.9\,\%$. The deficit is a recovery over fetch, and §10.5's note on *what* is being recovered from applies |
 | V3 | **Parent without buildings** | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against 0/5/15/40-cell standoffs | the adjustment length (§9.4), measured both from the zone edge and from the first building face — the latter is the discriminating one, since a standoff trivially moves the canopy downstream. §9.4 predicts a standoff *lengthens* adjustment; this row exists to test that, and may refute it |
 | V4 | **Different parent geometry** | parent with a different building layout, child identical to V1's | interior statistics against the **V1** child (not against V4's own parent sub-region, which is a different flow); measures whether the interior is insensitive to the mismatch beyond the adjustment fetch |
 | **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | mean profiles and spectra vs a matched-resolution reference. **This is the use case nesting exists for and it is the last one to be tested — see the note below.** |
@@ -1299,7 +1299,7 @@ $-9.9\,\%$ in the mean, reaching $4$–$8\sigma$ at $z/h = 3$–$5$ against per-
 1.1–1.5 %. Below $z/h=1$ it is $+1.5\,\%$ against a 0.7 % spread — the canopy layer is clean, as
 §1.4 assumed when the zone width was chosen.
 
-**The mechanism is fetch, not the boundary treatment.** The deficit is scale-selective: at
+**The deficit recovers over fetch — but see the correction below on where it comes from.** The deficit is scale-selective: at
 $z/h=2.06$ the child/parent spectral ratio is $1.03$ for $\lambda > L/4$, $0.875$ for $16$–$64$ m,
 $0.827$ for $8$–$16$ m, and $1.05$ below $4\Delta x$. The imposed large scales come through
 *strong*; what is missing is the energy-containing middle, which the child must regenerate itself.
@@ -1314,6 +1314,52 @@ oscillation of a few thousand seconds with $\pm10\,\%$ excursions and no net tre
 had landed on a rising limb. The lesson is about window length, not spin-up — a window must span
 several of these cycles. The child follows the parent's slow modes with a lag of several hundred
 seconds.
+
+**Where the deficit comes from: a correction in progress (2026-09-06).** The paragraph above
+names the recovery and misses the loss. The boundary data is sampled every 3 s and interpolated
+linearly, which by Taylor's hypothesis removes every wavelength below $2U\Delta t_P$ and attenuates
+the octave above it by $\mathrm{sinc}^4$. Computed from the converged parent's own spectra, the
+3 s target keeps 0 % of the parent's 8–16 m variance at $z/h=2$, 21 % of 16–32 m and 66 % of
+32–64 m; the measured interior ratios 0.82, 0.85 and 0.95 order band by band with what was lost.
+In the canopy shear layer regeneration is fast and nothing remains; aloft it is slow. The
+governing number is a **dump Courant number** $C_{\rm dump} = U\Delta t_P/\Delta x_P$: nothing the
+parent resolved is lost when $C_{\rm dump}\le 2$, and V1 ran at 5.4 at $z/h=2$ and about 7.5 at
+the top. The discriminating experiment (C0: the same parent re-dumped at 0.5 s and sliced to
+0.5–9 s; `tests/validation/nesting/README.md` carries the pre-registered predictions) is queued;
+§0, §1.3, §6.2 and §9.4 are rewritten when its result is in. The plan and decision record is
+`~/udales/nesting-plan-2026-09-06.md`.
+
+**V2 results (job 3992816, 3 h 47).** Six children of the converged parent, five run and the V1
+child reused, all clearing their own zone (`nest_lparentgeom = .false.`), 3397 samples each.
+Deficit is resolved TKE above $z/h=2$; spectral ratios at $z/h=2.06$.
+
+| arm | point | interior | $N_{\rm rel}$ | deficit | 16–64 m | 8–16 m | $>L/4$ | criterion A |
+|---|---|---|---|---|---|---|---|---|
+| zone | `nrel4` | $14.25h$ | 4 | $-9.85\,\%$ | 0.880 | 0.841 | 1.025 | $0.055\,u_\star$ |
+| both | `ref` (V1) | $13h$ | 9 | $-9.91\,\%$ | 0.869 | 0.833 | 1.033 | $0.039\,u_\star$ |
+| zone | `nrel12` | $12.25h$ | 12 | $-9.95\,\%$ | 0.863 | 0.826 | 1.016 | $0.033\,u_\star$ |
+| zone | `nrel16` | $11.25h$ | 16 | $-10.01\,\%$ | 0.867 | 0.815 | 1.005 | $0.030\,u_\star$ |
+| size | `size96` | $9h$ | 9 | $-11.49\,\%$ | 0.806 | 0.750 | 0.972 | $0.143\,u_\star$ |
+| size | `size64` | $5h$ | 9 | $-13.52\,\%$ | 0.706 | 0.621 | 0.811 | $0.135\,u_\star$ |
+
+P1 holds: the zone arm spans 0.16 % against per-point spreads of 4–5 %, and the band ratios
+drift by 0.02 in the direction of a *wider* zone costing slightly more, i.e. the ramp is not
+where the energy comes back. P2 holds: the size arm moves 3.6 % over $8h$ of interior, and the
+8–16 m ratio climbs from 0.62 to 0.83, still rising at $13h$. Read together with the cadence
+correction above, this is the recovery curve of the band the 3 s boundary removed, at
+$C_{\rm dump}=5.4$; C0 supplies the other axis.
+
+**An unplanned finding: clearing the child's zone has a mean-flow cost.** The two smaller
+children fail criterion A at $0.14\,u_\star$ where every full-size child passes. Their profiles
+show why: `size64` and `size96` remove 12 and 20 of the parent's cubes from their own zone
+(§9.4), and their canopy-layer mean wind runs $0.05$–$0.07\,u_\star$ below the parent's up to
+$z/h\approx1.5$, decaying to $<0.01\,u_\star$ by $z/h=3$. The parent's cubes still imprint on the
+imposed velocity, but the *wakes* those cubes shed inside the zone are absent, so the first
+building rows of the interior see an inflow with too little canopy-layer deficit. This is the
+adjustment length V3 was designed to measure, seen from the other side; it does not appear in
+the full-size children because their zone was building-free in the parent too. It bears on the
+choice in §9.4: clearing the child's zone is cheap and correct for the *boundary*, but the
+interior then starts its own canopy adjustment at the inner edge.
 
 ### 10.6 Wiring
 
