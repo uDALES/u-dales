@@ -48,7 +48,7 @@ module modnesting
    public :: lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau,   &
              nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
              nest_lparentgeom, nest_fluxtol, nest_lfluxassert,                &
-             nest_lfluxcheckall, nest_linitfromparent
+             nest_lfluxcheckall, nest_linitfromparent, nest_statint
 
    logical            :: lnesting         = .false.
    character(len=256) :: nestfile         = ''
@@ -71,6 +71,13 @@ module modnesting
    !> Cold start only: initialise u0/um, v0/vm and w0/wm from the full-domain
    !! block of a schema 2 file instead of from prof.inp.
    logical            :: nest_linitfromparent = .false.
+   !> Interval [s] between nesting_stats reports. Each report costs three
+   !! MPI_ALLREDUCEs, three full-domain sweeps and seven lines of stdout, so it
+   !! is throttled like statsdump rather than run every substep. < 0 (the
+   !! default) means "use tstatsdump"; 0 reports every timestep. Whatever the
+   !! interval, the first and the last timestep always report, and the
+   !! injection accumulators einj_* sum over every substep in between.
+   real               :: nest_statint     = -1.
 
    !----------------------------------------------------------------- internals
 
@@ -117,11 +124,12 @@ module modnesting
    integer :: it_lo    = 0                  !< parent level bracketing the current time
    real    :: phi_last = 0.            !< last normalised flux residual, all six faces
    real    :: phi_lid_last = 0.        !< of which the lid contributed this much
-   ! Energy injected by the zone forcing since the last nesting_stats call,
+   ! Energy injected by the zone forcing since the last nesting_stats REPORT,
    ! split by where it was injected: guard strip (W >= 1) and relaxation ramp
-   ! (0 < W < 1). Accumulated in nesting_apply, reported and reset in
-   ! nesting_stats (design section 6.4).
+   ! (0 < W < 1). Accumulated over every substep in nesting_apply, reported and
+   ! reset in nesting_stats (design section 6.4).
    real    :: einj_guard = 0., einj_relax = 0.
+   real    :: tnextstat = 0.                !< time of the next nesting_stats report
    real    :: area_bnd = 0.                 !< total FLUID domain-boundary area
    real    :: area_lat = 0.                 !< FLUID area of the four LATERAL faces only
    real    :: twall0   = 0.                 !< wall clock at the end of nesting_init
@@ -141,7 +149,7 @@ contains
    !! residuals and loads the first parent time levels.
    subroutine nesting_init
       use mpi,       only : MPI_Wtime
-      use modglobal, only : cexpnr, timee, dx, dy, xlen, ylen, &
+      use modglobal, only : cexpnr, timee, dx, dy, xlen, ylen, tstatsdump, &
                             BCxm, BCym, BCxm_nesting, BCym_nesting
       use modmpi,    only : myid
 
@@ -160,6 +168,9 @@ contains
       if (nest_nwall < 0) call nest_abort('nest_nwall must be >= 0')
       if (nest_guardwidth <= 0.) call nest_abort('nest_guardwidth must be > 0')
       if (nest_zonewidth < 0.) call nest_abort('nest_zonewidth must be >= 0')
+      if (nest_statint < 0.) nest_statint = tstatsdump
+      tnextstat = 0.
+      call reset_injection
 
       call nestio_open(trim(nestfile), ierr)
       if (ierr /= 0) call nest_abort('cannot open '//trim(nestfile))
@@ -311,8 +322,6 @@ contains
       if (.not. lnesting) return
       if (.not. linit) return
 
-      call reset_injection
-
       if (rk3step == 0) then
          rk3coef = 1.
       else
@@ -359,8 +368,8 @@ contains
    end subroutine nesting_apply
 
 
-   !> Zero the per-substep injection accumulators (nesting_apply overwrites the
-   !! tendencies each substep, so the injection is a per-substep quantity).
+   !> Zero the injection accumulators. Called at init and after every
+   !! nesting_stats report, so a report covers every substep since the last one.
    subroutine reset_injection
       einj_guard = 0.
       einj_relax = 0.
@@ -541,7 +550,12 @@ contains
       ! (design section 3.1) and the solver will not complain on its own (F3).
       ! Under a leaky lid the top face is a free response rather than an imposed
       ! datum, so only the closed faces are asserted on - see nest_flux_split.
-      call nest_flux_split(pup, pvp, pwp, rk3coef, phi_last, phi_lid_last)
+      ! The split is one MPI_ALLREDUCE per substep, so with the assertion off
+      ! it is only evaluated on the substep whose report is about to print it.
+      if (nest_lfluxassert .or. stats_due()) &
+         call nest_flux_split(pup, pvp, pwp, rk3coef, phi_last, phi_lid_last)
+
+      if (.not. nest_lfluxassert) return
 
       if (BCtopm == BCtopm_pressure) then
          phi_closed = phi_last - phi_lid_last
@@ -549,7 +563,7 @@ contains
          phi_closed = phi_last
       end if
 
-      if (nest_lfluxassert .and. abs(phi_closed) > nest_fluxtol) then
+      if (abs(phi_closed) > nest_fluxtol) then
          if (myid == 0) then
             write(*,'(a,es12.5,a,es12.5)') ' modnesting: flux residual ', phi_closed, &
                ' exceeds nest_fluxtol = ', nest_fluxtol
@@ -563,8 +577,12 @@ contains
    end subroutine nesting_bcpup
 
 
-   !> Called from program.f90 alongside statsdump. Reports the flux residual,
-   !! the zone misfit and the parent-file read cost (design section 6.4).
+   !> Called from program.f90 alongside statsdump, i.e. every RK3 substep;
+   !! returns at once unless a report is due (stats_due: third substep, and
+   !! either nest_statint has elapsed or this is the last timestep). Reports
+   !! the flux residual, the zone misfit, the pressure-gradient ratio, the
+   !! energy injected since the previous report and the parent-file read cost
+   !! (design section 6.4).
    subroutine nesting_stats(p)
       use mpi,       only : MPI_Wtime
       use modglobal, only : timee, ib, ie, ih, jb, je, jh, kb, ke, kh
@@ -582,6 +600,7 @@ contains
 
       if (.not. lnesting) return
       if (.not. linit) return
+      if (.not. stats_due()) return
 
       sl = 0.
       call accum_misfit(zone_u, 1, u0, sl)
@@ -641,7 +660,29 @@ contains
          if (frac > 1.) write(*,'(a)') ' modnesting: WARNING parent I/O exceeds 1 % of runtime'
       end if
 
+      call reset_injection
+      if (nest_statint > 0.) then
+         ! next multiple of the interval, so a warm start does not replay
+         ! every report it "missed" and the cadence is the same on every run
+         tnextstat = (aint(timee/nest_statint) + 1.)*nest_statint
+      else
+         tnextstat = timee
+      end if
+
    end subroutine nesting_stats
+
+
+   !> .true. on the substep whose nesting_stats call will report: the third
+   !! RK3 substep, when the report interval has elapsed or the run is on its
+   !! last timestep (timeleft is decremented at the first substep, so it is
+   !! already <= 0 on every substep of that step). nesting_bcpup uses the same
+   !! test to decide whether the flux split is needed for the report.
+   logical function stats_due()
+      use modglobal, only : rk3step, timee, timeleft
+
+      stats_due = (rk3step == 3) .and. ((timee >= tnextstat) .or. (timeleft <= 0.))
+
+   end function stats_due
 
 
    !> Accumulate sum(|grad p|^2) and the point count, separately over this
