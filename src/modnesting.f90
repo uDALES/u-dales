@@ -43,12 +43,12 @@ module modnesting
              nesting_finalize
    ! Test hooks: exercised directly by src/tests.f90 (runmodes TEST_NESTING_*).
    public :: nest_shape_fn, nest_union, nest_stagger_coord, nest_flux_residual, &
-             nest_flux_split, nest_time_interp
+             nest_flux_split, nest_time_interp, nest_record_end_warnings
    ! Namelist variables: read and broadcast by modstartup.
    public :: lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau,   &
              nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
              nest_lparentgeom, nest_fluxtol, nest_lfluxassert,                &
-             nest_lfluxcheckall, nest_linitfromparent, nest_statint
+             nest_lfluxcheckall, nest_linitfromparent, nest_statint, nest_lendabort
 
    logical            :: lnesting         = .false.
    character(len=256) :: nestfile         = ''
@@ -78,6 +78,13 @@ module modnesting
    !! interval, the first and the last timestep always report, and the
    !! injection accumulators einj_* sum over every substep in between.
    real               :: nest_statint     = -1.
+   !> What to do when the simulation time passes the last stored parent level.
+   !! .true. (default): abort -- at initialisation already, if the run's end
+   !! time timee + runtime lies beyond the record, and at the crossing
+   !! otherwise. .false.: warn once and freeze the boundary on the last level.
+   !! One timestep of grace is allowed at the end, so a record that ends
+   !! exactly at the run's end time is not an error.
+   logical            :: nest_lendabort   = .true.
 
    !----------------------------------------------------------------- internals
 
@@ -130,6 +137,7 @@ module modnesting
    ! reset in nesting_stats (design section 6.4).
    real    :: einj_guard = 0., einj_relax = 0.
    real    :: tnextstat = 0.                !< time of the next nesting_stats report
+   integer :: nendwarn  = 0                 !< end-of-record warnings issued (0 or 1)
    real    :: area_bnd = 0.                 !< total FLUID domain-boundary area
    real    :: area_lat = 0.                 !< FLUID area of the four LATERAL faces only
    real    :: twall0   = 0.                 !< wall clock at the end of nesting_init
@@ -149,7 +157,7 @@ contains
    !! residuals and loads the first parent time levels.
    subroutine nesting_init
       use mpi,       only : MPI_Wtime
-      use modglobal, only : cexpnr, timee, dx, dy, xlen, ylen, tstatsdump, &
+      use modglobal, only : cexpnr, timee, runtime, dx, dy, xlen, ylen, tstatsdump, &
                             BCxm, BCym, BCxm_nesting, BCym_nesting
       use modmpi,    only : myid
 
@@ -170,6 +178,7 @@ contains
       if (nest_zonewidth < 0.) call nest_abort('nest_zonewidth must be >= 0')
       if (nest_statint < 0.) nest_statint = tstatsdump
       tnextstat = 0.
+      nendwarn  = 0
       call reset_injection
 
       call nestio_open(trim(nestfile), ierr)
@@ -267,6 +276,10 @@ contains
       tflux = MPI_Wtime() - tflux
       if (myid == 0) write(*,'(a,es12.4,a)') ' modnesting: flux check took ', tflux, ' s'
 
+      ! ---- the record must cover the run (design section 1.3) ----
+      call check_record_end(timee + runtime, .true.)
+      call check_record_end(timee, .false.)
+
       ! ---- load the first parent time levels ----
       it_lo = 0
       call set_interval(timee)
@@ -303,6 +316,7 @@ contains
       if (.not. lnesting) return
       if (.not. linit) return
 
+      call check_record_end(timee, .false.)
       call set_interval(timee)
       call eval_target(timee)
 
@@ -1037,6 +1051,71 @@ contains
       stop 1   ! not reached; keeps the compiler's flow analysis honest
 
    end subroutine nest_abort
+
+
+   !> Past the last stored parent level read_level and eval_target clamp, so
+   !! the boundary silently freezes on that level -- a different problem from
+   !! the one the user set up. Under nest_lendabort (the default) that is
+   !! fatal; otherwise it is reported once and the run goes on frozen. One
+   !! timestep (dtmax: dt itself is undefined until the first tstep_update)
+   !! of grace is allowed, so a record ending exactly at the run's end time,
+   !! which the last step may overshoot by up to dt, is not an error.
+   !! lend: t is the run's END time, checked at init so a run that will
+   !! outlast its record fails at once rather than hours in.
+   subroutine check_record_end(t, lend)
+      use modglobal, only : dtmax
+      use modmpi,    only : myid
+
+      real,    intent(in) :: t
+      logical, intent(in) :: lend
+
+      real :: tlast, grace
+
+      if (ntime < 2) return   ! a single level is a steady parent, valid for all t
+
+      tlast = nestio_hdr%time(ntime)
+      grace = max(dtmax, 1.e-9*max(abs(tlast), 1.))
+      if (t <= tlast + grace) return
+
+      if (nest_lendabort) then
+         if (myid == 0) then
+            if (lend) then
+               write(*,'(a,es12.5,a,es12.5)') ' modnesting: the run ends at t = ', t, &
+                  ' but the parent record ends at t = ', tlast
+            else
+               write(*,'(a,es12.5,a,es12.5)') ' modnesting: t = ', t, &
+                  ' is past the last parent time level at t = ', tlast
+            end if
+         end if
+         call nest_abort('the run extends past the end of the parent record'// &
+            ' (nest_lendabort = .false. freezes the boundary on the last level instead)')
+      end if
+
+      if (nendwarn == 0) then
+         nendwarn = 1
+         if (myid == 0) then
+            if (lend) then
+               write(*,'(a,es12.5,a,es12.5,a)') ' modnesting: WARNING the run ends at t = ', t, &
+                  ' but the parent record ends at t = ', tlast, &
+                  '; the boundary will freeze on the last level (nest_lendabort = .false.)'
+            else
+               write(*,'(a,es12.5,a,es12.5,a)') ' modnesting: WARNING t = ', t, &
+                  ' is past the last parent time level at t = ', tlast, &
+                  '; the boundary now freezes on that level (nest_lendabort = .false.)'
+            end if
+         end if
+      end if
+
+   end subroutine check_record_end
+
+
+   !> Test hook: how many end-of-record warnings have been issued since
+   !! nesting_init (0 or 1 -- the warning is issued once).
+   integer function nest_record_end_warnings()
+
+      nest_record_end_warnings = nendwarn
+
+   end function nest_record_end_warnings
 
 
    !> exp(-W*dt_s/tau), with tau <= 0 meaning Dirichlet (design section 1.2).

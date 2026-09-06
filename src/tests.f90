@@ -924,7 +924,7 @@ contains
     use modnesting, only : lnesting, nestfile, nest_tau, nest_timeinterp,  &
                            nest_nwall, nest_fluxtol, nest_lfluxassert,     &
                            nest_lfluxcheckall, nest_linitfromparent,       &
-                           nesting_init, nesting_finalize
+                           nest_lendabort, nesting_init, nesting_finalize
 
     character(len=*), intent(in) :: fname
     real,             intent(in) :: t0, tau, fluxtol
@@ -944,6 +944,8 @@ contains
     ! namelist happened to select
     nest_lfluxcheckall   = .false.
     nest_linitfromparent = .false.
+    ! the fixtures end at t = 50 and U46 deliberately walks past that
+    nest_lendabort       = .false.
     timee            = t0
 
     call nesting_init
@@ -1521,12 +1523,15 @@ contains
   logical function tests_nesting_io()
     use mpi
     use modglobal,    only : ib, ie, jb, je, kb, ke, itot, jtot, ktot,      &
-                             xf, xh, yf, yh, zf, zh, cexpnr
+                             xf, xh, yf, yh, zf, zh, cexpnr, runtime, timee
     use modfields,    only : initfields
     use modibm,       only : createmasks
     use modnestingio, only : nestio_open, nestio_validate, nestio_read,     &
                              nestio_close, nestio_hdr
-    use modnesting,   only : nestfile, nesting_finalize
+    use modnesting,   only : nestfile, nesting_finalize, lnesting,          &
+                             nest_lendabort, nest_tau, nest_fluxtol,        &
+                             nest_lfluxassert, nesting_init,                &
+                             nest_record_end_warnings
 
     implicit none
 
@@ -1538,7 +1543,7 @@ contains
     real, allocatable :: au(:,:,:), av(:,:,:), aw(:,:,:)
     real, allocatable :: bu(:,:,:), bv(:,:,:), bw(:,:,:)
 
-    call nest_banner('tests_nesting_io', 'READER, WRITER CONTRACT, TIME BUFFER (U15-U22)')
+    call nest_banner('tests_nesting_io', 'READER, WRITER CONTRACT, TIME BUFFER (U15-U22, U46)')
 
     call initfields
     call createmasks
@@ -1549,6 +1554,13 @@ contains
     ! through the nestfile namelist entry.
     if (index(nestfile, 'bad_') > 0) then
       tests_nesting_io = u22_header()
+      return
+    end if
+
+    ! U46, abort half: the driver selects it with a &RUN runtime far beyond
+    ! the fixtures' 50 s record (the normal invocation has runtime = 1).
+    if (runtime > 100.) then
+      tests_nesting_io = u46_end_aborts()
       return
     end if
 
@@ -1583,6 +1595,7 @@ contains
     if (.not. u44_interp_linear(1)) all_passed = .false.
     if (.not. u44_interp_linear(2)) all_passed = .false.
     if (.not. u19_u21_buffer())  all_passed = .false.
+    if (.not. u46_record_end())  all_passed = .false.
 
     deallocate(au, av, aw, bu, bv, bw)
     call nesting_finalize
@@ -1859,6 +1872,47 @@ contains
         nint(nd1), ', reloaded ', nint(nd2)
       call nest_report('U19/U21 buffer roll and full reload', u19_u21_buffer)
     end function u19_u21_buffer
+
+    !> U46 (review F4), freeze half: with nest_lendabort = .false. the target
+    !! past the last stored level is the last level itself, bitwise, and the
+    !! warning is issued exactly once however often the record end is crossed.
+    logical function u46_record_end()
+      real :: nd1, nd2
+      integer :: nw
+
+      call nest_reinit('nesting_nonlinear.'//cexpnr//'.nc', 0., 4., 2, 1, 1.e30, .false.)
+      call nest_target_at(50., au, av, aw)          ! exactly the last level
+      call nest_target_at(60., bu, bv, bw)          ! past it: must freeze
+      nd1 = nest_target_ndiff(au, av, aw, bu, bv, bw)
+      call nest_target_at(75., bu, bv, bw)          ! and again
+      nd2 = nest_target_ndiff(au, av, aw, bu, bv, bw)
+      nw = nest_record_end_warnings()
+
+      u46_record_end = (nd1 == 0.) .and. (nd2 == 0.) .and. (nw == 1)
+      if (myid == 0) write(*,'(a,i0,a,i0,a,i0)') '   targets differing from the last level'// &
+        ' at t = 60, 75: ', nint(nd1), ', ', nint(nd2), '; warnings issued = ', nw
+      call nest_report('U46 past the record: frozen on the last level, warned once', &
+                       u46_record_end)
+    end function u46_record_end
+
+    !> U46, abort half: with nest_lendabort (the default) a run whose end time
+    !! lies beyond the parent record must abort inside nesting_init. Reaching
+    !! the line after nesting_init is the failure.
+    logical function u46_end_aborts()
+      lnesting         = .true.
+      nest_tau         = 4.
+      nest_fluxtol     = 1.e30
+      nest_lfluxassert = .false.
+      nest_lendabort   = .true.
+      timee            = 0.
+      if (myid == 0) write(*,'(a,es10.3,a)')                                   &
+        ' U46: nesting_init must abort, the run (runtime = ', runtime,          &
+        ' s) outlasts the parent record'
+      call nesting_init
+      call nest_report('U46 end of record (init did NOT abort)', .false.)
+      call nest_verdict('tests_nesting_io', .false.)
+      u46_end_aborts = .false.
+    end function u46_end_aborts
 
     !> U22: a header field that disagrees with the run must abort with a
     !! message naming the field. One corrupted file per invocation.
