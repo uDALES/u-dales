@@ -1,8 +1,8 @@
 # One-way nesting by velocity imposition and relaxation zones
 
-**Status:** design proposal for discussion. Not implemented.
+**Status:** implemented on branch `nesting` (PR #376); validation campaign in progress, see §10.5.
 **Code inspected:** uDALES `master` @ `1f8ff3e8`; DALES `v4.4_openBC` @ `aadd296d`; PALM `v23.04`.
-**Scope of v1:** aligned Cartesian grids, offline parent data, one-way, velocity only. Refinement
+**Scope of v1:** aligned Cartesian grids, offline parent data, one-way, velocity only; scalars keep the existing inlet and outflow treatment. Refinement
 ratios $r>1$ are supported by the writer and covered by its unit tests, but are **not yet validated
 end to end** — every system test so far runs at $r=1$. See the note under §10.4.
 

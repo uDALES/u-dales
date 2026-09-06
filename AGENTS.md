@@ -141,6 +141,9 @@ selection.
 - The canonical virtual environment is **`tools/python/.venv/`**, created by
   `tools/python/setup_venv.sh` (override the location with `VENV_DIR`). Activate
   it before running tools or tests. Do not maintain multiple repo-local venvs.
+  On CX3 that venv has not been created; the working one is `~/udales/.venv`
+  (a `VENV_DIR` build), which needs `module load tools/prod
+  Python/3.9.6-GCCcore-11.2.0` before activation.
 - `setup_venv.sh` installs the deps (`requirements.txt`), builds View3D + the
   f2py extensions, and registers the tools as an **editable package**
   (`pip install -e tools/python`). Because of the editable install, `udbase`,
