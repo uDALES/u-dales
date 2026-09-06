@@ -41,6 +41,7 @@ from exceptions import ConfigurationError  # noqa: E402
 from udprep.nesting import (  # noqa: E402
     COMPONENTS,
     FACES,
+    CORRECTION_WARN_FRACTION,
     FLUX_UNITS,
     PARENT_DT_RTOL,
     SPEC,
@@ -54,6 +55,7 @@ from udprep.nesting import (  # noqa: E402
     boundary_faces,
     check_alignment,
     check_time_axis,
+    correction_report,
     discrete_divergence,
     face_masks_from_ibm,
     fluid_face_area,
@@ -307,6 +309,78 @@ class TestW3TimeAxis(unittest.TestCase):
             with self.assertRaises(NestingSchemaError) as ctx:
                 validate_nesting_file(path)
             self.assertIn("start at exactly 0", str(ctx.exception))
+
+
+# --------------------------------------------------------------------------- #
+# W6 -- the correction magnitude and its split across faces are reported
+# --------------------------------------------------------------------------- #
+
+
+class TestW6CorrectionReport(unittest.TestCase):
+    """W6: |delta| against the boundary velocity scale, and who carries the lid flux."""
+
+    def _lid_flux_case(self, north_outflow, ntime=2):
+        # through-flow west -> east at 1 m/s (balanced), plus an unbalanced
+        # outflow through the north face: that is the net flux the parent
+        # pushed through the child's lid, which the correction must absorb
+        data = uniform_nesting_data(seed=61, ntime=ntime)   # 8 x 6 x 5; dx 10, dy 5, dz 5
+        for arr in data.slabs.values():
+            arr[...] = 0.0
+        faces = boundary_faces(data)
+        faces["west"][...] = 1.0
+        faces["east"][...] = 1.0
+        faces["north"][...] = north_outflow
+        return data
+
+    def test_the_report_is_analytic(self):
+        data = self._lid_flux_case(0.2)
+        area_we, area_sn = 30.0 * 25.0, 80.0 * 25.0            # 750 and 2000 m2
+        total = 2 * area_we + 2 * area_sn                      # 5500 m2
+        phi = 0.2 * area_sn                                    # +400 m3/s, outward
+        delta = -phi / total
+        scale = np.sqrt((2 * area_we * 1.0 + area_sn * 0.2 ** 2) / total)
+        with self.assertLogs("udprep.nesting", level=logging.INFO) as logs:
+            apply_divergence_correction(data)
+        rep = data.correction
+        self.assertAlmostEqual(rep["residual_max_abs"], phi, places=9)
+        self.assertAlmostEqual(rep["delta_max_abs"], abs(delta), places=12)
+        self.assertAlmostEqual(rep["delta_at_max"], delta, places=12)
+        self.assertAlmostEqual(rep["velocity_scale_at_max"], scale, places=12)
+        self.assertAlmostEqual(rep["delta_fraction_max"], abs(delta) / scale, places=12)
+        for face, area in (("west", area_we), ("east", area_we),
+                           ("south", area_sn), ("north", area_sn)):
+            self.assertAlmostEqual(rep["faces"][face]["area_fraction"], area / total, places=12)
+        self.assertEqual(rep["inflow_faces"], ["west"])
+        self.assertAlmostEqual(rep["faces"]["west"]["mean_outward_normal_velocity"], -1.0)
+        self.assertAlmostEqual(rep["faces"]["north"]["mean_outward_normal_velocity"], 0.2)
+        # 13.6 % of the velocity scale: this one must be a WARNING that names the inflow face
+        self.assertGreater(rep["delta_fraction_max"], CORRECTION_WARN_FRACTION)
+        self.assertTrue(rep["exceeded"])
+        warnings = [m for m in logs.output if m.startswith("WARNING")]
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("inflow faces (west)", warnings[0])
+        self.assertIn(f"{100 * abs(delta) / scale:.1f} %", warnings[0])
+        print(f"\n[W6] delta = {delta:.4f} m/s = {100 * abs(delta) / scale:.1f} % of the "
+              f"boundary velocity scale {scale:.3f} m/s; split "
+              + ", ".join(f"{f} {100 * rep['faces'][f]['area_fraction']:.0f} %" for f in FACES))
+        # the report is the same object correction_report returns, and survives copy()
+        self.assertEqual(correction_report(data), rep)
+        self.assertEqual(data.copy().correction, rep)
+
+    def test_a_small_correction_is_reported_quietly(self):
+        data = self._lid_flux_case(0.02)                      # 1.2 % of the scale
+        with self.assertLogs("udprep.nesting", level=logging.INFO) as logs:
+            apply_divergence_correction(data)
+        self.assertFalse(data.correction["exceeded"])
+        self.assertFalse(any(m.startswith("WARNING") for m in logs.output))
+        self.assertTrue(any("spread over the fluid lateral faces" in m for m in logs.output))
+
+    def test_the_report_before_correcting_predicts_the_correction(self):
+        data = self._lid_flux_case(0.2)
+        predicted = correction_report(data)
+        self.assertIsNone(data.correction)
+        apply_divergence_correction(data)
+        self.assertEqual(predicted, data.correction)
 
 
 # --------------------------------------------------------------------------- #

@@ -82,6 +82,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "ANALYTIC_COEFFS",
     "COMPONENTS",
+    "CORRECTION_WARN_FRACTION",
     "FACES",
     "FLUX_UNITS",
     "INIT_VARIABLES",
@@ -112,6 +113,7 @@ __all__ = [
     "check_refinement",
     "check_time_axis",
     "conservative_interpolate",
+    "correction_report",
     "discrete_divergence",
     "face_masks_from_ibm",
     "fluid_face_area",
@@ -185,6 +187,12 @@ _FACE_NORMAL_COMPONENT = {"west": "u", "east": "u", "south": "v", "north": "v"}
 
 MAX_SPATIAL_REFINEMENT = 4.0
 MAX_TEMPORAL_REFINEMENT = 30.0
+
+#: The divergence correction is reported at WARNING level when the uniform
+#: normal-velocity increment it adds exceeds this fraction of the boundary
+#: velocity scale (the rho-weighted rms of the normal velocity over the fluid
+#: lateral faces) on any time level.
+CORRECTION_WARN_FRACTION = 0.05
 
 #: Units of ``net_volume_flux`` and ``flux_residual``.  They are
 #: :math:`\sum \rho u_n dA` with ``rhobf == 1`` always in uDALES (design
@@ -1127,6 +1135,9 @@ class NestingData:
     #: ``fluid_lateral_area`` and verify the cached values rather than trust
     #: them.  ``None`` means all fluid.
     masks: Optional[FaceMasks] = None
+    #: What :func:`apply_divergence_correction` did, per :func:`correction_report`;
+    #: ``None`` until it has run.  Not stored in the file.
+    correction: Optional[Dict[str, Any]] = None
 
     def __post_init__(self) -> None:
         self.nzone = int(self.nzone)
@@ -1222,6 +1233,7 @@ class NestingData:
             parent_dy=self.parent_dy,
             parent_dz=self.parent_dz,
             masks=self.masks,
+            correction=None if self.correction is None else dict(self.correction),
         )
 
 
@@ -1278,6 +1290,34 @@ def nesting_data_from_parent(
 # --------------------------------------------------------------------------- #
 # Divergence correction (design §3.1, §3.3)
 # --------------------------------------------------------------------------- #
+
+
+@dataclass
+class _LevelView:
+    """One time level of slab data, with a time axis of length 1.
+
+    The flux functions below only ever touch ``grid``, ``nzone``, ``rhobf``
+    and ``slabs`` and are vectorised over a leading time axis, so a single
+    level wrapped this way goes through exactly the code a whole
+    :class:`NestingData` does -- which is how :class:`NestingWriter` corrects
+    level by level without a second implementation.
+    """
+
+    grid: NestGrid
+    nzone: int
+    rhobf: np.ndarray
+    slabs: Dict[str, np.ndarray]
+
+    @property
+    def ntime(self) -> int:
+        return 1
+
+    @classmethod
+    def wrap(cls, grid: NestGrid, nzone: int, rhobf: np.ndarray,
+             slabs: Mapping[str, np.ndarray]) -> "_LevelView":
+        """Wrap 3-D per-level slabs as views with a leading time axis."""
+        return cls(grid=grid, nzone=nzone, rhobf=rhobf,
+                   slabs={name: arr[None] for name, arr in slabs.items()})
 
 
 def _boundary_slab_index(data: NestingData, face: str) -> int:
@@ -1356,6 +1396,175 @@ def fluid_lateral_area(data: NestingData, masks: Optional[FaceMasks] = None) -> 
     return total
 
 
+def _boundary_velocity_scale(data: Any, masks: FaceMasks) -> np.ndarray:
+    """rho-weighted rms of the normal velocity over the fluid lateral faces, per level."""
+    faces = boundary_faces(data)
+    num = np.zeros(data.ntime, dtype=np.float64)
+    den = 0.0
+    for face in FACES:
+        weight = _face_weights(data, face) * masks.get(data.grid, face)
+        num += np.tensordot(faces[face] ** 2, weight, axes=([1, 2], [0, 1]))
+        den += float(np.sum(weight))
+    return np.sqrt(num / den) if den > 0.0 else num
+
+
+def _face_mean_outward_velocity(data: Any, masks: FaceMasks) -> Dict[str, np.ndarray]:
+    """Area-weighted mean **outward** normal velocity on each face, per level.
+
+    Negative means the face is, on the mean, an inflow face at that level.
+    A face with no fluid area gets 0.
+    """
+    faces = boundary_faces(data)
+    out: Dict[str, np.ndarray] = {}
+    for face in FACES:
+        weight = _face_weights(data, face) * masks.get(data.grid, face)
+        total = float(np.sum(weight))
+        if total > 0.0:
+            out[face] = _FACE_SIGN[face] * np.tensordot(
+                faces[face], weight, axes=([1, 2], [0, 1])) / total
+        else:
+            out[face] = np.zeros(data.ntime, dtype=np.float64)
+    return out
+
+
+class _CorrectionTally:
+    """Accumulates, over time levels, what the divergence correction did.
+
+    Fed level by level (or all at once) with the pre-correction residual, the
+    increment ``delta``, the boundary velocity scale and each face's mean
+    outward normal velocity; :meth:`report` returns the dictionary that
+    :func:`correction_report` documents.
+    """
+
+    def __init__(self, data: Any, masks: FaceMasks) -> None:
+        total = fluid_face_area(data, masks)
+        self.area_fraction = {
+            face: float(np.sum(_face_weights(data, face) * masks.get(data.grid, face))) / total
+            for face in FACES
+        }
+        self.ntime = 0
+        self.residual_max = 0.0
+        self.delta_max = 0.0
+        self.fraction_max = 0.0
+        self.fraction_level = -1
+        self.scale_at_max = 0.0
+        self.delta_at_max = 0.0
+        self.outward_sum = {face: 0.0 for face in FACES}
+
+    def add(self, residual: np.ndarray, delta: np.ndarray, scale: np.ndarray,
+            outward: Mapping[str, np.ndarray], first_level: int) -> None:
+        residual = np.atleast_1d(residual)
+        delta = np.atleast_1d(delta)
+        scale = np.atleast_1d(scale)
+        fraction = np.abs(delta) / np.where(scale > 0.0, scale, np.inf)
+        n = int(np.argmax(fraction))
+        if fraction[n] > self.fraction_max or self.fraction_level < 0:
+            self.fraction_max = float(fraction[n])
+            self.fraction_level = first_level + n
+            self.scale_at_max = float(scale[n])
+            self.delta_at_max = float(delta[n])
+        self.residual_max = max(self.residual_max, float(np.max(np.abs(residual))))
+        self.delta_max = max(self.delta_max, float(np.max(np.abs(delta))))
+        for face in FACES:
+            self.outward_sum[face] += float(np.sum(outward[face]))
+        self.ntime += residual.size
+
+    def report(self) -> Dict[str, Any]:
+        n = max(self.ntime, 1)
+        faces = {}
+        for face in FACES:
+            mean = self.outward_sum[face] / n
+            faces[face] = {
+                "area_fraction": self.area_fraction[face],
+                "mean_outward_normal_velocity": mean,
+                "inflow": bool(mean < 0.0),
+            }
+        return {
+            "ntime": self.ntime,
+            "residual_max_abs": self.residual_max,
+            "delta_max_abs": self.delta_max,
+            "delta_fraction_max": self.fraction_max,
+            "delta_fraction_level": self.fraction_level,
+            "velocity_scale_at_max": self.scale_at_max,
+            "delta_at_max": self.delta_at_max,
+            "warn_fraction": CORRECTION_WARN_FRACTION,
+            "exceeded": bool(self.fraction_max > CORRECTION_WARN_FRACTION),
+            "faces": faces,
+            "inflow_faces": [face for face in FACES if faces[face]["inflow"]],
+        }
+
+    def log(self) -> Dict[str, Any]:
+        rep = self.report()
+        split = ", ".join(
+            f"{face} {100.0 * rep['faces'][face]['area_fraction']:.0f} %"
+            f"{' (inflow)' if rep['faces'][face]['inflow'] else ''}"
+            for face in FACES
+        )
+        summary = (
+            f"divergence correction over {rep['ntime']} level(s): max |delta| = "
+            f"{rep['delta_max_abs']:.3g} m/s; largest relative to the boundary velocity "
+            f"scale {100.0 * rep['delta_fraction_max']:.1f} % (level "
+            f"{rep['delta_fraction_level']}, delta = {rep['delta_at_max']:.3g} m/s against "
+            f"{rep['velocity_scale_at_max']:.3g} m/s); the net flux (max |Phi| = "
+            f"{rep['residual_max_abs']:.3g} {FLUX_UNITS}) is spread over the fluid lateral "
+            f"faces by area: {split}"
+        )
+        if rep["exceeded"]:
+            inflow = ", ".join(rep["inflow_faces"]) or "none"
+            logger.warning(
+                "udprep.nesting: %s -- this exceeds %.0f %%: the lid flux the parent "
+                "carried is being pushed through the lateral faces, inflow faces (%s) "
+                "included; check the parent's top boundary and the child's lid",
+                summary, 100.0 * CORRECTION_WARN_FRACTION, inflow,
+            )
+        else:
+            logger.info("udprep.nesting: %s", summary)
+        return rep
+
+
+def correction_report(data: NestingData, masks: Optional[FaceMasks] = None) -> Dict[str, Any]:
+    """What the divergence correction of ``data`` did, or would do.
+
+    Keys: ``residual_max_abs`` (largest pre-correction |Phi|, m3 s-1),
+    ``delta_max_abs`` (largest uniform increment, m/s), ``delta_fraction_max``
+    (largest |delta| relative to the boundary velocity scale -- the
+    rho-weighted rms normal velocity over the fluid faces -- with the level it
+    occurs on, ``delta_fraction_level``), ``exceeded`` (above
+    :data:`CORRECTION_WARN_FRACTION`), and per face under ``faces`` the
+    ``area_fraction`` of the correction flux it carries and the time-mean
+    outward normal velocity with an ``inflow`` flag, so a correction that
+    pushes the lid flux through an inflow face is on record; ``inflow_faces``
+    lists them.
+
+    On corrected data (``data.correction`` set) this is what was applied;
+    otherwise it is computed from the current slabs without changing them.
+    """
+    if data.correction is not None:
+        return dict(data.correction)
+    masks = masks if masks is not None else (data.masks or _ALL_FLUID)
+    area = fluid_face_area(data, masks)
+    residual = net_volume_flux(data, masks)
+    tally = _CorrectionTally(data, masks)
+    tally.add(residual, -residual / area, _boundary_velocity_scale(data, masks),
+              _face_mean_outward_velocity(data, masks), 0)
+    return tally.report()
+
+
+def _correct_in_place(data: Any, masks: FaceMasks, area: float) -> Tuple[np.ndarray, np.ndarray]:
+    """Add the uniform outward increment that zeroes Phi on every level of ``data``.
+
+    Returns ``(residual, delta)``, both per level.  Works on a
+    :class:`NestingData` and on a :class:`_LevelView` alike.
+    """
+    residual = net_volume_flux(data, masks)
+    delta = -residual / area
+    faces = boundary_faces(data)
+    for face in FACES:
+        mask = masks.get(data.grid, face)
+        faces[face] += _FACE_SIGN[face] * delta[:, None, None] * mask[None, :, :]
+    return residual, delta
+
+
 def sync_initial_condition(
     data: "NestingData", masks: Optional[FaceMasks] = None, close_lid: bool = True
 ) -> Tuple[float, float]:
@@ -1409,6 +1618,13 @@ def apply_divergence_correction(
     to the fluid lateral area it was summed over.  ``data.divergence_corrected``
     is set.
 
+    What was done is recorded in ``data.correction`` (:func:`correction_report`)
+    and logged: at WARNING level when the increment exceeds
+    :data:`CORRECTION_WARN_FRACTION` of the boundary velocity scale on any
+    level -- the net flux the parent pushed through the child's lid is then
+    being forced through the lateral faces, inflow faces included, and the
+    message names them.
+
     When ``data.initial_fields`` is present and ``project_initial`` is true, the
     initial condition is made consistent with the corrected boundary data and
     then projected onto the discretely solenoidal subspace, so that a cold start
@@ -1421,12 +1637,12 @@ def apply_divergence_correction(
         raise ConfigurationError(
             "the lateral boundary has no fluid area; cannot correct the volume flux"
         )
-    residual = net_volume_flux(data, masks)
-    delta = -residual / area
-    faces = boundary_faces(data)
-    for face in FACES:
-        mask = masks.get(data.grid, face)
-        faces[face] += _FACE_SIGN[face] * delta[:, None, None] * mask[None, :, :]
+    tally = _CorrectionTally(data, masks)
+    scale = _boundary_velocity_scale(data, masks)
+    outward = _face_mean_outward_velocity(data, masks)
+    residual, delta = _correct_in_place(data, masks, area)
+    tally.add(residual, delta, scale, outward, 0)
+    data.correction = tally.log()
     data.net_volume_flux = residual
     data.flux_residual = net_volume_flux(data, masks)
     data.fluid_lateral_area = fluid_lateral_area(data, masks)
