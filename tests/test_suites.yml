@@ -170,6 +170,7 @@ groups:
         platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
@@ -181,6 +182,7 @@ groups:
         platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
@@ -192,6 +194,7 @@ groups:
         platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
@@ -203,6 +206,7 @@ groups:
         platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
@@ -214,6 +218,7 @@ groups:
         platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
@@ -225,6 +230,7 @@ groups:
         platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
@@ -236,6 +242,7 @@ groups:
         platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
@@ -247,6 +254,7 @@ groups:
         platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
