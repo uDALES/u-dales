@@ -6,15 +6,18 @@ Builds the fixtures with the production Python writer
 1x1, 2x1, 1x2 and 2x2 ranks and asserts the exit code. The abort cases
 (U13, U22, U27, and the schema-2 cases) are separate invocations that must exit
 non-zero with a specific message, because the routine under test calls
-``stop 1``.
+``nest_abort``.
 
 See README.md in this directory for what each runmode covers.
 
-Environment:
+Environment (see ``_launch.py`` for the full list and the defaults):
   UDALES_BUILD            path to the u-dales executable
                           (default build/release/u-dales)
   UDALES_RUNTIME_MODULES  module stack loaded before the run
-  MPIEXEC                 MPI launcher
+  UDALES_MPIEXEC          MPI launcher (then MPIEXEC, then PATH)
+  UDALES_REQUIRE_LAUNCHER =1: an unusable launcher fails instead of skipping
+  UDALES_ABORT_EXIT_CODE  exit code the abort cases must return (default 1)
+  TMPDIR                  where the run directories go
 """
 
 from __future__ import annotations
@@ -27,17 +30,33 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
 TEST_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(TEST_DIR))
+
+import _launch as launch  # noqa: E402
+
+REPO_ROOT = launch.REPO_ROOT
 EXPNR = "901"
 
 UDALES_BUILD = Path(os.environ.get("UDALES_BUILD", REPO_ROOT / "build" / "release" / "u-dales"))
-RUNTIME_MODULES = os.environ.get(
-    "UDALES_RUNTIME_MODULES",
-    "intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a "
-    "FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0",
+
+#: What ``mpiexec`` returns when a rank calls ``nest_abort``.  Measured 1 for
+#: both ``MPI_Abort(comm, 1)`` and ``stop 1`` under Intel MPI 2021.2 and
+#: Open MPI 4.1.5, on 1 and 2 ranks.  The code an ``MPI_Abort`` propagates is
+#: the launcher's business, so a launcher that maps it differently can say so
+#: here; whatever the value, it must be non-zero and must not be a signal
+#: death, and the message must be there.
+ABORT_EXIT_CODE = int(os.environ.get("UDALES_ABORT_EXIT_CODE", "1"))
+
+#: Output that means the process crashed rather than aborted on purpose.  An
+#: abort test that accepted these would pass on a segfault in the code path it
+#: is meant to be checking.
+CRASH_SIGNATURES = (
+    "forrtl: severe", "forrtl: error", "Segmentation fault", "SIGSEGV", "SIGFPE",
+    "Floating point exception", "floating point exception", "Backtrace for this error",
+    "Program received signal", "exited on signal", "BAD TERMINATION",
 )
 
 CONFIGS: Dict[str, Tuple[int, int]] = {
@@ -183,11 +202,15 @@ def _write_namelist(run_dir: Path, runmode: int, name: str, edits: Dict[str, str
 
 
 def _tail(label: str, text: str, limit: int = 60) -> str:
-    stripped = (text or "").strip()
-    if not stripped:
-        return f"{label}: <empty>"
-    lines = stripped.splitlines()
-    return f"{label} (last {min(len(lines), limit)} lines):\n" + "\n".join(lines[-limit:])
+    return launch.tail(label, text, limit)
+
+
+def crash_signature(output: str) -> str:
+    """The first crash marker found in ``output``, or the empty string."""
+    for needle in CRASH_SIGNATURES:
+        if needle in output:
+            return needle
+    return ""
 
 
 # --------------------------------------------------------------------------- #
@@ -279,7 +302,15 @@ class NestingUnitRunmodes(unittest.TestCase):
             self.fail("\n\n".join(failures))
 
     def test_abort_cases(self) -> None:
+        """Each abort case must stop *deliberately*: the documented exit code,
+        the documented message, and no sign of a crash.
+
+        "Any non-zero exit containing the needle" would also accept a run that
+        printed the message and then died of a bounds error on the way out;
+        the exit code and the crash signatures are what separate the two.
+        """
         failures: List[str] = []
+        codes: Dict[str, int] = {}
         for n, (label, runmode, edits, needle) in enumerate(ABORT_CASES):
             edits = dict(edits)
             edits.update({"nprocx": "1", "nprocy": "1"})
@@ -291,19 +322,36 @@ class NestingUnitRunmodes(unittest.TestCase):
             )
             done = _run(self.run_dir, name, 1)
             output = (done.stdout or "") + (done.stderr or "")
+            codes[label] = done.returncode
             if done.returncode == 0:
                 failures.append(f"{label}: expected a non-zero exit, got 0")
-            elif needle not in output:
-                failures.append(
-                    f"{label}: aborted but without the expected message {needle!r}\n"
-                    + _tail("output", output)
-                )
+                continue
+            problems = []
+            if needle not in output:
+                problems.append(f"aborted but without the expected message {needle!r}")
+            if done.returncode >= 128:
+                problems.append(f"exit code {done.returncode} means a signal death, "
+                                "not a deliberate abort")
+            elif done.returncode != ABORT_EXIT_CODE:
+                problems.append(f"exit code {done.returncode}, expected {ABORT_EXIT_CODE} "
+                                "(UDALES_ABORT_EXIT_CODE) -- if this launcher maps "
+                                "MPI_Abort's code differently, say so in the environment")
+            marker = crash_signature(output)
+            if marker:
+                problems.append(f"the output carries a crash signature ({marker!r}), "
+                                "so this is not the abort path being tested")
+            if problems:
+                failures.append(f"{label}:\n  - " + "\n  - ".join(problems)
+                                + "\n" + _tail("output", output))
+        print(f"\n[abort] exit codes: {sorted(set(codes.values()))} over "
+              f"{len(codes)} cases (expected {ABORT_EXIT_CODE})", flush=True)
         if failures:
             self.fail("\n\n".join(failures))
 
     def test_reported_messages(self) -> None:
+        """Each message case must both exit 0 and print its message."""
         failures: List[str] = []
-        cache: Dict[str, str] = {}
+        cache: Dict[str, Tuple[int, str]] = {}
         for n, (label, runmode, edits, needle) in enumerate(OUTPUT_CASES):
             key = f"{runmode}:{sorted(edits.items())}"
             if key not in cache:
@@ -313,8 +361,12 @@ class NestingUnitRunmodes(unittest.TestCase):
                     self.run_dir, runmode, f"namoptions.{runmode}.msg{n}", all_edits
                 )
                 done = _run(self.run_dir, name, 1)
-                cache[key] = (done.stdout or "") + (done.stderr or "")
-            if needle not in cache[key]:
+                cache[key] = (done.returncode, (done.stdout or "") + (done.stderr or ""))
+            returncode, output = cache[key]
+            if returncode != 0:
+                failures.append(f"{label}: runmode {runmode} exited {returncode}\n"
+                                + _tail("output", output))
+            elif needle not in output:
                 failures.append(f"{label}: runmode {runmode} did not report {needle!r}")
         if failures:
             self.fail("\n\n".join(failures))
