@@ -33,22 +33,41 @@ ABOVE the baseline for a given (file, class) fail; a count below the baseline is
 reported as a suggestion to refresh it, never as a failure. Refresh with
 ``--update``.
 
-Local gate, CI report
----------------------
-This GATES locally and only REPORTS under GitHub Actions. That is deliberate and
-matches the policy already written into .github/scripts/summarise_warnings.sh:
-CI does not pin its compilers (`apt install gfortran`, `brew install gcc` on
-rolling runner images), so a runner image bump legitimately changes the warning
-set and would turn CI red on an unrelated PR. Locally the compiler IS pinned --
-by the module stack in .github/skills/udales-exec/references/clusters.md -- so a
-baseline means something. CI keeps its own reporting step for the same log.
-Force report-only anywhere with UDALES_WARNINGS_REPORT_ONLY=1.
+Per compiler major version
+--------------------------
+A warning set is a property of a compiler *version*: gfortran 12 and 13 do not
+report the same things, and a runner image bump would turn CI red on an
+unrelated PR if one baseline were applied to every version. So the baseline is
+recorded per ``(compiler id, major version)``, and this check
+
+* GATES -- fails on a warning above the baseline -- when the log's compiler
+  major has a recorded section, whether locally or under GitHub Actions;
+* is REPORT-ONLY, and says so, when it has not: the comparison is printed
+  against nothing and the exit status is 0.
+
+The compiler id and version are read from the ``CMakeFortranCompiler.cmake``
+CMake writes next to the log. Recorded as of 2026-09: gfortran 12 (CX3,
+``foss/2023a``), gfortran 13 (``ubuntu-latest``, 13.2.0) and gfortran 16
+(``macos-latest``, Homebrew GCC 16.2.0), so both CI legs gate until their
+image moves to a major this file has not seen -- at which point the report
+names the missing major and someone records it with ``--update``.
+
+Force report-only anywhere with ``UDALES_WARNINGS_REPORT_ONLY=1``.
+
+Under GitHub Actions a Release leg has no Debug log to check (the warning
+flags only exist in Debug); that is reported as not applicable and exits 0.
+Any other reason for having no usable log is still a failure there too.
 
 Usage
 -----
     python tests/lint/check_build_warnings.py [--log PATH] [--update]
+        [--compiler ID:VERSION]
 
-Exit status: 0 pass, 1 new warnings, 2 no usable build log.
+``--compiler`` names the compiler when the log did not come from a local build
+directory -- a log harvested from a CI job with ``gh run view <id> --log``,
+say -- and is only meaningful with a Debug log.
+
+Exit status: 0 pass (or report-only), 1 new warnings, 2 no usable build log.
 """
 
 import argparse
@@ -59,7 +78,7 @@ import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 TESTS_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = TESTS_DIR.parent
@@ -80,6 +99,9 @@ PREFERRED_COMPILER = "GNU"
 #: is not evidence of zero warnings, it is an absence of evidence, so treat it
 #: as unusable rather than passing on it.
 PARSEABLE_COMPILERS = ("GNU",)
+
+#: (compiler id, major) -- one section of the baseline.
+Section = Tuple[str, str]
 
 RECIPE = """
 Produce one with a Debug build. To reproduce the CI compiler on CX3:
@@ -105,31 +127,51 @@ look like a clean build rather than an unreadable one.
 class Meta(object):
     """What a build directory says about itself."""
 
-    def __init__(self, log: Path, compiler: Optional[str], build_type: Optional[str]):
+    def __init__(self, log: Path, compiler: Optional[str], version: Optional[str],
+                 build_type: Optional[str]):
         self.log = log
         self.compiler = compiler
+        self.version = version
         self.build_type = build_type
 
+    @property
+    def major(self) -> Optional[str]:
+        if not self.version:
+            return None
+        return self.version.split(".")[0]
+
+    @property
+    def section(self) -> Section:
+        return (self.compiler or "unknown", self.major or "unknown")
+
     def __repr__(self) -> str:
-        return "{} (compiler={}, build type={})".format(
-            self.log, self.compiler or "unknown", self.build_type or "unknown"
-        )
+        return "{} (compiler={} {}, build type={})".format(
+            self.log, self.compiler or "unknown", self.version or "?",
+            self.build_type or "unknown")
 
 
-def _build_dir_meta(log: Path) -> Meta:
-    """Read the compiler id and build type CMake recorded next to a log.
+def _build_dir_meta(log: Path, override: Optional[Tuple[str, str]]) -> Meta:
+    """Read the compiler id, its version and the build type CMake recorded next to a log.
 
-    Both come from CMake's own files rather than from the log text: the log of a
-    non-verbose `make` does not name the compiler, and guessing it from the
-    warning format would be circular (an Intel log has no [-W...] tags, which is
-    indistinguishable from a clean gfortran build).
+    All three come from CMake's own files rather than from the log text: the
+    log of a non-verbose `make` does not name the compiler, and guessing it
+    from the warning format would be circular (an Intel log has no [-W...]
+    tags, which is indistinguishable from a clean gfortran build).
+
+    ``override`` -- from ``--compiler ID:VERSION`` -- stands in for a log that
+    has no build directory, and asserts it is a Debug log.
     """
     build_dir = log.parent
-    compiler = None
+    compiler, version = None, None
     for path in sorted(build_dir.glob("CMakeFiles/*/CMakeFortranCompiler.cmake")):
-        match = re.search(r'set\(CMAKE_Fortran_COMPILER_ID\s+"([^"]+)"', path.read_text())
+        text = path.read_text()
+        match = re.search(r'set\(CMAKE_Fortran_COMPILER_ID\s+"([^"]+)"', text)
         if match:
             compiler = match.group(1)
+        match = re.search(r'set\(CMAKE_Fortran_COMPILER_VERSION\s+"([^"]+)"', text)
+        if match:
+            version = match.group(1)
+        if compiler:
             break
 
     build_type = None
@@ -139,7 +181,11 @@ def _build_dir_meta(log: Path) -> Meta:
         if match:
             build_type = match.group(1).strip() or None
 
-    return Meta(log, compiler, build_type)
+    if override is not None and compiler is None:
+        compiler, version = override
+        build_type = build_type or "Debug"
+
+    return Meta(log, compiler, version, build_type)
 
 
 def _candidate_logs(explicit: Optional[str]) -> List[Path]:
@@ -152,43 +198,51 @@ def _candidate_logs(explicit: Optional[str]) -> List[Path]:
     return sorted(found)
 
 
-def _pick_log(explicit: Optional[str], baselined: List[str]) -> Tuple[Optional[Meta], List[str]]:
-    """Return the log to check, plus the reasons every rejected candidate lost."""
+def _pick_log(explicit: Optional[str], override: Optional[Tuple[str, str]]
+              ) -> Tuple[Optional[Meta], List[str], bool]:
+    """The log to check, why every rejected candidate lost, and whether the
+    only reason for having none is that they were all Release logs."""
     notes = []
     usable = []
+    only_release = True
     for log in _candidate_logs(explicit):
         if not log.is_file():
             notes.append("{}: no such file".format(log))
+            only_release = False
             continue
-        meta = _build_dir_meta(log)
+        meta = _build_dir_meta(log, override)
         if meta.compiler is None:
             notes.append("{}: cannot tell which compiler wrote it "
-                         "(no CMakeFiles/*/CMakeFortranCompiler.cmake)".format(log))
+                         "(no CMakeFiles/*/CMakeFortranCompiler.cmake; --compiler "
+                         "ID:VERSION says so for a log without a build directory)".format(log))
+            only_release = False
             continue
         if (meta.build_type or "").lower() != REQUIRED_BUILD_TYPE:
             notes.append("{}: build type is {}, and warning flags are only on in "
                          "Debug".format(log, meta.build_type or "unset"))
             continue
-        if meta.compiler not in baselined:
-            notes.append("{}: no baseline section for compiler {} in {}".format(
-                log, meta.compiler, BASELINE.name))
-            continue
         if meta.compiler not in PARSEABLE_COMPILERS:
             notes.append("{}: {} warnings are not in a format this check can parse, "
                          "so the log cannot show absence of warnings".format(
                              log, meta.compiler))
+            only_release = False
+            continue
+        if meta.version is None:
+            notes.append("{}: CMake recorded no compiler version, so the baseline "
+                         "section cannot be chosen".format(log))
+            only_release = False
             continue
         usable.append(meta)
 
     if not usable:
-        return None, notes
+        return None, notes, only_release and bool(notes)
 
     # Prefer the compiler CI gates on; among equals, the most recent build.
     usable.sort(key=lambda m: (m.compiler != PREFERRED_COMPILER,
                                -m.log.stat().st_mtime))
     for meta in usable[1:]:
         notes.append("{}: not chosen (using {} instead)".format(meta.log, usable[0].log))
-    return usable[0], notes
+    return usable[0], notes, False
 
 
 def _newest_source_mtime() -> Tuple[float, Optional[Path]]:
@@ -234,8 +288,10 @@ def _parse(log: Path) -> List[Tuple[str, str, str, str]]:
     return records
 
 
-def _read_baseline() -> Tuple[List[str], Dict[Tuple[str, str, str], int]]:
-    compilers, counts = [], {}
+def _read_baseline() -> Tuple[Set[Section], Dict[Tuple[str, str, str, str], int]]:
+    """The recorded (compiler, major) sections and the counts under them."""
+    sections: Set[Section] = set()
+    counts: Dict[Tuple[str, str, str, str], int] = {}
     if not BASELINE.is_file():
         raise RuntimeError("missing baseline file {}".format(BASELINE))
     for raw in BASELINE.read_text().splitlines():
@@ -243,36 +299,44 @@ def _read_baseline() -> Tuple[List[str], Dict[Tuple[str, str, str], int]]:
         if not line:
             continue
         fields = line.split()
-        if fields[0] == "compiler" and len(fields) == 2:
-            compilers.append(fields[1])
+        if fields[0] == "compiler" and len(fields) == 3:
+            sections.add((fields[1], fields[2]))
             continue
-        if len(fields) != 4:
-            raise RuntimeError("malformed baseline line in {}: {!r}".format(BASELINE, raw))
-        compiler, source, warning_class, count = fields
-        counts[(compiler, source, warning_class)] = int(count)
-    if not compilers:
-        raise RuntimeError("{} declares no `compiler <ID>` lines".format(BASELINE))
-    return compilers, counts
+        if len(fields) != 5:
+            raise RuntimeError("malformed baseline line in {}: {!r} (expected "
+                               "`compiler <ID> <major>` or `<ID> <major> <file> "
+                               "<-Wclass> <count>`)".format(BASELINE, raw))
+        compiler, major, source, warning_class, count = fields
+        if (compiler, major) not in sections:
+            raise RuntimeError("{}: entry {!r} precedes its `compiler {} {}` line".format(
+                BASELINE, raw, compiler, major))
+        counts[(compiler, major, source, warning_class)] = int(count)
+    if not sections:
+        raise RuntimeError("{} declares no `compiler <ID> <major>` lines".format(BASELINE))
+    return sections, counts
 
 
-def _write_baseline(compilers: List[str], counts: Dict[Tuple[str, str, str], int]) -> None:
+def _write_baseline(sections: Set[Section],
+                    counts: Dict[Tuple[str, str, str, str], int]) -> None:
     lines = [
-        "# Compiler warnings already present in the tree, per compiler.",
+        "# Compiler warnings already present in the tree, per compiler major version.",
         "#",
         "# Consumed by tests/lint/check_build_warnings.py. Only counts ABOVE these",
         "# fail; this is a baseline, not a ratchet, so an unrelated change is never",
         "# blocked by warnings it did not introduce.",
         "#",
         "# Format:",
-        "#   compiler <CMake Fortran compiler id>   -- a compiler this file covers;",
-        "#                                            a Debug log from any other",
-        "#                                            compiler is rejected, not",
-        "#                                            silently passed",
-        "#   <compiler> <source file> <-Wclass> <count>",
+        "#   compiler <CMake Fortran compiler id> <major version>",
+        "#       -- a compiler version this file covers. A Debug log from a compiler",
+        "#          major NOT listed here is checked in report-only mode (the check",
+        "#          says so and exits 0); a log from a listed one is gated.",
+        "#   <compiler> <major> <source file> <-Wclass> <count>",
         "#",
         "# To refresh after legitimately adding or removing a warning:",
         "#   1. full Debug build with that compiler, teeing to <build dir>/build.log",
+        "#      (or harvest a CI job's log with `gh run view <id> --log`)",
         "#   2. python tests/lint/check_build_warnings.py --update --log <that log>",
+        "#      (add --compiler GNU:<version> for a log with no build directory)",
         "#   3. commit the diff, and say in the message why the new entries are",
         "#      acceptable -- an entry added here is a warning nobody will be told",
         "#      about again.",
@@ -280,19 +344,32 @@ def _write_baseline(compilers: List[str], counts: Dict[Tuple[str, str, str], int
         "# Counts are per (file, class) rather than per line so that editing a file",
         "# does not invalidate the baseline for every warning below the edit.",
         "#",
-        "# Measured against the pinned local module stacks documented in",
-        "# .github/skills/udales-exec/references/clusters.md (GNU: foss/2023a,",
-        "# gfortran 12.3; Intel: intel/2021a via tools/build_executable.sh icl).",
-        "# GitHub Actions does NOT pin its compilers, so the gate is report-only",
-        "# there -- see the header of check_build_warnings.py.",
+        "# Where each section was measured (2026-09):",
+        "#   GNU 12 -- CX3, foss/2023a, gfortran 12.3.0 (the local recipe in",
+        "#             .github/skills/udales-exec/references/clusters.md)",
+        "#   GNU 13 -- GitHub ubuntu-latest, gfortran 13.2.0 (4:13.2.0-7ubuntu1)",
+        "#   GNU 16 -- GitHub macos-latest, Homebrew GCC 16.2.0",
+        "# CI does not pin its compilers, so when a runner image moves to a major",
+        "# not listed here the gate turns report-only there and names the gap.",
         "",
     ]
-    for compiler in sorted(compilers):
-        lines.append("compiler {}".format(compiler))
+    for compiler, major in sorted(sections, key=lambda s: (s[0], int(s[1]) if s[1].isdigit() else 0)):
+        lines.append("compiler {} {}".format(compiler, major))
     lines.append("")
-    for (compiler, source, warning_class), count in sorted(counts.items()):
-        lines.append("{} {} {} {}".format(compiler, source, warning_class, count))
+    for (compiler, major, source, warning_class), count in sorted(
+            counts.items(), key=lambda kv: (kv[0][0], int(kv[0][1]) if kv[0][1].isdigit() else 0,
+                                            kv[0][2], kv[0][3])):
+        lines.append("{} {} {} {} {}".format(compiler, major, source, warning_class, count))
     BASELINE.write_text("\n".join(lines) + "\n")
+
+
+def _parse_compiler_override(value: Optional[str]) -> Optional[Tuple[str, str]]:
+    if not value:
+        return None
+    if ":" not in value:
+        raise SystemExit("--compiler expects ID:VERSION, e.g. GNU:13.2.0")
+    compiler, version = value.split(":", 1)
+    return compiler.strip(), version.strip()
 
 
 def main() -> int:
@@ -301,31 +378,38 @@ def main() -> int:
                         help="Build log to check (default: UDALES_BUILD_LOG, else "
                              "the newest usable build/*/build.log).")
     parser.add_argument("--update", action="store_true",
-                        help="Rewrite the baseline from this log instead of checking "
-                             "against it. Requires a complete (full-build) log.")
+                        help="Rewrite this compiler major's baseline section from the "
+                             "log instead of checking against it. Requires a complete "
+                             "(full-build) log.")
     parser.add_argument("--report-only", action="store_true",
-                        help="Print the comparison but always exit 0. Implied under "
-                             "GitHub Actions and by UDALES_WARNINGS_REPORT_ONLY=1.")
+                        help="Print the comparison but always exit 0. Also implied by "
+                             "UDALES_WARNINGS_REPORT_ONLY=1, and by a log from a "
+                             "compiler major the baseline does not record.")
+    parser.add_argument("--compiler", default=None, metavar="ID:VERSION",
+                        help="Compiler id and version of a log that has no CMake build "
+                             "directory next to it (e.g. one harvested from CI); such a "
+                             "log is taken to be a Debug log.")
     args = parser.parse_args()
 
-    report_only = (args.report_only
-                   or os.environ.get("UDALES_WARNINGS_REPORT_ONLY") == "1"
-                   or os.environ.get("GITHUB_ACTIONS") == "true")
+    override = _parse_compiler_override(args.compiler)
+    forced = args.report_only or os.environ.get("UDALES_WARNINGS_REPORT_ONLY") == "1"
+    in_ci = os.environ.get("GITHUB_ACTIONS") == "true"
 
     print("==> compiler warning gate (tests/lint/check_build_warnings.py)")
-    if report_only:
-        print("  mode:       REPORT ONLY (exit 0 regardless) -- see this file's header "
-              "for why CI does not gate on warnings")
 
-    baselined, baseline = _read_baseline()
-    meta, notes = _pick_log(args.log, baselined)
-
-    # Report-only mode still prints everything; only the verdict is softened, so
-    # the wording must not claim a failure that did not happen.
-    tag = "NOTE (report only)" if report_only else "FAIL"
+    sections, baseline = _read_baseline()
+    recorded = ", ".join("{} {}".format(c, m) for c, m in sorted(sections))
+    meta, notes, only_release = _pick_log(args.log, override)
 
     if meta is None:
         sys.stdout.flush()
+        if in_ci and only_release:
+            print("  NOT APPLICABLE: only a Release log is available and the warning "
+                  "flags exist only in Debug; the Debug leg of this matrix gates.")
+            for note in notes:
+                print("  rejected {}".format(note))
+            return 0
+        tag = "NOTE (report only)" if forced else "FAIL"
         print("{}: no usable build log.".format(tag), file=sys.stderr)
         print("", file=sys.stderr)
         for note in notes:
@@ -335,11 +419,28 @@ def main() -> int:
         print("", file=sys.stderr)
         print(RECIPE, file=sys.stderr)
         print("", file=sys.stderr)
-        if not report_only:
+        if not forced:
             print("This check deliberately fails rather than passing when it did "
                   "not run: a check that is silent when it saw nothing is worse "
                   "than no check.", file=sys.stderr)
-        return 0 if report_only else 2
+        return 0 if forced else 2
+
+    known = meta.section in sections
+    report_only = forced or not known
+    if forced:
+        mode = "REPORT ONLY (forced by --report-only / UDALES_WARNINGS_REPORT_ONLY=1)"
+    elif not known:
+        mode = ("REPORT ONLY: no baseline recorded for {} {} (recorded: {}). Record one "
+                "with --update if this compiler should gate.".format(
+                    meta.compiler, meta.major, recorded))
+    else:
+        mode = "GATE: baseline recorded for {} {}{}".format(
+            meta.compiler, meta.major, " (GitHub Actions)" if in_ci else "")
+    print("  mode:       {}".format(mode))
+
+    # Report-only mode still prints everything; only the verdict is softened, so
+    # the wording must not claim a failure that did not happen.
+    tag = "NOTE (report only)" if report_only else "FAIL"
 
     for note in notes:
         print("  note: rejected {}".format(note))
@@ -349,14 +450,12 @@ def main() -> int:
     complete = _log_is_complete(meta.log)
 
     print("  log:        {}".format(meta.log))
-    print("  compiler:   {}{}".format(
-        meta.compiler,
-        ""))
+    print("  compiler:   {} {} (major {})".format(meta.compiler, meta.version, meta.major))
     print("  build type: {}".format(meta.build_type))
     print("  coverage:   {}".format(
         "full build" if complete else "partial (incremental build log)"))
 
-    if log_mtime < newest_src:
+    if log_mtime < newest_src and override is None:
         sys.stdout.flush()
         print("{}: the build log is older than the sources it should "
               "describe.".format(tag), file=sys.stderr)
@@ -366,7 +465,7 @@ def main() -> int:
         return 0 if report_only else 2
 
     records = _parse(meta.log)
-    counts = Counter((meta.compiler, rec[0], rec[2]) for rec in records)
+    counts = Counter((meta.compiler, meta.major, rec[0], rec[2]) for rec in records)
 
     if args.update:
         if not complete:
@@ -374,12 +473,11 @@ def main() -> int:
             print("FAIL: --update needs a complete (full-build) log; {} covers only "
                   "the files it recompiled.".format(meta.log), file=sys.stderr)
             return 2
-        merged = dict((k, v) for k, v in baseline.items() if k[0] != meta.compiler)
+        merged = dict((k, v) for k, v in baseline.items() if k[:2] != meta.section)
         merged.update(counts)
-        compilers = sorted(set(baselined) | set([meta.compiler]))
-        _write_baseline(compilers, merged)
-        print("  updated {} for compiler {} ({} entries)".format(
-            BASELINE, meta.compiler, len(counts)))
+        _write_baseline(sections | {meta.section}, merged)
+        print("  updated {} for {} {} ({} entries)".format(
+            BASELINE, meta.compiler, meta.major, len(counts)))
         return 0
 
     regressions = []
@@ -389,16 +487,16 @@ def main() -> int:
             regressions.append((key, count, allowed))
 
     total = sum(counts.values())
-    allowed_total = sum(v for k, v in baseline.items() if k[0] == meta.compiler)
-    print("  warnings:   {} in this log, baseline allows {} for {}".format(
-        total, allowed_total, meta.compiler))
+    allowed_total = sum(v for k, v in baseline.items() if k[:2] == meta.section)
+    print("  warnings:   {} in this log, baseline allows {} for {} {}".format(
+        total, allowed_total, meta.compiler, meta.major))
 
     if regressions:
         print("")
         sys.stdout.flush()
         print("{}: warnings above the baseline.".format(tag), file=sys.stderr)
         print("", file=sys.stderr)
-        for (compiler, source, warning_class), count, allowed in regressions:
+        for (compiler, major, source, warning_class), count, allowed in regressions:
             print("  {}: {} x {} (baseline {})".format(
                 source, count, warning_class, allowed), file=sys.stderr)
             for rec in records:
@@ -412,20 +510,21 @@ def main() -> int:
             BASELINE.name), file=sys.stderr)
         return 0 if report_only else 1
 
-    if complete:
+    if complete and known:
         stale = [(k, v) for k, v in sorted(baseline.items())
-                 if k[0] == meta.compiler and counts.get(k, 0) < v]
+                 if k[:2] == meta.section and counts.get(k, 0) < v]
         if stale:
             print("")
             print("  NOTE: {} baseline entries are now over-generous (warnings were "
                   "fixed).".format(len(stale)))
-            for (compiler, source, warning_class), allowed in stale:
+            for (compiler, major, source, warning_class), allowed in stale:
                 print("        {} {}: {} now, {} allowed".format(
-                    source, warning_class, counts.get((compiler, source, warning_class), 0),
-                    allowed))
+                    source, warning_class,
+                    counts.get((compiler, major, source, warning_class), 0), allowed))
             print("        Refresh with --update when convenient. Not a failure.")
 
-    print("PASS: no warnings above the baseline.")
+    print("PASS: no warnings above the baseline." if known else
+          "PASS (report only): nothing was gated, see the mode line above.")
     return 0
 
 

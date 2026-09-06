@@ -93,8 +93,9 @@ jobs:
         cmake --build "$build_dir" -- -j 4 2>&1 | tee "$build_dir/build.log"
 
     - name: Summarise compiler warnings
-      # Reporting only -- deliberately never fails the build. See the script
-      # header for why this is not a -Werror gate.
+      # Reporting only -- this step never fails the build; the gate on new
+      # warnings is the `lint` suite in the test step below, per gfortran major
+      # (see tests/lint/check_build_warnings.py).
       if: always()
       run: bash .github/scripts/summarise_warnings.sh "$UDALES_BUILD_LOG" "${{ matrix.os }} ${{ matrix.build-type }}"
 

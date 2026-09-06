@@ -2,12 +2,13 @@
 #
 # Summarise compiler warnings from a build log into the GitHub step summary.
 #
-# Reporting only: this never fails the build, by design. CI does not pin its
-# compilers (`apt install gfortran`, `brew install gcc` on rolling runner
-# images), so each runner legitimately reports a different set of warnings, and
-# a newer image can introduce new ones with no change to this repository.
-# Gating on that would turn CI red on an unrelated PR. Surfacing the counts
-# keeps the signal without the brittleness.
+# Reporting only: this step never fails the build. The gate is the `lint`
+# suite in the test step (tests/lint/check_build_warnings.py), which parses the
+# same log with this script's --list mode against a baseline recorded per
+# gfortran major version -- so it fails a Debug leg on a new warning while the
+# runner's gfortran major is recorded, and turns report-only (saying so) when a
+# rolling runner image moves to a major the baseline has not seen. This step
+# stays a summary of the counts either way.
 #
 # Classes listed in BENIGN below were reviewed in #334 and are correct as they
 # stand; everything else is flagged for review. If a class here starts hiding

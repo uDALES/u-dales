@@ -93,9 +93,10 @@ groups:
   # disagree about both errors and warnings. This group closes that gap before
   # a push. It parses a build log rather than building (a full Debug build is
   # minutes; parsing is instant) and fails loudly when there is no usable log.
-  # Not included by `supported-macos`: the baseline is measured against the
-  # pinned Linux/CX3 module stacks, and Homebrew's gfortran is a different
-  # version with a different warning set.
+  # The baseline records the gfortran major it was measured with; the gate
+  # fails on a log from a recorded major and is report-only (saying so) on
+  # any other, so it is safe in `supported-macos` too -- Homebrew's gfortran
+  # gates while its major is recorded and reports once it moves on.
   lint:
     suites:
       - label: "lint: compiler warnings against the recorded baseline"
@@ -644,6 +645,7 @@ groups:
   supported-macos:
     includes:
       - python-library
+      - lint
       - nesting-unit
     suites:
       - label: "supported: ibm sparse input integration"

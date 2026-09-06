@@ -1,19 +1,21 @@
-# Compiler warnings already present in the tree, per compiler.
+# Compiler warnings already present in the tree, per compiler major version.
 #
 # Consumed by tests/lint/check_build_warnings.py. Only counts ABOVE these
 # fail; this is a baseline, not a ratchet, so an unrelated change is never
 # blocked by warnings it did not introduce.
 #
 # Format:
-#   compiler <CMake Fortran compiler id>   -- a compiler this file covers;
-#                                            a Debug log from any other
-#                                            compiler is rejected, not
-#                                            silently passed
-#   <compiler> <source file> <-Wclass> <count>
+#   compiler <CMake Fortran compiler id> <major version>
+#       -- a compiler version this file covers. A Debug log from a compiler
+#          major NOT listed here is checked in report-only mode (the check
+#          says so and exits 0); a log from a listed one is gated.
+#   <compiler> <major> <source file> <-Wclass> <count>
 #
 # To refresh after legitimately adding or removing a warning:
 #   1. full Debug build with that compiler, teeing to <build dir>/build.log
+#      (or harvest a CI job's log with `gh run view <id> --log`)
 #   2. python tests/lint/check_build_warnings.py --update --log <that log>
+#      (add --compiler GNU:<version> for a log with no build directory)
 #   3. commit the diff, and say in the message why the new entries are
 #      acceptable -- an entry added here is a warning nobody will be told
 #      about again.
@@ -21,20 +23,37 @@
 # Counts are per (file, class) rather than per line so that editing a file
 # does not invalidate the baseline for every warning below the edit.
 #
-# Measured against the pinned local module stacks documented in
-# .github/skills/udales-exec/references/clusters.md (GNU: foss/2023a,
-# gfortran 12.3; Intel: intel/2021a via tools/build_executable.sh icl).
-# GitHub Actions does NOT pin its compilers, so the gate is report-only
-# there -- see the header of check_build_warnings.py.
+# Where each section was measured (2026-09):
+#   GNU 12 -- CX3, foss/2023a, gfortran 12.3.0 (the local recipe in
+#             .github/skills/udales-exec/references/clusters.md)
+#   GNU 13 -- GitHub ubuntu-latest, gfortran 13.2.0 (4:13.2.0-7ubuntu1)
+#   GNU 16 -- GitHub macos-latest, Homebrew GCC 16.2.0
+# CI does not pin its compilers, so when a runner image moves to a major
+# not listed here the gate turns report-only there and names the gap.
 
-compiler GNU
-compiler Intel
+compiler GNU 12
+compiler GNU 13
+compiler GNU 16
 
-GNU modchecksim.f90 -Wcompare-reals 1
-GNU modinlet.f90 -Wcompare-reals 5
-GNU modpois.f90 -Wcompare-reals 4
-GNU modsave.f90 -Wcompare-reals 1
-GNU modstatsdump.f90 -Wcompare-reals 2
-GNU modstatsdump.f90 -Wunused-value 2
-GNU modsubgrid.f90 -Wcompare-reals 1
-GNU modthermodynamics.f90 -Wcompare-reals 1
+GNU 12 modchecksim.f90 -Wcompare-reals 1
+GNU 12 modinlet.f90 -Wcompare-reals 5
+GNU 12 modpois.f90 -Wcompare-reals 4
+GNU 12 modsave.f90 -Wcompare-reals 1
+GNU 12 modstatsdump.f90 -Wcompare-reals 2
+GNU 12 modstatsdump.f90 -Wunused-value 2
+GNU 12 modsubgrid.f90 -Wcompare-reals 1
+GNU 12 modthermodynamics.f90 -Wcompare-reals 1
+GNU 13 modchecksim.f90 -Wcompare-reals 1
+GNU 13 modinlet.f90 -Wcompare-reals 5
+GNU 13 modpois.f90 -Wcompare-reals 4
+GNU 13 modsave.f90 -Wcompare-reals 1
+GNU 13 modstatsdump.f90 -Wcompare-reals 2
+GNU 13 modsubgrid.f90 -Wcompare-reals 1
+GNU 13 modthermodynamics.f90 -Wcompare-reals 1
+GNU 16 modchecksim.f90 -Wcompare-reals 1
+GNU 16 modinlet.f90 -Wcompare-reals 5
+GNU 16 modpois.f90 -Wcompare-reals 4
+GNU 16 modsave.f90 -Wcompare-reals 1
+GNU 16 modstatsdump.f90 -Wcompare-reals 2
+GNU 16 modsubgrid.f90 -Wcompare-reals 1
+GNU 16 modthermodynamics.f90 -Wcompare-reals 1
