@@ -64,6 +64,7 @@ from __future__ import annotations
 
 import getpass
 import json
+import logging
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -73,6 +74,8 @@ from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 import numpy as np
 
 from exceptions import ConfigurationError, DataFormatError, DependencyError
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "ANALYTIC_COEFFS",
@@ -90,6 +93,7 @@ __all__ = [
     "TOOL_VERSION",
     "FaceMasks",
     "NestGrid",
+    "NestingAlignmentError",
     "NestingData",
     "NestingRefinementError",
     "NestingSchemaError",
@@ -98,6 +102,7 @@ __all__ = [
     "analytic_slabs",
     "apply_divergence_correction",
     "boundary_faces",
+    "check_alignment",
     "check_refinement",
     "conservative_interpolate",
     "discrete_divergence",
@@ -200,7 +205,8 @@ REQUIRED_GLOBAL_ATTRIBUTES_V2 = REQUIRED_GLOBAL_ATTRIBUTES + (
 _COORD_VARIABLES = ("xf", "xh", "yf", "yh", "zf", "zh")
 
 #: Snapping tolerance for "this child face is coplanar with a parent face",
-#: relative to the smallest parent spacing.
+#: relative to the smallest parent spacing.  The same number is the alignment
+#: tolerance of :func:`check_alignment`.
 _ALIGN_RTOL = 1.0e-9
 
 
@@ -210,6 +216,10 @@ class NestingSchemaError(DataFormatError):
 
 class NestingRefinementError(ConfigurationError):
     """The parent/child refinement ratio exceeds the supported range."""
+
+
+class NestingAlignmentError(ConfigurationError):
+    """A child cell straddles a parent face, so the prolongation is not conservative."""
 
 
 def _import_dataset():
@@ -363,6 +373,71 @@ class NestGrid:
 # --------------------------------------------------------------------------- #
 
 
+def _axis_misalignment(parent_faces: np.ndarray, child_faces: np.ndarray) -> Tuple[float, float]:
+    """How far the child cells along one axis are from being nested in the parent's.
+
+    Returns ``(worst, tol)`` in metres: ``worst`` is the largest distance from a
+    parent face that lies inside the child's extent to the nearest child face,
+    i.e. by how much a child cell straddles a parent face (0 when every parent
+    face inside the child is also a child face); ``tol`` is the alignment
+    tolerance, :data:`_ALIGN_RTOL` times the smallest parent spacing.
+    """
+    parent_faces = np.asarray(parent_faces, dtype=np.float64)
+    child_faces = np.asarray(child_faces, dtype=np.float64)
+    tol = _ALIGN_RTOL * float(np.min(np.diff(parent_faces)))
+    inside = parent_faces[(parent_faces > child_faces[0] + tol)
+                          & (parent_faces < child_faces[-1] - tol)]
+    if inside.size == 0:
+        return 0.0, tol
+    pos = np.searchsorted(child_faces, inside)
+    lo = child_faces[np.clip(pos - 1, 0, child_faces.size - 1)]
+    hi = child_faces[np.clip(pos, 0, child_faces.size - 1)]
+    return float(np.max(np.minimum(np.abs(inside - lo), np.abs(hi - inside)))), tol
+
+
+def check_alignment(
+    parent: NestGrid, child: NestGrid, allow_misaligned: bool = False
+) -> Dict[str, float]:
+    """Require every child cell to lie inside exactly one parent cell.
+
+    The prolongation is conservative -- the child fluxes over a parent face sum
+    to the parent flux, and the divergence integrated over a parent cell is
+    preserved -- **only** when the grids nest: every parent face within the
+    child's extent must coincide with a child face, along all three axes, to
+    :data:`_ALIGN_RTOL` of the smallest parent spacing.  A refinement ratio of
+    1.5, or a stretched parent vertical under a uniform child, breaks this
+    silently and leaves the child target with a divergence of order half the
+    velocity scale over a parent spacing (review 2026-09-06 §3 item 1).
+
+    Returns the worst misalignment per axis, in metres, as
+    ``{"x": ..., "y": ..., "z": ..., "tolerance": ...}``.  Raises
+    :class:`NestingAlignmentError` when any exceeds the tolerance, unless
+    ``allow_misaligned`` is set, in which case the violation is logged at
+    WARNING level and the numbers are returned for the caller to record.
+    """
+    report: Dict[str, float] = {}
+    worst_axis = None
+    for name, axis in (("x", 0), ("y", 1), ("z", 2)):
+        worst, tol = _axis_misalignment(parent.edges(axis), child.edges(axis))
+        report[name] = worst
+        report["tolerance"] = max(report.get("tolerance", 0.0), tol)
+        if worst > tol and (worst_axis is None or worst > report[worst_axis]):
+            worst_axis = name
+    if worst_axis is not None:
+        message = (
+            "child cells are not nested in parent cells: a parent face lies "
+            f"{report[worst_axis]:.3g} m inside a child cell along {worst_axis} "
+            f"(tolerance {report['tolerance']:.3g} m; per axis x = {report['x']:.3g}, "
+            f"y = {report['y']:.3g}, z = {report['z']:.3g} m). The prolongation is "
+            "conservative only for nested grids: use an integer refinement ratio "
+            "and a child vertical whose faces contain the parent's"
+        )
+        if not allow_misaligned:
+            raise NestingAlignmentError(message + "; pass allow_misaligned=True to proceed anyway")
+        logger.warning("udprep.nesting: %s (allow_misaligned=True, proceeding)", message)
+    return report
+
+
 def _normal_map(parent_faces: np.ndarray, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Linear map along the face-normal direction.
 
@@ -475,12 +550,18 @@ def interpolate_child_fields(
     parent_v: np.ndarray,
     parent_w: np.ndarray,
     child: NestGrid,
+    allow_misaligned: Optional[bool] = False,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Interpolate a full parent velocity field onto the whole child grid.
 
     Convenience wrapper around :func:`conservative_interpolate`; the writer
     itself only ever interpolates the zone slabs (:func:`slabs_from_parent`).
+    The grids must nest (:func:`check_alignment`); ``allow_misaligned=True``
+    logs the violation and proceeds, ``None`` means the caller has already
+    checked.
     """
+    if allow_misaligned is not None:
+        check_alignment(parent, child, allow_misaligned=allow_misaligned)
     out = []
     for component, pf in zip(COMPONENTS, (parent_u, parent_v, parent_w)):
         coords = [child.component_coords(component, ax) for ax in range(3)]
@@ -612,13 +693,18 @@ def slabs_from_parent(
     parent_w: np.ndarray,
     child: NestGrid,
     nzone: int,
+    allow_misaligned: Optional[bool] = False,
 ) -> Dict[str, np.ndarray]:
     """Interpolate the parent onto the twelve zone slabs, for one time level.
 
     Only the slab points are interpolated, so the cost and the memory are
-    proportional to the zone rather than to the child domain.
+    proportional to the zone rather than to the child domain.  The grids must
+    nest (:func:`check_alignment`); ``allow_misaligned=True`` logs the
+    violation and proceeds, ``None`` means the caller has already checked.
     """
     _check_nzone(child, nzone)
+    if allow_misaligned is not None:
+        check_alignment(parent, child, allow_misaligned=allow_misaligned)
     parent_fields = dict(zip(COMPONENTS, (parent_u, parent_v, parent_w)))
     slabs: Dict[str, np.ndarray] = {}
     for face in FACES:
@@ -669,10 +755,12 @@ def initial_fields_from_parent(
     parent_v: np.ndarray,
     parent_w: np.ndarray,
     child: NestGrid,
+    allow_misaligned: Optional[bool] = False,
 ) -> Dict[str, np.ndarray]:
     """Conservatively interpolate a parent field onto the whole child grid."""
     return initial_fields_from_fields(
-        child, *interpolate_child_fields(parent, parent_u, parent_v, parent_w, child)
+        child, *interpolate_child_fields(parent, parent_u, parent_v, parent_w, child,
+                                         allow_misaligned=allow_misaligned)
     )
 
 
@@ -1002,6 +1090,7 @@ def nesting_data_from_parent(
     times: Sequence[float],
     fields: Sequence[Tuple[np.ndarray, np.ndarray, np.ndarray]],
     initial: bool = False,
+    allow_misaligned: bool = False,
     **kwargs: Any,
 ) -> NestingData:
     """Build a :class:`NestingData` by conservative interpolation of a parent.
@@ -1012,18 +1101,27 @@ def nesting_data_from_parent(
     schema-2 initial-condition block, for a cold start with
     ``nest_linitfromparent``.  Extra keyword arguments are passed to
     :class:`NestingData` (provenance attributes, ``rhobf``, ...).
+
+    The grids must nest (:func:`check_alignment`, checked once here);
+    ``allow_misaligned=True`` logs the violation and proceeds.
+
+    This holds every level in memory; for a long parent record use
+    :class:`NestingWriter` and append level by level instead.
     """
     times = np.asarray(times, dtype=np.float64).reshape(-1)
     if len(fields) != times.size:
         raise ConfigurationError(
             f"got {len(fields)} field sets for {times.size} times"
         )
-    per_time = [slabs_from_parent(parent, *fields[n], child=child, nzone=nzone)
+    check_alignment(parent, child, allow_misaligned=allow_misaligned)
+    per_time = [slabs_from_parent(parent, *fields[n], child=child, nzone=nzone,
+                                  allow_misaligned=None)
                 for n in range(times.size)]
     slabs = {name: np.stack([s[name] for s in per_time], axis=0) for name in SLAB_VARIABLES}
     if initial:
         kwargs.setdefault(
-            "initial_fields", initial_fields_from_parent(parent, *fields[0], child=child)
+            "initial_fields",
+            initial_fields_from_parent(parent, *fields[0], child=child, allow_misaligned=None),
         )
     kwargs.setdefault("parent_dx", float(np.min(np.diff(parent.xh))))
     kwargs.setdefault("child_origin_x", float(child.xh[0]))
