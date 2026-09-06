@@ -58,7 +58,7 @@ integer, parameter :: TEST_NESTING_INIT     = 1011
 | `nest_zonewidth` | real | `0.` | $L_{\rm rel}$ [m] |
 | `nest_tau` | real | `0.` | [s]. The relaxation rate is `W/tau`, so `tau<=0` means an infinite rate **wherever `W>0`**, i.e. the whole zone becomes Dirichlet and the ramp is defeated. It is therefore only legal when `nest_zonewidth == 0` (pure guard strip, no ramp); `checkinitvalues` enforces this. |
 | `nest_shape` | integer | `1` | 1 raised cosine, 2 quintic |
-| `nest_lateral(4)` | logical | `.true.` | W, E, S, N |
+| `nest_lateral(4)` | logical | `.true.` | W, E, S, N. A nested direction must impose **both** of its faces: with `BCxm = BCxm_nesting`, `nest_lateral(1:2)` must both be `.true.`, and likewise `nest_lateral(3:4)` under `BCym_nesting`. The nesting BC replaces the convective outflow as well as the inflow, so a face left out would get neither and its ghost plane would never be set. `checkinitvalues` and `nesting_init` both reject it. |
 | `nest_top` | logical | `.false.` | Case C — **not implemented in v1**, must error if `.true.` |
 | `nest_timeinterp` | integer | `2` | 1 linear, 2 cubic Hermite (Catmull-Rom). The Hermite slopes MUST stay unlimited: the interpolant has to be linear in the data or it breaks the flux compatibility of design §3.1. |
 | `nest_nwall` | integer | `1` | wall erosion, cells |
@@ -74,7 +74,8 @@ integer, parameter :: TEST_NESTING_INIT     = 1011
 3. **not** force `BCtopm = BCtopm_pressure` (unlike the `BCxm_profile`/`BCxm_driver` branches);
 4. stop if `nest_top`;
 5. stop if `nest_guardwidth <= 0.` or `nest_zonewidth < 0.`;
-6. stop if `nest_tau <= 0.` while `nest_zonewidth > 0.` (see the `nest_tau` row above).
+6. stop if `nest_tau <= 0.` while `nest_zonewidth > 0.` (see the `nest_tau` row above);
+7. stop if a nested direction does not impose both of its faces (see the `nest_lateral` row).
 
 ## 5. File format `nesting.inp.<expnr>.nc`
 

@@ -759,7 +759,7 @@ module modstartup
                               TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
       use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
       use modglobal,   only : idriver
-      use modnesting,  only : lnesting, nest_top, nest_guardwidth, nest_zonewidth, nest_tau
+      use modnesting,  only : lnesting, nest_top, nest_guardwidth, nest_zonewidth, nest_tau, nest_lateral
       implicit none
 
       if (mod(jtot, nprocy) /= 0) then
@@ -997,6 +997,28 @@ module modstartup
              if (myid == 0) then
                 write(0, *) 'ERROR: lnesting requires BCxm = ', BCxm_nesting, ' and/or BCym = ', BCym_nesting
                 write(0, *) 'BCxm and BCym are: ', BCxm, BCym
+             end if
+             stop 1
+          end if
+
+          ! A nested direction imposes BOTH of its faces: the nesting BC replaces
+          ! the convective outflow as well as the inflow, so a face left out of
+          ! nest_lateral would get neither and its ghost plane would never be set.
+          if ((BCxm .eq. BCxm_nesting) .and. .not. (nest_lateral(1) .and. nest_lateral(2))) then
+             if (myid == 0) then
+                write(0, *) 'ERROR: BCxm = ', BCxm_nesting, ' (nesting) needs both x faces: nest_lateral(1) and'
+                write(0, *) 'nest_lateral(2) must both be .true. -- a face with neither the nesting'
+                write(0, *) 'imposition nor the convective outflow has no boundary condition at all.'
+                write(0, *) 'nest_lateral = ', nest_lateral
+             end if
+             stop 1
+          end if
+          if ((BCym .eq. BCym_nesting) .and. .not. (nest_lateral(3) .and. nest_lateral(4))) then
+             if (myid == 0) then
+                write(0, *) 'ERROR: BCym = ', BCym_nesting, ' (nesting) needs both y faces: nest_lateral(3) and'
+                write(0, *) 'nest_lateral(4) must both be .true. -- a face with neither the nesting'
+                write(0, *) 'imposition nor the convective outflow has no boundary condition at all.'
+                write(0, *) 'nest_lateral = ', nest_lateral
              end if
              stop 1
           end if

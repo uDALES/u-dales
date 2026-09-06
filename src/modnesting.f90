@@ -171,7 +171,15 @@ contains
       if (ntime < 1) call nest_abort('no time levels in '//trim(nestfile))
 
       ! A face is forced only if the namelist selects it AND the corresponding
-      ! momentum BC is the nesting one.
+      ! momentum BC is the nesting one. A nested direction must impose BOTH of
+      ! its faces: the nesting BC replaces the convective outflow as well as the
+      ! inflow, so a face dropped from nest_lateral would get neither and its
+      ! ghost plane would never be set. checkinitvalues rejects this from the
+      ! namelist; the check is repeated here for callers that bypass it.
+      if ((BCxm == BCxm_nesting) .and. .not. (nest_lateral(1) .and. nest_lateral(2))) &
+         call nest_abort('BCxm = BCxm_nesting needs both x faces: nest_lateral(1:2) must be .true.')
+      if ((BCym == BCym_nesting) .and. .not. (nest_lateral(3) .and. nest_lateral(4))) &
+         call nest_abort('BCym = BCym_nesting needs both y faces: nest_lateral(3:4) must be .true.')
       lface(1) = nest_lateral(1) .and. (BCxm == BCxm_nesting)
       lface(2) = nest_lateral(2) .and. (BCxm == BCxm_nesting)
       lface(3) = nest_lateral(3) .and. (BCym == BCym_nesting)
