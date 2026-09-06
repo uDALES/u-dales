@@ -158,6 +158,12 @@ variables:
                                       // than trusted.
 ```
 
+**Coordinates are child-relative.** `xf`, `xh`, `yf`, `yh` are the child's own grid, starting at
+0 -- what `nestio_validate` compares against the run's `xh(1:itot+1)` to `nestio_tol = 1e-10` of
+`xlen`. The child's position in the parent is carried **only** by `child_origin_x`/`child_origin_y`
+(metres, parent coordinates); a writer working in parent coordinates subtracts them before
+writing. `zf`/`zh` are the run's vertical and are not shifted.
+
 **Index conventions.** The west slab covers child cells `i = 1..nzone` (centres) and faces
 `i = 1..nzone+1`. The east slab covers centres `i = itot-nzone+1..itot` and faces
 `i = itot-nzone+1..itot+1`; **its first slab index corresponds to the lowest global index**, i.e.

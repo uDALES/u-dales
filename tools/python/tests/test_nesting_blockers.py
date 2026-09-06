@@ -51,7 +51,9 @@ from udprep.nesting import (  # noqa: E402
     discrete_divergence,
     interpolate_child_fields,
     nesting_data_from_parent,
+    read_nesting_file,
     slabs_from_parent,
+    stored_coordinates,
     validate_nesting_file,
     write_nesting_file,
 )
@@ -179,6 +181,59 @@ class TestW1Alignment(unittest.TestCase):
             print(f"[W1] stretched parent: child divmax = {div:.3e} s-1 "
                   f"= {div / sscale:.2f} x (max|u| / min dx)")
             self.assertGreater(div / sscale, 0.1)
+
+
+# --------------------------------------------------------------------------- #
+# W2 -- offset child origin
+# --------------------------------------------------------------------------- #
+
+
+class TestW2OffsetOrigin(unittest.TestCase):
+    """W2: a child cut at (128, 128) m of the parent writes a file the solver accepts."""
+
+    def test_round_trip_of_an_offset_child(self):
+        parent = NestGrid.uniform(16, 16, 4, 256.0, 256.0, 40.0)
+        child = NestGrid.uniform(16, 8, 8, 64.0, 32.0, 40.0, x0=128.0, y0=128.0)
+        fields = [solenoidal_parent_fields(parent, seed=s) for s in (1, 2, 3)]
+        data = nesting_data_from_parent(parent, child, 3, [0.0, 10.0, 20.0], fields)
+        self.assertEqual(data.child_origin_x, 128.0)
+        self.assertEqual(data.child_origin_y, 128.0)
+        self.assertEqual(float(data.grid.xh[0]), 128.0)     # built in parent coordinates
+        with TemporaryDirectory() as tmp:
+            path = write_nesting_file(Path(tmp) / "offset.nc", data)
+            attrs = validate_nesting_file(path)
+            back = read_nesting_file(path)
+            with Dataset(path, "r") as ds:
+                xh = np.asarray(ds.variables["xh"][:])
+                yh = np.asarray(ds.variables["yh"][:])
+            # the reader's rule: |file - run| <= 1e-10 max(|file|, |run|, xlen), run at 0
+            for arr, n, length in ((xh, 16, 64.0), (yh, 8, 32.0)):
+                run = np.linspace(0.0, length, n + 1)
+                self.assertLessEqual(np.max(np.abs(arr - run)), 1e-10 * length)
+            self.assertEqual(float(attrs["child_origin_x"]), 128.0)
+            self.assertEqual(float(attrs["child_origin_y"]), 128.0)
+            self.assertAlmostEqual(float(attrs["xlen"]), 64.0)
+        self.assertEqual(float(back.grid.xh[0]), 0.0)
+        self.assertEqual(float(back.grid.yf[0]), 2.0)
+        np.testing.assert_array_equal(back.grid.zh, child.zh)   # z is not shifted
+        self.assertEqual(back.child_origin_x, 128.0)
+        for name in data.slabs:
+            np.testing.assert_array_equal(back.slabs[name], data.slabs[name], name)
+        # the raw back-end stores the same coordinates
+        with TemporaryDirectory() as tmp:
+            raw = read_nesting_file(write_nesting_file(Path(tmp) / "offset.dat", data))
+        np.testing.assert_array_equal(raw.grid.xh, back.grid.xh)
+
+    def test_a_grid_that_is_neither_relative_nor_at_the_origin_is_refused(self):
+        data = random_nesting_data(seed=201, ntime=2)
+        shifted = NestGrid.from_faces(data.grid.xh + 500.0, data.grid.yh, data.grid.zh)
+        data.grid = shifted
+        data.child_origin_x = 0.0
+        with self.assertRaises(ConfigurationError) as ctx:
+            stored_coordinates(data)
+        self.assertIn("child_origin_x", str(ctx.exception))
+        data.child_origin_x = 500.0
+        self.assertEqual(float(stored_coordinates(data)["xh"][0]), 0.0)
 
 
 # --------------------------------------------------------------------------- #

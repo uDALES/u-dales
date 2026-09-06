@@ -126,6 +126,7 @@ __all__ = [
     "slab_shape",
     "slabs_from_fields",
     "slabs_from_parent",
+    "stored_coordinates",
     "sync_initial_condition",
     "validate_nesting_file",
     "write_analytic_nesting_file",
@@ -1424,6 +1425,40 @@ def _default_creator() -> str:
         return os.environ.get("USER", "unknown")
 
 
+def stored_coordinates(data: NestingData) -> Dict[str, np.ndarray]:
+    """The six coordinate variables **as written to the file**: child-relative.
+
+    The solver validates ``xh``/``yh`` against its own grid, which starts at
+    0, to ``nestio_tol = 1e-10`` of ``xlen`` (``modnestingio.f90``,
+    ``nestio_validate``); so a child grid built in the parent's coordinates
+    (``nesting_data_from_parent`` does that) is shifted to its own origin here
+    and the offset is carried by the ``child_origin_x``/``child_origin_y``
+    attributes.  ``z`` is not shifted: the child's vertical is the run's.
+
+    A grid that is neither at 0 nor at ``child_origin_*`` is ambiguous and
+    refused rather than guessed.
+    """
+    grid = data.grid
+    out: Dict[str, np.ndarray] = {}
+    for axis, origin_attr in (("x", "child_origin_x"), ("y", "child_origin_y")):
+        faces = getattr(grid, f"{axis}h")
+        centres = getattr(grid, f"{axis}f")
+        first = float(faces[0])
+        origin = float(getattr(data, origin_attr))
+        tol = 1.0e-10 * max(1.0, abs(faces[-1] - faces[0]))
+        if abs(first) > tol and abs(first - origin) > tol:
+            raise ConfigurationError(
+                f"the child grid starts at {axis} = {first:g} m but {origin_attr} = "
+                f"{origin:g} m; build the grid at its own origin (0) and carry the "
+                f"offset in {origin_attr}, or set {origin_attr} = {first:g}"
+            )
+        out[f"{axis}h"] = faces - first
+        out[f"{axis}f"] = centres - first
+    out["zh"] = grid.zh
+    out["zf"] = grid.zf
+    return out
+
+
 def _global_attributes(data: NestingData, schema: int = SCHEMA_VERSION) -> Dict[str, Any]:
     grid = data.grid
     attrs: Dict[str, Any] = {
@@ -1528,10 +1563,12 @@ def _write_netcdf(path: Path, data: NestingData, schema: int = SCHEMA_VERSION) -
         var.units = "s"
         var.long_name = "parent time level"
         var[:] = data.times
+        coords = stored_coordinates(data)
         for name in _COORD_VARIABLES:
             var = ds.createVariable(name, "f8", (name,))
             var.units = "m"
-            var[:] = getattr(grid, name)
+            var.long_name = (f"child-relative {name}" if name[0] in "xy" else name)
+            var[:] = coords[name]
         for name, dim, values in (("rhobf", "zf", data.rhobf), ("rhobh", "zh", data.rhobh)):
             var = ds.createVariable(name, "f8", (dim,))
             var.units = "kg m-3"
@@ -1584,7 +1621,7 @@ def _write_raw(path: Path, data: NestingData, schema: int = SCHEMA_VERSION) -> P
     sidecar = {
         "udales_nesting_schema": schema,
         "attributes": attrs,
-        "coordinates": {name: getattr(grid, name).tolist() for name in _COORD_VARIABLES},
+        "coordinates": {name: arr.tolist() for name, arr in stored_coordinates(data).items()},
         "time": data.times.tolist(),
         "rhobf": data.rhobf.tolist(),
         "rhobh": data.rhobh.tolist(),
