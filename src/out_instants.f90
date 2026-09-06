@@ -49,6 +49,7 @@ module instant
 
   real    :: tnextinstantdump
   logical :: linstantdump
+  logical :: linstantprepared = .false.  !< output files created (done lazily at the first dump instant)
 
   !! Field writing variables
   integer :: xdimfield, ydimfield, zdimfield
@@ -113,10 +114,37 @@ module instant
         tnextinstantdump = tinstantstart
       end if
 
+      ! Validate the namelist inputs here so that configuration errors still abort
+      ! at start-up; the file creation itself is deferred to instant_prepare.
+      if (lfielddump) call instant_validate_output_vars(nfieldvars, fieldvars, 'fieldvars', 'lfielddump')
+      if (lislicedump .or. ljslicedump .or. lkslicedump) then
+        call instant_validate_output_vars(nslicevars, slicevars, 'slicevars', 'one or more of lislicedump, ljslicedump and lkslicedump')
+        call instant_validate_slice_inputs(lkslicedump, nkslice, kslice, 'kslice')
+        call instant_validate_slice_inputs(lislicedump, nislice, islice, 'islice')
+        call instant_validate_slice_inputs(ljslicedump, njslice, jslice, 'jslice')
+      end if
+      if (lprobedump) then
+        call instant_validate_output_vars(nprobevars, probevars, 'probevars', 'lprobedump')
+        if (nprobe <= 0) then
+          write(0, *) 'ERROR: lprobedump=.true. but nprobe=', nprobe, ' (must be > 0)'
+          stop 1
+        end if
+      end if
+    end subroutine instant_init
+
+    !> Create the NetCDF files (and read the probe points). Called from instant_main the
+    !> first time a dump instant is reached (timee >= tnextinstantdump) rather than at
+    !> start-up, so a run that stops before its first dump - a chain link cut at the
+    !> walltime, a short test - does not leave empty ins_*.nc files behind.
+    subroutine instant_prepare
+      implicit none
+      if (linstantprepared) return
+      linstantprepared = .true.
+
       call instant_field_init
       call instant_slice_init
       call instant_probe_init
-    end subroutine instant_init
+    end subroutine instant_prepare
 
     subroutine instant_main
       implicit none
@@ -124,6 +152,8 @@ module instant
       
       if (.not. (timee >= tnextinstantdump)) return
       if (.not. rk3step==3)  return
+
+      if (.not. linstantprepared) call instant_prepare
 
       call instant_field_main
       call instant_slice_main
@@ -134,6 +164,8 @@ module instant
 
     subroutine instant_exit
       implicit none
+      if (.not. linstantdump) return
+      if (.not. linstantprepared) return
       call instant_field_exit
     end subroutine instant_exit
 
