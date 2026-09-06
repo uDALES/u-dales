@@ -12,24 +12,28 @@ the production writer ``tools/python/udprep/nesting.py``.
 
 | Test | What it establishes |
 |---|---|
-| I1 | `lnesting = .false.` leaves an existing case bit-identical to the pre-branch binary |
+| I1 | `lnesting = .false.` leaves an existing case bit-identical to the pre-branch binary, built here from `origin/master` |
 | I2 | the imposed face values survive `poisson` + `tstep_integrate` (design finding F2) |
 | I3 | a uniform parent is preserved exactly, with `Phi`, `divmax`, `divtot` and `p` at round-off |
 | I4 | a solenoidal parent needs no correction; `|grad p|` is second order in `h` |
-| I5 | I3 and I4 give the same fields on 1x1, 2x1, 1x2 and 2x2 |
-| I6 | 100 steps == 50 + restart + 50, bitwise, on and off a parent interval boundary -- **currently fails, see README.md** |
+| I5 | I3 and I4 give the same fields on 1x1, 2x1, 1x2 and 2x2; and a ramp + `tau > 0` + a cube on 2x2 (`TestI5CubeParity2x2`, in CI) |
+| I6 | 100 steps == 50 + restart + 50, bitwise, on and off a parent interval boundary; and the same on 2x2 with a cube (`TestI6CubeRestartParity2x2`) |
 | I7 | a difference confined to the interior stays out of the zone, and by how much |
-| I8 | facet stresses on a building row at the zone edge, nested versus not |
+| I8 | facet stresses (`tau_x`, `tau_y`, `tau_z`, `pres`) on a building at the zone edge, nested versus not |
 | I9 | a cold start with `nest_linitfromparent` starts *at* the parent, divergence free |
 | I10 | `BCtopm_pressure` (design case B) keeps the flux assertion on, and it is correct |
 
-Environment:
+Environment (see ``_launch.py`` and ``_baseline.py`` for the full lists):
   UDALES_BUILD            path to the u-dales executable
                           (default build/release/u-dales)
-  UDALES_BASELINE         pre-branch executable for I1
-                          (default build/u-dales.baseline)
+  UDALES_BASELINE_REF     git ref I1 builds its pre-branch baseline from
+                          (default origin/master, configured like UDALES_BUILD)
+  UDALES_BASELINE         a ready-made pre-branch executable for I1, which
+                          skips that build
   UDALES_RUNTIME_MODULES  module stack loaded before the run
-  MPIEXEC                 MPI launcher
+  UDALES_MPIEXEC          MPI launcher (then MPIEXEC, then PATH)
+  UDALES_REQUIRE_LAUNCHER =1: an unusable launcher fails instead of skipping
+  TMPDIR                  where the run directories go
   UDALES_NESTING_KEEP     if set, run directories are kept, not deleted
 """
 
@@ -1437,20 +1441,25 @@ class TestI8IbmInteraction(_NestingCase):
     """
 
     CASE_ID = 64
-    CASE_NAME = "064"
-    #: 3 m guard + 20 m ramp = 23 m; the cube starts at 24 m.
-    SPEC = mcf.CaseSpec(itot=64, jtot=64, ktot=64, xlen=64.0, ylen=64.0, zsize=64.0,
-                        nzone=24, guardwidth=3.0, zonewidth=20.0, tau=4.0)
+    CASE_NAME = CASE_064
+    SPEC = CUBE_SPEC
     RUNTIME, DT = 4.0, 0.25
     #: fraction of the reference stress the two runs may differ by
     TOLERANCE = 0.10
+    #: which stress components are non-trivial on which faces of the cube.
+    #: `tau_<n>` is identically zero on a face whose normal is `n` (the normal
+    #: load is `pres`), so each face is judged on the components it carries.
+    FACES = {
+        "windward (-x)": (lambda n: n[:, 0] < -0.5, ("tau_y", "tau_z", "pres")),
+        "south side (-y)": (lambda n: n[:, 1] < -0.5, ("tau_x", "tau_z", "pres")),
+        "north side (+y)": (lambda n: n[:, 1] > 0.5, ("tau_x", "tau_z", "pres")),
+    }
+    REPORT_ONLY = {"leeward (+x)": (lambda n: n[:, 0] > 0.5, ("tau_y", "tau_z", "pres"))}
 
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.case_source = REPO_ROOT / "tests" / "cases" / cls.CASE_NAME
-        if not cls.case_source.is_dir():
-            raise unittest.SkipTest(f"case {cls.CASE_NAME} not found")
+        cls.case_source = CASE_064_DIR
         cls.error: Optional[str] = None
         cls.out: Dict[str, str] = {}
         cls.dirs: Dict[str, Path] = {}
@@ -1460,50 +1469,9 @@ class TestI8IbmInteraction(_NestingCase):
             cls.error = f"I8 setup failed: {exc}"
 
     @classmethod
-    def _namoptions(cls, nested: bool) -> Dict[str, str]:
-        return {
-            "runtime": f"{cls.RUNTIME:.10g}",
-            "dtmax": f"{cls.DT:.10g}",
-            "trestart": "1.e9",
-            "ladaptive": ".false.",
-            "nprocx": "1", "nprocy": "1",
-            "lEB": ".false.", "ltempeq": ".false.", "lmoist": ".false.",
-            "lbuoyancy": ".false.", "lxytdump": ".false.",
-            # the nested run is driven by the parent; the reference by the
-            # volume-flow-rate controller, at the same 1 m/s
-            "luvolflowr": ".false." if nested else ".true.",
-        }
-
-    @classmethod
     def _prepare(cls, label: str, nested: bool) -> Path:
-        run_dir = cls.root / f"i8_{label}"
-        shutil.copytree(cls.case_source, run_dir)
-        nml = run_dir / f"namoptions.{cls.CASE_NAME}"
-        text = nml.read_text(encoding="utf-8")
-        for key, value in cls._namoptions(nested).items():
-            text, n = re.subn(rf"(?m)^(\s*{key}\s*=\s*).*$",
-                              lambda m: m.group(1) + value, text)
-            if n == 0:
-                raise RuntimeError(f"setting '{key}' not found in namoptions.{cls.CASE_NAME}")
-        text = text.replace("&WALLS\n", "&WALLS\nlwritefac = .true.\n"
-                            f"dtfac = {cls.RUNTIME:.10g}\n")
-        text = text.replace("&BC\n", "&BC\n"
-                            f"BCxm = {4 if nested else 1}\n"
-                            f"BCym = {3 if nested else 1}\nBCtopm = 1\n")
-        spec = cls.SPEC
-        text += (f"\n&NESTING\nlnesting = {'.true.' if nested else '.false.'}\n"
-                 f"nest_guardwidth = {spec.guardwidth:.10g}\n"
-                 f"nest_zonewidth = {spec.zonewidth:.10g}\n"
-                 f"nest_tau = {spec.tau:.10g}\n"
-                 "nest_shape = 1\nnest_timeinterp = 2\nnest_nwall = 1\n"
-                 "nest_lparentgeom = .false.\n"
-                 "nest_fluxtol = 1.e-10\nnest_lfluxassert = .true.\n/\n")
-        nml.write_text(text, encoding="utf-8")
-        if nested:
-            data = mcf.build_nesting_data(spec, "uniform", [0.0, 1.0e6], U=1.0)
-            from udprep.nesting import write_nesting_file
-            write_nesting_file(run_dir / f"nesting.inp.{cls.CASE_NAME}.nc", data, override=True)
-        return run_dir
+        return prepare_case_064(cls.root / f"i8_{label}", nested,
+                                runtime=cls.RUNTIME, dt=cls.DT)
 
     @classmethod
     def _build(cls) -> None:
@@ -1552,28 +1520,43 @@ class TestI8IbmInteraction(_NestingCase):
                              "the building is not adjacent to the zone edge, so I8 "
                              "is not testing what it claims to")
 
-    def test_windward_facet_stresses_match_the_reference(self) -> None:
+    def test_facet_stresses_match_the_reference(self) -> None:
+        """Every non-trivial stress component on the cube's windward and side
+        faces, nested versus periodic, within the stated tolerance.
+
+        `tau_x` -- the streamwise shear, which is the stress the flow past a
+        cube is mostly about -- lives on the side faces and the roof, not on
+        the windward face where its normal load is `pres`; each face is
+        therefore compared on the components it actually carries, and a
+        component whose reference is identically zero is a failure of the test
+        rather than a free pass.
+        """
         normals = self._normals()
-        windward = np.where(normals[:, 0] < -0.5)[0]
-        leeward = np.where(normals[:, 0] > 0.5)[0]
-        self.assertGreater(windward.size, 0, "no west-facing facets found")
         nested = self._facet_stress("nested")
         reference = self._facet_stress("reference")
         failures = []
-        for name in ("tau_y", "tau_z", "pres"):
-            a, b = nested[name], reference[name]
-            scale = max(float(np.max(np.abs(b[windward]))), 1.0e-30)
-            rel_w = float(np.max(np.abs(a[windward] - b[windward]))) / scale
-            scale_l = max(float(np.max(np.abs(b[leeward]))), 1.0e-30)
-            rel_l = float(np.max(np.abs(a[leeward] - b[leeward]))) / scale_l
-            print(f"[I8] {name}: windward row  nested {a[windward].mean():+.4e}  "
-                  f"reference {b[windward].mean():+.4e}  relative diff {rel_w:.3e}   "
-                  f"(leeward row {rel_l:.3e})", flush=True)
-            if rel_w > self.TOLERANCE:
-                failures.append(f"{name}: {rel_w:.3e} > {self.TOLERANCE:.2f}")
+        groups = dict(self.FACES)
+        groups.update(self.REPORT_ONLY)
+        for face, (select, components) in groups.items():
+            idx = np.where(select(normals))[0]
+            self.assertGreater(idx.size, 0, f"no facets found for the {face} face")
+            for name in components:
+                a, b = nested[name][idx], reference[name][idx]
+                scale = float(np.max(np.abs(b)))
+                if scale <= 0.0:
+                    failures.append(f"{face} {name}: the reference stress is identically "
+                                    "zero, so this component cannot be compared here")
+                    continue
+                rel = float(np.max(np.abs(a - b))) / scale
+                judged = face in self.FACES
+                print(f"[I8] {face:16s} {name:5s}: nested {a.mean():+.4e}  "
+                      f"reference {b.mean():+.4e}  relative diff {rel:.3e}"
+                      f"{'' if judged else '   (reported, not judged)'}", flush=True)
+                if judged and rel > self.TOLERANCE:
+                    failures.append(f"{face} {name}: {rel:.3e} > {self.TOLERANCE:.2f}")
         if failures:
-            self.fail("facet stresses on the first building row differ from the "
-                      "no-nesting reference by more than the stated tolerance:\n- "
+            self.fail("facet stresses on the building differ from the no-nesting "
+                      "reference by more than the stated tolerance:\n- "
                       + "\n- ".join(failures))
 
     def test_reported_zone_diagnostics_with_buildings(self) -> None:
@@ -1594,6 +1577,189 @@ class TestI8IbmInteraction(_NestingCase):
         self.assertLess(s["gradp_ratio"], 2.0,
                         "the projection works harder in the zone than in the interior")
 
+
+
+# --------------------------------------------------------------------------- #
+# I5 on 2x2 with a real zone and a cube -- the multi-rank case that runs in CI
+# --------------------------------------------------------------------------- #
+
+
+class TestI5CubeParity2x2(_NestingCase):
+    """`tests/cases/064` on 1x1 and 2x2 with a ramp, `tau > 0` and a cube.
+
+    `TestI5DecompositionParity` runs with `W == 1` everywhere, `tau = 0` and
+    no buildings, so it never exercises the ramp weights, the relaxation
+    factor or the IBM masking on a decomposed zone.  This does: a 3 m guard,
+    a 20 m ramp, `tau = 4 s`, and a cube whose windward face sits one cell
+    inside the zone's inner edge -- on one rank and on four, oversubscribed
+    on a 2-4 core runner.  The fields must agree to `PARITY_TOL`.
+
+    Sized for CI: `NSTEPS` steps of a 64^3 case take ~15 s (1x1) and ~11 s
+    (2x2) on a gfortran Debug build, about half of it initialisation.
+    """
+
+    NSTEPS, DT = 4, 0.25
+    LAYOUTS = {"serial": (1, 1), "xy_split": (2, 2)}
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.fields: Dict[str, Dict[str, np.ndarray]] = {}
+        cls.out: Dict[str, str] = {}
+        cls.dirs: Dict[str, Path] = {}
+        cls.failures: List[str] = []
+        runtime = cls.NSTEPS * cls.DT
+        for label, (nprocx, nprocy) in cls.LAYOUTS.items():
+            cls.dirs[label] = run_dir = prepare_case_064(
+                cls.root / f"i5cube_{label}", nested=True, runtime=runtime, dt=cls.DT,
+                nprocx=nprocx, nprocy=nprocy, trestart=runtime,
+                extra={"lrandomize": ".false."})
+            done = run_solver(run_dir, nprocs=nprocx * nprocy,
+                              namelist=f"namoptions.{CASE_064}")
+            cls.out[label] = (done.stdout or "") + (done.stderr or "")
+            if done.returncode != 0:
+                cls.failures.append(f"{label} ({nprocx}x{nprocy}) exited {done.returncode}\n"
+                                    + _tail("output", cls.out[label]))
+                continue
+            cls.fields[label] = read_restart_fields(run_dir, CUBE_SPEC, nprocx, nprocy,
+                                                    expnr=CASE_064)
+
+    def setUp(self) -> None:
+        if self.failures:
+            self.fail("\n\n".join(self.failures))
+
+    def test_fields_agree_on_2x2(self) -> None:
+        reference, candidate = self.fields["serial"], self.fields["xy_split"]
+        problems = []
+        for name in ("u0", "v0", "w0", "pres0"):
+            diff = np.abs(interior(candidate[name]) - interior(reference[name]))
+            worst = float(np.nanmax(diff))
+            idx = np.unravel_index(int(np.nanargmax(diff)), diff.shape)
+            print(f"[I5 cube] 2x2 vs 1x1 {name}: max abs diff {worst:.3e} at {idx}",
+                  flush=True)
+            if worst > PARITY_TOL:
+                problems.append(f"{name}: {worst:.3e} at {idx}")
+        if problems:
+            self.fail("decomposition parity with a cube and a ramp failed:\n- "
+                      + "\n- ".join(problems))
+
+    def test_the_case_has_the_ramp_and_the_cube(self) -> None:
+        """Guard against a vacuous pass: the ramp relaxed and the cube is there."""
+        for label in self.LAYOUTS:
+            stats = parse_nesting_stats(self.out[label])
+            self.assertTrue(stats, f"no nesting_stats output on {label}")
+            s = stats[-1]
+            print(f"[I5 cube] {label}: E_relax = {s['e_relax']:.3e}  "
+                  f"E_guard = {s['e_guard']:.3e}  misfit = {s['misfit']:.3e}", flush=True)
+            self.assertNotEqual(s["e_relax"], 0.0,
+                                f"the relaxation ramp injected no energy on {label}")
+            # The cube: its facets (fac.<expnr>.nc, lwritefac) carry a pressure
+            # load only if the immersed boundary was read and the flow hit it.
+            import netCDF4 as nc
+            with nc.Dataset(self.dirs[label] / f"fac.{CASE_064}.nc") as ds:
+                pres = np.asarray(ds.variables["pres"][:])[-1]
+            print(f"[I5 cube] {label}: {pres.size} facets, max |pres| = "
+                  f"{float(np.max(np.abs(pres))):.3e}", flush=True)
+            self.assertGreater(float(np.max(np.abs(pres))), 1.0e-3,
+                               f"no facet feels the flow on {label}, so there is no cube")
+
+
+# --------------------------------------------------------------------------- #
+# I6 on 2x2 with a cube
+# --------------------------------------------------------------------------- #
+
+
+class TestI6CubeRestartParity2x2(_NestingCase):
+    """`N` steps == `N/2` + restart + `N/2`, bitwise, on four ranks with a cube.
+
+    `TestI6RestartParity` establishes the restart on one rank with a uniform
+    field and no buildings.  This repeats the two split points -- one strictly
+    inside a parent interval, one exactly on a parent level -- on 2x2 ranks of
+    `tests/cases/064`, so the per-rank restart files, the decomposed parent
+    buffer and the IBM state all have to come back exactly.
+
+    `dt = 0.25 s` and parent levels every `1.25 s` are exact binary
+    fractions, so both legs take exactly the intended number of steps.
+    """
+
+    DT = 0.25
+    NSTEPS = 8
+    PARENT_DT = 1.25
+    #: step 5 -> t = 1.25 s = parent level 1 exactly; step 3 -> t = 0.75 s.
+    SPLIT_ON_BOUNDARY = 5
+    SPLIT_MID_INTERVAL = 3
+    NPROCX, NPROCY = 2, 2
+    U0, AMP, PERIOD = 1.0, 0.25, 8.0
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.times = np.arange(0.0, cls.DT * cls.NSTEPS + 2 * cls.PARENT_DT, cls.PARENT_DT)
+        cls._cache: Dict[str, Path] = {}
+
+    def _leg(self, name: str, nsteps: int, startfile: Optional[str] = None) -> Path:
+        extra = {"lrandomize": ".false."}
+        if startfile is not None:
+            extra.update({"lwarmstart": ".true.", "startfile": f"'{startfile}'"})
+        run_dir = prepare_case_064(
+            self.root / name, nested=True, runtime=self.DT * nsteps, dt=self.DT,
+            nprocx=self.NPROCX, nprocy=self.NPROCY, trestart=self.DT * nsteps,
+            extra=extra, field="unsteady_uniform", times=self.times,
+            U0=self.U0, A=self.AMP, T=self.PERIOD)
+        if startfile is not None:
+            source = self.root / name.replace("_second", "_first")
+            for f in list(source.glob("initd*")) + list(source.glob("inits*")):
+                shutil.copy2(f, run_dir / f.name)
+        check_ok(self, run_solver(run_dir, nprocs=self.NPROCX * self.NPROCY,
+                                  namelist=f"namoptions.{CASE_064}"), f"I6 cube leg {name}")
+        latest = latest_restart(run_dir, 0, 0, expnr=CASE_064)
+        ntrun = int(latest.name[5:13])
+        self.assertEqual(ntrun, nsteps if startfile is None else self.NSTEPS,
+                         f"{name}: stopped at step {ntrun}")
+        return run_dir
+
+    def _continuous(self) -> Path:
+        if "continuous" not in self._cache:
+            self._cache["continuous"] = self._leg("i6cube_continuous", self.NSTEPS)
+        return self._cache["continuous"]
+
+    def _split(self, label: str, nsplit: int) -> Path:
+        self._leg(f"i6cube_{label}_first", nsplit)
+        return self._leg(f"i6cube_{label}_second", self.NSTEPS - nsplit,
+                         startfile=f"initd{nsplit:08d}_000_000.{CASE_064}")
+
+    def _compare(self, label: str, cont: Path, split: Path) -> List[str]:
+        problems = []
+        for px in range(self.NPROCX):
+            for py in range(self.NPROCY):
+                a = read_fortran_records(latest_restart(cont, px, py, expnr=CASE_064))
+                b = read_fortran_records(latest_restart(split, px, py, expnr=CASE_064))
+                for name, rec in RESTART_FIELDS.items():
+                    x = np.frombuffer(a[rec], dtype="<f8")
+                    y = np.frombuffer(b[rec], dtype="<f8")
+                    worst = float(np.max(np.abs(x - y)))
+                    same = a[rec] == b[rec]
+                    if not same:
+                        problems.append(f"rank ({px},{py}) {name}: max abs diff {worst:.3e}")
+        print(f"[I6 cube] {label}: {len(RESTART_FIELDS) * self.NPROCX * self.NPROCY} "
+              f"restart records over 4 ranks, {len(problems)} differ", flush=True)
+        return problems
+
+    def test_restart_mid_parent_interval(self) -> None:
+        cont = self._continuous()
+        split = self._split("mid", self.SPLIT_MID_INTERVAL)
+        problems = self._compare("mid-interval", cont, split)
+        if problems:
+            self.fail("I6 on 2x2 with a cube, mid-interval: the restart is not bitwise:\n- "
+                      + "\n- ".join(problems))
+
+    def test_restart_on_parent_interval_boundary(self) -> None:
+        cont = self._continuous()
+        split = self._split("boundary", self.SPLIT_ON_BOUNDARY)
+        problems = self._compare("on-boundary", cont, split)
+        if problems:
+            self.fail("I6 on 2x2 with a cube, on a parent level: the restart is not "
+                      "bitwise:\n- " + "\n- ".join(problems))
 
 
 # --------------------------------------------------------------------------- #
