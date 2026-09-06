@@ -41,6 +41,7 @@ from exceptions import ConfigurationError  # noqa: E402
 from udprep.nesting import (  # noqa: E402
     COMPONENTS,
     FACES,
+    CADENCE_COURANT_MAX,
     CORRECTION_WARN_FRACTION,
     FLUX_UNITS,
     PARENT_DT_RTOL,
@@ -53,7 +54,9 @@ from udprep.nesting import (  # noqa: E402
     NestingSchemaError,
     apply_divergence_correction,
     boundary_faces,
+    cadence_courant,
     check_alignment,
+    check_refinement,
     check_time_axis,
     correction_report,
     discrete_divergence,
@@ -62,11 +65,13 @@ from udprep.nesting import (  # noqa: E402
     fluid_lateral_area,
     interpolate_child_fields,
     nesting_data_from_parent,
+    nesting_diagnostics,
     net_volume_flux,
     project_initial_condition,
     read_nesting_file,
     refinement_ratios,
     refinement_ratios_by_axis,
+    refinement_verdict,
     slabs_from_parent,
     stored_coordinates,
     validate_nesting_file,
@@ -309,6 +314,83 @@ class TestW3TimeAxis(unittest.TestCase):
             with self.assertRaises(NestingSchemaError) as ctx:
                 validate_nesting_file(path)
             self.assertIn("start at exactly 0", str(ctx.exception))
+
+
+# --------------------------------------------------------------------------- #
+# W5 -- the cadence criterion, and a refinement guard that is not inert
+# --------------------------------------------------------------------------- #
+
+
+class TestW5CadenceAndRefinement(unittest.TestCase):
+
+    def _case(self, speed, seed=51):
+        data = uniform_nesting_data(seed=seed, ntime=3)     # parent_dt 30 s, parent_dx 20 m
+        for arr in data.slabs.values():
+            arr[...] = 0.1
+        boundary_faces(data)["east"][1, 2, 3] = speed        # one fast face at level 1
+        return data
+
+    def test_c_dump_is_max_normal_speed_times_dt_over_dx(self):
+        self.assertEqual(CADENCE_COURANT_MAX, 2.0)
+        data = self._case(3.0)
+        rep = cadence_courant(data, log=False)
+        self.assertAlmostEqual(rep["C_dump"], 3.0 * 30.0 / 20.0)      # 4.5
+        self.assertEqual((rep["max_normal_speed"], rep["level"]), (3.0, 1))
+        self.assertTrue(rep["exceeded"])
+        # a solid face does not count
+        east = np.ones((6, 5), dtype=bool); east[2, 3] = False
+        self.assertAlmostEqual(cadence_courant(data, FaceMasks(east=east), log=False)["C_dump"],
+                               0.1 * 30.0 / 20.0)
+        with TemporaryDirectory() as tmp:
+            with self.assertLogs("udprep.nesting", level=logging.WARNING) as logs:
+                write_nesting_file(Path(tmp) / "fast.nc", data)
+            self.assertTrue(any("C_dump" in m and "4.50" in m for m in logs.output))
+            quiet = self._case(1.0)                                     # C_dump = 1.5
+            with self.assertLogs("udprep.nesting", level=logging.INFO) as logs:
+                write_nesting_file(Path(tmp) / "slow.nc", quiet)
+            self.assertFalse(any(m.startswith("WARNING") for m in logs.output))
+        data.parent_dx = 0.0
+        self.assertIsNone(cadence_courant(data, log=False)["C_dump"])
+        print(f"\n[W5] C_dump = {rep['C_dump']:.2f} at max|u_n| = {rep['max_normal_speed']:g} m/s, "
+              f"dt_P = {rep['parent_dt']:g} s, dx_P = {rep['parent_dx']:g} m")
+
+    def test_the_refinement_guard_yields_a_verdict_and_needs_a_stated_reason(self):
+        data = uniform_nesting_data(seed=52)
+        data.child_dt = 0.5                                             # temporal ratio 60
+        verdict = refinement_verdict(data)
+        self.assertFalse(verdict["within_limits"])
+        self.assertEqual(verdict["temporal"], 60.0)
+        self.assertEqual(len(verdict["violations"]), 1)
+        with self.assertRaises(NestingRefinementError) as ctx:
+            check_refinement(data)
+        self.assertIn("allow_refinement_violation=True", str(ctx.exception))
+        with self.assertLogs("udprep.nesting", level=logging.WARNING) as logs:
+            allowed = check_refinement(data, allow_refinement_violation=True,
+                                       reason="cadence study C0")
+        self.assertTrue(allowed["allowed"])
+        self.assertEqual(allowed["reason"], "cadence study C0")
+        self.assertIn("cadence study C0", logs.output[0])
+        with self.assertLogs("udprep.nesting", level=logging.WARNING) as logs:
+            self.assertTrue(check_refinement(data, override=True)["allowed"])  # the old name
+        self.assertIn("no reason given", logs.output[0])
+        with TemporaryDirectory() as tmp:
+            with self.assertRaises(NestingRefinementError):
+                write_nesting_file(Path(tmp) / "no.nc", data)
+            with self.assertLogs("udprep.nesting", level=logging.WARNING) as logs:
+                write_nesting_file(Path(tmp) / "yes.nc", data, allow_refinement_violation=True,
+                                   refinement_reason="test")
+            self.assertTrue(any("allowed by the caller: test" in m for m in logs.output))
+        data.child_dt = 1.0
+        self.assertTrue(check_refinement(data)["within_limits"])
+
+    def test_diagnostics_bundle_the_three_verdicts(self):
+        data = self._case(3.0)
+        diag = nesting_diagnostics(data)
+        self.assertEqual(set(diag), {"cadence", "correction", "refinement"})
+        self.assertTrue(diag["cadence"]["exceeded"])
+        self.assertIn("delta_fraction_max", diag["correction"])
+        self.assertTrue(diag["refinement"]["within_limits"])
+        self.assertIsNone(data.correction)                              # nothing was changed
 
 
 # --------------------------------------------------------------------------- #

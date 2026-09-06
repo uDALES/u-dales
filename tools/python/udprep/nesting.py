@@ -81,6 +81,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "ANALYTIC_COEFFS",
+    "CADENCE_COURANT_MAX",
     "COMPONENTS",
     "CORRECTION_WARN_FRACTION",
     "FACES",
@@ -109,6 +110,7 @@ __all__ = [
     "analytic_slabs",
     "apply_divergence_correction",
     "boundary_faces",
+    "cadence_courant",
     "check_alignment",
     "check_refinement",
     "check_time_axis",
@@ -124,11 +126,13 @@ __all__ = [
     "interpolate_child_fields",
     "net_volume_flux",
     "nesting_data_from_parent",
+    "nesting_diagnostics",
     "nesting_filename",
     "project_initial_condition",
     "read_nesting_file",
     "refinement_ratios",
     "refinement_ratios_by_axis",
+    "refinement_verdict",
     "slab_coordinates",
     "slab_dimensions",
     "slab_indices",
@@ -187,6 +191,12 @@ _FACE_NORMAL_COMPONENT = {"west": "u", "east": "u", "south": "v", "north": "v"}
 
 MAX_SPATIAL_REFINEMENT = 4.0
 MAX_TEMPORAL_REFINEMENT = 30.0
+
+#: Boundary-cadence criterion: the writer warns when
+#: ``C_dump = max|u_n| parent_dt / parent_dx`` exceeds this -- a feature then
+#: crosses more than two parent cells between stored levels, and the linear
+#: (or Hermite) time interpolation of the boundary cannot represent it.
+CADENCE_COURANT_MAX = 2.0
 
 #: The divergence correction is reported at WARNING level when the uniform
 #: normal-velocity increment it adds exceeds this fraction of the boundary
@@ -1522,6 +1532,99 @@ class _CorrectionTally:
         return rep
 
 
+def _max_normal_speed(data: Any, masks: FaceMasks) -> np.ndarray:
+    """Largest |u_n| over the fluid lateral boundary faces, per level."""
+    faces = boundary_faces(data)
+    out = np.zeros(data.ntime, dtype=np.float64)
+    for face in FACES:
+        mask = masks.get(data.grid, face)
+        out = np.maximum(out, np.max(np.abs(faces[face]) * mask[None, :, :], axis=(1, 2)))
+    return out
+
+
+class _CadenceTally:
+    """Running ``C_dump = max|u_n| parent_dt / parent_dx`` over the stored levels."""
+
+    def __init__(self, parent_dt: float, parent_dx: float) -> None:
+        self.parent_dt = float(parent_dt)
+        self.parent_dx = float(parent_dx)
+        self.speed = 0.0
+        self.level = -1
+        self.ntime = 0
+
+    def add(self, speed: np.ndarray, first_level: int) -> None:
+        speed = np.atleast_1d(speed)
+        n = int(np.argmax(speed))
+        if speed[n] > self.speed or self.level < 0:
+            self.speed = float(speed[n])
+            self.level = first_level + n
+        self.ntime += speed.size
+
+    def report(self) -> Dict[str, Any]:
+        known = self.parent_dt > 0.0 and self.parent_dx > 0.0
+        c_dump = self.speed * self.parent_dt / self.parent_dx if known else None
+        return {
+            "C_dump": c_dump,
+            "max_normal_speed": self.speed,
+            "level": self.level,
+            "parent_dt": self.parent_dt,
+            "parent_dx": self.parent_dx,
+            "limit": CADENCE_COURANT_MAX,
+            "exceeded": bool(c_dump is not None and c_dump > CADENCE_COURANT_MAX),
+        }
+
+    def log(self) -> Dict[str, Any]:
+        rep = self.report()
+        if rep["C_dump"] is None:
+            logger.info("udprep.nesting: cadence criterion not evaluated (parent_dt = %g s, "
+                        "parent_dx = %g m)", self.parent_dt, self.parent_dx)
+        elif rep["exceeded"]:
+            logger.warning(
+                "udprep.nesting: boundary cadence C_dump = max|u_n| dt_P / dx_P = %.3g x %g / %g "
+                "= %.2f exceeds %g (level %d): between stored levels a feature crosses more "
+                "than %g parent cells and the time interpolation of the boundary cannot "
+                "follow it; store the parent more often or coarsen it",
+                rep["max_normal_speed"], self.parent_dt, self.parent_dx, rep["C_dump"],
+                CADENCE_COURANT_MAX, rep["level"], CADENCE_COURANT_MAX,
+            )
+        else:
+            logger.info("udprep.nesting: boundary cadence C_dump = %.2f (max|u_n| = %.3g m/s, "
+                        "dt_P = %g s, dx_P = %g m), within %g",
+                        rep["C_dump"], rep["max_normal_speed"], self.parent_dt,
+                        self.parent_dx, CADENCE_COURANT_MAX)
+        return rep
+
+
+def cadence_courant(data: NestingData, masks: Optional[FaceMasks] = None,
+                    log: bool = True) -> Dict[str, Any]:
+    """The boundary-cadence criterion ``C_dump = max|u_n| parent_dt / parent_dx``.
+
+    ``max|u_n|`` is over the fluid lateral boundary faces and every stored
+    level.  Returns ``{"C_dump", "max_normal_speed", "level", "parent_dt",
+    "parent_dx", "limit", "exceeded"}``; ``C_dump`` is ``None`` when
+    ``parent_dt`` or ``parent_dx`` is unknown.  With ``log`` the verdict is
+    logged, at WARNING level above :data:`CADENCE_COURANT_MAX`.
+    """
+    masks = masks if masks is not None else (data.masks or _ALL_FLUID)
+    tally = _CadenceTally(data.parent_dt, data.parent_dx)
+    tally.add(_max_normal_speed(data, masks), 0)
+    return tally.log() if log else tally.report()
+
+
+def nesting_diagnostics(data: NestingData, masks: Optional[FaceMasks] = None) -> Dict[str, Any]:
+    """Everything a manifest should record about a nesting file's data.
+
+    ``{"cadence": cadence_courant(...), "correction": correction_report(...),
+    "refinement": refinement_verdict(...)}`` -- computed without logging and
+    without changing ``data``.
+    """
+    return {
+        "cadence": cadence_courant(data, masks, log=False),
+        "correction": correction_report(data, masks),
+        "refinement": refinement_verdict(data),
+    }
+
+
 def correction_report(data: NestingData, masks: Optional[FaceMasks] = None) -> Dict[str, Any]:
     """What the divergence correction of ``data`` did, or would do.
 
@@ -1731,32 +1834,71 @@ def refinement_ratios(data: NestingData) -> Tuple[Optional[float], Optional[floa
     return spatial, by_axis["t"]
 
 
+def refinement_verdict(data: NestingData) -> Dict[str, Any]:
+    """The refinement guard's verdict, without raising or logging.
+
+    ``{"spatial", "temporal", "by_axis", "spatial_max", "temporal_max",
+    "violations", "within_limits"}``: the ratios of :func:`refinement_ratios`
+    and :func:`refinement_ratios_by_axis`, the limits of design section 10.4
+    (V5), the list of violation messages (empty when within limits or when a
+    ratio is unknown), and the boolean summary.
+    """
+    spatial, temporal = refinement_ratios(data)
+    tol = 1.0 + 1.0e-12
+    violations = []
+    if spatial is not None and spatial > MAX_SPATIAL_REFINEMENT * tol:
+        violations.append(
+            f"spatial refinement ratio {spatial:.3g} exceeds the supported maximum of "
+            f"{MAX_SPATIAL_REFINEMENT:g} (parent_dx = {data.parent_dx:g} m)"
+        )
+    if temporal is not None and temporal > MAX_TEMPORAL_REFINEMENT * tol:
+        violations.append(
+            f"temporal refinement ratio {temporal:.3g} exceeds the supported maximum of "
+            f"{MAX_TEMPORAL_REFINEMENT:g} (parent_dt = {data.parent_dt:g} s, "
+            f"child_dt = {data.child_dt:g} s)"
+        )
+    return {
+        "spatial": spatial,
+        "temporal": temporal,
+        "by_axis": refinement_ratios_by_axis(data),
+        "spatial_max": MAX_SPATIAL_REFINEMENT,
+        "temporal_max": MAX_TEMPORAL_REFINEMENT,
+        "violations": violations,
+        "within_limits": not violations,
+    }
+
+
 def check_refinement(
-    data: NestingData, override: bool = False
-) -> Tuple[Optional[float], Optional[float]]:
-    """Refuse ratios beyond the validated range (design §10.4 V5) unless overridden.
+    data: NestingData,
+    allow_refinement_violation: bool = False,
+    reason: Optional[str] = None,
+    override: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """Refuse ratios beyond the validated range (design §10.4 V5) unless allowed.
 
     Raises :class:`NestingRefinementError` when the spatial refinement ratio
     exceeds :data:`MAX_SPATIAL_REFINEMENT` or the temporal one exceeds
-    :data:`MAX_TEMPORAL_REFINEMENT`, unless ``override`` is ``True``.
+    :data:`MAX_TEMPORAL_REFINEMENT`.  With ``allow_refinement_violation`` the
+    violation is logged at WARNING level together with ``reason`` -- the
+    caller's stated grounds, which is what makes the choice explicit -- and
+    the verdict of :func:`refinement_verdict` is returned with ``"allowed"``
+    and ``"reason"`` added, for the caller to record.  ``override`` is the
+    former name of ``allow_refinement_violation`` and is accepted as an alias.
     """
-    spatial, temporal = refinement_ratios(data)
-    if override:
-        return spatial, temporal
-    tol = 1.0 + 1.0e-12
-    if spatial is not None and spatial > MAX_SPATIAL_REFINEMENT * tol:
-        raise NestingRefinementError(
-            f"spatial refinement ratio {spatial:.3g} exceeds the supported maximum of "
-            f"{MAX_SPATIAL_REFINEMENT:g} (parent_dx = {data.parent_dx:g} m); "
-            "pass override=True to write anyway"
-        )
-    if temporal is not None and temporal > MAX_TEMPORAL_REFINEMENT * tol:
-        raise NestingRefinementError(
-            f"temporal refinement ratio {temporal:.3g} exceeds the supported maximum of "
-            f"{MAX_TEMPORAL_REFINEMENT:g} (parent_dt = {data.parent_dt:g} s, "
-            f"child_dt = {data.child_dt:g} s); pass override=True to write anyway"
-        )
-    return spatial, temporal
+    if override is not None:
+        allow_refinement_violation = bool(override)
+    verdict = refinement_verdict(data)
+    verdict["allowed"] = bool(allow_refinement_violation)
+    verdict["reason"] = reason
+    if verdict["violations"]:
+        message = "; ".join(verdict["violations"])
+        if not allow_refinement_violation:
+            raise NestingRefinementError(
+                message + "; pass allow_refinement_violation=True, with a reason, to write anyway"
+            )
+        logger.warning("udprep.nesting: %s -- allowed by the caller%s", message,
+                       f": {reason}" if reason else " (no reason given)")
+    return verdict
 
 
 # --------------------------------------------------------------------------- #
@@ -1850,10 +1992,12 @@ def _global_attributes(data: NestingData, schema: int = SCHEMA_VERSION) -> Dict[
 def write_nesting_file(
     path: os.PathLike | str,
     data: NestingData,
-    override: bool = False,
+    allow_refinement_violation: bool = False,
     backend: Optional[str] = None,
     schema: Optional[int] = None,
     masks: Optional[FaceMasks] = None,
+    refinement_reason: Optional[str] = None,
+    override: Optional[bool] = None,
 ) -> Path:
     """Write ``data`` to ``nesting.inp.<expnr>.nc``, exactly per the contract.
 
@@ -1874,7 +2018,11 @@ def write_nesting_file(
     produced and what the back-compatibility tests need.
 
     Refuses to write when the refinement ratios are outside the validated range
-    (see :func:`check_refinement`) unless ``override`` is ``True``.
+    (see :func:`check_refinement`) unless ``allow_refinement_violation`` is
+    ``True``, in which case the violation and ``refinement_reason`` are logged
+    (``override`` is the former name and still accepted).  The boundary
+    cadence criterion :func:`cadence_courant` is evaluated and logged, at
+    WARNING level above :data:`CADENCE_COURANT_MAX`.
     """
     path = Path(path)
     backend = backend or ("raw" if path.suffix in (".dat", ".bin") else "netcdf")
@@ -1888,7 +2036,8 @@ def write_nesting_file(
         raise ConfigurationError(
             "a full-domain initial condition needs schema 2; schema 1 has no place to put it"
         )
-    check_refinement(data, override=override)
+    check_refinement(data, allow_refinement_violation=allow_refinement_violation,
+                     reason=refinement_reason, override=override)
     arrays = dict(data.slabs)
     if data.initial_fields is not None:
         arrays.update({f"{c}_init": a for c, a in data.initial_fields.items()})
@@ -1896,6 +2045,7 @@ def write_nesting_file(
         if not np.all(np.isfinite(arr)):
             raise NestingSchemaError(f"{name} contains non-finite values; NaN is an error")
     verify_stored_residual(data, masks)
+    cadence_courant(data, data.masks)
     if backend == "raw":
         return _write_raw(path, data, schema)
     if backend != "netcdf":
@@ -2342,10 +2492,11 @@ def write_analytic_nesting_file(
     nzone: int,
     coeffs: Optional[Mapping[str, Sequence[float]]] = None,
     correct_divergence: bool = False,
-    override: bool = True,
+    allow_refinement_violation: bool = True,
     backend: Optional[str] = None,
     initial: bool = False,
     schema: Optional[int] = None,
+    override: Optional[bool] = None,
     **attributes: Any,
 ) -> NestingData:
     """Write a nesting file whose velocities are the analytic field of §10.5.
@@ -2357,8 +2508,9 @@ def write_analytic_nesting_file(
     ``initial=True`` adds the full-domain initial-condition block, also exactly
     the analytic field when ``correct_divergence`` is off, which is what the
     cold-start tests read back point by point.
-    The refinement guard is off by default (``override=True``) because the
-    fixture grids carry no meaningful parent metadata.
+    The refinement guard is off by default (``allow_refinement_violation=True``;
+    ``override`` is the former name) because the fixture grids carry no
+    meaningful parent metadata.
 
     Returns the :class:`NestingData` that was written.
     """
@@ -2385,5 +2537,9 @@ def write_analytic_nesting_file(
     else:
         data.net_volume_flux = net_volume_flux(data)
         data.flux_residual = data.net_volume_flux.copy()
-    write_nesting_file(path, data, override=override, backend=backend, schema=schema)
+    if override is not None:
+        allow_refinement_violation = bool(override)
+    write_nesting_file(path, data, allow_refinement_violation=allow_refinement_violation,
+                       backend=backend, schema=schema,
+                       refinement_reason="analytic fixture: no parent metadata")
     return data

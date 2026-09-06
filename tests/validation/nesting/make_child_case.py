@@ -60,6 +60,7 @@ from udprep.nesting import (
     apply_divergence_correction,
     discrete_divergence,
     initial_fields_from_parent,
+    nesting_diagnostics,
     net_volume_flux,
     refinement_ratios,
     slab_shape,
@@ -532,7 +533,22 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     # Total lateral boundary area -- the normalisation modnesting's
     # check_stored_flux uses (phi = sum(rho u_n dA) / area_bnd).
     area = 2.0 * (grid.xlen + grid.ylen) * grid.zsize
-    write_nesting_file(casedir / f"nesting.inp.{nr}.nc", data, override=True)
+    # The temporal ratio parent_dt / dtmax -- the boundary cadence over the
+    # child's CFL step -- exceeds the design's V5 bound of 30 for every
+    # production preset.  That bound predates the cadence study (C0), whose
+    # criterion is C_dump; the writer evaluates and logs it.  The violation
+    # is allowed explicitly, with this reason, and the verdict is recorded in
+    # the manifest below rather than silenced.
+    refinement_reason = (
+        "temporal ratio parent_dt/dtmax is the parent dump cadence over the child's "
+        "CFL-limited step; the boundary cadence is bounded by C_dump instead"
+    )
+    write_nesting_file(casedir / f"nesting.inp.{nr}.nc", data,
+                       allow_refinement_violation=True,
+                       refinement_reason=refinement_reason)
+    diagnostics = nesting_diagnostics(data)
+    diagnostics["refinement"]["allowed"] = True
+    diagnostics["refinement"]["reason"] = refinement_reason
 
     spatial_ratio, temporal_ratio = refinement_ratios(data)
     manifest = {
@@ -551,6 +567,11 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
             "slabs": ("interpolated (slabs_from_parent)" if driving.interpolates
                       else "cut (slabs_from_fields)"),
             "parent_window_cells": [pni, pnj, pnk],
+            "check": diagnostics["refinement"],
+        },
+        "writer_diagnostics": {
+            "cadence": diagnostics["cadence"],
+            "correction": diagnostics["correction"],
         },
         "driving_parent_profile": driving_profile,
         "child_expnr": nr,
