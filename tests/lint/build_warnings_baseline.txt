@@ -1,0 +1,40 @@
+# Compiler warnings already present in the tree, per compiler.
+#
+# Consumed by tests/lint/check_build_warnings.py. Only counts ABOVE these
+# fail; this is a baseline, not a ratchet, so an unrelated change is never
+# blocked by warnings it did not introduce.
+#
+# Format:
+#   compiler <CMake Fortran compiler id>   -- a compiler this file covers;
+#                                            a Debug log from any other
+#                                            compiler is rejected, not
+#                                            silently passed
+#   <compiler> <source file> <-Wclass> <count>
+#
+# To refresh after legitimately adding or removing a warning:
+#   1. full Debug build with that compiler, teeing to <build dir>/build.log
+#   2. python tests/lint/check_build_warnings.py --update --log <that log>
+#   3. commit the diff, and say in the message why the new entries are
+#      acceptable -- an entry added here is a warning nobody will be told
+#      about again.
+#
+# Counts are per (file, class) rather than per line so that editing a file
+# does not invalidate the baseline for every warning below the edit.
+#
+# Measured against the pinned local module stacks documented in
+# .github/skills/udales-exec/references/clusters.md (GNU: foss/2023a,
+# gfortran 12.3; Intel: intel/2021a via tools/build_executable.sh icl).
+# GitHub Actions does NOT pin its compilers, so the gate is report-only
+# there -- see the header of check_build_warnings.py.
+
+compiler GNU
+compiler Intel
+
+GNU modchecksim.f90 -Wcompare-reals 1
+GNU modinlet.f90 -Wcompare-reals 5
+GNU modpois.f90 -Wcompare-reals 4
+GNU modsave.f90 -Wcompare-reals 1
+GNU modstatsdump.f90 -Wcompare-reals 2
+GNU modstatsdump.f90 -Wunused-value 2
+GNU modsubgrid.f90 -Wcompare-reals 1
+GNU modthermodynamics.f90 -Wcompare-reals 1

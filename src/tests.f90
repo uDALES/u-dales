@@ -14,6 +14,15 @@ module tests
   !! execute_runmode_actions in program.f90 and exercises solver
   !! infrastructure that is only reachable after full MPI/2DECOMP
   !! initialization.
+  !!
+  !! Exact real comparisons (`==` / `/=` on reals) are deliberate throughout
+  !! this file: the assertions here are of the form "bitwise unchanged",
+  !! "exactly zero", "exactly one", or "this integer count came back through an
+  !! MPI reduction as a real".  Replacing them with tolerance comparisons would
+  !! remove the property being tested, so gfortran's -Wcompare-reals is
+  !! disabled for this file only, in the top-level CMakeLists.txt.  Nothing
+  !! else in src/ is exempt -- a real-equality comparison in solver code is
+  !! still flagged, which is the point.
   use decomp_2d
   use modmpi, only : myid, comm3d, mpierr, my_real, avexy_ibm, avey_ibm, sumx_ibm, sumy_ibm
 
@@ -452,7 +461,6 @@ contains
   !! union bounds and the integral identity of design section 1.4(b).
   !! Pure algebra: no grid, no MPI, no I/O. Covers U1-U7.
   logical function tests_nesting_weights()
-    use modglobal,  only : runmode
     use modnesting, only : nest_shape_fn, nest_union
 
     implicit none
@@ -484,7 +492,7 @@ contains
     logical function u1_values(ishape)
       integer, intent(in) :: ishape
       integer :: n
-      real    :: s, w
+      real    :: s
       character(len=32) :: lbl
 
       write(lbl,'(a,i0,a)') 'U1 values (shape ', ishape, ')'
@@ -1052,8 +1060,8 @@ contains
   !! Covers U8-U14. Run on 1x1, 2x1, 1x2 and 2x2.
   logical function tests_nesting_geometry()
     use mpi
-    use modglobal,  only : ib, ie, jb, je, kb, ke, itot, jtot, ktot, kh,   &
-                           dx, dy, dzf, zh, xlen, ylen, cexpnr, libm
+    use modglobal,  only : ib, ie, jb, je, kb, ke, itot, jtot, ktot,       &
+                           dx, dy, dzf, zh, xlen, ylen, cexpnr
     use modfields,  only : initfields
     use modibm,     only : createmasks
     use modnesting, only : nest_stagger_coord, nest_guardwidth,            &
@@ -1502,7 +1510,7 @@ contains
     use modibm,       only : createmasks
     use modnestingio, only : nestio_open, nestio_validate, nestio_read,     &
                              nestio_close, nestio_hdr
-    use modnesting,   only : nestfile, nest_timeinterp, nesting_finalize
+    use modnesting,   only : nestfile, nesting_finalize
 
     implicit none
 
@@ -1702,7 +1710,6 @@ contains
       integer, intent(in) :: interp
 
       real, parameter :: tc = 20., h = 1.e-3
-      integer :: i, j, k
       real    :: dmax
       real, allocatable :: du(:,:,:), dv(:,:,:), dw(:,:,:)
 
@@ -1933,7 +1940,7 @@ contains
     use modnesting,   only : nest_flux_residual, nest_flux_split, nesting_bcpup, &
                              nesting_update_target, nestfile, lnesting,          &
                              nest_fluxtol, nest_lfluxassert, nesting_init,       &
-                             nesting_finalize, nest_lfluxcheckall
+                             nesting_finalize
     use modnestingio, only : nestio_hdr, nestio_read
 
     implicit none
@@ -2332,7 +2339,7 @@ contains
     logical function u37_stored_residual()
       use modglobal, only : cexpnr, ktot
 
-      integer :: it, m, kk, d, ierr, nz
+      integer :: it, kk, d, ierr, nz
       real    :: num, dmax, aref
       real, allocatable :: bw(:,:,:), be(:,:,:), bs(:,:,:), bn(:,:,:)
       logical :: ok
@@ -2873,7 +2880,7 @@ contains
   !! they stop the process.
   logical function tests_nesting_init()
     use mpi
-    use modglobal,  only : ib, ie, ih, jb, je, jh, kb, ke, kh, ktot, cexpnr, &
+    use modglobal,  only : ib, ie, ih, jb, je, jh, kb, ke, kh, cexpnr,      &
                            timee, lwarmstart, ierank, jerank
     use modfields,  only : initfields, u0, um, v0, vm, w0, wm
     use modibm,     only : createmasks

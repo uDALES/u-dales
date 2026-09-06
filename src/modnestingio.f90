@@ -338,7 +338,6 @@ contains
     subroutine chk_stagger(comp, expect)
       character(len=*), intent(in) :: comp, expect
 
-      character(len=4), parameter :: faces(4) = (/ 'west', 'east', 'sout', 'nort' /)
       character(len=32) :: vname, got
       integer :: n, varid, status
 

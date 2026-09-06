@@ -652,7 +652,7 @@ contains
    !! component's zone points (acc 1,2) and over its trusted-interior points
    !! (acc 3,4), each evaluated at the component's own staggered location.
    subroutine accum_gradp(zn, ivar, p, acc)
-      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, dxi, dyi, dzhi
+      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
 
       type(zone_type), intent(in)    :: zn
       integer,         intent(in)    :: ivar

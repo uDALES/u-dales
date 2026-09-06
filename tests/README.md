@@ -80,6 +80,91 @@ python tests/run_tests.py experimental
 python tests/run_tests.py all --branch-a master --branch-b HEAD --build-type Release
 ```
 
+## Compiler Warning Gate
+
+`tests/lint/check_build_warnings.py` compares the warnings in a build log
+against a recorded baseline, `tests/lint/build_warnings_baseline.txt`. It is in
+the `lint` group, which `supported` includes, so it runs by default.
+
+### Why
+
+CI builds with gfortran; most development happens with Intel. The two compilers
+disagree about what is an error (`use mpi` gives gfortran one implicit interface
+per MPI routine per file, so mixing scalar and rank-1 `MPI_ALLREDUCE` arguments
+in a single file is a hard error there and silent under ifort) and about what is
+a warning. "It builds clean here" is a statement about one compiler, and until
+this check existed the only place that was tested was a push to CI.
+
+### What it checks
+
+- Every warning class the CI parser recognises (`[-Wname]` tags), aggregated per
+  source file. Counts **above** the baseline for a `(file, class)` pair fail;
+  counts below it are reported as a suggestion to refresh, never as a failure.
+  It is a baseline, not a ratchet, so an unrelated change is not blocked by the
+  ~17 warnings that were already in `modinlet`, `modpois`, `modstatsdump` and
+  friends.
+- The log's provenance, read from CMake's own files next to it: the compiler id
+  (`CMakeFiles/*/CMakeFortranCompiler.cmake`) and the build type
+  (`CMakeCache.txt`). A Release log is rejected, because the warning flags only
+  exist in the Debug configurations.
+- That the log is not older than `src/**/*.f90` or `CMakeLists.txt`.
+
+It does **not** build: a full Debug build is minutes, parsing a log is instant.
+It fails loudly (exit 2) when there is no usable log, rather than passing
+vacuously. `tools/build_executable.sh` and the CI build step both tee one to
+`<build dir>/build.log`.
+
+The parser is `.github/scripts/summarise_warnings.sh --list`, the same one CI
+reports from, so the local gate and the CI report cannot drift apart.
+
+### Running it
+
+```bash
+# produce a log with the CI compiler (gfortran), then check
+module purge && module load tools/prod
+module load foss/2023a netCDF-Fortran/4.6.1-gompi-2023a \
+            FFTW/3.3.10-GCC-12.3.0 CMake/3.26.3-GCCcore-12.3.0
+mkdir -p build/gnu && cd build/gnu
+FC=mpif90 cmake ../.. -DCMAKE_BUILD_TYPE=Debug \
+  -DNETCDF_DIR=$EBROOTNETCDF -DNETCDF_FORTRAN_DIR=$EBROOTNETCDFMINFORTRAN
+make -j8 2>&1 | tee build.log
+cd ../..
+
+python tests/run_tests.py lint            # or: as part of `supported`
+python tests/lint/check_build_warnings.py # directly
+python tests/lint/check_build_warnings.py --log build/debug/build.log
+```
+
+With no `--log` and no `UDALES_BUILD_LOG`, it scans `build/*/build.log` and picks
+the newest usable one, preferring gfortran because that is what CI gates on.
+`./tools/build_executable.sh icl debug` produces an acceptable Intel log — the
+check then runs against Intel's warnings and says so, since an Intel log cannot
+see gfortran's.
+
+### Updating the baseline
+
+After legitimately adding or removing a warning:
+
+```bash
+# full Debug build with that compiler, teeing to <build dir>/build.log, then
+python tests/lint/check_build_warnings.py --update --log build/gnu/build.log
+```
+
+`--update` refuses an incremental log, since that would silently drop the
+baseline for every file it did not recompile. Commit the diff and say in the
+message why the new entries are acceptable: an entry added there is a warning
+nobody will be told about again.
+
+### CI
+
+Under GitHub Actions the check runs in report-only mode (exit 0). That is
+deliberate and matches the policy already written into
+`.github/scripts/summarise_warnings.sh`: CI does not pin its compilers, so a
+runner image bump legitimately changes the warning set and would turn CI red on
+an unrelated PR. Locally the compiler *is* pinned by the module stack, so a
+baseline means something. Force the same behaviour anywhere with
+`UDALES_WARNINGS_REPORT_ONLY=1`.
+
 ## Test Manifest Schema
 
 `tests/test_suites.yml` is the source of truth for curated automated test

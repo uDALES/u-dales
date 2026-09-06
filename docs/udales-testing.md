@@ -54,6 +54,12 @@ python tests/run_tests.py experimental
   udbase-vs-MATLAB parity, Python-vs-MATLAB preprocessing parity). Needs the
   conda `udales` environment (or equivalent) and `tools/python` installed
   (`pip install -e tools/python --no-deps`); no compiled solver, no MPI.
+- `lint` — the compiler warning gate,
+  `tests/lint/check_build_warnings.py`. Parses a build log (it does not
+  build) and fails when a `(file, warning class)` count exceeds
+  `tests/lint/build_warnings_baseline.txt`. Included by `supported`. See
+  "Compiler warning gate" in `tests/README.md` for how to produce a log with
+  the CI compiler and how to refresh the baseline.
 - `supported` — the curated merge-gating selection: `python-library` plus
   the branch-comparison regression harness and the solver/MPI-driven
   integration suites (IBM sparse input, MPI operators, processor
@@ -118,7 +124,10 @@ summary: it counts warnings by `-W` class, flags known-benign classes
 (`-Wcompare-reals`, `-Wunused-value`, reviewed in #334) versus everything
 else as "review", and lists the actionable warning sites. This step is
 reporting-only and never fails the build — CI doesn't pin compiler versions,
-so warning sets legitimately vary across runner images.
+so warning sets legitimately vary across runner images. The same parser backs
+the local `lint` gate (`summarise_warnings.sh --list`), which *does* fail on a
+warning above the baseline, because the local module stacks pin the compiler.
+Under GitHub Actions that gate degrades to report-only for the reason above.
 
 `.github/workflows/ci-rerun-on-cancel.yml` watches for CI runs that GitHub
 itself cancelled (infra/runner loss, not a genuine test failure) and
@@ -133,7 +142,8 @@ a green `python-viz` job — together these run the `supported` (or
 `supported-macos`) test selection plus both visualisation backends. The
 `docs` job should also build cleanly if you touched documentation. Compiler
 warnings are reported but do not gate merging, so a new warning won't fail
-CI, but check the step summary and avoid introducing avoidable ones.
+CI — but `tests/run_tests.py lint` does fail on one locally, against a
+gfortran Debug build log, and is the cheapest way to catch it before pushing.
 `experimental` and `heavy` suites are not part of the required gate, but are
 worth running locally if your change touches the areas they cover (see
 `tests/test_suites.yml` for what each suite exercises).

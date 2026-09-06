@@ -128,6 +128,19 @@ add_subdirectory(2decomp-fft)
 add_executable(u-dales ${src_f90})
 include_directories(2decomp-fft)
 
+# src/tests.f90 is the in-solver test harness, and its assertions are exact by
+# construction: bitwise-unchanged fields, exactly-zero residuals, exactly-one
+# shape-function plateaus, and integer counts round-tripped through a real MPI
+# reduction. Rewriting those as tolerance comparisons would delete the property
+# under test, so -Wcompare-reals is turned off for this one file rather than
+# for the project. Solver sources keep the warning.
+if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/tests.f90
+        PROPERTIES COMPILE_OPTIONS "-Wno-compare-reals"
+    )
+endif()
+
 target_link_libraries(u-dales ${CMLIB_CMAKE_LIBRARY})
 target_link_libraries(u-dales MPI::MPI_Fortran)
 target_link_libraries(u-dales ${NETCDF_F90_LIBRARIES})

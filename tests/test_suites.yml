@@ -83,9 +83,30 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
 
+  # Compiler warnings are a class of defect CI catches and local testing did
+  # not: CI builds with gfortran, most development here is Intel, and the two
+  # disagree about both errors and warnings. This group closes that gap before
+  # a push. It parses a build log rather than building (a full Debug build is
+  # minutes; parsing is instant) and fails loudly when there is no usable log.
+  # Not included by `supported-macos`: the baseline is measured against the
+  # pinned Linux/CX3 module stacks, and Homebrew's gfortran is a different
+  # version with a different warning set.
+  lint:
+    suites:
+      - label: "lint: compiler warnings against the recorded baseline"
+        class: supported
+        kind: unit
+        component: build
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "{tests_dir}/lint/check_build_warnings.py"
+
   supported:
     includes:
       - python-library
+      - lint
     suites:
       - label: "supported: regression"
         class: supported

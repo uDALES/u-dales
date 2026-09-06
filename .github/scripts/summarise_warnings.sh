@@ -14,8 +14,68 @@
 # real problems, drop it from the list rather than muting the report.
 #
 # Usage: summarise_warnings.sh <build.log> <label>
+#        summarise_warnings.sh --list <build.log>
+#
+# `--list` is the machine-readable mode: it writes one record per warning as
+#
+#     <basename>|<line>|<-Wclass>|<message>
+#
+# to stdout and nothing else, for every class (benign or not). It exists so the
+# local gate in tests/lint/check_build_warnings.py parses build logs with the
+# SAME parser CI reports from, rather than a second copy that can drift.
+# Exit status: 0 on success, 2 when the log is missing.
 
 set -uo pipefail
+
+# gfortran/clang warning classes are reported as a trailing [-Wname] tag.
+BENIGN_RE='^-W(compare-reals|unused-value)$'
+
+# Pair each warning with the file:line: header that precedes it, so the report
+# points at source rather than just counting.
+list_warnings() {
+    # Two shapes to handle:
+    #   gfortran: a "file:line:col:" header line, then "Warning: msg [-Wflag]"
+    #   clang:    "file:line:col: warning: msg [-Wflag]" all on one line
+    awk '
+        function emit(loc, msg, flag,   p, n, line) {
+            line = loc
+            sub(/:[0-9]+:?$/, "", loc)          # drop the column, keep file:line
+            n = split(loc, p, ":")
+            line = (n > 1 ? p[n] : "0")
+            sub(/:[0-9]+$/, "", loc)            # keep the path
+            n = split(loc, p, "/")
+            printf "%s|%s|%s|%s\n", p[n], line, flag, msg
+        }
+        # clang single-line form
+        /:[0-9]+:[0-9]+: *warning:/ && /\[-W[a-z-]+\]/ {
+            match($0, /\[-W[a-z-]+\]/)
+            flag = substr($0, RSTART+1, RLENGTH-2)
+            loc = $0; sub(/: *warning:.*/, "", loc)
+            msg = $0; sub(/.*warning: /, "", msg); sub(/ \[-W.*/, "", msg)
+            emit(loc, msg, flag)
+            next
+        }
+        # gfortran location header
+        /^[^ ].*:[0-9]+:[0-9]+:[[:space:]]*$/ { loc = $0; next }
+        # gfortran message, refers back to the last header
+        /^[[:space:]]*Warning:/ && /\[-W[a-z-]+\]/ {
+            match($0, /\[-W[a-z-]+\]/)
+            flag = substr($0, RSTART+1, RLENGTH-2)
+            msg = $0; sub(/.*Warning: /, "", msg); sub(/ \[-W.*/, "", msg)
+            if (loc != "") emit(loc, msg, flag)
+        }
+    ' "$1"
+}
+
+if [ "${1:-}" = "--list" ]; then
+    log="${2:?usage: summarise_warnings.sh --list <build.log>}"
+    if [ ! -f "$log" ]; then
+        echo "ERROR: no build log at '${log}'" >&2
+        exit 2
+    fi
+    list_warnings "$log"
+    exit 0
+fi
 
 log="${1:?usage: summarise_warnings.sh <build.log> <label>}"
 label="${2:-build}"
@@ -30,9 +90,6 @@ if [ ! -f "$log" ]; then
     echo "_No build log at \`${log}\` — nothing to report._" >> "$out"
     exit 0
 fi
-
-# gfortran/clang warning classes are reported as a trailing [-Wname] tag.
-BENIGN_RE='^-W(compare-reals|unused-value)$'
 
 counts="$(grep -ohE '\[-W[a-z-]+\]' "$log" | tr -d '[]' | sort | uniq -c | sort -rn || true)"
 
@@ -71,42 +128,14 @@ echo "${label}: ${total} warning(s), ${actionable} actionable, from '${log}'"
 
 [ "$actionable" -eq 0 ] && exit 0
 
-# Pair each warning with the file:line: header that precedes it, so the report
-# points at source rather than just counting.
 {
     echo
     echo "<details><summary>Actionable warning sites</summary>"
     echo
     echo '```'
-    # Two shapes to handle:
-    #   gfortran: a "file:line:col:" header line, then "Warning: msg [-Wflag]"
-    #   clang:    "file:line:col: warning: msg [-Wflag]" all on one line
-    awk -v re="$BENIGN_RE" '
-        function emit(loc, msg, flag,   p, n) {
-            if (flag ~ re) return
-            sub(/:[0-9]+:?$/, "", loc)          # drop the column, keep file:line
-            n = split(loc, p, "/")
-            printf "%s: %s [%s]\n", p[n], msg, flag
-        }
-        # clang single-line form
-        /:[0-9]+:[0-9]+: *warning:/ && /\[-W[a-z-]+\]/ {
-            match($0, /\[-W[a-z-]+\]/)
-            flag = substr($0, RSTART+1, RLENGTH-2)
-            loc = $0; sub(/: *warning:.*/, "", loc)
-            msg = $0; sub(/.*warning: /, "", msg); sub(/ \[-W.*/, "", msg)
-            emit(loc, msg, flag)
-            next
-        }
-        # gfortran location header
-        /^[^ ].*:[0-9]+:[0-9]+:[[:space:]]*$/ { loc = $0; next }
-        # gfortran message, refers back to the last header
-        /^[[:space:]]*Warning:/ && /\[-W[a-z-]+\]/ {
-            match($0, /\[-W[a-z-]+\]/)
-            flag = substr($0, RSTART+1, RLENGTH-2)
-            msg = $0; sub(/.*Warning: /, "", msg); sub(/ \[-W.*/, "", msg)
-            if (loc != "") emit(loc, msg, flag)
-        }
-    ' "$log" | sort -u -t: -k1,1 -k2,2n | head -50
+    list_warnings "$log" \
+        | awk -F'|' -v re="$BENIGN_RE" '$3 !~ re { printf "%s:%s: %s [%s]\n", $1, $2, $4, $3 }' \
+        | sort -u -t: -k1,1 -k2,2n | head -50
     echo '```'
     echo "</details>"
 } >> "$out"

@@ -225,6 +225,17 @@ UDALES_BUILD=$PWD/build/gnu/u-dales TMPDIR=$EPHEMERAL \
 OpenMPI needs `--oversubscribe` for login-node runs; the drivers add it when they
 detect Open MPI.
 
+Timings measured 2026-09 on a CX3 login node: `make -j8` from clean is ~4 min for
+the Debug configuration, so a gfortran cross-check before pushing is cheap.
+
+Pipe the build through `tee build.log` (into the build directory). The `lint`
+test group -- `python tests/run_tests.py lint`, included by `supported` --
+parses `build/*/build.log` and fails when a `(file, warning class)` count
+exceeds `tests/lint/build_warnings_baseline.txt`. It picks the newest usable
+*Debug* log, preferring GNU, and refuses a Release log (the warning flags only
+exist in Debug). `./tools/build_executable.sh icl debug` writes an acceptable
+Intel log by itself. See "Compiler warning gate" in `tests/README.md`.
+
 ### CX3 addendum (2026-09, V1 converged run and the V2 sweep sizing)
 
 Measured stage times of the V1 "Big Brother" nesting validation, `converged`
