@@ -107,6 +107,7 @@ groups:
     includes:
       - python-library
       - lint
+      - nesting-unit
     suites:
       - label: "supported: regression"
         class: supported
@@ -151,7 +152,11 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
 
-  nesting:
+  # The in-solver unit runmodes are class: supported and cost: fast, and they
+  # need only what CI already builds, so they belong in the merge gate. They
+  # sat in `nesting` -- reachable only from `all` -- which meant CI compiled
+  # modnesting and then ran none of it.
+  nesting-unit:
     suites:
       - label: "nesting: weights unit runmode 1006 (U1-U7)"
         class: supported
@@ -241,6 +246,11 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
           - "NestingUnitRunmodes.test_reported_messages"
+
+  nesting:
+    includes:
+      - nesting-unit
+    suites:
       - label: "nesting: I1 no-op guarantee"
         class: experimental
         kind: integration

@@ -74,6 +74,13 @@ REQUIRED_BUILD_TYPE = "debug"
 # The compiler CI uses, and therefore the one whose warnings gate a merge.
 PREFERRED_COMPILER = "GNU"
 
+#: Compilers whose warnings summarise_warnings.sh can actually parse. Its awk
+#: rules key on a trailing "[-Wclass]" tag, which is a gfortran/clang format;
+#: ifort emits "warning #NNNN" and parses to nothing. A log from anything else
+#: is not evidence of zero warnings, it is an absence of evidence, so treat it
+#: as unusable rather than passing on it.
+PARSEABLE_COMPILERS = ("GNU",)
+
 RECIPE = """
 Produce one with a Debug build. To reproduce the CI compiler on CX3:
 
@@ -85,9 +92,13 @@ Produce one with a Debug build. To reproduce the CI compiler on CX3:
       -DNETCDF_DIR=$EBROOTNETCDF -DNETCDF_FORTRAN_DIR=$EBROOTNETCDFMINFORTRAN
     make -j8 2>&1 | tee build.log
 
-or, for the Intel stack, `./tools/build_executable.sh icl debug`, which tees
-build/debug/build.log for you. Point this check at a specific log with
---log PATH or the UDALES_BUILD_LOG environment variable.
+Point this check at a specific log with --log PATH or the UDALES_BUILD_LOG
+environment variable.
+
+An Intel log will not do, even though `./tools/build_executable.sh icl debug`
+tees one to build/debug/build.log. The parser keys on gfortran's "[-Wclass]"
+tag; ifort's "warning #NNNN" parses to nothing, which would make an Intel log
+look like a clean build rather than an unreadable one.
 """.strip()
 
 
@@ -161,6 +172,11 @@ def _pick_log(explicit: Optional[str], baselined: List[str]) -> Tuple[Optional[M
         if meta.compiler not in baselined:
             notes.append("{}: no baseline section for compiler {} in {}".format(
                 log, meta.compiler, BASELINE.name))
+            continue
+        if meta.compiler not in PARSEABLE_COMPILERS:
+            notes.append("{}: {} warnings are not in a format this check can parse, "
+                         "so the log cannot show absence of warnings".format(
+                             log, meta.compiler))
             continue
         usable.append(meta)
 
@@ -335,8 +351,7 @@ def main() -> int:
     print("  log:        {}".format(meta.log))
     print("  compiler:   {}{}".format(
         meta.compiler,
-        "" if meta.compiler == PREFERRED_COMPILER
-        else "  (CI gates on {}; this log cannot see its warnings)".format(PREFERRED_COMPILER)))
+        ""))
     print("  build type: {}".format(meta.build_type))
     print("  coverage:   {}".format(
         "full build" if complete else "partial (incremental build log)"))
