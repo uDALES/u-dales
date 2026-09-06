@@ -30,6 +30,16 @@
 # .../903's sibling 904, and it is reused rather than repeated: 5 children run
 # here, not 6.  run_v2.py checks 904's manifest against the preset before
 # believing its dumps.
+#
+# ALL SIX POINTS RUN nest_lparentgeom = .false.  The two smaller children of the
+# size arm cannot inherit a building-free zone from this parent, so they clear
+# it themselves: the child's geometry drops the cubes that would fall in its
+# guard + ramp band while the parent keeps them and goes on imprinting them
+# through the imposed velocity field (design section 9.4 -- parent and child
+# geometry are allowed to differ).  So the boundary treatment is identical at
+# every point and child size is the only variable moving along the size arm.
+# config.Preset.removed_cubes_reaching_the_interior is asserted empty, so the
+# two geometries differ only inside the band, where the solution is imposed.
 # ---------------------------------------------------------------------------
 #
 # SIZING, from the measured stage times of the V1 converged job (3991175, same

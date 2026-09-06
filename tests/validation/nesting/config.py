@@ -158,6 +158,23 @@ class Preset:
     #: the V1 parent's field dumps can be reused unchanged.  ``Sweep.validate``
     #: turns that into a checked invariant.
     plaza: Optional[PlazaWindow] = None
+    #: Remove from the **child** the cubes that would fall in its guard + ramp
+    #: band, leaving them in the parent.
+    #:
+    #: Parent and child geometry are not required to match (design section 9.4;
+    #: V3 and V4 exist precisely to vary them), and a building-free relaxation
+    #: zone is the configuration the scheme was designed for.  So rather than
+    #: letting a child inherit whatever cubes the parent happens to have near
+    #: its boundary, the child simply clears its own zone.  The parent's
+    #: buildings still reach the child: their wakes are in the velocity field
+    #: that is imposed on the boundary.  What the child does not carry is solid
+    #: cells where ``W > 0``, so ``nest_lparentgeom`` can stay ``.false.`` and
+    #: ``nesting_init`` asserts the rule instead of warning about it.
+    #:
+    #: ``False`` -- the V1 default -- leaves the child's layout as the parent's
+    #: restriction, which is right when the plaza was carved for this child and
+    #: is what makes the child an exact sub-model of the parent.
+    clear_child_zone: bool = False
     init_from_parent: bool = True
     #: experiment numbers
     parent_expnr: str = "903"
@@ -249,17 +266,16 @@ class Preset:
 
     @property
     def building_free_zone(self) -> bool:
-        """True when no cube of the parent's layout intrudes into this child's zone.
+        """True when no cube of **the child's own** layout intrudes into its zone.
 
-        Computed, not declared.  For V1 (``plaza``, own geometry) it is true by
-        construction and for ``uniform`` it is false, which is what the previous
-        ``geometry == "plaza"`` shorthand said.  For a V2 point that inherits
-        the V1 plaza it is the *answer to a question*: a narrower zone stays
-        clear, a wider zone or a smaller child runs into the parent's cubes and
-        the child must then set ``nest_lparentgeom = .true.``.  See
-        ``README.md``, "What the fixed parent allows".
+        Computed, not declared, and computed from the geometry the child
+        actually carries.  With ``clear_child_zone`` the answer is always true
+        by construction: whatever the parent has near the child's boundary, the
+        child does not carry it.  Without it, the answer depends on the parent
+        -- true for V1, where the plaza was carved for this child, and false for
+        a smaller or wider-zoned child that inherits the parent's cubes.
         """
-        return len(self.cubes_in_zone()) == 0
+        return self.clear_child_zone or len(self.cubes_in_zone()) == 0
 
     @property
     def zone_clearance(self) -> float:
@@ -394,13 +410,62 @@ class Preset:
                 out.append((cx, cy))
         return np.asarray(out, dtype=float).reshape(-1, 2)
 
-    def cubes_in_analysis_interior(self) -> np.ndarray:
-        """Cubes overlapping the region the statistics are taken over."""
+    def child_cube_centres(self) -> np.ndarray:
+        """Centres of the cubes the **child** carries, in child metres.
+
+        The parent's layout restricted to the child window, minus -- when
+        ``clear_child_zone`` is set -- the cubes that would fall in the child's
+        guard + ramp band.  This is the one description of the child's geometry;
+        ``make_child_case`` builds the STL from it and nothing else.
+        """
+        kept = self.cube_centres_in(self.child_origin[0], self.child_origin[1],
+                                    self.child_xlen, self.child_ylen)
+        if not self.clear_child_zone or kept.size == 0:
+            return kept
+        drop = self.cubes_in_zone()
+        if drop.size == 0:
+            return kept
+        x0, y0 = self.child_origin
+        dropped = {(round(cx - x0, 9), round(cy - y0, 9)) for cx, cy in drop}
+        out = [(cx, cy) for cx, cy in kept
+               if (round(cx, 9), round(cy, 9)) not in dropped]
+        return np.asarray(out, dtype=float).reshape(-1, 2)
+
+    def child_cubes_removed(self) -> np.ndarray:
+        """Cubes the parent has inside the child window that the child drops."""
+        return (self.cubes_in_zone() if self.clear_child_zone
+                else np.zeros((0, 2), dtype=float))
+
+    @property
+    def n_child_cubes_removed(self) -> int:
+        return len(self.child_cubes_removed())
+
+    def removed_cubes_reaching_the_interior(self) -> np.ndarray:
+        """Removed cubes whose footprint reaches the region compared.
+
+        Clearing the child's zone makes the child stop being an exact sub-model
+        of the parent -- but only where it is allowed to: inside the band, where
+        the solution is imposed and no criterion is applied.  A removed cube
+        that also reached the *analysis interior* would break that, because the
+        statistics there would then be taken over two different geometries.  So
+        it is checked rather than hoped for; ``validate`` refuses a preset where
+        this is non-empty.
+        """
         half = 0.5 * self.building_width
         ix0, iy0, ix1, iy1 = self._analysis_interior_box()
-        out = [(cx, cy) for cx, cy in self.cube_centres()
+        out = [(cx, cy) for cx, cy in self.child_cubes_removed()
                if (cx + half > ix0 + 1.0e-9 and cx - half < ix1 - 1.0e-9
                    and cy + half > iy0 + 1.0e-9 and cy - half < iy1 - 1.0e-9)]
+        return np.asarray(out, dtype=float).reshape(-1, 2)
+
+    def cubes_in_analysis_interior(self) -> np.ndarray:
+        """Cubes **the child carries** overlapping the region compared."""
+        half = 0.5 * self.building_width
+        ix0, iy0, ix1, iy1 = self._analysis_interior_box()
+        x0, y0 = self.child_origin
+        out = [(cx + x0, cy + y0) for cx, cy in self.child_cube_centres()
+               if (cx + x0 + half > ix0 + 1.0e-9 and cx + x0 - half < ix1 - 1.0e-9
+                   and cy + y0 + half > iy0 + 1.0e-9 and cy + y0 - half < iy1 - 1.0e-9)]
         return np.asarray(out, dtype=float).reshape(-1, 2)
 
     @property
@@ -501,7 +566,20 @@ class Preset:
             )
         if self.geometry not in ("plaza", "uniform"):
             errors.append(f"geometry must be 'plaza' or 'uniform', got {self.geometry!r}")
-        elif self.geometry == "plaza" and self.owns_parent_geometry:
+        for cx, cy in self.removed_cubes_reaching_the_interior():
+            errors.append(
+                f"clearing the child's zone would remove a cube at ({cx:g}, {cy:g}) m "
+                "whose footprint also reaches the analysis interior; the statistics "
+                "would be taken over two different geometries"
+            )
+        if self.geometry == "plaza" and not self.owns_parent_geometry \
+                and not self.clear_child_zone and self.cubes_in_zone().size:
+            # Not an error -- 'uniform' means to do exactly this -- but on an
+            # inherited plaza it is almost always an oversight, so say so.
+            print(f"[config] note: preset '{self.name}' inherits {len(self.cubes_in_zone())} "
+                  "of the parent's cubes into its relaxation zone and does not clear "
+                  "them; it will need nest_lparentgeom = .true.")
+        if self.geometry == "plaza" and self.owns_parent_geometry:
             # When the plaza was carved for *this* child, a cube in the zone is
             # a bug in the preset: the whole point of the plaza is that
             # nest_lparentgeom = .false. can be switched on, so check here that
@@ -539,10 +617,14 @@ class Preset:
             f"geometry             '{self.geometry}': {len(self.cube_centres())} cubes "
             f"({self.n_cubes_removed} removed of {len(self._full_cube_centres())}), "
             f"plaza {'own child' if self.owns_parent_geometry else self.plaza_window.describe()}",
-            f"zone geometry        {'building-free' if self.building_free_zone else 'CONTAINS buildings'} "
-            f"({len(self.cubes_in_zone())} cubes in the zone), "
+            f"child geometry       {len(self.child_cube_centres())} cubes"
+            + (f", {self.n_child_cubes_removed} of the parent's cleared from the "
+               f"child's zone (child != parent sub-model inside the band)"
+               if self.n_child_cubes_removed else
+               " = the parent's restriction, cube for cube"),
+            f"zone geometry        {'building-free' if self.building_free_zone else 'CONTAINS buildings'}, "
             f"clearance needed {self.zone_clearance:g} m of "
-            f"{self.building_clearance_available:g} m available, "
+            f"{self.building_clearance_available:g} m the parent leaves, "
             f"nest_lparentgeom = {'.false.' if self.building_free_zone else '.true.'}",
             f"zone                 L_imp = {self.guardwidth:g} m "
             f"({self.guardwidth / self.dx:g} cells), L_rel = {self.zonewidth:g} m "
@@ -770,7 +852,7 @@ class Sweep:
             f"{self.common_block_cells * self.parent.dx / h:.2f}h",
             "",
             f"{'key':10s} {'arms':11s} {'nr':4s} {'child':9s} {'N_imp+N_rel':12s} "
-            f"{'nzone':6s} {'interior':16s} {'zone':16s} {'run':6s}",
+            f"{'nzone':6s} {'interior':16s} {'zone':22s} {'run':6s}",
         ]
         for pt in self.points:
             q = pt.preset
@@ -782,6 +864,7 @@ class Sweep:
                 f"{q.interior_cells:3d} cells {q.interior_extent_h:5.2f}h  "
                 f"{'clear' if q.building_free_zone else 'BUILDINGS':9s} "
                 f"{100 * q.zone_fraction:4.1f}%  "
+                f"cut {q.n_child_cubes_removed:<3d}  "
                 f"{'reuse' if pt.reuse else 'run':6s}"
             )
         return "\n".join(lines)
@@ -802,7 +885,7 @@ def _sweep_child(base: Preset, *, name: str, child_expnr: str,
     n = base.child_itot if child_cells is None else int(child_cells)
     trial = replace(base, name=name, child_expnr=child_expnr,
                     zonewidth=zonewidth, child_itot=n, child_jtot=n,
-                    plaza=base.plaza_window)
+                    plaza=base.plaza_window, clear_child_zone=True)
     return replace(trial, nzone=trial.zone_cells)
 
 
@@ -866,23 +949,61 @@ def _v2_sweep(base: Preset, name: str,
 #: of four in ``L_rel`` and 7 -> 19 cells in total zone thickness, which is
 #: ample lever for P1.
 #:
-#: The size arm cannot be kept building-free at all, and that is a property of
-#: the parent rather than a choice: the widest street in the cube array is 16 m
-#: and the zone needs 26 m, so the *only* child whose zone sits over open ground
-#: is the one the plaza was carved for.  The 96- and 64-cell children therefore
-#: run with ``nest_lparentgeom = .true.`` -- legal here because this is
-#: self-nesting, the parent resolves the same buildings -- and the sweep
-#: reports it in every table so the confound is visible rather than buried.
+#: The size arm keeps a building-free zone the same way every other point does:
+#: by clearing it in the **child**.  Parent and child geometry are not required
+#: to match (design section 9.4), so the 64- and 96-cell children simply do not
+#: carry the cubes that would fall in their guard + ramp band, while the parent
+#: keeps them and goes on imprinting them on the child through the imposed
+#: velocity field -- their wakes are in the flow that arrives at the boundary.
+#: Every point therefore runs ``nest_lparentgeom = .false.`` and child size is
+#: the only variable moving along the arm, which is what makes P2 a sharp test
+#: rather than corroboration.  ``Preset.removed_cubes_reaching_the_interior``
+#: turns "the two geometries differ only inside the band" into a checked
+#: invariant; ``validate`` refuses a preset where a cleared cube would also
+#: reach the region the statistics are taken over.
 V2 = _v2_sweep(CONVERGED, "v2", zone_cells_ramp=(4, 9, 12, 16),
                child_sizes=(64, 96, 128))
 
-#: The same sweep at the ``tiny`` size: three extra children of a few seconds
-#: each, exercising the identical code path.  Its size arm puts buildings in the
-#: zone exactly as the production one does, so the ``nest_lparentgeom = .true.``
-#: branch and the 15 % zone-fraction warning are both covered before the
+#: Parent and reference child for the tiny sweep.  Deliberately **not**
+#: ``TINY``.
+#:
+#: The size arm has to clear cubes out of the smaller children's zones, and for
+#: a cleared cube to stay out of the analysis interior -- the invariant
+#: ``removed_cubes_reaching_the_interior`` enforces -- the zone has to be at
+#: least as deep as a cube is far from the child's face.  With a 32 m array and
+#: child origins on the period, that distance is always 24 m: cube centres sit
+#: at 16 mod 32 and faces at 0 mod 32, so every cube occupies 8-24 m in from
+#: each face.  ``CONVERGED``'s 24 m zone clears it exactly; ``TINY``'s 14 m one
+#: does not, and a 32-cell tiny child would have had its interior geometry
+#: changed by the clearing.
+#:
+#: So the tiny sweep carries the **production zone on a tiny domain** rather
+#: than a tiny zone, which is the right thing for a smoke test anyway: it is the
+#: production code path that wants exercising.  ``TINY`` itself is untouched, so
+#: ``test_v1_tiny`` is unaffected.
+TINY_SWEEP = Preset(
+    name="tiny-sweep",
+    itot=128, jtot=128, ktot=32, dx=2.0,
+    building_height=16.0, building_width=16.0, street_width=16.0, edgelength=16.0,
+    geometry="plaza",
+    child_itot=96, child_jtot=96,
+    guardwidth=6.0, zonewidth=18.0, tau=1.0, nzone=12, nwall=1, timeinterp=1,
+    ustar=0.4, u0=3.0, tke0=0.1,
+    spinup=120.0, production=120.0, dtdump=3.0, child_spinup=40.0,
+    nprocx=2, nprocy=2, child_nprocx=2, child_nprocy=2,
+    dtmax=0.5,
+    spectra_heights=(8.0, 16.0, 32.0),
+    stride=1,
+)
+
+#: The same sweep a few minutes instead of a few hours, exercising the identical
+#: code path.  Its size arm really does clear cubes out of the child (the
+#: production one clears 12 and 20; this one clears some too), so the "child is
+#: not the parent's restriction" path is covered, and both its narrow-domain and
+#: wide-zone points make the 15 % zone-fraction warning fire -- all before the
 #: production job is submitted.
-V2_TINY = _v2_sweep(TINY, "v2-tiny", zone_cells_ramp=(2, 4, 8),
-                    child_sizes=(32, 64))
+V2_TINY = _v2_sweep(TINY_SWEEP, "v2-tiny", zone_cells_ramp=(4, 9, 12),
+                    child_sizes=(64, 96))
 
 SWEEPS: Dict[str, Sweep] = {s.name: s for s in (V2_TINY, V2)}
 
@@ -898,7 +1019,8 @@ def get_sweep(name: str) -> Sweep:
     return sweep
 
 
-PRESETS: Dict[str, Preset] = {p.name: p for p in (TINY, PRODUCTION, CONVERGED)}
+PRESETS: Dict[str, Preset] = {p.name: p
+                              for p in (TINY, TINY_SWEEP, PRODUCTION, CONVERGED)}
 PRESETS.update({pt.preset.name: pt.preset
                 for sweep in SWEEPS.values() for pt in sweep.points})
 

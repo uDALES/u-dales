@@ -579,6 +579,11 @@ Those two readings are not a matter of taste.  They make opposite predictions:
 >
 > **P2 -- child domain size should move it a lot.**  Less fetch, bigger deficit.
 
+Both arms are clean tests: every point runs the same boundary treatment
+(`nest_lparentgeom = .false.`, a building-free zone) so that in each arm exactly
+one thing moves.  See "the size arm keeps its zone building-free by clearing it
+in the child" below for how that is arranged, and what it costs.
+
 **V2 is built to fail.**  If P1 fails -- if the deficit tracks the zone width --
 then the fetch interpretation is wrong, the boundary treatment is implicated,
 and section 10.5 needs rewriting.  That is a more valuable outcome than a
@@ -588,6 +593,23 @@ the metric (relative resolved-TKE difference against the parent's own
 half-window spread) are all fixed to what section 10.5 already used, before any
 V2 number existed.  Do not adjust them, and in particular do not change `tau`,
 the statistics window or `child_spinup` to make a curve flatter.
+
+## What V1 and V2 do not test: refinement
+
+**Both V1 and V2 run at refinement ratio exactly 1.**  Parent and child share
+the grid; `slabs_from_fields` *cuts* the boundary slabs rather than
+interpolating them, and the child's `dx` equals the parent's.
+
+That is deliberate -- ratio 1 is what isolates the nesting scheme from the
+interpolation, so that when V1 finds a 10 % TKE deficit there is no question of
+it being an interpolation artefact -- and the interpolation itself is covered
+separately by P1-P11 in `tools/python/tests/test_nesting.py`.
+
+But **the main purpose of nesting is running the child at higher resolution than
+the parent**, and that end-to-end case is still untested.  Nothing in V1 or V2
+validates refinement, and neither should be cited as if it did.  A V-row for it
+is being added to `docs/udales-nesting-design.md`; V5 (parent coarsening)
+approaches the same question from the other side but is not the same experiment.
 
 ## Why the parent is reused, and what that costs
 
@@ -631,24 +653,102 @@ rather than assumed:
   **This is a deliberate substitution and it is the one deviation from the
   brief.**
 
-* **The size arm cannot be kept building-free at all**, and that is a property
-  of the parent, not a choice.  The widest street in the cube array is 16 m and
-  the zone needs 26 m, so the *only* child whose zone sits over open ground is
-  the one the plaza was carved for.  Shifting a smaller child off centre does
-  not help -- the free frame is 40 m wide but it is a frame, so no smaller
-  square has all four faces inside it.  The 96- and 64-cell children therefore
-  run with `nest_lparentgeom = .true.`, which is legal here because this is
-  self-nesting: the parent resolves the same buildings, so the imposed field is
-  the right field, wakes included.  **Their deficits carry a geometry change as
-  well as a fetch change**, they are listed under `confounds` in
-  `sweep_summary.json`, they are marked `NO` in the `zone clear` column, and
-  they must not be read as pure fetch.  The zone arm is clean and carries no
-  such caveat.
+* **The size arm keeps its zone building-free by clearing it in the child.**
+  No child smaller than 128 cells can *inherit* a clear zone from this parent --
+  the widest street in the cube array is 16 m and the zone needs 26 m, so the
+  only child whose zone sits over open ground by inheritance is the one the
+  plaza was carved for, and shifting a smaller child off centre does not help
+  (the free region is a 40 m frame, so no smaller square has all four faces
+  inside it).  But it does not have to inherit one.
 
-Because the size arm is confounded and the zone arm is not, an asymmetry in the
-evidence is built in from the start, and it is worth stating plainly: **P1 is
-the sharp test and P2 is the corroboration.** A clean result on P1 stands on its
-own; a large P2 effect is consistent with fetch but does not by itself prove it.
+  **Parent and child geometry are not required to match.**  Design section 9.4
+  says so explicitly, and V3 and V4 exist precisely to vary them.  So the 96-
+  and 64-cell children simply do not carry the cubes that fall in their guard +
+  ramp band: `Preset.clear_child_zone` drops them from the *child's* layout
+  while the parent keeps them.  The parent's buildings still reach the child --
+  their wakes are in the velocity field imposed on the boundary -- so the zone
+  gets physically meaningful forcing without containing a single solid cell.
+  Every point of the sweep therefore runs `nest_lparentgeom = .false.`, the
+  solver *asserts* the design section 5 rule at all six, and **child size is the
+  only variable moving along the arm.  P2 is a sharp test, not corroboration.**
+  `size64` clears 12 cubes and `size96` 20; the zone arm clears none, because
+  its zones fit in the plaza already.
+
+### What clearing the child's zone does and does not confound
+
+Worth being exact about, because it is the one place where the child stops
+being a perfect sub-model of the parent.
+
+**What differs.**  Inside the child's guard + ramp band, and only there, the
+child is open ground where the parent has cubes.  Two children of the size arm
+therefore have a different near-boundary geometry from the parent sub-region
+they are compared against.
+
+**Why that is acceptable here.**  The band is where the solution is *imposed*.
+The child does not compute the flow there in any meaningful sense -- it is
+relaxed onto the parent's -- and no criterion is applied to it: `analyse.py`
+measures over the interior, and the error-versus-fetch curves start at the inner
+zone edge.  The comparison never asks the child to reproduce the parent
+somewhere the two are built differently.
+
+**Two things make that a checked claim rather than a hopeful one.**
+
+1. `Preset.removed_cubes_reaching_the_interior()` must be empty, and
+   `validate()` refuses a preset where it is not.  A cleared cube that also
+   poked into the analysis interior would put the statistics over two different
+   geometries; here none does, because in this array a cube always occupies
+   8-24 m in from a child face (centres sit at 16 mod 32, faces at 0 mod 32) and
+   the zone is 24 m deep, so a cleared cube stops exactly where the interior
+   begins.  This is not a coincidence to be relied on quietly -- it is why the
+   tiny sweep carries the production zone rather than a tiny one, and why the
+   guard has a test that makes it fire.
+2. `analyse.run` compares over cells that are fluid in **both** runs.  A cell
+   that is fluid in the child and solid in the parent would otherwise fold the
+   parent's near-zero in-building velocity into the parent's statistics.  The
+   intersection is a no-op wherever the geometries agree, and
+   `v2_metrics.json`'s `solid_mask` block reports how many cells it removed.
+
+**What a reader should still keep in mind: the cleared band is a soft
+obstacle, not open ground.**  Inside the band the child is relaxed towards the
+parent's velocity field, and that field contains the parent's cubes -- as
+near-zero velocity where a cube stands, and as wakes downstream of it.  So the
+child's ramp carries a low-velocity imprint of a building that it does not
+itself resolve: no IBM enforcing it, no wall stress, no ongoing production.  It
+is neither a building nor a plaza.
+
+That is the mechanism by which "the parent's buildings still imprint on the
+child", stated precisely, and it has three consequences worth naming:
+
+* **It does not touch the mass budget.**  The compatibility condition is
+  evaluated on the domain's boundary faces, and the guard strip -- the first
+  3 cells, where `W = 1` -- is over open ground in the parent too, because a
+  cube in this array never comes closer than 8 m to a child face.  The offline
+  correction still drives the stored `Phi` to round-off and the runtime
+  diagnostics stay there; the tiny sweep's cleared child shows exactly that.
+* **It does not change the boundary treatment.**  `nest_lparentgeom`, the
+  weights, `tau`, the shape function and the guard width are identical at all
+  six points.  What differs is *what the imposed field describes*, not how it is
+  imposed -- which is precisely the difference between this and the earlier
+  arrangement, where the smaller children would have had solid cells inside
+  `W > 0` and a different `nest_lparentgeom`.
+* **It biases P2 towards confirming the fetch interpretation, not away.**  The
+  imposed field injects the parent's wake turbulence at the boundary, but the
+  child has no body there to sustain it, so that turbulence decays inward
+  instead of being regenerated.  The smaller children therefore get, if
+  anything, *less* self-sustaining turbulence than a child with buildings all
+  the way to its edge would -- which deepens the deficit at small size.  So a
+  **null result on P2 would be the surprising and the more trustworthy
+  outcome**, and a large P2 effect should be read with this in mind rather than
+  as pure fetch.
+
+Design section 9.4 covers exactly this situation, and V3 exists to measure the
+adjustment length it implies; V2 does not measure it, and does not need to,
+because the invariant above keeps it out of the region being compared.
+
+The interior also still shrinks faster than the domain: a 64-cell child has 40
+interior cells where a 128-cell one has 104, so the smaller points have less
+fetch *and* a smaller measurement window.  That is what the common central block
+separates, and it is now the only thing left for it to separate.
 
 ## The points
 
@@ -657,14 +757,18 @@ $ python tests/validation/nesting/config.py --sweep v2
 sweep 'v2': 6 points (5 to run, 1 reused), one parent 'converged' (903)
 common comparison block 40 cells = 5.00h
 
-key        arms        nr   child     N_imp+N_rel  nzone  interior         zone
-ref        zone+size   904  128x128     3+9        12     104 cells 13.00h  clear      9.4%  reuse
-nrel4      zone        905  128x128     3+4         7     114 cells 14.25h  clear      5.5%  run
-nrel12     zone        906  128x128     3+12       15      98 cells 12.25h  clear     11.7%  run
-nrel16     zone        907  128x128     3+16       19      90 cells 11.25h  clear     14.8%  run
-size64     size        908   64x64      3+9        12      40 cells  5.00h  BUILDINGS 18.8%  run
-size96     size        909   96x96      3+9        12      72 cells  9.00h  BUILDINGS 12.5%  run
+key        arms        nr   child     N_imp+N_rel  nzone  interior         zone                   run
+ref        zone+size   904  128x128     3+9        12     104 cells 13.00h  clear      9.4%  cut 0    reuse
+nrel4      zone        905  128x128     3+4         7     114 cells 14.25h  clear      5.5%  cut 0    run
+nrel12     zone        906  128x128     3+12       15      98 cells 12.25h  clear     11.7%  cut 0    run
+nrel16     zone        907  128x128     3+16       19      90 cells 11.25h  clear     14.8%  cut 0    run
+size64     size        908   64x64      3+9        12      40 cells  5.00h  clear     18.8%  cut 12   run
+size96     size        909   96x96      3+9        12      72 cells  9.00h  clear     12.5%  cut 20   run
 ```
+
+`cut` is how many of the parent's cubes the child does **not** carry, because
+they would have fallen in its guard + ramp band.  `clear` in every row is the
+consequence: every point runs `nest_lparentgeom = .false.`.
 
 `ref` is the V1 `converged` child.  It sits in **both** arms -- it is the
 `N_rel = 9` point of the zone arm and the `128^2` point of the size arm -- and
@@ -711,6 +815,7 @@ Per child, against the same parent sub-region, all in `v2_metrics.json` under
 | spectral band ratios | `spectra.*.bands` | `mean_of_ratios` and `ratio_of_sums` in 16-64 m, 8-16 m, `lambda > L/4` and `lambda < 4 dx`, at each of the three heights |
 | TKE error vs fetch | `v2.tke_error_vs_fetch` | per face, on an abscissa of **fetch beyond the inner zone edge**; the error at fixed fetches, at each face's own maximum fetch, and the fetch at which it first stays at or below the parent's sampling floor |
 | mean-flow interior fidelity | `v2.criterion_a` | design section 0 criterion A: `max_interior \|<u>_child - <u>_parent\|/u*` over the four faces, against 0.05 |
+| what was averaged over | `solid_mask` (top level) | how many cells were compared, and how many were excluded for being solid in one run but not the other -- nonzero only where the child cleared its zone, and confined to the band |
 
 Three choices in there are worth defending, because each could have been made
 to flatter a hypothesis and was not:
@@ -763,10 +868,10 @@ so **each is read downwards**.
 | Column | Read it as |
 |---|---|
 | `N_rel`, `zone`, `child`, `int.cells`, `int./h` | the configuration; `int./h` is the free fetch in building heights and is the abscissa of P2 |
-| `zone clear` | `yes` = building-free zone, `nest_lparentgeom = .false.`; `NO` = the confounded points |
+| `zone clear`, `cubes cut` | `yes` everywhere -- every point runs `nest_lparentgeom = .false.` and the solver asserts it.  `cubes cut` is how many of the parent's cubes the child dropped to get there; nonzero means that child is not an exact sub-model of the parent *inside its band*, and nothing else |
 | `dTKE z/h>2 [%]` | **the headline.**  Mean resolved-TKE difference above `z/h = 2`.  V1 measured `-9.9` here |
 | `spread [%]`, `sigma`, `sigma med` | the parent's own half-window spread over the same heights, and the deficit in units of it -- `sigma` from the mean spread over the band, `sigma med` from the median.  `sigma med` is the one comparable with section 10.5; `sigma` is the conservative one.  See "the spread is the half-window spread" above |
-| `dTKE common [%]` | the same deficit over the **common central block**, which is the same physical region for every point.  Compare this column across the size arm: it separates "shorter fetch" from "smaller measurement window" |
+| `dTKE common [%]` | the same deficit over the **common central block** -- the same physical region, 40 x 40 cells at `x, y = [216, 296] m`, for every point.  Compare this column across the size arm: with the geometry confound gone it is the one remaining thing that separates "shorter fetch" from "smaller measurement window", and the V1 reference gives -8.54 % over it against -9.91 % over its own 104-cell interior, so about 1.4 points of the headline number is window rather than fetch |
 | `dTKE z/h<1 [%]` | inside the canopy.  V1 measured `+1.5` -- the canopy is clean, and a V2 point that spoils it is telling you something |
 | `E ratio 16-64 m`, `E ratio 8-16 m` | the scale-selective part, at `z/h ~ 2`.  V1: 0.869 and 0.833 |
 | `E ratio > L/4` | the imposed large scales.  V1: 1.033.  Not comparable across the size arm |
@@ -807,7 +912,7 @@ window are not swept.
 
 ## Running it
 
-Smoke test (about 2 min on a login node, 4 ranks -- runs a tiny parent, a tiny
+Smoke test (about 3 min on a login node, 4 ranks -- runs a tiny parent, a tiny
 reference child, then the tiny sweep):
 
 ```bash
@@ -816,13 +921,24 @@ source /rds/general/user/mvr/home/udales/.venv/bin/activate
 python tests/validation/nesting/test_v2_tiny.py
 ```
 
+The tiny sweep is **not** built on the `tiny` preset.  It has its own parent,
+`tiny-sweep`: a 128 x 128 x 32 parent with a 96-cell reference child, carrying
+the *production* zone (3 + 9 cells) on a tiny domain.  It has to.  For a cleared
+cube to stay out of the analysis interior the zone must be at least as deep as a
+cube sits in from a child face, which in this 32 m array is always 24 m -- the
+production zone exactly, and nearly twice `tiny`'s 14 m.  A `tiny`-based sweep
+would have had its smallest child's *interior* geometry changed by the clearing,
+which `Preset.validate` refuses.  `tiny` itself is untouched, so `test_v1_tiny`
+is unaffected.
+
 The `TestSweepConfiguration` half of that file needs no solver and no run: it
 checks the **production** sweep's consistency -- that every point regenerates
 the V1 parent's cube layout, that the reference point is shared and reused, that
 `nzone` covers every zone, that the common block lands in the same physical
-place for every point, that the "cannot share this parent" guard actually
-fires, and that `building_free_zone` is measured rather than declared.  Run it
-alone with
+place for every point, that every point's zone is building-free, that no cleared
+cube reaches the region compared, that the "cannot share this parent" and
+"cleared cube reaches the interior" guards actually fire, and that
+`building_free_zone` is measured rather than declared.  Run it alone with
 
 ```bash
 python tests/validation/nesting/test_v2_tiny.py TestSweepConfiguration
@@ -923,6 +1039,11 @@ are in the fourth decimal of the band edges, not in the physics, and they are
 the strongest available evidence that `analyse.py`'s new V2 block measures what
 section 10.5 measured rather than something adjacent to it.
 
+Re-verified after the size arm was changed to clear the child's zone: the
+reference row is identical to every digit, and its `solid_mask` block reports
+zero cells solid in one run but not the other, which is the direct check that
+the mask intersection is a no-op where the two geometries agree.
+
 The one number that is *new* is the last: over the central 40 x 40 cells the
 deficit is **-8.54 %** rather than -9.91 %.  So restricting the measurement to
 the middle of a 128-cell child recovers about 1.4 points of the deficit --
@@ -934,24 +1055,32 @@ window.
 ## Status
 
 The whole V2 pipeline has been driven end to end at the `v2-tiny` sweep on CX3
-(4 ranks, login node): tiny parent, tiny reference child, three swept children
-including one with buildings in its zone, per-point analysis, cached parent
-accumulation, summary table.  `test_v2_tiny.py` is 21 tests, all passing
-(141 s); `test_v1_tiny.py` is unchanged at 10 tests, all passing (100 s), so the
-shared `analyse.py` did not regress.  The production sweep has been **prepared
-but not submitted**; `submit_cx3_v2.pbs` is sized from the numbers above.
+(4 ranks, login node): parent, reference child, three swept children -- one of
+which clears 12 cubes out of its own zone -- per-point analysis, cached parent
+accumulation, summary table.  `test_v2_tiny.py` is 26 tests, all passing
+(202 s); `test_v1_tiny.py` is unchanged at 10 tests, all passing, so the shared
+`analyse.py` and `caselib.py` did not regress.  The production sweep has been
+**prepared but not submitted**; `submit_cx3_v2.pbs` is sized from the numbers
+above.
 
 What the tiny sweep showed, for orientation only -- 23 samples over 71 s cannot
-support any physical claim, and its half-window spreads (20-55 %) are larger
+support any physical claim, and its half-window spreads (12-43 %) are larger
 than its deficits:
 
-* the zone arm moved the deficit by 0.40 percentage points over `N_rel = 2, 4,
-  8` (`range_in_spreads = 0.015`), the size arm by 3.58 points between the
-  32- and 64-cell children (`range_in_spreads = 0.089`);
-* every child ran with `Phi` and `divmax` at round-off, all four faces forced;
-* the 32-cell child ran with `nest_lparentgeom = .true.`, `nesting_init`
-  reporting 3936 solid points in the zone and the 15 % zone-fraction warning,
-  both as predicted rather than as surprises.
+* the zone arm moved the deficit by 3.4 percentage points over `N_rel = 4, 9,
+  12` (`range_in_median_spreads = 0.30`), the size arm by 4.3 points between the
+  64- and 96-cell children (`0.17`);
+* every child ran `nest_lparentgeom = .false.` -- `nesting_init` *verified* the
+  zone was clear rather than warning about it -- with `Phi` and `divmax` at
+  round-off and all four faces forced, the 64-cell one included, which is the
+  point: clearing the child's zone is what lets the smallest child assert the
+  rule instead of excusing itself from it;
+* the child's solid cells matched the parent's exactly outside the band and were
+  zero inside it, at every point;
+* the 15 % zone-fraction warning fired at `nrel12` (15.6 %) and `size64`
+  (18.8 %) and nowhere else, as `Preset.zone_fraction_warns` predicted.
 
 Those numbers are the *shape* the production table will have, not a preview of
-its content.
+its content -- and note that at this window length the tiny zone arm moves as
+much as the size arm does, which is exactly the situation the production
+window's 3400 samples exist to resolve.

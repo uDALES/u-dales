@@ -581,7 +581,24 @@ def run(parent_dir: Path, child_dir: Path, outdir: Path, preset: Preset,
     t1 = float(manifest["runtime"])
 
     ni, nj, nk = preset.child_itot - 1, preset.child_jtot - 1, preset.child_ktot - 1
-    mask = load_solid_mask(child_dir, (ni, nj, nk))
+    # Fluid in the child AND fluid in the parent over the same window.
+    #
+    # For V1 the two are the same mask -- the child is an exact sub-model.  For
+    # the V2 size arm they are not: the child clears the cubes that would fall
+    # in its guard + ramp band, so inside the band there are cells that are
+    # fluid in the child and solid in the parent.  Averaging those with the
+    # child's mask alone would fold the parent's near-zero in-building velocity
+    # into the parent's statistics and bias the comparison.  Intersecting
+    # removes that by construction, everywhere, and is a no-op wherever the
+    # geometries agree.
+    child_fluid = load_solid_mask(child_dir, (ni, nj, nk))
+    parent_fluid_full = load_solid_mask(
+        parent_dir, (preset.itot, preset.jtot, preset.ktot))
+    parent_fluid = parent_fluid_full[preset.child_i0:preset.child_i0 + ni,
+                                     preset.child_j0:preset.child_j0 + nj, :nk]
+    mask = child_fluid & parent_fluid
+    n_parent_only_solid = int((child_fluid & ~parent_fluid).sum())
+    n_child_only_solid = int((parent_fluid & ~child_fluid).sum())
     ii, jj = interior_indices(preset)
     kk = [int(round(z / preset.dz - 0.5)) for z in preset.spectra_heights]
     kk = [k for k in kk if 0 <= k < nk]
@@ -622,6 +639,15 @@ def run(parent_dir: Path, child_dir: Path, outdir: Path, preset: Preset,
     metrics = _compare(parent, child, preset, mask, ii, jj, kk, manifest,
                        len(plev), len(clev), common_block_cells)
     metrics["parent_bundle_reused"] = cached is not None
+    metrics["solid_mask"] = {
+        "fluid_cells_compared": int(mask.sum()),
+        "solid_in_the_parent_only": n_parent_only_solid,
+        "solid_in_the_child_only": n_child_only_solid,
+        "note": ("cells solid in either run are excluded from both; nonzero "
+                 "'solid_in_the_parent_only' means the child cleared cubes out of "
+                 "its relaxation zone, which is expected in the V2 size arm and "
+                 "confined to the band"),
+    }
     _write_outputs(outdir, parent, child, preset, mask, ii, jj, kk, metrics,
                    make_plots, metrics_name)
     return metrics
@@ -758,6 +784,9 @@ def _compare(parent: Bundle, child: Bundle, preset: Preset, mask: np.ndarray,
             "zone_fraction_warns": preset.zone_fraction_warns,
             "building_free_zone": preset.building_free_zone,
             "nest_lparentgeom": not preset.building_free_zone,
+            "clear_child_zone": bool(preset.clear_child_zone),
+            "n_cubes_child": int(len(preset.child_cube_centres())),
+            "n_cubes_cleared_from_child_zone": int(preset.n_child_cubes_removed),
             "n_cubes_in_zone": int(len(preset.cubes_in_zone())),
             "n_cubes_in_interior": int(len(preset.cubes_in_analysis_interior())),
             "building_clearance_available_m": preset.building_clearance_available,

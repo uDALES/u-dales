@@ -115,17 +115,26 @@ def cube_mesh(preset, centres: np.ndarray, xsize: float, ysize: float):
 
 
 def cube_geometry(preset, x0: float, y0: float, xsize: float, ysize: float,
-                  out_stl: Path) -> Path:
+                  out_stl: Path, centres: Optional[np.ndarray] = None) -> Path:
     """Write the STL for the window ``[x0, x0+xsize] x [y0, y0+ysize]``.
 
-    Parent and child go through this same call with different windows, and the
-    layout comes from :meth:`config.Preset.cube_centres_in`, so the child's
-    array is by construction the parent's restricted to the child -- there is no
-    second, independent description of the geometry that could drift.  Nothing
-    is committed: the STL is regenerated on every run.
+    Parent and child go through this same call with different windows.  The
+    default layout is :meth:`config.Preset.cube_centres_in`, the parent's array
+    restricted to the window, so there is no second independent description of
+    the geometry that could drift.
+
+    ``centres`` overrides it, in **window** coordinates.  The child uses that,
+    passing :meth:`config.Preset.child_cube_centres`, because the child's layout
+    is allowed to differ from the parent's restriction: with
+    ``clear_child_zone`` it drops the cubes that would fall in its guard + ramp
+    band, so the zone sits over open ground while the parent keeps them and goes
+    on imprinting them through the imposed velocity field (design section 9.4).
+
+    Nothing is committed: the STL is regenerated on every run.
     """
-    geom = cube_mesh(preset, preset.cube_centres_in(x0, y0, xsize, ysize),
-                     xsize, ysize)
+    if centres is None:
+        centres = preset.cube_centres_in(x0, y0, xsize, ysize)
+    geom = cube_mesh(preset, centres, xsize, ysize)
     out_stl.parent.mkdir(parents=True, exist_ok=True)
     geom.save(str(out_stl))
     return out_stl

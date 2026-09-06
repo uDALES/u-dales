@@ -132,23 +132,70 @@ class TestSweepConfiguration(unittest.TestCase):
             sweep.validate()
         self.assertIn("itot", str(ctx.exception))
 
-    def test_building_free_is_measured_not_declared(self):
+    def test_every_point_has_a_building_free_zone(self):
+        """The whole sweep runs one boundary treatment, so only one thing moves."""
+        for name in ("v2", "v2-tiny"):
+            for pt in get_sweep(name).points:
+                self.assertTrue(pt.preset.building_free_zone,
+                                f"{name}/{pt.key}: zone is not building-free")
+
+    def test_the_size_arm_clears_its_zone_rather_than_inheriting_it(self):
+        """The size arm only works because child geometry may differ from parent."""
         sweep = get_sweep("v2")
-        # The reference child is the one the plaza was carved for, so its zone
-        # is clear; the size arm cannot be, because the widest street in the
-        # cube array is narrower than the zone.
-        self.assertTrue(sweep.point("ref").preset.building_free_zone)
+        # The reference child is the one the plaza was carved for: nothing to
+        # clear, and it is an exact sub-model of the parent.
+        self.assertEqual(sweep.point("ref").preset.n_child_cubes_removed, 0)
+        for pt in sweep.arm("zone"):
+            self.assertEqual(pt.preset.n_child_cubes_removed, 0,
+                             f"{pt.key}: the zone arm should need no clearing")
+        # The smaller children do: the parent has cubes where their zones land.
         for key in ("size64", "size96"):
             p = sweep.point(key).preset
-            self.assertFalse(p.building_free_zone,
-                             f"{key}: expected buildings in the zone")
-            self.assertGreater(len(p.cubes_in_zone()), 0)
-            self.assertLess(p.building_clearance_available, p.zone_clearance)
-        # ... and the zone arm stops where the plaza does, so all of it is clear.
-        for pt in sweep.arm("zone"):
-            self.assertTrue(pt.preset.building_free_zone,
-                            f"{pt.key}: the zone arm must stay building-free, or it "
-                            "confounds zone width with geometry")
+            self.assertGreater(p.n_child_cubes_removed, 0, key)
+            self.assertLess(p.building_clearance_available, p.zone_clearance,
+                            f"{key}: nothing would have needed clearing")
+            self.assertTrue(p.clear_child_zone, key)
+
+    def test_no_cleared_cube_reaches_the_region_compared(self):
+        """The invariant that keeps the size arm interpretable."""
+        for name in ("v2", "v2-tiny"):
+            for pt in get_sweep(name).points:
+                self.assertEqual(
+                    len(pt.preset.removed_cubes_reaching_the_interior()), 0,
+                    f"{name}/{pt.key}: a cleared cube reaches the analysis interior")
+
+    def test_the_clearing_invariant_actually_fires(self):
+        """A guard that has never rejected anything is not a guard.
+
+        ``TINY``'s 14 m zone is shallower than the 24 m a cube sits in from a
+        child face in this array, so clearing a small child's zone there would
+        also change its interior -- which is exactly why the tiny sweep carries
+        the production zone instead.
+        """
+        from dataclasses import replace
+        base = get_preset("tiny")
+        bad = replace(base, name="tiny-clear-bad", child_expnr="905",
+                      child_itot=32, child_jtot=32,
+                      plaza=base.plaza_window, clear_child_zone=True)
+        self.assertGreater(len(bad.removed_cubes_reaching_the_interior()), 0)
+        with self.assertRaises(ValueError) as ctx:
+            bad.validate()
+        self.assertIn("also reaches the analysis interior", str(ctx.exception))
+
+    def test_clearing_off_leaves_the_child_as_the_parents_restriction(self):
+        """The V1 behaviour, and the nest_lparentgeom = .true. case, still exist."""
+        from dataclasses import replace
+        p = replace(get_sweep("v2").point("size64").preset,
+                    name="size64-uncleared", clear_child_zone=False)
+        self.assertFalse(p.building_free_zone)
+        self.assertEqual(p.n_child_cubes_removed, 0)
+        self.assertEqual(len(p.child_cube_centres()),
+                         len(p.cube_centres_in(*p.child_origin,
+                                               p.child_xlen, p.child_ylen)))
+        # and the cleared version really does carry fewer cubes than that
+        cleared = get_sweep("v2").point("size64").preset
+        self.assertLess(len(cleared.child_cube_centres()),
+                        len(p.child_cube_centres()))
 
 
 class TestV2TinySweep(unittest.TestCase):
@@ -253,7 +300,16 @@ class TestV2TinySweep(unittest.TestCase):
 
     # -- the cases the sweep built ------------------------------------------ #
 
-    def test_every_child_geometry_is_the_parent_sub_region(self):
+    def test_every_child_matches_the_parent_outside_its_zone(self):
+        """The child may differ from the parent, but only inside the band.
+
+        Two assertions, and the pair is the point: **zero** solid cells in the
+        child's guard + ramp band, so ``nesting_init``'s ``nest_lparentgeom =
+        .false.`` assertion has something real to pass; and solid cells
+        **identical** to the parent's everywhere outside it, so the region the
+        statistics are taken over is the same geometry in both runs.  Between
+        the two lies only the band, where the solution is imposed.
+        """
         p0 = self.base
         pm = _solid_mask(self.parent_dir / "solid_c.txt", (p0.itot, p0.jtot, p0.ktot))
         for pt in self.sweep.points:
@@ -262,9 +318,27 @@ class TestV2TinySweep(unittest.TestCase):
                              (p.child_itot, p.child_jtot, p.child_ktot))
             sub = pm[p.child_i0:p.child_i0 + p.child_itot,
                      p.child_j0:p.child_j0 + p.child_jtot, :]
-            self.assertTrue(np.array_equal(sub, cm),
-                            f"{pt.key}: the child's solid cells are not the "
-                            "parent's sub-region")
+            n = p.zone_cells
+            band = np.ones((p.child_itot, p.child_jtot), dtype=bool)
+            band[n:p.child_itot - n, n:p.child_jtot - n] = False
+            self.assertEqual(int(cm[band].sum()), 0,
+                             f"{pt.key}: solid cells in the child's guard + ramp band")
+            self.assertTrue(np.array_equal(sub[~band], cm[~band]),
+                            f"{pt.key}: outside the band the child's solid cells "
+                            "differ from the parent's")
+            self.assertGreater(int(cm[~band].sum()), 0,
+                               f"{pt.key}: no buildings outside the band at all")
+            # and the clearing did what the preset said it would
+            cleared = int(sub[band].sum()) - int(cm[band].sum())
+            self.assertEqual(cleared > 0, p.n_child_cubes_removed > 0, pt.key)
+
+    def test_the_mask_the_statistics_use_excludes_either_runs_buildings(self):
+        for pt in self.sweep.points:
+            sm = self.metrics[pt.key]["solid_mask"]
+            self.assertEqual(sm["solid_in_the_child_only"], 0, pt.key)
+            self.assertEqual(sm["solid_in_the_parent_only"] > 0,
+                             pt.preset.n_child_cubes_removed > 0, pt.key)
+            self.assertGreater(sm["fluid_cells_compared"], 0, pt.key)
 
     def test_every_nesting_file_is_flux_balanced(self):
         for pt in self.sweep.points:
@@ -283,23 +357,25 @@ class TestV2TinySweep(unittest.TestCase):
             for face in ("west", "east", "south", "north"):
                 self.assertIn(f"face {face} is forced", log, f"{pt.key}/{face}")
 
-    def test_the_zone_geometry_is_asserted_or_allowed_as_the_preset_says(self):
-        """``nest_lparentgeom`` must follow the *computed* zone occupancy."""
+    def test_the_solver_asserts_the_zone_is_clear_at_every_point(self):
+        """``nesting_init`` must verify the rule, not warn about it.
+
+        Every point of the sweep runs ``nest_lparentgeom = .false.``, so the
+        solver aborts if any solid point has ``W > 0``.  Each child having
+        completed is therefore already most of the proof; this checks both ends
+        of it -- the namelist really says ``.false.``, and the solver did not
+        take the "allowed by nest_lparentgeom" branch.
+        """
         marker = "solid points inside the relaxation zone"
         for pt in self.sweep.points:
             p = pt.preset
+            self.assertTrue(p.building_free_zone, pt.key)
             log = (self._casedir(pt.key) / "child.log").read_text(errors="replace")
             nml = (self._casedir(pt.key) / f"namoptions.{p.child_expnr}"
                    ).read_text()
-            want = ".false." if p.building_free_zone else ".true."
-            self.assertRegex(nml, rf"(?im)^\s*nest_lparentgeom\s*=\s*{re.escape(want)}")
-            if p.building_free_zone:
-                self.assertNotIn(marker, log,
-                                 f"{pt.key}: solid points in a zone declared clear")
-            else:
-                self.assertIn(marker, log,
-                              f"{pt.key}: expected the allowed-by-lparentgeom notice")
-                self.assertIn("allowed by nest_lparentgeom", log)
+            self.assertRegex(nml, r"(?im)^\s*nest_lparentgeom\s*=\s*\.false\.")
+            self.assertNotIn(marker, log,
+                             f"{pt.key}: solid points in a zone declared clear")
 
     def test_the_zone_fraction_warning_fires_exactly_where_predicted(self):
         """Expected at the small sizes, and not a fault -- so pin it down."""
@@ -353,12 +429,16 @@ class TestV2TinySweep(unittest.TestCase):
             self.assertTrue(np.isfinite(v[arm]["range_pct"]), arm)
             self.assertEqual(v[arm]["x"], sorted(v[arm]["x"]), arm)
 
-    def test_the_confounded_points_are_named_in_the_summary(self):
-        """A confound that is not reported is a confound that gets forgotten."""
-        expected = {p.key for p in self.sweep.points
-                    if not p.preset.building_free_zone}
-        self.assertEqual(set(self.summary["verdict"]["confounds"]), expected)
-        self.assertTrue(expected, "the tiny sweep no longer covers that branch")
+    def test_no_point_is_confounded_and_the_clearing_is_reported(self):
+        """Both halves matter: nothing confounded, and the difference disclosed."""
+        self.assertEqual(self.summary["verdict"]["confounds"], [])
+        self.assertIn("child_geometry_note", self.summary["verdict"])
+        cut = {r["key"]: r["cubes_cleared"] for r in self.summary["rows"]}
+        for pt in self.sweep.points:
+            self.assertEqual(cut[pt.key], pt.preset.n_child_cubes_removed, pt.key)
+        self.assertTrue(any(v > 0 for v in cut.values()),
+                        "the tiny sweep no longer clears anything, so it stopped "
+                        "covering the path the production size arm depends on")
 
     def test_the_headline_numbers_are_not_wildly_different(self):
         """A loose bound, not a physics claim: it catches a child that diverged."""

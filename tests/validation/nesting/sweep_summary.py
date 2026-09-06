@@ -45,6 +45,7 @@ COLUMNS: Sequence[tuple] = (
     ("interior_cells", "int.cells", "{}"),
     ("interior_extent_h", "int./h", "{:.2f}"),
     ("zone_free", "zone clear", "{}"),
+    ("cubes_cleared", "cubes cut", "{}"),
     ("samples", "samples", "{}"),
     ("tke_deficit_pct", "dTKE z/h>2 [%]", "{:+.2f}"),
     ("tke_spread_pct", "spread [%]", "{:.2f}"),
@@ -103,6 +104,7 @@ def row_from_metrics(key: str, arms: Sequence[str], expnr: str,
         "interior_cells": cfg["interior_cells"],
         "interior_extent_h": cfg["interior_extent_h"],
         "zone_free": "yes" if cfg["building_free_zone"] else "NO",
+        "cubes_cleared": cfg.get("n_cubes_cleared_from_child_zone"),
         "nest_lparentgeom": cfg["nest_lparentgeom"],
         "zone_fraction": cfg["zone_fraction"],
         "zone_fraction_warns": cfg["zone_fraction_warns"],
@@ -256,13 +258,22 @@ def verdict(sweep: Sweep, rows: Sequence[Dict[str, object]]) -> Dict[str, object
             "confounds": [
                 r["key"] for r in rows if r.get("zone_free") == "NO"],
             "confound_note": (
-                "Points listed under 'confounds' have buildings inside the "
-                "relaxation zone and run with nest_lparentgeom = .true.. That is "
-                "forced by reusing the V1 parent: the widest street in the cube "
-                "array is 16 m and the zone needs 26 m, so the only child whose "
-                "zone sits over open ground is the one the plaza was carved for. "
-                "Their deficits carry a geometry change as well as a fetch "
-                "change and must not be read as pure fetch."),
+                "'confounds' lists points that carry buildings inside their "
+                "relaxation zone and so run with nest_lparentgeom = .true.; their "
+                "deficits would carry a geometry change as well as the swept one. "
+                "It should be empty: every point of this sweep clears its own "
+                "zone."),
+            "child_geometry_note": (
+                "Points with a nonzero 'cubes cut' do not carry the parent's "
+                "cubes inside their guard + ramp band -- the child clears them, "
+                "the parent keeps them and goes on imprinting them through the "
+                "imposed velocity field. So those children are not exact "
+                "sub-models of the parent, but only inside the band, where the "
+                "solution is imposed and no criterion is applied: "
+                "Preset.removed_cubes_reaching_the_interior is asserted empty, so "
+                "no cleared cube reaches the region the statistics are taken "
+                "over, and analyse.run additionally excludes any cell solid in "
+                "either run from both averages."),
             }
 
 

@@ -180,8 +180,15 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     zf = (np.arange(preset.child_ktot) + 0.5) * preset.dz
 
     # ---- geometry and a placeholder profile, then preprocessing ---------- #
+    # The child's own layout, which is the parent's restriction minus whatever
+    # would have landed in the guard + ramp band (config.Preset.child_cube_centres,
+    # design section 9.4).  For V1 that subtraction is empty and the child is an
+    # exact sub-model of the parent; for the V2 size arm it is not, and the
+    # difference is confined to the band -- Preset.validate refuses a preset
+    # where a cleared cube would also reach the analysis interior.
     cube_geometry(preset, preset.child_origin[0], preset.child_origin[1],
-                  preset.child_xlen, preset.child_ylen, casedir / f"geom.{nr}.stl")
+                  preset.child_xlen, preset.child_ylen, casedir / f"geom.{nr}.stl",
+                  centres=preset.child_cube_centres())
     write_prof(casedir / f"prof.inp.{nr}", zf, u=preset.u0, v=0.0, e12=preset.tke0,
                comment="placeholder; overwritten with the parent's own profile below")
     # pgx = 0 on purpose; the forcing lives in &PHYSICS dpdx.  See the
@@ -219,9 +226,18 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                        dtype=np.float64)
         for name in SLAB_VARIABLES
     }
-    fluid = load_solid_mask(casedir,
-                            (preset.child_itot - 1, preset.child_jtot - 1,
-                             preset.child_ktot - 1))
+    # Fluid in the child AND in the parent.  The profile below is accumulated
+    # from the *parent's* field, so a cell the child cleared out of its zone --
+    # fluid in the child, solid in the parent -- would contribute the parent's
+    # near-zero in-building velocity to it.  Same intersection, and same reason,
+    # as analyse.run.  A no-op wherever the two geometries agree, i.e. always
+    # unless clear_child_zone is set.
+    shape = (preset.child_itot - 1, preset.child_jtot - 1, preset.child_ktot - 1)
+    fluid = load_solid_mask(casedir, shape)
+    if preset.clear_child_zone:
+        pfluid = load_solid_mask(parent_dir, (preset.itot, preset.jtot, preset.ktot))
+        fluid = fluid & pfluid[preset.child_i0:preset.child_i0 + shape[0],
+                               preset.child_j0:preset.child_j0 + shape[1], :shape[2]]
     usum = np.zeros(preset.child_ktot - 1)
     vsum = np.zeros(preset.child_ktot - 1)
     ncell = fluid.sum(axis=(0, 1)).astype(float)
@@ -307,9 +323,12 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         "geometry": preset.geometry,
         "building_free_zone": bool(preset.building_free_zone),
         "n_cubes_parent": int(len(preset.cube_centres())),
-        "n_cubes_child": int(len(preset.cube_centres_in(
+        "n_cubes_child": int(len(preset.child_cube_centres())),
+        "n_cubes_child_in_parent_window": int(len(preset.cube_centres_in(
             preset.child_origin[0], preset.child_origin[1],
             preset.child_xlen, preset.child_ylen))),
+        "clear_child_zone": bool(preset.clear_child_zone),
+        "n_cubes_cleared_from_child_zone": int(preset.n_child_cubes_removed),
         "initial_condition_divmax": {
             "before_projection": div0,
             "after_projection": (
