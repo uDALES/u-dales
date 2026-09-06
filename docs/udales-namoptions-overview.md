@@ -13,6 +13,7 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | iexpnr | 000 | Three digit integer. | Experiment case number | - |
 | lwarmstart | .false. | .true. or .false. | If .true. simulation reads in restart file to initialize fields.  | - |
 | startfile | '' | 'initd00001234_xxx_xxx.000'| Name of restart file, the last three digits should match iexpnr. | - |
+| lreadfacT | .true. | .true. or .false. | On a warm start, read the facet state (wall temperatures, soil moisture, humidity) from the matching `initf<ntrun>.<expnr>` restart file. Set to .false. to re-seed the facet temperatures from `Tfacinit.inp.<expnr>` instead. If the file is absent, uDALES warns and falls back to `Tfacinit.inp.<expnr>`. | - |
 | runtime | 300 | > 0 | Simulation time. | [s] |
 | trestart | 10000. | 0 < trestart < runtime | Time at which restart files are written, trestart > runtime will prevent restart files being written.  | [s] |
 | dtmax | 20 | > 0 | Maximum allowed numerical integration timestep. | [s] |

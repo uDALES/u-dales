@@ -87,6 +87,7 @@ module modglobal
    logical :: lstratstart = .false.
    logical :: lfielddump = .false. !< switch to enable the fielddump
    logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
+   logical :: lreadfacT = .true. !<   flag for reading the facet state from the initf restart file (warm start)
 
    !Switches for boundary conditions
    !momentum (m), temperature (T), humidity (q) and scalars (s)
@@ -266,6 +267,9 @@ module modglobal
    integer, parameter :: ifinput = 1
    integer, parameter :: ifoutput = 2
    integer, parameter :: ifnamopt = 3
+
+   !< Format version of the initf facet restart file (written by modsave, read by modstartup)
+   integer, parameter :: ifacrestartversion = 1
 
    real, parameter :: pi = 3.141592653589793116
    real, parameter :: grav = 9.81 !<    *gravity acceleration.
