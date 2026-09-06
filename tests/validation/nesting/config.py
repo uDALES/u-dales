@@ -24,10 +24,46 @@ priori, which also gives the error metrics a natural, run-independent scale.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Dict, Tuple
+from dataclasses import dataclass, replace
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
+
+
+@dataclass(frozen=True)
+class PlazaWindow:
+    """The child window whose relaxation zone carved the parent's plaza.
+
+    The parent geometry is generated once, **for one child**, by removing every
+    cube that would fall in that child's guard + ramp band (plus a
+    ``nest_nwall`` margin).  A later experiment that reuses the same parent
+    field dumps -- which is the whole point of V2 -- must therefore describe the
+    parent with the window that carved it, not with its own child window, or
+    the cube layout it regenerates is not the one the parent actually ran and
+    the child's buildings would not be the parent's.
+
+    Lengths are parent metres.
+    """
+
+    x0: float
+    y0: float
+    xsize: float
+    ysize: float
+    clearance: float
+
+    @property
+    def box(self) -> Tuple[float, float, float, float]:
+        return (self.x0, self.y0, self.x0 + self.xsize, self.y0 + self.ysize)
+
+    @property
+    def interior_box(self) -> Tuple[float, float, float, float]:
+        d = self.clearance
+        x0, y0, x1, y1 = self.box
+        return (x0 + d, y0 + d, x1 - d, y1 - d)
+
+    def describe(self) -> str:
+        return (f"window ({self.x0:g}, {self.y0:g}) + {self.xsize:g} x "
+                f"{self.ysize:g} m, clearance {self.clearance:g} m")
 
 
 @dataclass(frozen=True)
@@ -115,6 +151,13 @@ class Preset:
     spectra_heights: Tuple[float, ...] = (8.0, 16.0, 32.0)
     #: keep every n-th dumped level when accumulating statistics
     stride: int = 1
+    #: The child window that carved the parent's plaza, when that window is not
+    #: this preset's own child.  ``None`` -- the V1 case -- means "this preset
+    #: defines the parent geometry itself".  V2 sets it to the V1 child window,
+    #: so every sweep point regenerates the *same* 228-cube parent layout and
+    #: the V1 parent's field dumps can be reused unchanged.  ``Sweep.validate``
+    #: turns that into a checked invariant.
+    plaza: Optional[PlazaWindow] = None
     init_from_parent: bool = True
     #: experiment numbers
     parent_expnr: str = "903"
@@ -206,8 +249,17 @@ class Preset:
 
     @property
     def building_free_zone(self) -> bool:
-        """True when the parent geometry keeps the child's zone clear."""
-        return self.geometry == "plaza"
+        """True when no cube of the parent's layout intrudes into this child's zone.
+
+        Computed, not declared.  For V1 (``plaza``, own geometry) it is true by
+        construction and for ``uniform`` it is false, which is what the previous
+        ``geometry == "plaza"`` shorthand said.  For a V2 point that inherits
+        the V1 plaza it is the *answer to a question*: a narrower zone stays
+        clear, a wider zone or a smaller child runs into the parent's cubes and
+        the child must then set ``nest_lparentgeom = .true.``.  See
+        ``README.md``, "What the fixed parent allows".
+        """
+        return len(self.cubes_in_zone()) == 0
 
     @property
     def zone_clearance(self) -> float:
@@ -239,9 +291,43 @@ class Preset:
         x0, y0 = self.child_origin
         return x0, y0, x0 + self.child_xlen, y0 + self.child_ylen
 
+    @property
+    def plaza_window(self) -> PlazaWindow:
+        """The window the **parent's** plaza was carved for.
+
+        Defaults to this preset's own child, which is what V1 does.  V2 points
+        override it with the V1 child window so that they describe the parent
+        that is already on disk.
+        """
+        if self.plaza is not None:
+            return self.plaza
+        x0, y0 = self.child_origin
+        return PlazaWindow(x0, y0, self.child_xlen, self.child_ylen,
+                           self.zone_clearance)
+
+    @property
+    def owns_parent_geometry(self) -> bool:
+        """True when the parent's plaza was carved for *this* child."""
+        return self.plaza is None
+
     def _interior_box(self) -> Tuple[float, float, float, float]:
+        """The building-free interior the **parent's** plaza was cut to leave."""
+        return self.plaza_window.interior_box
+
+    def _zone_box(self) -> Tuple[float, float, float, float]:
+        """Inside this child's own guard + ramp + ``nwall`` band.
+
+        Identical to :meth:`_interior_box` when this preset owns the parent
+        geometry; different -- and the whole point -- when it does not.
+        """
         x0, y0, x1, y1 = self._child_box()
         d = self.zone_clearance
+        return x0 + d, y0 + d, x1 - d, y1 - d
+
+    def _analysis_interior_box(self) -> Tuple[float, float, float, float]:
+        """The box ``analyse.interior_indices`` compares over (no ``nwall``)."""
+        x0, y0, x1, y1 = self._child_box()
+        d = self.guardwidth + self.zonewidth
         return x0 + d, y0 + d, x1 - d, y1 - d
 
     def cube_centres(self) -> np.ndarray:
@@ -259,8 +345,8 @@ class Preset:
         if self.geometry != "plaza":
             raise ValueError(f"unknown geometry {self.geometry!r}")
         half = 0.5 * self.building_width
-        cx0, cy0, cx1, cy1 = self._child_box()
-        ix0, iy0, ix1, iy1 = self._interior_box()
+        cx0, cy0, cx1, cy1 = self.plaza_window.box
+        ix0, iy0, ix1, iy1 = self.plaza_window.interior_box
         keep = []
         for cx, cy in centres:
             x0, x1, y0, y1 = cx - half, cx + half, cy - half, cy + half
@@ -285,6 +371,86 @@ class Preset:
                     and cy - half >= y0 - 1.0e-9 and cy + half <= y0 + ysize + 1.0e-9):
                 out.append((cx - x0, cy - y0))
         return np.asarray(out, dtype=float).reshape(-1, 2)
+
+    def cubes_in_zone(self) -> np.ndarray:
+        """Cubes of the parent's layout that intrude into *this* child's zone.
+
+        A cube counts when it overlaps the child at all but is not wholly
+        inside the child's guard + ramp + ``nest_nwall`` band -- exactly the
+        condition ``nesting_init`` turns into an abort when
+        ``nest_lparentgeom = .false.``.
+        """
+        half = 0.5 * self.building_width
+        cx0, cy0, cx1, cy1 = self._child_box()
+        ix0, iy0, ix1, iy1 = self._zone_box()
+        out = []
+        for cx, cy in self.cube_centres():
+            x0, x1, y0, y1 = cx - half, cx + half, cy - half, cy + half
+            overlaps = (x1 > cx0 + 1.0e-9 and x0 < cx1 - 1.0e-9
+                        and y1 > cy0 + 1.0e-9 and y0 < cy1 - 1.0e-9)
+            inside = (x0 >= ix0 - 1.0e-9 and x1 <= ix1 + 1.0e-9
+                      and y0 >= iy0 - 1.0e-9 and y1 <= iy1 + 1.0e-9)
+            if overlaps and not inside:
+                out.append((cx, cy))
+        return np.asarray(out, dtype=float).reshape(-1, 2)
+
+    def cubes_in_analysis_interior(self) -> np.ndarray:
+        """Cubes overlapping the region the statistics are taken over."""
+        half = 0.5 * self.building_width
+        ix0, iy0, ix1, iy1 = self._analysis_interior_box()
+        out = [(cx, cy) for cx, cy in self.cube_centres()
+               if (cx + half > ix0 + 1.0e-9 and cx - half < ix1 - 1.0e-9
+                   and cy + half > iy0 + 1.0e-9 and cy - half < iy1 - 1.0e-9)]
+        return np.asarray(out, dtype=float).reshape(-1, 2)
+
+    @property
+    def building_clearance_available(self) -> float:
+        """Widest zone this child could have and still sit over open ground [m].
+
+        The smallest distance from any of the four lateral faces to the nearest
+        cube face, over the cubes the **parent** actually carries.  A zone whose
+        ``zone_clearance`` exceeds it necessarily contains buildings.  ``inf``
+        when the child holds no cubes at all.
+        """
+        half = 0.5 * self.building_width
+        cx0, cy0, cx1, cy1 = self._child_box()
+        best = float("inf")
+        for cx, cy in self.cube_centres():
+            x0, x1, y0, y1 = cx - half, cx + half, cy - half, cy + half
+            if not (x1 > cx0 + 1.0e-9 and x0 < cx1 - 1.0e-9
+                    and y1 > cy0 + 1.0e-9 and y0 < cy1 - 1.0e-9):
+                continue
+            best = min(best, x0 - cx0, cx1 - x1, y0 - cy0, cy1 - y1)
+        return best
+
+    @property
+    def interior_cells(self) -> int:
+        """Cells per side outside the guard + ramp; the free fetch, in cells."""
+        return min(self.child_itot, self.child_jtot) - 2 * self.zone_cells
+
+    @property
+    def interior_extent_m(self) -> float:
+        return self.interior_cells * self.dx
+
+    @property
+    def interior_extent_h(self) -> float:
+        return self.interior_extent_m / self.building_height
+
+    @property
+    def zone_fraction(self) -> float:
+        """``(L_imp + L_rel)`` as a fraction of the shorter child side.
+
+        ``nesting_init`` prints a warning above 0.15 (``modnesting.f90:198``).
+        At the small end of the V2b sweep it fires, and that is expected: the
+        warning is about how much of the domain the zone eats, not about the
+        zone being wrong.
+        """
+        return (self.guardwidth + self.zonewidth) / min(self.child_xlen,
+                                                        self.child_ylen)
+
+    @property
+    def zone_fraction_warns(self) -> bool:
+        return self.zone_fraction > 0.15
 
     @property
     def n_cubes_removed(self) -> int:
@@ -328,30 +494,32 @@ class Preset:
             errors.append("building_height is not a whole number of cells")
         if self.timeinterp not in (1, 2):
             errors.append("timeinterp must be 1 (linear) or 2 (Hermite)")
+        if self.nzone > min(self.child_itot, self.child_jtot):
+            errors.append(
+                f"nzone = {self.nzone} exceeds the child domain "
+                f"({self.child_itot} x {self.child_jtot} cells); the writer refuses it"
+            )
         if self.geometry not in ("plaza", "uniform"):
             errors.append(f"geometry must be 'plaza' or 'uniform', got {self.geometry!r}")
-        elif self.geometry == "plaza":
-            # The point of the plaza is that the assertion in nesting_init
-            # (nest_lparentgeom = .false.) can be switched on, so check here that
-            # it will pass rather than discovering it three stages later.
-            half = 0.5 * self.building_width
-            ix0, iy0, ix1, iy1 = self._interior_box()
-            inside = 0
-            for cx, cy in self.cube_centres():
-                if (cx - half >= ix0 - 1e-9 and cx + half <= ix1 + 1e-9
-                        and cy - half >= iy0 - 1e-9 and cy + half <= iy1 + 1e-9):
-                    inside += 1
-                elif (cx + half > self.child_origin[0] and cx - half < self.child_origin[0] + self.child_xlen
-                      and cy + half > self.child_origin[1] and cy - half < self.child_origin[1] + self.child_ylen):
-                    errors.append(
-                        f"a cube at ({cx:g}, {cy:g}) m survives inside the child but not "
-                        "inside its interior; the zone would not be building-free"
-                    )
-            if inside == 0:
+        elif self.geometry == "plaza" and self.owns_parent_geometry:
+            # When the plaza was carved for *this* child, a cube in the zone is
+            # a bug in the preset: the whole point of the plaza is that
+            # nest_lparentgeom = .false. can be switched on, so check here that
+            # the assertion will pass rather than discovering it three stages
+            # later.  When the plaza was carved for a *different* child -- a V2
+            # point reusing the V1 parent -- a cube in the zone is not a bug but
+            # a measured property of the configuration, reported by
+            # `building_free_zone` and honoured by nest_lparentgeom.
+            for cx, cy in self.cubes_in_zone():
                 errors.append(
-                    "the plaza layout leaves no buildings at all in the child interior; "
-                    "the child would be an empty box and V1 would test nothing"
+                    f"a cube at ({cx:g}, {cy:g}) m survives inside the child but not "
+                    "inside its interior; the zone would not be building-free"
                 )
+        if len(self.cubes_in_analysis_interior()) == 0:
+            errors.append(
+                "no buildings anywhere in the region the statistics are taken over; "
+                "the child would be an empty box and the experiment would test nothing"
+            )
         if errors:
             raise ValueError(
                 f"preset '{self.name}' is inconsistent:\n  " + "\n  ".join(errors)
@@ -370,8 +538,11 @@ class Preset:
             f"period {self.period:g} m",
             f"geometry             '{self.geometry}': {len(self.cube_centres())} cubes "
             f"({self.n_cubes_removed} removed of {len(self._full_cube_centres())}), "
-            f"zone {'building-free' if self.building_free_zone else 'CONTAINS buildings'} "
-            f"(clearance {self.zone_clearance:g} m), "
+            f"plaza {'own child' if self.owns_parent_geometry else self.plaza_window.describe()}",
+            f"zone geometry        {'building-free' if self.building_free_zone else 'CONTAINS buildings'} "
+            f"({len(self.cubes_in_zone())} cubes in the zone), "
+            f"clearance needed {self.zone_clearance:g} m of "
+            f"{self.building_clearance_available:g} m available, "
             f"nest_lparentgeom = {'.false.' if self.building_free_zone else '.true.'}",
             f"zone                 L_imp = {self.guardwidth:g} m "
             f"({self.guardwidth / self.dx:g} cells), L_rel = {self.zonewidth:g} m "
@@ -382,8 +553,11 @@ class Preset:
             f"{self.child_jtot - 2 * self.zone_cells} cells = "
             f"{(self.child_itot - 2 * self.zone_cells) * self.dx:g} x "
             f"{(self.child_jtot - 2 * self.zone_cells) * self.dy:g} m = "
-            f"{(self.child_itot - 2 * self.zone_cells) * self.dx / self.building_height:.0f}h x "
-            f"{(self.child_jtot - 2 * self.zone_cells) * self.dy / self.building_height:.0f}h",
+            f"{(self.child_itot - 2 * self.zone_cells) * self.dx / self.building_height:.2f}h x "
+            f"{(self.child_jtot - 2 * self.zone_cells) * self.dy / self.building_height:.2f}h, "
+            f"{len(self.cubes_in_analysis_interior())} cubes",
+            f"zone fraction        {100 * self.zone_fraction:.1f} % of the shorter side "
+            f"({'nesting_init WARNS above 15 %' if self.zone_fraction_warns else 'no warning'})",
             f"forcing              dpdx = {self.dpdx:.4e} m/s^2 -> ustar = {u:g} m/s",
             f"time interpolation   nest_timeinterp = {self.timeinterp} "
             f"({'linear' if self.timeinterp == 1 else 'monotone Hermite'})",
@@ -468,7 +642,265 @@ TINY = Preset(
     stride=1,
 )
 
+# --------------------------------------------------------------------------- #
+# V2 -- the falsification sweep (design section 10.4 row V2)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class SweepPoint:
+    """One child of a sweep, and which arm(s) of the table it belongs to."""
+
+    key: str
+    #: ``"zone"`` (V2a, zone width at fixed child size), ``"size"`` (V2b, child
+    #: size at fixed zone), or both -- the reference point is shared.
+    arms: Tuple[str, ...]
+    preset: Preset
+    #: ``True`` when this child has already been run and is to be reused rather
+    #: than repeated.  The driver takes its case directory from ``--reuse-dir``.
+    reuse: bool = False
+    note: str = ""
+
+    @property
+    def expnr(self) -> str:
+        return self.preset.child_expnr
+
+
+@dataclass(frozen=True)
+class Sweep:
+    """A set of children driven by **one** parent run, and how to read them.
+
+    Every point shares the parent grid, geometry, forcing and schedule of
+    ``parent``; :meth:`validate` checks that rather than trusting it, because
+    the whole economy of V2 rests on the parent's field dumps being reusable.
+    """
+
+    name: str
+    parent: Preset
+    points: Tuple[SweepPoint, ...]
+    #: Side, in child cells, of the central block over which **every** point is
+    #: additionally compared.  Interiors shrink faster than domains, so the
+    #: per-point interiors are not the same region; this one is, which
+    #: separates "smaller measurement window" from "shorter fetch".
+    common_block_cells: int = 0
+
+    def point(self, key: str) -> SweepPoint:
+        for p in self.points:
+            if p.key == key:
+                return p
+        raise KeyError(f"no sweep point {key!r} in '{self.name}'; "
+                       f"have {', '.join(p.key for p in self.points)}")
+
+    def arm(self, arm: str) -> List[SweepPoint]:
+        return [p for p in self.points if arm in p.arms]
+
+    @property
+    def to_run(self) -> List[SweepPoint]:
+        return [p for p in self.points if not p.reuse]
+
+    def validate(self) -> None:
+        """Fail loudly on a sweep whose points cannot share one parent run."""
+        errors: List[str] = []
+        base = self.parent
+        base.validate()
+        seen_keys, seen_expnr = set(), {}
+        for pt in self.points:
+            q = pt.preset
+            try:
+                q.validate()
+            except ValueError as exc:
+                errors.append(str(exc))
+                continue
+            if pt.key in seen_keys:
+                errors.append(f"duplicate sweep key {pt.key!r}")
+            seen_keys.add(pt.key)
+            if q.child_expnr in seen_expnr and seen_expnr[q.child_expnr] != pt.key:
+                errors.append(
+                    f"points {seen_expnr[q.child_expnr]!r} and {pt.key!r} share "
+                    f"child_expnr {q.child_expnr}; their case directories would collide"
+                )
+            seen_expnr[q.child_expnr] = pt.key
+            # -- what makes the parent reusable ---------------------------- #
+            for field in ("itot", "jtot", "ktot", "dx", "building_height",
+                          "building_width", "street_width", "edgelength",
+                          "geometry", "ustar", "u0", "spinup", "production",
+                          "dtdump", "child_spinup", "nprocx", "nprocy", "dtmax",
+                          "parent_expnr", "stride", "tau", "guardwidth",
+                          "nwall", "timeinterp", "init_from_parent"):
+                if getattr(q, field) != getattr(base, field):
+                    errors.append(
+                        f"point {pt.key!r}: {field} = {getattr(q, field)!r} differs from "
+                        f"the parent preset's {getattr(base, field)!r}; the parent's "
+                        "dumps would not describe this child"
+                    )
+            if q.plaza_window != base.plaza_window:
+                errors.append(
+                    f"point {pt.key!r}: plaza {q.plaza_window} does not match the "
+                    f"parent's {base.plaza_window}; it would regenerate a different "
+                    "cube layout from the one the parent ran"
+                )
+            if len(q.cube_centres()) != len(base.cube_centres()):
+                errors.append(
+                    f"point {pt.key!r}: {len(q.cube_centres())} cubes against the "
+                    f"parent's {len(base.cube_centres())}"
+                )
+        if self.common_block_cells:
+            for pt in self.points:
+                if self.common_block_cells > pt.preset.interior_cells:
+                    errors.append(
+                        f"common_block_cells = {self.common_block_cells} does not fit "
+                        f"inside point {pt.key!r}'s {pt.preset.interior_cells}-cell interior"
+                    )
+        if not any(p.arms.count("zone") for p in self.points):
+            errors.append("the sweep has no 'zone' arm")
+        if not any(p.arms.count("size") for p in self.points):
+            errors.append("the sweep has no 'size' arm")
+        if errors:
+            raise ValueError(
+                f"sweep '{self.name}' is inconsistent:\n  " + "\n  ".join(errors)
+            )
+
+    def summary(self) -> str:
+        h = self.parent.building_height
+        lines = [
+            f"sweep '{self.name}': {len(self.points)} points "
+            f"({len(self.to_run)} to run, {len(self.points) - len(self.to_run)} reused), "
+            f"one parent '{self.parent.name}' ({self.parent.parent_expnr})",
+            f"common comparison block {self.common_block_cells} cells = "
+            f"{self.common_block_cells * self.parent.dx / h:.2f}h",
+            "",
+            f"{'key':10s} {'arms':11s} {'nr':4s} {'child':9s} {'N_imp+N_rel':12s} "
+            f"{'nzone':6s} {'interior':16s} {'zone':16s} {'run':6s}",
+        ]
+        for pt in self.points:
+            q = pt.preset
+            lines.append(
+                f"{pt.key:10s} {'+'.join(pt.arms):11s} {q.child_expnr:4s} "
+                f"{q.child_itot:3d}x{q.child_jtot:<5d} "
+                f"{int(q.guardwidth / q.dx):3d}+{int(q.zonewidth / q.dx):<8d} "
+                f"{q.nzone:<6d} "
+                f"{q.interior_cells:3d} cells {q.interior_extent_h:5.2f}h  "
+                f"{'clear' if q.building_free_zone else 'BUILDINGS':9s} "
+                f"{100 * q.zone_fraction:4.1f}%  "
+                f"{'reuse' if pt.reuse else 'run':6s}"
+            )
+        return "\n".join(lines)
+
+
+def _sweep_child(base: Preset, *, name: str, child_expnr: str,
+                 zonewidth: Optional[float] = None,
+                 child_cells: Optional[int] = None) -> Preset:
+    """One sweep point, expressed as a delta on ``base``.
+
+    ``base`` also fixes the parent, so ``plaza`` is pinned to *its* window: the
+    generated cube layout is the one the parent on disk actually ran, whatever
+    this child's own zone would have asked for.  ``nzone`` follows the zone
+    width, because the nesting file has to store at least as many cells as the
+    weights are nonzero over.
+    """
+    zonewidth = base.zonewidth if zonewidth is None else float(zonewidth)
+    n = base.child_itot if child_cells is None else int(child_cells)
+    trial = replace(base, name=name, child_expnr=child_expnr,
+                    zonewidth=zonewidth, child_itot=n, child_jtot=n,
+                    plaza=base.plaza_window)
+    return replace(trial, nzone=trial.zone_cells)
+
+
+def _v2_sweep(base: Preset, name: str,
+              zone_cells_ramp: Sequence[int],
+              child_sizes: Sequence[int]) -> Sweep:
+    """Build the V2 sweep as deltas on ``base``, which is also its parent.
+
+    ``base`` is the reference point: it sits in **both** arms, and it is the
+    child that has already been run, so it is marked ``reuse``.
+    """
+    dx = base.dx
+    ref_rel = int(round(base.zonewidth / dx))
+    ref_size = base.child_itot
+    points = [SweepPoint(
+        key="ref", arms=("zone", "size"), preset=base, reuse=True,
+        note=f"the V1 child: N_rel = {ref_rel} cells at {ref_size} x {ref_size}")]
+    expnr = int(base.child_expnr)
+    for nrel in zone_cells_ramp:
+        if nrel == ref_rel:
+            continue
+        expnr += 1
+        points.append(SweepPoint(
+            key=f"nrel{nrel}", arms=("zone",),
+            preset=_sweep_child(base, name=f"{name}-nrel{nrel}",
+                                child_expnr=str(expnr), zonewidth=nrel * dx),
+            note=f"N_rel = {nrel} cells at the reference child size"))
+    for size in child_sizes:
+        if size == ref_size:
+            continue
+        expnr += 1
+        points.append(SweepPoint(
+            key=f"size{size}", arms=("size",),
+            preset=_sweep_child(base, name=f"{name}-size{size}",
+                                child_expnr=str(expnr), child_cells=size),
+            note=f"{size} x {size} child at the reference zone"))
+    common = min(p.preset.interior_cells for p in points)
+    return Sweep(name=name, parent=base, points=tuple(points),
+                 common_block_cells=common)
+
+
+#: **V2 -- the falsification sweep.**  Design section 10.4 row V2, reframed by
+#: section 10.5 as a test of the *fetch* interpretation of the V1 TKE deficit:
+#:
+#:   P1  if the deficit is fetch-limited, the zone width should barely move it;
+#:   P2  the child domain size should move it a lot.
+#:
+#: Both arms hang off the V1 ``converged`` child, which is therefore the shared
+#: reference point and is **reused**, not repeated -- so every point is driven
+#: by numerically identical parent forcing.
+#:
+#: Why the zone ramp stops at 16 cells and not the 20 of the design table.  The
+#: parent on disk carries the V1 plaza, which leaves 40 m of open ground inside
+#: each lateral face of the 128-cell child.  A zone needs
+#: ``L_imp + L_rel + nest_nwall*dx`` of it, so ``N_rel = 16`` (38 m + one cell
+#: of margin) is the widest ramp that still sits over open ground.  ``N_rel =
+#: 20`` would need 48 m: it would have to either re-run the parent -- which
+#: breaks the identical-forcing property that makes this comparison clean -- or
+#: put buildings in the relaxation zone, which changes the boundary treatment
+#: and so confounds exactly the variable under test.  4 -> 16 is still a factor
+#: of four in ``L_rel`` and 7 -> 19 cells in total zone thickness, which is
+#: ample lever for P1.
+#:
+#: The size arm cannot be kept building-free at all, and that is a property of
+#: the parent rather than a choice: the widest street in the cube array is 16 m
+#: and the zone needs 26 m, so the *only* child whose zone sits over open ground
+#: is the one the plaza was carved for.  The 96- and 64-cell children therefore
+#: run with ``nest_lparentgeom = .true.`` -- legal here because this is
+#: self-nesting, the parent resolves the same buildings -- and the sweep
+#: reports it in every table so the confound is visible rather than buried.
+V2 = _v2_sweep(CONVERGED, "v2", zone_cells_ramp=(4, 9, 12, 16),
+               child_sizes=(64, 96, 128))
+
+#: The same sweep at the ``tiny`` size: three extra children of a few seconds
+#: each, exercising the identical code path.  Its size arm puts buildings in the
+#: zone exactly as the production one does, so the ``nest_lparentgeom = .true.``
+#: branch and the 15 % zone-fraction warning are both covered before the
+#: production job is submitted.
+V2_TINY = _v2_sweep(TINY, "v2-tiny", zone_cells_ramp=(2, 4, 8),
+                    child_sizes=(32, 64))
+
+SWEEPS: Dict[str, Sweep] = {s.name: s for s in (V2_TINY, V2)}
+
+
+def get_sweep(name: str) -> Sweep:
+    try:
+        sweep = SWEEPS[name]
+    except KeyError:
+        raise SystemExit(
+            f"unknown sweep {name!r}; choose one of {', '.join(sorted(SWEEPS))}"
+        ) from None
+    sweep.validate()
+    return sweep
+
+
 PRESETS: Dict[str, Preset] = {p.name: p for p in (TINY, PRODUCTION, CONVERGED)}
+PRESETS.update({pt.preset.name: pt.preset
+                for sweep in SWEEPS.values() for pt in sweep.points})
 
 
 def get_preset(name: str) -> Preset:
@@ -483,6 +915,24 @@ def get_preset(name: str) -> Preset:
 
 
 if __name__ == "__main__":
-    for name in sorted(PRESETS):
-        print(get_preset(name).summary())
+    import argparse
+
+    ap = argparse.ArgumentParser(description="print the presets and the sweeps")
+    ap.add_argument("--sweep", default=None,
+                    help="print one sweep's table instead of every preset")
+    ns = ap.parse_args()
+    if ns.sweep:
+        sweep = get_sweep(ns.sweep)
+        print(sweep.summary())
         print()
+        for pt in sweep.points:
+            print(f"--- {pt.key} ({'reused' if pt.reuse else 'to run'}): {pt.note}")
+            print(pt.preset.summary())
+            print()
+    else:
+        for name in sorted(PRESETS):
+            print(get_preset(name).summary())
+            print()
+        for name in sorted(SWEEPS):
+            print(get_sweep(name).summary())
+            print()

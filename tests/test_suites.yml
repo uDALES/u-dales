@@ -383,6 +383,40 @@ groups:
           - "--preset"
           - "production"
           - "--yes"
+      - label: "nesting-validation: V2 tiny sweep (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v2_tiny.py"
+      # Reuses the V1 parent and the V1 child rather than running them, so the
+      # V1 production entry above has to have run first -- --parent-dir and
+      # --reuse-dir below point into its run directory.  On CX3 submit
+      # tests/validation/nesting/submit_cx3_v2.pbs instead: it defaults to the
+      # 'converged' V1 run in $EPHEMERAL and is sized against its measured
+      # stage times.
+      - label: "nesting-validation: V2 falsification sweep (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_v2.py"
+          - "{repo_root}/build/nesting-validation-v2"
+          - "--sweep"
+          - "v2"
+          - "--parent-dir"
+          - "{repo_root}/build/nesting-validation-v1/903"
+          - "--reuse-dir"
+          - "{repo_root}/build/nesting-validation-v1/904"
+          - "--yes"
 
   supported-macos:
     includes:

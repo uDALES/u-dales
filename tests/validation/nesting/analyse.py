@@ -69,6 +69,10 @@ class Bundle:
     planes: Dict[int, np.ndarray] = field(default_factory=dict)
     #: interior-mean resolved TKE at each sampled time (equilibration trace)
     tke_series: np.ndarray = field(default_factory=lambda: np.zeros(0))
+    #: name of the preset whose interior ``tke_series`` was averaged over.  Only
+    #: interesting for a parent bundle shared between sweep points (see
+    #: :func:`run`); everything else in a Bundle is window-independent.
+    tke_series_interior_from: str = ""
 
     def full_mean(self, comp: str) -> np.ndarray:
         na, nb = self.counts
@@ -156,6 +160,30 @@ def interior_indices(preset: Preset) -> Tuple[np.ndarray, np.ndarray]:
     dj_s, dj_n = (j + 0.5) * preset.dy, (preset.child_jtot - j - 0.5) * preset.dy
     return (np.where((di_w >= lz) & (di_e >= lz))[0],
             np.where((dj_s >= lz) & (dj_n >= lz))[0])
+
+
+def central_indices(preset: Preset, ncells: int) -> Tuple[np.ndarray, np.ndarray]:
+    """The central ``ncells x ncells`` block of the reduced arrays.
+
+    V2 needs a region that is the **same** for every child in the sweep.  The
+    per-point interiors are not: the interior shrinks faster than the domain
+    (two zone widths come off whatever the size), so a 64-cell child keeps 40
+    interior cells where a 128-cell one keeps 104, and comparing each over its
+    own interior confounds "shorter fetch" with "smaller measurement window".
+    Comparing all of them over one central block separates the two.
+
+    The block is centred on the full child domain; the reduced arrays are one
+    cell shorter (``cell_centred`` drops the upper face), so the block is
+    off-centre by at most half a cell, which is immaterial next to the zone
+    widths involved.
+    """
+    out = []
+    for ntot in (preset.child_itot, preset.child_jtot):
+        if ncells > ntot - 1:
+            raise ValueError(f"a {ncells}-cell block does not fit in {ntot} cells")
+        lo = (ntot - ncells) // 2
+        out.append(np.arange(lo, lo + ncells))
+    return out[0], out[1]
 
 
 def masked_profile(field3d: np.ndarray, mask: np.ndarray,
@@ -290,6 +318,228 @@ def decay_length(distance: np.ndarray, error: np.ndarray, floor: np.ndarray,
 
 
 # --------------------------------------------------------------------------- #
+# V2 reductions -- the falsification metrics
+# --------------------------------------------------------------------------- #
+
+#: Wavelength bands, in metres, that section 10.5 located the V1 deficit in.
+#: Fixed **physical** bands, deliberately, so that children of different sizes
+#: are compared over the same eddies.  ``lambda_gt_quarter_L`` is the one
+#: exception: it is the "imposed large scales" band and is by definition
+#: relative to the interior span, so it is computed per child and is *not*
+#: comparable across the size arm.
+SPECTRAL_BANDS: Tuple[Tuple[str, float, float], ...] = (
+    ("band_16_64m", 16.0, 64.0),
+    ("band_8_16m", 8.0, 16.0),
+)
+
+
+def _band_ratios(k: np.ndarray, e_parent: np.ndarray, e_child: np.ndarray,
+                 dx: float, span_m: float) -> Dict[str, object]:
+    """Child/parent spectral ratio, band by band.
+
+    Two reductions, because they answer different questions and can differ by
+    several per cent:
+
+    ``mean_of_ratios``
+        the mean of ``E_child/E_parent`` over the band's wavenumbers.  This is
+        the reduction section 10.5 quotes (1.03 / 0.875 / 0.827 / 1.05), so it
+        is the headline here too -- V2 has to be readable against V1.
+    ``ratio_of_sums``
+        the band-integrated energy ratio.  Energy conserving, and less swayed by
+        a single noisy high-``k`` bin, but not what the design document quotes.
+    """
+    with np.errstate(divide="ignore", invalid="ignore"):
+        lam = np.where(k > 0, 2.0 * np.pi / np.where(k > 0, k, 1.0), np.inf)
+    bands = list(SPECTRAL_BANDS) + [
+        ("lambda_gt_quarter_L", 0.25 * span_m, np.inf),
+        ("lambda_lt_4dx", 0.0, 4.0 * dx),
+    ]
+    out: Dict[str, object] = {}
+    for name, lo, hi in bands:
+        sel = (k > 0) & (lam >= lo) & (lam < hi)
+        n = int(sel.sum())
+        if n == 0 or not np.any(e_parent[sel] > 0):
+            out[name] = {"n_modes": n, "mean_of_ratios": None,
+                         "ratio_of_sums": None,
+                         "wavelength_range_m": [lo, None if np.isinf(hi) else hi]}
+            continue
+        ratio = e_child[sel] / e_parent[sel]
+        out[name] = {
+            "n_modes": n,
+            "mean_of_ratios": float(np.nanmean(ratio)),
+            "ratio_of_sums": float(e_child[sel].sum() / e_parent[sel].sum()),
+            "wavelength_range_m": [lo, None if np.isinf(hi) else hi],
+        }
+    return out
+
+
+def tke_deficit(prof: Dict[str, List[float]], h: float,
+                z_over_h_min: float = 2.0) -> Dict[str, object]:
+    """The headline V1 number, as a profile and as one number above ``z/h``.
+
+    ``relative`` is ``(TKE_child - TKE_parent) / TKE_parent`` at each height.
+    ``spread`` is the parent's own **half-window spread**,
+    ``|A - B| / TKE_parent``, where ``A`` and ``B`` are the two half-window
+    estimates.  That is the quantity section 10.5 quotes as the per-height
+    spread (1.1-1.5 % above the canopy for the converged V1 run), so
+    ``relative / spread`` reproduces its "4-8 sigma".  It is conservative: the
+    standard error of the *full*-window mean is about half of it, and the
+    child-parent comparison is paired on top of that, so treat significance
+    quoted this way as a lower bound.
+    """
+    z = np.asarray(prof["z"], dtype=float)
+    tp = np.asarray(prof["tke_parent"], dtype=float)
+    tc = np.asarray(prof["tke_child"], dtype=float)
+    ta = np.asarray(prof["tke_parent_halfA"], dtype=float)
+    tb = np.asarray(prof["tke_parent_halfB"], dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        rel = np.where(tp > 0, (tc - tp) / tp, np.nan)
+        spread = np.where(tp > 0, np.abs(ta - tb) / tp, np.nan)
+    zh = z / h
+
+    def band(sel: np.ndarray) -> Dict[str, object]:
+        empty = {"n_levels": int(sel.sum()), "mean_relative": None,
+                 "mean_spread": None, "median_spread": None,
+                 "significance": None, "median_significance": None,
+                 "spread_range": [None, None]}
+        if not np.any(sel) or np.all(np.isnan(rel[sel])):
+            return empty
+        r = float(np.nanmean(rel[sel]))
+        sp = float(np.nanmean(spread[sel]))
+        med = float(np.nanmedian(spread[sel]))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            per = np.where(spread[sel] > 0, rel[sel] / spread[sel], np.nan)
+        return {
+            "n_levels": int(sel.sum()),
+            "mean_relative": r,
+            # Two aggregates of the same per-height spread, because they differ
+            # a lot and each can mislead on its own.  ``mean_spread`` averages
+            # the spread over every level in the band, including the near-lid
+            # ones where the resolved TKE is small and its relative sampling
+            # error is large -- for the V1 converged child that is 10 % above
+            # z/h = 6 against 1.2 % over z/h = 3-5, which drags the aggregate to
+            # 4.5 % and the significance down to 2.2 sigma.  ``median_spread``
+            # and ``median_significance`` are taken over the levels instead, and
+            # give 4.0 sigma, closer to the 4-8 sigma design section 10.5 quotes
+            # for z/h = 3-5.  The *deficit* is identical either way; only the
+            # uncertainty aggregation differs, so both are reported and neither
+            # is chosen after the fact.
+            "mean_spread": sp,
+            "median_spread": med,
+            "spread_range": [float(np.nanmin(spread[sel])),
+                             float(np.nanmax(spread[sel]))],
+            "significance": (None if sp <= 0 else r / sp),
+            "median_significance": (None if np.all(np.isnan(per))
+                                    else float(np.nanmedian(per))),
+        }
+
+    return {
+        "z_over_h": zh.tolist(),
+        "absolute": (tc - tp).tolist(),
+        "relative": rel.tolist(),
+        "half_window_spread": spread.tolist(),
+        "above": dict(band(zh >= z_over_h_min), z_over_h_min=z_over_h_min),
+        "canopy": dict(band(zh < 1.0), z_over_h_max=1.0),
+        "z_over_h_min": z_over_h_min,
+    }
+
+
+def _interp_at(x: np.ndarray, y: np.ndarray, xq: float) -> Optional[float]:
+    """Linear interpolation of ``y(x)`` at ``xq``; ``None`` outside the range."""
+    if x.size == 0 or xq < x[0] - 1.0e-9 or xq > x[-1] + 1.0e-9:
+        return None
+    return float(np.interp(xq, x, y))
+
+
+def tke_error_vs_fetch(curves: Dict[str, Dict[str, List[float]]], preset: Preset,
+                       fetches_h: Sequence[float] = (0.5, 1.0, 2.0)) -> Dict[str, object]:
+    """The resolved-TKE error as a function of fetch beyond the inner zone edge.
+
+    The abscissa is deliberately *fetch beyond the zone*, not distance from the
+    face: the zone arm varies the zone width, so distance-from-the-face would
+    compare a point that is 30 m into the interior of one child against a point
+    still inside the zone of another.  Reported per face and averaged over the
+    four, at the fixed fetches in ``fetches_h`` -- chosen small enough to exist
+    for the smallest child in the sweep -- plus each face's own maximum fetch
+    and the fetch at which the error first stays at or below the parent's
+    sampling floor.
+    """
+    lz = preset.guardwidth + preset.zonewidth
+    h = preset.building_height
+    per_face: Dict[str, Dict[str, object]] = {}
+    for label, ntot, spacing in (("x", preset.child_itot, preset.dx),
+                                 ("y", preset.child_jtot, preset.dy)):
+        c = curves[f"{label}_tke"]
+        err = np.asarray(c["error"], dtype=float)
+        floor = np.asarray(c["noise_floor"], dtype=float)
+        for face, dist in (("low", np.asarray(c["distance_from_low_face_m"], float)),
+                           ("high", np.asarray(c["distance_from_high_face_m"], float))):
+            half = dist <= 0.5 * ntot * spacing + 1.0e-9
+            order = np.argsort(dist[half])
+            d, e, f = dist[half][order], err[half][order], floor[half][order]
+            keep = d >= lz - 1.0e-9
+            fetch, e, f = d[keep] - lz, e[keep], f[keep]
+            ok = e <= f
+            idx = len(ok)
+            while idx > 0 and ok[idx - 1]:
+                idx -= 1
+            crossing = None if idx == len(ok) else float(fetch[idx])
+            per_face[f"{label}_{face}"] = {
+                "fetch_m": fetch.tolist(),
+                "error": e.tolist(),
+                "noise_floor": f.tolist(),
+                "at_fetch_h": {f"{q:g}h": _interp_at(fetch, e, q * h)
+                               for q in fetches_h},
+                "max_fetch_h": float(fetch[-1] / h) if fetch.size else None,
+                "error_at_max_fetch": float(e[-1]) if e.size else None,
+                "error_at_zone_edge": float(e[0]) if e.size else None,
+                "crossing_fetch_m": crossing,
+                "crossing_fetch_h": None if crossing is None else crossing / h,
+                "median_noise_floor": float(np.median(f)) if f.size else None,
+            }
+
+    def mean_over_faces(get) -> Optional[float]:
+        vals = [get(v) for v in per_face.values()]
+        vals = [v for v in vals if v is not None]
+        return float(np.mean(vals)) if vals else None
+
+    return {
+        "fetches_h": list(fetches_h),
+        "per_face": per_face,
+        "mean_error_at_fetch_h": {
+            f"{q:g}h": mean_over_faces(lambda v, q=q: v["at_fetch_h"][f"{q:g}h"])
+            for q in fetches_h},
+        "mean_error_at_zone_edge": mean_over_faces(lambda v: v["error_at_zone_edge"]),
+        "mean_error_at_max_fetch": mean_over_faces(lambda v: v["error_at_max_fetch"]),
+        "max_fetch_h": mean_over_faces(lambda v: v["max_fetch_h"]),
+        "faces_crossing_the_floor": sum(
+            1 for v in per_face.values() if v["crossing_fetch_h"] is not None),
+        "mean_crossing_fetch_h": mean_over_faces(lambda v: v["crossing_fetch_h"]),
+    }
+
+
+def criterion_a(decay: Dict[str, Dict[str, object]], threshold: float = 0.05
+                ) -> Dict[str, object]:
+    """Design section 0 criterion A: a bound on the free interior of the mean flow.
+
+    ``max_interior |<u>_child - <u>_parent| / u*`` over the four lateral faces,
+    against the 0.05 bound.  Included in every V2 point so that a regression in
+    the mean flow -- the thing the scheme *does* get right in V1 -- cannot pass
+    unnoticed while attention is on the turbulence.
+    """
+    vals = {k: v.get("max_error_outside_zone")
+            for k, v in decay.items() if k.startswith(("x_umean", "y_umean"))}
+    finite = [v for v in vals.values() if v is not None and np.isfinite(v)]
+    worst = max(finite) if finite else None
+    return {
+        "per_face": vals,
+        "max_interior_umean_error_over_ustar": worst,
+        "threshold": threshold,
+        "passes": None if worst is None else bool(worst <= threshold),
+    }
+
+
+# --------------------------------------------------------------------------- #
 # Driver
 # --------------------------------------------------------------------------- #
 
@@ -302,7 +552,27 @@ def _levels_in_window(times: np.ndarray, offset: float, t0: float, t1: float,
 
 
 def run(parent_dir: Path, child_dir: Path, outdir: Path, preset: Preset,
-        make_plots: bool = True) -> Dict[str, object]:
+        make_plots: bool = True,
+        parent_cache: Optional[Dict[Tuple[int, int], Bundle]] = None,
+        common_block_cells: int = 0,
+        metrics_name: str = "v1_metrics.json") -> Dict[str, object]:
+    """Compare one child against the parent sub-region it was cut from.
+
+    ``parent_cache``, when given, is a caller-owned dict that this function
+    fills with the accumulated parent :class:`Bundle`, keyed by the child window
+    ``(child_itot, child_jtot)``.  A sweep that varies only the zone width drives
+    several children out of the *same* parent sub-region, so passing the same
+    dict to each call both halves the I/O and guarantees every one of them is
+    measured against literally the same parent statistics -- which matters when
+    the differences being compared are a few per cent.  The one thing that is
+    not window-independent is ``Bundle.tke_series``, an equilibration trace
+    averaged over the interior; the cached bundle keeps the interior of whichever
+    point built it, recorded as ``tke_series_interior_from`` in the output.
+
+    ``common_block_cells``, when nonzero, adds a second set of profiles over the
+    central block of that many cells (:func:`central_indices`), so that children
+    with different interiors can be compared over one common region.
+    """
     parent_dir, child_dir, outdir = Path(parent_dir), Path(child_dir), Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     manifest = json.loads((child_dir / "manifest.json").read_text())
@@ -336,23 +606,31 @@ def run(parent_dir: Path, child_dir: Path, outdir: Path, preset: Preset,
     def whole(u, v, w):
         return u, v, w
 
-    parent = accumulate(pdump, cut, mask, plev, kk, (ii, jj), "parent sub-region")
+    key = (preset.child_itot, preset.child_jtot)
+    cached = None if parent_cache is None else parent_cache.get(key)
+    if cached is None:
+        parent = accumulate(pdump, cut, mask, plev, kk, (ii, jj), "parent sub-region")
+        parent.tke_series_interior_from = preset.name
+        if parent_cache is not None:
+            parent_cache[key] = parent
+    else:
+        print(f"[analyse] reusing the accumulated parent sub-region for a "
+              f"{key[0]} x {key[1]} window (built for '{cached.tke_series_interior_from}')")
+        parent = cached
     child = accumulate(cdump, whole, mask, clev, kk, (ii, jj), "nested child")
 
     metrics = _compare(parent, child, preset, mask, ii, jj, kk, manifest,
-                       len(plev), len(clev))
+                       len(plev), len(clev), common_block_cells)
+    metrics["parent_bundle_reused"] = cached is not None
     _write_outputs(outdir, parent, child, preset, mask, ii, jj, kk, metrics,
-                   make_plots)
+                   make_plots, metrics_name)
     return metrics
 
 
-def _compare(parent: Bundle, child: Bundle, preset: Preset, mask: np.ndarray,
-             ii: np.ndarray, jj: np.ndarray, kk: Sequence[int],
-             manifest: Dict, n_parent: int, n_child: int) -> Dict[str, object]:
-    us = preset.ustar
-    zf = (np.arange(preset.child_ktot - 1) + 0.5) * preset.dz
-    lz = preset.guardwidth + preset.zonewidth
-
+def _profiles_over(parent: Bundle, child: Bundle, mask: np.ndarray,
+                   ii: np.ndarray, jj: np.ndarray, zf: np.ndarray
+                   ) -> Dict[str, List[float]]:
+    """Interior, fluid-only profiles of both runs over one horizontal block."""
     prof: Dict[str, List[float]] = {"z": zf.tolist()}
     for comp in ("u", "v", "w"):
         prof[f"{comp}_parent"] = masked_profile(parent.full_mean(comp), mask, ii, jj).tolist()
@@ -364,6 +642,18 @@ def _compare(parent: Bundle, child: Bundle, preset: Preset, mask: np.ndarray,
     prof["u_parent_halfB"] = masked_profile(parent.mean["u"][1], mask, ii, jj).tolist()
     prof["tke_parent_halfA"] = masked_profile(parent.tke(0), mask, ii, jj).tolist()
     prof["tke_parent_halfB"] = masked_profile(parent.tke(1), mask, ii, jj).tolist()
+    return prof
+
+
+def _compare(parent: Bundle, child: Bundle, preset: Preset, mask: np.ndarray,
+             ii: np.ndarray, jj: np.ndarray, kk: Sequence[int],
+             manifest: Dict, n_parent: int, n_child: int,
+             common_block_cells: int = 0) -> Dict[str, object]:
+    us = preset.ustar
+    zf = (np.arange(preset.child_ktot - 1) + 0.5) * preset.dz
+    lz = preset.guardwidth + preset.zonewidth
+
+    prof = _profiles_over(parent, child, mask, ii, jj, zf)
 
     def prof_err(a: str, b: str, scale: float) -> float:
         x = np.asarray(prof[a]) - np.asarray(prof[b])
@@ -412,26 +702,78 @@ def _compare(parent: Bundle, child: Bundle, preset: Preset, mask: np.ndarray,
                 dist_hi[~half], err[~half], floor[~half], threshold, lz)
 
     # -- spectra ------------------------------------------------------------ #
-    spectra = {}
-    for k in kk:
-        kp, pw = streamwise_spectrum(parent.planes[k], ii, jj, mask[:, :, k], preset.dx)
-        kc, pc = streamwise_spectrum(child.planes[k], ii, jj, mask[:, :, k], preset.dx)
-        z = (k + 0.5) * preset.dz
-        with np.errstate(divide="ignore", invalid="ignore"):
-            ratio = np.where(pw > 0, pc / pw, np.nan)
-        spectra[f"z_{z:g}m"] = {
-            "z_m": z,
-            "z_over_h": z / preset.building_height,
-            "wavenumber_rad_per_m": kp.tolist(),
-            "E_parent": pw.tolist(),
-            "E_child": pc.tolist(),
-            "child_over_parent": ratio.tolist(),
-            "band_mean_ratio_resolved": float(np.nanmean(ratio[1:max(2, len(ratio) // 2)])),
-        }
+    def spectra_over(si: np.ndarray, sj: np.ndarray) -> Dict[str, Dict[str, object]]:
+        out: Dict[str, Dict[str, object]] = {}
+        span = si.size * preset.dx
+        for k in kk:
+            kp, pw = streamwise_spectrum(parent.planes[k], si, sj, mask[:, :, k], preset.dx)
+            _, pc = streamwise_spectrum(child.planes[k], si, sj, mask[:, :, k], preset.dx)
+            z = (k + 0.5) * preset.dz
+            with np.errstate(divide="ignore", invalid="ignore"):
+                ratio = np.where(pw > 0, pc / pw, np.nan)
+            out[f"z_{z:g}m"] = {
+                "z_m": z,
+                "z_over_h": z / preset.building_height,
+                "span_m": span,
+                "wavenumber_rad_per_m": kp.tolist(),
+                "E_parent": pw.tolist(),
+                "E_child": pc.tolist(),
+                "child_over_parent": ratio.tolist(),
+                "band_mean_ratio_resolved": float(
+                    np.nanmean(ratio[1:max(2, len(ratio) // 2)])),
+                "bands": _band_ratios(kp, pw, pc, preset.dx, span),
+            }
+        return out
+
+    spectra = spectra_over(ii, jj)
+
+    # -- the V2 falsification block ----------------------------------------- #
+    h = preset.building_height
+    common: Dict[str, object] = {"cells": common_block_cells}
+    if common_block_cells:
+        ci, cj = central_indices(preset, common_block_cells)
+        cprof = _profiles_over(parent, child, mask, ci, cj, zf)
+        common.update({
+            "extent_m": common_block_cells * preset.dx,
+            "extent_h": common_block_cells * preset.dx / h,
+            "profiles": cprof,
+            "tke_deficit": tke_deficit(cprof, h),
+            "spectra": spectra_over(ci, cj),
+        })
+
+    v2 = {
+        "configuration": {
+            "N_imp_cells": int(round(preset.guardwidth / preset.dx)),
+            "N_rel_cells": int(round(preset.zonewidth / preset.dx)),
+            "zone_cells": preset.zone_cells,
+            "nzone": preset.nzone,
+            "tau_s": preset.tau,
+            "optical_depth": preset.optical_depth,
+            "child_cells": [preset.child_itot, preset.child_jtot],
+            "child_extent_m": [preset.child_xlen, preset.child_ylen],
+            "interior_cells": preset.interior_cells,
+            "interior_extent_m": preset.interior_extent_m,
+            "interior_extent_h": preset.interior_extent_h,
+            "zone_fraction": preset.zone_fraction,
+            "zone_fraction_warns": preset.zone_fraction_warns,
+            "building_free_zone": preset.building_free_zone,
+            "nest_lparentgeom": not preset.building_free_zone,
+            "n_cubes_in_zone": int(len(preset.cubes_in_zone())),
+            "n_cubes_in_interior": int(len(preset.cubes_in_analysis_interior())),
+            "building_clearance_available_m": preset.building_clearance_available,
+            "zone_clearance_needed_m": preset.zone_clearance,
+        },
+        "tke_deficit": tke_deficit(prof, h),
+        "tke_error_vs_fetch": tke_error_vs_fetch(curves, preset),
+        "criterion_a": criterion_a(decay, threshold),
+        "common_block": common,
+    }
 
     return {
         "preset": preset.name,
         "samples": {"parent": n_parent, "child": n_child},
+        "tke_series_interior_from": parent.tke_series_interior_from,
+        "v2": v2,
         "window_s": [manifest["stats_start"], manifest["runtime"]],
         "ustar": us,
         "building_height_m": preset.building_height,
@@ -461,9 +803,41 @@ def _compare(parent: Bundle, child: Bundle, preset: Preset, mask: np.ndarray,
 
 def _write_outputs(outdir: Path, parent: Bundle, child: Bundle, preset: Preset,
                    mask: np.ndarray, ii: np.ndarray, jj: np.ndarray,
-                   kk: Sequence[int], metrics: Dict, make_plots: bool) -> None:
-    (outdir / "v1_metrics.json").write_text(json.dumps(metrics, indent=2) + "\n",
-                                            encoding="ascii")
+                   kk: Sequence[int], metrics: Dict, make_plots: bool,
+                   metrics_name: str = "v1_metrics.json") -> None:
+    (outdir / metrics_name).write_text(json.dumps(metrics, indent=2) + "\n",
+                                       encoding="ascii")
+
+    d = metrics["v2"]["tke_deficit"]
+    _csv(outdir / "tke_deficit.csv",
+         ["z_over_h", "tke_parent", "tke_child", "difference", "relative",
+          "half_window_spread"],
+         [d["z_over_h"], metrics["profiles"]["tke_parent"],
+          metrics["profiles"]["tke_child"], d["absolute"], d["relative"],
+          d["half_window_spread"]])
+
+    for key, v in metrics["v2"]["tke_error_vs_fetch"]["per_face"].items():
+        _csv(outdir / f"tke_error_vs_fetch_{key}.csv",
+             ["fetch_m", "error", "noise_floor"],
+             [v["fetch_m"], v["error"], v["noise_floor"]])
+
+    rows = []
+    for scope in ("interior", "common"):
+        spec = (metrics["spectra"] if scope == "interior"
+                else metrics["v2"]["common_block"].get("spectra", {}))
+        for name, sp in spec.items():
+            for band, b in sp["bands"].items():
+                rows.append((scope, name, sp["z_over_h"], band, b["n_modes"],
+                             b["mean_of_ratios"], b["ratio_of_sums"]))
+    if rows:
+        with (outdir / "spectral_bands.csv").open("w", encoding="ascii",
+                                                  newline="\n") as fh:
+            fh.write("scope,height,z_over_h,band,n_modes,mean_of_ratios,"
+                     "ratio_of_sums\n")
+            for r in rows:
+                fh.write(",".join("" if x is None else
+                                  (f"{x:.9g}" if isinstance(x, float) else str(x))
+                                  for x in r) + "\n")
 
     prof = metrics["profiles"]
     cols = ["z", "u_parent", "u_child", "v_parent", "v_child",
@@ -561,6 +935,39 @@ def _plots(outdir: Path, preset: Preset, metrics: Dict) -> None:
         fig.savefig(outdir / "spectra.png", dpi=130)
         plt.close(fig)
 
+    v2 = metrics.get("v2")
+    if v2:
+        d = v2["tke_deficit"]
+        zh = np.asarray(d["z_over_h"], dtype=float)
+        rel = 100.0 * np.asarray(d["relative"], dtype=float)
+        spread = 100.0 * np.asarray(d["half_window_spread"], dtype=float)
+        fig, ax = plt.subplots(1, 2, figsize=(9, 4.5), constrained_layout=True)
+        ax[0].fill_betweenx(zh, -spread, spread, color="0.85",
+                            label="parent half-window spread")
+        ax[0].plot(rel, zh, "r-", label="child - parent")
+        ax[0].axvline(0.0, color="k", lw=0.8)
+        ax[0].axhline(d["above"]["z_over_h_min"], color="b", ls="--", lw=0.8,
+                      label=f"z/h = {d['above']['z_over_h_min']:g}")
+        ax[0].axhline(1.0, color="0.7", lw=0.8)
+        ax[0].set_xlabel("resolved-TKE difference [%]")
+        ax[0].set_ylabel(r"$z/h$")
+        ax[0].legend(fontsize=8)
+        ax[0].grid(alpha=0.3)
+        for key, v in v2["tke_error_vs_fetch"]["per_face"].items():
+            ax[1].plot(np.asarray(v["fetch_m"]) / h, v["error"], lw=1.0, label=key)
+        ax[1].plot(np.asarray(v["fetch_m"]) / h, v["noise_floor"], "k:",
+                   label="sampling floor")
+        ax[1].set_xlabel(r"fetch beyond the inner zone edge, $/h$")
+        ax[1].set_ylabel(r"normalised TKE error [$u_\star^2$]")
+        ax[1].legend(fontsize=7)
+        ax[1].grid(alpha=0.3)
+        cfg = v2["configuration"]
+        fig.suptitle(f"{preset.name}: N_rel = {cfg['N_rel_cells']} cells, child "
+                     f"{cfg['child_cells'][0]}$^2$, interior "
+                     f"{cfg['interior_extent_h']:.2f}$h$")
+        fig.savefig(outdir / "tke_deficit.png", dpi=130)
+        plt.close(fig)
+
     ts = metrics["tke_series"]
     fig, a = plt.subplots(figsize=(6, 4), constrained_layout=True)
     a.plot(ts["parent_times_s"], ts["parent"], "k-", label="parent sub-region")
@@ -605,8 +1012,62 @@ def summary(metrics: Dict) -> str:
     lines.append("")
     lines.append("  spectra (child/parent power, mean over the resolved band):")
     for name, s in metrics["spectra"].items():
+        b = s["bands"]
+        def band(key):
+            v = b[key]["mean_of_ratios"]
+            return "   --  " if v is None else f"{v:6.3f}"
         lines.append(f"    {name:14s} z/h = {s['z_over_h']:.2f}   "
-                     f"ratio = {s['band_mean_ratio_resolved']:.3f}")
+                     f"resolved {s['band_mean_ratio_resolved']:.3f}   "
+                     f"16-64 m {band('band_16_64m')}   "
+                     f"8-16 m {band('band_8_16m')}   "
+                     f"> L/4 {band('lambda_gt_quarter_L')}   "
+                     f"< 4dx {band('lambda_lt_4dx')}")
+    v2 = metrics.get("v2")
+    if v2:
+        cfg, d = v2["configuration"], v2["tke_deficit"]
+        f = v2["tke_error_vs_fetch"]
+        a = v2["criterion_a"]
+
+        def pct(x):
+            return "  --  " if x is None else f"{100 * x:+6.2f}%"
+
+        lines += [
+            "",
+            f"  V2: N_imp+N_rel = {cfg['N_imp_cells']}+{cfg['N_rel_cells']} cells, "
+            f"child {cfg['child_cells'][0]}x{cfg['child_cells'][1]}, "
+            f"interior {cfg['interior_cells']} cells = {cfg['interior_extent_h']:.2f} h, "
+            f"zone {'building-free' if cfg['building_free_zone'] else 'CONTAINS BUILDINGS'} "
+            f"(nest_lparentgeom = {'.false.' if cfg['building_free_zone'] else '.true.'})",
+            f"    resolved-TKE deficit above z/h = {d['above']['z_over_h_min']:g}: "
+            f"{pct(d['above']['mean_relative'])} against a half-window spread of "
+            f"{pct(d['above']['mean_spread']).strip('+')} mean / "
+            f"{pct(d['above']['median_spread']).strip('+')} median"
+            + ("" if d['above']['significance'] is None
+               else f"  ({d['above']['significance']:+.1f} sigma on the mean, "
+                    f"{d['above']['median_significance']:+.1f} per-height median)"),
+            f"    inside the canopy (z/h < 1):        {pct(d['canopy']['mean_relative'])} "
+            f"against {pct(d['canopy']['mean_spread']).strip('+')}",
+            "    TKE error vs fetch beyond the zone: "
+            + ", ".join(f"{k} {('--' if v is None else format(v, '.3f'))}"
+                        for k, v in f["mean_error_at_fetch_h"].items())
+            + "; at max fetch ("
+            + ("--" if f["max_fetch_h"] is None else format(f["max_fetch_h"], ".2f"))
+            + " h) "
+            + ("--" if f["mean_error_at_max_fetch"] is None
+               else format(f["mean_error_at_max_fetch"], ".3f")),
+            f"    faces whose TKE error reaches the sampling floor: "
+            f"{f['faces_crossing_the_floor']}/4",
+            "    criterion A (mean flow, interior): "
+            + ("--" if a["max_interior_umean_error_over_ustar"] is None
+               else format(a["max_interior_umean_error_over_ustar"], ".4f"))
+            + f" u* against {a['threshold']:g} -- "
+            + ("PASS" if a["passes"] else "FAIL"),
+        ]
+        cb = v2["common_block"]
+        if cb.get("tke_deficit") and cb.get("extent_h") is not None:
+            lines.append(
+                f"    over the common {cb['cells']}-cell block ({cb['extent_h']:.2f} h): "
+                f"deficit {pct(cb['tke_deficit']['above']['mean_relative'])}")
     return "\n".join(lines)
 
 
@@ -618,11 +1079,16 @@ def main() -> None:
     parser.add_argument("outdir", type=Path)
     parser.add_argument("--preset", default="production")
     parser.add_argument("--no-plots", action="store_true")
+    parser.add_argument("--common-block", type=int, default=0,
+                        help="also compare over this many central cells (V2)")
+    parser.add_argument("--metrics-name", default="v1_metrics.json")
     args = parser.parse_args()
 
     preset = get_preset(args.preset)
     metrics = run(args.parent_dir, args.child_dir, args.outdir, preset,
-                  make_plots=not args.no_plots)
+                  make_plots=not args.no_plots,
+                  common_block_cells=args.common_block,
+                  metrics_name=args.metrics_name)
     print(summary(metrics))
     print(f"\nwritten to {args.outdir}")
 

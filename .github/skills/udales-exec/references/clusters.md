@@ -224,3 +224,47 @@ UDALES_BUILD=$PWD/build/gnu/u-dales TMPDIR=$EPHEMERAL \
 
 OpenMPI needs `--oversubscribe` for login-node runs; the drivers add it when they
 detect Open MPI.
+
+### CX3 addendum (2026-09, V1 converged run and the V2 sweep sizing)
+
+Measured stage times of the V1 "Big Brother" nesting validation, `converged`
+preset, PBS job 3991175, one node, `ncpus=64:mpiprocs=64:mem=128gb`, walltime
+used 4:08. Parent 256 x 256 x 64 (4.19e6 cells, 228 cubes, `nfcts = 12992`),
+child 128 x 128 x 64, 3600 dumped levels at `dtdump = 3 s`:
+
+| stage | time |
+|---|---|
+| parent case build (incl. IBM preprocessing) | 200 s |
+| parent spin-up, 10800 s simulated, no dumps | 5479 s |
+| parent production, 10800 s simulated + dumps | 5916 s |
+| child case build = slab cut over all 3600 parent levels | 608 s |
+| child run, 10190 s simulated | 1621 s |
+| analysis, 3400 parent + 3400 child levels | 1040 s |
+
+Derived rates worth reusing:
+
+- **Nested child solver throughput: 1.7e7 cell-steps/s on 64 ranks** for this
+  case (1.05e6 cells = 16 x 16 x 64 per rank, mean `dt ~ 0.38 s`). The 4-rank
+  parent figure recorded above is 5.4e6 cell-steps/s, so 16x the ranks bought
+  ~3.1x the throughput — but the two are different case sizes, so read that as
+  "scaling is far from perfect at this size", not as a measured efficiency.
+  Do not size a small nested child from perfect scaling.
+- **The slab cut reads the whole parent record whatever the child's size.**
+  170 GB of dumps; ~400 s of that 608 is the fixed read and the rest tracks the
+  nesting-file write at roughly 170 MB/s.
+- **Analysis I/O splits ~80/20 between parent and child** (a parent level is
+  47 MB against the child's 12.6 MB), so accumulating the parent once and
+  sharing it between several children is most of the saving available.
+- **`udprep.nesting.write_nesting_file` takes arrays, not a stream, so peak RSS
+  is the nesting file's size.** Observed 39 GB peak for a 35.2 GB file. Size a
+  `mem=` request from
+  `3 * 2 * (itot + jtot) * ktot * nzone * 8 bytes` per time level, times the
+  number of levels, plus ~5 GB. A 128 x 128 x 64 child at `nzone = 12` is
+  9.8 MB/level; at `nzone = 19`, 15.3 MB/level.
+- **Field dump volume:** `3 * itot * jtot * ktot * 4 bytes` per level
+  (single precision). 12.6 MB/level for 128 x 128 x 64, 47 MB/level for
+  256 x 256 x 64.
+
+`$EPHEMERAL` held 246 GB for that one V1 run (170 GB parent dumps + 76 GB child
+dumps and nesting file) against a ~11 TB quota, so volume was never the
+constraint on this work.
