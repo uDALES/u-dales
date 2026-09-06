@@ -393,6 +393,15 @@ contains
    !> Called from modboundary::boundary. Fills the ghost planes of u0/um, v0/vm
    !! and w0/wm from the parent, in the xmi_driver pattern
    !! (src/modboundary.f90:720).
+   !!
+   !! Boundary faces and ghost values inside solids are masked to zero rather
+   !! than imposed (design section 4: "mask explicitly regardless"). A face
+   !! value or a ghost plane serves the first interior cell; where that cell
+   !! is solid at the component's own stagger the value is 0, which is what
+   !! ibmnorm holds at every other solid point. Without the mask a parent that
+   !! does not resolve the child's buildings (or resolves them differently)
+   !! would push its flow through the solid, and nest_flux_split -- which sums
+   !! fluid faces only -- could not see the divergence source it creates.
    subroutine nesting_boundary
       use modglobal, only : ib, ie, jb, je, kb, ke, ibrank, ierank, jbrank, jerank
       use modfields, only : u0, um, v0, vm, w0, wm
@@ -406,17 +415,17 @@ contains
       if (lface(1) .and. ibrank) then
          do j = jb - 1, je + 1
             do k = kb, ke
-               uu = facval(1, 1, 1, k, j)
+               uu = facval(1, 1, 1, k, j)*bnd_mask(1, ib, j, k)
                u0(ib, j, k)     = uu
                um(ib, j, k)     = uu
                u0(ib - 1, j, k) = uu
                um(ib - 1, j, k) = uu
-               vv = facval(2, 1, 1, k, j)
+               vv = facval(2, 1, 1, k, j)*bnd_mask(2, ib, j, k)
                v0(ib - 1, j, k) = vv
                vm(ib - 1, j, k) = vv
             end do
             do k = kb, ke + 1
-               ww = facval(3, 1, 1, k, j)
+               ww = facval(3, 1, 1, k, j)*bnd_mask(3, ib, j, k)
                w0(ib - 1, j, k) = ww
                wm(ib - 1, j, k) = ww
             end do
@@ -426,15 +435,15 @@ contains
       if (lface(2) .and. ierank) then
          do j = jb - 1, je + 1
             do k = kb, ke
-               uu = facval(1, 2, nzone + 1, k, j)
+               uu = facval(1, 2, nzone + 1, k, j)*bnd_mask(1, ie + 1, j, k)
                u0(ie + 1, j, k) = uu
                um(ie + 1, j, k) = uu
-               vv = facval(2, 2, nzone, k, j)
+               vv = facval(2, 2, nzone, k, j)*bnd_mask(2, ie, j, k)
                v0(ie + 1, j, k) = vv
                vm(ie + 1, j, k) = vv
             end do
             do k = kb, ke + 1
-               ww = facval(3, 2, nzone, k, j)
+               ww = facval(3, 2, nzone, k, j)*bnd_mask(3, ie, j, k)
                w0(ie + 1, j, k) = ww
                wm(ie + 1, j, k) = ww
             end do
@@ -444,17 +453,17 @@ contains
       if (lface(3) .and. jbrank) then
          do i = ib - 1, ie + 1
             do k = kb, ke
-               vv = facval(2, 3, 1, k, i)
+               vv = facval(2, 3, 1, k, i)*bnd_mask(2, i, jb, k)
                v0(i, jb, k)     = vv
                vm(i, jb, k)     = vv
                v0(i, jb - 1, k) = vv
                vm(i, jb - 1, k) = vv
-               uu = facval(1, 3, 1, k, i)
+               uu = facval(1, 3, 1, k, i)*bnd_mask(1, i, jb, k)
                u0(i, jb - 1, k) = uu
                um(i, jb - 1, k) = uu
             end do
             do k = kb, ke + 1
-               ww = facval(3, 3, 1, k, i)
+               ww = facval(3, 3, 1, k, i)*bnd_mask(3, i, jb, k)
                w0(i, jb - 1, k) = ww
                wm(i, jb - 1, k) = ww
             end do
@@ -464,15 +473,15 @@ contains
       if (lface(4) .and. jerank) then
          do i = ib - 1, ie + 1
             do k = kb, ke
-               vv = facval(2, 4, nzone + 1, k, i)
+               vv = facval(2, 4, nzone + 1, k, i)*bnd_mask(2, i, je + 1, k)
                v0(i, je + 1, k) = vv
                vm(i, je + 1, k) = vv
-               uu = facval(1, 4, nzone, k, i)
+               uu = facval(1, 4, nzone, k, i)*bnd_mask(1, i, je, k)
                u0(i, je + 1, k) = uu
                um(i, je + 1, k) = uu
             end do
             do k = kb, ke + 1
-               ww = facval(3, 4, nzone, k, i)
+               ww = facval(3, 4, nzone, k, i)*bnd_mask(3, i, je, k)
                w0(i, je + 1, k) = ww
                wm(i, je + 1, k) = ww
             end do
@@ -487,19 +496,29 @@ contains
    !! BCxm_profile / BCxm_driver pattern of src/modboundary.f90:1247-1302: the
    !! face value is set in the predicted field and the tendency is zeroed, so
    !! the face only evolves through the pressure correction.
+   !!
+   !! Faces inside solids are masked to zero, see nesting_boundary. The start-
+   !! of-step value um (and u0) at the face is set to the same target: the
+   !! projection this substep uses the target evaluated at t^{n+1}, and
+   !! tstep_integrate leaves the face at um + rk3coef*up = um, so without this
+   !! u0 at the face would carry the previous step's target until boundary
+   !! resets it -- a boundary-cell divergence that chkdiv reported and boundary
+   !! then removed, polluting divtot, the case-A symptom design section 6.4
+   !! says to watch. The far faces (ie+1, je+1) are outside tstep_integrate's
+   !! loop, so u0/v0 are set here as well.
    subroutine nesting_bcpup(pup, pvp, pwp, rk3coef)
       use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, &
                             ibrank, ierank, jbrank, jerank,     &
                             BCxm, BCym, BCxm_nesting, BCym_nesting, &
                             BCtopm, BCtopm_pressure
-      use modfields, only : up, vp
+      use modfields, only : up, vp, um, vm, u0, v0
       use modmpi,    only : myid
 
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: pup, pvp, pwp
       real, intent(in) :: rk3coef
 
       integer :: i, j, k
-      real    :: rk3coefi, phi_closed
+      real    :: rk3coefi, phi_closed, uu, vv
 
       if (.not. lnesting) return
       if (.not. linit) return
@@ -510,8 +529,11 @@ contains
          if (lface(1) .and. ibrank) then
             do k = kb, ke
                do j = jb - 1, je + 1
-                  pup(ib, j, k) = facval(1, 1, 1, k, j)*rk3coefi
+                  uu = facval(1, 1, 1, k, j)*bnd_mask(1, ib, j, k)
+                  pup(ib, j, k) = uu*rk3coefi
                   up(ib, j, k)  = 0. ! u(ib) only evolves according to pressure correction
+                  um(ib, j, k)  = uu
+                  u0(ib, j, k)  = uu
                end do
             end do
          end if
@@ -519,8 +541,11 @@ contains
          if (lface(2) .and. ierank) then
             do k = kb, ke
                do j = jb - 1, je + 1
-                  pup(ie + 1, j, k) = facval(1, 2, nzone + 1, k, j)*rk3coefi
+                  uu = facval(1, 2, nzone + 1, k, j)*bnd_mask(1, ie + 1, j, k)
+                  pup(ie + 1, j, k) = uu*rk3coefi
                   up(ie + 1, j, k)  = 0.
+                  um(ie + 1, j, k)  = uu
+                  u0(ie + 1, j, k)  = uu
                end do
             end do
          end if
@@ -530,8 +555,11 @@ contains
          if (lface(3) .and. jbrank) then
             do k = kb, ke
                do i = ib - 1, ie + 1
-                  pvp(i, jb, k) = facval(2, 3, 1, k, i)*rk3coefi
+                  vv = facval(2, 3, 1, k, i)*bnd_mask(2, i, jb, k)
+                  pvp(i, jb, k) = vv*rk3coefi
                   vp(i, jb, k)  = 0.
+                  vm(i, jb, k)  = vv
+                  v0(i, jb, k)  = vv
                end do
             end do
          end if
@@ -539,8 +567,11 @@ contains
          if (lface(4) .and. jerank) then
             do k = kb, ke
                do i = ib - 1, ie + 1
-                  pvp(i, je + 1, k) = facval(2, 4, nzone + 1, k, i)*rk3coefi
+                  vv = facval(2, 4, nzone + 1, k, i)*bnd_mask(2, i, je + 1, k)
+                  pvp(i, je + 1, k) = vv*rk3coefi
                   vp(i, je + 1, k)  = 0.
+                  vm(i, je + 1, k)  = vv
+                  v0(i, je + 1, k)  = vv
                end do
             end do
          end if
@@ -1299,6 +1330,38 @@ contains
       end select
 
    end function iimask
+
+
+   !> Fluid mask (1. fluid, 0. solid) of component c at the stagger point
+   !! (i,j,k), for masking a domain-boundary face or ghost value: the caller
+   !! passes the index of the FIRST INTERIOR point the value serves. IIu/IIv/IIw
+   !! carry no valid halos, so the indices are clamped to the range that is
+   !! defined for that stagger (u: i up to ie+1, v: j up to je+1, w: k up to
+   !! ke+1, everything else interior). The clamp only ever acts on the ghost
+   !! rows and columns at the domain corners, which enter neither the Poisson
+   !! RHS nor any interior cell's stencil.
+   real function bnd_mask(c, i, j, k)
+      use modglobal, only : ib, ie, jb, je, kb, ke
+
+      integer, intent(in) :: c, i, j, k
+
+      integer :: ic, jc, kc
+
+      ic = min(max(i, ib), ie)
+      jc = min(max(j, jb), je)
+      kc = min(max(k, kb), ke)
+      select case (c)
+      case (1)
+         ic = min(max(i, ib), ie + 1)
+      case (2)
+         jc = min(max(j, jb), je + 1)
+      case default
+         kc = min(max(k, kb), ke + 1)
+      end select
+
+      bnd_mask = real(iimask(c, ic, jc, kc))
+
+   end function bnd_mask
 
 
    !> Build the fluid mask (1 fluid, 0 solid) at the stagger of ivar, eroded by

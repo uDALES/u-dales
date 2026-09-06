@@ -32,13 +32,17 @@ module tests
   public :: tests_nesting_weights, tests_nesting_geometry, tests_nesting_io, &
             tests_nesting_flux, tests_nesting_update, tests_nesting_init
 
-  !> Synthetic solid box used by the nesting IBM subtests (U11-U13, U34).
+  !> Synthetic solid box used by the nesting IBM subtests (U11-U13, U34, U45).
   !! Defined on GLOBAL indices so that it marks the same physical cells on
-  !! every decomposition.
+  !! every decomposition. The default box sits inside the zone away from the
+  !! boundary; U45 moves it onto the west face with nest_set_solid_box.
   logical            :: nest_solid_on = .false.
-  integer, parameter :: NSOL_I1 = 5, NSOL_I2 = 7
-  integer, parameter :: NSOL_J1 = 5, NSOL_J2 = 7
-  integer, parameter :: NSOL_K1 = 3, NSOL_K2 = 5
+  integer, parameter :: NSOL_DEF_I1 = 5, NSOL_DEF_I2 = 7
+  integer, parameter :: NSOL_DEF_J1 = 5, NSOL_DEF_J2 = 7
+  integer, parameter :: NSOL_DEF_K1 = 3, NSOL_DEF_K2 = 5
+  integer :: nsol_i1 = NSOL_DEF_I1, nsol_i2 = NSOL_DEF_I2
+  integer :: nsol_j1 = NSOL_DEF_J1, nsol_j2 = NSOL_DEF_J2
+  integer :: nsol_k1 = NSOL_DEF_K1, nsol_k2 = NSOL_DEF_K2
 
 contains
 
@@ -794,11 +798,23 @@ contains
   logical function nest_ref_solid(ig, jg, k)
     integer, intent(in) :: ig, jg, k
 
-    nest_ref_solid = (ig >= NSOL_I1 .and. ig <= NSOL_I2) .and.             &
-                     (jg >= NSOL_J1 .and. jg <= NSOL_J2) .and.             &
-                     (k  >= NSOL_K1 .and. k  <= NSOL_K2)
+    nest_ref_solid = (ig >= nsol_i1 .and. ig <= nsol_i2) .and.             &
+                     (jg >= nsol_j1 .and. jg <= nsol_j2) .and.             &
+                     (k  >= nsol_k1 .and. k  <= nsol_k2)
 
   end function nest_ref_solid
+
+  !> Move the synthetic solid box (global, 1-based, inclusive bounds). Does
+  !! not install it: call nest_set_solids afterwards. Pass the NSOL_*
+  !! NSOL_DEF_* parameters to restore the default.
+  subroutine nest_set_solid_box(i1, i2, j1, j2, k1, k2)
+    integer, intent(in) :: i1, i2, j1, j2, k1, k2
+
+    nsol_i1 = i1; nsol_i2 = i2
+    nsol_j1 = j1; nsol_j2 = j2
+    nsol_k1 = k1; nsol_k2 = k2
+
+  end subroutine nest_set_solid_box
 
   !> Solid, or within nwall cells (Chebyshev, three dimensions) of a solid.
   !! This is the independent dilation the erosion of design section 5 item 2
@@ -2438,13 +2454,15 @@ contains
 
 
   !> The substep-implicit relaxation update of design section 1.2, on the
-  !! production zone. Covers U29-U34.
+  !! production zone, and the imposed faces through a real projection.
+  !! Covers U29-U34 and U45.
   logical function tests_nesting_update()
     use mpi
     use modglobal,  only : ib, ie, ih, jb, je, jh, kb, ke, kh, dt, rk3step, &
                            cexpnr, timee
     use modfields,  only : initfields, um, up, vm, vp, wm, wp
     use modibm,     only : createmasks
+    use modpois,    only : initpois
     use modnesting, only : nest_tau, nest_lparentgeom, nesting_apply,       &
                            nesting_finalize
 
@@ -2455,11 +2473,14 @@ contains
     real, allocatable :: su(:,:,:), sv(:,:,:), sw(:,:,:)
     real, allocatable :: mu(:,:,:), mv(:,:,:), mw(:,:,:)
 
-    call nest_banner('tests_nesting_update', 'RELAXATION UPDATE (U29-U34)')
+    call nest_banner('tests_nesting_update', 'RELAXATION UPDATE (U29-U34, U45)')
 
     call initfields
     call createmasks
     call nest_set_solids(.false.)
+    ! U45 runs the production Poisson solver; its setup is otherwise done by
+    ! program.f90 after the runmode dispatch.
+    call initpois
 
     allocate(wu(ib:ie,jb:je,kb:ke), wv(ib:ie,jb:je,kb:ke), ww(ib:ie,jb:je,kb:ke))
     allocate(su(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
@@ -2480,6 +2501,8 @@ contains
     if (.not. u32_fullstep())    all_passed = .false.
     if (.not. u33_stability())   all_passed = .false.
     if (.not. u34_solid())       all_passed = .false.
+    if (.not. u45_solid_faces(.false.)) all_passed = .false.
+    if (.not. u45_solid_faces(.true.))  all_passed = .false.
 
     deallocate(wu, wv, ww, su, sv, sw, mu, mv, mw)
     call nesting_finalize
@@ -2832,6 +2855,160 @@ contains
 
       call nest_set_solids(.false.)
     end function u34_solid
+
+    !> U45 (review 2026-09-06 items F2 and F6): the imposed faces through the
+    !! production projection, at the first RK3 substep.
+    !!
+    !! lbox = .true.: a 2-cell-deep box stands on the west boundary (global
+    !! i = 1..2, j = 5..8, k = 3..6), and the parent file
+    !! nesting_maskwest.<expnr>.nc was divergence corrected over the FLUID
+    !! faces only while keeping non-zero data on the faces the child calls
+    !! solid -- a parent that does not resolve the child's building, which
+    !! nest_lparentgeom = .true. permits. nesting_bcpup must impose nothing on
+    !! those faces (F2): if it did, the flux they inject is invisible to the
+    !! fluid-face assertion and the Poisson problem is incompatible, which
+    !! shows up as a divergence of order |Phi_solid| A / V ~ 1e-4 here. With
+    !! the mask the projected field is divergence free to round-off, box or
+    !! no box. lbox = .false. is the control on the standard corrected file.
+    !!
+    !! F6: at rk3step = 1 the faces must ALREADY hold the target the
+    !! projection used, in um and in u0, so that a subsequent nesting_boundary
+    !! changes nothing on them. Before the fix um at the face was whatever the
+    !! previous step's boundary call left (0 here), the divergence "of the
+    !! integrated field as chkdiv sees it" carried the whole target jump, and
+    !! boundary then removed it.
+    logical function u45_solid_faces(lbox)
+      use modglobal,  only : dx, dy, dzf, dxi, dyi, dzfi, ibrank, ierank, jbrank, jerank
+      use modfields,  only : u0, v0, w0, IIu, IIv, IIw
+      use modpois,    only : poisson, pup
+      use modnesting, only : nesting_boundary
+      use decomp_2d,  only : exchange_halo_z
+
+      logical, intent(in) :: lbox
+
+      integer :: i, j, k, nmask, nbad, nmoved, nghost
+      real    :: rk3coef, div, dmax, dtot, gmask, gbad, gmoved, gghost, ufac(3)
+      real, allocatable :: fu(:,:,:), fv(:,:,:), fw(:,:,:)
+      character(len=48) :: lbl
+
+      if (lbox) then
+        lbl = 'U45 box on the west face: masked, div at round-off'
+        call nest_set_solid_box(1, 2, 5, 8, 3, 6)
+        call nest_set_solids(.true.)
+        nest_lparentgeom = .true.
+        if (myid == 0) write(*,'(a)') '   U45 reads nesting_maskwest.'//cexpnr//'.nc'// &
+          ' (tests/integration/nesting/make_fixtures.py); a missing file aborts here'
+        call nest_reinit('nesting_maskwest.'//cexpnr//'.nc', 0., 4., 2, 1, 1.e-10, .true.)
+      else
+        lbl = 'U45 control (no box): div at round-off'
+        call nest_set_solids(.false.)
+        call nest_reinit('nesting_corrected.'//cexpnr//'.nc', 0., 4., 2, 1, 1.e-10, .true.)
+      end if
+
+      ! the state a first substep would project: rest everywhere, so that the
+      ! faces are the only source of motion and um at the faces is NOT the
+      ! target until nesting_bcpup makes it so
+      dt      = 0.5
+      rk3step = 1
+      rk3coef = dt/3.
+      um = 0.; vm = 0.; wm = 0.
+      up = 0.; vp = 0.; wp = 0.
+      u0 = 0.; v0 = 0.; w0 = 0.
+
+      call poisson
+
+      ! (a) F2: nothing imposed on the masked faces (west face only has them)
+      nmask = 0; nbad = 0
+      if (ibrank) then
+        do k = kb, ke
+          do j = jb, je
+            if (IIu(ib,j,k) == 0) then
+              nmask = nmask + 1
+              if (pup(ib,j,k) /= 0. .or. um(ib,j,k) /= 0. .or. u0(ib,j,k) /= 0.) nbad = nbad + 1
+            end if
+          end do
+        end do
+      end if
+
+      ! (b) the projected field, faces included, as tstep_integrate leaves it
+      ! and chkdiv reads it: um + rk3coef*qp at every face of every cell
+      allocate(fu(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      allocate(fv(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      allocate(fw(ib-ih:ie+ih, jb-jh:je+jh, kb:ke+kh))
+      fu = um(:,:,kb:ke+kh) + rk3coef*up
+      fv = vm(:,:,kb:ke+kh) + rk3coef*vp
+      fw = wm(:,:,kb:ke+kh) + rk3coef*wp
+      ! processor halos, as halos() exchanges u0 after tstep_integrate; the
+      ! decomposition is non-periodic under the nesting BCs, so the domain
+      ! faces set by nesting_bcpup are left alone
+      call exchange_halo_z(fu, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(fv, opt_zlevel=(/ih,jh,0/))
+      call exchange_halo_z(fw, opt_zlevel=(/ih,jh,0/))
+      dmax = 0.; dtot = 0.
+      do k = kb, ke
+        do j = jb, je
+          do i = ib, ie
+            div = (fu(i+1,j,k) - fu(i,j,k))*dxi + (fv(i,j+1,k) - fv(i,j,k))*dyi + &
+                  (fw(i,j,k+1) - fw(i,j,k))*dzfi(k)
+            dmax = max(dmax, abs(div))
+            dtot = dtot + div*dx*dy*dzf(k)
+          end do
+        end do
+      end do
+      dmax = nest_maxall(dmax)
+      dtot = nest_sumall(dtot)
+
+      ! (c) F6: emulate tstep_integrate on the faces, then let boundary run --
+      ! it must find the imposed faces already holding the projected target
+      u0 = um; v0 = vm; w0 = wm
+      u0(:,:,kb:ke+kh) = fu; v0(:,:,kb:ke+kh) = fv; w0(:,:,kb:ke+kh) = fw
+      ufac = 0.
+      if (ibrank) ufac(1) = maxval(abs(u0(ib, jb:je, kb:ke)))
+      if (jbrank) ufac(2) = maxval(abs(v0(ib:ie, jb, kb:ke)))
+      call nesting_boundary
+      nmoved = 0
+      if (ibrank) nmoved = nmoved + count(u0(ib,   jb:je, kb:ke) /= fu(ib,   jb:je, kb:ke))
+      if (ierank) nmoved = nmoved + count(u0(ie+1, jb:je, kb:ke) /= fu(ie+1, jb:je, kb:ke))
+      if (jbrank) nmoved = nmoved + count(v0(ib:ie, jb,   kb:ke) /= fv(ib:ie, jb,   kb:ke))
+      if (jerank) nmoved = nmoved + count(v0(ib:ie, je+1, kb:ke) /= fv(ib:ie, je+1, kb:ke))
+
+      ! (d) F2 in nesting_boundary: the ghost values that serve a solid first
+      ! interior point are zero, on every stagger
+      nghost = 0
+      if (ibrank) then
+        do k = kb, ke
+          do j = jb, je
+            if (IIu(ib,j,k) == 0 .and. (u0(ib-1,j,k) /= 0. .or. um(ib-1,j,k) /= 0.)) nghost = nghost + 1
+            if (IIv(ib,j,k) == 0 .and. (v0(ib-1,j,k) /= 0. .or. vm(ib-1,j,k) /= 0.)) nghost = nghost + 1
+            if (IIw(ib,j,k) == 0 .and. (w0(ib-1,j,k) /= 0. .or. wm(ib-1,j,k) /= 0.)) nghost = nghost + 1
+          end do
+        end do
+      end if
+
+      gmask  = nest_sumall(real(nmask))
+      gbad   = nest_sumall(real(nbad))
+      gmoved = nest_sumall(real(nmoved))
+      gghost = nest_sumall(real(nghost))
+      ufac(1) = nest_maxall(max(ufac(1), ufac(2)))
+
+      u45_solid_faces = (dmax <= 1.e-12) .and. (abs(dtot) <= 1.e-12) .and. &
+                        (gbad == 0.) .and. (gmoved == 0.) .and. (gghost == 0.) .and. &
+                        (ufac(1) > 1.e-3) .and. ((gmask > 0.) .eqv. lbox)
+
+      if (myid == 0) then
+        write(*,'(a,es12.4,a,es12.4)') '   projected field: divmax = ', dmax, ', divtot = ', dtot
+        write(*,'(a,i0,a,i0,a)') '   masked west faces = ', nint(gmask), &
+          ' (', nint(gbad), ' still carried a value)'
+        write(*,'(a,i0,a,i0)') '   faces changed by boundary after the projection = ', &
+          nint(gmoved), ', ghost values inside solids = ', nint(gghost)
+        write(*,'(a,es12.4)') '   max |imposed face velocity| = ', ufac(1)
+      end if
+      call nest_report(trim(lbl), u45_solid_faces)
+
+      deallocate(fu, fv, fw)
+      call nest_set_solid_box(NSOL_DEF_I1, NSOL_DEF_I2, NSOL_DEF_J1, NSOL_DEF_J2, NSOL_DEF_K1, NSOL_DEF_K2)
+      call nest_set_solids(.false.)
+    end function u45_solid_faces
 
   end function tests_nesting_update
 

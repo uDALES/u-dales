@@ -302,6 +302,16 @@ lid flux is the child breathing against its reservoir rather than an error. What
 is the flux through the faces the scheme controls. `nest_lfluxassert` therefore stays on by default
 in both cases.
 
+**Faces inside solids.** A boundary face or ghost value whose first interior point is solid at the
+component's own stagger (`IIu`/`IIv`/`IIw`) is set to **zero**, not to the parent value, in both
+`nesting_bcpup` and `nesting_boundary` (design §4). This is what makes the fluid-face $\Phi$ the
+whole flux the Poisson right-hand side sees: an unmasked parent value on a solid face would push its
+flow through the building, and since the assertion sums fluid faces only it could not see the
+divergence source that creates. The writer must balance the fluid faces only (`FaceMasks`) for the
+same reason. `nesting_bcpup` also sets `um`/`u0` at the imposed faces to the target it imposes, so
+the integrated field is consistent with the projection at every substep rather than only after the
+next `boundary` call. Unit test U45 pins both.
+
 Zone storage uses `zone_type` (design §9.2). The relaxation update is design §1.2, verbatim:
 
 ```fortran
