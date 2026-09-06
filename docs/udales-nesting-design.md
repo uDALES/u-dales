@@ -1252,7 +1252,7 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 | V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,9,12,16\}$ at fixed child size, plus a child-size arm (interior $5h$, $9h$, $13h$) at fixed zone width, every child clearing its own zone (§9.4) | **DONE — §10.5.** Zone width moves the deficit by 0.16 % over the whole range (0.03 of a sampling spread); interior extent moves it from $-13.5$ to $-9.9\,\%$. The deficit is a recovery over fetch, and §10.5's note on *what* is being recovered from applies |
 | V3 | **Parent without buildings** | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against 0/5/15/40-cell standoffs | the adjustment length (§9.4), measured both from the zone edge and from the first building face — the latter is the discriminating one, since a standoff trivially moves the canopy downstream. §9.4 predicts a standoff *lengthens* adjustment; this row exists to test that, and may refute it |
 | V4 | **Different parent geometry** | parent with a different building layout, child identical to V1's | interior statistics against the **V1** child (not against V4's own parent sub-region, which is a different flow); measures whether the interior is insensitive to the mismatch beyond the adjustment fetch |
-| **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | mean profiles and spectra vs a matched-resolution reference. **This is the use case nesting exists for and it is the last one to be tested — see the note below.** |
+| **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **Filtered arm DONE — §10.5**; coarse arm running. Turbulence: the child regenerates none of an $r=4$ parent's missing band above the canopy within $13h$; mean flow: unreadable until the prolongation staircase (W8) is fixed |
 | V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | a fetch curve for uDALES, compared against the paper's ≤4/≤30 guidance; **go/no-go on C6** |
 | V6 | Does mass drift over long runs? | 10⁵-step run | `divtot` bounded, not drifting |
 | V7 | Does the I/O cost anything? | production-sized case | read time <1% of runtime; if not, switch container (§6.3) |
@@ -1360,6 +1360,34 @@ adjustment length V3 was designed to measure, seen from the other side; it does 
 the full-size children because their zone was building-free in the parent too. It bears on the
 choice in §9.4: clearing the child's zone is cheap and correct for the *boundary*, but the
 interior then starts its own canopy adjustment at the inner edge.
+
+**V0 filtered arm (job 3993078, 2 h 25).** The child of V1 at $\Delta x = 2$ m, driven by the
+converged truth box-filtered onto 4 m ($r=2$) and 8 m ($r=4$) grids at the same 3 s cadence, so
+the driving parent is a *perfect* coarse LES. $|\Phi|$ and `divmax` at $10^{-15}$ in both.
+
+| $r$ | TKE above $2h$ | filtered parent's own | canopy TKE | above parent filter | straddling it | below it | criterion A |
+|---|---|---|---|---|---|---|---|
+| 2 | $-13.1\,\%$ | $-6.9\,\%$ | $-0.1\,\%$ | 1.00 | 0.73 (8–16 m) | 0.87 ($<8$ m) | $0.126\,u_\star$ |
+| 4 | $-19.9\,\%$ | $-20.2\,\%$ | $-9.1\,\%$ | 0.98 | 0.65 (16–32 m) | 0.63 ($<16$ m) | $0.275\,u_\star$ |
+
+*The criterion-A failures are a prolongation staircase.* The mean-wind error alternates in sign
+between adjacent child levels inside one parent cell — period 2 at $r=2$, period 4 at $r=4$ —
+which is the signature of piecewise-constant conservative interpolation of a curved profile:
+with $\partial u/\partial z\approx0.07\ \mathrm{s^{-1}}$ at $z/h=2$ a 4 m parent cell puts
+$\pm0.07$ m/s $=\pm0.18\,u_\star$ on the boundary, and the interior keeps about half. The writer's
+prolongation is being replaced by a conservative piecewise-linear reconstruction (unlimited, so it
+stays linear in the data and preserves every parent-face integral; W8 in the plan). V0's
+mean-flow row is not readable until that is in.
+
+*Above the canopy the child regenerates none of what an $r=4$ parent never resolved.* Its
+deficit equals its parent's own to 0.3 %. At $r=2$ it regenerates the sub-filter band to 0.87 yet
+ends worse than its parent, because the 8–16 m band is lost twice, to the filter and to the 3 s
+cadence (§10.5 correction above). The canopy layer recovers fully at $r=2$ and not at $r=4$,
+where 8 m cells sit on 16 m streets. Read with V2: **a band that is missing from the boundary
+data, whatever removed it, comes back over a fetch that grows with its wavelength**, and $13h$
+is not enough for 16–32 m. The recovery length $L_{\rm rec}(\lambda)$ is the quantity that
+governs cadence and refinement alike, and it is what C0 and the V2 size arm together measure.
+The coarse arm (genuine 4 m and 8 m LES parents) runs as job 3994025.
 
 ### 10.6 Wiring
 
