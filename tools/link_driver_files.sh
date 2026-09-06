@@ -21,7 +21,8 @@ pushd $2 > /dev/null
 tardir=$(pwd)
 popd > /dev/null
 
-src="${1: -3}"
+# Use the resolved directory so trailing slashes do not affect the case number.
+src="${srcdir: -3}"
 
 # check if driver files already exist. If so, ask how to proceed.
 if [ -f $tardir/"tdriver_000."$src ]; then

@@ -131,19 +131,13 @@ contains
   !-------------------------
 
   subroutine initstatsdump
-    use modmpi,   only : mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyidx,cmyidy
-    use modglobal,only : imax,jmax,cexpnr,ifnamopt,fname_options,kb,ke,kh,ib,ie,ih,jb,je,jh,&
-                         lkslicedump,lislicedump,ljslicedump,ltreedump,islice,islicerank,isliceloc,jslice,jslicerank,jsliceloc,&
-                         tsample,tstatsdump
+    use modmpi,   only : cmyidx,cmyidy
+    use modglobal,only : imax,jmax,cexpnr,kb,ke,kh,ib,ie,ih,jb,je,jh,&
+                         lkslicedump,lislicedump,ljslicedump,ltreedump,islice,islicerank,isliceloc,jslice,jslicerank,jsliceloc
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
     use modfields, only : ncstaty,ncstatyt,ncstattke,ncstatxy,ncstatkslice,ncstatislice,ncstatjslice,ncstatxyt,ncstatt,ncstattr,ncstatmint
     use decomp_2d, only : zstart, zend
     implicit none
-    integer :: ierr
-
-
-    namelist/NAMSTATSDUMP/ &
-         lydump,tsample,klow,khigh,tstatsdump,lytdump,ltkedump,lxydump,lxytdump,ltdump,ltreedump,lmintdump    ! maybe removed; NAMSTATSDUMP is not in use anymore
 
     ! Several of these are allocated over kb:ke+kh and accumulated over that
     ! whole range, but only ever computed over kb:ke - the scalar and SGS
@@ -221,34 +215,6 @@ contains
 
     klow=kb
     khigh=ke
-
-    if(myid==0)then
-       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-       read (ifnamopt,NAMSTATSDUMP,iostat=ierr)
-       if (ierr > 0) then
-          write(0, *) 'ERROR: Problem in namoptions NAMSTATSDUMP'
-          write(0, *) 'iostat error: ', ierr
-          stop 1
-       endif
-       !write(6 ,NAMSTATSDUMP)
-       close(ifnamopt)
-    end if
-
-    call MPI_BCAST(klow        ,1,MPI_INTEGER,0,comm3d,ierr) !have to do this? just want nc for first CPU
-    call MPI_BCAST(khigh       ,1,MPI_INTEGER,0,comm3d,ierr)
-    call MPI_BCAST(nstatt      ,1,MPI_INTEGER,0,comm3d,ierr)
-    call MPI_BCAST(nstatmint      ,1,MPI_INTEGER,0,comm3d,ierr)
-    ! call MPI_BCAST(nstaty      ,1,MPI_INTEGER,0,comm3d,ierr)
-    call MPI_BCAST(ncstatyt    ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstaty     ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstattke   ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstatxy    ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstatxyt   ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstatt     ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstatmint     ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    !call MPI_BCAST(ltdump      ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
-    !call MPI_BCAST(ltreedump   ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
-    call MPI_BCAST(lmintdump      ,1,MPI_LOGICAL,0,comm3d,ierr)
 
     !> Generate y-averaged NetCDF: ydump.xxx.nc
     if(lydump) then
