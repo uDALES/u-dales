@@ -9,9 +9,38 @@
 ## 0. What "correct" means here
 
 The zone is not required to be accurate. Errors near an imposed boundary are unavoidable — the
-parent cannot know what the child is doing — and the design accepts them. The acceptance criterion
-is a **decay length**: how far into the domain must one go before the statistics are
-indistinguishable from an unnested reference?
+parent cannot know what the child is doing — and the design accepts them.
+
+> **Revised after V1 (both runs, §10.5).** This section originally named a single **decay length**
+> — how far into the domain one must go before the statistics are indistinguishable from an
+> unnested reference. V1 shows that conflates two error behaviours that point in opposite
+> directions, and that no single number can serve both. The criterion is now split.
+
+**Criterion A — interior fidelity, for the mean flow.** The mean-flow error does *not* decay
+inward, because the boundary is where the solution is imposed and the interior is the only place
+the child is free to differ. Measured, it is smallest at the wall and *grows* inward to a plateau:
+$0.003 \to 0.028$ normalised across the V1 child. The right criterion is therefore a bound on the
+free interior, not a distance:
+
+$$\max_{\text{interior}} \frac{|\langle q\rangle_{\rm child} - \langle q\rangle_{\rm parent}|}{q_{\rm ref}} \le 0.05 .$$
+
+V1 meets this ($0.028$ plateau, RMS $0.008\,u_\star$ against a $0.120\,u_\star$ sampling floor).
+
+**Criterion B — recovery fetch, for the turbulence.** Second-order statistics *do* behave the way
+the original criterion assumed: the resolved-TKE error peaks at the inner edge of the zone and
+decays monotonically inward. Here a distance is the right measure — the fetch $L_{\rm rec}$ at
+which the error falls to the reference's own sampling noise and stays there.
+
+V1 measures the peak at $0.37$ just inside the zone, crossing the noise floor by $\approx2.5h$, and
+still falling at $0.087$ where the far zone truncates it 13$h$ later. **The fetch is longer than the
+V1 child domain**, so $L_{\rm rec}$ is bounded below but not yet measured.
+
+**A consequence worth stating plainly.** Because criterion B is not reached within the domain, the
+child carries a real deficit of resolved turbulence above the canopy — about 10 %, concentrated in
+the 8–64 m band, i.e. the energy-containing scales the child must regenerate for itself rather than
+those the boundary supplies. Some such loss is intrinsic to one-way nesting at finite domain size.
+It is now measured for this configuration rather than assumed, and how it scales with child size
+and zone width is what V2 exists to determine.
 
 Urban geometry helps, and helps specifically. Buildings are a strong, distributed, always-on
 generator of turbulence, so structural errors injected at the boundary — reflections, interpolation
@@ -623,11 +652,17 @@ $\|\mathcal{G}p\|$ in the zone relative to the interior (the answer to §3.3);
 the misfit $\mathrm{rms}(\tilde q-q)$ at the inner zone edge; and resolved TKE on planes normal to
 the inflow, to measure the turbulence development fetch.
 
-The **headline acceptance metric is the decay length** (§0): the distance from the inner edge of
-the zone at which a chosen statistic (mean profile, resolved TKE, facet stress) becomes
-indistinguishable from an unnested reference. Report it as a number per validation case, in metres
-and in building heights. Everything else in this table is a means of diagnosing *why* that number
-is what it is.
+The **headline acceptance metrics are the two of §0**, and which one applies depends on the
+statistic. First-order quantities (mean profiles, facet stresses) take criterion A, an interior
+fidelity bound — their error grows inward from the imposed boundary, so a distance is meaningless
+for them. Second-order quantities (resolved TKE, spectra) take criterion B, the recovery fetch, in
+metres and in building heights. Report both per validation case. Everything else in this table is a
+means of diagnosing *why* those numbers are what they are.
+
+Reporting a single decay length across both, as this document originally specified, produces a
+number that looks excellent and means nothing: in V1 the metric returned "one cell past the ramp"
+on seven of eight curves purely because the error was below the sampling floor everywhere, while
+the underlying shapes were opposite.
 
 ---
 
@@ -644,10 +679,11 @@ it should be stated plainly rather than assumed away: the interior is insulated 
 interpolation makes the target *exactly* solenoidal, so the interpolation contributes no divergence
 at all and the only source is the parent/child blend across $0<W<1$. That leaves (ii), treating $\|\mathcal{G}p\|_{\rm zone}/\|\mathcal{G}p\|_{\rm interior}$ as a headline
 diagnostic, not a footnote. Per §0 this concern splits: the *fluctuating* part of the zone's
-pressure signature is mixed away by canopy turbulence within the decay length, so it is bounded by
-measurement rather than by construction; the *mean* part is not dispersed and must be controlled
-by the conservative interpolation and $\Phi=0$. Watch the ratio, but judge it on the decay length,
-not on its value in the zone.
+pressure signature is mixed away by canopy turbulence within the recovery fetch (§0, criterion B),
+so it is bounded by measurement rather than by construction; the *mean* part is not dispersed and
+must be controlled by the conservative interpolation and $\Phi=0$. Watch the ratio, but judge it on
+the fetch, not on its value in the zone. V1 measured the ratio at 0.16 with buildings present —
+the projection works *less* hard in the zone than in the interior.
 
 **C2 — silent failure (F3).** The top concern, and §0 is why: a net mass error is a global
 constraint violation that turbulence cannot disperse — it accumulates. This is also a property of
@@ -1186,15 +1222,57 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 
 | ID | Question | Method | Deliverable |
 |---|---|---|---|
-| V1 | Does matched LES-to-LES nesting reproduce the parent? | Big Brother: periodic parent, writer dumps zone slabs, sub-domain child at matched resolution | mean profiles, resolved TKE and spectra vs the parent sub-region; sets the $\tau$ and width defaults |
-| V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,8,12,20\}$ | reflection and TKE-damping curves vs width; validates or corrects the sizing argument |
+| V1 | Does matched LES-to-LES nesting reproduce the parent? | Big Brother: periodic parent, writer dumps zone slabs, sub-domain child at matched resolution | **DONE — §10.5.** Mean flow yes ($0.008\,u_\star$); canopy turbulence yes (1–2 %); above the canopy a real $\approx10\,\%$ resolved-TKE deficit from insufficient fetch |
+| V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,8,12,20\}$ | reflection and TKE-damping curves vs width. **Reframed after V1** as a falsification test: if the deficit is fetch-limited rather than boundary-limited, zone width should barely move it. Pair with a child-size sweep at fixed zone width, which measures the fetch directly |
 | V3 | **Parent without buildings** | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against variants with a 0/5/15-cell standoff | the adjustment length (§9.4), and confirmation that a standoff lengthens rather than shortens it |
 | V4 | **Different parent geometry** | parent with a different building layout | interior statistics vs S3; confirms the interior is insensitive to the mismatch beyond the adjustment fetch |
 | V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | a fetch curve for uDALES, compared against the paper's ≤4/≤30 guidance; **go/no-go on C6** |
 | V6 | Does mass drift over long runs? | 10⁵-step run | `divtot` bounded, not drifting |
 | V7 | Does the I/O cost anything? | production-sized case | read time <1% of runtime; if not, switch container (§6.3) |
 
-### 10.5 Wiring
+### 10.5 V1 results
+
+Two runs of the Big Brother experiment, `production` (job 3990472) and `converged` (job 3991175),
+identical in every physical parameter and differing only in schedule. Full write-up and plots in
+the published report; the numbers that change this document are below.
+
+Parent $256\times256\times64$ at $\Delta x = 2$ m with 228 cubes of $h=16$ m; child
+$128\times128\times64$ centred, leaving $104\times104$ cells = $13h\times13h$ of interior outside
+the zone. Zone 3 imposed + 9 relaxed cells per side, $\tau = 1$ s, linear time interpolation, child
+cold-started from the parent's 3-D block. 64 cores; 53 min and 4 h 08 respectively.
+
+| | `production` | `converged` |
+|---|---|---|
+| statistics window | 1491 s (497 samples) | 10 191 s (3397 samples) |
+| $\|\Phi\|/A$ | $2.85\times10^{-14}$ | $2.98\times10^{-14}$ |
+| $\langle u\rangle$ RMS difference | $0.0129\,u_\star$ | $0.0083\,u_\star$ |
+| $\langle u\rangle$ sampling floor | $0.165\,u_\star$ | $0.120\,u_\star$ |
+| TKE RMS difference | $0.114\,u_\star^2$ | $0.121\,u_\star^2$ |
+| TKE sampling floor | $0.158\,u_\star^2$ | $0.036\,u_\star^2$ |
+
+**The deficit is real.** The sampling floor fell by $4.4\times$ between runs and the difference did
+not move; a sampling artefact would have fallen with the floor. Above $z/h=2$ the deficit is
+$-9.9\,\%$ in the mean, reaching $4$–$8\sigma$ at $z/h = 3$–$5$ against per-height spreads of
+1.1–1.5 %. Below $z/h=1$ it is $+1.5\,\%$ against a 0.7 % spread — the canopy layer is clean, as
+§1.4 assumed when the zone width was chosen.
+
+**The mechanism is fetch, not the boundary treatment.** The deficit is scale-selective: at
+$z/h=2.06$ the child/parent spectral ratio is $1.03$ for $\lambda > L/4$, $0.875$ for $16$–$64$ m,
+$0.827$ for $8$–$16$ m, and $1.05$ below $4\Delta x$. The imposed large scales come through
+*strong*; what is missing is the energy-containing middle, which the child must regenerate itself.
+Those two intermediate bands reproduce to four parts in a thousand across runs sharing no samples,
+which is what makes the result deterministic rather than statistical. In physical space the same
+thing appears as a TKE error decaying monotonically from $0.37$ at the zone edge to $0.087$ at the
+far side of the interior — *still falling* where the far zone truncates it.
+
+**One correction to an earlier reading.** The `production` TKE trace appeared to climb steadily and
+was read as an unfinished spin-up. Over the longer window the domain is seen to carry a slow
+oscillation of a few thousand seconds with $\pm10\,\%$ excursions and no net trend: the short run
+had landed on a rising limb. The lesson is about window length, not spin-up — a window must span
+several of these cycles. The child follows the parent's slow modes with a lag of several hundred
+seconds.
+
+### 10.6 Wiring
 
 New `nesting` group in `tests/test_suites.yml`: unit runmodes and the Python units as
 `class: supported` (fast, no big fixtures); integration as `class: experimental` until V1 passes;
@@ -1208,7 +1286,7 @@ you nothing. The unit layer exists so that it never has to be the first thing th
 
 ---
 
-## 10.6 Open items after the first implementation pass
+## 10.7 Open items after the first implementation pass
 
 Recorded here rather than in a tracker so they travel with the design.
 
