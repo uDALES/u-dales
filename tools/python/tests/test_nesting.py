@@ -1114,7 +1114,7 @@ class TestP14P16Projection(unittest.TestCase):
         with self.assertRaises(ConfigurationError) as ctx:
             NestingData(
                 grid=data.grid, nzone=data.nzone, times=data.times, slabs=data.slabs,
-                rhobf=data.rhobf, rhobh=data.rhobh,
+                rhobf=data.rhobf, rhobh=data.rhobh, parent_dt=data.parent_dt,
                 initial_fields=initial_fields_from_fields(
                     data.grid, *closed_box_fields(data.grid, seed=509)),
             )

@@ -84,6 +84,7 @@ __all__ = [
     "INIT_VARIABLES",
     "MAX_SPATIAL_REFINEMENT",
     "MAX_TEMPORAL_REFINEMENT",
+    "PARENT_DT_RTOL",
     "REQUIRED_GLOBAL_ATTRIBUTES",
     "REQUIRED_GLOBAL_ATTRIBUTES_V2",
     "SCHEMA_VERSION",
@@ -104,6 +105,7 @@ __all__ = [
     "boundary_faces",
     "check_alignment",
     "check_refinement",
+    "check_time_axis",
     "conservative_interpolate",
     "discrete_divergence",
     "fluid_face_area",
@@ -203,6 +205,11 @@ REQUIRED_GLOBAL_ATTRIBUTES_V2 = REQUIRED_GLOBAL_ATTRIBUTES + (
 )
 
 _COORD_VARIABLES = ("xf", "xh", "yf", "yh", "zf", "zh")
+
+#: ``parent_dt`` must agree with the median spacing of the time axis to this
+#: relative tolerance.  Loose enough for a parent whose dump times carry
+#: round-off, tight enough to catch a cadence that is simply wrong.
+PARENT_DT_RTOL = 1.0e-2
 
 #: Snapping tolerance for "this child face is coplanar with a parent face",
 #: relative to the smallest parent spacing.  The same number is the alignment
@@ -916,6 +923,64 @@ def project_initial_condition(
 
 
 # --------------------------------------------------------------------------- #
+# Time axis
+# --------------------------------------------------------------------------- #
+
+
+def check_time_axis(times: np.ndarray, parent_dt: float, context: str = "") -> float:
+    """Validate the stored time axis and ``parent_dt`` against each other.
+
+    The contract (docs/udales-nesting-spec.md section 5) is that ``time`` is
+    the **child's** clock: it starts at exactly 0, since the solver positions
+    its parent-time buffer on ``timee`` and a record starting later would
+    leave the child frozen on the first level with no message; it is strictly
+    increasing; and ``parent_dt`` -- the cadence the temporal-refinement guard
+    and the cadence criterion use -- is positive and agrees with the median
+    spacing to :data:`PARENT_DT_RTOL`.  A producer working from absolute
+    parent times subtracts ``times[0]`` first, as ``make_child_case`` does.
+
+    A single time level has no spacing, so only ``parent_dt >= 0`` is asked
+    of it.  Returns the median spacing (``parent_dt`` when there is only one
+    level).  Raises :class:`ConfigurationError` naming the violation.
+    """
+    times = np.asarray(times, dtype=np.float64).reshape(-1)
+    where = f"{context}: " if context else ""
+    if times.size == 0:
+        raise ConfigurationError(f"{where}the time axis is empty")
+    if not np.all(np.isfinite(times)):
+        raise ConfigurationError(f"{where}the time axis contains non-finite values")
+    if times[0] != 0.0:
+        raise ConfigurationError(
+            f"{where}time[0] = {times[0]:g} s, but the stored axis is the child's own "
+            "clock and must start at exactly 0; subtract the first parent time "
+            "(the time-origin convention make_child_case applies)"
+        )
+    if times.size > 1:
+        spacing = np.diff(times)
+        if not np.all(spacing > 0.0):
+            bad = int(np.argmin(spacing > 0.0))
+            raise ConfigurationError(
+                f"{where}the time axis is not strictly increasing: time[{bad}] = "
+                f"{times[bad]:g} s is followed by time[{bad + 1}] = {times[bad + 1]:g} s"
+            )
+        median = float(np.median(spacing))
+        if not parent_dt > 0.0:
+            raise ConfigurationError(
+                f"{where}parent_dt = {parent_dt:g} s must be positive; the time axis "
+                f"has a median spacing of {median:g} s"
+            )
+        if abs(parent_dt - median) > PARENT_DT_RTOL * median:
+            raise ConfigurationError(
+                f"{where}parent_dt = {parent_dt:g} s disagrees with the median spacing "
+                f"of the time axis, {median:g} s (tolerance {PARENT_DT_RTOL:g} relative)"
+            )
+        return median
+    if parent_dt < 0.0:
+        raise ConfigurationError(f"{where}parent_dt = {parent_dt:g} s must not be negative")
+    return float(parent_dt)
+
+
+# --------------------------------------------------------------------------- #
 # The data container
 # --------------------------------------------------------------------------- #
 
@@ -995,6 +1060,8 @@ class NestingData:
         self.nzone = int(self.nzone)
         _check_nzone(self.grid, self.nzone)
         self.times = np.asarray(self.times, dtype=np.float64).reshape(-1)
+        self.parent_dt = float(self.parent_dt)
+        check_time_axis(self.times, self.parent_dt, context="NestingData")
         if self.rhobf is None:
             self.rhobf = np.ones(self.grid.ktot, dtype=np.float64)
         if self.rhobh is None:
@@ -1127,7 +1194,7 @@ def nesting_data_from_parent(
     kwargs.setdefault("child_origin_x", float(child.xh[0]))
     kwargs.setdefault("child_origin_y", float(child.yh[0]))
     if times.size > 1:
-        kwargs.setdefault("parent_dt", float(np.min(np.diff(times))))
+        kwargs.setdefault("parent_dt", float(np.median(np.diff(times))))
     return NestingData(grid=child, nzone=nzone, times=times, slabs=slabs, **kwargs)
 
 
@@ -1713,6 +1780,11 @@ def validate_nesting_file(path: os.PathLike | str) -> Dict[str, Any]:
             values = np.asarray(ds.variables[name][:], dtype=np.float64)
             if values.size > 1 and not np.all(np.diff(values) > 0.0):
                 raise NestingSchemaError(f"{path.name}: coordinate {name} is not increasing")
+        try:
+            check_time_axis(np.asarray(ds.variables["time"][:], dtype=np.float64),
+                            float(attrs["parent_dt"]), context=path.name)
+        except ConfigurationError as exc:
+            raise NestingSchemaError(str(exc)) from exc
         xlen = float(np.asarray(ds.variables["xh"][:])[-1] - np.asarray(ds.variables["xh"][:])[0])
         ylen = float(np.asarray(ds.variables["yh"][:])[-1] - np.asarray(ds.variables["yh"][:])[0])
         for label, from_attr, from_coord in (("xlen", float(attrs["xlen"]), xlen),
@@ -1894,6 +1966,9 @@ def write_analytic_nesting_file(
     attributes.setdefault("parent_model", "analytic")
     attributes.setdefault("child_origin_x", float(grid.xh[0]))
     attributes.setdefault("child_origin_y", float(grid.yh[0]))
+    times_arr = np.asarray(times, dtype=np.float64).reshape(-1)
+    if times_arr.size > 1:
+        attributes.setdefault("parent_dt", float(np.median(np.diff(times_arr))))
     if initial:
         attributes.setdefault(
             "initial_fields",

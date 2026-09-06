@@ -41,16 +41,22 @@ from exceptions import ConfigurationError  # noqa: E402
 from udprep.nesting import (  # noqa: E402
     COMPONENTS,
     FACES,
+    PARENT_DT_RTOL,
     NestGrid,
     NestingAlignmentError,
+    NestingData,
+    NestingSchemaError,
     check_alignment,
+    check_time_axis,
     discrete_divergence,
     interpolate_child_fields,
     nesting_data_from_parent,
     slabs_from_parent,
+    validate_nesting_file,
+    write_nesting_file,
 )
 
-from test_nesting import make_grids, solenoidal_parent_fields  # noqa: E402
+from test_nesting import make_grids, random_nesting_data, solenoidal_parent_fields  # noqa: E402
 
 
 # --------------------------------------------------------------------------- #
@@ -173,6 +179,65 @@ class TestW1Alignment(unittest.TestCase):
             print(f"[W1] stretched parent: child divmax = {div:.3e} s-1 "
                   f"= {div / sscale:.2f} x (max|u| / min dx)")
             self.assertGreater(div / sscale, 0.1)
+
+
+# --------------------------------------------------------------------------- #
+# W3 -- time axis
+# --------------------------------------------------------------------------- #
+
+
+class TestW3TimeAxis(unittest.TestCase):
+    """W3: the stored time axis is the child's clock and parent_dt must match it."""
+
+    def _kwargs(self, data):
+        return dict(grid=data.grid, nzone=data.nzone, slabs=data.slabs,
+                    rhobf=data.rhobf, rhobh=data.rhobh, parent_dx=data.parent_dx)
+
+    def test_an_absolute_parent_time_axis_is_rejected(self):
+        # the review's failure mode: a child frozen on the first level, silently
+        data = random_nesting_data(seed=301, ntime=4)
+        with self.assertRaises(ConfigurationError) as ctx:
+            NestingData(times=3600.0 + data.times, parent_dt=60.0, **self._kwargs(data))
+        self.assertIn("must start at exactly 0", str(ctx.exception))
+
+    def test_a_non_monotone_time_axis_is_rejected(self):
+        data = random_nesting_data(seed=302, ntime=4)
+        for label, times in (("duplicate", [0.0, 60.0, 60.0, 180.0]),
+                             ("unordered", [0.0, 120.0, 60.0, 180.0])):
+            with self.subTest(case=label):
+                with self.assertRaises(ConfigurationError) as ctx:
+                    NestingData(times=times, parent_dt=60.0, **self._kwargs(data))
+                self.assertIn("strictly increasing", str(ctx.exception))
+
+    def test_a_parent_dt_that_is_not_the_cadence_is_rejected(self):
+        data = random_nesting_data(seed=303, ntime=4)
+        for label, dt in (("zero", 0.0), ("negative", -60.0), ("wrong", 30.0),
+                          ("just outside tolerance", 60.0 * (1.0 + 2.0 * PARENT_DT_RTOL))):
+            with self.subTest(case=label):
+                with self.assertRaises(ConfigurationError) as ctx:
+                    NestingData(times=data.times, parent_dt=dt, **self._kwargs(data))
+                self.assertIn("parent_dt", str(ctx.exception))
+        # inside the tolerance is fine, and the median is what is compared
+        NestingData(times=data.times, parent_dt=60.0 * (1.0 + 0.5 * PARENT_DT_RTOL),
+                    **self._kwargs(data))
+        self.assertAlmostEqual(check_time_axis([0.0, 60.0, 120.0, 181.0], 60.0), 60.0)
+
+    def test_a_single_level_needs_no_cadence(self):
+        data = random_nesting_data(seed=304, ntime=1)
+        NestingData(times=[0.0], parent_dt=0.0, **self._kwargs(data))
+        with self.assertRaises(ConfigurationError):
+            NestingData(times=[5.0], parent_dt=0.0, **self._kwargs(data))
+
+    def test_validate_rejects_a_file_whose_axis_was_edited(self):
+        data = random_nesting_data(seed=305, ntime=3)
+        with TemporaryDirectory() as tmp:
+            path = write_nesting_file(Path(tmp) / "t.nc", data)
+            validate_nesting_file(path)
+            with Dataset(path, "a") as ds:
+                ds.variables["time"][0] = 1.0
+            with self.assertRaises(NestingSchemaError) as ctx:
+                validate_nesting_file(path)
+            self.assertIn("start at exactly 0", str(ctx.exception))
 
 
 if __name__ == "__main__":  # pragma: no cover
