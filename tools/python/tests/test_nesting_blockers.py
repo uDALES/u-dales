@@ -52,6 +52,8 @@ from udprep.nesting import (  # noqa: E402
     NestingData,
     NestingRefinementError,
     NestingSchemaError,
+    NestingWriter,
+    analytic_slabs,
     apply_divergence_correction,
     boundary_faces,
     cadence_courant,
@@ -62,6 +64,7 @@ from udprep.nesting import (  # noqa: E402
     discrete_divergence,
     face_masks_from_ibm,
     fluid_face_area,
+    initial_fields_from_fields,
     fluid_lateral_area,
     interpolate_child_fields,
     nesting_data_from_parent,
@@ -79,7 +82,12 @@ from udprep.nesting import (  # noqa: E402
     write_nesting_file,
 )
 
-from test_nesting import make_grids, random_nesting_data, solenoidal_parent_fields  # noqa: E402
+from test_nesting import (  # noqa: E402
+    closed_box_fields,
+    make_grids,
+    random_nesting_data,
+    solenoidal_parent_fields,
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -314,6 +322,172 @@ class TestW3TimeAxis(unittest.TestCase):
             with self.assertRaises(NestingSchemaError) as ctx:
                 validate_nesting_file(path)
             self.assertIn("start at exactly 0", str(ctx.exception))
+
+
+# --------------------------------------------------------------------------- #
+# W4 -- the per-level append writer
+# --------------------------------------------------------------------------- #
+
+
+def slab_bytes(data):
+    return sum(arr.nbytes for arr in data.slabs.values())
+
+
+class TestW4StreamingWriter(unittest.TestCase):
+    """W4: NestingWriter writes level by level what write_nesting_file writes whole."""
+
+    def setUp(self):
+        self._tmp = TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+    def _metadata(self, data):
+        return dict(rhobf=data.rhobf, rhobh=data.rhobh, parent_model="stream test",
+                    parent_dx=data.parent_dx, parent_dt=data.parent_dt,
+                    child_origin_x=data.child_origin_x, child_origin_y=data.child_origin_y,
+                    child_dt=data.child_dt)
+
+    def test_streamed_levels_equal_the_whole_record_route(self):
+        data = random_nesting_data(seed=401, ntime=5, child_origin_x=64.0)
+        west = np.ones((6, 5), dtype=bool); west[1:3, :2] = False
+        masks = FaceMasks(west=west)
+        raw = data.copy()
+        untouched = {k: v.copy() for k, v in raw.slabs.items()}
+        apply_divergence_correction(data, masks)
+        whole = write_nesting_file(self.tmp / "whole.nc", data)
+        with NestingWriter(self.tmp / "stream.nc", raw.grid, raw.nzone, masks=masks,
+                           **self._metadata(raw)) as writer:
+            for n in range(raw.ntime):
+                info = writer.append_level(raw.times[n],
+                                           {k: v[n] for k, v in raw.slabs.items()})
+                self.assertEqual(info["level"], n)
+                self.assertAlmostEqual(info["net_volume_flux"], data.net_volume_flux[n],
+                                       places=9)
+        validate_nesting_file(self.tmp / "stream.nc")
+        a = read_nesting_file(whole)
+        b = read_nesting_file(self.tmp / "stream.nc")
+        scale = max(np.max(np.abs(v)) for v in data.slabs.values())
+        for name in a.slabs:
+            np.testing.assert_allclose(b.slabs[name], a.slabs[name], rtol=0, atol=1e-14 * scale,
+                                       err_msg=name)
+        np.testing.assert_array_equal(b.times, a.times)
+        np.testing.assert_allclose(b.net_volume_flux, a.net_volume_flux, rtol=1e-12)
+        self.assertLess(np.max(np.abs(b.flux_residual)), 1e-9)
+        self.assertAlmostEqual(b.fluid_lateral_area, a.fluid_lateral_area, places=9)
+        self.assertTrue(b.divergence_corrected)
+        self.assertEqual(b.child_origin_x, 64.0)
+        for name in ("xh", "yh", "zh"):
+            np.testing.assert_array_equal(getattr(b.grid, name), getattr(a.grid, name))
+        # the caller's arrays were not touched by the per-level correction
+        for name in raw.slabs:
+            np.testing.assert_array_equal(raw.slabs[name], untouched[name], name)
+        diag = writer.diagnostics
+        self.assertEqual(diag["ntime"], 5)
+        self.assertAlmostEqual(diag["correction"]["delta_fraction_max"],
+                               data.correction["delta_fraction_max"], places=12)
+        self.assertEqual(diag["correction"]["inflow_faces"], data.correction["inflow_faces"])
+        self.assertEqual(diag["cadence"]["C_dump"], cadence_courant(data, log=False)["C_dump"])
+        self.assertTrue(diag["refinement"]["within_limits"])
+
+    def test_the_initial_condition_is_synced_and_projected_on_the_stream(self):
+        data = random_nesting_data(seed=402, ntime=3, rhobf=None, rhobh=None)
+        data.initial_fields = initial_fields_from_fields(
+            data.grid, *closed_box_fields(data.grid, seed=403))
+        raw = data.copy()
+        apply_divergence_correction(data)
+        a = read_nesting_file(write_nesting_file(self.tmp / "whole.nc", data))
+        with NestingWriter(self.tmp / "stream.nc", raw.grid, raw.nzone,
+                           **self._metadata(raw)) as writer:
+            for n in range(raw.ntime):
+                writer.append_level(raw.times[n], {k: v[n] for k, v in raw.slabs.items()},
+                                    initial_fields=raw.initial_fields if n == 0 else None)
+        attrs = validate_nesting_file(self.tmp / "stream.nc")
+        self.assertEqual(int(attrs["has_initial_condition"]), 1)
+        b = read_nesting_file(self.tmp / "stream.nc")
+        for c in COMPONENTS:
+            np.testing.assert_allclose(b.initial_fields[c], a.initial_fields[c],
+                                       rtol=0, atol=1e-12, err_msg=c)
+        peak = float(np.max(np.abs(discrete_divergence(
+            b.grid, b.initial_fields["u"], b.initial_fields["v"], b.initial_fields["w"]))))
+        self.assertLess(peak, 1e-12)
+        with self.assertRaises(ConfigurationError):
+            with NestingWriter(self.tmp / "late.nc", raw.grid, raw.nzone,
+                               **self._metadata(raw)) as writer:
+                writer.append_level(0.0, {k: v[0] for k, v in raw.slabs.items()})
+                writer.append_level(60.0, {k: v[1] for k, v in raw.slabs.items()},
+                                    initial_fields=raw.initial_fields)
+        self.assertFalse((self.tmp / "late.nc").exists())
+
+    def test_a_failure_removes_the_partial_file(self):
+        data = random_nesting_data(seed=404, ntime=4)
+        level = {k: v[0] for k, v in data.slabs.items()}
+        bad = {k: v.copy() for k, v in level.items()}
+        bad["w_north"][0, 0, 0] = np.nan
+        cases = {
+            "NaN at level 2": ([(0.0, level), (60.0, level), (120.0, bad)], NestingSchemaError),
+            "time going back": ([(0.0, level), (60.0, level), (30.0, level)], ConfigurationError),
+            "first time not 0": ([(60.0, level)], ConfigurationError),
+            "parent_dt off at close": ([(0.0, level), (30.0, level), (60.0, level)],
+                                       ConfigurationError),
+            "nothing appended": ([], ConfigurationError),
+        }
+        for label, (levels, exc) in cases.items():
+            with self.subTest(case=label):
+                path = self.tmp / f"{label.replace(' ', '_')}.nc"
+                with self.assertRaises(exc):
+                    with NestingWriter(path, data.grid, data.nzone,
+                                       **self._metadata(data)) as writer:
+                        for t, slabs in levels:
+                            writer.append_level(t, slabs)
+                self.assertFalse(path.exists(), label)
+
+    def test_memory_high_water_mark_is_independent_of_the_number_of_levels(self):
+        grid = NestGrid.uniform(16, 12, 10, 160.0, 120.0, 50.0)
+        nzone = 3
+        one_level = {k: v[0] for k, v in analytic_slabs(grid, nzone, [0.0]).items()}
+        level_bytes = sum(a.nbytes for a in one_level.values())
+
+        def stream(nlevels):
+            tracemalloc.start()
+            tracemalloc.reset_peak()
+            with NestingWriter(self.tmp / f"n{nlevels}.nc", grid, nzone,
+                               parent_dt=10.0, parent_dx=20.0) as writer:
+                for n in range(nlevels):
+                    slabs = analytic_slabs(grid, nzone, [10.0 * n])
+                    writer.append_level(10.0 * n, {k: v[0] for k, v in slabs.items()})
+            peak = tracemalloc.get_traced_memory()[1]
+            tracemalloc.stop()
+            return peak
+
+        def whole(nlevels):
+            tracemalloc.start()
+            tracemalloc.reset_peak()
+            times = 10.0 * np.arange(nlevels)
+            data = NestingData(grid=grid, nzone=nzone, times=times,
+                               slabs=analytic_slabs(grid, nzone, times),
+                               parent_dt=10.0, parent_dx=20.0)
+            write_nesting_file(self.tmp / f"w{nlevels}.nc", data)
+            peak = tracemalloc.get_traced_memory()[1]
+            tracemalloc.stop()
+            return peak
+
+        stream(5)                                        # warm up allocators
+        s20, s200 = stream(20), stream(200)
+        w200 = whole(200)
+        print(f"\n[W4] one level = {level_bytes / 1e3:.0f} kB; streaming peak "
+              f"{s20 / 1e6:.2f} MB at 20 levels, {s200 / 1e6:.2f} MB at 200; "
+              f"whole-record route {w200 / 1e6:.2f} MB at 200")
+        self.assertLess(s200, 1.25 * s20 + 2 * level_bytes)
+        self.assertLess(s200, 20 * level_bytes)
+        self.assertGreater(w200, 200 * level_bytes)      # the route being replaced
+        # validation is level-wise too
+        tracemalloc.start()
+        tracemalloc.reset_peak()
+        validate_nesting_file(self.tmp / "n200.nc")
+        v200 = tracemalloc.get_traced_memory()[1]
+        tracemalloc.stop()
+        print(f"[W4] validate peak {v200 / 1e6:.2f} MB for a {200 * level_bytes / 1e6:.1f} MB record")
+        self.assertLess(v200, 0.25 * 200 * level_bytes)
 
 
 # --------------------------------------------------------------------------- #

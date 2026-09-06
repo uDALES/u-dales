@@ -722,17 +722,16 @@ class TestP10RefinementGuard(unittest.TestCase):
         validate_nesting_file(path)
 
     def test_ratios_at_the_limit_are_accepted(self):
-        data = random_nesting_data(seed=74)
+        data = random_nesting_data(seed=74)           # times every 60 s, parent_dt 60
         data.parent_dx = 4.0 * min(data.grid.dx.min(), data.grid.dy.min())
-        data.parent_dt = 30.0
-        data.child_dt = 1.0
+        data.child_dt = 2.0                           # temporal ratio exactly 30
         path = write_nesting_file(self.tmp / "at_limit.nc", data)
         self.assertTrue(path.exists())
 
     def test_unknown_ratios_are_not_guessed(self):
         data = random_nesting_data(seed=75)
-        data.parent_dx = 0.0
-        data.parent_dt = 0.0
+        data.parent_dx = 0.0                          # spatial unknown
+        data.child_dt = None                          # temporal unknown
         self.assertEqual(refinement_ratios(data), (None, None))
         write_nesting_file(self.tmp / "unknown.nc", data)
 

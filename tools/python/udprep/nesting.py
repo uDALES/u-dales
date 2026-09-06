@@ -68,6 +68,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
@@ -105,6 +106,7 @@ __all__ = [
     "NestingData",
     "NestingRefinementError",
     "NestingSchemaError",
+    "NestingWriter",
     "analytic_field",
     "analytic_initial_fields",
     "analytic_slabs",
@@ -1989,6 +1991,377 @@ def _global_attributes(data: NestingData, schema: int = SCHEMA_VERSION) -> Dict[
     return attrs
 
 
+#: Metadata keyword arguments :class:`NestingWriter` accepts, with their
+#: defaults -- the provenance fields of :class:`NestingData`.
+_WRITER_METADATA: Dict[str, Any] = {
+    "rhobf": None, "rhobh": None,
+    "parent_model": "unknown", "parent_dx": 0.0, "parent_dt": 0.0,
+    "child_origin_x": 0.0, "child_origin_y": 0.0, "child_dt": None,
+    "rotation_deg": 0.0, "created": "", "creator": "", "tool_version": TOOL_VERSION,
+    "parent_dy": None, "parent_dz": None,
+}
+
+
+class NestingWriter:
+    """Per-level append writer for ``nesting.inp.<expnr>.nc``.
+
+    The whole-record route -- :func:`nesting_data_from_parent` into
+    :func:`write_nesting_file` -- holds every parent level in memory, which
+    the production record cannot afford (21 600 levels of 9.8 MB is 212 GB).
+    This writer takes the header once and then one level at a time::
+
+        with NestingWriter(path, grid, nzone, parent_dt=..., parent_dx=..., ...) as w:
+            for t, (pu, pv, pw) in parent_levels():
+                w.append_level(t - t0, slabs_from_parent(pgrid, pu, pv, pw, grid, nzone))
+        w.diagnostics   # cadence, correction, refinement, as nesting_diagnostics()
+
+    Each level is divergence-corrected on arrival (``correct_divergence``,
+    the per-level operation :func:`apply_divergence_correction` performs on a
+    whole record; the correction of one level never depends on another), its
+    ``net_volume_flux`` and ``flux_residual`` are stored, and the optional
+    schema-2 initial condition is synced to the corrected first level and
+    projected (``project_initial``) when it is passed with level 0.  The
+    cadence and correction diagnostics are accumulated level by level and
+    logged at :meth:`close`; the refinement guard runs at :meth:`open`,
+    before anything is written.  A failure at any point removes the partial
+    file.
+
+    ``masks`` are the child's lateral fluid masks (:func:`face_masks_from_ibm`).
+    Metadata keywords are those of :class:`NestingData`: ``rhobf``, ``rhobh``,
+    ``parent_model``, ``parent_dx``, ``parent_dy``, ``parent_dz``,
+    ``parent_dt``, ``child_origin_x``, ``child_origin_y``, ``child_dt``,
+    ``rotation_deg``, ``created``, ``creator``, ``tool_version``.  The
+    stored time axis is the child's clock (:func:`check_time_axis`): pass
+    ``t - times[0]``.  NetCDF only; the raw back-end is whole-record.
+    """
+
+    def __init__(
+        self,
+        path: os.PathLike | str,
+        grid: NestGrid,
+        nzone: int,
+        masks: Optional[FaceMasks] = None,
+        correct_divergence: bool = True,
+        project_initial: bool = True,
+        schema: Optional[int] = None,
+        allow_refinement_violation: bool = False,
+        refinement_reason: Optional[str] = None,
+        divergence_corrected: Optional[bool] = None,
+        **metadata: Any,
+    ) -> None:
+        unknown = sorted(set(metadata) - set(_WRITER_METADATA))
+        if unknown:
+            raise ConfigurationError(
+                f"NestingWriter: unknown metadata {', '.join(unknown)}; accepted: "
+                f"{', '.join(_WRITER_METADATA)}"
+            )
+        self.path = Path(path)
+        self.grid = grid
+        self.nzone = int(nzone)
+        _check_nzone(grid, self.nzone)
+        self.masks = masks if masks is not None else _ALL_FLUID
+        self.correct_divergence = bool(correct_divergence)
+        self.project_initial = bool(project_initial)
+        self.schema = SCHEMA_VERSION if schema is None else int(schema)
+        if self.schema not in SUPPORTED_SCHEMA_VERSIONS:
+            raise ConfigurationError(
+                f"unsupported nesting schema {self.schema}; this writer emits "
+                f"{SUPPORTED_SCHEMA_VERSIONS}"
+            )
+        self.allow_refinement_violation = bool(allow_refinement_violation)
+        self.refinement_reason = refinement_reason
+        self.divergence_corrected = (self.correct_divergence if divergence_corrected is None
+                                     else bool(divergence_corrected))
+        meta = dict(_WRITER_METADATA)
+        meta.update(metadata)
+        rhobf = meta.pop("rhobf")
+        rhobh = meta.pop("rhobh")
+        self.rhobf = (np.ones(grid.ktot) if rhobf is None
+                      else np.asarray(rhobf, dtype=np.float64).reshape(-1))
+        self.rhobh = (np.ones(grid.ktot + 1) if rhobh is None
+                      else np.asarray(rhobh, dtype=np.float64).reshape(-1))
+        if self.rhobf.size != grid.ktot or self.rhobh.size != grid.ktot + 1:
+            raise ConfigurationError(
+                f"rhobf/rhobh must have {grid.ktot}/{grid.ktot + 1} elements"
+            )
+        # The header, with the attribute names _global_attributes,
+        # stored_coordinates and refinement_verdict read off a NestingData.
+        self.header = SimpleNamespace(
+            grid=grid, nzone=self.nzone, rhobf=self.rhobf, rhobh=self.rhobh,
+            divergence_corrected=self.divergence_corrected, initial_fields=None,
+            fluid_lateral_area=fluid_lateral_area(self, self.masks), **meta,
+        )
+        self.header.parent_dt = float(self.header.parent_dt)
+        self.header.parent_dx = float(self.header.parent_dx)
+        self._ds = None
+        self._times: list = []
+        self._area = fluid_face_area(self, self.masks)
+        self._correction = _CorrectionTally(self, self.masks)
+        self._cadence = _CadenceTally(self.header.parent_dt, self.header.parent_dx)
+        self._has_initial = False
+        self.refinement: Optional[Dict[str, Any]] = None
+        self.diagnostics: Optional[Dict[str, Any]] = None
+
+    # -- what the flux functions need to see this object as --------------- #
+
+    @property
+    def ntime(self) -> int:
+        return len(self._times)
+
+    @classmethod
+    def from_data(cls, path: os.PathLike | str, data: NestingData, **options: Any
+                  ) -> "NestingWriter":
+        """A writer carrying ``data``'s header, for writing its levels through."""
+        options.setdefault("masks", data.masks)
+        options.setdefault("divergence_corrected", data.divergence_corrected)
+        metadata = {name: getattr(data, name) for name in _WRITER_METADATA}
+        return cls(path, data.grid, data.nzone, **options, **metadata)
+
+    # -- lifecycle --------------------------------------------------------- #
+
+    def open(self) -> "NestingWriter":
+        """Run the refinement guard, create the file and write the header."""
+        if self._ds is not None:
+            raise ConfigurationError(f"{self.path.name} is already open")
+        if self._area <= 0.0:
+            raise ConfigurationError(
+                "the lateral boundary has no fluid area; cannot correct the volume flux"
+            )
+        self.refinement = check_refinement(
+            self.header, allow_refinement_violation=self.allow_refinement_violation,
+            reason=self.refinement_reason,
+        )
+        coords = stored_coordinates(self.header)
+        Dataset = _import_dataset()
+        grid = self.grid
+        try:
+            ds = Dataset(self.path, "w", format="NETCDF4")
+            self._ds = ds
+            ds.createDimension("time", None)
+            ds.createDimension("zf", grid.ktot)
+            ds.createDimension("zh", grid.ktot + 1)
+            ds.createDimension("xf", grid.itot)
+            ds.createDimension("xh", grid.itot + 1)
+            ds.createDimension("yf", grid.jtot)
+            ds.createDimension("yh", grid.jtot + 1)
+            ds.createDimension("nz", self.nzone)
+            ds.createDimension("nzh", self.nzone + 1)
+
+            var = ds.createVariable("time", "f8", ("time",))
+            var.units = "s"
+            var.long_name = "parent time level, on the child's clock (starts at 0)"
+            for name in _COORD_VARIABLES:
+                var = ds.createVariable(name, "f8", (name,))
+                var.units = "m"
+                var.long_name = (f"child-relative {name}" if name[0] in "xy" else name)
+                var[:] = coords[name]
+            for name, dim, values in (("rhobf", "zf", self.rhobf), ("rhobh", "zh", self.rhobh)):
+                var = ds.createVariable(name, "f8", (dim,))
+                var.units = "kg m-3"
+                var[:] = values
+            var = ds.createVariable("net_volume_flux", "f8", ("time",))
+            var.units = FLUX_UNITS
+            var.long_name = "net volume flux through the lateral boundary before correction"
+            if self.schema >= 2:
+                var = ds.createVariable("flux_residual", "f8", ("time",))
+                var.units = FLUX_UNITS
+                var.long_name = ("net volume flux through the lateral boundary as stored, "
+                                 "i.e. after any divergence correction")
+            for face in FACES:
+                for component in COMPONENTS:
+                    name = f"{component}_{face}"
+                    dims = ("time",) + slab_dimensions(face, component)
+                    var = ds.createVariable(name, "f8", dims)
+                    var.stagger = STAGGER[component]
+                    var.units = "m s-1"
+        except Exception:
+            self._abandon()
+            raise
+        return self
+
+    def append_level(
+        self,
+        time: float,
+        slabs: Mapping[str, np.ndarray],
+        initial_fields: Optional[Mapping[str, np.ndarray]] = None,
+        net_volume_flux_before: Optional[float] = None,
+        flux_residual_verified: Optional[float] = None,
+    ) -> Dict[str, float]:
+        """Correct (unless ``correct_divergence`` is off) and write one level.
+
+        ``slabs`` maps the twelve variable names to 3-D arrays of
+        :func:`slab_shape`; the caller's arrays are not modified.
+        ``initial_fields`` (``u``/``v``/``w`` on the whole child grid) may
+        only come with level 0.  The last two are for the pass-through of
+        :func:`write_nesting_file`, whose levels were corrected elsewhere:
+        ``net_volume_flux_before`` is the pre-correction residual to store
+        (otherwise: this level's residual on arrival) and
+        ``flux_residual_verified`` the residual of the stored data as
+        :func:`verify_stored_residual` recomputed it, so that both back-ends
+        store the same bits (otherwise: recomputed here from the level).
+
+        Returns ``{"level", "time", "net_volume_flux", "flux_residual", "delta"}``.
+        """
+        if self._ds is None:
+            raise ConfigurationError(f"{self.path.name}: append_level before open()")
+        try:
+            return self._append(float(time), slabs, initial_fields,
+                                net_volume_flux_before, flux_residual_verified)
+        except Exception:
+            self._abandon()
+            raise
+
+    def _append(self, time, slabs, initial_fields, net_before, residual_verified
+                ) -> Dict[str, float]:
+        n = self.ntime
+        if n == 0 and time != 0.0:
+            raise ConfigurationError(
+                f"the first stored time must be exactly 0 (the child's clock), got "
+                f"{time:g} s; subtract the first parent time"
+            )
+        if n > 0 and time <= self._times[-1]:
+            raise ConfigurationError(
+                f"time level {n} at {time:g} s does not follow level {n - 1} at "
+                f"{self._times[-1]:g} s: the time axis must be strictly increasing"
+            )
+        missing = [name for name in SLAB_VARIABLES if name not in slabs]
+        if missing:
+            raise ConfigurationError(f"missing slab variables: {', '.join(missing)}")
+        level: Dict[str, np.ndarray] = {}
+        for face in FACES:
+            for component in COMPONENTS:
+                name = f"{component}_{face}"
+                arr = np.asarray(slabs[name], dtype=np.float64)
+                expected = slab_shape(self.grid, self.nzone, face, component)
+                if arr.shape != expected:
+                    raise ConfigurationError(
+                        f"{name} at level {n} has shape {arr.shape}, expected {expected}"
+                    )
+                if not np.all(np.isfinite(arr)):
+                    raise NestingSchemaError(
+                        f"{name} at level {n} contains non-finite values; NaN is an error"
+                    )
+                # the correction writes into the boundary-normal arrays: copy those
+                if self.correct_divergence and component == _FACE_NORMAL_COMPONENT[face]:
+                    arr = arr.copy()
+                level[name] = np.ascontiguousarray(arr)
+        view = _LevelView.wrap(self.grid, self.nzone, self.rhobf, level)
+        if self.correct_divergence:
+            scale = _boundary_velocity_scale(view, self.masks)
+            outward = _face_mean_outward_velocity(view, self.masks)
+            residual, delta = _correct_in_place(view, self.masks, self._area)
+            self._correction.add(residual, delta, scale, outward, n)
+            before = float(residual[0]) if net_before is None else float(net_before)
+            delta = float(delta[0])
+        else:
+            residual = net_volume_flux(view, self.masks)
+            before = float(residual[0]) if net_before is None else float(net_before)
+            delta = 0.0
+        after = (float(net_volume_flux(view, self.masks)[0]) if residual_verified is None
+                 else float(residual_verified))
+        self._cadence.add(_max_normal_speed(view, self.masks), n)
+
+        if initial_fields is not None:
+            if n != 0:
+                raise ConfigurationError("the initial condition belongs with time level 0")
+            if self.schema < 2:
+                raise ConfigurationError(
+                    "a full-domain initial condition needs schema 2; schema 1 has no place for it"
+                )
+            self._write_initial(view, initial_fields)
+
+        ds = self._ds
+        ds.variables["time"][n] = time
+        ds.variables["net_volume_flux"][n] = before
+        if self.schema >= 2:
+            ds.variables["flux_residual"][n] = after
+        for name, arr in level.items():
+            ds.variables[name][n] = arr
+        self._times.append(time)
+        return {"level": n, "time": time, "net_volume_flux": before,
+                "flux_residual": after, "delta": delta}
+
+    def _write_initial(self, view: _LevelView, initial_fields: Mapping[str, np.ndarray]) -> None:
+        fields = initial_fields_from_fields(
+            self.grid, initial_fields["u"], initial_fields["v"], initial_fields["w"]
+        )
+        if not (np.allclose(self.rhobf, 1.0, rtol=0.0, atol=1e-12)
+                and np.allclose(self.rhobh, 1.0, rtol=0.0, atol=1e-12)):
+            raise ConfigurationError(
+                "a full-domain initial condition needs rhobf == rhobh == 1 (design finding F1)"
+            )
+        if self.correct_divergence and self.project_initial:
+            fields = {c: a.copy() for c, a in fields.items()}
+            holder = SimpleNamespace(grid=self.grid, nzone=self.nzone, rhobf=self.rhobf,
+                                     slabs=view.slabs, initial_fields=fields, ntime=1)
+            sync_initial_condition(holder, self.masks)
+        for name, arr in fields.items():
+            if not np.all(np.isfinite(arr)):
+                raise NestingSchemaError(f"{name}_init contains non-finite values")
+        ds = self._ds
+        for component in COMPONENTS:
+            var = ds.createVariable(f"{component}_init", "f8", init_dimensions(component))
+            var.stagger = STAGGER[component]
+            var.units = "m s-1"
+            var.long_name = ("full-domain initial condition at the first stored time, "
+                             f"velocity component {component}")
+            var[:] = fields[component]
+        self._has_initial = True
+
+    def close(self) -> Path:
+        """Validate the time axis, write the global attributes, close the file.
+
+        A time axis that fails :func:`check_time_axis` (``parent_dt`` against
+        the median spacing) removes the file and raises.  Logs the cadence
+        and, when correcting, the correction summary; ``self.diagnostics``
+        holds both plus the refinement verdict afterwards.
+        """
+        if self._ds is None:
+            raise ConfigurationError(f"{self.path.name}: close() before open()")
+        try:
+            if self.ntime == 0:
+                raise ConfigurationError(f"{self.path.name}: no time level was appended")
+            times = np.asarray(self._times, dtype=np.float64)
+            check_time_axis(times, self.header.parent_dt, context=self.path.name)
+            self.header.initial_fields = True if self._has_initial else None
+            for key, value in _global_attributes(self.header, self.schema).items():
+                self._ds.setncattr(key, value)
+        except Exception:
+            self._abandon()
+            raise
+        self._ds.close()
+        self._ds = None
+        self.diagnostics = {
+            "ntime": self.ntime,
+            "cadence": self._cadence.log(),
+            "correction": self._correction.log() if self.correct_divergence else None,
+            "refinement": self.refinement,
+        }
+        return self.path
+
+    def _abandon(self) -> None:
+        """Close and delete the partial file after a failure."""
+        if self._ds is not None:
+            try:
+                self._ds.close()
+            except Exception:  # pragma: no cover - already broken
+                pass
+            self._ds = None
+        try:
+            self.path.unlink()
+        except OSError:
+            pass
+
+    def __enter__(self) -> "NestingWriter":
+        return self.open()
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        if exc_type is not None:
+            self._abandon()
+            return
+        self.close()
+
+
 def write_nesting_file(
     path: os.PathLike | str,
     data: NestingData,
@@ -2001,12 +2374,10 @@ def write_nesting_file(
 ) -> Path:
     """Write ``data`` to ``nesting.inp.<expnr>.nc``, exactly per the contract.
 
-    ``masks`` are the lateral fluid masks the residual is summed over; they
-    default to ``data.masks``, which :func:`apply_divergence_correction`
-    records.  The stored ``flux_residual`` and ``fluid_lateral_area`` are
-    recomputed from the slabs here and a cached value that disagrees is an
-    error (:func:`verify_stored_residual`), so a file can never claim a
-    residual its data do not have.
+    A thin wrapper over :class:`NestingWriter`: the levels of ``data`` are
+    passed through one at a time, as they are (a correction is applied with
+    :func:`apply_divergence_correction` beforehand, not here).  For a record
+    that does not fit in memory use the writer directly.
 
     ``backend`` is ``'netcdf'`` (default, or implied by a ``.nc`` suffix) or
     ``'raw'`` (a flat stream of the slab arrays plus a JSON sidecar, design
@@ -2016,6 +2387,13 @@ def write_nesting_file(
     ``flux_residual`` and, when ``data.initial_fields`` is set, the full-domain
     initial condition; 1 writes neither, which is what the pre-v2 writer
     produced and what the back-compatibility tests need.
+
+    ``masks`` are the lateral fluid masks the residual is summed over; they
+    default to ``data.masks``, which :func:`apply_divergence_correction`
+    records.  The stored ``flux_residual`` and ``fluid_lateral_area`` are
+    recomputed from the slabs here and a cached value that disagrees is an
+    error (:func:`verify_stored_residual`), so a file can never claim a
+    residual its data do not have.
 
     Refuses to write when the refinement ratios are outside the validated range
     (see :func:`check_refinement`) unless ``allow_refinement_violation`` is
@@ -2036,83 +2414,36 @@ def write_nesting_file(
         raise ConfigurationError(
             "a full-domain initial condition needs schema 2; schema 1 has no place to put it"
         )
-    check_refinement(data, allow_refinement_violation=allow_refinement_violation,
-                     reason=refinement_reason, override=override)
-    arrays = dict(data.slabs)
-    if data.initial_fields is not None:
-        arrays.update({f"{c}_init": a for c, a in data.initial_fields.items()})
-    for name, arr in arrays.items():
-        if not np.all(np.isfinite(arr)):
-            raise NestingSchemaError(f"{name} contains non-finite values; NaN is an error")
+    if override is not None:
+        allow_refinement_violation = bool(override)
     verify_stored_residual(data, masks)
-    cadence_courant(data, data.masks)
     if backend == "raw":
+        check_refinement(data, allow_refinement_violation=allow_refinement_violation,
+                         reason=refinement_reason)
+        arrays = dict(data.slabs)
+        if data.initial_fields is not None:
+            arrays.update({f"{c}_init": a for c, a in data.initial_fields.items()})
+        for name, arr in arrays.items():
+            if not np.all(np.isfinite(arr)):
+                raise NestingSchemaError(f"{name} contains non-finite values; NaN is an error")
+        cadence_courant(data, data.masks)
         return _write_raw(path, data, schema)
     if backend != "netcdf":
         raise ConfigurationError(f"unknown nesting file backend {backend!r}")
-    return _write_netcdf(path, data, schema)
-
-
-def _write_netcdf(path: Path, data: NestingData, schema: int = SCHEMA_VERSION) -> Path:
-    Dataset = _import_dataset()
-    grid = data.grid
-    with Dataset(path, "w", format="NETCDF4") as ds:
-        ds.createDimension("time", None)
-        ds.createDimension("zf", grid.ktot)
-        ds.createDimension("zh", grid.ktot + 1)
-        ds.createDimension("xf", grid.itot)
-        ds.createDimension("xh", grid.itot + 1)
-        ds.createDimension("yf", grid.jtot)
-        ds.createDimension("yh", grid.jtot + 1)
-        ds.createDimension("nz", data.nzone)
-        ds.createDimension("nzh", data.nzone + 1)
-
-        var = ds.createVariable("time", "f8", ("time",))
-        var.units = "s"
-        var.long_name = "parent time level"
-        var[:] = data.times
-        coords = stored_coordinates(data)
-        for name in _COORD_VARIABLES:
-            var = ds.createVariable(name, "f8", (name,))
-            var.units = "m"
-            var.long_name = (f"child-relative {name}" if name[0] in "xy" else name)
-            var[:] = coords[name]
-        for name, dim, values in (("rhobf", "zf", data.rhobf), ("rhobh", "zh", data.rhobh)):
-            var = ds.createVariable(name, "f8", (dim,))
-            var.units = "kg m-3"
-            var[:] = values
-        var = ds.createVariable("net_volume_flux", "f8", ("time",))
-        var.units = FLUX_UNITS
-        var.long_name = "net volume flux through the lateral boundary before correction"
-        var[:] = data.net_volume_flux
-        if schema >= 2:
-            var = ds.createVariable("flux_residual", "f8", ("time",))
-            var.units = FLUX_UNITS
-            var.long_name = ("net volume flux through the lateral boundary as stored, "
-                             "i.e. after any divergence correction")
-            var[:] = data.flux_residual
-
-        for face in FACES:
-            for component in COMPONENTS:
-                name = f"{component}_{face}"
-                dims = ("time",) + slab_dimensions(face, component)
-                var = ds.createVariable(name, "f8", dims)
-                var.stagger = STAGGER[component]
-                var.units = "m s-1"
-                var[:] = data.slabs[name]
-
-        if schema >= 2 and data.initial_fields is not None:
-            for component in COMPONENTS:
-                var = ds.createVariable(f"{component}_init", "f8",
-                                        init_dimensions(component))
-                var.stagger = STAGGER[component]
-                var.units = "m s-1"
-                var.long_name = ("full-domain initial condition at the first stored time, "
-                                 f"velocity component {component}")
-                var[:] = data.initial_fields[component]
-
-        for key, value in _global_attributes(data, schema).items():
-            ds.setncattr(key, value)
+    writer = NestingWriter.from_data(
+        path, data, schema=schema, correct_divergence=False, project_initial=False,
+        allow_refinement_violation=allow_refinement_violation,
+        refinement_reason=refinement_reason,
+    )
+    with writer:
+        for n in range(data.ntime):
+            writer.append_level(
+                data.times[n],
+                {name: arr[n] for name, arr in data.slabs.items()},
+                initial_fields=data.initial_fields if n == 0 else None,
+                net_volume_flux_before=float(data.net_volume_flux[n]),
+                flux_residual_verified=float(data.flux_residual[n]),
+            )
     return path
 
 
@@ -2297,6 +2628,7 @@ def validate_nesting_file(path: os.PathLike | str) -> Dict[str, Any]:
                 f"{path.name}: an initial-condition variable is present but "
                 "has_initial_condition is 0"
             )
+        ntime = len(ds.dimensions["time"])
         for name, dims in expected_vars.items():
             if name not in ds.variables:
                 raise NestingSchemaError(f"{path.name}: missing variable {name!r}")
@@ -2306,11 +2638,17 @@ def validate_nesting_file(path: os.PathLike | str) -> Dict[str, Any]:
                     f"{path.name}: variable {name} has dimensions {tuple(var.dimensions)}, "
                     f"expected {dims}"
                 )
-            values = np.asarray(var[:], dtype=np.float64)
-            if not np.all(np.isfinite(values)):
-                raise NestingSchemaError(
-                    f"{path.name}: variable {name} has missing or NaN values, which are an error"
-                )
+            # One time level at a time: the production file does not fit in
+            # memory, and a NaN check needs no more than a level.
+            chunks = ((var[n] for n in range(ntime)) if dims[0] == "time" and len(dims) > 1
+                      else (var[:],))
+            for n, chunk in enumerate(chunks):
+                if not np.all(np.isfinite(np.asarray(chunk, dtype=np.float64))):
+                    where = f" at time level {n}" if dims[0] == "time" and len(dims) > 1 else ""
+                    raise NestingSchemaError(
+                        f"{path.name}: variable {name} has missing or NaN values{where}, "
+                        "which are an error"
+                    )
         staggered = [f"{c}_{f}" for f in FACES for c in COMPONENTS]
         if has_init:
             staggered += list(INIT_VARIABLES)
@@ -2364,8 +2702,16 @@ def read_nesting_file(
         attrs = {key: ds.getncattr(key) for key in ds.ncattrs()}
         grid = NestGrid(**{name: np.asarray(ds.variables[name][:], dtype=np.float64)
                            for name in _COORD_VARIABLES})
-        slabs = {name: np.ascontiguousarray(np.asarray(ds.variables[name][:], dtype=np.float64))
-                 for name in SLAB_VARIABLES}
+        # Filled level by level into preallocated arrays: no transient second
+        # copy of the record, which is the difference between fitting and not.
+        ntime = len(ds.dimensions["time"])
+        slabs = {}
+        for name in SLAB_VARIABLES:
+            var = ds.variables[name]
+            out = np.empty(var.shape, dtype=np.float64)
+            for n in range(ntime):
+                out[n] = var[n]
+            slabs[name] = out
         initial = None
         if all(f"{c}_init" in ds.variables for c in COMPONENTS):
             initial = {c: np.ascontiguousarray(
