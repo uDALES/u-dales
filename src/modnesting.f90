@@ -995,14 +995,24 @@ contains
 
    ! ------------------------------------------------------------------ private
 
-   !> Report and stop. Collective: every rank must reach the same condition.
+   !> Report and abort the whole job. Rank 0 prints the message; the abort
+   !! itself goes through MPI_Abort rather than `stop`, because most callers
+   !! are collective but not all are: a rank-local read failure (read_level,
+   !! facval) would otherwise leave the other ranks blocked in their next
+   !! reduction with the job still occupying its allocation. MPI_Abort tears
+   !! every rank down, whichever one called it.
    subroutine nest_abort(message)
+      use mpi,    only : MPI_COMM_WORLD, MPI_Abort
       use modmpi, only : myid
 
       character(len=*), intent(in) :: message
 
+      integer :: ierr
+
       if (myid == 0) write(*,'(a,a)') ' modnesting: ERROR ', trim(message)
-      stop 1
+      flush(6)
+      call MPI_Abort(MPI_COMM_WORLD, 1, ierr)
+      stop 1   ! not reached; keeps the compiler's flow analysis honest
 
    end subroutine nest_abort
 
