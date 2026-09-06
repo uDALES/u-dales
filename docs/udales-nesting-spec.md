@@ -147,6 +147,8 @@ variables:
   :child_origin_x = ; :child_origin_y = ; :rotation_deg = 0. ;
   :created = ; :creator = ; :tool_version = ;
   :child_dt = ;        // OPTIONAL: child timestep; without it the temporal-refinement guard is skipped
+  :parent_dy = ; :parent_dz = ;   // OPTIONAL: smallest parent spacings in y and z; the writer's
+                                  // spatial-refinement guard is the largest per-axis ratio it knows
 
 // SCHEMA 2 ONLY, both required:
   :has_initial_condition = 0 or 1 ;   // whether u_init/v_init/w_init are present
@@ -170,7 +172,9 @@ writing. `zf`/`zh` are the run's vertical and are not shifted.
 slab index `m` ↔ global `i = itot-nzone+m` for centres and `i = itot-nzone+m` for faces
 (so `m = nzone+1` ↔ `i = itot+1`). South/north follow the same rule in `j`.
 
-**Units** `m s-1`. Missing/NaN values are an error, not a sentinel.
+**Units** `m s-1` for the slabs; `net_volume_flux` and `flux_residual` carry `m3 s-1` (they are
+`sum(rho u_n dA)` with `rhobf == 1`, see the density convention below). Missing/NaN values are an
+error, not a sentinel.
 
 **Density convention.** Fluxes are weighted by `rhobf(k)` on both the writer and the solver side,
 matching DALES's `openboundary_divcorr`. uDALES's own Poisson RHS carries no density (design F1),

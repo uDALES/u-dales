@@ -41,20 +41,34 @@ from exceptions import ConfigurationError  # noqa: E402
 from udprep.nesting import (  # noqa: E402
     COMPONENTS,
     FACES,
+    FLUX_UNITS,
     PARENT_DT_RTOL,
+    SPEC,
+    FaceMasks,
     NestGrid,
     NestingAlignmentError,
     NestingData,
+    NestingRefinementError,
     NestingSchemaError,
+    apply_divergence_correction,
+    boundary_faces,
     check_alignment,
     check_time_axis,
     discrete_divergence,
+    face_masks_from_ibm,
+    fluid_face_area,
+    fluid_lateral_area,
     interpolate_child_fields,
     nesting_data_from_parent,
+    net_volume_flux,
+    project_initial_condition,
     read_nesting_file,
+    refinement_ratios,
+    refinement_ratios_by_axis,
     slabs_from_parent,
     stored_coordinates,
     validate_nesting_file,
+    verify_stored_residual,
     write_nesting_file,
 )
 
@@ -293,6 +307,118 @@ class TestW3TimeAxis(unittest.TestCase):
             with self.assertRaises(NestingSchemaError) as ctx:
                 validate_nesting_file(path)
             self.assertIn("start at exactly 0", str(ctx.exception))
+
+
+# --------------------------------------------------------------------------- #
+# W7 -- tidy: units, cached residual, vertical ratios, FaceMasks from the IBM
+# --------------------------------------------------------------------------- #
+
+
+def uniform_nesting_data(nzone=2, ntime=2, seed=5, **kwargs):
+    """Random slabs on a uniform 8 x 6 x 5 grid with dx = 10, dy = 5, dz = 5 m."""
+    rng = np.random.default_rng(seed)
+    grid = NestGrid.uniform(8, 6, 5, 80.0, 30.0, 25.0)
+    slabs = {}
+    for face in FACES:
+        for component in COMPONENTS:
+            from udprep.nesting import slab_shape
+            slabs[f"{component}_{face}"] = rng.normal(
+                size=(ntime,) + slab_shape(grid, nzone, face, component))
+    return NestingData(grid=grid, nzone=nzone, times=30.0 * np.arange(ntime), slabs=slabs,
+                       parent_dx=20.0, parent_dt=30.0, **kwargs)
+
+
+class TestW7Tidy(unittest.TestCase):
+
+    def test_flux_units_are_volume_flux_everywhere(self):
+        self.assertEqual(FLUX_UNITS, "m3 s-1")
+        data = uniform_nesting_data()
+        with TemporaryDirectory() as tmp:
+            path = write_nesting_file(Path(tmp) / "u.nc", data)
+            with Dataset(path, "r") as ds:
+                self.assertEqual(ds.variables["net_volume_flux"].units, FLUX_UNITS)
+                self.assertEqual(ds.variables["flux_residual"].units, FLUX_UNITS)
+        # and the one error message that quotes a flux uses the same string
+        grid = NestGrid.uniform(6, 6, 4, 12.0, 12.0, 8.0)
+        u = np.zeros(grid.component_shape("u")); u[-1] = 1.0
+        with self.assertRaises(ConfigurationError) as ctx:
+            project_initial_condition(grid, {"u": u, "v": np.zeros(grid.component_shape("v")),
+                                             "w": np.zeros(grid.component_shape("w"))})
+        self.assertIn(FLUX_UNITS, str(ctx.exception))
+
+    def test_a_stale_cached_residual_is_refused_not_trusted(self):
+        data = uniform_nesting_data(seed=71)
+        apply_divergence_correction(data)
+        boundary_faces(data)["east"][1] += 0.5          # changed after the correction
+        with self.assertRaises(ConfigurationError) as ctx:
+            with TemporaryDirectory() as tmp:
+                write_nesting_file(Path(tmp) / "stale.nc", data)
+        self.assertIn("flux_residual[1]", str(ctx.exception))
+
+    def test_masks_used_by_the_correction_travel_with_the_data(self):
+        data = uniform_nesting_data(seed=72)
+        west = np.ones((6, 5), dtype=bool); west[:2, :2] = False
+        masks = FaceMasks(west=west)
+        apply_divergence_correction(data, masks)
+        self.assertIs(data.masks, masks)
+        verify_stored_residual(data)                    # recomputes with data.masks: fine
+        data.masks = None                               # lost: the area no longer matches
+        with self.assertRaises(ConfigurationError) as ctx:
+            verify_stored_residual(data)
+        self.assertIn("fluid_lateral_area", str(ctx.exception))
+        verify_stored_residual(data, masks)             # passing them explicitly works
+
+    def test_refinement_ratio_includes_y_and_z(self):
+        data = uniform_nesting_data(seed=73)            # child dx 10, dy 5, dz 5
+        data.parent_dx = 10.0                           # x ratio 1, y ratio 2 (dy defaults to dx)
+        self.assertEqual(refinement_ratios(data)[0], 2.0)
+        data.parent_dy = 5.0
+        data.parent_dz = 25.0                           # z ratio 5: over the limit
+        by_axis = refinement_ratios_by_axis(data)
+        self.assertEqual((by_axis["x"], by_axis["y"], by_axis["z"]), (1.0, 1.0, 5.0))
+        self.assertEqual(refinement_ratios(data)[0], 5.0)
+        with self.assertRaises(NestingRefinementError):
+            with TemporaryDirectory() as tmp:
+                write_nesting_file(Path(tmp) / "z.nc", data)
+        data.parent_dz = 10.0
+        with TemporaryDirectory() as tmp:
+            back = read_nesting_file(write_nesting_file(Path(tmp) / "z.nc", data))
+        self.assertEqual((back.parent_dy, back.parent_dz), (5.0, 10.0))   # optional attributes
+
+    def test_face_masks_from_the_ibm_mask_pin_the_fluid_area_analytically(self):
+        data = uniform_nesting_data(seed=74, ntime=2)    # 8 x 6 x 5, dx 10, dy 5, dz 5
+        fluid = np.ones((8, 6, 5), dtype=bool)
+        fluid[0:2, 1:3, 0:3] = False                     # a cube against the west face
+        fluid[4:7, 4:6, 0:2] = False                     # a slab against the north face
+        masks = face_masks_from_ibm(fluid)
+        np.testing.assert_array_equal(masks.west, fluid[0])
+        np.testing.assert_array_equal(masks.north, fluid[:, -1])
+        self.assertTrue(np.all(masks.east) and np.all(masks.south))
+        # west: 6 x 5 cells of 5 x 5 m minus 2 x 3 solid; north: 8 x 5 of 10 x 5 minus 3 x 2
+        west = 30 * 25.0 - 6 * 25.0
+        north = 40 * 50.0 - 6 * 50.0
+        expected = west + 30 * 25.0 + 40 * 50.0 + north
+        self.assertEqual(expected, 5050.0)
+        self.assertAlmostEqual(fluid_lateral_area(data, masks), expected, places=9)
+        self.assertAlmostEqual(fluid_face_area(data, masks), expected, places=9)  # rho = 1
+        self.assertAlmostEqual(fluid_lateral_area(data), 5500.0, places=9)
+        original = {f: v.copy() for f, v in boundary_faces(data).items()}
+        apply_divergence_correction(data, masks)
+        self.assertLess(np.max(np.abs(net_volume_flux(data, masks))), 1e-10)
+        for face in ("west", "north"):
+            solid = ~np.asarray(getattr(masks, face))
+            np.testing.assert_array_equal(boundary_faces(data)[face][:, solid],
+                                          original[face][:, solid])
+        # the solid convention of solid_c.txt
+        same = face_masks_from_ibm(~fluid, solid=True)
+        np.testing.assert_array_equal(same.west, masks.west)
+
+    def test_the_module_is_a_udprep_section(self):
+        from udprep.udprep import UDPrep
+        self.assertIn("nesting", [spec.name for spec in UDPrep.SECTION_SPECS])
+        self.assertIn("lnesting", SPEC.fields)
+        self.assertIs(SPEC.defaults["lnesting"], False)
+        self.assertEqual(SPEC.defaults["nest_timeinterp"], 2)
 
 
 if __name__ == "__main__":  # pragma: no cover

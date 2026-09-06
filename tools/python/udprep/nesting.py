@@ -75,20 +75,25 @@ import numpy as np
 
 from exceptions import ConfigurationError, DataFormatError, DependencyError
 
+from ._section import Section, SectionSpec
+
 logger = logging.getLogger(__name__)
 
 __all__ = [
     "ANALYTIC_COEFFS",
     "COMPONENTS",
     "FACES",
+    "FLUX_UNITS",
     "INIT_VARIABLES",
     "MAX_SPATIAL_REFINEMENT",
     "MAX_TEMPORAL_REFINEMENT",
+    "OPTIONAL_GLOBAL_ATTRIBUTES",
     "PARENT_DT_RTOL",
     "REQUIRED_GLOBAL_ATTRIBUTES",
     "REQUIRED_GLOBAL_ATTRIBUTES_V2",
     "SCHEMA_VERSION",
     "SLAB_VARIABLES",
+    "SPEC",
     "STAGGER",
     "SUPPORTED_SCHEMA_VERSIONS",
     "TOOL_VERSION",
@@ -108,6 +113,7 @@ __all__ = [
     "check_time_axis",
     "conservative_interpolate",
     "discrete_divergence",
+    "face_masks_from_ibm",
     "fluid_face_area",
     "fluid_lateral_area",
     "init_dimensions",
@@ -120,6 +126,7 @@ __all__ = [
     "project_initial_condition",
     "read_nesting_file",
     "refinement_ratios",
+    "refinement_ratios_by_axis",
     "slab_coordinates",
     "slab_dimensions",
     "slab_indices",
@@ -129,6 +136,7 @@ __all__ = [
     "stored_coordinates",
     "sync_initial_condition",
     "validate_nesting_file",
+    "verify_stored_residual",
     "write_analytic_nesting_file",
     "write_nesting_file",
 ]
@@ -178,6 +186,16 @@ _FACE_NORMAL_COMPONENT = {"west": "u", "east": "u", "south": "v", "north": "v"}
 MAX_SPATIAL_REFINEMENT = 4.0
 MAX_TEMPORAL_REFINEMENT = 30.0
 
+#: Units of ``net_volume_flux`` and ``flux_residual``.  They are
+#: :math:`\sum \rho u_n dA` with ``rhobf == 1`` always in uDALES (design
+#: finding F1), i.e. a volume flux; the density weighting is kept for parity
+#: with DALES's ``openboundary_divcorr`` but carries no dimension here.
+FLUX_UNITS = "m3 s-1"
+
+#: Optional global attributes this writer emits when it knows them; readers
+#: that do not know them ignore them.
+OPTIONAL_GLOBAL_ATTRIBUTES = ("child_dt", "parent_dy", "parent_dz")
+
 REQUIRED_GLOBAL_ATTRIBUTES = (
     "Conventions",
     "udales_nesting_schema",
@@ -216,6 +234,22 @@ PARENT_DT_RTOL = 1.0e-2
 #: relative to the smallest parent spacing.  The same number is the alignment
 #: tolerance of :func:`check_alignment`.
 _ALIGN_RTOL = 1.0e-9
+
+
+# --------------------------------------------------------------------------- #
+# UDPrep section (the &NESTING namelist, docs/udales-nesting-spec.md section 4)
+# --------------------------------------------------------------------------- #
+
+#: Namelist defaults, from ``defaults.json`` like every other section.  The
+#: section carries the &NESTING switches through ``UDPrep`` (``prep.nesting``)
+#: so that ``save_param``/``write_changed_params`` see them; the file itself
+#: is written by :func:`write_nesting_file` or :class:`NestingWriter`, not by
+#: a section step, because its input -- a parent record -- is not part of a
+#: case directory.
+DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("nesting", {})
+FIELDS = list(DEFAULTS.keys())
+
+SPEC = SectionSpec(name="nesting", fields=FIELDS, defaults=DEFAULTS, section_cls=Section)
 
 
 class NestingSchemaError(DataFormatError):
@@ -905,7 +939,7 @@ def project_initial_condition(
     if abs(net) > rtol * speed * area:
         raise ConfigurationError(
             "the initial condition is not compatible with Neumann pressure: its net "
-            f"boundary flux is {net:g} m3/s, against {rtol * speed * area:g} allowed. "
+            f"boundary flux is {net:g} {FLUX_UNITS}, against {rtol * speed * area:g} allowed. "
             "Run apply_divergence_correction (or sync_initial_condition) first."
         )
 
@@ -1019,6 +1053,32 @@ class FaceMasks:
 _ALL_FLUID = FaceMasks()
 
 
+def face_masks_from_ibm(fluid: np.ndarray, solid: bool = False) -> FaceMasks:
+    """Derive the four lateral :class:`FaceMasks` from the child's IBM cell mask.
+
+    ``fluid`` is the child's cell-centred mask, shape ``(itot, jtot, ktot)``,
+    ``True`` where the cell is fluid (pass ``solid=True`` for the opposite
+    convention, e.g. a mask built straight from ``solid_c.txt``).  A boundary
+    face is fluid exactly when the boundary cell behind it is: that is what
+    the solver's ``IIu``/``IIv`` say at ``ib``/``ie+1`` and ``jb``/``je+1``,
+    and what ``fluid_lateral_area`` on the solver side sums over, so the
+    writer's residual and the solver's agree.
+    """
+    fluid = np.asarray(fluid, dtype=bool)
+    if fluid.ndim != 3:
+        raise ConfigurationError(
+            f"the IBM mask must be a 3-D (itot, jtot, ktot) array, got shape {fluid.shape}"
+        )
+    if solid:
+        fluid = ~fluid
+    return FaceMasks(
+        west=np.ascontiguousarray(fluid[0, :, :]),
+        east=np.ascontiguousarray(fluid[-1, :, :]),
+        south=np.ascontiguousarray(fluid[:, 0, :]),
+        north=np.ascontiguousarray(fluid[:, -1, :]),
+    )
+
+
 @dataclass
 class NestingData:
     """Everything that goes into ``nesting.inp.<expnr>.nc``.
@@ -1056,6 +1116,17 @@ class NestingData:
     created: str = ""
     creator: str = ""
     tool_version: str = TOOL_VERSION
+    #: Parent spacings in ``y`` and ``z`` (smallest), when known; they enter
+    #: the spatial refinement ratio next to ``parent_dx`` and are written as
+    #: optional attributes.  ``None`` means unknown.
+    parent_dy: Optional[float] = None
+    parent_dz: Optional[float] = None
+    #: The fluid/solid masks the correction used and the residual was summed
+    #: over.  Not stored in the file (the solver derives its own from the IBM);
+    #: kept here so that the writer can recompute ``flux_residual`` and
+    #: ``fluid_lateral_area`` and verify the cached values rather than trust
+    #: them.  ``None`` means all fluid.
+    masks: Optional[FaceMasks] = None
 
     def __post_init__(self) -> None:
         self.nzone = int(self.nzone)
@@ -1148,6 +1219,9 @@ class NestingData:
             created=self.created,
             creator=self.creator,
             tool_version=self.tool_version,
+            parent_dy=self.parent_dy,
+            parent_dz=self.parent_dz,
+            masks=self.masks,
         )
 
 
@@ -1192,6 +1266,8 @@ def nesting_data_from_parent(
             initial_fields_from_parent(parent, *fields[0], child=child, allow_misaligned=None),
         )
     kwargs.setdefault("parent_dx", float(np.min(np.diff(parent.xh))))
+    kwargs.setdefault("parent_dy", float(np.min(np.diff(parent.yh))))
+    kwargs.setdefault("parent_dz", float(np.min(np.diff(parent.zh))))
     kwargs.setdefault("child_origin_x", float(child.xh[0]))
     kwargs.setdefault("child_origin_y", float(child.yh[0]))
     if times.size > 1:
@@ -1354,10 +1430,46 @@ def apply_divergence_correction(
     data.net_volume_flux = residual
     data.flux_residual = net_volume_flux(data, masks)
     data.fluid_lateral_area = fluid_lateral_area(data, masks)
+    data.masks = None if masks is _ALL_FLUID else masks
     data.divergence_corrected = True
     if data.initial_fields is not None and project_initial:
         sync_initial_condition(data, masks)
     return residual
+
+
+def verify_stored_residual(data: NestingData, masks: Optional[FaceMasks] = None) -> None:
+    """Recompute ``flux_residual``/``fluid_lateral_area`` and check any cached value.
+
+    ``masks`` defaults to ``data.masks``.  Unset fields are filled in; a set
+    field that disagrees with the recomputation -- beyond round-off on the
+    flux a typical boundary velocity carries -- raises
+    :class:`ConfigurationError`.  A ``fluid_lateral_area`` that disagrees
+    while no masks are known means the data were corrected with masks that
+    were not passed on, which is the same error.
+    """
+    masks = masks if masks is not None else data.masks
+    area = fluid_lateral_area(data, masks)
+    if data.fluid_lateral_area is not None and not np.isclose(
+            data.fluid_lateral_area, area, rtol=1e-12, atol=0.0):
+        raise ConfigurationError(
+            f"cached fluid_lateral_area = {data.fluid_lateral_area:.15g} m2 disagrees with "
+            f"the {area:.15g} m2 of the {'given' if masks is not None else 'all-fluid'} "
+            "masks; pass masks= (or set data.masks) to the ones the correction used"
+        )
+    residual = net_volume_flux(data, masks)
+    if data.flux_residual is not None:
+        speed = max(float(np.max(np.abs(v))) for v in boundary_faces(data).values())
+        tol = 1e-12 * max(fluid_face_area(data, masks) * speed, np.finfo(np.float64).tiny)
+        worst = int(np.argmax(np.abs(data.flux_residual - residual)))
+        if abs(data.flux_residual[worst] - residual[worst]) > tol:
+            raise ConfigurationError(
+                f"cached flux_residual[{worst}] = {data.flux_residual[worst]:.6g} {FLUX_UNITS} "
+                f"disagrees with the residual of the slabs as stored, {residual[worst]:.6g}; "
+                "the slabs were changed after the correction, or the masks differ"
+            )
+    data.flux_residual = residual
+    data.fluid_lateral_area = area
+    data.masks = masks
 
 
 # --------------------------------------------------------------------------- #
@@ -1365,20 +1477,42 @@ def apply_divergence_correction(
 # --------------------------------------------------------------------------- #
 
 
+def refinement_ratios_by_axis(data: NestingData) -> Dict[str, Optional[float]]:
+    """Parent-to-child refinement ratio per axis, ``None`` where unknown.
+
+    ``x`` is ``parent_dx / min(dx_child)``; ``y`` uses ``parent_dy`` when the
+    file carries it and falls back to ``parent_dx`` (uDALES parents are
+    horizontally isotropic) otherwise; ``z`` uses ``parent_dz`` against the
+    smallest child ``dzf`` and is ``None`` without it; ``t`` is
+    ``parent_dt / child_dt``.
+    """
+    grid = data.grid
+    out: Dict[str, Optional[float]] = {"x": None, "y": None, "z": None, "t": None}
+    if data.parent_dx:
+        out["x"] = float(data.parent_dx) / float(np.min(grid.dx))
+    parent_dy = data.parent_dy if data.parent_dy else data.parent_dx
+    if parent_dy:
+        out["y"] = float(parent_dy) / float(np.min(grid.dy))
+    if data.parent_dz:
+        out["z"] = float(data.parent_dz) / float(np.min(grid.dzf))
+    if data.parent_dt and data.child_dt:
+        out["t"] = float(data.parent_dt) / float(data.child_dt)
+    return out
+
+
 def refinement_ratios(data: NestingData) -> Tuple[Optional[float], Optional[float]]:
     """Return ``(spatial, temporal)`` parent-to-child refinement ratios.
 
-    The spatial ratio is ``parent_dx / min(dx_child, dy_child)``; the temporal
-    ratio is ``parent_dt / child_dt``.  Either is ``None`` when the file does
-    not carry enough information to compute it (``parent_dx``/``parent_dt``
-    unset, or ``child_dt`` not supplied by the caller).
+    The spatial ratio is the **largest** of the per-axis ratios of
+    :func:`refinement_ratios_by_axis` that are known (``x``, ``y`` and, when
+    ``parent_dz`` is set, ``z``); the temporal ratio is ``parent_dt /
+    child_dt``.  Either is ``None`` when the file does not carry enough
+    information to compute it.
     """
-    dmin = min(float(np.min(data.grid.dx)), float(np.min(data.grid.dy)))
-    spatial = data.parent_dx / dmin if data.parent_dx and dmin > 0.0 else None
-    temporal = None
-    if data.parent_dt and data.child_dt:
-        temporal = data.parent_dt / data.child_dt
-    return spatial, temporal
+    by_axis = refinement_ratios_by_axis(data)
+    known = [by_axis[a] for a in ("x", "y", "z") if by_axis[a] is not None]
+    spatial = max(known) if known else None
+    return spatial, by_axis["t"]
 
 
 def check_refinement(
@@ -1487,10 +1621,13 @@ def _global_attributes(data: NestingData, schema: int = SCHEMA_VERSION) -> Dict[
         if area is None:
             area = fluid_lateral_area(data)
         attrs["fluid_lateral_area"] = np.float64(area)
-    if data.child_dt is not None:
-        # Optional extension: lets the refinement guard run on a round-tripped
-        # file.  Ignored by readers that do not know about it.
-        attrs["child_dt"] = np.float64(data.child_dt)
+    # Optional extensions (OPTIONAL_GLOBAL_ATTRIBUTES): let the refinement
+    # guard run on a round-tripped file.  Ignored by readers that do not know
+    # about them.
+    for name in OPTIONAL_GLOBAL_ATTRIBUTES:
+        value = getattr(data, name)
+        if value is not None:
+            attrs[name] = np.float64(value)
     return attrs
 
 
@@ -1500,8 +1637,16 @@ def write_nesting_file(
     override: bool = False,
     backend: Optional[str] = None,
     schema: Optional[int] = None,
+    masks: Optional[FaceMasks] = None,
 ) -> Path:
     """Write ``data`` to ``nesting.inp.<expnr>.nc``, exactly per the contract.
+
+    ``masks`` are the lateral fluid masks the residual is summed over; they
+    default to ``data.masks``, which :func:`apply_divergence_correction`
+    records.  The stored ``flux_residual`` and ``fluid_lateral_area`` are
+    recomputed from the slabs here and a cached value that disagrees is an
+    error (:func:`verify_stored_residual`), so a file can never claim a
+    residual its data do not have.
 
     ``backend`` is ``'netcdf'`` (default, or implied by a ``.nc`` suffix) or
     ``'raw'`` (a flat stream of the slab arrays plus a JSON sidecar, design
@@ -1534,10 +1679,7 @@ def write_nesting_file(
     for name, arr in arrays.items():
         if not np.all(np.isfinite(arr)):
             raise NestingSchemaError(f"{name} contains non-finite values; NaN is an error")
-    if data.flux_residual is None:
-        data.flux_residual = net_volume_flux(data)
-    if data.fluid_lateral_area is None:
-        data.fluid_lateral_area = fluid_lateral_area(data)
+    verify_stored_residual(data, masks)
     if backend == "raw":
         return _write_raw(path, data, schema)
     if backend != "netcdf":
@@ -1574,12 +1716,12 @@ def _write_netcdf(path: Path, data: NestingData, schema: int = SCHEMA_VERSION) -
             var.units = "kg m-3"
             var[:] = values
         var = ds.createVariable("net_volume_flux", "f8", ("time",))
-        var.units = "kg s-1"
+        var.units = FLUX_UNITS
         var.long_name = "net volume flux through the lateral boundary before correction"
         var[:] = data.net_volume_flux
         if schema >= 2:
             var = ds.createVariable("flux_residual", "f8", ("time",))
-            var.units = "kg s-1"
+            var.units = FLUX_UNITS
             var.long_name = ("net volume flux through the lateral boundary as stored, "
                              "i.e. after any divergence correction")
             var[:] = data.flux_residual
@@ -1706,6 +1848,8 @@ def _read_raw(path: Path) -> NestingData:
         child_origin_y=float(attrs["child_origin_y"]),
         child_dt=float(attrs["child_dt"]) if "child_dt" in attrs else None,
         rotation_deg=float(attrs["rotation_deg"]),
+        parent_dy=float(attrs["parent_dy"]) if "parent_dy" in attrs else None,
+        parent_dz=float(attrs["parent_dz"]) if "parent_dz" in attrs else None,
         created=str(attrs["created"]),
         creator=str(attrs["creator"]),
         tool_version=str(attrs["tool_version"]),
@@ -1883,6 +2027,8 @@ def read_nesting_file(
             child_origin_y=float(attrs["child_origin_y"]),
             child_dt=float(attrs["child_dt"]) if "child_dt" in attrs else None,
             rotation_deg=float(attrs["rotation_deg"]),
+            parent_dy=float(attrs["parent_dy"]) if "parent_dy" in attrs else None,
+            parent_dz=float(attrs["parent_dz"]) if "parent_dz" in attrs else None,
             created=str(attrs["created"]),
             creator=str(attrs["creator"]),
             tool_version=str(attrs["tool_version"]),
