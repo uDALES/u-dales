@@ -1286,7 +1286,38 @@ separately with the correction in place, so `mem=128gb` covers it (V1 measured
 
 ## Status
 
-C0_STATUS_PLACEHOLDER
+Both tiny sweeps have been driven end to end on a CX3 login node (4 ranks)
+through `run_v2.py`: the tiny V1 parent and child, then `c0-tiny` (ref reused,
+`cad6` cut from every 2nd of the 40 dumped levels, `cad9` from every 3rd,
+`cr3` at `nest_timeinterp = 2`), then `c0b-tiny` (the 0.5 s parent 960
+warm-started from 903's spin-up restart -- 4 symlinked restart
+files, `lwarmstart = .true.`, dumps starting at t = 120 s every 0.437 s median
+-- and three children at 0.5 / 1.5 / 3 s cut from 240 / 80 / 40 of its 240
+levels).  `test_c0_tiny.py` is 18 tests, all passing (8 configuration tests in
+0.2 s; 10 end-to-end in 212 s); every child, the Catmull-Rom one included, kept
+`Phi` below 1e-9 and `divmax` below 1e-10, and the parent/child sample counts
+of the C0b analysis agree to within 2 with the parent sampled every 6th level.
+`test_v1_tiny.py` and `test_v2_tiny.py` are unchanged and pass.
+
+What the tiny sweeps showed, for orientation only -- 20-26 samples over 60-80 s
+with a 20-25 % half-window spread support no physical claim -- the 8-16 m and
+16-64 m ratios at `z/h = 2.06` were: C0a `ref` 0.520 / 0.647, `cr3` 0.640 /
+0.777, `cad6` 0.282 / 0.352, `cad9` 0.186 / 0.225; C0b `cad0.5` 0.799 / 0.937,
+`cad1.5` 0.686 / 0.854, `cad3` 0.487 / 0.644.  Monotone in the cadence at every
+height, and the 3 s points of the two sweeps agree with each other -- which is
+the *shape* the production table is predicted to have, at a window far too
+short to say anything about its content.
+
+Production: **submitted 2026-09-06, not yet run.**
+
+| job | what | walltime | results |
+|---|---|---|---|
+| 3993705 | C0a, `c0`: 961 (6 s), 962 (9 s), 963 (CR 3 s) off the converged 903 dumps, against the reused 904 | 03:00:00 | `$EPHEMERAL/nesting-c0a/analysis/sweep_summary.{md,csv,json}`, `sweep_cadence_bands.png` |
+| 3993706 | C0b, `c0b`: parent 960 warm-started from `nesting-v1-converged/903/initd00031204_*.903`, 2400 s at 0.5 s; children 964-969 at 0.5 / 1 / 1.5 / 3 / 6 / 9 s | 04:00:00 | `$EPHEMERAL/nesting-c0b/analysis/sweep_summary.{md,csv,json}`, `sweep_cadence_bands.png` |
+
+The two jobs are independent and use the V1 binary (`build/release/u-dales` of
+2026-09-06), so the comparison with V1 and V2 stays paired; the merge-blocker
+work of the plan's section 3 does not touch them.
 
 ---
 ---
