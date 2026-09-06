@@ -392,6 +392,122 @@ def load_solid_mask(casedir: Path, shape: Tuple[int, int, int]) -> np.ndarray:
 
 
 # --------------------------------------------------------------------------- #
+# Coarsening a field dump (V0, refinement)
+# --------------------------------------------------------------------------- #
+
+
+def coarsen_staggered(u: np.ndarray, v: np.ndarray, w: np.ndarray, factor: int
+                      ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Flux-conservative coarsening of one raw :meth:`FieldDump.read_level` set.
+
+    Each coarse face is *co-planar with* a fine face -- every ``factor``-th one
+    -- and takes the area-weighted mean of the ``factor x factor`` fine faces it
+    contains.  With uniform spacing that is the plain mean, so the coarse face
+    flux is exactly the sum of the fine face fluxes it replaces.  Two things
+    follow, and both are what make this the right filter for V0 rather than a
+    convenience:
+
+    * the coarse field is discretely solenoidal wherever the fine one is (a
+      coarse cell's net flux is the sum of the net fluxes of the ``factor**3``
+      fine cells inside it), so the coarse parent hands the prolongation of
+      design section 1.3 exactly the input it assumes;
+    * it is the *exact left inverse* of that prolongation's tangential half --
+      piecewise-constant distribution followed by block averaging is the
+      identity -- so a round trip through coarsening and interpolation changes
+      only what the normal-direction linear interpolation changes.  Any
+      difference V0 measures between a filtered-parent child and V1 is therefore
+      attributable to the parent's filter scale, not to a mismatch between the
+      two operators.
+
+    Inputs are in the raw dump convention (the upper face of each direction is
+    missing), and so is the output.  ``factor`` must divide every dimension.
+    """
+    factor = int(factor)
+    if factor < 1:
+        raise ValueError(f"coarsening factor must be >= 1, got {factor}")
+    if factor == 1:
+        return u, v, w
+    n = np.asarray(u).shape
+    for size in n:
+        if size % factor:
+            raise ValueError(
+                f"field dump shape {n} is not divisible by the coarsening factor {factor}"
+            )
+    ni, nj, nk = (s // factor for s in n)
+    f = factor
+    # u sits on xh: keep every f-th x-face, average over the y and z blocks.
+    uc = np.asarray(u)[::f].reshape(ni, nj, f, nk, f).mean(axis=(2, 4))
+    vc = np.asarray(v)[:, ::f].reshape(ni, f, nj, nk, f).mean(axis=(1, 4))
+    wc = np.asarray(w)[:, :, ::f].reshape(ni, f, nj, f, nk).mean(axis=(1, 3))
+    return uc, vc, wc
+
+
+def coarsen_fluid_mask(fluid: np.ndarray, factor: int) -> np.ndarray:
+    """Block-AND a cell-centred fluid mask: a coarse cell is fluid iff all of its is.
+
+    Exact for the cube arrays used here, whose faces are aligned to every grid
+    in the suite; conservative (it never calls a partly solid coarse cell fluid)
+    for anything else.
+    """
+    factor = int(factor)
+    if factor == 1:
+        return fluid
+    ni, nj, nk = (s // factor for s in fluid.shape)
+    f = factor
+    return fluid[:ni * f, :nj * f, :nk * f].reshape(ni, f, nj, f, nk, f).all(axis=(1, 3, 5))
+
+
+class CoarsenedFieldDump:
+    """A :class:`FieldDump` presented on a grid ``factor`` times coarser.
+
+    Same interface as ``FieldDump`` for everything the child builder uses --
+    ``times``, ``itot``/``jtot``/``ktot``, ``read_level``, ``child_block``,
+    ``close`` -- so a coarse view and a genuinely coarse run are interchangeable
+    at the call site.  That is what lets V0's two arms differ only in which
+    object is constructed.
+    """
+
+    def __init__(self, dump: FieldDump, factor: int):
+        self.dump = dump
+        self.factor = int(factor)
+        if self.factor < 1:
+            raise ValueError(f"coarsening factor must be >= 1, got {factor}")
+        for label, size in (("itot", dump.itot), ("jtot", dump.jtot),
+                            ("ktot", dump.ktot)):
+            if size % self.factor:
+                raise ValueError(
+                    f"{label} = {size} is not divisible by the coarsening factor "
+                    f"{self.factor}"
+                )
+        self.itot = dump.itot // self.factor
+        self.jtot = dump.jtot // self.factor
+        self.ktot = dump.ktot // self.factor
+        self.dx = dump.dx * self.factor
+        self.times = dump.times
+        self.rundir = dump.rundir
+        self.expnr = dump.expnr
+
+    @property
+    def ntime(self) -> int:
+        return int(self.times.size)
+
+    def read_level(self, n: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        return coarsen_staggered(*self.dump.read_level(n), factor=self.factor)
+
+    def child_block(self, u, v, w, i0: int, j0: int, ni: int, nj: int):
+        return FieldDump.child_block(self, u, v, w, i0, j0, ni, nj)
+
+    def close(self) -> None:
+        self.dump.close()
+
+    def __enter__(self) -> "CoarsenedFieldDump":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+
+# --------------------------------------------------------------------------- #
 # Running the solver
 # --------------------------------------------------------------------------- #
 

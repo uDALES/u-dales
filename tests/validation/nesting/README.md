@@ -1,6 +1,6 @@
-# V1 and V2 -- the "Big Brother" nesting validation
+# V0, V1 and V2 -- the "Big Brother" nesting validation
 
-This directory implements tests **V1** and **V2** of
+This directory implements tests **V0**, **V1** and **V2** of
 `docs/udales-nesting-design.md` section 10.4.
 
 **V1** asks:
@@ -16,6 +16,18 @@ treatment.
 parameter survey, and it is written up in "V2 -- the falsification test" below.
 Read that section, not this one, if V2 is what you came for; the V1 material
 here is its foundation and its vocabulary.
+
+**V0** asks the question nesting exists for:
+
+> Does a child at higher resolution than its parent reproduce it?
+
+V1 and V2 both run at refinement ratio exactly 1, so neither validates
+refinement and neither should be cited as if it did.  V0 is written up in
+"V0 -- refinement" below.  Its child is the **V1 child**, unchanged, measured
+against the **V1 parent**, unchanged; only the grid the boundary data arrives on
+changes.  So the V1 result is the `r = 1` row of V0's table rather than a
+separate experiment quoted next to it, and everything in this section applies to
+V0 as written.
 
 It is the test that decides whether the nesting *scheme* works, as opposed to
 whether it is correctly *implemented* -- which the U1-U34 runmodes, P1-P11 and
@@ -125,18 +137,22 @@ sampling.  Two things follow:
 
 | File | What it is |
 |---|---|
-| `config.py` | **every** parameter of the experiment, as two `Preset` objects: `tiny` and `production`, including the cube layout.  Run it to print both. |
-| `caselib.py` | shared machinery: namelist rendering, the cube-array + ground mesh, the 1-D input profiles, the field-dump reader, the solid mask, the solver launcher |
-| `make_parent_case.py` | builds the parent case directory (two namelists: spin-up and production) |
-| `make_child_case.py` | cuts the child case -- geometry, `namoptions`, `prof.inp` and `nesting.inp.<nr>.nc` -- out of the parent's dumps |
+| `config.py` | **every** parameter of the experiments: `Preset` (one case), `Sweep` (V2), `RefinedPoint`/`RefinementSuite` (V0), including the cube layout.  Run it to print them. |
+| `caselib.py` | shared machinery: namelist rendering, the cube-array + ground mesh, the 1-D input profiles, the field-dump reader and its flux-conservative coarse view, the solid mask, the solver launcher |
+| `make_parent_case.py` | builds a parent case directory (two namelists: spin-up and production), at whatever resolution the preset asks for |
+| `make_child_case.py` | cuts (`r = 1`) or interpolates (`r > 1`) the child case -- geometry, `namoptions`, `prof.inp` and `nesting.inp.<nr>.nc` -- out of a parent's dumps |
 | `analyse.py` | the comparison for **one** child: profiles, TKE, spectra, error vs distance, the V2 falsification metrics; JSON + CSV + PNG |
+| `analyse_v0.py` | the reductions that only exist at `r > 1`: the spectral ratio split at the parent's Nyquist wavelength, the solver's runtime `Phi`/`divmax`, and the driving parent's own deficit |
 | `sweep_summary.py` | reduces a whole V2 sweep to one table; CSV + JSON + Markdown + two plots |
 | `run_v1.py` | end-to-end V1 driver, stage by stage |
 | `run_v2.py` | end-to-end V2 sweep driver: builds, runs and analyses every point out of one parent |
+| `run_v0.py` | end-to-end V0 driver: the coarse parents, the four refined children, the per-point analysis and the suite table |
 | `test_v1_tiny.py` | the `tiny` preset as a unittest -- the V1 harness smoke test |
 | `test_v2_tiny.py` | the `v2-tiny` sweep as a unittest -- the V2 harness smoke test, plus the checks on the production sweep's configuration that need no run |
+| `test_v0_tiny.py` | the `v0-tiny` suite as a unittest -- the V0 harness smoke test, plus the coarsening/prolongation invariants and the production suite's configuration |
 | `submit_cx3.pbs` | the V1 production job for CX3, 64 cores / 8 h.  **Review before submitting.** |
 | `submit_cx3_v2.pbs` | the V2 sweep job for CX3, 64 cores / 8 h, reusing the V1 parent.  **Review before submitting.** |
+| `submit_cx3_v0.pbs` | the V0 refinement job for CX3, 64 cores / 6 h, reusing the V1 parent as both reference and filtered-arm source.  **Review before submitting.** |
 
 Nothing is committed as data: the STL, the IBM sparse inputs, the profiles, the
 namelists and the nesting file are all regenerated from `config.py` on every
@@ -196,12 +212,11 @@ Stages are `parent-case`, `spinup`, `production`, `child-case`, `child`,
 
 ### Suite registration
 
-`tests/test_suites.yml` gains one group, `nesting-validation`, with four
-entries -- the V1 tiny smoke test (`cost: fast`), the V1 production campaign
-(`cost: slow`), the V2 tiny sweep (`cost: medium`) and the V2 production sweep
-(`cost: slow`) -- all `class: experimental`, `kind: system`.  The group is
-**not** included by `all`, `supported` or `nesting`: it has to be asked for by
-name.  Verify with `run_tests.py`'s own group expansion rather than by reading
+`tests/test_suites.yml` gains one group, `nesting-validation`, holding a tiny
+smoke-test entry and a production entry for each experiment in this directory --
+V1 (`cost: fast` / `slow`), V2 (`medium` / `slow`) and V0 (`medium` / `slow`) --
+all `class: experimental`, `kind: system`.  The group is **not** included by
+`all`, `supported` or `nesting`: it has to be asked for by name.  Verify with `run_tests.py`'s own group expansion rather than by reading
 the YAML:
 
 ```python
@@ -214,8 +229,12 @@ for grp in sorted(m["groups"]):
           [s["label"] for s in suites if s["label"].startswith("nesting-validation")])
 ```
 
-At the time of writing `all` expands to 33 suites and none of them is a
-`nesting-validation` one; `nesting-validation` expands to exactly the four.
+No `nesting-validation` entry appears in `all`, `supported`, `nesting`,
+`experimental`, `python-library`, `supported-macos` or `lint`, and it is that
+*absence* rather than any particular count that matters, since the group grows
+as experiments are added.  `test_v0_tiny.TestSuiteRegistration` asserts exactly
+it for the V0 entries -- both present in `nesting-validation`, neither reachable
+from any other group -- so it cannot rot.
 
 The V2 production entry reuses the V1 parent, so the V1 production entry has to
 have run first -- it points `--parent-dir` at `build/nesting-validation-v1/903`.
@@ -606,9 +625,10 @@ it being an interpolation artefact -- and the interpolation itself is covered
 separately by P1-P11 in `tools/python/tests/test_nesting.py`.
 
 But **the main purpose of nesting is running the child at higher resolution than
-the parent**, and that end-to-end case is still untested.  Nothing in V1 or V2
-validates refinement, and neither should be cited as if it did.  A V-row for it
-is being added to `docs/udales-nesting-design.md`; V5 (parent coarsening)
+the parent**, and that end-to-end case is what **V0** tests -- see
+"V0 -- refinement" below, which is where the interpolation is finally exercised
+by a running solver rather than by P1-P17 alone.  Nothing in V1 or V2 validates
+refinement, and neither should be cited as if it did.  V5 (parent coarsening)
 approaches the same question from the other side but is not the same experiment.
 
 ## Why the parent is reused, and what that costs
@@ -1084,3 +1104,861 @@ Those numbers are the *shape* the production table will have, not a preview of
 its content -- and note that at this window length the tiny zone arm moves as
 much as the size arm does, which is exactly the situation the production
 window's 3400 samples exist to resolve.
+
+---
+---
+
+# V0 -- refinement
+
+> Does a child at higher resolution than its parent reproduce it?
+
+This is the use case nesting exists for, and until now nothing had tested it end
+to end.  Design section 10.4 lists V0 first for that reason, not because it is
+next in sequence.
+
+Two things are being tested at once and the experiment is arranged so they can
+be told apart:
+
+* **refinement** -- a child on a finer mesh than the data driving it;
+* **the interpolation** -- `tools/python/udprep/nesting.py`'s conservative
+  prolongation (design section 1.3), which at `r = 1` is the identity and has
+  therefore never carried a running simulation.  P1-P17 cover it as a function;
+  nothing has covered it as part of a solver.
+
+## What is held fixed, and why that matters
+
+**The child is the V1 child.**  Not a child like it: the same 128 x 128 x 64
+cells at `dx = 2 m` over the same 256 x 256 x 128 m box, the same 36 cubes, the
+same `L_imp = 6 m` + `L_rel = 18 m` zone, `tau = 1 s`, `nest_timeinterp = 1`,
+the same `dpdx`, the same cold start from the parent block, the same 10 800 s
+window.  `config.RefinementSuite.validate` checks every one of those against
+`CONVERGED` rather than trusting the presets to agree, and
+`test_v0_tiny.test_every_child_is_the_v1_child` checks it again.
+
+**The reference truth is the V1 parent**, `$EPHEMERAL/nesting-v1-converged/903`,
+read and never written -- the same 2 m unnested run, the same sub-region, the
+same accumulation code, the same window.
+
+So the only thing that changes is the mesh the boundary data lives on, and
+**the V1 result is the `r = 1` row of V0's table**: `-9.91 %` resolved TKE above
+`z/h = 2`, `+1.50 %` in the canopy, `0.0386 u*` on criterion A, spectral band
+ratios `1.033 / 0.869 / 0.833 / 1.059`.  Every V0 row is read against those
+numbers directly, produced by the same `analyse.py` over the same window.
+
+A consequence worth stating: because parent and child are on different grids but
+child and *reference* are on the same one, **no regridding enters the
+comparison**.  The child's spectrum and the reference's share their `k` axis bin
+for bin.  Nothing is coarse-grained to make the two comparable, so nothing about
+the measurement can be blamed for what it measures.
+
+## The reference truth: why it is the fine run, in both arms
+
+The obvious-looking choice -- compare the child against the coarse parent that
+drove it -- is wrong, and wrong in a way that would flatter or damn the scheme
+arbitrarily.  A 2 m child *should* carry turbulence a 4 m or 8 m parent cannot
+represent; scoring it against the parent would count that as error.  The only
+defensible truth for a refined child is a run at the child's own resolution, and
+one already exists.
+
+## The two arms, and why both
+
+The user's question was which reference configuration to use, and the answer is
+that the two candidates measure different things and the difference between them
+is itself the interesting quantity.  Both are run and both are reported.
+
+### `filtered` -- a perfect coarse parent
+
+The boundary data is the fine reference's own field, box-filtered onto the
+coarse grid by `caselib.coarsen_staggered`, then prolonged back onto the child.
+
+* **It is an idealisation, and is labelled as one.**  A box-filtered fine field
+  is a coarse field that knows *exactly* what the fine run was doing at every
+  scale it can hold -- filtered fine-scale information a genuinely coarse LES
+  would never have had, because a coarse LES has to model those scales rather
+  than filter them.
+* **What it buys is that it is paired.**  Same realisation, same eddies, same
+  slow modes.  It is V1 with exactly one variable changed, so the difference
+  between its numbers and V1's is attributable to the prolongation and the
+  parent's filter scale, and to nothing else.
+* **What it can claim:** whether the interpolation and the parent's cutoff cost
+  the child anything.  **What it cannot claim:** anything about running off a
+  real coarse model.
+
+### `coarse` -- a genuine coarse LES
+
+The boundary data comes from an actual run at 4 m (`911`, 128 x 128 x 32) or 8 m
+(`912`, 64 x 64 x 16) over the same 512 x 512 x 128 m domain, with the same 228
+cubes, the same `dpdx` and the same schedule.
+
+* **This is the real use case.**
+* **It is not paired.**  A separate run is a separate realisation, so its eddies
+  are not the reference's and only statistics can be compared.  Read the
+  error-versus-distance curves accordingly: V1's were paired, and part of why
+  its interior error was so small is that its child and its truth shared an
+  initial condition and a history.  A coarse-arm child cannot share those.
+* **It carries its parent's biases.**  A 16 m cube is 4 cells wide at 4 m and 2
+  cells at 8 m, and its drag will not be the 8-cell version's.  A mean-flow
+  error measured against the fine truth is therefore *the parent's error plus
+  the nesting's*, and quoting it as if it were the nesting's would be wrong.
+
+### Why both, together
+
+`make_child_case` records the **driving parent's own** interior profiles while
+it is already reading every level, and `analyse_v0.parent_deficit` compares them
+against the same fine truth.  That gives the ceiling: a child cannot be more
+right than the data it is given.  Then, at one ratio,
+
+    filtered arm's parent deficit  =  what the filter threw away
+    coarse arm's parent deficit    =  that, plus what the coarse LES got wrong
+    coarse minus filtered          =  the coarse LES's own error
+    child deficit minus parent's   =  what the nesting cost on top
+
+and `v0_summary.json`'s `filtered_vs_coarse` block reports exactly that
+decomposition, per ratio.  Neither arm alone can produce it.
+
+## The grids
+
+| | reference / child | `r = 2` parent | `r = 4` parent |
+|---|---|---|---|
+| cells | 256 x 256 x 64 / 128 x 128 x 64 | 128 x 128 x 32 | 64 x 64 x 16 |
+| `dx` | 2 m | 4 m | 8 m |
+| cube width | 8 cells | 4 cells | 2 cells |
+| Nyquist wavelength `2 dx_P` | -- | 8 m | 16 m |
+| `L_rel / 2 dx_P` | -- | 2.25 | 1.13 |
+| ranks | 64 / 64 | 64 | 16 |
+
+`r = 4` is the writer's validated maximum (`MAX_SPATIAL_REFINEMENT`), so the
+suite spans the whole supported range.
+
+**The zone does not change between V1 and V0**, and it does not have to:
+design section 1.4(c) asks for `L_rel >= max(8 dx_child, h/2..h, 2 dx_P)`, and
+`L_rel = 18 m` clears `2 dx_P` at both ratios.
+`test_v0_tiny.test_the_production_ramp_is_resolved_by_both_parents` asserts it
+rather than leaving it to be noticed.  Keeping the zone fixed is also what makes
+the V1 row comparable, so it would have been worth some cost; it happens to cost
+nothing.
+
+**Time is not coarsened.**  `dtdump = 3 s` at every ratio, as in V1.  V0 varies
+space only; temporal coarsening is V5's question and mixing the two would make
+neither answerable.
+
+**The coarse parents run at the same `dtmax = 0.5 s` as the fine one**, so they
+integrate at a smaller Courant number than they need to.  That is deliberate --
+the mesh is meant to be the only difference between the parents -- and it costs
+about 1 400 s of the job.  `RefinedPoint.validate` enforces the equality.
+
+## What makes the geometry comparison legitimate
+
+Buildings are 16 m cubes on 16 m streets, so every face is aligned to all three
+grids and the same cube array is representable exactly at 2, 4 and 8 m.  That is
+checked, not assumed, in two places:
+
+* `RefinedPoint.validate` requires the coarse parent's cube layout to be the
+  fine reference's, cube for cube, and its plaza window to be the same object --
+  the plaza is carved in metres, and a coarse preset left to compute its own
+  `nest_nwall` margin would carve a slightly *larger* one and the child's
+  buildings would stop being the parent's;
+* `test_v0_tiny.test_the_coarse_parent_is_the_fine_one_block_averaged` requires
+  the coarse run's IBM solid mask to be the fine run's, block-ANDed down, **cell
+  for cell**, after both have been through the real preprocessing.  At the tiny
+  scale that is 1 536 of 1 536 solid cells at `r = 2` and 192 of 192 at `r = 4`.
+
+## The two refinement-specific measurements
+
+### Where the child's spectrum sits relative to the parent's filter scale
+
+Section 10.5 located V1's deficit in the 8-64 m band.  At `r = 2` the parent's
+Nyquist wavelength is 8 m and at `r = 4` it is 16 m, so that band **straddles
+the cutoff at both ratios** and a single number for it would average two
+physically different situations.  `analyse_v0.nyquist_split` therefore reports
+the child/parent ratio in three bands defined relative to `lambda_N = 2 dx_P`:
+
+| band | wavelengths | what the child is doing there |
+|---|---|---|
+| `parent_resolved` | `>= 4 dx_P` | reproducing structure the parent had |
+| `parent_marginal` | `2 dx_P` to `4 dx_P` | representable by the parent but badly damped |
+| `sub_parent_filter` | `< 2 dx_P` | **generating** structure the parent never resolved |
+
+plus `contrast = sub_parent_filter - parent_resolved`, negative when the child
+is worse where it has to invent and positive when it is worse where it is being
+told.  The three bands are asserted to partition every resolved mode, so nothing
+falls between them.  The fixed physical bands of section 10.5 (16-64 m, 8-16 m)
+are still reported alongside, unchanged, so the V1 row stays readable.
+
+This is the measurement whose outcome is genuinely not predictable in advance:
+the child has more capacity to build its own inertial range than the parent had,
+but it also has a larger gap to bridge.
+
+### Whether the divergence-preserving prolongation holds in the running solver
+
+Design section 1.3 claims something stronger than conservation: because the
+prolongation is piecewise constant tangentially and *linear* normally, each of
+`du/dx`, `dv/dy`, `dw/dz` is constant inside a parent cell and equal to the
+parent's, so the child target carries the parent's discrete divergence cell by
+cell.  Three checks, offline and online:
+
+* **The filter.**  `coarsen_staggered` takes the mean of the `r x r` fine faces
+  co-planar with each coarse face, so a coarse face flux is exactly the sum of
+  the fine ones and a coarse cell's net flux is the sum of the `r^3` fine cells'.
+  Verified on a field built from a vector potential: fine `divmax` `5.0e-16`,
+  coarse `1.1e-16` at `r = 2` and `1.7e-17` at `r = 4`.  It is also the exact
+  left inverse of the prolongation's tangential half, so `coarsen(prolong(x))
+  == x` to round-off -- checked, and it matters because otherwise a round trip
+  would move the field and V0 would be measuring the round trip.
+* **The prolongation, on a real field.**  `make_child_case` records the parent's
+  own `divmax` over the child window next to the `divmax` of the field prolonged
+  from it.  On the tiny suite they agree to every digit printed -- e.g.
+  `4.9429218051955104e-08` from both sides at `r = 2` -- and the smoke test
+  compares their *ratio* against 1, not merely bounds them.
+* **The running solver.**  `analyse_v0.runtime_diagnostics` parses the child's
+  log for `modnesting`'s `Phi` and `modpois`'s `divmax`/`divtot`, plus the zone
+  misfit and the zone/interior pressure-gradient ratio that design section 7
+  names as the C1 diagnostic.  On the tiny suite, `max |Phi| <= 9.4e-14` and
+  `max divmax <= 9.1e-16` at both ratios and on both arms.
+
+## Cost, and the walltime
+
+Sized from the V1 converged job's measured stage times plus two rates measured
+directly for this on the real 903 dumps.  The number that mattered most was the
+one nobody had: **refinement costs almost nothing in the slab cut**.  Coarsening
+plus interpolating twelve slabs adds 0.056 s/level at `r = 2` and 0.025 s/level
+at `r = 4`, against a V1 cut of 0.012 s/level of compute inside 0.17 s/level of
+I/O -- so `+160 s` and `+46 s` over the whole 3 600-level record.  The slab cut
+stays I/O bound at `r > 1`.
+
+| stage | s |
+|---|---|
+| coarse parent 911, 4 m, 22.6 G cell-steps, 64 ranks | 2 500 |
+| coarse parent 912, 8 m, 2.8 G cell-steps, 16 ranks | 1 500 |
+| slab cut `r2-filtered` (608 read/write + 160 refinement) | 770 |
+| slab cut `r4-filtered` (608 + 46) | 655 |
+| slab cut `r2-coarse` (reads 22.6 GB, not 170) | 500 |
+| slab cut `r4-coarse` (reads 2.8 GB) | 400 |
+| 4 child runs at 1 621 s | 6 484 |
+| reference accumulation, 3 400 levels, **shared** by all four | 800 |
+| 4 child analyses at 240 s | 960 |
+| case preprocessing | 360 |
+| **total** | **14 929 s = 4.15 h** |
+
+`submit_cx3_v0.pbs` asks for **6 h**, 1.45x that -- less headroom than the V2
+job's 2.2x, deliberately.  The queue is deep and every hour of walltime asked
+for is paid in queue time; the only genuinely new items are the two coarse
+parent runs and the coarse arm's slab cuts, 4 900 s together, so being 2x wrong
+about all of them still fits.  The header says how to split it into per-arm jobs
+of 2.5 h and 3.5 h with `-v UDALES_V0_POINTS=...`, which is the right thing to
+do when the queue is deeper still: the points are independent once the coarse
+parents exist.
+
+**Memory** peaks in the slab cut at ~40 GB (34.0 GB of slabs held in memory
+before writing, as in V1); `mem=128gb`.  **Disk**, all new: 25 GB of coarse
+parent dumps, 136 GB of nesting files, 181 GB of child dumps, ~343 GB.
+`--prune-nesting` drops the nesting files once their children have run.
+
+One efficiency deliberately not taken: the two `filtered` points each read all
+170 GB of 903 independently.  Building both in one pass would save ~400 s and
+would mean a second code path through `make_child_case`; it is not worth it.
+
+## How to run it
+
+```bash
+module purge && module load tools/prod && module load Python/3.9.6-GCCcore-11.2.0
+source /rds/general/user/mvr/home/udales/.venv/bin/activate
+```
+
+Smoke test (about 160 s on a login node, 4 ranks -- it builds and runs its own
+tiny fine reference, two tiny coarse parents and four tiny children):
+
+```bash
+python tests/validation/nesting/run_v0.py $EPHEMERAL/v0-tiny --suite v0-tiny
+python tests/validation/nesting/test_v0_tiny.py     # the same, as 26 assertions
+```
+
+Production (**do not run this on a login node**):
+
+```bash
+qsub tests/validation/nesting/submit_cx3_v0.pbs
+```
+
+Individual points and stages, for a re-run after a failure:
+
+```bash
+python tests/validation/nesting/run_v0.py $EPHEMERAL/nesting-v0 --suite v0 \
+    --reference-dir $EPHEMERAL/nesting-v1-converged/903 \
+    --only r2-coarse --start-at child-case --yes
+```
+
+Stages are `reference-case`, `reference-spinup`, `reference-production`,
+`driver-case`, `driver-spinup`, `driver-production`, `child-case`, `child`,
+`analysis`, `summary`.  With `--reference-dir` the three `reference-*` stages do
+nothing.  `--start-at summary` rebuilds the table from the per-point JSON
+without redoing any analysis.
+
+## What comes out
+
+Per point, in `<rundir>/analysis/<key>/`: everything `analyse.py` writes for a
+V1/V2 child (`profiles.csv`, `error_vs_distance_*.csv`, `spectrum_*.csv`,
+`tke_deficit.csv`, `spectral_bands.csv`, plots) with the metrics in
+`v0_metrics.json`, whose `v2` block holds the V1/V2 diagnostics and whose `v0`
+block holds the refinement-specific ones, plus
+`spectral_bands_across_parent_nyquist.csv` and `driving_parent_vs_truth.csv`.
+
+For the suite, in `<rundir>/analysis/`: `v0_summary.{md,csv,json}`.  The
+Markdown carries the table below and the `filtered_vs_coarse` decomposition.
+
+## Status
+
+**Prepared, validated at tiny scale, and not submitted.**  `submit_cx3_v0.pbs`
+is written and sized; submitting it is a human decision.
+
+The whole pipeline has been driven end to end at the `v0-tiny` suite on CX3
+(4 ranks, login node, 174 s): a tiny fine reference, two tiny coarse parents
+(48^2 x 16 at 4 m and 24^2 x 8 at 8 m), four refined children, per-point
+analysis with a cached reference accumulation, and the suite table.
+`test_v0_tiny.py` is **26 tests, all passing (156 s)**.  `test_v1_tiny.py`
+(10 tests, 68 s) and `test_v2_tiny.py` (26 tests, 189 s) were re-run afterwards
+and are unchanged, so the shared `config.py`, `caselib.py`, `make_child_case.py`
+and `analyse.py` did not regress -- the `r = 1` path through the child builder
+is untouched by construction, and that is what those two runs confirm.
+
+The tiny suite deliberately violates one of the design's own conditions:
+`tiny`'s `L_rel = 8 m` is below `2 dx_P = 16 m` at `r = 4`, so the relaxation
+ramp is not resolved in that parent's terms.  `config.py` prints a note saying
+so and `test_v0_tiny.test_the_tiny_suite_reports_its_own_violation` asserts the
+note's condition, so the violation is visible rather than quietly absorbed.  It
+does not matter for a smoke test -- what is being exercised is the code path --
+and the production suite clears the condition at both ratios.
+
+**What the tiny suite showed is structural only.**  24 samples over 71 s of a
+24 x 24 x 8 parent cannot support any physical claim, and its half-window
+spreads (16 %) are comparable with its deficits; the numbers below are the
+*shape* of the production table, not a preview of its content:
+
+| point | r | arm | TKE `z/h>2` | of which the parent's | E resolved | marginal | sub-filter | crit A | max \|Phi\| | max divmax |
+|---|---|---|---|---|---|---|---|---|---|---|
+| r2-filtered | 2 | filtered | -34.93% | +5.81% | 0.636 | 0.268 | 0.563 | 0.3161 | 4.1e-15 | 8.0e-16 |
+| r2-coarse | 2 | coarse | -5.40% | +34.71% | 1.361 | 1.120 | 5.509 | 1.2699 | 8.8e-14 | 9.1e-16 |
+| r4-filtered | 4 | filtered | -50.35% | -14.95% | 0.623 | 0.224 | 0.154 | 0.5527 | 9.2e-15 | 7.6e-16 |
+| r4-coarse | 4 | coarse | -63.43% | -52.77% | 0.640 | 0.044 | 0.023 | 1.4083 | 9.4e-14 | 8.3e-16 |
+
+What is worth reading in it, and only this:
+
+* **every point ran.**  `nesting_init` verified the zone was building-free
+  (`nest_lparentgeom = .false.`, an assertion not a warning), all four faces
+  were forced, the stored levels passed the flux check, and the cold start came
+  from the interpolated parent block -- at `r = 2` and at `r = 4`, on both arms;
+* **`Phi` and `divmax` stayed at round-off**, `<= 9.4e-14` and `<= 9.1e-16`, so
+  refinement does not disturb the flux compatibility of design section 3.1 or
+  give the projection anything extra to clean up;
+* **the parent's own deficit column is doing its job.**  At `r = 2` the filtered
+  parent is nearly the truth (`+5.8 %`) while the genuine 4 m LES is `+34.7 %`
+  off it, and at `r = 4` they are `-14.9 %` and `-52.8 %`.  That is the ceiling
+  the child is working under, separated from the child's own error, which is
+  exactly what running both arms is for;
+* the criterion A column fails everywhere, as it does for `test_v1_tiny` at this
+  size, and means nothing at 71 s.
+
+Nothing physical about refinement is claimed here.  That is what the production
+job is for, and it has not been run.
+
+---
+
+# V3 and V4 -- when parent and child geometry differ
+
+`docs/udales-nesting-design.md` section 9.4 is about the configuration the
+scheme actually exists to support: a parent that resolves *different* buildings
+from the child, or none at all.  Section 10.4 turns that into two rows.
+
+> **V3 -- parent without buildings.**  The parent resolves no geometry; the
+> child has buildings starting **at** the inner zone edge.  Deliverable: the
+> adjustment length, and confirmation that a standoff lengthens rather than
+> shortens it.
+>
+> **V4 -- different parent geometry.**  A parent with a different building
+> layout.  Deliverable: interior statistics, confirming that the interior is
+> insensitive to the mismatch beyond the adjustment fetch.
+
+Both are one-way and at refinement ratio 1, like V1 and V2, so nothing here
+tests the interpolation either (V0 does).
+
+**Two wordings in that table are worth flagging rather than inheriting**, and
+this directory does not own the design document, so they are recorded here.  V3's
+deliverable as written -- "*confirmation that* a standoff lengthens rather than
+shortens it" -- presupposes its own answer; what is built below is a test that
+can return `REFUTED`, and if it does, the design document is what has to change.
+V4's deliverable says "interior statistics vs S3", and no S3 appears anywhere
+else in the document; it is read here as V1, which is the only matched-geometry
+reference that exists.
+
+## What section 9.4 claims, and how these experiments can refute it
+
+Section 9.4 makes two falsifiable claims.
+
+1. **An internal boundary layer must develop** between the inner edge of the
+   zone and the first building row, because the imposed near-surface profile is
+   in equilibrium with the parent's roughness, not the child's canopy.  The
+   adjustment length is what V3 measures.
+2. **The buildings should start immediately at the inner zone edge, not after a
+   standoff.**  A building-free standoff is claimed to be *actively
+   counterproductive*: the flow there adjusts only to the ground roughness
+   through weak shear-driven mixing and then has to adjust a second time on
+   reaching the canopy, so `W = 0` gives one adjustment instead of two.
+
+Claim 2 is the one that can fail, and V3 is arranged so that it can.  Turned
+into predictions that the harness evaluates without any tolerance chosen after
+the fact:
+
+> **P-a**  The adjustment length measured **from the inner edge of the zone**
+> does not *decrease* as the standoff grows.  (That is the domain a layout has
+> to spend, which is what the claim is about.)
+>
+> **P-b**  At a fixed station measured from the zone edge, the canopy of the
+> 0-cell child is at least as close to equilibrium as every other child's.
+>
+> **P-c**  The adjustment length measured **from the first building face** does
+> not *decrease* as the standoff grows.
+
+**P-c is the sharp one, and P-a is nearly free -- worth being blunt about.**  A
+standoff moves the canopy downstream, so the canopy's adjustment trivially
+finishes later measured from the zone edge, by at least the standoff length,
+whatever the physics.  The non-trivial content of "one adjustment instead of
+two" is that the *second* adjustment is slower than the single one would have
+been, because the flow reaching the canopy has already equilibrated with the
+ground and has to be reworked.  That is `adjustment_from_first_row`.  If it comes
+out *shorter* behind a standoff -- if a decelerated approach flow makes the
+canopy adjustment quicker -- then a standoff is not counterproductive in the way
+section 9.4 claims; it merely costs its own length, which is a much weaker
+statement than the design makes, and this README should then say so.
+
+A refutation is a standoff that reaches equilibrium sooner from the zone edge or
+from the first building face, or that is closer to equilibrium at a fixed station
+by more than the sampling spread.  `run_geometry.py` reports `design_9_4_standoff_claim` as `SUPPORTED`,
+`REFUTED` or `INCONCLUSIVE`.  `INCONCLUSIVE` is a real outcome and is emitted
+whenever the children were not distinguishable at all -- the residuals at every
+fixed station lying within each other's sampling spread, and fewer than two
+children reaching equilibrium.  It is **not** agreement, and `SUPPORTED` is
+withheld unless the comparison could have shown otherwise.
+
+**The standoffs are 0, 5, 15 and 40 cells.**  The first three are the design
+table's own comparison.  40 cells = 80 m = 5 h was added because 0, 5 and 15
+cells are 0, 0.6 and 1.9 building heights -- all short compared with any
+plausible adjustment scale -- so a sweep of only those could fail to separate
+the hypotheses for want of lever rather than because the claim is right.  Giving
+the claimed mechanism room to act makes the test sharper, not kinder.
+
+## The parent sub-region is **not** a reference here, and that is the whole design problem
+
+`analyse.py` answers one question -- does the child reproduce the parent
+sub-region it was cut from? -- and every number in it, criterion A included, is a
+child-minus-parent difference over cells that are fluid in **both** runs.  That
+is right for V1 and V2, where the child is a sub-model of its parent.  It is
+wrong here, and using it anyway would be the easiest way to produce a confident
+and meaningless answer:
+
+* in **V3** the parent has no buildings at all, so `<u>_child - <u>_parent`
+  measures the canopy rather than the nesting.  Criterion A will be far outside
+  its bound and that is not a failure of anything;
+* in **V4** the parent's buildings are in *different places*, so the
+  fluid-in-both mask discards roughly a quarter of the child's canopy layer in a
+  pattern set by the parent's array -- an averaging domain with nothing to do
+  with the one V1 averaged over.
+
+So the child-versus-parent block is still computed for every child and is still
+written out -- it is asked for as a comparable diagnostic, and for V4 it is
+genuinely interesting as a measure of how far the interior is *free* to differ
+-- but it is written as `child_vs_parent_metrics.json`, not `v1_metrics.json`,
+and **no pass criterion is applied to it.**  The references are elsewhere:
+
+| | reference for the interior | why |
+|---|---|---|
+| **V3** | a periodic run of the child's own canopy at the child's own forcing (`920`) | that is what "in equilibrium with its own canopy" *means*; without it an adjustment length can only be self-referential, which cannot tell an adjusted canopy from one that stopped adjusting short of equilibrium |
+| **V4** | the **V1 `converged` child** | identical geometry, size, zone, forcing and schedule; the only difference is the layout its parent resolved |
+
+Both references are reduced by the same code, over each child's **own** fluid
+mask, in `analyse_geometry.py`.  For V4 that means the mismatched child and the
+V1 child are averaged over the same cells, which they are not if either is
+intersected with its parent's mask.  `run_geometry.py` aborts if the two
+children's solid masks are not identical.
+
+**Where the V1/V2 diagnostics are.**  `analysis/<child>/child_vs_parent_metrics.json`
+carries exactly what `v1_metrics.json` carries for a V1 or V2 child -- interior
+mean and resolved-TKE profiles with the parent's half-window noise floor,
+error-versus-distance curves and decay lengths for `<u>` and TKE from all four
+faces, streamwise spectra and band ratios at three heights, the `tke_series`
+equilibration trace, the `v2` block (TKE deficit, TKE error versus fetch,
+criterion A, the common-block reduction) and the `solid_mask` census -- together
+with the CSVs of all of it.  It is written for every child of both experiments,
+so the two campaigns are comparable with V1 and V2 line for line.  Read it as
+*context*: for V3 and V4 the parent is the forcing, not the truth, and the
+criterion A line in it will say FAIL for reasons that have nothing to do with
+the scheme.  `--no-legacy-metrics` skips it.  V4's own criterion A -- against the
+V1 child -- is `criterion_a_prime` in `v4_metrics.json`, and *that* one is a
+criterion.
+
+## V3 -- parent without buildings
+
+```
+reference  920   96 x  96 x 64,  192 x 192 x 128 m, periodic 6 x 6 cube array
+                 fixed dpdx = 1.25e-3 m/s^2 -> u* = 0.4 m/s (V1's forcing)
+                 spin-up 3600 s, production 3600 s, dumps every 3 s
+parent     921  320 x 160 x 64,  640 x 320 x 128 m, FLAT -- no buildings
+                 volume-flow forced at the reference's measured bulk velocity
+                 spin-up 9000 s, production 3600 s, dumps every 3 s
+children   922-925  256 x 128 x 64, 512 x 256 x 128 m, origin (64, 32) m
+                 canopy of 16 m cubes on a 32 m period, starting 0 / 5 / 15 / 40
+                 cells past the clear box; 14 / 14 / 13 / 11 streamwise rows
+                 zone L_imp = 6 m (3 cells), L_rel = 18 m (9 cells), tau = 1 s
+                 streamwise interior 464 m = 29 h; spanwise 208 m = 13 h
+```
+
+Everything the child's canopy is made of -- 16 m cubes, 16 m streets, `h = 16`
+m, `dx = 2` m, `u* = 0.4` m/s, a 128 m rigid lid -- is V1's, so the canopy V3
+measures is the canopy V1 and V2 measured.
+
+### Why the flat parent is flow-rate forced, and what that costs
+
+This is the one design decision in V3 that is not forced by the brief, so it is
+worth stating in full.
+
+A flat surface at the cases' ground roughness (`factypes` type 1, `z0 = 0.05` m
+-- the default the preprocessing writes, and the same one the cubes carry)
+driven by the canopy's own `dpdx` runs at roughly **twice** the canopy's
+equilibrium bulk velocity, because the canopy drag it is missing is most of the
+drag.  That is a *bulk momentum* mismatch, and it is not the one section 9.4 is
+about: the child's interior would then be decelerating everywhere, at a rate
+that puts full adjustment hundreds of building heights downstream, and there
+would be no near-surface equilibrium for anything to adjust *to*.  V3 would
+measure a bulk imbalance and report "not reached".
+
+So the flat parent is driven by `luvolflowr` at the reference run's **measured**
+bulk velocity instead.  The child keeps V1's fixed `dpdx`.  The child's interior
+is then in global momentum balance -- its own forcing matches its own canopy's
+drag at that bulk speed -- and the only thing out of equilibrium is the *shape*
+of the near-surface profile: a log layer down to the ground where the child has a
+canopy.  That is precisely the imposed profile section 9.4 says will be out of
+equilibrium, and the adjustment length becomes a property of the internal
+boundary layer rather than of a bulk imbalance.
+
+The bulk velocity is a **measurement, not a guess**: `run_geometry.py` runs the
+reference first, reduces it, and writes its fluid-masked depth-averaged `<u>`
+into the parent's `uflowrate` -- computed the same way `modforces.f90:404-410`
+computes it, or the parent would be asked to hold a different number from the one
+it reports.  The preset carries a nominal value only as a sanity bound: a
+measured bulk more than a factor of two from it aborts, because that would mean
+the reference run is broken rather than that the guess was poor.  The tiny
+experiment measured 2.5493 m/s in the reference and the flat parent then held
+2.5434 m/s, 0.2 % low.
+
+**What this costs, stated plainly.**  A flat wall at `z0 = 0.05` m carrying the
+canopy's bulk velocity carries a *weaker* surface stress than the canopy does --
+`u*` about 0.18 m/s against 0.4 -- because a smooth surface needs less stress to
+hold the same wind.  So the V3 parent also delivers less turbulence to the
+boundary than a matched parent would, and the child has to regenerate the
+difference as well as reshape the profile.  Both mismatches are measured and
+reported (`mismatch` in `v3_metrics.json`: the bulk, canopy-velocity and
+roof-level stress differences between the imposed and the equilibrium states),
+so the adjustment length is quoted *for a stated mismatch* rather than as a
+universal number.
+
+There is no third option available at this resolution.  Matching both the bulk
+and the stress would need a flat wall with a city-scale roughness length,
+`z0 ~ 2 m` by Macdonald's morphometry for this array -- and the IBM wall function
+needs `log(dist/z0) > 1` at the first cell centre (`modibm.f90:1383`), which on a
+2 m grid caps `z0` at about 0.2 m.  A genuinely coarse parent could carry it;
+that is V0's territory, not V3's.
+
+### What is measured
+
+Everything is reduced onto **streamwise blocks one cube period wide**, phase
+locked to the child's canopy lattice and continued upstream into the
+building-free standoff, clipped to the interior.  Two reasons and both matter:
+`<u>(x)` inside a cube array swings by tens of per cent within one period, so a
+block must contain exactly one cube and the same part of the pattern or the
+streamwise signal is aliasing against the array; and continuing the same phase
+upstream puts the standoff region on the same abscissa as the canopy, which is
+what makes a 0-cell and a 40-cell standoff comparable at a fixed station.
+
+| quantity | where | what it is |
+|---|---|---|
+| `u_canopy` | `blocks.*[].u_canopy` | mean `<u>` below roof height, over the fluid cells of the block |
+| `uw_at_roof` | `blocks.*[].uw_at_roof` | resolved `<u'w'>` at the first level above the roofs -- the sharpest streamwise signature of an internal boundary layer, and the direct proxy for the "visibly wrong facet stresses" section 9.4 expects on the first few rows |
+| **adjustment length** | `adjustment` | the smallest fetch beyond which **every** later row is within 5 % of the reference, for both quantities, against **two** references and reported from **two** origins |
+| IBL depth | `ibl` | the lowest height above which the block's `<u>(z)` is within 5 % of the imposed bulk velocity of the parent's own profile, at that height and every height above |
+| residual at fixed stations | `fixed_stations` | the relative canopy-velocity error at 5 h, 10 h and 20 h from the inner zone edge -- the cross-standoff comparison that needs no adjustment length to exist |
+| the imposed-vs-equilibrium mismatch | `mismatch` | how far the parent's state is from the canopy's equilibrium: the size of what the child has to work off |
+
+The 5 % tolerance is design section 0's own interior bound, reused; it was fixed
+before any number was computed and is not a knob.  "Adjusted" uses the same "and
+stays there" rule `analyse.decay_length` uses, so an adjustment length here means
+what a decay length means there.  A settle that happens only at the very last
+row is flagged (`settled_only_at_the_last_row`) and not reported as an
+adjustment length -- there is no row after it to disagree.
+
+**Two references, side by side, neither chosen after the fact.**
+`vs_equilibrium` is against the periodic reference: the absolute answer, and the
+one section 9.4 asks for.  `vs_last_row` is against the child's own last row: the
+self-referential answer, which is all that exists if the flow never reaches
+equilibrium within the domain, and which is reported *so that the two can be
+told apart*.  `None` -- never reached within the available fetch -- is a result.
+
+**Two origins.**  From the **inner edge of the zone**, which is the domain a
+layout has to spend and the quantity P-a is about; and from the **first building
+face**, which says whether the canopy adjustment itself is faster or slower
+behind a standoff.  A standoff can perfectly well shorten the second while
+lengthening the first, and section 9.4's claim is about the first.
+
+**The spanwise scope.**  The child's spanwise faces are nested too, so lateral
+internal boundary layers spread inward from both of them, further with fetch.
+The headline statistics are taken over the central half of the canopy's spanwise
+extent (`y_core_fraction = 0.5`); the full width is emitted alongside as
+`blocks.canopy` and `adjustment_full_width`, so the contamination can be seen
+rather than assumed away.
+
+### V3's zone contains no soft obstacles at all
+
+The child's zone is building-free, and the field it is relaxed towards -- a flat
+parent's -- contains no buildings either.  So unlike V2 (and unlike V4 below),
+V3's ramp carries no low-velocity imprint of a building the child does not
+resolve.  It is the cleanest configuration in the whole campaign: the only thing
+crossing the boundary is a horizontally homogeneous flat-wall flow, which is
+exactly what makes the adjustment behind it attributable to the canopy.
+
+## V4 -- different parent geometry
+
+```
+parent    930  256 x 256 x 64 -- V1's parent, cube for cube and second for
+               second, except that its array is STAGGERED rather than aligned
+               (udgeom.create_cubes 'SC'; same 16 m cubes, same 32 m period,
+               same plan area density, so the same solid cell count)
+child     931  128 x 128 x 64 at origin (128, 128) m carrying V1's ALIGNED array
+               V1's zone (3 + 9 cells), tau, nest_timeinterp, nest_nwall,
+               nest_linitfromparent, forcing and schedule, to the digit
+baseline       the V1 'converged' child on disk, read and reduced, not re-run
+```
+
+**The child is V1's child.**  Not merely the same size -- the same cubes in the
+same places.  V1 got its building-free zone by carving a plaza out of the parent;
+V4 gets it by clearing the child, which section 9.4 (and the `clear_child_zone`
+work in `config.py`) says is the right way round.  Those are different mechanisms
+and they have to produce the same layout, so `test_v34_tiny.py` asserts it cube
+for cube against `config.CONVERGED`, and asserts that both drop the same 28
+cubes.  Every other parameter is asserted equal too.  So the only thing that
+differs between this child and V1's is **the layout its parent resolved**, and
+the answer to "does a mismatched parent layout cost anything in the interior" is
+a difference from V1's numbers.
+
+### What is measured
+
+| quantity | what it is |
+|---|---|
+| `tke_difference.above` / `.canopy` | `(TKE_mismatch - TKE_V1)/TKE_V1` above `z/h = 2` and inside the canopy, against the two runs' half-window spreads combined in quadrature |
+| `umean_difference` | the `<u>(z)` difference, rms over the column in `u*`, with its own sampling floor |
+| **criterion A'** | design section 0's interior bound taken against the *right* reference: `max_interior rms\|<u>_mismatch - <u>_V1\|/u*` against 0.05.  Not against the parent, whose buildings are elsewhere |
+| `tke_error_vs_distance` | the resolved-TKE difference between the two children, per slab, against distance from each lateral face, with the baseline's own half-window floor.  V1's criterion B with the right reference: if a mismatched parent layout leaves a signature it should be largest near the boundary, where the imposed field carries the parent's wakes in the wrong places, and decay inward.  A flat curve says the difference is not coming from the boundary at all |
+| `spectra_child_over_baseline` | the child/child spectral ratio in the 16-64 m, 8-16 m, `> L/4` and `< 4 dx` bands at each of V1's three heights |
+
+The half-window spreads are the point.  V4's child and V1's were driven by
+*different realisations* of the turbulence, so the difference between them
+contains weather as well as mismatch.  That is bounded, not eliminated: every
+difference is reported next to the combined spread, and a difference smaller
+than its spread means **V4 has not measured a cost** -- which is exactly what
+section 10.4 expects ("the interior is insensitive to the mismatch beyond the
+adjustment fetch").  `verdict.<child>.measurable` is that comparison, made on the
+median per-height significance, as V2's is.
+
+### The soft obstacle, for V4 specifically
+
+The V2 README sets this out in general: inside the child's cleared band the
+child is relaxed towards the parent's velocity field, and that field contains the
+parent's cubes -- as near-zero velocity where a cube stands, and as wakes
+downstream of one.  So the ramp carries a low-velocity imprint of a building the
+child does not itself resolve: no IBM enforcing it, no wall stress, no ongoing
+production.  It is neither a building nor a plaza.  Three statements specific to
+V4:
+
+* **It does not touch the mass budget.**  `Phi` is evaluated on the child's
+  boundary faces, and both sides of the comparison are unmasked there -- the
+  child has no solid cells in its band, and the Python writer corrects whatever
+  field is stored over all four faces.  The correction drives the stored `Phi` to
+  round-off and the runtime diagnostic stays there, cube in the plane or not.
+  `test_v34_tiny.py` checks `Phi` and `divmax` at round-off on every child.
+* **It does not change the boundary treatment.**  `nest_lparentgeom`, the
+  weights, `tau`, the shape function, the guard width and `nest_nwall` are V1's,
+  unchanged.  What differs is *what the imposed field describes*, not how it is
+  imposed.
+* **It is not separable from the effect being measured, and V4 does not pretend
+  otherwise.**  Here V4 differs from V2 in a way worth spelling out.  In V2 the
+  parent's array was aligned with the child window and no cube came closer than
+  8 m to a child face, so the guard strip was over open ground in the parent too.
+  A **staggered** array's displaced columns put cube centres on the child's
+  spanwise faces: at four streamwise stations, the parent has a cube straddling
+  the child's south face and four more straddling its north face, reaching 8 m
+  into a 24 m band.  The imposed inflow there is near zero over 8 x 16 m patches
+  below roof height.  Those patches sit inside the band, their wakes advect
+  downstream along the boundary rather than into the interior, and the analysis
+  interior begins 24 m in -- so they do not enter the region compared.  But they
+  *are* part of what "a mismatched parent layout" does, and V4's answer
+  therefore bundles two things: the parent's interior wakes arriving in the wrong
+  places, and the parent's buildings intersecting the child's boundary planes.
+  If V4 finds a measurable interior cost, separating those two would need a
+  further experiment -- a child window offset so that no parent cube straddles a
+  face -- and this README should be the place that says so rather than the place
+  that quietly implies it was already done.
+
+### Why there is no matched-geometry control on this parent
+
+The obvious control is the same child carrying the parent's *staggered* array --
+V1 repeated on this realisation.  **It cannot have a building-free zone at any
+size, and that is a theorem rather than a budget.**  Write `c` for a cube centre
+in child metres and `L` for the child extent.  A cube is dropped from the clear
+box when `c < 34` or `c > L - 34` (26 m of clearance plus 8 m of half width), and
+it also reaches the analysis interior when `16 < c < L - 16`.  So the residues
+modulo the 32 m period that a dropped cube may not occupy span two 18 m windows
+-- 36 m of a 32 m period -- and a staggered array's two column families sit
+exactly half a period apart, so one of them always lands in a blocked window
+whatever the child's origin or size.  Clearing the zone would remove buildings
+from the region the statistics are taken over, which
+`removed_cubes_reaching_the_interior` refuses and should refuse.
+
+The alternatives are to keep the parent's cubes inside the zone and run
+`nest_lparentgeom = .true.` -- legal for self-nesting, but then the control no
+longer shares V1's boundary treatment and stops being a control -- or to widen
+the zone, which changes the variable under test.  `test_v34_tiny.py` turns the
+argument into a checked invariant by asserting that `validate()` refuses such a
+preset.  If it ever stops firing, the argument needs revisiting, not deleting.
+
+## Layout
+
+| File | What it is |
+|---|---|
+| `presets_geometry.py` | **every** parameter of V3 and V4, as `GeoPreset` objects whose parent and child layouts are independent, grouped into `Experiment` objects.  Imports the shared machinery from `config.py` and registers its presets there; adds nothing to `config.py` itself.  Run it to print both experiments |
+| `make_geometry_cases.py` | the periodic case builder: flat ground, a staggered array, and volume-flow-rate forcing.  The namelist itself is still `make_parent_case.parent_sections` -- three keys are patched, not restated.  The nested children need nothing new: `make_child_case.build` already takes the child's layout from `Preset.child_cube_centres` |
+| `analyse_geometry.py` | the V3/V4 measurements: streamwise blocks, adjustment length, IBL depth, and the child-against-child comparison.  Carries the `u'w'` cross-moment, which `analyse.py` does not |
+| `run_geometry.py` | end-to-end driver for both, stage by stage, plus the cross-child summary and the verdicts |
+| `test_v34_tiny.py` | both experiments as a unittest at login-node size, plus the production configuration checks that need no run |
+| `submit_cx3_v3.pbs`, `submit_cx3_v4.pbs` | the two production jobs.  **Review before submitting.** |
+
+## How to run it
+
+Smoke test (about 3 minutes on a login node, 4 ranks -- two tiny experiments,
+nine solver runs):
+
+```bash
+module purge && module load tools/prod && module load Python/3.9.6-GCCcore-11.2.0
+source /rds/general/user/mvr/home/udales/.venv/bin/activate
+export TMPDIR=$EPHEMERAL
+python tests/validation/nesting/test_v34_tiny.py
+```
+
+or one experiment on its own, which prints the full tables:
+
+```bash
+python tests/validation/nesting/run_geometry.py $EPHEMERAL/v3-tiny --experiment v3-tiny
+python tests/validation/nesting/run_geometry.py $EPHEMERAL/v4-tiny --experiment v4-tiny
+```
+
+Production (**do not run this on a login node**):
+
+```bash
+qsub tests/validation/nesting/submit_cx3_v3.pbs
+qsub tests/validation/nesting/submit_cx3_v4.pbs
+```
+
+V3 needs nothing from V1 -- it runs its own reference and its own parent.  V4
+reads the V1 `converged` child at `$EPHEMERAL/nesting-v1-converged/904` as its
+baseline and refuses to start without it.
+
+Stages are `periodic-case`, `periodic-spinup`, `periodic-production`,
+`periodic-stats`, `child-case`, `child`, `analysis`, `summary`; `--only`
+restricts the children acted on, so a single failed child can be redone:
+
+```bash
+python tests/validation/nesting/run_geometry.py $EPHEMERAL/nesting-v3 \
+    --experiment v3 --only standoff40 --start-at child-case --yes
+```
+
+### What comes out
+
+```
+<rundir>/analysis/
+  periodic_<key>.json          the equilibrium reference / the imposed state:
+                               profiles, canopy-layer reductions, bulk velocity
+  <child>/v3_metrics.json      V3: blocks, adjustment, ibl, fixed_stations,
+                               mismatch, the child's own bulk trace
+  <child>/v4_metrics.json      V4: the comparison against the baseline child
+  <child>/child_vs_parent_metrics.json   the V1/V2 diagnostics, as context
+  <child>/*.csv                streamwise_blocks_{core,canopy}, ibl_depth,
+                               reference_profiles, profiles_vs_baseline,
+                               tke_error_vs_distance_{x,y}, plus the V1/V2 CSVs
+  v3_summary.{md,json}         the standoff table and the P-a/P-b/P-c verdict
+  v4_summary.{md,json}         the difference-from-V1 table and its verdict
+```
+
+`v3_summary.md` and `v4_summary.md` are the deliverables; read them first, then
+the `verdict` block, then a per-child JSON if a row needs explaining.
+
+`periodic-stats` writes `analysis/periodic_<key>.json`, which is both the
+equilibrium reference the adjustment length is measured against *and* the source
+of the flat parent's `uflowrate`.  A V3 re-run that starts after that stage reads
+the cached file; one that skips it and rebuilds the parent case falls back to the
+preset's nominal value and says so in the log.
+
+## Cost
+
+Both are sized from the V1 `converged` job's measured stage times (PBS 3991175,
+recorded in `.github/skills/udales-exec/references/clusters.md`), not from a
+blanket allowance.  The two PBS headers carry the full derivation.
+
+| | V3 | V4 |
+|---|---|---|
+| periodic runs | reference ~15 min, flat parent ~70 min | staggered parent ~3 h 15 |
+| slab cuts | 4 x ~3.5 min | ~10 min |
+| child runs | 4 x ~15.5 min | ~27 min |
+| analysis | ~30 min | ~25 min |
+| **estimate** | **~3 h 20** | **~4 h 15** |
+| **walltime requested** | **5 h** (1.5x) | **6 h** (1.4x) |
+| new disk | ~245 GB | ~249 GB |
+| `mem=` | 64 GB | 96 GB |
+
+Tighter than V1's and V2's blanket 8 h on purpose.  Note what that does and does
+not buy: on CX3 a 64-cpu job is routed by `ncpus` and walltime band only --
+`<= 64` cpus and `<= 24` h both go to `v1_medium24` -- so 5 h and 8 h land in the
+*same* queue, and the whole benefit of the tighter number is backfill
+eligibility (`backfill_depth = 1` on that queue).  If it stays deep, the other
+lever is `ncpus`: `<= 16` routes to `v1_small24`/`v1_small72`, which were running
+thousands of jobs when this was written.  Whether that trades well is not settled
+by the existing measurements -- `clusters.md` records 5.4e6 cell-steps/s on 4
+ranks and 1.7e7 on 64, but for *different case sizes*, so "3.1x for 16x the
+ranks" is a warning that scaling is far from perfect rather than a measured
+efficiency.  Sizing a 16-rank run would need its own timing, and
+`nprocx`/`nprocy` changed in `presets_geometry.py`.
+
+## Status
+
+**Prepared, exercised end to end at tiny size, not submitted.**  Both tiny
+experiments run the identical production code path on a login node in about
+90 s each: an equilibrium reference, a flat parent calibrated from it, three
+standoff children (V3); an aligned parent, a staggered parent, a matched child
+and a mismatched child (V4).  `test_v34_tiny.py` covers both plus the production
+configuration.
+
+What the tiny runs showed, **for orientation only** -- 17 samples over a 51 s
+window on a 40 s spin-up cannot support any physical claim:
+
+* the volume-flow calibration works: the reference measured a bulk of
+  2.5493 m/s and the flat parent then held 2.5434 m/s, 0.2 % low;
+* the premise of V3 holds at tiny size -- the imposed canopy-layer velocity was
+  2.31 m/s against the equilibrium's 0.81, and the roof-level resolved stress
+  had the wrong sign in the flat parent, so there is a large mismatch for the
+  child to work off;
+* the streamwise blocks resolve it: with a 15-cell standoff the building-free
+  block at the zone edge carried `u_canopy = 2.09` m/s, the first canopy row
+  1.92 and the second 1.81 -- a decelerating canopy on the expected abscissa;
+* `test_v34_tiny.py` is 29 tests, all passing in 184 s;
+* every child ran `nest_lparentgeom = .false.` with all four faces forced,
+  `Phi` at round-off (`~2e-14` in the stored file) and `divmax` at round-off,
+  which is the point: a canopy generated with no reference to the parent's
+  geometry still lets the solver *assert* the design section 5 rule;
+* the V4 comparison ran against a baseline child whose solid mask was checked
+  identical to the mismatched child's, and refused a baseline of the wrong shape.
+
+No production number exists yet.  Nothing in this section should be read as one.

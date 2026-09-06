@@ -279,3 +279,55 @@ Derived rates worth reusing:
 `$EPHEMERAL` held 246 GB for that one V1 run (170 GB parent dumps + 76 GB child
 dumps and nesting file) against a ~11 TB quota, so volume was never the
 constraint on this work.
+
+### CX3 addendum (2026-09, V3/V4 geometry-mismatch harness)
+
+**PBS routing, and what a tighter walltime actually buys.** Queues are selected
+by `ncpus` and a walltime band, nothing else: `resources_max.ncpus` is 16 for
+`v1_small*`, 64 for `v1_medium*`, 128 for `v1_large*`, each in a `24` and a `72`
+hour flavour. So a `select=1:ncpus=64:...` job at 5 h and the same job at 8 h
+land in **the same queue** (`v1_medium24`) and a shorter request buys only
+backfill eligibility — that queue has `backfill_depth = 1`, so it does buy
+something, but not a different queue. Snapshot taken 2026-09 while the medium
+queue was the complaint: `v1_medium24` 288 queued / 19 running against
+`v1_small24a` 144 / 1270 and `v1_small72a` 24 / 3043, i.e. the 16-core queues
+were three orders of magnitude busier *running* jobs. The `...a` variants differ
+from their siblings only in `max_array_size` (10000 vs 0) — they are the
+array-job queues and cannot be selected by a resource request. `qstat -Q` and
+`qmgr -c "print queue <name>"` are how to check this; both are readable without
+privileges.
+
+**Flat versus cube-array cost per cell-step is the same; only `dt` differs.**
+Two periodic cases on 4 ranks, same solver settings, `dtmax = 0.5`:
+flat ground, 96 x 64 x 32 = 1.97e5 cells, 90 s simulated in 5.42 s of main loop
+at `dt = 0.5` throughout = **6.5e6 cell-steps/s**; aligned 16 m cube array,
+96 x 96 x 32 = 2.95e5 cells, 90 s in 9.07 s at `dt ~ 0.44` = **6.7e6
+cell-steps/s**. So the IBM facets cost essentially nothing per step here (193
+facets against 2017), and a flat parent is cheaper only because it never reaches
+the Courant limit and runs at `dtmax`. Budget a flat run at ~12 % fewer steps
+than an urban one of the same size, not at a lower cost per step.
+
+**The IBM wall function caps `z0` at about a tenth of the first cell height.**
+`modibm.f90:1383` requires `log(dist/facz0) > 1` at the first fluid point or it
+takes a fallback branch, so on a 2 m grid (first centre at 1 m) `z0` must stay
+below ~0.2 m. A flat LES parent therefore cannot carry a city-scale roughness
+(`z0 ~ 2 m` by Macdonald's morphometry for a `lambda_p = 0.25` cube array) at
+matched resolution — it would need a genuinely coarse grid. The default facet
+roughness the preprocessing writes is `z0 = 0.05 m`, `z0h = 0.00035 m`
+(`udprep_ibm.generate_factypes`, wall id 1), and `factypes.inp` is treated as
+authored input and never overwritten, so it can be supplied by hand.
+
+**`&PHYSICS` `luvolflowr` / `uflowrate` works and holds to ~0.2 %.** The
+controller averages `u` over the *fluid* cells of each level and then over the
+full depth (`modforces.f90:404-410`), so a target computed any other way — an
+unmasked mean, or one over a reduced array — is not the number the solver holds.
+Set `dpdx = 0` alongside it or the two forcings add.
+
+**`udgeom.create_cubes(..., 'SC')` clips two half cubes onto the spanwise
+periodic faces.** The total solid cell count in `solid_c.txt` matches the aligned
+array's exactly, but statistics reduced onto cell centres drop the last cell in
+each direction (`caselib.cell_centred`), and the staggered array puts solid cells
+in precisely that last spanwise row — so a solid-cell census taken on the reduced
+arrays differs by ~1 % between the two layouts while the geometries are
+equivalent. Compare `solid_c.txt`, not the reduced mask, when checking that two
+layouts carry the same plan area density.

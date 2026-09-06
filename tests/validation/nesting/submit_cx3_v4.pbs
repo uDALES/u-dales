@@ -1,0 +1,156 @@
+#!/bin/bash
+#PBS -N udales-nesting-v4
+#PBS -l walltime=06:00:00
+#PBS -l select=1:ncpus=64:mpiprocs=64:mem=96gb
+#PBS -j oe
+#
+# V4 -- different parent geometry: what a mismatched parent layout costs in the
+# interior, expressed as a difference from the V1 result.
+# docs/udales-nesting-design.md section 9.4 and section 10.4 row V4;
+# tests/validation/nesting/README.md, "V4 -- different parent geometry".
+#
+# PREPARE, REVIEW, THEN SUBMIT BY HAND:
+#
+#     qsub tests/validation/nesting/submit_cx3_v4.pbs
+#
+# (qsub/qstat live in /opt/pbs/bin on CX3.)
+#
+# ---------------------------------------------------------------------------
+# WHAT THIS RUNS
+#
+#   1. a staggered parent (930)  256 x 256 x 64 -- V1's parent, cube for cube and
+#                                second for second, except that its array is
+#                                staggered rather than aligned.
+#   2. one child (931)           128 x 128 x 64 carrying V1's *aligned* array, at
+#                                V1's window, zone, forcing and schedule.
+#
+# The child's cube layout is asserted by test_v34_tiny.py to be the V1 converged
+# child's, cube for cube -- V1 got its building-free zone by carving a plaza out
+# of the parent, V4 gets it by clearing the child, and the two have to produce
+# the same 36 cubes.  So the *only* thing that differs between this child and
+# V1's is the layout its parent resolved, and the answer is a difference from
+# V1's numbers.
+#
+# THIS JOB DOES NOT RUN A PARENT FOR V1: it reads the V1 'converged' child at
+# $EPHEMERAL/nesting-v1-converged/904 as the matched-geometry baseline, and
+# reduces it with the *same* code and the *same* mask as the new child, so the
+# two averaging domains are the same cells rather than two JSON files that were
+# produced by different code paths.  run_geometry.py aborts if the two children's
+# solid masks are not identical.
+#
+# IT DOES have to run its own parent, and that is why this job costs about what
+# V1's did.  Reusing the V1 parent is impossible by construction: the whole
+# experiment is that the parent's layout is different.
+#
+# WHY THERE IS NO MATCHED-GEOMETRY CONTROL ON THIS PARENT.  The obvious control
+# is the same child carrying the *staggered* array.  It cannot have a
+# building-free zone at any size: a dropped cube may not occupy 36 m of a 32 m
+# period (26 m of clearance plus 8 m of half-width, at each end of the child),
+# and a staggered array's two column families are exactly half a period apart, so
+# one always lands in a blocked window.  presets_geometry.py records the argument
+# and test_v34_tiny.py asserts that validate() refuses such a preset.
+# ---------------------------------------------------------------------------
+#
+# SIZING.  V4 is V1 with a different parent array, so V1's own measured stage
+# times (job 3991175, recorded in
+# .github/skills/udales-exec/references/clusters.md) are the estimate, not an
+# extrapolation:
+#
+#   parent case build (incl. IBM preprocessing)                   200 s
+#   parent spin-up, 10800 s simulated, no dumps                  5479 s
+#   parent production, 10800 s simulated + dumps                 5916 s
+#   child case build = slab cut over all 3600 parent levels       608 s
+#   child run, 10190 s simulated                                 1621 s
+#   child-versus-parent block (the V1/V2 diagnostics)            1040 s
+#   child + baseline accumulation for the V4 comparison       2 x 220 s
+#                                                       total  ~15 300 s = 4 h 15
+#
+# 6 h against 4 h 15 is 1.4x headroom.  Deliberately tighter than the 8 h V1 and
+# V2 asked for: this is the one experiment here whose stage times are *measured*
+# rather than extrapolated, so it needs less margin, and a shorter request is
+# much more likely to be backfilled.  On CX3 a 64-cpu job is routed by ncpus and
+# walltime band only -- <=64 cpus and <=24 h both go to v1_medium24 -- so 6 h and
+# 8 h land in the same queue and the benefit is backfill eligibility, not a
+# different queue.
+#
+# If the queue is the binding constraint there is one clean lever: shortening the
+# production window in presets_geometry._V4_COMMON from 10800 s to 7200 s saves
+# about 50 min and costs about 12 % more sampling noise in the comparison (the
+# child's window falls from 3400 to 2200 samples; the baseline keeps its 3400).
+# It is not the default because holding the schedule identical to V1's is what
+# makes "the parent's layout is the only thing that changed" true.
+#
+# MEMORY.  The peak is the slab cut: a 128 x 128 x 64 child at nzone = 12 is
+# 9.8 MB per level, 3600 levels = 35.2 GB held in memory before writing (V1
+# measured a 39 GB peak for exactly this).  The analysis then holds three plane
+# series each for the parent, the child and the baseline:
+# 3400 x 127 x 127 x 8 B x 3 x 3 = 3.9 GB.  mem=96gb is 2.4x the measured peak;
+# V1 and V2 asked for 128gb, and trimming it makes the job easier to place
+# without going anywhere near the observed maximum.
+#
+# DISK, in $RUNDIR, all new:
+#
+#   parent dumps    3600 x 47.0 MB   = 169 GB
+#   nesting.inp     3600 x  9.8 MB   =  35 GB
+#   child dumps     3600 x 12.6 MB   =  45 GB
+#                             total  = ~249 GB
+#
+# The V1 run it reads (246 GB) is not touched.
+#
+# Everything else lives in tests/validation/nesting/presets_geometry.py as the
+# 'v4' Experiment.  Change it there, not here.
+
+set -e
+
+REPO=${UDALES_REPO:-$HOME/udales/u-dales}
+RUNDIR=${UDALES_V4_RUNDIR:-$EPHEMERAL/nesting-v4}
+# The V1 converged run: its child is the matched-geometry baseline.
+V1DIR=${UDALES_V1_CONVERGED:-$EPHEMERAL/nesting-v1-converged}
+BASELINE=${UDALES_V4_BASELINE:-$V1DIR/904}
+EXPERIMENT=${UDALES_V4_EXPERIMENT:-v4}
+
+echo "repo       : $REPO"
+echo "rundir     : $RUNDIR"
+echo "baseline   : $BASELINE  (the V1 converged child; read, not re-run)"
+echo "experiment : $EXPERIMENT"
+echo "started    : $(date)"
+
+if [ ! -f "$BASELINE/manifest.json" ]; then
+    echo "no V1 converged child at $BASELINE." >&2
+    echo "V4 is measured as a difference from that run.  Run" >&2
+    echo "  qsub tests/validation/nesting/submit_cx3.pbs   (UDALES_V1_PRESET=converged)" >&2
+    echo "first, or point UDALES_V4_BASELINE at an existing one." >&2
+    exit 1
+fi
+mkdir -p "$RUNDIR"
+
+# The solver binary. Build it beforehand with
+#   ./tools/build_executable.sh icl release
+export UDALES_BUILD=${UDALES_BUILD:-$REPO/build/release/u-dales}
+if [ ! -x "$UDALES_BUILD" ]; then
+    echo "solver binary not found at $UDALES_BUILD" >&2
+    exit 1
+fi
+
+export UDALES_RUNTIME_MODULES="tools/prod intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a"
+
+module purge
+module load tools/prod
+module load Python/3.9.6-GCCcore-11.2.0
+source "${UDALES_VENV:-$HOME/udales/.venv}/bin/activate"
+
+export HDF5_USE_FILE_LOCKING=FALSE
+export TMPDIR=${TMPDIR:-$EPHEMERAL}
+export MPLCONFIGDIR=${MPLCONFIGDIR:-$RUNDIR/.mpl}
+
+cd "$REPO"
+python tests/validation/nesting/run_geometry.py "$RUNDIR" \
+    --experiment "$EXPERIMENT" \
+    --baseline-dir "$BASELINE" \
+    --baseline-preset converged \
+    --yes
+
+echo "finished : $(date)"
+echo "table    : $RUNDIR/analysis/v4_summary.md"
+echo "machine  : $RUNDIR/analysis/v4_summary.json"
+echo "per child: $RUNDIR/analysis/mismatch/v4_metrics.json"

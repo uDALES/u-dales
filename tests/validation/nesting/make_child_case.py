@@ -33,14 +33,17 @@ from __future__ import annotations
 import argparse
 import json
 from collections import OrderedDict
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 
 import caselib
 from caselib import (
+    CoarsenedFieldDump,
     FieldDump,
+    coarsen_fluid_mask,
     cube_geometry,
     load_solid_mask,
     run_preprocessing,
@@ -48,7 +51,7 @@ from caselib import (
     write_namoptions,
     write_prof,
 )
-from config import Preset, get_preset
+from config import Preset, RefinedPoint, get_preset
 
 from udprep.nesting import (
     NestGrid,
@@ -56,9 +59,12 @@ from udprep.nesting import (
     SLAB_VARIABLES,
     apply_divergence_correction,
     discrete_divergence,
+    initial_fields_from_parent,
     net_volume_flux,
+    refinement_ratios,
     slab_shape,
     slabs_from_fields,
+    slabs_from_parent,
     write_nesting_file,
 )
 
@@ -172,8 +178,149 @@ def child_grid(preset: Preset) -> NestGrid:
     )
 
 
+@dataclass
+class DrivingParent:
+    """Where a child's boundary data comes from, and on what grid it arrives.
+
+    The child's own description -- grid, geometry, zone, forcing -- always comes
+    from the :class:`config.Preset`.  What this object adds is the *other* grid:
+    the one the parent field lives on.  At refinement ratio 1 the two coincide
+    and the slabs are **cut** (:func:`udprep.nesting.slabs_from_fields`); at
+    ``refine > 1`` they do not and the slabs are **interpolated**
+    (:func:`udprep.nesting.slabs_from_parent`), which is the only difference
+    between V1 and V0 in this module.
+
+    Keeping the two apart is what lets V0 point a child at data that did not
+    come from the run it is compared against: the ``filtered`` arm drives the
+    child from the fine reference's own dumps, box-filtered onto the coarse
+    grid, while the ``coarse`` arm drives it from a genuinely coarse LES.  The
+    child, the reference and every diagnostic are identical between them.
+    """
+
+    #: A :class:`caselib.FieldDump` or :class:`caselib.CoarsenedFieldDump`.
+    dump: Any
+    #: Experiment number of the *directory* the dumps were read from.
+    source_expnr: str
+    #: Spacing of the grid the data arrives on [m].
+    dx: float
+    #: ``dx / dx_child``.  1 reproduces V1 exactly.
+    refine: int
+    #: Factor the source directory's dumps are box-filtered by (1 unless the
+    #: source is a finer run than the driving grid).
+    coarsen: int
+    #: Child window origin, in driving-grid columns.
+    i0: int
+    j0: int
+    #: Driving grid extent, in its own cells.
+    itot: int
+    jtot: int
+    ktot: int
+    label: str
+
+    # -- constructors ------------------------------------------------------- #
+
+    @classmethod
+    def matched(cls, parent_dir: Path, preset: Preset) -> "DrivingParent":
+        """V1: parent and child on one grid, slabs cut rather than interpolated."""
+        return cls(
+            dump=FieldDump(parent_dir, preset.parent_expnr, preset.dx),
+            source_expnr=preset.parent_expnr, dx=preset.dx, refine=1, coarsen=1,
+            i0=preset.child_i0, j0=preset.child_j0,
+            itot=preset.itot, jtot=preset.jtot, ktot=preset.ktot,
+            label=f"{preset.parent_expnr} at {preset.dx:g} m (r = 1, slabs cut)",
+        )
+
+    @classmethod
+    def refined(cls, parent_dir: Path, point: RefinedPoint) -> "DrivingParent":
+        """V0: the driving grid is ``point.refine`` times coarser than the child's."""
+        d, c = point.driver, point.child
+        if point.coarsen > 1:
+            dump: Any = CoarsenedFieldDump(
+                FieldDump(parent_dir, point.reference_expnr, c.dx), point.coarsen)
+            source = point.reference_expnr
+            label = (f"{source} at {c.dx:g} m, box-filtered by {point.coarsen} "
+                     f"onto the {d.dx:g} m grid (r = {point.refine}, slabs interpolated)")
+        else:
+            dump = FieldDump(parent_dir, d.parent_expnr, d.dx)
+            source = d.parent_expnr
+            label = (f"{source} at {d.dx:g} m "
+                     f"(r = {point.refine}, slabs interpolated)")
+        return cls(dump=dump, source_expnr=source, dx=d.dx, refine=point.refine,
+                   coarsen=point.coarsen, i0=d.child_i0, j0=d.child_j0,
+                   itot=d.itot, jtot=d.jtot, ktot=d.ktot, label=label)
+
+    # -- derived ------------------------------------------------------------ #
+
+    @property
+    def interpolates(self) -> bool:
+        return self.refine > 1
+
+    def window_cells(self, preset: Preset) -> Tuple[int, int, int]:
+        """The child window, in driving-grid cells."""
+        return (int(round(preset.child_xlen / self.dx)),
+                int(round(preset.child_ylen / self.dx)),
+                int(round(preset.zsize / self.dx)))
+
+    def grid(self, preset: Preset) -> NestGrid:
+        """The driving grid over the child window, in the child's own coordinates.
+
+        ``conservative_interpolate`` needs parent and child coordinates in one
+        frame, and the child's frame has its origin at 0 -- so the parent is
+        described here as the window only, not the whole domain.  Nothing is
+        lost: the writer never interpolates outside the zone slabs and the
+        optional initial-condition block, both of which are inside the window.
+        """
+        ni, nj, nk = self.window_cells(preset)
+        return NestGrid.uniform(ni, nj, nk, preset.child_xlen, preset.child_ylen,
+                                preset.zsize)
+
+    def fluid_window(self, parent_dir: Path, preset: Preset) -> np.ndarray:
+        """The driving parent's fluid mask over the window, on the reduced grid.
+
+        Shape ``(ni - 1, nj - 1, nk - 1)`` to match :func:`caselib.cell_centred`.
+        Read from the source directory at *its* resolution and block-ANDed down
+        when the source is finer than the driving grid, so a coarse cell counts
+        as fluid only if all of it is.
+        """
+        ni, nj, nk = self.window_cells(preset)
+        c = self.coarsen
+        fluid = load_solid_mask(parent_dir,
+                                (self.itot * c, self.jtot * c, self.ktot * c))
+        fluid = coarsen_fluid_mask(fluid, c)
+        return fluid[self.i0:self.i0 + ni - 1,
+                     self.j0:self.j0 + nj - 1, :nk - 1]
+
+    def interior_columns(self, preset: Preset) -> Tuple[np.ndarray, np.ndarray]:
+        """Reduced-array columns outside the guard + ramp, on the driving grid.
+
+        The same rule ``analyse.interior_indices`` applies to the child, so the
+        driving parent's own profile is taken over the region the child's
+        statistics are taken over -- to within the coarse grid's ability to
+        resolve its edges, which is why it is recomputed here rather than
+        rescaled from the child's.
+        """
+        lz = preset.guardwidth + preset.zonewidth
+        ni, nj, _ = self.window_cells(preset)
+        i = np.arange(ni - 1)
+        j = np.arange(nj - 1)
+        return (np.where(((i + 0.5) * self.dx >= lz)
+                         & ((ni - i - 0.5) * self.dx >= lz))[0],
+                np.where(((j + 0.5) * self.dx >= lz)
+                         & ((nj - j - 0.5) * self.dx >= lz))[0])
+
+
 def build(parent_dir: Path, outdir: Path, preset: Preset,
-          ibm_backend: str = "auto", margin_levels: int = 2) -> Path:
+          ibm_backend: str = "auto", margin_levels: int = 2,
+          driving: Optional[DrivingParent] = None) -> Path:
+    """Build the child case in ``outdir`` from the parent dumps in ``parent_dir``.
+
+    ``driving`` says which grid the parent data arrives on.  ``None`` -- the V1
+    and V2 case -- means the parent's own grid at ``preset.dx``, and the slabs
+    are cut.  A :class:`DrivingParent` at ``refine > 1`` means the data arrives
+    coarser and the slabs are interpolated through the production prolongation;
+    ``parent_dir`` is then the directory that object was built against, which
+    for V0's filtered arm is the *fine* reference run, not a coarse one.
+    """
     nr = preset.child_expnr
     casedir = Path(outdir) / nr
     casedir.mkdir(parents=True, exist_ok=True)
@@ -196,7 +343,9 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     write_lscale(casedir / f"lscale.inp.{nr}", zf,
                  comment="V1 big-brother child: forcing is dpdx in &PHYSICS")
 
-    dump = FieldDump(parent_dir, preset.parent_expnr, preset.dx)
+    if driving is None:
+        driving = DrivingParent.matched(parent_dir, preset)
+    dump = driving.dump
     times = np.asarray(dump.times, dtype=float)
     if times.size < 4:
         raise RuntimeError(
@@ -218,61 +367,135 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     )
     run_preprocessing(casedir, ibm_backend=ibm_backend)
 
-    # ---- cut the slabs, accumulating the mean profile on the way --------- #
+    # ---- cut or interpolate the slabs, accumulating the profile on the way - #
     grid = child_grid(preset)
+    pgrid = driving.grid(preset)
+    pi0, pj0 = driving.i0, driving.j0
+    pni, pnj, pnk = driving.window_cells(preset)
     nzone = preset.nzone
     slabs: Dict[str, np.ndarray] = {
         name: np.empty((n_use,) + slab_shape(grid, nzone, *_split(name)),
                        dtype=np.float64)
         for name in SLAB_VARIABLES
     }
-    # Fluid in the child AND in the parent.  The profile below is accumulated
-    # from the *parent's* field, so a cell the child cleared out of its zone --
-    # fluid in the child, solid in the parent -- would contribute the parent's
-    # near-zero in-building velocity to it.  Same intersection, and same reason,
-    # as analyse.run.  A no-op wherever the two geometries agree, i.e. always
-    # unless clear_child_zone is set.
-    shape = (preset.child_itot - 1, preset.child_jtot - 1, preset.child_ktot - 1)
-    fluid = load_solid_mask(casedir, shape)
-    if preset.clear_child_zone:
-        pfluid = load_solid_mask(parent_dir, (preset.itot, preset.jtot, preset.ktot))
-        fluid = fluid & pfluid[preset.child_i0:preset.child_i0 + shape[0],
-                               preset.child_j0:preset.child_j0 + shape[1], :shape[2]]
-    usum = np.zeros(preset.child_ktot - 1)
-    vsum = np.zeros(preset.child_ktot - 1)
+    # The profile that seeds prof.inp is accumulated on the grid the parent data
+    # ARRIVES on, which is the child's own only at refinement ratio 1.  At r > 1
+    # it is the coarse grid and the profile is interpolated onto the child's
+    # levels at the end; interpolating every parent level onto the whole child
+    # instead would cost about as much as the slab cut and buy nothing, since
+    # prof.inp carries a horizontal mean.
+    if driving.interpolates:
+        fluid = driving.fluid_window(parent_dir, preset)
+    else:
+        # Fluid in the child AND in the parent.  The profile below is accumulated
+        # from the *parent's* field, so a cell the child cleared out of its zone --
+        # fluid in the child, solid in the parent -- would contribute the parent's
+        # near-zero in-building velocity to it.  Same intersection, and same reason,
+        # as analyse.run.  A no-op wherever the two geometries agree, i.e. always
+        # unless clear_child_zone is set.
+        shape = (preset.child_itot - 1, preset.child_jtot - 1, preset.child_ktot - 1)
+        fluid = load_solid_mask(casedir, shape)
+        if preset.clear_child_zone:
+            pfluid = load_solid_mask(parent_dir, (preset.itot, preset.jtot, preset.ktot))
+            fluid = fluid & pfluid[preset.child_i0:preset.child_i0 + shape[0],
+                                   preset.child_j0:preset.child_j0 + shape[1], :shape[2]]
+    nkp = fluid.shape[2]
+    usum = np.zeros(nkp)
+    vsum = np.zeros(nkp)
     ncell = fluid.sum(axis=(0, 1)).astype(float)
     ncell[ncell == 0] = np.nan
+    # The driving parent's own interior statistics, on its own grid.  Free here
+    # -- the loop already holds every level -- and the only way to tell a child
+    # that failed to reproduce the truth from a child that faithfully reproduced
+    # a parent which was itself wrong.  Reported by analyse_v0, never used to
+    # drive anything.
+    ii_p, jj_p = driving.interior_columns(preset)
+    isel = fluid[np.ix_(ii_p, jj_p)]
+    icell = isel.sum(axis=(0, 1)).astype(float)
+    icell[icell == 0] = np.nan
+    imean = {c: np.zeros(nkp) for c in "uvw"}
+    imsq = {c: np.zeros(nkp) for c in "uvw"}
 
     initial_fields = None
     div0 = None
+    div_parent0 = None
     for n in range(n_use):
         pu, pv, pw = dump.read_level(n)
-        cu, cv, cw = dump.child_block(pu, pv, pw, preset.child_i0, preset.child_j0,
-                                      preset.child_itot, preset.child_jtot)
+        cu, cv, cw = dump.child_block(pu, pv, pw, pi0, pj0, pni, pnj)
         if n == 0 and preset.init_from_parent:
             # Schema 2's optional full-domain block: the child cold-starts from
             # the parent's own instantaneous field, so the interior turbulence
             # is the parent's from the first step instead of having to grow in
             # from the boundaries.  apply_divergence_correction() below syncs it
             # to the corrected boundary data and projects it.
-            initial_fields = {"u": cu.copy(), "v": cv.copy(), "w": cw.copy()}
-            div0 = float(np.max(np.abs(discrete_divergence(grid, cu, cv, cw))))
-        level = slabs_from_fields(grid, nzone, cu, cv, cw)
+            if driving.interpolates:
+                initial_fields = initial_fields_from_parent(pgrid, cu, cv, cw, grid)
+                div0 = float(np.max(np.abs(discrete_divergence(
+                    grid, initial_fields["u"], initial_fields["v"],
+                    initial_fields["w"]))))
+                # Design section 1.3: the prolongation reproduces the parent's
+                # discrete divergence cell by cell, so a solenoidal parent gives
+                # a solenoidal child target.  Recording the parent's own divmax
+                # next to the child's turns that from an assertion in a docstring
+                # into a number in the manifest -- and it is the offline half of
+                # the end-to-end check the runtime `divmax` completes.
+                div_parent0 = float(np.max(np.abs(
+                    discrete_divergence(pgrid, cu, cv, cw))))
+            else:
+                initial_fields = {"u": cu.copy(), "v": cv.copy(), "w": cw.copy()}
+                div0 = float(np.max(np.abs(discrete_divergence(grid, cu, cv, cw))))
+        if driving.interpolates:
+            level = slabs_from_parent(pgrid, cu, cv, cw, child=grid, nzone=nzone)
+        else:
+            level = slabs_from_fields(grid, nzone, cu, cv, cw)
         for name, arr in level.items():
             slabs[name][n] = arr
-        uc, vc, _ = caselib.cell_centred(cu[:-1], cv[:, :-1], cw[:, :, :-1])
+        uc, vc, wc = caselib.cell_centred(cu[:-1], cv[:, :-1], cw[:, :, :-1])
         usum += np.where(fluid, uc, 0.0).sum(axis=(0, 1)) / ncell
         vsum += np.where(fluid, vc, 0.0).sum(axis=(0, 1)) / ncell
+        for c, arr in zip("uvw", (uc, vc, wc)):
+            blk = arr[np.ix_(ii_p, jj_p)]
+            imean[c] += np.where(isel, blk, 0.0).sum(axis=(0, 1)) / icell
+            imsq[c] += np.where(isel, blk * blk, 0.0).sum(axis=(0, 1)) / icell
 
-    uprof = np.empty(preset.child_ktot)
-    vprof = np.empty(preset.child_ktot)
-    uprof[:-1] = usum / n_use
-    vprof[:-1] = vsum / n_use
-    uprof[-1] = uprof[-2]
-    vprof[-1] = vprof[-2]
+    pzf = (np.arange(nkp) + 0.5) * driving.dx
+    if driving.interpolates:
+        # The coarse profile carried onto the child's levels.  prof.inp only has
+        # to start the child near equilibrium -- with nest_linitfromparent the
+        # velocity field is overwritten by the interpolated parent block anyway
+        # -- so linear interpolation, held constant outside the coarse range, is
+        # ample and is not a claim about sub-parent-scale structure.
+        uprof = np.interp(zf, pzf, usum / n_use)
+        vprof = np.interp(zf, pzf, vsum / n_use)
+        prof_comment = (f"driving parent ({driving.label}) time- and plane-mean "
+                        f"profile, fluid cells only, interpolated from its "
+                        f"{driving.dx:g} m levels")
+    else:
+        uprof = np.empty(preset.child_ktot)
+        vprof = np.empty(preset.child_ktot)
+        uprof[:-1] = usum / n_use
+        vprof[:-1] = vsum / n_use
+        uprof[-1] = uprof[-2]
+        vprof[-1] = vprof[-2]
+        prof_comment = ("parent sub-region time- and plane-mean profile "
+                        "(fluid cells only)")
     write_prof(casedir / f"prof.inp.{nr}", zf, u=uprof, v=vprof, e12=preset.tke0,
-               comment="parent sub-region time- and plane-mean profile "
-                       "(fluid cells only)")
+               comment=prof_comment)
+    driving_profile = {
+        "grid": "driving parent, its own cell centres",
+        "source": driving.label,
+        "dx_m": driving.dx,
+        "z": pzf.tolist(),
+        "interior_columns": [int(ii_p.size), int(jj_p.size)],
+        "u": (imean["u"] / n_use).tolist(),
+        "v": (imean["v"] / n_use).tolist(),
+        "w": (imean["w"] / n_use).tolist(),
+        "tke": (0.5 * sum(imsq[c] / n_use - (imean[c] / n_use) ** 2
+                          for c in "uvw")).tolist(),
+        "note": ("interior-only, fluid-only, over the same guard + ramp exclusion "
+                 "the child's statistics use, on the driving grid; this is what "
+                 "the parent itself knew"),
+    }
 
     # ---- write the nesting file through the production writer ------------ #
     data = NestingData(
@@ -280,8 +503,8 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         nzone=nzone,
         times=times[:n_use] - times[0],
         slabs=slabs,
-        parent_model=f"udales:{preset.parent_expnr}:{preset.name}",
-        parent_dx=preset.dx,
+        parent_model=f"udales:{driving.source_expnr}:{preset.name}",
+        parent_dx=driving.dx,
         parent_dt=float(np.median(np.diff(times[:n_use]))),
         child_origin_x=preset.child_origin[0],
         child_origin_y=preset.child_origin[1],
@@ -296,9 +519,25 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     area = 2.0 * (grid.xlen + grid.ylen) * grid.zsize
     write_nesting_file(casedir / f"nesting.inp.{nr}.nc", data, override=True)
 
+    spatial_ratio, temporal_ratio = refinement_ratios(data)
     manifest = {
         "preset": preset.name,
         "parent_dir": str(Path(parent_dir).resolve()),
+        "refinement": {
+            "spatial": driving.refine,
+            "spatial_from_file": spatial_ratio,
+            "temporal_from_file": temporal_ratio,
+            "parent_dx_m": driving.dx,
+            "child_dx_m": preset.dx,
+            "parent_nyquist_wavelength_m": 2.0 * driving.dx,
+            "source": driving.label,
+            "source_expnr": driving.source_expnr,
+            "coarsen_factor": driving.coarsen,
+            "slabs": ("interpolated (slabs_from_parent)" if driving.interpolates
+                      else "cut (slabs_from_fields)"),
+            "parent_window_cells": [pni, pnj, pnk],
+        },
+        "driving_parent_profile": driving_profile,
         "child_expnr": nr,
         "parent_expnr": preset.parent_expnr,
         "t_offset": float(times[0]),
@@ -330,6 +569,7 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         "clear_child_zone": bool(preset.clear_child_zone),
         "n_cubes_cleared_from_child_zone": int(preset.n_child_cubes_removed),
         "initial_condition_divmax": {
+            "parent_before_prolongation": div_parent0,
             "before_projection": div0,
             "after_projection": (
                 None if initial_fields is None else float(np.max(np.abs(

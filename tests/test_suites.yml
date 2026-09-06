@@ -438,6 +438,89 @@ groups:
           - "--reuse-dir"
           - "{repo_root}/build/nesting-validation-v1/904"
           - "--yes"
+      - label: "nesting-validation: V0 tiny refinement suite (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v0_tiny.py"
+      # V0 measures every child against a fine, unnested reference and drives the
+      # 'filtered' arm from that same reference's dumps, so the V1 production
+      # entry above has to have run first -- --reference-dir points at it.  On
+      # CX3 submit tests/validation/nesting/submit_cx3_v0.pbs instead: it
+      # defaults to the 'converged' V1 run in $EPHEMERAL and is sized against
+      # its measured stage times.
+      - label: "nesting-validation: V0 refinement validation (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_v0.py"
+          - "{repo_root}/build/nesting-validation-v0"
+          - "--suite"
+          - "v0"
+          - "--reference-dir"
+          - "{repo_root}/build/nesting-validation-v1/903"
+          - "--yes"
+      # V3 and V4 -- the two experiments where parent and child geometry differ
+      # (design section 9.4).  The tiny entry drives both end to end and also
+      # checks the production experiments' configuration, including that V4's
+      # child really is the V1 converged child.
+      - label: "nesting-validation: V3/V4 geometry-mismatch tiny end-to-end (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v34_tiny.py"
+      # V3 runs its own two periodic runs (an equilibrium reference and a flat
+      # parent) and needs nothing from V1.  On CX3 submit
+      # tests/validation/nesting/submit_cx3_v3.pbs instead.
+      - label: "nesting-validation: V3 parent without buildings (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_geometry.py"
+          - "{repo_root}/build/nesting-validation-v3"
+          - "--experiment"
+          - "v3"
+          - "--yes"
+      # V4 is measured as a difference from the V1 converged child, so the V1
+      # production entry above has to have run first -- --baseline-dir points at
+      # it.  On CX3 submit tests/validation/nesting/submit_cx3_v4.pbs instead: it
+      # defaults to the 'converged' V1 run in $EPHEMERAL.
+      - label: "nesting-validation: V4 different parent geometry (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_geometry.py"
+          - "{repo_root}/build/nesting-validation-v4"
+          - "--experiment"
+          - "v4"
+          - "--baseline-dir"
+          - "{repo_root}/build/nesting-validation-v1/904"
+          - "--yes"
 
   supported-macos:
     includes:

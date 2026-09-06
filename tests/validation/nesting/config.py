@@ -1036,14 +1036,473 @@ def get_preset(name: str) -> Preset:
     return preset
 
 
+# --------------------------------------------------------------------------- #
+# V0 -- validation at refinement ratio > 1 (design section 10.4 row V0)
+# --------------------------------------------------------------------------- #
+#
+# V1 and V2 both run parent and child on the SAME grid, so the conservative
+# interpolation in tools/python/udprep/nesting.py has never carried a running
+# simulation -- only its own unit tests (P1-P17).  V0 is the first end-to-end
+# test of refinement AND the first end-to-end test of that interpolation, and
+# the configuration below is arranged so that when something moves it is
+# possible to say which of the two moved it.
+
+
+@dataclass(frozen=True)
+class RefinedPoint:
+    """One refined child, and where the data that drives it comes from.
+
+    A refined experiment lives on **two** grids, so it needs two
+    :class:`Preset` objects and both of them are real:
+
+    ``child``
+        the **fine** side: the child's own grid, geometry, zone, forcing and
+        schedule -- and, through ``parent_expnr``, the fine reference run the
+        child is *measured against*.  It is an ordinary ratio-1 preset, so
+        ``analyse.run`` compares child and reference on identical grids by
+        exactly the code V1 used, and the V1 result is literally the ``r = 1``
+        row of the same table.
+    ``driver``
+        the **coarse** side: the grid the boundary data lives on.  Same
+        physical domain, same cubes, same forcing, spacing ``refine`` times
+        coarser.  For the ``coarse`` arm it is a case that is actually built
+        and run; for the ``filtered`` arm nothing is run and it serves only to
+        describe the grid the fine reference's own dumps are filtered onto.
+
+    Separating "what drives the child" from "what the child is compared to" is
+    the whole design of V0.  The reference is the **fine** run in both arms --
+    comparing a 2 m child against a 4 m or 8 m parent would score the child
+    down for resolving turbulence its parent cannot represent, which is not an
+    error but the point of nesting.
+
+    The two arms measure different things and must be reported separately:
+
+    ``filtered``
+        the driving data is the fine reference's own field, box-filtered onto
+        the coarse grid.  The filter is flux-conservative, so a discretely
+        solenoidal fine field gives a discretely solenoidal coarse one, and the
+        coarse field is a *perfect* coarse parent -- it knows exactly what the
+        fine run was doing at the scales it can represent.  This is an
+        idealisation: it hands the child filtered fine-scale information a
+        genuinely coarse LES would never have had.  What it isolates is the
+        prolongation and the parent's filter scale, and nothing else -- it is
+        V1 with one variable changed, driven by the same realisation of the
+        same turbulence, so it is paired with the reference exactly as V1 was.
+    ``coarse``
+        the driving data comes from a genuinely coarse LES of the same domain.
+        This is the real use case.  It is *not* paired: the coarse run is an
+        independent realisation, so its eddies are not the reference's eddies
+        and only statistics can be compared.  It also carries the coarse run's
+        own biases -- a 16 m cube is 4 cells wide at ``r = 2`` and 2 at
+        ``r = 4``, and its drag will not be the 8-cell version's.  A mean-flow
+        error measured here is therefore the parent's error plus the nesting's,
+        and the two are separated by the driving parent's own profile, which
+        ``make_child_case`` records while it cuts the slabs.
+
+    The difference between the arms at the same ``refine`` is the quantity of
+    interest: how much the child suffers from its parent genuinely not knowing
+    the small scales, as opposed to from the interpolation.
+    """
+
+    key: str
+    #: ``"filtered"`` or ``"coarse"``; see the class docstring.
+    arm: str
+    #: Spatial refinement ratio ``dx_parent / dx_child``.  Integer, and at most
+    #: ``udprep.nesting.MAX_SPATIAL_REFINEMENT`` (4), which the writer enforces.
+    refine: int
+    driver: Preset
+    child: Preset
+    note: str = ""
+
+    # -- derived ------------------------------------------------------------ #
+
+    @property
+    def expnr(self) -> str:
+        """Experiment number of the child."""
+        return self.child.child_expnr
+
+    @property
+    def reference_expnr(self) -> str:
+        """Experiment number of the fine run the child is compared against."""
+        return self.child.parent_expnr
+
+    @property
+    def driver_expnr(self) -> str:
+        return self.driver.parent_expnr
+
+    @property
+    def runs_driver(self) -> bool:
+        """True when the driving parent is a case of its own that must be run."""
+        return self.arm == "coarse"
+
+    @property
+    def coarsen(self) -> int:
+        """Factor the *driving directory's* dumps are filtered by before use.
+
+        ``refine`` for the ``filtered`` arm, where the driving directory holds
+        the fine reference's dumps; 1 for the ``coarse`` arm, where they are
+        already on the coarse grid.
+        """
+        return self.refine if self.arm == "filtered" else 1
+
+    @property
+    def parent_nyquist_wavelength(self) -> float:
+        """The parent's own filter scale, ``2 dx_parent`` [m].
+
+        The wavelength either side of which the child is doing two different
+        jobs: below it the child must *generate* structure the parent never
+        resolved, above it the child is reproducing structure the parent had.
+        Section 10.5's deficit sits in the 8-64 m band, which straddles this at
+        both ratios (16 m at ``r = 2``, 32 m at ``r = 4``), which is why the
+        band ratios have to be split here and not merely quoted.
+        """
+        return 2.0 * self.driver.dx
+
+    @property
+    def resolves_the_ramp(self) -> bool:
+        """Design section 1.4(c): ``L_rel >= 2 dx_parent``.
+
+        The transition has to be resolved in the *parent's* terms, not only in
+        the child's.  Reported rather than enforced -- a preset that violates it
+        is a legitimate (if unfavourable) configuration, and the tiny smoke test
+        does violate it at ``r = 4``.
+        """
+        return self.child.zonewidth >= 2.0 * self.driver.dx - 1.0e-9
+
+    def describe(self) -> str:
+        c, d = self.child, self.driver
+        return (f"{self.key:14s} r = {self.refine} ({self.arm:8s}) "
+                f"parent {d.itot:3d}x{d.jtot:3d}x{d.ktot:3d} @ {d.dx:g} m"
+                f"{' (filtered from ' + self.reference_expnr + ')' if not self.runs_driver else ' (run as ' + d.parent_expnr + ')'}"
+                f"  ->  child {c.child_itot}x{c.child_jtot}x{c.child_ktot} @ "
+                f"{c.dx:g} m ({c.child_expnr})")
+
+    # -- self-consistency --------------------------------------------------- #
+
+    def validate(self) -> None:
+        errors: List[str] = []
+        c, d = self.child, self.driver
+        c.validate()
+        d.validate()
+        if self.arm not in ("filtered", "coarse"):
+            errors.append(f"arm must be 'filtered' or 'coarse', got {self.arm!r}")
+        if self.refine < 1 or self.refine != int(self.refine):
+            errors.append(f"refine must be a positive integer, got {self.refine!r}")
+        # udprep.nesting.MAX_SPATIAL_REFINEMENT; not imported, to keep config.py
+        # free of solver-tooling imports, but it is the same number and
+        # write_nesting_file enforces it.
+        if self.refine > 4:
+            errors.append(f"refine = {self.refine} exceeds the writer's validated "
+                          "maximum spatial refinement of 4")
+        if abs(d.dx - self.refine * c.dx) > 1.0e-9:
+            errors.append(f"driver dx = {d.dx} is not {self.refine} x the child's {c.dx}")
+        # Same physical box, or the driving field does not cover the child.
+        for label, a, b in (("xlen", d.xlen, c.xlen), ("ylen", d.ylen, c.ylen),
+                            ("zsize", d.zsize, c.zsize)):
+            if abs(a - b) > 1.0e-9:
+                errors.append(f"driver {label} = {a} does not match the reference's {b}")
+        # Same child window, in metres.
+        for label, a, b in (("origin x", d.child_origin[0], c.child_origin[0]),
+                            ("origin y", d.child_origin[1], c.child_origin[1]),
+                            ("xlen", d.child_xlen, c.child_xlen),
+                            ("ylen", d.child_ylen, c.child_ylen)):
+            if abs(a - b) > 1.0e-9:
+                errors.append(f"the driver's child window {label} = {a} m does not "
+                              f"match the child's {b} m")
+        # Same geometry.  The plaza is carved in metres, so the two grids must
+        # agree cube for cube or the child's buildings are not the parent's.
+        if d.plaza_window != c.plaza_window:
+            errors.append(f"driver plaza {d.plaza_window.describe()} does not match "
+                          f"the reference's {c.plaza_window.describe()}")
+        if len(d.cube_centres()) != len(c.cube_centres()):
+            errors.append(f"driver carries {len(d.cube_centres())} cubes against the "
+                          f"reference's {len(c.cube_centres())}")
+        elif d.cube_centres().size and not np.allclose(
+                np.sort(d.cube_centres(), axis=0), np.sort(c.cube_centres(), axis=0)):
+            errors.append("driver and reference cube layouts differ")
+        # Same forcing and the same schedule: the child has to see one momentum
+        # source and one time axis, whichever arm drives it.
+        for field in ("building_height", "building_width", "street_width",
+                      "geometry", "ustar", "u0", "tke0", "spinup", "production",
+                      "dtdump", "child_spinup", "dtmax"):
+            if getattr(d, field) != getattr(c, field):
+                errors.append(f"driver {field} = {getattr(d, field)!r} differs from the "
+                              f"reference's {getattr(c, field)!r}")
+        if abs(d.dpdx - c.dpdx) > 1.0e-15:
+            errors.append(f"driver dpdx = {d.dpdx} differs from the reference's {c.dpdx}")
+        if self.arm == "coarse" and d.parent_expnr == c.parent_expnr:
+            errors.append(f"the coarse driving parent and the fine reference share "
+                          f"expnr {d.parent_expnr}; their case directories would collide")
+        if self.refine == 1:
+            errors.append("a V0 point at refine = 1 is V1; use the V1 preset instead")
+        if not self.resolves_the_ramp:
+            # Not an error: it is a real, reportable property of the point.
+            print(f"[config] note: point '{self.key}' has L_rel = {c.zonewidth:g} m "
+                  f"< 2 dx_parent = {2 * d.dx:g} m, so the relaxation ramp is not "
+                  "resolved in the parent's own terms (design section 1.4c)")
+        if errors:
+            raise ValueError(
+                f"refinement point '{self.key}' is inconsistent:\n  " + "\n  ".join(errors)
+            )
+
+
+@dataclass(frozen=True)
+class RefinementSuite:
+    """The V0 points, and the one fine reference run they are all measured against."""
+
+    name: str
+    #: The fine, unnested run that supplies the truth -- and, for the
+    #: ``filtered`` arm, the field that is filtered to drive the child.  For the
+    #: production suite this is the V1 ``converged`` parent already on disk.
+    reference: Preset
+    points: Tuple[RefinedPoint, ...]
+
+    def point(self, key: str) -> RefinedPoint:
+        for p in self.points:
+            if p.key == key:
+                return p
+        raise KeyError(f"no V0 point {key!r} in '{self.name}'; "
+                       f"have {', '.join(p.key for p in self.points)}")
+
+    def arm(self, arm: str) -> List[RefinedPoint]:
+        return [p for p in self.points if p.arm == arm]
+
+    def ratio(self, refine: int) -> List[RefinedPoint]:
+        return [p for p in self.points if p.refine == refine]
+
+    @property
+    def refinements(self) -> Tuple[int, ...]:
+        return tuple(sorted({p.refine for p in self.points}))
+
+    @property
+    def drivers_to_run(self) -> List[Preset]:
+        """The coarse parent cases that have to be built and run, one per ratio."""
+        out: List[Preset] = []
+        seen = set()
+        for p in self.points:
+            if p.runs_driver and p.driver.parent_expnr not in seen:
+                seen.add(p.driver.parent_expnr)
+                out.append(p.driver)
+        return out
+
+    def validate(self) -> None:
+        errors: List[str] = []
+        self.reference.validate()
+        seen_keys, seen_expnr, drivers = set(), {}, {}
+        for pt in self.points:
+            try:
+                pt.validate()
+            except ValueError as exc:
+                errors.append(str(exc))
+                continue
+            if pt.key in seen_keys:
+                errors.append(f"duplicate point key {pt.key!r}")
+            seen_keys.add(pt.key)
+            if pt.expnr in seen_expnr:
+                errors.append(f"points {seen_expnr[pt.expnr]!r} and {pt.key!r} share "
+                              f"child expnr {pt.expnr}; their directories would collide")
+            seen_expnr[pt.expnr] = pt.key
+            # Every child must be the reference's child, or `analyse.run` cannot
+            # compare it against the reference's own dumps.
+            for field in ("itot", "jtot", "ktot", "dx", "building_height",
+                          "building_width", "street_width", "edgelength",
+                          "geometry", "child_itot", "child_jtot", "ustar", "u0",
+                          "spinup", "production", "dtdump", "child_spinup",
+                          "guardwidth", "zonewidth", "tau", "nzone", "nwall",
+                          "timeinterp", "init_from_parent", "clear_child_zone",
+                          "child_nprocx", "child_nprocy", "dtmax", "stride",
+                          "parent_expnr"):
+                if getattr(pt.child, field) != getattr(self.reference, field):
+                    errors.append(
+                        f"point {pt.key!r}: child {field} = "
+                        f"{getattr(pt.child, field)!r} differs from the reference's "
+                        f"{getattr(self.reference, field)!r}; the reference run's dumps "
+                        "would not describe this child"
+                    )
+            if pt.child.plaza_window != self.reference.plaza_window:
+                errors.append(f"point {pt.key!r}: child plaza does not match the "
+                              "reference's; it would carry different buildings")
+            # One coarse grid per ratio, shared by both arms, so the filtered and
+            # coarse arms of a ratio differ ONLY in where the data came from.
+            prev = drivers.get(pt.refine)
+            if prev is not None:
+                for field in ("itot", "jtot", "ktot", "dx", "nprocx", "nprocy"):
+                    if getattr(prev, field) != getattr(pt.driver, field):
+                        errors.append(
+                            f"point {pt.key!r}: driver {field} differs from the other "
+                            f"r = {pt.refine} point's; the two arms would not be "
+                            "comparing like with like"
+                        )
+            drivers[pt.refine] = pt.driver
+        for refine in sorted(drivers):
+            if not any(p.refine == refine and p.arm == "filtered" for p in self.points):
+                errors.append(f"r = {refine} has no 'filtered' arm")
+            if not any(p.refine == refine and p.arm == "coarse" for p in self.points):
+                errors.append(f"r = {refine} has no 'coarse' arm")
+        if errors:
+            raise ValueError(
+                f"refinement suite '{self.name}' is inconsistent:\n  "
+                + "\n  ".join(errors)
+            )
+
+    def summary(self) -> str:
+        r = self.reference
+        lines = [
+            f"suite '{self.name}': {len(self.points)} points at r = "
+            f"{', '.join(str(x) for x in self.refinements)}, arms "
+            f"{', '.join(sorted({p.arm for p in self.points}))}",
+            f"reference (truth)    '{r.name}' ({r.parent_expnr}): "
+            f"{r.itot} x {r.jtot} x {r.ktot} @ {r.dx:g} m, "
+            f"{r.xlen:g} x {r.ylen:g} x {r.zsize:g} m",
+            f"child (every point)  {r.child_itot} x {r.child_jtot} x {r.child_ktot} @ "
+            f"{r.dx:g} m, origin ({r.child_origin[0]:g}, {r.child_origin[1]:g}) m, "
+            f"zone {r.zone_cells} cells = {r.guardwidth + r.zonewidth:g} m",
+            "coarse parents to run "
+            + (", ".join("%s @ %g m" % (p.parent_expnr, p.dx)
+                         for p in self.drivers_to_run) or "none"),
+            "",
+        ]
+        for pt in self.points:
+            lines.append("  " + pt.describe())
+            lines.append(f"                 parent Nyquist wavelength "
+                         f"{pt.parent_nyquist_wavelength:g} m; L_rel = "
+                         f"{pt.child.zonewidth:g} m "
+                         f"({'>=' if pt.resolves_the_ramp else '<'} 2 dx_parent = "
+                         f"{2 * pt.driver.dx:g} m); {pt.note}")
+        return "\n".join(lines)
+
+
+def _v0_driver(base: Preset, refine: int, *, expnr: str,
+               nprocx: int, nprocy: int) -> Preset:
+    """The coarse parent grid for one refinement ratio, as a delta on ``base``.
+
+    Same physical domain, same cubes, same forcing and the same schedule; only
+    the mesh is coarser.  ``plaza`` is pinned to ``base``'s window so that the
+    coarse run regenerates the layout the fine reference actually ran -- the
+    default would compute the plaza from the coarse grid's own ``nest_nwall``
+    margin and carve a slightly larger one, and the child's buildings would
+    then not be the parent's.
+    """
+    return replace(
+        base,
+        name=f"{base.name}-parent-r{refine}",
+        itot=base.itot // refine, jtot=base.jtot // refine, ktot=base.ktot // refine,
+        dx=base.dx * refine,
+        child_itot=base.child_itot // refine, child_jtot=base.child_jtot // refine,
+        plaza=base.plaza_window,
+        parent_expnr=expnr, nprocx=nprocx, nprocy=nprocy,
+    )
+
+
+def _v0_suite(base: Preset, name: str, *,
+              ranks: Dict[int, Tuple[int, int]],
+              driver_expnr: Dict[int, str],
+              child_expnr: Dict[Tuple[int, str], str]) -> RefinementSuite:
+    """Build a V0 suite: both arms at every ratio in ``ranks``, one grid per ratio."""
+    points: List[RefinedPoint] = []
+    for refine in sorted(ranks):
+        nprocx, nprocy = ranks[refine]
+        driver = _v0_driver(base, refine, expnr=driver_expnr[refine],
+                            nprocx=nprocx, nprocy=nprocy)
+        for arm in ("filtered", "coarse"):
+            nr = child_expnr[(refine, arm)]
+            child = replace(base, name=f"{name}-r{refine}-{arm}", child_expnr=nr)
+            points.append(RefinedPoint(
+                key=f"r{refine}-{arm}", arm=arm, refine=refine,
+                driver=driver, child=child,
+                note=("boundary data box-filtered from the fine reference's own dumps: "
+                      "a perfect coarse parent, paired with the truth"
+                      if arm == "filtered" else
+                      f"boundary data from a genuine {driver.dx:g} m LES "
+                      f"({driver.parent_expnr}): the real use case, unpaired")))
+    return RefinementSuite(name=name, reference=base, points=tuple(points))
+
+
+#: **V0 -- the refinement validation.**
+#:
+#: The child is *exactly* the V1 converged child -- 128 x 128 x 64 cells at 2 m
+#: over the same 256 x 256 x 128 m box, the same 36 cubes, the same 3 + 9 cell
+#: zone, the same forcing and the same 10 800 s window -- and the reference it
+#: is compared against is the V1 converged parent, which is already on disk.
+#: Only the parent's mesh changes.  So the V1 result is the ``r = 1`` row of
+#: this table, measured by the same code over the same window, and every number
+#: here is directly readable against section 10.5.
+#:
+#: The two coarse grids are 128^2 x 32 at 4 m and 64^2 x 16 at 8 m: one eighth
+#: and one sixty-fourth of the fine parent's cells, so the coarse arm's two
+#: parent runs are cheap next to the children they drive.  At 4 m a 16 m cube is
+#: 4 cells wide and at 8 m it is 2, which is a real limitation of the coarse
+#: parent and is the point -- V0 asks what a child can recover from a parent
+#: like that, not from a good one.
+#:
+#: L_rel = 18 m clears 2 dx_parent at both ratios (8 m and 16 m), so the
+#: relaxation ramp is resolved in the parent's own terms as design section
+#: 1.4(c) requires; nothing about the zone changes between V1 and V0.
+V0 = _v0_suite(
+    CONVERGED, "v0",
+    ranks={2: (8, 8), 4: (4, 4)},
+    driver_expnr={2: "911", 4: "912"},
+    child_expnr={(2, "filtered"): "921", (4, "filtered"): "922",
+                 (2, "coarse"): "923", (4, "coarse"): "924"},
+)
+
+#: The same suite in minutes rather than hours, on the ``tiny`` fine reference,
+#: which this one has to *run* as well (the production suite reuses V1's).
+#:
+#: Two things are deliberately unlike production and are reported rather than
+#: hidden: ``tiny``'s L_rel = 8 m is below ``2 dx_parent`` at both ratios, so
+#: the ramp is not resolved in the parent's terms, and at r = 4 the coarse
+#: parent is 24 x 24 x 8 cells with 2-cell cubes.  Neither matters for a smoke
+#: test -- what is being exercised is the code path -- and both would matter a
+#: great deal for a physical claim, which this preset does not make.
+V0_TINY = _v0_suite(
+    TINY, "v0-tiny",
+    ranks={2: (2, 2), 4: (2, 2)},
+    driver_expnr={2: "911", 4: "912"},
+    child_expnr={(2, "filtered"): "921", (4, "filtered"): "922",
+                 (2, "coarse"): "923", (4, "coarse"): "924"},
+)
+
+SUITES: Dict[str, RefinementSuite] = {s.name: s for s in (V0_TINY, V0)}
+
+
+def get_suite(name: str) -> RefinementSuite:
+    try:
+        suite = SUITES[name]
+    except KeyError:
+        raise SystemExit(
+            f"unknown refinement suite {name!r}; choose one of {', '.join(sorted(SUITES))}"
+        ) from None
+    suite.validate()
+    return suite
+
+
+PRESETS.update({p.name: p for s in SUITES.values()
+                for pt in s.points for p in (pt.driver, pt.child)})
+
+
 if __name__ == "__main__":
     import argparse
 
-    ap = argparse.ArgumentParser(description="print the presets and the sweeps")
+    ap = argparse.ArgumentParser(description="print the presets, sweeps and suites")
     ap.add_argument("--sweep", default=None,
                     help="print one sweep's table instead of every preset")
+    ap.add_argument("--suite", default=None,
+                    help="print one refinement suite's table instead of every preset")
     ns = ap.parse_args()
-    if ns.sweep:
+    if ns.suite:
+        suite = get_suite(ns.suite)
+        print(suite.summary())
+        print()
+        for pt in suite.points:
+            print(f"--- {pt.key} ({pt.arm}, r = {pt.refine}): {pt.note}")
+            print(pt.child.summary())
+            print()
+        for driver in suite.drivers_to_run:
+            print(f"--- coarse driving parent {driver.parent_expnr}")
+            print(driver.summary())
+            print()
+    elif ns.sweep:
         sweep = get_sweep(ns.sweep)
         print(sweep.summary())
         print()
@@ -1057,4 +1516,7 @@ if __name__ == "__main__":
             print()
         for name in sorted(SWEEPS):
             print(get_sweep(name).summary())
+            print()
+        for name in sorted(SUITES):
+            print(get_suite(name).summary())
             print()

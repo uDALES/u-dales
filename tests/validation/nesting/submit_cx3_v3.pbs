@@ -1,0 +1,171 @@
+#!/bin/bash
+#PBS -N udales-nesting-v3
+#PBS -l walltime=05:00:00
+#PBS -l select=1:ncpus=64:mpiprocs=64:mem=64gb
+#PBS -j oe
+#
+# V3 -- parent without buildings: the adjustment length, and whether a
+# building-free standoff shortens it or lengthens it.
+# docs/udales-nesting-design.md section 9.4 and section 10.4 row V3;
+# tests/validation/nesting/README.md, "V3 -- parent without buildings".
+#
+# PREPARE, REVIEW, THEN SUBMIT BY HAND:
+#
+#     qsub tests/validation/nesting/submit_cx3_v3.pbs
+#
+# (qsub/qstat live in /opt/pbs/bin on CX3.)
+#
+# ---------------------------------------------------------------------------
+# WHAT THIS RUNS, AND WHY IN THIS ORDER
+#
+#   1. an equilibrium reference   96 x  96 x 64, periodic 6 x 6 cube array,
+#      (920)                      driven by the same fixed dpdx the children
+#                                 are.  Its statistics are what "in equilibrium
+#                                 with its own canopy" means; without it the
+#                                 adjustment length could only be
+#                                 self-referential.
+#   2. a flat parent (921)       320 x 160 x 64, no buildings at all, driven by
+#                                a volume-flow-rate controller at the bulk
+#                                velocity measured in step 1.
+#   3. four children (922-925)   256 x 128 x 64, a cube canopy starting 0, 5, 15
+#                                or 40 cells past the clear box.
+#
+# Step 2 cannot be built before step 1 has been reduced -- its uflowrate *is*
+# that measurement -- so run_geometry.py does them in order and records which
+# value it used.
+#
+# WHY THE FLAT PARENT IS FLOW-RATE FORCED RATHER THAN dpdx FORCED.  A flat
+# surface at the cases' ground roughness (factypes type 1, z0 = 0.05 m) driven by
+# the canopy's own dpdx would run at roughly twice the canopy's equilibrium bulk
+# velocity, because the canopy drag it is missing is most of the drag.  That is a
+# *bulk momentum* mismatch and it is not the one section 9.4 is about: the child
+# would be decelerating everywhere and there would be no near-surface equilibrium
+# to adjust to.  Matching the bulk instead leaves the child in global momentum
+# balance and confines the mismatch to the *shape* of the near-surface profile --
+# a log layer down to the ground where the child has a canopy -- which is exactly
+# the imposed profile section 9.4 says will be out of equilibrium.  The price is
+# that the flat parent carries a weaker surface stress than the canopy does
+# (u* ~ 0.18 m/s against 0.4), so it also delivers less turbulence to the
+# boundary.  Both are measured and reported.
+#
+# STANDOFFS 0, 5, 15 are the design table's own comparison; 40 cells = 80 m = 5 h
+# is added because the first three are 0, 0.6 and 1.9 building heights, all short
+# compared with any plausible adjustment scale, so a sweep of just those could
+# fail to separate the hypotheses for want of lever rather than because the claim
+# is right.
+# ---------------------------------------------------------------------------
+#
+# SIZING.  Derived from the measured stage times of the V1 'converged' job
+# (3991175, same node type, same 64 ranks, same case family), recorded in
+# .github/skills/udales-exec/references/clusters.md:
+#
+#   parent spin-up   4.19e6 cells, 10800 s simulated, dt 0.379 -> 5479 s
+#                    = 2.18e7 cell-steps/s
+#   parent produce   the same + dumps                          -> 5916 s
+#                    = 2.02e7 cell-steps/s
+#   nested child     1.05e6 cells                              -> 1.7e7 cell-steps/s
+#   slab cut         ~400 s of fixed read for 170 GB, then ~170 MB/s of write
+#   analysis         ~5.1 s per GB of dumps read
+#
+# Applied to this experiment (dt = 0.5 s for the flat parent, which never reaches
+# the Courant limit -- measured on the tiny parent -- and 0.44 s for the urban
+# runs, also measured):
+#
+#   stage                                            cells      time
+#   reference case + spin-up + production          5.90e5     ~15 min
+#   parent case + preprocessing                    3.28e6      ~2 min
+#   parent spin-up, 9000 s                         3.28e6     ~49 min
+#   parent production, 3600 s + dumps              3.28e6     ~21 min
+#   4 x slab cut (47 GB read, 17 GB write each)                ~14 min
+#   4 x child case build (IBM preprocessing)                    ~4 min
+#   4 x child run, 3591 s simulated                2.04e6     ~62 min
+#   periodic statistics (reference + parent)                    ~5 min
+#   4 x per-child analysis + shared parent pass                ~25 min
+#                                                    total    ~3 h 20
+#
+# 5 h against 3 h 20 is 1.5x headroom.  That is deliberately tighter than the 8 h
+# V1 and V2 asked for: none of these sizes has been timed at production volume,
+# but the rates they are extrapolated from were measured on this machine for this
+# case family, and a shorter request is much more likely to be backfilled.  On
+# CX3 a 64-cpu job is routed by ncpus and walltime band only -- <=64 cpus and
+# <=24 h both go to v1_medium24 -- so 5 h and 8 h land in the *same* queue and
+# the whole benefit of the tighter number is backfill eligibility.  If that queue
+# is deep, the other lever is ncpus: <=16 cpus routes to v1_small24/72, which
+# were running thousands of jobs when this was written.  Whether that trades well
+# is not something the existing measurements settle: clusters.md records 5.4e6
+# cell-steps/s on 4 ranks and 1.7e7 on 64, but for *different case sizes*, so
+# "3.1x for 16x the ranks" is a warning that scaling is far from perfect, not a
+# measured efficiency.  Sizing a 16-rank run would need its own timing, and the
+# nprocx/nprocy in presets_geometry.py changed to match.
+#
+# MEMORY.  The peak is the slab cut, which holds the whole nesting file in memory
+# before writing it (udprep.nesting.write_nesting_file takes arrays, not a
+# stream).  A 256 x 128 x 64 child at nzone = 12 is
+# 3*2*(256+128)*64*12*8 = 14.2 MB per level, 1200 levels = 17.0 GB, so budget
+# ~22 GB there.  The analysis peak is the legacy child-versus-parent block, which
+# holds three (nt, ni, nj) plane series of the parent and of the child:
+# 1200 x 255 x 127 x 8 B x 3 x 2 = 1.9 GB.  mem=64gb is about 3x the peak and
+# leaves room for the page cache; asking for less than V1's 128gb also makes the
+# job easier to place.
+#
+# DISK, in $RUNDIR, all new:
+#
+#   reference dumps    1200 x  7.1 MB                          =   8.5 GB
+#   parent dumps       1200 x 39.4 MB                          =  47.2 GB
+#   nesting.inp        4 x 1200 x 14.2 MB                      =  68.1 GB
+#   child dumps        4 x 1200 x 25.2 MB                      = 120.9 GB
+#                                                        total = ~245 GB
+#
+# Ephemeral has ~11 TB.  --prune-nesting deletes each child's nesting.inp once it
+# has run, if that ever gets tight; the analysis does not need it, only a re-run.
+#
+# Everything else -- the standoffs, the domains, the schedule, the zone -- lives
+# in tests/validation/nesting/presets_geometry.py as the 'v3' Experiment.  Change
+# it there, not here, so that what runs at production scale is what the tiny
+# experiment exercised.
+
+set -e
+
+REPO=${UDALES_REPO:-$HOME/udales/u-dales}
+RUNDIR=${UDALES_V3_RUNDIR:-$EPHEMERAL/nesting-v3}
+EXPERIMENT=${UDALES_V3_EXPERIMENT:-v3}
+
+echo "repo       : $REPO"
+echo "rundir     : $RUNDIR"
+echo "experiment : $EXPERIMENT"
+echo "started    : $(date)"
+
+mkdir -p "$RUNDIR"
+
+# The solver binary. Build it beforehand with
+#   ./tools/build_executable.sh icl release
+export UDALES_BUILD=${UDALES_BUILD:-$REPO/build/release/u-dales}
+if [ ! -x "$UDALES_BUILD" ]; then
+    echo "solver binary not found at $UDALES_BUILD" >&2
+    exit 1
+fi
+
+# Two module stacks are needed and they are not compatible with each other: the
+# Python tooling wants Python/3.9.6-GCCcore-11.2.0, the solver wants the Intel
+# 2021a stack.  caselib.run_solver loads the runtime stack itself, in the same
+# shell as the mpiexec, so this script only sets up the Python side.
+export UDALES_RUNTIME_MODULES="tools/prod intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a"
+
+module purge
+module load tools/prod
+module load Python/3.9.6-GCCcore-11.2.0
+source "${UDALES_VENV:-$HOME/udales/.venv}/bin/activate"
+
+export HDF5_USE_FILE_LOCKING=FALSE
+export TMPDIR=${TMPDIR:-$EPHEMERAL}
+export MPLCONFIGDIR=${MPLCONFIGDIR:-$RUNDIR/.mpl}
+
+cd "$REPO"
+python tests/validation/nesting/run_geometry.py "$RUNDIR" \
+    --experiment "$EXPERIMENT" \
+    --yes
+
+echo "finished : $(date)"
+echo "table    : $RUNDIR/analysis/v3_summary.md"
+echo "machine  : $RUNDIR/analysis/v3_summary.json"
+echo "per child: $RUNDIR/analysis/<standoff>/v3_metrics.json"
