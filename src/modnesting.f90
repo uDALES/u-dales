@@ -1036,15 +1036,17 @@ contains
       use modmpi,    only : comm3d, mpierr, my_real, mpi_sum
 
       integer :: i, j, k
-      real    :: al, ag, af
+      ! rank-1 of size 1, not scalar: see check_stored_flux -- gfortran's
+      ! `use mpi` allows only one rank per MPI_ALLREDUCE argument per file.
+      real    :: al(1), ag(1), af
 
-      al = 0.
+      al(1) = 0.
 
       if (ibrank) then
          do k = kb, ke
             af = dy*dzf(k)
             do j = jb, je
-               if (IIu(ib, j, k) == 1) al = al + af
+               if (IIu(ib, j, k) == 1) al(1) = al(1) + af
             end do
          end do
       end if
@@ -1052,7 +1054,7 @@ contains
          do k = kb, ke
             af = dy*dzf(k)
             do j = jb, je
-               if (IIu(ie + 1, j, k) == 1) al = al + af
+               if (IIu(ie + 1, j, k) == 1) al(1) = al(1) + af
             end do
          end do
       end if
@@ -1060,7 +1062,7 @@ contains
          do k = kb, ke
             af = dx*dzf(k)
             do i = ib, ie
-               if (IIv(i, jb, k) == 1) al = al + af
+               if (IIv(i, jb, k) == 1) al(1) = al(1) + af
             end do
          end do
       end if
@@ -1068,21 +1070,21 @@ contains
          do k = kb, ke
             af = dx*dzf(k)
             do i = ib, ie
-               if (IIv(i, je + 1, k) == 1) al = al + af
+               if (IIv(i, je + 1, k) == 1) al(1) = al(1) + af
             end do
          end do
       end if
       af = dx*dy
       do j = jb, je
          do i = ib, ie
-            if (IIw(i, j, kb) == 1)     al = al + af
-            if (IIw(i, j, ke + 1) == 1) al = al + af
+            if (IIw(i, j, kb) == 1)     al(1) = al(1) + af
+            if (IIw(i, j, ke + 1) == 1) al(1) = al(1) + af
          end do
       end do
 
       call MPI_ALLREDUCE(al, ag, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
 
-      fluid_boundary_area = ag
+      fluid_boundary_area = ag(1)
 
    end function fluid_boundary_area
 
@@ -1097,15 +1099,17 @@ contains
       use modmpi,    only : comm3d, mpierr, my_real, mpi_sum
 
       integer :: i, j, k
-      real    :: al, ag, af
+      ! rank-1 of size 1, not scalar: see check_stored_flux -- gfortran's
+      ! `use mpi` allows only one rank per MPI_ALLREDUCE argument per file.
+      real    :: al(1), ag(1), af
 
-      al = 0.
+      al(1) = 0.
 
       if (ibrank) then
          do k = kb, ke
             af = dy*dzf(k)
             do j = jb, je
-               if (IIu(ib, j, k) == 1) al = al + af
+               if (IIu(ib, j, k) == 1) al(1) = al(1) + af
             end do
          end do
       end if
@@ -1113,7 +1117,7 @@ contains
          do k = kb, ke
             af = dy*dzf(k)
             do j = jb, je
-               if (IIu(ie + 1, j, k) == 1) al = al + af
+               if (IIu(ie + 1, j, k) == 1) al(1) = al(1) + af
             end do
          end do
       end if
@@ -1121,7 +1125,7 @@ contains
          do k = kb, ke
             af = dx*dzf(k)
             do i = ib, ie
-               if (IIv(i, jb, k) == 1) al = al + af
+               if (IIv(i, jb, k) == 1) al(1) = al(1) + af
             end do
          end do
       end if
@@ -1129,14 +1133,14 @@ contains
          do k = kb, ke
             af = dx*dzf(k)
             do i = ib, ie
-               if (IIv(i, je + 1, k) == 1) al = al + af
+               if (IIv(i, je + 1, k) == 1) al(1) = al(1) + af
             end do
          end do
       end if
 
       call MPI_ALLREDUCE(al, ag, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
 
-      fluid_lateral_boundary_area = ag
+      fluid_lateral_boundary_area = ag(1)
 
    end function fluid_lateral_boundary_area
 
@@ -1443,7 +1447,9 @@ contains
 
       integer :: i, j, k, ipass, n, f, fbest, m, ig, jg, l, nbad
       real    :: wf(NFACE), ww, wbest
-      real    :: rl, rg
+      ! rank-1 of size 1, not scalar: see check_stored_flux -- gfortran's
+      ! `use mpi` allows only one rank per MPI_ALLREDUCE argument per file.
+      real    :: rl(1), rg(1)
       real, allocatable :: msk(:,:,:)
 
       nbad = 0
@@ -1513,9 +1519,9 @@ contains
 
       deallocate(msk)
 
-      rl = real(nbad)
+      rl(1) = real(nbad)
       call MPI_ALLREDUCE(rl, rg, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
-      if (rg > 0.) call nest_abort('zone points fall outside the slabs stored in the '// &
+      if (rg(1) > 0.) call nest_abort('zone points fall outside the slabs stored in the '// &
                                    'nesting file - increase nzone or reduce the zone width')
 
    end subroutine build_zone
@@ -1568,7 +1574,12 @@ contains
       use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_sum
 
       integer :: it, i, j, k, ierr
-      real    :: sl, sg, phi, af, aerr
+      ! sl/sg are rank-1 of size 1 rather than scalars: gfortran's `use mpi`
+      ! builds a single implicit interface for MPI_ALLREDUCE per file, and this
+      ! file also reduces rank-1 buffers elsewhere. Mixing the two ranks is a
+      ! hard error there (it compiles under ifort). Keep every MPI_ALLREDUCE
+      ! actual argument in this file rank-1.
+      real    :: sl(1), sg(1), phi, af, aerr
       logical :: lw, le, ls, ln, lfull
       real, allocatable :: bw(:,:,:), be(:,:,:), bs(:,:,:), bn(:,:,:)
 
@@ -1623,7 +1634,7 @@ contains
       if (ln) allocate(bn(sn1(2,4), sn2(2,4), sn3(2,4)))
 
       do it = 1, ntime
-         sl = 0.
+         sl(1) = 0.
 
          if (lw) then
             call nestio_read('u_west', it, sds(1,1), sn3(1,1), bw, ierr)
@@ -1632,7 +1643,7 @@ contains
                af = dy*dzf(k)
                do j = jb, je
                   if (IIu(ib,j,k) == 1) &
-                     sl = sl - rhobf(k)*bw(1, k, dloc(1,1,j))*af
+                     sl(1) = sl(1) - rhobf(k)*bw(1, k, dloc(1,1,j))*af
                end do
             end do
          end if
@@ -1644,7 +1655,7 @@ contains
                af = dy*dzf(k)
                do j = jb, je
                   if (IIu(ie+1,j,k) == 1) &
-                     sl = sl + rhobf(k)*be(nzone + 1, k, dloc(1,2,j))*af
+                     sl(1) = sl(1) + rhobf(k)*be(nzone + 1, k, dloc(1,2,j))*af
                end do
             end do
          end if
@@ -1656,7 +1667,7 @@ contains
                af = dx*dzf(k)
                do i = ib, ie
                   if (IIv(i,jb,k) == 1) &
-                     sl = sl - rhobf(k)*bs(1, k, dloc(2,3,i))*af
+                     sl(1) = sl(1) - rhobf(k)*bs(1, k, dloc(2,3,i))*af
                end do
             end do
          end if
@@ -1668,13 +1679,13 @@ contains
                af = dx*dzf(k)
                do i = ib, ie
                   if (IIv(i,je+1,k) == 1) &
-                     sl = sl + rhobf(k)*bn(nzone + 1, k, dloc(2,4,i))*af
+                     sl(1) = sl(1) + rhobf(k)*bn(nzone + 1, k, dloc(2,4,i))*af
                end do
             end do
          end if
 
          call MPI_ALLREDUCE(sl, sg, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
-         phi = sg/area_bnd
+         phi = sg(1)/area_bnd
 
          if (abs(phi) > nest_fluxtol) then
             if (myid == 0) then

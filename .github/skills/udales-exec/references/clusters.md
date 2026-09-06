@@ -194,3 +194,33 @@ bash tests/integration/mpi_operators/run_test.sh
   not size an I/O budget from a streaming benchmark.
 - Login nodes here have 64 cores and ~500 GB RAM, so building a multi-GB test
   fixture in memory is fine; writing 13 GB through `netCDF4` took ~7 s.
+
+### Reproducing the GitHub CI compiler locally on CX3 (2026-09)
+
+CI builds with gfortran; the CX3 default stack is Intel, and **Intel accepts code
+gfortran rejects**. The nesting branch hit this: `use mpi` gives gfortran one
+implicit interface per MPI routine per file, so mixing scalar and rank-1 actual
+arguments to `MPI_ALLREDUCE` in a single file is a hard error there and silent
+under ifort. Worth building both before pushing.
+
+```bash
+module purge && module load tools/prod
+module load foss/2023a netCDF-Fortran/4.6.1-gompi-2023a \
+            FFTW/3.3.10-GCC-12.3.0 CMake/3.26.3-GCCcore-12.3.0
+mkdir -p build/gnu && cd build/gnu
+FC=mpif90 cmake ../.. -DCMAKE_BUILD_TYPE=Debug \
+  -DNETCDF_DIR=$EBROOTNETCDF -DNETCDF_FORTRAN_DIR=$EBROOTNETCDFMINFORTRAN
+make -j8
+```
+
+To run the suites against it, pass the *same* modules as the runtime stack, since
+the test drivers reload modules in the run shell:
+
+```bash
+UDALES_RUNTIME_MODULES="tools/prod foss/2023a netCDF-Fortran/4.6.1-gompi-2023a FFTW/3.3.10-GCC-12.3.0" \
+UDALES_BUILD=$PWD/build/gnu/u-dales TMPDIR=$EPHEMERAL \
+  python tests/integration/nesting/test_nesting.py
+```
+
+OpenMPI needs `--oversubscribe` for login-node runs; the drivers add it when they
+detect Open MPI.
