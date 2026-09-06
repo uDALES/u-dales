@@ -6,6 +6,7 @@ import argparse
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -13,7 +14,9 @@ from typing import Any, Dict, List, Optional
 TESTS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TESTS_DIR.parent
 MANIFEST_PATH = TESTS_DIR / "test_suites.yml"
-MPLCONFIGDIR = Path("/tmp") / "udales-matplotlib"
+# tempfile.gettempdir() honours TMPDIR, so on a shared cluster this lands on
+# scratch rather than the login node's /tmp.
+MPLCONFIGDIR = Path(tempfile.gettempdir()) / "udales-matplotlib"
 PURPOSE_ORDER = {
     "unit": 0,
     "integration": 1,

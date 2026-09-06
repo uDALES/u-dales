@@ -166,54 +166,8 @@ OUTPUT_CASES = [
 # --------------------------------------------------------------------------- #
 
 
-def _mpi_exec_and_args() -> Tuple[str, str]:
-    mpiexec = os.environ.get("MPIEXEC")
-    if not mpiexec:
-        mpiifort = shutil.which("mpiifort")
-        mpiexec = str(Path(mpiifort).parent / "mpiexec") if mpiifort else "mpiexec"
-    extra_args = os.environ.get("MPI_LAUNCH_EXTRA_ARGS", "").strip()
-    try:
-        version = subprocess.run(
-            [mpiexec, "--version"], check=False, capture_output=True, text=True
-        ).stdout
-    except OSError:
-        version = ""
-    if re.search(r"Open MPI|OpenRTE", version, flags=re.IGNORECASE) and "--oversubscribe" not in extra_args:
-        extra_args = f"--oversubscribe {extra_args}".strip()
-    return mpiexec, extra_args
-
-
-def _shell_prefix() -> str:
-    prefix = ""
-    if Path("/etc/profile.d/modules.sh").is_file():
-        prefix = "source /etc/profile.d/modules.sh >/dev/null 2>&1 || true; "
-    return (
-        f"{prefix}"
-        f"if command -v module >/dev/null 2>&1; then module load {RUNTIME_MODULES}; fi && "
-        f"export HDF5_USE_FILE_LOCKING=FALSE && "
-    )
-
-
 def _run(run_dir: Path, namelist: str, nprocs: int) -> subprocess.CompletedProcess:
-    mpiexec, extra_args = _mpi_exec_and_args()
-    command = (
-        f"{_shell_prefix()}cd '{run_dir}' && "
-        f"'{mpiexec}' {extra_args} -n {nprocs} '{UDALES_BUILD}' {namelist}"
-    )
-    return subprocess.run(
-        ["bash", "-lc", command], cwd=REPO_ROOT, check=False, capture_output=True, text=True
-    )
-
-
-def _launcher_unavailable_reason() -> Optional[str]:
-    mpiexec, extra_args = _mpi_exec_and_args()
-    command = f"{_shell_prefix()}'{mpiexec}' {extra_args} -n 1 /bin/true"
-    probe = subprocess.run(
-        ["bash", "-lc", command], cwd=REPO_ROOT, check=False, capture_output=True, text=True
-    )
-    if probe.returncode == 0:
-        return None
-    return (probe.stderr or probe.stdout or f"exit code {probe.returncode}").strip()
+    return launch.run(run_dir, namelist, nprocs, UDALES_BUILD)
 
 
 def _write_namelist(run_dir: Path, runmode: int, name: str, edits: Dict[str, str]) -> str:
@@ -248,17 +202,15 @@ class NestingUnitRunmodes(unittest.TestCase):
     def setUpClass(cls) -> None:
         if not UDALES_BUILD.is_file():
             raise RuntimeError(f"u-dales executable not found at {UDALES_BUILD}")
-        reason = _launcher_unavailable_reason()
-        if reason is not None:
-            raise unittest.SkipTest(f"MPI launcher is not usable here: {reason}")
+        launch.require_launcher()
 
-        cls.workdir = tempfile.TemporaryDirectory(prefix="udales-nesting-", dir="/tmp")
+        cls.workdir = tempfile.TemporaryDirectory(prefix="udales-nesting-",
+                                                  dir=launch.scratch_dir())
         cls.run_dir = Path(cls.workdir.name)
         shutil.copy2(TEST_DIR / f"prof.inp.{EXPNR}", cls.run_dir)
 
         # Fixtures come from the production writer, so the writer and the
         # Fortran reader cannot drift apart (U15/U16).
-        sys.path.insert(0, str(TEST_DIR))
         import make_fixtures  # noqa: E402
 
         make_fixtures.write_all(cls.run_dir)

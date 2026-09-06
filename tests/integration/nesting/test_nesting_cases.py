@@ -49,24 +49,20 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
 TEST_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(TEST_DIR))
+
+import _launch as launch  # noqa: E402
+
+REPO_ROOT = launch.REPO_ROOT
 sys.path.insert(0, str(REPO_ROOT / "tools" / "python"))
 
+import _baseline  # noqa: E402
 import make_case_fixtures as mcf  # noqa: E402
 
 EXPNR = mcf.EXPNR
 
 UDALES_BUILD = Path(os.environ.get("UDALES_BUILD", REPO_ROOT / "build" / "release" / "u-dales"))
-UDALES_BASELINE = Path(
-    os.environ.get("UDALES_BASELINE", REPO_ROOT / "build" / "u-dales.baseline")
-)
-RUNTIME_MODULES = os.environ.get(
-    "UDALES_RUNTIME_MODULES",
-    "intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a "
-    "FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0",
-)
 
 #: Round-off yardsticks.  ``EPS`` is one double ulp; the field tolerances are
 #: expressed as small multiples of it so that a failure means "not round-off",
@@ -81,66 +77,14 @@ PARITY_TOL = 1.0e-9            # design 10.3 I5, matching processor_boundaries
 # --------------------------------------------------------------------------- #
 
 
-def _mpi_exec_and_args() -> Tuple[str, str]:
-    mpiexec = os.environ.get("MPIEXEC")
-    if not mpiexec:
-        mpiifort = shutil.which("mpiifort")
-        mpiexec = str(Path(mpiifort).parent / "mpiexec") if mpiifort else "mpiexec"
-    extra_args = os.environ.get("MPI_LAUNCH_EXTRA_ARGS", "").strip()
-    try:
-        version = subprocess.run(
-            [mpiexec, "--version"], check=False, capture_output=True, text=True
-        ).stdout
-    except OSError:
-        version = ""
-    if (re.search(r"Open MPI|OpenRTE", version, flags=re.IGNORECASE)
-            and "--oversubscribe" not in extra_args):
-        extra_args = f"--oversubscribe {extra_args}".strip()
-    return mpiexec, extra_args
-
-
-def _shell_prefix() -> str:
-    prefix = ""
-    if Path("/etc/profile.d/modules.sh").is_file():
-        prefix = "source /etc/profile.d/modules.sh >/dev/null 2>&1 || true; "
-    return (
-        f"{prefix}"
-        f"if command -v module >/dev/null 2>&1; then module load {RUNTIME_MODULES}; fi && "
-        f"export HDF5_USE_FILE_LOCKING=FALSE && "
-        f"export FOR_DISABLE_DIAGNOSTIC_DISPLAY=TRUE && "
-    )
-
-
 def run_solver(run_dir: Path, nprocs: int = 1, namelist: str = f"namoptions.{EXPNR}",
                executable: Optional[Path] = None) -> subprocess.CompletedProcess:
-    mpiexec, extra_args = _mpi_exec_and_args()
-    exe = executable or UDALES_BUILD
-    command = (
-        f"{_shell_prefix()}cd '{run_dir}' && "
-        f"'{mpiexec}' {extra_args} -n {nprocs} '{exe}' {namelist}"
-    )
-    return subprocess.run(
-        ["bash", "-lc", command], cwd=REPO_ROOT, check=False, capture_output=True, text=True
-    )
-
-
-def _launcher_unavailable_reason() -> Optional[str]:
-    mpiexec, extra_args = _mpi_exec_and_args()
-    command = f"{_shell_prefix()}'{mpiexec}' {extra_args} -n 1 /bin/true"
-    probe = subprocess.run(
-        ["bash", "-lc", command], cwd=REPO_ROOT, check=False, capture_output=True, text=True
-    )
-    if probe.returncode == 0:
-        return None
-    return (probe.stderr or probe.stdout or f"exit code {probe.returncode}").strip()
+    return launch.run(run_dir, namelist, nprocs, executable or UDALES_BUILD,
+                      quiet_intel_diagnostics=True)
 
 
 def _tail(label: str, text: str, limit: int = 40) -> str:
-    stripped = (text or "").strip()
-    if not stripped:
-        return f"{label}: <empty>"
-    lines = stripped.splitlines()
-    return f"{label} (last {min(len(lines), limit)} lines):\n" + "\n".join(lines[-limit:])
+    return launch.tail(label, text, limit)
 
 
 def check_ok(case: unittest.TestCase, done: subprocess.CompletedProcess, what: str) -> str:
@@ -306,15 +250,14 @@ class _NestingCase(unittest.TestCase):
     def setUpClass(cls) -> None:
         if not UDALES_BUILD.is_file():
             raise RuntimeError(f"u-dales executable not found at {UDALES_BUILD}")
-        reason = _launcher_unavailable_reason()
-        if reason is not None:
-            raise unittest.SkipTest(f"MPI launcher is not usable here: {reason}")
+        launch.require_launcher()
+        scratch = launch.scratch_dir()
         if os.environ.get("UDALES_NESTING_KEEP"):
             cls._tmp = None
-            cls.root = Path(tempfile.mkdtemp(prefix="udales-nesting-int-", dir="/tmp"))
+            cls.root = Path(tempfile.mkdtemp(prefix="udales-nesting-int-", dir=scratch))
             print(f"\n[nesting] run directories kept in {cls.root}", flush=True)
         else:
-            cls._tmp = tempfile.TemporaryDirectory(prefix="udales-nesting-int-", dir="/tmp")
+            cls._tmp = tempfile.TemporaryDirectory(prefix="udales-nesting-int-", dir=scratch)
             cls.root = Path(cls._tmp.name)
 
     @classmethod
