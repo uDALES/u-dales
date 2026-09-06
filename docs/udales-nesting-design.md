@@ -2,7 +2,9 @@
 
 **Status:** design proposal for discussion. Not implemented.
 **Code inspected:** uDALES `master` @ `1f8ff3e8`; DALES `v4.4_openBC` @ `aadd296d`; PALM `v23.04`.
-**Scope of v1:** aligned Cartesian grids, offline parent data, one-way, velocity only.
+**Scope of v1:** aligned Cartesian grids, offline parent data, one-way, velocity only. Refinement
+ratios $r>1$ are supported by the writer and covered by its unit tests, but are **not yet validated
+end to end** — every system test so far runs at $r=1$. See the note under §10.4.
 
 ---
 
@@ -1007,6 +1009,19 @@ mesoscale parent and is explicitly supported, with three consequences.
 1. **The zone must be building-free** (§1.4), which makes the lateral boundary faces entirely
    fluid. The masked and unmasked forms of $\Phi$ then coincide — but keep the masked form, so the
    scheme stays correct if the rule is ever relaxed and so the floor is handled uniformly.
+
+   **This is a constraint on the child alone, and that is worth stating explicitly because it is
+   easy to over-read.** The *parent* may have buildings anywhere, the zone included; only the
+   child's own solid mask has to be clear there, which is exactly what `nest_lparentgeom = .false.`
+   asserts. Nothing is lost by clearing them in the child: the parent's buildings are still
+   imprinted on the flow that arrives at the boundary — their wakes are in the imposed velocity
+   field — so the child's zone receives physically meaningful forcing while containing no solid
+   cells of its own.
+
+   The practical consequence is that a building-free zone never requires modifying the parent.
+   V1 carved a plaza out of the parent geometry to achieve it, which worked but was unnecessary,
+   and which constrained the child sizes and zone widths a later sweep could reach — a parent
+   modified for one child fits only that child. Clear the child instead.
 2. **The imposed near-surface profile will not be in equilibrium with the child's surface.** The
    parent's wind near the ground reflects its own roughness and (absent) canopy; the child's zone
    has only ground roughness, and the interior has buildings. An internal boundary layer must
@@ -1223,12 +1238,28 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 | ID | Question | Method | Deliverable |
 |---|---|---|---|
 | V1 | Does matched LES-to-LES nesting reproduce the parent? | Big Brother: periodic parent, writer dumps zone slabs, sub-domain child at matched resolution | **DONE — §10.5.** Mean flow yes ($0.008\,u_\star$); canopy turbulence yes (1–2 %); above the canopy a real $\approx10\,\%$ resolved-TKE deficit from insufficient fetch |
-| V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,8,12,20\}$ | reflection and TKE-damping curves vs width. **Reframed after V1** as a falsification test: if the deficit is fetch-limited rather than boundary-limited, zone width should barely move it. Pair with a child-size sweep at fixed zone width, which measures the fetch directly |
+| V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,9,12,16\}$ at fixed child size, plus a child-size arm at fixed zone width. The upper ramp is 16 rather than 20 cells because the V1 parent's plaza bounds it; clearing the *child* instead (§9.4) removes that bound for future sweeps | reflection and TKE-damping curves vs width. **Reframed after V1** as a falsification test: if the deficit is fetch-limited rather than boundary-limited, zone width should barely move it. Pair with a child-size sweep at fixed zone width, which measures the fetch directly |
 | V3 | **Parent without buildings** | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against variants with a 0/5/15-cell standoff | the adjustment length (§9.4), and confirmation that a standoff lengthens rather than shortens it |
 | V4 | **Different parent geometry** | parent with a different building layout | interior statistics vs S3; confirms the interior is insensitive to the mismatch beyond the adjustment fetch |
+| **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | mean profiles and spectra vs a matched-resolution reference. **This is the use case nesting exists for and it is the last one to be tested — see the note below.** |
 | V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | a fetch curve for uDALES, compared against the paper's ≤4/≤30 guidance; **go/no-go on C6** |
 | V6 | Does mass drift over long runs? | 10⁵-step run | `divtot` bounded, not drifting |
 | V7 | Does the I/O cost anything? | production-sized case | read time <1% of runtime; if not, switch container (§6.3) |
+
+**Refinement ratio 1 is a deliberate simplification, and a temporary one.** V1 and V2 both run
+parent and child on the *same* grid. That is the right way to start — at $r=1$ the prolongation is
+the identity, so anything the experiment finds is attributable to the scheme rather than to the
+interpolation, and the interpolation has its own unit coverage in P1–P17. But the point of nesting
+is to run the child at *higher* resolution than the parent, and **no end-to-end test has yet done
+that**. V1 and V2 must not be read as validating refinement.
+
+V0 above is that test, and it is listed first because it is the most important one outstanding, not
+because it is next in sequence. Two of its results are not predictable from what has been measured
+so far: the deficit V1 found is in the 8–64 m band, which at $r>1$ straddles the parent's filter
+scale, and the child would there be asked to *generate* structure the parent never resolved rather
+than to reproduce structure the parent had. That could go either way — the child has more capacity
+to build its own inertial range, or it has a larger gap to bridge.
+
 
 ### 10.5 V1 results
 
