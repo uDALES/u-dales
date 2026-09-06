@@ -80,6 +80,21 @@ python tests/run_tests.py experimental
 python tests/run_tests.py all --branch-a master --branch-b HEAD --build-type Release
 ```
 
+Each suite carries a `platform:` label, and it is enforced. `any` runs
+everywhere; `linux`/`macos` run on that OS; **`hpc` marks a suite too large for
+a CI runner**, which `run_tests.py` skips -- visibly, as `SKIP` in the summary --
+unless you are on the target machine and say so:
+
+```bash
+python tests/run_tests.py all --platform hpc --branch-a master --branch-b HEAD   # on CX3 etc.
+python tests/run_tests.py all --list                                             # show the selection, run nothing
+```
+
+The default `--platform` is the machine's own OS, which is what CI passes
+explicitly. `hpc` is never a synonym for "needs MPI": CI runners have MPI, and a
+suite that finishes in seconds there belongs under `any`, or it drops out of the
+merge gate the moment the label is honoured.
+
 ## Compiler Warning Gate
 
 `tests/lint/check_build_warnings.py` compares the warnings in a build log

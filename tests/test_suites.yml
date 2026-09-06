@@ -7,7 +7,12 @@ description: Run curated test selections by support level from tests/test_suites
 # - suite.class: execution policy (`supported` or `experimental`)
 # - suite.kind: validation scope (`unit`, `integration`, `reference`, `system`, `regression`)
 # - suite.component: subsystem or ownership area (`udbase`, `udgeom`, `udprep`, `ibm`, etc.)
-# - suite.platform: expected runtime target (`linux`, `macos`, `hpc`, `any`)
+# - suite.platform: where the suite can run (`any`, `linux`, `macos`, `hpc`).
+#   `hpc` means TOO LARGE FOR A CI RUNNER: run_tests.py skips it (visibly, as
+#   SKIP in the summary) unless invoked with --platform hpc on the target
+#   machine. It is NOT a marker for "needs MPI" -- CI runners have MPI, and a
+#   suite that finishes in seconds there belongs under `any`, or it silently
+#   drops out of the merge gate the moment the label is honoured.
 # - suite.cost: rough runtime tier (`fast`, `medium`, `slow`)
 # - suite.command: argv list executed by tests/run_tests.py
 # - suite.env_<NAME>: optional per-suite environment override exposed as <NAME>
@@ -125,7 +130,7 @@ groups:
         class: supported
         kind: integration
         component: ibm
-        platform: hpc
+        platform: any
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -135,7 +140,7 @@ groups:
         class: supported
         kind: integration
         component: solver
-        platform: hpc
+        platform: any
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -145,7 +150,7 @@ groups:
         class: supported
         kind: integration
         component: solver
-        platform: hpc
+        platform: any
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -162,7 +167,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: hpc
+        platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -173,7 +178,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: hpc
+        platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -184,7 +189,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: hpc
+        platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -195,7 +200,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: hpc
+        platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -206,7 +211,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: hpc
+        platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -217,7 +222,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: hpc
+        platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -228,7 +233,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: hpc
+        platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -239,7 +244,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: hpc
+        platform: any
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -541,7 +546,7 @@ groups:
         class: supported
         kind: integration
         component: ibm
-        platform: hpc
+        platform: any
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:

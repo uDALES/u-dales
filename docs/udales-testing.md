@@ -35,10 +35,11 @@ Each suite in the manifest is tagged with a `class` (`supported` or
 `cost` tier; these are printed as the suite runs.
 
 List the available selections by passing an invalid one (or reading the
-manifest directly — there's no separate `--list` flag):
+manifest directly), and `--list` prints a selection without running it:
 
 ```bash
 python tests/run_tests.py --help
+python tests/run_tests.py supported --list
 ```
 
 Run a named selection:
@@ -47,7 +48,12 @@ Run a named selection:
 python tests/run_tests.py python-library
 python tests/run_tests.py supported --branch-a master --branch-b HEAD --build-type Release
 python tests/run_tests.py experimental
+python tests/run_tests.py all --platform hpc      # on an HPC machine: also the suites too large for CI
 ```
+
+Suites labelled `platform: hpc` in the manifest are too large for a GitHub
+runner. They are skipped -- reported as `SKIP`, never silently dropped -- unless
+`--platform hpc` is given; CI passes `--platform linux` or `macos` explicitly.
 
 - `python-library` — `tools/python` unit tests plus the Python-driven
   integration/reference suites (directshortwave, udprep integration,

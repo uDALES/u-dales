@@ -80,9 +80,11 @@ Gotchas (learned the hard way):
 - `git push` from a plain shell here has no GitHub credential (HTTPS remote, no helper/
   token) — push from VSCode Source Control / a VSCode integrated terminal instead.
 
-Tests:
+Tests (`--platform hpc` is what makes the CX3-only suites run; without it they are
+listed as SKIP, which is by design -- they are the ones too large for GitHub CI):
 ```bash
 python tests/run_tests.py supported --branch-a <branch_a> --branch-b <branch_b> --build-type <Debug|Release>
+python tests/run_tests.py all --platform hpc --branch-a <branch_a> --branch-b <branch_b> --build-type <Debug|Release>
 bash tests/integration/mpi_operators/run_test.sh
 python tests/integration/processor_boundaries/test_processor_boundaries.py
 ```

@@ -184,6 +184,30 @@ def _build_child_env() -> Dict[str, str]:
     return env
 
 
+PLATFORMS = ("any", "linux", "macos", "hpc")
+
+
+def _host_platform() -> str:
+    """The platform this process is running on, as the manifest names it."""
+    return "macos" if sys.platform == "darwin" else "linux"
+
+
+def _platform_allows(suite_platform: str, requested: str, host: str) -> bool:
+    """Whether a suite labelled ``suite_platform`` runs under ``--platform requested``.
+
+    ``any`` suites always run. OS-labelled suites run on that OS. ``hpc``
+    suites are the ones too large for a CI runner and run only when the
+    caller says ``--platform hpc``; that flag also runs the host OS's suites,
+    since an HPC node is still a Linux (or macOS) machine. ``--platform any``
+    is the escape hatch that runs everything regardless of label.
+    """
+    if requested == "any" or suite_platform == "any":
+        return True
+    if suite_platform == requested:
+        return True
+    return requested == "hpc" and suite_platform == host
+
+
 def main() -> int:
     manifest = _load_manifest()
     groups = manifest["groups"]
@@ -216,6 +240,22 @@ def main() -> int:
         help="Build type for supported regression tests (default: Release).",
     )
     parser.add_argument(
+        "--platform",
+        choices=PLATFORMS,
+        default=None,
+        help=(
+            "Where the tests are running. Defaults to this machine's OS. Suites "
+            "labelled platform: hpc in the manifest are too large for a CI runner "
+            "and run only with --platform hpc (which also runs the host OS's "
+            "suites). --platform any runs everything regardless of label."
+        ),
+    )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="Print the selection and whether each suite would run or be skipped, without running anything.",
+    )
+    parser.add_argument(
         "--python",
         default=None,
         help=(
@@ -236,9 +276,13 @@ def main() -> int:
     }
 
     suites = _sort_suites(_expand_groups(manifest, args.selection))
+    host = _host_platform()
+    requested = args.platform or host
     child_env = _build_child_env()
     exit_codes = []
     suite_results = []
+
+    print(f"selection: {args.selection}  platform: {requested} (host {host})")
 
     for suite in suites:
         label = suite["label"]
@@ -247,6 +291,14 @@ def main() -> int:
         component = suite.get("component", "unspecified")
         platform = suite.get("platform", "any")
         cost = suite.get("cost", "unspecified")
+        if not _platform_allows(platform, requested, host):
+            # Skipped visibly, never silently: a gap the summary shows is a
+            # gap someone can act on.
+            suite_results.append((label, suite_class, kind, component, platform, cost, None))
+            continue
+        if args.list:
+            suite_results.append((label, suite_class, kind, component, platform, cost, 0))
+            continue
         command = _format_command(suite["command"], variables)
         suite_env = child_env.copy()
         for key, value in suite.items():
@@ -265,11 +317,23 @@ def main() -> int:
         exit_codes.append(code)
         suite_results.append((label, suite_class, kind, component, platform, cost, code))
 
-    print("\nSummary")
+    print("\nSummary" + ("  (--list: nothing was run)" if args.list else ""))
+    n_skip = 0
     for label, suite_class, kind, component, platform, cost, code in suite_results:
-        status = "PASS" if code == 0 else "FAIL"
+        if code is None:
+            status = f"SKIP (platform: {platform}, running as {requested})"
+            n_skip += 1
+        elif args.list:
+            status = "would run"
+        else:
+            status = "PASS" if code == 0 else "FAIL"
         print(f"- {label} [{suite_class}, {kind}, {component}, {platform}, {cost}]: {status}")
+    if n_skip:
+        print(f"skipped {n_skip} suite(s) not for platform {requested!r}; "
+              f"run them on the target machine with --platform hpc")
 
+    if args.list:
+        return 0
     overall = "PASS" if all(code == 0 for code in exit_codes) else "FAIL"
     print(f"overall: {overall}")
 
