@@ -260,22 +260,40 @@ groups:
           - "{tests_dir}/integration/nesting/test_nesting.py"
           - "NestingUnitRunmodes.test_reported_messages"
 
+      # The one multi-rank nesting case in CI: tests/cases/064 (a cube) with a
+      # 3 m guard, a 20 m ramp and tau = 4 s, on 1x1 and 2x2 -- oversubscribed
+      # on a 2-4 core runner; the driver adds --oversubscribe for Open MPI,
+      # which is what both runner images install. ~30 s on a Debug build.
+      - label: "nesting: I5 decomposition parity on 2x2 with a ramp, tau > 0 and a cube"
+        class: supported
+        kind: integration
+        component: nesting
+        platform: any
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI5CubeParity2x2"
+
   nesting:
     includes:
       - nesting-unit
     suites:
-      - label: "nesting: I1 no-op guarantee"
+      # The small-case half of I1 runs in CI (see `supported`); this is the
+      # heavy half, tests/cases/526 on 4 ranks with IBM, trees and statistics,
+      # against the same self-built baseline.
+      - label: "nesting: I1 no-op guarantee (existing case 526, 4 ranks)"
         class: experimental
         kind: integration
         component: nesting
         platform: hpc
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        env_UDALES_BASELINE: "{repo_root}/build/u-dales.baseline"
         command:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
-          - "TestI1NoOpSmallCase"
           - "TestI1NoOpExistingCase"
       - label: "nesting: I2 face imposition survives projection"
         class: experimental

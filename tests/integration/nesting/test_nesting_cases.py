@@ -1331,6 +1331,76 @@ class TestI7ZoneIsolation(_NestingCase):
 
 
 # --------------------------------------------------------------------------- #
+# The committed cube case, tests/cases/064, used by I8 and the 2x2 tests
+# --------------------------------------------------------------------------- #
+
+CASE_064 = "064"
+CASE_064_DIR = REPO_ROOT / "tests" / "cases" / CASE_064
+
+#: 3 m guard + 20 m ramp = 23 m, tau = 4 s; the cube's windward face is at
+#: x = 24 m, one cell beyond the inner edge of the zone.
+CUBE_SPEC = mcf.CaseSpec(itot=64, jtot=64, ktot=64, xlen=64.0, ylen=64.0, zsize=64.0,
+                         nzone=24, guardwidth=3.0, zonewidth=20.0, tau=4.0)
+
+
+def prepare_case_064(run_dir: Path, nested: bool, runtime: float, dt: float,
+                     nprocx: int = 1, nprocy: int = 1, trestart: float = 1.0e9,
+                     extra: Optional[Dict[str, str]] = None,
+                     field: str = "uniform", times: Sequence[float] = (0.0, 1.0e6),
+                     **field_kwargs) -> Path:
+    """Copy ``tests/cases/064`` into ``run_dir`` as a nested (or periodic) run.
+
+    Energy balance, temperature and moisture are switched off so the run is
+    purely mechanical and takes seconds.  The nested run is driven by the
+    parent; the periodic reference by the volume-flow-rate controller at the
+    same 1 m/s.  Keys absent from ``namoptions.064`` (``lwarmstart``,
+    ``startfile``) are inserted into ``&RUN``.
+    """
+    if not CASE_064_DIR.is_dir():
+        raise unittest.SkipTest(f"case {CASE_064} not found")
+    if run_dir.exists():
+        shutil.rmtree(run_dir)
+    shutil.copytree(CASE_064_DIR, run_dir)
+    nml = run_dir / f"namoptions.{CASE_064}"
+    text = nml.read_text(encoding="utf-8")
+    settings = {
+        "runtime": f"{runtime:.10g}",
+        "dtmax": f"{dt:.10g}",
+        "trestart": f"{trestart:.10g}",
+        "ladaptive": ".false.",
+        "nprocx": str(nprocx), "nprocy": str(nprocy),
+        "lEB": ".false.", "ltempeq": ".false.", "lmoist": ".false.",
+        "lbuoyancy": ".false.", "lxytdump": ".false.",
+        "luvolflowr": ".false." if nested else ".true.",
+    }
+    settings.update(extra or {})
+    for key, value in settings.items():
+        text, n = re.subn(rf"(?m)^(\s*{re.escape(key)}\s*=\s*).*$",
+                          lambda m: m.group(1) + value, text)
+        if n == 0:
+            text = text.replace("&RUN\n", f"&RUN\n{key} = {value}\n", 1)
+    text = text.replace("&WALLS\n", "&WALLS\nlwritefac = .true.\n"
+                        f"dtfac = {runtime:.10g}\n")
+    text = text.replace("&BC\n", "&BC\n"
+                        f"BCxm = {4 if nested else 1}\n"
+                        f"BCym = {3 if nested else 1}\nBCtopm = 1\n")
+    spec = CUBE_SPEC
+    text += (f"\n&NESTING\nlnesting = {'.true.' if nested else '.false.'}\n"
+             f"nest_guardwidth = {spec.guardwidth:.10g}\n"
+             f"nest_zonewidth = {spec.zonewidth:.10g}\n"
+             f"nest_tau = {spec.tau:.10g}\n"
+             "nest_shape = 1\nnest_timeinterp = 2\nnest_nwall = 1\n"
+             "nest_lparentgeom = .false.\n"
+             "nest_fluxtol = 1.e-10\nnest_lfluxassert = .true.\n/\n")
+    nml.write_text(text, encoding="utf-8")
+    if nested:
+        data = mcf.build_nesting_data(spec, field, list(times), **field_kwargs)
+        from udprep.nesting import write_nesting_file
+        write_nesting_file(run_dir / f"nesting.inp.{CASE_064}.nc", data, override=True)
+    return run_dir
+
+
+# --------------------------------------------------------------------------- #
 # I8 -- IBM interaction
 # --------------------------------------------------------------------------- #
 
