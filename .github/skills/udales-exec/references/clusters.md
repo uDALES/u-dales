@@ -355,3 +355,27 @@ layouts carry the same plan area density.
 - **Case 064 (64^3, one cube) on the gfortran Debug build, login node:** 1x1
   ~9.5 s initialisation + ~1.5 s/step; 2x2 (`--oversubscribe`) 16 steps in
   18 s. That sizing is why the CI parity case runs 4 steps.
+
+### CX3 addendum (2026-09, D1 parent-side zone dump)
+
+- **A fresh worktree also lacks the preprocessing build**, not just the
+  submodules: `python tests/run_tests.py python-library` fails its
+  "python preprocessing reference integration" suite with
+  `View3D executable not found at <worktree>/tools/preprocessing/build/bin/view3d`.
+  Either run `./tools/build_preprocessing.sh icl` in the worktree or point
+  `VIEW3D_EXE` at the main checkout's binary
+  (`~/udales/u-dales/tools/preprocessing/build/bin/view3d`); with that the
+  suite passes (63 s) and the whole stream is green.  The IBM `f2py`
+  extension is likewise absent and `caselib.run_preprocessing` falls back to
+  the `IBM_preproc` executable by itself.
+- **Measured cost of `&NESTDUMP` on the tiny nesting parent** (96 x 96 x 32,
+  4 ranks, login node, Release/Intel): 40 dumps of a 64 x 64 box with an
+  8-cell band = 35.0 MB in 0.057 s of write calls on the slowest rank
+  (first dump 2.46 MB incl. the 1.72 MB init block, 9.5 ms).  The full field
+  dumps of the same run are 141.7 MB, i.e. the band files are 4.0x smaller
+  (5.1x by cell count for this geometry; the production geometry gives
+  ~15x).  `tests/validation/nesting/test_nestdump_tiny.py` -- parent run,
+  two child builds and a refined build off a coarse band-only driver --
+  takes 163 s on a login node.
+- The gfortran cross-check recipe above still holds: `foss/2023a` Debug
+  build of the D1 branch reports the baseline's 17 warnings, none new.
