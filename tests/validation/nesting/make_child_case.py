@@ -74,6 +74,7 @@ from udprep.nesting import (
     initial_fields_from_parent,
     slabs_from_fields,
     slabs_from_parent,
+    stagger_masks_from_ibm,
 )
 
 
@@ -325,6 +326,25 @@ class DrivingParent:
         return fluid[self.i0:self.i0 + ni - 1,
                      self.j0:self.j0 + nj - 1, :nk - 1]
 
+    def fluid_mask(self, parent_dir: Path, preset: Preset) -> np.ndarray:
+        """The driving parent's fluid mask over the *whole* window, cell-centred.
+
+        Shape ``(ni, nj, nk)`` -- exactly :meth:`grid`'s cell count -- unlike
+        :meth:`fluid_window`, which is one cell short on every axis to match
+        :func:`caselib.cell_centred`'s reduction of the profile fields. This is
+        the mask :func:`udprep.nesting.stagger_masks_from_ibm` needs to derive
+        the staggered ``parent_masks`` that :func:`udprep.nesting.conservative_interpolate`
+        (via ``slabs_from_parent`` / ``initial_fields_from_parent``) expects: a
+        cell the interpolation stencil can reach must be covered, not just the
+        interior columns the profile averages over.
+        """
+        ni, nj, nk = self.window_cells(preset)
+        c = self.coarsen
+        fluid = load_solid_mask(parent_dir,
+                                (self.itot * c, self.jtot * c, self.ktot * c))
+        fluid = coarsen_fluid_mask(fluid, c)
+        return fluid[self.i0:self.i0 + ni, self.j0:self.j0 + nj, :nk]
+
     def interior_columns(self, preset: Preset) -> Tuple[np.ndarray, np.ndarray]:
         """Reduced-array columns outside the guard + ramp, on the driving grid.
 
@@ -430,6 +450,13 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     # prof.inp carries a horizontal mean.
     if driving.interpolates:
         fluid = driving.fluid_window(parent_dir, preset)
+        # W8's solid-aware slope logic (udprep.nesting._tangential_slopes) only
+        # engages when conservative_interpolate is given parent_mask: derive
+        # the three staggered masks from the parent's own IBM fluid mask over
+        # the window, so a coarse stencil that touches a parent solid does not
+        # leak the solid's near-zero velocity into a neighbouring fluid slope
+        # (review finding R3 / plan item W7's FaceMasks note).
+        parent_masks = stagger_masks_from_ibm(driving.fluid_mask(parent_dir, preset))
     else:
         # Fluid in the child AND in the parent.  The profile below is accumulated
         # from the *parent's* field, so a cell the child cleared out of its zone --
@@ -539,7 +566,9 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                 # from the boundaries.  The writer syncs it to the corrected
                 # boundary data of level 0 and projects it before storing it.
                 if driving.interpolates:
-                    initial_fields = initial_fields_from_parent(pgrid, cu, cv, cw, grid)
+                    initial_fields = initial_fields_from_parent(
+                        pgrid, cu, cv, cw, grid, parent_masks=parent_masks
+                    )
                     div0 = float(np.max(np.abs(discrete_divergence(
                         grid, initial_fields["u"], initial_fields["v"],
                         initial_fields["w"]))))
@@ -557,7 +586,8 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                     div0 = float(np.max(np.abs(discrete_divergence(grid, cu, cv, cw))))
                 has_initial = True
             if driving.interpolates:
-                level = slabs_from_parent(pgrid, cu, cv, cw, child=grid, nzone=nzone)
+                level = slabs_from_parent(pgrid, cu, cv, cw, child=grid, nzone=nzone,
+                                          parent_masks=parent_masks)
             else:
                 level = slabs_from_fields(grid, nzone, cu, cv, cw)
             # A slab that reached past a nestdump band is NaN, not zero.

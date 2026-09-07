@@ -9,13 +9,14 @@
  W6           the correction magnitude and its split across faces are reported
  W7           units, cached residual, vertical ratios, FaceMasks from IBM
  W8           piecewise-linear prolongation, conservative to round-off
+ R3           the refined-case builder derives and passes the parent masks
  R4           linear prolongation on a two-cell parent axis does not crash
 ============ ============================================================
 
 Each test states the number it pins in its name or its assertion; the
 diagnostics tests print the numbers they compare so a run leaves a record.
 
-R4 closes a finding of the 2026-09-07 review
+R3 and R4 close two findings of the 2026-09-07 review
 (``nesting-review-2026-09-07-codex.md``), separate from the 2026-09-06 W1--W8
 items above.
 """
@@ -36,10 +37,16 @@ TESTS_DIR = Path(__file__).resolve().parent
 if str(TESTS_DIR) not in sys.path:
     sys.path.insert(0, str(TESTS_DIR))
 
-from _common import PYTHON_DIR  # noqa: E402
+from _common import PYTHON_DIR, REPO_ROOT  # noqa: E402
 
 if str(PYTHON_DIR) not in sys.path:
     sys.path.insert(0, str(PYTHON_DIR))
+
+# tests/validation/nesting/make_child_case.py is the production refined-case
+# builder R3 is about; import it the way the tiny pipeline tests do.
+VALIDATION_NESTING_DIR = REPO_ROOT / "tests" / "validation" / "nesting"
+if str(VALIDATION_NESTING_DIR) not in sys.path:
+    sys.path.insert(0, str(VALIDATION_NESTING_DIR))
 
 from exceptions import ConfigurationError  # noqa: E402
 
@@ -71,6 +78,7 @@ from udprep.nesting import (  # noqa: E402
     face_masks_from_ibm,
     fluid_face_area,
     initial_fields_from_fields,
+    initial_fields_from_parent,
     fluid_lateral_area,
     interpolate_child_fields,
     nesting_data_from_parent,
@@ -97,6 +105,8 @@ from test_nesting import (  # noqa: E402
     random_parent_fields,
     solenoidal_parent_fields,
 )
+
+from make_child_case import DrivingParent  # noqa: E402
 
 
 # --------------------------------------------------------------------------- #
@@ -966,6 +976,117 @@ class TestR4TwoCellParentAxis(unittest.TestCase):
         want0 = b * parent.yf[0]
         self.assertLess(float(np.max(np.abs(guarded[:, in_cell0, :] - want0))), 1e-13)
         np.testing.assert_array_equal(guarded[:, ~in_cell0, :], 0.0)   # the wall stays 0
+
+
+# --------------------------------------------------------------------------- #
+# R3 -- the refined-case builder derives and passes the parent masks
+# (2026-09-07 review; closes the gap left by W8, whose solid-aware slope was
+# never wired into tests/validation/nesting/make_child_case.py)
+# --------------------------------------------------------------------------- #
+
+
+class _PresetStub:
+    """The three :class:`config.Preset` attributes ``DrivingParent`` reads
+
+    for ``window_cells``/``grid``/``fluid_mask``: no other Preset machinery
+    (geometry, namelists, ...) is needed to exercise the mask plumbing.
+    """
+
+    def __init__(self, xlen: float, ylen: float, zsize: float) -> None:
+        self.child_xlen = xlen
+        self.child_ylen = ylen
+        self.zsize = zsize
+
+
+def _driving_parent_masks(parent_dir, fluid, itot, jtot, ktot, dx):
+    """Exactly the two calls ``make_child_case.build`` makes when
+
+    ``driving.interpolates``: load the parent's own IBM mask on the driving
+    window (``DrivingParent.fluid_mask``, new in this fix) and stagger it
+    (``stagger_masks_from_ibm``).  ``fluid`` is written to ``solid_c.txt`` in
+    ``parent_dir`` first, the same file ``caselib.load_solid_mask`` reads on
+    the production path.
+    """
+    idx = np.argwhere(~fluid) + 1                      # solid_c.txt is 1-based i j k
+    np.savetxt(Path(parent_dir) / "solid_c.txt", idx, fmt="%d")
+    preset = _PresetStub(itot * dx, jtot * dx, ktot * dx)
+    driving = DrivingParent(dump=None, source_expnr="000", dx=dx, refine=2, coarsen=1,
+                            i0=0, j0=0, itot=itot, jtot=jtot, ktot=ktot, label="test")
+    got = driving.fluid_mask(parent_dir, preset)
+    np.testing.assert_array_equal(got, fluid)           # the new method itself is correct
+    return stagger_masks_from_ibm(got)
+
+
+class TestR3ProductionMasksWired(unittest.TestCase):
+    """R3: ``make_child_case.build()`` must derive ``parent_masks`` and pass
+
+    them to ``slabs_from_parent``/``initial_fields_from_parent``, not just
+    make the optional API available.  Driving a full ``build()`` needs a
+    finished parent case directory plus IBM preprocessing and geometry
+    generation, too heavy for a unit test; this exercises the same call path
+    at unit-test weight -- ``DrivingParent.fluid_mask`` (the method ``build()``
+    now calls), ``stagger_masks_from_ibm`` (what it feeds) and
+    ``initial_fields_from_parent``/``slabs_from_parent`` (what the masks are
+    passed to) -- the same objects and calls ``build()`` uses, without the
+    geometry/solver scaffolding around them. The magnitudes match
+    ``TestW8LinearProlongation.test_a_solid_neighbour_does_not_pollute_the_slope``:
+    >0.1 m/s unmasked, <1e-13 masked.
+    """
+
+    def test_initial_fields_from_parent_uses_the_masked_slope(self):
+        parent = NestGrid.uniform(6, 6, 4, 60.0, 60.0, 40.0)
+        child = NestGrid.uniform(12, 12, 8, 60.0, 60.0, 40.0)
+        fluid = np.ones((6, 6, 4), dtype=bool)
+        fluid[:, 3, :] = False                          # a solid wall across y
+        b = 0.1
+        pu = np.broadcast_to((b * parent.yf)[None, :, None],
+                             parent.component_shape("u")).copy()
+        pu[~stagger_masks_from_ibm(fluid)["u"]] = 0.0    # the IBM parent has u = 0 in the wall
+        pv = np.zeros(parent.component_shape("v"))
+        pw = np.zeros(parent.component_shape("w"))
+        with TemporaryDirectory() as tmp:
+            parent_masks = _driving_parent_masks(Path(tmp), fluid, 6, 6, 4, 10.0)
+        guarded = initial_fields_from_parent(parent, pu, pv, pw, child,
+                                             parent_masks=parent_masks)["u"]
+        # what build() produced before this fix: parent_masks silently omitted
+        polluted = initial_fields_from_parent(parent, pu, pv, pw, child)["u"]
+        want = b * child.yf
+        # child cells 4, 5 lie in parent cell 2, the fluid neighbour of the wall
+        self.assertLess(float(np.max(np.abs(guarded[:, 4:6, :] - want[None, 4:6, None]))),
+                        1e-13)
+        self.assertGreater(float(np.max(np.abs(polluted[:, 4:6, :] - want[None, 4:6, None]))),
+                           0.1)
+        np.testing.assert_array_equal(guarded[:, 6:8, :], 0.0)     # the wall itself stays 0
+
+    def test_slabs_from_parent_uses_the_masked_slope(self):
+        parent = NestGrid.uniform(6, 6, 4, 60.0, 60.0, 40.0)
+        child = NestGrid.uniform(12, 12, 8, 60.0, 60.0, 40.0)
+        fluid = np.ones((6, 6, 4), dtype=bool)
+        fluid[:, 3, :] = False                          # a solid wall across y
+        b = 0.1
+        pu = np.broadcast_to((b * parent.yf)[None, :, None],
+                             parent.component_shape("u")).copy()
+        pu[~stagger_masks_from_ibm(fluid)["u"]] = 0.0
+        pv = np.zeros(parent.component_shape("v"))
+        pw = np.zeros(parent.component_shape("w"))
+        with TemporaryDirectory() as tmp:
+            parent_masks = _driving_parent_masks(Path(tmp), fluid, 6, 6, 4, 10.0)
+        nzone = 2
+        guarded = slabs_from_parent(parent, pu, pv, pw, child=child, nzone=nzone,
+                                    parent_masks=parent_masks)
+        polluted = slabs_from_parent(parent, pu, pv, pw, child=child, nzone=nzone)
+        # u_west/u_east run the full y extent (span "yf", cell-centred, shape
+        # (jtot, ktot, nzone + 1) -- see slab_dimensions), so they cross the
+        # wall (which spans every x and z) the same way conservative_interpolate
+        # does; the west/east zone band itself does not touch the wall in x.
+        want = b * child.yf
+        for face in ("west", "east"):
+            g = guarded[f"u_{face}"]
+            p = polluted[f"u_{face}"]
+            self.assertLess(float(np.max(np.abs(g[4:6, :, :] - want[4:6, None, None]))),
+                            1e-13)
+            self.assertGreater(float(np.max(np.abs(p[4:6, :, :] - want[4:6, None, None]))),
+                               0.1)
 
 
 if __name__ == "__main__":  # pragma: no cover
