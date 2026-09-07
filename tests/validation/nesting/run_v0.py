@@ -110,15 +110,23 @@ def _disk_estimate(suite: RefinementSuite, points: List[RefinedPoint]) -> str:
         lines.append(f"    parent {d.parent_expnr} @ {d.dx:g} m   dumps {gb:6.1f} GB")
     for pt in points:
         p = pt.child
-        nt = p.production / p.dtdump
+        # The nesting file holds one level per BOUNDARY cadence (p.cadence);
+        # the child's own field dumps are at p.child_dtdump.  Before C0b these
+        # were always equal (every V1/V2 preset), so a single 'nt' shared
+        # between the two was harmless; C0b and V0b decouple them (a 0.5 s
+        # boundary cadence driving a child that still dumps at 3 s), and using
+        # the boundary count for the dump volume overstates it by
+        # child_dtdump / cadence -- 6x for V0b's own presets.
+        nt_slab = p.production / p.cadence
+        nt_dump = p.production / p.child_dtdump
         slab = 3 * 2 * (p.child_itot + p.child_jtot) * p.child_ktot * p.nzone * 8
         dump = 3 * p.child_itot * p.child_jtot * p.child_ktot * 4
         init = 3 * p.child_itot * p.child_jtot * p.child_ktot * 8
-        gb = (nt * (slab + dump) + init) / 1e9
+        gb = (nt_slab * slab + nt_dump * dump + init) / 1e9
         total += gb
         lines.append(f"    child  {p.child_expnr} ({pt.key:12s}) nesting "
-                     f"{(nt * slab + init) / 1e9:6.1f} GB + dumps "
-                     f"{nt * dump / 1e9:6.1f} GB")
+                     f"{(nt_slab * slab + init) / 1e9:6.1f} GB + dumps "
+                     f"{nt_dump * dump / 1e9:6.1f} GB")
     lines.append(f"    {'total':38s} {total:6.1f} GB")
     return "\n".join(lines)
 
