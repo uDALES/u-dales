@@ -100,6 +100,8 @@ module modstartup
                                     nest_lparentgeom, nest_fluxtol, nest_lfluxassert, &
                                     nest_lfluxcheckall, nest_linitfromparent, nest_statint, &
                                     nest_lendabort
+      use modnestdump,       only : lnestdump, tnestdump, nestdump_x0, nestdump_y0, &
+                                    nestdump_xsize, nestdump_ysize, nestdump_nzone, nestdump_linit
       use decomp_2d
 
       implicit none
@@ -180,6 +182,9 @@ module modstartup
          nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
          nest_lparentgeom, nest_fluxtol, nest_lfluxassert, &
          nest_lfluxcheckall, nest_linitfromparent, nest_statint, nest_lendabort
+      namelist/NESTDUMP/ &
+         lnestdump, tnestdump, nestdump_x0, nestdump_y0, nestdump_xsize, nestdump_ysize, &
+         nestdump_nzone, nestdump_linit
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -327,6 +332,14 @@ module modstartup
             stop 1
          endif
          !write (6, NESTING)
+         rewind (ifnamopt)
+
+         read (ifnamopt, NESTDUMP, iostat=ierr)
+         if (ierr > 0) then
+            write(0, *) 'ERROR: Problem in namoptions NESTDUMP'
+            write(0, *) 'iostat error: ', ierr
+            stop 1
+         endif
          rewind (ifnamopt)
 
          read (ifnamopt, OUTPUT, iostat=ierr)
@@ -644,6 +657,14 @@ module modstartup
       call MPI_BCAST(nest_linitfromparent, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(nest_statint, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nest_lendabort, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lnestdump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(tnestdump, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestdump_x0, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestdump_y0, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestdump_xsize, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestdump_ysize, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestdump_nzone, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nestdump_linit, 1, MPI_LOGICAL, 0, comm3d, mpierr)
 
       ! ! Allocate and initialize core modules
       ! call initglobal

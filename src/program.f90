@@ -54,6 +54,7 @@ program uDALES
   use modchecksim,     only : initchecksim,checksim
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
+  use modnestdump,     only : initnestdump,nestdump,exitnestdump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators
@@ -123,6 +124,9 @@ program uDALES
   call inittimedep
 
   call initfielddump
+
+  ! After initfielddump: the zone dump of a nesting parent (docs/udales-nesting-design.md 6.2)
+  call initnestdump
 
   call boundary
 
@@ -220,6 +224,8 @@ program uDALES
 
     call fielddump
 
+    call nestdump
+
     call statsdump
 
     call nesting_stats(p)
@@ -248,6 +254,7 @@ program uDALES
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
   call exitfielddump
+  call exitnestdump
   call exitstatsdump     !tg3315
   call exit_heatpump
   call nesting_finalize  ! closes the parent file; a no-op unless lnesting
