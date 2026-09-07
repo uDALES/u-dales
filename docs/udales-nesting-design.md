@@ -37,12 +37,25 @@ V1 measures the peak at $0.37$ just inside the zone, crossing the noise floor by
 still falling at $0.087$ where the far zone truncates it 13$h$ later. **The fetch is longer than the
 V1 child domain**, so $L_{\rm rec}$ is bounded below but not yet measured.
 
-**A consequence worth stating plainly.** Because criterion B is not reached within the domain, the
-child carries a real deficit of resolved turbulence above the canopy — about 10 %, concentrated in
-the 8–64 m band, i.e. the energy-containing scales the child must regenerate for itself rather than
-those the boundary supplies. Some such loss is intrinsic to one-way nesting at finite domain size.
-It is now measured for this configuration rather than assumed, and how it scales with child size
-and zone width is what V2 exists to determine.
+**What the child is recovering from — settled by C0 (§10.5).** The V1 child carried a $\approx10\,\%$
+deficit of resolved turbulence above the canopy, concentrated in the 8–64 m band. It was first read
+as a limitation of the fetch alone. It is not: **the loss is at the boundary and the fetch is only
+the recovery.** Boundary data stored every $\Delta t_P$ and interpolated in time carries nothing
+below the wavelength $2U\Delta t_P$ (Taylor's hypothesis), and attenuates the octave above it. At
+the V1 cadence of 3 s that is 21 m at $z/h=2$ — the depleted band exactly — and re-running the same
+child at cadences from 0.5 s to 9 s moves the deficit monotonically from $-2\,\%$ to $-24\,\%$. The
+governing number is a **dump Courant number**
+
+$$C_{\rm dump} = \frac{U\,\Delta t_P}{\Delta x_P},$$
+
+evaluated at the largest wind the zone sees: nothing the parent resolved is lost when
+$C_{\rm dump}\le2$ (i.e. $2U\Delta t_P\le4\Delta x_P$). V1 ran at 5.4 at $z/h=2$ and $\approx7.5$
+at the top. The same rule covers refinement: an $r=4$ parent supplies nothing below $4\Delta x_P$
+either, and the child regenerates neither band within $13h$ (V0, §10.5). So the statement that
+survives all four campaigns is: **a band that is missing from the boundary data, whatever removed
+it, comes back over a fetch that grows with its wavelength; the zone width has nothing to do with
+it (V2), and the child's interior extent is the only lever after the cadence itself.**
+$L_{\rm rec}(\lambda)$ is the quantity a user needs, and §10.5 gives its first points.
 
 Urban geometry helps, and helps specifically. Buildings are a strong, distributed, always-on
 generator of turbulence, so structural errors injected at the boundary — reflections, interpolation
@@ -169,12 +182,28 @@ The consequence is worth stating plainly: **the interpolation contributes nothin
 solver to clean up.** All divergence the projection sees comes from the *blend* between parent and
 child where $0<W<1$ — not from the interpolation. That materially reduces C1.
 
-**In time — linear is $C^0$, and that shows.** With two buffered levels and linear interpolation,
-$\partial\tilde q/\partial t$ jumps at every parent-interval crossing. Under strong imposition
-($\tau\to0$) the boundary faces feel that jump directly, giving a pressure transient once per
-$\Delta t_P$ — a periodic artefact that would show up in spectra at $1/\Delta t_P$. DALES and PALM
-both accept this. A cubic Hermite ($C^1$) interpolant costs one extra buffer slot and removes it;
-worth doing from the start given how cheap it is, and worth *measuring* either way.
+**In time — the cadence is a low-pass filter, and it is the dominant error of the whole scheme.**
+This subsection originally discussed the time interpolant only as a smoothness question (linear is
+$C^0$, cubic is $C^1$, the jump in $\partial\tilde q/\partial t$ at each crossing gives a pressure
+transient at $1/\Delta t_P$). That is true and secondary. The primary effect is that data stored every
+$\Delta t_P$ and interpolated between levels cannot carry frequencies above $1/(2\Delta t_P)$, and
+attenuates those below it by the interpolant's transfer function — $\mathrm{sinc}^4(f\Delta t_P)$ for
+linear interpolation. Under Taylor's hypothesis, $f = U/\lambda$, so at a face where the wind is $U$
+every wavelength below $2U\Delta t_P$ is absent from the target and the octave above it is damped.
+Computed from the V1 parent's own spectra at 3 s: at $z/h=2$ the target keeps 0 % of the 8–16 m
+variance, 21 % of 16–32 m, 66 % of 32–64 m and 90 % of 64–128 m, and the child's interior ratios
+0.82, 0.85, 0.95, 1.04 order band by band with that. **The requirement is $C_{\rm dump}=U\Delta t_P/\Delta x_P\le2$**
+(§0), which for uDALES-to-uDALES nesting at $\Delta x_P=2$ m and $U=5$ m/s means $\Delta t_P\le0.8$ s —
+every one or two parent steps, not the tens of seconds the DALES open-BC guidance ("$\le30\times$
+temporal refinement") suggested. That guidance came from a convective boundary layer whose large
+eddies are slow; it does not transfer to a sheared urban layer.
+
+**The interpolant matters more than expected, and Catmull–Rom is now the default.** Measured on the
+same child at the same 3 s cadence (C0, §10.5): switching `nest_timeinterp` from linear to the
+unlimited cubic halves the interior deficit ($-9.9\to-5.7\,\%$) and lifts the 8–16 m ratio from 0.83
+to 0.89 — a band that is *entirely* above the target's Nyquist frequency and so cannot be helped by a
+flatter passband directly. What the cubic supplies is the 16–64 m band, which the cascade then uses
+to rebuild 8–16 m faster. The cubic costs one extra buffer slot and nothing in I/O.
 
 **The Hermite slopes must be unlimited, and this is a constraint, not a preference.** §3.1(2)
 needs the interpolant to be *linear in the data*: if
@@ -603,10 +632,23 @@ $$
 
 For $i_{tot}=j_{tot}=512$, $k_{tot}=128$, $n_z=16$: **≈100 MB per time level**, so ≈6 GB per hour
 at $\Delta t_P=60$ s, ≈36 GB at 10 s, ≈360 GB at 1 s. **The parent time interval, not the spatial
-extent, is what sets the cost** — which is a second, independent reason to respect the
-$\le30\times$ temporal-refinement guidance. Storing single precision halves all of this at no
-meaningful accuracy cost (the data are a boundary condition and are about to be interpolated);
-promote to double on read. uDALES already has a `SINGLE_PRECISION_OUTPUT` build option.
+extent, is what sets the cost — and the interval is not free to choose.** §1.3 and §0 set
+$C_{\rm dump}\le2$, i.e. $\Delta t_P\le2\Delta x_P/U_{\max}$: 0.8 s for this case at 5 m/s, so
+≈450 GB per simulated hour of boundary data, and the design's original 60 s sizing (143 GB for a
+production window) was under-sampled by a factor of 75. The $\le30\times$ temporal-refinement
+guidance imported from the DALES open-BC paper is withdrawn for the reason given in §1.3. Storing
+single precision halves all of this at no meaningful accuracy cost (the data are a boundary
+condition and are about to be interpolated); promote to double on read. uDALES already has a
+`SINGLE_PRECISION_OUTPUT` build option. Three consequences:
+
+- **Full-domain field dumps are not a production path.** V1's 170 GB of 3-D dumps covered 3 h at
+  3 s; at 0.5 s the same window is 1 TB. The parent must write the zone slabs and the initial block
+  only (a `lnestdump` switch in the parent, item D1 in the plan), which is $n_z(i_{tot}+j_{tot})$
+  cells per level against $i_{tot}j_{tot}$ — a factor of $\approx15$ for the production case.
+- **A coarser cadence is a choice with a measured price**, not a free parameter: the deficit curve
+  of §10.5 (C0) and the recovery fetch of §10.5 (V2) together say how much interior a child needs
+  for a given $C_{\rm dump}$.
+- **A mesoscale parent at 10–60 s output cannot drive this scheme** at LES scales; see §9.4.
 
 Crucially, a read happens **once per parent interval, not per timestep**: with $\Delta t\approx0.3$ s
 and $\Delta t_P=60$ s that is one read per ≈200 steps, ≈1.6 MB per rank on 64 ranks. The
@@ -1003,8 +1045,13 @@ proportional to the zone rather than the domain, and makes the inner loop a sing
 
 ### 9.4 When parent and child geometry differ
 
-The parent may resolve no buildings at all, or different ones. This is the expected case for a
-mesoscale parent and is explicitly supported, with three consequences.
+The parent may resolve no buildings at all, or different ones. This is explicitly supported, with
+three consequences. It is **not** the same as saying that a mesoscale parent can drive the child:
+as built this is an LES-to-LES tool. A parent whose output carries no resolved turbulence at the
+scales the child needs — any parent at $C_{\rm dump}\gg2$, which a mesoscale model's 10–60 s output
+always is — would need a turbulence-generating inflow the scheme does not have (§6.2), and the
+child would spend its whole interior regenerating what the boundary never supplied. The earlier
+wording here ("the expected case for a mesoscale parent") is withdrawn.
 
 1. **The zone must be building-free** (§1.4), which makes the lateral boundary faces entirely
    fluid. The masked and unmasked forms of $\Phi$ then coincide — but keep the masked form, so the
@@ -1013,10 +1060,15 @@ mesoscale parent and is explicitly supported, with three consequences.
    **This is a constraint on the child alone, and that is worth stating explicitly because it is
    easy to over-read.** The *parent* may have buildings anywhere, the zone included; only the
    child's own solid mask has to be clear there, which is exactly what `nest_lparentgeom = .false.`
-   asserts. Nothing is lost by clearing them in the child: the parent's buildings are still
-   imprinted on the flow that arrives at the boundary — their wakes are in the imposed velocity
-   field — so the child's zone receives physically meaningful forcing while containing no solid
-   cells of its own.
+   asserts. The parent's buildings are still imprinted on the flow that arrives at the boundary —
+   their wakes are in the imposed velocity field — so the child's zone receives physically
+   meaningful forcing while containing no solid cells of its own. **But something is lost, and V2
+   measured it** (§10.5): the wakes those cubes would have shed *inside* the zone are absent, so
+   the first building rows of the interior receive an inflow with too little canopy-layer deficit,
+   and the interior mean wind runs $0.05$–$0.07\,u_\star$ low up to $z/h\approx1.5$ — enough to fail
+   criterion A for a child that clears 12–20 cubes, where a child whose zone was building-free in
+   the parent too passes. Clearing the child is correct at the boundary; the interior then starts
+   its own canopy adjustment at the inner edge, which is point 2 below seen from the other side.
 
    The practical consequence is that a building-free zone never requires modifying the parent.
    V1 carved a plaza out of the parent geometry to achieve it, which worked but was unnecessary,
@@ -1253,7 +1305,7 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 | V3 | **Parent without buildings** | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against 0/5/15/40-cell standoffs | the adjustment length (§9.4), measured both from the zone edge and from the first building face — the latter is the discriminating one, since a standoff trivially moves the canopy downstream. §9.4 predicts a standoff *lengthens* adjustment; this row exists to test that, and may refute it |
 | V4 | **Different parent geometry** | parent with a different building layout, child identical to V1's | interior statistics against the **V1** child (not against V4's own parent sub-region, which is a different flow); measures whether the interior is insensitive to the mismatch beyond the adjustment fetch |
 | **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **Filtered arm DONE — §10.5**; coarse arm running. Turbulence: the child regenerates none of an $r=4$ parent's missing band above the canopy within $13h$; mean flow: unreadable until the prolongation staircase (W8) is fixed |
-| V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | a fetch curve for uDALES, compared against the paper's ≤4/≤30 guidance; **go/no-go on C6** |
+| V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | **Superseded**: the time axis is C0 (0.5–9 s, §10.5) and the space axis is V0; the ≤4/≤30 guidance is withdrawn (§1.3). C6 is a go, on the terms of §6.2 |
 | V6 | Does mass drift over long runs? | 10⁵-step run | `divtot` bounded, not drifting |
 | V7 | Does the I/O cost anything? | production-sized case | read time <1% of runtime; if not, switch container (§6.3) |
 
@@ -1315,19 +1367,52 @@ had landed on a rising limb. The lesson is about window length, not spin-up — 
 several of these cycles. The child follows the parent's slow modes with a lag of several hundred
 seconds.
 
-**Where the deficit comes from: a correction in progress (2026-09-06).** The paragraph above
-names the recovery and misses the loss. The boundary data is sampled every 3 s and interpolated
-linearly, which by Taylor's hypothesis removes every wavelength below $2U\Delta t_P$ and attenuates
-the octave above it by $\mathrm{sinc}^4$. Computed from the converged parent's own spectra, the
-3 s target keeps 0 % of the parent's 8–16 m variance at $z/h=2$, 21 % of 16–32 m and 66 % of
-32–64 m; the measured interior ratios 0.82, 0.85 and 0.95 order band by band with what was lost.
-In the canopy shear layer regeneration is fast and nothing remains; aloft it is slow. The
-governing number is a **dump Courant number** $C_{\rm dump} = U\Delta t_P/\Delta x_P$: nothing the
-parent resolved is lost when $C_{\rm dump}\le 2$, and V1 ran at 5.4 at $z/h=2$ and about 7.5 at
-the top. The discriminating experiment (C0: the same parent re-dumped at 0.5 s and sliced to
-0.5–9 s; `tests/validation/nesting/README.md` carries the pre-registered predictions) is queued;
-§0, §1.3, §6.2 and §9.4 are rewritten when its result is in. The plan and decision record is
-`~/udales/nesting-plan-2026-09-06.md`.
+**C0 — the cadence discriminator (jobs 3993705 and 3993706, 2026-09-07).** Where the deficit comes
+from. The paragraph above names the recovery and misses the loss: the boundary data is sampled
+every 3 s and interpolated in time, which removes every wavelength below $2U\Delta t_P$ (§1.3).
+Two arms. **C0a** re-ran the V1 child from the same 3 s dumps subsampled to 6 s and 9 s, and once
+more at 3 s with the Catmull–Rom interpolant, over the full 10 191 s window. **C0b** warm-started
+the converged parent from its end-of-spin-up restart ($t=10\,800$ s) for 2 400 s dumping every
+0.5 s (4 800 levels, 240 GB), and sliced those dumps to six cadences, so one parent realisation
+drives the whole ladder and the comparison is paired. Pre-registered predictions are in
+`tests/validation/nesting/README.md`. Deficit is resolved TKE above $z/h=2$; band ratios at
+$z/h=2.06$.
+
+| cadence | interpolant | $C_{\rm dump}$ at $u_0$ | deficit | 8–16 m | 16–64 m | samples |
+|---|---|---|---|---|---|---|
+| 0.5 s | linear | 0.75 | $-2.1\,\%$ | 0.935 | 0.971 | 600 |
+| 1 s | linear | 1.5 | $-3.3\,\%$ | 0.920 | 0.960 | 599 |
+| 1.5 s | linear | 2.25 | $-4.9\,\%$ | 0.914 | 0.950 | 599 |
+| 3 s | linear | 4.5 | $-11.3\,\%$ | 0.831 | 0.873 | 597 |
+| 3 s (V1) | linear | 4.5 | $-9.9\,\%$ | 0.833 | 0.869 | 3 397 |
+| **3 s (C0a)** | **Catmull–Rom** | 4.5 | $\mathbf{-5.7\,\%}$ | **0.892** | **0.930** | 3 397 |
+| 6 s | linear | 9 | $-20.5\,\%$ | 0.713 | 0.725 | 594 |
+| 6 s (C0a) | linear | 9 | $-18.1\,\%$ | 0.713 | 0.726 | 3 394 |
+| 9 s | linear | 13.5 | $-24.5\,\%$ | 0.663 | 0.650 | 592 |
+| 9 s (C0a) | linear | 13.5 | $-21.5\,\%$ | 0.664 | 0.654 | 3 391 |
+
+**The cause is the cadence.** The band ratios fall monotonically with $\Delta t_P$ at every height,
+and the 3 s, 6 s and 9 s points agree between the two arms — different parent realisations, windows
+differing by $5.7\times$ — to 0.002 in the 8–16 m band. Against the pre-registered table the
+"cadence causes it" row is met on 16–64 m ($0.971\ge0.97$) and just short on 8–16 m (0.935), where
+the linear interpolant's own passband still attenuates an 8 m eddy at 3.6 m/s by
+$\mathrm{sinc}^4(0.225)\approx0.84$ even at 0.5 s: the residual is the interpolant, not the scheme,
+and no relaxation-time arm is needed. The criterion-A flags on the 600-sample rows are the
+mean-flow sampling floor at 1 800 s (spread 8.2 %), not a result; the same child passes at
+3 397 samples.
+
+**One prediction was wrong, and usefully.** Catmull–Rom at 3 s was predicted to move 16–64 m a
+little and 8–16 m not at all, since the latter lies wholly above the target's Nyquist frequency.
+It moved 8–16 m from 0.833 to 0.892 and halved the deficit. The cubic's flatter passband supplies
+more of 16–64 m, and the cascade rebuilds 8–16 m from it. `nest_timeinterp = 2` is therefore the
+default (§1.3), and its own cadence ladder (C0c, jobs listed in the plan) gives the operating curve
+for the interpolant the design recommends.
+
+**The deficit curve is the deliverable.** Between 1.5 s and 9 s the deficit is close to linear in
+$\Delta t_P$ ($\approx-3.3\,\%$ per second, saturating at 9 s); below 1.5 s it flattens towards the
+$-2\,\%$ the linear interpolant leaves. With the V2 size arm this gives the first points of
+$L_{\rm rec}(\lambda)$: at $C_{\rm dump}=5.4$ the 8–16 m band recovers from 0.62 at $5h$ to 0.83 at
+$13h$ and is still rising.
 
 **V2 results (job 3992816, 3 h 47).** Six children of the converged parent, five run and the V1
 child reused, all clearing their own zone (`nest_lparentgeom = .false.`), 3397 samples each.

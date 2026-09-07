@@ -1128,6 +1128,8 @@ V2_TINY = _v2_sweep(TINY_SWEEP, "v2-tiny", zone_cells_ramp=(4, 9, 12),
 #   960-969          C0: 960 the fine-cadence parent (C0_FINE); 961-963 the C0a
 #                    children (cad6, cad9, cr3); 964-969 the C0b children
 #                    (0.5, 1, 1.5, 3, 6, 9 s)
+#   970-975          C0c: the Catmull-Rom ladder off the same fine parent
+#                    (0.5, 1, 1.5, 3, 6, 9 s, nest_timeinterp = 2)
 #
 # 910 and 913-919 are free but sit between V0's two blocks; C0 takes the next
 # clear decade instead.
@@ -1220,6 +1222,19 @@ C0B = _c0_sweep(C0_FINE, "c0b", cadences=(0.5, 1.0, 1.5, 3.0, 6.0, 9.0),
                 cr_cadences=(), expnrs=("965", "966", "967", "968", "969"),
                 reuse_reference=False)
 
+#: **C0c -- the same ladder with the Catmull-Rom interpolant.**  C0a found
+#: that ``nest_timeinterp = 2`` at 3 s halves the deficit V1 measured (-9.9 %
+#: to -5.7 %; 8-16 m ratio 0.83 to 0.89), which the pre-registered prediction
+#: had not allowed for: the better-supplied 16-64 m band feeds the cascade
+#: that rebuilds 8-16 m.  This sweep runs the six C0b cadences again with the
+#: cubic interpolant off the same 960 dumps (symlink the 960 case directory
+#: into the run directory and the parent is not re-run), so that the design
+#: can state the operating curve for the interpolant it recommends.
+C0C = _c0_sweep(C0_FINE, "c0c", cadences=(),
+                cr_cadences=(0.5, 1.0, 1.5, 3.0, 6.0, 9.0),
+                expnrs=("970", "971", "972", "973", "974", "975"),
+                reuse_reference=False)
+
 #: The same two sweeps in minutes, on the ``tiny`` parent (dtdump 3 s, 120 s
 #: window).  ``c0-tiny`` reuses the tiny V1 child as ``ref`` exactly as the
 #: production sweep reuses 904; ``c0b-tiny`` warm-starts a 0.5 s parent from
@@ -1238,7 +1253,7 @@ C0B_TINY = _c0_sweep(C0_FINE_TINY, "c0b-tiny", cadences=(0.5, 1.5, 3.0),
                      reuse_reference=False)
 
 SWEEPS: Dict[str, Sweep] = {s.name: s for s in (V2_TINY, V2, C0_TINY, C0,
-                                                 C0B_TINY, C0B)}
+                                                 C0B_TINY, C0B, C0C)}
 
 
 def get_sweep(name: str) -> Sweep:
