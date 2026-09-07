@@ -603,6 +603,25 @@ groups:
           - "--reference-dir"
           - "{repo_root}/build/nesting-validation-v1/903"
           - "--yes"
+      # V0b -- which tangential prolongation ships (plan section 7, finding
+      # R2): constant vs. linear, at r = 2 and r = 4, driven by a box-filtered
+      # fine parent, at the final cadence (0.5 s) and interpolant
+      # (Catmull-Rom).  Production is submitted by hand
+      # (tests/validation/nesting/submit_cx3_v0b.pbs) because it reads the C0b
+      # fine parent from an external, cluster-specific $EPHEMERAL path (960,
+      # $EPHEMERAL/nesting-c0b/960) rather than a case this harness builds
+      # itself; only the tiny smoke test -- which builds and runs its own tiny
+      # fine parent -- runs here.
+      - label: "nesting-validation: V0b tiny prolongation suite (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v0b_tiny.py"
       # V3 and V4 -- the two experiments where parent and child geometry differ
       # (design section 9.4).  The tiny entry drives both end to end and also
       # checks the production experiments' configuration, including that V4's

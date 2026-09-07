@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -480,11 +481,14 @@ class TestSuiteRegistration(unittest.TestCase):
         manifest, run_tests = self._groups()
         labels = {g: [s["label"] for s in run_tests._expand_groups(manifest, g)]
                   for g in manifest["groups"]}
-        v0 = [l for l in labels["nesting-validation"] if "V0" in l]
+        # "V0(?!b)": matches this suite's own entries ("V0 tiny...", "V0
+        # refinement...") but not V0b's ("V0b tiny prolongation suite..."),
+        # which is registered and checked separately in test_v0b_tiny.py.
+        v0 = [l for l in labels["nesting-validation"] if re.search(r"V0(?!b)", l)]
         self.assertEqual(len(v0), 2, f"expected two V0 entries, got {v0}")
         for group in ("all", "supported", "nesting", "experimental",
                       "python-library", "supported-macos", "lint"):
-            self.assertFalse([l for l in labels.get(group, []) if "V0" in l],
+            self.assertFalse([l for l in labels.get(group, []) if re.search(r"V0(?!b)", l)],
                              f"group '{group}' reaches a V0 entry")
 
 
