@@ -68,6 +68,7 @@ from config import Preset, RefinedPoint, get_preset
 
 from udprep.nesting import (
     COMPONENTS,
+    DEFAULT_PROLONGATION,
     NestGrid,
     NestingWriter,
     discrete_divergence,
@@ -435,6 +436,14 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     casedir = Path(outdir) / nr
     casedir.mkdir(parents=True, exist_ok=True)
     zf = (np.arange(preset.child_ktot) + 0.5) * preset.dz
+    # config.Preset.prolongation is None on every preset before V0b (and on
+    # V0b's own reference/driver objects, which are never interpolated
+    # against): resolving it here to the writer's own default keeps this
+    # explicit in the manifest without changing what gets passed to
+    # slabs_from_parent/initial_fields_from_parent when it is unset -- the
+    # writer's default IS udprep.nesting.DEFAULT_PROLONGATION, so passing it
+    # explicitly is a no-op (plan section 7, R2; review finding 2).
+    prolongation = preset.prolongation or DEFAULT_PROLONGATION
 
     # ---- geometry and a placeholder profile, then preprocessing ---------- #
     # The child's own layout, which is the parent's restriction minus whatever
@@ -636,7 +645,8 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                 # boundary data of level 0 and projects it before storing it.
                 if driving.interpolates:
                     initial_fields = initial_fields_from_parent(
-                        pgrid, cu, cv, cw, grid, parent_masks=parent_masks
+                        pgrid, cu, cv, cw, grid, parent_masks=parent_masks,
+                        prolongation=prolongation,
                     )
                     div0 = float(np.max(np.abs(discrete_divergence(
                         grid, initial_fields["u"], initial_fields["v"],
@@ -656,7 +666,8 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                 has_initial = True
             if driving.interpolates:
                 level = slabs_from_parent(pgrid, cu, cv, cw, child=grid, nzone=nzone,
-                                          parent_masks=parent_masks)
+                                          parent_masks=parent_masks,
+                                          prolongation=prolongation)
             else:
                 level = slabs_from_fields(grid, nzone, cu, cv, cw)
             # A slab that reached past a nestdump band is NaN, not zero.
@@ -818,6 +829,14 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
             "max_abs_normalised": phi_after_max / area,
         },
         "nest_timeinterp": preset.timeinterp,
+        # Only exercised when driving.interpolates (refine > 1); recorded
+        # regardless so a matched-grid manifest states plainly that the field
+        # was never consulted.  "preset.prolongation" is the config-level
+        # request (None means "let the writer pick"); "prolongation" is what
+        # was actually resolved and passed to slabs_from_parent /
+        # initial_fields_from_parent above.
+        "prolongation_requested": preset.prolongation,
+        "prolongation": prolongation if driving.interpolates else None,
         "init_from_parent": bool(preset.init_from_parent),
         "geometry": preset.geometry,
         "building_free_zone": bool(preset.building_free_zone),
