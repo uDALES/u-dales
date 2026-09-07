@@ -2607,7 +2607,7 @@ contains
     use modibm,     only : createmasks
     use modpois,    only : initpois
     use modnesting, only : nest_tau, nest_lparentgeom, nesting_apply,       &
-                           nesting_finalize
+                           nesting_finalize, nest_injection
 
     implicit none
 
@@ -2616,7 +2616,7 @@ contains
     real, allocatable :: su(:,:,:), sv(:,:,:), sw(:,:,:)
     real, allocatable :: mu(:,:,:), mv(:,:,:), mw(:,:,:)
 
-    call nest_banner('tests_nesting_update', 'RELAXATION UPDATE (U29-U34, U45)')
+    call nest_banner('tests_nesting_update', 'RELAXATION UPDATE (U29-U34, U45, U49)')
 
     call initfields
     call createmasks
@@ -2644,6 +2644,7 @@ contains
     if (.not. u32_fullstep())    all_passed = .false.
     if (.not. u33_stability())   all_passed = .false.
     if (.not. u34_solid())       all_passed = .false.
+    if (.not. u49_injection())   all_passed = .false.
     if (.not. u45_solid_faces(.false.)) all_passed = .false.
     if (.not. u45_solid_faces(.true.))  all_passed = .false.
 
@@ -2998,6 +2999,81 @@ contains
 
       call nest_set_solids(.false.)
     end function u34_solid
+
+    !> U49 (review F11): the energy-injection diagnostic is a volume integral.
+    !! With tau = 0 (Dirichlet), um = 0 and dt_s = 1 the update puts q_new =
+    !! target, dq = target at every zone point, so the accumulated injection
+    !! must equal sum(target^2 dx dy dzf(k)) over the zone, split guard /
+    !! ramp by the production weight -- computed here from the probed target
+    !! and weight, cell by cell, on this rank. The production split is
+    !! W >= 1 exactly; the probe recovers a guard weight to ~1e-16 while a
+    !! ramp point near a corner can reach W = 1 - 1e-4 (the union of two
+    !! face weights), so the threshold is 1 - 1e-8.
+    logical function u49_injection()
+      use modglobal, only : dx, dy, dzf
+
+      real, allocatable :: tu(:,:,:), tv(:,:,:), tw(:,:,:)
+      integer :: i, j, k
+      real    :: eg, er, rg, rr, dv, worst, tol
+
+      allocate(tu(ib:ie,jb:je,kb:ke), tv(ib:ie,jb:je,kb:ke), tw(ib:ie,jb:je,kb:ke))
+
+      call nest_set_solids(.false.)
+      call nest_reinit('nesting_analytic.'//cexpnr//'.nc', 17., 4., 2, 1, 1.e30, .false.)
+      call nest_probe_weight(wu, wv, ww)
+      call nest_target_now(tu, tv, tw)
+      call nest_injection(eg, er, .true.)      ! discard what the probes accumulated
+
+      rg = 0.; rr = 0.
+      do k = kb, ke
+        dv = dx*dy*dzf(k)
+        do j = jb, je
+          do i = ib, ie
+            if (wu(i,j,k) > 0.) then
+              if (wu(i,j,k) >= 1. - 1.e-8) then
+                rg = rg + tu(i,j,k)**2*dv
+              else
+                rr = rr + tu(i,j,k)**2*dv
+              end if
+            end if
+            if (wv(i,j,k) > 0.) then
+              if (wv(i,j,k) >= 1. - 1.e-8) then
+                rg = rg + tv(i,j,k)**2*dv
+              else
+                rr = rr + tv(i,j,k)**2*dv
+              end if
+            end if
+            if (ww(i,j,k) > 0.) then
+              if (ww(i,j,k) >= 1. - 1.e-8) then
+                rg = rg + tw(i,j,k)**2*dv
+              else
+                rr = rr + tw(i,j,k)**2*dv
+              end if
+            end if
+          end do
+        end do
+      end do
+
+      nest_tau = 0.
+      rk3step  = 0
+      um = 0.; vm = 0.; wm = 0.
+      up = 0.; vp = 0.; wp = 0.
+      call nesting_apply
+      call nest_injection(eg, er, .true.)
+
+      tol   = 1.e-12*max(rg, rr, 1.e-30)
+      worst = max(abs(eg - rg), abs(er - rr))
+      worst = nest_maxall(worst)
+      u49_injection = nest_all_ranks(worst <= tol) .and. (nest_sumall(rg) > 0.) .and. &
+                      (nest_sumall(rr) > 0.)
+      if (myid == 0) write(*,'(a,2es22.14)') '   injection guard/ramp (rank 0) = ', eg, er
+      if (myid == 0) write(*,'(a,2es22.14)') '   reference sum(t^2 dV)         = ', rg, rr
+      call nest_report('U49 energy injection is a volume integral (guard/ramp split)', &
+                       u49_injection)
+
+      nest_tau = 4.
+      deallocate(tu, tv, tw)
+    end function u49_injection
 
     !> U45 (review 2026-09-06 items F2 and F6): the imposed faces through the
     !! production projection, at the first RK3 substep.

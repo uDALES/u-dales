@@ -43,7 +43,8 @@ module modnesting
              nesting_finalize
    ! Test hooks: exercised directly by src/tests.f90 (runmodes TEST_NESTING_*).
    public :: nest_shape_fn, nest_union, nest_stagger_coord, nest_flux_residual, &
-             nest_flux_split, nest_time_interp, nest_record_end_warnings
+             nest_flux_split, nest_time_interp, nest_record_end_warnings,        &
+             nest_injection
    ! Namelist variables: read and broadcast by modstartup.
    public :: lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau,   &
              nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
@@ -136,10 +137,13 @@ module modnesting
    integer :: it_lo    = 0                  !< parent level bracketing the current time
    real    :: phi_last = 0.            !< last normalised flux residual, all six faces
    real    :: phi_lid_last = 0.        !< of which the lid contributed this much
-   ! Energy injected by the zone forcing since the last nesting_stats REPORT,
-   ! split by where it was injected: guard strip (W >= 1) and relaxation ramp
-   ! (0 < W < 1). Accumulated over every substep in nesting_apply, reported and
-   ! reset in nesting_stats (design section 6.4).
+   ! Kinetic energy per unit density injected by the zone forcing since the
+   ! last nesting_stats REPORT, sum over zone points of q_new * dq * dV with
+   ! dq the velocity change the forcing made over the substep and dV the cell
+   ! volume dx*dy*dzf(k) -- units m^5 s^-2 (multiply by rho for J). Split by
+   ! where it was injected: guard strip (W >= 1) and relaxation ramp
+   ! (0 < W < 1). Accumulated over every substep in nesting_apply, reported
+   ! and reset in nesting_stats (design section 6.4).
    real    :: einj_guard = 0., einj_relax = 0.
    real    :: tnextstat = 0.                !< time of the next nesting_stats report
    integer :: nendwarn  = 0                 !< end-of-record warnings issued (0 or 1)
@@ -357,7 +361,7 @@ contains
          fac   = relax_factor(ww, rk3coef)
          qnew  = tgt + (qstar - tgt)*fac
          up(i,j,k) = (qnew - um(i,j,k))*rk3coefi
-         call accum_injection(ww, qnew, qnew - qstar)
+         call accum_injection(ww, qnew, qnew - qstar, k)
       end do
 
       do n = 1, zone_v%npts
@@ -369,7 +373,7 @@ contains
          fac   = relax_factor(ww, rk3coef)
          qnew  = tgt + (qstar - tgt)*fac
          vp(i,j,k) = (qnew - vm(i,j,k))*rk3coefi
-         call accum_injection(ww, qnew, qnew - qstar)
+         call accum_injection(ww, qnew, qnew - qstar, k)
       end do
 
       do n = 1, zone_w%npts
@@ -381,7 +385,7 @@ contains
          fac   = relax_factor(ww, rk3coef)
          qnew  = tgt + (qstar - tgt)*fac
          wp(i,j,k) = (qnew - wm(i,j,k))*rk3coefi
-         call accum_injection(ww, qnew, qnew - qstar)
+         call accum_injection(ww, qnew, qnew - qstar, k)
       end do
 
    end subroutine nesting_apply
@@ -395,18 +399,37 @@ contains
    end subroutine reset_injection
 
 
-   !> Accumulate the kinetic energy the zone forcing put in at one point,
-   !! q * dq, split by guard strip versus relaxation ramp.
-   subroutine accum_injection(ww, qnew, dq)
-      real, intent(in) :: ww, qnew, dq
+   !> Accumulate the kinetic energy (per unit density) the zone forcing put
+   !! in at one point over this substep, q_new * dq * dV, split by guard strip
+   !! versus relaxation ramp. The cell volume is what makes the sum a volume
+   !! integral on a stretched grid; without it the diagnostic weighted every
+   !! level equally.
+   subroutine accum_injection(ww, qnew, dq, k)
+      use modglobal, only : dx, dy, dzf
+
+      real,    intent(in) :: ww, qnew, dq
+      integer, intent(in) :: k
 
       if (ww >= 1.) then
-         einj_guard = einj_guard + qnew*dq
+         einj_guard = einj_guard + qnew*dq*dx*dy*dzf(k)
       else
-         einj_relax = einj_relax + qnew*dq
+         einj_relax = einj_relax + qnew*dq*dx*dy*dzf(k)
       end if
 
    end subroutine accum_injection
+
+
+   !> Test hook: this rank's injection accumulators since the last report
+   !! (or the last call with lreset), and optionally zero them.
+   subroutine nest_injection(eguard, erelax, lreset)
+      real,    intent(out) :: eguard, erelax
+      logical, intent(in)  :: lreset
+
+      eguard = einj_guard
+      erelax = einj_relax
+      if (lreset) call reset_injection
+
+   end subroutine nest_injection
 
 
    !> Called from modboundary::boundary. Fills the ghost planes of u0/um, v0/vm
@@ -703,8 +726,8 @@ contains
          write(*,'(a,es12.4)') ' modnesting: zone misfit rms [m/s] = ', rmsmis
          write(*,'(a,es12.4,a,es12.4,a,f8.3)') ' modnesting: |grad p| zone = ', gzone, &
             '  interior = ', gint, '  ratio = ', gratio
-         write(*,'(a,es12.4,a,es12.4)') ' modnesting: energy injected guard = ', eg(1), &
-            '  relaxation = ', eg(2)
+         write(*,'(a,es12.4,a,es12.4,a)') ' modnesting: energy injected guard = ', eg(1), &
+            '  relaxation = ', eg(2), '  [m5 s-2 per unit density, since the last report]'
          write(*,'(a,es12.4,a,f6.2,a)') ' modnesting: read time = ', nestio_tread - tread0, &
             ' s (', frac, ' % of run)'
          if (frac > 1.) write(*,'(a)') ' modnesting: WARNING parent I/O exceeds 1 % of runtime'
