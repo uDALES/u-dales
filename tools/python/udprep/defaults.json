@@ -59,27 +59,11 @@
     "stl_ground": true,
     "diag_neighbs": true,
     "nompthreads": 8,
-    "ibmtol": 0.0005,
-    "ray_dir_u": [
-      0.0,
-      0.0,
-      1.0
-    ],
-    "ray_dir_v": [
-      0.0,
-      0.0,
-      1.0
-    ],
-    "ray_dir_w": [
-      0.0,
-      0.0,
-      1.0
-    ],
-    "ray_dir_c": [
-      0.0,
-      0.0,
-      1.0
-    ],
+    "ibmtol": 5e-4,
+    "ray_dir_u": [0.0, 0.0, 1.0],
+    "ray_dir_v": [0.0, 0.0, 1.0],
+    "ray_dir_w": [0.0, 0.0, 1.0],
+    "ray_dir_c": [0.0, 0.0, 1.0],
     "read_types": false,
     "types_path": "",
     "geom_path": "",
@@ -135,7 +119,7 @@
     "weatherfname": "",
     "ishortwave": 3,
     "psc_res": 0.1,
-    "maxD": 1000.0,
+    "maxD": 1.0e3,
     "ray_density": 4.0,
     "ray_jitter": 1.0,
     "periodic_xy": false,
@@ -154,15 +138,15 @@
   "vegetation": {
     "ltrees": false,
     "treesfile": "",
-    "ntrees": 0,
-    "cd": 0.2,
-    "lad": 1.0,
-    "lsize": 0.1,
-    "ud": 0.001,
-    "dec": 0.3,
-    "r_s": 50.0,
+    "ntrees" : 0,
+    "cd" : 0.2,
+    "lad" : 1.0,
+    "lsize" : 0.1,
+    "ud" : 1e-3,
+    "dec" : 0.3,
+    "r_s" : 50.0,
     "dqdt": 0.0,
-    "qstar": 400.0
+    "qstar" : 400.0
   },
   "nesting": {
     "lnesting": false,
@@ -171,12 +155,7 @@
     "nest_zonewidth": 0.0,
     "nest_tau": 0.0,
     "nest_shape": 1,
-    "nest_lateral": [
-      true,
-      true,
-      true,
-      true
-    ],
+    "nest_lateral": [true, true, true, true],
     "nest_top": false,
     "nest_timeinterp": 2,
     "nest_nwall": 1,
