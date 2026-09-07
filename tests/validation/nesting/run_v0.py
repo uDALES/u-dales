@@ -183,12 +183,27 @@ def _row(point: RefinedPoint, metrics: Dict[str, object],
         "tke_error_at_max_fetch":
             metrics["v2"]["tke_error_vs_fetch"]["mean_error_at_max_fetch"],
         "runtime_max_phi": rt.get("phi", {}).get("max_abs"),
+        "runtime_mean_phi": rt.get("phi", {}).get("mean_abs"),
         "runtime_max_divmax": rt.get("divmax", {}).get("max"),
         "runtime_gradp_ratio": rt.get("gradp_ratio", {}).get("median_abs"),
+        # Design section 10.7 item 2 / plan section 7, R2(b): the time-mean
+        # pressure response in the zone and the interior, and of the ratio --
+        # the number that says whether the extra divergence a linear
+        # prolongation injects stays confined to the zone.
+        "runtime_gradp_zone_mean": rt.get("gradp_zone", {}).get("mean"),
+        "runtime_gradp_interior_mean": rt.get("gradp_interior", {}).get("mean"),
+        "runtime_gradp_ratio_mean": rt.get("gradp_ratio", {}).get("mean"),
         "prolongation_parent_divmax":
             (v0.get("prolongation_offline") or {}).get("parent_before_prolongation"),
         "prolongation_child_divmax":
             (v0.get("prolongation_offline") or {}).get("before_projection"),
+        # V0b's own axis: None on every V0 point (arm is 'filtered'/'coarse'
+        # there and prolongation is unset), a string on V0b's.
+        "prolongation": v0.get("prolongation"),
+        "staircase_rms_over_ustar":
+            (v0.get("staircase") or {}).get("rms_over_ustar"),
+        "staircase_max_over_ustar":
+            (v0.get("staircase") or {}).get("max_abs_over_ustar"),
         "ramp_resolved_by_parent": point.resolves_the_ramp,
     }
 
@@ -197,6 +212,7 @@ _TABLE_COLUMNS = (
     ("key", "point", "{}"),
     ("refine", "r", "{}"),
     ("arm", "arm", "{}"),
+    ("prolongation", "prolong.", "{}"),
     ("parent_dx_m", "dx_P [m]", "{:g}"),
     ("tke_deficit_above_2h", "TKE z/h>2", "{:+.2%}"),
     ("parent_tke_deficit_above_2h", "of which parent's", "{:+.2%}"),
@@ -207,8 +223,14 @@ _TABLE_COLUMNS = (
     ("band_parent_marginal", "marginal", "{:.3f}"),
     ("band_sub_parent_filter", "sub-filter", "{:.3f}"),
     ("criterion_a", "crit A [u*]", "{:.4f}"),
+    ("staircase_rms_over_ustar", "staircase RMS [u*]", "{:.4f}"),
+    ("prolongation_parent_divmax", "pre-proj div (parent)", "{:.2e}"),
+    ("prolongation_child_divmax", "pre-proj div (child)", "{:.2e}"),
     ("runtime_max_phi", "max |Phi|", "{:.1e}"),
     ("runtime_max_divmax", "max divmax", "{:.1e}"),
+    ("runtime_gradp_zone_mean", "mean |Gp| zone", "{:.2e}"),
+    ("runtime_gradp_interior_mean", "mean |Gp| interior", "{:.2e}"),
+    ("runtime_gradp_ratio_mean", "mean |Gp| ratio", "{:.2f}"),
 )
 
 
@@ -264,6 +286,39 @@ def write_summary(outdir: Path, suite: RefinementSuite,
                 diff("parent_tke_deficit_above_2h"),
         }
     payload["filtered_vs_coarse"] = paired
+    # V0b's own axis: constant vs. linear tangential prolongation at the same
+    # ratio (plan section 7, R2).  Empty for a suite like V0 that has no
+    # 'prolongation' set on its points -- guarded the same way as the pairing
+    # above, by simply finding nothing to pair.
+    prolongation_paired = {}
+    for refine in payload["refinements"]:
+        by_prolongation = {r["prolongation"]: r for r in rows
+                           if r["refine"] == refine and r.get("prolongation")}
+        k = by_prolongation.get("constant")
+        l = by_prolongation.get("linear")
+        if k is None or l is None:
+            continue
+        def pdiff(key):
+            a, b = l.get(key), k.get(key)
+            return None if a is None or b is None else a - b
+        prolongation_paired[f"r{refine}"] = {
+            "constant_criterion_a": k["criterion_a"],
+            "linear_criterion_a": l["criterion_a"],
+            "criterion_a_improvement": pdiff("criterion_a"),
+            "constant_staircase_rms_over_ustar": k["staircase_rms_over_ustar"],
+            "linear_staircase_rms_over_ustar": l["staircase_rms_over_ustar"],
+            "staircase_rms_improvement": pdiff("staircase_rms_over_ustar"),
+            "constant_pre_projection_child_divmax": k["prolongation_child_divmax"],
+            "linear_pre_projection_child_divmax": l["prolongation_child_divmax"],
+            "constant_gradp_ratio_mean": k["runtime_gradp_ratio_mean"],
+            "linear_gradp_ratio_mean": l["runtime_gradp_ratio_mean"],
+            "gradp_ratio_increase": pdiff("runtime_gradp_ratio_mean"),
+            "constant_tke_deficit_above_2h": k["tke_deficit_above_2h"],
+            "linear_tke_deficit_above_2h": l["tke_deficit_above_2h"],
+            "constant_band_sub_parent_filter": k["band_sub_parent_filter"],
+            "linear_band_sub_parent_filter": l["band_sub_parent_filter"],
+        }
+    payload["constant_vs_linear"] = prolongation_paired
     (outdir / "v0_summary.json").write_text(json.dumps(payload, indent=2) + "\n",
                                             encoding="ascii")
     keys = list(rows[0].keys()) if rows else []
@@ -276,7 +331,10 @@ def write_summary(outdir: Path, suite: RefinementSuite,
     md = ["# V0 -- refinement validation, suite '%s'" % suite.name, "",
           suite.summary(), "", table(rows), "",
           "## filtered vs coarse, at the same ratio", "",
-          "```", json.dumps(paired, indent=2), "```", ""]
+          "```", json.dumps(paired, indent=2), "```", "",
+          "## constant vs linear prolongation, at the same ratio (V0b, plan section 7 R2)",
+          "",
+          "```", json.dumps(prolongation_paired, indent=2), "```", ""]
     (outdir / "v0_summary.md").write_text("\n".join(md), encoding="ascii")
 
 

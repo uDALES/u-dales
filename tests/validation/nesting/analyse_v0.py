@@ -156,6 +156,15 @@ def _floats(text: str, pattern: str) -> List[float]:
     return out
 
 
+#: Design section 10.7 item 2 (plan section 7, R2(b)): the C1 pressure-response
+#: diagnostic, ``|grad p|`` over the zone and over the trusted interior,
+#: reported together with the ratio the same log line already carries -- the
+#: number that says whether the linear reconstruction's extra divergence
+#: source stays confined to the zone (ratio close to what the constant arm
+#: shows) or leaks into the interior (ratio materially larger).
+_GRADP_PATTERN = r"\|grad p\| zone =\s*(\S+)\s+interior =\s*(\S+)\s+ratio =\s*(\S+)"
+
+
 def runtime_diagnostics(child_log: Path) -> Dict[str, object]:
     """Parse the solver's own nesting and divergence diagnostics from a run log.
 
@@ -164,6 +173,12 @@ def runtime_diagnostics(child_log: Path) -> Dict[str, object]:
     the guarantee is only worth what the running solver shows.  ``Phi`` is the
     normalised net volume flux through the boundary (``modnesting``), ``divmax``
     and ``divtot`` are what the projection left behind (``modpois``).
+
+    Every reduction is reported as a **time-mean** (``mean_abs``/``mean``) in
+    addition to the median/max already here: V0b's pressure-response question
+    ("how far does it reach") is about the run's typical state, not its worst
+    moment, so the summary table needs the mean of ``||Gp||`` zone, interior
+    and their ratio -- plan section 7, R2(b).
     """
     text = Path(child_log).read_text(errors="replace")
     out: Dict[str, object] = {"log": str(child_log)}
@@ -171,10 +186,29 @@ def runtime_diagnostics(child_log: Path) -> Dict[str, object]:
         vals = _floats(text, pattern)
         out[key] = {
             "n": len(vals),
+            "mean_abs": (float(np.mean(np.abs(vals))) if vals else None),
             "max_abs": (float(np.max(np.abs(vals))) if vals else None),
             "median_abs": (float(np.median(np.abs(vals))) if vals else None),
             "last": (float(vals[-1]) if vals else None),
         }
+    # The zone and interior magnitudes themselves, not only their ratio: the
+    # generic loop above only captures the ratio's own capture group, and
+    # "does the pressure response stay in the zone" needs both sides of it.
+    gradp = re.findall(_GRADP_PATTERN, text)
+    if gradp:
+        gzone = np.asarray([float(a) for a, _, _ in gradp])
+        gint = np.asarray([float(b) for _, b, _ in gradp])
+        gratio = np.asarray([float(c) for _, _, c in gradp])
+        out["gradp_zone"] = {"n": int(gzone.size), "mean": float(gzone.mean()),
+                             "median": float(np.median(gzone)),
+                             "max": float(gzone.max())}
+        out["gradp_interior"] = {"n": int(gint.size), "mean": float(gint.mean()),
+                                 "median": float(np.median(gint)),
+                                 "max": float(gint.max())}
+        out["gradp_ratio"]["mean"] = float(gratio.mean())
+    else:
+        out["gradp_zone"] = {"n": 0, "mean": None, "median": None, "max": None}
+        out["gradp_interior"] = {"n": 0, "mean": None, "median": None, "max": None}
     div = re.findall(r"divmax, divtot =\s*(\S+)\s+(\S+)", text)
     dmax = [float(a) for a, _ in div]
     dtot = [float(b) for _, b in div]
@@ -187,6 +221,59 @@ def runtime_diagnostics(child_log: Path) -> Dict[str, object]:
     out["faces_forced"] = sorted(set(re.findall(r"face (\w+) is forced", text)))
     out["parent_io_warning"] = "parent I/O exceeds 1 % of runtime" in text
     return out
+
+
+# --------------------------------------------------------------------------- #
+# The staircase signature (plan section 7, R2; W8's original finding)
+# --------------------------------------------------------------------------- #
+
+
+def staircase_amplitude(profile: Dict[str, object], refine: int, ustar: float
+                        ) -> Dict[str, object]:
+    """Amplitude of the intra-parent-cell mean-flow error, at child resolution.
+
+    W8 found that the piecewise-*constant* tangential reconstruction leaves a
+    staircase in the child's mean wind: the target is identical across every
+    child level inside one parent cell, so where the true profile is sheared
+    the mismatch is a sawtooth of period ``refine`` child levels (period 2 at
+    r = 2, period 4 at r = 4 -- design plan section 0, V0's "filtered" arm).
+    The piecewise-*linear* reconstruction was written to remove exactly this,
+    at the cost of a local divergence source (plan section 7, R2); reporting
+    the amplitude for both arms is what makes the trade visible in the
+    summary table rather than only in the mean-flow RMS, which mixes the
+    staircase in with the smooth background error criterion A already scores.
+
+    Isolated by removing, from the child-minus-truth mean-flow error at every
+    level, the local mean of each group of ``refine`` consecutive child
+    levels (one parent cell): what is left is exactly the intra-group
+    (sawtooth) component, with the smooth background trend divided out group
+    by group rather than assumed linear.  A matched-grid child (``refine ==
+    1``) has one level per group and the residual is identically zero, as it
+    must be -- there is no parent cell to be constant or linear across.
+    """
+    z = np.asarray(profile["z"], dtype=float)
+    e = np.asarray(profile["u_child"], dtype=float) - np.asarray(profile["u_parent"], dtype=float)
+    refine = int(refine)
+    n = e.size
+    ng = n // refine
+    if ng < 1 or refine < 2:
+        return {"available": False, "n_groups": 0, "refine": refine,
+                "note": "refine < 2: no parent cell spans more than one child "
+                        "level, so there is no staircase to measure"}
+    e = e[: ng * refine].reshape(ng, refine)
+    resid = e - e.mean(axis=1, keepdims=True)
+    return {
+        "available": True,
+        "refine": refine,
+        "n_groups": int(ng),
+        "rms_over_ustar": float(np.sqrt(np.mean(resid ** 2)) / ustar),
+        "max_abs_over_ustar": float(np.max(np.abs(resid)) / ustar),
+        "note": ("RMS/max, over the whole profile, of the child-minus-truth "
+                 "mean-flow error after subtracting each parent cell's own "
+                 "group mean -- the intra-cell (sawtooth) component W8 "
+                 "attributes to the tangential reconstruction, isolated from "
+                 "the smooth background error criterion A already scores"),
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -306,12 +393,15 @@ def augment(outdir: Path, child_dir: Path, metrics: Dict[str, object],
         "relaxation_ramp_resolved_by_parent": point.resolves_the_ramp,
         "L_rel_over_2dx_parent": c.zonewidth / (2.0 * point.driver.dx),
         "refinement": manifest.get("refinement"),
+        "prolongation": manifest.get("prolongation"),
+        "prolongation_requested": manifest.get("prolongation_requested"),
         "prolongation_offline": manifest.get("initial_condition_divmax"),
         "flux_residual_after_correction": manifest.get("flux_residual_after_correction"),
         "spectra_across_parent_nyquist": spectra_split(metrics, point.driver.dx),
         "parent_deficit": parent_deficit(metrics, manifest, c.building_height, c.ustar),
         "runtime": (runtime_diagnostics(log) if log.exists()
                     else {"log": str(log), "available": False}),
+        "staircase": staircase_amplitude(metrics["profiles"], point.refine, c.ustar),
     }
     metrics["v0"] = v0
     (outdir / metrics_name).write_text(json.dumps(metrics, indent=2) + "\n",
@@ -399,12 +489,27 @@ def summary(v0: Dict[str, object], metrics: Dict[str, object]) -> str:
                      f"max divmax = {rt['divmax']['max']:.2e}, "
                      f"zone misfit rms = {rt['zone_misfit_rms']['median_abs']:.3e} m/s, "
                      f"|grad p| zone/interior = {rt['gradp_ratio']['median_abs']:.2f}")
+    if rt.get("gradp_zone", {}).get("mean") is not None:
+        lines.append(f"  |grad p| (time-mean): zone = {rt['gradp_zone']['mean']:.3e}, "
+                     f"interior = {rt['gradp_interior']['mean']:.3e}, "
+                     f"ratio (of the means) = "
+                     f"{rt['gradp_zone']['mean'] / rt['gradp_interior']['mean']:.2f}, "
+                     f"mean of the per-report ratios = {rt['gradp_ratio']['mean']:.2f}")
     off = v0.get("prolongation_offline") or {}
     if off.get("parent_before_prolongation") is not None:
         lines.append(f"  prolongation  parent divmax "
                      f"{off['parent_before_prolongation']:.2e} -> child "
                      f"{off['before_projection']:.2e} -> projected "
                      f"{off['after_projection']:.2e}")
+    if v0.get("prolongation") is not None:
+        lines.append(f"  prolongation used: {v0['prolongation']!r} "
+                     f"(requested {v0.get('prolongation_requested')!r})")
+    st = v0.get("staircase") or {}
+    if st.get("available"):
+        lines.append(f"  staircase amplitude (intra-parent-cell mean-flow error): "
+                     f"RMS {st['rms_over_ustar']:.4f} u*, "
+                     f"max {st['max_abs_over_ustar']:.4f} u* "
+                     f"over {st['n_groups']} parent-cell groups")
     lines.append(f"  criterion A (mean flow, interior): "
                  f"{ca['max_interior_umean_error_over_ustar']:.4f} u* against "
                  f"{ca['threshold']} -- {'PASS' if ca['passes'] else 'FAIL'}")
