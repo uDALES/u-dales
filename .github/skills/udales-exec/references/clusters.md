@@ -379,3 +379,33 @@ layouts carry the same plan area density.
   takes 163 s on a login node.
 - The gfortran cross-check recipe above still holds: `foss/2023a` Debug
   build of the D1 branch reports the baseline's 17 warnings, none new.
+
+### CX3 addendum (2026-09-07, D1 integration gate)
+
+- `tools/build_preprocessing.sh icl` loads a Python 3.13 module and it
+  displaces the venv's Python 3.9.6 on `PATH`, so f2py builds against 3.13 and
+  then has no `Python.h` for it (3.13 has no matching `-dev`/headers module
+  here). Use the `common` branch of the script instead
+  (`./tools/build_preprocessing.sh common`) together with
+  `CMake/3.22.1-GCCcore-11.2.0`, which matches the venv's own
+  `Python/3.9.6-GCCcore-11.2.0` toolchain and does not touch `PATH`'s Python.
+- With numpy 2.0.2 and setuptools 82 in `~/udales/.venv`, `numpy.f2py -c`
+  refuses the legacy distutils backend and requires `--backend meson`.
+  `tools/preprocessing/CMakeLists.txt` does not pass that flag, so on this
+  venv the f2py modules (`ibm_preproc_f2py`, `directshortwave_f2py`) have to
+  be built by hand: reuse the CMake invocation's compiler/include flags and
+  add `--backend meson` to the `f2py -c` command line directly, rather than
+  going through the CMake target.
+- The legacy `tools/preprocessing/build/bin/IBM_preproc` executable is no
+  longer produced by any CMake target in this tree. That is harmless: the
+  test harness's `ibm_backend='auto'` finds the hand-built f2py module first
+  and never looks for the executable.
+- A `tools/View3D` submodule binary built from a commit older than the
+  submodule's bound-obstructed-view-factors fix fails `test_view3d`'s
+  obstructor bound check (measured 1.31 against the expected <= 0.76) --
+  rebuild View3D after any submodule update rather than trusting a stale
+  `build/bin/view3d`.
+
+  Recorded from the integration gate that rebuilt both Intel debug/release
+  solver builds from clean and reran `nesting-unit`,
+  `test_nestdump_tiny.py`, and `test_v1_tiny.py` against them.

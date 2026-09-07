@@ -641,6 +641,16 @@ groups:
           - "--baseline-dir"
           - "{repo_root}/build/nesting-validation-v1/904"
           - "--yes"
+      - label: "nesting-validation: D1 parent-side zone dump, tiny (bit identity, size ratio, refined build)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_nestdump_tiny.py"
 
   supported-macos:
     includes:
