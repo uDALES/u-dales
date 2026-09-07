@@ -221,16 +221,32 @@ def parent_deficit(metrics: Dict[str, object], manifest: Dict[str, object],
     zp = np.asarray(dp["z"], dtype=float)
     keep = (zp >= zf[0]) & (zp <= zf[-1])
     zp = zp[keep]
+    # ``tke`` (and its dispersive/total siblings) is None for a band-only
+    # (nestdump) driving source: no interior field and only one initial block
+    # give no time series to take a temporal statistic over.  Compare the mean
+    # flow regardless, mark the TKE comparison unavailable and say why, rather
+    # than silently treating a missing number as zero or dropping the point.
+    tke_available = dp.get("tke") is not None
     out: Dict[str, object] = {
         "available": True,
         "source": dp.get("source"),
         "parent_dx_m": dp.get("dx_m"),
         "z": zp.tolist(),
+        "tke_available": tke_available,
         "note": ("the driving parent's own interior statistics against the fine "
                  "truth, on the driving grid; the ceiling on what the child "
-                 "could reproduce"),
+                 "could reproduce.  'tke' is the per-cell temporal variance "
+                 "(analyse.Bundle's definition, comparable to 'tke_parent' "
+                 "below); the dispersive part (the spatial variance of the "
+                 "time-mean field) is reported separately, not folded in"),
     }
-    for name, key in (("u", "u_parent"), ("tke", "tke_parent")):
+    if not tke_available:
+        out["tke_unavailable_reason"] = dp.get(
+            "tke_unavailable_reason",
+            "the driving source has no temporal statistic available")
+    names = ["u"] + (["tke"] if tke_available else [])
+    for name in names:
+        key = f"{name}_parent"
         coarse = np.asarray(dp[name], dtype=float)[keep]
         fine = np.interp(zp, zf, np.asarray(prof[key], dtype=float))
         out[f"{name}_parent_coarse"] = coarse.tolist()
@@ -247,6 +263,24 @@ def parent_deficit(metrics: Dict[str, object], manifest: Dict[str, object],
         sel = (zp / building_height) < 1.0
         out[f"{name}_mean_relative_in_canopy"] = (
             float(np.nanmean(rel[sel])) if np.any(sel) else None)
+    if tke_available:
+        # The dispersive fraction is descriptive, not a deficit: there is no
+        # truth-side dispersive number to compare it against (analyse.Bundle
+        # does not compute one), only the driving parent's own split of its
+        # own TKE into temporal and dispersive parts.  This is the number that
+        # decides whether the (now consistent) TKE comparison above would have
+        # looked materially different under the old, combined-mean estimator.
+        disp = np.asarray(dp["tke_dispersive"], dtype=float)[keep]
+        temp = np.asarray(dp["tke"], dtype=float)[keep]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ratio = np.where(np.abs(temp) > 0, disp / temp, np.nan)
+        out["tke_dispersive_over_temporal"] = ratio.tolist()
+        sel = (zp / building_height) >= z_over_h_min
+        out[f"tke_dispersive_over_temporal_above_{z_over_h_min:g}h"] = (
+            float(np.nanmean(ratio[sel])) if np.any(sel) else None)
+        sel = (zp / building_height) < 1.0
+        out["tke_dispersive_over_temporal_canopy"] = (
+            float(np.nanmean(ratio[sel])) if np.any(sel) else None)
     return out
 
 
@@ -304,8 +338,10 @@ def _write_csv(outdir: Path, v0: Dict[str, object]) -> None:
                                   for x in r) + "\n")
     pd = v0.get("parent_deficit", {})
     if pd.get("available"):
-        cols = ["z", "u_parent_coarse", "u_truth_at_coarse_levels", "u_relative",
-                "tke_parent_coarse", "tke_truth_at_coarse_levels", "tke_relative"]
+        cols = ["z", "u_parent_coarse", "u_truth_at_coarse_levels", "u_relative"]
+        if pd.get("tke_available"):
+            cols += ["tke_parent_coarse", "tke_truth_at_coarse_levels", "tke_relative",
+                     "tke_dispersive_over_temporal"]
         with (Path(outdir) / "driving_parent_vs_truth.csv").open(
                 "w", encoding="ascii", newline="\n") as fh:
             fh.write(",".join(cols) + "\n")
@@ -336,9 +372,17 @@ def summary(v0: Dict[str, object], metrics: Dict[str, object]) -> str:
                  f"{pct(d['canopy']['mean_relative'])}")
     pdf = v0.get("parent_deficit", {})
     if pdf.get("available"):
-        lines.append(f"  the driving parent's own deficit:    "
-                     f"{pct(pdf.get('tke_mean_relative_above_2h'))} TKE, "
-                     f"{pdf.get('u_rms_difference', float('nan')):.4f} u* in the mean")
+        if pdf.get("tke_available"):
+            lines.append(f"  the driving parent's own deficit:    "
+                         f"{pct(pdf.get('tke_mean_relative_above_2h'))} TKE, "
+                         f"{pdf.get('u_rms_difference', float('nan')):.4f} u* in the mean")
+            lines.append(f"  dispersive/temporal TKE (parent):    "
+                         f"z/h>2 {pct(pdf.get('tke_dispersive_over_temporal_above_2h'))}  "
+                         f"canopy {pct(pdf.get('tke_dispersive_over_temporal_canopy'))}")
+        else:
+            lines.append(f"  the driving parent's own deficit:    "
+                         f"TKE unavailable ({pdf.get('tke_unavailable_reason')}); "
+                         f"{pdf.get('u_rms_difference', float('nan')):.4f} u* in the mean")
     for height, sp in v0["spectra_across_parent_nyquist"].items():
         b = sp["bands"]
 

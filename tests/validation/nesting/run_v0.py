@@ -155,8 +155,17 @@ def _row(point: RefinedPoint, metrics: Dict[str, object],
         "tke_deficit_above_2h": d["above"]["mean_relative"],
         "tke_spread_above_2h_median": d["above"]["median_spread"],
         "tke_canopy": d["canopy"]["mean_relative"],
+        "parent_tke_available": pdf.get("tke_available"),
         "parent_tke_deficit_above_2h": pdf.get("tke_mean_relative_above_2h"),
         "parent_u_rms_over_ustar": pdf.get("u_rms_difference"),
+        # The dispersive fraction of the driving parent's own TKE -- the
+        # number that decides whether the (now temporal-only, analyse.Bundle-
+        # consistent) comparison above would have looked materially different
+        # under the old combined space-and-time-mean estimator.
+        "parent_tke_dispersive_over_temporal_above_2h":
+            pdf.get("tke_dispersive_over_temporal_above_2h"),
+        "parent_tke_dispersive_over_temporal_canopy":
+            pdf.get("tke_dispersive_over_temporal_canopy"),
         "spectra_height": height,
         "band_parent_resolved": band("parent_resolved"),
         "band_parent_marginal": band("parent_marginal"),
@@ -192,6 +201,8 @@ _TABLE_COLUMNS = (
     ("tke_deficit_above_2h", "TKE z/h>2", "{:+.2%}"),
     ("parent_tke_deficit_above_2h", "of which parent's", "{:+.2%}"),
     ("tke_canopy", "TKE canopy", "{:+.2%}"),
+    ("parent_tke_dispersive_over_temporal_above_2h", "disp/temp z/h>2", "{:+.2%}"),
+    ("parent_tke_dispersive_over_temporal_canopy", "disp/temp canopy", "{:+.2%}"),
     ("band_parent_resolved", "E: resolved", "{:.3f}"),
     ("band_parent_marginal", "marginal", "{:.3f}"),
     ("band_sub_parent_filter", "sub-filter", "{:.3f}"),
