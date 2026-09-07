@@ -1877,22 +1877,71 @@ criterion.
 ## V3 -- parent without buildings
 
 ```
-reference  920   96 x  96 x 64,  192 x 192 x 128 m, periodic 6 x 6 cube array
-                 fixed dpdx = 1.25e-3 m/s^2 -> u* = 0.4 m/s (V1's forcing)
-                 spin-up 3600 s, production 3600 s, dumps every 3 s
-parent     921  320 x 160 x 64,  640 x 320 x 128 m, FLAT -- no buildings
-                 volume-flow forced at the reference's measured bulk velocity
-                 spin-up 9000 s, production 3600 s, dumps every 3 s
-children   922-925  256 x 128 x 64, 512 x 256 x 128 m, origin (64, 32) m
+reference     920   96 x  96 x 64,  192 x 192 x 128 m, periodic 6 x 6 cube array
+                    fixed dpdx = 1.25e-3 m/s^2 -> u* = 0.4 m/s (V1's forcing)
+                    spin-up 3600 s, production 3600 s, dumps every 3 s
+parent        921  320 x 160 x 64,  640 x 320 x 128 m, FLAT -- no buildings
+                    volume-flow forced at the reference's measured bulk velocity
+                    spin-up 9000 s, production 3600 s
+parent-cubes  926  320 x 160 x 64, V1-style ALIGNED canopy where the child's
+                    zone sits, fixed dpdx (same forcing as everything else)
+                    spin-up 3600 s, production 3600 s
+children   922-925  256 x 128 x 64, 512 x 256 x 128 m, origin (64, 32) m, on 'parent'
                  canopy of 16 m cubes on a 32 m period, starting 0 / 5 / 15 / 40
                  cells past the clear box; 14 / 14 / 13 / 11 streamwise rows
                  zone L_imp = 6 m (3 cells), L_rel = 18 m (9 cells), tau = 1 s
                  streamwise interior 464 m = 29 h; spanwise 208 m = 13 h
+child        927  same window and zone as 922 (standoff 0), on 'parent-cubes':
+                 the parent resolved buildings where the child's zone now sits
+                 and the child clears them (nest_lparentgeom = .false.) --
+                 'cleared-parent-cubes', compared against 922
 ```
 
 Everything the child's canopy is made of -- 16 m cubes, 16 m streets, `h = 16`
 m, `dx = 2` m, `u* = 0.4` m/s, a 128 m rigid lid -- is V1's, so the canopy V3
 measures is the canopy V1 and V2 measured.
+
+**Boundary cadence, interpolant and source.**  Both parents write their
+child's boundary at 0.5 s (`&NESTDUMP`, `parent_output = "both"`,
+`config.Preset.parent_output` via `presets_geometry._NESTDUMP_CADENCE`): with
+the mean wind at the domain top ~5.5 m/s (V1's converged run, `z/h = 2`) and
+`dx = 2` m, the operating rule `C_dump <= 2` (design section 10.5) needs
+`dtdump <= 0.73` s, so `C_dump = 1.4` at 5.5 m/s (0.75 at the preset's own
+`u0 = 3` m/s -- the smaller, less conservative number `summary()` prints).
+Every child interpolates with the unlimited Catmull-Rom cubic
+(`nest_timeinterp = 2`), C0c's recommended default, rather than V1's linear.
+Each parent's own `&OUTPUT` full-domain field dump stays at the old 3 s
+cadence -- `periodic-stats` reads it back for the bulk velocity and canopy
+statistics `run_geometry.py` needs, and 3 s was always enough for those --
+so the fine cadence costs only the `&NESTDUMP` band, not a 6x-larger
+full-domain dump.  `make_child_case`'s manifest records
+`driving_source = "nestdump"` for every V3 child, and `Preset.summary()`
+prints the `C_dump` and interpolant lines for every preset, parent or child.
+
+**The cleared-parent-cubes arm** (nesting-plan-2026-09-06.md section 0, "New
+from V2").  V2 found that a child which clears cubes out of its *own* zone
+loses 0.05-0.07 `u*` of canopy-layer mean flow, because the wakes those cubes
+would have shed inside the zone are missing from the inflow -- V3's own
+question, seen from the other side of the boundary.  `standoff0` (parent has
+no buildings anywhere) and `cleared-parent-cubes` (parent has V1's own
+aligned buildings filling the same domain, including where the child's zone
+sits) share the **identical** child construction: both use
+`child_phase = "standoff"` at `standoff_cells = 0`
+(`presets_geometry._v3_child`), which places the child's own lattice from the
+clear box outward and never reads the parent's layout at all, so the two
+children's cube centres are asserted equal cube for cube
+(`test_v34_tiny.py`).  Only the periodic run driving the boundary changes --
+flat (`V3_PARENT`) versus V1's own aligned canopy (`V3_PARENT_CUBES`) -- so
+the comparison isolates what a genuinely absent boundary condition costs the
+adjustment length from what "parent had cubes there" costs.  (An earlier
+version of this arm used `child_phase = "parent"`, which regenerates the
+*global* lattice and clips it to the clear box; that lattice is anchored to
+the parent's coordinate origin rather than to the clear box the way
+`"standoff"` is, so it placed an entirely different, disjoint set of cubes --
+caught by comparing the two child layouts directly rather than assuming the
+mechanism did what its name suggested.)  Both parents are driven by the same
+fixed `dpdx`: a real canopy carries its own drag, unlike the flat parent, so
+`parent-cubes` needs no volume-flow calibration against the reference.
 
 ### Why the flat parent is flow-rate forced, and what that costs
 
@@ -2010,10 +2059,37 @@ parent    930  256 x 256 x 64 -- V1's parent, cube for cube and second for
                (udgeom.create_cubes 'SC'; same 16 m cubes, same 32 m period,
                same plan area density, so the same solid cell count)
 child     931  128 x 128 x 64 at origin (128, 128) m carrying V1's ALIGNED array
-               V1's zone (3 + 9 cells), tau, nest_timeinterp, nest_nwall,
-               nest_linitfromparent, forcing and schedule, to the digit
+               V1's zone (3 + 9 cells), tau, nest_nwall, nest_linitfromparent,
+               forcing and schedule, to the digit -- but NOT V1's boundary
+               cadence or interpolant, see below
 baseline       the V1 'converged' child on disk, read and reduced, not re-run
 ```
+
+**Boundary cadence, interpolant and source -- and the one thing that is no
+longer "to the digit".**  The parent writes its child's boundary at 0.5 s
+(`&NESTDUMP`, `parent_output = "both"`, `presets_geometry._NESTDUMP_CADENCE`):
+`C_dump <= 2` (design section 10.5) needs `dtdump <= 0.73` s at the domain
+top's ~5.5 m/s, and 0.5 s gives `C_dump = 1.4` there.  The child interpolates
+with the unlimited Catmull-Rom cubic (`nest_timeinterp = 2`), C0c's
+recommended default, rather than V1's linear.  The parent's own `&OUTPUT`
+full-domain dump stays at the old 3 s cadence for `periodic-stats`, so the
+fine boundary costs only the `&NESTDUMP` band.  `manifest.json` records
+`driving_source = "nestdump"`.  **This is the one respect in which the child
+is deliberately not V1's, to the digit**: the V1 `converged` baseline this
+child is diffed against ran at V1's original 3 s cadence and linear
+interpolant, so `criterion_a_prime` and every other number in `v4_metrics.json`
+now compares a mismatched-parent child with a *better* boundary treatment
+against a matched-parent baseline with the *old* one.  Per C0's own numbers
+(design section 10.5) that is not a small effect at these heights -- the
+resolved-TKE deficit above the canopy falls from about 11 % at 3 s/linear to
+2 % at 0.5 s/cubic on a matched parent -- so a measurable difference from V1
+in this comparison is not evidence of a geometry-mismatch cost until the
+cadence/interpolant confound is ruled out, and this README says so rather than
+letting the number speak for itself.  Re-running the V1 baseline at the same
+cadence and interpolant would remove the confound; it has not been done here
+because the campaign's verdict (nesting-plan-2026-09-06.md, C0) is that the
+fine cadence is the correct boundary treatment going forward and the old V1
+number is itself superseded, not a fixed reference to be matched.
 
 **The child is V1's child.**  Not merely the same size -- the same cubes in the
 same places.  V1 got its building-free zone by carving a plaza out of the parent;
@@ -2190,19 +2266,36 @@ blanket allowance.  The two PBS headers carry the full derivation.
 
 | | V3 | V4 |
 |---|---|---|
-| periodic runs | reference ~15 min, flat parent ~70 min | staggered parent ~3 h 15 |
-| slab cuts | 4 x ~3.5 min | ~10 min |
-| child runs | 4 x ~15.5 min | ~27 min |
-| analysis | ~30 min | ~25 min |
-| **estimate** | **~3 h 20** | **~4 h 15** |
-| **walltime requested** | **5 h** (1.5x) | **6 h** (1.4x) |
-| new disk | ~245 GB | ~249 GB |
+| periodic runs | reference ~15 min, flat parent ~71 min, cubes parent ~84 min | staggered parent ~3 h 15 (+ nestdump I/O) |
+| slab cuts | 5 x ~11.8 min (nestdump read, 0.5 s nesting.inp write) | ~23.9 min |
+| child runs | 5 x ~15.5 min | ~27 min |
+| analysis | ~31 min | ~25 min |
+| **estimate** | **~5 h 53** | **~4 h 32** |
+| **walltime requested** | **8 h** (1.35x) | **6 h** (1.32x) |
+| new disk | ~866 GB | ~529 GB |
 | `mem=` | 64 GB | 96 GB |
 
-Tighter than V1's and V2's blanket 8 h on purpose.  Note what that does and does
-not buy: on CX3 a 64-cpu job is routed by `ncpus` and walltime band only --
-`<= 64` cpus and `<= 24` h both go to `v1_medium24` -- so 5 h and 8 h land in the
-*same* queue, and the whole benefit of the tighter number is backfill
+Revised from the pre-nestdump figures (V3 5 h / 245 GB, V4 6 h / 249 GB) once
+every parent moved to the 0.5 s `&NESTDUMP` cadence and V3 gained its fifth
+child; the two PBS headers carry the full derivation, including which lines
+are still V1-measured rates and which are scaled estimates.  Almost all of the
+extra disk is `nesting.inp` itself, which now stores the boundary at 6x the
+temporal resolution (0.5 s against 3 s) -- not `&NESTDUMP`, whose own write
+volume is a couple of times the old single-cadence figure at most, which is
+the saving the parent-side zone dump exists to deliver (nesting-plan-
+2026-09-06.md section 2: a full 0.5 s field dump of these parents would be
+~10-75x larger again).  `mem=` is unchanged: the slab cut has been a streaming
+writer since the D1 zone-dump work (commit 71011e96), so its peak no longer
+scales with the nesting file's size the way the pre-nestdump estimate assumed.
+
+Tighter than V1's and V2's blanket 8 h where the numbers support it (V4 still
+is); V3's second periodic run is the least-measured figure in either estimate
+(scaled from the reference's own small-case rate, not separately timed), so
+its walltime carries more headroom than a tight backfill number would.  Note
+what a short request does and does not buy: on CX3 a 64-cpu job is routed by
+`ncpus` and walltime band only -- `<= 64` cpus and `<= 24` h both go to
+`v1_medium24` -- so any walltime up to 24 h lands in the *same* queue, and the
+whole benefit of a tighter number is backfill
 eligibility (`backfill_depth = 1` on that queue).  If it stays deep, the other
 lever is `ncpus`: `<= 16` routes to `v1_small24`/`v1_small72`, which were running
 thousands of jobs when this was written.  Whether that trades well is not settled
@@ -2214,31 +2307,51 @@ efficiency.  Sizing a 16-rank run would need its own timing, and
 
 ## Status
 
-**Prepared, exercised end to end at tiny size, not submitted.**  Both tiny
-experiments run the identical production code path on a login node in about
-90 s each: an equilibrium reference, a flat parent calibrated from it, three
-standoff children (V3); an aligned parent, a staggered parent, a matched child
-and a mismatched child (V4).  `test_v34_tiny.py` covers both plus the production
+**Prepared, exercised end to end at tiny size on the Release binary, not yet
+submitted / submitted (see job ids below).**  Revised 2026-09-07 for the fine
+`&NESTDUMP` cadence and V3's new cleared-parent-cubes arm.  Both tiny
+experiments run the identical production code path on a login node in a few
+minutes: an equilibrium reference, a flat parent calibrated from it, three
+standoffs plus the cleared-parent-cubes child (V3, now four periodic runs and
+five children); an aligned parent, a staggered parent, a matched child and a
+mismatched child (V4).  `test_v34_tiny.py` covers both plus the production
 configuration.
 
-What the tiny runs showed, **for orientation only** -- 17 samples over a 51 s
-window on a 40 s spin-up cannot support any physical claim:
+What the tiny runs showed, **for orientation only** -- a handful of samples
+over a 51 s window on a 40 s spin-up cannot support any physical claim:
 
 * the volume-flow calibration works: the reference measured a bulk of
   2.5493 m/s and the flat parent then held 2.5434 m/s, 0.2 % low;
 * the premise of V3 holds at tiny size -- the imposed canopy-layer velocity was
-  2.31 m/s against the equilibrium's 0.81, and the roof-level resolved stress
-  had the wrong sign in the flat parent, so there is a large mismatch for the
-  child to work off;
-* the streamwise blocks resolve it: with a 15-cell standoff the building-free
-  block at the zone edge carried `u_canopy = 2.09` m/s, the first canopy row
-  1.92 and the second 1.81 -- a decelerating canopy on the expected abscissa;
-* `test_v34_tiny.py` is 29 tests, all passing in 184 s;
+  2.3135 m/s against the equilibrium's 0.8129, and the roof-level resolved
+  stress had the wrong sign in the flat parent, so there is a large mismatch
+  for the child to work off;
+* the streamwise blocks resolve it: with a 15-cell standoff, the first canopy
+  row's residual mean-flow error is 122.4 % against the flat-parent
+  `standoff0`'s 182.0 % and the cleared-parent-cubes arm's 5.0 % -- the child
+  that inherits a real (if displaced) canopy's turbulence from its boundary
+  starts far closer to equilibrium than either standoff arm, which is the
+  qualitative direction the cleared-parent-cubes arm exists to check;
+* every child is driven from the parent's `&NESTDUMP` band, not a full-domain
+  dump (`manifest.json`: `driving_source = "nestdump"`), at `C_dump = 0.75`
+  (`u0 = 3` m/s) and the Catmull-Rom cubic interpolant;
+* `test_v34_tiny.py` is 37 tests, all passing in 388 s on a fresh Release
+  build (was 29 in 184 s before the fine cadence and the new arm);
 * every child ran `nest_lparentgeom = .false.` with all four faces forced,
-  `Phi` at round-off (`~2e-14` in the stored file) and `divmax` at round-off,
+  `Phi` at round-off (`~1e-14` in the stored file) and `divmax` at round-off,
   which is the point: a canopy generated with no reference to the parent's
   geometry still lets the solver *assert* the design section 5 rule;
+* the cleared-parent-cubes child's solid mask is identical, cell for cell, to
+  `standoff0`'s -- the two children really are the same canopy, and only the
+  driving parent (flat vs. V1's own aligned array) differs;
 * the V4 comparison ran against a baseline child whose solid mask was checked
   identical to the mismatched child's, and refused a baseline of the wrong shape.
 
 No production number exists yet.  Nothing in this section should be read as one.
+
+### Job status
+
+| job | experiment | submitted | job id |
+|---|---|---|---|
+| V3 | `v3` (5 children: 4 standoffs + cleared-parent-cubes) | | |
+| V4 | `v4` (1 child: mismatch, against the V1 `converged` baseline) | | |

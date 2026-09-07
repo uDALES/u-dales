@@ -159,6 +159,9 @@ def build_periodic(outdir: Path, preset: GeoPreset,
             "ustar_nominal": preset.ustar,
             "t_start": preset.t_start,
             "t_end": preset.t_end,
+            "dtdump": preset.dtdump,
+            "fielddump_interval": preset.fielddump_interval,
+            "parent_output": preset.parent_output,
         }, indent=2) + "\n", encoding="ascii")
     return casedir
 

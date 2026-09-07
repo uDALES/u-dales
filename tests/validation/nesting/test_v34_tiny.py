@@ -94,11 +94,22 @@ class TestGeometryConfiguration(unittest.TestCase):
         # ... and the plaza and the clearing remove the same 28 cubes.
         self.assertEqual(len(pg.V4_MISMATCH.child_cubes_removed()),
                          CONVERGED.n_cubes_removed)
+        # "To the digit" except the boundary cadence and interpolant, which
+        # V4 deliberately moved to the campaign's post-C0 recommendation
+        # (0.5 s / Catmull-Rom) while CONVERGED -- the on-disk V1 baseline
+        # this child is diffed against -- still carries V1's original 3 s
+        # linear boundary.  README.md's V4 section names this confound
+        # explicitly; asserted here as a fact about the two presets, not
+        # hidden by leaving the fields out of the loop silently.
         for f in ("itot", "jtot", "ktot", "dx", "child_itot", "child_jtot",
                   "guardwidth", "zonewidth", "tau", "nzone", "nwall",
-                  "timeinterp", "ustar", "spinup", "production", "dtdump",
+                  "ustar", "spinup", "production",
                   "child_spinup", "dtmax"):
             self.assertEqual(getattr(pg.V4_MISMATCH, f), getattr(CONVERGED, f), f)
+        self.assertEqual(CONVERGED.timeinterp, 1)
+        self.assertEqual(pg.V4_MISMATCH.timeinterp, 2)
+        self.assertEqual(CONVERGED.dtdump, 3.0)
+        self.assertEqual(pg.V4_MISMATCH.dtdump, 0.5)
 
     def test_a_staggered_matched_control_is_refused(self):
         """Why V4 carries no matched-geometry control, as a checked invariant.
@@ -149,6 +160,67 @@ class TestGeometryConfiguration(unittest.TestCase):
         # ... and the layouts really are different.
         self.assertFalse(np.allclose(np.sort(stag[:len(aligned)], axis=0),
                                      np.sort(aligned, axis=0)))
+
+    def test_the_cleared_parent_cubes_arm_carries_the_same_child_as_standoff0(self):
+        """The whole point of the arm: only the driving parent may differ.
+
+        ``cleared-parent-cubes`` and ``standoff0`` both use
+        ``child_phase = "standoff"`` at ``standoff_cells = 0``, which places
+        the child's own lattice from the clear box outward and never reads the
+        parent's layout at all -- so the two children's cubes must be
+        identical, cube for cube, in both the production and the tiny
+        experiment.  A version of this arm briefly used
+        ``child_phase = "parent"`` instead, which regenerates the *global*
+        lattice (anchored to the parent's coordinate origin, not the clear
+        box) and placed an entirely disjoint set of cubes; this test is what
+        catches that class of mistake rather than assuming the mechanism did
+        what its name suggests.
+        """
+
+        def as_set(centres):
+            return {(round(x, 6), round(y, 6)) for x, y in centres}
+
+        for name in ("v3", "v3-tiny"):
+            exp = pg.get_experiment(name)
+            std0 = exp.child("standoff0").preset
+            cleared = exp.child("cleared-parent-cubes").preset
+            self.assertEqual(std0.child_cube_centres().shape,
+                             cleared.child_cube_centres().shape, name)
+            self.assertEqual(as_set(std0.child_cube_centres()),
+                             as_set(cleared.child_cube_centres()), name)
+            # ... and only the parent differs: standoff0's is flat, cleared's
+            # own is V1's own aligned canopy filling the same domain.
+            self.assertEqual(len(std0.cube_centres()), 0, name)
+            self.assertGreater(len(cleared.cube_centres()), 0, name)
+            self.assertEqual(std0.parent_layout, "none", name)
+            self.assertEqual(cleared.parent_layout, "aligned", name)
+
+    def test_every_v3_v4_preset_writes_its_boundary_at_c_dump_below_2(self):
+        """The operating rule (design section 10.5): cubic, C_dump <= 2.
+
+        Every V3/V4 preset that drives or is driven -- parent and child alike,
+        since a child inherits ``dtdump``/``cadence`` from the parent it was
+        built as a ``replace()`` of -- has to satisfy this, and use the
+        recommended Catmull-Rom interpolant (``nest_timeinterp = 2``, C0c).
+        Presets with no child of their own (a "reference" role) are exempt:
+        nothing is ever driven from them.
+        """
+        for name in sorted(pg.EXPERIMENTS):
+            exp = pg.get_experiment(name)
+            for r in exp.periodic:
+                p = r.preset
+                if p.role == "reference":
+                    continue
+                self.assertLessEqual(p.c_dump_u0, 2.0, f"{name}/{r.key}")
+                self.assertEqual(p.timeinterp, 2, f"{name}/{r.key}")
+                self.assertEqual(p.parent_output, "both", f"{name}/{r.key}")
+                self.assertAlmostEqual(p.fielddump_interval, 3.0, msg=f"{name}/{r.key}")
+                self.assertNotAlmostEqual(p.fielddump_interval, p.dtdump,
+                                         msg=f"{name}/{r.key}")
+            for c in exp.children:
+                p = c.preset
+                self.assertLessEqual(p.c_dump_u0, 2.0, f"{name}/{c.key}")
+                self.assertEqual(p.timeinterp, 2, f"{name}/{c.key}")
 
     def test_the_blocks_tile_the_interior_and_are_phase_locked(self):
         for name in sorted(pg.EXPERIMENTS):
@@ -240,7 +312,10 @@ class _TinyRun(unittest.TestCase):
     def test_every_child_kept_the_flux_and_divergence_bounded(self):
         for c in self.exp.default_children:
             log = (self.child_dir(c.key) / "child.log").read_text(errors="replace")
-            phis = [abs(float(l.split("=")[1])) for l in log.splitlines()
+            # F1's nest_statint throttling (nesting-plan-2026-09-06.md section 3)
+            # appends "(largest |Phi| since the previous report)" after the
+            # number; take the first token after "=", not the whole remainder.
+            phis = [abs(float(l.split("=")[1].split()[0])) for l in log.splitlines()
                     if "Phi (norm)" in l]
             divs = [abs(float(l.split("=")[1].split()[0])) for l in log.splitlines()
                     if "divmax, divtot" in l]
@@ -273,6 +348,34 @@ class _TinyRun(unittest.TestCase):
         self.assertTrue((self.rundir / "analysis"
                          / f"{self.exp.kind}_summary.md").exists())
 
+    def test_every_child_is_driven_from_the_nestdump_band(self):
+        """The point of the fine cadence: affordable via the parent-side zone
+        dump, not a full-domain dump at 0.5 s (plan item D1)."""
+        for c in self.exp.default_children:
+            manifest = json.loads(
+                (self.child_dir(c.key) / "manifest.json").read_text())
+            self.assertEqual(manifest["driving_source"], "nestdump", c.key)
+            self.assertLessEqual(manifest["cadence"]["C_dump_at_u0"], 2.0, c.key)
+
+    def test_every_parent_wrote_both_outputs_at_their_own_cadence(self):
+        """&NESTDUMP at dtdump, &OUTPUT at the older, coarser fielddump_interval."""
+        for r in self.exp.periodic:
+            p = r.preset
+            if p.role == "reference":
+                continue
+            nr = p.parent_expnr
+            casedir = self.rundir / nr
+            self.assertTrue(list(casedir.glob(f"nestdump.*.{nr}.nc")),
+                            f"{r.key}: no &NESTDUMP band files")
+            self.assertTrue(list(casedir.glob(f"nestdump_init.*.{nr}.nc")),
+                            f"{r.key}: no &NESTDUMP init block")
+            self.assertTrue(list(casedir.glob(f"fielddump.*.{nr}.nc")),
+                            f"{r.key}: parent_output = 'both' but no &OUTPUT dumps")
+            preset_json = json.loads((casedir / "preset.json").read_text())
+            self.assertEqual(preset_json["parent_output"], "both", r.key)
+            self.assertNotAlmostEqual(preset_json["fielddump_interval"],
+                                      preset_json["dtdump"], msg=r.key)
+
 
 class TestV3Tiny(_TinyRun):
     experiment = "v3-tiny"
@@ -301,6 +404,22 @@ class TestV3Tiny(_TinyRun):
         self.assertEqual(par["samples"]["n_solid_cells"], 0)
         ref = self.periodic_stats("reference")
         self.assertGreater(ref["samples"]["n_solid_cells"], 0)
+
+    def test_the_cubes_parent_really_has_buildings(self):
+        """The other half of the cleared-parent-cubes arm's premise."""
+        cubes = self.periodic_stats("parent-cubes")
+        self.assertEqual(cubes["parent_layout"], "aligned")
+        self.assertGreater(cubes["samples"]["n_solid_cells"], 0)
+
+    def test_the_cleared_parent_cubes_child_has_the_same_solid_mask_as_standoff0(self):
+        """The child geometries are asserted equal in Python; this checks the
+        solver's own IBM preprocessing agrees, cell for cell."""
+        p = self.exp.child("standoff0").preset
+        shape = (p.child_itot - 1, p.child_jtot - 1, p.child_ktot - 1)
+        a = caselib.load_solid_mask(self.child_dir("standoff0"), shape)
+        b = caselib.load_solid_mask(self.child_dir("cleared-parent-cubes"), shape)
+        self.assertTrue(np.array_equal(a, b))
+        self.assertGreater(int((~a).sum()), 0)
 
     def test_the_imposed_profile_is_out_of_equilibrium_with_the_canopy(self):
         """There is something for the child to adjust to -- the premise of V3."""

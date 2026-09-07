@@ -420,6 +420,19 @@ class GeoPreset(Preset):
             errors.append("building_height is not a whole number of cells")
         if self.child_spinup >= self.production:
             errors.append("child_spinup leaves no statistics window")
+        if self.parent_output not in ("fielddump", "nestdump", "both"):
+            errors.append(f"parent_output must be 'fielddump', 'nestdump' or 'both', "
+                          f"got {self.parent_output!r}")
+        if self.fielddump_dtdump is not None and not (self.fielddump_dtdump > 0):
+            errors.append(f"fielddump_dtdump = {self.fielddump_dtdump} s is not positive")
+        for label, value in (("cadence", self.cadence), ("child_dtdump", self.child_dtdump)):
+            if not (value > 0):
+                errors.append(f"{label} = {value} s is not positive")
+            elif abs(value / self.dtdump - round(value / self.dtdump)) > 1.0e-9 \
+                    or round(value / self.dtdump) < 1:
+                errors.append(
+                    f"{label} = {value} s is not a whole multiple of dtdump = "
+                    f"{self.dtdump} s; the parent dumps cannot be subsampled to it")
         for n, tot, label in ((self.nprocx, self.itot, "nprocx/itot"),
                               (self.nprocy, self.jtot, "nprocy/jtot")):
             if tot % n:
@@ -509,7 +522,11 @@ class GeoPreset(Preset):
             f"{len(self.cube_centres())} cubes",
             f"forcing              {self.forcing_description}",
             f"schedule             spin-up {self.spinup:g} s, production "
-            f"[{self.t_start:g}, {self.t_end:g}] s, dump every {self.dtdump:g} s",
+            f"[{self.t_start:g}, {self.t_end:g}] s, dtdump {self.dtdump:g} s",
+            f"parent output        {self.parent_output}"
+            + (f" (&OUTPUT every {self.fielddump_interval:g} s, &NESTDUMP every "
+               f"{self.dtdump:g} s)" if self.parent_output == "both"
+               and abs(self.fielddump_interval - self.dtdump) > 1.0e-9 else ""),
             f"ranks                {self.nprocx} x {self.nprocy}",
         ]
         if self.role != "reference":
@@ -547,6 +564,14 @@ class GeoPreset(Preset):
                 f"child spin-up        {self.child_spinup:g} s discarded, statistics "
                 f"over {self.production - self.child_spinup:g} s",
                 f"child ranks          {self.child_nprocx} x {self.child_nprocy}",
+                f"boundary cadence     {self.cadence:g} s = every "
+                f"{self.cadence_stride} parent dump level; "
+                f"C_dump = u0 * cadence / dx = {self.c_dump_u0:.2f} at u0 = "
+                f"{self.u0:g} m/s "
+                f"({'<= 2, nothing resolved is lost' if self.c_dump_u0 <= 2.0 else '> 2, the parent-resolved band below 2 U cadence is lost at the boundary'})",
+                f"time interpolation   nest_timeinterp = {self.timeinterp} "
+                f"({'linear' if self.timeinterp == 1 else 'Catmull-Rom cubic Hermite, unlimited'})",
+                f"child dumps          every {self.child_dtdump:g} s",
             ]
         return "\n".join(lines)
 
@@ -696,14 +721,34 @@ class Experiment:
 #: Everything V3 shares with V1: 2 m cells, 16 m cubes on a 32 m period, a
 #: neutral rigid-lid channel 128 m deep, u* = 0.4 m/s.  Holding these fixed is
 #: what makes the V3 canopy the *same* canopy V1 and V2 measured.
+#: ``dtdump`` is set per preset below, not here: a "reference" run needs
+#: nothing finer than the historical 3 s (nobody drives a child from it), while
+#: a "parent" run's ``dtdump`` is the ``&NESTDUMP`` cadence a child is driven
+#: from and has to satisfy ``C_dump <= 2`` (nesting-plan-2026-09-06.md section
+#: 1, "V3, V4"; docs/udales-nesting-design.md section 10.5's operating rule).
+#: ``timeinterp = 2`` (Catmull-Rom, unlimited) is C0c's recommended default.
 _V3_COMMON = dict(
     ktot=64, dx=2.0,
     building_height=16.0, building_width=16.0, street_width=16.0, edgelength=16.0,
     geometry="uniform",
-    guardwidth=6.0, zonewidth=18.0, tau=1.0, nzone=12, nwall=1, timeinterp=1,
-    ustar=0.4, tke0=0.1, dtmax=0.5, dtdump=3.0,
+    guardwidth=6.0, zonewidth=18.0, tau=1.0, nzone=12, nwall=1, timeinterp=2,
+    ustar=0.4, tke0=0.1, dtmax=0.5,
     spectra_heights=(8.0, 16.0, 32.0), stride=1,
 )
+
+#: The ``&NESTDUMP`` cadence every V3/V4 parent writes its boundary band at,
+#: and the child's ``cadence``: with the mean wind at the domain top ~5.5 m/s
+#: (V1's converged run, z/h = 2) and ``dx = 2`` m, ``C_dump <= 2`` needs
+#: ``dtdump <= 2 * 2 / 5.5 = 0.73`` s; 0.5 s matches C0's own fine parent
+#: (``config.C0_FINE``) and gives ``C_dump = 1.4`` at 5.5 m/s (0.82 at the
+#: preset's own ``u0 = 3`` m/s, the number ``summary()`` prints).  The parent's
+#: own ``&OUTPUT`` field dump -- read back by ``periodic-stats`` for the bulk
+#: velocity and canopy statistics ``run_geometry.py`` needs, never by the
+#: child -- stays at the old, statistically-sufficient 3 s
+#: (``fielddump_dtdump``), so ``parent_output = "both"`` does not multiply the
+#: full-domain dump volume by 6x for no benefit.
+_NESTDUMP_CADENCE = dict(dtdump=0.5, cadence=0.5, child_dtdump=3.0,
+                         fielddump_dtdump=3.0, parent_output="both")
 
 #: **The equilibrium reference.**  A periodic 6 x 6 array of the child's cubes,
 #: driven by the same fixed ``dpdx`` the child is driven by, so its statistics
@@ -720,6 +765,7 @@ V3_REFERENCE = GeoPreset(
     spinup=3600.0, production=3600.0, child_spinup=600.0,
     nprocx=8, nprocy=8, child_nprocx=8, child_nprocy=8,
     parent_expnr="920", child_expnr="920",
+    dtdump=3.0,  # no child is ever driven from this run; the old cadence suffices
     **_V3_COMMON,
 )
 
@@ -769,7 +815,7 @@ V3_PARENT = GeoPreset(
     spinup=9000.0, production=3600.0, child_spinup=900.0,
     nprocx=8, nprocy=8, child_nprocx=8, child_nprocy=8,
     parent_expnr="921", child_expnr="922",
-    **_V3_COMMON,
+    **_NESTDUMP_CADENCE, **_V3_COMMON,
 )
 
 
@@ -788,6 +834,41 @@ def _v3_child(standoff: int, expnr: str, base: GeoPreset = V3_PARENT) -> GeoPres
 #: makes the claim falsifiable.
 V3_STANDOFFS: Tuple[int, ...] = (0, 5, 15, 40)
 
+#: **The cleared-parent-cubes arm** (nesting-plan-2026-09-06.md section 0, "New
+#: from V2").  V2 found that a child which clears cubes out of its *own* zone
+#: fails criterion A by 0.05-0.07 u* in the canopy layer, because the wakes
+#: those removed cubes would have shed inside the zone are missing from the
+#: inflow -- the mirror image of V3's own question, seen from the other side.
+#: This arm isolates it: **the same child construction as** ``standoff0`` --
+#: ``child_phase = "standoff"``, ``standoff_cells = 0`` -- so the child's own
+#: lattice is placed from the clear box exactly as before and never depends on
+#: the parent at all; only the periodic run it is driven from changes, from
+#: flat (``V3_PARENT``) to V1's own aligned canopy filling the same domain
+#: (``V3_PARENT_CUBES``).  ``_v3_child`` builds it unchanged -- no new
+#: mechanism, just a different ``base``.  (``child_phase = "parent"`` was
+#: tried first and rejected: it regenerates the *global* lattice and clips it
+#: to the clear box, which is anchored to the parent's coordinate origin, not
+#: to the clear box the way ``"standoff"`` is, so it places an entirely
+#: different, disjoint set of cubes -- confirmed by comparing the two child
+#: layouts directly, not assumed.  That would have compared two different
+#: canopies as well as two different parents.)  Driven by the same fixed
+#: ``dpdx``: a real canopy carries its own drag, unlike the flat parent, so no
+#: volume-flow calibration against the reference is needed.
+V3_PARENT_CUBES = GeoPreset(
+    name="v3-parent-cubes", role="parent",
+    parent_layout="aligned", child_layout="aligned", child_phase="standoff",
+    itot=320, jtot=160,
+    child_itot=256, child_jtot=128,
+    u0=3.0,
+    spinup=3600.0, production=3600.0, child_spinup=900.0,
+    nprocx=8, nprocy=8, child_nprocx=8, child_nprocy=8,
+    parent_expnr="926", child_expnr="927",
+    **_NESTDUMP_CADENCE, **_V3_COMMON,
+)
+
+V3_CLEARED = replace(_v3_child(0, "927", base=V3_PARENT_CUBES),
+                    name="v3-cleared-parent-cubes")
+
 V3 = Experiment(
     name="v3", kind="v3",
     headline="parent without buildings: the adjustment length, and whether a "
@@ -799,11 +880,19 @@ V3 = Experiment(
         PeriodicRun("parent", V3_PARENT,
                     "flat, volume-flow forced at the reference's bulk velocity",
                     bulk_from="reference"),
+        PeriodicRun("parent-cubes", V3_PARENT_CUBES,
+                    "V1's own aligned canopy where the child's zone sits, "
+                    "fixed dpdx -- the 'parent had cubes there' arm"),
     ),
     children=tuple(
         ChildRun(f"standoff{s}", _v3_child(s, str(922 + n)), "parent",
                  f"buildings start {s} cells past the clear box")
-        for n, s in enumerate(V3_STANDOFFS)),
+        for n, s in enumerate(V3_STANDOFFS)) + (
+        ChildRun("cleared-parent-cubes", V3_CLEARED, "parent-cubes",
+                 "standoff 0, but the parent had cubes in the child's zone and "
+                 "the child clears them (nest_lparentgeom = .false.); compare "
+                 "against 'standoff0', where the parent never had cubes there"),
+    ),
     equilibrium_key="reference",
 )
 
@@ -818,17 +907,22 @@ V3 = Experiment(
 #: same ranks.  That is the whole design: the only thing that moves is the
 #: layout the parent resolves, so the V1 result is the reference and the answer
 #: is a difference from it.
+#: ``dtdump = 0.5`` s (``_NESTDUMP_CADENCE``) is the ``&NESTDUMP`` cadence the
+#: child's boundary needs (``C_dump <= 2``, see ``_V3_COMMON``'s note); the
+#: parent's own ``&OUTPUT`` field dump, read back by ``periodic-stats`` for its
+#: canopy statistics, stays at the historical 3 s (``fielddump_dtdump``).
 _V4_COMMON = dict(
     itot=256, jtot=256, ktot=64, dx=2.0,
     building_height=16.0, building_width=16.0, street_width=16.0, edgelength=16.0,
     geometry="uniform",
     child_itot=128, child_jtot=128,
-    guardwidth=6.0, zonewidth=18.0, tau=1.0, nzone=12, nwall=1, timeinterp=1,
+    guardwidth=6.0, zonewidth=18.0, tau=1.0, nzone=12, nwall=1, timeinterp=2,
     ustar=0.4, u0=3.0, tke0=0.1,
-    spinup=10800.0, production=10800.0, dtdump=3.0, child_spinup=600.0,
+    spinup=10800.0, production=10800.0, child_spinup=600.0,
     nprocx=8, nprocy=8, child_nprocx=8, child_nprocy=8, dtmax=0.5,
     spectra_heights=(8.0, 16.0, 32.0), stride=1,
     parent_layout="staggered", parent_expnr="930",
+    **_NESTDUMP_CADENCE,
 )
 
 V4_PARENT = GeoPreset(name="v4-parent", role="parent",
@@ -884,12 +978,15 @@ V4 = Experiment(
 # Tiny versions -- the identical code path in minutes
 # --------------------------------------------------------------------------- #
 
+#: ``dtdump`` is set per preset below (a "reference" run keeps 3 s; a "parent"
+#: run gets the ``_NESTDUMP_CADENCE`` fine cadence), exactly as in the
+#: production dicts above.
 _TINY_BASE = dict(
     ktot=32, dx=2.0,
     building_height=16.0, building_width=16.0, street_width=16.0, edgelength=16.0,
     geometry="uniform",
-    tau=1.0, nwall=1, timeinterp=1,
-    ustar=0.4, u0=3.0, tke0=0.1, dtmax=0.5, dtdump=3.0,
+    tau=1.0, nwall=1, timeinterp=2,
+    ustar=0.4, u0=3.0, tke0=0.1, dtmax=0.5,
     spinup=40.0, production=90.0, child_spinup=30.0,
     nprocx=2, nprocy=2, child_nprocx=2, child_nprocy=2,
     spectra_heights=(8.0, 16.0), stride=1,
@@ -905,21 +1002,40 @@ _TINY_V3 = dict(guardwidth=6.0, zonewidth=8.0, nzone=7, **_TINY_BASE)
 #: at 16 mod 32 and child faces at 0 mod 32.  The production zone (3 + 9 cells,
 #: 26 m of clearance) clears it exactly and a tiny zone does not, which is the
 #: same reason ``config.TINY_SWEEP`` carries the production zone.  Get this
-#: wrong and ``removed_cubes_reaching_the_interior`` fires -- as it should.
-_TINY_V4 = dict(guardwidth=6.0, zonewidth=18.0, nzone=12, **_TINY_BASE)
+#: wrong and ``removed_cubes_reaching_the_interior`` fires -- as it should.  All
+#: five of V4-tiny's presets (both parents, both children, and the
+#: never-run ``V4_TINY_MATCHED_IMPOSSIBLE``) are "parent"/"child" roles that
+#: drive or are driven, so the fine ``&NESTDUMP`` cadence goes in here directly.
+_TINY_V4 = dict(guardwidth=6.0, zonewidth=18.0, nzone=12,
+               **_NESTDUMP_CADENCE, **_TINY_BASE)
 
 V3_TINY_REFERENCE = GeoPreset(
     name="v3-tiny-reference", role="reference",
     parent_layout="aligned", child_layout="aligned",
     itot=48, jtot=48, child_itot=32, child_jtot=32,
-    parent_expnr="940", child_expnr="940", **_TINY_V3)
+    parent_expnr="940", child_expnr="940", dtdump=3.0, **_TINY_V3)
 
 V3_TINY_PARENT = GeoPreset(
     name="v3-tiny-parent", role="parent",
     parent_layout="none", child_layout="aligned", child_phase="standoff",
     itot=96, jtot=64, child_itot=64, child_jtot=48,
     uflowrate=3.0,
-    parent_expnr="941", child_expnr="942", **_TINY_V3)
+    parent_expnr="941", child_expnr="942",
+    **_NESTDUMP_CADENCE, **_TINY_V3)
+
+#: The tiny cleared-parent-cubes arm, exactly as the production
+#: ``V3_PARENT_CUBES``: same domain and zone as ``V3_TINY_PARENT`` (the
+#: child's own ``"standoff"`` lattice depends on the clear box alone, not on
+#: the parent), only ``parent_layout`` and the forcing differ.
+V3_TINY_PARENT_CUBES = GeoPreset(
+    name="v3-tiny-parent-cubes", role="parent",
+    parent_layout="aligned", child_layout="aligned", child_phase="standoff",
+    itot=96, jtot=64, child_itot=64, child_jtot=48,
+    parent_expnr="945", child_expnr="946",
+    **_NESTDUMP_CADENCE, **_TINY_V3)
+
+V3_TINY_CLEARED = replace(_v3_child(0, "946", base=V3_TINY_PARENT_CUBES),
+                         name="v3-tiny-cleared-parent-cubes")
 
 V3_TINY = Experiment(
     name="v3-tiny", kind="v3",
@@ -928,13 +1044,18 @@ V3_TINY = Experiment(
         PeriodicRun("reference", V3_TINY_REFERENCE, "tiny periodic 3x3 array"),
         PeriodicRun("parent", V3_TINY_PARENT, "tiny flat parent",
                     bulk_from="reference"),
+        PeriodicRun("parent-cubes", V3_TINY_PARENT_CUBES,
+                    "tiny aligned canopy parent -- 'parent had cubes there'"),
     ),
     children=tuple(
         ChildRun(f"standoff{s}",
                  replace(V3_TINY_PARENT, name=f"v3-tiny-standoff{s}", role="child",
                          standoff_cells=s, child_expnr=str(942 + n)),
                  "parent", f"standoff {s} cells")
-        for n, s in enumerate((0, 5, 15))),
+        for n, s in enumerate((0, 5, 15))) + (
+        ChildRun("cleared-parent-cubes", V3_TINY_CLEARED, "parent-cubes",
+                 "standoff 0, parent had cubes in the zone, child clears them"),
+    ),
     equilibrium_key="reference",
 )
 

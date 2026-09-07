@@ -577,24 +577,42 @@ def summary_table_v4(summary: Dict) -> str:
 
 
 def _disk_estimate(exp: Experiment) -> str:
+    """Rough disk budget, in the units of :func:`config.Preset.summary`.
+
+    Periodic runs can write ``&OUTPUT`` (``fielddump_interval``, whole domain),
+    ``&NESTDUMP`` (``dtdump``, the child's band + 1 cell only) or both -- see
+    ``config.Preset.parent_output``.  For a child, the nesting file's levels
+    are counted at its own boundary ``cadence`` and its field dump at
+    ``child_dtdump``; both default to ``dtdump`` but V3/V4's parents decouple
+    them (fine ``&NESTDUMP`` cadence, coarse everything else).
+    """
     lines, total = [], 0.0
     for r in exp.periodic:
         p = r.preset
-        nt = p.production / p.dtdump
-        gb = nt * 3 * p.itot * p.jtot * p.ktot * 4 / 1e9
+        gb = 0.0
+        if p.writes_fielddump:
+            nt = p.production / p.fielddump_interval
+            gb += nt * 3 * p.itot * p.jtot * p.ktot * 4 / 1e9
+        if p.writes_nestdump:
+            nb = p.nestdump_nzone()
+            ni, nj = p.child_itot, p.child_jtot
+            band_cells = ni * nj - max(ni - 2 * nb, 0) * max(nj - 2 * nb, 0)
+            nt = p.production / p.dtdump
+            gb += nt * 3 * band_cells * p.ktot * 4 / 1e9
         total += gb
-        lines.append(f"    periodic {r.key:12s} dumps {gb:7.1f} GB")
+        lines.append(f"    periodic {r.key:12s} dumps {gb:7.1f} GB ({p.parent_output})")
     for c in exp.children:
         if not c.default:
             continue
         p = c.preset
-        nt = p.production / p.dtdump
+        nt_nest = p.production / p.cadence
+        nt_dump = p.production / p.child_dtdump
         slab = 3 * 2 * (p.child_itot + p.child_jtot) * p.child_ktot * p.nzone * 8
         dump = 3 * p.child_itot * p.child_jtot * p.child_ktot * 4
-        gb = nt * (slab + dump) / 1e9
+        gb = (nt_nest * slab + nt_dump * dump) / 1e9
         total += gb
-        lines.append(f"    child    {c.key:12s} nesting {nt * slab / 1e9:6.1f} GB + "
-                     f"dumps {nt * dump / 1e9:6.1f} GB")
+        lines.append(f"    child    {c.key:12s} nesting {nt_nest * slab / 1e9:6.1f} GB + "
+                     f"dumps {nt_dump * dump / 1e9:6.1f} GB")
     lines.append(f"    {'total':21s} {total:7.1f} GB")
     return "\n".join(lines)
 
@@ -682,8 +700,20 @@ def main() -> int:
 
         if wanted("child-case"):
             t0 = time.time()
-            make_child_case.build(parent_dir, rundir, p,
-                                  ibm_backend=args.ibm_backend)
+            # The parent writes whatever p.parent_output says (config.Preset,
+            # inherited from the periodic run this child was built as a
+            # replace() of): 'both' for V3/V4 production and tiny presets, so
+            # the child is driven from the fine &NESTDUMP band rather than the
+            # coarse &OUTPUT dump that exists only for the parent's own
+            # periodic-stats.  See presets_geometry's V3_PARENT/V4_PARENT for
+            # why the two cadences differ.
+            source = "nestdump" if p.writes_nestdump else "fielddump"
+            driving = make_child_case.DrivingParent.matched(parent_dir, p, source=source)
+            try:
+                make_child_case.build(parent_dir, rundir, p,
+                                      ibm_backend=args.ibm_backend, driving=driving)
+            finally:
+                driving.dump.close()
             manifest = json.loads((casedir / "manifest.json").read_text())
             t["case"] = time.time() - t0
             print(f"    child case built in {t['case']:.1f} s: "

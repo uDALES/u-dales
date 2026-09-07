@@ -169,6 +169,19 @@ class Preset:
     #: keeps parent and child analysed at the same sampling whatever the two
     #: dump intervals are.  Must be a positive whole multiple of ``dtdump``.
     child_dtdump: Optional[float] = None
+    #: Interval [s] of the **parent's own** ``&OUTPUT`` field dump; ``None``
+    #: means ``dtdump``, i.e. the historical behaviour where the full-domain
+    #: dump *is* the driving cadence (every V1/V2/C0 preset).  Set this instead
+    #: when ``dtdump`` has become the fine ``&NESTDUMP`` cadence a child is
+    #: driven from (``C_dump <= 2``) and the parent's own full-field dump is an
+    #: independent, coarser diagnostic sample -- V3 and V4's periodic runs read
+    #: their own ``FieldDump`` in ``periodic-stats`` (bulk velocity, canopy
+    #: statistics) at the old 3 s cadence that was always enough for those
+    #: numbers, while the boundary band feeding the child is written far more
+    #: often.  Unlike ``cadence``/``child_dtdump`` this need not be a multiple
+    #: of ``dtdump``: ``&OUTPUT`` and ``&NESTDUMP`` are two independent dump
+    #: triggers in the solver, not one derived from the other.
+    fielddump_dtdump: Optional[float] = None
     #: The child window that carved the parent's plaza, when that window is not
     #: this preset's own child.  ``None`` -- the V1 case -- means "this preset
     #: defines the parent geometry itself".  V2 sets it to the V1 child window,
@@ -336,6 +349,15 @@ class Preset:
     @property
     def writes_nestdump(self) -> bool:
         return self.parent_output in ("nestdump", "both")
+
+    @property
+    def fielddump_interval(self) -> float:
+        """Interval [s] the parent's own ``&OUTPUT`` dump writes at.
+
+        ``dtdump`` unless :attr:`fielddump_dtdump` overrides it -- see that
+        field's docstring for when the two need to differ.
+        """
+        return self.dtdump if self.fielddump_dtdump is None else self.fielddump_dtdump
 
     def nestdump_nzone(self, child: Optional["Preset"] = None) -> int:
         """Band thickness the parent has to dump, in **parent** cells.
@@ -717,6 +739,16 @@ class Preset:
             errors.append(
                 f"parent_output must be 'fielddump', 'nestdump' or 'both', got "
                 f"{self.parent_output!r}")
+        if self.fielddump_dtdump is not None and not (self.fielddump_dtdump > 0):
+            errors.append(f"fielddump_dtdump = {self.fielddump_dtdump} s is not positive")
+        if self.writes_fielddump and self.fielddump_dtdump is not None \
+                and self.writes_nestdump and abs(self.fielddump_dtdump - self.dtdump) < 1.0e-9:
+            # Not an error -- explicitly restating dtdump is harmless -- but on
+            # "both" it usually means the decoupling was meant to happen and
+            # didn't; flag it the way the 'plaza' inheritance note does.
+            print(f"[config] note: preset '{self.name}' sets fielddump_dtdump = "
+                  f"{self.fielddump_dtdump:g} s, equal to dtdump; the field dump "
+                  "and the nestdump band write at the same cadence")
         for cx, cy in self.removed_cubes_reaching_the_interior():
             errors.append(
                 f"clearing the child's zone would remove a cube at ({cx:g}, {cy:g}) m "
@@ -796,9 +828,13 @@ class Preset:
             f"({'linear' if self.timeinterp == 1 else 'Catmull-Rom cubic Hermite, unlimited'})",
             f"child init           {'from the parent block' if self.init_from_parent else 'from prof.inp'}",
             f"schedule             spin-up {self.spinup:g} s, production "
-            f"[{self.t_start:g}, {self.t_end:g}] s, dump every {self.dtdump:g} s",
+            f"[{self.t_start:g}, {self.t_end:g}] s, dtdump {self.dtdump:g} s",
             f"                     child spin-up {self.child_spinup:g} s, statistics over "
             f"{self.production - self.child_spinup:g} s",
+            f"parent output        {self.parent_output}"
+            + (f" (&OUTPUT every {self.fielddump_interval:g} s, &NESTDUMP every "
+               f"{self.dtdump:g} s)" if self.parent_output == "both"
+               and abs(self.fielddump_interval - self.dtdump) > 1.0e-9 else ""),
             f"boundary cadence     {self.cadence:g} s = every "
             f"{self.cadence_stride}{'st' if self.cadence_stride == 1 else 'nd' if self.cadence_stride == 2 else 'rd' if self.cadence_stride == 3 else 'th'} "
             f"parent dump level ({self.production / self.cadence:.0f} levels); "
@@ -1195,7 +1231,17 @@ V2_TINY = _v2_sweep(TINY_SWEEP, "v2-tiny", zone_cells_ramp=(4, 9, 12),
 #   903 / 904        V1 parent / child (config.PRODUCTION, CONVERGED, TINY, ...)
 #   905-909          V2 children (config.V2, V2_TINY)
 #   911, 912         V0 coarse driving parents; 921-924 V0 children (config.V0)
-#   920-922, 930-931, 940-954   V3 / V4 geometry cases (presets_geometry.py)
+#   920-927, 930-931, 940-946, 950-954   V3 / V4 geometry cases
+#                    (presets_geometry.py): 920 V3 reference, 921 V3 flat
+#                    parent, 922-925 V3 standoffs, 926/927 V3 cleared-parent-
+#                    cubes parent/child (new); 930 V4 parent, 931 V4 child;
+#                    940 V3-tiny reference, 941/942 V3-tiny flat parent/
+#                    standoff0, 943/944 the other V3-tiny standoffs, 945/946
+#                    V3-tiny cleared-parent-cubes parent/child (new); 950-954
+#                    V4-tiny.  921/922 also collide with V0's filtered-arm
+#                    children below (config.V0, "921"/"922") -- pre-existing,
+#                    harmless as long as the two experiments run in separate
+#                    directories, not fixed here.
 #   960-969          C0: 960 the fine-cadence parent (C0_FINE); 961-963 the C0a
 #                    children (cad6, cad9, cr3); 964-969 the C0b children
 #                    (0.5, 1, 1.5, 3, 6, 9 s)
