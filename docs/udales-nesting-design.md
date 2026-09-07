@@ -195,6 +195,41 @@ The consequence is worth stating plainly: **the interpolation contributes nothin
 solver to clean up.** All divergence the projection sees comes from the *blend* between parent and
 child where $0<W<1$ — not from the interpolation. That materially reduces C1.
 
+> **This guarantee describes `prolongation="constant"`, which is no longer the writer's default.**
+> Everything above holds only while the tangential reconstruction is piecewise constant. V0 found
+> that scheme leaves a staircase in the child's mean profile — the reconstruction is flat across the
+> $r$ child faces inside one parent cell where the true profile is sloped, so the error alternates
+> about the parent-cell mean with period $r$ — and that the staircase is large enough to fail
+> criterion A on its own ($0.126\,u_\star$ at $r=2$, $0.275\,u_\star$ at $r=4$; §10.5). W8 therefore
+> made the tangential reconstruction **linear**, and `DEFAULT_PROLONGATION = "linear"` is what ships.
+> Linear tangential slopes are not divergence-preserving: the $x$-, $y$- and $z$-derivative terms no
+> longer cancel cell by cell, so the identity above fails and the child's projection has to remove
+> the remainder.
+>
+> **Measured, on the V0 coarse arm's own 4 m LES field** (a 128 m window, $|u|_{\max}=7.2$ m/s), the
+> two reconstructions differ by seven orders of magnitude in the child target's divergence:
+>
+> | | child divmax, $r=2$ | as a fraction of $u/\Delta x_{\rm child}$ |
+> |---|---|---|
+> | parent itself | $1.27\times10^{-7}$ | — |
+> | `constant` | $1.27\times10^{-7}$ (identical) | $3.5\times10^{-8}$ |
+> | `linear` (shipped) | $1.74\times10^{-1}$ | $4.8\times10^{-2}$ |
+>
+> ($r=4$: $2.6\times10^{-1}$, $3.6\times10^{-2}$. The parent's own $1.27\times10^{-7}$ is the
+> single-precision floor of the dumps, not a physical divergence.) So the shipped default asks the
+> child's pressure solve to absorb a divergence source of order 5 % of $u/\Delta x$ inside the zone,
+> every timestep. Parent-face conservation, $\Phi$ and the post-projection `divmax` are all still
+> clean, which is exactly why none of the existing assertions notice.
+>
+> **Neither scheme is yet validated end to end as shipped:** V0's production numbers were produced
+> with `constant` at the old 3 s linear-in-time cadence, and `linear` has never been run at
+> production size at all. The two are on opposite sides of a real trade — one exact in the
+> divergence and wrong in the mean, the other the reverse — and the choice is being settled by
+> measurement (plan §7, R2), not by argument. Until then this section should be read as describing
+> the *option*, not the default. The proper resolution, if exact local solenoidality is judged
+> necessary, is a constrained (Balsara-style) linear reconstruction that is divergence-preserving by
+> construction; that is scoped as separate work rather than rushed.
+
 **In time — the cadence is a low-pass filter, and it is the dominant error of the whole scheme.**
 This subsection originally discussed the time interpolant only as a smoothness question (linear is
 $C^0$, cubic is $C^1$, the jump in $\partial\tilde q/\partial t$ at each crossing gives a pressure
