@@ -1,0 +1,164 @@
+#!/bin/bash
+#PBS -N udales-nesting-v0b
+#PBS -l walltime=06:00:00
+#PBS -l select=1:ncpus=64:mpiprocs=64:mem=128gb
+#PBS -j oe
+#
+# V0b -- which tangential prolongation ships.
+# nesting-plan-2026-09-06.md section 7, finding R2; docs/udales-nesting-design.md
+# section 1.3 (the guarantee) and section 10.7 item 2 (the C1 pressure-response
+# diagnostic); tests/validation/nesting/README.md.
+#
+# PREPARE, REVIEW, THEN SUBMIT BY HAND:
+#
+#     qsub tests/validation/nesting/submit_cx3_v0b.pbs
+#
+# (qsub/qstat live in /opt/pbs/bin on CX3.)
+#
+# ---------------------------------------------------------------------------
+# WHAT THIS IS.  The writer defaults to 'constant' (divergence-preserving; the
+# only reconstruction V0 actually validated, at production size) and 'linear'
+# is an opt-in (removes the mean-profile staircase W8 found, at the cost of a
+# local divergence source in the imposed target -- review finding 2, plan
+# section 7 R2).  NEITHER has been run end to end at the FINAL configuration:
+# V0's own production numbers describe the old constant reconstruction at the
+# old 3 s/linear-time cadence.  V0b runs both, at r = 2 and r = 4, at the final
+# cadence (0.5 s) and interpolant (Catmull-Rom), and measures the consequence:
+# pre-projection target divergence, the pressure response and how far it
+# reaches (design section 10.7 item 2), the mean-flow criterion and the
+# staircase amplitude, and the spectral band ratios.
+#
+# Four children, two ratios x two prolongations:
+#
+#   r2-constant (978)  4 m boundary data, box-filtered from 960's own dumps, constant
+#   r2-linear   (979)  4 m boundary data, box-filtered from 960's own dumps, linear
+#   r4-constant (980)  8 m boundary data, box-filtered from 960's own dumps, constant
+#   r4-linear   (981)  8 m boundary data, box-filtered from 960's own dumps, linear
+#
+# Unlike V0, there is no 'coarse' arm and NO NEW PARENT RUN: 960 (the C0b fine
+# parent, $EPHEMERAL/nesting-c0b/960, 226 GB, 4800 levels at 0.5 s over
+# t = [10800.8, 13200.4] s) IS the fine truth, a genuine LES rather than an
+# idealisation, and box-filtering its own dumps onto the r = 2 / r = 4 grids
+# (exactly V0's 'filtered' arm) gives a driving field whose only free variable
+# is the reconstruction under test.  It is read, never written.  Every point
+# uses cadence = 0.5 s (C_dump = 0.75 at u0, well inside the C0-derived
+# C_dump <= 2 rule) and nest_timeinterp = 2 (Catmull-Rom).
+# ---------------------------------------------------------------------------
+#
+# SIZING.  No parent build, spin-up or production: --reference-dir points at
+# 960 and it is read only.  Costed from V0's own measured filtered-arm numbers
+# (submit_cx3_v0.pbs), which already include box-filtering overhead on the
+# same 256 x 256 x 64 @ 2 m grid -- V0's r2-filtered slab cut read 3600 levels
+# of 903's dumps (169 GB) in 770 s, i.e. ~219 MB/s effective; 960 carries 4800
+# levels of the same 47 MB/level, so scaling linearly:
+#
+#   stage                                                             [s]
+#   slab cut r2-constant  (4800 levels x 47 MB @ ~219 MB/s)          1030
+#   slab cut r2-linear    (same read, same rate)                     1030
+#   slab cut r4-constant  (same read, same rate)                     1030
+#   slab cut r4-linear    (same read, same rate)                     1030
+#   4 child runs, 2400 s simulated each at the C0b-measured           1520
+#     6.3x-real-time child rate (1.7e7 cell-steps/s, 128^2x64 @ 64
+#     ranks) -- ~380 s each
+#   reference accumulation (SHARED, 800 of 4800 parent levels at
+#     analysis_parent_stride = 6, same 47 MB/level rate)              200
+#   4 child analyses (spectra, decay curves, TKE deficit; V0's own
+#     240 s/child figure, unchanged by the finer cadence)             960
+#   4 child case builds (STL, prof.inp, IBM preprocessing)            360
+#   module loads, python startup, summary write                      120
+#                                                              total 7280 s
+#
+# = 2.0 h.  The 6 h request is 3.0x that -- more headroom than V0's own 1.45x,
+# deliberately: this is the first time the box-filtering step has run against
+# 4800 levels (V0's own arm ran 3600), and the per-level rate is extrapolated,
+# not separately re-measured here.
+#
+# DISK.  Each child's nesting file is ~4800 levels x 9.8 MB (128^2 child,
+# nzone = 12) = ~47 GB -- the same size class C0B_FINE's own 0.5 s point (964)
+# is already sized for (clusters.md: "47 GB of slabs for the 0.5 s point";
+# mem=128gb was set from exactly that number, peak measured 39 GB for a 35 GB
+# file, so budget ~55 GB here).  Field dumps are lighter: dtdump the CHILD uses
+# is 3 s (child_dtdump, not the 0.5 s boundary cadence), ~800 levels x 12.6 MB
+# = ~10 GB per child.  Steady-state disk without pruning would be
+# 4 x (47 + 10) = 228 GB -- comfortably inside the ~10.6 TB free on $EPHEMERAL,
+# but --prune-nesting is used anyway (asked for explicitly) so that the large
+# nesting files never accumulate: each is deleted right after its child run
+# finishes, dropping the running total to ~4 x 10 GB = 40 GB of field dumps
+# plus one ~47-55 GB nesting file in flight at a time.
+#
+# WHAT THIS DOES NOT DO: it does not run a parent, coarse or fine.  960 is
+# read-only throughout.
+# ---------------------------------------------------------------------------
+
+set -e
+
+REPO=${UDALES_REPO:-$HOME/udales/u-dales}
+RUNDIR=${UDALES_V0B_RUNDIR:-$EPHEMERAL/nesting-v0b}
+# The C0b fine parent: BOTH the reference every child is measured against AND
+# the field that is box-filtered to drive them (V0b has no 'coarse' arm).
+REFDIR=${UDALES_V0B_REFDIR:-$EPHEMERAL/nesting-c0b/960}
+SUITE=${UDALES_V0B_SUITE:-v0b}
+POINTS=${UDALES_V0B_POINTS:-}
+# qsub -v cannot carry a comma: PBS treats it as the separator between
+# variables, so a comma-separated list arrives truncated or escaped
+# depending on the version. Accept spaces or semicolons too and normalise.
+POINTS=$(printf '%s' "$POINTS" | tr ' ;' ',,' | tr -s ',' | sed 's/^,//; s/,$//')
+
+echo "repo      : $REPO"
+echo "rundir    : $RUNDIR"
+echo "reference : $REFDIR  (read only, not re-run)"
+echo "suite     : $SUITE"
+echo "points    : ${POINTS:-all}"
+echo "started   : $(date)"
+
+if [ ! -f "$REFDIR/namoptions.960" ]; then
+    echo "no fine parent case at $REFDIR." >&2
+    echo "V0b measures every child against the C0b fine parent and drives both" >&2
+    echo "prolongation arms from that same run's dumps, box-filtered; it does not" >&2
+    echo "build one.  Point UDALES_V0B_REFDIR at the existing C0b fine parent" >&2
+    echo "(960, dumped at 0.5 s over the [10800.8, 13200.4] s window)." >&2
+    exit 1
+fi
+if [ -z "$(ls "$REFDIR"/fielddump.???.???.960.nc 2>/dev/null)" ]; then
+    echo "no field dumps under $REFDIR; the fine parent has no production phase." >&2
+    exit 1
+fi
+mkdir -p "$RUNDIR"
+
+# The solver binary. Build it beforehand with
+#   ./tools/build_executable.sh icl release
+export UDALES_BUILD=${UDALES_BUILD:-$REPO/build/release/u-dales}
+if [ ! -x "$UDALES_BUILD" ]; then
+    echo "solver binary not found at $UDALES_BUILD" >&2
+    exit 1
+fi
+
+# Two module stacks are needed and they are not compatible with each other: the
+# Python tooling wants Python/3.9.6-GCCcore-11.2.0, the solver wants the Intel
+# 2021a stack.  caselib.run_solver loads the runtime stack itself, in the same
+# shell as the mpiexec, so this script only sets up the Python side.
+export UDALES_RUNTIME_MODULES="tools/prod intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a"
+
+module purge
+module load tools/prod
+module load Python/3.9.6-GCCcore-11.2.0
+source "${UDALES_VENV:-$HOME/udales/.venv}/bin/activate"
+
+export HDF5_USE_FILE_LOCKING=FALSE
+# /tmp has a small per-user quota on the compute nodes and the slab cut writes
+# large temporaries through netCDF.
+export TMPDIR=${TMPDIR:-$EPHEMERAL}
+export MPLCONFIGDIR=${MPLCONFIGDIR:-$RUNDIR/.mpl}
+
+cd "$REPO"
+python tests/validation/nesting/run_v0.py "$RUNDIR" \
+    --suite "$SUITE" \
+    --reference-dir "$REFDIR" \
+    ${POINTS:+--only "$POINTS"} \
+    --prune-nesting \
+    --yes
+
+echo "finished  : $(date)"
+echo "table     : $RUNDIR/analysis/v0_summary.md"
+echo "machine   : $RUNDIR/analysis/v0_summary.{csv,json}"
+echo "per point : $RUNDIR/analysis/<point>/v0_metrics.json"
