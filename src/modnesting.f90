@@ -149,6 +149,13 @@ module modnesting
    integer :: it_lo    = 0                  !< parent level bracketing the current time
    real    :: phi_last = 0.            !< last normalised flux residual, all six faces
    real    :: phi_lid_last = 0.        !< of which the lid contributed this much
+   ! The largest-magnitude (signed) residuals since the last nesting_stats
+   ! report: six faces, lid alone, closed faces. These are what the report
+   ! prints -- a throttled report of one substep's instantaneous value would
+   ! miss the excursions the assertion guards against (e.g. the lid breathing
+   ! in the first substep after a restart). With nest_lfluxassert off the
+   ! split is only evaluated on the reporting substep, so they reduce to it.
+   real    :: phi_max = 0., phi_lid_max = 0., phi_closed_max = 0.
    ! Kinetic energy per unit density injected by the zone forcing since the
    ! last nesting_stats REPORT, sum over zone points of q_new * dq * dV with
    ! dq the velocity change the forcing made over the substep and dV the cell
@@ -201,6 +208,7 @@ contains
       tnextstat = 0.
       nendwarn  = 0
       call reset_injection
+      phi_max = 0.; phi_lid_max = 0.; phi_closed_max = 0.
 
       call nestio_open(trim(nestfile), ierr)
       if (ierr /= 0) call nest_abort('cannot open '//trim(nestfile))
@@ -640,16 +648,19 @@ contains
       ! datum, so only the closed faces are asserted on - see nest_flux_split.
       ! The split is one MPI_ALLREDUCE per substep, so with the assertion off
       ! it is only evaluated on the substep whose report is about to print it.
-      if (nest_lfluxassert .or. stats_due()) &
+      if (nest_lfluxassert .or. stats_due()) then
          call nest_flux_split(pup, pvp, pwp, rk3coef, phi_last, phi_lid_last)
+         if (BCtopm == BCtopm_pressure) then
+            phi_closed = phi_last - phi_lid_last
+         else
+            phi_closed = phi_last
+         end if
+         if (abs(phi_last) > abs(phi_max))           phi_max        = phi_last
+         if (abs(phi_lid_last) > abs(phi_lid_max))   phi_lid_max    = phi_lid_last
+         if (abs(phi_closed) > abs(phi_closed_max))  phi_closed_max = phi_closed
+      end if
 
       if (.not. nest_lfluxassert) return
-
-      if (BCtopm == BCtopm_pressure) then
-         phi_closed = phi_last - phi_lid_last
-      else
-         phi_closed = phi_last
-      end if
 
       if (abs(phi_closed) > nest_fluxtol) then
          if (myid == 0) then
@@ -735,9 +746,10 @@ contains
 
       if (myid == 0) then
          write(*,'(a,f12.3)')  ' modnesting: t          = ', timee
-         write(*,'(a,es12.4)') ' modnesting: Phi (norm) = ', phi_last
-         write(*,'(a,es12.4,a,es12.4)') ' modnesting: Phi lid    = ', phi_lid_last, &
-            '  closed faces = ', phi_last - phi_lid_last
+         write(*,'(a,es12.4,a)') ' modnesting: Phi (norm) = ', phi_max, &
+            '  (largest |Phi| since the previous report)'
+         write(*,'(a,es12.4,a,es12.4,a)') ' modnesting: Phi lid    = ', phi_lid_max, &
+            '  closed faces = ', phi_closed_max, '  (largest since the previous report)'
          write(*,'(a,es12.4)') ' modnesting: zone misfit rms [m/s] = ', rmsmis
          write(*,'(a,es12.4,a,es12.4,a,f8.3)') ' modnesting: |grad p| zone = ', gzone, &
             '  interior = ', gint, '  ratio = ', gratio
@@ -749,6 +761,7 @@ contains
       end if
 
       call reset_injection
+      phi_max = 0.; phi_lid_max = 0.; phi_closed_max = 0.
       if (nest_statint > 0.) then
          ! next multiple of the interval, so a warm start does not replay
          ! every report it "missed" and the cadence is the same on every run
