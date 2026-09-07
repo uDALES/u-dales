@@ -44,6 +44,24 @@ Files written into the target directory:
   bad_stagger.<expnr>.nc
   bad_initdims.<expnr>.nc        an initial-condition block at the wrong shape and
   bad_initstag.<expnr>.nc        at the wrong stagger (runmode 1011 abort cases).
+  nesting_maskwest.<expnr>.nc    the analytic field, divergence corrected over the
+                                 FLUID lateral faces only, with the west faces
+                                 j = 5..8, k = 3..6 (1-based) declared solid: the
+                                 footprint of the 2-cell-deep box U45 stands on
+                                 the west boundary. The solid faces keep their
+                                 (non-zero) analytic values, i.e. the parent does
+                                 NOT resolve the child's building -- the case in
+                                 which the solver must mask them (review F2).
+  nesting_solenoidal.<expnr>.nc  the analytic field projected onto the discretely
+                                 solenoidal subspace of the child grid (w = 0 on
+                                 floor and lid), cut into slabs the way
+                                 make_child_case cuts a parent dump, constant in
+                                 time (U48, review F9).
+  assertfire_nan.<expnr>.nc      the corrected file with one NaN in u_west at time
+                                 level 2. The cheap init-time flux check passes
+                                 (the stored residual is clean), so the abort has
+                                 to come from the slab validator when the level is
+                                 read (F5 abort case, runmode 1009).
 """
 
 from __future__ import annotations
@@ -56,12 +74,14 @@ import numpy as np
 
 from udprep.nesting import (
     ANALYTIC_COEFFS,
+    FaceMasks,
     NestGrid,
     NestingData,
     analytic_initial_fields,
     analytic_slabs,
     apply_divergence_correction,
     net_volume_flux,
+    slabs_from_fields,
     write_nesting_file,
 )
 
@@ -76,30 +96,42 @@ YLEN = 32.0
 ZSIZE = 16.0
 NZONE = 12
 TIMES = np.array([0.0, 10.0, 20.0, 30.0, 40.0, 50.0])
+# West-face footprint of the U45 test box (global, 1-based, inclusive): the
+# j and k extent of nest_set_solid_box(1, 2, 5, 8, 3, 6) in src/tests.f90.
+MASK_J = (5, 8)
+MASK_K = (3, 6)
 
 
 def grid() -> NestGrid:
     return NestGrid.uniform(ITOT, JTOT, KTOT, XLEN, YLEN, ZSIZE)
 
 
-def _data(times, slab_times=None, corrected=False, initial=False) -> NestingData:
+def _data(times, slab_times=None, corrected=False, initial=False, slabs=None,
+          masks=None, parent_model="analytic") -> NestingData:
+    """The analytic field as a NestingData, optionally corrected.
+
+    ``slabs`` replaces the analytic slabs (the solenoidal fixture cuts its own);
+    ``masks`` are the lateral fluid masks the correction is restricted to
+    (recorded in the data, so the writer stores the matching residual and
+    fluid area).
+    """
     g = grid()
     slab_times = times if slab_times is None else slab_times
     data = NestingData(
         grid=g,
         nzone=NZONE,
         times=np.asarray(times, dtype=np.float64),
-        slabs=analytic_slabs(g, NZONE, slab_times),
+        slabs=analytic_slabs(g, NZONE, slab_times) if slabs is None else slabs,
         initial_fields=(analytic_initial_fields(g, float(np.asarray(slab_times)[0]))
                         if initial else None),
-        parent_model="analytic",
+        parent_model=parent_model,
         parent_dx=float(XLEN / ITOT),
         parent_dt=float(np.min(np.diff(times))) if len(times) > 1 else 0.0,
         child_origin_x=0.0,
         child_origin_y=0.0,
     )
     if corrected:
-        apply_divergence_correction(data)
+        apply_divergence_correction(data, masks=masks)
     else:
         data.net_volume_flux = net_volume_flux(data)
         data.flux_residual = data.net_volume_flux.copy()
@@ -147,15 +179,27 @@ def _copy_with_dims(src: Path, dst: Path, varname: str, dims) -> None:
         b.setncatts({k: a.getncattr(k) for k in a.ncattrs()})
 
 
+def _poison(src: Path, dst: Path) -> None:
+    """Copy ``src`` to ``dst`` and put one NaN into ``u_west`` at time level 2.
+
+    The stored ``flux_residual`` stays clean, so the init-time cheap check
+    passes and only the per-level slab validator can catch the value.
+    """
+    import netCDF4 as nc
+
+    shutil.copy2(src, dst)
+    with nc.Dataset(dst, "a") as ds:
+        ds.variables["u_west"][1, 0, 0, 0] = np.nan
+
+
 def write_all(outdir: Path) -> None:
     outdir.mkdir(parents=True, exist_ok=True)
 
     analytic = outdir / f"nesting_analytic.{EXPNR}.nc"
     write_nesting_file(analytic, _data(TIMES), override=True)
 
-    write_nesting_file(
-        outdir / f"nesting_corrected.{EXPNR}.nc", _data(TIMES, corrected=True), override=True
-    )
+    corrected = outdir / f"nesting_corrected.{EXPNR}.nc"
+    write_nesting_file(corrected, _data(TIMES, corrected=True), override=True)
 
     shutil.copy2(analytic, outdir / f"assertfire.{EXPNR}.nc")
 
@@ -198,6 +242,35 @@ def write_all(outdir: Path) -> None:
     _corrupt(initial, outdir / f"bad_initstag.{EXPNR}.nc", stagger=("u_init", "xf yf zf"))
     _copy_with_dims(initial, outdir / f"bad_initdims.{EXPNR}.nc",
                     "u_init", ("xf", "yf", "zf"))
+
+    # --- U45 (review F2): the west faces inside a box the parent does not resolve ---
+    # Corrected over the fluid faces only; the solid faces keep their analytic
+    # values, so a solver that failed to mask them would inject their flux.
+    west = np.ones((JTOT, KTOT), dtype=bool)
+    west[MASK_J[0] - 1:MASK_J[1], MASK_K[0] - 1:MASK_K[1]] = False
+    write_nesting_file(
+        outdir / f"nesting_maskwest.{EXPNR}.nc",
+        _data(TIMES, corrected=True, masks=FaceMasks(west=west)),
+        override=True,
+    )
+
+    # --- U48 (review F9): slabs cut from a discretely solenoidal full field ---
+    # apply_divergence_correction on a data set WITH an initial-condition block
+    # syncs the block to the corrected faces and projects it (w = 0 at floor
+    # and lid); the slabs are then cut from that field the way make_child_case
+    # cuts a parent dump, and held constant in time.
+    base = _data(TIMES, corrected=True, initial=True)
+    f = base.initial_fields
+    level = slabs_from_fields(grid(), NZONE, f["u"], f["v"], f["w"])
+    slabs = {k: np.repeat(v[None], len(TIMES), axis=0) for k, v in level.items()}
+    write_nesting_file(
+        outdir / f"nesting_solenoidal.{EXPNR}.nc",
+        _data(TIMES, corrected=True, slabs=slabs, parent_model="analytic-projected"),
+        override=True,
+    )
+
+    # --- F5: a NaN the cheap init check cannot see ---
+    _poison(corrected, outdir / f"assertfire_nan.{EXPNR}.nc")
 
 
 def main() -> None:
