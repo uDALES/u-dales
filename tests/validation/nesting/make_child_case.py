@@ -25,6 +25,15 @@ interpolation, which P1-P11 cover separately.
 The child's clock starts at 0, so the parent dump times are shifted by
 ``t_offset = times[0]``.  ``manifest.json`` records the mapping.
 
+Two driving sources (``--source``, :attr:`DrivingParent.source`): the parent's
+full-domain ``fielddump`` files, or its ``nestdump`` band files (``&NESTDUMP``,
+``src/modnestdump.f90``, plan item D1) plus the ``nestdump_init`` block for the
+initial condition.  Both go through the same cut, the same writer and produce
+the same file; a parent run with both switches on at one cadence gives
+bit-identical nesting files (``test_nestdump_tiny.py``).  The nestdump band has
+no interior, so with that source the ``prof.inp`` seed and the recorded driving
+parent profile come from the single initial block.
+
 Usage
 -----
     python make_child_case.py <parent_case_dir> <outdir> [--preset ...]
@@ -45,6 +54,8 @@ import caselib
 from caselib import (
     CoarsenedFieldDump,
     FieldDump,
+    NestDump,
+    check_finite_slabs,
     coarsen_fluid_mask,
     cube_geometry,
     load_solid_mask,
@@ -214,44 +225,70 @@ class DrivingParent:
     jtot: int
     ktot: int
     label: str
+    #: ``"fielddump"`` -- full-domain dumps, every level holds the whole child
+    #: window; ``"nestdump"`` -- the parent-side zone dump (``&NESTDUMP``,
+    #: ``caselib.NestDump``), every level holds the band only and the initial
+    #: block comes from the ``nestdump_init`` files.
+    source: str = "fielddump"
 
     # -- constructors ------------------------------------------------------- #
 
     @classmethod
-    def matched(cls, parent_dir: Path, preset: Preset) -> "DrivingParent":
+    def matched(cls, parent_dir: Path, preset: Preset,
+                source: str = "fielddump") -> "DrivingParent":
         """V1: parent and child on one grid, slabs cut rather than interpolated."""
+        dump = cls._open(parent_dir, preset.parent_expnr, preset.dx, source)
         return cls(
-            dump=FieldDump(parent_dir, preset.parent_expnr, preset.dx),
+            dump=dump,
             source_expnr=preset.parent_expnr, dx=preset.dx, refine=1, coarsen=1,
             i0=preset.child_i0, j0=preset.child_j0,
             itot=preset.itot, jtot=preset.jtot, ktot=preset.ktot,
-            label=f"{preset.parent_expnr} at {preset.dx:g} m (r = 1, slabs cut)",
+            label=f"{preset.parent_expnr} at {preset.dx:g} m (r = 1, slabs cut, {source})",
+            source=source,
         )
 
     @classmethod
-    def refined(cls, parent_dir: Path, point: RefinedPoint) -> "DrivingParent":
+    def refined(cls, parent_dir: Path, point: RefinedPoint,
+                source: str = "fielddump") -> "DrivingParent":
         """V0: the driving grid is ``point.refine`` times coarser than the child's."""
         d, c = point.driver, point.child
         if point.coarsen > 1:
+            if source != "fielddump":
+                raise ValueError(
+                    "the filtered arm box-filters the fine reference's full dumps; "
+                    "it cannot be driven from a nestdump band")
             dump: Any = CoarsenedFieldDump(
                 FieldDump(parent_dir, point.reference_expnr, c.dx), point.coarsen)
-            source = point.reference_expnr
-            label = (f"{source} at {c.dx:g} m, box-filtered by {point.coarsen} "
+            source_nr = point.reference_expnr
+            label = (f"{source_nr} at {c.dx:g} m, box-filtered by {point.coarsen} "
                      f"onto the {d.dx:g} m grid (r = {point.refine}, slabs interpolated)")
         else:
-            dump = FieldDump(parent_dir, d.parent_expnr, d.dx)
-            source = d.parent_expnr
-            label = (f"{source} at {d.dx:g} m "
-                     f"(r = {point.refine}, slabs interpolated)")
-        return cls(dump=dump, source_expnr=source, dx=d.dx, refine=point.refine,
+            dump = cls._open(parent_dir, d.parent_expnr, d.dx, source)
+            source_nr = d.parent_expnr
+            label = (f"{source_nr} at {d.dx:g} m "
+                     f"(r = {point.refine}, slabs interpolated, {source})")
+        return cls(dump=dump, source_expnr=source_nr, dx=d.dx, refine=point.refine,
                    coarsen=point.coarsen, i0=d.child_i0, j0=d.child_j0,
-                   itot=d.itot, jtot=d.jtot, ktot=d.ktot, label=label)
+                   itot=d.itot, jtot=d.jtot, ktot=d.ktot, label=label, source=source)
+
+    @staticmethod
+    def _open(parent_dir: Path, expnr: str, dx: float, source: str) -> Any:
+        if source == "fielddump":
+            return FieldDump(parent_dir, expnr, dx)
+        if source == "nestdump":
+            return NestDump(parent_dir, expnr, dx)
+        raise ValueError(f"unknown driving source {source!r}; 'fielddump' or 'nestdump'")
 
     # -- derived ------------------------------------------------------------ #
 
     @property
     def interpolates(self) -> bool:
         return self.refine > 1
+
+    @property
+    def complete_levels(self) -> bool:
+        """Whether every level holds the whole window (so a profile can be taken from it)."""
+        return self.source == "fielddump"
 
     def window_cells(self, preset: Preset) -> Tuple[int, int, int]:
         """The child window, in driving-grid cells."""
@@ -422,6 +459,20 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     icell[icell == 0] = np.nan
     imean = {c: np.zeros(nkp) for c in "uvw"}
     imsq = {c: np.zeros(nkp) for c in "uvw"}
+    # How many levels the profiles below are averaged over.  A full-domain dump
+    # contributes every level; a nestdump band has no interior, so the profile
+    # (which only seeds prof.inp and reports what the parent knew) is taken
+    # from the single initial block instead.
+    n_profile = n_use if driving.complete_levels else 1
+
+    def accumulate_profile(cu, cv, cw) -> None:
+        uc, vc, wc = caselib.cell_centred(cu[:-1], cv[:, :-1], cw[:, :, :-1])
+        usum[:] += np.where(fluid, uc, 0.0).sum(axis=(0, 1)) / ncell
+        vsum[:] += np.where(fluid, vc, 0.0).sum(axis=(0, 1)) / ncell
+        for c, arr in zip("uvw", (uc, vc, wc)):
+            blk = arr[np.ix_(ii_p, jj_p)]
+            imean[c] += np.where(isel, blk, 0.0).sum(axis=(0, 1)) / icell
+            imsq[c] += np.where(isel, blk * blk, 0.0).sum(axis=(0, 1)) / icell
 
     # ---- the nesting file, through the production per-level writer ------- #
     # The temporal ratio parent_dt / dtmax -- the boundary cadence over the
@@ -468,6 +519,19 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
             pu, pv, pw = dump.read_level(int(lev))
             cu, cv, cw = dump.child_block(pu, pv, pw, pi0, pj0, pni, pnj)
             initial_fields = None
+            if n == 0 and not driving.complete_levels:
+                # The band has no interior: the initial block is the parent's
+                # separate whole-box write at the first dump time, which is
+                # the instant of level 0 (modnestdump writes both from the
+                # same field).  It also stands in for the profile.
+                iu, iv, iw = dump.read_init()
+                if abs(float(dump.init_time) - float(all_times[0])) > 1.0e-6:
+                    raise RuntimeError(
+                        f"nestdump_init is stamped t = {dump.init_time} but the first "
+                        f"band level is t = {all_times[0]}")
+                accumulate_profile(iu, iv, iw)
+                if preset.init_from_parent:
+                    cu, cv, cw = iu, iv, iw
             if n == 0 and preset.init_from_parent:
                 # Schema 2's optional full-domain block: the child cold-starts from
                 # the parent's own instantaneous field, so the interior turbulence
@@ -496,16 +560,13 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                 level = slabs_from_parent(pgrid, cu, cv, cw, child=grid, nzone=nzone)
             else:
                 level = slabs_from_fields(grid, nzone, cu, cv, cw)
+            # A slab that reached past a nestdump band is NaN, not zero.
+            check_finite_slabs(level, getattr(dump, "nzone", pni), driving.dx)
             phi_after[n] = writer.append_level(
                 times[n] - times[0], level, initial_fields=initial_fields,
             )["flux_residual"]
-            uc, vc, wc = caselib.cell_centred(cu[:-1], cv[:, :-1], cw[:, :, :-1])
-            usum += np.where(fluid, uc, 0.0).sum(axis=(0, 1)) / ncell
-            vsum += np.where(fluid, vc, 0.0).sum(axis=(0, 1)) / ncell
-            for c, arr in zip("uvw", (uc, vc, wc)):
-                blk = arr[np.ix_(ii_p, jj_p)]
-                imean[c] += np.where(isel, blk, 0.0).sum(axis=(0, 1)) / icell
-                imsq[c] += np.where(isel, blk * blk, 0.0).sum(axis=(0, 1)) / icell
+            if driving.complete_levels:
+                accumulate_profile(cu, cv, cw)
     # cadence, correction and refinement, accumulated level by level in the
     # writer; the refinement verdict already carries "allowed" and the reason
     diagnostics = writer.diagnostics
@@ -526,20 +587,22 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         # velocity field is overwritten by the interpolated parent block anyway
         # -- so linear interpolation, held constant outside the coarse range, is
         # ample and is not a claim about sub-parent-scale structure.
-        uprof = np.interp(zf, pzf, usum / n_use)
-        vprof = np.interp(zf, pzf, vsum / n_use)
+        uprof = np.interp(zf, pzf, usum / n_profile)
+        vprof = np.interp(zf, pzf, vsum / n_profile)
         prof_comment = (f"driving parent ({driving.label}) time- and plane-mean "
                         f"profile, fluid cells only, interpolated from its "
                         f"{driving.dx:g} m levels")
     else:
         uprof = np.empty(preset.child_ktot)
         vprof = np.empty(preset.child_ktot)
-        uprof[:-1] = usum / n_use
-        vprof[:-1] = vsum / n_use
+        uprof[:-1] = usum / n_profile
+        vprof[:-1] = vsum / n_profile
         uprof[-1] = uprof[-2]
         vprof[-1] = vprof[-2]
         prof_comment = ("parent sub-region time- and plane-mean profile "
-                        "(fluid cells only)")
+                        "(fluid cells only)"
+                        + ("" if driving.complete_levels else
+                           ", from the nestdump initial block only"))
     write_prof(casedir / f"prof.inp.{nr}", zf, u=uprof, v=vprof, e12=preset.tke0,
                comment=prof_comment)
     driving_profile = {
@@ -548,20 +611,25 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         "dx_m": driving.dx,
         "z": pzf.tolist(),
         "interior_columns": [int(ii_p.size), int(jj_p.size)],
-        "u": (imean["u"] / n_use).tolist(),
-        "v": (imean["v"] / n_use).tolist(),
-        "w": (imean["w"] / n_use).tolist(),
-        "tke": (0.5 * sum(imsq[c] / n_use - (imean[c] / n_use) ** 2
+        "u": (imean["u"] / n_profile).tolist(),
+        "v": (imean["v"] / n_profile).tolist(),
+        "w": (imean["w"] / n_profile).tolist(),
+        "tke": (0.5 * sum(imsq[c] / n_profile - (imean[c] / n_profile) ** 2
                           for c in "uvw")).tolist(),
+        "n_levels": int(n_profile),
         "note": ("interior-only, fluid-only, over the same guard + ramp exclusion "
                  "the child's statistics use, on the driving grid; this is what "
-                 "the parent itself knew"),
+                 "the parent itself knew"
+                 + ("" if driving.complete_levels else
+                    "; from the single nestdump initial block, the band carries "
+                    "no interior")),
     }
 
     # ---- the manifest ----------------------------------------------------- #
     manifest = {
         "preset": preset.name,
         "parent_dir": str(Path(parent_dir).resolve()),
+        "driving_source": driving.source,
         "refinement": {
             "spatial": driving.refine,
             "spatial_from_file": diagnostics["refinement"]["spatial"],
@@ -658,10 +726,18 @@ def main() -> None:
     parser.add_argument("outdir", type=Path)
     parser.add_argument("--preset", default="production")
     parser.add_argument("--ibm-backend", default="auto")
+    parser.add_argument("--source", default="fielddump", choices=("fielddump", "nestdump"),
+                        help="which parent output to build from: the full field dumps "
+                             "or the &NESTDUMP band files")
     args = parser.parse_args()
 
     preset = get_preset(args.preset)
-    casedir = build(args.parent_dir, args.outdir, preset, ibm_backend=args.ibm_backend)
+    driving = DrivingParent.matched(args.parent_dir, preset, source=args.source)
+    try:
+        casedir = build(args.parent_dir, args.outdir, preset,
+                        ibm_backend=args.ibm_backend, driving=driving)
+    finally:
+        driving.dump.close()
     manifest = json.loads((casedir / "manifest.json").read_text())
     print(f"child case written to {casedir}")
     cad = manifest["cadence"]

@@ -24,6 +24,7 @@ priori, which also gives the error metrics a natural, run-independent scale.
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass, replace
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -193,6 +194,19 @@ class Preset:
     #: is what makes the child an exact sub-model of the parent.
     clear_child_zone: bool = False
     init_from_parent: bool = True
+    #: What the parent writes during its production window, and therefore
+    #: what ``make_child_case`` can build the child from:
+    #:
+    #: ``"fielddump"`` -- full-domain 3-D dumps of ``u, v, w`` every ``dtdump``
+    #:                    (``&OUTPUT lfielddump``), the V1/V2/C0 path.  Needed
+    #:                    whenever the parent is also the *reference* the child
+    #:                    is compared against, or a V0 driver is box-filtered.
+    #: ``"nestdump"``  -- only the child's band and one initial block
+    #:                    (``&NESTDUMP``, ``src/modnestdump.f90``, plan item D1):
+    #:                    what a driving parent needs to write at a fine cadence.
+    #: ``"both"``      -- the two side by side, at the same ``dtdump``; the
+    #:                    bit-identity check of ``test_nestdump_tiny`` uses it.
+    parent_output: str = "fielddump"
     #: experiment numbers
     parent_expnr: str = "903"
     child_expnr: str = "904"
@@ -311,6 +325,59 @@ class Preset:
     def zone_cells(self) -> int:
         """Total zone thickness in child cells, L_imp + L_rel."""
         return int(np.ceil((self.guardwidth + self.zonewidth) / self.dx - 1.0e-9))
+
+
+    # -- the parent-side zone dump (&NESTDUMP, src/modnestdump.f90) --------- #
+
+    @property
+    def writes_fielddump(self) -> bool:
+        return self.parent_output in ("fielddump", "both")
+
+    @property
+    def writes_nestdump(self) -> bool:
+        return self.parent_output in ("nestdump", "both")
+
+    def nestdump_nzone(self, child: Optional["Preset"] = None) -> int:
+        """Band thickness the parent has to dump, in **parent** cells.
+
+        The child's stored zone (``child.nzone`` cells of ``child.dx``) or its
+        guard + ramp, whichever is wider, expressed on this preset's grid and
+        rounded up, **plus one cell**: the linear tangential reconstruction of
+        ``udprep.nesting.conservative_interpolate`` takes the slope of the
+        outermost zone cell from its inner neighbour, so a refined child needs
+        one parent cell more than the zone itself.  ``child`` defaults to this
+        preset's own child (ratio 1), for which the margin is simply spare.
+        """
+        c = self if child is None else child
+        width = max(c.nzone * c.dx, c.guardwidth + c.zonewidth)
+        return int(np.ceil(width / self.dx - 1.0e-9)) + 1
+
+    def nestdump_sections(self, child: Optional["Preset"] = None
+                          ) -> "OrderedDict[str, object]":
+        """The ``&NESTDUMP`` block for this parent, boxed on ``child``'s window.
+
+        ``child`` (default: this preset's own child) must sit on the same
+        physical window -- a V0 driver is a ``dataclasses.replace`` of the fine
+        preset with a coarser mesh, so it does -- and the box must land on this
+        grid's faces, which the solver checks again and refuses otherwise.
+        """
+        c = self if child is None else child
+        x0, y0 = c.child_origin
+        for label, value in (("x0", x0), ("y0", y0),
+                             ("xsize", c.child_xlen), ("ysize", c.child_ylen)):
+            if abs(value / self.dx - round(value / self.dx)) > 1.0e-9:
+                raise ValueError(
+                    f"nestdump {label} = {value} m is not on the {self.dx} m parent grid")
+        return OrderedDict([
+            ("lnestdump", True),
+            ("tnestdump", float(self.dtdump)),
+            ("nestdump_x0", float(x0)),
+            ("nestdump_y0", float(y0)),
+            ("nestdump_xsize", float(c.child_xlen)),
+            ("nestdump_ysize", float(c.child_ylen)),
+            ("nestdump_nzone", int(self.nestdump_nzone(c))),
+            ("nestdump_linit", True),
+        ])
 
     @property
     def t_start(self) -> float:
@@ -646,6 +713,10 @@ class Preset:
             )
         if self.geometry not in ("plaza", "uniform"):
             errors.append(f"geometry must be 'plaza' or 'uniform', got {self.geometry!r}")
+        if self.parent_output not in ("fielddump", "nestdump", "both"):
+            errors.append(
+                f"parent_output must be 'fielddump', 'nestdump' or 'both', got "
+                f"{self.parent_output!r}")
         for cx, cy in self.removed_cubes_reaching_the_interior():
             errors.append(
                 f"clearing the child's zone would remove a cube at ({cx:g}, {cy:g}) m "

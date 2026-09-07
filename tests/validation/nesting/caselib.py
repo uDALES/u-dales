@@ -12,6 +12,7 @@ Contents
 ``write_prof``/``_lscale``  the 1-D input profiles (prof.inp defines the z grid)
 ``run_preprocessing``     the repo's standard ``UDPrep`` path for the IBM inputs
 ``FieldDump``             reader for the per-rank ``fielddump.XXX.YYY.<nr>.nc``
+``NestDump``              reader for the per-rank ``nestdump[_init].XXX.YYY.<nr>.nc``
 ``load_solid_mask``       the IBM solid cell-centre mask, from ``solid_c.txt``
 ``cell_centred``          face-staggered (u, v, w) -> co-located cell centres
 """
@@ -505,6 +506,218 @@ class CoarsenedFieldDump:
 
     def __exit__(self, *exc) -> None:
         self.close()
+
+
+# --------------------------------------------------------------------------- #
+# Reading the parent-side zone dump (&NESTDUMP, src/modnestdump.f90)
+# --------------------------------------------------------------------------- #
+
+
+class NestDump:
+    """Assemble the per-rank ``nestdump.XXX.YYY.<expnr>.nc`` into the child box.
+
+    The parent wrote, per rank, the intersection of its subdomain with each of
+    the four strips of the band (``nestdump_nzone`` parent cells inside each
+    lateral face of the child box) and, once, its part of the whole box
+    (``nestdump_init.XXX.YYY.<expnr>.nc``).  Every block carries its global
+    index range as attributes, so the box is assembled here without knowing the
+    decomposition; overlapping blocks (the strips meet at the corners, ranks
+    share their upper face through the halo) carry identical values.
+
+    Same interface as :class:`FieldDump` for what the child builder uses --
+    ``times``, ``itot``/``jtot``/``ktot`` (of the **parent**), ``dx``,
+    ``read_level``, ``child_block``, ``close`` -- with one difference:
+    :meth:`read_level` returns the **box**, already staggered the way
+    ``child_block`` would cut it, and ``NaN`` wherever the parent did not write
+    (the interior).  A slab cut or prolongation that reaches outside the band
+    therefore comes out non-finite, which ``make_child_case`` checks for, rather
+    than silently taking zeros.  :meth:`read_init` returns the whole box.
+
+    ``u`` is at ``xh(i0..i0+ni)`` (``ni + 1`` faces), ``v`` at ``yh(j0..j0+nj)``,
+    ``w`` at ``zh(1..ktot+1)`` with the lid value included -- the complete
+    staggered set the nesting writer wants.
+    """
+
+    def __init__(self, rundir: Path, expnr: str, dx: float):
+        self.rundir = Path(rundir)
+        self.expnr = str(expnr)
+        self.dx = float(dx)
+        self.files = sorted(self.rundir.glob(f"nestdump.???.???.{self.expnr}.nc"))
+        self.init_files = sorted(self.rundir.glob(f"nestdump_init.???.???.{self.expnr}.nc"))
+        if not self.files:
+            raise FileNotFoundError(
+                f"no nestdump.???.???.{self.expnr}.nc under {self.rundir}"
+            )
+        self._open: Dict[Path, Any] = {}
+        #: per band file: list of (suffix, i1, i2, j1, j2), 0-based inclusive cells
+        self._pieces: Dict[Path, List[Tuple[str, int, int, int, int]]] = {}
+        self.times: np.ndarray = np.zeros(0)
+        self._probe()
+
+    def _dataset(self, path: Path):
+        from netCDF4 import Dataset
+
+        ds = self._open.get(path)
+        if ds is None:
+            ds = Dataset(path, "r")
+            self._open[path] = ds
+        return ds
+
+    def close(self) -> None:
+        for ds in self._open.values():
+            try:
+                ds.close()
+            except Exception:
+                pass
+        self._open.clear()
+
+    def __enter__(self) -> "NestDump":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+    def __del__(self) -> None:  # pragma: no cover - best effort
+        self.close()
+
+    @staticmethod
+    def _block_range(var) -> Tuple[int, int, int, int]:
+        """0-based inclusive cell range of one block, from its attributes."""
+        return (int(var.i_start) - 1, int(var.i_end) - 1,
+                int(var.j_start) - 1, int(var.j_end) - 1)
+
+    def _probe(self) -> None:
+        from netCDF4 import Dataset
+
+        times = None
+        header = None
+        for path in self.files:
+            with Dataset(path, "r") as ds:
+                attrs = {k: ds.getncattr(k) for k in ds.ncattrs()}
+                if header is None:
+                    header = attrs
+                    if abs(float(attrs["dx"]) - self.dx) > 1.0e-9 * self.dx:
+                        raise ValueError(
+                            f"{path}: parent dx = {attrs['dx']} but {self.dx} was expected")
+                else:
+                    for key in ("itot", "jtot", "ktot", "box_i_start", "box_i_end",
+                                "box_j_start", "box_j_end", "nzone"):
+                        if attrs[key] != header[key]:
+                            raise ValueError(f"{path}: {key} differs between rank files")
+                pieces = []
+                for face in ("west", "east", "south", "north"):
+                    name = f"u_{face}"
+                    if name in ds.variables:
+                        pieces.append((f"_{face}",) + self._block_range(ds.variables[name]))
+                self._pieces[path] = pieces
+                t = np.asarray(ds.variables["time"][:], dtype=float)
+            if times is None or t.size < times.size:
+                times = t
+        assert header is not None
+        self.itot = int(header["itot"])
+        self.jtot = int(header["jtot"])
+        self.ktot = int(header["ktot"])
+        self.i0 = int(header["box_i_start"]) - 1
+        self.j0 = int(header["box_j_start"]) - 1
+        self.ni = int(header["box_i_end"]) - self.i0
+        self.nj = int(header["box_j_end"]) - self.j0
+        self.nzone = int(header["nzone"])
+        self.tnestdump = float(header["tnestdump"])
+        self.times = times if times is not None else np.zeros(0)
+
+    @property
+    def ntime(self) -> int:
+        return int(self.times.size)
+
+    @property
+    def has_init(self) -> bool:
+        return bool(self.init_files)
+
+    def _empty_box(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        ni, nj, nk = self.ni, self.nj, self.ktot
+        u = np.full((ni + 1, nj, nk), np.nan, dtype=np.float64)
+        v = np.full((ni, nj + 1, nk), np.nan, dtype=np.float64)
+        w = np.full((ni, nj, nk + 1), np.nan, dtype=np.float64)
+        return u, v, w
+
+    def _place(self, out, ds, name: str, i1: int, i2: int, j1: int, j2: int,
+               n: Optional[int]) -> None:
+        """Copy block ``name`` of ``ds`` into the box arrays ``out = (u, v, w)``."""
+        u, v, w = out
+        ia, ja = i1 - self.i0, j1 - self.j0
+        ni, nj = i2 - i1 + 1, j2 - j1 + 1
+        for comp, arr, di, dj in (("u", u, 1, 0), ("v", v, 0, 1), ("w", w, 0, 0)):
+            var = ds.variables[f"{comp}{name}"]
+            # stored (time, z, y, x) or (z, y, x); to (x, y, z)
+            block = np.asarray(var[n, :, :, :] if n is not None else var[:, :, :],
+                               dtype=np.float64).transpose(2, 1, 0)
+            if ia < 0 or ja < 0 or ia + ni + di > arr.shape[0] or ja + nj + dj > arr.shape[1]:
+                raise ValueError(f"block {comp}{name} at cells {i1}..{i2} x {j1}..{j2} "
+                                 f"falls outside the box")
+            arr[ia:ia + ni + di, ja:ja + nj + dj, :] = block
+
+    def read_level(self, n: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Box ``(u, v, w)`` at time level ``n``; ``NaN`` outside the band."""
+        out = self._empty_box()
+        for path in self.files:
+            ds = self._dataset(path)
+            for suffix, i1, i2, j1, j2 in self._pieces[path]:
+                self._place(out, ds, suffix, i1, i2, j1, j2, n)
+        return out
+
+    def read_init(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """The whole box from the ``nestdump_init`` files, and its time stamp."""
+        from netCDF4 import Dataset
+
+        if not self.init_files:
+            raise FileNotFoundError(
+                f"no nestdump_init.???.???.{self.expnr}.nc under {self.rundir}; "
+                "the parent ran with nestdump_linit = .false.")
+        out = self._empty_box()
+        stamp = None
+        for path in self.init_files:
+            with Dataset(path, "r") as ds:
+                i1, i2, j1, j2 = self._block_range(ds.variables["u"])
+                self._place(out, ds, "", i1, i2, j1, j2, None)
+                t = float(ds.variables["time"][...])
+                if stamp is None:
+                    stamp = t
+                elif t != stamp:
+                    raise ValueError(f"{path}: init block time {t} != {stamp}")
+        if not all(np.isfinite(a).all() for a in out):
+            raise ValueError("the nestdump_init files do not cover the whole box")
+        self.init_time = stamp
+        return out
+
+    def child_block(self, u: np.ndarray, v: np.ndarray, w: np.ndarray,
+                    i0: int, j0: int, ni: int, nj: int
+                    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """The box *is* the child block; only check that it is the one asked for."""
+        if (i0, j0, ni, nj) != (self.i0, self.j0, self.ni, self.nj):
+            raise ValueError(
+                f"the child window (cells {i0}..{i0 + ni - 1} x {j0}..{j0 + nj - 1}) is "
+                f"not the box the parent dumped ({self.i0}..{self.i0 + self.ni - 1} x "
+                f"{self.j0}..{self.j0 + self.nj - 1}); rebuild the parent with the "
+                "matching &NESTDUMP box"
+            )
+        return u, v, w
+
+
+def check_finite_slabs(slabs: Dict[str, np.ndarray], band_cells: int, dx: float) -> None:
+    """Refuse a slab set with non-finite entries -- the band was too thin.
+
+    With :class:`NestDump` the parent's interior is ``NaN``, so a zone slab (or
+    a prolongation stencil) that reached past the band shows up here, naming
+    the slab, rather than as zeros in the nesting file.
+    """
+    bad = {name: int((~np.isfinite(arr)).sum()) for name, arr in slabs.items()
+           if not np.isfinite(arr).all()}
+    if bad:
+        raise ValueError(
+            f"non-finite values in slabs {sorted(bad)} ({bad}): the parent's nestdump "
+            f"band ({band_cells} cells of {dx:g} m) is too thin for this child's zone "
+            "and prolongation stencil; increase nestdump_nzone in the parent"
+        )
 
 
 # --------------------------------------------------------------------------- #
