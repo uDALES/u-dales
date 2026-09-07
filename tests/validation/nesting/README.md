@@ -1816,9 +1816,10 @@ divergence identity held exactly (`parent divmax 9.470e-08 -> child
 
 | job | experiment | submitted | job id |
 |---|---|---|---|
-| V0b | `v0b` (4 children: r2/r4 x constant/linear) | _pending qsub_ | _pending_ |
+| V0b | `v0b` (4 children: r2/r4 x constant/linear) | 2026-09-07 | `4000813.pbs-7` |
 
-Check `$EPHEMERAL/nesting-v0b/analysis/v0_summary.md` once it finishes.
+Queued in `v1_medium24` at submission (`qstat -u $USER`); check
+`$EPHEMERAL/nesting-v0b/analysis/v0_summary.md` once it finishes.
 
 ---
 
