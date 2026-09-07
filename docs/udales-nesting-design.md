@@ -1676,9 +1676,13 @@ against the V1 child", which conflates them — the mean must be compared normal
 (or against the child's own parent), and only the turbulence against V1. Two confounds are recorded
 rather than corrected: the V1 child ran at 3 s with linear interpolation while this child ran at
 0.5 s with the cubic, which C0 prices at $+8$–$9\,\%$ of TKE aloft and accounts for essentially all
-of the $+9.3\,\%$ "mismatch" difference the summary table reports; and the staggered layout leaves
-$-8$ m of building clearance in the child's zone (§9.4's geometric limit), so the cleared cubes
-encroach on the interior by one cell — to be checked before this run is quoted on canopy numbers.
+of the $+9.3\,\%$ "mismatch" difference the summary table reports; The second, that the staggered layout
+leaves $-8$ m of building clearance, was **checked and is not a defect**: negative clearance means
+the parent's cubes reach the child's lateral faces, which is precisely the case `clear_child_zone`
+exists for, and the property that would matter — a removed cube whose footprint also reaches the
+analysis interior, so that the statistics would span two geometries — is zero here, as
+`Preset.validate` requires and refuses otherwise. The child carries 36 cubes in the compared region
+and removes 28, none of them reaching it.
 
 **V3 — a parent that resolves no buildings (job 3996513, 5 h 40).** Five children off two
 parents, at 0.5 s with the cubic interpolant. Four have a **building-free parent** and differ only
