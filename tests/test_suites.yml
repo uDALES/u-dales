@@ -212,7 +212,7 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
           - "NestingUnitRunmodes.test_runmode_1007_geometry"
-      - label: "nesting: io unit runmode 1008 (U15-U22)"
+      - label: "nesting: io unit runmode 1008 (U15-U19, U21-U22, U44, U46-U47)"
         class: supported
         kind: unit
         component: nesting
@@ -224,7 +224,7 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
           - "NestingUnitRunmodes.test_runmode_1008_io"
-      - label: "nesting: flux unit runmode 1009 (U23-U28, U35-U39)"
+      - label: "nesting: flux unit runmode 1009 (U23-U28, U35-U39, U48)"
         class: supported
         kind: unit
         component: nesting
@@ -236,7 +236,7 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
           - "NestingUnitRunmodes.test_runmode_1009_flux"
-      - label: "nesting: update unit runmode 1010 (U29-U34)"
+      - label: "nesting: update unit runmode 1010 (U29-U34, U45, U49)"
         class: supported
         kind: unit
         component: nesting
@@ -260,7 +260,7 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/nesting/test_nesting.py"
           - "NestingUnitRunmodes.test_runmode_1011_init"
-      - label: "nesting: abort cases (U13, U22, U27, schema 2)"
+      - label: "nesting: abort cases (U13, U22, U27, F3, F4, F5, schema 2)"
         class: supported
         kind: unit
         component: nesting

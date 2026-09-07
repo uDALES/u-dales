@@ -69,9 +69,9 @@ CONFIGS: Dict[str, Tuple[int, int]] = {
 RUNMODES = {
     1006: "weights (U1-U7)",
     1007: "geometry (U8-U14)",
-    1008: "io (U15-U22)",
-    1009: "flux (U23-U28, U35-U39)",
-    1010: "update (U29-U34)",
+    1008: "io (U15-U19, U21-U22, U44, U46-U47)",
+    1009: "flux (U23-U28, U35-U39, U48)",
+    1010: "update (U29-U34, U45, U49)",
     1011: "cold-start init from the parent (U40-U43)",
 }
 
@@ -156,6 +156,31 @@ ABORT_CASES = [
         {"nestfile": f"'bad_initstag.{EXPNR}.nc'"},
         "u_init stagger: file =",
     ),
+    # review 2026-09-06 items F3-F5. F5: the stored residual is clean, so the
+    # cheap init check passes and the per-level slab validator must catch the
+    # value. F4: nest_lendabort (the default) refuses at init a run that would
+    # outlast its parent record, rather than freezing the boundary hours in.
+    # F3: a nested direction must impose both of its faces; checkinitvalues
+    # stops with `stop 1`, whose message survives only on rank 0 under Intel
+    # MPI -- the abort cases run on 1 rank for that reason among others.
+    (
+        "F5 poisoned slab",
+        1009,
+        {"nestfile": f"'assertfire_nan.{EXPNR}.nc'"},
+        "non-finite or fill",
+    ),
+    (
+        "F4 run outlasts the record",
+        1008,
+        {"runtime": "1000."},
+        "extends past the end of the parent record",
+    ),
+    (
+        "F3 partial nest_lateral",
+        1007,
+        {"nest_lateral": ".true.,.false.,.true.,.true."},
+        "needs both x faces",
+    ),
 ]
 
 #: Cases that must succeed and whose output must contain a given string.
@@ -177,6 +202,10 @@ OUTPUT_CASES = [
      "cold start initialised from the parent"),
     ("init: a warm start says it is ignoring the switch", 1011, {},
      "the restart file wins"),
+    # review 2026-09-06 items F4 and F2: the frozen-boundary warning under
+    # nest_lendabort = .false. (U44), and the solid-face mask count (U45).
+    ("F4 freeze warning", 1008, {}, "the boundary now freezes on that level"),
+    ("F2 masked faces", 1010, {}, "masked west faces = 16 (0 still carried a value)"),
 ]
 
 
