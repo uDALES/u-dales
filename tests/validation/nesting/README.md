@@ -1207,6 +1207,24 @@ deficit first exceeds 3 %.  Written before any C0 number existed.
 | something in the scheme causes it | 0.82 | 0.82 | 0.82 | 0.82 | 0.82 | 0.82 |
 | both | falls with dt | | | | plateau above 0.82, below 0.97 | |
 
+**Outcome (2026-09-07, jobs 3993705 C0a and 3993706 C0b, both exit 0).** The
+cadence causes it. 8-16 m / 16-64 m ratios at z/h = 2, one fine parent
+realisation (960) sliced to six cadences: 0.935 / 0.971 at 0.5 s, 0.920 / 0.960
+at 1 s, 0.914 / 0.950 at 1.5 s, 0.831 / 0.873 at 3 s, 0.713 / 0.725 at 6 s,
+0.663 / 0.650 at 9 s; deficits -2.1, -3.3, -4.9, -11.3, -20.5, -24.5 %. C0a's
+6 s and 9 s subsamples of the old dumps reproduce the C0b points to 0.002, and
+the 3 s point reproduces V1. The 16-64 m prediction for the 0.5 s point is met
+(0.971 >= 0.97); 8-16 m falls just short (0.935), which is the linear
+interpolant's own sinc^4 attenuation of an 8 m eddy at 0.5 s (about 0.84 at
+the boundary), not the scheme. The prediction that Catmull-Rom would leave
+8-16 m unchanged was wrong: it moved 0.833 -> 0.892 and halved the deficit
+(-9.9 -> -5.7 %), so `nest_timeinterp = 2` is now the default and sweep `c0c`
+(expnrs 970-975, the same six cadences with the cubic, off the same 960 dumps)
+gives its operating curve. The criterion-A flags on the C0b rows are the
+600-sample mean-flow floor (spread 8.2 %), not a finding. Full tables:
+`$EPHEMERAL/nesting-c0a/analysis/sweep_summary.md` and
+`$EPHEMERAL/nesting-c0b/analysis/sweep_summary.md`; design section 10.5.
+
 The 1 s point of C0b sits between the 1.5 s and 0.5 s columns (about 0.93 under
 the first row).  `C_dump` at `u0 = 3 m/s`: 13.5, 9, 4.5, 2.25, 1.5, 0.75 for
 9, 6, 3, 1.5, 1, 0.5 s; at the z/h = 2 wind of 3.58 m/s the 0.5 s point is
