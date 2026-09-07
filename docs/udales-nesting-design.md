@@ -1655,7 +1655,13 @@ Recorded here rather than in a tracker so they travel with the design.
 7. **I1 cannot be a bitwise test on a non-trivial case.** `FFTW_MEASURE` makes the solver
    irreproducible against itself at $\sim5\times10^{-12}$; see the I1 row in §10.3. If a genuinely
    bitwise regression gate is ever wanted, `FFTW_ESTIMATE` behind a build flag would give it, at a
-   performance cost that has not been measured.
+   performance cost that has not been measured. A second, distinct noise source showed up on the
+   small `lnesting = .false.` case (`TestI1NoOpSmallCase`, ubuntu-latest Release): the baseline and
+   branch binaries are two *different* compiles (`origin/master` vs. this branch), and even on the
+   shared, unchanged no-op code path, cross-build `-O3` codegen drift (vectorisation, instruction
+   scheduling, FMA contraction) moved results by $\sim10^{-15}$ to $2.3\times10^{-12}$ relative — a
+   same-binary self-noise reference cannot see this, since it is one binary run twice. The test's
+   bound was floored at this file's own round-off constant, $1\times10^{-9}$, instead.
 
 ---
 
