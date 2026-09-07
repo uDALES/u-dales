@@ -46,7 +46,7 @@ import json
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 
@@ -364,6 +364,61 @@ class DrivingParent:
                          & ((nj - j - 0.5) * self.dx >= lz))[0])
 
 
+def decompose_tke(imean: Dict[str, np.ndarray], imsq: Dict[str, np.ndarray],
+                  cell_sum: Dict[str, np.ndarray], cell_sumsq: Dict[str, np.ndarray],
+                  n_profile: float, icell: np.ndarray) -> Dict[str, np.ndarray]:
+    """Split the driving parent's own resolved TKE into its temporal and
+    dispersive parts, on the fluid-only interior profile.
+
+    Both parts are real, physically meaningful quantities in a spatially
+    heterogeneous flow (a canopy locks a spatial pattern into the time-mean
+    field); this function reports both rather than picking one, and makes the
+    ``tke`` this module emits consistent with the definition
+    :class:`analyse.Bundle` uses everywhere else in the campaign (V1, V2, C0)
+    and on the fine-truth side of this same V0 comparison.
+
+    ``imean``/``imsq`` are ``accumulate_profile``'s running totals: the
+    horizontal mean of ``q`` and of ``q**2``, summed level by level over the
+    fluid interior.  Dividing by ``n_profile`` gives the combined space-and-time
+    mean and mean-square, so::
+
+        total = 0.5 * sum(imsq[c] / n_profile - (imean[c] / n_profile) ** 2
+                          for c in "uvw")
+
+    is the *old* estimator: resolved variance about the combined mean, which
+    is exactly ``temporal + dispersive`` below (the cross term between a
+    time-invariant spatial pattern and a spatially uniform temporal signal
+    vanishes identically when both are expressed as deviations from their own
+    means, so the identity is exact, not approximate).
+
+    ``cell_sum``/``cell_sumsq`` are the same accumulation kept per CELL
+    (shape ``(ni, nj, nkp)``, zero outside the fluid mask): dividing by
+    ``n_profile`` gives each cell's own temporal mean and mean-square, so the
+    fluid-only horizontal average of *that* cell's variance about *its own*
+    mean is the temporal part -- pure turbulence, with the spatial variance of
+    the time-mean field (the dispersive part) excluded because each cell is
+    compared only against itself.
+
+    Returns a dict with ``"temporal"``, ``"dispersive"`` and ``"total"``
+    profiles, each an array of length ``nkp``.  ``dispersive`` is computed as
+    ``total - temporal`` rather than from a separate spatial-variance formula:
+    both quantities it is built from are independently correct, the identity
+    above is exact, and computing it this way guarantees
+    ``temporal + dispersive == total`` to floating-point round-off with no
+    extra arithmetic to drift out of step.
+    """
+    total = 0.5 * sum(imsq[c] / n_profile - (imean[c] / n_profile) ** 2
+                      for c in "uvw")
+    temporal_component = {}
+    for c in "uvw":
+        qbar = cell_sum[c] / n_profile
+        var_cell = cell_sumsq[c] / n_profile - qbar ** 2
+        temporal_component[c] = var_cell.sum(axis=(0, 1)) / icell
+    temporal = 0.5 * sum(temporal_component[c] for c in "uvw")
+    dispersive = total - temporal
+    return {"temporal": temporal, "dispersive": dispersive, "total": total}
+
+
 def build(parent_dir: Path, outdir: Path, preset: Preset,
           ibm_backend: str = "auto", margin_levels: int = 2,
           driving: Optional[DrivingParent] = None) -> Path:
@@ -486,6 +541,17 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     icell[icell == 0] = np.nan
     imean = {c: np.zeros(nkp) for c in "uvw"}
     imsq = {c: np.zeros(nkp) for c in "uvw"}
+    # Per-CELL temporal sums of q and q^2 over the same interior columns and
+    # fluid mask as imean/imsq above, but not yet reduced horizontally: this is
+    # what lets the profile below distinguish temporal turbulence (each cell's
+    # own variance about its own time mean, analyse.Bundle's definition) from
+    # the dispersive variance of the time-mean field across cells, which imean
+    # and imsq alone cannot separate.  Shape (len(ii_p), len(jj_p), nkp) per
+    # component -- a few tens of MB at the production interior size (~104^2 x
+    # 64), see decompose_tke's docstring -- so, unlike the full parent record,
+    # affordable to hold for the run of the loop.
+    cell_sum = {c: np.zeros((ii_p.size, jj_p.size, nkp)) for c in "uvw"}
+    cell_sumsq = {c: np.zeros((ii_p.size, jj_p.size, nkp)) for c in "uvw"}
     # How many levels the profiles below are averaged over.  A full-domain dump
     # contributes every level; a nestdump band has no interior, so the profile
     # (which only seeds prof.inp and reports what the parent knew) is taken
@@ -498,8 +564,11 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         vsum[:] += np.where(fluid, vc, 0.0).sum(axis=(0, 1)) / ncell
         for c, arr in zip("uvw", (uc, vc, wc)):
             blk = arr[np.ix_(ii_p, jj_p)]
-            imean[c] += np.where(isel, blk, 0.0).sum(axis=(0, 1)) / icell
+            masked = np.where(isel, blk, 0.0)
+            imean[c] += masked.sum(axis=(0, 1)) / icell
             imsq[c] += np.where(isel, blk * blk, 0.0).sum(axis=(0, 1)) / icell
+            cell_sum[c] += masked
+            cell_sumsq[c] += np.where(isel, blk * blk, 0.0)
 
     # ---- the nesting file, through the production per-level writer ------- #
     # The temporal ratio parent_dt / dtmax -- the boundary cadence over the
@@ -635,6 +704,19 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                            ", from the nestdump initial block only"))
     write_prof(casedir / f"prof.inp.{nr}", zf, u=uprof, v=vprof, e12=preset.tke0,
                comment=prof_comment)
+    if driving.complete_levels:
+        tke_parts = decompose_tke(imean, imsq, cell_sum, cell_sumsq, n_profile, icell)
+        tke_unavailable_reason = None
+    else:
+        # A nestdump (band-only) source has no interior field and only the
+        # single initial block (n_profile == 1): there is no time series to
+        # take a temporal statistic over, so none of temporal/dispersive/total
+        # is a meaningful number.  Emit the marker instead of a number that
+        # analyse_v0.parent_deficit would otherwise silently accept.
+        tke_parts = {"temporal": None, "dispersive": None, "total": None}
+        tke_unavailable_reason = (
+            "driving source is 'nestdump': no interior field and only the "
+            "single initial block, so no temporal statistic exists")
     driving_profile = {
         "grid": "driving parent, its own cell centres",
         "source": driving.label,
@@ -644,15 +726,37 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         "u": (imean["u"] / n_profile).tolist(),
         "v": (imean["v"] / n_profile).tolist(),
         "w": (imean["w"] / n_profile).tolist(),
-        "tke": (0.5 * sum(imsq[c] / n_profile - (imean[c] / n_profile) ** 2
-                          for c in "uvw")).tolist(),
+        # "tke": pure temporal turbulence -- each fluid cell's own variance
+        # about its own time mean, then averaged horizontally.  This is the
+        # definition analyse.Bundle.tke uses everywhere else in the campaign
+        # (V1, V2, C0) and on the fine-truth side of this same comparison, so
+        # it is what this module now reports too: a consistency choice, not a
+        # claim that the alternative below is wrong.
+        # "tke_dispersive": the spatial variance, over the same fluid interior,
+        # of the local time-mean field -- the dispersive kinetic energy a fixed
+        # canopy geometry locks into the mean flow.  Real and physically
+        # meaningful, not an error; reported rather than discarded.
+        # "tke_total": their sum, exactly what the combined space-and-time-mean
+        # formula this module used to report gives -- unchanged, still here,
+        # just no longer the thing compared against a purely temporal truth.
+        "tke": (tke_parts["temporal"].tolist() if tke_parts["temporal"] is not None
+                else None),
+        "tke_dispersive": (tke_parts["dispersive"].tolist()
+                           if tke_parts["dispersive"] is not None else None),
+        "tke_total": (tke_parts["total"].tolist() if tke_parts["total"] is not None
+                     else None),
+        "tke_unavailable_reason": tke_unavailable_reason,
         "n_levels": int(n_profile),
         "note": ("interior-only, fluid-only, over the same guard + ramp exclusion "
                  "the child's statistics use, on the driving grid; this is what "
-                 "the parent itself knew"
+                 "the parent itself knew.  'tke' is the per-cell temporal "
+                 "variance (analyse.Bundle's definition); 'tke_dispersive' is "
+                 "the spatial variance of the time-mean field; 'tke_total' is "
+                 "their sum"
                  + ("" if driving.complete_levels else
                     "; from the single nestdump initial block, the band carries "
-                    "no interior")),
+                    "no interior, so none of the three is available -- see "
+                    "tke_unavailable_reason")),
     }
 
     # ---- the manifest ----------------------------------------------------- #
