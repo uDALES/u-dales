@@ -1742,6 +1742,86 @@ job is for, and it has not been run.
 
 ---
 
+# V0b -- which tangential prolongation ships
+
+`tools/python/udprep/nesting.py`'s conservative interpolation reconstructs each
+parent cell's velocity tangentially in one of two ways (`Preset.prolongation`,
+`udprep.nesting.PROLONGATIONS`): `"constant"` (piecewise-constant, the shipped
+default) is exactly divergence-preserving -- design section 1.3's guarantee --
+but leaves a staircase in the child's mean wind wherever the true profile is
+sheared (W8's finding from V0's own filtered arm: `±0.1 u*`, alternating in
+sign between adjacent child levels inside one parent cell).  `"linear"`
+(conservative piecewise-linear) removes that staircase but gives up the
+divergence guarantee: the reconstructed target carries a local divergence the
+pressure solver then has to correct for, which V0 never measured because it
+ran the old constant reconstruction throughout (nesting review 2026-09-07,
+finding 2; plan section 7, R2).
+
+**What is on trial.**  Both reconstructions, at the ratios V0 already
+validated (`r = 2`, `r = 4`), driven by the C0b fine parent (960) at the FINAL
+configuration -- cadence 0.5 s, `nest_timeinterp = 2` (Catmull-Rom) -- rather
+than V0's own 3 s/linear-time setup.  Unlike V0 there is no `coarse` arm and no
+new parent run: 960 is a genuine LES, and box-filtering its own dumps onto the
+`r = 2`/`r = 4` grids (exactly V0's `filtered` arm) isolates the reconstruction
+as the only free variable.  Four children: `r2-constant`, `r2-linear`,
+`r4-constant`, `r4-linear` (`config.V0B`).
+
+**What is measured**, beyond what V0 already reports for a filtered-arm point:
+
+* pre-projection target divergence, both the driving parent's own
+  (`manifest.json`: `initial_condition_divmax.parent_before_prolongation`) and
+  the interpolated child's before the writer's own projection
+  (`.before_projection`) -- the design section 1.3 identity holds for
+  `constant` and is expected NOT to for `linear`;
+* the pressure response and how far it reaches: `analyse_v0.runtime_diagnostics`
+  now reports the time-mean of `|grad p|` over the zone and the interior
+  separately, and of their ratio (design section 10.7 item 2 / concern C1),
+  not only the per-report ratio V0 already parsed;
+* the staircase amplitude (`analyse_v0.staircase_amplitude`): the
+  child-minus-truth mean-flow error with each parent cell's own group mean
+  subtracted, isolating the intra-cell sawtooth from the smooth background
+  error criterion A already scores;
+* the existing V0 machinery unchanged: criterion A, the spectral band ratios
+  across the parent Nyquist, TKE deficit.
+
+`run_v0.write_summary`'s `constant_vs_linear` block pairs the two
+reconstructions at each ratio, next to the existing (empty, for this suite)
+`filtered_vs_coarse` block.
+
+**Cost.**  No parent build, spin-up or production -- 960 is read-only. Costed
+from V0's own measured filtered-arm rate (box-filtering included) scaled to
+960's 4800 levels (against V0's 3600): ~2.0 h total, `walltime=06:00:00`
+requested (3.0x headroom). Disk ~222 GB new output before pruning
+(4 x (45.3 GB nesting + 10.1 GB dumps)); `--prune-nesting` is used, so the
+nesting files do not accumulate. Full derivation and a real-data smoke-test
+cross-check in `submit_cx3_v0b.pbs`'s header.
+
+## Status
+
+**Prepared, validated at tiny scale, submitted (see job id below).**
+`test_v0b_tiny.py` is **19 tests, all passing (157 s on a login node)**:
+both prolongations build and run at both ratios; the divergence identity holds
+for `constant` and is confirmed NOT to for `linear` (recorded, not asserted
+away); the pressure-response and staircase reductions are finite and reported
+for every point; the `constant_vs_linear` summary pairing is populated at both
+ratios; and `prolongation=None` reproduces the writer's own default (`"constant"`)
+exactly -- every stored variable in the nesting file, checked automatically,
+not only by the one-off git-stash comparison in the implementing report.  On
+real data: a single real-data smoke build of `r2-constant` against the actual
+960 parent measured 926 s against the header's 1030 s estimate, and the
+divergence identity held exactly (`parent divmax 9.470e-08 -> child
+9.470e-08`).  `python -m unittest discover -s tools/python/tests -p
+"test_nesting*.py"` (96 tests) and `python tests/validation/nesting/test_v0_tiny.py`
+(26 tests) were re-run afterwards and are unchanged.
+
+| job | experiment | submitted | job id |
+|---|---|---|---|
+| V0b | `v0b` (4 children: r2/r4 x constant/linear) | _pending qsub_ | _pending_ |
+
+Check `$EPHEMERAL/nesting-v0b/analysis/v0_summary.md` once it finishes.
+
+---
+
 # V3 and V4 -- when parent and child geometry differ
 
 `docs/udales-nesting-design.md` section 9.4 is about the configuration the
