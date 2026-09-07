@@ -9,10 +9,15 @@
  W6           the correction magnitude and its split across faces are reported
  W7           units, cached residual, vertical ratios, FaceMasks from IBM
  W8           piecewise-linear prolongation, conservative to round-off
+ R4           linear prolongation on a two-cell parent axis does not crash
 ============ ============================================================
 
 Each test states the number it pins in its name or its assertion; the
 diagnostics tests print the numbers they compare so a run leaves a record.
+
+R4 closes a finding of the 2026-09-07 review
+(``nesting-review-2026-09-07-codex.md``), separate from the 2026-09-06 W1--W8
+items above.
 """
 
 from __future__ import annotations
@@ -890,6 +895,77 @@ class TestW8LinearProlongation(unittest.TestCase):
             conservative_interpolate(parent, pu, "u",
                                      *[child.component_coords("u", ax) for ax in range(3)],
                                      prolongation="cubic")
+
+
+# --------------------------------------------------------------------------- #
+# R4 -- linear prolongation on a two-cell parent axis (2026-09-07 review)
+# --------------------------------------------------------------------------- #
+
+
+class TestR4TwoCellParentAxis(unittest.TestCase):
+    """R4: with exactly two parent cells there is one forward difference,
+
+    and it is the right slope at *both* endpoints.  ``_tangential_slopes``
+    used to read ``fwd[last]`` there, an empty slice on a length-1 ``fwd``,
+    raising ``ValueError: could not broadcast input array from shape (3, 0, 2)
+    into shape (3, 1, 2)``.
+    """
+
+    def test_the_reviewers_reproduction_no_longer_crashes(self):
+        # The exact repro from the review: a uniform 2x2x2 parent onto an
+        # 8x8x8 child.
+        parent = NestGrid.uniform(2, 2, 2, 20.0, 20.0, 20.0)
+        child = NestGrid.uniform(8, 8, 8, 20.0, 20.0, 20.0)
+        pu = np.ones(parent.component_shape("u"))
+        pv = np.ones(parent.component_shape("v"))
+        pw = np.ones(parent.component_shape("w"))
+        cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child)
+        np.testing.assert_allclose(cu, 1.0)
+        np.testing.assert_allclose(cv, 1.0)
+        np.testing.assert_allclose(cw, 1.0)
+
+    def test_a_field_linear_along_a_two_cell_axis_prolongs_exactly(self):
+        parent = NestGrid.uniform(2, 2, 2, 20.0, 20.0, 20.0)
+        child = NestGrid.uniform(8, 8, 8, 20.0, 20.0, 20.0)
+        a, b = 1.5, 0.3
+        for axis, name in ((1, "y"), (2, "z")):
+            with self.subTest(axis=name):
+                centres = getattr(parent, f"{name}f")
+                child_centres = getattr(child, f"{name}f")
+                shape = [1, 1, 1]
+                shape[axis] = -1
+                pu = np.broadcast_to((a + b * centres).reshape(shape),
+                                     parent.component_shape("u")).copy()
+                pv = np.zeros(parent.component_shape("v"))
+                pw = np.zeros(parent.component_shape("w"))
+                cu, _, _ = interpolate_child_fields(parent, pu, pv, pw, child)
+                want_shape = [1, 1, 1]
+                want_shape[axis] = -1
+                want = (a + b * child_centres).reshape(want_shape)
+                self.assertLess(float(np.max(np.abs(cu - want))), 1e-13)
+
+    def test_a_two_cell_axis_with_a_masked_neighbour_does_not_crash(self):
+        # The smallest case that combines R4 with W8's solid-aware slope: one
+        # of the two parent cells along y is solid, so the fluid cell has no
+        # fluid neighbour at all and must fall back to a zero (constant)
+        # slope rather than reading the empty forward-difference slice R4
+        # fixed.
+        parent = NestGrid.uniform(4, 2, 4, 40.0, 20.0, 40.0)
+        child = NestGrid.uniform(8, 4, 8, 40.0, 20.0, 40.0)
+        fluid = np.ones((4, 2, 4), dtype=bool)
+        fluid[:, 1, :] = False
+        masks = stagger_masks_from_ibm(fluid)
+        b = 0.2
+        pu = np.broadcast_to((b * parent.yf)[None, :, None],
+                             parent.component_shape("u")).copy()
+        pu[~masks["u"]] = 0.0
+        coords = [child.component_coords("u", ax) for ax in range(3)]
+        guarded = conservative_interpolate(parent, pu, "u", *coords,
+                                           parent_mask=masks["u"])
+        in_cell0 = child.yf < parent.yh[1]
+        want0 = b * parent.yf[0]
+        self.assertLess(float(np.max(np.abs(guarded[:, in_cell0, :] - want0))), 1e-13)
+        np.testing.assert_array_equal(guarded[:, ~in_cell0, :], 0.0)   # the wall stays 0
 
 
 if __name__ == "__main__":  # pragma: no cover

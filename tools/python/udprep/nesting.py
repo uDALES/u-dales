@@ -609,7 +609,11 @@ def _tangential_slopes(
                    - np.take(arr, np.arange(0, n - 2), axis=axis)) / span
         slope[tuple(interior)] = central
     slope[tuple(first)] = fwd[tuple(first)]
-    slope[tuple(last)] = fwd[tuple(last)] if n == 2 else np.take(fwd, [n - 2], axis=axis)
+    # With exactly two parent cells there is a single forward difference
+    # (fwd has length 1 on this axis); it is the correct slope at both
+    # endpoints, so re-use fwd[first] rather than the out-of-range
+    # fwd[last] (which would slice an empty range and fail to broadcast).
+    slope[tuple(last)] = fwd[tuple(first)] if n == 2 else np.take(fwd, [n - 2], axis=axis)
     if mask is not None:
         fluid = np.asarray(mask, dtype=bool)
         left = np.zeros_like(fluid)
