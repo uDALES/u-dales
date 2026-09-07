@@ -1527,7 +1527,8 @@ contains
     use modfields,    only : initfields
     use modibm,       only : createmasks
     use modnestingio, only : nestio_open, nestio_validate, nestio_read,     &
-                             nestio_close, nestio_hdr
+                             nestio_close, nestio_hdr, nestio_check_values, &
+                             nestio_fill_value
     use modnesting,   only : nestfile, nesting_finalize, lnesting,          &
                              nest_lendabort, nest_tau, nest_fluxtol,        &
                              nest_lfluxassert, nesting_init,                &
@@ -1583,6 +1584,7 @@ contains
         if (.not. u15_u16_slab(c, f)) all_passed = .false.
       end do
     end do
+    if (.not. u47_slab_validator()) all_passed = .false.
     call nestio_close()
 
     ! ---- the scheme-level tests need the zone machinery ----
@@ -1706,6 +1708,39 @@ contains
 
       deallocate(full, part)
     end function u15_u16_slab
+
+    !> U47 (review F5): the validator every slab read goes through. A clean
+    !! slab passes; the same buffer poisoned with a NaN, with +Inf, and with
+    !! the file's fill value is rejected each time. Every rank runs it, since
+    !! the reads are per rank.
+    logical function u47_slab_validator()
+      use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan, ieee_positive_inf
+
+      integer :: ierr, nclean, nnan, ninf, nfill
+      real    :: keep
+      real, allocatable :: buf(:,:,:)
+
+      allocate(buf(nzone + 1, ktot, jtot))
+      call nestio_read('u_west', 1, 1, jtot, buf, ierr)
+      nclean = ierr                                   ! the read itself validates
+      if (ierr == 0) nclean = nestio_check_values('u_west', 1, buf)
+
+      keep = buf(2, 3, 4)
+      buf(2, 3, 4) = ieee_value(keep, ieee_quiet_nan)
+      nnan = nestio_check_values('u_west', 1, buf)
+      buf(2, 3, 4) = ieee_value(keep, ieee_positive_inf)
+      ninf = nestio_check_values('u_west', 1, buf)
+      buf(2, 3, 4) = nestio_fill_value('u_west')
+      nfill = nestio_check_values('u_west', 1, buf)
+      buf(2, 3, 4) = keep
+
+      u47_slab_validator = nest_all_ranks((nclean == 0) .and. (nnan /= 0) .and. &
+                                          (ninf /= 0) .and. (nfill /= 0))
+      if (myid == 0) write(*,'(a,4i4,a,es12.4)') '   validator status clean/NaN/Inf/fill = ', &
+        nclean, nnan, ninf, nfill, '; file fill value = ', nestio_fill_value('u_west')
+      call nest_report('U47 slab validator rejects NaN, Inf and fill values', u47_slab_validator)
+      deallocate(buf)
+    end function u47_slab_validator
 
     !> U17: the fixture is linear in t, so both interpolants must reproduce
     !! it exactly at any time.

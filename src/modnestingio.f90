@@ -41,6 +41,7 @@ module modnestingio
   private
   public :: nestio_open, nestio_validate, nestio_read, nestio_read_block, nestio_close
   public :: nestio_hdr, nestio_header_type, nestio_tread
+  public :: nestio_check_values, nestio_fill_value
 
   !> Schema versions this reader understands (global attribute
   !! udales_nesting_schema). Version 1 is the original file; version 2 adds the
@@ -523,6 +524,8 @@ contains
     nestio_tread = nestio_tread + (MPI_Wtime() - t0)
     if (nestio_failed(ierr, 'nf90_get_var('//trim(varname)//')')) return
 
+    ierr = nestio_check_values(varname, it, buf)
+
   end subroutine nestio_read
 
 
@@ -592,7 +595,78 @@ contains
     nestio_tread = nestio_tread + (MPI_Wtime() - t0)
     if (nestio_failed(ierr, 'nf90_get_var('//trim(varname)//')')) return
 
+    ierr = nestio_check_values(varname, 0, buf)
+
   end subroutine nestio_read_block
+
+
+  !> Validate a buffer just read from variable varname at time level it (0
+  !! for a time-independent block): every element must be finite and must not
+  !! equal the variable's fill value. Missing or NaN data are an error, not a
+  !! sentinel (spec section 5), and a NaN would otherwise pass straight
+  !! through the flux assertion -- NaN makes Phi NaN and abs(NaN) > tol is
+  !! false. Returns 0 when clean; otherwise reports (on the reading rank: the
+  !! reads are per rank) the count and the first offending element and
+  !! returns -1. Called by nestio_read and nestio_read_block on every read;
+  !! public so the unit tests can poison a buffer and check it fires.
+  integer function nestio_check_values(varname, it, buf) result(ierr)
+    use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
+
+    character(len=*), intent(in) :: varname
+    integer,          intent(in) :: it
+    real,             intent(in) :: buf(:,:,:)
+
+    integer :: i, j, k, nbad, ibad(3)
+    real    :: fill, ftol
+    logical :: lbad
+
+    fill = nestio_fill_value(varname)
+    ftol = 1.e-6*abs(fill)
+    nbad = 0
+    ibad = 0
+    do k = 1, size(buf,3)
+      do j = 1, size(buf,2)
+        do i = 1, size(buf,1)
+          lbad = .not. ieee_is_finite(buf(i,j,k))
+          if (.not. lbad) lbad = abs(buf(i,j,k) - fill) <= ftol
+          if (lbad) then
+            if (nbad == 0) ibad = (/ i, j, k /)
+            nbad = nbad + 1
+          end if
+        end do
+      end do
+    end do
+
+    ierr = 0
+    if (nbad == 0) return
+
+    ierr = -1
+    write(*,'(a,i0,a,i0,a,a,a,i0,a,a)') ' modnestingio (rank ', myid, '): ', nbad, &
+      ' non-finite or fill-value element(s) in ', trim(varname), ' at time level ', it, &
+      ' of file ', trim(ncfname)
+    write(*,'(a,3i6,a,es12.4,a,es12.4)') '   first at buffer index ', ibad, &
+      ', value ', buf(ibad(1),ibad(2),ibad(3)), ', fill value ', fill
+
+  end function nestio_check_values
+
+
+  !> The fill value the file declares for varname (_FillValue attribute), or
+  !! netCDF's default fill for doubles when it declares none -- which is what
+  !! an unwritten region of a variable reads back as.
+  real function nestio_fill_value(varname)
+    character(len=*), intent(in) :: varname
+
+    integer :: varid, status
+    real    :: fill
+
+    nestio_fill_value = NF90_FILL_DOUBLE
+    if (.not. lopen) return
+    status = nf90_inq_varid(ncid, trim(varname), varid)
+    if (status /= nf90_noerr) return
+    status = nf90_get_att(ncid, varid, '_FillValue', fill)
+    if (status == nf90_noerr) nestio_fill_value = fill
+
+  end function nestio_fill_value
 
 
   !> Close the nesting file. Called from modnesting::nesting_finalize.

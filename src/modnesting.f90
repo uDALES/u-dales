@@ -58,6 +58,11 @@ module modnesting
    integer            :: nest_shape       = 1
    logical            :: nest_lateral(4)  = .true.
    logical            :: nest_top         = .false.
+   !> Time interpolation of the parent data: 1 linear, 2 cubic Hermite with
+   !! unlimited Catmull-Rom slopes (default). The C0 cadence experiment
+   !! (2026-09) showed 2 halves the interior TKE deficit at the same parent
+   !! cadence; it is flux safe because the interpolant is linear in the data
+   !! (U44, design section 3.1).
    integer            :: nest_timeinterp  = 2
    integer            :: nest_nwall       = 1
    logical            :: nest_lparentgeom = .false.
@@ -1900,7 +1905,8 @@ contains
       nj = je - jb + 1
       allocate(buf(ktot, nj, ni))
       call nestio_read_block('u_init', j0, nj, i0, ni, buf, ierr)
-      if (ierr /= 0) call nest_abort('failed to read u_init from '//trim(nestfile))
+      if (ierr /= 0) call nest_abort('failed to read, or found non-finite or fill values in,'// &
+         ' u_init of '//trim(nestfile))
       do i = 1, ni
          do j = 1, nj
             do k = 1, ktot
@@ -1916,7 +1922,8 @@ contains
       if (jerank) nj = nj + 1
       allocate(buf(ktot, nj, ni))
       call nestio_read_block('v_init', j0, nj, i0, ni, buf, ierr)
-      if (ierr /= 0) call nest_abort('failed to read v_init from '//trim(nestfile))
+      if (ierr /= 0) call nest_abort('failed to read, or found non-finite or fill values in,'// &
+         ' v_init of '//trim(nestfile))
       do i = 1, ni
          do j = 1, nj
             do k = 1, ktot
@@ -1931,7 +1938,8 @@ contains
       nj = je - jb + 1
       allocate(buf(ktot + 1, nj, ni))
       call nestio_read_block('w_init', j0, nj, i0, ni, buf, ierr)
-      if (ierr /= 0) call nest_abort('failed to read w_init from '//trim(nestfile))
+      if (ierr /= 0) call nest_abort('failed to read, or found non-finite or fill values in,'// &
+         ' w_init of '//trim(nestfile))
       do i = 1, ni
          do j = 1, nj
             do k = 1, ktot + 1
@@ -1980,7 +1988,9 @@ contains
                              sds(c,f), sn3(c,f), tmp, ierr)
             if (ierr /= 0) then
                deallocate(tmp)
-               call nest_abort('failed to read a slab from '//trim(nestfile))
+               call nest_abort('failed to read, or found non-finite or fill values in, slab '// &
+                  cmp_name(c)//'_'//trim(fac_name(f))//' of '//trim(nestfile)// &
+                  ' (see the modnestingio line above)')
             end if
             nn = sn1(c,f)*sn2(c,f)*sn3(c,f)
             sbuf(c)%b(soff(c,f) + 1:soff(c,f) + nn, islot) = reshape(tmp, (/ nn /))

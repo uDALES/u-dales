@@ -60,7 +60,7 @@ integer, parameter :: TEST_NESTING_INIT     = 1011
 | `nest_shape` | integer | `1` | 1 raised cosine, 2 quintic |
 | `nest_lateral(4)` | logical | `.true.` | W, E, S, N. A nested direction must impose **both** of its faces: with `BCxm = BCxm_nesting`, `nest_lateral(1:2)` must both be `.true.`, and likewise `nest_lateral(3:4)` under `BCym_nesting`. The nesting BC replaces the convective outflow as well as the inflow, so a face left out would get neither and its ghost plane would never be set. `checkinitvalues` and `nesting_init` both reject it. |
 | `nest_top` | logical | `.false.` | Case C — **not implemented in v1**, must error if `.true.` |
-| `nest_timeinterp` | integer | `2` | 1 linear, 2 cubic Hermite (Catmull-Rom). The Hermite slopes MUST stay unlimited: the interpolant has to be linear in the data or it breaks the flux compatibility of design §3.1. |
+| `nest_timeinterp` | integer | `2` | Default 2: cubic Hermite with **unlimited Catmull-Rom** slopes; 1 = linear. The C0 cadence experiment (2026-09) showed the Hermite halves the interior TKE deficit at the same parent cadence (−9.9 % → −5.7 % at 3 s). The slopes MUST stay unlimited: the interpolant has to be linear in the data or it breaks the flux compatibility of design §3.1 (U44). |
 | `nest_nwall` | integer | `1` | wall erosion, cells |
 | `nest_lparentgeom` | logical | `.false.` | parent resolves the child geometry |
 | `nest_fluxtol` | real | `1.e-10` | abort threshold on \|Φ\| (normalised, §7) |
@@ -177,7 +177,11 @@ slab index `m` ↔ global `i = itot-nzone+m` for centres and `i = itot-nzone+m` 
 
 **Units** `m s-1` for the slabs; `net_volume_flux` and `flux_residual` carry `m3 s-1` (they are
 `sum(rho u_n dA)` with `rhobf == 1`, see the density convention below). Missing/NaN values are an
-error, not a sentinel.
+error, not a sentinel: the reader checks every slab and every initial-condition block it reads
+(`nestio_check_values`) for non-finite elements and for the variable's `_FillValue` (netCDF's
+default fill for doubles when none is declared) and aborts, naming the variable, the time level
+and the first offending element. A NaN would otherwise pass the flux assertion silently, since
+`abs(NaN) > tol` is false.
 
 **Density convention.** Fluxes are weighted by `rhobf(k)` on both the writer and the solver side,
 matching DALES's `openboundary_divcorr`. uDALES's own Poisson RHS carries no density (design F1),
