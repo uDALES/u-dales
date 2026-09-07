@@ -356,6 +356,12 @@ def summarise_v3(exp: Experiment, per_child: Dict[str, Dict]) -> Dict:
     afterwards: the spread is each child's own half-window spread of the same
     quantity, which is emitted per block.
     """
+    # Which parent drove each child.  The standoff sweep is a sweep only
+    # among children that share one parent.
+    parent_of = {c.key: c.parent_key for c in exp.children}
+    sweep_parent = next((c.parent_key for c in exp.children
+                         if c.key.startswith("standoff")), None)
+
     rows = []
     for key, m in per_child.items():
         cfg, adj = m["configuration"], m["adjustment"]
@@ -368,6 +374,7 @@ def summarise_v3(exp: Experiment, per_child: Dict[str, Dict]) -> Dict:
         d = [x for x in m["ibl"]["delta_i_over_h"] if x is not None]
         rows.append({
             "key": key,
+            "parent_key": parent_of.get(key),
             "standoff_cells": cfg["standoff_cells"],
             "standoff_m": cfg["standoff_m"],
             "first_row_fetch_h": cfg["first_row_fetch_h"],
@@ -386,10 +393,21 @@ def summarise_v3(exp: Experiment, per_child: Dict[str, Dict]) -> Dict:
             "ibl_first_h": d[0] if d else None,
             "ibl_last_h": d[-1] if d else None,
         })
-    rows.sort(key=lambda r: r["standoff_cells"])
+    rows.sort(key=lambda r: (r["standoff_cells"], r["key"]))
+
+    # The standoff sweep is only a sweep among children that share a parent.
+    # The `cleared-parent-cubes` arm carries a *different* parent (one that
+    # resolves buildings), so it is not a point on the standoff curve at all;
+    # it also has standoff_cells == 0, so keying any of this by standoff alone
+    # silently collides it with `standoff0` and reports one child's number
+    # under the other's name.  Split it out, and key by child.
+    sweep = [r for r in rows if r["parent_key"] == sweep_parent]
+    aside = [r for r in rows if r["parent_key"] != sweep_parent]
+    if not sweep:                      # no standoff children: nothing to sweep
+        sweep, aside = rows, []
 
     def series(name):
-        return [(r["standoff_cells"], r[name]) for r in rows if r[name] is not None]
+        return [(r["standoff_cells"], r[name]) for r in sweep if r[name] is not None]
 
     verdict: Dict[str, object] = {}
     sa = series("adj_u_from_zone_h")
@@ -409,20 +427,25 @@ def summarise_v3(exp: Experiment, per_child: Dict[str, Dict]) -> Dict:
                       key=lambda t: float(t.rstrip("h")))
     pb: Dict[str, object] = {}
     for stn in stations:
-        vals = [(r["standoff_cells"], r["residual_at"].get(stn), r["median_spread"])
-                for r in rows if r["residual_at"].get(stn) is not None]
+        vals = [(r["key"], r["standoff_cells"], r["residual_at"].get(stn),
+                 r["median_spread"])
+                for r in sweep if r["residual_at"].get(stn) is not None]
         if len(vals) < 2:
             continue
-        zero = next((v for k, v, _ in vals if k == 0), None)
-        spreads = [x for _, _, x in vals if x is not None]
+        zero = next((v for key_, k, v, _ in vals
+                     if k == 0 and key_.startswith("standoff")), None)
+        spreads = [x for _, _, _, x in vals if x is not None]
         spread = np.nanmedian(spreads) if spreads else None
-        better = [k for k, v, _ in vals[1:]
-                  if zero is not None and spread is not None
+        better = [k for _, k, v, _ in vals
+                  if k != 0 and zero is not None and spread is not None
                   and v < zero - spread]
         pb[stn] = {
-            "residual": {str(k): v for k, v, _ in vals},
+            "residual": {key: v for key, _, v, _ in vals},
             "spread": None if spread is None else float(spread),
             "standoffs_beating_zero_by_more_than_the_spread": better,
+            "cleared_parent_cubes": next(
+                (r["residual_at"].get(stn) for r in aside
+                 if r["residual_at"].get(stn) is not None), None),
         }
     verdict["P_b"] = pb
     sc = series("adj_u_from_row1_h")

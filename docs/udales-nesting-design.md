@@ -1079,8 +1079,14 @@ proportional to the zone rather than the domain, and makes the inner loop a sing
 
 ### 9.4 When parent and child geometry differ
 
-The parent may resolve no buildings at all, or different ones. This is explicitly supported, with
-three consequences. It is **not** the same as saying that a mesoscale parent can drive the child:
+The parent may resolve different buildings from the child's, and V4 shows the child's interior
+canopy then follows its *own* geometry (§10.5). A parent that resolves **no** buildings is a
+different matter: it is mechanically supported and numerically clean, but **V3 measures it as
+unusable** — the child's canopy wind is wrong by a factor of two at the first building row and by
+$38$–$57\,\%$ at the last, and no child equilibrated within $26h$ of fetch, while the same child
+driven by a parent that does resolve buildings is inside the sampling spread by $5h$ (§10.5).
+**Treat "the parent resolves the canopy" as a requirement, not a convenience.** With that said,
+three consequences follow for the geometry that remains. It is **not** the same as saying that a mesoscale parent can drive the child:
 as built this is an LES-to-LES tool. A parent whose output carries no resolved turbulence at the
 scales the child needs — any parent at $C_{\rm dump}\gg2$, which a mesoscale model's 10–60 s output
 always is — would need a turbulence-generating inflow the scheme does not have (§6.2), and the
@@ -1133,6 +1139,15 @@ wording here ("the expected case for a mesoscale parent") is withdrawn.
    stresses; that is accepted (§0).
    Do **not** try to fix it by tapering $W$ with height: that would make the imposed lateral flux
    height-dependent in a way not reflected in the offline correction, breaking $\Phi=0$.
+
+   **The standoff argument above is refuted by V3 (§10.5)** for the case it was written about, a
+   parent resolving no buildings: every standoff of 5, 15 or 40 cells beat a zero standoff by more
+   than the sampling spread, monotonically at $20h$, and the error at the first building row fell
+   with it. The "two adjustments are worse than one" reasoning misses that the first adjustment
+   sheds some of the excess near-surface momentum a building-free parent imposes. Since that parent
+   is itself not usable, the practical advice is unchanged for real cases — use a parent that
+   resolves the canopy, where the question does not arise — but the stated *reason* was wrong and
+   is withdrawn. Whether a standoff helps a child whose parent does resolve buildings is untested.
 3. **`nest_lparentgeom` records which case applies.** When `.false.` (parent has no matching
    geometry), `nesting_init` *requires* a building-free zone and errors otherwise; when `.true.`
    (self-nesting on identical geometry) it downgrades to a warning.
@@ -1337,7 +1352,7 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 |---|---|---|---|
 | V1 | Does matched LES-to-LES nesting reproduce the parent? | Big Brother: periodic parent, writer dumps zone slabs, sub-domain child at matched resolution | **DONE — §10.5.** Mean flow yes ($0.008\,u_\star$); canopy turbulence yes (1–2 %); above the canopy a real $\approx10\,\%$ resolved-TKE deficit from insufficient fetch |
 | V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,9,12,16\}$ at fixed child size, plus a child-size arm (interior $5h$, $9h$, $13h$) at fixed zone width, every child clearing its own zone (§9.4) | **DONE — §10.5.** Zone width moves the deficit by 0.16 % over the whole range (0.03 of a sampling spread); interior extent moves it from $-13.5$ to $-9.9\,\%$. The deficit is a recovery over fetch, and §10.5's note on *what* is being recovered from applies |
-| V3 | **Parent without buildings** | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against 0/5/15/40-cell standoffs; plus a **cleared-parent-cubes** arm at standoff 0 — the identical child, but its parent resolves V1's own aligned canopy where the child's zone sits and the child clears it (`nest_lparentgeom = .false.`) | the adjustment length (§9.4), measured both from the zone edge and from the first building face — the latter is the discriminating one, since a standoff trivially moves the canopy downstream. §9.4 predicts a standoff *lengthens* adjustment; this row exists to test that, and may refute it. The cleared-parent-cubes arm isolates what a genuinely absent boundary condition costs from what "parent had cubes, child removed them" costs (§0, "New from V2") |
+| V3 | **Parent without buildings** | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against 0/5/15/40-cell standoffs; plus a **cleared-parent-cubes** arm at standoff 0 — the identical child, but its parent resolves V1's own aligned canopy where the child's zone sits and the child clears it (`nest_lparentgeom = .false.`) | **DONE — §10.5.** The adjustment length is **not measurable**: with a building-free parent no child equilibrated within $26h$, and the canopy wind is $38$–$57\,\%$ wrong at the last row. A parent that resolves buildings puts the same child inside the sampling spread by $5h$. §9.4's prediction that a standoff lengthens adjustment is **REFUTED** — every standoff beats zero, monotonically at $20h$. The cleared-parent-cubes arm isolates what a genuinely absent boundary condition costs from what "parent had cubes, child removed them" costs (§0, "New from V2") |
 | V4 | **Different parent geometry** | parent with a different building layout, child identical to V1's | **DONE — §10.5.** Turbulence: the child's canopy is its own ($+46\,\%$ against its parent, 3–4$\sigma$) and aloft it matches its parent to $1.1\,\%$. Mean flow: **inherited, not re-established** — the child sits at $0.80$ of the V1 child, tracking the $0.83$ bulk ratio of the two parents. The V1-child reference is valid for turbulence only |
 | **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **DONE, both arms — §10.5.** It reproduces its *parent*: with genuine 4 m / 8 m parents the child carries the parent's own $0.9$–$1.5\,u_\star$ mean-flow bias through the interior, and corrects its canopy turbulence only. Turbulence: the child regenerates none of an $r=4$ parent's missing band above the canopy within $13h$; mean flow: unreadable until the prolongation staircase (W8) is fixed |
 | V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | **Superseded**: the time axis is C0 (0.5–9 s, §10.5) and the space axis is V0; the ≤4/≤30 guidance is withdrawn (§1.3). C6 is a go, on the terms of §6.2 |
@@ -1579,6 +1594,54 @@ rather than corrected: the V1 child ran at 3 s with linear interpolation while t
 of the $+9.3\,\%$ "mismatch" difference the summary table reports; and the staggered layout leaves
 $-8$ m of building clearance in the child's zone (§9.4's geometric limit), so the cleared cubes
 encroach on the interior by one cell — to be checked before this run is quoted on canopy numbers.
+
+**V3 — a parent that resolves no buildings (job 3996513, 5 h 40).** Five children off two
+parents, at 0.5 s with the cubic interpolant. Four have a **building-free parent** and differ only
+in the standoff between the inner zone edge and the first building row (0, 5, 15, 40 cells); the
+fifth, `cleared-parent-cubes`, has a parent that **does** resolve buildings, including where the
+child's zone lies, and the child clears them from its own mask (§9.4). The measure is the residual
+canopy-velocity error against the periodic equilibrium, at fixed stations from the inner zone edge:
+
+| child | parent | 5$h$ | 10$h$ | 20$h$ | error at first row | at last row |
+|---|---|---|---|---|---|---|
+| `standoff0` | no buildings | $91.8\,\%$ | $49.2\,\%$ | $37.6\,\%$ | $193\,\%$ | $92\,\%$ |
+| `standoff5` | no buildings | $63.9\,\%$ | $28.2\,\%$ | $23.3\,\%$ | $166\,\%$ | $108\,\%$ |
+| `standoff15` | no buildings | $62.7\,\%$ | $17.3\,\%$ | $11.1\,\%$ | $136\,\%$ | $79\,\%$ |
+| `standoff40` | no buildings | — | $33.1\,\%$ | $7.9\,\%$ | $115\,\%$ | $57\,\%$ |
+| **`cleared-parent-cubes`** | **buildings** | $\mathbf{2.2\,\%}$ | $\mathbf{3.7\,\%}$ | $\mathbf{3.6\,\%}$ | $9.3\,\%$ | $7.1\,\%$ |
+
+Sampling spread $4$–$6\,\%$.
+
+**A parent that resolves no buildings cannot drive an urban child at this domain size.** No
+building-free-parent child reached equilibrium anywhere in $26h$ of available fetch, so the
+adjustment length §9.4 asked for is not measurable — it is longer than the domain. The canopy wind
+is wrong by a factor of two at the first building row and still wrong by $38$–$57\,\%$ at the last.
+The one child whose parent resolved buildings is inside the sampling spread by $5h$. §9.4 called a
+building-free parent "explicitly supported"; mechanically it is, and the flux and divergence
+diagnostics are as clean here as anywhere, but **it is not usable**, and the design should say so:
+the parent must resolve the canopy, and it is the *parent's* buildings, not the child's own, that
+put the canopy deficit into the imposed flow. This is the same one-way property V0 and V4 found —
+the child inherits its parent's bulk momentum — seen at its most extreme, because a building-free
+parent has no canopy deficit to inherit.
+
+**§9.4's standoff argument is refuted.** It reasoned that a building-free standoff is
+counterproductive: the flow adjusts once to ground roughness and then again on reaching the canopy,
+where starting the buildings at the zone edge would give one adjustment instead of two. Measured,
+every standoff beats zero by more than the sampling spread, monotonically at $20h$
+($37.6\to23.3\to11.1\to7.9\,\%$ for 0, 5, 15, 40 cells), and the error at the first building row
+falls the same way ($193\to115\,\%$). The second adjustment is not wasted: with a building-free
+parent the imposed flow arrives with far too much near-surface momentum, and the building-free
+approach sheds some of it before the canopy. Note the scope of the refutation — it is established
+only for a parent that resolves no buildings, which is the configuration this row was built around
+and, per the paragraph above, the one nobody should use. Whether a standoff helps when the parent
+*does* resolve buildings is untested; the `cleared-parent-cubes` arm runs at standoff 0 only.
+
+*An analysis defect found here and fixed.* The standoff comparison was keyed by standoff cells, and
+`cleared-parent-cubes` also has standoff 0, so it silently overwrote `standoff0` in the reported
+table and entered the "beats zero" list as though it were a standoff — while being driven by a
+different parent. The sweep is now split by parent and keyed by child (`run_geometry.summarise_v3`).
+The verdict is unchanged in direction, but the numbers it reported were one child's under another's
+name.
 
 ### 10.6 Wiring
 
