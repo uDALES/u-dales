@@ -3153,7 +3153,7 @@ contains
       integer :: i, j, k, nmask, nbad, nmoved, nghost
       real    :: rk3coef, div, dmax, dtot, gmask, gbad, gmoved, gghost, ufac(3)
       real, allocatable :: fu(:,:,:), fv(:,:,:), fw(:,:,:)
-      character(len=48) :: lbl
+      character(len=56) :: lbl
 
       if (lbox) then
         lbl = 'U45 box on the west face: masked, div at round-off'
