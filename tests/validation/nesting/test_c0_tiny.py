@@ -142,6 +142,11 @@ class TestC0Configuration(unittest.TestCase):
             used |= {p.preset.child_expnr for p in s.points if not p.reuse}
             used.add(s.parent.parent_expnr)
         used -= {"903", "904"}  # C0a's parent and reused reference are V1's
+        # V0b's reference is deliberately the same directory as C0's own fine
+        # parent (960, $EPHEMERAL/nesting-c0b/960) -- no new parent run, by
+        # design (nesting-plan-2026-09-06.md section 7).  Same kind of
+        # intentional reuse as 903/904 above, not a collision to catch.
+        used -= {"960"}
         self.assertTrue(used <= C0_EXPNRS, used)
         self.assertFalse(used & others, used & others)
         self.assertFalse(used & geometry, used & geometry)

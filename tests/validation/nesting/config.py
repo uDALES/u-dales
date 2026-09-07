@@ -24,11 +24,23 @@ priori, which also gives the error metrics a natural, run-independent scale.
 
 from __future__ import annotations
 
+import sys
 from collections import OrderedDict
 from dataclasses import dataclass, replace
+from pathlib import Path as _Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
+
+# Only ``Preset.validate`` needs ``udprep`` (to check ``prolongation`` against
+# the writer's own ``PROLONGATIONS``), and only when a preset sets that field --
+# config.py is otherwise deliberately free of solver-tooling imports (see
+# ``Preset.nestdump_nzone``).  Bootstrapped here, the same way ``caselib.py``
+# does it, so ``python config.py ...`` works standalone and not only when
+# something else has already put ``tools/python`` on ``sys.path``.
+_PYTOOLS = _Path(__file__).resolve().parents[3] / "tools" / "python"
+if str(_PYTOOLS) not in sys.path:
+    sys.path.insert(0, str(_PYTOOLS))
 
 
 @dataclass(frozen=True)
@@ -223,6 +235,18 @@ class Preset:
     #: experiment numbers
     parent_expnr: str = "903"
     child_expnr: str = "904"
+    #: Tangential reconstruction the writer uses when it has to *interpolate*
+    #: a slab rather than cut it (``refine > 1``; V0/V0b only -- V1/V2/C0 never
+    #: interpolate, so this field is inert for them whatever it is set to).
+    #: ``None`` -- every preset before V0b, and V0b's own reference/driver
+    #: objects -- means "let the writer pick", i.e.
+    #: ``udprep.nesting.DEFAULT_PROLONGATION``.  Explicit ``"constant"``
+    #: (divergence-preserving, the shipped default, V0-validated at production
+    #: size) or ``"linear"`` (removes the mean-profile staircase W8 found, at
+    #: the cost of a local divergence source in the imposed target -- design
+    #: plan section 7, finding R2) is what V0b sweeps.  Validated against
+    #: ``udprep.nesting.PROLONGATIONS`` in :meth:`validate`.
+    prolongation: Optional[str] = None
 
     def __post_init__(self) -> None:
         # Frozen, so the two defaults that depend on another field are filled
@@ -739,6 +763,12 @@ class Preset:
             errors.append(
                 f"parent_output must be 'fielddump', 'nestdump' or 'both', got "
                 f"{self.parent_output!r}")
+        if self.prolongation is not None:
+            from udprep.nesting import PROLONGATIONS
+            if self.prolongation not in PROLONGATIONS:
+                errors.append(
+                    f"prolongation must be None or one of {PROLONGATIONS}, got "
+                    f"{self.prolongation!r}")
         if self.fielddump_dtdump is not None and not (self.fielddump_dtdump > 0):
             errors.append(f"fielddump_dtdump = {self.fielddump_dtdump} s is not positive")
         if self.writes_fielddump and self.fielddump_dtdump is not None \
@@ -826,6 +856,8 @@ class Preset:
             f"forcing              dpdx = {self.dpdx:.4e} m/s^2 -> ustar = {u:g} m/s",
             f"time interpolation   nest_timeinterp = {self.timeinterp} "
             f"({'linear' if self.timeinterp == 1 else 'Catmull-Rom cubic Hermite, unlimited'})",
+            f"prolongation         {self.prolongation or '(unset: writer default, udprep.nesting.DEFAULT_PROLONGATION)'} "
+            "(only exercised when refine > 1; inert for a matched-grid child)",
             f"child init           {'from the parent block' if self.init_from_parent else 'from prof.inp'}",
             f"schedule             spin-up {self.spinup:g} s, production "
             f"[{self.t_start:g}, {self.t_end:g}] s, dtdump {self.dtdump:g} s",
@@ -1247,9 +1279,21 @@ V2_TINY = _v2_sweep(TINY_SWEEP, "v2-tiny", zone_cells_ramp=(4, 9, 12),
 #                    (0.5, 1, 1.5, 3, 6, 9 s)
 #   970-975          C0c: the Catmull-Rom ladder off the same fine parent
 #                    (0.5, 1, 1.5, 3, 6, 9 s, nest_timeinterp = 2)
+#   976, 977         V0b coarse driver placeholders (r2, r4).  Never built: both
+#                    V0b arms box-filter the C0b fine parent's (960) own dumps,
+#                    exactly as V0's 'filtered' arm does, so these Preset objects
+#                    exist only to describe the coarse grid CoarsenedFieldDump
+#                    presents -- see config._v0b_suite / DrivingParent.refined.
+#   978-981          V0b children (config.V0B, V0B_TINY): the prolongation
+#                    discriminator, plan section 7 R2(b,c) -- 978 r2-constant,
+#                    979 r2-linear, 980 r4-constant, 981 r4-linear.  Driven by
+#                    the C0b fine parent (960, $EPHEMERAL/nesting-c0b/960) at
+#                    cadence = 0.5 s, nest_timeinterp = 2 (Catmull-Rom); the
+#                    only thing that varies between points is child.prolongation
+#                    ("constant" vs "linear", udprep.nesting.PROLONGATIONS).
 #
 # 910 and 913-919 are free but sit between V0's two blocks; C0 takes the next
-# clear decade instead.
+# clear decade instead.  928/929, 932-939, 955-959 and 982 onward are also free.
 
 
 def _c0_sweep(base: Preset, name: str, *, cadences: Sequence[float],
@@ -1622,6 +1666,13 @@ class RefinementSuite:
     #: production suite this is the V1 ``converged`` parent already on disk.
     reference: Preset
     points: Tuple[RefinedPoint, ...]
+    #: ``True`` (V0's own default) -- every ratio must carry both a ``filtered``
+    #: and a ``coarse`` point, which is what makes ``filtered_vs_coarse`` in
+    #: ``run_v0.write_summary`` meaningful.  ``False`` for a suite like V0b
+    #: whose points are all ``filtered`` arm and differ along a different axis
+    #: (``child.prolongation``) instead -- there is no real coarse LES to pair
+    #: against, by design (see the ``V0B`` docstring).
+    require_paired_arms: bool = True
 
     def point(self, key: str) -> RefinedPoint:
         for p in self.points:
@@ -1700,11 +1751,12 @@ class RefinementSuite:
                             "comparing like with like"
                         )
             drivers[pt.refine] = pt.driver
-        for refine in sorted(drivers):
-            if not any(p.refine == refine and p.arm == "filtered" for p in self.points):
-                errors.append(f"r = {refine} has no 'filtered' arm")
-            if not any(p.refine == refine and p.arm == "coarse" for p in self.points):
-                errors.append(f"r = {refine} has no 'coarse' arm")
+        if self.require_paired_arms:
+            for refine in sorted(drivers):
+                if not any(p.refine == refine and p.arm == "filtered" for p in self.points):
+                    errors.append(f"r = {refine} has no 'filtered' arm")
+                if not any(p.refine == refine and p.arm == "coarse" for p in self.points):
+                    errors.append(f"r = {refine} has no 'coarse' arm")
         if errors:
             raise ValueError(
                 f"refinement suite '{self.name}' is inconsistent:\n  "
@@ -1829,7 +1881,94 @@ V0_TINY = _v0_suite(
                  (2, "coarse"): "923", (4, "coarse"): "924"},
 )
 
-SUITES: Dict[str, RefinementSuite] = {s.name: s for s in (V0_TINY, V0)}
+# --------------------------------------------------------------------------- #
+# V0b -- which tangential prolongation ships (plan section 7, finding R2)
+# --------------------------------------------------------------------------- #
+#
+# V0 validated the *shape* of refinement (two ratios, both arms) with the old
+# constant reconstruction at the old 3 s/linear cadence.  Neither prolongation
+# has been run end to end at the FINAL configuration: ``constant`` is the
+# shipped default (divergence-preserving; what V0 actually exercised) and
+# ``linear`` is the opt-in that removes the mean-profile staircase W8 found, at
+# the cost of a local divergence source in the imposed target (design plan
+# section 7, R2).  V0b runs both, at r = 2 and r = 4, driven by the C0b fine
+# parent (960) at its own cadence (0.5 s) and interpolant (Catmull-Rom), and
+# measures the consequence: pre-projection target divergence, the pressure
+# response and how far it reaches, the mean-flow criterion and the staircase
+# amplitude, and the spectral band ratios.
+#
+# Unlike V0, there is no 'coarse' arm here -- no new parent run is needed.  960
+# IS the fine truth (a genuine LES, not an idealisation), and box-filtering its
+# own dumps onto the r = 2 / r = 4 grids (:class:`caselib.CoarsenedFieldDump`,
+# exactly V0's ``filtered`` arm) gives a driving field with *known* content at
+# the scales that matter for this comparison: the only thing under test is the
+# reconstruction the writer applies to it, not the driving parent's own
+# physics.  So every point below is ``arm="filtered"`` (needed for
+# ``RefinedPoint.coarsen`` to box-filter rather than pass through), and the
+# axis actually swept is ``child.prolongation`` -- hence
+# ``require_paired_arms=False`` on the suite: there is deliberately no
+# 'coarse' point to pair against.
+V0B_REFERENCE = replace(C0_FINE, name="v0b-fine-truth", timeinterp=2)
+V0B_REFERENCE_TINY = replace(C0_FINE_TINY, name="v0b-fine-truth-tiny", timeinterp=2)
+
+
+def _v0b_suite(base: Preset, name: str, *,
+              ranks: Dict[int, Tuple[int, int]],
+              driver_expnr: Dict[int, str],
+              child_expnr: Dict[Tuple[int, str], str],
+              prolongations: Sequence[str] = ("constant", "linear")
+              ) -> RefinementSuite:
+    """Build a V0b suite: every ratio in ``ranks``, crossed with ``prolongations``.
+
+    ``base`` fixes the fine truth (and the box-filtered driving field: every
+    point's data comes from ``base``'s own dumps, coarsened) -- V0's own
+    ``_v0_driver`` builds the coarse grid description unchanged, since a V0b
+    driver is exactly a V0 'filtered'-arm driver at a different cadence and
+    interpolant.
+    """
+    points: List[RefinedPoint] = []
+    for refine in sorted(ranks):
+        nprocx, nprocy = ranks[refine]
+        driver = _v0_driver(base, refine, expnr=driver_expnr[refine],
+                            nprocx=nprocx, nprocy=nprocy)
+        for prolongation in prolongations:
+            nr = child_expnr[(refine, prolongation)]
+            child = replace(base, name=f"{name}-r{refine}-{prolongation}",
+                            child_expnr=nr, prolongation=prolongation)
+            points.append(RefinedPoint(
+                key=f"r{refine}-{prolongation}", arm="filtered", refine=refine,
+                driver=driver, child=child,
+                note=(f"boundary data box-filtered from the fine C0b parent's own "
+                      f"dumps ({base.parent_expnr}) at cadence {base.cadence:g} s, "
+                      f"nest_timeinterp {base.timeinterp}; "
+                      f"prolongation = {prolongation!r}")))
+    return RefinementSuite(name=name, reference=base, points=tuple(points),
+                           require_paired_arms=False)
+
+
+#: **V0b -- the prolongation discriminator.**  Four children: r2-constant,
+#: r2-linear, r4-constant, r4-linear.  Same window, zone, forcing and 128 x 128
+#: child as V0/V1; only the coarse grid the boundary comes from (r = 2, r = 4)
+#: and ``prolongation`` move.
+V0B = _v0b_suite(
+    V0B_REFERENCE, "v0b",
+    ranks={2: (8, 8), 4: (4, 4)},
+    driver_expnr={2: "976", 4: "977"},
+    child_expnr={(2, "constant"): "978", (2, "linear"): "979",
+                 (4, "constant"): "980", (4, "linear"): "981"},
+)
+
+#: The same suite in minutes, on its own tiny fine truth (``v0b-tiny`` builds
+#: and runs it, exactly as ``v0-tiny`` does for V0's own reference).
+V0B_TINY = _v0b_suite(
+    V0B_REFERENCE_TINY, "v0b-tiny",
+    ranks={2: (2, 2), 4: (2, 2)},
+    driver_expnr={2: "976", 4: "977"},
+    child_expnr={(2, "constant"): "978", (2, "linear"): "979",
+                 (4, "constant"): "980", (4, "linear"): "981"},
+)
+
+SUITES: Dict[str, RefinementSuite] = {s.name: s for s in (V0_TINY, V0, V0B_TINY, V0B)}
 
 
 def get_suite(name: str) -> RefinementSuite:
