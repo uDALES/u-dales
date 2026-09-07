@@ -13,6 +13,11 @@ end to end** — every system test so far runs at $r=1$. See the note under §10
 The zone is not required to be accurate. Errors near an imposed boundary are unavoidable — the
 parent cannot know what the child is doing — and the design accepts them.
 
+**v1 limitation: only the velocity is nested.** Scalars (temperature, humidity, passive scalars)
+are not imposed from the parent: under `BCxm_nesting`/`BCym_nesting` they keep the profile inlet
+plus convective outflow treatment they had before, with the single domain-mean outflow velocity
+`uouttot`, so a face where the parent flow reverses extrapolates scalars rather than importing them.
+
 > **Revised after V1 (both runs, §10.5).** This section originally named a single **decay length**
 > — how far into the domain one must go before the statistics are indistinguishable from an
 > unnested reference. V1 shows that conflates two error behaviours that point in opposite
@@ -149,6 +154,14 @@ Properties:
 
 Because the update *overwrites* $q_p$ rather than adding to it, it must be the last modification
 of $q_p$ before `poisson`. See §4.
+
+**When the target is evaluated.** $\tilde q$ is the parent interpolated at `timee`, and uDALES
+advances `timee` to $t^{n+1}$ at the *first* substep (`tstep_update`), so all three substeps of
+step $n$ relax towards the same target $\tilde q(t^{n+1})$ — not towards targets at the substep
+times $t^n+\Delta t_s$ the formula above might suggest. This is the convention `timedep` and the
+driver inflow already use, it keeps the three substeps consistent with the single projection target
+`nesting_bcpup` imposes, and its error is $O(\Delta t)$ inside a zone whose update is first order in
+time anyway (see the last property above). Test I6 (restart parity) pins the convention.
 
 ### 1.3 Interpolating the parent
 
@@ -676,11 +689,16 @@ arithmetic is comfortable. The design target is therefore *"do nothing pathologi
 | Raw stream binary + small self-describing sidecar | Best | via sidecar + Python reader | One `MPI_File_read_at_all` per rank per level; trivially contiguous. Not readable with `ncdump`. |
 | NetCDF-4, chunk shape matched to the decomposition | Good if chunked right, poor if not | yes | Parallel collective read only if the build has parallel NetCDF; otherwise independent reads and pathology 2. |
 
-**Recommendation:** define the contract container-agnostically behind a single
-`nesting_read_slab(it, buf)` interface; implement **rank-0 read + scatter** first, because it is
-the simplest thing that cannot misbehave on a congested shared filesystem; and swap in raw MPI-IO
-only if profiling says it matters. Whichever is used, stage the file to node-local/ephemeral
-storage before the run when it fits, as `AGENTS.md` already recommends.
+**Recommendation at design time** was rank-0 read + scatter behind a container-agnostic
+`nesting_read_slab` interface. **What is implemented** is the third row: NetCDF-4, every rank
+opening the file read-only and reading its own contiguous hyperslab of each slab with
+`nf90_get_var` (`modnestingio`), with no scatter and no parallel NetCDF. Four levels are buffered
+for the Hermite stencil; at a parent-interval crossing the slots are rolled and the one new level is
+read *synchronously, at the crossing, in the substep that crosses* — there is no read-ahead or
+prefetch, contrary to what §6.2 item 3 asks for. This was measured rather than argued (§10.7
+item 3): the per-crossing read is small against a parent interval at 64 ranks, so the "metadata
+storm" of §6.2 did not materialise at that scale and the simpler design stands. Stage the file to
+node-local/ephemeral storage before the run when it fits, as `AGENTS.md` already recommends.
 
 **Measure it.** `nesting_stats` reports the read wall time per parent interval and its fraction of
 total runtime, with a warning above 1%. That turns "does the I/O slow us down?" from a design

@@ -317,6 +317,18 @@ same reason. `nesting_bcpup` also sets `um`/`u0` at the imposed faces to the tar
 the integrated field is consistent with the projection at every substep rather than only after the
 next `boundary` call. Unit test U45 pins both.
 
+**Target time.** `nesting_update_target` evaluates the target at `timee`, which `tstep_update`
+sets to $t^{n+1}$ at the first substep, so all three RK3 substeps of a step relax towards, and
+`nesting_bcpup` imposes, the same target $\tilde q(t^{n+1})$ (design §1.2). This matches
+`timedep` and the driver inflow.
+
+**Scalars are not nested in v1.** Only `u`, `v`, `w` are imposed; temperature, humidity and passive
+scalars keep the profile inlet plus convective outflow treatment under the nesting BCs.
+
+**I/O, as implemented.** Every rank opens the file read-only and reads its own hyperslab; the one
+new level at a parent-interval crossing is read synchronously at that crossing. There is no rank-0
+scatter and no read-ahead (design §6.3, as revised).
+
 Zone storage uses `zone_type` (design §9.2). The relaxation update is design §1.2, verbatim:
 
 ```fortran

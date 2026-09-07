@@ -9,6 +9,18 @@
 !!  as a point list with weights (design section 9.2) rather than as three more
 !!  3-D arrays.
 !!
+!!  I/O model, as implemented (not the rank-0-plus-scatter or the prefetch of
+!!  design section 6.3): every rank opens the netCDF file read-only and reads
+!!  its own contiguous hyperslab of each slab with nf90_get_var. Four levels
+!!  are buffered (it_lo-1 .. it_lo+2, for the Hermite stencil); when timee
+!!  crosses into the next parent interval the slots are rolled and the one new
+!!  level, it_lo+2, is read synchronously at that crossing, on every rank, in
+!!  the substep that crosses. Nothing is read ahead of time. The per-crossing
+!!  cost was measured (design 10.7 item 3) and is reported by nesting_stats.
+!!
+!!  Scalars are not nested in v1: with BCxm_nesting / BCym_nesting they keep
+!!  the profile inlet and convective outflow treatment they had before.
+!!
 !!  \author Maarten van Reeuwijk, Imperial College London
 !
 !  This file is part of uDALES.
@@ -317,8 +329,11 @@ contains
 
 
    !> Called from program.f90 after timedep, once per RK substep. Rolls the time
-   !! buffer when a parent interval is crossed (prefetching one interval ahead)
-   !! and evaluates the time-interpolated target (design section 1.3).
+   !! buffer when a parent interval is crossed -- reading the one new level,
+   !! it_lo+2, synchronously at that crossing -- and evaluates the
+   !! time-interpolated target at timee (design section 1.3). timee is t^{n+1}
+   !! throughout the three substeps of step n, so the target is the same for
+   !! all three (design section 1.2).
    subroutine nesting_update_target
       use modglobal, only : timee
 
@@ -2046,8 +2061,10 @@ contains
 
 
    !> Position it_lo so that time(it_lo) <= t < time(it_lo+1) and keep the
-   !! buffer in step. Crossing one interval rolls the slots and reads the level
-   !! one interval ahead (design section 6.2 item 3); a larger jump reloads.
+   !! buffer in step. Crossing one interval rolls the slots and reads the one
+   !! new level, it_lo+2, here and now (a synchronous read at the crossing,
+   !! not the early trigger of design section 6.2 item 3); a larger jump
+   !! reloads all four slots.
    subroutine set_interval(t)
       real, intent(in) :: t
 
