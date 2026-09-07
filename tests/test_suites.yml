@@ -664,6 +664,15 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/validation/nesting/test_nestdump_tiny.py"
+      - label: "nesting-validation: driving-parent TKE estimator (R1 regression, no solver)"
+        class: experimental
+        kind: unit
+        component: nesting
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_tke_estimator.py"
 
   supported-macos:
     includes:
