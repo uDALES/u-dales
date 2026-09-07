@@ -409,3 +409,53 @@ layouts carry the same plan area density.
   Recorded from the integration gate that rebuilt both Intel debug/release
   solver builds from clean and reran `nesting-unit`,
   `test_nestdump_tiny.py`, and `test_v1_tiny.py` against them.
+
+### GitHub Actions run 34116796155 (PR #376, commit 80ed05e4): two unrelated CI breaks
+
+`macos-latest Debug`/`Release` and `ubuntu-latest Release` failed; `ubuntu-latest
+Debug`, `python-viz` and `docs` passed. The fix (originally intended as its own
+commit) landed inside `998cdbe0` ("nesting: record V3/V4 job ids in the README
+status block") because two agents shared this checkout and a `git commit`
+without `-a` still commits whatever another process left staged in the index --
+worth remembering before running unattended agents against one working tree.
+CI run 34122779017 on that commit is green on all four matrix legs plus
+python-viz and docs.
+
+- **macOS Debug and Release, all 8 `nesting-unit` suites**: every one failed
+  `setUpClass` the same way --
+  `RuntimeError: UDALES_REQUIRE_LAUNCHER=1, so an unusable launcher is a
+  failure, not a skip: MPI launcher is not usable here
+  (/opt/homebrew/opt/open-mpi/bin/mpiexec --oversubscribe): ... prterun was
+  unable to launch the specified application as it could not access an
+  executable: Executable: /bin/true`. `UDALES_REQUIRE_LAUNCHER` is new on this
+  branch; before it, `launch.require_launcher()`'s probe (`mpiexec
+  --oversubscribe -n 1 /bin/true`) failing on macOS just raised `SkipTest`,
+  which `run_tests.py` reports as PASS, so this Homebrew Open MPI 5 / PRRTE
+  problem was already there and already silent. It is a runner/toolchain
+  issue, not a uDALES bug: `mpiexec -n 1 /bin/true` fails the same way with no
+  uDALES build in the loop. Fix: `tests/test_suites.yml`'s `nesting-unit`
+  suites (7 unit runmodes + the I5 2x2 case) are now `platform: linux`, not
+  `any` -- the same restriction the file already applies to the I1 baseline
+  suite and to omitting `mpi operators`/`processor boundaries` from
+  `supported-macos`, for the same underlying reason. Revisit once the runner
+  image or Homebrew's `open-mpi` fixes the launcher.
+- **ubuntu-latest Release, `TestI1NoOpSmallCase`**: failed with `AssertionError:
+  ... : with lnesting = .false. the branch changed the answer`, plus `the small
+  case is not bitwise reproducible against itself` comparing two runs of the
+  *baseline* (`origin/master`) binary to each other. Since both sides of that
+  second comparison are pre-branch code, nothing in this branch can be the
+  cause. `ipoiss` here selects the FFTW-based Poisson solver, which plans with
+  `FFTW_MEASURE` (`src/modpois.f90`) -- a wall-clock-timed benchmark with no
+  bitwise-reproducibility guarantee run to run, the same cause
+  `TestI1NoOpExistingCase` (case 526, right below it in
+  `tests/integration/nesting/test_nesting_cases.py`) already documents and
+  works around with a "no worse than the baseline's own run-to-run spread"
+  comparison instead of byte equality. `TestI1NoOpSmallCase` assumed this case
+  was small enough to always be bit-identical and asserted so directly; it is
+  now reworked to use the same tolerance-based comparison. Verified locally
+  with the `foss/2023a` gfortran 12.3.0 Debug build recipe above
+  (`build/gnu-cifix`): the small case is still bitwise-identical there (spread
+  0.0 on every field), so the loosened assertions do not mask anything on this
+  toolchain -- they only add headroom for the Release-build/busy-runner
+  variance actually observed in CI. All 9 `nesting-unit`
+  `NestingUnitRunmodes` tests also passed against that build (735 s).
