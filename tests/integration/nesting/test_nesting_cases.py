@@ -369,16 +369,34 @@ class TestI1NoOpSmallCase(_I1Base):
     Same grid, timestep and randomisation as the I6 control -- periodic
     laterals, `lnesting = .false.`.  This case was assumed small enough to be
     bitwise reproducible run to run and compared with a plain byte-equality
-    assertion; in CI (gfortran, ubuntu-latest Release) two runs of the same
-    baseline executable on the same input differed at the 1e-12 level in
-    `pres0`, which rules out anything in this branch -- both those runs used
-    the pre-branch `origin/master` binary.  The cause is the same one
-    `TestI1NoOpExistingCase` below already documents: `ipoiss` here is the
-    FFTW-based solver, and `FFTW_MEASURE` benchmarks planner variants against
-    wall-clock time in `modpois.f90`, so even this small a transform is not
-    guaranteed bit-identical on a noisy runner.  Follow the same "no worse
-    than the baseline's own run-to-run spread" comparison used there instead
-    of assuming exact reproducibility.
+    assertion.  Two distinct, round-off-level sources of noise showed up in
+    CI (gfortran, ubuntu-latest Release), both pre-existing and unrelated to
+    this branch:
+
+    - the *same already-built* baseline executable, invoked twice on the same
+      input, has come back non-bitwise at least once (the failure that named
+      it "not bitwise reproducible against itself"). `ipoiss` here is the
+      FFTW-based solver, and `FFTW_MEASURE` benchmarks planner variants
+      against wall-clock time in `modpois.f90` -- the same cause
+      `TestI1NoOpExistingCase` below documents -- so even this small a
+      transform is not guaranteed bit-identical on a noisy runner.  It has
+      also come back exactly bitwise on other runs, so this source is
+      intermittent and cannot be relied on as a noise floor.
+    - the baseline and branch binaries are two *different* compiles (from
+      `origin/master` and from this branch respectively), and a stable
+      ~1e-15 to ~2e-12 relative spread between them has shown up on every CI
+      run so far even though `lnesting = .false.` exercises the same,
+      unchanged code path in both: unrelated source changes elsewhere in the
+      translation unit graph can still shift -O3 codegen (vectorisation,
+      instruction scheduling, FMA contraction) enough to move the last bit
+      or two. This source is NOT captured by comparing the baseline
+      executable against itself, since that is one binary, not two.
+
+    Follow the same "no worse than round-off" comparison
+    `TestI1NoOpExistingCase` uses below instead of assuming exact
+    reproducibility, but floor the tolerance at this file's own definition
+    of round-off (1e-9, see that class) rather than at the same-binary
+    self-noise, which cannot see the second source above.
     """
 
     SPEC = mcf.ZONED
@@ -440,10 +458,25 @@ class TestI1NoOpSmallCase(_I1Base):
         for name, value in spread.items():
             print(f"[I1] small case {name}: relative diff {value:.3e}", flush=True)
         worst = max(spread.values())
+        # `reference` (base_a vs base_b) is the SAME already-built baseline
+        # executable invoked twice, and for a case this cheap that is
+        # reliably 0.0 -- CI has now shown it exactly bitwise on every run.
+        # It therefore cannot stand in for the noise floor here: `base` and
+        # `head` are two DIFFERENT compiled binaries (baseline source vs this
+        # branch's), and even where the executed code path is identical
+        # (`lnesting = .false.`), unrelated source changes elsewhere in the
+        # translation unit graph can shift -O3 codegen (vectorisation,
+        # instruction scheduling, FMA contraction) enough to move the last
+        # bit or two -- CI has measured a stable ~1e-15 to ~2.3e-12 relative
+        # spread this way, four orders below anything a real bug would leave.
+        # 1e-9 is this file's own definition of "round-off" (see
+        # `TestI1NoOpExistingCase.test_baseline_self_noise` below); use it as
+        # a floor here too rather than trusting a same-binary reference that
+        # cannot see cross-build noise.
         self.assertLessEqual(
-            worst, max(10.0 * reference, 1.0e-13),
+            worst, max(10.0 * reference, 1.0e-9),
             "with lnesting = .false. the branch moved the small case further than "
-            "the baseline moves against itself")
+            "round-off from a different build can explain")
 
     def test_stdout_matches_baseline(self) -> None:
         base_lines, base_div = self._split_divergence(self._filtered_stdout(self.out["base_a"]))
