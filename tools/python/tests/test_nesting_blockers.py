@@ -797,7 +797,8 @@ class TestW8LinearProlongation(unittest.TestCase):
                 pv = np.broadcast_to((2.0 - 0.5 * b * parent.zf)[None, None, :],
                                      parent.component_shape("v")).copy()
                 pw = np.zeros(parent.component_shape("w"))
-                slabs = slabs_from_parent(parent, pu, pv, pw, child=child, nzone=2)
+                slabs = slabs_from_parent(parent, pu, pv, pw, child=child, nzone=2,
+                                          prolongation="linear")
                 # u on the x-faces of the west slab, (yf, zf, nzh); v on the same
                 # slab, (yh, zf, nz): both must be the linear profile at the
                 # child's own zf, to round-off
@@ -857,8 +858,10 @@ class TestW8LinearProlongation(unittest.TestCase):
         masks = stagger_masks_from_ibm(fluid)
         pu[~masks["u"]] = 0.0                           # the IBM parent has u = 0 in the wall
         coords = [child.component_coords("u", ax) for ax in range(3)]
-        polluted = conservative_interpolate(parent, pu, "u", *coords)
-        guarded = conservative_interpolate(parent, pu, "u", *coords, parent_mask=masks["u"])
+        polluted = conservative_interpolate(parent, pu, "u", *coords,
+                                            prolongation="linear")
+        guarded = conservative_interpolate(parent, pu, "u", *coords, parent_mask=masks["u"],
+                                           prolongation="linear")
         want = b * child.yf
         # child cells 4, 5 lie in parent cell 2, the fluid neighbour of the wall
         self.assertLess(float(np.max(np.abs(guarded[:, 4:6, :] - want[None, 4:6, None]))), 1e-13)
@@ -929,7 +932,8 @@ class TestR4TwoCellParentAxis(unittest.TestCase):
         pu = np.ones(parent.component_shape("u"))
         pv = np.ones(parent.component_shape("v"))
         pw = np.ones(parent.component_shape("w"))
-        cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child)
+        cu, cv, cw = interpolate_child_fields(parent, pu, pv, pw, child,
+                                              prolongation="linear")
         np.testing.assert_allclose(cu, 1.0)
         np.testing.assert_allclose(cv, 1.0)
         np.testing.assert_allclose(cw, 1.0)
@@ -948,7 +952,8 @@ class TestR4TwoCellParentAxis(unittest.TestCase):
                                      parent.component_shape("u")).copy()
                 pv = np.zeros(parent.component_shape("v"))
                 pw = np.zeros(parent.component_shape("w"))
-                cu, _, _ = interpolate_child_fields(parent, pu, pv, pw, child)
+                cu, _, _ = interpolate_child_fields(parent, pu, pv, pw, child,
+                                                    prolongation="linear")
                 want_shape = [1, 1, 1]
                 want_shape[axis] = -1
                 want = (a + b * child_centres).reshape(want_shape)
@@ -971,6 +976,7 @@ class TestR4TwoCellParentAxis(unittest.TestCase):
         pu[~masks["u"]] = 0.0
         coords = [child.component_coords("u", ax) for ax in range(3)]
         guarded = conservative_interpolate(parent, pu, "u", *coords,
+                                           prolongation="linear",
                                            parent_mask=masks["u"])
         in_cell0 = child.yf < parent.yh[1]
         want0 = b * parent.yf[0]
@@ -1047,9 +1053,11 @@ class TestR3ProductionMasksWired(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             parent_masks = _driving_parent_masks(Path(tmp), fluid, 6, 6, 4, 10.0)
         guarded = initial_fields_from_parent(parent, pu, pv, pw, child,
+                                             prolongation="linear",
                                              parent_masks=parent_masks)["u"]
         # what build() produced before this fix: parent_masks silently omitted
-        polluted = initial_fields_from_parent(parent, pu, pv, pw, child)["u"]
+        polluted = initial_fields_from_parent(parent, pu, pv, pw, child,
+                                              prolongation="linear")["u"]
         want = b * child.yf
         # child cells 4, 5 lie in parent cell 2, the fluid neighbour of the wall
         self.assertLess(float(np.max(np.abs(guarded[:, 4:6, :] - want[None, 4:6, None]))),
@@ -1073,8 +1081,10 @@ class TestR3ProductionMasksWired(unittest.TestCase):
             parent_masks = _driving_parent_masks(Path(tmp), fluid, 6, 6, 4, 10.0)
         nzone = 2
         guarded = slabs_from_parent(parent, pu, pv, pw, child=child, nzone=nzone,
+                                    prolongation="linear",
                                     parent_masks=parent_masks)
-        polluted = slabs_from_parent(parent, pu, pv, pw, child=child, nzone=nzone)
+        polluted = slabs_from_parent(parent, pu, pv, pw, child=child, nzone=nzone,
+                                     prolongation="linear")
         # u_west/u_east run the full y extent (span "yf", cell-centred, shape
         # (jtot, ktot, nzone + 1) -- see slab_dimensions), so they cross the
         # wall (which spans every x and z) the same way conservative_interpolate

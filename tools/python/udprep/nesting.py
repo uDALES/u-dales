@@ -263,8 +263,27 @@ _COORD_VARIABLES = ("xf", "xh", "yf", "yh", "zf", "zh")
 PARENT_DT_RTOL = 1.0e-2
 
 #: Tangential reconstructions :func:`conservative_interpolate` offers.
+#:
+#: ``"constant"`` is **divergence-preserving**: within a parent cell each of
+#: du/dx, dv/dy and dw/dz equals the parent's, so a discretely solenoidal
+#: parent gives an exactly solenoidal child target (design section 1.3).
+#: ``"linear"`` reconstructs the tangential directions with unlimited central
+#: slopes.  It removes the mean-profile staircase the constant scheme leaves --
+#: on a log profile at r = 2 the interior mean error falls from 0.110 to 0.006
+#: u* -- but it is **not** divergence-preserving: measured on the V0 coarse
+#: arm's own 4 m LES field, the child target's divmax goes from the parent's
+#: own 1.3e-7 to 1.7e-1, about 5 % of u/dx, which the child's projection then
+#: has to remove inside the zone at every timestep.
+#:
+#: The default is ``"constant"``: it is the scheme the design's stated contract
+#: describes, the one `tests/validation/nesting/test_v0_tiny.py` asserts end to
+#: end, and the one V0 validated at production size.  ``"linear"`` shipped as
+#: the default briefly (W8) on the strength of an offline probe, without that
+#: suite being run; it is kept as an explicit opt-in while the trade is settled
+#: by measurement (plan section 7, R2).  Do not change this default without
+#: that evidence.
 PROLONGATIONS = ("constant", "linear")
-DEFAULT_PROLONGATION = "linear"
+DEFAULT_PROLONGATION = "constant"
 
 #: Snapping tolerance for "this child face is coplanar with a parent face",
 #: relative to the smallest parent spacing.  The same number is the alignment

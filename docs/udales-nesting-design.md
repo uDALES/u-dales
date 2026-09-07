@@ -195,13 +195,14 @@ The consequence is worth stating plainly: **the interpolation contributes nothin
 solver to clean up.** All divergence the projection sees comes from the *blend* between parent and
 child where $0<W<1$ — not from the interpolation. That materially reduces C1.
 
-> **This guarantee describes `prolongation="constant"`, which is no longer the writer's default.**
+> **This guarantee describes `prolongation="constant"`, which is the writer's default — restored to
+> it on 2026-09-07 after the Codex review.**
 > Everything above holds only while the tangential reconstruction is piecewise constant. V0 found
 > that scheme leaves a staircase in the child's mean profile — the reconstruction is flat across the
 > $r$ child faces inside one parent cell where the true profile is sloped, so the error alternates
 > about the parent-cell mean with period $r$ — and that the staircase is large enough to fail
 > criterion A on its own ($0.126\,u_\star$ at $r=2$, $0.275\,u_\star$ at $r=4$; §10.5). W8 therefore
-> made the tangential reconstruction **linear**, and `DEFAULT_PROLONGATION = "linear"` is what ships.
+> made the tangential reconstruction **linear** and shipped it as the default.
 > Linear tangential slopes are not divergence-preserving: the $x$-, $y$- and $z$-derivative terms no
 > longer cancel cell by cell, so the identity above fails and the child's projection has to remove
 > the remainder.
@@ -216,10 +217,17 @@ child where $0<W<1$ — not from the interpolation. That materially reduces C1.
 > | `linear` (shipped) | $1.74\times10^{-1}$ | $4.8\times10^{-2}$ |
 >
 > ($r=4$: $2.6\times10^{-1}$, $3.6\times10^{-2}$. The parent's own $1.27\times10^{-7}$ is the
-> single-precision floor of the dumps, not a physical divergence.) So the shipped default asks the
+> single-precision floor of the dumps, not a physical divergence.) So the linear scheme asks the
 > child's pressure solve to absorb a divergence source of order 5 % of $u/\Delta x$ inside the zone,
 > every timestep. Parent-face conservation, $\Phi$ and the post-projection `divmax` are all still
-> clean, which is exactly why none of the existing assertions notice.
+> clean, which is exactly why none of the *flux* assertions notice — but
+> `test_v0_tiny.py::test_the_prolongation_reproduces_the_parent_divergence` and
+> `test_a_solenoidal_field_stays_solenoidal_through_the_round_trip` do, and both fail with the linear
+> default. They were not run when it was introduced.
+>
+> **The default is therefore back to `constant`** while the trade is settled: a default must not
+> violate the contract this document states and the suite asserts, and `constant` is additionally
+> the only one of the two validated at production size. `linear` remains available and unit-tested.
 >
 > **Neither scheme is yet validated end to end as shipped:** V0's production numbers were produced
 > with `constant` at the old 3 s linear-in-time cadence, and `linear` has never been run at
