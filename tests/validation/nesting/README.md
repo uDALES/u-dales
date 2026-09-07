@@ -1025,12 +1025,29 @@ So the brief's "about 3 h" is close; 3.7 h is the measurement-based figure, and
 the 8 h walltime leaves 2.2x headroom -- the right amount, since none of the
 three sizes below 128^2 has been timed at production volume.
 
-**Memory** peaks in the slab cut, which holds the whole nesting file in memory
-before writing it (`udprep.nesting.write_nesting_file` takes arrays, not a
-stream).  The widest point, `nrel16` at `nzone = 19`, is 55.2 GB of slabs; the
-V1 job peaked at 39 GB for a 35.2 GB file, so budget ~60 GB and `mem=128gb` is
-comfortable.  This is the second reason not to widen the ramp past `N_rel = 16`
-without thought: `N_rel = 20` would be 66.6 GB.
+**Memory** no longer scales with the record.  The slab cut used to hold the
+whole nesting file before writing it (`udprep.nesting.write_nesting_file`
+takes arrays, not a stream): 55.2 GB of slabs at the widest point, `nrel16` at
+`nzone = 19`, and a measured 39 GB peak for V1's 35.2 GB file.  `make_child_case`
+now streams each parent level through `udprep.nesting.NestingWriter` as it is
+cut -- corrected, residuals stored, initial condition synced and projected
+against the corrected level 0 -- and holds nothing but the current level.
+Measured on the `tiny` preset with `tracemalloc` (the slab-cut stage alone,
+preprocessing excluded): the old path peaked at 161.5 MB for 40 levels and
+123.3 MB for 14 (`c0-tiny/cad9`), 1.47 MB per level; the new path peaks at
+103.1 MB and 103.0 MB -- flat in the level count.  What remains is not the
+record: ~74 MB is retained by the geometry generation and the preprocessing
+imports (`cube_geometry` 46 MB, `run_preprocessing` 28 MB, measured per stage)
+and ~25 MB is the per-level working set -- one parent level (7 MB at 96^2 x 32)
+and the writer's transient copy of it -- which scales with the parent's level
+size, not with how many there are.  The output is unchanged: every
+slab, the initial condition, `time` and `net_volume_flux` are bit-identical to
+the old path's; only the stored post-correction `flux_residual` -- a
+cancellation to ~6e-10 m3/s summed in a different BLAS order -- moves by
+1.2e-11 m3/s, 1e-16 of the gross boundary flux.  The production sweep therefore
+needs the parent level (~100 MB at 256^2 x 64) plus the initial block, not
+60 GB; `mem=128gb` is now headroom rather than a requirement, and
+`N_rel = 20` is no longer a memory question.
 
 **Disk**, all new, in `$RUNDIR`: 164 GB of nesting files (20.9 + 43.8 + 55.2 +
 17.6 + 26.4) and 173 GB of child field dumps, ~337 GB total.  The V1 run it
@@ -1297,10 +1314,9 @@ C0a: the slab cut reads 1/2, 1/3 and all of the 170 GB (about 5, 4 and 10 min),
 the three children run 1621 s each as V1's did, the four analyses share one
 800 s parent accumulation; about 2.3 h against 3 h.  C0b: `submit_cx3_c0b.pbs`
 carries the sizing -- parent 45 min including 240 GB of dump I/O, slab cuts
-53 min, children 37 min, analysis 12 min, about 2.6 h against 4 h; the 0.5 s
-point holds 47 GB of slabs in RAM, and the writer stores each slab variable
-separately with the correction in place, so `mem=128gb` covers it (V1 measured
-39 GB for a 35 GB file).
+53 min, children 37 min, analysis 12 min, about 2.6 h against 4 h.  The 0.5 s
+point's 47 GB nesting file is streamed level by level, not held (see V2's
+"Cost, from measurement"), so `mem=128gb` is far more than it needs.
 
 ## Status
 
@@ -1581,8 +1597,8 @@ of 2.5 h and 3.5 h with `-v UDALES_V0_POINTS=...`, which is the right thing to
 do when the queue is deeper still: the points are independent once the coarse
 parents exist.
 
-**Memory** peaks in the slab cut at ~40 GB (34.0 GB of slabs held in memory
-before writing, as in V1); `mem=128gb`.  **Disk**, all new: 25 GB of coarse
+**Memory** no longer peaks in the slab cut (the 34.0 GB of slabs is streamed,
+see V2's "Cost, from measurement"); `mem=128gb`.  **Disk**, all new: 25 GB of coarse
 parent dumps, 136 GB of nesting files, 181 GB of child dumps, ~343 GB.
 `--prune-nesting` drops the nesting files once their children have run.
 

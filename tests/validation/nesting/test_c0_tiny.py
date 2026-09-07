@@ -294,6 +294,9 @@ class TestC0Tiny(unittest.TestCase):
             want = len(range(0, n_dumped, stride))
             self.assertEqual(cad["n_levels_used"], want, key)
             self.assertEqual(m["n_parent_levels"], want, key)
+            # the streaming writer appended exactly the subsampled levels: it
+            # never saw the ones the cadence skipped
+            self.assertEqual(m["writer_diagnostics"]["ntime"], want, key)
             times = _nc_times(self._casedir(self.c0a, key) / f"nesting.inp.{p.child_expnr}.nc")
             self.assertEqual(times.size, want, f"{key}: nesting file levels")
             self.assertEqual(times[0], 0.0, key)
@@ -392,6 +395,7 @@ class TestC0Tiny(unittest.TestCase):
             self.assertEqual(m["parent_expnr"], self.fine.parent_expnr)
             self.assertEqual(m["cadence"]["stride"], stride, key)
             self.assertEqual(m["n_parent_levels"], len(range(0, n_dumped, stride)), key)
+            self.assertEqual(m["writer_diagnostics"]["ntime"], m["n_parent_levels"], key)
             times = _nc_times(self._casedir(self.c0b, key) / f"nesting.inp.{p.child_expnr}.nc")
             self.assertEqual(times.size, m["n_parent_levels"], key)
             self.assertEqual(times[0], 0.0)

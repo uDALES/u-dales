@@ -129,6 +129,44 @@ class TestV1TinyPipeline(unittest.TestCase):
         self.assertLess(ic["after_projection"], 1.0e-12)
         self.assertGreater(ic["before_projection"], ic["after_projection"])
 
+    def test_the_nesting_file_was_streamed_level_by_level(self):
+        """The writer's own record of the cut agrees with the file and the manifest.
+
+        ``make_child_case`` appends each parent level to ``nesting.inp`` as it
+        is cut (``udprep.nesting.NestingWriter``) instead of holding the whole
+        record, so the manifest's ``writer_diagnostics`` is what the writer
+        accumulated on the way.  It must count exactly the levels that were
+        stored, its pre-correction residual must be the manifest's, and the
+        residual the manifest quotes after correction must be the one the
+        file carries -- the number the solver validates against.
+        """
+        from netCDF4 import Dataset
+        from udprep.nesting import validate_nesting_file
+
+        p = self.preset
+        path = self.child_dir / f"nesting.inp.{p.child_expnr}.nc"
+        attrs = validate_nesting_file(path)  # the schema the solver reads
+        self.assertEqual(int(attrs["has_initial_condition"]), int(p.init_from_parent))
+        wd = self.manifest["writer_diagnostics"]
+        self.assertEqual(wd["ntime"], self.manifest["n_parent_levels"])
+        self.assertEqual(wd["correction"]["ntime"], wd["ntime"])
+        self.assertEqual(wd["correction"]["residual_max_abs"],
+                         self.manifest["flux_residual_before_correction"]["max_abs"])
+        self.assertAlmostEqual(wd["cadence"]["parent_dt"],
+                               self.manifest["parent_dt_median"], places=12)
+        self.assertEqual(wd["refinement"], self.manifest["refinement"]["check"])
+        self.assertIs(wd["refinement"]["allowed"], True)
+        self.assertTrue(wd["refinement"]["reason"])
+        with Dataset(path, "r") as ds:
+            self.assertEqual(len(ds.dimensions["time"]), wd["ntime"])
+            residual = np.asarray(ds.variables["flux_residual"][:], dtype=float)
+            before = np.asarray(ds.variables["net_volume_flux"][:], dtype=float)
+        self.assertEqual(float(np.max(np.abs(before))),
+                         self.manifest["flux_residual_before_correction"]["max_abs"])
+        self.assertAlmostEqual(float(np.max(np.abs(residual))),
+                               self.manifest["flux_residual_after_correction"]["max_abs"],
+                               delta=1.0e-20)
+
     # -- the nested run ----------------------------------------------------- #
 
     def test_child_run_kept_the_flux_and_the_divergence_bounded(self):

@@ -12,9 +12,11 @@ builds a complete, runnable child case:
 * ``namoptions.<nr>`` with ``lnesting = .true.`` and the zone geometry of the
   preset;
 * ``nesting.inp.<nr>.nc``, written through the **production** writer
-  ``tools/python/udprep/nesting.py`` (``slabs_from_fields`` +
-  ``apply_divergence_correction`` + ``write_nesting_file``), so the writer and
-  the Fortran reader cannot drift apart.
+  ``tools/python/udprep/nesting.py`` (``slabs_from_fields`` into
+  ``NestingWriter.append_level``, one parent level at a time), so the writer
+  and the Fortran reader cannot drift apart -- and so that the slab cut holds
+  one parent level rather than the whole record: its peak memory does not
+  grow with the number of levels.
 
 Because the refinement ratio is exactly 1 the slabs are *cut*, not interpolated
 (``slabs_from_fields``): V1 is meant to isolate the nesting scheme from the
@@ -35,7 +37,7 @@ import json
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import numpy as np
 
@@ -54,19 +56,13 @@ from caselib import (
 from config import Preset, RefinedPoint, get_preset
 
 from udprep.nesting import (
+    COMPONENTS,
     NestGrid,
-    NestingData,
-    SLAB_VARIABLES,
-    apply_divergence_correction,
+    NestingWriter,
     discrete_divergence,
     initial_fields_from_parent,
-    nesting_diagnostics,
-    net_volume_flux,
-    refinement_ratios,
-    slab_shape,
     slabs_from_fields,
     slabs_from_parent,
-    write_nesting_file,
 )
 
 
@@ -389,11 +385,6 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     pi0, pj0 = driving.i0, driving.j0
     pni, pnj, pnk = driving.window_cells(preset)
     nzone = preset.nzone
-    slabs: Dict[str, np.ndarray] = {
-        name: np.empty((n_use,) + slab_shape(grid, nzone, *_split(name)),
-                       dtype=np.float64)
-        for name in SLAB_VARIABLES
-    }
     # The profile that seeds prof.inp is accumulated on the grid the parent data
     # ARRIVES on, which is the child's own only at refinement ratio 1.  At r > 1
     # it is the coarse grid and the profile is interpolated onto the child's
@@ -432,47 +423,101 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     imean = {c: np.zeros(nkp) for c in "uvw"}
     imsq = {c: np.zeros(nkp) for c in "uvw"}
 
-    initial_fields = None
+    # ---- the nesting file, through the production per-level writer ------- #
+    # The temporal ratio parent_dt / dtmax -- the boundary cadence over the
+    # child's CFL step -- exceeds the design's V5 bound of 30 for every
+    # production preset.  That bound predates the cadence study (C0), whose
+    # criterion is C_dump; the writer evaluates and logs it.  The violation
+    # is allowed explicitly, with this reason, and the verdict is recorded in
+    # the manifest below rather than silenced.
+    refinement_reason = (
+        "temporal ratio parent_dt/dtmax is the parent dump cadence over the child's "
+        "CFL-limited step; the boundary cadence is bounded by C_dump instead"
+    )
+    # Each level is appended as soon as it is cut: the writer corrects its
+    # divergence on arrival, stores the pre- and post-correction residuals, and
+    # syncs and projects the initial condition against the corrected level 0.
+    # Nothing but the current parent level is held, so the slab cut's memory
+    # is set by the parent's level size, not by the record length -- the
+    # production record (thousands of levels) does not fit any other way.
+    # The correction is summed over all four lateral faces, as it was when
+    # apply_divergence_correction ran here on the whole record; a preset whose
+    # lateral faces cut buildings is where udprep.nesting.face_masks_from_ibm
+    # would be passed as ``masks``, and where the file's fluid_lateral_area
+    # would start to match the solver's.
+    nestfile = casedir / f"nesting.inp.{nr}.nc"
+    writer = NestingWriter(
+        nestfile, grid, nzone,
+        parent_model=f"udales:{driving.source_expnr}:{preset.name}",
+        parent_dx=driving.dx,
+        parent_dt=parent_dt,
+        child_origin_x=preset.child_origin[0],
+        child_origin_y=preset.child_origin[1],
+        child_dt=preset.dtmax,
+        allow_refinement_violation=True,
+        refinement_reason=refinement_reason,
+    )
+    # Post-correction residual of every stored level, from the writer's own
+    # recomputation of what it wrote -- the number the solver validates against.
+    phi_after = np.empty(n_use, dtype=np.float64)
+    has_initial = False
     div0 = None
     div_parent0 = None
-    for n, lev in enumerate(levels):
-        pu, pv, pw = dump.read_level(int(lev))
-        cu, cv, cw = dump.child_block(pu, pv, pw, pi0, pj0, pni, pnj)
-        if n == 0 and preset.init_from_parent:
-            # Schema 2's optional full-domain block: the child cold-starts from
-            # the parent's own instantaneous field, so the interior turbulence
-            # is the parent's from the first step instead of having to grow in
-            # from the boundaries.  apply_divergence_correction() below syncs it
-            # to the corrected boundary data and projects it.
+    with writer:
+        for n, lev in enumerate(levels):
+            pu, pv, pw = dump.read_level(int(lev))
+            cu, cv, cw = dump.child_block(pu, pv, pw, pi0, pj0, pni, pnj)
+            initial_fields = None
+            if n == 0 and preset.init_from_parent:
+                # Schema 2's optional full-domain block: the child cold-starts from
+                # the parent's own instantaneous field, so the interior turbulence
+                # is the parent's from the first step instead of having to grow in
+                # from the boundaries.  The writer syncs it to the corrected
+                # boundary data of level 0 and projects it before storing it.
+                if driving.interpolates:
+                    initial_fields = initial_fields_from_parent(pgrid, cu, cv, cw, grid)
+                    div0 = float(np.max(np.abs(discrete_divergence(
+                        grid, initial_fields["u"], initial_fields["v"],
+                        initial_fields["w"]))))
+                    # Design section 1.3: the prolongation reproduces the parent's
+                    # discrete divergence cell by cell, so a solenoidal parent gives
+                    # a solenoidal child target.  Recording the parent's own divmax
+                    # next to the child's turns that from an assertion in a docstring
+                    # into a number in the manifest -- and it is the offline half of
+                    # the end-to-end check the runtime `divmax` completes.
+                    div_parent0 = float(np.max(np.abs(
+                        discrete_divergence(pgrid, cu, cv, cw))))
+                else:
+                    # copies: the profile below still needs the parent's own field
+                    initial_fields = {"u": cu.copy(), "v": cv.copy(), "w": cw.copy()}
+                    div0 = float(np.max(np.abs(discrete_divergence(grid, cu, cv, cw))))
+                has_initial = True
             if driving.interpolates:
-                initial_fields = initial_fields_from_parent(pgrid, cu, cv, cw, grid)
-                div0 = float(np.max(np.abs(discrete_divergence(
-                    grid, initial_fields["u"], initial_fields["v"],
-                    initial_fields["w"]))))
-                # Design section 1.3: the prolongation reproduces the parent's
-                # discrete divergence cell by cell, so a solenoidal parent gives
-                # a solenoidal child target.  Recording the parent's own divmax
-                # next to the child's turns that from an assertion in a docstring
-                # into a number in the manifest -- and it is the offline half of
-                # the end-to-end check the runtime `divmax` completes.
-                div_parent0 = float(np.max(np.abs(
-                    discrete_divergence(pgrid, cu, cv, cw))))
+                level = slabs_from_parent(pgrid, cu, cv, cw, child=grid, nzone=nzone)
             else:
-                initial_fields = {"u": cu.copy(), "v": cv.copy(), "w": cw.copy()}
-                div0 = float(np.max(np.abs(discrete_divergence(grid, cu, cv, cw))))
-        if driving.interpolates:
-            level = slabs_from_parent(pgrid, cu, cv, cw, child=grid, nzone=nzone)
-        else:
-            level = slabs_from_fields(grid, nzone, cu, cv, cw)
-        for name, arr in level.items():
-            slabs[name][n] = arr
-        uc, vc, wc = caselib.cell_centred(cu[:-1], cv[:, :-1], cw[:, :, :-1])
-        usum += np.where(fluid, uc, 0.0).sum(axis=(0, 1)) / ncell
-        vsum += np.where(fluid, vc, 0.0).sum(axis=(0, 1)) / ncell
-        for c, arr in zip("uvw", (uc, vc, wc)):
-            blk = arr[np.ix_(ii_p, jj_p)]
-            imean[c] += np.where(isel, blk, 0.0).sum(axis=(0, 1)) / icell
-            imsq[c] += np.where(isel, blk * blk, 0.0).sum(axis=(0, 1)) / icell
+                level = slabs_from_fields(grid, nzone, cu, cv, cw)
+            phi_after[n] = writer.append_level(
+                times[n] - times[0], level, initial_fields=initial_fields,
+            )["flux_residual"]
+            uc, vc, wc = caselib.cell_centred(cu[:-1], cv[:, :-1], cw[:, :, :-1])
+            usum += np.where(fluid, uc, 0.0).sum(axis=(0, 1)) / ncell
+            vsum += np.where(fluid, vc, 0.0).sum(axis=(0, 1)) / ncell
+            for c, arr in zip("uvw", (uc, vc, wc)):
+                blk = arr[np.ix_(ii_p, jj_p)]
+                imean[c] += np.where(isel, blk, 0.0).sum(axis=(0, 1)) / icell
+                imsq[c] += np.where(isel, blk * blk, 0.0).sum(axis=(0, 1)) / icell
+    # cadence, correction and refinement, accumulated level by level in the
+    # writer; the refinement verdict already carries "allowed" and the reason
+    diagnostics = writer.diagnostics
+    # Largest pre-correction |Phi| over the record, as the writer saw it arrive
+    phi_before_max = float(diagnostics["correction"]["residual_max_abs"])
+    phi_after_max = float(np.max(np.abs(phi_after)))
+    # Total lateral boundary area -- the normalisation modnesting's
+    # check_stored_flux uses (phi = sum(rho u_n dA) / area_bnd).
+    area = 2.0 * (grid.xlen + grid.ylen) * grid.zsize
+    # The stored initial condition is the synced and projected one; its
+    # divergence is measured on what the solver will read, not on a copy.
+    ic_after = _initial_condition_divmax(nestfile, grid) if has_initial else None
 
     pzf = (np.arange(nkp) + 0.5) * driving.dx
     if driving.interpolates:
@@ -513,51 +558,14 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                  "the parent itself knew"),
     }
 
-    # ---- write the nesting file through the production writer ------------ #
-    data = NestingData(
-        grid=grid,
-        nzone=nzone,
-        times=times - times[0],
-        slabs=slabs,
-        parent_model=f"udales:{driving.source_expnr}:{preset.name}",
-        parent_dx=driving.dx,
-        parent_dt=parent_dt,
-        child_origin_x=preset.child_origin[0],
-        child_origin_y=preset.child_origin[1],
-        child_dt=preset.dtmax,
-        initial_fields=initial_fields,
-    )
-    phi_before = net_volume_flux(data)
-    apply_divergence_correction(data)
-    phi_after = net_volume_flux(data)
-    # Total lateral boundary area -- the normalisation modnesting's
-    # check_stored_flux uses (phi = sum(rho u_n dA) / area_bnd).
-    area = 2.0 * (grid.xlen + grid.ylen) * grid.zsize
-    # The temporal ratio parent_dt / dtmax -- the boundary cadence over the
-    # child's CFL step -- exceeds the design's V5 bound of 30 for every
-    # production preset.  That bound predates the cadence study (C0), whose
-    # criterion is C_dump; the writer evaluates and logs it.  The violation
-    # is allowed explicitly, with this reason, and the verdict is recorded in
-    # the manifest below rather than silenced.
-    refinement_reason = (
-        "temporal ratio parent_dt/dtmax is the parent dump cadence over the child's "
-        "CFL-limited step; the boundary cadence is bounded by C_dump instead"
-    )
-    write_nesting_file(casedir / f"nesting.inp.{nr}.nc", data,
-                       allow_refinement_violation=True,
-                       refinement_reason=refinement_reason)
-    diagnostics = nesting_diagnostics(data)
-    diagnostics["refinement"]["allowed"] = True
-    diagnostics["refinement"]["reason"] = refinement_reason
-
-    spatial_ratio, temporal_ratio = refinement_ratios(data)
+    # ---- the manifest ----------------------------------------------------- #
     manifest = {
         "preset": preset.name,
         "parent_dir": str(Path(parent_dir).resolve()),
         "refinement": {
             "spatial": driving.refine,
-            "spatial_from_file": spatial_ratio,
-            "temporal_from_file": temporal_ratio,
+            "spatial_from_file": diagnostics["refinement"]["spatial"],
+            "temporal_from_file": diagnostics["refinement"]["temporal"],
             "parent_dx_m": driving.dx,
             "child_dx_m": preset.dx,
             "parent_nyquist_wavelength_m": 2.0 * driving.dx,
@@ -569,10 +577,9 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
             "parent_window_cells": [pni, pnj, pnk],
             "check": diagnostics["refinement"],
         },
-        "writer_diagnostics": {
-            "cadence": diagnostics["cadence"],
-            "correction": diagnostics["correction"],
-        },
+        # NestingWriter.diagnostics as it is: ntime, cadence, correction and
+        # the refinement verdict (the same object as refinement.check above)
+        "writer_diagnostics": diagnostics,
         "driving_parent_profile": driving_profile,
         "child_expnr": nr,
         "parent_expnr": preset.parent_expnr,
@@ -601,12 +608,12 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         "ustar": preset.ustar,
         "dpdx": preset.dpdx,
         "flux_residual_before_correction": {
-            "max_abs": float(np.max(np.abs(phi_before))),
-            "max_abs_normalised": float(np.max(np.abs(phi_before)) / area),
+            "max_abs": phi_before_max,
+            "max_abs_normalised": phi_before_max / area,
         },
         "flux_residual_after_correction": {
-            "max_abs": float(np.max(np.abs(phi_after))),
-            "max_abs_normalised": float(np.max(np.abs(phi_after)) / area),
+            "max_abs": phi_after_max,
+            "max_abs_normalised": phi_after_max / area,
         },
         "nest_timeinterp": preset.timeinterp,
         "init_from_parent": bool(preset.init_from_parent),
@@ -622,12 +629,7 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         "initial_condition_divmax": {
             "parent_before_prolongation": div_parent0,
             "before_projection": div0,
-            "after_projection": (
-                None if initial_fields is None else float(np.max(np.abs(
-                    discrete_divergence(grid, data.initial_fields["u"],
-                                        data.initial_fields["v"],
-                                        data.initial_fields["w"]))))
-            ),
+            "after_projection": ic_after,
         },
     }
     (casedir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n",
@@ -635,9 +637,18 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     return casedir
 
 
-def _split(name: str) -> Tuple[str, str]:
-    component, face = name.split("_", 1)
-    return face, component
+def _initial_condition_divmax(nestfile: Path, grid: NestGrid) -> float:
+    """Peak discrete divergence of the ``u_init``/``v_init``/``w_init`` block stored in ``nestfile``.
+
+    Read back directly rather than through ``read_nesting_file``, which would
+    load every slab level -- the record the streaming cut just avoided holding.
+    """
+    from netCDF4 import Dataset
+
+    with Dataset(nestfile, "r") as ds:
+        fields = [np.asarray(ds.variables[f"{c}_init"][:], dtype=np.float64)
+                  for c in COMPONENTS]
+    return float(np.max(np.abs(discrete_divergence(grid, *fields))))
 
 
 def main() -> None:

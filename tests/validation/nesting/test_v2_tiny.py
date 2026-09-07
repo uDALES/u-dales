@@ -341,10 +341,24 @@ class TestV2TinySweep(unittest.TestCase):
             self.assertGreater(sm["fluid_cells_compared"], 0, pt.key)
 
     def test_every_nesting_file_is_flux_balanced(self):
+        """Balanced in the manifest, and the manifest is what the streamed file holds."""
+        from netCDF4 import Dataset
         for pt in self.sweep.points:
             m = json.loads((self._casedir(pt.key) / "manifest.json").read_text())
             after = m["flux_residual_after_correction"]["max_abs_normalised"]
             self.assertLess(after, 1.0e-12, f"{pt.key}: Phi/A = {after:g}")
+            # the per-level writer's own tally: every stored level, nothing else
+            wd = m["writer_diagnostics"]
+            self.assertEqual(wd["ntime"], m["n_parent_levels"], pt.key)
+            self.assertEqual(wd["correction"]["residual_max_abs"],
+                             m["flux_residual_before_correction"]["max_abs"], pt.key)
+            path = self._casedir(pt.key) / f"nesting.inp.{pt.preset.child_expnr}.nc"
+            with Dataset(path, "r") as ds:
+                self.assertEqual(len(ds.dimensions["time"]), wd["ntime"], pt.key)
+                residual = np.asarray(ds.variables["flux_residual"][:], dtype=float)
+            self.assertAlmostEqual(float(np.max(np.abs(residual))),
+                                   m["flux_residual_after_correction"]["max_abs"],
+                                   delta=1.0e-20, msg=pt.key)
 
     def test_every_child_kept_the_flux_and_divergence_bounded(self):
         for pt in self.sweep.points:
