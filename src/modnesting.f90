@@ -44,7 +44,7 @@ module modnesting
    ! Test hooks: exercised directly by src/tests.f90 (runmodes TEST_NESTING_*).
    public :: nest_shape_fn, nest_union, nest_stagger_coord, nest_flux_residual, &
              nest_flux_split, nest_time_interp, nest_record_end_warnings,        &
-             nest_injection
+             nest_injection, nest_nsolid_zone
    ! Namelist variables: read and broadcast by modstartup.
    public :: lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau,   &
              nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
@@ -1135,6 +1135,16 @@ contains
       end if
 
    end subroutine check_record_end
+
+
+   !> Test hook: the number of solid points (all three staggers, MPI-reduced)
+   !! nesting_init found inside the zone -- what the building-free rule
+   !! judges and what the nest_lparentgeom warning reports.
+   integer function nest_nsolid_zone()
+
+      nest_nsolid_zone = nsolid_zone
+
+   end function nest_nsolid_zone
 
 
    !> Test hook: how many end-of-record warnings have been issued since

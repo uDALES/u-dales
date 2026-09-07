@@ -837,21 +837,22 @@ contains
 
   end function nest_ref_blocked
 
-  !> Reference weight of component ivar at GLOBAL indices, built from an
-  !! independent coordinate formula (x = (ig-1) dx for a face, (ig-1/2) dx
-  !! for a centre) but from the PRODUCTION nest_shape_fn and nest_union.
-  !! Includes the IBM mask, the wall erosion and the ground-plane rule that
-  !! modnesting applies when it builds the zone lists.
-  real function nest_ref_weight(ivar, ig, jg, k)
-    use modglobal,  only : dx, dy, xlen, ylen, kb, libm
+  !> Geometric reference weight of component ivar at GLOBAL indices, built
+  !! from an independent coordinate formula (x = (ig-1) dx for a face,
+  !! (ig-1/2) dx for a centre) but from the PRODUCTION nest_shape_fn and
+  !! nest_union. No IBM mask: this is the weight modnesting evaluates BEFORE
+  !! it looks at the solids, so it is what decides whether a solid point
+  !! counts as "inside the zone" (U13). The ground-plane rule is included.
+  real function nest_ref_weight_raw(ivar, ig, jg, k)
+    use modglobal,  only : dx, dy, xlen, ylen, kb
     use modnesting, only : nest_shape_fn, nest_union, nest_guardwidth,     &
-                           nest_zonewidth, nest_shape, nest_lateral, nest_nwall
+                           nest_zonewidth, nest_shape, nest_lateral
 
     integer, intent(in) :: ivar, ig, jg, k
 
     real :: x, y, wf(4)
 
-    nest_ref_weight = 0.
+    nest_ref_weight_raw = 0.
 
     ! w on the ground plane is set by the bottom BC, not by nesting
     if (ivar == 3 .and. k == kb) return
@@ -871,7 +872,19 @@ contains
     if (nest_lateral(3)) wf(3) = nest_shape_fn(y, nest_guardwidth, nest_zonewidth, nest_shape)
     if (nest_lateral(4)) wf(4) = nest_shape_fn(ylen - y, nest_guardwidth, nest_zonewidth, nest_shape)
 
-    nest_ref_weight = nest_union(wf, 4)
+    nest_ref_weight_raw = nest_union(wf, 4)
+
+  end function nest_ref_weight_raw
+
+  !> Reference weight as modnesting applies it: nest_ref_weight_raw with the
+  !! IBM mask and the wall erosion.
+  real function nest_ref_weight(ivar, ig, jg, k)
+    use modglobal,  only : libm
+    use modnesting, only : nest_nwall
+
+    integer, intent(in) :: ivar, ig, jg, k
+
+    nest_ref_weight = nest_ref_weight_raw(ivar, ig, jg, k)
 
     if (nest_ref_weight <= 0.) return
     if (.not. nest_solid_on) return
@@ -1084,7 +1097,7 @@ contains
     use modibm,     only : createmasks
     use modnesting, only : nest_stagger_coord, nest_guardwidth,            &
                            nest_zonewidth, nest_lparentgeom, nest_nwall,   &
-                           nesting_init, nestfile, lnesting
+                           nesting_init, nestfile, lnesting, nest_nsolid_zone
 
     implicit none
 
@@ -1135,9 +1148,11 @@ contains
     if (.not. u12_erosion(wu, wv, ww, 2)) all_passed = .false.
 
     ! U13, warning half: solids inside the zone are tolerated when the
-    ! parent is declared to resolve the child geometry. Reaching this line
-    ! at all means the three re-inits above warned instead of aborting.
-    call nest_report('U13 building-free rule warns with nest_lparentgeom', .true.)
+    ! parent is declared to resolve the child geometry, and the count the
+    ! warning reports is the number of solid stagger points the zone
+    ! geometry covers. Reaching this line means the three re-inits above
+    ! warned instead of aborting; the count is checked against a reference.
+    if (.not. u13_solid_count()) all_passed = .false.
 
     call nest_set_solids(.false.)
 
@@ -1381,6 +1396,32 @@ contains
         nint(gero), ', mismatches ', nint(gbad)
       call nest_report(trim(lbl), u12_erosion)
     end function u12_erosion
+
+    !> U13, warning half: the solid-point count nesting_init reports equals
+    !! the number of solid stagger points whose GEOMETRIC weight is positive,
+    !! summed over the whole domain from the reference box and weight.
+    logical function u13_solid_count()
+      integer :: ivar, ig, jg, k, nref, ngot
+
+      nref = 0
+      do ivar = 1, 3
+        do k = kb, ke
+          do jg = 1, jtot
+            do ig = 1, itot
+              if (.not. nest_ref_solid(ig, jg, k)) cycle
+              if (nest_ref_weight_raw(ivar, ig, jg, k) > 0.) nref = nref + 1
+            end do
+          end do
+        end do
+      end do
+      ngot = nest_nsolid_zone()
+
+      u13_solid_count = (ngot == nref) .and. (nref > 0)
+      if (myid == 0) write(*,'(a,i0,a,i0)') '   solid points in the zone: reported ', &
+        ngot, ', reference ', nref
+      call nest_report('U13 building-free rule warns with nest_lparentgeom, count matches', &
+                       u13_solid_count)
+    end function u13_solid_count
 
     !> U13, error half: with solid points inside the zone and
     !! nest_lparentgeom = .false., nesting_init must abort. Returning from it
@@ -2338,8 +2379,12 @@ contains
         pmax = max(pmax, abs(phi))
       end do
 
-      u26_corrected = pmax <= 1.e-10
-      if (myid == 0) write(*,'(a,es12.4)') '   max |Phi| over 7 times = ', pmax
+      ! A tenth of the production tolerance: bounding Phi at nest_fluxtol
+      ! itself only re-checks the assertion nesting_bcpup already ran, so it
+      ! could not fail on its own (review 2026-09-06, U26).
+      u26_corrected = pmax <= 0.1*nest_fluxtol
+      if (myid == 0) write(*,'(a,es12.4,a,es12.4)') '   max |Phi| over 7 times = ', pmax, &
+        ', bound ', 0.1*nest_fluxtol
       call nest_report('U26 corrected input gives Phi = 0', u26_corrected)
     end function u26_corrected
 
