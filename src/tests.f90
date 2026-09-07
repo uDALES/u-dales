@@ -2022,7 +2022,7 @@ contains
     logical :: all_passed, lmask
     real, allocatable :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
 
-    call nest_banner('tests_nesting_flux', 'BOUNDARY FLUX RESIDUAL (U23-U28)')
+    call nest_banner('tests_nesting_flux', 'BOUNDARY FLUX RESIDUAL (U23-U28, U35-U39, U48)')
 
     call initfields
     call createmasks
@@ -2060,6 +2060,9 @@ contains
     if (.not. u37_stored_residual()) all_passed = .false.
     if (.not. u38_schema1_file())    all_passed = .false.
     if (.not. u39_lying_file())      all_passed = .false.
+
+    ! review 2026-09-06, F9 -- the top of the guard strip under a rigid lid
+    if (.not. u48_guard_top_divergence()) all_passed = .false.
 
     deallocate(pup, pvp, pwp)
     call nesting_finalize
@@ -2508,6 +2511,57 @@ contains
       call nest_report('U39 the run-time assertion backs up the cheap check', &
                        u39_lying_file)
     end function u39_lying_file
+
+    !> U48 (review F9): the zone has no vertical taper, so in the guard strip
+    !! w(ke) is parent data while the rigid lid holds w(ke+1) = 0. The review
+    !! asked whether that is a permanent divergence source in the top layer.
+    !! With a parent whose own lid is closed it is not: the imposed data are
+    !! discretely solenoidal on the child grid with w = 0 at the lid, so the
+    !! discrete divergence of the target in every guard-strip cell at k = ke,
+    !! taking w(ke+1) = 0, is round-off. The fixture nesting_solenoidal is
+    !! cut from such a field the way make_child_case cuts a parent dump.
+    !! Cells whose five faces are all guard-strip points on this rank.
+    logical function u48_guard_top_divergence()
+      use modglobal, only : dxi, dyi, dzfi
+
+      real, allocatable :: wu(:,:,:), wv(:,:,:), ww(:,:,:)
+      real, allocatable :: tu(:,:,:), tv(:,:,:), tw(:,:,:)
+      integer :: i, j, ncell
+      real    :: div, dmax, gcell
+
+      allocate(wu(ib:ie,jb:je,kb:ke), wv(ib:ie,jb:je,kb:ke), ww(ib:ie,jb:je,kb:ke))
+      allocate(tu(ib:ie,jb:je,kb:ke), tv(ib:ie,jb:je,kb:ke), tw(ib:ie,jb:je,kb:ke))
+
+      if (myid == 0) write(*,'(a)') '   U48 reads nesting_solenoidal.'//cexpnr//'.nc'// &
+        ' (tests/integration/nesting/make_fixtures.py); a missing file aborts here'
+      call nest_reinit('nesting_solenoidal.'//cexpnr//'.nc', 0., 4., 2, 1, 1.e-10, .true.)
+      call nest_probe_weight(wu, wv, ww)
+      call nest_target_now(tu, tv, tw)
+
+      dmax  = 0.
+      ncell = 0
+      do j = jb, je - 1
+        do i = ib, ie - 1
+          if (wu(i,j,ke) < 0.999 .or. wu(i+1,j,ke) < 0.999) cycle
+          if (wv(i,j,ke) < 0.999 .or. wv(i,j+1,ke) < 0.999) cycle
+          if (ww(i,j,ke) < 0.999) cycle
+          div = (tu(i+1,j,ke) - tu(i,j,ke))*dxi + (tv(i,j+1,ke) - tv(i,j,ke))*dyi &
+                + (0. - tw(i,j,ke))*dzfi(ke)
+          dmax  = max(dmax, abs(div))
+          ncell = ncell + 1
+        end do
+      end do
+      dmax  = nest_maxall(dmax)
+      gcell = nest_sumall(real(ncell))
+
+      u48_guard_top_divergence = (dmax <= 1.e-12) .and. (gcell > 0.)
+      if (myid == 0) write(*,'(a,i0,a,es12.4)') '   guard-strip cells at k = ke checked: ', &
+        nint(gcell), ', max |div| with w(ke+1) = 0: ', dmax
+      call nest_report('U48 guard strip top: divergence at round-off under the rigid lid', &
+                       u48_guard_top_divergence)
+
+      deallocate(wu, wv, ww, tu, tv, tw)
+    end function u48_guard_top_divergence
 
     !> U28: Phi is a linear functional of the boundary data, so with a target
     !! that is linear in time Phi at the midpoint equals the mean of the
