@@ -90,10 +90,13 @@ else
 fi
 
 ## Merge output files across outputs.
+gather_start=$(date +%s.%N)
 if (($NCPU > 1 )); then
     echo "Merging outputs across cores into one..."
     $DA_TOOLSDIR/gather_outputs.sh $outdir
 fi
+gather_end=$(date +%s.%N)
+echo "Wall time for phase [gather outputs] : $(echo "$gather_end $gather_start" | awk '{printf "%.6f", $1 - $2}') seconds" | tee -a "output.$exp.log"
 
 popd
 

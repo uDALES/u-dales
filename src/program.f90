@@ -89,6 +89,7 @@ program uDALES
 !     0      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
+  stime = MPI_Wtime()
 
   !call startup
   call readnamelists
@@ -163,13 +164,13 @@ program uDALES
 #endif
 #endif
 
+  call print_time('After initialization')
+
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
 !------------------------------------------------------
   call starttimer
   do while ((timeleft>0) .or. (rk3step < 3))
-
-    stime = MPI_Wtime()
 
     ! Any routine added to this loop must have its GPU data transfers addressed:
     ! nothing in it may read a host field. Nothing crosses the bus here for
@@ -178,109 +179,81 @@ program uDALES
 #if defined(_GPU)
     call updateDevice
 #endif
-    call print_time('updateDevice')
 
     call tstep_update
-    call print_time('tstep_update')
 
     call timedep_step
-    call print_time('timedep')
 
 !-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
 
     call advection ! includes predicted pressure gradient term
-    call print_time('advection')
 
     call shiftedPBCs
-    call print_time('shiftedPBCs')
 
     call subgrid
-    call print_time('subgrid')
 
 !-----------------------------------------------------
 !   3.3   THE SURFACE LAYER
 !-----------------------------------------------------
 
     call bottom
-    call print_time('bottom')
 
 !-----------------------------------------------------
 !   3.4   REMAINING TERMS
 !-----------------------------------------------------
 
     call coriolis       !remaining terms of ns equation
-    call print_time('coriolis')
 
     call forces         !remaining terms of ns equation
-    call print_time('forces')
 
     call lstend         !large scale forcings
-    call print_time('lstend')
 
     call nudge          ! nudge top cells of fields to enforce steady-state
-    call print_time('nudge')
 
     call ibmwallfun     ! immersed boundary forcing: only shear forces.
-    call print_time('ibmwallfun')
 
     call periodicEBcorr
-    call print_time('periodicEBcorr')
 
     call masscorr       ! correct pred. velocity pup to get correct mass flow
-    call print_time('masscorr')
 
     call ibmnorm        ! immersed boundary forcing: set normal velocities to zero
-    call print_time('ibmnorm')
 
     call EB
-    call print_time('EB')
 
     call vegetation_forcing
-    call print_time('vegetation_forcing')
 
     call heatpump
-    call print_time('heatpump')
 
     call scalsource     ! adds continuous forces in specified region of domain
-    call print_time('scalsource')
 
 !------------------------------------------------------
 !   3.4   EXECUTE ADD ONS
 !------------------------------------------------------
     call fixuinf2
-    call print_time('fixuinf2')
     call fixuinf1
-    call print_time('fixuinf1')
 
 !-----------------------------------------------------------------------
 !   3.5  PRESSURE FLUCTUATIONS, TIME INTEGRATION AND BOUNDARY CONDITIONS
 !-----------------------------------------------------------------------
     call grwdamp        !damping at top of the model
-    call print_time('grwdamp')
 
     call poisson
-    call print_time('poisson')
 
     ! call purifiers      !placing need to be checked; Not GPU compatible yet
 
     call tstep_integrate
-    call print_time('tstep_integrate')
 
     call exchange_halos
-    call print_time('exchange_halos')
 
     call checksim
-    call print_time('checksim')
 
 #if defined(_GPU)
     if (fielddump_will_sample()) call updateHostForFielddump
 #endif
-    call print_time('updateHostForFielddump')
 
     call fielddump
-    call print_time('fielddump')
 
 #if defined(_GPU)
     if (statsdump_will_sample()) then
@@ -288,31 +261,26 @@ program uDALES
        call updateHostForStatsdump
     end if
 #endif
-    call print_time('updateHostForStatsdump')
 
     call statsdump
-    call print_time('statsdump')
 
     call boundary_conditions
-    call print_time('boundary_conditions')
 
 !-----------------------------------------------------
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
 !-----------------------------------------------------
     call thermodynamics_step
-    call print_time('thermodynamics')
 
 !-----------------------------------------------------
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
     call writerestartfiles
-    call print_time('writerestartfiles')
 
   end do
 !-------------------------------------------------------
 !             END OF TIME LOOP
 !-------------------------------------------------------
-
+  call print_time('After main time loop')
 !--------------------------------------------------------
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
@@ -328,21 +296,28 @@ program uDALES
   call exitCUDA
 #endif
 
+  call print_time('After finalization')
+
   call exitmpi
 
 contains
-  subroutine print_time(routine_name)
+  subroutine print_time(phase_name)
 #if defined(_GPU)
     use modcuda, only : checkCUDA
 #endif
+    use modmpi, only : comm3d, mpierr
     implicit none
-    character(len=*), intent(in) :: routine_name
+    character(len=*), intent(in) :: phase_name
+    real :: tnow
 #if defined(_GPU)
-    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program print_time for ' // trim(routine_name) )
+    call checkCUDA( cudaDeviceSynchronize(), 'cudaDeviceSynchronize in program print_time for ' // trim(phase_name) )
 #endif
-    write(6,'(A,I0,3A,F10.6,A)')'Rank:',myid,': Time taken by ', trim(routine_name), ' : ', MPI_Wtime() - stime, ' seconds'
-
-    stime = MPI_Wtime()
+    call MPI_BARRIER(comm3d, mpierr)
+    tnow = MPI_Wtime()
+    if (myid == 0) then
+      write(6,'(3A,F12.6,A)') 'Wall time for phase [', trim(phase_name), '] : ', tnow - stime, ' seconds'
+    end if
+    stime = tnow
   end subroutine print_time
 
   subroutine execute_runmode_actions
