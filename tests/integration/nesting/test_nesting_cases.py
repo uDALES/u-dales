@@ -363,12 +363,22 @@ class _I1Base(_NestingCase):
 
 
 class TestI1NoOpSmallCase(_I1Base):
-    """A case small enough to be bitwise reproducible: the branch must match exactly.
+    """A cheap periodic case: the branch must be no further from the baseline
+    than the baseline is from itself.
 
     Same grid, timestep and randomisation as the I6 control -- periodic
-    laterals, `lnesting = .false.` -- which is verified below to be bitwise
-    reproducible run to run.  On such a case the design's "bitwise identical"
-    is a claim the hardware can actually support, and it is enforced.
+    laterals, `lnesting = .false.`.  This case was assumed small enough to be
+    bitwise reproducible run to run and compared with a plain byte-equality
+    assertion; in CI (gfortran, ubuntu-latest Release) two runs of the same
+    baseline executable on the same input differed at the 1e-12 level in
+    `pres0`, which rules out anything in this branch -- both those runs used
+    the pre-branch `origin/master` binary.  The cause is the same one
+    `TestI1NoOpExistingCase` below already documents: `ipoiss` here is the
+    FFTW-based solver, and `FFTW_MEASURE` benchmarks planner variants against
+    wall-clock time in `modpois.f90`, so even this small a transform is not
+    guaranteed bit-identical on a noisy runner.  Follow the same "no worse
+    than the baseline's own run-to-run spread" comparison used there instead
+    of assuming exact reproducibility.
     """
 
     SPEC = mcf.ZONED
@@ -405,32 +415,52 @@ class TestI1NoOpSmallCase(_I1Base):
         if self.error:
             self.fail(self.error)
 
-    def test_the_case_is_reproducible_at_all(self) -> None:
+    def test_baseline_self_noise(self) -> None:
         a = latest_restart(self.dirs["base_a"], 0, 0)
         b = latest_restart(self.dirs["base_b"], 0, 0)
-        self.assertEqual(a.read_bytes(), b.read_bytes(),
-                         "the small case is not bitwise reproducible against itself, so "
-                         "the bitwise claim below cannot be made here either")
-        print("\n[I1] small case: the baseline reproduces itself bitwise", flush=True)
+        bitwise = a.read_bytes() == b.read_bytes()
+        spread = self._field_spread(a, b)
+        worst = max(spread.values())
+        self.__class__.self_noise = worst
+        print(f"\n[I1] small case baseline vs baseline: bitwise {bitwise}, "
+              f"worst relative field difference {worst:.3e}", flush=True)
+        for name, value in sorted(spread.items(), key=lambda kv: -kv[1])[:4]:
+            print(f"[I1]   {name}: {value:.3e}", flush=True)
+        self.assertLess(worst, 1.0e-9,
+                        "the baseline's own run-to-run spread is larger than round-off")
 
-    def test_branch_matches_baseline_bitwise(self) -> None:
+    def test_branch_matches_baseline(self) -> None:
         base = latest_restart(self.dirs["base_a"], 0, 0)
         head = latest_restart(self.dirs["head"], 0, 0)
+        reference = getattr(self.__class__, "self_noise", None)
+        if reference is None:
+            self.test_baseline_self_noise()
+            reference = self.self_noise
         spread = self._field_spread(base, head)
         for name, value in spread.items():
             print(f"[I1] small case {name}: relative diff {value:.3e}", flush=True)
-        self.assertEqual(base.read_bytes(), head.read_bytes(),
-                         "with lnesting = .false. the branch changed the answer")
+        worst = max(spread.values())
+        self.assertLessEqual(
+            worst, max(10.0 * reference, 1.0e-13),
+            "with lnesting = .false. the branch moved the small case further than "
+            "the baseline moves against itself")
 
     def test_stdout_matches_baseline(self) -> None:
         base_lines, base_div = self._split_divergence(self._filtered_stdout(self.out["base_a"]))
         head_lines, head_div = self._split_divergence(self._filtered_stdout(self.out["head"]))
+        self_lines, self_div = self._split_divergence(self._filtered_stdout(self.out["base_b"]))
         self.assertEqual(len(base_lines), len(head_lines),
                          "the branch prints a different number of lines")
         for n, (a, b) in enumerate(zip(base_lines, head_lines)):
             self.assertEqual(a, b, f"stdout line {n} differs:\n  base: {a}\n  head: {b}")
-        self.assertEqual(base_div, head_div,
-                         "divmax/divtot differ on a case that is bitwise reproducible")
+        self.assertEqual(len(base_div), len(head_div))
+        reference = max(self._spread(base_div, self_div), 1.0e-3)
+        against = self._spread(base_div, head_div)
+        print(f"[I1] small case divmax/divtot: baseline-vs-branch spread {against:.3e}, "
+              f"baseline-vs-baseline {self._spread(base_div, self_div):.3e}", flush=True)
+        self.assertLessEqual(
+            against, max(3.0 * reference, 2.0),
+            "divmax/divtot moved further than the baseline's own run-to-run spread")
 
 
 class TestI1NoOpExistingCase(_I1Base):

@@ -2353,5 +2353,9 @@ No production number exists yet.  Nothing in this section should be read as one.
 
 | job | experiment | submitted | job id |
 |---|---|---|---|
-| V3 | `v3` (5 children: 4 standoffs + cleared-parent-cubes) | | |
-| V4 | `v4` (1 child: mismatch, against the V1 `converged` baseline) | | |
+| V3 | `v3` (5 children: 4 standoffs + cleared-parent-cubes) | 2026-09-07 12:35 UTC | `3996513.pbs-7` |
+| V4 | `v4` (1 child: mismatch, against the V1 `converged` baseline) | 2026-09-07 12:35 UTC | `3996514.pbs-7` |
+
+Both queued in `v1_medium24` at submission (`qstat -u $USER`); check
+`$EPHEMERAL/nesting-v3/analysis/v3_summary.md` and
+`$EPHEMERAL/nesting-v4/analysis/v4_summary.md` once they finish.

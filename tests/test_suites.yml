@@ -186,13 +186,26 @@ groups:
   # launcher that cannot start a one-rank job is a FAILURE. Without it the
   # drivers raise SkipTest, a skip-only run exits 0, and run_tests.py prints
   # PASS for a suite that never ran. Ad-hoc runs (no variable) keep the skip.
+  #
+  # platform: linux, not any: every suite here calls launch.require_launcher(),
+  # which runs `mpiexec --oversubscribe -n 1 /bin/true` to prove a one-rank job
+  # can start before trusting the real run. On the macos-latest runner this
+  # probe itself fails -- Homebrew Open MPI 5's prterun reports
+  # "unable to launch the specified application as it could not access an
+  # executable: Executable: /bin/true" -- so under UDALES_REQUIRE_LAUNCHER=1
+  # every suite here would hard-fail on macOS even though nothing in this repo
+  # is at fault (a fresh `mpiexec -n 1 /bin/true` fails the same way with no
+  # uDALES build involved). That mirrors why "supported: mpi operators
+  # integration", "supported: processor boundaries integration" and the I1
+  # baseline suite above are already absent from/restricted on macOS. Revisit
+  # once the runner image or Homebrew's open-mpi fixes this upstream.
   nesting-unit:
     suites:
       - label: "nesting: weights unit runmode 1006 (U1-U7)"
         class: supported
         kind: unit
         component: nesting
-        platform: any
+        platform: linux
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         env_UDALES_REQUIRE_LAUNCHER: "1"
@@ -204,7 +217,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: any
+        platform: linux
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         env_UDALES_REQUIRE_LAUNCHER: "1"
@@ -216,7 +229,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: any
+        platform: linux
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         env_UDALES_REQUIRE_LAUNCHER: "1"
@@ -228,7 +241,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: any
+        platform: linux
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         env_UDALES_REQUIRE_LAUNCHER: "1"
@@ -240,7 +253,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: any
+        platform: linux
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         env_UDALES_REQUIRE_LAUNCHER: "1"
@@ -252,7 +265,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: any
+        platform: linux
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         env_UDALES_REQUIRE_LAUNCHER: "1"
@@ -264,7 +277,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: any
+        platform: linux
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         env_UDALES_REQUIRE_LAUNCHER: "1"
@@ -276,7 +289,7 @@ groups:
         class: supported
         kind: unit
         component: nesting
-        platform: any
+        platform: linux
         cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         env_UDALES_REQUIRE_LAUNCHER: "1"
@@ -293,7 +306,7 @@ groups:
         class: supported
         kind: integration
         component: nesting
-        platform: any
+        platform: linux
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         env_UDALES_REQUIRE_LAUNCHER: "1"
