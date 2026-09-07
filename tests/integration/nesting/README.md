@@ -575,13 +575,13 @@ With the fix in and both builds rebuilt:
   identical for both the mid-interval and the on-a-parent-level restart, and
   `nesting_init reports interval 4, expected 4`.
 
-**Design section 9.5 is deliberately not wired in.** `modnesting` provides
-`nesting_restart_write` and `nesting_restart_read`; `grep -rn nesting_restart
-src/` finds call sites only in `src/tests.f90`. They are unit-tested (U20) and
-unused by the solver, and the doc comments now say so. Once `nesting_init` runs
-after `readinitfiles`, `set_interval(timee)` reconstructs the buffer state
-*exactly* -- I6 proves it bitwise -- so storing it would pin state that is
-already recoverable, at the cost of changing the `initd` record layout.
+**There is no nesting restart record (design section 9.5).** Once
+`nesting_init` runs after `readinitfiles`, `set_interval(timee)` reconstructs
+the buffer state *exactly* -- I6 proves it bitwise -- so storing it would pin
+state that is already recoverable, at the cost of changing the `initd` record
+layout. The `nesting_restart_write`/`nesting_restart_read` routines an earlier
+revision carried (and their unit test, U20) were removed in the 2026-09 review
+pass for that reason.
 
 
 ## Running against a Debug build
