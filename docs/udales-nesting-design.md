@@ -1002,8 +1002,7 @@ enough (§7 C6)?
 module modnesting
   implicit none;  save;  private
   public :: nesting_init, nesting_update_target, nesting_apply, &
-            nesting_boundary, nesting_bcpup, nesting_stats,     &
-            nesting_restart_write, nesting_restart_read, nesting_finalize
+            nesting_boundary, nesting_bcpup, nesting_stats, nesting_finalize
   ! test hooks, public so tests.f90 can reach them without duplicating logic
   public :: nest_shape_fn, nest_union, nest_stagger_coord, nest_flux_residual
 
@@ -1058,7 +1057,7 @@ proportional to the zone rather than the domain, and makes the inner loop a sing
 | `nesting_boundary` | `modboundary::boundary` | Fill the ghost planes of `u0/um`, `v0/vm`, `w0/wm` from the parent, in the `xmi_driver` pattern ([modboundary.f90:720](../src/modboundary.f90#L720)). |
 | `nesting_bcpup(pup,pvp,pwp,rk3coef)` | `modboundary::bcpup` | Set `pup(ib)`, `pup(ie+1)`, `pvp(jb)`, `pvp(je+1)` to the imposed values$/\Delta t_s$; zero the matching tendencies so the RK update cannot move them; recompute $\Phi$ and assert. |
 | `nesting_stats` | `program.f90`, with `statsdump` | $\Phi$, `divtot`, zone energy injection, $\|\mathcal{G}p\|$ ratio, inner-edge misfit, read time fraction. |
-| `nesting_restart_write/read` | *(no call site — §9.5)* | Parent interval index, buffered times, target time. Kept and unit tested; not wired, because `nesting_init` reconstructs the state exactly from `timee`. |
+| `nesting_finalize` | `program.f90`, at the end of the run | Close the parent file and free the buffers. There is no restart record: `nesting_init` reconstructs the buffer state exactly from `timee` (§9.5). |
 | `nest_shape_fn`, `nest_union`, `nest_stagger_coord`, `nest_flux_residual` | tests | Pure/near-pure entry points, public **so the unit tests exercise the production code rather than a copy**. |
 
 ### 9.4 When parent and child geometry differ
@@ -1215,7 +1214,7 @@ from an analytic field, so this test also pins the writer/reader contract.
 | U17 | time interpolation exactness | for a field **linear in $t$**, the target at 20 arbitrary times is exact to round-off (linear and Hermite modes both) |
 | U18 | Hermite $C^1$ | for a smooth-in-$t$ field, $\partial\tilde q/\partial t$ is continuous across an interval crossing; linear mode shows the expected jump — so the test documents the difference rather than hiding it |
 | U19 | buffer roll | stepping across several interval boundaries gives a target identical to a run that read every level eagerly |
-| U20 | restart repositioning | init at $t^\star$ mid-interval reproduces the target of a continuous run at $t^\star$, bitwise |
+| U20 | *(deleted)* | tested the restart record's repositioning; removed with `nesting_restart_write/read`, since §9.5 reconstructs the buffer from `timee` and there is no state to save (I6 pins the restart bitwise) |
 | U21 | prefetch does not change results | prefetch on/off give bitwise-identical targets |
 | U22 | header validation | a file with mismatched `itot`, `xlen`, `zf` or stagger tag **aborts with a specific message** — one subtest per field |
 
@@ -1323,7 +1322,7 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 | V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,9,12,16\}$ at fixed child size, plus a child-size arm (interior $5h$, $9h$, $13h$) at fixed zone width, every child clearing its own zone (§9.4) | **DONE — §10.5.** Zone width moves the deficit by 0.16 % over the whole range (0.03 of a sampling spread); interior extent moves it from $-13.5$ to $-9.9\,\%$. The deficit is a recovery over fetch, and §10.5's note on *what* is being recovered from applies |
 | V3 | **Parent without buildings** | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against 0/5/15/40-cell standoffs | the adjustment length (§9.4), measured both from the zone edge and from the first building face — the latter is the discriminating one, since a standoff trivially moves the canopy downstream. §9.4 predicts a standoff *lengthens* adjustment; this row exists to test that, and may refute it |
 | V4 | **Different parent geometry** | parent with a different building layout, child identical to V1's | interior statistics against the **V1** child (not against V4's own parent sub-region, which is a different flow); measures whether the interior is insensitive to the mismatch beyond the adjustment fetch |
-| **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **Filtered arm DONE — §10.5**; coarse arm running. Turbulence: the child regenerates none of an $r=4$ parent's missing band above the canopy within $13h$; mean flow: unreadable until the prolongation staircase (W8) is fixed |
+| **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **DONE, both arms — §10.5.** It reproduces its *parent*: with genuine 4 m / 8 m parents the child carries the parent's own $0.9$–$1.5\,u_\star$ mean-flow bias through the interior, and corrects its canopy turbulence only. Turbulence: the child regenerates none of an $r=4$ parent's missing band above the canopy within $13h$; mean flow: unreadable until the prolongation staircase (W8) is fixed |
 | V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | **Superseded**: the time axis is C0 (0.5–9 s, §10.5) and the space axis is V0; the ≤4/≤30 guidance is withdrawn (§1.3). C6 is a go, on the terms of §6.2 |
 | V6 | Does mass drift over long runs? | 10⁵-step run | `divtot` bounded, not drifting |
 | V7 | Does the I/O cost anything? | production-sized case | read time <1% of runtime; if not, switch container (§6.3) |
@@ -1427,11 +1426,25 @@ more of 16–64 m, and the cascade rebuilds 8–16 m from it. `nest_timeinterp =
 default (§1.3), and its own cadence ladder (C0c, jobs listed in the plan) gives the operating curve
 for the interpolant the design recommends.
 
-**The deficit curve is the deliverable.** Between 1.5 s and 9 s the deficit is close to linear in
-$\Delta t_P$ ($\approx-3.3\,\%$ per second, saturating at 9 s); below 1.5 s it flattens towards the
-$-2\,\%$ the linear interpolant leaves. With the V2 size arm this gives the first points of
-$L_{\rm rec}(\lambda)$: at $C_{\rm dump}=5.4$ the 8–16 m band recovers from 0.62 at $5h$ to 0.83 at
-$13h$ and is still rising.
+**The deficit curve is the deliverable, and C0c gives it for the recommended interpolant** (job
+3994598, the same six cadences off the same 960 dumps with `nest_timeinterp = 2`):
+
+| cadence | 0.5 s | 1 s | 1.5 s | 3 s | 6 s | 9 s |
+|---|---|---|---|---|---|---|
+| deficit, linear | $-2.1$ | $-3.3$ | $-4.9$ | $-11.3$ | $-20.5$ | $-24.5\,\%$ |
+| deficit, Catmull–Rom | $-1.6$ | $-1.8$ | $-2.4$ | $-6.4$ | $-13.3$ | $-15.6\,\%$ |
+| 8–16 m, Catmull–Rom | 0.944 | 0.937 | 0.936 | 0.897 | 0.814 | 0.768 |
+| 16–64 m, Catmull–Rom | 0.974 | 0.971 | 0.975 | 0.940 | 0.825 | 0.750 |
+
+The cubic halves the cost at every cadence from 3 s up, and at 1.5 s it matches what the linear
+interpolant needs 0.5 s for — three times the storage. Below 1.5 s both flatten at $-2\,\%$, the
+floor of this child's own fetch. One caveat the ladder exposes: at $C_{\rm dump}\ge9$ the cubic
+*overshoots*, putting $8$–$14\,\%$ excess energy into the scales above $L/4$ and $+3$–$6\,\%$ into
+canopy TKE, so a coarsely sampled parent should not be read as merely "smoothed" under the
+cubic. The operating rule that follows: **Catmull–Rom, $C_{\rm dump}\le2$ for a deficit under
+3 %, $C_{\rm dump}\le4.5$ for one under 7 %.** With the V2 size arm this gives the first points of
+$L_{\rm rec}(\lambda)$: at $C_{\rm dump}=5.4$ (linear) the 8–16 m band recovers from 0.62 at $5h$
+to 0.83 at $13h$ and is still rising.
 
 **V2 results (job 3992816, 3 h 47).** Six children of the converged parent, five run and the V1
 child reused, all clearing their own zone (`nest_lparentgeom = .false.`), 3397 samples each.
@@ -1491,7 +1504,27 @@ where 8 m cells sit on 16 m streets. Read with V2: **a band that is missing from
 data, whatever removed it, comes back over a fetch that grows with its wavelength**, and $13h$
 is not enough for 16–32 m. The recovery length $L_{\rm rec}(\lambda)$ is the quantity that
 governs cadence and refinement alike, and it is what C0 and the V2 size arm together measure.
-The coarse arm (genuine 4 m and 8 m LES parents) runs as job 3994025.
+
+**V0 coarse arm (job 3994025).** The same children driven by *genuine* 4 m and 8 m LES runs of
+the same domain, same forcing, same 3 s cadence — the real use case, unpaired. The result is
+dominated by something the filtered arm could not show: **the coarse parents are wrong in the
+mean, and the child transmits that error intact.** Against the truth, the 4 m parent's wind is
+8–20 % high (about $0.9\,u_\star$ at the child's heights) and its canopy TKE 60–95 % high; the 8 m
+parent, with two cells per cube, is 10–70 % high in the mean and doubles the canopy TKE. The
+child's mean wind then runs $0.9$–$1.1\,u_\star$ (r = 2) and $1.4$–$1.6\,u_\star$ (r = 4) above the
+truth through the whole interior, so criterion A reads $1.34$ and $1.80\,u_\star$ — not a nesting
+error but the parent's, advected through exactly as §0's table said a bulk-momentum error would
+be. The turbulence tells the same story split two ways: above the canopy the child's deficit is
+its parent's own plus the cadence loss ($-22.0\,\%$ against the parent's $-12.3\,\%$ at r = 2;
+$-18.1$ against $-16.0$ at r = 4), while *in* the canopy the child, which resolves the buildings
+its parent does not, pulls the parent's $+60$–$100\,\%$ excess back to $+18$ and $+28\,\%$ within the
+fetch — the one place refinement earns its keep in this test. The paired comparison the harness
+computes, "cost of a real parent beyond a perfect filtered one", is $-8.9\,\%$ of TKE at r = 2 and
+$+1.8\,\%$ at r = 4 (the 8 m parent's excess canopy turbulence partly compensates its filter loss),
+against a criterion-A difference of $1.2$–$1.5\,u_\star$. **The conclusion for the intended use:
+a child at higher resolution than its parent reproduces its parent, not the truth; the parent's
+mean flow at the boundary is the limiting factor, and an LES with fewer than four cells per
+building is not a usable parent for this geometry.**
 
 ### 10.6 Wiring
 
