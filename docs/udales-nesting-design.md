@@ -1673,10 +1673,26 @@ direction, and the sharpest statement of the scheme's one-way nature.
 So the two halves separate cleanly: **turbulence structure adjusts to the child's geometry within
 the fetch; bulk momentum does not adjust at all.** §10.4's V4 row asked for "interior statistics
 against the V1 child", which conflates them — the mean must be compared normalised by bulk velocity
-(or against the child's own parent), and only the turbulence against V1. Two confounds are recorded
-rather than corrected: the V1 child ran at 3 s with linear interpolation while this child ran at
-0.5 s with the cubic, which C0 prices at $+8$–$9\,\%$ of TKE aloft and accounts for essentially all
-of the $+9.3\,\%$ "mismatch" difference the summary table reports; The second, that the staggered layout
+(or against the child's own parent), and only the turbulence against V1. The first of the two confounds recorded above has since been
+**removed by measurement rather than estimated away**, at no compute cost: C0c already produced a
+child of the *same* aligned geometry at 0.5 s with the cubic (`cr0.5`, expnr 970), so V4 was
+re-analysed against that instead of against the 3 s linear V1 child. The result is cleaner than the
+confounded one, and my estimate of the confound was wrong — I had priced it at $+8$–$9\,\%$ of TKE
+aloft from C0's own numbers, and measured it is about one point:
+
+| against | TKE above $2h$ | significance | canopy TKE | criterion A$'$ |
+|---|---|---|---|---|
+| V1 child, 3 s linear | $+9.31\,\%$ | $0.79$ | $-12.26\,\%$ | $2.85$ |
+| C0c child, 0.5 s cubic (matched) | $+8.18\,\%$ | $0.68$ | $\mathbf{-0.55\,\%}$ | $2.58$ |
+
+The canopy is where it matters: against a matched child the difference falls from $-12.3\,\%$ to
+$-0.55\,\%$, i.e. **two children with the same aligned geometry, driven by parents whose geometry
+differs, end up with the same canopy.** That is V4's question answered directly, and it agrees with
+the $+46\,\%$ measured against its own staggered-parent sub-region: both say the canopy belongs to
+the child. Aloft nothing is measurable either way ($0.7\sigma$). The mean flow is unmoved, as
+expected, since it is set by the two parents' different drag. The matched baseline is noisier — 600
+samples against 3397, so the spread rises from $10.1$ to $11.2\,\%$ — which is the price of removing
+the confound and is worth paying. The second confound was: The second, that the staggered layout
 leaves $-8$ m of building clearance, was **checked and is not a defect**: negative clearance means
 the parent's cubes reach the child's lateral faces, which is precisely the case `clear_child_zone`
 exists for, and the property that would matter — a removed cube whose footprint also reaches the
