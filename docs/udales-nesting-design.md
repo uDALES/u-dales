@@ -1400,7 +1400,7 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 | V1 | Does matched LES-to-LES nesting reproduce the parent? | Big Brother: periodic parent, writer dumps zone slabs, sub-domain child at matched resolution | **DONE — §10.5.** Mean flow yes ($0.008\,u_\star$); canopy turbulence yes (1–2 %); above the canopy a real $\approx10\,\%$ resolved-TKE deficit from insufficient fetch |
 | V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,9,12,16\}$ at fixed child size, plus a child-size arm (interior $5h$, $9h$, $13h$) at fixed zone width, every child clearing its own zone (§9.4) | **DONE — §10.5.** Zone width moves the deficit by 0.16 % over the whole range (0.03 of a sampling spread); interior extent moves it from $-13.5$ to $-9.9\,\%$. The deficit is a recovery over fetch, and §10.5's note on *what* is being recovered from applies |
 | V3 | **Parent without buildings** (**closed — out of scope**) | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against 0/5/15/40-cell standoffs; plus a **cleared-parent-cubes** arm at standoff 0 — the identical child, but its parent resolves V1's own aligned canopy where the child's zone sits and the child clears it (`nest_lparentgeom = .false.`) | **DONE — §10.5.** The adjustment length is **not measurable**: with a building-free parent no child equilibrated within $26h$, and the canopy wind is $38$–$57\,\%$ wrong at the last row. A parent that resolves buildings puts the same child inside the sampling spread by $5h$. §9.4's prediction that a standoff lengthens adjustment is **REFUTED**, for a configuration now out of scope. **Decision 2026-09-07: building-free parents are not supported and this row is closed** — a building-free domain struggles to generate and sustain canopy turbulence at all, so there is nothing for the child to inherit. The cleared-parent-cubes arm isolates what a genuinely absent boundary condition costs from what "parent had cubes, child removed them" costs (§0, "New from V2") |
-| V4 | **Different parent geometry** | parent with a different building layout, child identical to V1's | **DONE — §10.5.** Turbulence: the child's canopy is its own ($+46\,\%$ against its parent, 3–4$\sigma$) and aloft it matches its parent to $1.1\,\%$. Mean flow: **inherited, not re-established** — the child sits at $0.80$ of the V1 child, tracking the $0.83$ bulk ratio of the two parents. The V1-child reference is valid for turbulence only |
+| V4 | **Different parent geometry** | parent with a different building layout, child identical to V1's | **DONE — §10.5.** Turbulence: the child's canopy is its own ($+46\,\%$ against its parent, 3–4$\sigma$) and aloft it matches its parent to $1.1\,\%$. Mean flow: **inherited, and not re-established over this fetch** — the child sits at $0.80$ of the V1 child, tracking the $0.83$ bulk ratio of the two parents. The V1-child reference is valid for turbulence only |
 | **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **DONE, both arms — §10.5**, and restated after the TKE-estimator correction. It reproduces its *parent*: with genuine 4 m / 8 m parents the child carries the parent's own $0.9$–$1.5\,u_\star$ mean-flow bias through the whole interior. Above the canopy it recovers at most a few points on its parent within $13h$; in the canopy it *overshoots* the truth by $+18$–$28\,\%$, because the too-fast imposed momentum drives too much production. Mean flow is not readable at all until the prolongation question (R2) is settled and the case re-run |
 | V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | **Superseded**: the time axis is C0 (0.5–9 s, §10.5) and the space axis is V0; the ≤4/≤30 guidance is withdrawn (§1.3). C6 is a go, on the terms of §6.2 |
 | V6 | Does mass drift over long runs? | 10⁵-step run | `divtot` bounded, not drifting |
@@ -1628,10 +1628,20 @@ momentum, the child's own resolved buildings turn that into canopy shear product
 ends too energetic. Refinement does not rescue the canopy here; it produces a canopy that is too
 active because what it is fed is too fast. The paired "cost of a real parent beyond a perfect
 filtered one" is $-8.9\,\%$ of TKE at r = 2 and $+1.8\,\%$ at r = 4, against a criterion-A
-difference of $1.2$–$1.5\,u_\star$. **The conclusion for the intended use:
-a child at higher resolution than its parent reproduces its parent, not the truth; the parent's
-mean flow at the boundary is the limiting factor, and an LES with fewer than four cells per
-building is not a usable parent for this geometry.**
+difference of $1.2$–$1.5\,u_\star$.
+
+**What this does and does not establish.** Over the configuration tested — $13h$ of interior, a 3 s
+boundary cadence, the constant prolongation, $r=2$ and $4$ — a child at higher resolution than its
+parent stayed close to its parent rather than to the truth, and the parent's mean flow at the
+boundary was the limiting factor throughout; an LES with fewer than four cells per building was not
+a usable parent for this geometry. Those are bounded observations about a finite domain and one
+configuration, not a proof that a refined child *cannot* improve on its parent: at $r=4$ with a
+perfect parent it improved by about three points, and the recovery that was still incomplete at the
+far edge of the interior might continue in a larger one. What V0b (below) tests is whether the same
+holds with the shipped prolongation at a cadence that does not confound the comparison. Three
+questions are worth keeping apart here, and only the first is settled: whether the child
+**preserves** the scales its parent resolved, whether it **develops** the smaller scales its own
+grid can hold, and whether it **adjusts** to its own finer geometry.
 
 **V4 — a parent whose geometry differs from the child's (job 3996514, 5 h 05).** Parent: a
 *staggered* 16 m array. Child: the V1 *aligned* array, driven through the zone dump at 0.5 s with

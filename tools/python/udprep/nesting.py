@@ -203,7 +203,18 @@ _FACE_SIGN = {"west": -1.0, "east": +1.0, "south": -1.0, "north": +1.0}
 #: Velocity component whose faces coincide with each lateral boundary.
 _FACE_NORMAL_COMPONENT = {"west": "u", "east": "u", "south": "v", "north": "v"}
 
+#: The largest spatial refinement ratio the validation campaign has exercised,
+#: **not** a limit of the scheme or of the interpolation.  V0 ran r = 2 and 4
+#: end to end; nothing in `conservative_interpolate` assumes a bound, and its
+#: unit tests cover larger ratios.  The writer refuses more than this so that a
+#: production case cannot quietly run outside what has been measured; raise it
+#: together with evidence at the new ratio, not on its own.
 MAX_SPATIAL_REFINEMENT = 4.0
+
+#: Withdrawn as a physical criterion by the C0 cadence study: what matters is
+#: the dump Courant number `C_dump` (see `CADENCE_COURANT_MAX`), not the ratio
+#: of the boundary cadence to the child's timestep.  Kept only as a coarse
+#: sanity bound on absurd inputs.
 MAX_TEMPORAL_REFINEMENT = 30.0
 
 #: Boundary-cadence criterion: the writer warns when

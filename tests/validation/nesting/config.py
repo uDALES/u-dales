@@ -1602,8 +1602,13 @@ class RefinedPoint:
         # free of solver-tooling imports, but it is the same number and
         # write_nesting_file enforces it.
         if self.refine > 4:
-            errors.append(f"refine = {self.refine} exceeds the writer's validated "
-                          "maximum spatial refinement of 4")
+            # A coverage boundary, not a physical one: V0 exercised r = 2 and 4
+            # end to end, so the writer refuses more than that to keep a
+            # production case from quietly running outside what was measured.
+            errors.append(f"refine = {self.refine} exceeds the largest spatial "
+                          "refinement the campaign has validated (4); raise "
+                          "udprep.nesting.MAX_SPATIAL_REFINEMENT together with "
+                          "evidence at the new ratio, not on its own")
         if abs(d.dx - self.refine * c.dx) > 1.0e-9:
             errors.append(f"driver dx = {d.dx} is not {self.refine} x the child's {c.dx}")
         # Same physical box, or the driving field does not cover the child.
