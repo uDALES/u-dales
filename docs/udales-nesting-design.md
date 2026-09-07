@@ -1401,7 +1401,7 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 | V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,9,12,16\}$ at fixed child size, plus a child-size arm (interior $5h$, $9h$, $13h$) at fixed zone width, every child clearing its own zone (§9.4) | **DONE — §10.5.** Zone width moves the deficit by 0.16 % over the whole range (0.03 of a sampling spread); interior extent moves it from $-13.5$ to $-9.9\,\%$. The deficit is a recovery over fetch, and §10.5's note on *what* is being recovered from applies |
 | V3 | **Parent without buildings** (**closed — out of scope**) | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against 0/5/15/40-cell standoffs; plus a **cleared-parent-cubes** arm at standoff 0 — the identical child, but its parent resolves V1's own aligned canopy where the child's zone sits and the child clears it (`nest_lparentgeom = .false.`) | **DONE — §10.5.** The adjustment length is **not measurable**: with a building-free parent no child equilibrated within $26h$, and the canopy wind is $38$–$57\,\%$ wrong at the last row. A parent that resolves buildings puts the same child inside the sampling spread by $5h$. §9.4's prediction that a standoff lengthens adjustment is **REFUTED**, for a configuration now out of scope. **Decision 2026-09-07: building-free parents are not supported and this row is closed** — a building-free domain struggles to generate and sustain canopy turbulence at all, so there is nothing for the child to inherit. The cleared-parent-cubes arm isolates what a genuinely absent boundary condition costs from what "parent had cubes, child removed them" costs (§0, "New from V2") |
 | V4 | **Different parent geometry** | parent with a different building layout, child identical to V1's | **DONE — §10.5.** Turbulence: the child's canopy is its own ($+46\,\%$ against its parent, 3–4$\sigma$) and aloft it matches its parent to $1.1\,\%$. Mean flow: **inherited, not re-established** — the child sits at $0.80$ of the V1 child, tracking the $0.83$ bulk ratio of the two parents. The V1-child reference is valid for turbulence only |
-| **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **DONE, both arms — §10.5.** It reproduces its *parent*: with genuine 4 m / 8 m parents the child carries the parent's own $0.9$–$1.5\,u_\star$ mean-flow bias through the interior, and corrects its canopy turbulence only. Turbulence: the child regenerates none of an $r=4$ parent's missing band above the canopy within $13h$; mean flow: unreadable until the prolongation staircase (W8) is fixed |
+| **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **DONE, both arms — §10.5**, and restated after the TKE-estimator correction. It reproduces its *parent*: with genuine 4 m / 8 m parents the child carries the parent's own $0.9$–$1.5\,u_\star$ mean-flow bias through the whole interior. Above the canopy it recovers at most a few points on its parent within $13h$; in the canopy it *overshoots* the truth by $+18$–$28\,\%$, because the too-fast imposed momentum drives too much production. Mean flow is not readable at all until the prolongation question (R2) is settled and the case re-run |
 | V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | **Superseded**: the time axis is C0 (0.5–9 s, §10.5) and the space axis is V0; the ≤4/≤30 guidance is withdrawn (§1.3). C6 is a go, on the terms of §6.2 |
 | V6 | Does mass drift over long runs? | 10⁵-step run | `divtot` bounded, not drifting |
 | V7 | Does the I/O cost anything? | production-sized case | read time <1% of runtime; if not, switch container (§6.3) |
@@ -1575,32 +1575,60 @@ prolongation is being replaced by a conservative piecewise-linear reconstruction
 stays linear in the data and preserves every parent-face integral; W8 in the plan). V0's
 mean-flow row is not readable until that is in.
 
-*Above the canopy the child regenerates none of what an $r=4$ parent never resolved.* Its
-deficit equals its parent's own to 0.3 %. At $r=2$ it regenerates the sub-filter band to 0.87 yet
-ends worse than its parent, because the 8–16 m band is lost twice, to the filter and to the 3 s
+*Above the canopy the child recovers little of what an $r=4$ parent never resolved, over this
+fetch.* Its deficit is $-19.9\,\%$ against its parent's own $-22.8\,\%$: about three points
+better than the parent, so a refined child **can** improve on its parent, but only marginally
+within $13h$. At $r=2$ it regenerates the sub-filter band to 0.87 yet ends worse than its parent
+($-13.1$ against $-9.5\,\%$), because the 8–16 m band is lost twice, to the filter and to the 3 s
 cadence (§10.5 correction above). The canopy layer recovers fully at $r=2$ and not at $r=4$,
 where 8 m cells sit on 16 m streets. Read with V2: **a band that is missing from the boundary
 data, whatever removed it, comes back over a fetch that grows with its wavelength**, and $13h$
 is not enough for 16–32 m. The recovery length $L_{\rm rec}(\lambda)$ is the quantity that
 governs cadence and refinement alike, and it is what C0 and the V2 size arm together measure.
 
+**An estimator correction that changed the V0 canopy conclusions (2026-09-07).** The
+driving-parent profile and the reference profile were not the same statistic. `make_child_case`
+averaged each velocity component over horizontal planes *first* and then formed
+$\tfrac12\sum(\langle q^2\rangle-\langle q\rangle^2)$, so its variance was taken about the combined
+space-and-time mean and therefore included the **dispersive** part — the spatial variance of the
+time-mean field. `analyse.Bundle` instead subtracts each cell's own time mean and only then averages
+horizontally. `analyse_v0` compared the two directly. Neither definition is wrong: plane averaging is
+standard where the flow is horizontally homogeneous, and around buildings the dispersive term is a
+real quantity. Comparing one against the other is what was wrong.
+
+The manifest now reports all three — `tke` (temporal, consistent with the reference), `tke_dispersive`
+and `tke_total` (the old number) — and a band-only source, which has no interior and one stored
+block, reports the TKE comparison as unavailable rather than emitting a figure the analysis would
+accept. Measured on V0's own parents, the dispersive term is **3 % of the temporal one above
+$z/h=2$ and 85–145 % of it inside the canopy**, which is exactly where buildings lock a spatial
+pattern in place. So the correction barely moves the results aloft (deficits go 2–3 points more
+negative) and **inverts the sign of every canopy comparison**. The rewritten paragraphs below are
+the corrected ones; the child-versus-truth numbers were computed by `analyse.py` on both sides
+throughout and never moved.
+
 **V0 coarse arm (job 3994025).** The same children driven by *genuine* 4 m and 8 m LES runs of
 the same domain, same forcing, same 3 s cadence — the real use case, unpaired. The result is
 dominated by something the filtered arm could not show: **the coarse parents are wrong in the
 mean, and the child transmits that error intact.** Against the truth, the 4 m parent's wind is
-8–20 % high (about $0.9\,u_\star$ at the child's heights) and its canopy TKE 60–95 % high; the 8 m
-parent, with two cells per cube, is 10–70 % high in the mean and doubles the canopy TKE. The
-child's mean wind then runs $0.9$–$1.1\,u_\star$ (r = 2) and $1.4$–$1.6\,u_\star$ (r = 4) above the
-truth through the whole interior, so criterion A reads $1.34$ and $1.80\,u_\star$ — not a nesting
-error but the parent's, advected through exactly as §0's table said a bulk-momentum error would
-be. The turbulence tells the same story split two ways: above the canopy the child's deficit is
-its parent's own plus the cadence loss ($-22.0\,\%$ against the parent's $-12.3\,\%$ at r = 2;
-$-18.1$ against $-16.0$ at r = 4), while *in* the canopy the child, which resolves the buildings
-its parent does not, pulls the parent's $+60$–$100\,\%$ excess back to $+18$ and $+28\,\%$ within the
-fetch — the one place refinement earns its keep in this test. The paired comparison the harness
-computes, "cost of a real parent beyond a perfect filtered one", is $-8.9\,\%$ of TKE at r = 2 and
-$+1.8\,\%$ at r = 4 (the 8 m parent's excess canopy turbulence partly compensates its filter loss),
-against a criterion-A difference of $1.2$–$1.5\,u_\star$. **The conclusion for the intended use:
+8–20 % high (about $0.9\,u_\star$ at the child's heights); the 8 m parent, with two cells per cube,
+is 10–70 % high. The child's mean wind then runs $0.9$–$1.1\,u_\star$ (r = 2) and
+$1.4$–$1.6\,u_\star$ (r = 4) above the truth through the whole interior, so criterion A reads
+$1.34$ and $1.80\,u_\star$ — not a nesting error but the parent's, advected through exactly as §0's
+table said a bulk-momentum error would be.
+
+The turbulence needs the correction of §10.5's estimator note to read at all. Above the canopy the
+child's deficit is close to its parent's own ($-22.0\,\%$ against $-14.5\,\%$ at r = 2; $-18.1$
+against $-18.7$ at r = 4, i.e. equal within a point). **In the canopy the earlier reading was
+inverted by the statistic, and is now the opposite.** The coarse parents were reported as carrying
+$+60$–$100\,\%$ *excess* canopy turbulence, and the child as pulling that back to $+18$ and
+$+28\,\%$; measured consistently, the parents carry a canopy *deficit* ($-2.9\,\%$ at 4 m,
+$-14.1\,\%$ at 8 m), and the child **overshoots** the truth by those same $+18$ and $+28\,\%$. The
+coherent reading is the momentum one: the coarse parent feeds the child too much near-surface
+momentum, the child's own resolved buildings turn that into canopy shear production, and the canopy
+ends too energetic. Refinement does not rescue the canopy here; it produces a canopy that is too
+active because what it is fed is too fast. The paired "cost of a real parent beyond a perfect
+filtered one" is $-8.9\,\%$ of TKE at r = 2 and $+1.8\,\%$ at r = 4, against a criterion-A
+difference of $1.2$–$1.5\,u_\star$. **The conclusion for the intended use:
 a child at higher resolution than its parent reproduces its parent, not the truth; the parent's
 mean flow at the boundary is the limiting factor, and an LES with fewer than four cells per
 building is not a usable parent for this geometry.**
