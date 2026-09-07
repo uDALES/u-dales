@@ -346,5 +346,76 @@ qp(i,j,k) = (qnew - qm(i,j,k)) / rk3coef
 | **W2-CORE** | `src/modnesting.f90` |
 | **W2-INT** | `src/modglobal.f90`, `src/modstartup.f90`, `src/program.f90`, `src/modboundary.f90` |
 | **W3-TEST** | `src/tests.f90`, `tests/test_suites.yml`, `tests/integration/nesting/**` |
+| **D1-DUMP** | `src/modnestdump.f90`, `tests/validation/nesting/test_nestdump_tiny.py` (the parent-side zone dump, section 9) |
 
 `CMakeLists.txt` needs no change (`GLOB_RECURSE` + `CONFIGURE_DEPENDS`).
+
+## 9. nestdump files `nestdump.<ipx>.<ipy>.<expnr>.nc`, `nestdump_init.<ipx>.<ipy>.<expnr>.nc`
+
+**Written by the parent** (`src/modnestdump.f90`, namelist `&NESTDUMP`, design section 6.2), read by
+whatever builds a child's `nesting.inp` -- `tests/validation/nesting/caselib.NestDump` today, other
+tools tomorrow, which is why the layout is specified here.  These files are **raw parent velocity**:
+no flux correction, no projection; section 5's file is produced from them by the same writer that
+produces it from full field dumps.
+
+**Namelist.**
+
+| Name | Default | Meaning |
+|---|---|---|
+| `lnestdump` | `.false.` | switch |
+| `tnestdump` | `1.` | dump interval [s]; tested at `rk3step == 3` like `tfielddump`, first dump at `btime + tnestdump`; at or below the timestep every step is written |
+| `nestdump_x0`, `nestdump_y0` | `0.` | child box origin, parent coordinates [m]; **must coincide with parent cell faces** (`xh`, `yh`) or the run aborts |
+| `nestdump_xsize`, `nestdump_ysize` | `-1.` | child box size [m]; the far faces must be parent faces too |
+| `nestdump_nzone` | `0` | band thickness in **parent** cells inside each lateral face of the box: the child's guard + ramp (or its stored `nzone`, whichever is wider) on the parent grid, rounded up, **plus one cell** for the tangential-slope stencil of `udprep.nesting.conservative_interpolate`; `2 * nestdump_nzone` must be below the box size |
+| `nestdump_linit` | `.true.` | write the whole box once, at the first dump, for the child's initial condition |
+
+**Index convention.** Global 1-based parent cell indices, as `itot`/`jtot` count them. `u(i)` is the
+x-face `xh(i)` west of cell `i`, `v(j)` the y-face `yh(j)` south of cell `j`, `w(k)` the z-face
+`zh(k)` below cell `k`.  A block covering cells `i1..i2`, `j1..j2` carries `u` on faces `i1..i2+1`,
+`v` on `j1..j2+1` and `w` on `1..ktot+1` (the lid value included), i.e. the complete staggered set
+of those cells.  Blocks written by different ranks overlap on their shared faces (and the four strips
+of the band overlap at the box corners); overlapping values are identical, the upper face coming from
+the halo exchanged immediately before the dump.
+
+**Band file** `nestdump.<ipx>.<ipy>.<expnr>.nc`, one per rank whose subdomain meets the band; a rank
+that misses it writes nothing.  For each of the four strips the rank intersects -- west and east are
+`nestdump_nzone` cells wide over the box's full `j` range, south and north `nestdump_nzone` cells
+deep over the full `i` range -- one block, named by the strip:
+
+```
+dimensions:
+  time = UNLIMITED ;  zt = ktot ;  zm = ktot+1 ;
+  xt_west = i2-i1+1 ;  xm_west = i2-i1+2 ;  yt_west = j2-j1+1 ;  ym_west = j2-j1+2 ;
+  // ... _east, _south, _north for the strips this rank writes; absent otherwise
+variables:
+  float time(time) ;  float zt(zt), zm(zm), xt_west(xt_west), xm_west(xm_west), ... ;   // m
+  float u_west(time, zt, yt_west, xm_west) ;   u_west:stagger = "xh yf zf" ;
+  float v_west(time, zt, ym_west, xt_west) ;   v_west:stagger = "xf yh zf" ;
+  float w_west(time, zm, yt_west, xt_west) ;   w_west:stagger = "xf yf zh" ;
+  //  each carries i_start, i_end, j_start, j_end (the block's cells, global 1-based),
+  //  units = "m/s", _FillValue = -999.f ;  CDL order shown, Fortran sees the reverse
+// global attributes:
+  :udales_nestdump_schema = 1 ;  :itot, :jtot, :ktot, :dx, :dy ;
+  :box_x0, :box_y0, :box_xsize, :box_ysize ;                 // the namelist box
+  :box_i_start, :box_i_end, :box_j_start, :box_j_end, :box_ni, :box_nj ;   // the box in cells
+  :nzone = nestdump_nzone ;  :tnestdump ;
+  :myidx, :myidy, :nprocx, :nprocy, :rank_i_start, :rank_i_end, :rank_j_start, :rank_j_end ;
+  :index_convention = <the paragraph above, in one line> ;
+```
+
+**Initial-block file** `nestdump_init.<ipx>.<ipy>.<expnr>.nc`, one per rank whose subdomain meets the
+box, written once at the first dump time (the instant of the band's first record, from the same
+field).  Same global attributes; no time dimension, a scalar `time`; one block `u(zt, yt, xm)`,
+`v(zt, ym, xt)`, `w(zm, yt, xt)` with dimensions `xt, xm, yt, ym` over the rank's part of the box.
+
+**Assembling the box.** Allocate `u(ni+1, nj, ktot)`, `v(ni, nj+1, ktot)`, `w(ni, nj, ktot+1)` over
+the box, place every block by its `i_start`/`j_start` offset from `box_i_start`/`box_j_start`, and
+treat what no block covered as missing (the reader uses `NaN`, so a slab cut or a prolongation stencil
+that reaches past the band fails loudly instead of taking zeros).  `time` is single precision, as is
+`fielddump`'s, and the velocities are single precision converted by the netCDF library from the
+solver's doubles exactly as `fielddump`'s are -- a child built from either source is bit-identical.
+
+**Cost accounting.** The parent prints, for the first dump and every 100th, the bytes written over
+all ranks and the wall time of the write calls on the slowest rank, and a run total at exit
+(`nestdump: <n> dumps, <MB> MB in total (all ranks), <s> s in the write calls (slowest rank)`).
+

@@ -143,9 +143,9 @@ sampling.  Two things follow:
 | File | What it is |
 |---|---|
 | `config.py` | **every** parameter of the experiments: `Preset` (one case), `Sweep` (V2), `RefinedPoint`/`RefinementSuite` (V0), including the cube layout.  Run it to print them. |
-| `caselib.py` | shared machinery: namelist rendering, the cube-array + ground mesh, the 1-D input profiles, the field-dump reader and its flux-conservative coarse view, the solid mask, the solver launcher |
-| `make_parent_case.py` | builds a parent case directory (two namelists: spin-up and production), at whatever resolution the preset asks for |
-| `make_child_case.py` | cuts (`r = 1`) or interpolates (`r > 1`) the child case -- geometry, `namoptions`, `prof.inp` and `nesting.inp.<nr>.nc` -- out of a parent's dumps |
+| `caselib.py` | shared machinery: namelist rendering, the cube-array + ground mesh, the 1-D input profiles, the field-dump reader and its flux-conservative coarse view, the `&NESTDUMP` band reader (`NestDump`), the solid mask, the solver launcher |
+| `make_parent_case.py` | builds a parent case directory (two namelists: spin-up and production), at whatever resolution the preset asks for; `Preset.parent_output` selects full field dumps, the `&NESTDUMP` band, or both |
+| `make_child_case.py` | cuts (`r = 1`) or interpolates (`r > 1`) the child case -- geometry, `namoptions`, `prof.inp` and `nesting.inp.<nr>.nc` -- out of a parent's dumps, full (`--source fielddump`) or band-only (`--source nestdump`) |
 | `analyse.py` | the comparison for **one** child: profiles, TKE, spectra, error vs distance, the V2 falsification metrics; JSON + CSV + PNG |
 | `analyse_v0.py` | the reductions that only exist at `r > 1`: the spectral ratio split at the parent's Nyquist wavelength, the solver's runtime `Phi`/`divmax`, and the driving parent's own deficit |
 | `sweep_summary.py` | reduces a whole V2 sweep to one table; CSV + JSON + Markdown + two plots |
@@ -156,6 +156,7 @@ sampling.  Two things follow:
 | `test_v2_tiny.py` | the `v2-tiny` sweep as a unittest -- the V2 harness smoke test, plus the checks on the production sweep's configuration that need no run |
 | `test_c0_tiny.py` | the `c0-tiny` and `c0b-tiny` sweeps as a unittest -- the C0 harness smoke test, plus the production C0 sweeps' configuration and the experiment-number register |
 | `test_v0_tiny.py` | the `v0-tiny` suite as a unittest -- the V0 harness smoke test, plus the coarsening/prolongation invariants and the production suite's configuration |
+| `test_nestdump_tiny.py` | the parent-side zone dump (D1) on the `tiny` parent: both outputs at one cadence, bit-identical child builds from each, the storage ratio, the parent's I/O accounting, and a refined child built from a band-only driver |
 | `submit_cx3.pbs` | the V1 production job for CX3, 64 cores / 8 h.  **Review before submitting.** |
 | `submit_cx3_v2.pbs` | the V2 sweep job for CX3, 64 cores / 8 h, reusing the V1 parent.  **Review before submitting.** |
 | `submit_cx3_c0b.pbs` | the C0b job for CX3, 64 cores / 4 h / 128 GB: the fine-cadence parent warm-started from the V1 restart, six children, the table.  **Review before submitting.**  C0a goes through `submit_cx3_v2.pbs` with `UDALES_V2_SWEEP=c0`. |
@@ -216,6 +217,37 @@ python tests/validation/nesting/run_v1.py <rundir> --preset production \
 
 Stages are `parent-case`, `spinup`, `production`, `child-case`, `child`,
 `analysis`.
+
+### The parent-side zone dump (D1)
+
+A parent that only drives children need not write full field dumps: with
+`Preset.parent_output = "nestdump"` its production namelist carries a
+`&NESTDUMP` block instead of `lfielddump` (`"both"` writes the two side by side),
+and `src/modnestdump.f90` writes, per rank, only the band of `nestdump_nzone`
+parent cells inside each lateral face of the child box plus one whole-box
+initial block (`docs/udales-nesting-spec.md`, section 9).  The band is
+`Preset.nestdump_nzone(child)`: the child's guard + ramp on the parent grid,
+rounded up, **plus one cell** for the prolongation's slope stencil -- so a
+driver sized for a refined child (`make_parent_case.build(...,
+nestdump_child=<fine preset>)`) can be prolonged without reaching into the
+interior it did not write.  `make_child_case --source nestdump` builds the
+same `nesting.inp` from those files, through the same writer; the interior is
+`NaN` on the way in, so a slab that reached past the band fails the build rather
+than storing zeros.  Because the band has no interior, the `prof.inp` seed and
+the manifest's `driving_parent_profile` come from the single initial block.
+
+Measured on `tiny` (`test_nestdump_tiny.py`, about 3 min on a login node): the
+two sources give bit-identical nesting files; the band files are 4.0x smaller
+than the field dumps (5.1x by cell count for this geometry -- 96^2 parent, 64^2
+box, 8-cell band; the production geometry gives ~15x); the parent wrote 35 MB
+in 0.06 s of write calls over 40 dumps on 4 ranks.  The V0/V2/C0 drivers keep
+`parent_output = "fielddump"`: those parents are also the reference the child is
+compared against, and the filtered arm box-filters full dumps.
+
+```bash
+python tests/validation/nesting/test_nestdump_tiny.py
+python tests/validation/nesting/make_child_case.py <parent_dir> <outdir> --preset tiny --source nestdump
+```
 
 ### Suite registration
 

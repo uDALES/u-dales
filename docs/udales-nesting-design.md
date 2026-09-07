@@ -681,6 +681,21 @@ arithmetic is comfortable. The design target is therefore *"do nothing pathologi
    interval rather than stalling one substep. Double buffering already gives the slots; only the
    trigger point has to be early.
 
+**As implemented (D1, `src/modnestdump.f90`).** The parent writes the band with `&NESTDUMP`
+(`lnestdump`, `tnestdump`, the child box `nestdump_x0/y0/xsize/ysize` in parent coordinates on
+parent faces, `nestdump_nzone` parent cells inside each lateral face, `nestdump_linit`): each rank
+writes the intersection of its subdomain with each of the four strips of the band, `u0/v0/w0` in
+single precision with the upper staggered faces included, to its own `nestdump.<ipx>.<ipy>.<expnr>.nc`,
+plus its part of the whole box once to `nestdump_init.<ipx>.<ipy>.<expnr>.nc` at the first dump
+(spec section 9). The band is the child's guard + ramp on the parent grid, rounded up, **plus one
+cell**, which is what the linear tangential reconstruction of §1.3 needs at the outermost zone cell
+of a refined child. The data are raw: the flux correction of §3 and the initial-condition projection
+stay in `udprep.nesting`, which `make_child_case --source nestdump` feeds exactly as it feeds the
+full dumps -- on the `tiny` preset the two sources give bit-identical nesting files, the tiny
+geometry's band files are 4.0x smaller than its field dumps (5.1x by cell count; the ~15x above is
+the production geometry), and the parent's own accounting printed 35 MB in 0.06 s of write calls
+for 40 dumps on 4 ranks (`tests/validation/nesting/test_nestdump_tiny.py`).
+
 ### 6.3 Container options
 
 | Option | Speed | Introspectable | Notes |
@@ -983,13 +998,15 @@ enough (§7 C6)?
 |---|---|
 | `src/modnesting.f90` | **new** — the whole scheme (§9.2) |
 | `src/modglobal.f90` | `BCxm_nesting = 4`, `BCym_nesting = 3`; six `TEST_NESTING_*` runmode constants |
-| `src/modstartup.f90` | `&NESTING` namelist + broadcasts; `checkinitvalues` guards; `call nesting_init` |
-| `src/program.f90` | three call sites (§4); runmode dispatch for the new tests |
+| `src/modstartup.f90` | `&NESTING` namelist + broadcasts; `checkinitvalues` guards; `call nesting_init`; `&NESTDUMP` namelist + broadcasts (D1) |
+| `src/program.f90` | three call sites (§4); runmode dispatch for the new tests; `initnestdump`/`nestdump`/`exitnestdump` next to the fielddump calls (D1) |
 | `src/modboundary.f90` | `case(BCxm_nesting)`/`case(BCym_nesting)` in `boundary`, in the outflow block, and in `bcpup` — each a thin delegation to `modnesting` |
 | `src/tests.f90` | five new in-solver test entry points (§10.1) |
 | `src/modsave.f90` | *(unchanged — the restart state is reconstructed, not stored; §9.5)* |
 | `tools/python/udprep/nesting.py` | **new** — writer, conservative interpolation, divergence correction, validation |
-| `tools/python/namelists.json` | `&NESTING` metadata |
+| `tools/python/namelists.json` | `&NESTING` and `&NESTDUMP` metadata |
+| `src/modnestdump.f90` | **new** (D1) -- the parent-side zone dump of §6.2: `&NESTDUMP`, per-rank band and initial-block files (spec section 9) |
+| `tests/validation/nesting/caselib.py`, `make_parent_case.py`, `make_child_case.py`, `config.py` | D1: `NestDump` reader, `Preset.parent_output` / `nestdump_sections`, the `nestdump` driving source; `test_nestdump_tiny.py` closes it |
 | `tests/test_suites.yml` | new `nesting` group |
 | `docs/udales-boundary-conditions.md` | document `BCxm = 4`, `BCym = 3` |
 
