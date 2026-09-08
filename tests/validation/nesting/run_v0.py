@@ -199,8 +199,25 @@ def _row(point: RefinedPoint, metrics: Dict[str, object],
         # the number that says whether the extra divergence a linear
         # prolongation injects stays confined to the zone.
         "runtime_gradp_zone_mean": rt.get("gradp_zone", {}).get("mean"),
+        "runtime_gradp_zone_std": rt.get("gradp_zone", {}).get("std"),
         "runtime_gradp_interior_mean": rt.get("gradp_interior", {}).get("mean"),
+        "runtime_gradp_interior_std": rt.get("gradp_interior", {}).get("std"),
         "runtime_gradp_ratio_mean": rt.get("gradp_ratio", {}).get("mean"),
+        "runtime_gradp_n_reports": rt.get("gradp_zone", {}).get("n"),
+        # Review finding 2: the same reduction with the startup transient
+        # discarded (t < child_spinup), so a resolved series (V0c's
+        # nest_statint = 30 s) can be told apart from V0b's two compulsory
+        # endpoints.  None on any point whose log predates this field.
+        "runtime_gradp_zone_mean_post_startup":
+            (rt.get("gradp_zone_post_startup") or {}).get("mean"),
+        "runtime_gradp_zone_std_post_startup":
+            (rt.get("gradp_zone_post_startup") or {}).get("std"),
+        "runtime_gradp_interior_mean_post_startup":
+            (rt.get("gradp_interior_post_startup") or {}).get("mean"),
+        "runtime_gradp_interior_std_post_startup":
+            (rt.get("gradp_interior_post_startup") or {}).get("std"),
+        "runtime_gradp_n_reports_post_startup":
+            (rt.get("gradp_zone_post_startup") or {}).get("n"),
         "prolongation_parent_divmax":
             (v0.get("prolongation_offline") or {}).get("parent_before_prolongation"),
         "prolongation_child_divmax":
@@ -230,6 +247,12 @@ _TABLE_COLUMNS = (
     ("band_parent_resolved", "E: resolved", "{:.3f}"),
     ("band_parent_marginal", "marginal", "{:.3f}"),
     ("band_sub_parent_filter", "sub-filter", "{:.3f}"),
+    # Two different statistics (review finding 1): u_rms_difference_over_ustar
+    # is the mean-flow PROFILE RMS (one number over the whole column);
+    # criterion_a is the MAXIMUM interior SLAB RMS (analyse.py:521 and :692).
+    # Both columns are kept side by side here, not only in the JSON/CSV, so a
+    # reader of the printed table cannot mistake one for the other.
+    ("u_rms_difference_over_ustar", "profile RMS [u*]", "{:.4f}"),
     ("criterion_a", "crit A [u*]", "{:.4f}"),
     ("staircase_rms_over_ustar", "staircase RMS [u*]", "{:.4f}"),
     ("prolongation_parent_divmax", "pre-proj div (parent)", "{:.2e}"),

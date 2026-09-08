@@ -164,8 +164,38 @@ def _floats(text: str, pattern: str) -> List[float]:
 #: shows) or leaks into the interior (ratio materially larger).
 _GRADP_PATTERN = r"\|grad p\| zone =\s*(\S+)\s+interior =\s*(\S+)\s+ratio =\s*(\S+)"
 
+#: Each ``nesting_stats`` call (``src/modnesting.f90``) prints its own
+#: ``modnesting: t = <timee>`` line immediately before the block that ends with
+#: the ``|grad p|`` line -- Phi, Phi lid, zone misfit, then |grad p| -- in that
+#: fixed order, once per call, so pairing the two greedily-but-in-order (a
+#: non-greedy ``.*?`` between them, ``re.DOTALL`` so it can cross lines) always
+#: matches one report's own timestamp, never a later report's.  This is what
+#: lets a startup transient be discarded by TIME (``t < stats_start``) rather
+#: than by report index, which ``nest_statint`` does not guarantee is evenly
+#: spaced under ``ladaptive``.
+_REPORT_WITH_TIME_PATTERN = re.compile(
+    r"modnesting: t\s+=\s*(\S+).*?" + _GRADP_PATTERN, re.DOTALL
+)
 
-def runtime_diagnostics(child_log: Path) -> Dict[str, object]:
+
+def _report_stats(arr: np.ndarray) -> Dict[str, object]:
+    if arr.size == 0:
+        return {"n": 0, "mean": None, "std": None, "median": None, "max": None}
+    return {
+        "n": int(arr.size),
+        "mean": float(arr.mean()),
+        # population std (ddof=0): this describes the spread of the reports
+        # actually in hand, not an estimate extrapolated to a larger unseen
+        # population -- reported alongside n so the standard error (std/sqrt(n))
+        # can be formed by whoever reads it.
+        "std": float(arr.std(ddof=0)) if arr.size > 1 else 0.0,
+        "median": float(np.median(arr)),
+        "max": float(arr.max()),
+    }
+
+
+def runtime_diagnostics(child_log: Path, *,
+                        stats_start: Optional[float] = None) -> Dict[str, object]:
     """Parse the solver's own nesting and divergence diagnostics from a run log.
 
     These are the end-to-end half of the prolongation check: the offline
@@ -179,6 +209,15 @@ def runtime_diagnostics(child_log: Path) -> Dict[str, object]:
     ("how far does it reach") is about the run's typical state, not its worst
     moment, so the summary table needs the mean of ``||Gp||`` zone, interior
     and their ratio -- plan section 7, R2(b).
+
+    ``stats_start`` (typically ``preset.child_spinup``, the SAME threshold the
+    child-vs-truth statistics window uses) additionally reports the zone and
+    interior norms over only the reports at ``t >= stats_start`` -- review
+    finding 2: V0b's two compulsory endpoint reports could not distinguish a
+    startup transient from a converged state, and averaging in the transient
+    is wrong regardless of how many reports there are.  ``None`` (V0/V0b's own
+    call site, unchanged) skips this and reports only the full, undiscarded
+    series, exactly as before.
     """
     text = Path(child_log).read_text(errors="replace")
     out: Dict[str, object] = {"log": str(child_log)}
@@ -194,21 +233,26 @@ def runtime_diagnostics(child_log: Path) -> Dict[str, object]:
     # The zone and interior magnitudes themselves, not only their ratio: the
     # generic loop above only captures the ratio's own capture group, and
     # "does the pressure response stay in the zone" needs both sides of it.
-    gradp = re.findall(_GRADP_PATTERN, text)
-    if gradp:
-        gzone = np.asarray([float(a) for a, _, _ in gradp])
-        gint = np.asarray([float(b) for _, b, _ in gradp])
-        gratio = np.asarray([float(c) for _, _, c in gradp])
-        out["gradp_zone"] = {"n": int(gzone.size), "mean": float(gzone.mean()),
-                             "median": float(np.median(gzone)),
-                             "max": float(gzone.max())}
-        out["gradp_interior"] = {"n": int(gint.size), "mean": float(gint.mean()),
-                                 "median": float(np.median(gint)),
-                                 "max": float(gint.max())}
-        out["gradp_ratio"]["mean"] = float(gratio.mean())
-    else:
-        out["gradp_zone"] = {"n": 0, "mean": None, "median": None, "max": None}
-        out["gradp_interior"] = {"n": 0, "mean": None, "median": None, "max": None}
+    # Paired with each report's own timestamp (see _REPORT_WITH_TIME_PATTERN)
+    # so the startup can be discarded by time when stats_start is given.
+    reports = _REPORT_WITH_TIME_PATTERN.findall(text)
+    ts = np.asarray([float(t) for t, _, _, _ in reports])
+    gzone = np.asarray([float(a) for _, a, _, _ in reports])
+    gint = np.asarray([float(b) for _, _, b, _ in reports])
+    gratio = np.asarray([float(c) for _, _, _, c in reports])
+    out["gradp_zone"] = _report_stats(gzone)
+    out["gradp_interior"] = _report_stats(gint)
+    out["gradp_ratio"]["mean"] = float(gratio.mean()) if gratio.size else None
+    out["gradp_ratio"]["std"] = (float(gratio.std(ddof=0)) if gratio.size > 1
+                                 else (0.0 if gratio.size else None))
+    out["gradp_report_times"] = ts.tolist()
+    if stats_start is not None and ts.size:
+        keep = ts >= float(stats_start)
+        out["gradp_zone_post_startup"] = _report_stats(gzone[keep])
+        out["gradp_interior_post_startup"] = _report_stats(gint[keep])
+        out["gradp_ratio_post_startup"] = _report_stats(gratio[keep])
+        out["gradp_stats_start"] = float(stats_start)
+        out["gradp_n_discarded_as_startup"] = int((~keep).sum())
     div = re.findall(r"divmax, divtot =\s*(\S+)\s+(\S+)", text)
     dmax = [float(a) for a, _ in div]
     dtot = [float(b) for _, b in div]
@@ -431,7 +475,7 @@ def augment(outdir: Path, child_dir: Path, metrics: Dict[str, object],
         "flux_residual_after_correction": manifest.get("flux_residual_after_correction"),
         "spectra_across_parent_nyquist": spectra_split(metrics, point.driver.dx),
         "parent_deficit": parent_deficit(metrics, manifest, c.building_height, c.ustar),
-        "runtime": (runtime_diagnostics(log) if log.exists()
+        "runtime": (runtime_diagnostics(log, stats_start=c.child_spinup) if log.exists()
                     else {"log": str(log), "available": False}),
         "staircase": staircase_amplitude(metrics["profiles"], point.refine, c.ustar),
     }
@@ -522,11 +566,22 @@ def summary(v0: Dict[str, object], metrics: Dict[str, object]) -> str:
                      f"zone misfit rms = {rt['zone_misfit_rms']['median_abs']:.3e} m/s, "
                      f"|grad p| zone/interior = {rt['gradp_ratio']['median_abs']:.2f}")
     if rt.get("gradp_zone", {}).get("mean") is not None:
-        lines.append(f"  |grad p| (time-mean): zone = {rt['gradp_zone']['mean']:.3e}, "
-                     f"interior = {rt['gradp_interior']['mean']:.3e}, "
+        lines.append(f"  |grad p| (time-mean, n={rt['gradp_zone']['n']}): "
+                     f"zone = {rt['gradp_zone']['mean']:.3e} "
+                     f"+/- {rt['gradp_zone']['std']:.1e}, "
+                     f"interior = {rt['gradp_interior']['mean']:.3e} "
+                     f"+/- {rt['gradp_interior']['std']:.1e}, "
                      f"ratio (of the means) = "
                      f"{rt['gradp_zone']['mean'] / rt['gradp_interior']['mean']:.2f}, "
-                     f"mean of the per-report ratios = {rt['gradp_ratio']['mean']:.2f}")
+                     f"mean of the per-report ratios = {rt['gradp_ratio']['mean']:.2f} "
+                     f"+/- {rt['gradp_ratio'].get('std') or 0.0:.2f}")
+    zpost = rt.get("gradp_zone_post_startup")
+    if zpost is not None and zpost.get("n"):
+        ipost = rt["gradp_interior_post_startup"]
+        lines.append(f"  |grad p|, startup discarded (t >= {rt['gradp_stats_start']:g} s, "
+                     f"{rt['gradp_n_discarded_as_startup']} reports dropped, n={zpost['n']} "
+                     f"kept): zone = {zpost['mean']:.3e} +/- {zpost['std']:.1e}, "
+                     f"interior = {ipost['mean']:.3e} +/- {ipost['std']:.1e}")
     off = v0.get("prolongation_offline") or {}
     if off.get("parent_before_prolongation") is not None:
         lines.append(f"  prolongation  parent divmax "
