@@ -1656,7 +1656,19 @@ class RefinedPoint:
 
     # -- self-consistency --------------------------------------------------- #
 
-    def validate(self) -> None:
+    def validate(self, *, allow_refine_one: bool = False) -> None:
+        """Raise on an inconsistent point.
+
+        ``allow_refine_one`` is for V0c's matched-resolution **control** only
+        (``RefinementSuite.allow_matched_control``): a ``refine = 1`` point
+        there is not "V0 at ratio 1" -- it deliberately reuses the ``filtered``
+        machinery (``coarsen == 1`` degenerates to a plain slab cut,
+        ``driving.interpolates`` is ``False``, so the writer never touches the
+        prolongation) so that the SAME analysis code produces the SAME
+        statistics for the control as for ``r = 2``/``4``, over one paired
+        realisation.  Every other suite leaves this ``False``, so the existing
+        "use V1 instead" refusal still applies to V0/V0b.
+        """
         errors: List[str] = []
         c, d = self.child, self.driver
         c.validate()
@@ -1715,7 +1727,7 @@ class RefinedPoint:
         if self.arm == "coarse" and d.parent_expnr == c.parent_expnr:
             errors.append(f"the coarse driving parent and the fine reference share "
                           f"expnr {d.parent_expnr}; their case directories would collide")
-        if self.refine == 1:
+        if self.refine == 1 and not allow_refine_one:
             errors.append("a V0 point at refine = 1 is V1; use the V1 preset instead")
         if not self.resolves_the_ramp:
             # Not an error: it is a real, reportable property of the point.
@@ -1745,6 +1757,12 @@ class RefinementSuite:
     #: (``child.prolongation``) instead -- there is no real coarse LES to pair
     #: against, by design (see the ``V0B`` docstring).
     require_paired_arms: bool = True
+    #: ``True`` only for V0c: lets one point carry ``refine = 1``, a
+    #: matched-resolution **control** driven and analysed by exactly the same
+    #: ``filtered``-arm code path as the refined points (see
+    #: :meth:`RefinedPoint.validate`'s docstring).  ``False`` everywhere else,
+    #: so V0/V0b keep refusing a ``refine = 1`` point as a configuration error.
+    allow_matched_control: bool = False
 
     def point(self, key: str) -> RefinedPoint:
         for p in self.points:
@@ -1780,7 +1798,7 @@ class RefinementSuite:
         seen_keys, seen_expnr, drivers = set(), {}, {}
         for pt in self.points:
             try:
-                pt.validate()
+                pt.validate(allow_refine_one=self.allow_matched_control)
             except ValueError as exc:
                 errors.append(str(exc))
                 continue
@@ -2040,7 +2058,196 @@ V0B_TINY = _v0b_suite(
                  (4, "constant"): "980", (4, "linear"): "981"},
 )
 
-SUITES: Dict[str, RefinementSuite] = {s.name: s for s in (V0_TINY, V0, V0B_TINY, V0B)}
+# --------------------------------------------------------------------------- #
+# V0c -- is criterion A genuinely violated, or is the window too short?
+# --------------------------------------------------------------------------- #
+#
+# The review of V0b (nesting-review-2026-09-08-codex.md, finding 1) found that
+# V0b's headline criterion-A failures (0.098 at r = 2, 0.121 at r = 4, both
+# against the 0.05 bound) are not distinguishable from a **matched-resolution**
+# control run over the SAME 1800 s window: C0c's own `cr0.5` point (expnr 970)
+# also fails (0.083), so the refined penalty relative to that control is only
+# ~17 % / ~45 %, not a pass-to-fail collapse.  V1 converged, at a 10 191 s
+# window, passes (0.0386).  Settling whether refinement genuinely violates the
+# bound needs a longer window with its OWN matched-resolution control at that
+# SAME window -- not V1's, which is a different parent realisation (903, not
+# 960) and was never re-analysed at V0b's cadence/interpolant.
+#
+# THE WINDOW.  The sampling floor on a temporal-mean statistic falls as
+# 1/sqrt(N); V0b's 1800 s window (600 samples at child_dtdump = 3 s) would need
+# ~6x the samples to roughly halve it -- 0.098 -> ~0.049 (r = 2, right at the
+# bound), 0.121 -> ~0.061 (r = 4, still failing but much closer), 0.083 ->
+# ~0.042 (r = 1 control, passes).  Rather than choose a new number, V0c reuses
+# `CONVERGED.production = 10800` and `child_spinup = 600` UNCHANGED, giving a
+# 10200 s statistics window (~10191 s once the trailing margin_levels is
+# dropped) -- the same ~5.7x V0b's window, and the same window V1 converged
+# itself used, so every V0c number is directly comparable to the V1 converged
+# row already in section 10.5.
+#
+# THE PARENT.  A fresh production run (expnr 982), warm-started from the SAME
+# 903 spin-up restart 960 used (`$EPHEMERAL/nesting-v1-converged/903`,
+# t = 10800 s) -- NOT a continuation of 960's own end state, which does not
+# exist as a restart: 960's production namelist sets `trestart = 1e9`
+# (`parent_sections`, `production=True` branch), so `writerestartfiles`
+# (`src/modsave.f90:77`, `timee >= tnextrestart`) never fires during a
+# production run and 960 wrote no restart of its own.  Re-running the full
+# 10800 s production from 903's restart is still far cheaper than starting
+# over: it skips the 10800 s spin-up entirely (measured ~76-90 min on 64
+# ranks, `docs/udales-nesting-design.md` section 10.4/CONVERGED's own costing)
+# and reproduces 960's own first 2400 s deterministically (same restart, same
+# `irandom`, same `ladaptive`/`dtmax`) before continuing another 8400 s beyond
+# where 960 stopped -- ~101 min of production at 960's own measured rate
+# (`TOTAL CPU time by main time loop = 1347.85 s` for 2400 s simulated in
+# `$EPHEMERAL/nesting-c0b/960/production.log`, i.e. 1.78 s simulated / s wall).
+#
+# DUMP CADENCE / C_dump.  `nest_timeinterp = 2` (Catmull-Rom) throughout, as
+# V0b settled.  `C_dump = U cadence / dx <= 2` (design section 0) evaluated at
+# the domain-top wind (~5.5 m/s here, above the 3 m/s bulk `u0`) needs
+# `cadence <= 0.73 s` at the 2 m grid; `dtdump = cadence = 0.5 s` clears that
+# with margin (`C_dump = 0.75` at `u0`, matching 960/V0b's own value).
+#
+# THE THREE ARMS.  All ``filtered`` (box-filtered from 982's own dumps, exactly
+# V0/V0b's construction), all at 982's window, all with the shipped
+# prolongation LEFT UNSET (``Preset.prolongation = None``): the writer's
+# default (``udprep.nesting.DEFAULT_PROLONGATION``, currently ``"linear"``)
+# applies, matching what production V0b actually ships rather than sweeping
+# the reconstruction again.
+#
+#   r = 1  the matched-resolution CONTROL, without which a refined-vs-unrefined
+#          comparison at this window cannot be told apart from more sampling
+#          noise -- the review's central point.  Built through the SAME
+#          ``RefinedPoint``/``DrivingParent.refined`` code path as r = 2 and
+#          r = 4 (``RefinementSuite.allow_matched_control = True`` lifts the
+#          normal "use V1 instead" refusal): at ``refine = 1``,
+#          ``RefinedPoint.coarsen`` is 1, so ``CoarsenedFieldDump(dump, 1)`` is
+#          the identity (`caselib.coarsen_staggered`/`coarsen_fluid_mask`
+#          short-circuit at ``factor == 1``) and
+#          ``DrivingParent.interpolates`` (``refine > 1``) is ``False``, so
+#          ``make_child_case.build`` takes the slab-CUT branch, never the
+#          prolongation -- exactly ``DrivingParent.matched``'s behaviour, but
+#          produced by the identical call sequence r = 2/4 use, so every
+#          number downstream (criterion A, profile RMS, the pressure
+#          diagnostics) comes from one analysis code path across all three
+#          arms rather than a bespoke one for the control.
+#   r = 2, r = 4  box-filtered exactly as V0b's `filtered` arm.
+#
+# WHAT THIS DOES NOT DO.  It does not sweep the prolongation again (V0b
+# settled that) and it does not add a `coarse` arm (no new coarse-LES parent
+# run; `require_paired_arms = False` for the same reason V0b sets it).
+#
+# THE PRESSURE DIAGNOSTIC.  V0b inherited `nest_statint = -1` -> `tstatsdump`,
+# so every point got only the compulsory first/last `nesting_stats` report
+# (n = 2, the first a startup transient) -- review finding 2.  `nest_statint`
+# is a TIME interval (`modnesting.f90` checks it against `timee`, not a step
+# count), so unlike V6's `nest_statint` it needs no probe run to size: 30 s
+# over the 10800 s run gives ~360 reports, ~340 of them after the 600 s
+# discard -- a genuinely resolved series to take a mean and a spread from,
+# not two endpoints.
+#
+# DISK.  The dominant cost is 982's own full-domain field dump: box-filtering
+# for the r = 2/4 arms needs `CoarsenedFieldDump` over the WHOLE 256 x 256 x 64
+# domain (there is no NaN-safe way to coarsen `caselib.NestDump`'s own
+# NaN-outside-the-band box without also widening its stored zone to
+# `refine x` the coarse driving preset's own margin AND reworking
+# `DrivingParent`'s global-index addressing, which assumes the array
+# `CoarsenedFieldDump` wraps covers the full domain from index 0 -- a
+# `NestDump` box's footprint already equals the child window, addressed from
+# its own local origin.  That is not a cheap extension, so this suite falls
+# back to full `FieldDump` dumps and budgets for them rather than attempting
+# it under time pressure); the r = 1 control could in principle read a cheap
+# `&NESTDUMP` band instead, but since 982 must write the full 0.5 s dump
+# anyway for r = 2/4, a separate NESTDUMP output would be pure extra cost for
+# zero marginal saving and is not requested.  At the measured ~100 GB per
+# 1000 s of full-domain 2 m dumps at 0.5 s (`3 * 256 * 256 * 64 * 4` bytes/level
+# = 50 MB/level; clusters.md), 10800 s is ~1.08 TB, new and persistent.  Each
+# child's nesting file is `3 * 2 * (128 + 128) * 64 * 12 * 8` bytes/level =
+# ~9.4 MB, `x 21600` boundary levels (cadence 0.5 s over 10800 s) = ~204 GB,
+# transient (`--prune-nesting`) but a real PEAK: `udprep.nesting.write_nesting_file`
+# holds the whole array in memory, so at the V1 job's measured 1.11x
+# file-to-peak-RSS ratio this is ~225-230 GB of peak RSS during EACH child's
+# case build (one at a time, not additive across the three children) --
+# `submit_cx3_v0c.pbs` requests `mem=300gb` for that reason.  Each child's own
+# field dumps (128^2x64 @ 3 s over 10800 s = 3600 levels x 12.6 MB) add
+# ~45 GB x 3 = ~136 GB, persistent.  Net new/persistent disk: ~1.08 TB (parent)
+# + ~0.14 TB (three children's own dumps) =~ 1.22 TB.  `$EPHEMERAL` is
+# unquotaed (measured ~3.0 TB already in `nesting-*` at the time this was
+# written) and CX3's `v1_medium24/72` queues allow up to `mem=450gb` on a
+# single 64-core node, so both the disk and the memory fit -- but this is the
+# most expensive nesting-validation run so far and is recorded here so the
+# next one can be sized from it rather than re-deriving the arithmetic.
+V0C_FINE = replace(
+    CONVERGED, name="v0c-fine", parent_expnr="982", child_expnr="983",
+    dtdump=0.5, cadence=0.5, child_dtdump=3.0, timeinterp=2, nest_statint=30.0,
+)
+#: Smoke-test twin, on ``TINY``'s window (production/child_spinup are already
+#: 120/40 s there; only the cadence/interpolant/diagnostic-interval move).
+V0C_FINE_TINY = replace(
+    TINY, name="v0c-fine-tiny", parent_expnr="982", child_expnr="983",
+    dtdump=0.5, cadence=0.5, child_dtdump=3.0, timeinterp=2, nest_statint=5.0,
+)
+PRESETS[V0C_FINE.name] = V0C_FINE
+PRESETS[V0C_FINE_TINY.name] = V0C_FINE_TINY
+
+
+def _v0c_suite(base: Preset, name: str, *,
+              ranks: Dict[int, Tuple[int, int]],
+              driver_expnr: Dict[int, str],
+              child_expnr: Dict[int, str]) -> RefinementSuite:
+    """Build a V0c suite: one matched-resolution control (r = 1) plus r = 2, 4.
+
+    Every point is ``arm = "filtered"`` and ``prolongation`` is left unset (the
+    writer's shipped default applies uniformly); see the module-level V0c
+    comment block above for the full construction and its justification.
+    """
+    points: List[RefinedPoint] = []
+    for refine in sorted(ranks):
+        if refine == 1:
+            # No coarsening, no separate grid: the "driver" is a bookkeeping
+            # copy of the reference at its own expnr, never built as its own
+            # case (RefinedPoint.runs_driver is False for every 'filtered'
+            # point regardless of refine).
+            driver = replace(base, name=f"{name}-parent-r1", parent_expnr=driver_expnr[1])
+        else:
+            nprocx, nprocy = ranks[refine]
+            driver = _v0_driver(base, refine, expnr=driver_expnr[refine],
+                                nprocx=nprocx, nprocy=nprocy)
+        child = replace(base, name=f"{name}-r{refine}", child_expnr=child_expnr[refine])
+        points.append(RefinedPoint(
+            key=f"r{refine}", arm="filtered", refine=refine, driver=driver, child=child,
+            note=("matched-resolution control: no coarsening, boundary data is a "
+                  "plain slab cut of the reference's own dumps (design plan "
+                  "review, finding 1)" if refine == 1 else
+                  f"boundary data box-filtered from the fine reference's own "
+                  f"dumps ({base.parent_expnr}) at cadence {base.cadence:g} s, "
+                  f"nest_timeinterp {base.timeinterp}; prolongation left unset "
+                  "(writer default)")))
+    return RefinementSuite(name=name, reference=base, points=tuple(points),
+                           require_paired_arms=False, allow_matched_control=True)
+
+
+#: **V0c -- the matched-resolution control, at a window long enough to resolve
+#: criterion A.**  Three children: r1 (control), r2, r4.  Same 128 x 128 child,
+#: zone, forcing as V0/V0b/V1; only the fine truth (982, a fresh 10800 s
+#: production run) and its longer window are new.
+V0C = _v0c_suite(
+    V0C_FINE, "v0c",
+    ranks={1: (8, 8), 2: (8, 8), 4: (4, 4)},
+    driver_expnr={1: "982", 2: "988", 4: "989"},
+    child_expnr={1: "983", 2: "985", 4: "987"},
+)
+
+#: The same suite in minutes, on its own tiny fine truth (builds and runs 982
+#: at TINY's size, exactly as v0-tiny/v0b-tiny do for their own references).
+V0C_TINY = _v0c_suite(
+    V0C_FINE_TINY, "v0c-tiny",
+    ranks={1: (2, 2), 2: (2, 2), 4: (2, 2)},
+    driver_expnr={1: "982", 2: "988", 4: "989"},
+    child_expnr={1: "983", 2: "985", 4: "987"},
+)
+
+SUITES: Dict[str, RefinementSuite] = {
+    s.name: s for s in (V0_TINY, V0, V0B_TINY, V0B, V0C_TINY, V0C)
+}
 
 
 def get_suite(name: str) -> RefinementSuite:
