@@ -16,7 +16,8 @@
 # (qsub/qstat live in /opt/pbs/bin on CX3.)
 #
 # ---------------------------------------------------------------------------
-# WHAT THIS IS.  The writer defaults to 'constant' (divergence-preserving; the
+# WHAT THIS IS.  (Header written before the run.)  At submission the writer
+# defaulted to 'constant' (divergence-preserving; the
 # only reconstruction V0 actually validated, at production size) and 'linear'
 # is an opt-in (removes the mean-profile staircase W8 found, at the cost of a
 # local divergence source in the imposed target -- review finding 2, plan

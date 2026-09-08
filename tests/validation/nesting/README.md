@@ -1746,7 +1746,7 @@ job is for, and it has not been run.
 
 `tools/python/udprep/nesting.py`'s conservative interpolation reconstructs each
 parent cell's velocity tangentially in one of two ways (`Preset.prolongation`,
-`udprep.nesting.PROLONGATIONS`): `"constant"` (piecewise-constant, the shipped
+`udprep.nesting.PROLONGATIONS`): `"constant"` (piecewise-constant, divergence-preserving; was the shipped
 default) is exactly divergence-preserving -- design section 1.3's guarantee --
 but leaves a staircase in the child's mean wind wherever the true profile is
 sheared (W8's finding from V0's own filtered arm: `±0.1 u*`, alternating in
@@ -1804,7 +1804,7 @@ both prolongations build and run at both ratios; the divergence identity holds
 for `constant` and is confirmed NOT to for `linear` (recorded, not asserted
 away); the pressure-response and staircase reductions are finite and reported
 for every point; the `constant_vs_linear` summary pairing is populated at both
-ratios; and `prolongation=None` reproduces the writer's own default (`"constant"`)
+ratios; and `prolongation=None` reproduces the writer's own default (`"linear"` since V0b settled it; the test tracks `DEFAULT_PROLONGATION` rather than naming a scheme)
 exactly -- every stored variable in the nesting file, checked automatically,
 not only by the one-off git-stash comparison in the implementing report.  On
 real data: a single real-data smoke build of `r2-constant` against the actual

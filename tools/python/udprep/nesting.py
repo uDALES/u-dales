@@ -294,18 +294,28 @@ PARENT_DT_RTOL = 1.0e-2
 #:
 #:   quantity (r = 2 / r = 4)     constant          linear
 #:   pre-projection child divmax  9.5e-8 / 2.3e-8   0.363 / 0.287
-#:   |grad p| zone/interior       2.393 / 1.996     2.469 / 2.015   (+3.2 / +1.0 %)
 #:   criterion A [u*]             0.128 / 0.280     0.098 / 0.121
 #:   staircase RMS [u*]           0.044 / 0.055     0.005 / 0.009
 #:   TKE deficit above z/h = 2    -6.5 / -16.9 %    -2.6 / -10.6 %
 #:
-#: So the child's projection absorbs the extra divergence locally, at 1-3 % on
-#: the pressure response and with post-projection divmax and Phi unchanged at
-#: round-off, while the mean-flow error falls by up to 2.3x and the staircase
-#: by 6-9x.  ``"constant"`` remains available and is the only scheme that
-#: satisfies design section 1.3's exact identity; the identity tests name it
-#: explicitly.  Caveat recorded in 10.5: at r = 4 the linear scheme overshoots
-#: the parent-resolved band and generates less sub-filter energy.
+#: The mean-flow error falls by up to 2.3x and the staircase by 6-9x, and
+#: post-projection divmax and Phi are unchanged at round-off.  That is the
+#: whole of the case for linear, and it is an empirical one for the cases
+#: tested.
+#:
+#: **What is NOT established.**  An earlier version of this comment claimed the
+#: projection absorbs the extra divergence "locally, at 1-3 % on the pressure
+#: response".  That rested on two pressure samples per run -- V0b inherited the
+#: default diagnostic interval, so only the compulsory first and last reports
+#: exist, and the first is a startup transient outside the averaging window.
+#: Two endpoints are not a time mean, and at r = 4 the interior norm rose more
+#: than the zone norm, so locality is not shown either.  The claim is withdrawn
+#: pending a run with a real diagnostic interval.
+#:
+#: ``"constant"`` remains available and is the only scheme satisfying design
+#: section 1.3's exact identity; the identity tests name it explicitly.  Caveat:
+#: at r = 4 linear overshoots the parent-resolved band and generates less
+#: sub-filter energy, so it is not uniformly better.
 PROLONGATIONS = ("constant", "linear")
 DEFAULT_PROLONGATION = "linear"
 

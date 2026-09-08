@@ -342,8 +342,13 @@ class TestV0bTinyPipeline(unittest.TestCase):
 
         from make_child_case import DrivingParent
 
-        pt = self.suite.point("r2-constant")
-        self.assertEqual(pt.child.prolongation, "constant")
+        # Track the writer's actual default rather than hard-coding one: V0b
+        # settled it on 'linear' (design 10.5), and the point of this test is
+        # that leaving `prolongation` unset reproduces whatever that default
+        # is, byte for byte.
+        self.assertIn(DEFAULT_PROLONGATION, ("constant", "linear"))
+        pt = self.suite.point(f"r2-{DEFAULT_PROLONGATION}")
+        self.assertEqual(pt.child.prolongation, DEFAULT_PROLONGATION)
         reference_dir = self.rundir / pt.reference_expnr
         original = self.rundir / pt.expnr / f"nesting.inp.{pt.expnr}.nc"
         self.assertTrue(original.exists(), original)
@@ -369,7 +374,8 @@ class TestV0bTinyPipeline(unittest.TestCase):
                 self.assertEqual(va.shape, vb.shape, name)
                 self.assertTrue(np.array_equal(va, vb),
                                 f"variable {name!r} differs between "
-                                "prolongation='constant' and prolongation=None")
+                                f"prolongation={DEFAULT_PROLONGATION!r} and "
+                                "prolongation=None")
             # Every global attribute except the wall-clock timestamp and the
             # preset-name-derived 'parent_model' string (the two builds are
             # deliberately named differently; nothing else may differ).
@@ -378,8 +384,11 @@ class TestV0bTinyPipeline(unittest.TestCase):
                 if key in skip:
                     continue
                 self.assertEqual(a.getncattr(key), b.getncattr(key), key)
-        self.assertEqual(DEFAULT_PROLONGATION, "constant",
-                         "this test's premise: today's unset default is 'constant'")
+        # The suite must carry an arm for whatever the default is, or the
+        # comparison above silently tests nothing.
+        self.assertIn(f"r2-{DEFAULT_PROLONGATION}",
+                      [q.key for q in self.suite.points],
+                      "no V0b arm matches the writer's default prolongation")
 
 
 # --------------------------------------------------------------------------- #
