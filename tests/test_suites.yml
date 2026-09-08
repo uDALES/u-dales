@@ -692,6 +692,24 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/validation/nesting/test_tke_estimator.py"
+      # V6 -- does mass drift over long nested runs? (design section 10.4 row
+      # V6).  Needs no other production entry to have run first: it builds its
+      # own short parent record from scratch, same as the tiny run below, only
+      # further past it (nest_lendabort = .false.).  Production is submitted
+      # by hand (tests/validation/nesting/submit_cx3_v6.pbs) because it targets
+      # ~1e5 steps -- hours of wall time on its own 4-rank job, sized from a
+      # measured step rate in the PBS script's header, not something this
+      # harness should run as part of an automated suite.
+      - label: "nesting-validation: V6 mass-drift tiny end-to-end (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v6_tiny.py"
 
   supported-macos:
     includes:
