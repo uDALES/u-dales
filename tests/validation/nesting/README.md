@@ -2082,10 +2082,12 @@ V0c16's own label) were re-run afterwards and are unchanged.
 
 | job | experiment | submitted | job id |
 |---|---|---|---|
-| V0c16 | `v0c16` (992 fine-truth parent, 4x4/16 ranks, 3 children: r1/r2/r4) | 2026-09-08 | `PENDING` |
+| V0c16 | `v0c16` (992 fine-truth parent, 4x4/16 ranks, 3 children: r1/r2/r4) | 2026-09-08 | `4008364.pbs-7` |
 
-Twin of V0c (job 4004496, `$EPHEMERAL/nesting-v0c`, 64 ranks) -- whichever
-starts first wins; `qdel` the other once one is producing output. Check
+Queued in `v1_small72` at submission (confirmed via `qstat -f`), alongside
+V0c's own `v1_medium24` (job 4004496, `$EPHEMERAL/nesting-v0c`, 64 ranks,
+still queued, untouched by this addition). Twin jobs -- whichever starts
+first wins; `qdel` the other once one is producing output. Check
 `$EPHEMERAL/nesting-v0c16/analysis/v0_summary.md` once it finishes.
 
 ---
