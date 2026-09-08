@@ -46,7 +46,7 @@ import json
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -579,17 +579,48 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     # from the single initial block instead.
     n_profile = n_use if driving.complete_levels else 1
 
-    def accumulate_profile(cu, cv, cw) -> None:
+    # ---- a SECOND interior accumulation, restricted to the analysis window - #
+    # ``imean``/``imsq``/``cell_sum``/``cell_sumsq`` above (and hence prof.inp,
+    # via usum/vsum) deliberately span every supplied level -- prof.inp only
+    # has to start the child near equilibrium, and using everything the loop
+    # already holds costs nothing extra.  But ``analyse.run`` restricts the
+    # reference/child comparison to ``stats_start <= t <= runtime``
+    # (analyse.py's ``t0``/``t1``, read from this same manifest), so an
+    # interior profile handed to ``analyse_v0.parent_deficit`` for validation
+    # against that comparison must be accumulated over the SAME window, not
+    # over the child's adjustment period and end margins too (review finding
+    # 4: for V0b the full-record profile spans ~0-2400 s over 4800 levels
+    # while the reference spans 600-2398.41 s over 600 samples). These
+    # ``*_valid`` accumulators are that window-restricted profile; ``imean``
+    # etc. above are untouched and still seed prof.inp exactly as before.
+    validation_t0 = float(preset.child_spinup)
+    validation_t1 = runtime
+    imean_valid = {c: np.zeros(nkp) for c in "uvw"}
+    imsq_valid = {c: np.zeros(nkp) for c in "uvw"}
+    cell_sum_valid = {c: np.zeros((ii_p.size, jj_p.size, nkp)) for c in "uvw"}
+    cell_sumsq_valid = {c: np.zeros((ii_p.size, jj_p.size, nkp)) for c in "uvw"}
+    validation_times: List[float] = []
+
+    def accumulate_profile(cu, cv, cw, t_local: float) -> None:
         uc, vc, wc = caselib.cell_centred(cu[:-1], cv[:, :-1], cw[:, :, :-1])
         usum[:] += np.where(fluid, uc, 0.0).sum(axis=(0, 1)) / ncell
         vsum[:] += np.where(fluid, vc, 0.0).sum(axis=(0, 1)) / ncell
+        in_window = validation_t0 - 1.0e-6 <= t_local <= validation_t1 + 1.0e-6
+        if in_window:
+            validation_times.append(t_local)
         for c, arr in zip("uvw", (uc, vc, wc)):
             blk = arr[np.ix_(ii_p, jj_p)]
             masked = np.where(isel, blk, 0.0)
+            sq = np.where(isel, blk * blk, 0.0)
             imean[c] += masked.sum(axis=(0, 1)) / icell
-            imsq[c] += np.where(isel, blk * blk, 0.0).sum(axis=(0, 1)) / icell
+            imsq[c] += sq.sum(axis=(0, 1)) / icell
             cell_sum[c] += masked
-            cell_sumsq[c] += np.where(isel, blk * blk, 0.0)
+            cell_sumsq[c] += sq
+            if in_window:
+                imean_valid[c] += masked.sum(axis=(0, 1)) / icell
+                imsq_valid[c] += sq.sum(axis=(0, 1)) / icell
+                cell_sum_valid[c] += masked
+                cell_sumsq_valid[c] += sq
 
     # ---- the nesting file, through the production per-level writer ------- #
     # The temporal ratio parent_dt / dtmax -- the boundary cadence over the
@@ -646,7 +677,7 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                     raise RuntimeError(
                         f"nestdump_init is stamped t = {dump.init_time} but the first "
                         f"band level is t = {all_times[0]}")
-                accumulate_profile(iu, iv, iw)
+                accumulate_profile(iu, iv, iw, float(dump.init_time) - float(times[0]))
                 if preset.init_from_parent:
                     cu, cv, cw = iu, iv, iw
             if n == 0 and preset.init_from_parent:
@@ -688,7 +719,7 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                 times[n] - times[0], level, initial_fields=initial_fields,
             )["flux_residual"]
             if driving.complete_levels:
-                accumulate_profile(cu, cv, cw)
+                accumulate_profile(cu, cv, cw, float(times[n] - times[0]))
     # cadence, correction and refinement, accumulated level by level in the
     # writer; the refinement verdict already carries "allowed" and the reason
     diagnostics = writer.diagnostics
@@ -727,28 +758,57 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                            ", from the nestdump initial block only"))
     write_prof(casedir / f"prof.inp.{nr}", zf, u=uprof, v=vprof, e12=preset.tke0,
                comment=prof_comment)
-    if driving.complete_levels:
-        tke_parts = decompose_tke(imean, imsq, cell_sum, cell_sumsq, n_profile, icell)
+    # ---- the VALIDATION profile: windowed, not the full record ----------- #
+    # imean/imsq/cell_sum/cell_sumsq above span every supplied level and only
+    # feed prof.inp (unchanged above). analyse_v0.parent_deficit instead
+    # compares this profile against analyse.run's parent/child statistics,
+    # which are restricted to stats_start <= t <= runtime -- so the profile
+    # handed to it here has to be the *_valid accumulation over that same
+    # window (review finding 4), not n_profile's full-record one.
+    n_profile_valid = len(validation_times)
+    window_note = (f"analysis window [{validation_t0:g}, {validation_t1:g}] s "
+                   "(manifest stats_start .. runtime)")
+    if n_profile_valid >= 2:
+        tke_parts = decompose_tke(imean_valid, imsq_valid, cell_sum_valid,
+                                  cell_sumsq_valid, n_profile_valid, icell)
         tke_unavailable_reason = None
-    else:
-        # A nestdump (band-only) source has no interior field and only the
-        # single initial block (n_profile == 1): there is no time series to
-        # take a temporal statistic over, so none of temporal/dispersive/total
-        # is a meaningful number.  Emit the marker instead of a number that
-        # analyse_v0.parent_deficit would otherwise silently accept.
+    elif n_profile_valid == 1:
+        # One sample gives a well-defined mean but a zero, meaningless variance.
         tke_parts = {"temporal": None, "dispersive": None, "total": None}
         tke_unavailable_reason = (
-            "driving source is 'nestdump': no interior field and only the "
-            "single initial block, so no temporal statistic exists")
+            f"only one driving-parent level falls inside the {window_note}: "
+            "no time series to take a temporal statistic over")
+    else:
+        # Either a nestdump (band-only) source, whose single initial block sits
+        # at t = 0 and essentially never falls inside stats_start..runtime, or
+        # a complete-levels source whose record does not reach the window at
+        # all. Either way: no interior field over the window, so none of
+        # temporal/dispersive/total -- or even a mean -- is available. Emit the
+        # marker instead of a number analyse_v0.parent_deficit would otherwise
+        # silently accept.
+        tke_parts = {"temporal": None, "dispersive": None, "total": None}
+        tke_unavailable_reason = (
+            f"no driving-parent levels fall inside the {window_note}"
+            + ("" if driving.complete_levels else
+               " (nestdump band source: only the single t=0 initial block "
+               "is available, and it does not fall inside stats_start)"))
+    mean_available = n_profile_valid > 0
     driving_profile = {
         "grid": "driving parent, its own cell centres",
         "source": driving.label,
         "dx_m": driving.dx,
         "z": pzf.tolist(),
         "interior_columns": [int(ii_p.size), int(jj_p.size)],
-        "u": (imean["u"] / n_profile).tolist(),
-        "v": (imean["v"] / n_profile).tolist(),
-        "w": (imean["w"] / n_profile).tolist(),
+        # The window this profile (u/v/w/tke below) was accumulated over --
+        # analyse_v0.parent_deficit asserts this matches the manifest's own
+        # "stats_start"/"runtime" before comparing anything, refusing the
+        # comparison rather than silently mixing windows if it does not.
+        "window_s": [validation_t0, validation_t1],
+        "n_levels_in_window": int(n_profile_valid),
+        "mean_available": mean_available,
+        "u": (imean_valid["u"] / n_profile_valid).tolist() if mean_available else None,
+        "v": (imean_valid["v"] / n_profile_valid).tolist() if mean_available else None,
+        "w": (imean_valid["w"] / n_profile_valid).tolist() if mean_available else None,
         # "tke": pure temporal turbulence -- each fluid cell's own variance
         # about its own time mean, then averaged horizontally.  This is the
         # definition analyse.Bundle.tke uses everywhere else in the campaign
@@ -772,14 +832,15 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         "n_levels": int(n_profile),
         "note": ("interior-only, fluid-only, over the same guard + ramp exclusion "
                  "the child's statistics use, on the driving grid; this is what "
-                 "the parent itself knew.  'tke' is the per-cell temporal "
-                 "variance (analyse.Bundle's definition); 'tke_dispersive' is "
-                 "the spatial variance of the time-mean field; 'tke_total' is "
-                 "their sum"
-                 + ("" if driving.complete_levels else
-                    "; from the single nestdump initial block, the band carries "
-                    "no interior, so none of the three is available -- see "
-                    "tke_unavailable_reason")),
+                 "the parent itself knew, restricted to the analysis window "
+                 "recorded in 'window_s' (NOT 'n_levels', which counts every "
+                 "supplied level and only describes what seeded prof.inp). "
+                 "'tke' is the per-cell temporal variance (analyse.Bundle's "
+                 "definition); 'tke_dispersive' is the spatial variance of the "
+                 "time-mean field; 'tke_total' is their sum"
+                 + ("" if mean_available else
+                    "; no level fell inside the analysis window, so even the "
+                    "mean profile is unavailable -- see tke_unavailable_reason")),
     }
 
     # ---- the manifest ----------------------------------------------------- #

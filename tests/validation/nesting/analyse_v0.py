@@ -303,6 +303,38 @@ def parent_deficit(metrics: Dict[str, object], manifest: Dict[str, object],
     if not dp:
         return {"available": False,
                 "note": "the child's manifest carries no driving-parent profile"}
+    # The reference/child comparison in ``prof`` below is restricted to
+    # ``stats_start <= t <= runtime`` (analyse.run's t0/t1). The driving-parent
+    # profile has to be accumulated over that SAME window, or the "of which
+    # parent's" attribution below silently mixes two different averaging
+    # periods (review finding 4 -- for V0b the full-record profile spanned
+    # ~0-2400 s over 4800 levels while the reference spanned 600-2398.41 s
+    # over 600 samples). ``make_child_case.build`` now records the window it
+    # actually used in ``window_s``; refuse the comparison rather than
+    # silently accepting a mismatch or a pre-fix manifest that never recorded
+    # one at all -- the same style already used below for an unavailable TKE.
+    analysis_window = (float(manifest["stats_start"]), float(manifest["runtime"]))
+    dp_window = dp.get("window_s")
+    if dp_window is None:
+        return {"available": False,
+                "note": ("the driving-parent profile has no recorded 'window_s' "
+                         "(a pre-finding-4 manifest) -- refusing to compare it "
+                         f"against the analysis window {analysis_window} without "
+                         "knowing what period it was accumulated over; regenerate "
+                         "the child case")}
+    dp_window = (float(dp_window[0]), float(dp_window[1]))
+    if (abs(dp_window[0] - analysis_window[0]) > 1.0e-6
+            or abs(dp_window[1] - analysis_window[1]) > 1.0e-6):
+        return {"available": False,
+                "note": (f"driving-parent profile window {dp_window} does not match "
+                         f"the analysis window {analysis_window} used for the "
+                         "reference/child comparison -- refusing to compare "
+                         "statistics accumulated over different periods")}
+    if not dp.get("mean_available", True):
+        return {"available": False,
+                "note": ("no driving-parent levels fall inside the analysis window "
+                         f"{analysis_window}, so even the mean profile is "
+                         f"unavailable ({dp.get('tke_unavailable_reason')})")}
     prof = metrics["profiles"]
     zf = np.asarray(prof["z"], dtype=float)
     zp = np.asarray(dp["z"], dtype=float)
