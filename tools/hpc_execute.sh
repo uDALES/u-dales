@@ -19,6 +19,22 @@
 
 set -e
 
+# Usage: FROM THE TOP LEVEL DIRECTORY run:
+#   u-dales/tools/hpc_execute.sh <PATH_TO_CASE>
+#
+# One script for CX3 and HX1, CPU and GPU. The cluster is detected; the rest
+# comes from config.sh in the case directory:
+#
+#   NNODE, NCPU, WALLTIME, MEM   required for every run
+#   NGPU                         GPUs per node; setting it makes this a GPU run
+#   QUEUE                        optional, adds "#PBS -q <QUEUE>"
+#   GPU_TYPE                     GPU card for the select line, default A100;
+#                                set to "" to omit the constraint
+#
+# Environment overrides:
+#   UDALES_SYSTEM   cx3 | hx1    force the cluster instead of detecting it
+#   UDALES_TARGET   cpu | gpu    force the target instead of deriving it from NGPU
+
 if (( $# < 1 ))
 then
  echo "The experiment directory must be set."
@@ -75,21 +91,154 @@ if [ -z $MEM ]; then
     exit 1
 fi;
 
+## ---------------------------------------------------------------------------
+## Which cluster, and CPU or GPU
+##
+## The cluster is worked out from the login node so the same script serves CX3
+## and HX1 with no editing; set UDALES_SYSTEM=<cx3|hx1> to override it. The run
+## target follows NGPU - set NGPU in config.sh for a GPU run, leave it out for a
+## CPU one - and UDALES_TARGET=<cpu|gpu> forces it either way.
+## ---------------------------------------------------------------------------
+if [ -z "${UDALES_SYSTEM:-}" ]; then
+    case "$(hostname -s)" in
+        hx1*) UDALES_SYSTEM=hx1 ;;
+        cx3*) UDALES_SYSTEM=cx3 ;;
+        *)
+            echo "Could not tell which cluster this is from the hostname: $(hostname -s)"
+            echo "Set UDALES_SYSTEM=cx3 or UDALES_SYSTEM=hx1 and run again."
+            exit 1
+            ;;
+    esac
+fi
+
+if [ -z "${UDALES_TARGET:-}" ]; then
+    if [ -n "${NGPU:-}" ] && [ "${NGPU:-0}" -gt 0 ]; then
+        UDALES_TARGET=gpu
+    else
+        UDALES_TARGET=cpu
+    fi
+fi
+
+if [ "$UDALES_TARGET" = "gpu" ]; then
+    if [ -z "${NGPU:-}" ] || [ "${NGPU:-0}" -lt 1 ]; then
+        echo "A GPU run needs the number of GPUs per node, NGPU, set inside $inputdir/config.sh"
+        exit 1
+    fi
+    if [ ! -f "$DA_TOOLSDIR/bind.sh" ]; then
+        echo "bind.sh not found in $DA_TOOLSDIR; it is needed to give each rank its own GPU."
+        exit 1
+    fi
+fi
+
+echo "cluster: $UDALES_SYSTEM"
+echo "target:  $UDALES_TARGET"
+
+## The executable has to match the target. build_executable.sh writes CPU builds
+## under build/cpu and GPU builds under build/gpu, so the target is readable from
+## the path - and catching a mismatch here saves a job that would queue, start,
+## and only then misbehave on the node. A build directory outside that layout
+## (UDALES_BUILD_DIR, or a copied executable) says nothing either way, so it
+## warns rather than refusing.
+case "$DA_BUILD" in
+    */build/cpu/*) build_kind=cpu ;;
+    */build/gpu/*) build_kind=gpu ;;
+    *)             build_kind=unknown ;;
+esac
+
+if [ "$build_kind" = "unknown" ]; then
+    echo "warning: cannot tell from DA_BUILD whether this is a CPU or a GPU build:"
+    echo "  $DA_BUILD"
+    echo "warning: expected it under u-dales/build/cpu or u-dales/build/gpu. Continuing."
+elif [ "$build_kind" != "$UDALES_TARGET" ]; then
+    echo "This is a $UDALES_TARGET run, but DA_BUILD is a $build_kind build:"
+    echo "  $DA_BUILD"
+    if [ "$UDALES_TARGET" = "gpu" ]; then
+        echo "Set DA_BUILD to u-dales/build/gpu/<release|debug>/u-dales in $inputdir/config.sh,"
+        echo "or unset NGPU there to run on CPUs."
+    else
+        echo "Set DA_BUILD to u-dales/build/cpu/<release|debug>/u-dales in $inputdir/config.sh,"
+        echo "or set NGPU there to run on GPUs."
+    fi
+    exit 1
+fi
+
+## The module sets below have to stay in step with the matching block of
+## tools/build_executable.sh: the solver must run against the libraries it was
+## built against. Single quotes keep $EBROOTNVHPC and $PATH for the compute
+## node rather than expanding them here.
+case "$UDALES_SYSTEM:$UDALES_TARGET" in
+    cx3:cpu)
+        job_modules='module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0'
+        ;;
+    hx1:cpu)
+        # Mirrors the "hx1" block of build_executable.sh, split across several
+        # loads for the GCCcore reason documented there.
+        job_modules='module load intel/2023a
+module load netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a
+module load FFTW/3.3.10-intel-compilers-2023.1.0'
+        ;;
+    hx1:gpu)
+        # Mirrors "gpuhx1". netCDF and FFTW are reached through the executable's
+        # RPATH, so NVHPC is the only module needed - but its mpirun lives under
+        # comm_libs, which the module does not put on PATH.
+        job_modules='module load NVHPC/23.7-CUDA-12.2.0
+export PATH="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin:$PATH"'
+        ;;
+    cx3:gpu)
+        echo "There is no CX3 GPU target in tools/build_executable.sh."
+        echo "Build with 'gpuhx1' and run on HX1, or add a CX3 GPU block there first."
+        exit 1
+        ;;
+    *)
+        echo "Unsupported combination: $UDALES_SYSTEM / $UDALES_TARGET"
+        exit 1
+        ;;
+esac
+
+## PBS resources and launcher.
+##
+## mpiprocs is a per-chunk count, so it is the per-node figure and not the
+## total: PBS multiplies it by the number of chunks itself.
+if [ "$UDALES_TARGET" = "gpu" ]; then
+    NP=$(( NNODE * NGPU ))
+    pbs_select="select=${NNODE}:ncpus=${NCPU}:mpiprocs=${NGPU}:ngpus=${NGPU}:mem=${MEM}"
+    # HX1's a100 queue is chosen through the resource request rather than -q, and
+    # every GPU example in the RCS user guide names the card. This branch is only
+    # reachable on HX1, where A100 is the only GPU. Set GPU_TYPE to ask for
+    # something else, or to the empty string to leave the constraint off.
+    gpu_type="${GPU_TYPE-A100}"
+    if [ -n "$gpu_type" ]; then
+        pbs_select="${pbs_select}:gpu_type=${gpu_type}"
+    fi
+    # One rank per GPU; bind.sh pins each to its own device.
+    launch="mpirun -n ${NP} ${DA_TOOLSDIR}/bind.sh ${DA_BUILD}"
+else
+    NP=$(( NNODE * NCPU ))
+    pbs_select="select=${NNODE}:ncpus=${NCPU}:mpiprocs=${NCPU}:mem=${MEM}"
+    launch="mpirun -v6 -n ${NP} ${DA_BUILD}"
+fi
+
+pbs_directives="#PBS -l walltime=${WALLTIME}
+#PBS -l ${pbs_select}"
+if [ -n "${QUEUE:-}" ]; then
+    pbs_directives="${pbs_directives}
+#PBS -q ${QUEUE}"
+fi
+
 ## set the output directory
 outdir=$DA_WORKDIR/$exp
 
-echo "writing job.$exp."
+echo "writing job.$exp with $NP MPI ranks."
 
 ## write new job.exp file for HPC
 cat <<EOF > job.$exp
 #!/bin/bash
-#PBS -l walltime=${WALLTIME}
-#PBS -l select=${NNODE}:ncpus=${NCPU}:mpiprocs=$(( $NCPU * $NNODE )):mem=${MEM}
-module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
+${pbs_directives}
+${job_modules}
 mkdir -p $outdir
 cp -r $inputdir/* $outdir
 pushd $outdir
-mpirun -v6 -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
+${launch} $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
 EOF
 
 ## submit job.exp file to queue

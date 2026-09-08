@@ -72,7 +72,14 @@ cat <<EOF > post-job.$exp
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=1:ncpus=1:mem=${MEM}
 module load NCO/5.2.9-foss-2024a
+
+## Time the gather the same way tools/local_execute.sh does, so the phase is
+## comparable between a local run and a cluster one. The \$ are escaped to reach
+## the job script intact and be evaluated on the compute node, not at submit time.
+gather_start=\$(date +%s.%N)
 $DA_TOOLSDIR/gather_outputs.sh $outdir
+gather_end=\$(date +%s.%N)
+echo "Wall time for phase [gather outputs] : \$(echo "\$gather_end \$gather_start" | awk '{printf "%.6f", \$1 - \$2}') seconds" | tee -a $outdir/output.$exp.log
 EOF
 
 ## submit post-job.exp file to queue
