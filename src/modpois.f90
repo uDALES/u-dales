@@ -88,11 +88,17 @@ contains
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,imax,jmax,itot,jtot,ktot, &
                           dxi,dzh,dzf,dyi,dzfi,pi !,BCtopm, BCtopm_pressure
     use modfields, only : rhobf, rhobh
+#if defined(_GPU)
+    use, intrinsic :: ieee_arithmetic, only : ieee_usual, ieee_get_halting_mode, ieee_set_halting_mode
+#endif
     implicit none
     integer :: kbc1, kbc2
     integer :: i, j, k, iv, jv, kv
     real    :: dzi, fac, b_top_D, b_top_N
     logical, dimension(3) :: skip_c2c = [.false., .false., .true.]
+#if defined(_GPU)
+    logical, dimension(3) :: fpe_halt
+#endif
 
 #if defined(_GPU)
     allocate(pup_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
@@ -252,7 +258,24 @@ contains
         stop 1
       end if
 
+#if defined(_GPU)
+      ! -Ktrap arms hardware floating-point traps for the whole process, and
+      ! cuFFT's plan creation makes the driver JIT-compile kernels with
+      ! libnvidia-ptxjitcompiler, whose own internal arithmetic raises the IEEE
+      ! invalid flag. Harmless everywhere else; here it is a SIGFPE, deep in
+      ! libcuda, before the first timestep. Lift the traps -Ktrap set (overflow,
+      ! divide-by-zero, invalid - ieee_usual is exactly that set) for the
+      ! duration of the call and put them back as they were. Nothing of ours
+      ! runs inside the window, only cuFFT choosing algorithms and workspace,
+      ! and a trap-enable bit never changes a computed value, so the solver is
+      ! guarded exactly as before and its results are unaffected.
+      call ieee_get_halting_mode(ieee_usual, fpe_halt)
+      call ieee_set_halting_mode(ieee_usual, .false.)
+#endif
       call decomp_2d_fft_init(PHYSICAL_IN_X, opt_skip_XYZ_c2c=skip_c2c)
+#if defined(_GPU)
+      call ieee_set_halting_mode(ieee_usual, fpe_halt)
+#endif
       call decomp_info_init(itot/2+1, jtot, ktot, sp)
 
       call alloc_x(px, opt_levels=(/0,0,0/))
