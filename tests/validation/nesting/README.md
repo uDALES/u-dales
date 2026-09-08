@@ -1911,6 +1911,17 @@ requests `mem=300gb` for that. Net new/persistent disk ~1.22 TB. Full
 derivation in `submit_cx3_v0c.pbs`'s header and `config.py`'s V0c comment
 block.
 
+**That memory estimate is stale -- see the "V0c16" section below.**
+`make_child_case.build` (what `run_v0.py` actually calls) stopped calling
+`write_nesting_file` before V0c was even written (`71011e96`, the commit
+immediately before this suite's own `42367112`); it streams the slab cut
+through `NestingWriter.append_level` instead, one parent level at a time, so
+peak RSS does not grow with the 21600-level record. Measured directly (V0c16
+section): ~650 MB, flat across a 10x range in level count. `submit_cx3_v0c
+.pbs`'s `mem=300gb` still holds with a lot of room to spare -- 4004496 is not
+wrong to have asked for it, just not sized from the real number -- so it is
+left as submitted rather than edited retroactively.
+
 ## How to run it
 
 ```bash
@@ -1941,6 +1952,141 @@ own registration).
 
 Queued in `v1_medium24` at submission (`qstat -u $USER`); check
 `$EPHEMERAL/nesting-v0c/analysis/v0_summary.md` once it finishes.
+
+---
+
+# V0c16 -- V0c's own suite, decomposed for CX3's 16-core queues
+
+V0c (job 4004496, `submit_cx3_v0c.pbs`, `ncpus=64:mem=300gb`) sat queued in
+`v1_medium24` for six hours: `qstat` reported "Insufficient amount of
+resource: ncpus" against 281 queued / 18 running in that queue. PBS routes a
+job by `ncpus` and walltime band only -- a shorter walltime at `ncpus=64`
+keeps a job in the same `v1_medium24/72` pair, it does not move it to a
+smaller, faster-clearing queue. The 16-core queues turn over far better
+(`qstat -Qf` snapshot: `v1_small72` ~211 queued / ~118 running,
+`v1_small24` ~328 queued / ~71 running -- `v1_small72`'s running:queued ratio
+is ~2.6x `v1_small24`'s). V0c16 is that 16-core twin: the SAME three-point
+suite (matched-resolution control `r1` plus box-filtered `r2`/`r4`, same
+128 x 128 x 64 child, same window), run through a SEPARATE preset/suite
+(`config.V0C16_FINE`/`V0C16`, fresh experiment numbers 992-997) and a
+SEPARATE `$EPHEMERAL` directory, so 4004496 is untouched and keeps working if
+it ever starts. Whichever job starts first wins; once one is producing
+output, `qdel` the other rather than let both run to completion.
+
+**The memory claim on V0c is stale.** `config.py`'s V0c comment block and
+`submit_cx3_v0c.pbs` both size `mem=300gb` from "`udprep.nesting
+.write_nesting_file` holds the whole nesting file in RAM" -- ~204 GB for the
+full 21600-level record, times a 1.11x file-to-RSS ratio measured on a much
+smaller, pre-streaming build (964, 35 GB). That description no longer matches
+the code: `make_child_case.build` -- what `run_v0.py` actually calls for
+every V0c/V0c16 point -- stopped calling `write_nesting_file` when the slab
+cut was streamed through `NestingWriter.append_level` (`71011e96`, "stream
+the slab cut through NestingWriter (W4 adoption)", the commit immediately
+before V0c's own `42367112` in history). That commit's own docstring says so
+directly: "the slab cut holds one parent level rather than the whole record:
+its peak memory does not grow with the number of levels" -- and its own
+`tracemalloc` numbers already showed this flat (103.1 MB at 40 levels,
+103.0 MB at 14).
+
+Verified directly on this worktree rather than trusted from the commit
+message: wrapped `make_child_case.build` for `v0c-tiny`'s `r1` point in
+`/usr/bin/time -v` (whole-process RSS) plus `tracemalloc` + `resource
+.getrusage` (in-process), against the real 240-level `v0c-fine-tiny` parent
+-- **654.7 MB peak RSS / 111.2 MB tracemalloc peak**. Re-ran the identical
+build against a copy of that parent with its `fielddump` netCDF time axis
+artificially extended 10x (2400 levels, `u`/`v`/`w` duplicated) -- **657.5 MB
+/ 111.3 MB**, flat to within 0.4%. `caselib.FieldDump.read_level` also only
+ever holds one global `(itot, jtot, ktot)` parent level at a time (freed
+every loop iteration, ~96 MB of `float64` for the three components at the
+full 256 x 256 x 64 parent domain), so nothing in this pipeline scales with
+the 21600-level production record; the true floor is imports/geometry/IBM
+arrays (the tiny case's measured ~650 MB) plus one such slab, of order 1 GB
+at production scale, not 225-230 GB. `submit_cx3_v0c.pbs`'s `mem=300gb` is
+not *wrong* for that reason -- it holds the real number with room to spare --
+just not sized from it, so it is left as submitted rather than edited
+retroactively.
+
+`mem=120gb` below is therefore not sized from the python build step at all
+(it needs a tiny fraction of that): it is sized for headroom against the
+SOLVER's own memory, unmeasured directly here. V0b shipped `mem=128gb` for
+the identical 128 x 128 x 64 child geometry, and the 64-rank `converged`/V0c
+parent (256 x 256 x 64, `nfcts = 12992`) already runs at `mem=128gb` in the
+V1 converged job (3991175) -- 16 ranks holding the same global domain should
+not need materially more. Since queue selection is by `ncpus`/walltime band
+only, not `mem` (above), asking for the `v1_small*` queues' near-full
+headroom costs nothing.
+
+**The decomposition.** 4x4 = 16 ranks for both the parent (`itot=jtot=256`,
+64 cells/rank) and the child (`itot=jtot=128`, 32 cells/rank), not V0c's 8x8.
+`Preset.validate` checks divisibility; both domains clear it. The r2/r4
+driving-parent placeholders are bookkeeping only (`RefinedPoint.runs_driver`
+is `False` for every 'filtered' point) so their own `nprocx`/`nprocy` is set
+to 4x4 too, uniformly, rather than mirroring V0c's own asymmetric
+`(8,8)`/`(4,4)` split.
+
+**Walltime -- measured, and chosen for the queue, not only for margin.**
+Measured on this worktree (login node, `build/release/u-dales`), reusing
+already-built production-scale case files (`$EPHEMERAL/nesting-v1-
+converged/903` and `.../904`) with the decomposition patched to 4x4 and a
+short cold-start `runtime`, the SAME domains/`nfcts` this job actually runs:
+
+| case | domain, nfcts | 30 s sim, 3 (parent) / 2 (child) probes | sim/wall ratio |
+|---|---|---|---|
+| parent | 256x256x64, 12992 | main-loop wall 27.72 / 18.32 / 26.37 s | 1.08 / 1.65 / 1.15 (mean 1.30, median 1.15) |
+| child (nested) | 128x128x64, 2240 | main-loop wall 10.78 / 10.17 s | 2.81 / 2.97 (mean 2.89) |
+
+The spread reflects login-node contention (load average ~8.5 against 64
+cores at the time), not a real swing in solver cost -- the same case gave
+bit-identical `dt` sequences at every rank count tried, since the
+decomposition does not change the physics. Consistency check: composing the
+measured 4->16-rank speedup with the measured 16->64 speedup reproduces
+`clusters.md`'s independently-known 4->64 speedup (3.65x) to within
+rounding, so these probes are not an outlier. Using the SLOWER ratio from
+each pair: parent production `10800 / 1.15 = 9391 s = 2.61 h`; three child
+runs `3 x (10800 / 2.81 = 3844 s) = 192 min`; children slab-cut/box-filter
+reads and analysis stay at V0c's own rank-independent python-side figures
+(~246 min and ~65 min). Total **~11.4 h**.
+
+11.4 h is under 24 h -- a walltime sized purely for margin over that number
+would stay in `v1_small24`, not move to `v1_small72`. `walltime=30:00:00` is
+requested instead specifically so this job lands in the better-clearing
+72-hour queue band, with ~2.6x headroom over the 11.4 h estimate folded in
+anyway for the measured run-to-run noise and because this is the first real
+run at this exact decomposition. Full derivation in
+`submit_cx3_v0c16.pbs`'s header.
+
+**Disk.** Same domains as V0c, so the same volumes: ~1.08 TB parent dumps +
+3 x ~45 GB child field dumps = ~1.22 TB persistent, plus one ~204 GB nesting
+file transient per child (`--prune-nesting`). A SEPARATE run directory
+(`$EPHEMERAL/nesting-v0c16`) keeps this from colliding with 4004496's
+(`nesting-v0c`) if both happen to run at once.
+
+## How to run it
+
+```bash
+qsub tests/validation/nesting/submit_cx3_v0c16.pbs
+```
+
+## Status
+
+**Prepared, validated at tiny scale (real 4x4/16-rank decomposition),
+submitted (see job id below).** `test_v0c16_tiny.py` is **14 tests, all
+passing (~115 s on a login node)**: all three points (`r1`, `r2`, `r4`) build
+and run at 4x4; `r1`'s boundary data is a plain slab cut and `r2`/`r4`'s are
+interpolated; the nesting file is flux-balanced at every ratio; profile RMS
+and criterion A are both finite; the summary table is written.
+`python -m unittest discover -s tools/python/tests -p "test_nesting*.py"`
+(96 tests) and `python tests/validation/nesting/test_v0c_tiny.py` (21 tests,
+its registration check widened to `V0c(?!\d)` so it does not also match
+V0c16's own label) were re-run afterwards and are unchanged.
+
+| job | experiment | submitted | job id |
+|---|---|---|---|
+| V0c16 | `v0c16` (992 fine-truth parent, 4x4/16 ranks, 3 children: r1/r2/r4) | 2026-09-08 | `PENDING` |
+
+Twin of V0c (job 4004496, `$EPHEMERAL/nesting-v0c`, 64 ranks) -- whichever
+starts first wins; `qdel` the other once one is producing output. Check
+`$EPHEMERAL/nesting-v0c16/analysis/v0_summary.md` once it finishes.
 
 ---
 

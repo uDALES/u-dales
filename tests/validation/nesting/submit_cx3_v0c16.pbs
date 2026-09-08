@@ -1,0 +1,253 @@
+#!/bin/bash
+#PBS -N udales-nesting-v0c16
+#PBS -l walltime=30:00:00
+#PBS -l select=1:ncpus=16:mpiprocs=16:mem=120gb
+#PBS -j oe
+#
+# V0c16 -- V0c's own suite (is criterion A genuinely violated at r > 1, or is
+# V0b's 1800 s window too short to tell it apart from sampling noise?),
+# decomposed for CX3's 16-core queues.  nesting-review-2026-09-08-codex.md
+# finding 1; docs/udales-nesting-design.md section 10.5's V0b block and
+# section 1.3; tests/validation/nesting/README.md, "V0c"/"V0c16" sections;
+# config.V0C16.
+#
+# PREPARE, REVIEW, THEN SUBMIT BY HAND:
+#
+#     qsub tests/validation/nesting/submit_cx3_v0c16.pbs
+#
+# (qsub/qstat live in /opt/pbs/bin on CX3.)
+#
+# ---------------------------------------------------------------------------
+# WHY THIS SCRIPT EXISTS.  submit_cx3_v0c.pbs (job 4004496, ncpus=64,
+# mem=300gb) has sat queued in v1_medium24 for six hours: "Insufficient
+# amount of resource: ncpus" (281 queued / 18 running there at the time this
+# was written).  PBS routes a job by ncpus and walltime band ONLY -- a
+# shorter walltime at ncpus=64 keeps it in the same v1_medium24/72 pair, it
+# does not move it to a smaller/faster queue.  The 16-core queues turn over
+# far better (qstat -Qf snapshot: v1_small72 ~211 queued / ~118 running,
+# v1_small24 ~328 queued / ~71 running -- v1_small72's running:queued ratio is
+# ~2.6x v1_small24's).  This script is that 16-core twin, run from its OWN
+# preset/suite (config.V0C16_FINE/V0C16, fresh experiment numbers 992-997 --
+# none of 903-991 collide) and its OWN run directory, so job 4004496 is left
+# untouched and keeps working if it ever starts.  WHICHEVER JOB STARTS FIRST
+# WINS -- once one of the two is producing output, qdel the other; do not let
+# both run to completion; there is no reason to pay for the same answer
+# twice.
+#
+# ---------------------------------------------------------------------------
+# WHAT THIS DOES.  Exactly V0c's own two stages, at 4x4 (16 ranks) instead of
+# 8x8 (64 ranks): one fresh fine-truth parent (992, itot=jtot=256, same
+# geometry/forcing as 982), then the three-point V0c16 suite driven from it
+# (r1 matched-resolution control = 993, r2 = 994, r4 = 995 -- box-filtered
+# exactly as V0c's r2/r4).  itot=jtot=256 (parent) and 128 (child) both
+# divide by 4 exactly (Preset.validate checks this).  992 warm-starts from
+# the SAME 903 restart 982/960 used ($EPHEMERAL/nesting-v1-converged/903,
+# t = 10800 s) -- see submit_cx3_v0c.pbs's own header for why (960's
+# production namelist never wrote its own restart).
+#
+# ---------------------------------------------------------------------------
+# MEMORY -- the 300gb figure on V0c is STALE; do not copy it.
+#
+# config.py's V0c comment block and submit_cx3_v0c.pbs both size mem=300gb
+# from "udprep.nesting.write_nesting_file holds the whole nesting file in
+# RAM" (~204 GB for the full 21600-level record, x a 1.11x file-to-RSS ratio
+# measured on a MUCH smaller, pre-streaming build).  That description no
+# longer matches the code: `make_child_case.build` -- what `run_v0.py`
+# actually calls for every V0c/V0c16 point -- stopped calling
+# `write_nesting_file` when the slab cut was streamed through
+# `NestingWriter.append_level` (commit 71011e96, "stream the slab cut through
+# NestingWriter (W4 adoption)", the commit immediately before V0c's own
+# 42367112 in history).  That commit's own docstring says the point plainly:
+# "the slab cut holds one parent level rather than the whole record: its peak
+# memory does not grow with the number of levels" -- and its own tracemalloc
+# numbers already showed this flat (103.1 MB at 40 levels, 103.0 MB at 14).
+#
+# Verified directly on THIS worktree before trusting either number: wrapped
+# `make_child_case.build` for `v0c-tiny`'s `r1` point in `/usr/bin/time -v`
+# (whole-process RSS) plus `tracemalloc`+`resource.getrusage` (in-process),
+# against the real 240-level `v0c-fine-tiny` parent -- 654.7 MB peak RSS /
+# 111.2 MB tracemalloc peak.  Re-ran the identical build against a COPY of
+# that parent with its `fielddump` netCDF time axis artificially extended 10x
+# (2400 levels, `u`/`v`/`w` duplicated) -- 657.5 MB / 111.3 MB, flat to within
+# 0.4%.  `caselib.FieldDump.read_level` also only ever holds one global
+# `(itot, jtot, ktot)` parent level at a time (freed every loop iteration, ~96
+# MB of float64 for the three components at the full 256 x 256 x 64 parent
+# domain), so nothing in this pipeline scales with the 21600-level production
+# record; the true floor is imports/geometry/IBM arrays (the tiny case's
+# measured ~650 MB) plus that one slab, of order 1 GB at production scale, not
+# 225-230 GB.
+#
+# `mem=120gb` below is NOT sized from that ~1 GB python figure -- it is sized
+# for headroom against the SOLVER's own memory, which was not measured
+# directly here.  V0b shipped `mem=128gb` for the identical 128 x 128 x 64
+# child geometry, and the 64-rank `converged`/V0c parent (256 x 256 x 64,
+# nfcts = 12992) already runs at `mem=128gb` in `submit_cx3_v0.pbs`/the V1
+# converged job (3991175) -- 16 ranks holding the same global domain should
+# not need materially more.  Since PBS routes by ncpus/walltime band only,
+# not mem (see above), asking for the `v1_small*` queues' near-full headroom
+# costs nothing.
+#
+# ---------------------------------------------------------------------------
+# THE DECOMPOSITION.  4x4 = 16 ranks for BOTH the parent (itot=jtot=256,
+# 64 cells/rank) and the child (itot=jtot=128, 32 cells/rank), not V0c's 8x8.
+# The r2/r4 driving-parent placeholders are bookkeeping only
+# (RefinedPoint.runs_driver is False for every 'filtered' point) so their own
+# nprocx/nprocy is set to 4x4 too, uniformly, rather than mirroring V0c's own
+# asymmetric (8,8)/(4,4) split -- nothing reads it except Preset.validate's
+# divisibility check, which 128/4 and 64/4 both clear.
+#
+# ---------------------------------------------------------------------------
+# WALLTIME -- measured, not assumed, and chosen for the QUEUE, not only for
+# margin.
+#
+# Measured on this worktree, login node, this build (build/release/u-dales),
+# reusing already-built production-scale case files ($EPHEMERAL/nesting-v1-
+# converged/903 and .../904) with nprocx=nprocy=4 (parent) / child_nprocx=
+# child_nprocy=4 (child) patched in and a short cold-start runtime, exactly
+# the domains/nfcts this job actually runs:
+#
+#   PARENT (256x256x64, nfcts=12992), 30 s simulated, 3 probes:
+#     main-loop wall  27.72 s / 18.32 s / 26.37 s
+#     sim/wall ratio   1.08  /  1.65  /  1.15   (mean 1.30, median 1.15)
+#   CHILD (128x128x64, nfcts=2240, nested), 30 s simulated, 2 probes:
+#     main-loop wall  10.78 s / 10.17 s
+#     sim/wall ratio   2.81  /  2.97            (mean 2.89)
+#
+# (The spread reflects login-node contention -- load average ~8.5 against 64
+# cores, other users' jobs -- not a real 50% swing in solver cost; the same
+# case gave bit-identical dt sequences at every rank count tried, since the
+# decomposition does not change the physics.)  Consistency check against
+# numbers already in this campaign: the measured 4->16-rank speedup (parent
+# 5.4e6 -> ~1.2-1.8e7 cell-steps/s) composed with the measured 16->64 speedup
+# reproduces clusters.md's independently-known 4->64 speedup (3.65x) to
+# within rounding, so these probes are not an outlier.
+#
+# Using the SLOWER (conservative) ratio from each pair:
+#   parent production   10800 s / 1.15 s-sim/s-wall  = 9391 s  = 2.61 h
+#   parent case build (rank-independent, python)                ~3 min
+#   children slab-cut/box-filter reads (rank-independent python,
+#     same ~1.08 TB @ ~219 MB/s as V0c)             82 min x 3 = 246 min
+#   child runs   3 x (10800 s / 2.81 s-sim/s-wall = 3844 s = 64.1 min)
+#                                                              = 192 min
+#   analysis (rank-independent python, V0c's own figure)       ~65 min
+#   child case builds/preprocessing (rank-independent)         ~15 min
+#   module loads / misc                                         ~5 min
+#   TOTAL                                          ~682 min = ~11.4 h
+#
+# 11.4 h is UNDER 24 h -- a walltime sized purely for margin over that number
+# would stay in v1_small24, not move to v1_small72.  `walltime=30:00:00` is
+# requested instead specifically so this job lands in the 72-hour queue band
+# (v1_small72, the better-clearing queue measured above), with ~2.6x headroom
+# over the 11.4 h estimate folded in anyway to cover: the run-to-run noise
+# measured in the probes above (up to ~50% on a busy login node), and this
+# being the first real run at this exact 4x4/16-rank decomposition (every
+# number above is a short-probe extrapolation to the full 10800 s window, the
+# same caveat V0c's own header carries for its 64-rank numbers).
+#
+# ---------------------------------------------------------------------------
+# DISK.  Same domains as V0c, so the same volumes: ~1.08 TB parent dumps (992)
+# + 3 x ~45 GB child field dumps = ~1.22 TB persistent in $RUNDIR, plus one
+# ~204 GB nesting file transient per child (--prune-nesting deletes it right
+# after that child's run).  $EPHEMERAL is unquotaed.  USES A SEPARATE RUN
+# DIRECTORY ($EPHEMERAL/nesting-v0c16, not nesting-v0c) so this job's case
+# dirs (992-995), dumps and analysis output cannot collide with 4004496's
+# (982-989) if both happen to run at once.
+# ---------------------------------------------------------------------------
+
+set -e
+
+# The worktree this campaign was built in -- NOT the main checkout.  Every
+# other nesting submit script defaults to $HOME/udales/u-dales; this one
+# defaults to the worktree on purpose, so a bare `qsub` (no -v UDALES_REPO=...)
+# still runs the code this file was reviewed and tested against.
+REPO=${UDALES_REPO:-/rds/general/ephemeral/user/mvr/ephemeral/claude-worktrees/v0c}
+RUNDIR=${UDALES_V0C16_RUNDIR:-$EPHEMERAL/nesting-v0c16}
+V1DIR=${UDALES_V1_CONVERGED:-$EPHEMERAL/nesting-v1-converged}
+RESTARTDIR=${UDALES_V0C16_RESTARTDIR:-$V1DIR/903}
+SUITE=${UDALES_V0C16_SUITE:-v0c16}
+POINTS=${UDALES_V0C16_POINTS:-}
+# qsub -v cannot carry a comma: PBS treats it as the separator between
+# variables, so a comma-separated list arrives truncated or escaped
+# depending on the version. Accept spaces or semicolons too and normalise.
+POINTS=$(printf '%s' "$POINTS" | tr ' ;' ',,' | tr -s ',' | sed 's/^,//; s/,$//')
+
+echo "repo      : $REPO"
+echo "rundir    : $RUNDIR"
+echo "restart   : $RESTARTDIR  (992 warm-starts from here)"
+echo "suite     : $SUITE"
+echo "points    : ${POINTS:-all}"
+echo "started   : $(date)"
+echo "twin job  : 4004496 (submit_cx3_v0c.pbs, 64 ranks, $EPHEMERAL/nesting-v0c)"
+echo "            -- whichever starts first wins; qdel the other once one is"
+echo "            producing output."
+
+if ! ls "$RESTARTDIR"/initd????????_000_000.903 >/dev/null 2>&1; then
+    echo "no restart files initd????????_000_000.903 in $RESTARTDIR." >&2
+    echo "V0c16's fine-truth parent (992) warm-starts from the V1 converged" >&2
+    echo "parent's end-of-spin-up restart; point UDALES_V0C16_RESTARTDIR at a" >&2
+    echo "directory that holds one (the same one 982/960/C0b used)." >&2
+    exit 1
+fi
+mkdir -p "$RUNDIR"
+
+# The solver binary. Build it beforehand with
+#   ./tools/build_executable.sh icl release
+export UDALES_BUILD=${UDALES_BUILD:-$REPO/build/release/u-dales}
+if [ ! -x "$UDALES_BUILD" ]; then
+    echo "solver binary not found at $UDALES_BUILD" >&2
+    exit 1
+fi
+
+# Two module stacks are needed and they are not compatible with each other: the
+# Python tooling wants Python/3.9.6-GCCcore-11.2.0, the solver wants the Intel
+# 2021a stack.  caselib.run_solver loads the runtime stack itself, in the same
+# shell as the mpiexec, so this script only sets up the Python side.
+export UDALES_RUNTIME_MODULES="tools/prod intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a"
+
+module purge
+module load tools/prod
+module load Python/3.9.6-GCCcore-11.2.0
+source "${UDALES_VENV:-$HOME/udales/.venv}/bin/activate"
+
+export HDF5_USE_FILE_LOCKING=FALSE
+# /tmp has a small per-user quota on the compute nodes and the slab cut writes
+# large temporaries through netCDF.
+export TMPDIR=${TMPDIR:-$EPHEMERAL}
+export MPLCONFIGDIR=${MPLCONFIGDIR:-$RUNDIR/.mpl}
+
+cd "$REPO"
+
+# ---- stage 1: the fine-truth parent (992), warm-started, idempotent ------- #
+PARENTDIR="$RUNDIR/992"
+if ls "$PARENTDIR"/fielddump.???.???.992.nc >/dev/null 2>&1; then
+    echo "parent 992 already has field dumps in $PARENTDIR; not re-run"
+else
+    echo "=== building and running the fine-truth parent 992"
+    python tests/validation/nesting/make_parent_case.py "$RUNDIR" \
+        --preset v0c16-fine --restart-dir "$RESTARTDIR"
+    python -c "
+from pathlib import Path
+import sys
+sys.path.insert(0, 'tests/validation/nesting')
+from caselib import run_solver
+from config import V0C16_FINE as p
+
+casedir = Path('$PARENTDIR')
+run_solver(casedir, f'namoptions.{p.parent_expnr}', p.nprocx * p.nprocy,
+           casedir / 'production.log')
+"
+    echo "parent 992 production finished : $(date)"
+fi
+
+# ---- stage 2: the three-point suite, driven from 992 ---------------------- #
+python tests/validation/nesting/run_v0.py "$RUNDIR" \
+    --suite "$SUITE" \
+    --reference-dir "$PARENTDIR" \
+    ${POINTS:+--only "$POINTS"} \
+    --prune-nesting \
+    --yes
+
+echo "finished  : $(date)"
+echo "table     : $RUNDIR/analysis/v0_summary.md"
+echo "machine   : $RUNDIR/analysis/v0_summary.{csv,json}"
+echo "per point : $RUNDIR/analysis/<point>/v0_metrics.json"

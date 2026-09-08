@@ -2162,11 +2162,20 @@ V0B_TINY = _v0b_suite(
 # = 50 MB/level; clusters.md), 10800 s is ~1.08 TB, new and persistent.  Each
 # child's nesting file is `3 * 2 * (128 + 128) * 64 * 12 * 8` bytes/level =
 # ~9.4 MB, `x 21600` boundary levels (cadence 0.5 s over 10800 s) = ~204 GB,
-# transient (`--prune-nesting`) but a real PEAK: `udprep.nesting.write_nesting_file`
+# transient (`--prune-nesting`).  THE NEXT CLAUSE IS STALE -- left as written
+# (this is the reasoning `submit_cx3_v0c.pbs`'s already-submitted mem=300gb
+# was sized from, job 4004496; kept for the record rather than rewritten
+# under it) but WRONG: `udprep.nesting.write_nesting_file`
 # holds the whole array in memory, so at the V1 job's measured 1.11x
 # file-to-peak-RSS ratio this is ~225-230 GB of peak RSS during EACH child's
 # case build (one at a time, not additive across the three children) --
-# `submit_cx3_v0c.pbs` requests `mem=300gb` for that reason.  Each child's own
+# `submit_cx3_v0c.pbs` requests `mem=300gb` for that reason.  `make_child_case
+# .build` (what `run_v0.py` actually calls) has not called
+# `write_nesting_file` since 71011e96, the commit immediately before this
+# suite's own 42367112 -- it streams through `NestingWriter.append_level`
+# instead, one parent level at a time, independent of the record length; see
+# the V0c16 comment block below (`V0C16_FINE`) for the direct measurement
+# that replaces this estimate.  Each child's own
 # field dumps (128^2x64 @ 3 s over 10800 s = 3600 levels x 12.6 MB) add
 # ~45 GB x 3 = ~136 GB, persistent.  Net new/persistent disk: ~1.08 TB (parent)
 # + ~0.14 TB (three children's own dumps) =~ 1.22 TB.  `$EPHEMERAL` is
