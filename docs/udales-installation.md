@@ -113,8 +113,9 @@ tools/build_executable.sh common release
 ```
 
 The helper keeps CPU and GPU CMake caches separate. CPU targets (`common`,
-`icl`, `archer`, and `cca`) are written under `build/cpu/<build-type>`, while
-the `gpu` target is written under `build/gpu/<build-type>`.
+`icl`, `hx1`, `archer`, and `cca`) are written under `build/cpu/<build-type>`,
+while the GPU targets (`gpu` and `gpuhx1`) are written under
+`build/gpu/<build-type>`.
 
 OR,
 you can do it manually. On standard systems and configurations, you can build uDALES with the following commands:
@@ -140,6 +141,30 @@ To compile uDALES (in release mode) on the ICL HPC cluster run:
 # We assume you are running the following commands from the u-dales directory
 tools/build_executable.sh icl release
 ```
+
+The ICL HX1 cluster has its own EasyBuild module tree, and the module versions
+used by the `icl` target do not exist there, so it needs its own target:
+
+```sh
+# We assume you are running the following commands from the u-dales directory
+tools/build_executable.sh hx1 release
+```
+
+To build the GPU executable for HX1's A100 nodes (NVHPC with OpenACC and CUDA
+Fortran), use:
+
+```sh
+# We assume you are running the following commands from the u-dales directory
+tools/build_executable.sh gpuhx1 release
+```
+
+This targets compute capability 8.0 and embeds no PTX, so the resulting
+executable runs on the A100s of the `v1_a100` queue and not on other GPUs. Pass
+`-DUDALES_CUDA_ARCH=<cc>` (a number such as `80` or `86`, or `all` for every
+supported architecture) to build for different hardware. The value reaches both
+uDALES and the 2decomp-fft sub-build, which must agree on it; if you change it,
+delete `build/gpu/` first, as 2decomp-fft will otherwise keep the architecture
+it was first built with.
 
 To compile uDALES (in release mode) on ARCHER2, use:
 

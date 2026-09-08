@@ -78,13 +78,23 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Cray")
     set(CMAKE_Fortran_FLAGS_DEBUG "-G0 -O0 -ei -R bcdps -m 0" CACHE STRING "Fortran debug flags" FORCE)
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3" CACHE STRING "Fortran release flags" FORCE)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NVHPC")
-    set(CMAKE_Fortran_FLAGS "-gpu=cc86,ccall,lineinfo -cuda -cudalib=cufft -acc -mp -Minfo=accel -Mpreprocess -cpp -r8 -Mextend -Ktrap=divz,inv,ovf,fp" CACHE STRING "Fortran flags" FORCE)
-    # Minimal optimization is required for NVHPC to resolve device-module data
-    # imported from the static 2decomp-fft library during the device-link step.
+    # nvlink resolves device symbols per compute capability, and 2decomp-fft is a
+    # separate cmake project that picks its own. Its autodetection reads the local
+    # GPU, so on a login node with no device it silently falls back to cc70 while
+    # this hardcoded cc86 stayed - and the two only disagree at the very end, as
+    # "nvlink error: Undefined reference to '_decomp_2d_16'" after everything has
+    # compiled cleanly. Choose the architecture once here and hand the same value
+    # to that sub-build below.
+    #
+    # "all" reproduces the previous -gpu=cc86,ccall (ccall already covers cc86).
+    # Naming the one architecture actually being targeted - 80 for the A100s on
+    # HX1's v1_a100 queue - builds quicker and gives a smaller binary.
+    set(UDALES_CUDA_ARCH "all" CACHE STRING "NVHPC compute capability: 70, 80, 86, ... or all")
+    set(CMAKE_Fortran_FLAGS "-gpu=cc${UDALES_CUDA_ARCH},lineinfo -cuda -cudalib=cufft -acc -mp -Minfo=accel -Mpreprocess -cpp -r8 -Mextend -Ktrap=divz,inv,ovf,fp" CACHE STRING "Fortran flags" FORCE)
     set(CMAKE_Fortran_FLAGS_DEBUG "-g -O1 -Minit-real=snan -Mbounds -Minform=warn -Mchkstk -traceback -Minfo=all" CACHE STRING "Fortran debug flags" FORCE)
     set(CMAKE_Fortran_FLAGS_RELEASE "-fast -Kieee" CACHE STRING "Fortran release flags" FORCE)
     add_definitions(-D_GPU)
-    set(UDALES_DECOMP2D_ARGS "-DBUILD_TARGET=gpu")
+    set(UDALES_DECOMP2D_ARGS "-DBUILD_TARGET=gpu;-DSET_CUDA_ARCH=${UDALES_CUDA_ARCH}")
 else()
     message(FATAL_ERROR "Only GNU, Intel, Cray, and NVHPC Fortran compilers are supported")
 endif()
@@ -110,10 +120,9 @@ else()
     endif()
 endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${findFFTW_DIR}")
+# FindFFTW reads FFTWDIR from the environment; the system blocks in
+# tools/build_executable.sh set it where FFTW lives somewhere cmake cannot guess.
 find_package(FFTW REQUIRED)
-if(CMAKE_Fortran_COMPILER_ID MATCHES "NVHPC")
-    set(FFTW_INCLUDE_DIRS /home/dipanjan/mygpu/fftw-3.3.10/fftw3/include)
-endif()
 message("FFTW_INCLUDE_DIRS :  (${FFTW_INCLUDE_DIRS}).")
 include_directories(${FFTW_INCLUDE_DIRS})
 
@@ -166,9 +175,6 @@ target_link_libraries(u-dales MPI::MPI_Fortran)
 target_link_libraries(u-dales ${NETCDF_F90_LIBRARIES})
 #target_link_libraries(u-dales ${FISHPACK_LIBRARY})
 #target_link_libraries(u-dales ${VFFTPACK_LIBRARY})
-if(CMAKE_Fortran_COMPILER_ID MATCHES "NVHPC")
-    set(FFTW_LIBRARIES /home/dipanjan/mygpu/fftw-3.3.10/fftw3/lib/libfftw3.so;/home/dipanjan/mygpu/fftw-3.3.10/fftw3/lib/libfftw3_omp.so;/home/dipanjan/mygpu/fftw-3.3.10/fftw3/lib/libfftw3_mpi.so)
-endif()
 message("FFTW_LIBRARIES :  (${FFTW_LIBRARIES}).")
 target_link_libraries(u-dales ${FFTW_LIBRARIES})
 

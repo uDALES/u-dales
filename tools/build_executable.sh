@@ -19,7 +19,7 @@
 
 set -euo pipefail
 
-# Usage: ./tools/build_executable.sh [icl, archer, cca, gpu, common] [debug, release]
+# Usage: ./tools/build_executable.sh [icl, hx1, archer, cca, gpu, gpuhx1, common] [debug, release]
 #
 # Optional environment overrides:
 #   UDALES_BUILD_DIR          independent CMake build directory; overrides the
@@ -41,7 +41,7 @@ capitalize() {
 #echo "PATH: " ${PATH}
 
 if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <icl|archer|cca|gpu|common> <debug|release>"
+    echo "Usage: $0 <icl|hx1|archer|cca|gpu|gpuhx1|common> <debug|release>"
     exit 2
 fi
 
@@ -58,6 +58,9 @@ case "$build_type" in
 esac
 
 
+# Extra -D arguments a system block wants to add to the cmake command line.
+extra_cmake_args=()
+
 if [ $system == "icl" ]
 then
     # module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
@@ -65,6 +68,21 @@ then
     FC=mpiifort
     NETCDF_DIR=/sw-eb/software/netCDF/4.8.0-iimpi-2021a
     NETCDF_FORTRAN_DIR=/sw-eb/software/netCDF-Fortran/4.5.3-iimpi-2021a
+
+elif [ $system == "hx1" ]
+then
+    # Keep these as separate module loads. intel/2023a is built on GCCcore/12.2.0
+    # while CMake and git need 12.3.0, so asking for all of them on one line makes
+    # Lmod hit that conflict and abort the whole line - silently, with status 0,
+    # leaving you with "cmake: command not found" and no explanation. Loading
+    # netCDF first swaps GCCcore up to 12.3.0 and the rest then goes on cleanly.
+    module load intel/2023a
+    module load netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a
+    module load FFTW/3.3.10-intel-compilers-2023.1.0
+    module load CMake/3.26.3-GCCcore-12.3.0 git/2.41.0-GCCcore-12.3.0-nodocs
+    FC=mpiifort
+    NETCDF_DIR=/gpfs/easybuild/prod/software/netCDF/4.9.2-iimpi-2023a
+    NETCDF_FORTRAN_DIR=/gpfs/easybuild/prod/software/netCDF-Fortran/4.6.1-iimpi-2023a
 
 elif [ $system == "archer" ]
 then
@@ -89,6 +107,25 @@ then
     FC=mpif90
     NETCDF_DIR=/home/dipanjan/mygpu/netcdf-c-4.9.2/netcdfc
     NETCDF_FORTRAN_DIR=/home/dipanjan/mygpu/netcdf-fortran-4.6.1/netcdff
+    export FFTWDIR=/home/dipanjan/mygpu/fftw-3.3.10/fftw3
+    extra_cmake_args+=(-DUDALES_CUDA_ARCH=86)
+
+elif [ $system == "gpuhx1" ]
+then
+    module load NVHPC/23.7-CUDA-12.2.0
+    module load CMake/3.26.3-GCCcore-12.3.0 git/2.41.0-GCCcore-12.3.0-nodocs
+    NVHPC_MPI_BIN="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin"
+    FC="$NVHPC_MPI_BIN/mpif90"
+    export PATH="$NVHPC_MPI_BIN:$PATH"
+    NETCDF_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/netcdf-c-4.10.1/netcdfc
+    NETCDF_FORTRAN_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/netcdf-fortran-4.6.4/netcdff
+    export FFTWDIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/fftw-3.3.11/fftw3
+
+    # HX1's GPU nodes (the v1_a100 queue) are A100s, which are cc80. The default
+    # is "all", which works but compiles every supported architecture; naming 80
+    # keeps the build to the one that will actually run. CMakeLists.txt passes
+    # this straight through to the 2decomp-fft sub-build so the two agree.
+    extra_cmake_args+=(-DUDALES_CUDA_ARCH=80)
 
 elif [ $system == "common" ]
 then
@@ -110,11 +147,10 @@ FC="${UDALES_FORTRAN_COMPILER:-$FC}"
 
 # Configure and Build
 repo_root="$(pwd)"
-if [ "$system" = "gpu" ]; then
-    build_target="gpu"
-else
-    build_target="cpu"
-fi
+case "$system" in
+    gpu|gpuhx1) build_target="gpu" ;;
+    *)          build_target="cpu" ;;
+esac
 path_to_build_dir="${UDALES_BUILD_DIR:-$repo_root/build/$build_target/$build_type}"
 if [[ "$path_to_build_dir" != /* ]]; then
     path_to_build_dir="$repo_root/$path_to_build_dir"
@@ -142,6 +178,10 @@ fi
 if [ -n "$FC" ]; then
     cmake_args+=("-DCMAKE_Fortran_COMPILER=$FC")
 fi
+
+# bash 4.4 is the oldest here and "${arr[@]}" on an empty array trips set -u on
+# it, so guard the expansion.
+cmake_args+=(${extra_cmake_args[@]+"${extra_cmake_args[@]}"})
 
 # A build directory remembers the compiler it was configured with. Hand it a
 # different one and cmake deletes the cache and re-runs configure by itself -
