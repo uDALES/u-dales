@@ -74,6 +74,27 @@ def read_namoption(path: Path, key: str) -> Optional[str]:
     return match.group(1) if match else None
 
 
+def set_namoption(path: Path, key: str, value) -> None:
+    """Overwrite one already-present ``key = ...`` line in a namelist file.
+
+    For patching a single value after ``write_namoptions`` has already built
+    the case -- ``run_v6.py`` uses this to push ``RUN.runtime``,
+    ``NESTING.nest_statint`` and ``NAMCHECKSIM.tcheck`` out to values that
+    depend on a measured step rate, which is not known when the case is first
+    built.  ``run_v1.py``'s ``_set_startfile`` did this ad hoc for one key;
+    this is the same regex substitution, generalised and shared.  Raises if
+    ``key`` is not found -- the line has to already exist (``write_namoptions``
+    always writes it), because this does not know which ``&SECTION`` to add a
+    new line under.
+    """
+    text = path.read_text(encoding="ascii")
+    pattern = re.compile(rf"(?m)^(\s*{re.escape(key)}\s*=\s*).*$")
+    new_text, n = pattern.subn(lambda m: m.group(1) + _fmt(value), text)
+    if n != 1:
+        raise RuntimeError(f"expected exactly one {key!r} line in {path}, found {n}")
+    path.write_text(new_text, encoding="ascii")
+
+
 # --------------------------------------------------------------------------- #
 # Geometry and 1-D inputs
 # --------------------------------------------------------------------------- #

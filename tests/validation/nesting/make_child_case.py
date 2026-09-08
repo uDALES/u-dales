@@ -160,6 +160,18 @@ def child_sections(preset: Preset, runtime: float) -> "OrderedDict":
             ("nest_fluxtol", 1.0e-10),
             ("nest_lfluxassert", True),
             ("nest_linitfromparent", preset.init_from_parent),
+            # .true. (the Fortran default) is every preset before V6: reading
+            # past the last stored parent level is a configuration mistake and
+            # should abort.  V6 sets this .false. on purpose -- design section
+            # 10.4 row V6 wants exactly that "past the record" state, held
+            # rather than fatal (modnesting.check_record_end).
+            ("nest_lendabort", preset.nest_lendabort),
+            # -1.0 (the Fortran default: nest_statint <- tstatsdump) unless a
+            # preset overrides it.  config.Preset.nest_statint's docstring
+            # explains why V6 leaves this at the default here too and patches
+            # it after the case is built instead.
+            ("nest_statint", preset.nest_statint if preset.nest_statint is not None
+                             else -1.0),
         ])),
         ("NAMCHECKSIM", OrderedDict([
             ("tcheck", max(1.0, runtime / 20.0)),

@@ -247,6 +247,23 @@ class Preset:
     #: plan section 7, finding R2) is what V0b sweeps.  Validated against
     #: ``udprep.nesting.PROLONGATIONS`` in :meth:`validate`.
     prolongation: Optional[str] = None
+    #: ``modnesting.check_record_end``: ``True`` (the Fortran default, and
+    #: every preset before V6) aborts the run the moment it would read past the
+    #: last stored parent time level.  ``False`` warns once
+    #: (``nendwarn``) and then holds the boundary at the last stored level for
+    #: the rest of the run -- the V6 construction (design section 10.4 row V6):
+    #: a boundary that goes deliberately steady partway through lets any later
+    #: growth in ``divtot``/``divmax``/`Phi` be read as numerical drift with
+    #: nothing else in play.
+    nest_lendabort: bool = True
+    #: ``modnesting`` ``nest_statint`` [s]: throttle on ``nesting_stats``
+    #: reports (design section 6.4).  ``None`` reproduces the Fortran default
+    #: exactly (written as ``-1.0``, which ties it to ``tstatsdump``) -- every
+    #: preset before V6.  V6 leaves this ``None`` too and overrides it after
+    #: the case is built (``run_v6.py``'s ``--stat-interval``), because the
+    #: right throttle depends on the measured step rate, not on anything
+    #: ``config.py`` can know in advance.
+    nest_statint: Optional[float] = None
 
     def __post_init__(self) -> None:
         # Frozen, so the two defaults that depend on another field are filled
@@ -771,6 +788,8 @@ class Preset:
                     f"{self.prolongation!r}")
         if self.fielddump_dtdump is not None and not (self.fielddump_dtdump > 0):
             errors.append(f"fielddump_dtdump = {self.fielddump_dtdump} s is not positive")
+        if self.nest_statint is not None and not (self.nest_statint > 0):
+            errors.append(f"nest_statint = {self.nest_statint} s is not positive")
         if self.writes_fielddump and self.fielddump_dtdump is not None \
                 and self.writes_nestdump and abs(self.fielddump_dtdump - self.dtdump) < 1.0e-9:
             # Not an error -- explicitly restating dtdump is harmless -- but on
@@ -952,6 +971,54 @@ TINY = Preset(
     dtmax=0.5,
     spectra_heights=(8.0, 16.0, 32.0),
     stride=1,
+)
+
+# --------------------------------------------------------------------------- #
+# V6 -- does mass drift over long runs? (design section 10.4 row V6)
+# --------------------------------------------------------------------------- #
+
+#: Long-run mass-conservation check.  Reuses TINY's parent/child geometry --
+#: this row is about numerics, not turbulence, so the domain only has to be
+#: small and cheap; the cost is meant to sit in the step count instead.
+#:
+#: The construction: a short parent record (8 dumped levels, ``spinup`` just
+#: long enough for the cold random initial condition to be pressure-projected
+#: to something divergence-free before the first dump) drives a child with
+#: ``nest_lendabort = False``.  ``make_child_case.build``'s default
+#: ``margin_levels = 2`` stops the child short of the last stored level (every
+#: other preset in this file wants the target always interpolated, never
+#: held); ``run_v6.py`` deliberately overrides that after the case is built,
+#: patching ``RUN.runtime`` out past the record so the boundary goes steady
+#: partway through and stays steady for the rest of a ~1e5-step run.  With a
+#: time-invariant imposed boundary, any later growth in ``divtot``, ``divmax``
+#: or the flux residual Phi is numerical drift and nothing else -- see
+#: ``src/modnesting.f90``'s ``check_record_end`` (the freeze) and
+#: ``nesting_stats`` (what gets reported, throttled by ``nest_statint``).
+#:
+#: ``nest_statint`` is left at the ``None`` default here on purpose: the right
+#: sample count depends on the measured step rate, which this file cannot
+#: know, so ``run_v6.py`` patches ``NESTING.nest_statint`` and
+#: ``NAMCHECKSIM.tcheck`` to the same value after measuring it on a short probe
+#: run (``--stat-interval``), the same way it patches ``RUN.runtime``
+#: (``--runtime``). ``child_dtdump`` is set far beyond any runtime this
+#: experiment uses so the child's field dumps never trigger: every diagnostic
+#: V6 needs (``divtot``/``divmax``, Phi, the zone misfit, ``|grad p|``) comes
+#: from the solver's own stdout, not from 3-D output, and a 1e5-step run
+#: dumping full fields would be all cost and no signal.
+#:
+#: 1 rank for the child ("few cores is fine and preferable; this is a long
+#: thin job, not a wide one") -- ``src/tests.f90`` documents 1x1 as a supported
+#: nested-run rank layout.  ``timeinterp = 2`` (Catmull-Rom) rather than
+#: TINY's 1 (linear): the freeze exercises ``eval_target``'s ``h2 <= 0``
+#: fallback (modnesting.f90), which only exists on the cubic path, so this is
+#: the interpolant that actually tests the frozen-boundary code, not the one
+#: that never calls it.
+V6 = replace(
+    TINY, name="v6", parent_expnr="990", child_expnr="991",
+    nest_lendabort=False, timeinterp=2,
+    spinup=15.0, production=24.0, dtdump=3.0, child_spinup=5.0,
+    child_nprocx=1, child_nprocy=1,
+    child_dtdump=300000.0,
 )
 
 # --------------------------------------------------------------------------- #
@@ -1430,7 +1497,7 @@ def get_sweep(name: str) -> Sweep:
 
 PRESETS: Dict[str, Preset] = {p.name: p
                               for p in (TINY, TINY_SWEEP, PRODUCTION, CONVERGED,
-                                        C0_FINE, C0_FINE_TINY)}
+                                        C0_FINE, C0_FINE_TINY, V6)}
 PRESETS.update({pt.preset.name: pt.preset
                 for sweep in SWEEPS.values() for pt in sweep.points})
 
