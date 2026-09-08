@@ -286,15 +286,28 @@ PARENT_DT_RTOL = 1.0e-2
 #: own 1.3e-7 to 1.7e-1, about 5 % of u/dx, which the child's projection then
 #: has to remove inside the zone at every timestep.
 #:
-#: The default is ``"constant"``: it is the scheme the design's stated contract
-#: describes, the one `tests/validation/nesting/test_v0_tiny.py` asserts end to
-#: end, and the one V0 validated at production size.  ``"linear"`` shipped as
-#: the default briefly (W8) on the strength of an offline probe, without that
-#: suite being run; it is kept as an explicit opt-in while the trade is settled
-#: by measurement (plan section 7, R2).  Do not change this default without
-#: that evidence.
+#: The default is ``"linear"``, **settled by measurement** in V0b (job 4000813,
+#: design section 10.5): both schemes run at r = 2 and 4 with the final cadence
+#: (0.5 s) and interpolant (Catmull-Rom), against the same fine truth.  The
+#: linear scheme's lost solenoidality is real but turns out to be cheap, and
+#: what it buys is not:
+#:
+#:   quantity (r = 2 / r = 4)     constant          linear
+#:   pre-projection child divmax  9.5e-8 / 2.3e-8   0.363 / 0.287
+#:   |grad p| zone/interior       2.393 / 1.996     2.469 / 2.015   (+3.2 / +1.0 %)
+#:   criterion A [u*]             0.128 / 0.280     0.098 / 0.121
+#:   staircase RMS [u*]           0.044 / 0.055     0.005 / 0.009
+#:   TKE deficit above z/h = 2    -6.5 / -16.9 %    -2.6 / -10.6 %
+#:
+#: So the child's projection absorbs the extra divergence locally, at 1-3 % on
+#: the pressure response and with post-projection divmax and Phi unchanged at
+#: round-off, while the mean-flow error falls by up to 2.3x and the staircase
+#: by 6-9x.  ``"constant"`` remains available and is the only scheme that
+#: satisfies design section 1.3's exact identity; the identity tests name it
+#: explicitly.  Caveat recorded in 10.5: at r = 4 the linear scheme overshoots
+#: the parent-resolved band and generates less sub-filter energy.
 PROLONGATIONS = ("constant", "linear")
-DEFAULT_PROLONGATION = "constant"
+DEFAULT_PROLONGATION = "linear"
 
 #: Snapping tolerance for "this child face is coplanar with a parent face",
 #: relative to the smallest parent spacing.  The same number is the alignment

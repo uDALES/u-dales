@@ -56,7 +56,8 @@ from caselib import coarsen_fluid_mask, coarsen_staggered, load_solid_mask
 from config import CONVERGED, get_suite
 
 sys.path.insert(0, str(HERE.parents[2] / "tools" / "python"))
-from udprep.nesting import (  # noqa: E402
+from udprep.nesting import (
+    DEFAULT_PROLONGATION,  # noqa: E402
     MAX_SPATIAL_REFINEMENT,
     NestGrid,
     conservative_interpolate,
@@ -221,9 +222,13 @@ class TestCoarseningOperator(unittest.TestCase):
             coarse = NestGrid.uniform(m, m, m, n * dx, n * dx, n * dx)
             self.assertLess(np.abs(discrete_divergence(coarse, uc, vc, wc)).max(),
                             1.0e-12, f"coarsening broke the divergence at r = {f}")
+            # Design 1.3's identity is a property of the divergence-preserving
+            # tangential reconstruction, so name it rather than inheriting the
+            # writer's default, which V0b settled on 'linear' (see 10.5).
             back = [conservative_interpolate(
                         coarse, pf, comp,
-                        *[fine.component_coords(comp, ax) for ax in range(3)])
+                        *[fine.component_coords(comp, ax) for ax in range(3)],
+                        prolongation="constant")
                     for comp, pf in zip("uvw", (uc, vc, wc))]
             self.assertLess(np.abs(discrete_divergence(fine, *back)).max(), 1.0e-12,
                             f"prolongation broke the divergence at r = {f}")
@@ -362,14 +367,24 @@ class TestV0TinyPipeline(unittest.TestCase):
         merely bounded.
         """
         for pt in self.suite.points:
-            ic = self.manifests[pt.key]["initial_condition_divmax"]
+            m = self.manifests[pt.key]
+            ic = m["initial_condition_divmax"]
             self.assertIsNotNone(ic["parent_before_prolongation"], pt.key)
-            self.assertAlmostEqual(
-                ic["before_projection"] / ic["parent_before_prolongation"], 1.0,
-                places=6,
-                msg=f"{pt.key}: the prolonged field's divmax "
-                    f"({ic['before_projection']:g}) is not the parent's "
-                    f"({ic['parent_before_prolongation']:g})")
+            scheme = m.get("prolongation") or DEFAULT_PROLONGATION
+            if scheme == "constant":
+                # The exact identity: only the divergence-preserving scheme has it.
+                self.assertAlmostEqual(
+                    ic["before_projection"] / ic["parent_before_prolongation"], 1.0,
+                    places=6,
+                    msg=f"{pt.key}: the prolonged field's divmax "
+                        f"({ic['before_projection']:g}) is not the parent's "
+                        f"({ic['parent_before_prolongation']:g})")
+            else:
+                # 'linear' trades the identity for accuracy (V0b, section 10.5).
+                # What must still hold is that the projection removes what it
+                # leaves -- record the size rather than assert it away.
+                self.assertGreater(ic["before_projection"],
+                                   ic["parent_before_prolongation"], pt.key)
             self.assertLess(ic["after_projection"], 1.0e-12, pt.key)
 
     # -- the nested run ----------------------------------------------------- #
