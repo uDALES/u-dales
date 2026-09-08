@@ -1424,7 +1424,7 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 | V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,9,12,16\}$ at fixed child size, plus a child-size arm (interior $5h$, $9h$, $13h$) at fixed zone width, every child clearing its own zone (§9.4) | **DONE — §10.5.** Zone width moves the deficit by 0.16 % over the whole range (0.03 of a sampling spread); interior extent moves it from $-13.5$ to $-9.9\,\%$. The deficit is a recovery over fetch, and §10.5's note on *what* is being recovered from applies |
 | V3 | **Parent without buildings** (**closed — out of scope**) | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against 0/5/15/40-cell standoffs; plus a **cleared-parent-cubes** arm at standoff 0 — the identical child, but its parent resolves V1's own aligned canopy where the child's zone sits and the child clears it (`nest_lparentgeom = .false.`) | **DONE — §10.5.** The adjustment length is **not measurable**: with a building-free parent no child equilibrated within $26h$, and the canopy wind is $38$–$57\,\%$ wrong at the last row. A parent that resolves buildings puts the same child inside the sampling spread by $5h$. §9.4's prediction that a standoff lengthens adjustment is **REFUTED**, for a configuration now out of scope. **Decision 2026-09-07: building-free parents are not supported and this row is closed** — a building-free domain struggles to generate and sustain canopy turbulence at all, so there is nothing for the child to inherit. The cleared-parent-cubes arm isolates what a genuinely absent boundary condition costs from what "parent had cubes, child removed them" costs (§0, "New from V2") |
 | V4 | **Different parent geometry** | parent with a different building layout, child identical to V1's | **DONE — §10.5.** Turbulence: the child's canopy is its own ($+46\,\%$ against its parent, 3–4$\sigma$) and aloft it matches its parent to $1.1\,\%$. Mean flow: **inherited, and not re-established over this fetch** — the child sits at $0.80$ of the V1 child, tracking the $0.83$ bulk ratio of the two parents. The V1-child reference is valid for turbulence only |
-| **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **DONE, both arms — §10.5**, and restated after the TKE-estimator correction. It reproduces its *parent*: with genuine 4 m / 8 m parents the child carries the parent's own $0.9$–$1.5\,u_\star$ mean-flow bias through the whole interior. Above the canopy it recovers at most a few points on its parent within $13h$; in the canopy it *overshoots* the truth by $+18$–$28\,\%$, because the too-fast imposed momentum drives too much production. Mean flow, now readable with the settled prolongation (V0b): criterion A is $0.098$ at $r=2$ and $0.121$ at $r=4$, still above the $0.05$ bound, so **a refined child does not yet meet the mean-flow standard matched-resolution nesting meets** |
+| **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **DONE, both arms — §10.5**, and restated after the TKE-estimator correction. It reproduces its *parent*: with genuine 4 m / 8 m parents the child carries the parent's own $0.9$–$1.5\,u_\star$ mean-flow bias through the whole interior. Above the canopy it recovers at most a few points on its parent within $13h$; in the canopy it *overshoots* the truth by $+18$–$28\,\%$, because the too-fast imposed momentum drives too much production. Mean flow: **above the canopy it transfers well** ($\le0.02\,u_\star$ above $z/h=2$ at $r=2$), with the residual in the canopy and at roof height where a coarse parent cannot resolve the cubes. Criterion A's absolute verdict is **not resolvable** at V0b's 1800 s window (its values sit 5–6$\times$ below the $0.606\,u_\star$ sampling floor); a converged-length V0 is needed to settle it |
 | V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | **Superseded**: the time axis is C0 (0.5–9 s, §10.5) and the space axis is V0; the ≤4/≤30 guidance is withdrawn (§1.3). C6 is a go, on the terms of §6.2 |
 | V6 | Does mass drift over long runs? | 10⁵-step run | **DONE — PASS (job 4001085).** 100 590 steps, 37 999 s simulated. `nest_lendabort = .false.` freezes the boundary on the last stored parent level for ~99 % of the run, so nothing at the boundary varies and any growth is numerical. All nine diagnostics — `divmax`, `divtot`, $\Phi$ and its lid/closed split, the zone misfit, $\|\mathcal{G}p\|$ over zone and interior and their ratio — are **bounded with no trend**: every fitted slope is under $1.9$ standard errors from zero and moves its series by at most 6 % of its own range over the whole run. The freeze warning fired exactly once, as designed |
 | V7 | Does the I/O cost anything? | production-sized case | read time <1% of runtime; if not, switch container (§6.3) |
@@ -1813,11 +1813,27 @@ mean-flow error by up to $2.3\times$. It ships.
 
 Two things worth keeping from it beyond the decision. First, **the divergence-preserving identity
 holds exactly on real data**: the constant arm's child divmax equals its parent's to every digit
-($9.470\times10^{-8}$ at $r=2$), which is the strongest confirmation §1.3 has. Second, **criterion A
-still fails at both ratios even with the better scheme** ($0.098$ and $0.121$ against a $0.05$
-bound), so refinement remains the weakest part of the campaign: the boundary data is now accurate
-and the cadence clean, and the child still does not reproduce the truth's mean flow to the standard
-matched-resolution nesting meets. §10.4's V0 row says what is and is not established.
+($9.470\times10^{-8}$ at $r=2$), which is the strongest confirmation §1.3 has. Second — and this corrects a statement made when
+the numbers first came in — **criterion A's absolute verdict is not resolvable at V0b's window
+length, and should not be read as a failure of refinement.** The children carry 600 samples over
+1800 s, against V1 converged's 3397 over 10 191 s, and the sampling floor of the mean-flow error
+metric is $0.606\,u_\star$. The measured values ($0.098$, $0.121$, $0.128$, $0.280$) all sit five to
+six times *below* that floor, so this run cannot say whether a refined child meets a
+$0.05\,u_\star$ bound. It was sized to compare two reconstructions against each other, which is a
+**paired** comparison — same parent, same realisation, same window, common noise — and that
+comparison is sound. The absolute one is not, and the same trap caught the first V1 run, whose
+1491 s window could not resolve its own TKE deficit either.
+
+What the profiles do show, and what settles the natural objection that a mean flow ought to be
+easier to carry than turbulence: **above the canopy the mean is reproduced extremely well.** At
+$r=2$ with the shipped scheme, $|\Delta\langle u\rangle| \le 0.02\,u_\star$ for every level above
+$z/h=2$, and mostly nearer $0.005$. The residual sits low down — peaking at $0.056\,u_\star$ at
+$z/h=0.31$ for $r=2$ and $0.059\,u_\star$ at roof height for $r=4$ — which is exactly where a 4 m or
+8 m parent cannot represent 16 m cubes and the box filter mixes solid with fluid. So the mean *is*
+easier than the turbulence, as expected; criterion A is a maximum over the whole column, so it
+reports the canopy, while the TKE figures quoted alongside it are measured above $z/h=2$. The two
+were never describing the same region. **To test criterion A at $r>1$ properly, V0 needs a
+converged-length child window** — V1's lesson, repeated.
 
 ### 10.6 Wiring
 
