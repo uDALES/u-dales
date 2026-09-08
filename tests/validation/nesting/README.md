@@ -1937,9 +1937,10 @@ own registration).
 
 | job | experiment | submitted | job id |
 |---|---|---|---|
-| V0c | `v0c` (982 fine-truth parent, 3 children: r1/r2/r4) | 2026-09-08 | `<filled in after qsub>` |
+| V0c | `v0c` (982 fine-truth parent, 3 children: r1/r2/r4) | 2026-09-08 | `4004496.pbs-7` |
 
-Check `$EPHEMERAL/nesting-v0c/analysis/v0_summary.md` once it finishes.
+Queued in `v1_medium24` at submission (`qstat -u $USER`); check
+`$EPHEMERAL/nesting-v0c/analysis/v0_summary.md` once it finishes.
 
 ---
 
