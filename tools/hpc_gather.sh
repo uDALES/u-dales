@@ -19,6 +19,16 @@
 
 set -e
 
+# Usage: FROM THE TOP LEVEL DIRECTORY run:
+#   u-dales/tools/hpc_gather.sh <PATH_TO_CASE>
+#
+# Serves CX3 and HX1; the cluster is detected from the hostname.
+#
+# Environment overrides:
+#   UDALES_SYSTEM   cx3 | hx1    force the cluster instead of detecting it
+#   NCO_BIN                      HX1 only: directory holding ncks/ncrcat/ncpdq,
+#                                default $HOME/nco-5.2.9/nco/bin
+
 if (( $# < 1 ))
 then
  echo "The experiment directory must be set."
@@ -61,6 +71,53 @@ if [ -z $MEM ]; then
     exit 1
 fi;
 
+## ---------------------------------------------------------------------------
+## Which cluster
+##
+## Detected from the login node so the same script serves CX3 and HX1; override
+## with UDALES_SYSTEM=<cx3|hx1>. Kept in step with tools/hpc_execute.sh.
+## ---------------------------------------------------------------------------
+if [ -z "${UDALES_SYSTEM:-}" ]; then
+    case "$(hostname -s)" in
+        hx1*) UDALES_SYSTEM=hx1 ;;
+        cx3*) UDALES_SYSTEM=cx3 ;;
+        *)
+            echo "Could not tell which cluster this is from the hostname: $(hostname -s)"
+            echo "Set UDALES_SYSTEM=cx3 or UDALES_SYSTEM=hx1 and run again."
+            exit 1
+            ;;
+    esac
+fi
+
+echo "cluster: $UDALES_SYSTEM"
+
+## gather_outputs.sh and nco_concatenate_field*.sh need ncks, ncpdq and ncrcat
+## from NCO, plus ncdump from netCDF.
+case "$UDALES_SYSTEM" in
+    cx3)
+        gather_modules='module load NCO/5.2.9-foss-2024a'
+        ;;
+    hx1)
+        # HX1 ships no NCO at all - no module, and no ncks anywhere under
+        # /gpfs/easybuild/prod - so it comes from a local build. See
+        # $HOME/nco-5.2.9 for the scripts that produced it.
+        #
+        # The netCDF module is still needed at run time: libnetcdf.so has a
+        # DT_RUNPATH that omits HDF5, which no rpath on the NCO binaries can
+        # compensate for. It also supplies ncdump.
+        nco_bin="${NCO_BIN:-$HOME/nco-5.2.9/nco/bin}"
+        if [ ! -x "$nco_bin/ncks" ]; then
+            echo "No NCO found at $nco_bin"
+            echo "HX1 has no NCO module, so it has to be built locally:"
+            echo "  bash \$HOME/nco-5.2.9/s2_configure_build_install.sh"
+            echo "Or set NCO_BIN to a directory containing ncks, ncpdq and ncrcat."
+            exit 1
+        fi
+        gather_modules="module load netCDF/4.9.2-gompi-2023a UDUNITS/2.2.28-GCCcore-12.3.0 GSL/2.7-GCC-12.3.0
+export PATH=$nco_bin:\$PATH"
+        ;;
+esac
+
 ## set the output directory
 outdir=$DA_WORKDIR/$exp
 
@@ -71,7 +128,7 @@ cat <<EOF > post-job.$exp
 #!/bin/bash
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=1:ncpus=1:mem=${MEM}
-module load NCO/5.2.9-foss-2024a
+${gather_modules}
 
 ## Time the gather the same way tools/local_execute.sh does, so the phase is
 ## comparable between a local run and a cluster one. The \$ are escaped to reach
