@@ -2188,6 +2188,77 @@ V0C_FINE_TINY = replace(
 PRESETS[V0C_FINE.name] = V0C_FINE
 PRESETS[V0C_FINE_TINY.name] = V0C_FINE_TINY
 
+# --------------------------------------------------------------------------- #
+# V0c16 -- the same suite, sized to fit CX3's 16-core queue.
+# --------------------------------------------------------------------------- #
+#
+# `submit_cx3_v0c.pbs` (job 4004496, `mem=300gb`, `ncpus=64`) has sat queued in
+# `v1_medium24` for hours ("Insufficient amount of resource: ncpus" -- 281
+# queued against 18 running); the 16-core queues turn over far better
+# (`v1_small72`: ~210 queued / ~120 running).  This variant is a SEPARATE
+# preset/suite, not a mutation of V0C_FINE/V0C, so 4004496 keeps working if it
+# ever starts -- the two jobs are meant to run side by side in different
+# `$EPHEMERAL` directories, whichever finishes first wins.
+#
+# THE MEMORY CLAIM ABOVE IS STALE.  It describes `udprep.nesting
+# .write_nesting_file`, which holds a whole record in memory -- but
+# `make_child_case.build` (what `run_v0.py` actually calls for every V0c
+# point) stopped calling that function when the slab cut was streamed through
+# `NestingWriter.append_level` (`71011e96`, "stream the slab cut through
+# NestingWriter (W4 adoption)", the commit immediately before V0c's own
+# `42367112` in history) -- ITS OWN docstring says "the slab cut holds one
+# parent level rather than the whole record: its peak memory does not grow
+# with the number of levels", and that commit's own `tracemalloc` numbers
+# (103.1 MB at 40 levels, 103.0 MB at 14) already showed it flat.  Whoever
+# wrote the 225-230 GB estimate above reused V0b's pre-streaming 964/39 GB
+# ratio without noticing `make_child_case.py` no longer takes that code path.
+#
+# Verified directly on this worktree, not just re-read from the commit
+# message: wrapping `make_child_case.build` for the `v0c-tiny` point `r1`
+# (`/usr/bin/time -v`, plus `tracemalloc`+`resource.getrusage` inside the
+# process) against the real `v0c-fine-tiny` parent (240 dumped levels) gave a
+# 654.7 MB peak RSS / 111.2 MB tracemalloc peak; the SAME build against a
+# copy of that parent with its time axis artificially extended 10x (2400
+# levels, `u`/`v`/`w` duplicated in the netCDF files) gave 657.5 MB / 111.3
+# MB -- flat to within 0.4%, confirming the record-independence directly
+# rather than trusting the docstring.  The production record is 21600 levels
+# (90x this test's 240), but nothing in `NestingWriter`/`FieldDump` holds more
+# than one level: `caselib.FieldDump.read_level` reads one global
+# `(itot, jtot, ktot)` slab per call (net ~96 MB of `float64` at the full
+# 256 x 256 x 64 parent domain for the three components, freed every
+# iteration), so the true peak at production scale is the tiny case's ~650 MB
+# floor (imports, IBM/geometry arrays) plus one such slab -- of order 1 GB,
+# not 225 GB.  `mem=120gb` below is sized for headroom against that estimate
+# and against the solver's own memory (unmeasured directly here, but V0b
+# shipped `mem=128gb` for the identical 128 x 128 x 64 child geometry and the
+# 64-rank `v1_medium72` jobs use the same 256 x 256 x 64 / 128 x 128 x 64
+# domains at `mem=128gb`) -- not because the python build step needs anywhere
+# near it.  Since queue selection is by `ncpus`/walltime band only (not
+# `mem`), asking for the full `v1_small*` headroom costs nothing.
+#
+# THE DECOMPOSITION.  16 ranks needs a 4x4 grid, not V0c's 8x8 (64 ranks):
+# `itot = jtot = 256` (parent) and `128` (child) both divide by 4 exactly
+# (`Preset.validate` checks this and would refuse anything that didn't). The
+# coarse driving-parent placeholders for r = 2/r = 4 are bookkeeping only --
+# `RefinedPoint.runs_driver` is `False` for every 'filtered' point regardless
+# of refine, so they are never actually built -- 4x4 is used there too rather
+# than mirroring V0c's own asymmetric (8,8)/(4,4) choice, since nothing reads
+# it except `Preset.validate`'s divisibility check (128/4 and 64/4 both
+# divide exactly).
+V0C16_FINE = replace(
+    V0C_FINE, name="v0c16-fine", parent_expnr="992", child_expnr="993",
+    nprocx=4, nprocy=4, child_nprocx=4, child_nprocy=4,
+)
+#: Smoke-test twin, on ``TINY``'s window, ALSO at the real 4x4/16-rank
+#: decomposition (not TINY's own default 2x2) so the tiny run exercises the
+#: same decomposition the production job ships, per the measurement above.
+V0C16_FINE_TINY = replace(
+    V0C_FINE_TINY, name="v0c16-fine-tiny", parent_expnr="992", child_expnr="993",
+    nprocx=4, nprocy=4, child_nprocx=4, child_nprocy=4,
+)
+PRESETS[V0C16_FINE.name] = V0C16_FINE
+PRESETS[V0C16_FINE_TINY.name] = V0C16_FINE_TINY
+
 
 def _v0c_suite(base: Preset, name: str, *,
               ranks: Dict[int, Tuple[int, int]],
@@ -2245,8 +2316,31 @@ V0C_TINY = _v0c_suite(
     child_expnr={1: "983", 2: "985", 4: "987"},
 )
 
+#: **V0c16 -- V0c's own suite, decomposed for CX3's 16-core queues.**  Same
+#: three points (r1/r2/r4), same 128 x 128 child, zone and forcing; only the
+#: fine truth's experiment numbers (992 parent, 993/994/995 children -- fresh,
+#: none of 903-991 are reused) and every ``nprocx``/``nprocy`` (4x4 throughout,
+#: see the V0c16 comment block above) move.  Runs from a SEPARATE
+#: ``$EPHEMERAL`` directory (``submit_cx3_v0c16.pbs``) so it cannot collide
+#: with V0c's own 982/983/985/987 case dirs.
+V0C16 = _v0c_suite(
+    V0C16_FINE, "v0c16",
+    ranks={1: (4, 4), 2: (4, 4), 4: (4, 4)},
+    driver_expnr={1: "992", 2: "996", 4: "997"},
+    child_expnr={1: "993", 2: "994", 4: "995"},
+)
+
+#: The same suite in minutes, on its own tiny fine truth, at the real 4x4
+#: decomposition (``V0C16_FINE_TINY``, not TINY's own default 2x2).
+V0C16_TINY = _v0c_suite(
+    V0C16_FINE_TINY, "v0c16-tiny",
+    ranks={1: (4, 4), 2: (4, 4), 4: (4, 4)},
+    driver_expnr={1: "992", 2: "996", 4: "997"},
+    child_expnr={1: "993", 2: "994", 4: "995"},
+)
+
 SUITES: Dict[str, RefinementSuite] = {
-    s.name: s for s in (V0_TINY, V0, V0B_TINY, V0B, V0C_TINY, V0C)
+    s.name: s for s in (V0_TINY, V0, V0B_TINY, V0B, V0C_TINY, V0C, V0C16_TINY, V0C16)
 }
 
 

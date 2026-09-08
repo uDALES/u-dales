@@ -640,6 +640,24 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/validation/nesting/test_v0c_tiny.py"
+      # V0c16 -- V0c's own suite, decomposed for CX3's 16-core queues (job
+      # 4004496, ncpus=64:mem=300gb, sat queued in v1_medium24 for hours; the
+      # 16-core queues turn over far better).  A separate preset/suite/expnr
+      # block (992-997), not a mutation of V0c's own objects, so 4004496 keeps
+      # working if it ever starts.  Production is submitted by hand
+      # (tests/validation/nesting/submit_cx3_v0c16.pbs) from its own
+      # $EPHEMERAL directory; only the tiny smoke test runs here, at the real
+      # 4x4/16-rank decomposition.
+      - label: "nesting-validation: V0c16 tiny matched-control suite (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v0c16_tiny.py"
       # V3 and V4 -- the two experiments where parent and child geometry differ
       # (design section 9.4).  The tiny entry drives both end to end and also
       # checks the production experiments' configuration, including that V4's

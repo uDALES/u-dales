@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -160,14 +161,18 @@ class TestV0cSuiteConfiguration(unittest.TestCase):
         return manifest, run_tests
 
     def test_v0c_is_in_nesting_validation_and_nowhere_else(self):
+        """"V0c" only -- "V0c16" (the 16-core variant, its own test file/suite)
+        has its own label and must not be counted here, the same way V0's own
+        test excludes V0b/V0c with a lookahead rather than a bare substring."""
         manifest, run_tests = self._groups()
         labels = {g: [s["label"] for s in run_tests._expand_groups(manifest, g)]
                   for g in manifest["groups"]}
-        v0c = [l for l in labels["nesting-validation"] if "V0c" in l]
+        pattern = re.compile(r"V0c(?!\d)")
+        v0c = [l for l in labels["nesting-validation"] if pattern.search(l)]
         self.assertEqual(len(v0c), 1, f"expected one V0c entry, got {v0c}")
         for group in ("all", "supported", "nesting", "experimental",
                       "python-library", "supported-macos", "lint"):
-            self.assertFalse([l for l in labels.get(group, []) if "V0c" in l],
+            self.assertFalse([l for l in labels.get(group, []) if pattern.search(l)],
                              f"group '{group}' reaches a V0c entry")
 
 
