@@ -1823,6 +1823,126 @@ Queued in `v1_medium24` at submission (`qstat -u $USER`); check
 
 ---
 
+# V0c -- is criterion A genuinely violated, or is the window too short?
+
+The review of V0b (`nesting-review-2026-09-08-codex.md`, finding 1) found that
+its headline criterion-A failures cannot be told apart from a
+**matched-resolution control at the same window**: C0c's own `cr0.5` point
+(expnr 970, matched 2 m resolution, same fine parent 960, same 1800 s window)
+also fails (0.083 against the 0.05 bound), so the refined children's cost
+relative to that control is ~17 % (`r = 2`) and ~45 % (`r = 4`), not a
+pass-to-fail collapse. V1 converged, at a 10 191 s window, passes (0.0386).
+The open question is whether refinement genuinely violates the bound at a
+window long enough to resolve it, with its OWN control at that SAME window.
+
+**The construction.** Three children off one fresh fine-truth parent (982),
+all `arm = "filtered"`, all with `prolongation` left unset (V0b already
+settled that; V0c does not sweep the reconstruction again):
+
+* `r1` -- the matched-resolution **control**. No coarsening: `RefinedPoint
+  .coarsen == 1` degenerates `CoarsenedFieldDump` to the identity, so the
+  boundary data is a plain slab cut of 982's own dumps and the writer never
+  reaches the prolongation. Built through the identical `RefinedPoint`/
+  `DrivingParent.refined` code path as `r2`/`r4`
+  (`RefinementSuite.allow_matched_control = True` lifts the normal "a
+  `refine = 1` point is V1, use that instead" refusal) -- the point being
+  that every number downstream comes from one analysis code path across all
+  three arms, not a bespoke one for the control.
+* `r2`, `r4` -- box-filtered from 982's own dumps, exactly V0b's `filtered`
+  arm, at the shipped cadence (0.5 s) and interpolant (Catmull-Rom).
+
+**The window.** The sampling floor on a temporal-mean statistic falls as
+1/sqrt(N); V0b's 1800 s window (600 samples) would need ~6x the samples to
+roughly halve it -- 0.098 -> ~0.049 (`r2`, right at the bound), 0.121 ->
+~0.061 (`r4`, still failing but much closer), 0.083 -> ~0.042 (control,
+passes). Rather than pick a new number, V0c reuses `CONVERGED.production =
+10800` and `child_spinup = 600` unchanged -- a 10200 s statistics window
+(~10191 s once the trailing margin is dropped), the same ~5.7x V0b's window
+**and the same window V1 converged itself used**, so every V0c number is
+directly comparable to the V1 converged row already in section 10.5.
+
+**The parent (982).** Warm-started from the SAME 903 spin-up restart 960
+used -- **not** a continuation of 960's own end state, which does not exist:
+960's production namelist sets `trestart = 1e9`, so `writerestartfiles`
+never fires during production and 960 wrote no restart of its own. 982 runs
+the FULL 10800 s production from 903's restart, which reproduces 960's own
+first 2400 s deterministically before continuing another 8400 s beyond where
+960 stopped, and is still far cheaper than starting over: it skips the
+10800 s spin-up entirely.
+
+**The pressure diagnostic.** `nest_statint = 30 s` (not the inherited
+`tstatsdump` default V0b left it at) gives ~360 `nesting_stats` reports over
+the run, ~340 after the 600 s discard -- `analyse_v0.runtime_diagnostics` now
+pairs each report with its own `modnesting: t = ...` timestamp and reports
+the zone/interior `|grad p|` norms **with the startup discarded and a spread
+(mean +/- std)**, not V0b's two compulsory endpoints (review finding 2).
+
+**Two statistics, kept separate (review finding 1).** `run_v0`'s summary
+table now carries a `profile RMS [u*]` column
+(`profile_metrics.u_rms_difference_over_ustar`, the RMS over height of the
+area-averaged mean-flow error) right next to `crit A [u*]`
+(`criterion_a.max_interior_umean_error_over_ustar`, the MAXIMUM over interior
+fetch stations and faces of a single-slab RMS) -- two different reductions of
+the same field, never one standing in for the other.
+
+**Uncertainty.** The paired child-minus-truth difference's uncertainty should
+come from temporal blocks of the paired differences, keeping the spatial
+structure -- **not** from the parent's own half-window spread, which is not a
+valid uncertainty for a paired comparison (the same correction V0b's own
+prose needed, design section 10.5). This is a post-hoc analysis step on the
+saved per-level differences and is not automated by this harness; do it
+against the child/reference dumps once the run has produced them, before
+drawing a conclusion from the raw criterion-A numbers alone.
+
+**Disk and memory.** The dominant cost is 982's own full-domain 0.5 s field
+dump (~1.08 TB): box-filtering the `r2`/`r4` boundary data needs
+`CoarsenedFieldDump` over the WHOLE domain, and there is no cheap way to get
+that from the much smaller `&NESTDUMP` band instead -- `caselib.NestDump`'s
+box is NaN outside a thin strip sized for a *ratio-1* margin, and
+`DrivingParent`'s addressing assumes `CoarsenedFieldDump` wraps a
+full-domain, globally-indexed array, which a `NestDump` box is not (its
+footprint already equals the child window, addressed from its own local
+origin). Reworking both was judged not cheap enough to do under this task's
+time budget, so V0c falls back to full `FieldDump` dumps and budgets for
+them. Each child's nesting file (~204 GB, `--prune-nesting` keeps it
+transient) needs ~225-230 GB of peak RSS to build (`udprep.nesting
+.write_nesting_file` holds the whole array in memory) -- `submit_cx3_v0c.pbs`
+requests `mem=300gb` for that. Net new/persistent disk ~1.22 TB. Full
+derivation in `submit_cx3_v0c.pbs`'s header and `config.py`'s V0c comment
+block.
+
+## How to run it
+
+```bash
+qsub tests/validation/nesting/submit_cx3_v0c.pbs
+```
+
+## Status
+
+**Prepared, validated at tiny scale, submitted (see job id below).**
+`test_v0c_tiny.py` is **21 tests, all passing (~151-171 s on a login node)**:
+all three points (`r1`, `r2`, `r4`) build and run; `r1`'s boundary data is a
+plain slab cut and `r2`/`r4`'s are interpolated; the offline divergence
+identity is correctly left unmeasured for `r1` (there is nothing to compare a
+single, non-interpolated field against) and holds for `r2`/`r4`; the pressure
+response is a resolved, startup-discarded series with a finite mean and
+spread for every point; and profile RMS and criterion A are reported
+separately and are both finite for every point. `python -m unittest discover
+-s tools/python/tests -p "test_nesting*.py"` (96 tests),
+`python tests/validation/nesting/test_v0_tiny.py` (26 tests) and
+`python tests/validation/nesting/test_v0b_tiny.py` (19 tests) were re-run
+afterwards and are unchanged (the `V0(?!b)` label-matching regex in
+`test_v0_tiny.py` was widened to `V0(?![bc])` so it does not also match V0c's
+own registration).
+
+| job | experiment | submitted | job id |
+|---|---|---|---|
+| V0c | `v0c` (982 fine-truth parent, 3 children: r1/r2/r4) | 2026-09-08 | `<filled in after qsub>` |
+
+Check `$EPHEMERAL/nesting-v0c/analysis/v0_summary.md` once it finishes.
+
+---
+
 # V3 and V4 -- when parent and child geometry differ
 
 `docs/udales-nesting-design.md` section 9.4 is about the configuration the

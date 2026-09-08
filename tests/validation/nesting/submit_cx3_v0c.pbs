@@ -1,0 +1,181 @@
+#!/bin/bash
+#PBS -N udales-nesting-v0c
+#PBS -l walltime=20:00:00
+#PBS -l select=1:ncpus=64:mpiprocs=64:mem=300gb
+#PBS -j oe
+#
+# V0c -- is criterion A genuinely violated at r > 1, or is V0b's 1800 s window
+# too short to tell it apart from sampling noise?
+# nesting-review-2026-09-08-codex.md finding 1;
+# docs/udales-nesting-design.md section 10.5's V0b block and section 1.3;
+# tests/validation/nesting/README.md, "V0c" section; config.V0C.
+#
+# PREPARE, REVIEW, THEN SUBMIT BY HAND:
+#
+#     qsub tests/validation/nesting/submit_cx3_v0c.pbs
+#
+# (qsub/qstat live in /opt/pbs/bin on CX3.)
+#
+# ---------------------------------------------------------------------------
+# WHAT THIS DOES.  Two stages: one fresh fine-truth parent (982), then the
+# three-point V0c suite driven from it.
+#
+# THE PARENT (982).  Warm-started from the SAME 903 spin-up restart the C0b
+# fine parent (960) used ($EPHEMERAL/nesting-v1-converged/903, t = 10800 s) --
+# NOT a continuation of 960's own end state, which does not exist: 960's
+# production namelist sets trestart = 1e9 (make_parent_case.parent_sections),
+# so writerestartfiles (src/modsave.f90:77) never fires during production and
+# 960 wrote no restart of its own.  982 runs the FULL 10800 s production from
+# 903's restart (CONVERGED.production, unchanged -- see config.py's V0c
+# comment block for the window arithmetic), dumping u, v, w every 0.5 s
+# (C_dump = 0.75 at u0 = 3 m/s, <= 2 up to ~5.3 m/s), 21600 levels, ~1.08 TB.
+# This reproduces 960's own first 2400 s deterministically before continuing
+# another 8400 s beyond where 960 stopped, and is still far cheaper than
+# starting over: it skips the 10800 s spin-up entirely.  Idempotent -- if
+# $RUNDIR/982 already has field dumps (a resubmission after a failed child),
+# the parent build/run step is skipped.
+#
+# THE THREE CHILDREN.  r1 (matched-resolution control, plain slab cut of
+# 982's own dumps -- no coarsening, no interpolation, no prolongation
+# reached), r2, r4 (box-filtered from 982's own dumps, exactly V0b's
+# 'filtered' arm).  All at the shipped cadence (0.5 s) and interpolant
+# (Catmull-Rom), all with 'prolongation' left unset (V0b already settled
+# that).  ``nest_statint = 30 s`` gives ~360 pressure reports over the run,
+# ~340 after the 600 s discard -- a resolved series with a spread, not V0b's
+# two compulsory endpoints (review finding 2).
+#
+# ---------------------------------------------------------------------------
+# SIZING.
+#
+# PARENT.  10800 s production at 982's own measured rate (960's own log,
+# $EPHEMERAL/nesting-c0b/960/production.log: "TOTAL CPU time by main time
+# loop = 1347.85" for 2400 s simulated = 1.78 s simulated / s wall) is
+# ~101 min of compute; add ~5 min for the case build/IBM preprocessing.
+#
+# CHILDREN.  Each child's slab cut/box-filter reads the WHOLE 982 record
+# regardless of ratio (~1.08 TB at ~219 MB/s, V0's own measured effective
+# rate) = ~82 min/child x 3 = ~246 min.  Each child run, 10800 s simulated at
+# the V1-measured child rate (~6.3x real time on 64 ranks) = ~29 min x 3 =
+# ~87 min.  Each analysis (spectra, decay curves, TKE deficit, the new
+# resolved-pressure-series reduction): ~10-15 min x 3 = ~40 min, plus one
+# shared parent accumulation (~10 min).  Case builds/preprocessing: ~15 min
+# total.
+#
+# TOTAL: ~101 + 5 + 246 + 87 + 40 + 10 + 15 = ~504 min = ~8.4 h.  The 20 h
+# request is ~2.4x that -- this is the first run of a fresh, much longer (6x
+# V0b's) fine-truth parent and the per-level rates above are extrapolated
+# from a 2400 s/4800-level run, not separately re-measured at 21600 levels.
+#
+# MEMORY.  udprep.nesting.write_nesting_file holds the whole nesting file in
+# RAM: 3 * 2 * (128 + 128) * 64 * 12 * 8 bytes/level = ~9.4 MB, x 21600
+# boundary levels (cadence 0.5 s over 10800 s) = ~204 GB PER CHILD (children
+# build one at a time, not concurrently, so this does not multiply by 3).  At
+# the V1 job's measured 1.11x file-to-peak-RSS ratio that is ~225-230 GB
+# peak; mem=300gb holds it with margin, and fits CX3's v1_medium24/72 queues
+# (resources_max.mem = 450gb at ncpus <= 64).
+#
+# DISK, in $RUNDIR, all new: ~1.08 TB parent dumps + 3 x ~45 GB child field
+# dumps (128^2x64 @ 3 s over 10800 s = 3600 levels x 12.6 MB) = ~1.22 TB
+# persistent.  Each child's nesting file (~204 GB) is transient --
+# --prune-nesting deletes it right after that child's run finishes, so the
+# running total never holds more than one in flight at a time.  $EPHEMERAL is
+# unquotaed (measured ~3.0 TB already in nesting-* at the time this was
+# written; RDS itself has ~1.3 PB free), so this is affordable but is easily
+# the most expensive nesting-validation run so far -- recorded here so the
+# next one can be sized from it.
+# ---------------------------------------------------------------------------
+
+set -e
+
+# The worktree this campaign was built in -- NOT the main checkout.  Every
+# other nesting submit script defaults to $HOME/udales/u-dales; this one
+# defaults to the worktree on purpose, so a bare `qsub` (no -v UDALES_REPO=...)
+# still runs the code this file was reviewed and tested against.
+REPO=${UDALES_REPO:-/rds/general/ephemeral/user/mvr/ephemeral/claude-worktrees/v0c}
+RUNDIR=${UDALES_V0C_RUNDIR:-$EPHEMERAL/nesting-v0c}
+V1DIR=${UDALES_V1_CONVERGED:-$EPHEMERAL/nesting-v1-converged}
+RESTARTDIR=${UDALES_V0C_RESTARTDIR:-$V1DIR/903}
+SUITE=${UDALES_V0C_SUITE:-v0c}
+POINTS=${UDALES_V0C_POINTS:-}
+# qsub -v cannot carry a comma: PBS treats it as the separator between
+# variables, so a comma-separated list arrives truncated or escaped
+# depending on the version. Accept spaces or semicolons too and normalise.
+POINTS=$(printf '%s' "$POINTS" | tr ' ;' ',,' | tr -s ',' | sed 's/^,//; s/,$//')
+
+echo "repo      : $REPO"
+echo "rundir    : $RUNDIR"
+echo "restart   : $RESTARTDIR  (982 warm-starts from here)"
+echo "suite     : $SUITE"
+echo "points    : ${POINTS:-all}"
+echo "started   : $(date)"
+
+if ! ls "$RESTARTDIR"/initd????????_000_000.903 >/dev/null 2>&1; then
+    echo "no restart files initd????????_000_000.903 in $RESTARTDIR." >&2
+    echo "V0c's fine-truth parent (982) warm-starts from the V1 converged" >&2
+    echo "parent's end-of-spin-up restart; point UDALES_V0C_RESTARTDIR at a" >&2
+    echo "directory that holds one (the same one 960/C0b used)." >&2
+    exit 1
+fi
+mkdir -p "$RUNDIR"
+
+# The solver binary. Build it beforehand with
+#   ./tools/build_executable.sh icl release
+export UDALES_BUILD=${UDALES_BUILD:-$REPO/build/release/u-dales}
+if [ ! -x "$UDALES_BUILD" ]; then
+    echo "solver binary not found at $UDALES_BUILD" >&2
+    exit 1
+fi
+
+# Two module stacks are needed and they are not compatible with each other: the
+# Python tooling wants Python/3.9.6-GCCcore-11.2.0, the solver wants the Intel
+# 2021a stack.  caselib.run_solver loads the runtime stack itself, in the same
+# shell as the mpiexec, so this script only sets up the Python side.
+export UDALES_RUNTIME_MODULES="tools/prod intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a"
+
+module purge
+module load tools/prod
+module load Python/3.9.6-GCCcore-11.2.0
+source "${UDALES_VENV:-$HOME/udales/.venv}/bin/activate"
+
+export HDF5_USE_FILE_LOCKING=FALSE
+# /tmp has a small per-user quota on the compute nodes and the slab cut writes
+# large temporaries through netCDF.
+export TMPDIR=${TMPDIR:-$EPHEMERAL}
+export MPLCONFIGDIR=${MPLCONFIGDIR:-$RUNDIR/.mpl}
+
+cd "$REPO"
+
+# ---- stage 1: the fine-truth parent (982), warm-started, idempotent ------- #
+PARENTDIR="$RUNDIR/982"
+if ls "$PARENTDIR"/fielddump.???.???.982.nc >/dev/null 2>&1; then
+    echo "parent 982 already has field dumps in $PARENTDIR; not re-run"
+else
+    echo "=== building and running the fine-truth parent 982"
+    python tests/validation/nesting/make_parent_case.py "$RUNDIR" \
+        --preset v0c-fine --restart-dir "$RESTARTDIR"
+    python -c "
+from pathlib import Path
+import sys
+sys.path.insert(0, 'tests/validation/nesting')
+from caselib import run_solver
+from config import V0C_FINE as p
+
+casedir = Path('$PARENTDIR')
+run_solver(casedir, f'namoptions.{p.parent_expnr}', p.nprocx * p.nprocy,
+           casedir / 'production.log')
+"
+    echo "parent 982 production finished : $(date)"
+fi
+
+# ---- stage 2: the three-point suite, driven from 982 ---------------------- #
+python tests/validation/nesting/run_v0.py "$RUNDIR" \
+    --suite "$SUITE" \
+    --reference-dir "$PARENTDIR" \
+    ${POINTS:+--only "$POINTS"} \
+    --prune-nesting \
+    --yes
+
+echo "finished  : $(date)"
+echo "table     : $RUNDIR/analysis/v0_summary.md"
+echo "machine   : $RUNDIR/analysis/v0_summary.{csv,json}"
+echo "per point : $RUNDIR/analysis/<point>/v0_metrics.json"
