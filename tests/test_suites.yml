@@ -622,6 +622,24 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/validation/nesting/test_v0b_tiny.py"
+      # V0c -- is criterion A genuinely violated at r > 1, or is the 1800 s
+      # window V0b used too short to tell from sampling noise (design plan
+      # review, finding 1)?  A matched-resolution control (r = 1) plus r = 2, 4,
+      # all against one fresh fine truth, at ~6x V0b's window.  Production is
+      # submitted by hand (tests/validation/nesting/submit_cx3_v0c.pbs)
+      # because it builds and runs its own ~1 TB fine-truth parent on CX3;
+      # only the tiny smoke test -- which builds and runs its own tiny fine
+      # parent -- runs here.
+      - label: "nesting-validation: V0c tiny matched-control suite (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v0c_tiny.py"
       # V3 and V4 -- the two experiments where parent and child geometry differ
       # (design section 9.4).  The tiny entry drives both end to end and also
       # checks the production experiments' configuration, including that V4's
