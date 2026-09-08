@@ -51,7 +51,7 @@ if str(HERE) not in sys.path:
 import analyse_v6
 import make_child_case
 import make_parent_case
-from caselib import run_solver, set_namoption
+from caselib import read_namoption, run_solver, set_namoption
 from config import get_preset
 from run_v1 import _restart_file, _set_startfile
 
@@ -161,15 +161,31 @@ def main() -> int:
                    preset.child_nprocx * preset.child_nprocy, child_dir / "child.log")
         print(f"[run_v6] child run finished in {time.time() - t:.1f} s")
 
+    exit_code = 0
     if wanted("analysis"):
         t = time.time()
-        result = analyse_v6.run(child_dir, outdir, make_plots=not args.no_plots)
+        # The child's own namoptions is the source of truth for how long it was
+        # actually asked to run -- read it back rather than relying on
+        # args.runtime, which is None (and the manifest's record_runtime does
+        # not apply) whenever --start-at skips the child-case stage.
+        namoptions = child_dir / f"namoptions.{preset.child_expnr}"
+        expected_runtime_s = None
+        if namoptions.exists():
+            raw = read_namoption(namoptions, "runtime")
+            if raw is not None:
+                expected_runtime_s = float(raw)
+        result = analyse_v6.run(child_dir, outdir, make_plots=not args.no_plots,
+                                expected_runtime_s=expected_runtime_s)
         print(f"[run_v6] analysis finished in {time.time() - t:.1f} s\n")
         print(analyse_v6.summary(result))
         print(f"\nresults in {outdir}")
+        if result["overall_verdict"] != "PASS":
+            print(f"[run_v6] analysis verdict is {result['overall_verdict']}, not PASS "
+                  "-- reporting failure", file=sys.stderr)
+            exit_code = 1
 
     print(f"\n[run_v6] total {time.time() - t_all:.1f} s")
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":

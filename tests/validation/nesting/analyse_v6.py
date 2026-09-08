@@ -259,7 +259,34 @@ SERIES = ("divmax", "divtot", "phi", "phi_lid", "phi_closed", "misfit_rms",
           "gradp_zone", "gradp_interior", "gradp_ratio")
 
 
-def analyse(parsed: Dict[str, object]) -> Dict[str, object]:
+def analyse(parsed: Dict[str, object], *, expected_runtime_s: Optional[float] = None,
+            min_samples: int = 3, duration_tol: float = 0.95) -> Dict[str, object]:
+    """Fit every series, then decide PASS/FAIL/NO-DATA/INCONCLUSIVE for the run.
+
+    PASS is not merely "no FAIL was seen" -- that reads an empty or sparse log
+    as a pass (an all-``/dev/null`` log has no FAIL verdicts because it has no
+    verdicts of any useful kind). PASS instead requires positive evidence:
+
+    * every series resolved to a real PASS/FAIL verdict (not NO DATA or
+      INCONCLUSIVE), with finite statistics;
+    * at least ``min_samples`` checksim and nesting_stats samples each;
+    * the expected end-of-record freeze warning seen exactly once (never seen
+      means the freeze was never exercised; more than once means something
+      about the construction is off);
+    * no abort past the record (``nest_lendabort = .false.`` is meant to
+      freeze the boundary, not abort);
+    * when ``expected_runtime_s`` is given (the caller's intended ``RUN.runtime``
+      -- a tiny smoke run and the ~1e5-step production run pass different
+      values here, so the acceptance bar scales with what was actually asked
+      for rather than being weakened for the smoke test), the run actually
+      covered at least ``duration_tol`` of it.
+
+    Anything short of that is NO-DATA (nothing at all was parsed) or
+    INCONCLUSIVE (something was parsed but the evidence is incomplete) --
+    never PASS. An actual drift, or an unwanted abort, is FAIL. All of this is
+    the aggregate's job, not each series': ``summarize_series`` above answers
+    "is this one series drifting", not "does this run count as validated".
+    """
     results: Dict[str, object] = {}
     for key in ("divmax", "divtot"):
         results[key] = summarize_series(key, parsed["checksim_t"], parsed[key])
@@ -277,29 +304,81 @@ def analyse(parsed: Dict[str, object]) -> Dict[str, object]:
     if nest_t:
         total_time = max(total_time, nest_t[-1] - nest_t[0])
     mean_dt = float(np.mean(dt)) if dt else float("nan")
+    # Derived from sampled interval-mean timesteps (checksim_dt at the tcheck
+    # cadence), NOT an exact step counter -- label it as approximate wherever
+    # it is emitted (summary() does the same).
     steps_estimate = int(round(total_time / mean_dt)) if mean_dt and mean_dt > 0 else None
+
+    n_checksim = len(checksim_t)
+    n_nesting = len(nest_t)
+    n_freeze = parsed["n_freeze_warnings"]
+    aborted = parsed["aborted_past_record"]
+
+    reasons: List[str] = []
+    failing = [name for name, r in results.items()
+              if str(r["verdict"]).startswith("FAIL")]
+    if failing:
+        overall = "FAIL"
+        reasons.append(f"drifting series: {', '.join(sorted(failing))}")
+    elif aborted:
+        overall = "FAIL"
+        reasons.append(
+            "run aborted past the parent record -- nest_lendabort = .false. "
+            "should have frozen the boundary instead of aborting")
+    elif n_checksim == 0 and n_nesting == 0:
+        overall = "NO-DATA"
+        reasons.append("no checksim or nesting_stats samples were parsed from the log")
+    else:
+        unresolved = [name for name, r in results.items()
+                     if r["verdict"] in ("NO DATA", "INCONCLUSIVE")
+                     or (r["n"] > 0 and not np.isfinite(r.get("max_abs", float("nan"))))]
+        if unresolved:
+            overall = "INCONCLUSIVE"
+            reasons.append(
+                f"series without a complete, finite verdict: {', '.join(sorted(unresolved))}")
+        elif n_checksim < min_samples or n_nesting < min_samples:
+            overall = "INCONCLUSIVE"
+            reasons.append(
+                f"too few samples (checksim={n_checksim}, nesting_stats={n_nesting}, "
+                f"need >= {min_samples} of each)")
+        elif n_freeze != 1:
+            overall = "INCONCLUSIVE"
+            reasons.append(
+                "expected exactly one end-of-record freeze warning, log carries "
+                f"{n_freeze}")
+        elif expected_runtime_s is not None and total_time < duration_tol * expected_runtime_s:
+            overall = "INCONCLUSIVE"
+            reasons.append(
+                f"run covered {total_time:.1f} s of the intended {expected_runtime_s:.1f} s "
+                f"(< {100 * duration_tol:.0f}% reached)")
+        else:
+            overall = "PASS"
 
     return {
         "series": results,
-        "n_freeze_warnings": parsed["n_freeze_warnings"],
-        "aborted_past_record": parsed["aborted_past_record"],
-        "n_checksim_samples": len(checksim_t),
-        "n_nesting_samples": len(nest_t),
+        "n_freeze_warnings": n_freeze,
+        "aborted_past_record": aborted,
+        "n_checksim_samples": n_checksim,
+        "n_nesting_samples": n_nesting,
         "total_simulated_time_s": total_time,
+        "expected_runtime_s": expected_runtime_s,
         "mean_dt_s": mean_dt,
         "steps_estimate": steps_estimate,
-        "overall_verdict": ("FAIL" if any(
-            str(r["verdict"]).startswith("FAIL") for r in results.values())
-            else "PASS"),
+        "steps_estimate_is_approximate": True,
+        "overall_verdict": overall,
+        "overall_reasons": reasons,
     }
 
 
-def run(child_dir: Path, outdir: Path, make_plots: bool = True) -> Dict[str, object]:
+def run(child_dir: Path, outdir: Path, make_plots: bool = True, *,
+        expected_runtime_s: Optional[float] = None, min_samples: int = 3,
+        duration_tol: float = 0.95) -> Dict[str, object]:
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     log_path = Path(child_dir) / "child.log"
     parsed = parse_log(log_path)
-    result = analyse(parsed)
+    result = analyse(parsed, expected_runtime_s=expected_runtime_s,
+                     min_samples=min_samples, duration_tol=duration_tol)
     (outdir / "v6_summary.json").write_text(json.dumps(result, indent=2) + "\n",
                                             encoding="ascii")
     (outdir / "v6_summary.md").write_text(summary(result) + "\n", encoding="ascii")
@@ -346,11 +425,17 @@ def _plot(parsed: Dict[str, object], outdir: Path) -> None:
 
 
 def summary(result: Dict[str, object]) -> str:
+    expected = result.get("expected_runtime_s")
+    duration_line = (
+        f"Simulated time covered: {result['total_simulated_time_s']:.1f} s "
+        f"(approx. {result['steps_estimate']} steps -- estimated from sampled "
+        f"interval-mean dt = {result['mean_dt_s']:.4f} s, not an exact step counter)")
+    if expected is not None:
+        duration_line += f", intended runtime {expected:.1f} s"
     lines = [
         "# V6 -- does mass drift over long nested runs?",
         "",
-        f"Simulated time covered: {result['total_simulated_time_s']:.1f} s "
-        f"(~{result['steps_estimate']} steps at mean dt = {result['mean_dt_s']:.4f} s)",
+        duration_line,
         f"checksim samples: {result['n_checksim_samples']}, "
         f"nesting_stats samples: {result['n_nesting_samples']}",
         f"freeze warnings seen: {result['n_freeze_warnings']} "
@@ -372,6 +457,8 @@ def summary(result: Dict[str, object]) -> str:
             f"{r['t_stat']:.2f} | {100*r['drift_over_range']:.1f}% | {r['verdict']} |")
     lines.append("")
     lines.append(f"**Overall: {result['overall_verdict']}**")
+    for reason in result.get("overall_reasons", ()):
+        lines.append(f"- {reason}")
     return "\n".join(lines)
 
 
@@ -381,8 +468,21 @@ def main() -> int:
     parser.add_argument("child_dir", type=Path)
     parser.add_argument("outdir", type=Path)
     parser.add_argument("--no-plots", action="store_true")
+    parser.add_argument("--expected-runtime-s", type=float, default=None,
+                        help="the RUN.runtime [s] this child was actually asked to run "
+                             "for -- PASS requires the log to show at least "
+                             "--duration-tol of it was reached. Omit to skip that check "
+                             "(e.g. exploring a partial or in-progress log).")
+    parser.add_argument("--min-samples", type=int, default=3,
+                        help="minimum checksim and nesting_stats sample count required "
+                             "for PASS (default: 3)")
+    parser.add_argument("--duration-tol", type=float, default=0.95,
+                        help="fraction of --expected-runtime-s that must be covered for "
+                             "PASS (default: 0.95)")
     args = parser.parse_args()
-    result = run(args.child_dir, args.outdir, make_plots=not args.no_plots)
+    result = run(args.child_dir, args.outdir, make_plots=not args.no_plots,
+                expected_runtime_s=args.expected_runtime_s, min_samples=args.min_samples,
+                duration_tol=args.duration_tol)
     print(summary(result))
     return 0 if result["overall_verdict"] == "PASS" else 1
 

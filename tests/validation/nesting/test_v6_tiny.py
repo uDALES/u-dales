@@ -102,7 +102,8 @@ class TestV6TinyPipeline(unittest.TestCase):
         run_solver(cls.child_dir, f"namoptions.{p.child_expnr}",
                    p.child_nprocx * p.child_nprocy, cls.child_dir / "child.log")
         cls.child_log = (cls.child_dir / "child.log").read_text(errors="replace")
-        cls.result = analyse_v6.run(cls.child_dir, cls.outdir, make_plots=False)
+        cls.result = analyse_v6.run(cls.child_dir, cls.outdir, make_plots=False,
+                                    expected_runtime_s=_TINY_RUNTIME_S)
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -239,6 +240,120 @@ class TestLinfitAndVerdict(unittest.TestCase):
         self.assertAlmostEqual(rec["gradp_ratio"], 1.091)
         self.assertEqual(parsed["n_freeze_warnings"], 1)
         self.assertFalse(parsed["aborted_past_record"])
+
+
+class TestOverallVerdict(unittest.TestCase):
+    """Unit tests for ``analyse_v6.analyse()``'s aggregate PASS/FAIL/NO-DATA/
+    INCONCLUSIVE verdict -- no solver involved, and independent of
+    :class:`TestLinfitAndVerdict` above, which only checks one series' verdict
+    in isolation.
+
+    These guard the bug fixed alongside them: the aggregate used to read
+    "PASS" off of "no verdict starts with FAIL", so an empty log (no verdicts
+    at all) or an incomplete one (all INCONCLUSIVE) passed vacuously --
+    ``analyse_v6.analyse(analyse_v6.parse_log(Path('/dev/null')))
+    ['overall_verdict']`` was ``'PASS'``. PASS now requires positive evidence
+    (complete, finite series; enough samples; the intended duration reached;
+    the freeze warning seen exactly once; no abort past the record), and
+    every one of the cases below must NOT come back PASS.
+    """
+
+    @staticmethod
+    def _flat_parsed(n: int = 20, duration: float = 1000.0,
+                     n_freeze: int = 1, aborted: bool = False):
+        """A hand-built ``parse_log``-shaped dict: flat, noise-free series
+        (so per-series verdicts are unambiguous), letting each test vary
+        exactly one thing the aggregate is supposed to gate on.
+        """
+        t = list(np.linspace(0.0, duration, n)) if n > 0 else []
+        zeros = [0.0] * n
+        dt = [duration / n] * n if n > 0 else []
+        nest_records = [
+            {"t": ti, "phi": 1e-12, "phi_lid": 1e-12, "phi_closed": 1e-12,
+             "misfit_rms": 1e-9, "gradp_zone": 1.0, "gradp_interior": 1.0,
+             "gradp_ratio": 1.0}
+            for ti in t
+        ]
+        return {
+            "checksim_t": t, "checksim_dt": dt,
+            "divmax": list(zeros), "divtot": list(zeros),
+            "nest_records": nest_records,
+            "n_freeze_warnings": n_freeze, "aborted_past_record": aborted,
+        }
+
+    def test_empty_log_is_not_pass(self):
+        parsed = analyse_v6.parse_log(Path("/dev/null"))
+        result = analyse_v6.analyse(parsed)
+        self.assertNotEqual(result["overall_verdict"], "PASS")
+        self.assertEqual(result["overall_verdict"], "NO-DATA")
+
+    def test_sparse_log_is_not_pass(self):
+        parsed = self._flat_parsed(n=2, duration=1.0)
+        result = analyse_v6.analyse(parsed)
+        self.assertNotEqual(result["overall_verdict"], "PASS")
+        self.assertEqual(result["overall_verdict"], "INCONCLUSIVE")
+
+    def test_all_inconclusive_series_is_not_pass(self):
+        # A single sample: every series is below summarize_series' own n >= 3
+        # floor, so every one of them comes back INCONCLUSIVE.
+        parsed = self._flat_parsed(n=1, duration=0.0)
+        result = analyse_v6.analyse(parsed)
+        self.assertNotEqual(result["overall_verdict"], "PASS")
+        self.assertIn(result["overall_verdict"], ("NO-DATA", "INCONCLUSIVE"))
+
+    def test_missing_freeze_warning_is_not_pass(self):
+        parsed = self._flat_parsed(n=20, duration=1000.0, n_freeze=0)
+        result = analyse_v6.analyse(parsed, expected_runtime_s=1000.0)
+        self.assertNotEqual(result["overall_verdict"], "PASS")
+        self.assertEqual(result["overall_verdict"], "INCONCLUSIVE")
+
+    def test_repeated_freeze_warning_is_not_pass(self):
+        parsed = self._flat_parsed(n=20, duration=1000.0, n_freeze=2)
+        result = analyse_v6.analyse(parsed, expected_runtime_s=1000.0)
+        self.assertNotEqual(result["overall_verdict"], "PASS")
+        self.assertEqual(result["overall_verdict"], "INCONCLUSIVE")
+
+    def test_aborted_run_is_not_pass(self):
+        parsed = self._flat_parsed(n=20, duration=1000.0, aborted=True)
+        result = analyse_v6.analyse(parsed, expected_runtime_s=1000.0)
+        self.assertNotEqual(result["overall_verdict"], "PASS")
+        self.assertEqual(result["overall_verdict"], "FAIL")
+
+    def test_short_of_intended_duration_is_not_pass(self):
+        parsed = self._flat_parsed(n=20, duration=100.0)
+        result = analyse_v6.analyse(parsed, expected_runtime_s=100000.0)
+        self.assertNotEqual(result["overall_verdict"], "PASS")
+        self.assertEqual(result["overall_verdict"], "INCONCLUSIVE")
+
+    def test_too_few_samples_below_explicit_minimum_is_not_pass(self):
+        parsed = self._flat_parsed(n=5, duration=1000.0)
+        result = analyse_v6.analyse(parsed, expected_runtime_s=1000.0, min_samples=10)
+        self.assertNotEqual(result["overall_verdict"], "PASS")
+        self.assertEqual(result["overall_verdict"], "INCONCLUSIVE")
+
+    def test_well_formed_run_passes(self):
+        parsed = self._flat_parsed(n=20, duration=1000.0)
+        result = analyse_v6.analyse(parsed, expected_runtime_s=1000.0)
+        self.assertEqual(result["overall_verdict"], "PASS", result["overall_reasons"])
+
+    def test_well_formed_run_with_no_expected_runtime_still_passes(self):
+        # expected_runtime_s is optional -- a caller exploring a log with no
+        # known intended duration should not be blocked on that check alone.
+        parsed = self._flat_parsed(n=20, duration=1000.0)
+        result = analyse_v6.analyse(parsed)
+        self.assertEqual(result["overall_verdict"], "PASS", result["overall_reasons"])
+
+    def test_drifting_series_fails_regardless_of_other_criteria(self):
+        parsed = self._flat_parsed(n=20, duration=1000.0)
+        parsed["divmax"] = [1e-12 + 5e-9 * ti for ti in parsed["checksim_t"]]
+        result = analyse_v6.analyse(parsed, expected_runtime_s=1000.0)
+        self.assertEqual(result["overall_verdict"], "FAIL")
+
+    def test_steps_estimate_is_labelled_approximate(self):
+        parsed = self._flat_parsed(n=20, duration=1000.0)
+        result = analyse_v6.analyse(parsed)
+        self.assertTrue(result["steps_estimate_is_approximate"])
+        self.assertIn("approx.", analyse_v6.summary(result))
 
 
 if __name__ == "__main__":
