@@ -2440,3 +2440,146 @@ No production number exists yet.  Nothing in this section should be read as one.
 Both queued in `v1_medium24` at submission (`qstat -u $USER`); check
 `$EPHEMERAL/nesting-v3/analysis/v3_summary.md` and
 `$EPHEMERAL/nesting-v4/analysis/v4_summary.md` once they finish.
+
+---
+
+# V6 -- does mass drift over long nested runs?
+
+Design section 10.4 row V6: `10^5`-step run -> `divtot` bounded, not drifting.
+Every other row asks whether nesting reproduces some physical quantity; this
+one asks nothing about physics at all -- only whether the scheme's own
+bookkeeping (the pressure projection, the flux-corrected boundary, the
+relaxation forcing) stays bounded when it is asked to run for a very long
+time. It was also the only row in the table that had never been run.
+
+## The construction
+
+The cleanest way to isolate numerical drift from everything else is to remove
+everything else: drive the child from a boundary that is **constant in
+time**, then run far beyond it, and read any growth in the solver's own
+conservation diagnostics as drift and nothing else.
+
+`src/modnesting.f90`'s `check_record_end` already has the mechanism.  Past the
+last stored parent time level, `read_level` and `eval_target` clamp their
+level index to `ntime` (confirmed by reading the code -- `it = min(max(ilev,
+1), ntime)` and the two clamped calls to `nestio_hdr%time` in `eval_target`),
+so `tlo = thi` and the interpolation weight `th` degenerates to `0`: the
+"interpolated" target is just the last stored level, held.  This is fatal by
+default (`nest_lendabort = .true.`) -- an aborted run means the user's setup
+outlived its own boundary data, which is a real mistake worth catching -- but
+`nest_lendabort = .false.` reports it once (`nendwarn`) and lets the run
+continue, frozen.  `config.V6` sets exactly that.
+
+The parent stores only **8 dumped levels** (`dtdump = 3 s`, `production =
+24 s`, a `spinup` of 15 s just long enough for the cold random initial
+condition to be pressure-projected before the first dump -- the geometry is
+TINY's own 96x96x32 aligned-cube-array parent / 64x64x32 child, reused as-is
+because this row is about numerics, not turbulence, so the cost belongs in
+the step count rather than the grid).  `run_v6.py` then patches `RUN.runtime`
+out to roughly 100,000 steps' worth of simulated time -- about 3.7x the
+stored record's own ~21 s span -- so the boundary is time-invariant for the
+overwhelming majority of the run.  `nest_timeinterp = 2` (Catmull-Rom cubic
+Hermite) rather than TINY's linear default: the freeze exercises
+`eval_target`'s `h2 <= 0` fallback, which only exists on the cubic path, so
+this is the interpolant that actually tests the frozen-boundary code.
+
+`test_v6_tiny.py` checks the construction itself before trusting it for
+anything: the freeze warning fires **exactly once** (`nendwarn`'s guard) and
+the run does not abort, at a scale that runs on a login node in about a
+minute past the record.
+
+## What is measured
+
+Everything comes from the solver's own stdout, at two independent, patched
+throttles (`caselib.set_namoption`, since the right cadence depends on a
+measured step rate `config.py` cannot know in advance):
+
+* `NAMCHECKSIM.tcheck` -- `chkdiv`'s `divmax`, `divtot`
+  ([modchecksim.f90:161](../../../src/modchecksim.f90#L161));
+* `NESTING.nest_statint` -- `nesting_stats`'s flux residual `Phi` (norm and
+  lid/closed-face split), the zone misfit rms, and `|grad p|` zone / interior
+  / ratio (design section 6.4).
+
+Both are set to the same value so the two clocks line up.  `child_dtdump` is
+set to 300000 s -- far beyond any runtime this experiment uses -- so the
+child never writes a single field dump; nothing here needs 3-D output.
+
+`analyse_v6.py` fits an ordinary-least-squares trend to each series over the
+whole run and calls it a **fail only when the slope is both statistically
+distinguishable from zero** (more than 3 standard errors from 0) **and large
+enough to move the series by a real fraction of its own range** (more than
+20 % of peak-to-peak). Either alone is not enough: round-off noise over a
+long run gives a "significant" slope of a negligible size, and a short noisy
+window can show a large swing that is not a trend at all. A flat, bounded
+series is a pass; a monotone trend is a fail, reported as one, not smoothed
+over.
+
+## Cost, from measurement
+
+Two probes on a login node (`UDALES_BUILD=build/release/u-dales`, the child
+on its own single rank):
+
+| probe runtime | steps | main-loop CPU time | rate |
+|---|---|---|---|
+| 300 s | 793 | 61.67 s | 12.86 steps/s |
+| 900 s | 2383 | 186.81 s | 12.76 steps/s |
+
+("`TOTAL CPU time by main time loop`", printed at the end of `child.log`;
+this excludes the run's own fixed ~13-20 s start-up, which does not grow with
+the run length.)  Mean `dt` was 0.3775-0.3777 s in both probes.  The two
+measurements agree to within 1 %, so the mean rate (12.81 steps/s) is used
+directly rather than extrapolated from one sample.
+
+For 101,000 steps (a deliberate ~1 % overshoot of the 1e5 target, since the
+actual count tracks the adaptive `dt` actually taken): `--runtime 38000`
+(101000 x 0.3775 s, rounded up), main-loop wall time ~0.82 h, everything else
+(parent build + spin-up + production + child-case build + analysis) ~75 s
+measured directly above. `submit_cx3_v6.pbs` requests `walltime=06:00:00`
+(~7.1x that estimate -- more headroom than this campaign's other jobs,
+deliberately: this is the first real run of the construction, only exercised
+at probe scale so far) on `ncpus=4` (the parent's own 2x2; the child runs on
+1x1 for almost the whole walltime -- "few cores is fine and preferable" for a
+long, thin job). `--stat-interval 300` gives ~127 samples over the run: a
+trend fit wants `>= 3` and this clears that by two orders of magnitude,
+without the log growing past a few thousand lines.
+
+## Layout
+
+| File | What it is |
+|---|---|
+| `config.V6` | the preset: TINY's geometry, `nest_lendabort = False`, `nest_timeinterp = 2`, an 8-level parent record |
+| `run_v6.py` | end-to-end driver; `--runtime` and `--stat-interval` patch the built case rather than being preset fields, because the right values depend on a measured step rate |
+| `analyse_v6.py` | parses `child.log`, fits a trend per series, reports pass/fail |
+| `test_v6_tiny.py` | harness smoke test (the construction, past the record, in about a minute) plus a pure-Python check of the trend/verdict logic against synthetic series and a synthetic log fragment |
+| `submit_cx3_v6.pbs` | the CX3 production job, sized from measurement in its own header. **Review before submitting.** |
+
+## How to run it
+
+```bash
+module purge && module load tools/prod && module load Python/3.9.6-GCCcore-11.2.0
+source /rds/general/user/mvr/home/udales/.venv/bin/activate
+export UDALES_BUILD=$PWD/build/release/u-dales
+
+python tests/run_tests.py nesting-validation      # includes the V6 tiny entry
+python tests/validation/nesting/test_v6_tiny.py   # just the smoke test
+
+# a probe, to re-measure the step rate on different hardware
+python tests/validation/nesting/run_v6.py $EPHEMERAL/v6-probe --runtime 300
+
+qsub tests/validation/nesting/submit_cx3_v6.pbs   # the real thing
+```
+
+## Status
+
+**Prepared, validated at tiny scale (15 tests, ~75-90 s on a login node), a
+step rate measured from two probes (300 s and 900 s simulated, agreeing to
+within 1 %), submitted.**  The full `tools/python/tests/test_nesting*.py`
+suite (96 tests) was re-run afterwards and is unchanged.
+
+| job | experiment | submitted | job id |
+|---|---|---|---|
+| V6 | `v6` (101,000-step frozen-boundary run) | 2026-09-08 00:16 UTC | `4001085.pbs-7` |
+
+Queued in `v1_small24` at submission (`qstat -u $USER`), behind V0b's
+`4000813.pbs-7`; check `$EPHEMERAL/nesting-v6/analysis/v6_summary.md` and
+`$EPHEMERAL/nesting-v6/991/child.log` once it finishes.
