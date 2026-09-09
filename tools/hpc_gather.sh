@@ -72,7 +72,7 @@ cat <<EOF > post-job.$exp
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=1:ncpus=1:mem=${MEM}
 module load NCO/5.2.9-foss-2024a
-$DA_TOOLSDIR/gather_outputs.sh $outdir
+$DA_TOOLSDIR/gather_outputs.sh $outdir >> $outdir/output.$exp.log 2>&1
 EOF
 
 ## submit post-job.exp file to queue

@@ -52,7 +52,7 @@ cat <<EOF > post-job.$exp.slurm
 #SBATCH --qos=${QOS}
 
 module load nco gsl
-$DA_TOOLSDIR/gather_outputs.sh $outdir
+$DA_TOOLSDIR/gather_outputs.sh $outdir >> $outdir/output.$exp.log 2>&1
 EOF
 
 ## submit job file to queue
