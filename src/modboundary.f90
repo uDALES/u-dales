@@ -133,7 +133,7 @@ contains
       use modmpi,         only : slabsum, avey_ibm
       use moddriver,      only : drivergen, driverchunkread
       use modinletdata,   only : ubulk, vbulk
-      use modnesting,     only : nesting_boundary
+      use nesting_scheme,     only : nesting_boundary
       use decomp_2d,      only : exchange_halo_z
 
       implicit none
@@ -1212,7 +1212,7 @@ contains
                               BCym_periodic, BCym_profile, BCym_nesting
      use modfields,    only : pres0, up, vp, wp, um, vm, wm, u0, v0, uouttot, vouttot, uprof, vprof, pres0, IIc, IIcs
      use modmpi,       only : excjs, excis, avexy_ibm
-     use modnesting,   only : nesting_bcpup
+     use nesting_scheme,   only : nesting_bcpup
      use modinletdata, only : u0driver
      use decomp_2d,    only : exchange_halo_z
 

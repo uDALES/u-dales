@@ -455,7 +455,7 @@ contains
   !  Nesting unit tests, docs/udales-nesting-design.md section 10.1.
   !
   !  Every subtest calls the PRODUCTION routines. Where the quantity of
-  !  interest lives in a private variable of modnesting (the zone weights
+  !  interest lives in a private variable of nesting (the zone weights
   !  and the time-interpolated target), it is recovered through the public
   !  interface rather than recomputed: see nest_probe_weight and
   !  nest_target_now below.
@@ -465,7 +465,7 @@ contains
   !! union bounds and the integral identity of design section 1.4(b).
   !! Pure algebra: no grid, no MPI, no I/O. Covers U1-U7.
   logical function tests_nesting_weights()
-    use modnesting, only : nest_shape_fn, nest_union
+    use nesting_scheme, only : nest_shape_fn, nest_union
 
     implicit none
 
@@ -840,12 +840,12 @@ contains
   !> Geometric reference weight of component ivar at GLOBAL indices, built
   !! from an independent coordinate formula (x = (ig-1) dx for a face,
   !! (ig-1/2) dx for a centre) but from the PRODUCTION nest_shape_fn and
-  !! nest_union. No IBM mask: this is the weight modnesting evaluates BEFORE
+  !! nest_union. No IBM mask: this is the weight nesting evaluates BEFORE
   !! it looks at the solids, so it is what decides whether a solid point
   !! counts as "inside the zone" (U13). The ground-plane rule is included.
   real function nest_ref_weight_raw(ivar, ig, jg, k)
     use modglobal,  only : dx, dy, xlen, ylen, kb
-    use modnesting, only : nest_shape_fn, nest_union, nest_guardwidth,     &
+    use nesting_scheme, only : nest_shape_fn, nest_union, nest_guardwidth,     &
                            nest_zonewidth, nest_shape, nest_lateral
 
     integer, intent(in) :: ivar, ig, jg, k
@@ -876,11 +876,11 @@ contains
 
   end function nest_ref_weight_raw
 
-  !> Reference weight as modnesting applies it: nest_ref_weight_raw with the
+  !> Reference weight as nesting applies it: nest_ref_weight_raw with the
   !! IBM mask and the wall erosion.
   real function nest_ref_weight(ivar, ig, jg, k)
     use modglobal,  only : libm
-    use modnesting, only : nest_nwall
+    use nesting_scheme, only : nest_nwall
 
     integer, intent(in) :: ivar, ig, jg, k
 
@@ -929,12 +929,12 @@ contains
   end subroutine nest_set_solids
 
   !> Close any open parent file and re-open the given one with the given
-  !! settings. Everything here is a public namelist variable of modnesting,
+  !! settings. Everything here is a public namelist variable of nesting,
   !! so the tests reconfigure the production initialisation rather than
   !! duplicating it.
   subroutine nest_reinit(fname, t0, tau, timeinterp, nwall, fluxtol, lassert)
     use modglobal,  only : timee
-    use modnesting, only : lnesting, nestfile, nest_tau, nest_timeinterp,  &
+    use nesting_scheme, only : lnesting, nestfile, nest_tau, nest_timeinterp,  &
                            nest_nwall, nest_fluxtol, nest_lfluxassert,     &
                            nest_lfluxcheckall, nest_linitfromparent,       &
                            nest_lendabort, nesting_init, nesting_finalize
@@ -976,7 +976,7 @@ contains
   subroutine nest_probe_weight(wu, wv, ww)
     use modglobal,  only : ib, ie, jb, je, kb, ke, rk3step
     use modfields,  only : um, up, vm, vp, wm, wp
-    use modnesting, only : nest_tau, nesting_apply
+    use nesting_scheme, only : nest_tau, nesting_apply
 
     real, intent(out) :: wu(ib:ie,jb:je,kb:ke)
     real, intent(out) :: wv(ib:ie,jb:je,kb:ke)
@@ -1021,7 +1021,7 @@ contains
   subroutine nest_target_now(tu, tv, tw)
     use modglobal,  only : ib, ie, jb, je, kb, ke, rk3step
     use modfields,  only : um, up, vm, vp, wm, wp
-    use modnesting, only : nest_tau, nesting_apply
+    use nesting_scheme, only : nest_tau, nesting_apply
 
     real, intent(out) :: tu(ib:ie,jb:je,kb:ke)
     real, intent(out) :: tv(ib:ie,jb:je,kb:ke)
@@ -1048,7 +1048,7 @@ contains
   !> Advance the production buffer to time t and recover the target there.
   subroutine nest_target_at(t, tu, tv, tw)
     use modglobal,  only : ib, ie, jb, je, kb, ke, timee
-    use modnesting, only : nesting_update_target
+    use nesting_scheme, only : nesting_update_target
 
     real, intent(in)  :: t
     real, intent(out) :: tu(ib:ie,jb:je,kb:ke)
@@ -1095,7 +1095,7 @@ contains
                            dx, dy, dzf, zh, xlen, ylen, cexpnr
     use modfields,  only : initfields
     use modibm,     only : createmasks
-    use modnesting, only : nest_stagger_coord, nest_guardwidth,            &
+    use nesting_scheme, only : nest_stagger_coord, nest_guardwidth,            &
                            nest_zonewidth, nest_lparentgeom, nest_nwall,   &
                            nesting_init, nestfile, lnesting, nest_nsolid_zone
 
@@ -1558,7 +1558,7 @@ contains
 
   !> Reader, writer contract and time buffer. Covers U15-U22.
   !! U15 and U16 are the only tests that exercise the Python writer and the
-  !! Fortran reader end to end, so they read the file through modnestingio
+  !! Fortran reader end to end, so they read the file through nesting_read
   !! directly and compare against udprep.nesting.analytic_field evaluated at
   !! each variable's own stagger.
   logical function tests_nesting_io()
@@ -1567,10 +1567,10 @@ contains
                              xf, xh, yf, yh, zf, zh, cexpnr, runtime, timee
     use modfields,    only : initfields
     use modibm,       only : createmasks
-    use modnestingio, only : nestio_open, nestio_validate, nestio_read,     &
+    use nesting_read, only : nestio_open, nestio_validate, nestio_read,     &
                              nestio_close, nestio_hdr, nestio_check_values, &
                              nestio_fill_value
-    use modnesting,   only : nestfile, nesting_finalize, lnesting,          &
+    use nesting_scheme,   only : nestfile, nesting_finalize, lnesting,          &
                              nest_lendabort, nest_tau, nest_fluxtol,        &
                              nest_lfluxassert, nesting_init,                &
                              nest_record_end_warnings
@@ -1608,7 +1608,7 @@ contains
 
     all_passed = .true.
 
-    ! ---- U15/U16: straight through modnestingio, no scheme involved ----
+    ! ---- U15/U16: straight through nesting_read, no scheme involved ----
     call nestio_open('nesting_analytic.'//cexpnr//'.nc', ierr)
     if (ierr /= 0) then
       call nest_report('U15 open nesting_analytic', .false.)
@@ -1876,7 +1876,7 @@ contains
     !! a limiter is only active where the one-sided slopes disagree, so data
     !! that happens to be monotone would let it pass.
     logical function u44_interp_linear(mode)
-      use modnesting, only : nest_time_interp
+      use nesting_scheme, only : nest_time_interp
       integer, intent(in) :: mode
 
       integer, parameter :: NTRY = 64
@@ -1917,7 +1917,7 @@ contains
     !> U19: stepping across several parent intervals gives the same target as
     !! a fresh initialisation at the same time (which reads every level
     !! eagerly). U21: the incremental roll path and the full-reload path,
-    !! which is what a prefetch would bypass, agree bitwise. modnesting has
+    !! which is what a prefetch would bypass, agree bitwise. nesting has
     !! no separate prefetch switch; the two code paths in set_interval are
     !! the thing to compare.
     logical function u19_u21_buffer()
@@ -2050,11 +2050,11 @@ contains
                            cexpnr, timee
     use modfields,  only : initfields, IIu, IIv, IIw, rhobf, rhobh
     use modibm,     only : createmasks
-    use modnesting,   only : nest_flux_residual, nest_flux_split, nesting_bcpup, &
+    use nesting_scheme,   only : nest_flux_residual, nest_flux_split, nesting_bcpup, &
                              nesting_update_target, nestfile, lnesting,          &
                              nest_fluxtol, nest_lfluxassert, nesting_init,       &
                              nesting_finalize
-    use modnestingio, only : nestio_hdr, nestio_read
+    use nesting_read, only : nestio_hdr, nestio_read
 
     implicit none
 
@@ -2453,7 +2453,7 @@ contains
 
     !> U37: the schema 2 flux_residual is the residual of the data AS STORED.
     !! Recomputed here from the four boundary-normal slabs, read straight through
-    !! modnestingio, which is exactly the quantity the cheap init-time check
+    !! nesting_read, which is exactly the quantity the cheap init-time check
     !! trusts (design section 10.6 item 3). Rank 0 reads the whole range, so the
     !! comparison does not depend on the decomposition.
     logical function u37_stored_residual()
@@ -2651,7 +2651,7 @@ contains
     use modfields,  only : initfields, um, up, vm, vp, wm, wp
     use modibm,     only : createmasks
     use modpois,    only : initpois
-    use modnesting, only : nest_tau, nest_lparentgeom, nesting_apply,       &
+    use nesting_scheme, only : nest_tau, nest_lparentgeom, nesting_apply,       &
                            nesting_finalize, nest_injection
 
     implicit none
@@ -3145,7 +3145,7 @@ contains
       use modglobal,  only : dx, dy, dzf, dxi, dyi, dzfi, ibrank, ierank, jbrank, jerank
       use modfields,  only : u0, v0, w0, IIu, IIv, IIw
       use modpois,    only : poisson, pup
-      use modnesting, only : nesting_boundary
+      use nesting_scheme, only : nesting_boundary
       use decomp_2d,  only : exchange_halo_z
 
       logical, intent(in) :: lbox
@@ -3292,7 +3292,7 @@ contains
                            timee, lwarmstart, ierank, jerank
     use modfields,  only : initfields, u0, um, v0, vm, w0, wm
     use modibm,     only : createmasks
-    use modnesting, only : lnesting, nestfile, nest_tau, nest_fluxtol,       &
+    use nesting_scheme, only : lnesting, nestfile, nest_tau, nest_fluxtol,       &
                            nest_lfluxassert, nest_linitfromparent,           &
                            nesting_init, nesting_finalize
 

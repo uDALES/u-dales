@@ -348,27 +348,27 @@ class _TinyRun(unittest.TestCase):
         self.assertTrue((self.rundir / "analysis"
                          / f"{self.exp.kind}_summary.md").exists())
 
-    def test_every_child_is_driven_from_the_nestdump_band(self):
+    def test_every_child_is_driven_from_the_nestparent_band(self):
         """The point of the fine cadence: affordable via the parent-side zone
         dump, not a full-domain dump at 0.5 s (plan item D1)."""
         for c in self.exp.default_children:
             manifest = json.loads(
                 (self.child_dir(c.key) / "manifest.json").read_text())
-            self.assertEqual(manifest["driving_source"], "nestdump", c.key)
+            self.assertEqual(manifest["driving_source"], "nestparent", c.key)
             self.assertLessEqual(manifest["cadence"]["C_dump_at_u0"], 2.0, c.key)
 
     def test_every_parent_wrote_both_outputs_at_their_own_cadence(self):
-        """&NESTDUMP at dtdump, &OUTPUT at the older, coarser fielddump_interval."""
+        """&NESTPARENT at dtdump, &OUTPUT at the older, coarser fielddump_interval."""
         for r in self.exp.periodic:
             p = r.preset
             if p.role == "reference":
                 continue
             nr = p.parent_expnr
             casedir = self.rundir / nr
-            self.assertTrue(list(casedir.glob(f"nestdump.*.{nr}.nc")),
-                            f"{r.key}: no &NESTDUMP band files")
-            self.assertTrue(list(casedir.glob(f"nestdump_init.*.{nr}.nc")),
-                            f"{r.key}: no &NESTDUMP init block")
+            self.assertTrue(list(casedir.glob(f"nesting.out.???.???.{nr}.nc")),
+                            f"{r.key}: no &NESTPARENT band files")
+            self.assertTrue(list(casedir.glob(f"nesting.out.init.*.{nr}.nc")),
+                            f"{r.key}: no &NESTPARENT init block")
             self.assertTrue(list(casedir.glob(f"fielddump.*.{nr}.nc")),
                             f"{r.key}: parent_output = 'both' but no &OUTPUT dumps")
             preset_json = json.loads((casedir / "preset.json").read_text())

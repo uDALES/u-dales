@@ -1,9 +1,9 @@
-!!> \file modnestingio.f90
+!!> \file nesting_read.f90
 !!!  reads the one-way nesting input file nesting.inp.<expnr>.nc
 !
 !>
 !!  Input only: this module knows the file format (nesting spec section 5) and
-!!  nothing about the nesting scheme. It deliberately does not use modnesting,
+!!  nothing about the nesting scheme. It deliberately does not use nesting_scheme,
 !!  so that it compiles and can be tested standalone.
 !!
 !!  The file is opened read-only on every rank with the serial netCDF library.
@@ -32,7 +32,7 @@
 ! Copyright 1993-2009 Delft University of Technology, Wageningen University,
 ! Utrecht University, KNMI
 !
-module modnestingio
+module nesting_read
   use mpi,    only : MPI_Wtime
   use netcdf
   use modmpi, only : myid
@@ -81,7 +81,7 @@ module modnestingio
 contains
 
   !> Open the nesting file read-only on every rank and populate nestio_hdr.
-  !! Called from modnesting::nesting_init. ierr /= 0 on failure; the netCDF
+  !! Called from nesting::nesting_init. ierr /= 0 on failure; the netCDF
   !! error string, the offending variable and the file name are printed first.
   subroutine nestio_open(fname, ierr)
     character(len=*), intent(in)  :: fname
@@ -167,7 +167,7 @@ contains
 
       if (size(nestio_hdr%flux_residual) /= nestio_hdr%ntime) then
         if (myid == 0) then
-          write(*,'(a,a)') ' modnestingio: flux_residual has the wrong length in ', trim(ncfname)
+          write(*,'(a,a)') ' nesting_read: flux_residual has the wrong length in ', trim(ncfname)
           write(*,'(a,i0,a,i0)') '   size = ', size(nestio_hdr%flux_residual), &
                                  ', ntime = ', nestio_hdr%ntime
         end if
@@ -184,7 +184,7 @@ contains
 
     if (nz /= nestio_hdr%nzone .or. nzh /= nestio_hdr%nzone + 1) then
       if (myid == 0) then
-        write(*,'(a,a)') ' modnestingio: inconsistent zone dimensions in ', trim(ncfname)
+        write(*,'(a,a)') ' nesting_read: inconsistent zone dimensions in ', trim(ncfname)
         write(*,'(a,i0,a,i0,a,i0)') '   nzone = ', nestio_hdr%nzone, &
                                     ', nz = ', nz, ', nzh = ', nzh
       end if
@@ -194,7 +194,7 @@ contains
 
     if (size(nestio_hdr%net_volume_flux) /= nestio_hdr%ntime) then
       if (myid == 0) then
-        write(*,'(a,a)') ' modnestingio: net_volume_flux has the wrong length in ', trim(ncfname)
+        write(*,'(a,a)') ' nesting_read: net_volume_flux has the wrong length in ', trim(ncfname)
         write(*,'(a,i0,a,i0)') '   size = ', size(nestio_hdr%net_volume_flux), &
                                ', ntime = ', nestio_hdr%ntime
       end if
@@ -208,7 +208,7 @@ contains
 
 
   !> Compare the header against the run (modglobal) and the schema version.
-  !! Called from modnesting::nesting_init, right after nestio_open. Any
+  !! Called from nesting::nesting_init, right after nestio_open. Any
   !! mismatch is reported by name with both values and then aborts with stop 1.
   !! Only rank 0 prints.
   subroutine nestio_validate()
@@ -219,14 +219,14 @@ contains
     nerr = 0
 
     if (.not. lopen) then
-      if (myid == 0) write(*,'(a)') ' modnestingio: nestio_validate called before nestio_open'
+      if (myid == 0) write(*,'(a)') ' nesting_read: nestio_validate called before nestio_open'
       stop 1
     end if
 
     if (nestio_hdr%schema < NESTIO_SCHEMA_MIN .or. nestio_hdr%schema > NESTIO_SCHEMA_MAX) then
       nerr = nerr + 1
       if (myid == 0) then
-        write(*,'(a,a,a,i0,a,i0,a,i0)') ' modnestingio: mismatch in ', &
+        write(*,'(a,a,a,i0,a,i0,a,i0)') ' nesting_read: mismatch in ', &
           'udales_nesting_schema', ': file = ', nestio_hdr%schema, &
           ', this reader supports ', NESTIO_SCHEMA_MIN, ' to ', NESTIO_SCHEMA_MAX
       end if
@@ -262,14 +262,14 @@ contains
 
     if (nerr > 0) then
       if (myid == 0) then
-        write(*,'(a,i0,a,a,a)') ' modnestingio: ', nerr, &
+        write(*,'(a,i0,a,a,a)') ' nesting_read: ', nerr, &
           ' mismatch(es) between ', trim(ncfname), ' and the current run - aborting'
       end if
       stop 1
     end if
 
     if (myid == 0) then
-      write(*,'(a,a,a)') ' modnestingio: ', trim(ncfname), ' validated against the run grid'
+      write(*,'(a,a,a)') ' nesting_read: ', trim(ncfname), ' validated against the run grid'
     end if
 
   contains
@@ -291,7 +291,7 @@ contains
       status = nf90_inq_varid(ncid, vname, varid)
       if (status /= nf90_noerr) then
         nerr = nerr + 1
-        if (myid == 0) write(*,'(a,a,a)') ' modnestingio: mismatch in ', vname, &
+        if (myid == 0) write(*,'(a,a,a)') ' nesting_read: mismatch in ', vname, &
           ': has_initial_condition is set but the variable is absent'
         return
       end if
@@ -299,7 +299,7 @@ contains
       status = nf90_inquire_variable(ncid, varid, ndims=ndims, dimids=dimids)
       if (status /= nf90_noerr .or. ndims /= 3) then
         nerr = nerr + 1
-        if (myid == 0) write(*,'(a,a,a,i0)') ' modnestingio: mismatch in ', vname, &
+        if (myid == 0) write(*,'(a,a,a,i0)') ' nesting_read: mismatch in ', vname, &
           ': expected a 3-dimensional variable, got ndims = ', ndims
         return
       end if
@@ -312,7 +312,7 @@ contains
       do i = 1, 3
         if (dlen(i) /= want(i)) then
           nerr = nerr + 1
-          if (myid == 0) write(*,'(a,a,a,i0,a,i0,a,i0)') ' modnestingio: mismatch in ', &
+          if (myid == 0) write(*,'(a,a,a,i0,a,i0,a,i0)') ' nesting_read: mismatch in ', &
             vname, ': dimension ', i, ' is ', dlen(i), ', expected ', want(i)
           return
         end if
@@ -322,13 +322,13 @@ contains
       status = nf90_get_att(ncid, varid, 'stagger', got)
       if (status /= nf90_noerr) then
         nerr = nerr + 1
-        if (myid == 0) write(*,'(a,a,a)') ' modnestingio: MISMATCH ', vname, &
+        if (myid == 0) write(*,'(a,a,a)') ' nesting_read: MISMATCH ', vname, &
           ' has no stagger attribute'
         return
       end if
       if (trim(got) /= expect) then
         nerr = nerr + 1
-        if (myid == 0) write(*,'(a,a,a,a,a,a)') ' modnestingio: MISMATCH ', vname, &
+        if (myid == 0) write(*,'(a,a,a,a,a,a)') ' nesting_read: MISMATCH ', vname, &
           ' stagger: file = "', trim(got), '", expected = "', expect//'"'
       end if
 
@@ -357,14 +357,14 @@ contains
         status = nf90_get_att(ncid, varid, 'stagger', got)
         if (status /= nf90_noerr) then
           nerr = nerr + 1
-          if (myid == 0) write(*,'(a,a,a)') ' modnestingio: MISMATCH ', trim(vname), &
+          if (myid == 0) write(*,'(a,a,a)') ' nesting_read: MISMATCH ', trim(vname), &
             ' has no stagger attribute'
           cycle
         end if
 
         if (trim(got) /= expect) then
           nerr = nerr + 1
-          if (myid == 0) write(*,'(a,a,a,a,a,a)') ' modnestingio: MISMATCH ', trim(vname), &
+          if (myid == 0) write(*,'(a,a,a,a,a,a)') ' nesting_read: MISMATCH ', trim(vname), &
             ' stagger: file = "', trim(got), '", expected = "', expect//'"'
         end if
       end do
@@ -379,7 +379,7 @@ contains
       if (ifile /= irun) then
         nerr = nerr + 1
         if (myid == 0) then
-          write(*,'(a,a,a,i0,a,i0)') ' modnestingio: mismatch in ', name, &
+          write(*,'(a,a,a,i0,a,i0)') ' nesting_read: mismatch in ', name, &
             ': file = ', ifile, ', run = ', irun
         end if
       end if
@@ -393,7 +393,7 @@ contains
       if (rneq(rfile, rrun, scale)) then
         nerr = nerr + 1
         if (myid == 0) then
-          write(*,'(a,a,a,es22.14,a,es22.14)') ' modnestingio: mismatch in ', name, &
+          write(*,'(a,a,a,es22.14,a,es22.14)') ' nesting_read: mismatch in ', name, &
             ': file = ', rfile, ', run = ', rrun
         end if
       end if
@@ -410,7 +410,7 @@ contains
       if (.not. allocated(afile)) then
         nerr = nerr + 1
         if (myid == 0) then
-          write(*,'(a,a,a)') ' modnestingio: mismatch in ', name, ': absent from the file'
+          write(*,'(a,a,a)') ' nesting_read: mismatch in ', name, ': absent from the file'
         end if
         return
       end if
@@ -418,7 +418,7 @@ contains
       if (size(afile) /= size(arun)) then
         nerr = nerr + 1
         if (myid == 0) then
-          write(*,'(a,a,a,i0,a,i0)') ' modnestingio: mismatch in size of ', name, &
+          write(*,'(a,a,a,i0,a,i0)') ' nesting_read: mismatch in size of ', name, &
             ': file = ', size(afile), ', run = ', size(arun)
         end if
         return
@@ -428,7 +428,7 @@ contains
         if (rneq(afile(i), arun(i), scale)) then
           nerr = nerr + 1
           if (myid == 0) then
-            write(*,'(a,a,a,i0,a,es22.14,a,es22.14)') ' modnestingio: mismatch in ', name, &
+            write(*,'(a,a,a,i0,a,es22.14,a,es22.14)') ' nesting_read: mismatch in ', name, &
               '(', i, '): file = ', afile(i), ', run = ', arun(i)
           end if
           return
@@ -451,7 +451,7 @@ contains
 
   !> Read one time level of one variable for this rank's range of the
   !! decomposed (outermost spatial, i.e. third Fortran) index. Called from
-  !! modnesting when a new parent time level is needed. varname is e.g.
+  !! nesting when a new parent time level is needed. varname is e.g.
   !! 'u_west'; it, start2 and count2 are 1-based; buf is
   !! (n_zone_dim, n_z_dim, count2). ierr /= 0 on failure.
   subroutine nestio_read(varname, it, start2, count2, buf, ierr)
@@ -468,7 +468,7 @@ contains
     ierr = nf90_noerr
 
     if (.not. lopen) then
-      write(*,'(a,i0,a,a)') ' modnestingio (rank ', myid, &
+      write(*,'(a,i0,a,a)') ' nesting_read (rank ', myid, &
         '): nestio_read called before nestio_open, variable ', trim(varname)
       ierr = -1
       return
@@ -534,7 +534,7 @@ contains
   !! start2/count2 index the y dimension and start3/count3 the x dimension,
   !! 1-based, and the whole vertical is read. buf is (nz, count2, count3),
   !! matching the file's Fortran dimension order (z, y, x). ierr /= 0 on failure.
-  !! Called from modnesting::nesting_init for nest_linitfromparent.
+  !! Called from nesting::nesting_init for nest_linitfromparent.
   subroutine nestio_read_block(varname, start2, count2, start3, count3, buf, ierr)
     character(len=*), intent(in)  :: varname
     integer,          intent(in)  :: start2, count2, start3, count3
@@ -549,7 +549,7 @@ contains
     ierr = nf90_noerr
 
     if (.not. lopen) then
-      write(*,'(a,i0,a,a)') ' modnestingio (rank ', myid, &
+      write(*,'(a,i0,a,a)') ' nesting_read (rank ', myid, &
         '): nestio_read_block called before nestio_open, variable ', trim(varname)
       ierr = -1
       return
@@ -641,7 +641,7 @@ contains
     if (nbad == 0) return
 
     ierr = -1
-    write(*,'(a,i0,a,i0,a,a,a,i0,a,a)') ' modnestingio (rank ', myid, '): ', nbad, &
+    write(*,'(a,i0,a,i0,a,a,a,i0,a,a)') ' nesting_read (rank ', myid, '): ', nbad, &
       ' non-finite or fill-value element(s) in ', trim(varname), ' at time level ', it, &
       ' of file ', trim(ncfname)
     write(*,'(a,3i6,a,es12.4,a,es12.4)') '   first at buffer index ', ibad, &
@@ -669,7 +669,7 @@ contains
   end function nestio_fill_value
 
 
-  !> Close the nesting file. Called from modnesting::nesting_finalize.
+  !> Close the nesting file. Called from nesting::nesting_finalize.
   !! The header contents are retained; a subsequent nestio_open replaces them.
   subroutine nestio_close()
 
@@ -699,7 +699,7 @@ contains
     nestio_failed = (status /= nf90_noerr)
 
     if (nestio_failed) then
-      write(*,'(a,i0,a,a,a,a)') ' modnestingio (rank ', myid, '): ', trim(what), &
+      write(*,'(a,i0,a,a,a,a)') ' nesting_read (rank ', myid, '): ', trim(what), &
         ' failed on file ', trim(ncfname)
       write(*,'(a,a)') '   netCDF: ', trim(nf90_strerror(status))
     end if
@@ -710,7 +710,7 @@ contains
   subroutine nestio_abortmsg(varname, message)
     character(len=*), intent(in) :: varname, message
 
-    write(*,'(a,i0,a,a,a,a,a,a)') ' modnestingio (rank ', myid, '): ', trim(message), &
+    write(*,'(a,i0,a,a,a,a,a,a)') ' nesting_read (rank ', myid, '): ', trim(message), &
       ' for variable ', trim(varname), ' in file ', trim(ncfname)
 
   end subroutine nestio_abortmsg
@@ -786,4 +786,4 @@ contains
 
   end subroutine nestio_get_var1d
 
-end module modnestingio
+end module nesting_read

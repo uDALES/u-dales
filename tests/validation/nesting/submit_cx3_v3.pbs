@@ -49,7 +49,7 @@
 # ALL THREE PARENTS WRITE THEIR CHILD'S BOUNDARY BAND AT C_dump <= 2, NOT THE
 # WHOLE DOMAIN.  With the mean wind at the domain top ~5.5 m/s (V1's converged
 # run, z/h = 2) and dx = 2 m, C_dump <= 2 needs dtdump <= 0.73 s; every parent
-# here dumps &NESTDUMP (the child's zone band + 1 cell, src/modnestdump.f90) at
+# here dumps &NESTPARENT (the child's zone band + 1 cell, src/nesting_parent.f90) at
 # 0.5 s (C_dump = 1.4 at 5.5 m/s, 0.75 at the preset's own u0 = 3 m/s), and the
 # children now interpolate it with the unlimited Catmull-Rom cubic
 # (nest_timeinterp = 2, C0c's recommended default) rather than V1's linear.
@@ -59,7 +59,7 @@
 # needs, and 3 s was always enough for those.  This is what makes a fine-
 # cadence parent affordable: a full 0.5 s field dump of the flat parent alone
 # would be ~300 GB (75x the 3 s figure, section 2 of the plan); the band-only
-# dump is ~52 GB.  See presets_geometry._NESTDUMP_CADENCE.
+# dump is ~52 GB.  See presets_geometry._NESTPARENT_CADENCE.
 #
 # Step 2 cannot be built before step 1 has been reduced -- its uflowrate *is*
 # that measurement -- so run_geometry.py does them in order and records which
@@ -87,7 +87,7 @@
 # is right.
 # ---------------------------------------------------------------------------
 #
-# SIZING.  Revised 2026-09-07 for the fine &NESTDUMP cadence and the fifth
+# SIZING.  Revised 2026-09-07 for the fine &NESTPARENT cadence and the fifth
 # child; the previous version (5 h, 245 GB) ran on full-domain dumps at the old
 # 3 s cadence throughout and is superseded.  Base rates are the same as before
 # -- the measured stage times of the V1 'converged' job (3991175, same node
@@ -103,14 +103,14 @@
 #   analysis         ~5.1 s per GB of dumps read
 #
 # What changes with the fine cadence: the parent's own compute is unchanged --
-# &NESTDUMP write cost is measured at ~600 MB/s of aggregate per-rank hyperslab
+# &NESTPARENT write cost is measured at ~600 MB/s of aggregate per-rank hyperslab
 # throughput on the tiny preset (clusters.md, "D1 parent-side zone dump"),
 # adding at most a couple of minutes even at production volume, folded into the
 # production-phase line below.  What is NOT unchanged is the nesting.inp each
 # child's slab cut *writes*: at 0.5 s cadence it holds 6x the time levels of
 # the old 3 s file, so at the same measured ~170 MB/s write rate a slab cut
 # takes roughly 6x as long on its write side, partly offset because reading a
-# NestDump band (this parent's own children read from it, not from the whole-
+# NestParent band (this parent's own children read from it, not from the whole-
 # domain &OUTPUT dump) is proportionally smaller than reading the old
 # full-domain file.  Applied to this experiment (dt = 0.5 s for the flat
 # parent, which never reaches the Courant limit -- measured on the tiny
@@ -124,7 +124,7 @@
 #   cubes parent case + spin-up + production       3.28e6     ~84 min  (new;
 #         scaled from the reference's own ~15 min/5.90e5-cell figure -- same
 #         aligned-array configuration, 5.6x the cells)
-#   5 x slab cut (nestdump read, nesting.inp write)            ~59 min  (was
+#   5 x slab cut (nestparent read, nesting.inp write)            ~59 min  (was
 #         ~14 min for 4; each write is ~10-12 min against ~3.5 min before)
 #   5 x child case build (IBM preprocessing)                    ~5 min
 #   5 x child run, 3591 s simulated                2.04e6     ~78 min
@@ -132,7 +132,7 @@
 #   5 x per-child analysis + shared parent pass                 ~31 min
 #                                                    total   ~5 h 53
 #
-# 8 h against 5 h 53 is 1.35x headroom -- similar margin to the pre-nestdump
+# 8 h against 5 h 53 is 1.35x headroom -- similar margin to the pre-nestparent
 # estimate's 1.5x, widened because the new periodic run's scaled build+spin-up+
 # production number is the least-measured figure here.  On CX3 a 64-cpu job is
 # routed by ncpus and walltime band only -- <=64 cpus and <=24 h both go to
@@ -143,7 +143,7 @@
 #
 # MEMORY.  As of the D1 zone-dump work the slab cut is a streaming writer whose
 # peak memory is independent of the level count (commit 71011e96; previously it
-# held the whole nesting file in RAM, which is what the pre-nestdump version of
+# held the whole nesting file in RAM, which is what the pre-nestparent version of
 # this comment sized mem= from).  So mem=64gb, unchanged from before, is not
 # tightened here even though nesting.inp itself has grown 6x -- the number this
 # used to be sized from no longer describes what the code does.  The remaining
@@ -158,16 +158,16 @@
 #
 #   reference dumps                       1200 x  7.1 MB           =   8.5 GB
 #   flat parent dumps (both)   OUTPUT  1200 x 39.4 MB =  47.2 GB
-#                               NESTDUMP 7200 x  7.2 MB =  51.5 GB  =  98.7 GB
+#                               NESTPARENT 7200 x  7.2 MB =  51.5 GB  =  98.7 GB
 #   cubes parent dumps (both)  same split, new run                 =  98.7 GB
 #   nesting.inp                5 x 7200 x 14.2 MB (0.5 s cadence)  = 509.5 GB
 #   child dumps                5 x 1200 x 25.2 MB (3 s, unchanged) = 151.0 GB
 #                                                        total     = ~866 GB
 #
 # Ephemeral has ~11 TB (unquotaed, plan.md section 0), so this is not the
-# binding constraint; it is 3.5x the pre-nestdump 245 GB because nesting.inp
+# binding constraint; it is 3.5x the pre-nestparent 245 GB because nesting.inp
 # now carries the boundary at 0.5 s (6x the levels) for a fifth child, not
-# because &NESTDUMP is expensive -- the two parents' *own* dump volume (98.7 GB
+# because &NESTPARENT is expensive -- the two parents' *own* dump volume (98.7 GB
 # each, both outputs together) is only ~2x the old single-parent, single-
 # cadence figure.  --prune-nesting deletes each child's nesting.inp once it has
 # run, if that ever gets tight; the analysis does not need it, only a re-run.

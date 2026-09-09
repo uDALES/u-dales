@@ -12,7 +12,7 @@ Contents
 ``write_prof``/``_lscale``  the 1-D input profiles (prof.inp defines the z grid)
 ``run_preprocessing``     the repo's standard ``UDPrep`` path for the IBM inputs
 ``FieldDump``             reader for the per-rank ``fielddump.XXX.YYY.<nr>.nc``
-``NestDump``              reader for the per-rank ``nestdump[_init].XXX.YYY.<nr>.nc``
+``NestParent``              reader for the per-rank ``nesting.out[.init].XXX.YYY.<nr>.nc``
 ``load_solid_mask``       the IBM solid cell-centre mask, from ``solid_c.txt``
 ``cell_centred``          face-staggered (u, v, w) -> co-located cell centres
 """
@@ -530,17 +530,17 @@ class CoarsenedFieldDump:
 
 
 # --------------------------------------------------------------------------- #
-# Reading the parent-side zone dump (&NESTDUMP, src/modnestdump.f90)
+# Reading the parent-side zone dump (&NESTPARENT, src/nesting_parent.f90)
 # --------------------------------------------------------------------------- #
 
 
-class NestDump:
-    """Assemble the per-rank ``nestdump.XXX.YYY.<expnr>.nc`` into the child box.
+class NestParent:
+    """Assemble the per-rank ``nesting.out.XXX.YYY.<expnr>.nc`` into the child box.
 
     The parent wrote, per rank, the intersection of its subdomain with each of
-    the four strips of the band (``nestdump_nzone`` parent cells inside each
+    the four strips of the band (``nestparent_nzone`` parent cells inside each
     lateral face of the child box) and, once, its part of the whole box
-    (``nestdump_init.XXX.YYY.<expnr>.nc``).  Every block carries its global
+    (``nesting.out.init.XXX.YYY.<expnr>.nc``).  Every block carries its global
     index range as attributes, so the box is assembled here without knowing the
     decomposition; overlapping blocks (the strips meet at the corners, ranks
     share their upper face through the halo) carry identical values.
@@ -563,11 +563,11 @@ class NestDump:
         self.rundir = Path(rundir)
         self.expnr = str(expnr)
         self.dx = float(dx)
-        self.files = sorted(self.rundir.glob(f"nestdump.???.???.{self.expnr}.nc"))
-        self.init_files = sorted(self.rundir.glob(f"nestdump_init.???.???.{self.expnr}.nc"))
+        self.files = sorted(self.rundir.glob(f"nesting.out.???.???.{self.expnr}.nc"))
+        self.init_files = sorted(self.rundir.glob(f"nesting.out.init.???.???.{self.expnr}.nc"))
         if not self.files:
             raise FileNotFoundError(
-                f"no nestdump.???.???.{self.expnr}.nc under {self.rundir}"
+                f"no nesting.out.???.???.{self.expnr}.nc under {self.rundir}"
             )
         self._open: Dict[Path, Any] = {}
         #: per band file: list of (suffix, i1, i2, j1, j2), 0-based inclusive cells
@@ -592,7 +592,7 @@ class NestDump:
                 pass
         self._open.clear()
 
-    def __enter__(self) -> "NestDump":
+    def __enter__(self) -> "NestParent":
         return self
 
     def __exit__(self, *exc) -> None:
@@ -643,7 +643,7 @@ class NestDump:
         self.ni = int(header["box_i_end"]) - self.i0
         self.nj = int(header["box_j_end"]) - self.j0
         self.nzone = int(header["nzone"])
-        self.tnestdump = float(header["tnestdump"])
+        self.tnestparent = float(header["tnestparent"])
         self.times = times if times is not None else np.zeros(0)
 
     @property
@@ -687,13 +687,13 @@ class NestDump:
         return out
 
     def read_init(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """The whole box from the ``nestdump_init`` files, and its time stamp."""
+        """The whole box from the ``nestparent_init`` files, and its time stamp."""
         from netCDF4 import Dataset
 
         if not self.init_files:
             raise FileNotFoundError(
-                f"no nestdump_init.???.???.{self.expnr}.nc under {self.rundir}; "
-                "the parent ran with nestdump_linit = .false.")
+                f"no nesting.out.init.???.???.{self.expnr}.nc under {self.rundir}; "
+                "the parent ran with nestparent_linit = .false.")
         out = self._empty_box()
         stamp = None
         for path in self.init_files:
@@ -706,7 +706,7 @@ class NestDump:
                 elif t != stamp:
                     raise ValueError(f"{path}: init block time {t} != {stamp}")
         if not all(np.isfinite(a).all() for a in out):
-            raise ValueError("the nestdump_init files do not cover the whole box")
+            raise ValueError("the nestparent_init files do not cover the whole box")
         self.init_time = stamp
         return out
 
@@ -719,7 +719,7 @@ class NestDump:
                 f"the child window (cells {i0}..{i0 + ni - 1} x {j0}..{j0 + nj - 1}) is "
                 f"not the box the parent dumped ({self.i0}..{self.i0 + self.ni - 1} x "
                 f"{self.j0}..{self.j0 + self.nj - 1}); rebuild the parent with the "
-                "matching &NESTDUMP box"
+                "matching &NESTPARENT box"
             )
         return u, v, w
 
@@ -727,7 +727,7 @@ class NestDump:
 def check_finite_slabs(slabs: Dict[str, np.ndarray], band_cells: int, dx: float) -> None:
     """Refuse a slab set with non-finite entries -- the band was too thin.
 
-    With :class:`NestDump` the parent's interior is ``NaN``, so a zone slab (or
+    With :class:`NestParent` the parent's interior is ``NaN``, so a zone slab (or
     a prolongation stencil) that reached past the band shows up here, naming
     the slab, rather than as zeros in the nesting file.
     """
@@ -735,9 +735,9 @@ def check_finite_slabs(slabs: Dict[str, np.ndarray], band_cells: int, dx: float)
            if not np.isfinite(arr).all()}
     if bad:
         raise ValueError(
-            f"non-finite values in slabs {sorted(bad)} ({bad}): the parent's nestdump "
+            f"non-finite values in slabs {sorted(bad)} ({bad}): the parent's nestparent "
             f"band ({band_cells} cells of {dx:g} m) is too thin for this child's zone "
-            "and prolongation stencil; increase nestdump_nzone in the parent"
+            "and prolongation stencil; increase nestparent_nzone in the parent"
         )
 
 

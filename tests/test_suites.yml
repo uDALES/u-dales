@@ -180,7 +180,7 @@ groups:
   # The in-solver unit runmodes are class: supported and cost: fast, and they
   # need only what CI already builds, so they belong in the merge gate. They
   # sat in `nesting` -- reachable only from `all` -- which meant CI compiled
-  # modnesting and then ran none of it.
+  # nesting and then ran none of it.
   #
   # UDALES_REQUIRE_LAUNCHER=1 on every suite here: in the merge gate an MPI
   # launcher that cannot start a one-rank job is a FAILURE. Without it the
@@ -718,7 +718,7 @@ groups:
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
           - "{python}"
-          - "{tests_dir}/validation/nesting/test_nestdump_tiny.py"
+          - "{tests_dir}/validation/nesting/test_nestparent_tiny.py"
       - label: "nesting-validation: driving-parent TKE estimator (R1 regression, no solver)"
         class: experimental
         kind: unit

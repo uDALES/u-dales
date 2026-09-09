@@ -41,8 +41,8 @@
 # THE PARENT WRITES ITS CHILD'S BOUNDARY BAND AT C_dump <= 2, NOT ITS WHOLE
 # DOMAIN AT THAT CADENCE.  With the mean wind at the domain top ~5.5 m/s (V1's
 # converged run, z/h = 2) and dx = 2 m, C_dump <= 2 needs dtdump <= 0.73 s;
-# this parent dumps &NESTDUMP (the child's zone band + 1 cell,
-# src/modnestdump.f90) at 0.5 s (C_dump = 1.4 at 5.5 m/s, 0.75 at the preset's
+# this parent dumps &NESTPARENT (the child's zone band + 1 cell,
+# src/nesting_parent.f90) at 0.5 s (C_dump = 1.4 at 5.5 m/s, 0.75 at the preset's
 # own u0 = 3 m/s), and the child interpolates it with the unlimited
 # Catmull-Rom cubic (nest_timeinterp = 2, C0c's recommended default) rather
 # than V1's linear.  The parent ALSO writes its own whole-domain &OUTPUT field
@@ -53,7 +53,7 @@
 # 181 GB, since only the cadence changes; nesting-plan-2026-09-06.md section 2
 # gives a ~75x figure for going from a coarse production cadence to 0.8 s
 # rather than from this parent's already-fine 3 s); the band-only dump is
-# ~99 GB.  See presets_geometry._NESTDUMP_CADENCE.
+# ~99 GB.  See presets_geometry._NESTPARENT_CADENCE.
 #
 # IT DOES have to run its own parent, and that is why this job costs about what
 # V1's did.  Reusing the V1 parent is impossible by construction: the whole
@@ -68,7 +68,7 @@
 # and test_v34_tiny.py asserts that validate() refuses such a preset.
 # ---------------------------------------------------------------------------
 #
-# SIZING.  Revised 2026-09-07 for the fine &NESTDUMP cadence; the previous
+# SIZING.  Revised 2026-09-07 for the fine &NESTPARENT cadence; the previous
 # version (6 h, 249 GB) drove the child from a 3 s full-domain dump and is
 # superseded.  V4 is still V1 with a different parent array, so V1's own
 # measured stage times (job 3991175, recorded in
@@ -79,20 +79,20 @@
 #   parent case build (incl. IBM preprocessing)                   200 s
 #   parent spin-up, 10800 s simulated, no dumps                  5479 s
 #   parent production, 10800 s simulated + dumps                 5916 s  (was
-#         &OUTPUT-only; now also &NESTDUMP at 0.5 s, ~99 GB more written at
+#         &OUTPUT-only; now also &NESTPARENT at 0.5 s, ~99 GB more written at
 #         the ~600 MB/s per-rank hyperslab rate D1 measured on the tiny
 #         preset -- a couple of minutes, folded in rather than broken out)
-#   child case build: nestdump read (99 GB) + nesting.inp write (204 GB)
+#   child case build: nestparent read (99 GB) + nesting.inp write (204 GB)
 #         at the same ~170 MB/s write rate the old 35 GB file was measured
 #         at (V1: 608 s total, of which ~206 s was the 35 GB write and the
 #         rest the 169 GB read) -- write now ~1199 s, read of the smaller
-#         nestdump band now ~233 s                                  ~1432 s
+#         nestparent band now ~233 s                                  ~1432 s
 #   child run, 10190 s simulated                                 1621 s
 #   child-versus-parent block (the V1/V2 diagnostics)            1040 s
 #   child + baseline accumulation for the V4 comparison       2 x 220 s
 #                                                       total  ~16 320 s = 4 h 32
 #
-# 6 h against 4 h 32 is 1.32x headroom, close to the pre-nestdump estimate's
+# 6 h against 4 h 32 is 1.32x headroom, close to the pre-nestparent estimate's
 # 1.4x -- the fine cadence costs about 17 extra minutes here (a single child,
 # unlike V3's second periodic run and fifth child), so the existing 6 h
 # request still covers it and is kept.  On CX3 a 64-cpu job is routed by ncpus
@@ -111,7 +111,7 @@
 # peak memory is independent of the level count (commit 71011e96), so the fact
 # that nesting.inp is now 6x bigger (0.5 s cadence, 21 600 levels instead of
 # 3 600) does not move the peak: it is no longer held whole in RAM the way the
-# pre-nestdump version of this comment assumed.  The remaining peak is the
+# pre-nestparent version of this comment assumed.  The remaining peak is the
 # analysis, holding three plane series each for the parent, the child and the
 # baseline: 3400 x 127 x 127 x 8 B x 3 x 3 = 3.9 GB, unchanged (the
 # child-versus-parent block reads at the child's own 3 s dtdump).  mem=96gb
@@ -120,12 +120,12 @@
 # DISK, in $RUNDIR, all new (from run_geometry._disk_estimate):
 #
 #   parent dumps (both)   OUTPUT   3600 x 50.3 MB = 181.2 GB
-#                         NESTDUMP 21600 x  4.6 MB =  99.2 GB  = 280.4 GB
+#                         NESTPARENT 21600 x  4.6 MB =  99.2 GB  = 280.4 GB
 #   nesting.inp           21600 x  9.4 MB (0.5 s cadence, was 3600)  = 203.8 GB
 #   child dumps           3600 x 12.6 MB (3 s, unchanged)            =  45.3 GB
 #                                                        total       = ~529 GB
 #
-# 2.1x the pre-nestdump 249 GB, almost all of it nesting.inp carrying the
+# 2.1x the pre-nestparent 249 GB, almost all of it nesting.inp carrying the
 # boundary at 6x the temporal resolution for the same one child; the parent's
 # own dump volume (280 GB, both outputs together) is only 1.7x the old
 # single-cadence 169 GB.  The V1 run it reads (246 GB) is not touched.

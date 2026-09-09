@@ -1,10 +1,10 @@
-!> \file modnesting.f90
+!> \file nesting_scheme.f90
 !!  One-way nesting by velocity imposition and relaxation zones.
 !!
 !!  See docs/udales-nesting-design.md for the scheme and its derivation, and
 !!  docs/udales-nesting-spec.md for the normative interface contract.
 !!
-!!  The parent data are read by modnestingio as four lateral slabs per velocity
+!!  The parent data are read by nesting_read as four lateral slabs per velocity
 !!  component. Each slab is stored flat, per time slot, and the zone is stored
 !!  as a point list with weights (design section 9.2) rather than as three more
 !!  3-D arrays.
@@ -41,9 +41,9 @@
 ! Copyright 1993-2009 Delft University of Technology, Wageningen University,
 ! Utrecht University, KNMI
 !
-module modnesting
+module nesting_scheme
 
-   use modnestingio, only : nestio_open, nestio_validate, nestio_read, &
+   use nesting_read, only : nestio_open, nestio_validate, nestio_read, &
                             nestio_read_block, nestio_close, nestio_hdr, nestio_tread
 
    implicit none
@@ -133,7 +133,7 @@ module modnesting
    type(slab_type) :: sbuf(NCOMP)
 
    ! Slab geometry, per component and face. Fortran dimension order of the file
-   ! is (zone, z, decomposed), see modnestingio.
+   ! is (zone, z, decomposed), see nesting_read.
    logical :: sl_on(NCOMP, NFACE) = .false. !< slab present on this rank
    integer :: sn1(NCOMP, NFACE)   = 0       !< zone-direction length
    integer :: sn2(NCOMP, NFACE)   = 0       !< vertical length
@@ -238,7 +238,7 @@ contains
       ! ---- width bookkeeping, in metres and in cells (design section 1.4) ----
       ltot = nest_guardwidth + nest_zonewidth
       if (myid == 0) then
-         write(*,'(a)') ' modnesting: relaxation zone'
+         write(*,'(a)') ' nesting: relaxation zone'
          write(*,'(a,es12.5,a,es12.5,a)') '   L_imp = ', nest_guardwidth, &
                                           ' m, L_rel = ', nest_zonewidth, ' m'
          if (lface(1) .or. lface(2)) &
@@ -250,15 +250,15 @@ contains
          write(*,'(a,i0,a)') '   file zone thickness = ', nzone, ' cells'
          if (lface(1) .or. lface(2)) then
             if (ltot/dx < 6.) write(*,'(a,f8.2,a)') &
-               ' modnesting: WARNING zone is only ', ltot/dx, ' cells wide in x (< 6)'
+               ' nesting: WARNING zone is only ', ltot/dx, ' cells wide in x (< 6)'
             if (ltot > 0.15*xlen) write(*,'(a,f6.2,a)') &
-               ' modnesting: WARNING zone occupies ', 100.*ltot/xlen, ' % of the domain in x (> 15 %)'
+               ' nesting: WARNING zone occupies ', 100.*ltot/xlen, ' % of the domain in x (> 15 %)'
          end if
          if (lface(3) .or. lface(4)) then
             if (ltot/dy < 6.) write(*,'(a,f8.2,a)') &
-               ' modnesting: WARNING zone is only ', ltot/dy, ' cells wide in y (< 6)'
+               ' nesting: WARNING zone is only ', ltot/dy, ' cells wide in y (< 6)'
             if (ltot > 0.15*ylen) write(*,'(a,f6.2,a)') &
-               ' modnesting: WARNING zone occupies ', 100.*ltot/ylen, ' % of the domain in y (> 15 %)'
+               ' nesting: WARNING zone occupies ', 100.*ltot/ylen, ' % of the domain in y (> 15 %)'
          end if
       end if
 
@@ -286,7 +286,7 @@ contains
             call nest_abort('solid points found inside the relaxation zone and '// &
                             'nest_lparentgeom = .false. (the zone must be building-free)')
          else if (myid == 0) then
-            write(*,'(a,i0,a)') ' modnesting: WARNING ', nsolid_zone, &
+            write(*,'(a,i0,a)') ' nesting: WARNING ', nsolid_zone, &
                ' solid points inside the relaxation zone (allowed by nest_lparentgeom)'
          end if
       end if
@@ -297,13 +297,13 @@ contains
       if (area_bnd <= 0.) call nest_abort('no fluid domain-boundary area found')
 
       if (.not. nestio_hdr%divergence_corrected .and. myid == 0) then
-         write(*,'(a)') ' modnesting: WARNING the input file is not marked divergence_corrected'
+         write(*,'(a)') ' nesting: WARNING the input file is not marked divergence_corrected'
       end if
 
       tflux = MPI_Wtime()
       call check_stored_flux
       tflux = MPI_Wtime() - tflux
-      if (myid == 0) write(*,'(a,es12.4,a)') ' modnesting: flux check took ', tflux, ' s'
+      if (myid == 0) write(*,'(a,es12.4,a)') ' nesting: flux check took ', tflux, ' s'
 
       ! ---- the record must cover the run (design section 1.3) ----
       call check_record_end(timee + runtime, .true.)
@@ -323,14 +323,14 @@ contains
       tread0 = nestio_tread
 
       if (myid == 0) then
-         write(*,'(a,i0,a,i0,a)') ' modnesting: initialised, ', ntime, &
+         write(*,'(a,i0,a,i0,a)') ' nesting: initialised, ', ntime, &
             ' parent time levels, buffer at interval ', it_lo, &
             ' (see docs/udales-nesting-design.md)'
       end if
 
       do f = 1, NFACE
          if (myid == 0 .and. lface(f)) &
-            write(*,'(a,a,a)') ' modnesting: face ', trim(fac_name(f)), ' is forced'
+            write(*,'(a,a,a)') ' nesting: face ', trim(fac_name(f)), ' is forced'
       end do
 
    end subroutine nesting_init
@@ -664,7 +664,7 @@ contains
 
       if (abs(phi_closed) > nest_fluxtol) then
          if (myid == 0) then
-            write(*,'(a,es12.5,a,es12.5)') ' modnesting: flux residual ', phi_closed, &
+            write(*,'(a,es12.5,a,es12.5)') ' nesting: flux residual ', phi_closed, &
                ' exceeds nest_fluxtol = ', nest_fluxtol
             if (BCtopm == BCtopm_pressure) write(*,'(a,es12.5,a,es12.5)') &
                '   (total over all six faces ', phi_last, ', of which the lid carries ', &
@@ -689,9 +689,9 @@ contains
       use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_sum
 
       !> Pressure increment from the last projection. Passed in from program.f90
-      !! rather than taken with a use statement: modnesting cannot use modpois
-      !! without closing the cycle modnesting -> modpois -> modboundary ->
-      !! modnesting.
+      !! rather than taken with a use statement: nesting cannot use modpois
+      !! without closing the cycle nesting -> modpois -> modboundary ->
+      !! nesting.
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb - kh:ke + kh), intent(in) :: p
 
       real    :: sl(2), sg(2), rmsmis, twall, frac
@@ -745,19 +745,19 @@ contains
       end if
 
       if (myid == 0) then
-         write(*,'(a,f12.3)')  ' modnesting: t          = ', timee
-         write(*,'(a,es12.4,a)') ' modnesting: Phi (norm) = ', phi_max, &
+         write(*,'(a,f12.3)')  ' nesting: t          = ', timee
+         write(*,'(a,es12.4,a)') ' nesting: Phi (norm) = ', phi_max, &
             '  (largest |Phi| since the previous report)'
-         write(*,'(a,es12.4,a,es12.4,a)') ' modnesting: Phi lid    = ', phi_lid_max, &
+         write(*,'(a,es12.4,a,es12.4,a)') ' nesting: Phi lid    = ', phi_lid_max, &
             '  closed faces = ', phi_closed_max, '  (largest since the previous report)'
-         write(*,'(a,es12.4)') ' modnesting: zone misfit rms [m/s] = ', rmsmis
-         write(*,'(a,es12.4,a,es12.4,a,f8.3)') ' modnesting: |grad p| zone = ', gzone, &
+         write(*,'(a,es12.4)') ' nesting: zone misfit rms [m/s] = ', rmsmis
+         write(*,'(a,es12.4,a,es12.4,a,f8.3)') ' nesting: |grad p| zone = ', gzone, &
             '  interior = ', gint, '  ratio = ', gratio
-         write(*,'(a,es12.4,a,es12.4,a)') ' modnesting: energy injected guard = ', eg(1), &
+         write(*,'(a,es12.4,a,es12.4,a)') ' nesting: energy injected guard = ', eg(1), &
             '  relaxation = ', eg(2), '  [m5 s-2 per unit density, since the last report]'
-         write(*,'(a,es12.4,a,f6.2,a)') ' modnesting: read time = ', nestio_tread - tread0, &
+         write(*,'(a,es12.4,a,f6.2,a)') ' nesting: read time = ', nestio_tread - tread0, &
             ' s (', frac, ' % of run)'
-         if (frac > 1.) write(*,'(a)') ' modnesting: WARNING parent I/O exceeds 1 % of runtime'
+         if (frac > 1.) write(*,'(a)') ' nesting: WARNING parent I/O exceeds 1 % of runtime'
       end if
 
       call reset_injection
@@ -1101,7 +1101,7 @@ contains
 
       integer :: ierr
 
-      if (myid == 0) write(*,'(a,a)') ' modnesting: ERROR ', trim(message)
+      if (myid == 0) write(*,'(a,a)') ' nesting: ERROR ', trim(message)
       flush(6)
       call MPI_Abort(MPI_COMM_WORLD, 1, ierr)
       stop 1   ! not reached; keeps the compiler's flow analysis honest
@@ -1136,10 +1136,10 @@ contains
       if (nest_lendabort) then
          if (myid == 0) then
             if (lend) then
-               write(*,'(a,es12.5,a,es12.5)') ' modnesting: the run ends at t = ', t, &
+               write(*,'(a,es12.5,a,es12.5)') ' nesting: the run ends at t = ', t, &
                   ' but the parent record ends at t = ', tlast
             else
-               write(*,'(a,es12.5,a,es12.5)') ' modnesting: t = ', t, &
+               write(*,'(a,es12.5,a,es12.5)') ' nesting: t = ', t, &
                   ' is past the last parent time level at t = ', tlast
             end if
          end if
@@ -1151,11 +1151,11 @@ contains
          nendwarn = 1
          if (myid == 0) then
             if (lend) then
-               write(*,'(a,es12.5,a,es12.5,a)') ' modnesting: WARNING the run ends at t = ', t, &
+               write(*,'(a,es12.5,a,es12.5,a)') ' nesting: WARNING the run ends at t = ', t, &
                   ' but the parent record ends at t = ', tlast, &
                   '; the boundary will freeze on the last level (nest_lendabort = .false.)'
             else
-               write(*,'(a,es12.5,a,es12.5,a)') ' modnesting: WARNING t = ', t, &
+               write(*,'(a,es12.5,a,es12.5,a)') ' nesting: WARNING t = ', t, &
                   ' is past the last parent time level at t = ', tlast, &
                   '; the boundary now freezes on that level (nest_lendabort = .false.)'
             end if
@@ -1756,7 +1756,7 @@ contains
 
       if (myid == 0) then
          n = nint(rg(1)) + nint(rg(2)) + nint(rg(3))
-         write(*,'(a,i0,a,i0,a,i0,a,i0,a)') ' modnesting: zone points u/v/w = ', &
+         write(*,'(a,i0,a,i0,a,i0,a,i0,a)') ' nesting: zone points u/v/w = ', &
             nint(rg(1)), '/', nint(rg(2)), '/', nint(rg(3)), ' (total ', n, ')'
       end if
 
@@ -1808,7 +1808,7 @@ contains
       ! imposes; that path already honours lface.
       if (.not. all(lface)) then
          if (myid == 0 .and. .not. lfull) then
-            write(*,'(a)') ' modnesting: only some lateral faces are imposed, so the'// &
+            write(*,'(a)') ' nesting: only some lateral faces are imposed, so the'// &
                ' stored four-face flux residual does not certify this'
             write(*,'(a)') '   configuration; recomputing Phi over the imposed faces'// &
                ' from the boundary slabs'
@@ -1818,14 +1818,14 @@ contains
 
       if (.not. nestio_hdr%has_flux_residual) then
          if (myid == 0 .and. .not. lfull) write(*,'(a)') &
-            ' modnesting: WARNING the input file predates schema 2 and stores no'// &
+            ' nesting: WARNING the input file predates schema 2 and stores no'// &
             ' post-correction flux residual; recomputing it from the boundary slabs'
          lfull = .true.
       else
          aerr = abs(nestio_hdr%fluid_lateral_area - area_lat)
          if (aerr > 1.e-8*max(area_lat, abs(nestio_hdr%fluid_lateral_area), 1.e-30)) then
             if (myid == 0) then
-               write(*,'(a)') ' modnesting: WARNING the fluid lateral boundary area of the'// &
+               write(*,'(a)') ' nesting: WARNING the fluid lateral boundary area of the'// &
                   ' input file does not match this run'
                write(*,'(a,es22.14,a,es22.14)') '   file = ', nestio_hdr%fluid_lateral_area, &
                   ', run = ', area_lat
@@ -1842,13 +1842,13 @@ contains
             if (abs(phi) > nest_fluxtol) then
                if (myid == 0) then
                   write(*,'(a,i0,a,es12.5,a,es12.5)') &
-                     ' modnesting: stored flux residual of time level ', it, ' is ', phi, &
+                     ' nesting: stored flux residual of time level ', it, ' is ', phi, &
                      ' (normalised), tolerance ', nest_fluxtol
                end if
                call nest_abort('the parent file is not flux balanced - rerun the offline correction')
             end if
          end do
-         if (myid == 0) write(*,'(a,i0,a)') ' modnesting: ', ntime, &
+         if (myid == 0) write(*,'(a,i0,a)') ' nesting: ', ntime, &
             ' stored time levels are flux balanced (from the stored residual, no slab read)'
          return
       end if
@@ -1920,7 +1920,7 @@ contains
          if (abs(phi) > nest_fluxtol) then
             if (myid == 0) then
                write(*,'(a,i0,a,es12.5,a,es12.5)') &
-                  ' modnesting: flux residual of stored time level ', it, ' is ', phi, &
+                  ' nesting: flux residual of stored time level ', it, ' is ', phi, &
                   ' (normalised), tolerance ', nest_fluxtol
                if (.not. all(lface)) then
                   write(*,'(a)') '   this run imposes only some of the four lateral faces,'// &
@@ -1948,7 +1948,7 @@ contains
       if (allocated(bs)) deallocate(bs)
       if (allocated(bn)) deallocate(bn)
 
-      if (myid == 0) write(*,'(a,i0,a)') ' modnesting: ', ntime, &
+      if (myid == 0) write(*,'(a,i0,a)') ' nesting: ', ntime, &
          ' stored time levels are flux balanced (recomputed from the boundary slabs)'
 
    end subroutine check_stored_flux
@@ -1978,7 +1978,7 @@ contains
       if (.not. nest_linitfromparent) return
 
       if (lwarmstart .or. lstratstart) then
-         if (myid == 0) write(*,'(a)') ' modnesting: nest_linitfromparent is set but this'// &
+         if (myid == 0) write(*,'(a)') ' nesting: nest_linitfromparent is set but this'// &
             ' is a warm start; the restart file wins and the parent block is not read'
          return
       end if
@@ -1988,7 +1988,7 @@ contains
          ' block (it needs schema 2 with has_initial_condition = 1)')
 
       if (abs(timee - nestio_hdr%time(1)) > 1.e-8*max(abs(timee), 1.) .and. myid == 0) then
-         write(*,'(a,es12.5,a,es12.5)') ' modnesting: WARNING the initial-condition block is'// &
+         write(*,'(a,es12.5,a,es12.5)') ' nesting: WARNING the initial-condition block is'// &
             ' stored at t = ', nestio_hdr%time(1), ' but the run starts at t = ', timee
       end if
 
@@ -2060,7 +2060,7 @@ contains
       call avexy_ibm(v0av(kb:ke+kh), v0(ib:ie,jb:je,kb:ke+kh), ib, ie, jb, je, kb, ke, kh, &
                      IIv(ib:ie,jb:je,kb:ke+kh), IIvs(kb:ke+kh), .false.)
 
-      if (myid == 0) write(*,'(a,es12.5)') ' modnesting: cold start initialised from the'// &
+      if (myid == 0) write(*,'(a,es12.5)') ' nesting: cold start initialised from the'// &
          ' parent initial-condition block at t = ', nestio_hdr%time(1)
 
    end subroutine init_from_parent
@@ -2086,7 +2086,7 @@ contains
                deallocate(tmp)
                call nest_abort('failed to read, or found non-finite or fill values in, slab '// &
                   cmp_name(c)//'_'//trim(fac_name(f))//' of '//trim(nestfile)// &
-                  ' (see the modnestingio line above)')
+                  ' (see the nesting_read line above)')
             end if
             nn = sn1(c,f)*sn2(c,f)*sn3(c,f)
             sbuf(c)%b(soff(c,f) + 1:soff(c,f) + nn, islot) = reshape(tmp, (/ nn /))
@@ -2292,4 +2292,4 @@ contains
 
    end subroutine accum_misfit
 
-end module modnesting
+end module nesting_scheme

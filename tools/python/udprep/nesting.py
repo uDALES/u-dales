@@ -26,7 +26,7 @@ Version 1 is the original file: zone slabs, a grid, provenance, and the
 * ``u_init``/``v_init``/``w_init`` -- the optional full-domain initial condition
   at ``times[0]``, flagged by ``has_initial_condition``.
 
-Both versions are read, by this module and by ``src/modnestingio.f90``.
+Both versions are read, by this module and by ``src/nesting_read.f90``.
 
 Interpolation
 -------------
@@ -168,7 +168,7 @@ __all__ = [
 #: Schema this writer emits.  Version 2 adds the per-time-level
 #: post-correction ``flux_residual`` and the OPTIONAL full-domain initial
 #: condition (``u_init``/``v_init``/``w_init``); version 1 files have neither
-#: and are still read, by both this module and ``src/modnestingio.f90``.
+#: and are still read, by both this module and ``src/nesting_read.f90``.
 SCHEMA_VERSION = 2
 
 #: Schema versions this module can read.
@@ -2152,7 +2152,7 @@ def stored_coordinates(data: NestingData) -> Dict[str, np.ndarray]:
     """The six coordinate variables **as written to the file**: child-relative.
 
     The solver validates ``xh``/``yh`` against its own grid, which starts at
-    0, to ``nestio_tol = 1e-10`` of ``xlen`` (``modnestingio.f90``,
+    0, to ``nestio_tol = 1e-10`` of ``xlen`` (``nesting_read.f90``,
     ``nestio_validate``); so a child grid built in the parent's coordinates
     (``nesting_data_from_parent`` does that) is shifted to its own origin here
     and the offset is carried by the ``child_origin_x``/``child_origin_y``

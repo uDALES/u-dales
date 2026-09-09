@@ -15,7 +15,7 @@ Two layers live in this directory:
 
 In-solver unit tests for the one-way nesting feature, implementing the U1-U43
 matrix of `docs/udales-nesting-design.md` sections 10.1 and 10.6. They call the
-production routines of `src/modnesting.f90` and `src/modnestingio.f90` through
+production routines of `src/nesting_scheme.f90` and `src/nesting_read.f90` through
 the public test hooks of `docs/udales-nesting-spec.md` section 7 -- nothing
 under test is reimplemented here.
 
@@ -100,7 +100,7 @@ decomposition.
 ## How the private state is reached
 
 The zone weights and the time-interpolated target live in private variables of
-`modnesting` and there is no accessor. Rather than recompute them, the tests
+`nesting` and there is no accessor. Rather than recompute them, the tests
 read them back out through `nesting_apply`, which is public:
 
 * **weight probe** -- `nesting_apply` leaves
@@ -156,7 +156,7 @@ upper bound at `k = ke+kh`, which aborted a Debug build and silently wiped the
 pass against **both** the Release and the Debug build, on 1x1, 2x1, 1x2 and
 2x2, as of this writing.
 
-**U21 prefetch.** `modnesting` has no prefetch on/off switch; `set_interval`
+**U21 prefetch.** `nesting` has no prefetch on/off switch; `set_interval`
 has an incremental roll-with-read-ahead branch and a full-reload branch. The
 test compares the two branches against each other and against a fresh
 initialisation, which is the invariance the design asks for.
@@ -482,7 +482,7 @@ it. So `nesting_init` ran
          call eval_target(timee)
 ```
 
-(`src/modnesting.f90:238-250`) on a `timee` that has not been assigned yet.
+(`src/nesting_scheme.f90:238-250`) on a `timee` that has not been assigned yet.
 `real :: timee` in `src/modglobal.f90:441` carries no initialiser.
 
 ### Symptom 1 -- every nested run dies on a Debug build
@@ -493,8 +493,8 @@ first arithmetic that touches it traps:
 
 ```
 forrtl: error (75): floating point exception
-  modnesting_mp_eval_target_   1627  modnesting.f90     ! th = (t - tlo)/h2
-  modnesting_mp_nesting_init_   249  modnesting.f90
+  nesting_mp_eval_target_   1627  nesting_scheme.f90     ! th = (t - tlo)/h2
+  nesting_mp_nesting_init_   249  nesting_scheme.f90
   MAIN__                        103  program.f90
 ```
 

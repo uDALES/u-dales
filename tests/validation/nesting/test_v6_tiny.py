@@ -9,7 +9,7 @@ Two things are checked, and they are different kinds of claim:
   cannot say anything about whether mass drifts over a long run (that is what
   the production submission is for); it can and does say that the harness
   builds a case that runs to completion with ``nest_lendabort = .false.``,
-  that the documented freeze (``src/modnesting.f90``'s ``check_record_end``)
+  that the documented freeze (``src/nesting_scheme.f90``'s ``check_record_end``)
   fires exactly once and does not abort the run, and that
   ``analyse_v6`` parses the resulting log into finite, sane numbers.
 * :class:`TestLinfitAndVerdict` is a pure-Python unit test of
@@ -124,7 +124,7 @@ class TestV6TinyPipeline(unittest.TestCase):
                            "the freeze would never be exercised")
 
     def test_freeze_warning_fires_exactly_once(self):
-        """nendwarn in modnesting.f90: warn once, then go quiet and hold."""
+        """nendwarn in nesting_scheme.f90: warn once, then go quiet and hold."""
         self.assertEqual(
             self.result["n_freeze_warnings"], 1,
             f"expected exactly one freeze warning, log carries "
@@ -211,12 +211,12 @@ class TestLinfitAndVerdict(unittest.TestCase):
         text = (
             " Time of Day: 120000.000    Time of Simulation:         3.00000    dt:  0.500000000\n"
             "divmax, divtot =   1.00E-09 2.00E-09\n"
-            " modnesting: t          =        3.000\n"
-            " modnesting: Phi (norm) = 1.5000E-10  (largest |Phi| since the previous report)\n"
-            " modnesting: Phi lid    = 1.0000E-10  closed faces = 2.0000E-10  (largest since the previous report)\n"
-            " modnesting: zone misfit rms [m/s] = 3.0000E-05\n"
-            " modnesting: |grad p| zone = 1.2000E+00  interior = 1.1000E+00  ratio =    1.091\n"
-            " modnesting: WARNING t =  3.00000E+00 is past the last parent time level at "
+            " nesting: t          =        3.000\n"
+            " nesting: Phi (norm) = 1.5000E-10  (largest |Phi| since the previous report)\n"
+            " nesting: Phi lid    = 1.0000E-10  closed faces = 2.0000E-10  (largest since the previous report)\n"
+            " nesting: zone misfit rms [m/s] = 3.0000E-05\n"
+            " nesting: |grad p| zone = 1.2000E+00  interior = 1.1000E+00  ratio =    1.091\n"
+            " nesting: WARNING t =  3.00000E+00 is past the last parent time level at "
             "t =  2.40000E+01; the boundary now freezes on that level (nest_lendabort = .false.)\n"
         )
         p = HERE / "_v6_log_fragment_test.tmp"
@@ -249,7 +249,7 @@ class TestBlowUpThroughTheParser(unittest.TestCase):
     a hand-built parsed dict, because the defect they guard lived in the
     *parser*: the numeric patterns matched only well-formed Fortran ES tokens,
     so a ``NaN``/``Infinity``/asterisk-overflow line failed to match and
-    dropped silently out of its series.  The ``modnesting: t =`` timestamps
+    dropped silently out of its series.  The ``nesting: t =`` timestamps
     parse independently and survived, so the aggregate saw a full-duration
     record, the right number of nesting reports, and only the healthy samples
     that preceded the blow-up -- every series "bounded, no drift", verdict
@@ -257,7 +257,7 @@ class TestBlowUpThroughTheParser(unittest.TestCase):
     build the parsed dict directly and so bypass the code that lost the data.
     """
 
-    FREEZE = (" modnesting: WARNING t =  1.00000E+03 is past the last parent time"
+    FREEZE = (" nesting: WARNING t =  1.00000E+03 is past the last parent time"
               " level at t =  2.40000E+01; the boundary now freezes on that level"
               " (nest_lendabort = .false.)")
 
@@ -269,12 +269,12 @@ class TestBlowUpThroughTheParser(unittest.TestCase):
             f" Time of Day: 120000.000    Time of Simulation:      {t:9.5f}"
             f"    dt:  0.500000000",
             f"divmax, divtot =   {dd}",
-            f" modnesting: t          =     {t:8.3f}",
-            f" modnesting: Phi (norm) = {value}  (largest |Phi| since the previous report)",
-            f" modnesting: Phi lid    = {value}  closed faces = {value}"
+            f" nesting: t          =     {t:8.3f}",
+            f" nesting: Phi (norm) = {value}  (largest |Phi| since the previous report)",
+            f" nesting: Phi lid    = {value}  closed faces = {value}"
             f"  (largest since the previous report)",
-            f" modnesting: zone misfit rms [m/s] = {value}",
-            f" modnesting: |grad p| zone = {value}  interior = {value}"
+            f" nesting: zone misfit rms [m/s] = {value}",
+            f" nesting: |grad p| zone = {value}  interior = {value}"
             f"  ratio =    {value}",
         ]
 

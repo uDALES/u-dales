@@ -103,7 +103,7 @@ module modglobal
    integer, parameter :: BCxm_periodic = 1
    integer, parameter :: BCxm_profile = 2
    integer, parameter :: BCxm_driver = 3
-   integer, parameter :: BCxm_nesting = 4 !< imposed/relaxed toward a parent, see modnesting
+   integer, parameter :: BCxm_nesting = 4 !< imposed/relaxed toward a parent, see nesting_scheme
    ! temperature
    integer, parameter :: BCxT_periodic = 1
    integer, parameter :: BCxT_profile = 2
@@ -127,7 +127,7 @@ module modglobal
    ! momentum
    integer, parameter :: BCym_periodic = 1
    integer, parameter :: BCym_profile = 2
-   integer, parameter :: BCym_nesting = 3 !< imposed/relaxed toward a parent, see modnesting
+   integer, parameter :: BCym_nesting = 3 !< imposed/relaxed toward a parent, see nesting_scheme
    ! temperature
    integer, parameter :: BCyT_periodic = 1
    integer, parameter :: BCyT_profile = 2

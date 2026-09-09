@@ -47,7 +47,7 @@ program uDALES
   use modadvection,      only : advection
   use modtstep,          only : tstep_update,tstep_integrate
   use modscalsource,     only : createscals,scalsource
-  use modnesting,        only : nesting_init,nesting_update_target,nesting_apply,nesting_stats,nesting_finalize
+  use nesting_scheme,        only : nesting_init,nesting_update_target,nesting_apply,nesting_stats,nesting_finalize
 
 !----------------------------------------------------------------
 !     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
@@ -55,7 +55,7 @@ program uDALES
   use modchecksim,     only : initchecksim,checksim
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
-  use modnestdump,     only : initnestdump,nestdump,exitnestdump
+  use nesting_parent,     only : initnestparent,nestparent,exitnestparent
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators
@@ -130,7 +130,7 @@ program uDALES
   call initfielddump
 
   ! After initfielddump: the zone dump of a nesting parent (docs/udales-nesting-design.md 6.2)
-  call initnestdump
+  call initnestparent
 
   call boundary
 
@@ -230,7 +230,7 @@ program uDALES
 
     call fielddump
 
-    call nestdump
+    call nestparent
 
     call statsdump
 
@@ -260,7 +260,7 @@ program uDALES
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
   call exitfielddump
-  call exitnestdump
+  call exitnestparent
   call exitstatsdump     !tg3315
   call exit_heatpump
   call nesting_finalize  ! closes the parent file; a no-op unless lnesting

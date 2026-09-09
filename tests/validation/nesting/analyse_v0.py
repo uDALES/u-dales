@@ -164,8 +164,8 @@ def _floats(text: str, pattern: str) -> List[float]:
 #: shows) or leaks into the interior (ratio materially larger).
 _GRADP_PATTERN = r"\|grad p\| zone =\s*(\S+)\s+interior =\s*(\S+)\s+ratio =\s*(\S+)"
 
-#: Each ``nesting_stats`` call (``src/modnesting.f90``) prints its own
-#: ``modnesting: t = <timee>`` line immediately before the block that ends with
+#: Each ``nesting_stats`` call (``src/nesting_scheme.f90``) prints its own
+#: ``nesting: t = <timee>`` line immediately before the block that ends with
 #: the ``|grad p|`` line -- Phi, Phi lid, zone misfit, then |grad p| -- in that
 #: fixed order, once per call, so pairing the two greedily-but-in-order (a
 #: non-greedy ``.*?`` between them, ``re.DOTALL`` so it can cross lines) always
@@ -174,7 +174,7 @@ _GRADP_PATTERN = r"\|grad p\| zone =\s*(\S+)\s+interior =\s*(\S+)\s+ratio =\s*(\
 #: than by report index, which ``nest_statint`` does not guarantee is evenly
 #: spaced under ``ladaptive``.
 _REPORT_WITH_TIME_PATTERN = re.compile(
-    r"modnesting: t\s+=\s*(\S+).*?" + _GRADP_PATTERN, re.DOTALL
+    r"nesting: t\s+=\s*(\S+).*?" + _GRADP_PATTERN, re.DOTALL
 )
 
 
@@ -201,7 +201,7 @@ def runtime_diagnostics(child_log: Path, *,
     These are the end-to-end half of the prolongation check: the offline
     guarantee is that a solenoidal parent gives a solenoidal child target, and
     the guarantee is only worth what the running solver shows.  ``Phi`` is the
-    normalised net volume flux through the boundary (``modnesting``), ``divmax``
+    normalised net volume flux through the boundary (``nesting``), ``divmax``
     and ``divtot`` are what the projection left behind (``modpois``).
 
     Every reduction is reported as a **time-mean** (``mean_abs``/``mean``) in
@@ -385,7 +385,7 @@ def parent_deficit(metrics: Dict[str, object], manifest: Dict[str, object],
     keep = (zp >= zf[0]) & (zp <= zf[-1])
     zp = zp[keep]
     # ``tke`` (and its dispersive/total siblings) is None for a band-only
-    # (nestdump) driving source: no interior field and only one initial block
+    # (nestparent) driving source: no interior field and only one initial block
     # give no time series to take a temporal statistic over.  Compare the mean
     # flow regardless, mark the TKE comparison unavailable and say why, rather
     # than silently treating a missing number as zero or dropping the point.

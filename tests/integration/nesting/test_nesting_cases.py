@@ -103,18 +103,18 @@ def check_ok(case: unittest.TestCase, done: subprocess.CompletedProcess, what: s
 # --------------------------------------------------------------------------- #
 
 _STATS_PATTERNS = {
-    "t": re.compile(r"modnesting: t\s*=\s*(\S+)"),
-    "phi": re.compile(r"modnesting: Phi \(norm\)\s*=\s*(\S+)"),
-    "misfit": re.compile(r"modnesting: zone misfit rms \[m/s\]\s*=\s*(\S+)"),
+    "t": re.compile(r"nesting: t\s*=\s*(\S+)"),
+    "phi": re.compile(r"nesting: Phi \(norm\)\s*=\s*(\S+)"),
+    "misfit": re.compile(r"nesting: zone misfit rms \[m/s\]\s*=\s*(\S+)"),
 }
 _PHILID = re.compile(
-    r"modnesting: Phi lid\s*=\s*(\S+)\s+closed faces\s*=\s*(\S+)"
+    r"nesting: Phi lid\s*=\s*(\S+)\s+closed faces\s*=\s*(\S+)"
 )
 _GRADP = re.compile(
-    r"modnesting: \|grad p\| zone\s*=\s*(\S+)\s+interior\s*=\s*(\S+)\s+ratio\s*=\s*(\S+)"
+    r"nesting: \|grad p\| zone\s*=\s*(\S+)\s+interior\s*=\s*(\S+)\s+ratio\s*=\s*(\S+)"
 )
 _ENERGY = re.compile(
-    r"modnesting: energy injected guard\s*=\s*(\S+)\s+relaxation\s*=\s*(\S+)"
+    r"nesting: energy injected guard\s*=\s*(\S+)\s+relaxation\s*=\s*(\S+)"
 )
 _DIV = re.compile(r"divmax, divtot\s*=\s*(\S+)\s+(\S+)")
 
@@ -530,8 +530,8 @@ class TestVolatileStdoutFilter(unittest.TestCase):
     #: Real solver output that carries physics and must survive the filter.
     MEANINGFUL = (
         "divmax, divtot =   1.00E-09 2.00E-09",
-        " modnesting: Phi (norm) = 1.5000E-10  (largest |Phi| since the previous report)",
-        " modnesting: zone misfit rms [m/s] = 3.0000E-05",
+        " nesting: Phi (norm) = 1.5000E-10  (largest |Phi| since the previous report)",
+        " nesting: zone misfit rms [m/s] = 3.0000E-05",
         " Determined solid points for c-grid.",
         " Total area missing flux:    0.00000000      m^2",
     )
@@ -1630,7 +1630,7 @@ class TestI8IbmInteraction(_NestingCase):
     def test_the_zone_is_building_free(self) -> None:
         """`nest_lparentgeom = .false.` means init aborts if it is not."""
         out = self.out["nested"]
-        self.assertIn("modnesting: zone points", out, "nesting never initialised")
+        self.assertIn("nesting: zone points", out, "nesting never initialised")
         self.assertNotIn("solid points found inside the relaxation zone", out)
         self.assertNotIn("solid points inside the relaxation zone (allowed", out)
         margin = 24.0 - (self.SPEC.guardwidth + self.SPEC.zonewidth)

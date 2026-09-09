@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-"""Smoke test of the parent-side zone dump (``&NESTDUMP``, plan item D1).
+"""Smoke test of the parent-side zone dump (``&NESTPARENT``, plan item D1).
 
-Runs the ``tiny`` parent once with **both** ``lfielddump`` and ``lnestdump``
+Runs the ``tiny`` parent once with **both** ``lfielddump`` and ``lnestparent``
 at the same cadence, then builds the child's ``nesting.inp`` from each source
 and requires the two files to be bit-identical: the band files carry exactly
 what the slab cut takes from the full dumps, promoted the same way.  It also
 reports the storage ratio between the two outputs, checks that the parent
 printed its I/O cost, and builds a refined child (``dx_child = dx_parent / 2``,
 the V0 tiny ``r2-coarse`` point) from a coarse driver that wrote only the band
-sized by :meth:`config.Preset.nestdump_nzone` -- with the interior ``NaN``, a
+sized by :meth:`config.Preset.nestparent_nzone` -- with the interior ``NaN``, a
 band too thin for the prolongation stencil would fail that build.
 
 Run directly, or through ``tests/run_tests.py nesting-validation``:
 
     module purge && module load tools/prod && module load Python/3.9.6-GCCcore-11.2.0
     source /rds/general/user/mvr/home/udales/.venv/bin/activate
-    python tests/validation/nesting/test_nestdump_tiny.py
+    python tests/validation/nesting/test_nestparent_tiny.py
 
 Environment: ``UDALES_BUILD`` (solver binary), ``UDALES_RUNTIME_MODULES``,
-``MPIEXEC``, ``UDALES_NESTDUMP_RUNDIR`` (where to work; kept if set),
-``UDALES_NESTDUMP_KEEP=1`` (keep a temporary run directory too).
+``MPIEXEC``, ``UDALES_NESTPARENT_RUNDIR`` (where to work; kept if set),
+``UDALES_NESTPARENT_KEEP=1`` (keep a temporary run directory too).
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ import caselib
 import make_child_case
 import make_parent_case
 import run_v1
-from caselib import NestDump, run_solver
+from caselib import NestParent, run_solver
 from config import get_preset, get_suite
 from make_child_case import DrivingParent
 
@@ -80,19 +80,19 @@ def _set_namelist(path: Path, **values) -> None:
 
 def _band_times(casedir: Path, expnr: str):
     import netCDF4
-    path = sorted(casedir.glob(f"nestdump.*.{expnr}.nc"))[0]
+    path = sorted(casedir.glob(f"nesting.out.???.???.{expnr}.nc"))[0]
     with netCDF4.Dataset(path) as ds:
         return [float(t) for t in ds.variables["time"][:]]
 
 
 def _init_time(casedir: Path, expnr: str) -> float:
     import netCDF4
-    path = sorted(casedir.glob(f"nestdump_init.*.{expnr}.nc"))[0]
+    path = sorted(casedir.glob(f"nesting.out.init.???.???.{expnr}.nc"))[0]
     with netCDF4.Dataset(path) as ds:
         return float(ds.variables["time"][:])
 
 
-class TestNestDumpTiny(unittest.TestCase):
+class TestNestParentTiny(unittest.TestCase):
     """One parent run with both outputs, two child builds, one refined build."""
 
     @classmethod
@@ -100,15 +100,15 @@ class TestNestDumpTiny(unittest.TestCase):
         binary = caselib.solver_binary()
         if not binary.exists():
             raise unittest.SkipTest(f"solver binary not found at {binary}")
-        cls.preset = replace(get_preset("tiny"), name="tiny-nestdump", parent_output="both")
+        cls.preset = replace(get_preset("tiny"), name="tiny-nestparent", parent_output="both")
         cls.preset.validate()
-        override = os.environ.get("UDALES_NESTDUMP_RUNDIR")
+        override = os.environ.get("UDALES_NESTPARENT_RUNDIR")
         if override:
             cls.rundir = Path(override)
             cls.rundir.mkdir(parents=True, exist_ok=True)
             cls._temp = None
         else:
-            cls._temp = tempfile.mkdtemp(prefix="udales-nestdump-tiny-")
+            cls._temp = tempfile.mkdtemp(prefix="udales-nestparent-tiny-")
             cls.rundir = Path(cls._temp)
         p = cls.preset
         cls.parent_dir = _run_parent(cls.rundir, p)
@@ -116,7 +116,7 @@ class TestNestDumpTiny(unittest.TestCase):
 
         cls.child_dirs = {}
         cls.manifests = {}
-        for source in ("fielddump", "nestdump"):
+        for source in ("fielddump", "nestparent"):
             outdir = cls.rundir / f"from_{source}"
             driving = DrivingParent.matched(cls.parent_dir, p, source=source)
             try:
@@ -128,7 +128,7 @@ class TestNestDumpTiny(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        if cls._temp and not os.environ.get("UDALES_NESTDUMP_KEEP"):
+        if cls._temp and not os.environ.get("UDALES_NESTPARENT_KEEP"):
             shutil.rmtree(cls._temp, ignore_errors=True)
         elif cls._temp:
             print(f"run directory kept at {cls._temp}")
@@ -140,7 +140,7 @@ class TestNestDumpTiny(unittest.TestCase):
 
         nr = self.preset.child_expnr
         a = self.child_dirs["fielddump"] / f"nesting.inp.{nr}.nc"
-        b = self.child_dirs["nestdump"] / f"nesting.inp.{nr}.nc"
+        b = self.child_dirs["nestparent"] / f"nesting.inp.{nr}.nc"
         names = ["time", "net_volume_flux", "flux_residual",
                  "u_init", "v_init", "w_init"]
         names += [f"{c}_{f}" for f in ("west", "east", "south", "north") for c in "uvw"]
@@ -152,16 +152,16 @@ class TestNestDumpTiny(unittest.TestCase):
                 y = np.asarray(db.variables[name][:])
                 self.assertEqual(x.shape, y.shape, name)
                 self.assertTrue(np.array_equal(x, y),
-                                f"{name} differs between the fielddump and nestdump builds "
+                                f"{name} differs between the fielddump and nestparent builds "
                                 f"(max |diff| = {np.max(np.abs(x - y)):.3e})")
             for key in ("itot", "jtot", "ktot", "nzone", "has_initial_condition",
                         "fluid_lateral_area"):
                 self.assertEqual(da.getncattr(key), db.getncattr(key), key)
 
     def test_the_manifests_agree_except_for_the_source(self):
-        mf, mn = self.manifests["fielddump"], self.manifests["nestdump"]
+        mf, mn = self.manifests["fielddump"], self.manifests["nestparent"]
         self.assertEqual(mf["driving_source"], "fielddump")
-        self.assertEqual(mn["driving_source"], "nestdump")
+        self.assertEqual(mn["driving_source"], "nestparent")
         self.assertEqual(set(mf), set(mn), "the two manifests carry different keys")
         for key in ("n_parent_levels", "t_offset", "runtime", "parent_dt_median",
                     "flux_residual_before_correction", "flux_residual_after_correction",
@@ -174,42 +174,42 @@ class TestNestDumpTiny(unittest.TestCase):
     def test_the_band_files_are_much_smaller_than_the_field_dumps(self):
         nr = self.preset.parent_expnr
         field = _size(self.parent_dir.glob(f"fielddump.???.???.{nr}.nc"))
-        band = _size(self.parent_dir.glob(f"nestdump.???.???.{nr}.nc"))
-        init = _size(self.parent_dir.glob(f"nestdump_init.???.???.{nr}.nc"))
+        band = _size(self.parent_dir.glob(f"nesting.out.???.???.{nr}.nc"))
+        init = _size(self.parent_dir.glob(f"nesting.out.init.???.???.{nr}.nc"))
         self.assertGreater(band, 0)
         self.assertGreater(init, 0)
         ratio = field / (band + init)
         p = self.preset
-        with NestDump(self.parent_dir, nr, p.dx) as d:
+        with NestParent(self.parent_dir, nr, p.dx) as d:
             nb, ni, nj = d.nzone, d.ni, d.nj
         ideal = (p.itot * p.jtot) / (ni * nj - (ni - 2 * nb) * (nj - 2 * nb))
-        print(f"\n[nestdump] fielddump {field / 1e6:.2f} MB, nestdump band {band / 1e6:.2f} MB "
+        print(f"\n[nestparent] fielddump {field / 1e6:.2f} MB, nestparent band {band / 1e6:.2f} MB "
               f"+ init {init / 1e6:.2f} MB: ratio {ratio:.2f}x "
               f"(cell-count ideal for this geometry {ideal:.2f}x; production case ~15x)")
         # The tiny geometry (96^2 parent, 64^2 box, 8-cell band) can only give
         # ~5x by cell count; corner overlaps and the one-off init block take a
         # little more.  The production case's ~15x is a matter of geometry.
-        self.assertGreater(ratio, 3.0, f"nestdump only {ratio:.2f}x smaller")
+        self.assertGreater(ratio, 3.0, f"nestparent only {ratio:.2f}x smaller")
 
     # -- the parent's own accounting ----------------------------------------- #
 
     def test_the_parent_printed_its_io_cost(self):
-        first = re.search(r"nestdump: dump 1 at t = \S+ s: (\S+) MB written \(all ranks\) "
+        first = re.search(r"nestparent: dump 1 at t = \S+ s: (\S+) MB written \(all ranks\) "
                           r"in (\S+) s", self.production_log)
-        total = re.search(r"nestdump: (\d+) dumps, (\S+) MB in total \(all ranks\), (\S+) s",
+        total = re.search(r"nestparent: (\d+) dumps, (\S+) MB in total \(all ranks\), (\S+) s",
                           self.production_log)
         self.assertIsNotNone(first, "no per-dump cost line in the production log")
         self.assertIsNotNone(total, "no run-total cost line in the production log")
-        print(f"\n[nestdump] parent: first dump {first.group(1)} MB in {first.group(2)} s; "
+        print(f"\n[nestparent] parent: first dump {first.group(1)} MB in {first.group(2)} s; "
               f"{total.group(1)} dumps, {total.group(2)} MB, {total.group(3)} s in writes")
-        self.assertEqual(int(total.group(1)), self.manifests["nestdump"]["cadence"]["n_levels_dumped"])
+        self.assertEqual(int(total.group(1)), self.manifests["nestparent"]["cadence"]["n_levels_dumped"])
         # Exactly one report per 100 dumps plus the first: the tiny run has < 100.
-        self.assertEqual(len(re.findall(r"nestdump: dump \d+ at t", self.production_log)), 1)
+        self.assertEqual(len(re.findall(r"nestparent: dump \d+ at t", self.production_log)), 1)
 
     def test_the_band_is_the_zone_plus_one_cell(self):
         p = self.preset
-        with NestDump(self.parent_dir, p.parent_expnr, p.dx) as d:
-            self.assertEqual(d.nzone, p.nestdump_nzone())
+        with NestParent(self.parent_dir, p.parent_expnr, p.dx) as d:
+            self.assertEqual(d.nzone, p.nestparent_nzone())
             self.assertEqual(d.nzone, p.zone_cells + 1)
             self.assertEqual((d.i0, d.j0, d.ni, d.nj),
                              (p.child_i0, p.child_j0, p.child_itot, p.child_jtot))
@@ -232,24 +232,24 @@ class TestNestDumpTiny(unittest.TestCase):
         past the band -- so completing it is the index-range assertion."""
         suite = get_suite("v0-tiny")
         point = next(pt for pt in suite.points if pt.key == "r2-coarse")
-        driver = replace(point.driver, parent_output="nestdump")
+        driver = replace(point.driver, parent_output="nestparent")
         point = replace(point, driver=driver)
         child = point.child
         self.assertEqual(driver.dx, 2 * child.dx)
-        self.assertEqual(driver.nestdump_nzone(child),
+        self.assertEqual(driver.nestparent_nzone(child),
                          int(np.ceil(child.nzone * child.dx / driver.dx)) + 1)
         rundir = self.rundir / "refined"
-        driver_dir = _run_parent(rundir, driver, nestdump_child=child)
+        driver_dir = _run_parent(rundir, driver, nestparent_child=child)
         self.assertFalse(list(driver_dir.glob(f"fielddump.*.{driver.parent_expnr}.nc")),
                          "the band-only driver wrote field dumps")
-        driving = DrivingParent.refined(driver_dir, point, source="nestdump")
+        driving = DrivingParent.refined(driver_dir, point, source="nestparent")
         try:
             self.assertTrue(driving.interpolates)
             casedir = make_child_case.build(driver_dir, rundir, child, driving=driving)
         finally:
             driving.dump.close()
         manifest = json.loads((casedir / "manifest.json").read_text())
-        self.assertEqual(manifest["driving_source"], "nestdump")
+        self.assertEqual(manifest["driving_source"], "nestparent")
         self.assertEqual(manifest["refinement"]["spatial"], 2)
         self.assertLess(manifest["flux_residual_after_correction"]["max_abs_normalised"],
                         1.0e-12)
@@ -259,7 +259,7 @@ class TestNestDumpTiny(unittest.TestCase):
         self.assertEqual(int(attrs["has_initial_condition"]), 1)
         # A band one cell thinner is NOT enough: the outermost zone cell's
         # slope needs its inner neighbour.  Shown by masking the band down.
-        with NestDump(driver_dir, driver.parent_expnr, driver.dx) as d:
+        with NestParent(driver_dir, driver.parent_expnr, driver.dx) as d:
             u, v, w = d.read_level(0)
             nb = d.nzone
             for arr in (u, v, w):
@@ -273,13 +273,13 @@ class TestNestDumpTiny(unittest.TestCase):
 
 
 
-class TestNestDumpParentRestart(unittest.TestCase):
+class TestNestParentRestart(unittest.TestCase):
     """A parent continued across two jobs must leave a usable input pair.
 
     ``open_band_file`` reopens an existing band file and appends, keeping its
     original time origin, but ``write_init_file`` used to recreate
-    ``nestdump_init.*.nc`` with ``NF90_CLOBBER`` on every startup, because
-    ``linitdone`` was reset from ``nestdump_linit`` alone and never consulted
+    ``nesting.out.init.*.nc`` with ``NF90_CLOBBER`` on every startup, because
+    ``linitdone`` was reset from ``nestparent_linit`` alone and never consulted
     whether this run was a continuation.  A normal continuation therefore
     replaced the original full-domain snapshot with one taken at the restart
     time while keeping the first segment's band times -- and
@@ -303,10 +303,10 @@ class TestNestDumpParentRestart(unittest.TestCase):
         binary = caselib.solver_binary()
         if not binary.exists():
             raise unittest.SkipTest(f"solver binary not found at {binary}")
-        cls.preset = replace(get_preset("tiny"), name="tiny-nestdump-restart",
-                             parent_output="nestdump")
+        cls.preset = replace(get_preset("tiny"), name="tiny-nestparent-restart",
+                             parent_output="nestparent")
         cls.preset.validate()
-        cls._temp = tempfile.mkdtemp(prefix="udales-nestdump-restart-")
+        cls._temp = tempfile.mkdtemp(prefix="udales-nestparent-restart-")
         cls.rundir = Path(cls._temp)
         p, nr = cls.preset, cls.preset.parent_expnr
         nproc = p.nprocx * p.nprocy
@@ -319,7 +319,7 @@ class TestNestDumpParentRestart(unittest.TestCase):
         # segment 1 -- a short production phase that does write a restart
         run_v1._set_startfile(nml, run_v1._restart_file(cls.parent_dir, nr))
         _set_namelist(nml, runtime=cls.SEG1_RUNTIME, trestart=cls.SEG1_RUNTIME,
-                      tnestdump=cls.CADENCE)
+                      tnestparent=cls.CADENCE)
         run_solver(cls.parent_dir, f"namoptions.{nr}", nproc, cls.parent_dir / "seg1.log")
         cls.band1 = _band_times(cls.parent_dir, nr)
         cls.init1 = _init_time(cls.parent_dir, nr)
@@ -334,7 +334,7 @@ class TestNestDumpParentRestart(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        if cls._temp and not os.environ.get("UDALES_NESTDUMP_KEEP"):
+        if cls._temp and not os.environ.get("UDALES_NESTPARENT_KEEP"):
             shutil.rmtree(cls._temp, ignore_errors=True)
         elif cls._temp:
             print(f"run directory kept at {cls._temp}")
@@ -366,7 +366,7 @@ class TestNestDumpParentRestart(unittest.TestCase):
         """The end-to-end consequence: make_child_case pairs init with band[0]."""
         p = self.preset
         outdir = self.rundir / "child_from_continued"
-        driving = DrivingParent.matched(self.parent_dir, p, source="nestdump")
+        driving = DrivingParent.matched(self.parent_dir, p, source="nestparent")
         try:
             casedir = make_child_case.build(self.parent_dir, outdir, p, driving=driving)
         finally:

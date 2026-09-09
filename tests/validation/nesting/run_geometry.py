@@ -603,11 +603,11 @@ def _disk_estimate(exp: Experiment) -> str:
     """Rough disk budget, in the units of :func:`config.Preset.summary`.
 
     Periodic runs can write ``&OUTPUT`` (``fielddump_interval``, whole domain),
-    ``&NESTDUMP`` (``dtdump``, the child's band + 1 cell only) or both -- see
+    ``&NESTPARENT`` (``dtdump``, the child's band + 1 cell only) or both -- see
     ``config.Preset.parent_output``.  For a child, the nesting file's levels
     are counted at its own boundary ``cadence`` and its field dump at
     ``child_dtdump``; both default to ``dtdump`` but V3/V4's parents decouple
-    them (fine ``&NESTDUMP`` cadence, coarse everything else).
+    them (fine ``&NESTPARENT`` cadence, coarse everything else).
     """
     lines, total = [], 0.0
     for r in exp.periodic:
@@ -616,8 +616,8 @@ def _disk_estimate(exp: Experiment) -> str:
         if p.writes_fielddump:
             nt = p.production / p.fielddump_interval
             gb += nt * 3 * p.itot * p.jtot * p.ktot * 4 / 1e9
-        if p.writes_nestdump:
-            nb = p.nestdump_nzone()
+        if p.writes_nestparent:
+            nb = p.nestparent_nzone()
             ni, nj = p.child_itot, p.child_jtot
             band_cells = ni * nj - max(ni - 2 * nb, 0) * max(nj - 2 * nb, 0)
             nt = p.production / p.dtdump
@@ -726,11 +726,11 @@ def main() -> int:
             # The parent writes whatever p.parent_output says (config.Preset,
             # inherited from the periodic run this child was built as a
             # replace() of): 'both' for V3/V4 production and tiny presets, so
-            # the child is driven from the fine &NESTDUMP band rather than the
+            # the child is driven from the fine &NESTPARENT band rather than the
             # coarse &OUTPUT dump that exists only for the parent's own
             # periodic-stats.  See presets_geometry's V3_PARENT/V4_PARENT for
             # why the two cadences differ.
-            source = "nestdump" if p.writes_nestdump else "fielddump"
+            source = "nestparent" if p.writes_nestparent else "fielddump"
             driving = make_child_case.DrivingParent.matched(parent_dir, p, source=source)
             try:
                 make_child_case.build(parent_dir, rundir, p,

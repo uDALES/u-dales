@@ -6,7 +6,7 @@
 #
 # V6 -- does mass drift over long nested runs?
 # docs/udales-nesting-design.md section 10.4 row V6 ("10^5-step run -> divtot
-# bounded, not drifting"), section 6.4 (diagnostics), src/modnesting.f90's
+# bounded, not drifting"), section 6.4 (diagnostics), src/nesting_scheme.f90's
 # check_record_end (the freeze) and nesting_stats (what gets reported);
 # tests/validation/nesting/README.md.
 #
@@ -26,7 +26,7 @@
 # initial condition to be pressure-projected before the first dump); the
 # child is built from that short record with nest_lendabort = .false.
 # (config.V6), so instead of aborting when it reads past the last stored
-# level (src/modnesting.f90 check_record_end, the Fortran default), it warns
+# level (src/nesting_scheme.f90 check_record_end, the Fortran default), it warns
 # once and holds the boundary at that last level for the rest of the run.
 # run_v6.py then patches RUN.runtime out to ~100,000 steps' worth of
 # simulated time -- about 3.7x the ~24 s stored record's own span -- so the
@@ -37,7 +37,7 @@
 # (analyse_v6.summarize_series, tests/validation/nesting/README.md).
 #
 # nest_timeinterp = 2 (Catmull-Rom cubic Hermite) rather than TINY's linear:
-# the freeze exercises eval_target's h2 <= 0 fallback in modnesting.f90, which
+# the freeze exercises eval_target's h2 <= 0 fallback in nesting_scheme.f90, which
 # only exists on the cubic path (confirmed by reading the code, not assumed --
 # see config.V6's docstring and test_v6_tiny.TestV6TinyPipeline, which checks
 # the warning fires exactly once and the run does not abort).

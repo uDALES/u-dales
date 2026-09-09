@@ -26,11 +26,11 @@ The child's clock starts at 0, so the parent dump times are shifted by
 ``t_offset = times[0]``.  ``manifest.json`` records the mapping.
 
 Two driving sources (``--source``, :attr:`DrivingParent.source`): the parent's
-full-domain ``fielddump`` files, or its ``nestdump`` band files (``&NESTDUMP``,
-``src/modnestdump.f90``, plan item D1) plus the ``nestdump_init`` block for the
+full-domain ``fielddump`` files, or its ``nestparent`` band files (``&NESTPARENT``,
+``src/nesting_parent.f90``, plan item D1) plus the ``nestparent_init`` block for the
 initial condition.  Both go through the same cut, the same writer and produce
 the same file; a parent run with both switches on at one cadence gives
-bit-identical nesting files (``test_nestdump_tiny.py``).  The nestdump band has
+bit-identical nesting files (``test_nestparent_tiny.py``).  The nestparent band has
 no interior, so with that source the ``prof.inp`` seed and the recorded driving
 parent profile come from the single initial block.
 
@@ -54,7 +54,7 @@ import caselib
 from caselib import (
     CoarsenedFieldDump,
     FieldDump,
-    NestDump,
+    NestParent,
     check_finite_slabs,
     coarsen_fluid_mask,
     cube_geometry,
@@ -164,7 +164,7 @@ def child_sections(preset: Preset, runtime: float) -> "OrderedDict":
             # past the last stored parent level is a configuration mistake and
             # should abort.  V6 sets this .false. on purpose -- design section
             # 10.4 row V6 wants exactly that "past the record" state, held
-            # rather than fatal (modnesting.check_record_end).
+            # rather than fatal (nesting.check_record_end).
             ("nest_lendabort", preset.nest_lendabort),
             # -1.0 (the Fortran default: nest_statint <- tstatsdump) unless a
             # preset overrides it.  config.Preset.nest_statint's docstring
@@ -240,9 +240,9 @@ class DrivingParent:
     ktot: int
     label: str
     #: ``"fielddump"`` -- full-domain dumps, every level holds the whole child
-    #: window; ``"nestdump"`` -- the parent-side zone dump (``&NESTDUMP``,
-    #: ``caselib.NestDump``), every level holds the band only and the initial
-    #: block comes from the ``nestdump_init`` files.
+    #: window; ``"nestparent"`` -- the parent-side zone dump (``&NESTPARENT``,
+    #: ``caselib.NestParent``), every level holds the band only and the initial
+    #: block comes from the ``nestparent_init`` files.
     source: str = "fielddump"
 
     # -- constructors ------------------------------------------------------- #
@@ -270,7 +270,7 @@ class DrivingParent:
             if source != "fielddump":
                 raise ValueError(
                     "the filtered arm box-filters the fine reference's full dumps; "
-                    "it cannot be driven from a nestdump band")
+                    "it cannot be driven from a nestparent band")
             dump: Any = CoarsenedFieldDump(
                 FieldDump(parent_dir, point.reference_expnr, c.dx), point.coarsen)
             source_nr = point.reference_expnr
@@ -289,9 +289,9 @@ class DrivingParent:
     def _open(parent_dir: Path, expnr: str, dx: float, source: str) -> Any:
         if source == "fielddump":
             return FieldDump(parent_dir, expnr, dx)
-        if source == "nestdump":
-            return NestDump(parent_dir, expnr, dx)
-        raise ValueError(f"unknown driving source {source!r}; 'fielddump' or 'nestdump'")
+        if source == "nestparent":
+            return NestParent(parent_dir, expnr, dx)
+        raise ValueError(f"unknown driving source {source!r}; 'fielddump' or 'nestparent'")
 
     # -- derived ------------------------------------------------------------ #
 
@@ -574,7 +574,7 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     cell_sum = {c: np.zeros((ii_p.size, jj_p.size, nkp)) for c in "uvw"}
     cell_sumsq = {c: np.zeros((ii_p.size, jj_p.size, nkp)) for c in "uvw"}
     # How many levels the profiles below are averaged over.  A full-domain dump
-    # contributes every level; a nestdump band has no interior, so the profile
+    # contributes every level; a nestparent band has no interior, so the profile
     # (which only seeds prof.inp and reports what the parent knew) is taken
     # from the single initial block instead.
     n_profile = n_use if driving.complete_levels else 1
@@ -670,12 +670,12 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
             if n == 0 and not driving.complete_levels:
                 # The band has no interior: the initial block is the parent's
                 # separate whole-box write at the first dump time, which is
-                # the instant of level 0 (modnestdump writes both from the
+                # the instant of level 0 (nesting_parent writes both from the
                 # same field).  It also stands in for the profile.
                 iu, iv, iw = dump.read_init()
                 if abs(float(dump.init_time) - float(all_times[0])) > 1.0e-6:
                     raise RuntimeError(
-                        f"nestdump_init is stamped t = {dump.init_time} but the first "
+                        f"nestparent_init is stamped t = {dump.init_time} but the first "
                         f"band level is t = {all_times[0]}")
                 accumulate_profile(iu, iv, iw, float(dump.init_time) - float(times[0]))
                 if preset.init_from_parent:
@@ -713,7 +713,7 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
                                           prolongation=prolongation)
             else:
                 level = slabs_from_fields(grid, nzone, cu, cv, cw)
-            # A slab that reached past a nestdump band is NaN, not zero.
+            # A slab that reached past a nestparent band is NaN, not zero.
             check_finite_slabs(level, getattr(dump, "nzone", pni), driving.dx)
             phi_after[n] = writer.append_level(
                 times[n] - times[0], level, initial_fields=initial_fields,
@@ -726,7 +726,7 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
     # Largest pre-correction |Phi| over the record, as the writer saw it arrive
     phi_before_max = float(diagnostics["correction"]["residual_max_abs"])
     phi_after_max = float(np.max(np.abs(phi_after)))
-    # Total lateral boundary area -- the normalisation modnesting's
+    # Total lateral boundary area -- the normalisation nesting's
     # check_stored_flux uses (phi = sum(rho u_n dA) / area_bnd).
     area = 2.0 * (grid.xlen + grid.ylen) * grid.zsize
     # The stored initial condition is the synced and projected one; its
@@ -755,7 +755,7 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         prof_comment = ("parent sub-region time- and plane-mean profile "
                         "(fluid cells only)"
                         + ("" if driving.complete_levels else
-                           ", from the nestdump initial block only"))
+                           ", from the nestparent initial block only"))
     write_prof(casedir / f"prof.inp.{nr}", zf, u=uprof, v=vprof, e12=preset.tke0,
                comment=prof_comment)
     # ---- the VALIDATION profile: windowed, not the full record ----------- #
@@ -779,7 +779,7 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
             f"only one driving-parent level falls inside the {window_note}: "
             "no time series to take a temporal statistic over")
     else:
-        # Either a nestdump (band-only) source, whose single initial block sits
+        # Either a nestparent (band-only) source, whose single initial block sits
         # at t = 0 and essentially never falls inside stats_start..runtime, or
         # a complete-levels source whose record does not reach the window at
         # all. Either way: no interior field over the window, so none of
@@ -790,7 +790,7 @@ def build(parent_dir: Path, outdir: Path, preset: Preset,
         tke_unavailable_reason = (
             f"no driving-parent levels fall inside the {window_note}"
             + ("" if driving.complete_levels else
-               " (nestdump band source: only the single t=0 initial block "
+               " (nestparent band source: only the single t=0 initial block "
                "is available, and it does not fall inside stats_start)"))
     mean_available = n_profile_valid > 0
     driving_profile = {
@@ -952,9 +952,9 @@ def main() -> None:
     parser.add_argument("outdir", type=Path)
     parser.add_argument("--preset", default="production")
     parser.add_argument("--ibm-backend", default="auto")
-    parser.add_argument("--source", default="fielddump", choices=("fielddump", "nestdump"),
+    parser.add_argument("--source", default="fielddump", choices=("fielddump", "nestparent"),
                         help="which parent output to build from: the full field dumps "
-                             "or the &NESTDUMP band files")
+                             "or the &NESTPARENT band files")
     args = parser.parse_args()
 
     preset = get_preset(args.preset)

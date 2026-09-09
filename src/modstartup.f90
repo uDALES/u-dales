@@ -95,13 +95,13 @@ module modstartup
                                     nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
                                     nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
                                     createmasks, lbottom, lnorec
-      use modnesting,        only : lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau, &
+      use nesting_scheme,        only : lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau, &
                                     nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
                                     nest_lparentgeom, nest_fluxtol, nest_lfluxassert, &
                                     nest_lfluxcheckall, nest_linitfromparent, nest_statint, &
                                     nest_lendabort
-      use modnestdump,       only : lnestdump, tnestdump, nestdump_x0, nestdump_y0, &
-                                    nestdump_xsize, nestdump_ysize, nestdump_nzone, nestdump_linit
+      use nesting_parent,       only : lnestparent, tnestparent, nestparent_x0, nestparent_y0, &
+                                    nestparent_xsize, nestparent_ysize, nestparent_nzone, nestparent_linit
       use decomp_2d
 
       implicit none
@@ -182,9 +182,9 @@ module modstartup
          nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
          nest_lparentgeom, nest_fluxtol, nest_lfluxassert, &
          nest_lfluxcheckall, nest_linitfromparent, nest_statint, nest_lendabort
-      namelist/NESTDUMP/ &
-         lnestdump, tnestdump, nestdump_x0, nestdump_y0, nestdump_xsize, nestdump_ysize, &
-         nestdump_nzone, nestdump_linit
+      namelist/NESTPARENT/ &
+         lnestparent, tnestparent, nestparent_x0, nestparent_y0, nestparent_xsize, nestparent_ysize, &
+         nestparent_nzone, nestparent_linit
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -334,9 +334,9 @@ module modstartup
          !write (6, NESTING)
          rewind (ifnamopt)
 
-         read (ifnamopt, NESTDUMP, iostat=ierr)
+         read (ifnamopt, NESTPARENT, iostat=ierr)
          if (ierr > 0) then
-            write(0, *) 'ERROR: Problem in namoptions NESTDUMP'
+            write(0, *) 'ERROR: Problem in namoptions NESTPARENT'
             write(0, *) 'iostat error: ', ierr
             stop 1
          endif
@@ -657,14 +657,14 @@ module modstartup
       call MPI_BCAST(nest_linitfromparent, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(nest_statint, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nest_lendabort, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-      call MPI_BCAST(lnestdump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-      call MPI_BCAST(tnestdump, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(nestdump_x0, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(nestdump_y0, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(nestdump_xsize, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(nestdump_ysize, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(nestdump_nzone, 1, MPI_INTEGER, 0, comm3d, mpierr)
-      call MPI_BCAST(nestdump_linit, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lnestparent, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(tnestparent, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_x0, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_y0, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_xsize, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_ysize, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_nzone, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_linit, 1, MPI_LOGICAL, 0, comm3d, mpierr)
 
       ! ! Allocate and initialize core modules
       ! call initglobal
@@ -783,7 +783,7 @@ module modstartup
                               TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
       use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
       use modglobal,   only : idriver
-      use modnesting,  only : lnesting, nest_top, nest_guardwidth, nest_zonewidth, nest_tau, nest_lateral
+      use nesting_scheme,  only : lnesting, nest_top, nest_guardwidth, nest_zonewidth, nest_tau, nest_lateral
       implicit none
 
       if (mod(jtot, nprocy) /= 0) then

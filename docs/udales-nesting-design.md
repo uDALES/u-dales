@@ -735,7 +735,7 @@ condition and are about to be interpolated); promote to double on read. uDALES a
 
 - **Full-domain field dumps are not a production path.** V1's 170 GB of 3-D dumps covered 3 h at
   3 s; at 0.5 s the same window is 1 TB. The parent must write the zone slabs and the initial block
-  only (a `lnestdump` switch in the parent, item D1 in the plan), which is $n_z(i_{tot}+j_{tot})$
+  only (a `lnestparent` switch in the parent, item D1 in the plan), which is $n_z(i_{tot}+j_{tot})$
   cells per level against $i_{tot}j_{tot}$ — a factor of $\approx15$ for the production case.
 - **A coarser cadence is a choice with a measured price**, not a free parameter: the deficit curve
   of §10.5 (C0) and the recovery fetch of §10.5 (V2) together say how much interior a child needs
@@ -760,20 +760,20 @@ arithmetic is comfortable. The design target is therefore *"do nothing pathologi
    interval rather than stalling one substep. Double buffering already gives the slots; only the
    trigger point has to be early.
 
-**As implemented (D1, `src/modnestdump.f90`).** The parent writes the band with `&NESTDUMP`
-(`lnestdump`, `tnestdump`, the child box `nestdump_x0/y0/xsize/ysize` in parent coordinates on
-parent faces, `nestdump_nzone` parent cells inside each lateral face, `nestdump_linit`): each rank
+**As implemented (D1, `src/nesting_parent.f90`).** The parent writes the band with `&NESTPARENT`
+(`lnestparent`, `tnestparent`, the child box `nestparent_x0/y0/xsize/ysize` in parent coordinates on
+parent faces, `nestparent_nzone` parent cells inside each lateral face, `nestparent_linit`): each rank
 writes the intersection of its subdomain with each of the four strips of the band, `u0/v0/w0` in
-single precision with the upper staggered faces included, to its own `nestdump.<ipx>.<ipy>.<expnr>.nc`,
-plus its part of the whole box once to `nestdump_init.<ipx>.<ipy>.<expnr>.nc` at the first dump
+single precision with the upper staggered faces included, to its own `nesting.out.<ipx>.<ipy>.<expnr>.nc`,
+plus its part of the whole box once to `nesting.out.init.<ipx>.<ipy>.<expnr>.nc` at the first dump
 (spec section 9). The band is the child's guard + ramp on the parent grid, rounded up, **plus one
 cell**, which is what the linear tangential reconstruction of §1.3 needs at the outermost zone cell
 of a refined child. The data are raw: the flux correction of §3 and the initial-condition projection
-stay in `udprep.nesting`, which `make_child_case --source nestdump` feeds exactly as it feeds the
+stay in `udprep.nesting`, which `make_child_case --source nestparent` feeds exactly as it feeds the
 full dumps -- on the `tiny` preset the two sources give bit-identical nesting files, the tiny
 geometry's band files are 4.0x smaller than its field dumps (5.1x by cell count; the ~15x above is
 the production geometry), and the parent's own accounting printed 35 MB in 0.06 s of write calls
-for 40 dumps on 4 ranks (`tests/validation/nesting/test_nestdump_tiny.py`).
+for 40 dumps on 4 ranks (`tests/validation/nesting/test_nestparent_tiny.py`).
 
 ### 6.3 Container options
 
@@ -786,7 +786,7 @@ for 40 dumps on 4 ranks (`tests/validation/nesting/test_nestdump_tiny.py`).
 **Recommendation at design time** was rank-0 read + scatter behind a container-agnostic
 `nesting_read_slab` interface. **What is implemented** is the third row: NetCDF-4, every rank
 opening the file read-only and reading its own contiguous hyperslab of each slab with
-`nf90_get_var` (`modnestingio`), with no scatter and no parallel NetCDF. Four levels are buffered
+`nf90_get_var` (`nesting_read`), with no scatter and no parallel NetCDF. Four levels are buffered
 for the Hermite stencil; at a parent-interval crossing the slots are rolled and the one new level is
 read *synchronously, at the crossing, in the substep that crosses* — there is no read-ahead or
 prefetch, contrary to what §6.2 item 3 asks for. This was measured rather than argued (§10.7
@@ -1079,27 +1079,27 @@ enough (§7 C6)?
 
 | File | Change |
 |---|---|
-| `src/modnesting.f90` | **new** — the whole scheme (§9.2) |
+| `src/nesting_scheme.f90` | **new** — the whole scheme (§9.2) |
 | `src/modglobal.f90` | `BCxm_nesting = 4`, `BCym_nesting = 3`; six `TEST_NESTING_*` runmode constants |
-| `src/modstartup.f90` | `&NESTING` namelist + broadcasts; `checkinitvalues` guards; `call nesting_init`; `&NESTDUMP` namelist + broadcasts (D1) |
-| `src/program.f90` | three call sites (§4); runmode dispatch for the new tests; `initnestdump`/`nestdump`/`exitnestdump` next to the fielddump calls (D1) |
-| `src/modboundary.f90` | `case(BCxm_nesting)`/`case(BCym_nesting)` in `boundary`, in the outflow block, and in `bcpup` — each a thin delegation to `modnesting` |
+| `src/modstartup.f90` | `&NESTING` namelist + broadcasts; `checkinitvalues` guards; `call nesting_init`; `&NESTPARENT` namelist + broadcasts (D1) |
+| `src/program.f90` | three call sites (§4); runmode dispatch for the new tests; `initnestparent`/`nestparent`/`exitnestparent` next to the fielddump calls (D1) |
+| `src/modboundary.f90` | `case(BCxm_nesting)`/`case(BCym_nesting)` in `boundary`, in the outflow block, and in `bcpup` — each a thin delegation to `nesting` |
 | `src/tests.f90` | five new in-solver test entry points (§10.1) |
 | `src/modsave.f90` | *(unchanged — the restart state is reconstructed, not stored; §9.5)* |
 | `tools/python/udprep/nesting.py` | **new** — writer, conservative interpolation, divergence correction, validation |
-| `tools/python/namelists.json` | `&NESTING` and `&NESTDUMP` metadata |
-| `src/modnestdump.f90` | **new** (D1) -- the parent-side zone dump of §6.2: `&NESTDUMP`, per-rank band and initial-block files (spec section 9) |
-| `tests/validation/nesting/caselib.py`, `make_parent_case.py`, `make_child_case.py`, `config.py` | D1: `NestDump` reader, `Preset.parent_output` / `nestdump_sections`, the `nestdump` driving source; `test_nestdump_tiny.py` closes it |
+| `tools/python/namelists.json` | `&NESTING` and `&NESTPARENT` metadata |
+| `src/nesting_parent.f90` | **new** (D1) -- the parent-side zone dump of §6.2: `&NESTPARENT`, per-rank band and initial-block files (spec section 9) |
+| `tests/validation/nesting/caselib.py`, `make_parent_case.py`, `make_child_case.py`, `config.py` | D1: `NestParent` reader, `Preset.parent_output` / `nestparent_sections`, the `nestparent` driving source; `test_nestparent_tiny.py` closes it |
 | `tests/test_suites.yml` | new `nesting` group |
 | `docs/udales-boundary-conditions.md` | document `BCxm = 4`, `BCym = 3` |
 
 `CMakeLists.txt` needs no change (`file(GLOB_RECURSE ... CONFIGURE_DEPENDS "src/*.f90")`,
 [CMakeLists.txt:103](../CMakeLists.txt#L103)).
 
-### 9.2 `modnesting` — structure
+### 9.2 `nesting` — structure
 
 ```fortran
-module modnesting
+module nesting
   implicit none;  save;  private
   public :: nesting_init, nesting_update_target, nesting_apply, &
             nesting_boundary, nesting_bcpup, nesting_stats, nesting_finalize
@@ -1270,7 +1270,7 @@ $\sim10^{-7}$.
 
 | Stage | Content | Gate |
 |---|---|---|
-| **M0** | `modnesting` skeleton: namelist, `nest_shape_fn`, `nest_union`, `nest_stagger_coord`, zone lists, diagnostics. `nesting_apply` a no-op. BC constants, `checkinitvalues` guards. Runmodes `TEST_NESTING_WEIGHTS`, `TEST_NESTING_GEOMETRY`. | **U1–U14**, **I1** |
+| **M0** | `nesting` skeleton: namelist, `nest_shape_fn`, `nest_union`, `nest_stagger_coord`, zone lists, diagnostics. `nesting_apply` a no-op. BC constants, `checkinitvalues` guards. Runmodes `TEST_NESTING_WEIGHTS`, `TEST_NESTING_GEOMETRY`. | **U1–U14**, **I1** |
 | **M1** | Python writer: conservative interpolation, divergence correction, schema, validation. | **P1–P11** |
 | **M2** | Reader, time buffer, prefetch, restart state. Runmode `TEST_NESTING_IO`. | **U15–U22** |
 | **M3** | `nesting_bcpup`, `nesting_boundary`, $\Phi$ assertion. Runmode `TEST_NESTING_FLUX`. | **U23–U28**, **I2** |
@@ -1367,7 +1367,7 @@ from an analytic field, so this test also pins the writer/reader contract.
 |---|---|---|
 | U35 | the lid split | `nest_flux_split` gives $\Phi$, $\Phi_{\rm lid}$ and $\Phi-\Phi_{\rm lid}$ each equal to an independently summed global reference over the six / top / five faces |
 | U36 | a closed lid | with $w^\ast=0$ at the top, $\Phi_{\rm lid}$ is **exactly** zero and the asserted quantity is the old six-face $\Phi$ — so case A is unchanged |
-| U37 | the stored residual is real | `flux_residual` equals the residual recomputed from the four boundary-normal slabs, read straight through `modnestingio`, for every stored level; and `fluid_lateral_area` is this grid's |
+| U37 | the stored residual is real | `flux_residual` equals the residual recomputed from the four boundary-normal slabs, read straight through `nesting_read`, for every stored level; and `fluid_lateral_area` is this grid's |
 | U38 | schema 1 still works | a schema 1 file loads, warns that it predates schema 2, recomputes, and gives $\Phi=0$ at run time |
 | U39 | what the cheap check costs | a file whose stored residual lies is accepted at init and caught by the per-substep assertion instead — the trade-off is pinned rather than implied. Two abort cases close it: `nest_lfluxcheckall` catches the same file, and an `fluid_lateral_area` mismatch forces the recompute on its own |
 
@@ -1985,7 +1985,7 @@ nothing about the second moments, so the TKE rows above rest on a noisier truth 
 $45.7$ and $49.2\,\%$ of runtime (§10.4 quotes the mean, $47.8\,\%$): at 0.5 s over a 21 600-level
 record, reading boundary data costs nearly half the child's wall clock, against a $<1\,\%$
 criterion, and `nesting_stats` prints its own `WARNING parent I/O exceeds 1 %` on every arm. The
-parent-side zone dump (§6.2, `&NESTDUMP`) removes the *parent's* dump volume and the offline
+parent-side zone dump (§6.2, `&NESTPARENT`) removes the *parent's* dump volume and the offline
 slab-cut, not this: the child reads the same boundary file either way. So the container question
 §6.3 recorded as closed is reopened by its own acceptance criterion.
 
@@ -2018,7 +2018,7 @@ Recorded here rather than in a tracker so they travel with the design.
    informational line to an abort case.
 2. ~~**The C1 diagnostics are not implemented.**~~ **DONE.** `nesting_stats` now takes `p` as an
    argument — passed from `program.f90`, which already holds it, so the cycle
-   `modnesting → modpois → modboundary → modnesting` is avoided — and reports
+   `nesting → modpois → modboundary → nesting` is avoided — and reports
    $\|\mathcal{G}p\|_{\rm zone}$, $\|\mathcal{G}p\|_{\rm interior}$ and their ratio, plus the
    energy injection split between guard strip and relaxation ramp (accumulated in `nesting_apply`).
 3. ~~**Init recomputes $\Phi$ from the boundary slabs for every stored time.**~~ **DONE, measured.**

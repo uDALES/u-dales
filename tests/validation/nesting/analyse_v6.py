@@ -5,7 +5,7 @@
 point of the construction is that the boundary goes steady partway through and
 stays there, so every diagnostic that matters is already in the solver's own
 stdout: ``modchecksim.chkdiv``'s ``divmax, divtot`` line (throttled by
-``tcheck``) and ``modnesting.nesting_stats``'s block (throttled by
+``tcheck``) and ``nesting.nesting_stats``'s block (throttled by
 ``nest_statint`` -- ``Phi (norm)``, the zone misfit rms, ``|grad p|`` zone /
 interior / ratio).  This module parses ``child.log``, fits a trend to each
 series over the whole run, and answers the row's question directly: a slope
@@ -30,12 +30,12 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 
 # -- log line patterns -------------------------------------------------- #
-# One line each, all printed by rank 0 only (modchecksim.f90, modnesting.f90).
+# One line each, all printed by rank 0 only (modchecksim.f90, nesting_scheme.f90).
 # Fortran prints a blown-up diagnostic as ``NaN``/``Infinity``, or -- when the
 # value overflows an ES field -- as a run of asterisks.  Those tokens MUST be
 # matched and carried through as non-finite floats rather than left unmatched.
 # An unmatched line drops silently out of its series while the surrounding
-# ``modnesting: t =`` timestamps still parse, so a run that blew up keeps only
+# ``nesting: t =`` timestamps still parse, so a run that blew up keeps only
 # the healthy samples that preceded it and then reads as bounded, trend-free
 # and full-duration -- a blow-up certified as PASS.  ``_num`` converts.
 _NONFIN = (r"(?:[-+]?(?:NaN|nan|NAN)"
@@ -65,13 +65,13 @@ _P_CHECKSIM = re.compile(rf"Time of Simulation:\s*({_FLOAT})\s+dt:\s*({_FLOAT})"
 # by its own fixed shape (one leading digit, decimal point, exponent) rather
 # than relying on \s+ to separate them handles that case too.
 _P_DIVDIV = re.compile(rf"divmax, divtot =\s*({_ES_NUM})\s*({_ES_NUM})")
-_P_NEST_T = re.compile(rf"modnesting: t\s*=\s*({_FLOAT})")
-_P_PHI = re.compile(rf"modnesting: Phi \(norm\) =\s*({_FLOAT})")
+_P_NEST_T = re.compile(rf"nesting: t\s*=\s*({_FLOAT})")
+_P_PHI = re.compile(rf"nesting: Phi \(norm\) =\s*({_FLOAT})")
 _P_PHI_LID = re.compile(
-    rf"modnesting: Phi lid\s*=\s*({_FLOAT})\s*closed faces =\s*({_FLOAT})")
-_P_MISFIT = re.compile(rf"modnesting: zone misfit rms \[m/s\] =\s*({_FLOAT})")
+    rf"nesting: Phi lid\s*=\s*({_FLOAT})\s*closed faces =\s*({_FLOAT})")
+_P_MISFIT = re.compile(rf"nesting: zone misfit rms \[m/s\] =\s*({_FLOAT})")
 _P_GRADP = re.compile(
-    rf"modnesting: \|grad p\| zone =\s*({_FLOAT})\s*interior =\s*({_FLOAT})\s*"
+    rf"nesting: \|grad p\| zone =\s*({_FLOAT})\s*interior =\s*({_FLOAT})\s*"
     rf"ratio =\s*({_FLOAT})")
 _P_FREEZE_WARN = re.compile(
     r"WARNING.*boundary (?:will freeze|now freezes) on (?:the last level|that level)")
@@ -86,7 +86,7 @@ def parse_log(path: Path) -> Dict[str, object]:
     (the ``nest_statint`` cadence, one dict per report carrying whichever of
     ``phi``/``phi_lid``/``phi_closed``/``misfit_rms``/``gradp_zone``/
     ``gradp_interior``/``gradp_ratio`` that report printed).  Grouping the
-    ``modnesting:`` block into one record per ``t`` line relies on
+    ``nesting:`` block into one record per ``t`` line relies on
     ``nesting_stats`` writing its lines consecutively with nothing else
     interleaved, which holds because rank 0 is the only writer.
     """

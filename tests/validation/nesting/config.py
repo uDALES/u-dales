@@ -35,7 +35,7 @@ import numpy as np
 # Only ``Preset.validate`` needs ``udprep`` (to check ``prolongation`` against
 # the writer's own ``PROLONGATIONS``), and only when a preset sets that field --
 # config.py is otherwise deliberately free of solver-tooling imports (see
-# ``Preset.nestdump_nzone``).  Bootstrapped here, the same way ``caselib.py``
+# ``Preset.nestparent_nzone``).  Bootstrapped here, the same way ``caselib.py``
 # does it, so ``python config.py ...`` works standalone and not only when
 # something else has already put ``tools/python`` on ``sys.path``.
 _PYTOOLS = _Path(__file__).resolve().parents[3] / "tools" / "python"
@@ -128,7 +128,7 @@ class Preset:
     nzone: int          #: zone thickness stored in the nesting file, in cells
     nwall: int          #: nest_nwall, wall erosion in cells
     #: nest_timeinterp.  1 = linear, 2 = cubic Hermite with Catmull-Rom slopes
-    #: (``modnesting.f90``, ``nest_interp_time``).  Mode 2 is **unlimited**: the
+    #: (``nesting_scheme.f90``, ``nest_interp_time``).  Mode 2 is **unlimited**: the
     #: interpolant is a fixed linear combination of the four buffered levels,
     #: so a set of levels whose net flux is individually zero interpolates to
     #: zero net flux and the divergence compatibility of design section 3.1
@@ -184,14 +184,14 @@ class Preset:
     #: Interval [s] of the **parent's own** ``&OUTPUT`` field dump; ``None``
     #: means ``dtdump``, i.e. the historical behaviour where the full-domain
     #: dump *is* the driving cadence (every V1/V2/C0 preset).  Set this instead
-    #: when ``dtdump`` has become the fine ``&NESTDUMP`` cadence a child is
+    #: when ``dtdump`` has become the fine ``&NESTPARENT`` cadence a child is
     #: driven from (``C_dump <= 2``) and the parent's own full-field dump is an
     #: independent, coarser diagnostic sample -- V3 and V4's periodic runs read
     #: their own ``FieldDump`` in ``periodic-stats`` (bulk velocity, canopy
     #: statistics) at the old 3 s cadence that was always enough for those
     #: numbers, while the boundary band feeding the child is written far more
     #: often.  Unlike ``cadence``/``child_dtdump`` this need not be a multiple
-    #: of ``dtdump``: ``&OUTPUT`` and ``&NESTDUMP`` are two independent dump
+    #: of ``dtdump``: ``&OUTPUT`` and ``&NESTPARENT`` are two independent dump
     #: triggers in the solver, not one derived from the other.
     fielddump_dtdump: Optional[float] = None
     #: The child window that carved the parent's plaza, when that window is not
@@ -226,11 +226,11 @@ class Preset:
     #:                    (``&OUTPUT lfielddump``), the V1/V2/C0 path.  Needed
     #:                    whenever the parent is also the *reference* the child
     #:                    is compared against, or a V0 driver is box-filtered.
-    #: ``"nestdump"``  -- only the child's band and one initial block
-    #:                    (``&NESTDUMP``, ``src/modnestdump.f90``, plan item D1):
+    #: ``"nestparent"``  -- only the child's band and one initial block
+    #:                    (``&NESTPARENT``, ``src/nesting_parent.f90``, plan item D1):
     #:                    what a driving parent needs to write at a fine cadence.
     #: ``"both"``      -- the two side by side, at the same ``dtdump``; the
-    #:                    bit-identity check of ``test_nestdump_tiny`` uses it.
+    #:                    bit-identity check of ``test_nestparent_tiny`` uses it.
     parent_output: str = "fielddump"
     #: experiment numbers
     parent_expnr: str = "903"
@@ -247,7 +247,7 @@ class Preset:
     #: plan section 7, finding R2) is what V0b sweeps.  Validated against
     #: ``udprep.nesting.PROLONGATIONS`` in :meth:`validate`.
     prolongation: Optional[str] = None
-    #: ``modnesting.check_record_end``: ``True`` (the Fortran default, and
+    #: ``nesting.check_record_end``: ``True`` (the Fortran default, and
     #: every preset before V6) aborts the run the moment it would read past the
     #: last stored parent time level.  ``False`` warns once
     #: (``nendwarn``) and then holds the boundary at the last stored level for
@@ -256,7 +256,7 @@ class Preset:
     #: growth in ``divtot``/``divmax``/`Phi` be read as numerical drift with
     #: nothing else in play.
     nest_lendabort: bool = True
-    #: ``modnesting`` ``nest_statint`` [s]: throttle on ``nesting_stats``
+    #: ``nesting`` ``nest_statint`` [s]: throttle on ``nesting_stats``
     #: reports (design section 6.4).  ``None`` reproduces the Fortran default
     #: exactly (written as ``-1.0``, which ties it to ``tstatsdump``) -- every
     #: preset before V6.  V6 leaves this ``None`` too and overrides it after
@@ -381,15 +381,15 @@ class Preset:
         return int(np.ceil((self.guardwidth + self.zonewidth) / self.dx - 1.0e-9))
 
 
-    # -- the parent-side zone dump (&NESTDUMP, src/modnestdump.f90) --------- #
+    # -- the parent-side zone dump (&NESTPARENT, src/nesting_parent.f90) --------- #
 
     @property
     def writes_fielddump(self) -> bool:
         return self.parent_output in ("fielddump", "both")
 
     @property
-    def writes_nestdump(self) -> bool:
-        return self.parent_output in ("nestdump", "both")
+    def writes_nestparent(self) -> bool:
+        return self.parent_output in ("nestparent", "both")
 
     @property
     def fielddump_interval(self) -> float:
@@ -400,7 +400,7 @@ class Preset:
         """
         return self.dtdump if self.fielddump_dtdump is None else self.fielddump_dtdump
 
-    def nestdump_nzone(self, child: Optional["Preset"] = None) -> int:
+    def nestparent_nzone(self, child: Optional["Preset"] = None) -> int:
         """Band thickness the parent has to dump, in **parent** cells.
 
         The child's stored zone (``child.nzone`` cells of ``child.dx``) or its
@@ -415,9 +415,9 @@ class Preset:
         width = max(c.nzone * c.dx, c.guardwidth + c.zonewidth)
         return int(np.ceil(width / self.dx - 1.0e-9)) + 1
 
-    def nestdump_sections(self, child: Optional["Preset"] = None
+    def nestparent_sections(self, child: Optional["Preset"] = None
                           ) -> "OrderedDict[str, object]":
-        """The ``&NESTDUMP`` block for this parent, boxed on ``child``'s window.
+        """The ``&NESTPARENT`` block for this parent, boxed on ``child``'s window.
 
         ``child`` (default: this preset's own child) must sit on the same
         physical window -- a V0 driver is a ``dataclasses.replace`` of the fine
@@ -430,16 +430,16 @@ class Preset:
                              ("xsize", c.child_xlen), ("ysize", c.child_ylen)):
             if abs(value / self.dx - round(value / self.dx)) > 1.0e-9:
                 raise ValueError(
-                    f"nestdump {label} = {value} m is not on the {self.dx} m parent grid")
+                    f"nestparent {label} = {value} m is not on the {self.dx} m parent grid")
         return OrderedDict([
-            ("lnestdump", True),
-            ("tnestdump", float(self.dtdump)),
-            ("nestdump_x0", float(x0)),
-            ("nestdump_y0", float(y0)),
-            ("nestdump_xsize", float(c.child_xlen)),
-            ("nestdump_ysize", float(c.child_ylen)),
-            ("nestdump_nzone", int(self.nestdump_nzone(c))),
-            ("nestdump_linit", True),
+            ("lnestparent", True),
+            ("tnestparent", float(self.dtdump)),
+            ("nestparent_x0", float(x0)),
+            ("nestparent_y0", float(y0)),
+            ("nestparent_xsize", float(c.child_xlen)),
+            ("nestparent_ysize", float(c.child_ylen)),
+            ("nestparent_nzone", int(self.nestparent_nzone(c))),
+            ("nestparent_linit", True),
         ])
 
     @property
@@ -704,7 +704,7 @@ class Preset:
     def zone_fraction(self) -> float:
         """``(L_imp + L_rel)`` as a fraction of the shorter child side.
 
-        ``nesting_init`` prints a warning above 0.15 (``modnesting.f90:198``).
+        ``nesting_init`` prints a warning above 0.15 (``nesting_scheme.f90:198``).
         At the small end of the V2b sweep it fires, and that is expected: the
         warning is about how much of the domain the zone eats, not about the
         zone being wrong.
@@ -776,9 +776,9 @@ class Preset:
             )
         if self.geometry not in ("plaza", "uniform"):
             errors.append(f"geometry must be 'plaza' or 'uniform', got {self.geometry!r}")
-        if self.parent_output not in ("fielddump", "nestdump", "both"):
+        if self.parent_output not in ("fielddump", "nestparent", "both"):
             errors.append(
-                f"parent_output must be 'fielddump', 'nestdump' or 'both', got "
+                f"parent_output must be 'fielddump', 'nestparent' or 'both', got "
                 f"{self.parent_output!r}")
         if self.prolongation is not None:
             from udprep.nesting import PROLONGATIONS
@@ -791,13 +791,13 @@ class Preset:
         if self.nest_statint is not None and not (self.nest_statint > 0):
             errors.append(f"nest_statint = {self.nest_statint} s is not positive")
         if self.writes_fielddump and self.fielddump_dtdump is not None \
-                and self.writes_nestdump and abs(self.fielddump_dtdump - self.dtdump) < 1.0e-9:
+                and self.writes_nestparent and abs(self.fielddump_dtdump - self.dtdump) < 1.0e-9:
             # Not an error -- explicitly restating dtdump is harmless -- but on
             # "both" it usually means the decoupling was meant to happen and
             # didn't; flag it the way the 'plaza' inheritance note does.
             print(f"[config] note: preset '{self.name}' sets fielddump_dtdump = "
                   f"{self.fielddump_dtdump:g} s, equal to dtdump; the field dump "
-                  "and the nestdump band write at the same cadence")
+                  "and the nestparent band write at the same cadence")
         for cx, cy in self.removed_cubes_reaching_the_interior():
             errors.append(
                 f"clearing the child's zone would remove a cube at ({cx:g}, {cy:g}) m "
@@ -883,7 +883,7 @@ class Preset:
             f"                     child spin-up {self.child_spinup:g} s, statistics over "
             f"{self.production - self.child_spinup:g} s",
             f"parent output        {self.parent_output}"
-            + (f" (&OUTPUT every {self.fielddump_interval:g} s, &NESTDUMP every "
+            + (f" (&OUTPUT every {self.fielddump_interval:g} s, &NESTPARENT every "
                f"{self.dtdump:g} s)" if self.parent_output == "both"
                and abs(self.fielddump_interval - self.dtdump) > 1.0e-9 else ""),
             f"boundary cadence     {self.cadence:g} s = every "
@@ -992,7 +992,7 @@ TINY = Preset(
 #: partway through and stays steady for the rest of a ~1e5-step run.  With a
 #: time-invariant imposed boundary, any later growth in ``divtot``, ``divmax``
 #: or the flux residual Phi is numerical drift and nothing else -- see
-#: ``src/modnesting.f90``'s ``check_record_end`` (the freeze) and
+#: ``src/nesting_scheme.f90``'s ``check_record_end`` (the freeze) and
 #: ``nesting_stats`` (what gets reported, throttled by ``nest_statint``).
 #:
 #: ``nest_statint`` is left at the ``None`` default here on purpose: the right
@@ -1010,7 +1010,7 @@ TINY = Preset(
 #: thin job, not a wide one") -- ``src/tests.f90`` documents 1x1 as a supported
 #: nested-run rank layout.  ``timeinterp = 2`` (Catmull-Rom) rather than
 #: TINY's 1 (linear): the freeze exercises ``eval_target``'s ``h2 <= 0``
-#: fallback (modnesting.f90), which only exists on the cubic path, so this is
+#: fallback (nesting_scheme.f90), which only exists on the cubic path, so this is
 #: the interpolant that actually tests the frozen-boundary code, not the one
 #: that never calls it.
 V6 = replace(
@@ -2138,7 +2138,7 @@ V0B_TINY = _v0b_suite(
 # THE PRESSURE DIAGNOSTIC.  V0b inherited `nest_statint = -1` -> `tstatsdump`,
 # so every point got only the compulsory first/last `nesting_stats` report
 # (n = 2, the first a startup transient) -- review finding 2.  `nest_statint`
-# is a TIME interval (`modnesting.f90` checks it against `timee`, not a step
+# is a TIME interval (`nesting_scheme.f90` checks it against `timee`, not a step
 # count), so unlike V6's `nest_statint` it needs no probe run to size: 30 s
 # over the 10800 s run gives ~360 reports, ~340 of them after the 600 s
 # discard -- a genuinely resolved series to take a mean and a spread from,
@@ -2146,17 +2146,17 @@ V0B_TINY = _v0b_suite(
 #
 # DISK.  The dominant cost is 982's own full-domain field dump: box-filtering
 # for the r = 2/4 arms needs `CoarsenedFieldDump` over the WHOLE 256 x 256 x 64
-# domain (there is no NaN-safe way to coarsen `caselib.NestDump`'s own
+# domain (there is no NaN-safe way to coarsen `caselib.NestParent`'s own
 # NaN-outside-the-band box without also widening its stored zone to
 # `refine x` the coarse driving preset's own margin AND reworking
 # `DrivingParent`'s global-index addressing, which assumes the array
 # `CoarsenedFieldDump` wraps covers the full domain from index 0 -- a
-# `NestDump` box's footprint already equals the child window, addressed from
+# `NestParent` box's footprint already equals the child window, addressed from
 # its own local origin.  That is not a cheap extension, so this suite falls
 # back to full `FieldDump` dumps and budgets for them rather than attempting
 # it under time pressure); the r = 1 control could in principle read a cheap
-# `&NESTDUMP` band instead, but since 982 must write the full 0.5 s dump
-# anyway for r = 2/4, a separate NESTDUMP output would be pure extra cost for
+# `&NESTPARENT` band instead, but since 982 must write the full 0.5 s dump
+# anyway for r = 2/4, a separate NESTPARENT output would be pure extra cost for
 # zero marginal saving and is not requested.  At the measured ~100 GB per
 # 1000 s of full-domain 2 m dumps at 0.5 s (`3 * 256 * 256 * 64 * 4` bytes/level
 # = 50 MB/level; clusters.md), 10800 s is ~1.08 TB, new and persistent.  Each

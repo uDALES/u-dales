@@ -420,8 +420,8 @@ class GeoPreset(Preset):
             errors.append("building_height is not a whole number of cells")
         if self.child_spinup >= self.production:
             errors.append("child_spinup leaves no statistics window")
-        if self.parent_output not in ("fielddump", "nestdump", "both"):
-            errors.append(f"parent_output must be 'fielddump', 'nestdump' or 'both', "
+        if self.parent_output not in ("fielddump", "nestparent", "both"):
+            errors.append(f"parent_output must be 'fielddump', 'nestparent' or 'both', "
                           f"got {self.parent_output!r}")
         if self.fielddump_dtdump is not None and not (self.fielddump_dtdump > 0):
             errors.append(f"fielddump_dtdump = {self.fielddump_dtdump} s is not positive")
@@ -524,7 +524,7 @@ class GeoPreset(Preset):
             f"schedule             spin-up {self.spinup:g} s, production "
             f"[{self.t_start:g}, {self.t_end:g}] s, dtdump {self.dtdump:g} s",
             f"parent output        {self.parent_output}"
-            + (f" (&OUTPUT every {self.fielddump_interval:g} s, &NESTDUMP every "
+            + (f" (&OUTPUT every {self.fielddump_interval:g} s, &NESTPARENT every "
                f"{self.dtdump:g} s)" if self.parent_output == "both"
                and abs(self.fielddump_interval - self.dtdump) > 1.0e-9 else ""),
             f"ranks                {self.nprocx} x {self.nprocy}",
@@ -723,7 +723,7 @@ class Experiment:
 #: what makes the V3 canopy the *same* canopy V1 and V2 measured.
 #: ``dtdump`` is set per preset below, not here: a "reference" run needs
 #: nothing finer than the historical 3 s (nobody drives a child from it), while
-#: a "parent" run's ``dtdump`` is the ``&NESTDUMP`` cadence a child is driven
+#: a "parent" run's ``dtdump`` is the ``&NESTPARENT`` cadence a child is driven
 #: from and has to satisfy ``C_dump <= 2`` (nesting-plan-2026-09-06.md section
 #: 1, "V3, V4"; docs/udales-nesting-design.md section 10.5's operating rule).
 #: ``timeinterp = 2`` (Catmull-Rom, unlimited) is C0c's recommended default.
@@ -736,7 +736,7 @@ _V3_COMMON = dict(
     spectra_heights=(8.0, 16.0, 32.0), stride=1,
 )
 
-#: The ``&NESTDUMP`` cadence every V3/V4 parent writes its boundary band at,
+#: The ``&NESTPARENT`` cadence every V3/V4 parent writes its boundary band at,
 #: and the child's ``cadence``: with the mean wind at the domain top ~5.5 m/s
 #: (V1's converged run, z/h = 2) and ``dx = 2`` m, ``C_dump <= 2`` needs
 #: ``dtdump <= 2 * 2 / 5.5 = 0.73`` s; 0.5 s matches C0's own fine parent
@@ -747,7 +747,7 @@ _V3_COMMON = dict(
 #: child -- stays at the old, statistically-sufficient 3 s
 #: (``fielddump_dtdump``), so ``parent_output = "both"`` does not multiply the
 #: full-domain dump volume by 6x for no benefit.
-_NESTDUMP_CADENCE = dict(dtdump=0.5, cadence=0.5, child_dtdump=3.0,
+_NESTPARENT_CADENCE = dict(dtdump=0.5, cadence=0.5, child_dtdump=3.0,
                          fielddump_dtdump=3.0, parent_output="both")
 
 #: **The equilibrium reference.**  A periodic 6 x 6 array of the child's cubes,
@@ -815,7 +815,7 @@ V3_PARENT = GeoPreset(
     spinup=9000.0, production=3600.0, child_spinup=900.0,
     nprocx=8, nprocy=8, child_nprocx=8, child_nprocy=8,
     parent_expnr="921", child_expnr="922",
-    **_NESTDUMP_CADENCE, **_V3_COMMON,
+    **_NESTPARENT_CADENCE, **_V3_COMMON,
 )
 
 
@@ -863,7 +863,7 @@ V3_PARENT_CUBES = GeoPreset(
     spinup=3600.0, production=3600.0, child_spinup=900.0,
     nprocx=8, nprocy=8, child_nprocx=8, child_nprocy=8,
     parent_expnr="926", child_expnr="927",
-    **_NESTDUMP_CADENCE, **_V3_COMMON,
+    **_NESTPARENT_CADENCE, **_V3_COMMON,
 )
 
 V3_CLEARED = replace(_v3_child(0, "927", base=V3_PARENT_CUBES),
@@ -907,7 +907,7 @@ V3 = Experiment(
 #: same ranks.  That is the whole design: the only thing that moves is the
 #: layout the parent resolves, so the V1 result is the reference and the answer
 #: is a difference from it.
-#: ``dtdump = 0.5`` s (``_NESTDUMP_CADENCE``) is the ``&NESTDUMP`` cadence the
+#: ``dtdump = 0.5`` s (``_NESTPARENT_CADENCE``) is the ``&NESTPARENT`` cadence the
 #: child's boundary needs (``C_dump <= 2``, see ``_V3_COMMON``'s note); the
 #: parent's own ``&OUTPUT`` field dump, read back by ``periodic-stats`` for its
 #: canopy statistics, stays at the historical 3 s (``fielddump_dtdump``).
@@ -922,7 +922,7 @@ _V4_COMMON = dict(
     nprocx=8, nprocy=8, child_nprocx=8, child_nprocy=8, dtmax=0.5,
     spectra_heights=(8.0, 16.0, 32.0), stride=1,
     parent_layout="staggered", parent_expnr="930",
-    **_NESTDUMP_CADENCE,
+    **_NESTPARENT_CADENCE,
 )
 
 V4_PARENT = GeoPreset(name="v4-parent", role="parent",
@@ -979,7 +979,7 @@ V4 = Experiment(
 # --------------------------------------------------------------------------- #
 
 #: ``dtdump`` is set per preset below (a "reference" run keeps 3 s; a "parent"
-#: run gets the ``_NESTDUMP_CADENCE`` fine cadence), exactly as in the
+#: run gets the ``_NESTPARENT_CADENCE`` fine cadence), exactly as in the
 #: production dicts above.
 _TINY_BASE = dict(
     ktot=32, dx=2.0,
@@ -1005,9 +1005,9 @@ _TINY_V3 = dict(guardwidth=6.0, zonewidth=8.0, nzone=7, **_TINY_BASE)
 #: wrong and ``removed_cubes_reaching_the_interior`` fires -- as it should.  All
 #: five of V4-tiny's presets (both parents, both children, and the
 #: never-run ``V4_TINY_MATCHED_IMPOSSIBLE``) are "parent"/"child" roles that
-#: drive or are driven, so the fine ``&NESTDUMP`` cadence goes in here directly.
+#: drive or are driven, so the fine ``&NESTPARENT`` cadence goes in here directly.
 _TINY_V4 = dict(guardwidth=6.0, zonewidth=18.0, nzone=12,
-               **_NESTDUMP_CADENCE, **_TINY_BASE)
+               **_NESTPARENT_CADENCE, **_TINY_BASE)
 
 V3_TINY_REFERENCE = GeoPreset(
     name="v3-tiny-reference", role="reference",
@@ -1021,7 +1021,7 @@ V3_TINY_PARENT = GeoPreset(
     itot=96, jtot=64, child_itot=64, child_jtot=48,
     uflowrate=3.0,
     parent_expnr="941", child_expnr="942",
-    **_NESTDUMP_CADENCE, **_TINY_V3)
+    **_NESTPARENT_CADENCE, **_TINY_V3)
 
 #: The tiny cleared-parent-cubes arm, exactly as the production
 #: ``V3_PARENT_CUBES``: same domain and zone as ``V3_TINY_PARENT`` (the
@@ -1032,7 +1032,7 @@ V3_TINY_PARENT_CUBES = GeoPreset(
     parent_layout="aligned", child_layout="aligned", child_phase="standoff",
     itot=96, jtot=64, child_itot=64, child_jtot=48,
     parent_expnr="945", child_expnr="946",
-    **_NESTDUMP_CADENCE, **_TINY_V3)
+    **_NESTPARENT_CADENCE, **_TINY_V3)
 
 V3_TINY_CLEARED = replace(_v3_child(0, "946", base=V3_TINY_PARENT_CUBES),
                          name="v3-tiny-cleared-parent-cubes")

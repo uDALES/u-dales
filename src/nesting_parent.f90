@@ -1,4 +1,4 @@
-!> \file modnestdump.f90
+!> \file nesting_parent.f90
 !!  Parent-side zone dump for one-way nesting (design section 6.2, plan item D1).
 !!
 !!  A nested child needs the parent's velocity only in a band just inside the
@@ -10,7 +10,7 @@
 !!
 !!  Geometry.  The child box [x0, x0+xsize] x [y0, y0+ysize] is given in parent
 !!  coordinates and must coincide with parent cell faces; the run aborts
-!!  otherwise.  The band is the nestdump_nzone parent cells inside each lateral
+!!  otherwise.  The band is the nestparent_nzone parent cells inside each lateral
 !!  face of the box -- the child's guard + ramp expressed on the parent grid,
 !!  rounded up, plus one cell so that the tangential slopes of a refined child's
 !!  prolongation (udprep.nesting.conservative_interpolate) have a neighbour on
@@ -27,19 +27,19 @@
 !!  value included), so the strip carries the complete staggered set of the
 !!  cells it covers.  The upper faces come from the halo, which is exchanged
 !!  right before this routine runs (program.f90: halos, then fielddump, then
-!!  nestdump).  The full-box initial block follows the same rule.
+!!  nestparent).  The full-box initial block follows the same rule.
 !!
-!!  Files.  nestdump.<ipx>.<ipy>.<expnr>.nc, one per rank that writes, with
-!!  time as the unlimited dimension; nestdump_init.<ipx>.<ipy>.<expnr>.nc, one
+!!  Files.  nesting.out.<ipx>.<ipy>.<expnr>.nc, one per rank that writes, with
+!!  time as the unlimited dimension; nesting.out.init.<ipx>.<ipy>.<expnr>.nc, one
 !!  per rank whose subdomain meets the box, written once at the first dump
 !!  time.  All index ranges are attributes, so any tool can assemble the box
 !!  from the rank files without knowing the decomposition.  The format is
-!!  specified in docs/udales-nesting-spec.md (section "nestdump files").
+!!  specified in docs/udales-nesting-spec.md (section "nestparent files").
 !!
-!!  Cadence.  The next dump is due at tnextnestdump = btime + tnestdump, then
-!!  every tnestdump, tested at rk3step == 3 exactly like modfielddump, so that
-!!  lfielddump and lnestdump at the same interval write the same instants.
-!!  When tnestdump is at or below the timestep every step is written.
+!!  Cadence.  The next dump is due at tnextnestparent = btime + tnestparent, then
+!!  every tnestparent, tested at rk3step == 3 exactly like modfielddump, so that
+!!  lfielddump and lnestparent at the same interval write the same instants.
+!!  When tnestparent is at or below the timestep every step is written.
 !!
 !!  \author Maarten van Reeuwijk, Imperial College London
 !
@@ -60,30 +60,30 @@
 !
 ! Copyright (C) 2016- the uDALES Team, Imperial College London.
 !
-module modnestdump
+module nesting_parent
   use mpi
   use netcdf
   implicit none
   private
-  public :: initnestdump, nestdump, exitnestdump
-  public :: lnestdump, tnestdump, nestdump_x0, nestdump_y0, nestdump_xsize, &
-            nestdump_ysize, nestdump_nzone, nestdump_linit
+  public :: initnestparent, nestparent, exitnestparent
+  public :: lnestparent, tnestparent, nestparent_x0, nestparent_y0, nestparent_xsize, &
+            nestparent_ysize, nestparent_nzone, nestparent_linit
   save
 
-  ! --- namelist &NESTDUMP ------------------------------------------------- !
-  logical :: lnestdump      = .false. !< switch for the parent-side zone dump
-  real    :: tnestdump      = 1.      !< dump interval [s]; <= dt means every step
-  real    :: nestdump_x0    = 0.      !< child box origin, parent coordinates [m]
-  real    :: nestdump_y0    = 0.
-  real    :: nestdump_xsize = -1.     !< child box size [m]; must span whole parent cells
-  real    :: nestdump_ysize = -1.
-  integer :: nestdump_nzone = 0       !< band thickness inside each lateral face, parent cells
-  logical :: nestdump_linit = .true.  !< write the whole box once, at the first dump
+  ! --- namelist &NESTPARENT ------------------------------------------------- !
+  logical :: lnestparent      = .false. !< switch for the parent-side zone dump
+  real    :: tnestparent      = 1.      !< dump interval [s]; <= dt means every step
+  real    :: nestparent_x0    = 0.      !< child box origin, parent coordinates [m]
+  real    :: nestparent_y0    = 0.
+  real    :: nestparent_xsize = -1.     !< child box size [m]; must span whole parent cells
+  real    :: nestparent_ysize = -1.
+  integer :: nestparent_nzone = 0       !< band thickness inside each lateral face, parent cells
+  logical :: nestparent_linit = .true.  !< write the whole box once, at the first dump
 
   ! --- module state -------------------------------------------------------- !
-  integer, parameter :: NESTDUMP_SCHEMA = 1
+  integer, parameter :: NESTPARENT_SCHEMA = 1
   character(len=5), parameter :: facename(4) = (/ 'west ', 'east ', 'south', 'north' /)
-  real(kind=4), parameter :: nestdump_fill = -999.
+  real(kind=4), parameter :: nestparent_fill = -999.
 
   !> One strip of the band, restricted to this rank.  Index ranges are global
   !! 1-based parent cells; u covers faces i1..i2+1, v faces j1..j2+1.
@@ -101,17 +101,24 @@ module modnestdump
   logical :: linitdone = .false.
   logical :: lkeptinit = .false.  !< continuing: the original init block is kept
   integer :: ncid = -1, nrec = 0, vid_time = -1
-  real    :: tnextnestdump = 0.
+  real    :: tnextnestparent = 0.
   integer :: ndump = 0
   real(kind=8) :: bytes_run = 0.d0, twrite_run = 0.d0
-  character(len=80) :: fname = 'nestdump.xxx.xxx.xxx.nc'
-  character(len=80) :: fname_init = 'nestdump_init.xxx.xxx.xxx.nc'
+  ! Built by concatenation in initnestparent, NOT by writing into fixed
+  ! character positions of a template: the old form ('nestdump.xxx...' with
+  ! fname(10:12) = cmyidx and so on) silently encodes the length of the file
+  ! stem in six magic indices, so renaming the stem corrupts every name
+  ! without any compiler or test complaining. Named to pair with the child's
+  ! input: nesting.out.* is what a parent writes, the Python writer turns it
+  ! into nesting.inp.*, and the child reads that.
+  character(len=80) :: fname = ''
+  character(len=80) :: fname_init = ''
 
 contains
 
   !> Locate the box on the parent grid, work out this rank's pieces and open
   !! the band file.  Called after readinitfiles (timee/btime are known).
-  subroutine initnestdump
+  subroutine initnestparent
     use modglobal, only : cexpnr, itot, jtot, xh, yh, dx, dy, btime, kb, ke
     use modmpi,    only : myid, cmyidx, cmyidy
     use decomp_2d, only : zstart, zend
@@ -119,23 +126,23 @@ contains
     integer :: ig1, ig2, jg1, jg2, ni, nj, n, ierr, ncont
     logical :: exband, exinit
 
-    if (.not. lnestdump) return
+    if (.not. lnestparent) return
 
-    if (nestdump_xsize <= 0. .or. nestdump_ysize <= 0.) call nestdump_abort( &
-      'nestdump_xsize and nestdump_ysize must be > 0')
-    if (nestdump_nzone < 1) call nestdump_abort('nestdump_nzone must be >= 1')
-    if (tnestdump <= 0.) call nestdump_abort('tnestdump must be > 0')
+    if (nestparent_xsize <= 0. .or. nestparent_ysize <= 0.) call nestparent_abort( &
+      'nestparent_xsize and nestparent_ysize must be > 0')
+    if (nestparent_nzone < 1) call nestparent_abort('nestparent_nzone must be >= 1')
+    if (tnestparent <= 0.) call nestparent_abort('tnestparent must be > 0')
 
     ! Box faces must be parent faces.  xh(i) is the west face of cell i.
-    ilo = face_index(xh, itot, dx, nestdump_x0, 'x0')
-    ihi = face_index(xh, itot, dx, nestdump_x0 + nestdump_xsize, 'x0 + xsize') - 1
-    jlo = face_index(yh, jtot, dy, nestdump_y0, 'y0')
-    jhi = face_index(yh, jtot, dy, nestdump_y0 + nestdump_ysize, 'y0 + ysize') - 1
+    ilo = face_index(xh, itot, dx, nestparent_x0, 'x0')
+    ihi = face_index(xh, itot, dx, nestparent_x0 + nestparent_xsize, 'x0 + xsize') - 1
+    jlo = face_index(yh, jtot, dy, nestparent_y0, 'y0')
+    jhi = face_index(yh, jtot, dy, nestparent_y0 + nestparent_ysize, 'y0 + ysize') - 1
     ni = ihi - ilo + 1
     nj = jhi - jlo + 1
-    if (ni < 1 .or. nj < 1) call nestdump_abort('the child box is empty')
-    if (2*nestdump_nzone > min(ni, nj)) call nestdump_abort( &
-      'the band would cover the whole box: 2 * nestdump_nzone exceeds the box size in cells')
+    if (ni < 1 .or. nj < 1) call nestparent_abort('the child box is empty')
+    if (2*nestparent_nzone > min(ni, nj)) call nestparent_abort( &
+      'the band would cover the whole box: 2 * nestparent_nzone exceeds the box size in cells')
 
     ! This rank's subdomain, global cells (2DECOMP z-pencil).
     ig1 = zstart(1); ig2 = zend(1)
@@ -145,26 +152,22 @@ contains
     lbox = (bi1 <= bi2) .and. (bj1 <= bj2)
 
     ! The four strips, each intersected with this rank.
-    call set_piece(piece(1), ilo, ilo + nestdump_nzone - 1, jlo, jhi, ig1, ig2, jg1, jg2)
-    call set_piece(piece(2), ihi - nestdump_nzone + 1, ihi, jlo, jhi, ig1, ig2, jg1, jg2)
-    call set_piece(piece(3), ilo, ihi, jlo, jlo + nestdump_nzone - 1, ig1, ig2, jg1, jg2)
-    call set_piece(piece(4), ilo, ihi, jhi - nestdump_nzone + 1, jhi, ig1, ig2, jg1, jg2)
+    call set_piece(piece(1), ilo, ilo + nestparent_nzone - 1, jlo, jhi, ig1, ig2, jg1, jg2)
+    call set_piece(piece(2), ihi - nestparent_nzone + 1, ihi, jlo, jhi, ig1, ig2, jg1, jg2)
+    call set_piece(piece(3), ilo, ihi, jlo, jlo + nestparent_nzone - 1, ig1, ig2, jg1, jg2)
+    call set_piece(piece(4), ilo, ihi, jhi - nestparent_nzone + 1, jhi, ig1, ig2, jg1, jg2)
     lband = any(piece(:)%active)
 
-    tnextnestdump = btime + tnestdump
-    linitdone = .not. nestdump_linit
+    tnextnestparent = btime + tnestparent
+    linitdone = .not. nestparent_linit
     ndump = 0
 
-    fname(10:12) = cmyidx
-    fname(14:16) = cmyidy
-    fname(18:20) = cexpnr
-    fname_init(15:17) = cmyidx
-    fname_init(19:21) = cmyidy
-    fname_init(23:25) = cexpnr
+    fname      = 'nesting.out.'//cmyidx//'.'//cmyidy//'.'//cexpnr//'.nc'
+    fname_init = 'nesting.out.init.'//cmyidx//'.'//cmyidy//'.'//cexpnr//'.nc'
 
     ! A continuation must not rewrite the initial block.  open_band_file below
     ! reopens an existing band file and appends to it, keeping its original
-    ! time origin, but write_init_file creates nestdump_init.*.nc with
+    ! time origin, but write_init_file creates nesting.out.init.*.nc with
     ! NF90_CLOBBER unconditionally.  Left alone, a parent continued across
     ! jobs therefore keeps band times from the first segment and replaces the
     ! full-domain snapshot with one taken at the restart time -- and the child
@@ -183,10 +186,10 @@ contains
     ncont = 0
     if (exband) ncont = 1
     call MPI_ALLREDUCE(MPI_IN_PLACE, ncont, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
-    if (ncont > 0 .and. nestdump_linit) then
+    if (ncont > 0 .and. nestparent_linit) then
       if (lbox) then
         inquire(file=trim(fname_init), exist=exinit)
-        if (.not. exinit) call nestdump_abort('continuing an existing band file but '// &
+        if (.not. exinit) call nestparent_abort('continuing an existing band file but '// &
           trim(fname_init)//' is missing: the initial block cannot be recovered, and '// &
           'writing a new one now would not match the first band level. Rerun the parent '// &
           'from the start of this output series, or remove the band files to start a new one')
@@ -196,12 +199,12 @@ contains
     end if
 
     if (myid == 0) then
-      write(*, '(a)') 'nestdump: parent-side zone dump enabled'
+      write(*, '(a)') 'nestparent: parent-side zone dump enabled'
       write(*, '(a,i0,a,i0,a,i0,a,i0,a)') '   child box: parent cells i = ', ilo, '..', ihi, &
         ', j = ', jlo, '..', jhi, ' (1-based)'
-      write(*, '(a,i0,a,f0.4,a)') '   band thickness: ', nestdump_nzone, &
-        ' parent cells; cadence ', tnestdump, ' s'
-      write(*, '(a,l1)') '   initial block over the whole box: ', nestdump_linit
+      write(*, '(a,i0,a,f0.4,a)') '   band thickness: ', nestparent_nzone, &
+        ' parent cells; cadence ', tnestparent, ' s'
+      write(*, '(a,l1)') '   initial block over the whole box: ', nestparent_linit
       if (lkeptinit) write(*, '(a)') '   continuing an existing output series: the'// &
         ' original initial block is kept, not rewritten'
     end if
@@ -212,14 +215,14 @@ contains
     n = 0
     if (lband) n = 1
     call MPI_ALLREDUCE(MPI_IN_PLACE, n, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
-    if (n == 0) call nestdump_abort('no rank intersects the band; check the box')
+    if (n == 0) call nestparent_abort('no rank intersects the band; check the box')
     if (myid == 0) write(*, '(a,i0,a)') '   ', n, ' rank(s) write a band file'
-  end subroutine initnestdump
+  end subroutine initnestparent
 
   !> Write the band (and, once, the initial block) when a dump is due.
   !! Placed right after fielddump in the time loop: same instant, same
   !! criterion, so both dumps of one run are the same field.
-  subroutine nestdump
+  subroutine nestparent
     use modglobal, only : rk3step, timee, kb, ke
     use modfields, only : u0, v0, w0
     use modmpi,    only : myid
@@ -228,10 +231,10 @@ contains
     integer :: n, ierr, iret, l1, l2, m1, m2, nk
     real(kind=8) :: t0, nbytes, nbytes_all, twall, twall_max
 
-    if (.not. lnestdump) return
+    if (.not. lnestparent) return
     if (rk3step /= 3) return
-    if (timee < tnextnestdump) return
-    tnextnestdump = tnextnestdump + tnestdump
+    if (timee < tnextnestparent) return
+    tnextnestparent = tnextnestparent + tnestparent
 
     t0 = MPI_Wtime()
     nbytes = 0.d0
@@ -276,20 +279,20 @@ contains
     if (ndump == 1 .or. mod(ndump, 100) == 0) then
       call MPI_REDUCE(nbytes, nbytes_all, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
       call MPI_REDUCE(twall, twall_max, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
-      if (myid == 0) write(*, '(a,i0,a,f0.3,a,f0.3,a,f0.4,a)') 'nestdump: dump ', ndump, &
+      if (myid == 0) write(*, '(a,i0,a,f0.3,a,f0.3,a,f0.4,a)') 'nestparent: dump ', ndump, &
         ' at t = ', timee, ' s: ', nbytes_all/1.d6, ' MB written (all ranks) in ', &
         twall_max, ' s (slowest rank)'
     end if
-  end subroutine nestdump
+  end subroutine nestparent
 
   !> Close the band file and report the run total.
-  subroutine exitnestdump
+  subroutine exitnestparent
     use modmpi, only : myid
     implicit none
     integer :: ierr, iret
     real(kind=8) :: bytes_all, twrite_max
 
-    if (.not. lnestdump) return
+    if (.not. lnestparent) return
     if (lband .and. ncid >= 0) then
       iret = nf90_close(ncid)
       call check(iret, 'close')
@@ -297,10 +300,10 @@ contains
     end if
     call MPI_REDUCE(bytes_run, bytes_all, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
     call MPI_REDUCE(twrite_run, twrite_max, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
-    if (myid == 0) write(*, '(a,i0,a,f0.3,a,f0.3,a)') 'nestdump: ', ndump, ' dumps, ', &
+    if (myid == 0) write(*, '(a,i0,a,f0.3,a,f0.3,a)') 'nestparent: ', ndump, ' dumps, ', &
       bytes_all/1.d6, ' MB in total (all ranks), ', twrite_max, &
       ' s in the write calls (slowest rank)'
-  end subroutine exitnestdump
+  end subroutine exitnestparent
 
   ! ======================================================================= !
   ! helpers
@@ -330,7 +333,7 @@ contains
         exit
       end if
     end do
-    if (i < 0) call nestdump_abort('nestdump_'//trim(label)//' does not coincide with a parent '// &
+    if (i < 0) call nestparent_abort('nestparent_'//trim(label)//' does not coincide with a parent '// &
       'cell face; the child box must be aligned with the parent grid')
   end function face_index
 
@@ -356,24 +359,24 @@ contains
     iret = nf90_put_att(id, NF90_GLOBAL, 'history', 'Created on '//trim(cdate)//' at '//trim(ctime))
     iret = nf90_put_att(id, NF90_GLOBAL, 'Source', trim(version))
     iret = nf90_put_att(id, NF90_GLOBAL, 'Author', trim(author))
-    iret = nf90_put_att(id, NF90_GLOBAL, 'udales_nestdump_schema', NESTDUMP_SCHEMA)
+    iret = nf90_put_att(id, NF90_GLOBAL, 'udales_nestparent_schema', NESTPARENT_SCHEMA)
     iret = nf90_put_att(id, NF90_GLOBAL, 'itot', itot)
     iret = nf90_put_att(id, NF90_GLOBAL, 'jtot', jtot)
     iret = nf90_put_att(id, NF90_GLOBAL, 'ktot', ktot)
     iret = nf90_put_att(id, NF90_GLOBAL, 'dx', dx)
     iret = nf90_put_att(id, NF90_GLOBAL, 'dy', dy)
-    iret = nf90_put_att(id, NF90_GLOBAL, 'box_x0', nestdump_x0)
-    iret = nf90_put_att(id, NF90_GLOBAL, 'box_y0', nestdump_y0)
-    iret = nf90_put_att(id, NF90_GLOBAL, 'box_xsize', nestdump_xsize)
-    iret = nf90_put_att(id, NF90_GLOBAL, 'box_ysize', nestdump_ysize)
+    iret = nf90_put_att(id, NF90_GLOBAL, 'box_x0', nestparent_x0)
+    iret = nf90_put_att(id, NF90_GLOBAL, 'box_y0', nestparent_y0)
+    iret = nf90_put_att(id, NF90_GLOBAL, 'box_xsize', nestparent_xsize)
+    iret = nf90_put_att(id, NF90_GLOBAL, 'box_ysize', nestparent_ysize)
     iret = nf90_put_att(id, NF90_GLOBAL, 'box_i_start', ilo)
     iret = nf90_put_att(id, NF90_GLOBAL, 'box_i_end', ihi)
     iret = nf90_put_att(id, NF90_GLOBAL, 'box_j_start', jlo)
     iret = nf90_put_att(id, NF90_GLOBAL, 'box_j_end', jhi)
     iret = nf90_put_att(id, NF90_GLOBAL, 'box_ni', ni)
     iret = nf90_put_att(id, NF90_GLOBAL, 'box_nj', nj)
-    iret = nf90_put_att(id, NF90_GLOBAL, 'nzone', nestdump_nzone)
-    iret = nf90_put_att(id, NF90_GLOBAL, 'tnestdump', tnestdump)
+    iret = nf90_put_att(id, NF90_GLOBAL, 'nzone', nestparent_nzone)
+    iret = nf90_put_att(id, NF90_GLOBAL, 'tnestparent', tnestparent)
     iret = nf90_put_att(id, NF90_GLOBAL, 'myidx', myidx)
     iret = nf90_put_att(id, NF90_GLOBAL, 'myidy', myidy)
     iret = nf90_put_att(id, NF90_GLOBAL, 'nprocx', nprocx)
@@ -441,7 +444,7 @@ contains
     iret = nf90_put_att(id, vid, 'i_end', i2)
     iret = nf90_put_att(id, vid, 'j_start', j1)
     iret = nf90_put_att(id, vid, 'j_end', j2)
-    iret = nf90_put_att(id, vid, '_FillValue', nestdump_fill)
+    iret = nf90_put_att(id, vid, '_FillValue', nestparent_fill)
     call check(iret, 'variable attributes')
   end subroutine put_var_atts
 
@@ -505,7 +508,7 @@ contains
         ! Keep every record up to and INCLUDING the restart time, and drop
         ! only those after it (from a segment this run abandons).  The record
         ! at t = timee was written from the same state the restart file holds,
-        ! and the next dump is scheduled at btime + tnestdump, so treating it
+        ! and the next dump is scheduled at btime + tnestparent, so treating it
         ! as re-emittable -- the >= convention modstat_nc::open_nc uses for
         ! period-averaged statistics -- overwrites it with a later sample and
         ! loses that boundary level from the record for good.
@@ -585,7 +588,7 @@ contains
     if (abs(tinit - tband1) > 2.*spacing(max(abs(tband1), 1._4))) then
       write(c1, '(es14.7)') tinit
       write(c2, '(es14.7)') tband1
-      call nestdump_abort('the kept initial block is at t = '//trim(adjustl(c1))// &
+      call nestparent_abort('the kept initial block is at t = '//trim(adjustl(c1))// &
         ' but the band record starts at t = '//trim(adjustl(c2))// &
         ': '//trim(fname_init)//' and '//trim(fname)//' are from different output series')
     end if
@@ -641,16 +644,16 @@ contains
   subroutine check(iret, what)
     integer,          intent(in) :: iret
     character(len=*), intent(in) :: what
-    if (iret /= nf90_noerr) call nestdump_abort('netCDF error ('//trim(what)//'): '// &
+    if (iret /= nf90_noerr) call nestparent_abort('netCDF error ('//trim(what)//'): '// &
       trim(nf90_strerror(iret)))
   end subroutine check
 
-  subroutine nestdump_abort(msg)
+  subroutine nestparent_abort(msg)
     use modmpi, only : myid
     character(len=*), intent(in) :: msg
     integer :: ierr
-    write(0, '(a,i0,a)') 'ERROR (nestdump, rank ', myid, '): '//trim(msg)
+    write(0, '(a,i0,a)') 'ERROR (nestparent, rank ', myid, '): '//trim(msg)
     call MPI_Abort(MPI_COMM_WORLD, 1, ierr)
-  end subroutine nestdump_abort
+  end subroutine nestparent_abort
 
-end module modnestdump
+end module nesting_parent

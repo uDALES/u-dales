@@ -143,9 +143,9 @@ sampling.  Two things follow:
 | File | What it is |
 |---|---|
 | `config.py` | **every** parameter of the experiments: `Preset` (one case), `Sweep` (V2), `RefinedPoint`/`RefinementSuite` (V0), including the cube layout.  Run it to print them. |
-| `caselib.py` | shared machinery: namelist rendering, the cube-array + ground mesh, the 1-D input profiles, the field-dump reader and its flux-conservative coarse view, the `&NESTDUMP` band reader (`NestDump`), the solid mask, the solver launcher |
-| `make_parent_case.py` | builds a parent case directory (two namelists: spin-up and production), at whatever resolution the preset asks for; `Preset.parent_output` selects full field dumps, the `&NESTDUMP` band, or both |
-| `make_child_case.py` | cuts (`r = 1`) or interpolates (`r > 1`) the child case -- geometry, `namoptions`, `prof.inp` and `nesting.inp.<nr>.nc` -- out of a parent's dumps, full (`--source fielddump`) or band-only (`--source nestdump`) |
+| `caselib.py` | shared machinery: namelist rendering, the cube-array + ground mesh, the 1-D input profiles, the field-dump reader and its flux-conservative coarse view, the `&NESTPARENT` band reader (`NestParent`), the solid mask, the solver launcher |
+| `make_parent_case.py` | builds a parent case directory (two namelists: spin-up and production), at whatever resolution the preset asks for; `Preset.parent_output` selects full field dumps, the `&NESTPARENT` band, or both |
+| `make_child_case.py` | cuts (`r = 1`) or interpolates (`r > 1`) the child case -- geometry, `namoptions`, `prof.inp` and `nesting.inp.<nr>.nc` -- out of a parent's dumps, full (`--source fielddump`) or band-only (`--source nestparent`) |
 | `analyse.py` | the comparison for **one** child: profiles, TKE, spectra, error vs distance, the V2 falsification metrics; JSON + CSV + PNG |
 | `analyse_v0.py` | the reductions that only exist at `r > 1`: the spectral ratio split at the parent's Nyquist wavelength, the solver's runtime `Phi`/`divmax`, and the driving parent's own deficit |
 | `sweep_summary.py` | reduces a whole V2 sweep to one table; CSV + JSON + Markdown + two plots |
@@ -156,7 +156,7 @@ sampling.  Two things follow:
 | `test_v2_tiny.py` | the `v2-tiny` sweep as a unittest -- the V2 harness smoke test, plus the checks on the production sweep's configuration that need no run |
 | `test_c0_tiny.py` | the `c0-tiny` and `c0b-tiny` sweeps as a unittest -- the C0 harness smoke test, plus the production C0 sweeps' configuration and the experiment-number register |
 | `test_v0_tiny.py` | the `v0-tiny` suite as a unittest -- the V0 harness smoke test, plus the coarsening/prolongation invariants and the production suite's configuration |
-| `test_nestdump_tiny.py` | the parent-side zone dump (D1) on the `tiny` parent: both outputs at one cadence, bit-identical child builds from each, the storage ratio, the parent's I/O accounting, and a refined child built from a band-only driver |
+| `test_nestparent_tiny.py` | the parent-side zone dump (D1) on the `tiny` parent: both outputs at one cadence, bit-identical child builds from each, the storage ratio, the parent's I/O accounting, and a refined child built from a band-only driver |
 | `submit_cx3.pbs` | the V1 production job for CX3, 64 cores / 8 h.  **Review before submitting.** |
 | `submit_cx3_v2.pbs` | the V2 sweep job for CX3, 64 cores / 8 h, reusing the V1 parent.  **Review before submitting.** |
 | `submit_cx3_c0b.pbs` | the C0b job for CX3, 64 cores / 4 h / 128 GB: the fine-cadence parent warm-started from the V1 restart, six children, the table.  **Review before submitting.**  C0a goes through `submit_cx3_v2.pbs` with `UDALES_V2_SWEEP=c0`. |
@@ -221,22 +221,22 @@ Stages are `parent-case`, `spinup`, `production`, `child-case`, `child`,
 ### The parent-side zone dump (D1)
 
 A parent that only drives children need not write full field dumps: with
-`Preset.parent_output = "nestdump"` its production namelist carries a
-`&NESTDUMP` block instead of `lfielddump` (`"both"` writes the two side by side),
-and `src/modnestdump.f90` writes, per rank, only the band of `nestdump_nzone`
+`Preset.parent_output = "nestparent"` its production namelist carries a
+`&NESTPARENT` block instead of `lfielddump` (`"both"` writes the two side by side),
+and `src/nesting_parent.f90` writes, per rank, only the band of `nestparent_nzone`
 parent cells inside each lateral face of the child box plus one whole-box
 initial block (`docs/udales-nesting-spec.md`, section 9).  The band is
-`Preset.nestdump_nzone(child)`: the child's guard + ramp on the parent grid,
+`Preset.nestparent_nzone(child)`: the child's guard + ramp on the parent grid,
 rounded up, **plus one cell** for the prolongation's slope stencil -- so a
 driver sized for a refined child (`make_parent_case.build(...,
-nestdump_child=<fine preset>)`) can be prolonged without reaching into the
-interior it did not write.  `make_child_case --source nestdump` builds the
+nestparent_child=<fine preset>)`) can be prolonged without reaching into the
+interior it did not write.  `make_child_case --source nestparent` builds the
 same `nesting.inp` from those files, through the same writer; the interior is
 `NaN` on the way in, so a slab that reached past the band fails the build rather
 than storing zeros.  Because the band has no interior, the `prof.inp` seed and
 the manifest's `driving_parent_profile` come from the single initial block.
 
-Measured on `tiny` (`test_nestdump_tiny.py`, about 3 min on a login node): the
+Measured on `tiny` (`test_nestparent_tiny.py`, about 3 min on a login node): the
 two sources give bit-identical nesting files; the band files are 4.0x smaller
 than the field dumps (5.1x by cell count for this geometry -- 96^2 parent, 64^2
 box, 8-cell band; the production geometry gives ~15x); the parent wrote 35 MB
@@ -245,8 +245,8 @@ in 0.06 s of write calls over 40 dumps on 4 ranks.  The V0/V2/C0 drivers keep
 compared against, and the filtered arm box-filters full dumps.
 
 ```bash
-python tests/validation/nesting/test_nestdump_tiny.py
-python tests/validation/nesting/make_child_case.py <parent_dir> <outdir> --preset tiny --source nestdump
+python tests/validation/nesting/test_nestparent_tiny.py
+python tests/validation/nesting/make_child_case.py <parent_dir> <outdir> --preset tiny --source nestparent
 ```
 
 ### Suite registration
@@ -476,7 +476,7 @@ V2 exists to vary the zone width deliberately and see what happens.
 ### Finding N1 -- the Fritsch-Carlson limiter breaks the flux compatibility
 
 **Found while bringing this harness up, in code this directory does not own
-(`src/modnesting.f90`).  Reported, not worked around: the harness selects
+(`src/nesting_scheme.f90`).  Reported, not worked around: the harness selects
 `nest_timeinterp = 1` and says so.  A fix is in progress by the owner of
 `src/`; this section should be re-pointed at it once it lands.**
 
@@ -485,7 +485,7 @@ data, so that an interpolant which is linear **in the data** carries `Phi = 0`
 from the stored levels to every intermediate time.  `nest_timeinterp = 1`
 (linear) has that property.  `nest_timeinterp = 2` does not -- but the defect is
 the **slope limiter**, not cubic Hermite as such.  `hermite()` in
-`src/modnesting.f90` uses Fritsch-Carlson limited slopes,
+`src/nesting_scheme.f90` uses Fritsch-Carlson limited slopes,
 
 ```fortran
 if (s1*s2 <= 0.) then
@@ -1591,7 +1591,7 @@ cell.  Three checks, offline and online:
   `4.9429218051955104e-08` from both sides at `r = 2` -- and the smoke test
   compares their *ratio* against 1, not merely bounds them.
 * **The running solver.**  `analyse_v0.runtime_diagnostics` parses the child's
-  log for `modnesting`'s `Phi` and `modpois`'s `divmax`/`divtot`, plus the zone
+  log for `nesting`'s `Phi` and `modpois`'s `divmax`/`divtot`, plus the zone
   misfit and the zone/interior pressure-gradient ratio that design section 7
   names as the C1 diagnostic.  On the tiny suite, `max |Phi| <= 9.4e-14` and
   `max divmax <= 9.1e-16` at both ratios and on both arms.
@@ -1873,7 +1873,7 @@ first 2400 s deterministically before continuing another 8400 s beyond where
 **The pressure diagnostic.** `nest_statint = 30 s` (not the inherited
 `tstatsdump` default V0b left it at) gives ~360 `nesting_stats` reports over
 the run, ~340 after the 600 s discard -- `analyse_v0.runtime_diagnostics` now
-pairs each report with its own `modnesting: t = ...` timestamp and reports
+pairs each report with its own `nesting: t = ...` timestamp and reports
 the zone/interior `|grad p|` norms **with the startup discarded and a spread
 (mean +/- std)**, not V0b's two compulsory endpoints (review finding 2).
 
@@ -1897,10 +1897,10 @@ drawing a conclusion from the raw criterion-A numbers alone.
 **Disk and memory.** The dominant cost is 982's own full-domain 0.5 s field
 dump (~1.08 TB): box-filtering the `r2`/`r4` boundary data needs
 `CoarsenedFieldDump` over the WHOLE domain, and there is no cheap way to get
-that from the much smaller `&NESTDUMP` band instead -- `caselib.NestDump`'s
+that from the much smaller `&NESTPARENT` band instead -- `caselib.NestParent`'s
 box is NaN outside a thin strip sized for a *ratio-1* margin, and
 `DrivingParent`'s addressing assumes `CoarsenedFieldDump` wraps a
-full-domain, globally-indexed array, which a `NestDump` box is not (its
+full-domain, globally-indexed array, which a `NestParent` box is not (its
 footprint already equals the child window, addressed from its own local
 origin). Reworking both was judged not cheap enough to do under this task's
 time budget, so V0c falls back to full `FieldDump` dumps and budgets for
@@ -2270,8 +2270,8 @@ m, `dx = 2` m, `u* = 0.4` m/s, a 128 m rigid lid -- is V1's, so the canopy V3
 measures is the canopy V1 and V2 measured.
 
 **Boundary cadence, interpolant and source.**  Both parents write their
-child's boundary at 0.5 s (`&NESTDUMP`, `parent_output = "both"`,
-`config.Preset.parent_output` via `presets_geometry._NESTDUMP_CADENCE`): with
+child's boundary at 0.5 s (`&NESTPARENT`, `parent_output = "both"`,
+`config.Preset.parent_output` via `presets_geometry._NESTPARENT_CADENCE`): with
 the mean wind at the domain top ~5.5 m/s (V1's converged run, `z/h = 2`) and
 `dx = 2` m, the operating rule `C_dump <= 2` (design section 10.5) needs
 `dtdump <= 0.73` s, so `C_dump = 1.4` at 5.5 m/s (0.75 at the preset's own
@@ -2281,9 +2281,9 @@ Every child interpolates with the unlimited Catmull-Rom cubic
 Each parent's own `&OUTPUT` full-domain field dump stays at the old 3 s
 cadence -- `periodic-stats` reads it back for the bulk velocity and canopy
 statistics `run_geometry.py` needs, and 3 s was always enough for those --
-so the fine cadence costs only the `&NESTDUMP` band, not a 6x-larger
+so the fine cadence costs only the `&NESTPARENT` band, not a 6x-larger
 full-domain dump.  `make_child_case`'s manifest records
-`driving_source = "nestdump"` for every V3 child, and `Preset.summary()`
+`driving_source = "nestparent"` for every V3 child, and `Preset.summary()`
 prints the `C_dump` and interpolant lines for every preset, parent or child.
 
 **The cleared-parent-cubes arm** (nesting-plan-2026-09-06.md section 0, "New
@@ -2435,14 +2435,14 @@ baseline       the V1 'converged' child on disk, read and reduced, not re-run
 
 **Boundary cadence, interpolant and source -- and the one thing that is no
 longer "to the digit".**  The parent writes its child's boundary at 0.5 s
-(`&NESTDUMP`, `parent_output = "both"`, `presets_geometry._NESTDUMP_CADENCE`):
+(`&NESTPARENT`, `parent_output = "both"`, `presets_geometry._NESTPARENT_CADENCE`):
 `C_dump <= 2` (design section 10.5) needs `dtdump <= 0.73` s at the domain
 top's ~5.5 m/s, and 0.5 s gives `C_dump = 1.4` there.  The child interpolates
 with the unlimited Catmull-Rom cubic (`nest_timeinterp = 2`), C0c's
 recommended default, rather than V1's linear.  The parent's own `&OUTPUT`
 full-domain dump stays at the old 3 s cadence for `periodic-stats`, so the
-fine boundary costs only the `&NESTDUMP` band.  `manifest.json` records
-`driving_source = "nestdump"`.  **This is the one respect in which the child
+fine boundary costs only the `&NESTPARENT` band.  `manifest.json` records
+`driving_source = "nestparent"`.  **This is the one respect in which the child
 is deliberately not V1's, to the digit**: the V1 `converged` baseline this
 child is diffed against ran at V1's original 3 s cadence and linear
 interpolant, so `criterion_a_prime` and every other number in `v4_metrics.json`
@@ -2634,8 +2634,8 @@ blanket allowance.  The two PBS headers carry the full derivation.
 
 | | V3 | V4 |
 |---|---|---|
-| periodic runs | reference ~15 min, flat parent ~71 min, cubes parent ~84 min | staggered parent ~3 h 15 (+ nestdump I/O) |
-| slab cuts | 5 x ~11.8 min (nestdump read, 0.5 s nesting.inp write) | ~23.9 min |
+| periodic runs | reference ~15 min, flat parent ~71 min, cubes parent ~84 min | staggered parent ~3 h 15 (+ nestparent I/O) |
+| slab cuts | 5 x ~11.8 min (nestparent read, 0.5 s nesting.inp write) | ~23.9 min |
 | child runs | 5 x ~15.5 min | ~27 min |
 | analysis | ~31 min | ~25 min |
 | **estimate** | **~5 h 53** | **~4 h 32** |
@@ -2643,18 +2643,18 @@ blanket allowance.  The two PBS headers carry the full derivation.
 | new disk | ~866 GB | ~529 GB |
 | `mem=` | 64 GB | 96 GB |
 
-Revised from the pre-nestdump figures (V3 5 h / 245 GB, V4 6 h / 249 GB) once
-every parent moved to the 0.5 s `&NESTDUMP` cadence and V3 gained its fifth
+Revised from the pre-nestparent figures (V3 5 h / 245 GB, V4 6 h / 249 GB) once
+every parent moved to the 0.5 s `&NESTPARENT` cadence and V3 gained its fifth
 child; the two PBS headers carry the full derivation, including which lines
 are still V1-measured rates and which are scaled estimates.  Almost all of the
 extra disk is `nesting.inp` itself, which now stores the boundary at 6x the
-temporal resolution (0.5 s against 3 s) -- not `&NESTDUMP`, whose own write
+temporal resolution (0.5 s against 3 s) -- not `&NESTPARENT`, whose own write
 volume is a couple of times the old single-cadence figure at most, which is
 the saving the parent-side zone dump exists to deliver (nesting-plan-
 2026-09-06.md section 2: a full 0.5 s field dump of these parents would be
 ~10-75x larger again).  `mem=` is unchanged: the slab cut has been a streaming
 writer since the D1 zone-dump work (commit 71011e96), so its peak no longer
-scales with the nesting file's size the way the pre-nestdump estimate assumed.
+scales with the nesting file's size the way the pre-nestparent estimate assumed.
 
 Tighter than V1's and V2's blanket 8 h where the numbers support it (V4 still
 is); V3's second periodic run is the least-measured figure in either estimate
@@ -2677,7 +2677,7 @@ efficiency.  Sizing a 16-rank run would need its own timing, and
 
 **Prepared, exercised end to end at tiny size on the Release binary, not yet
 submitted / submitted (see job ids below).**  Revised 2026-09-07 for the fine
-`&NESTDUMP` cadence and V3's new cleared-parent-cubes arm.  Both tiny
+`&NESTPARENT` cadence and V3's new cleared-parent-cubes arm.  Both tiny
 experiments run the identical production code path on a login node in a few
 minutes: an equilibrium reference, a flat parent calibrated from it, three
 standoffs plus the cleared-parent-cubes child (V3, now four periodic runs and
@@ -2700,8 +2700,8 @@ over a 51 s window on a 40 s spin-up cannot support any physical claim:
   that inherits a real (if displaced) canopy's turbulence from its boundary
   starts far closer to equilibrium than either standoff arm, which is the
   qualitative direction the cleared-parent-cubes arm exists to check;
-* every child is driven from the parent's `&NESTDUMP` band, not a full-domain
-  dump (`manifest.json`: `driving_source = "nestdump"`), at `C_dump = 0.75`
+* every child is driven from the parent's `&NESTPARENT` band, not a full-domain
+  dump (`manifest.json`: `driving_source = "nestparent"`), at `C_dump = 0.75`
   (`u0 = 3` m/s) and the Catmull-Rom cubic interpolant;
 * `test_v34_tiny.py` is 37 tests, all passing in 388 s on a fresh Release
   build (was 29 in 184 s before the fine cadence and the new arm);
@@ -2746,7 +2746,7 @@ everything else: drive the child from a boundary that is **constant in
 time**, then run far beyond it, and read any growth in the solver's own
 conservation diagnostics as drift and nothing else.
 
-`src/modnesting.f90`'s `check_record_end` already has the mechanism.  Past the
+`src/nesting_scheme.f90`'s `check_record_end` already has the mechanism.  Past the
 last stored parent time level, `read_level` and `eval_target` clamp their
 level index to `ntime` (confirmed by reading the code -- `it = min(max(ilev,
 1), ntime)` and the two clamped calls to `nestio_hdr%time` in `eval_target`),
