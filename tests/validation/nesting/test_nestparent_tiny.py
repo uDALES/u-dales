@@ -321,21 +321,31 @@ class TestNestParentRestart(unittest.TestCase):
         run_solver(cls.parent_dir, f"namoptions_spinup.{nr}", nproc,
                    cls.parent_dir / "spinup.log")
 
-        # segment 1 -- a short production phase that does write a restart
-        run_v1._set_startfile(nml, run_v1._restart_file(cls.parent_dir, nr))
+        # segment 1 -- a short production phase that does write a restart.
+        # Captured BEFORE segment 1 runs: this is what segment 1 itself starts
+        # from (the spin-up's own restart), kept around only so the later
+        # test can tell segment 1's restart apart from it.
+        cls.spinup_restart = run_v1._restart_file(cls.parent_dir, nr)
+        run_v1._set_startfile(nml, cls.spinup_restart)
         # runtime and cadence still need patching (they are the preset's own
         # production window), but trestart now comes from the preset.
         _set_namelist(nml, runtime=cls.SEG1_RUNTIME, tnestparent=cls.CADENCE)
         # captured here: segment 2 patches trestart back to 1e9 below, so the
         # file cannot be read for this after setUpClass has finished.
         cls.seg1_trestart = caselib.read_namoption(nml, "trestart")
-        cls.seg1_restart = run_v1._restart_file(cls.parent_dir, nr)
         run_solver(cls.parent_dir, f"namoptions.{nr}", nproc, cls.parent_dir / "seg1.log")
+        # captured AFTER segment 1 runs, in the SAME directory as the spin-up:
+        # _restart_file globs for the highest-numbered initd file and would
+        # otherwise still find the spin-up's, silently naming the wrong file.
+        cls.seg1_restart = run_v1._restart_file(cls.parent_dir, nr)
         cls.band1 = _band_times(cls.parent_dir, nr)
         cls.init1 = _init_time(cls.parent_dir, nr)
 
-        # segment 2 -- continue in the SAME directory, as a queued job would
-        run_v1._set_startfile(nml, run_v1._restart_file(cls.parent_dir, nr))
+        # segment 2 -- continue in the SAME directory, as a queued job would.
+        # Starts explicitly from seg1_restart rather than re-globbing: if
+        # segment 1 wrote no restart of its own, this must fail loudly instead
+        # of silently continuing from the spin-up's file.
+        run_v1._set_startfile(nml, cls.seg1_restart)
         _set_namelist(nml, runtime=cls.SEG2_RUNTIME, trestart=1.0e9)
         run_solver(cls.parent_dir, f"namoptions.{nr}", nproc, cls.parent_dir / "seg2.log")
         cls.band2 = _band_times(cls.parent_dir, nr)
@@ -357,13 +367,26 @@ class TestNestParentRestart(unittest.TestCase):
 
     def test_the_preset_made_a_continuable_parent(self):
         """The restart the second segment starts from must exist because the
-        PRESET asked for it, not because the test patched the namelist."""
+        PRESET asked for it, not because the test patched the namelist -- and
+        it must be the restart the PRODUCTION phase wrote, not the spin-up's
+        file still sitting in the same directory (which segment 2 would
+        silently fall back to if segment 1 wrote nothing of its own)."""
         self.assertEqual(self.preset.production_trestart, self.SEG1_RUNTIME)
         self.assertIsNotNone(self.seg1_trestart,
                              "no trestart line in the production namelist")
         self.assertAlmostEqual(float(self.seg1_trestart), self.SEG1_RUNTIME, places=6)
         self.assertTrue(self.seg1_restart,
                         "the production phase wrote no restart to continue from")
+        self.assertNotEqual(self.seg1_restart, self.spinup_restart,
+                            "segment 1's restart is just the spin-up's file -- "
+                            "the production phase wrote no restart of its own")
+
+        def step(name: str) -> int:
+            return int(re.match(r"^initd(\d{8})_", name).group(1))
+
+        self.assertGreater(step(self.seg1_restart), step(self.spinup_restart),
+                           "segment 1's restart must be a later step than the "
+                           "spin-up's, i.e. actually written during production")
 
     def test_the_continuation_says_so(self):
         self.assertIn("continuing an existing output series", self.seg2_log)
