@@ -75,6 +75,30 @@ if [ -z $MEM ]; then
     exit 1
 fi;
 
+## ---------------------------------------------------------------------------
+## Which cluster. Detected from the login node so the same script serves CX3
+## and HX1; set UDALES_SYSTEM=<cx3|hx1> to override it.
+## ---------------------------------------------------------------------------
+if [ -z "${UDALES_SYSTEM:-}" ]; then
+    case "$(hostname -s)" in
+        hx1*) UDALES_SYSTEM=hx1 ;;
+        cx3*) UDALES_SYSTEM=cx3 ;;
+        *)
+            echo "Could not tell which cluster this is from the hostname: $(hostname -s)"
+            echo "Set UDALES_SYSTEM=cx3 or UDALES_SYSTEM=hx1 and run again."
+            exit 1
+            ;;
+    esac
+fi
+echo "cluster: $UDALES_SYSTEM"
+
+## The runtime the executable was built against; keep in step with the
+## matching block of tools/build_executable.sh.
+case "$UDALES_SYSTEM" in
+    cx3) job_modules='module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0' ;;
+    hx1) job_modules='module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0' ;;
+esac
+
 ## set the output directory
 outdir=$DA_WORKDIR/$exp
 
@@ -85,7 +109,7 @@ cat <<EOF > job.$exp
 #!/bin/bash
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=${NNODE}:ncpus=${NCPU}:mpiprocs=$(( $NCPU * $NNODE )):mem=${MEM}
-module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
+${job_modules}
 EOF
 
 ## Report how long this job waited in the queue, from PBS's own timestamps.
