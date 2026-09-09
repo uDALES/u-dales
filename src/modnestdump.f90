@@ -99,6 +99,7 @@ module modnestdump
   logical :: lband = .false.  !< this rank writes a band file
   logical :: lbox  = .false.  !< this rank meets the box (initial block)
   logical :: linitdone = .false.
+  logical :: lkeptinit = .false.  !< continuing: the original init block is kept
   integer :: ncid = -1, nrec = 0, vid_time = -1
   real    :: tnextnestdump = 0.
   integer :: ndump = 0
@@ -115,7 +116,8 @@ contains
     use modmpi,    only : myid, cmyidx, cmyidy
     use decomp_2d, only : zstart, zend
     implicit none
-    integer :: ig1, ig2, jg1, jg2, ni, nj, n, ierr
+    integer :: ig1, ig2, jg1, jg2, ni, nj, n, ierr, ncont
+    logical :: exband, exinit
 
     if (.not. lnestdump) return
 
@@ -160,6 +162,39 @@ contains
     fname_init(19:21) = cmyidy
     fname_init(23:25) = cexpnr
 
+    ! A continuation must not rewrite the initial block.  open_band_file below
+    ! reopens an existing band file and appends to it, keeping its original
+    ! time origin, but write_init_file creates nestdump_init.*.nc with
+    ! NF90_CLOBBER unconditionally.  Left alone, a parent continued across
+    ! jobs therefore keeps band times from the first segment and replaces the
+    ! full-domain snapshot with one taken at the restart time -- and the child
+    ! builder requires the initial snapshot to match the FIRST band level
+    ! (make_child_case.py), so the pair becomes unusable and the original
+    ! snapshot is destroyed with no way back.
+    !
+    ! Continuation is decided from the BAND file, not the initial one: a fresh
+    ! run started in a directory still holding an old init file must clobber
+    ! it, because its new band series would otherwise be paired with a
+    ! snapshot from an abandoned run.  The band files are written by all band
+    ! ranks together, so any one of them settles it for every rank -- ranks
+    ! inside the box but off the band have no band file of their own.
+    exband = .false.
+    if (lband) inquire(file=trim(fname), exist=exband)
+    ncont = 0
+    if (exband) ncont = 1
+    call MPI_ALLREDUCE(MPI_IN_PLACE, ncont, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+    if (ncont > 0 .and. nestdump_linit) then
+      if (lbox) then
+        inquire(file=trim(fname_init), exist=exinit)
+        if (.not. exinit) call nestdump_abort('continuing an existing band file but '// &
+          trim(fname_init)//' is missing: the initial block cannot be recovered, and '// &
+          'writing a new one now would not match the first band level. Rerun the parent '// &
+          'from the start of this output series, or remove the band files to start a new one')
+      end if
+      linitdone = .true.
+      lkeptinit = .true.
+    end if
+
     if (myid == 0) then
       write(*, '(a)') 'nestdump: parent-side zone dump enabled'
       write(*, '(a,i0,a,i0,a,i0,a,i0,a)') '   child box: parent cells i = ', ilo, '..', ihi, &
@@ -167,9 +202,12 @@ contains
       write(*, '(a,i0,a,f0.4,a)') '   band thickness: ', nestdump_nzone, &
         ' parent cells; cadence ', tnestdump, ' s'
       write(*, '(a,l1)') '   initial block over the whole box: ', nestdump_linit
+      if (lkeptinit) write(*, '(a)') '   continuing an existing output series: the'// &
+        ' original initial block is kept, not rewritten'
     end if
 
     if (lband) call open_band_file(ni, nj, kb, ke)
+    if (lkeptinit .and. lband) call check_kept_init
 
     n = 0
     if (lband) n = 1
@@ -464,8 +502,15 @@ contains
         allocate(xtimes(ntimes))
         iret = nf90_get_var(ncid, vid_time, xtimes)
         call check(iret, 'get time')
+        ! Keep every record up to and INCLUDING the restart time, and drop
+        ! only those after it (from a segment this run abandons).  The record
+        ! at t = timee was written from the same state the restart file holds,
+        ! and the next dump is scheduled at btime + tnestdump, so treating it
+        ! as re-emittable -- the >= convention modstat_nc::open_nc uses for
+        ! period-averaged statistics -- overwrites it with a later sample and
+        ! loses that boundary level from the record for good.
         do while (nrec < ntimes)
-          if (xtimes(nrec + 1) >= real(timee, kind=4) - spacing(1._4)) exit
+          if (xtimes(nrec + 1) > real(timee, kind=4) + spacing(real(timee, kind=4))) exit
           nrec = nrec + 1
         end do
         deallocate(xtimes)
@@ -515,6 +560,40 @@ contains
   end subroutine open_band_file
 
   !> The whole box on this rank, once.  Overwrites an existing file.
+  !> Continuing: the kept initial block must still match the first band
+  !! level, which is what the child builder pairs them on.  A mismatch means
+  !! the two files came from different output series, so fail here rather than
+  !! let the child build fail much later with the parent already run.
+  subroutine check_kept_init
+    use modmpi, only : myid
+    integer :: iret, id, vt
+    real(kind=4) :: tinit, tband1
+    character(len=32) :: c1, c2
+
+    iret = nf90_get_var(ncid, vid_time, tband1, start=(/ 1 /))
+    call check(iret, 'get first band time')
+
+    iret = nf90_open(trim(fname_init), NF90_NOWRITE, id)
+    call check(iret, 'reopen '//trim(fname_init))
+    iret = nf90_inq_varid(id, 'time', vt)
+    call check(iret, 'inq time (init)')
+    iret = nf90_get_var(id, vt, tinit)
+    call check(iret, 'get time (init)')
+    iret = nf90_close(id)
+    call check(iret, 'close (init, check)')
+
+    if (abs(tinit - tband1) > 2.*spacing(max(abs(tband1), 1._4))) then
+      write(c1, '(es14.7)') tinit
+      write(c2, '(es14.7)') tband1
+      call nestdump_abort('the kept initial block is at t = '//trim(adjustl(c1))// &
+        ' but the band record starts at t = '//trim(adjustl(c2))// &
+        ': '//trim(fname_init)//' and '//trim(fname)//' are from different output series')
+    end if
+
+    if (myid == 0) write(*, '(a,es12.5)') &
+      '   kept initial block matches the first band level at t = ', tband1
+  end subroutine check_kept_init
+
   subroutine write_init_file(nbytes)
     use modglobal, only : zf, zh, timee, kb, ke
     use modfields, only : u0, v0, w0

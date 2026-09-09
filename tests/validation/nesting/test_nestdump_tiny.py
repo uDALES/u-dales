@@ -66,6 +66,32 @@ def _size(paths) -> int:
     return sum(p.stat().st_size for p in paths)
 
 
+
+def _set_namelist(path: Path, **values) -> None:
+    """Set existing scalar keys in a namelist in place."""
+    text = path.read_text(encoding="ascii")
+    for key, value in values.items():
+        text, n = re.subn(rf"(?m)^(\s*{key}\s*=\s*).*$",
+                          lambda m: m.group(1) + str(value), text)
+        if n != 1:
+            raise RuntimeError(f"{key}: {n} substitutions in {path}")
+    path.write_text(text, encoding="ascii")
+
+
+def _band_times(casedir: Path, expnr: str):
+    import netCDF4
+    path = sorted(casedir.glob(f"nestdump.*.{expnr}.nc"))[0]
+    with netCDF4.Dataset(path) as ds:
+        return [float(t) for t in ds.variables["time"][:]]
+
+
+def _init_time(casedir: Path, expnr: str) -> float:
+    import netCDF4
+    path = sorted(casedir.glob(f"nestdump_init.*.{expnr}.nc"))[0]
+    with netCDF4.Dataset(path) as ds:
+        return float(ds.variables["time"][:])
+
+
 class TestNestDumpTiny(unittest.TestCase):
     """One parent run with both outputs, two child builds, one refined build."""
 
@@ -244,6 +270,111 @@ class TestNestDumpTiny(unittest.TestCase):
                                       nzone=child.nzone)
             with self.assertRaises(ValueError):
                 caselib.check_finite_slabs(slabs, nb - 1, driver.dx)
+
+
+
+class TestNestDumpParentRestart(unittest.TestCase):
+    """A parent continued across two jobs must leave a usable input pair.
+
+    ``open_band_file`` reopens an existing band file and appends, keeping its
+    original time origin, but ``write_init_file`` used to recreate
+    ``nestdump_init.*.nc`` with ``NF90_CLOBBER`` on every startup, because
+    ``linitdone`` was reset from ``nestdump_linit`` alone and never consulted
+    whether this run was a continuation.  A normal continuation therefore
+    replaced the original full-domain snapshot with one taken at the restart
+    time while keeping the first segment's band times -- and
+    :mod:`make_child_case` requires the snapshot to match the FIRST band
+    level, so the pair became unusable *and* the original snapshot was gone.
+    The append cursor also used ``modstat_nc``'s ``>=`` convention, which
+    overwrote the boundary sample taken at exactly the restart time.
+
+    A production parent is the case that needs this: the preset's production
+    phase sets ``trestart = 1e9`` and so writes no restart of its own, which
+    is why the campaign never continued one.  This test sets a finite
+    ``trestart`` to make the two-segment run possible at all.
+    """
+
+    SEG1_RUNTIME = 6.0
+    SEG2_RUNTIME = 12.0
+    CADENCE = 1.5
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        binary = caselib.solver_binary()
+        if not binary.exists():
+            raise unittest.SkipTest(f"solver binary not found at {binary}")
+        cls.preset = replace(get_preset("tiny"), name="tiny-nestdump-restart",
+                             parent_output="nestdump")
+        cls.preset.validate()
+        cls._temp = tempfile.mkdtemp(prefix="udales-nestdump-restart-")
+        cls.rundir = Path(cls._temp)
+        p, nr = cls.preset, cls.preset.parent_expnr
+        nproc = p.nprocx * p.nprocy
+
+        cls.parent_dir = make_parent_case.build(cls.rundir, p)
+        nml = cls.parent_dir / f"namoptions.{nr}"
+        run_solver(cls.parent_dir, f"namoptions_spinup.{nr}", nproc,
+                   cls.parent_dir / "spinup.log")
+
+        # segment 1 -- a short production phase that does write a restart
+        run_v1._set_startfile(nml, run_v1._restart_file(cls.parent_dir, nr))
+        _set_namelist(nml, runtime=cls.SEG1_RUNTIME, trestart=cls.SEG1_RUNTIME,
+                      tnestdump=cls.CADENCE)
+        run_solver(cls.parent_dir, f"namoptions.{nr}", nproc, cls.parent_dir / "seg1.log")
+        cls.band1 = _band_times(cls.parent_dir, nr)
+        cls.init1 = _init_time(cls.parent_dir, nr)
+
+        # segment 2 -- continue in the SAME directory, as a queued job would
+        run_v1._set_startfile(nml, run_v1._restart_file(cls.parent_dir, nr))
+        _set_namelist(nml, runtime=cls.SEG2_RUNTIME, trestart=1.0e9)
+        run_solver(cls.parent_dir, f"namoptions.{nr}", nproc, cls.parent_dir / "seg2.log")
+        cls.band2 = _band_times(cls.parent_dir, nr)
+        cls.init2 = _init_time(cls.parent_dir, nr)
+        cls.seg2_log = (cls.parent_dir / "seg2.log").read_text(errors="replace")
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        if cls._temp and not os.environ.get("UDALES_NESTDUMP_KEEP"):
+            shutil.rmtree(cls._temp, ignore_errors=True)
+        elif cls._temp:
+            print(f"run directory kept at {cls._temp}")
+
+    def test_the_original_initial_block_survives_the_restart(self):
+        self.assertAlmostEqual(self.init2, self.init1, places=4,
+                               msg=f"the snapshot moved {self.init1} -> {self.init2}")
+        self.assertAlmostEqual(self.init2, self.band2[0], places=4,
+                               msg="the snapshot must match the first band level")
+
+    def test_the_continuation_says_so(self):
+        self.assertIn("continuing an existing output series", self.seg2_log)
+        self.assertIn("kept initial block matches the first band level", self.seg2_log)
+
+    def test_the_first_segments_levels_are_untouched(self):
+        self.assertEqual([round(t, 4) for t in self.band2[:len(self.band1)]],
+                         [round(t, 4) for t in self.band1])
+
+    def test_the_sample_at_the_restart_time_is_kept(self):
+        """The last level of segment 1 is at the restart time; it must remain."""
+        self.assertIn(round(self.band1[-1], 4), [round(t, 4) for t in self.band2])
+
+    def test_the_record_is_contiguous_and_grew(self):
+        self.assertGreater(len(self.band2), len(self.band1))
+        self.assertEqual(sorted(self.band2), self.band2)
+        self.assertEqual(len(set(round(t, 4) for t in self.band2)), len(self.band2))
+
+    def test_a_child_builds_from_the_continued_pair(self):
+        """The end-to-end consequence: make_child_case pairs init with band[0]."""
+        p = self.preset
+        outdir = self.rundir / "child_from_continued"
+        driving = DrivingParent.matched(self.parent_dir, p, source="nestdump")
+        try:
+            casedir = make_child_case.build(self.parent_dir, outdir, p, driving=driving)
+        finally:
+            driving.dump.close()
+        manifest = json.loads((casedir / "manifest.json").read_text())
+        self.assertGreater(manifest["n_parent_levels"], 0)
+        self.assertTrue((casedir / f"nesting.inp.{p.child_expnr}.nc").exists()
+                        or any(casedir.glob("nesting.inp.*.nc")))
 
 
 if __name__ == "__main__":
