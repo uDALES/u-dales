@@ -286,15 +286,15 @@ queue_wait_line() {
 }
 EOF
 
-## The queue-wait line opens output.exp (still overwritten on a rerun, as
-## before); the solver then appends to it.
+## The queue-wait line goes into output.exp.log ahead of this run's solver
+## output (master's convention, shared with local_execute.sh and hpc_gather.sh).
 cat <<EOF >> job.$exp
 mkdir -p $outdir
 cp -r $inputdir/* $outdir
 pushd $outdir
-queue_wait_line > $outdir/output.$exp
-echo "cluster: $UDALES_SYSTEM ($cluster_tell), target: $UDALES_TARGET" >> $outdir/output.$exp
-${launch} $outdir/namoptions.$exp >> $outdir/output.$exp 2>&1
+queue_wait_line >> $outdir/output.$exp.log
+echo "cluster: $UDALES_SYSTEM ($cluster_tell), target: $UDALES_TARGET" >> $outdir/output.$exp.log
+${launch} $outdir/namoptions.$exp >> $outdir/output.$exp.log 2>&1
 EOF
 
 ## submit job.exp file to queue

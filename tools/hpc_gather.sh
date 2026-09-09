@@ -185,7 +185,7 @@ echo "cluster: $UDALES_SYSTEM ($cluster_tell)" | tee -a $outdir/output.$exp.log
 ## comparable between a local run and a cluster one. The \$ are escaped to reach
 ## the job script intact and be evaluated on the compute node, not at submit time.
 gather_start=\$(date +%s.%N)
-$DA_TOOLSDIR/gather_outputs.sh $outdir
+$DA_TOOLSDIR/gather_outputs.sh $outdir >> $outdir/output.$exp.log 2>&1
 gather_end=\$(date +%s.%N)
 echo "Wall time for phase [gather outputs] : \$(echo "\$gather_end \$gather_start" | awk '{printf "%.6f", \$1 - \$2}') seconds" | tee -a $outdir/output.$exp.log
 EOF
